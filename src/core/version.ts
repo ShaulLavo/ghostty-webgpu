@@ -1,1 +1,1 @@
-export const GHOSTTY_UPSTREAM_REVISION = 'f64f4aca2c29b554d111b36c3d946a9bddd159ff' as const
+export const GHOSTTY_UPSTREAM_REVISION = 'da5ddcb0857c0e4ddb32f7a089911e9038d040f3' as const

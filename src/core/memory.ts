@@ -1,4 +1,5 @@
-import type { AbiLayout, AbiLayouts, GhosttyWasmExports } from './abi.js'
+import { ABI_SCHEMA_VERSION } from './abi.js'
+import type { AbiLayout, AbiLayouts, AbiManifest, GhosttyWasmExports } from './abi.js'
 import { createGhosttyError } from './error.js'
 
 const decoder = new TextDecoder()
@@ -35,10 +36,13 @@ export class WasmMemory {
 
   allocateBytes(value: string | Uint8Array): WasmAllocation {
     const bytes = typeof value === 'string' ? encoder.encode(value) : value
-    const pointer = this.exports.ghostty_wasm_alloc_u8_array(bytes.length)
+    // ghostty_wasm_alloc returns null for a zero length, which is not a failure.
+    if (bytes.length === 0) return { length: 0, pointer: 0 }
+
+    const pointer = this.exports.ghostty_wasm_alloc(bytes.length)
     if (pointer === 0) {
       throw createGhosttyError(
-        'ghostty_wasm_alloc_u8_array',
+        'ghostty_wasm_alloc',
         `Unable to allocate ${bytes.length} wasm bytes`,
       )
     }
@@ -60,7 +64,8 @@ export class WasmMemory {
   }
 
   freeBytes(allocation: WasmAllocation): void {
-    this.exports.ghostty_wasm_free_u8_array(allocation.pointer, allocation.length)
+    if (allocation.pointer === 0) return
+    this.exports.ghostty_wasm_free(allocation.pointer, allocation.length)
   }
 
   freeOpaque(pointer: number): void {
@@ -92,7 +97,14 @@ export class WasmMemory {
 export function parseAbiLayouts(memory: WasmMemory): AbiLayouts {
   const pointer = memory.exports.ghostty_type_json()
   const json = memory.readCString(pointer)
-  return JSON.parse(json) as AbiLayouts
+  const manifest = JSON.parse(json) as AbiManifest
+  if (manifest.schema !== ABI_SCHEMA_VERSION) {
+    throw createGhosttyError(
+      'ghostty_type_json',
+      `Unsupported ABI manifest schema ${manifest.schema}; expected ${ABI_SCHEMA_VERSION}`,
+    )
+  }
+  return manifest.types
 }
 
 export function requireLayout(layouts: AbiLayouts, name: string): AbiLayout {

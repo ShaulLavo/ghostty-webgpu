@@ -114,8 +114,9 @@ export interface GhosttyWasmExports extends WebAssembly.Exports {
   ghostty_type_json(): number
   ghostty_wasm_alloc_opaque(): number
   ghostty_wasm_free_opaque(pointer: number): void
-  ghostty_wasm_alloc_u8_array(length: number): number
-  ghostty_wasm_free_u8_array(pointer: number, length: number): void
+  ghostty_wasm_alloc(length: number): number
+  ghostty_wasm_free(pointer: number, length: number): void
+  ghostty_wasm_take_opaque(pointer: number): number
   ghostty_terminal_new(
     allocator: number,
     outTerminal: number,
@@ -173,3 +174,20 @@ export interface AbiLayout {
 }
 
 export type AbiLayouts = Record<string, AbiLayout>
+
+/** Schema version of `ghostty_type_json` this binding layer understands. */
+export const ABI_SCHEMA_VERSION = 1
+
+export interface AbiTarget {
+  endian: string
+  max_alignment: number
+  pointer_size: number
+  target: string
+  usize_size: number
+}
+
+export interface AbiManifest {
+  abi: AbiTarget
+  schema: number
+  types: AbiLayouts
+}
