@@ -31,18 +31,24 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:wasm": "bun scripts/build-wasm.ts",
+    "bench:renderer": "bun scripts/renderer-benchmark.ts",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",
     "prepack": "bun run build",
-    "test": "vitest run",
+    "test": "bun run test:unit && bun run test:browser",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:unit": "vitest run",
     "typecheck": "tsc --noEmit",
     "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
+    "@vitest/browser-playwright": "4.1.10",
+    "@webgpu/types": "0.1.72",
     "oxfmt": "0.64.0",
     "oxlint": "1.70.0",
+    "playwright": "1.60.0",
     "typescript": "7.0.2",
     "vitest": "4.1.10"
   },
