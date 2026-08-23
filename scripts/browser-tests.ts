@@ -1,5 +1,7 @@
 const config = 'vitest.browser.config.ts'
 const rendererTest = 'src/render/tests/renderer.browser.test.ts'
+const terminalUiTest = 'src/dom/tests/terminal-ui.browser.test.ts'
+const wideCellPattern = 'preserves native wide-cell continuation'
 const forwarded = process.argv.slice(2)
 
 interface ListedTest {
@@ -34,12 +36,33 @@ async function listRendererTests(): Promise<readonly ListedTest[]> {
   return JSON.parse(output) as ListedTest[]
 }
 
+function escapedPattern(name: string): string {
+  return name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
+
 function exactPattern(name: string): string {
-  return `^${name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}$`
+  return `^${escapedPattern(name)}$`
 }
 
 async function runIsolatedRendererTests(): Promise<void> {
-  await runVitest(['run', '--config', config, '--exclude', rendererTest])
+  await runVitest([
+    'run',
+    '--config',
+    config,
+    '--exclude',
+    rendererTest,
+    '--exclude',
+    terminalUiTest,
+  ])
+  await runVitest([
+    'run',
+    '--config',
+    config,
+    terminalUiTest,
+    '--testNamePattern',
+    `^(?!.*${escapedPattern(wideCellPattern)}).*`,
+  ])
+  await runVitest(['run', '--config', config, terminalUiTest, '--testNamePattern', wideCellPattern])
   const tests = await listRendererTests()
   for (const test of tests) {
     await runVitest([
