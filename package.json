@@ -48,7 +48,7 @@
     "lint": "oxlint .",
     "prepack": "bun run build",
     "test": "bun run test:unit && bun run test:browser",
-    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:browser": "bun scripts/browser-tests.ts",
     "test:unit": "vitest run",
     "typecheck": "tsc --noEmit",
     "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build"
