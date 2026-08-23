@@ -303,8 +303,8 @@ async function settleTerminal(terminal: GhosttyWebGpuTerminal): Promise<void> {
 
 async function waitForUi(predicate: () => boolean, message: string): Promise<void> {
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    await Promise.resolve()
     if (predicate()) return
+    await animationFrames()
   }
   throw new Error(message)
 }
@@ -1235,6 +1235,10 @@ describe.sequential('integrated terminal UI host', () => {
 
     terminal.write('界A')
     await settleTerminal(terminal)
+    await waitForUi(
+      () => terminal.frameSnapshot()?.rows[0]?.text.startsWith('界A') ?? false,
+      'Wide-cell frame did not render',
+    )
     moveTerminalPointer(terminal, 2, 0)
     await waitForUi(() => providerText !== undefined, 'Wide-cell provider did not run')
 
