@@ -26,12 +26,12 @@ export class WasmMemory {
   }
 
   allocate(length: number): number {
-    const pointer = this.exports.ghostty_alloc(0, length)
+    const pointer = this.exports.ghostty_wasm_alloc(length)
     if (pointer !== 0) {
       this.bytes.fill(0, pointer, pointer + length)
       return pointer
     }
-    throw createGhosttyError('ghostty_alloc', `Unable to allocate ${length} wasm bytes`)
+    throw createGhosttyError('ghostty_wasm_alloc', `Unable to allocate ${length} wasm bytes`)
   }
 
   allocateBytes(value: string | Uint8Array): WasmAllocation {
@@ -39,13 +39,7 @@ export class WasmMemory {
     // ghostty_wasm_alloc returns null for a zero length, which is not a failure.
     if (bytes.length === 0) return { length: 0, pointer: 0 }
 
-    const pointer = this.exports.ghostty_wasm_alloc(bytes.length)
-    if (pointer === 0) {
-      throw createGhosttyError(
-        'ghostty_wasm_alloc',
-        `Unable to allocate ${bytes.length} wasm bytes`,
-      )
-    }
+    const pointer = this.allocate(bytes.length)
     this.bytes.set(bytes, pointer)
     return { length: bytes.length, pointer }
   }
@@ -60,12 +54,12 @@ export class WasmMemory {
   }
 
   free(pointer: number, length: number): void {
-    this.exports.ghostty_free(0, pointer, length)
+    this.exports.ghostty_wasm_free(pointer, length)
   }
 
   freeBytes(allocation: WasmAllocation): void {
     if (allocation.pointer === 0) return
-    this.exports.ghostty_wasm_free(allocation.pointer, allocation.length)
+    this.free(allocation.pointer, allocation.length)
   }
 
   freeOpaque(pointer: number): void {
@@ -80,6 +74,12 @@ export class WasmMemory {
 
   readHandle(pointer: number): number {
     return this.view.getUint32(pointer, true)
+  }
+
+  takeOpaque(pointer: number, operation: string): number {
+    const handle = this.exports.ghostty_wasm_take_opaque(pointer)
+    if (handle !== 0) return handle
+    throw createGhosttyError(operation, `${operation} returned a null handle`)
   }
 
   readString(pointer: number): string {
@@ -108,7 +108,12 @@ export function parseAbiLayouts(memory: WasmMemory): AbiLayouts {
 }
 
 export function requireLayout(layouts: AbiLayouts, name: string): AbiLayout {
-  const layout = layouts[name]
-  if (layout) return layout
-  throw createGhosttyError('ghostty_type_json', `Required ABI layout is missing: ${name}`)
+  const descriptor = layouts[name]
+  if (!descriptor) {
+    throw createGhosttyError('ghostty_type_json', `Required ABI layout is missing: ${name}`)
+  }
+  if (descriptor.kind === 'struct' || descriptor.kind === 'union') {
+    return descriptor as AbiLayout
+  }
+  throw createGhosttyError('ghostty_type_json', `Required ABI type is not a layout: ${name}`)
 }

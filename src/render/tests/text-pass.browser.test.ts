@@ -41,7 +41,7 @@ function style(overrides: Partial<CellStyle>): CellStyle {
 }
 
 function cell(x: number, overrides: Partial<RenderCell> = {}): RenderCell {
-  return { selected: false, text: '', x, ...overrides }
+  return { continuation: false, selected: false, text: '', x, ...overrides }
 }
 
 function renderRow(y: number, cells: readonly RenderCell[]): RenderRow {

@@ -1,14 +1,23 @@
 {
   "name": "ghostty-webgpu",
   "version": "0.1.0",
-  "description": "libghostty-vt for the web with a damage-scheduled WebGPU renderer",
+  "description": "libghostty-vt for the web with DOM input and damage-scheduled WebGPU rendering",
+  "homepage": "https://github.com/ShaulLavo/ghostty-webgpu#readme",
+  "bugs": {
+    "url": "https://github.com/ShaulLavo/ghostty-webgpu/issues"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShaulLavo/ghostty-webgpu.git"
+  },
   "files": [
     "dist",
     "ghostty-vt.wasm",
     "bridge.wasm",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "type": "module",
   "sideEffects": false,
@@ -30,8 +39,10 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "build:bridge": "bun scripts/build-bridge.ts",
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",
+    "demo": "bun run --cwd demo start",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint .",

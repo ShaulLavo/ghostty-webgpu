@@ -3,4 +3,15 @@ dist/
 coverage/
 *.log
 .DS_Store
-
+.env
+.env.*
+!.env.example
+.npmrc
+*.key
+*.p12
+*.pem
+*.tsbuildinfo
+.idea/
+.vscode/
+playwright-report/
+test-results/

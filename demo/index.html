@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="ghostty-demo-token" content="__GHOSTTY_DEMO_TOKEN__" />
+    <title>ghostty-webgpu · terminal lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'Avenir Next', Avenir, 'Gill Sans', 'Trebuchet MS', sans-serif;
+        --background: #0b0e10;
+        --panel: #111518;
+        --panel-raised: #161b1f;
+        --terminal: #080a0c;
+        --border: #2b3338;
+        --border-strong: #3b474e;
+        --text: #d5dcdf;
+        --muted: #849198;
+        --accent: #9fb7aa;
+        --good: #8fb9a0;
+        --warn: #d0b477;
+        --bad: #cf8c86;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: var(--background);
+        color: var(--text);
+        min-height: 100dvh;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        background: var(--panel-raised);
+        border: 1px solid var(--border-strong);
+        border-radius: 3px;
+        color: var(--text);
+        cursor: pointer;
+        min-height: 30px;
+        padding: 0 10px;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .lab {
+        display: grid;
+        grid-template-rows: auto minmax(260px, 1fr) auto auto auto;
+        height: 100dvh;
+        min-height: 480px;
+        padding: 12px;
+      }
+
+      .lab-header,
+      .diagnostics,
+      .acceptance-bridge,
+      .manual-matrix {
+        border: 1px solid var(--border);
+      }
+
+      .lab-header {
+        align-items: center;
+        background: var(--panel);
+        display: flex;
+        justify-content: space-between;
+        min-height: 44px;
+        padding: 0 12px;
+      }
+
+      .identity {
+        align-items: baseline;
+        display: flex;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .identity strong {
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+      }
+
+      .identity span,
+      .security-note {
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .security-note {
+        align-items: center;
+        display: flex;
+        gap: 7px;
+        white-space: nowrap;
+      }
+
+      .security-note::before {
+        background: var(--good);
+        border-radius: 50%;
+        content: '';
+        height: 6px;
+        width: 6px;
+      }
+
+      .terminal-panel {
+        background: var(--terminal);
+        border: 1px solid var(--border);
+        border-top: 0;
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .terminal-panel:focus-within {
+        border-color: var(--border-strong);
+      }
+
+      #terminal-host {
+        height: 100%;
+        min-height: 0;
+        touch-action: none;
+        width: 100%;
+      }
+
+      .fatal {
+        background: color-mix(in srgb, var(--terminal) 92%, var(--bad));
+        inset: 0;
+        padding: 24px;
+        position: absolute;
+        z-index: 10;
+      }
+
+      .fatal[hidden] {
+        display: none;
+      }
+
+      .fatal strong {
+        color: var(--bad);
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .fatal pre {
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+        font-size: 12px;
+        margin: 0;
+        white-space: pre-wrap;
+      }
+
+      .diagnostics {
+        align-items: stretch;
+        background: var(--panel);
+        border-top: 0;
+        display: grid;
+        grid-template-columns: repeat(6, minmax(100px, 1fr)) auto;
+      }
+
+      .metric {
+        border-right: 1px solid var(--border);
+        min-width: 0;
+        padding: 8px 10px;
+      }
+
+      .metric dt {
+        color: var(--muted);
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        margin-bottom: 3px;
+        text-transform: uppercase;
+      }
+
+      .metric dd {
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      [data-tone='good'] {
+        color: var(--good);
+      }
+
+      [data-tone='warn'] {
+        color: var(--warn);
+      }
+
+      [data-tone='bad'] {
+        color: var(--bad);
+      }
+
+      .controls {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        padding: 7px 8px;
+      }
+
+      .clipboard-toggle {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        font-size: 11px;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      .clipboard-toggle input {
+        accent-color: var(--accent);
+      }
+
+      .acceptance-bridge {
+        background: var(--panel);
+        border-top: 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .acceptance-bar {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        min-height: 42px;
+        padding: 5px 8px 5px 12px;
+      }
+
+      .acceptance-title {
+        align-items: baseline;
+        display: flex;
+        gap: 9px;
+        min-width: 0;
+      }
+
+      .acceptance-title strong {
+        color: var(--text);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .acceptance-title span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .acceptance-bridge details {
+        border-top: 1px solid var(--border);
+      }
+
+      .acceptance-bridge summary {
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        padding: 7px 12px;
+        user-select: none;
+      }
+
+      .acceptance-bridge details[open] summary {
+        color: var(--accent);
+      }
+
+      .trace-state {
+        background: var(--terminal);
+        border-top: 1px solid var(--border);
+        color: #b9c9c0;
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        height: 180px;
+        line-height: 1.45;
+        margin: 0;
+        overflow: auto;
+        padding: 10px 12px;
+        white-space: pre;
+      }
+
+      .manual-matrix {
+        background: var(--panel);
+        border-top: 0;
+        color: var(--muted);
+        font-size: 11px;
+        padding: 8px 12px;
+      }
+
+      .manual-matrix summary {
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        user-select: none;
+      }
+
+      .manual-matrix p {
+        line-height: 1.55;
+        margin: 8px 0 2px;
+      }
+
+      .manual-matrix code {
+        color: var(--text);
+        font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+      }
+
+      @media (max-width: 900px) {
+        .diagnostics {
+          grid-template-columns: repeat(2, minmax(120px, 1fr));
+        }
+
+        .controls {
+          border-top: 1px solid var(--border);
+          grid-column: 1 / -1;
+        }
+
+        .security-note {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="lab">
+      <header class="lab-header">
+        <div class="identity">
+          <strong>ghostty-webgpu</strong>
+          <span>interactive terminal lab</span>
+        </div>
+        <div class="security-note">loopback · authenticated upgrade</div>
+      </header>
+
+      <section class="terminal-panel" aria-label="Interactive PTY terminal">
+        <div id="terminal-host"></div>
+        <div id="fatal" class="fatal" role="alert" hidden>
+          <strong>Terminal initialization failed</strong>
+          <pre id="fatal-message"></pre>
+        </div>
+      </section>
+
+      <section class="diagnostics" aria-label="Terminal diagnostics">
+        <dl class="metric">
+          <dt>Connection</dt>
+          <dd id="connection-state" data-tone="warn" aria-live="polite">booting</dd>
+        </dl>
+        <dl class="metric">
+          <dt>Security</dt>
+          <dd id="security-state" data-tone="warn">validating</dd>
+        </dl>
+        <dl class="metric">
+          <dt>Grid</dt>
+          <dd id="grid-state">—</dd>
+        </dl>
+        <dl class="metric">
+          <dt>Traffic</dt>
+          <dd id="traffic-state">↓ 0 B · ↑ 0 B</dd>
+        </dl>
+        <dl class="metric">
+          <dt>Idle resources</dt>
+          <dd id="idle-state" data-tone="warn">not sampled</dd>
+        </dl>
+        <dl class="metric">
+          <dt>Last event</dt>
+          <dd id="event-state" aria-live="polite">ready</dd>
+        </dl>
+        <div class="controls">
+          <label class="clipboard-toggle" title="Default-deny; enable only for this demo run">
+            <input id="osc52-opt-in" type="checkbox" />
+            allow OSC 52 writes
+          </label>
+          <label class="clipboard-toggle" title="Disable for the zero-timer idle check">
+            <input id="cursor-blink" type="checkbox" />
+            cursor blink
+          </label>
+          <button id="sample-idle" type="button">Sample idle</button>
+          <button id="reconnect" type="button">Reconnect</button>
+        </div>
+      </section>
+
+      <section class="acceptance-bridge" aria-labelledby="acceptance-trace-title">
+        <div class="acceptance-bar">
+          <div class="acceptance-title">
+            <strong id="acceptance-trace-title">Acceptance trace</strong>
+            <span>main-world DOM bridge · on-demand snapshot</span>
+          </div>
+          <button id="clear-trace" type="button">Clear trace</button>
+        </div>
+        <details open>
+          <summary>Snapshot JSON</summary>
+          <pre id="trace-state" class="trace-state" tabindex="0">Awaiting terminal sample…</pre>
+        </details>
+      </section>
+
+      <details class="manual-matrix">
+        <summary>Manual acceptance matrix</summary>
+        <p>
+          Run <code>vim</code>, <code>htop</code>, <code>lazygit</code>, and
+          <code>python3 demo/kitty-keyboard-check.py</code>. Exercise resize, focus, mouse and Shift
+          selection override, wheel and scrollback selection, IME, copy/paste, OSC 8 and plain URL
+          links, screen-reader rows, and both denied and explicitly enabled OSC 52. Leave cursor
+          blink disabled and use “Sample idle” after each app exits.
+        </p>
+      </details>
+    </main>
+
+    <script type="module" src="/client.js"></script>
+  </body>
+</html>

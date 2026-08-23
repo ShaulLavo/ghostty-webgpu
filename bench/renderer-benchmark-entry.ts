@@ -28,7 +28,6 @@ const renderer = await WebGpuTerminalRenderer.create({
   cellHeight,
   cellWidth,
   columns,
-  cursor: { style: 'outline', visible: true, x: 0, y: rows - 1 },
   deviceFactory: async () => device,
   fontFamily: 'monospace',
   fontSize: 13,

@@ -3,21 +3,35 @@ import {
   type AbiLayout,
   type AbiLayouts,
   type BridgeWasmExports,
+  ClipboardWriteResult,
   type GhosttyWasmExports,
   SystemOption,
+  TerminalOption,
 } from './abi.js'
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { type WasmAllocation, WasmMemory, requireLayout } from './memory.js'
-import type { DecodedPng, DeviceAttributes, TerminalEffects, TerminalSize } from './types.js'
+import type {
+  ClipboardRepresentation,
+  ClipboardWrite,
+  DecodedPng,
+  DeviceAttributes,
+  TerminalEffects,
+  TerminalSize,
+} from './types.js'
 
 const bridgeNames = [
   'bridge_write_pty',
+  'bridge_bell',
+  'bridge_color_scheme',
+  'bridge_clipboard_write',
   'bridge_device_attributes',
   'bridge_size',
   'bridge_xtversion',
   'bridge_title_changed',
   'bridge_decode_png',
 ] as const
+
+const decoder = new TextDecoder()
 
 const defaultDeviceAttributes: DeviceAttributes = {
   primary: {
@@ -35,6 +49,9 @@ const defaultDeviceAttributes: DeviceAttributes = {
 }
 
 interface BridgeIndexes {
+  bridge_bell: number
+  bridge_clipboard_write: number
+  bridge_color_scheme: number
   bridge_decode_png: number
   bridge_device_attributes: number
   bridge_size: number
@@ -71,9 +88,13 @@ function installBridge(table: WebAssembly.Table, exports: BridgeWasmExports): Br
 
 export class CallbackBridge {
   readonly imports: WebAssembly.Imports
+  private readonly clipboardContentLayout: AbiLayout
+  private readonly clipboardWriteLayout: AbiLayout
   private readonly exports: GhosttyWasmExports
   private readonly layouts: AbiLayouts
   private readonly memory: WasmMemory
+  private readonly stringLayout: AbiLayout
+  private readonly sysImageLayout: AbiLayout
   private readonly targets = new Map<number, TerminalTarget>()
   private indexes?: BridgeIndexes
   private pngDecoder?: (bytes: Uint8Array) => DecodedPng | undefined
@@ -82,8 +103,15 @@ export class CallbackBridge {
     this.exports = exports
     this.layouts = layouts
     this.memory = new WasmMemory(exports)
+    this.clipboardContentLayout = requireLayout(layouts, 'GhosttyClipboardContent')
+    this.clipboardWriteLayout = requireLayout(layouts, 'GhosttyClipboardWrite')
+    this.stringLayout = requireLayout(layouts, 'GhosttyString')
+    this.sysImageLayout = requireLayout(layouts, 'GhosttySysImage')
     this.imports = {
       env: {
+        bell: (...args: number[]) => this.bell(...args),
+        clipboard_write: (...args: number[]) => this.clipboardWrite(...args),
+        color_scheme: (...args: number[]) => this.colorScheme(...args),
         decode_png: (...args: number[]) => this.decodePng(...args),
         device_attributes: (...args: number[]) => this.deviceAttributes(...args),
         size: (...args: number[]) => this.size(...args),
@@ -139,11 +167,14 @@ export class CallbackBridge {
   private installTerminalCallbacks(terminal: number): void {
     const indexes = this.requireIndexes()
     const callbacks: readonly [number, number][] = [
-      [1, indexes.bridge_write_pty],
-      [4, indexes.bridge_xtversion],
-      [5, indexes.bridge_title_changed],
-      [6, indexes.bridge_size],
-      [8, indexes.bridge_device_attributes],
+      [TerminalOption.WritePty, indexes.bridge_write_pty],
+      [TerminalOption.Bell, indexes.bridge_bell],
+      [TerminalOption.Xtversion, indexes.bridge_xtversion],
+      [TerminalOption.TitleChanged, indexes.bridge_title_changed],
+      [TerminalOption.Size, indexes.bridge_size],
+      [TerminalOption.ColorScheme, indexes.bridge_color_scheme],
+      [TerminalOption.DeviceAttributes, indexes.bridge_device_attributes],
+      [TerminalOption.ClipboardWrite, indexes.bridge_clipboard_write],
     ]
     for (const [option, callback] of callbacks) {
       assertGhosttyResult(
@@ -158,6 +189,25 @@ export class CallbackBridge {
     if (!target?.effects.writePty) return
     const bytes = Uint8Array.from(this.memory.bytes.subarray(pointer, pointer + length))
     target.effects.writePty(bytes)
+  }
+
+  private bell(terminal = 0): void {
+    this.targets.get(terminal)?.effects.bell?.()
+  }
+
+  private colorScheme(terminal = 0, _userdata = 0, out = 0): number {
+    const colorScheme = this.targets.get(terminal)?.effects.colorScheme
+    if (colorScheme === undefined || out === 0) return 0
+    this.memory.view.setInt32(out, colorScheme, true)
+    return 1
+  }
+
+  private clipboardWrite(terminal = 0, _userdata = 0, pointer = 0): number {
+    const effect = this.targets.get(terminal)?.effects.clipboardWrite
+    if (!effect) return ClipboardWriteResult.Denied
+    const write = this.readClipboardWrite(pointer)
+    if (!write) return ClipboardWriteResult.InvalidData
+    return effect(write)
   }
 
   private deviceAttributes(terminal = 0, _userdata = 0, out = 0): number {
@@ -177,8 +227,16 @@ export class CallbackBridge {
   private xtversion(out = 0, terminal = 0): void {
     const target = this.targets.get(terminal)
     if (!target) return
-    this.memory.view.setUint32(out, target.version.pointer, true)
-    this.memory.view.setUint32(out + 4, target.version.length, true)
+    this.memory.view.setUint32(
+      out + requireField(this.stringLayout, 'ptr').offset,
+      target.version.pointer,
+      true,
+    )
+    this.memory.view.setUint32(
+      out + requireField(this.stringLayout, 'len').offset,
+      target.version.length,
+      true,
+    )
   }
 
   private titleChanged(terminal = 0): void {
@@ -204,11 +262,96 @@ export class CallbackBridge {
     const pixels = this.exports.ghostty_alloc(allocator, image.pixels.length)
     if (pixels === 0) return 0
     this.memory.bytes.set(image.pixels, pixels)
-    this.memory.view.setUint32(out, image.width, true)
-    this.memory.view.setUint32(out + 4, image.height, true)
-    this.memory.view.setUint32(out + 8, pixels, true)
-    this.memory.view.setUint32(out + 12, image.pixels.length, true)
+    this.memory.view.setUint32(
+      out + requireField(this.sysImageLayout, 'width').offset,
+      image.width,
+      true,
+    )
+    this.memory.view.setUint32(
+      out + requireField(this.sysImageLayout, 'height').offset,
+      image.height,
+      true,
+    )
+    this.memory.view.setUint32(out + requireField(this.sysImageLayout, 'data').offset, pixels, true)
+    this.memory.view.setUint32(
+      out + requireField(this.sysImageLayout, 'data_len').offset,
+      image.pixels.length,
+      true,
+    )
     return 1
+  }
+
+  private readClipboardWrite(pointer: number): ClipboardWrite | undefined {
+    if (!this.isReadable(pointer, this.clipboardWriteLayout.size)) return undefined
+    const reportedSize = this.memory.view.getUint32(
+      pointer + requireField(this.clipboardWriteLayout, 'size').offset,
+      true,
+    )
+    if (reportedSize < this.clipboardWriteLayout.size) return undefined
+    const contentsPointer = this.memory.view.getUint32(
+      pointer + requireField(this.clipboardWriteLayout, 'contents').offset,
+      true,
+    )
+    const contentsLength = this.memory.view.getUint32(
+      pointer + requireField(this.clipboardWriteLayout, 'contents_len').offset,
+      true,
+    )
+    const contents = this.readClipboardContents(contentsPointer, contentsLength)
+    if (!contents) return undefined
+    return {
+      contents,
+      location: this.memory.view.getInt32(
+        pointer + requireField(this.clipboardWriteLayout, 'location').offset,
+        true,
+      ) as ClipboardWrite['location'],
+    }
+  }
+
+  private readClipboardContents(
+    pointer: number,
+    length: number,
+  ): readonly ClipboardRepresentation[] | undefined {
+    if (length === 0) return []
+    if (!this.isReadable(pointer, length * this.clipboardContentLayout.size)) return undefined
+    const contents: ClipboardRepresentation[] = []
+    for (let index = 0; index < length; index += 1) {
+      const contentPointer = pointer + index * this.clipboardContentLayout.size
+      const content = this.readClipboardContent(contentPointer)
+      if (!content) return undefined
+      contents.push(content)
+    }
+    return contents
+  }
+
+  private readClipboardContent(pointer: number): ClipboardRepresentation | undefined {
+    const mimePointer = pointer + requireField(this.clipboardContentLayout, 'mime').offset
+    const dataPointer = pointer + requireField(this.clipboardContentLayout, 'data').offset
+    const mime = this.copyBorrowedString(mimePointer)
+    if (!mime) return undefined
+    const data = this.copyBorrowedString(dataPointer)
+    if (!data) return undefined
+    return { data, mime: decoder.decode(mime) }
+  }
+
+  private copyBorrowedString(pointer: number): Uint8Array | undefined {
+    if (!this.isReadable(pointer, this.stringLayout.size)) return undefined
+    const data = this.memory.view.getUint32(
+      pointer + requireField(this.stringLayout, 'ptr').offset,
+      true,
+    )
+    const length = this.memory.view.getUint32(
+      pointer + requireField(this.stringLayout, 'len').offset,
+      true,
+    )
+    if (length === 0) return new Uint8Array()
+    if (!this.isReadable(data, length)) return undefined
+    return Uint8Array.from(this.memory.bytes.subarray(data, data + length))
+  }
+
+  private isReadable(pointer: number, length: number): boolean {
+    if (!Number.isSafeInteger(length) || length < 0) return false
+    if (!Number.isSafeInteger(pointer) || pointer <= 0) return false
+    return pointer + length <= this.memory.bytes.length
   }
 
   private writeSize(pointer: number, size: TerminalSize): void {

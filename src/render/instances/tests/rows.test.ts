@@ -34,7 +34,7 @@ function lookup(atlas: GlyphAtlas) {
 }
 
 function cell(x: number, overrides: Partial<RenderCell> = {}): RenderCell {
-  return { selected: false, text: '', x, ...overrides }
+  return { continuation: false, selected: false, text: '', x, ...overrides }
 }
 
 function row(y: number, cells: readonly RenderCell[]): RenderRow {
@@ -84,7 +84,7 @@ describe('InstanceRows', () => {
     const instances = new InstanceRows({ cellHeight: 16, cellWidth: 8, columns: 2, rows: 1 })
     const atlas = new GlyphAtlas({ pageHeight: 32, pageWidth: 32 })
     instances.rebuildRow(
-      row(0, [cell(0, { text: '界' }), cell(1)]),
+      row(0, [cell(0, { text: '界' }), cell(1, { continuation: true, text: 'duplicate' })]),
       lookup(atlas),
       source,
       defaultRendererTheme,

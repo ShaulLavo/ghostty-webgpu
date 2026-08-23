@@ -56,6 +56,7 @@ function validateExports(exports: WebAssembly.Exports): GhosttyWasmExports {
   const required = [
     'memory',
     '__indirect_function_table',
+    'ghostty_cell_get',
     'ghostty_terminal_new',
     'ghostty_terminal_vt_write',
     'ghostty_render_state_update',

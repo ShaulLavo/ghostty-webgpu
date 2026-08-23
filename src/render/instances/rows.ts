@@ -189,7 +189,7 @@ export class InstanceRows {
     this.writeColor(this.glyphData, offset + GlyphOffset.Color, colors.foreground, 1)
     this.writeColor(this.glyphData, offset + GlyphOffset.Background, colors.background, 1)
     let flags = glyphFlags(cell, cursor)
-    if (cell.text)
+    if (cell.text && !cell.continuation)
       flags |= this.writeGlyphAtlas(offset, cell.text, row, glyphs, source, invalidatedRows)
     this.glyphData[offset + GlyphOffset.Meta] = flags
     this.glyphData[offset + GlyphOffset.Meta + 1] = cursorStyleCode(cursor?.style)

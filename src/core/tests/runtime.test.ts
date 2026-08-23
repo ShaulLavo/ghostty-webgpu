@@ -1,7 +1,8 @@
+import { readFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it } from 'vitest'
-import { RenderStateDirty } from '../abi.js'
+import { ClipboardLocation, ClipboardWriteResult, ColorScheme, RenderStateDirty } from '../abi.js'
 import { GhosttyRuntime } from '../runtime.js'
-import type { RenderRow } from '../types.js'
+import type { ClipboardWrite, RenderRow } from '../types.js'
 
 const decoder = new TextDecoder()
 let runtime: GhosttyRuntime | undefined
@@ -14,6 +15,25 @@ afterEach(() => {
 function rowText(row: RenderRow): string {
   return row.cells.map((cell) => cell.text || ' ').join('')
 }
+
+async function wasmWithRenamedExport(name: string): Promise<Uint8Array> {
+  const bytes = await readFile(new URL('../../../ghostty-vt.wasm', import.meta.url))
+  const exportedName = Buffer.from(`${name}\0`)
+  const offset = bytes.indexOf(exportedName)
+  if (offset < 0) throw new TypeError(`Wasm export is missing from the test artifact: ${name}`)
+  bytes[offset + name.length - 1] = 'x'.charCodeAt(0)
+  return bytes
+}
+
+describe('runtime export validation', () => {
+  it('rejects a wasm module without the required cell accessor', async () => {
+    const wasm = await wasmWithRenamedExport('ghostty_cell_get')
+
+    await expect(GhosttyRuntime.create({ wasm })).rejects.toThrow(
+      'libghostty-vt export is missing: ghostty_cell_get',
+    )
+  })
+})
 
 describe('libghostty-vt callback bridge', () => {
   it('handles pointer, out-struct, and sret callback shapes', async () => {
@@ -43,6 +63,66 @@ describe('libghostty-vt callback bridge', () => {
     expect(output).toContain('\u001b[8;24;80t')
     expect(titleChanges).toBe(1)
     expect(terminal.title).toBe('bridge-title')
+    terminal.dispose()
+  })
+
+  it('dispatches bell and reports the configured color scheme', async () => {
+    runtime = await GhosttyRuntime.create()
+    const writes: Uint8Array[] = []
+    let bellCount = 0
+    const terminal = runtime.createTerminal({
+      effects: {
+        bell: () => {
+          bellCount += 1
+        },
+        colorScheme: ColorScheme.Dark,
+        writePty: (bytes) => writes.push(bytes),
+      },
+    })
+
+    terminal.write('\u0007\u001b[?996n')
+
+    expect(bellCount).toBe(1)
+    expect(decoder.decode(Buffer.concat(writes))).toBe('\u001b[?997;1n')
+    terminal.dispose()
+  })
+
+  it('copies OSC 52 clipboard content before the callback returns', async () => {
+    runtime = await GhosttyRuntime.create()
+    const clipboardWrites: ClipboardWrite[] = []
+    const terminal = runtime.createTerminal({
+      effects: {
+        clipboardWrite: (write) => {
+          clipboardWrites.push(write)
+          return ClipboardWriteResult.Success
+        },
+      },
+    })
+
+    terminal.write('\u001b]52;c;Y29waWVkIGNvbnRlbnQ=\u0007')
+
+    const first = clipboardWrites[0]!
+    const firstContent = first.contents[0]!
+    expect(first.location).toBe(ClipboardLocation.Standard)
+    expect(firstContent.mime).toBe('text/plain')
+    expect(decoder.decode(firstContent.data)).toBe('copied content')
+    expect(firstContent.data.buffer).not.toBe(runtime.exports.memory.buffer)
+
+    terminal.write('\u001b]52;c;cmVwbGFjZW1lbnQ=\u0007')
+
+    expect(clipboardWrites).toHaveLength(2)
+    expect(decoder.decode(firstContent.data)).toBe('copied content')
+    terminal.dispose()
+  })
+
+  it('denies clipboard writes when no effect is configured', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal()
+    const callback = runtime.bridge.imports.env?.clipboard_write
+
+    expect(callback).toBeTypeOf('function')
+    if (typeof callback !== 'function') return
+    expect(callback(terminal.handle, 0, 0)).toBe(ClipboardWriteResult.Denied)
     terminal.dispose()
   })
 
@@ -81,6 +161,10 @@ describe('VT corpus rendering', () => {
         expect(rows[0]?.cells[0]?.text).toBe('e\u0301')
         expect(rows[0]?.cells[1]?.text).toBe('界')
         expect(rows[0]?.cells[2]?.text).toBe('')
+        expect(rows[0]?.cells[0]?.continuation).toBe(false)
+        expect(rows[0]?.cells[1]?.continuation).toBe(false)
+        expect(rows[0]?.cells[2]?.continuation).toBe(true)
+        expect(rows[0]?.cells[3]?.continuation).toBe(false)
       },
     },
     {
@@ -111,6 +195,74 @@ describe('VT corpus rendering', () => {
 
     expect(snapshot.dirty).toBe(RenderStateDirty.Full)
     verify(snapshot.rows)
+    renderState.dispose()
+    terminal.dispose()
+  })
+
+  it('distinguishes a wrapped wide spacer head from its continuation tail', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 2, rows: 2 })
+    const renderState = runtime.createRenderState(terminal)
+    terminal.write('A界')
+
+    const rows = renderState.snapshot().rows
+
+    expect(rows[0]?.cells[1]).toMatchObject({ continuation: false, text: '' })
+    expect(rows[1]?.cells[0]).toMatchObject({ continuation: false, text: '界' })
+    expect(rows[1]?.cells[1]).toMatchObject({ continuation: true, text: '' })
+    renderState.dispose()
+    terminal.dispose()
+  })
+
+  it('reads terminal-driven cursor state as one render snapshot', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 4, rows: 2 })
+    const renderState = runtime.createRenderState(terminal)
+
+    const cursorStyles = [
+      { blinking: true, sequence: 1, style: 'block' },
+      { blinking: false, sequence: 2, style: 'block' },
+      { blinking: true, sequence: 3, style: 'underline' },
+      { blinking: false, sequence: 4, style: 'underline' },
+      { blinking: true, sequence: 5, style: 'bar' },
+      { blinking: false, sequence: 6, style: 'bar' },
+    ] as const
+    for (const expected of cursorStyles) {
+      terminal.write(`\u001b[${expected.sequence} q`)
+      renderState.update()
+      expect(renderState.readCursor()).toMatchObject({
+        blinking: expected.blinking,
+        style: expected.style,
+      })
+    }
+
+    terminal.write('\u001b[3 q\u001b[2;3H')
+    renderState.update()
+    expect(renderState.readCursor()).toEqual({
+      blinking: true,
+      passwordInput: false,
+      style: 'underline',
+      viewport: { wideTail: false, x: 2, y: 1 },
+      visible: true,
+    })
+
+    terminal.write('\u001b[5 q\u001b[?25l')
+    renderState.update()
+    expect(renderState.readCursor()).toMatchObject({
+      blinking: true,
+      style: 'bar',
+      visible: false,
+    })
+
+    terminal.setDefaultCursorStyle('outline')
+    terminal.reset()
+    renderState.update()
+    expect(renderState.readCursor().style).toBe('outline')
+
+    terminal.write('a\r\nb\r\nc')
+    terminal.scrollToTop()
+    renderState.update()
+    expect(renderState.readCursor().viewport).toBeUndefined()
     renderState.dispose()
     terminal.dispose()
   })
