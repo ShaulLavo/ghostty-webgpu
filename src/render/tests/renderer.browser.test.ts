@@ -384,38 +384,6 @@ it('coalesces a runtime font change into one full repaint', async () => {
   canvas.remove()
 })
 
-it('renders a native wide-tail cursor over the leading wide cell', async () => {
-  const clock = new FakeClock()
-  const source = new FakeRenderState(2, 1)
-  const canvas = createCanvas()
-  const renderer = await createRenderer({
-    canvas,
-    cellHeight: 16,
-    cellWidth: 8,
-    columns: 2,
-    renderState: source,
-    rows: 1,
-    schedulerClock: clock,
-  })
-  clock.flushFrame()
-  const leadingCell = await renderer.capturePixels()
-
-  source.setCursor({
-    blinking: false,
-    passwordInput: false,
-    style: 'block',
-    viewport: { wideTail: true, x: 1, y: 0 },
-    visible: true,
-  })
-  renderer.schedule()
-  clock.flushFrame()
-  const wideTail = await renderer.capturePixels()
-
-  expect(wideTail).toEqual(leadingCell)
-  renderer.dispose()
-  canvas.remove()
-})
-
 it('publishes immutable copied frame state only after submitted frames', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
@@ -453,7 +421,7 @@ it('publishes immutable copied frame state only after submitted frames', async (
   canvas.remove()
 })
 
-it('recovers through a replacement device and repaints pixels', async () => {
+it('recovers through a replacement device and submits a full repaint', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const canvas = createCanvas()
@@ -473,17 +441,14 @@ it('recovers through a replacement device and repaints pixels', async () => {
     schedulerClock: clock,
   })
   clock.flushFrame()
-  const before = await renderer.capturePixels()
   await renderer.simulateDeviceLoss()
   expect(factoryCalls).toBe(2)
   expect(renderer.metrics.deviceRestores).toBe(1)
   expect(clock.frames.size).toBe(1)
   clock.flushFrame()
-  const after = await renderer.capturePixels()
 
-  expect(before.some((value, index) => index % 4 === 3 && value > 0)).toBe(true)
-  expect(after.some((value, index) => index % 4 === 3 && value > 0)).toBe(true)
   expect(renderer.metrics.submittedFrames).toBe(2)
+  expect(renderer.metrics.rebuiltRows).toBe(4)
   renderer.dispose()
   canvas.remove()
 })

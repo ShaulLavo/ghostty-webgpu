@@ -10,11 +10,11 @@ import {
 import { GlyphAtlas } from './atlas/atlas.js'
 import { CanvasGlyphRasterizer } from './atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from './atlas/gpu-textures.js'
+import { renderCursorState } from './cursor.js'
 import type { GlyphBitmap } from './atlas/types.js'
 import { InstanceRows } from './instances/rows.js'
 import {
   defaultRendererTheme,
-  type CursorState,
   type RendererTheme,
   type RowInstanceUpdate,
 } from './instances/types.js'
@@ -502,18 +502,6 @@ export class WebGpuTerminalRenderer {
     )
   }
 
-  private instanceCursor(): CursorState | undefined {
-    const cursor = this.cursor
-    const viewport = cursor?.viewport
-    if (!cursor || !viewport) return undefined
-    return {
-      style: cursor.style,
-      visible: cursor.visible && this.cursorPhaseVisible,
-      x: viewport.wideTail ? Math.max(0, viewport.x - 1) : viewport.x,
-      y: viewport.y,
-    }
-  }
-
   private synchronizeCursorBlink(): void {
     const cursor = this.cursor
     const enabled =
@@ -539,7 +527,7 @@ export class WebGpuTerminalRenderer {
 
   private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {
     const updates: RowInstanceUpdate[] = []
-    const cursor = this.instanceCursor()
+    const cursor = renderCursorState(this.cursor, this.cursorPhaseVisible)
     for (const row of rows) {
       updates.push(
         this.instances.rebuildRow(row, this.glyphLookup(), this.rasterizer, this.theme, cursor),
