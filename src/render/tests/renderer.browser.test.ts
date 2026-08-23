@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type {
@@ -11,8 +11,24 @@ import {
   WebGpuTerminalRenderer,
   type RendererFrameSnapshot,
   type RenderStateSource,
+  type WebGpuTerminalRendererOptions,
 } from '../renderer.js'
 import type { RenderSchedulerClock } from '../scheduler.js'
+
+const devices = new Set<GPUDevice>()
+const renderers = new Set<WebGpuTerminalRenderer>()
+// Chromium's SwiftShader adapter lags configured-canvas teardown on Linux.
+const deviceCleanupDelayMs = navigator.userAgent.includes('Linux') ? 50 : 0
+
+afterEach(async () => {
+  for (const renderer of renderers) renderer.dispose()
+  renderers.clear()
+  const losses = [...devices].map((device) => device.lost)
+  for (const device of devices) device.destroy()
+  await Promise.all(losses)
+  devices.clear()
+  await waitForDeviceCleanup()
+})
 
 class FakeClock implements RenderSchedulerClock {
   private nextHandle = 1
@@ -121,7 +137,21 @@ function fakeCell(x: number, y: number): RenderCell {
 async function createDevice(): Promise<GPUDevice> {
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
   if (!adapter) throw new Error('WebGPU requestAdapter returned null')
-  return adapter.requestDevice()
+  const device = await adapter.requestDevice()
+  devices.add(device)
+  return device
+}
+
+async function waitForDeviceCleanup(): Promise<void> {
+  await new Promise<void>((resolve) => window.setTimeout(resolve, deviceCleanupDelayMs))
+}
+
+async function createRenderer(
+  options: WebGpuTerminalRendererOptions,
+): Promise<WebGpuTerminalRenderer> {
+  const renderer = await WebGpuTerminalRenderer.create({ deviceFactory: createDevice, ...options })
+  renderers.add(renderer)
+  return renderer
 }
 
 function createCanvas(): HTMLCanvasElement {
@@ -134,7 +164,7 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -171,7 +201,7 @@ it('submits one frame per blink transition without a standing animation frame', 
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -213,7 +243,7 @@ it('renders cursor-only terminal mutations even when row damage is clean', async
   const source = new FakeRenderState(2, 2)
   const frames: RendererFrameSnapshot[] = []
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -250,7 +280,7 @@ it('separates CSS grid size from DPR backing resources and ignores semantic no-o
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -288,7 +318,7 @@ it('separates CSS grid size from DPR backing resources and ignores semantic no-o
 it('canonicalizes fractional CSS cell metrics to the integer native DPR grid', async () => {
   const clock = new FakeClock()
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 15.7,
     cellWidth: 7.8,
@@ -314,7 +344,7 @@ it('coalesces a runtime font change into one full repaint', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -340,7 +370,7 @@ it('renders a native wide-tail cursor over the leading wide cell', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 1)
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -373,7 +403,7 @@ it('publishes immutable copied frame state only after submitted frames', async (
   const source = new FakeRenderState(2, 2)
   const frames: RendererFrameSnapshot[] = []
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -414,7 +444,7 @@ it('recovers through a replacement device and repaints pixels', async () => {
     factoryCalls += 1
     return createDevice()
   }
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -442,7 +472,6 @@ it('recovers through a replacement device and repaints pixels', async () => {
 
 it('discards a replacement device that resolves after disposal', async () => {
   const first = await createDevice()
-  const second = await createDevice()
   let resolveReplacement: ((device: GPUDevice) => void) | undefined
   let calls = 0
   const factory = () => {
@@ -454,7 +483,7 @@ it('discards a replacement device that resolves after disposal', async () => {
   }
   const clock = new FakeClock()
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -467,6 +496,9 @@ it('discards a replacement device that resolves after disposal', async () => {
   clock.flushFrame()
   const restoring = renderer.simulateDeviceLoss()
   renderer.dispose()
+  await first.lost
+  await waitForDeviceCleanup()
+  const second = await createDevice()
   resolveReplacement?.(second)
   await restoring
 
@@ -477,17 +509,16 @@ it('discards a replacement device that resolves after disposal', async () => {
 
 it('keeps device replacement retryable after acquisition fails', async () => {
   const first = await createDevice()
-  const second = await createDevice()
   let calls = 0
   const factory = () => {
     calls += 1
     if (calls === 1) return Promise.resolve(first)
     if (calls === 2) return Promise.reject(new Error('replacement unavailable'))
-    return Promise.resolve(second)
+    return createDevice()
   }
   const clock = new FakeClock()
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -514,18 +545,17 @@ it('keeps device replacement retryable after acquisition fails', async () => {
 it('unwinds a replacement when post-acquisition setup fails', async () => {
   const first = await createDevice()
   const second = await createDevice()
-  const third = await createDevice()
   const secondDestroy = vi.spyOn(second, 'destroy')
   let calls = 0
   const factory = () => {
     calls += 1
     if (calls === 1) return Promise.resolve(first)
     if (calls === 2) return Promise.resolve(second)
-    return Promise.resolve(third)
+    return createDevice()
   }
   const clock = new FakeClock()
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,
@@ -545,6 +575,8 @@ it('unwinds a replacement when post-acquisition setup fails', async () => {
   await renderer.simulateDeviceLoss()
   expect(renderer.metrics.deviceRestores).toBe(0)
   expect(secondDestroy).toHaveBeenCalledOnce()
+  await second.lost
+  await waitForDeviceCleanup()
   configure.mockRestore()
   renderer.schedule()
   clock.flushFrame()
@@ -558,7 +590,7 @@ it('validates before acquisition and destroys a device after constructor failure
   const canvas = createCanvas()
   let calls = 0
   await expect(
-    WebGpuTerminalRenderer.create({
+    createRenderer({
       canvas,
       cellHeight: 0,
       cellWidth: 8,
@@ -581,7 +613,7 @@ it('validates before acquisition and destroys a device after constructor failure
     throw new TypeError('initial configure failed')
   })
   await expect(
-    WebGpuTerminalRenderer.create({
+    createRenderer({
       canvas,
       cellHeight: 16,
       cellWidth: 8,
@@ -603,7 +635,7 @@ it('consumes the real libghostty-vt damage contract in a browser', async () => {
   const clock = new FakeClock()
   const frames: RendererFrameSnapshot[] = []
   const canvas = createCanvas()
-  const renderer = await WebGpuTerminalRenderer.create({
+  const renderer = await createRenderer({
     canvas,
     cellHeight: 16,
     cellWidth: 8,

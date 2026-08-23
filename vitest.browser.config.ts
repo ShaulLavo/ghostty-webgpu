@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 
 const launchArgs = ['--enable-unsafe-webgpu']
 if (process.platform === 'linux') {
-  launchArgs.push('--enable-features=Vulkan', '--use-webgpu-adapter=swiftshader')
+  launchArgs.push('--use-webgpu-adapter=swiftshader', '--use-gpu-in-tests')
 }
 
 export default defineConfig({
