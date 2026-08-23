@@ -15,13 +15,14 @@ import { InstanceRows } from '../rows.js'
 import { defaultRendererTheme } from '../types.js'
 
 const source = {
-  rasterize(text: string): GlyphBitmap {
+  rasterize(text: string, cellSpan = 1): GlyphBitmap {
+    const width = 8 * cellSpan
     return {
       advance: 8,
       height: 8,
       kind: text === '🙂' ? 'color' : 'grayscale',
-      pixels: new Uint8Array(8 * 8 * 4).fill(255),
-      width: 8,
+      pixels: new Uint8Array(width * 8 * 4).fill(255),
+      width,
     }
   },
 }
@@ -91,6 +92,7 @@ describe('InstanceRows', () => {
     )
 
     expect((instances.glyphData[GlyphOffset.Meta] ?? 0) & GlyphFlag.Glyph).toBe(GlyphFlag.Glyph)
+    expect(instances.glyphData[GlyphOffset.Rect + 2]).toBe(16)
     expect(
       (instances.glyphData[GLYPH_INSTANCE_FLOATS + GlyphOffset.Meta] ?? 0) & GlyphFlag.Glyph,
     ).toBe(0)

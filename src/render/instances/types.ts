@@ -25,7 +25,7 @@ export interface GlyphLookup {
 }
 
 export interface GlyphSource {
-  rasterize(text: string): GlyphBitmap
+  rasterize(text: string, cellSpan?: number): GlyphBitmap
 }
 
 export interface InstanceByteRange {

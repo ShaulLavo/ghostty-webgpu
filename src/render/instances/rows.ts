@@ -81,6 +81,16 @@ function byteRange(row: number, columns: number, instanceBytes: number): Instanc
   }
 }
 
+function cellSpan(cells: readonly RenderCell[], index: number): number {
+  let span = 1
+  while (cells[index + span]?.continuation) span += 1
+  return span
+}
+
+function glyphCacheKey(text: string, span: number): string {
+  return `${span}\u0000${text}`
+}
+
 export class InstanceRows {
   readonly backgroundData: Float32Array
   readonly glyphData: Float32Array
@@ -110,9 +120,19 @@ export class InstanceRows {
     glyphs.beginRow(row.y)
     this.clearRow(row.y)
     const invalidatedRows = new Set<number>()
-    for (const cell of row.cells) {
+    for (let index = 0; index < row.cells.length; index += 1) {
+      const cell = row.cells[index]!
       if (cell.x >= this.columns) continue
-      this.writeCell(row.y, cell, glyphs, source, theme, cursor, invalidatedRows)
+      this.writeCell(
+        row.y,
+        cell,
+        cellSpan(row.cells, index),
+        glyphs,
+        source,
+        theme,
+        cursor,
+        invalidatedRows,
+      )
     }
     return {
       background: byteRange(row.y, this.columns, BACKGROUND_INSTANCE_BYTES),
@@ -151,6 +171,7 @@ export class InstanceRows {
   private writeCell(
     row: number,
     cell: RenderCell,
+    span: number,
     glyphs: GlyphLookup,
     source: GlyphSource,
     theme: RendererTheme,
@@ -161,7 +182,8 @@ export class InstanceRows {
     const blockCursor = cursor?.style === 'block'
     const colors = colorsForCell(cell, theme, blockCursor)
     this.writeBackground(row, cell.x, colors)
-    this.writeGlyph(row, cell, colors, cursor, glyphs, source, theme, invalidatedRows)
+    if (cell.continuation) return
+    this.writeGlyph(row, cell, span, colors, cursor, glyphs, source, theme, invalidatedRows)
   }
 
   private writeBackground(row: number, column: number, colors: CellColors): void {
@@ -177,6 +199,7 @@ export class InstanceRows {
   private writeGlyph(
     row: number,
     cell: RenderCell,
+    span: number,
     colors: CellColors,
     cursor: CursorState | undefined,
     glyphs: GlyphLookup,
@@ -185,12 +208,12 @@ export class InstanceRows {
     invalidatedRows: Set<number>,
   ): void {
     const offset = (row * this.columns + cell.x) * GLYPH_INSTANCE_FLOATS
-    this.writeRect(this.glyphData, offset + GlyphOffset.Rect, row, cell.x)
+    this.writeRect(this.glyphData, offset + GlyphOffset.Rect, row, cell.x, span)
     this.writeColor(this.glyphData, offset + GlyphOffset.Color, colors.foreground, 1)
     this.writeColor(this.glyphData, offset + GlyphOffset.Background, colors.background, 1)
     let flags = glyphFlags(cell, cursor)
-    if (cell.text && !cell.continuation)
-      flags |= this.writeGlyphAtlas(offset, cell.text, row, glyphs, source, invalidatedRows)
+    if (cell.text)
+      flags |= this.writeGlyphAtlas(offset, cell.text, span, row, glyphs, source, invalidatedRows)
     this.glyphData[offset + GlyphOffset.Meta] = flags
     this.glyphData[offset + GlyphOffset.Meta + 1] = cursorStyleCode(cursor?.style)
     this.glyphData[offset + GlyphOffset.Meta + 2] = theme.minimumContrast
@@ -199,13 +222,14 @@ export class InstanceRows {
   private writeGlyphAtlas(
     offset: number,
     text: string,
+    span: number,
     row: number,
     glyphs: GlyphLookup,
     source: GlyphSource,
     invalidatedRows: Set<number>,
   ): number {
-    const bitmap = source.rasterize(text)
-    const result = glyphs.resolve(text, bitmap, row)
+    const bitmap = source.rasterize(text, span)
+    const result = glyphs.resolve(glyphCacheKey(text, span), bitmap, row)
     for (const invalidated of result.invalidatedRows) invalidatedRows.add(invalidated)
     const glyph = result.glyph
     this.glyphData[offset + GlyphOffset.Uv] = glyph.x / glyph.atlasWidth
@@ -218,10 +242,16 @@ export class InstanceRows {
     return GlyphFlag.Glyph
   }
 
-  private writeRect(data: Float32Array, offset: number, row: number, column: number): void {
+  private writeRect(
+    data: Float32Array,
+    offset: number,
+    row: number,
+    column: number,
+    span = 1,
+  ): void {
     data[offset] = column * this.cellWidth
     data[offset + 1] = row * this.cellHeight
-    data[offset + 2] = this.cellWidth
+    data[offset + 2] = this.cellWidth * span
     data[offset + 3] = this.cellHeight
   }
 

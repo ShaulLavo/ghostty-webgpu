@@ -36,5 +36,5 @@ export interface AtlasPageUpload {
 }
 
 export interface GlyphRasterizer {
-  rasterize(text: string): GlyphBitmap
+  rasterize(text: string, cellSpan?: number): GlyphBitmap
 }
