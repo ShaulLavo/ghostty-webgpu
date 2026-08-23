@@ -1,4 +1,4 @@
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type {
@@ -17,8 +17,15 @@ import type { RenderSchedulerClock } from '../scheduler.js'
 
 const devices = new Set<GPUDevice>()
 const renderers = new Set<WebGpuTerminalRenderer>()
+// Keep Dawn's external instance alive while SwiftShader churns test-owned devices.
+let sentinelDevice: GPUDevice
 // Chromium's SwiftShader adapter lags configured-canvas teardown on Linux.
 const deviceCleanupDelayMs = navigator.userAgent.includes('Linux') ? 50 : 0
+
+beforeAll(async () => {
+  const adapter = await requestAdapter()
+  sentinelDevice = await adapter.requestDevice()
+})
 
 afterEach(async () => {
   for (const renderer of renderers) renderer.dispose()
@@ -28,6 +35,12 @@ afterEach(async () => {
   await Promise.all(losses)
   devices.clear()
   await waitForDeviceCleanup()
+})
+
+afterAll(async () => {
+  const loss = sentinelDevice.lost
+  sentinelDevice.destroy()
+  await loss
 })
 
 class FakeClock implements RenderSchedulerClock {
@@ -135,11 +148,16 @@ function fakeCell(x: number, y: number): RenderCell {
 }
 
 async function createDevice(): Promise<GPUDevice> {
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
-  if (!adapter) throw new Error('WebGPU requestAdapter returned null')
+  const adapter = await requestAdapter()
   const device = await adapter.requestDevice()
   devices.add(device)
   return device
+}
+
+async function requestAdapter(): Promise<GPUAdapter> {
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
+  if (!adapter) throw new Error('WebGPU requestAdapter returned null')
+  return adapter
 }
 
 async function waitForDeviceCleanup(): Promise<void> {
