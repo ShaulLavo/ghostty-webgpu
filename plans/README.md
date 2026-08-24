@@ -26,7 +26,7 @@ every verification gate, and update its status row when finished.
 | 004  | Replace monolithic atlases with paged texture arrays         | P1       | L      | 003        | DONE   |
 | 005  | Integrate font geometry and requalify the renderer           | P1       | L      | 004        | DONE   |
 | 006  | Add vanilla hotkey arbitration and explicit input ownership  | P1       | M      | 005        | DONE   |
-| 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | TODO   |
+| 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | DONE   |
 | 008  | Implement the xterm Terminal facade and lifecycle contract   | P1       | XL     | 006, 007   | TODO   |
 | 009  | Expose xterm native-backed extension surfaces                | P1       | XL     | 008        | TODO   |
 | 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | TODO   |

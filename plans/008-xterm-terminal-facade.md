@@ -69,22 +69,22 @@ readiness are queued in call order when xterm itself permits deferred processing
 with documented immediate values read from the compatibility shadow state until the native terminal
 is ready, then switch to verified live state without observable discontinuity.
 
-`open(parent): void` must synchronously reject a second open/invalid parent as xterm does and expose
-the documented DOM properties at the same observable point. It starts asynchronous GPU/runtime
-attachment without returning a promise. Any async initialization failure is routed through the
-configured xterm logger and an internal rejected-ready state; queued write callbacks must not be
-left hanging. Do not add a required public readiness API to examples or types. An optional
-Ghostty-specific diagnostic promise may be exported under a non-xterm name only if differential
-tests prove it cannot affect compatibility.
+`open(parent): void` must synchronously reject an invalid parent or a post-disposal call. Once xterm
+has opened successfully, another `open` call is a no-op: it neither throws nor moves the terminal to
+a different parent. The first call exposes the documented DOM properties at the same observable
+point and starts asynchronous GPU/runtime attachment without returning a promise. Any async
+initialization failure is routed through the configured xterm logger and an internal rejected-ready
+state; queued write callbacks must not be left hanging. Do not add a required public readiness API
+to examples or types. An optional Ghostty-specific diagnostic promise may be exported under a
+non-xterm name only if differential tests prove it cannot affect compatibility.
 
 Implement the released 6.0.0 behavior for these core groups in this plan:
 
-- `element`, `screenElement`, `textarea`, `rows`, `cols`, `options`, `markers` placeholder identity,
-  `modes` placeholder identity, and `dimensions` where the underlying implementation already has
-  data;
+- `element`, `textarea`, `rows`, `cols`, `options`, `markers` placeholder identity, and `modes`
+  placeholder identity;
 - `onBell`, `onBinary`, `onCursorMove`, `onData`, `onKey`, `onLineFeed`, `onRender`,
-  `onWriteParsed`, `onResize`, `onScroll`, `onSelectionChange`, `onTitleChange`, and
-  `onDimensionsChange` with xterm event/disposable semantics;
+  `onWriteParsed`, `onResize`, `onScroll`, `onSelectionChange`, and `onTitleChange` with xterm
+  event/disposable semantics;
 - `blur`, `focus`, `input`, `resize`, `open`, `attachCustomKeyEventHandler`,
   `attachCustomWheelEventHandler`, `hasSelection`, `getSelection`, `getSelectionPosition`,
   `clearSelection`, `select`, `selectAll`, `selectLines`, `dispose`, `scrollLines`, `scrollPages`,
@@ -96,6 +96,8 @@ Implement the released 6.0.0 behavior for these core groups in this plan:
 Methods assigned to Plan 009 (`buffer`, `parser`, `unicode`, full `modes`, markers, decorations,
 joiners, link-provider details) may be present as stable facade objects only when needed for object
 identity, but their ledger rows stay non-compatible until that plan's behavioral tests pass.
+`screenElement`, `dimensions`, and `onDimensionsChange` exist only in the pinned master reference,
+not the released 6.0.0 contract, and remain forward-drift rows rather than facade requirements.
 
 `attachCustomKeyEventHandler` has exact xterm first-refusal semantics: the latest handler is called
 for DOM key events before TanStack shortcut arbitration and Ghostty encoding; returning `false`
@@ -182,13 +184,14 @@ disposal races.
 
 ### Step 3: Make open synchronously observable
 
-Extract or reuse DOM element creation so `open(parent)` exposes the expected `element`,
-`screenElement`, and `textarea` synchronously even if WebGPU initialization is pending. Attach the
-native terminal later to that owned shell without replacing public element identities.
+Extract or reuse DOM element creation so `open(parent)` exposes the expected `element` and
+`textarea` synchronously even if WebGPU initialization is pending. Attach the native terminal later
+to that owned shell without replacing public element identities.
 
-Opening twice, opening after dispose, disposal during GPU creation, and a failed adapter request
-must match reference-observable lifecycle/error behavior. Do not block the main thread or perform
-synchronous network/WASM fetches.
+Opening twice as a no-op, opening after dispose, disposal during GPU creation, and a failed adapter
+request must match reference-observable lifecycle/error behavior. After disposal, `element` and
+`textarea` retain references to their now-disconnected nodes. Do not block the main thread or
+perform synchronous network/WASM fetches.
 
 **Verify**: differential browser tests sample properties immediately after `open`, after one
 microtask, after readiness, and after disposal.

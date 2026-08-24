@@ -8,5 +8,14 @@
   "tabWidth": 2,
   "useTabs": false,
   "sortPackageJson": true,
-  "ignorePatterns": ["node_modules", "dist", "coverage", "bun.lock", "*.tsbuildinfo"]
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "bun.lock",
+    "docs/xterm-parity.json",
+    "docs/xterm-parity.md",
+    "references/xterm.js",
+    "*.tsbuildinfo"
+  ]
 }

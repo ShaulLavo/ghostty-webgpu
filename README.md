@@ -12,6 +12,13 @@ It is not an xterm.js drop-in replacement. The renderer borrows proven geometry 
 from xterm.js's WebGL renderer, while the terminal model, lifecycle, input surface, and public API
 remain native to this package and libghostty-vt.
 
+The versioned compatibility program is tracked in
+[`docs/xterm-parity.md`](./docs/xterm-parity.md). Its certification baseline is the published
+`@xterm/xterm@6.0.0` surface; a pinned xterm.js source checkout is used only to expose forward
+drift. The ledger records current gaps and their owning plans, so its existence is not a parity
+claim. Maintainers can verify the immutable reference with `bun run xterm:reference` and check that
+the generated ledger is current with `bun run xterm:parity`.
+
 The package is dist-first: JavaScript and declarations are exported from `dist`, and the checked-in
 `ghostty-vt.wasm` and `bridge.wasm` artifacts ship at the package root. Consumers do not need Zig.
 Importing the package does not touch the DOM or install browser listeners.

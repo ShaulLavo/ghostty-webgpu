@@ -1,0 +1,4 @@
+[submodule "xterm"]
+	path = references/xterm.js
+	url = https://github.com/xtermjs/xterm.js.git
+	shallow = true

@@ -96,6 +96,7 @@ and `package.json` together so later plans have stable commands.
 - `src/xterm/tests/parity-ledger.test.ts` or the exact compatibility-test home established here
 - `README.md`
 - `plans/README.md`
+- `plans/008-xterm-terminal-facade.md` for corrections proven by the pinned differential baseline
 
 **Out of scope**:
 
@@ -202,6 +203,31 @@ notice review. Keep the reference out of npm artifacts and production bundles.
 Run all reference, ledger, focused, and full verification commands. Record baseline counts by area in
 the execution notes and mark Plan 007 DONE.
 
+## Execution notes
+
+- Pinned source: `08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7`; released 6.0.0 tag:
+  `f447274f430fd22513f6adbf9862d19524471c04`.
+- Ledger inventory: 938 rows — 684 released TypeScript surfaces, 48 released CSS selectors, 81
+  package/entry/runtime-export surfaces, 13 reviewed behavior/environment claims, and 112
+  `not-applicable` forward-drift rows.
+- Released rows by area: core lifecycle/options/events 163; terminal methods/input 22;
+  buffer/cell/modes/parser/Unicode 76; selection/markers/decorations/links/joiners 50; DOM/CSS/
+  accessibility/browser 53; headless 224; packaging/imports 81; VT/performance/manual 3. Addon rows:
+  attach 6, clipboard 19, fit 9, image 21, ligatures 7, progress 9, search 27, serialize 23,
+  unicode-graphemes 4, unicode11 4, web-fonts 7, web-links 8, and webgl 10.
+- Forward drift is separate from the release claim. Pinned master adds or changes 40 core, 21
+  headless, 13 addon API rows, and 12 CSS selectors; it removes or supersedes 3 core, 4 headless, 8
+  addon API rows, and 11 CSS selectors. Exact duplicate master declarations are merged by semantic
+  signature.
+- Published-package observables are preserved rather than repaired: headless's declared ESM path
+  and ligatures' declared CommonJS path are absent, addon-serialize has an undocumented runtime
+  export, and web-fonts' peer range targets a later core prerelease.
+- Differential smoke tests record the current lifecycle and ordering gaps. Released xterm writes
+  complete `returned -> callback -> onWriteParsed`; its second browser `open` is a no-op and disposal
+  retains disconnected DOM references.
+- Plan 008 now follows those release observations and keeps master-only `screenElement`,
+  `dimensions`, and `onDimensionsChange` out of the 6.0.0 facade contract.
+
 ## Test plan
 
 - Identity tests cover URL, source commit, release commit, dirty state, and package versions.
@@ -213,15 +239,15 @@ the execution notes and mark Plan 007 DONE.
 
 ## Done criteria
 
-- [ ] `references/xterm.js` is a clean submodule pinned to the exact planned commit.
-- [ ] The 6.0.0 released core/headless baseline and exact addon versions are recorded.
-- [ ] Every public declaration/addon/CSS/package surface has a parity row.
-- [ ] Current compatibility status is honest and every row names a future owner plan.
-- [ ] Differential smoke harness runs the reference and target through one driver.
-- [ ] CI detects reference, inventory, evidence, and plan-status drift.
-- [ ] Reference source is absent from published artifacts and production bundles.
-- [ ] License/provenance and update procedures are documented.
-- [ ] `bun run verify` exits 0 and Plan 007 is DONE.
+- [x] `references/xterm.js` is a clean submodule pinned to the exact planned commit.
+- [x] The 6.0.0 released core/headless baseline and exact addon versions are recorded.
+- [x] Every public declaration/addon/CSS/package surface has a parity row.
+- [x] Current compatibility status is honest and every row names a future owner plan.
+- [x] Differential smoke harness runs the reference and target through one driver.
+- [x] CI detects reference, inventory, evidence, and plan-status drift.
+- [x] Reference source is absent from published artifacts and production bundles.
+- [x] License/provenance and update procedures are documented.
+- [x] `bun run verify` exits 0 and Plan 007 is DONE.
 
 ## STOP conditions
 

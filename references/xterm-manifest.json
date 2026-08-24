@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "url": "https://github.com/xtermjs/xterm.js.git",
+    "commit": "08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7"
+  },
+  "release": {
+    "version": "6.0.0",
+    "tagCommit": "f447274f430fd22513f6adbf9862d19524471c04"
+  },
+  "packages": [
+    {
+      "name": "@xterm/headless",
+      "version": "6.0.0",
+      "integrity": "sha512-5Yj1QINYCyzrZtf8OFIHi47iQtI+0qYFPHmouEfG8dHNxbZ9Tb9YGSuLcsEwj9Z+OL75GJqPyJbyoFer80a2Hw==",
+      "main": "lib-headless/xterm-headless.js",
+      "module": "lib/xterm.mjs",
+      "runtimeModule": "lib-headless/xterm-headless.mjs",
+      "types": "typings/xterm-headless.d.ts",
+      "declarationSha256": "d157ac3b7ddd0c72fb522631860ebd8b12009a55c1fd8f4730c72c244f6b9640"
+    },
+    {
+      "name": "@xterm/xterm",
+      "version": "6.0.0",
+      "integrity": "sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==",
+      "main": "lib/xterm.js",
+      "module": "lib/xterm.mjs",
+      "types": "typings/xterm.d.ts",
+      "css": "css/xterm.css",
+      "cssSha256": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+      "cssRuleGroupCount": 45,
+      "cssSelectorCount": 48,
+      "cssClassCount": 40,
+      "declarationSha256": "99028aeff2d441798b242790750ee385ba621b460db5a7e2341ae1cab7f3e2af"
+    }
+  ],
+  "addons": [
+    {
+      "directory": "addon-attach",
+      "name": "@xterm/addon-attach",
+      "version": "0.12.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-1lxvXM4JYSm60lbFmE8WMOy2oF2ip3Ye8jWorSAmwy7x8FiC53netEJ5RguL8+FSRj79MUQsNCb2hprY2QA2ig==",
+      "declarationSha256": "6d8afd4a5313d69c451d967a307531159e399baf6cf72aa97899d26bf015013d",
+      "main": "lib/addon-attach.js",
+      "module": "lib/addon-attach.mjs",
+      "types": "typings/addon-attach.d.ts"
+    },
+    {
+      "directory": "addon-clipboard",
+      "name": "@xterm/addon-clipboard",
+      "version": "0.2.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-Dl31BCtBhLaUEECUbEiVcCLvLBbaeGYdT7NofB8OJkGTD3MWgBsaLjXvfGAD4tQNHhm6mbKyYkR7XD8kiZsdNg==",
+      "declarationSha256": "8cc5180d345a59128310a228b9b5b6d7cd04b4c4017c06f4237d9b3e1959dc25",
+      "main": "lib/addon-clipboard.js",
+      "module": "lib/addon-clipboard.mjs",
+      "types": "typings/addon-clipboard.d.ts"
+    },
+    {
+      "directory": "addon-fit",
+      "name": "@xterm/addon-fit",
+      "version": "0.11.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==",
+      "declarationSha256": "aad8b53a1210375cd5f15381958adfb3fa86d095b8bf703b622c58f9a2792e20",
+      "main": "lib/addon-fit.js",
+      "module": "lib/addon-fit.mjs",
+      "types": "typings/addon-fit.d.ts"
+    },
+    {
+      "directory": "addon-image",
+      "name": "@xterm/addon-image",
+      "version": "0.9.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-oYWA8/QAr5/Emwl1xL7WCoOqeG3IZfpzEz/OVq1j4Oi9934TQmHiyubClikRf0D/jL3JNiNuz/Lsqx0kXQ02BA==",
+      "declarationSha256": "057441948f3f65f8fc7d2fa1d00fc04b9f24fe30c6cda4eaff2bfaf81544c38c",
+      "main": "lib/addon-image.js",
+      "module": "lib/addon-image.mjs",
+      "types": "typings/addon-image.d.ts"
+    },
+    {
+      "directory": "addon-ligatures",
+      "name": "@xterm/addon-ligatures",
+      "version": "0.10.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-/Few8ZSHMib7sGjRJoc5l7bCtEB9XJfkNofvPpOcWADxKaUl8og8P172j67OoACSNJAXqeCLIuvj8WFCBkcTxg==",
+      "declarationSha256": "5f7b77feb460c239d9e8dd028ed6f9d842748e25bada8a9f2389b3036119244c",
+      "main": "lib/addon-ligatures.js",
+      "module": "lib/addon-ligatures.mjs",
+      "types": "typings/addon-ligatures.d.ts"
+    },
+    {
+      "directory": "addon-progress",
+      "name": "@xterm/addon-progress",
+      "version": "0.2.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-94uxxYyv30z3+6QIqJhCgALrzZfH7z2ounuZWQvb5Lp8dA7bWZmsUZGi5V7lKsq3Fyif4hTbaxq8YoCsQRtXgg==",
+      "declarationSha256": "ea5c2f58a937ae054911ac71d99b0664cc623308bd204513a891ecee9a4aef66",
+      "main": "lib/addon-progress.js",
+      "module": "lib/addon-progress.mjs",
+      "types": "typings/addon-progress.d.ts"
+    },
+    {
+      "directory": "addon-search",
+      "name": "@xterm/addon-search",
+      "version": "0.16.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-9OeuBFu0/uZJPu+9AHKY6g/w0Czyb/Ut0A5t79I4ULoU4IfU5BEpPFVGQxP4zTTMdfZEYkVIRYbHBX1xWwjeSA==",
+      "declarationSha256": "29d2e330e8f999363271b3ca4cb93900e7294e7bf227eab48337d4a034baafb1",
+      "main": "lib/addon-search.js",
+      "module": "lib/addon-search.mjs",
+      "types": "typings/addon-search.d.ts"
+    },
+    {
+      "directory": "addon-serialize",
+      "name": "@xterm/addon-serialize",
+      "version": "0.14.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-uteyTU1EkrQa2Ux6P/uFl2fzmXI46jy5uoQMKEOM0fKTyiW7cSn0WrFenHm5vO5uEXX/GpwW/FgILvv3r0WbkA==",
+      "declarationSha256": "ab358d5241c4c8f64d333e182189c97cbc5e581610c817b2284aaf0386e99ac5",
+      "main": "lib/addon-serialize.js",
+      "module": "lib/addon-serialize.mjs",
+      "types": "typings/addon-serialize.d.ts"
+    },
+    {
+      "directory": "addon-unicode-graphemes",
+      "name": "@xterm/addon-unicode-graphemes",
+      "version": "0.4.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-9+/CqwbKcnlkJU4d3wIgO+wjsL8f6vyz+UwUWLu6nADQz8Gr8ONqGCJfdDjIdI+yYZLABQqQy47FzEM6AWELjw==",
+      "declarationSha256": "c94e1304a754447ddadf3dee23d01ba3dc53b0c055efaea89b53fb58ea355cc0",
+      "main": "lib/addon-unicode-graphemes.js",
+      "module": "lib/addon-unicode-graphemes.mjs",
+      "types": "typings/addon-unicode-graphemes.d.ts"
+    },
+    {
+      "directory": "addon-unicode11",
+      "name": "@xterm/addon-unicode11",
+      "version": "0.9.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-FxDnYcyuXhNl+XSqGZL/t0U9eiNb/q3EWT5rYkQT/zuig8Gz/VagnQANKHdDWFM2lTMk9ly0EFQxxxtZUoRetw==",
+      "declarationSha256": "d801447a1a5b66cd50d182ca008828e9e58f9f8157520ca48b1df6617f09d875",
+      "main": "lib/addon-unicode11.js",
+      "module": "lib/addon-unicode11.mjs",
+      "types": "typings/addon-unicode11.d.ts"
+    },
+    {
+      "directory": "addon-web-fonts",
+      "name": "@xterm/addon-web-fonts",
+      "version": "0.1.0",
+      "commit": "e1bfc7dd1f379dee9e2dc4cafc6b53efbff4154f",
+      "integrity": "sha512-6plTfWFE1aBnZ0rcFu7Zpzb+rYFBYin7A1g2GP/KP6sqvcH8CRHWXTyutj/1lYMMlRE7OpwOxlRlzQHH8eU18Q==",
+      "declarationSha256": "6e93db013cba9d38abe6f8a165676e69aaba9700dd486240d78595e827ed8df3",
+      "peerXterm": "^6.1.0-beta.86",
+      "main": "lib/addon-web-fonts.js",
+      "module": "lib/addon-web-fonts.mjs",
+      "types": "typings/addon-web-fonts.d.ts"
+    },
+    {
+      "directory": "addon-web-links",
+      "name": "@xterm/addon-web-links",
+      "version": "0.12.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-4Smom3RPyVp7ZMYOYDoC/9eGJJJqYhnPLGGqJ6wOBfB8VxPViJNSKdgRYb8NpaM6YSelEKbA2SStD7lGyqaobw==",
+      "declarationSha256": "ed6a994db6dd137c518c4ce54eaf9751200135b950f0f843fff1438574b18387",
+      "main": "lib/addon-web-links.js",
+      "module": "lib/addon-web-links.mjs",
+      "types": "typings/addon-web-links.d.ts"
+    },
+    {
+      "directory": "addon-webgl",
+      "name": "@xterm/addon-webgl",
+      "version": "0.19.0",
+      "commit": "f447274f430fd22513f6adbf9862d19524471c04",
+      "integrity": "sha512-b3fMOsyLVuCeNJWxolACEUED0vm7qC0cy4wRvf3oURSzDTYVQiGPhTnhWZwIHdvC48Y+oLhvYXnY4XDXPoJo6A==",
+      "declarationSha256": "198376ba839f2ce29fc8f2d050abadf6c49d48abe804dcf844394cef03cdf4ce",
+      "main": "lib/addon-webgl.js",
+      "module": "lib/addon-webgl.mjs",
+      "types": "typings/addon-webgl.d.ts"
+    }
+  ],
+  "browserSupport": ["Chrome", "Edge", "Firefox", "Safari"],
+  "environmentSupport": ["Electron"]
+}
