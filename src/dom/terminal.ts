@@ -13,6 +13,7 @@ import type {
   TerminalGrid,
   TerminalInputData,
   TerminalInputResult,
+  TerminalKeyInput,
   TerminalMutationResult,
   TerminalSessionSubscription,
   TerminalTheme,
@@ -34,7 +35,12 @@ import {
   type TerminalFitEnvironment,
   type TerminalFitResult,
 } from './fit.js'
-import { createDomInputController, type DomInputController } from './input.js'
+import {
+  createDomInputController,
+  createDomInputLifecycleController,
+  type DomInputController,
+  type DomInputLifecycleController,
+} from './input.js'
 import { createDomLinkController, type DomLinkController } from './links.js'
 import {
   createTerminalPointerController,
@@ -130,11 +136,6 @@ function scrollbarWidth(value: number | undefined): number {
   throw new RangeError('scrollbarWidth must be a finite positive number')
 }
 
-function applePlatform(parent: HTMLElement): boolean {
-  const platform = parent.ownerDocument.defaultView?.navigator.platform ?? ''
-  return /^(Mac|iPhone|iPad|iPod)/i.test(platform)
-}
-
 function openAbortError(parent: HTMLElement): Error {
   const DomException = parent.ownerDocument.defaultView?.DOMException
   if (DomException) return new DomException('Terminal open was cancelled', 'AbortError')
@@ -216,6 +217,8 @@ export class GhosttyWebGpuTerminal {
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   private generation = 0
   private input?: DomInputController
+  private inputLifecycle?: DomInputLifecycleController
+  private readonly keyboard
   private lastFrame?: RendererFrameSnapshot
   private lastLinkFrameSignature?: string
   private readonly linkActivationModifier
@@ -239,6 +242,7 @@ export class GhosttyWebGpuTerminal {
     this.accessibilityOptions = options.accessibility
     this.copySelection = options.copySelection
     this.fitEnvironment = options.fitEnvironment
+    this.keyboard = options.keyboard
     this.linkActivationModifier = options.linkActivationModifier
     this.padding = options.padding
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
@@ -434,6 +438,11 @@ export class GhosttyWebGpuTerminal {
     return this.session.paste(data)
   }
 
+  key(input: TerminalKeyInput): TerminalInputResult {
+    this.ensureOpen()
+    return this.session.key(input)
+  }
+
   focus(): void {
     this.ensureOpen()
     this.elementsValue?.textarea.focus({ preventScroll: true })
@@ -527,6 +536,7 @@ export class GhosttyWebGpuTerminal {
     this.fit = undefined
     this.fittedFont = undefined
     this.input = undefined
+    this.inputLifecycle = undefined
     this.lastFrame = undefined
     this.lastLinkFrameSignature = undefined
     this.layoutCommitted = false
@@ -646,21 +656,33 @@ export class GhosttyWebGpuTerminal {
   }
 
   private installInput(elements: TerminalElements, parent: HTMLElement): void {
-    const view = owningWindow(parent)
-    const copySelection =
-      this.copySelection ?? ((text: string) => writeUserSelectionToClipboard(view, text))
-    const input = createDomInputController({
-      copySelection,
-      isApplePlatform: applePlatform(parent),
+    let input: DomInputController | undefined
+    if (this.keyboard !== false) {
+      const view = owningWindow(parent)
+      const copySelection =
+        this.copySelection ?? ((text: string) => writeUserSelectionToClipboard(view, text))
+      input = createDomInputController({
+        copySelection,
+        onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
+        session: this.session,
+        shortcuts: this.keyboard?.shortcuts,
+        signal: elements.signal,
+        textarea: elements.textarea,
+      })
+      this.input = input
+      this.cleanup.add(() => input?.dispose())
+    }
+    const lifecycle = createDomInputLifecycleController({
       onDocumentVisible: (visible) => this.renderer?.setDocumentVisible(visible),
       onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
       onFocused: (focused) => this.handleFocused(focused),
+      onResetTransientState: () => input?.resetTransientState(),
       session: this.session,
       signal: elements.signal,
       textarea: elements.textarea,
     })
-    this.input = input
-    this.cleanup.add(() => input.dispose())
+    this.inputLifecycle = lifecycle
+    this.cleanup.add(() => lifecycle.dispose())
   }
 
   private installFit(elements: TerminalElements): void {

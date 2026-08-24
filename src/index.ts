@@ -68,11 +68,15 @@ export type {
   GhosttyWebGpuTerminalEventType,
   GhosttyWebGpuTerminalLifecycle,
   GhosttyWebGpuTerminalListener,
+  GhosttyWebGpuTerminalKeyboardOptions,
   GhosttyWebGpuTerminalOptions,
   GhosttyWebGpuTerminalResizeEvent,
   GhosttyWebGpuTerminalScrollbarOptions,
   GhosttyWebGpuTerminalSubscription,
   GhosttyWebGpuThemeProjection,
+  TerminalHotkeyBinding,
+  TerminalHotkeyContext,
+  TerminalHotkeyDecision,
 } from './dom/types.js'
 export type {
   RendererFrameRow,

@@ -1,3 +1,4 @@
+import type { RegisterableHotkey } from '@tanstack/hotkeys'
 import type { EventSubscription } from '../term/events.js'
 import type { LinkResolverOptions } from '../term/links.js'
 import type {
@@ -8,6 +9,8 @@ import type {
   TerminalErrorEvent,
   TerminalFittedFont,
   TerminalFontSettings,
+  TerminalInputData,
+  TerminalInputResult,
   TerminalRendererTheme,
   TerminalScrollEvent,
   TerminalSelectionEvent,
@@ -60,6 +63,28 @@ export type GhosttyWebGpuTerminalSubscription = EventSubscription
 
 export type GhosttyWebGpuTerminalCopy = (text: string) => PromiseLike<void> | void
 
+export type TerminalHotkeyDecision = 'claim' | 'passthrough'
+
+export interface TerminalHotkeyContext {
+  readonly event: KeyboardEvent
+  readonly getSelection: () => string | undefined
+  readonly hasSelection: () => boolean
+  readonly paste: (data: TerminalInputData) => TerminalInputResult
+  readonly sendInput: (data: TerminalInputData) => TerminalInputResult
+}
+
+export interface TerminalHotkeyBinding {
+  readonly hotkey: RegisterableHotkey
+  readonly id: string
+  readonly onTrigger: (context: TerminalHotkeyContext) => TerminalHotkeyDecision
+  readonly preventDefault?: boolean
+  readonly stopPropagation?: boolean
+}
+
+export interface GhosttyWebGpuTerminalKeyboardOptions {
+  readonly shortcuts?: false | readonly TerminalHotkeyBinding[]
+}
+
 export interface GhosttyWebGpuTerminalDiagnostics {
   readonly hasPendingFrame: boolean
   readonly hasPendingLinkResolution: boolean
@@ -107,6 +132,7 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly clipboardWrite?: DomClipboardWritePolicy
   readonly copySelection?: GhosttyWebGpuTerminalCopy
   readonly fitEnvironment?: Partial<TerminalFitEnvironment>
+  readonly keyboard?: false | GhosttyWebGpuTerminalKeyboardOptions
   readonly linkActivationModifier?: (event: MouseEvent) => boolean
   readonly links?: LinkResolverOptions<Event>
   readonly padding?: TerminalElementPaddingInput

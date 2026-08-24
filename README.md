@@ -212,6 +212,88 @@ returned registration when it is no longer valid. Writes, resize, scroll, and co
 frames invalidate stale provider results. Provider and activation failures are reported through
 the terminal's `error` event.
 
+## Keyboard ownership
+
+With `keyboard` omitted, the DOM host owns raw keys, IME commits, browser paste, focus reporting,
+and the default host shortcuts. TanStack Hotkeys matches host commands; libghostty-vt still encodes
+terminal keys from physical codes, modifier sides and locks, composition state, and Kitty
+press/repeat/release actions. The runtime dependency is pinned exactly to
+`@tanstack/hotkeys@0.8.0` while that API is pre-1.0.
+
+```ts
+const terminal = await GhosttyWebGpuTerminal.create()
+```
+
+Custom bindings replace the default binding list in declaration order. Returning `passthrough`
+tries later matching bindings and then the native terminal path; returning `claim` suppresses the
+matching repeat and release from the PTY:
+
+```ts
+const terminal = await GhosttyWebGpuTerminal.create({
+  keyboard: {
+    shortcuts: [
+      {
+        hotkey: 'Mod+K',
+        id: 'open-command-menu',
+        onTrigger(context) {
+          openCommandMenu({ hasSelection: context.hasSelection() })
+          return 'claim'
+        },
+      },
+    ],
+  },
+})
+```
+
+The callback context also exposes the original `KeyboardEvent`, synchronous selection readers,
+and native `sendInput` and `paste` actions. A callback failure is reported as
+`input.hotkey.<id>` and claims that physical-key lifecycle rather than leaking a partial command to
+the PTY. The terminal never registers with or destroys TanStack's global hotkey manager.
+
+Use `shortcuts: false` to keep raw keyboard, IME, and paste transport while disabling optional
+host-command bindings:
+
+```ts
+const terminal = await GhosttyWebGpuTerminal.create({
+  keyboard: { shortcuts: false },
+})
+```
+
+The platform `Mod+V` reservation remains transport behavior in this mode: its initial keydown is
+left to the browser, and the resulting `paste` event is encoded exactly once. A supplied shortcut
+array also replaces the built-in Apple selection-copy binding; defaults are not merged invisibly.
+
+Use `keyboard: false` when the embedding owns every key, composition, text-input, and paste event.
+The package still owns textarea focus, DEC focus reporting, and document-visibility renderer
+lifecycle. Manual owners can feed the existing normalized protocol boundary directly:
+
+```ts
+import type { TerminalKeyInput } from 'ghostty-webgpu'
+
+const terminal = await GhosttyWebGpuTerminal.create({ keyboard: false })
+await terminal.open(host)
+
+const press: TerminalKeyInput = {
+  action: 'press',
+  code: 'KeyA',
+  composing: false,
+  text: 'a',
+}
+
+terminal.key(press)
+terminal.sendInput(new Uint8Array([0x03]))
+terminal.paste('first\nsecond')
+```
+
+`key()` accepts normalized terminal input; it is not a `KeyboardEvent` adapter. A manual owner is
+responsible for preserving physical codes, modifier side/lock and AltGraph consumption, IME
+single-commit behavior, and Kitty press/repeat/release ordering.
+
+Scrollbar Arrow/Page/Home/End controls and link-overlay Enter/Escape remain local accessible-widget
+behavior, not configurable shortcut chords. A future xterm compatibility adapter will give
+`attachCustomKeyEventHandler` first refusal and map its boolean result onto this same
+claim/passthrough seam; that facade is not installed by the native terminal API.
+
 ## Clipboard policy
 
 User paste always passes through libghostty-vt's native paste encoder. On Apple platforms,

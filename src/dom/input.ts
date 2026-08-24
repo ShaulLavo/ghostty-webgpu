@@ -6,25 +6,54 @@ import type {
   TerminalModifierSide,
   TerminalModifiers,
 } from '../term/types.js'
-import type { GhosttyWebGpuTerminalCopy } from './types.js'
+import {
+  compileHotkey,
+  compileTerminalHotkeyBindings,
+  hotkeyPlatformForWindow,
+  type CompiledDomHotkey,
+  type CompiledTerminalHotkeyBindings,
+  type DomHotkeyPlatform,
+} from './hotkeys.js'
+import type {
+  GhosttyWebGpuTerminalCopy,
+  TerminalHotkeyBinding,
+  TerminalHotkeyContext,
+  TerminalHotkeyDecision,
+} from './types.js'
 
 type InputSession = Pick<
   TerminalSession<unknown>,
-  'getSelection' | 'key' | 'paste' | 'selectionCoordinates' | 'sendInput' | 'setFocused'
+  'getSelection' | 'key' | 'paste' | 'selectionCoordinates' | 'sendInput'
 >
+
+type LifecycleSession = Pick<TerminalSession<unknown>, 'setFocused'>
 
 export interface DomInputControllerOptions {
   readonly copySelection?: GhosttyWebGpuTerminalCopy
-  readonly isApplePlatform: boolean
-  readonly onDocumentVisible?: (visible: boolean) => void
   readonly onError: (cause: unknown, operation: string) => void
-  readonly onFocused?: (focused: boolean) => void
+  readonly platform?: DomHotkeyPlatform
   readonly session: InputSession
+  readonly shortcuts?: false | readonly TerminalHotkeyBinding[]
   readonly signal: AbortSignal
   readonly textarea: HTMLTextAreaElement
 }
 
 export interface DomInputController {
+  dispose(): void
+  resetTransientState(): void
+}
+
+export interface DomInputLifecycleControllerOptions {
+  readonly onDocumentVisible?: (visible: boolean) => void
+  readonly onError: (cause: unknown, operation: string) => void
+  readonly onFocused?: (focused: boolean) => void
+  readonly onResetTransientState?: () => void
+  readonly session: LifecycleSession
+  readonly signal: AbortSignal
+  readonly textarea: HTMLTextAreaElement
+}
+
+export interface DomInputLifecycleController {
   dispose(): void
 }
 
@@ -36,6 +65,11 @@ interface ModifierDefinition {
   readonly name: ModifierName
   readonly right: string
   readonly state: ModifierState
+}
+
+interface SuppressedShortcutPolicy {
+  readonly preventDefault: boolean
+  readonly stopPropagation: boolean
 }
 
 const modifierDefinitions: readonly ModifierDefinition[] = Object.freeze([
@@ -177,17 +211,6 @@ function normalizedKeyInput(
   }
 }
 
-function isPasteShortcut(event: KeyboardEvent): boolean {
-  if (event.code !== 'KeyV' || event.getModifierState('AltGraph')) return false
-  return event.getModifierState('Control') || event.getModifierState('Meta')
-}
-
-function isCopyShortcut(event: KeyboardEvent, isApplePlatform: boolean): boolean {
-  if (!isApplePlatform || event.code !== 'KeyC') return false
-  if (event.getModifierState('AltGraph')) return false
-  return event.getModifierState('Meta')
-}
-
 function isPasteInput(inputType: string): boolean {
   return inputType === 'insertFromPaste' || inputType === 'insertFromDrop'
 }
@@ -200,14 +223,67 @@ function reportPromiseRejection(
   void Promise.resolve(result).catch((cause: unknown) => onError(cause, 'copy'))
 }
 
+function inputWindow(textarea: HTMLTextAreaElement): Window {
+  const view = textarea.ownerDocument.defaultView
+  if (view) return view
+  throw new TypeError('Terminal input requires a textarea owned by a window')
+}
+
+function defaultCopyDecision(
+  context: TerminalHotkeyContext,
+  copy: GhosttyWebGpuTerminalCopy | undefined,
+  onError: DomInputControllerOptions['onError'],
+): TerminalHotkeyDecision {
+  if (!copy || !context.hasSelection()) return 'passthrough'
+  const text = context.getSelection()
+  if (text === undefined) return 'passthrough'
+  reportPromiseRejection(copy(text), onError)
+  return 'claim'
+}
+
+function defaultShortcutBindings(
+  options: DomInputControllerOptions,
+  platform: DomHotkeyPlatform,
+): readonly TerminalHotkeyBinding[] {
+  if (options.shortcuts === false) return []
+  if (options.shortcuts) return options.shortcuts
+  if (platform !== 'mac') return []
+  return Object.freeze([
+    Object.freeze({
+      hotkey: 'Mod+C',
+      id: 'copy-selection',
+      onTrigger: (context: TerminalHotkeyContext) =>
+        defaultCopyDecision(context, options.copySelection, options.onError),
+      stopPropagation: false,
+    }),
+  ])
+}
+
+function applyShortcutPolicy(event: KeyboardEvent, policy: SuppressedShortcutPolicy): void {
+  if (policy.preventDefault) event.preventDefault()
+  if (policy.stopPropagation) event.stopPropagation()
+}
+
+const pastePressPolicy = Object.freeze({ preventDefault: false, stopPropagation: false })
+const pasteRepeatPolicy = Object.freeze({ preventDefault: true, stopPropagation: false })
+
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
   private composing = false
   private disposed = false
+  private readonly hotkeys: CompiledTerminalHotkeyBindings
+  private readonly pasteShortcut: CompiledDomHotkey
+  private readonly platform: DomHotkeyPlatform
   private readonly pressedModifierCodes = new Set<string>()
-  private readonly suppressedShortcutCodes = new Set<string>()
+  private readonly suppressedShortcuts = new Map<string, SuppressedShortcutPolicy>()
 
   constructor(private readonly options: DomInputControllerOptions) {
+    this.platform = options.platform ?? hotkeyPlatformForWindow(inputWindow(options.textarea))
+    this.pasteShortcut = compileHotkey('Mod+V', this.platform)
+    this.hotkeys = compileTerminalHotkeyBindings(defaultShortcutBindings(options, this.platform), {
+      onError: options.onError,
+      platform: this.platform,
+    })
     try {
       this.installListeners()
     } catch (cause) {
@@ -227,13 +303,6 @@ class BrowserInputController implements DomInputController {
     textarea.addEventListener('compositionend', this.handleCompositionEnd, listenerOptions)
     textarea.addEventListener('input', this.handleInput, listenerOptions)
     textarea.addEventListener('paste', this.handlePaste, listenerOptions)
-    textarea.addEventListener('focus', this.handleFocus, listenerOptions)
-    textarea.addEventListener('blur', this.handleBlur, listenerOptions)
-    textarea.ownerDocument.addEventListener(
-      'visibilitychange',
-      this.handleVisibilityChange,
-      listenerOptions,
-    )
     options.signal.addEventListener('abort', this.dispose, {
       once: true,
       signal: this.abortController.signal,
@@ -276,33 +345,11 @@ class BrowserInputController implements DomInputController {
     this.invokeSession('paste', value)
   }
 
-  private readonly handleFocus = (): void => {
-    if (this.disposed) return
-    this.setFocused(true)
-  }
-
-  private readonly handleBlur = (): void => {
-    if (this.disposed) return
-    this.resetTransientState()
-    this.setFocused(false)
-  }
-
-  private readonly handleVisibilityChange = (): void => {
-    if (this.disposed) return
-    const visible = this.options.textarea.ownerDocument.visibilityState !== 'hidden'
-    if (!visible) this.resetTransientState()
-    this.options.onDocumentVisible?.(visible)
-  }
-
   private readonly handleKey = (event: KeyboardEvent): void => {
     if (this.disposed) return
     this.updateModifierTracking(event)
     if (this.consumeSuppressedShortcut(event)) return
-    if (event.type === 'keydown' && isPasteShortcut(event)) {
-      this.suppressedShortcutCodes.add(event.code)
-      return
-    }
-    if (event.type === 'keydown' && this.copySelection(event)) return
+    if (this.arbitrateShortcut(event)) return
     if (!isSupportedTerminalKeyCode(event.code)) return
     this.encodeKey(event)
   }
@@ -323,15 +370,6 @@ class BrowserInputController implements DomInputController {
     }
   }
 
-  private setFocused(focused: boolean): void {
-    try {
-      this.options.session.setFocused(focused)
-      this.options.onFocused?.(focused)
-    } catch (cause) {
-      this.options.onError(cause, 'focus')
-    }
-  }
-
   private updateModifierTracking(event: KeyboardEvent): void {
     const definition = modifierDefinition(event.code)
     if (definition && event.type === 'keydown') this.pressedModifierCodes.add(event.code)
@@ -344,31 +382,52 @@ class BrowserInputController implements DomInputController {
   }
 
   private consumeSuppressedShortcut(event: KeyboardEvent): boolean {
-    if (!this.suppressedShortcutCodes.has(event.code)) return false
+    const policy = this.suppressedShortcuts.get(event.code)
+    if (!policy) return false
     if (event.type === 'keyup') {
-      this.suppressedShortcutCodes.delete(event.code)
+      this.suppressedShortcuts.delete(event.code)
       return true
     }
-    event.preventDefault()
+    if (!event.repeat) {
+      this.suppressedShortcuts.delete(event.code)
+      return false
+    }
+    applyShortcutPolicy(event, policy)
     return true
   }
 
-  private copySelection(event: KeyboardEvent): boolean {
-    const copy = this.options.copySelection
+  private arbitrateShortcut(event: KeyboardEvent): boolean {
     if (event.type !== 'keydown') return false
-    if (!copy || !isCopyShortcut(event, this.options.isApplePlatform)) return false
-    try {
-      if (!this.options.session.selectionCoordinates()) return false
-      const text = this.options.session.getSelection()
-      if (text === undefined) return false
-      this.suppressedShortcutCodes.add(event.code)
-      event.preventDefault()
-      reportPromiseRejection(copy(text), this.options.onError)
-      return true
-    } catch (cause) {
-      this.options.onError(cause, 'copy')
+    if (isComposingKey(event, this.composing)) return false
+    if (event.getModifierState('AltGraph')) return false
+    if (this.pasteShortcut.matches(event)) {
+      this.claimShortcut(event, pastePressPolicy, pasteRepeatPolicy)
       return true
     }
+    const claim = this.hotkeys.arbitrate(this.hotkeyContext(event))
+    if (!claim) return false
+    this.claimShortcut(event, claim, claim)
+    return true
+  }
+
+  private claimShortcut(
+    event: KeyboardEvent,
+    pressPolicy: SuppressedShortcutPolicy,
+    repeatPolicy: SuppressedShortcutPolicy,
+  ): void {
+    this.suppressedShortcuts.set(event.code, repeatPolicy)
+    applyShortcutPolicy(event, pressPolicy)
+  }
+
+  private hotkeyContext(event: KeyboardEvent): TerminalHotkeyContext {
+    const session = this.options.session
+    return Object.freeze({
+      event,
+      getSelection: () => session.getSelection(),
+      hasSelection: () => session.selectionCoordinates() !== undefined,
+      paste: (data: TerminalInputData) => session.paste(data),
+      sendInput: (data: TerminalInputData) => session.sendInput(data),
+    })
   }
 
   private encodeKey(event: KeyboardEvent): void {
@@ -377,7 +436,7 @@ class BrowserInputController implements DomInputController {
         event,
         this.pressedModifierCodes,
         this.composing,
-        this.options.isApplePlatform,
+        this.platform === 'mac',
       )
       const bytes = this.options.session.key(input)
       if (bytes.length > 0) event.preventDefault()
@@ -386,14 +445,84 @@ class BrowserInputController implements DomInputController {
     }
   }
 
-  private resetTransientState(): void {
+  resetTransientState(): void {
     this.composing = false
     this.pressedModifierCodes.clear()
-    this.suppressedShortcutCodes.clear()
+    this.suppressedShortcuts.clear()
     this.options.textarea.value = ''
+  }
+}
+
+class BrowserInputLifecycleController implements DomInputLifecycleController {
+  private readonly abortController = new AbortController()
+  private disposed = false
+
+  constructor(private readonly options: DomInputLifecycleControllerOptions) {
+    try {
+      this.installListeners()
+    } catch (cause) {
+      this.disposed = true
+      this.abortController.abort()
+      throw cause
+    }
+  }
+
+  private installListeners(): void {
+    const options = this.options
+    const listenerOptions = { signal: this.abortController.signal }
+    options.textarea.addEventListener('focus', this.handleFocus, listenerOptions)
+    options.textarea.addEventListener('blur', this.handleBlur, listenerOptions)
+    options.textarea.ownerDocument.addEventListener(
+      'visibilitychange',
+      this.handleVisibilityChange,
+      listenerOptions,
+    )
+    options.signal.addEventListener('abort', this.dispose, {
+      once: true,
+      signal: this.abortController.signal,
+    })
+  }
+
+  readonly dispose = (): void => {
+    if (this.disposed) return
+    this.disposed = true
+    this.abortController.abort()
+  }
+
+  private readonly handleFocus = (): void => {
+    if (this.disposed) return
+    this.setFocused(true)
+  }
+
+  private readonly handleBlur = (): void => {
+    if (this.disposed) return
+    this.options.onResetTransientState?.()
+    this.setFocused(false)
+  }
+
+  private readonly handleVisibilityChange = (): void => {
+    if (this.disposed) return
+    const visible = this.options.textarea.ownerDocument.visibilityState !== 'hidden'
+    if (!visible) this.options.onResetTransientState?.()
+    this.options.onDocumentVisible?.(visible)
+  }
+
+  private setFocused(focused: boolean): void {
+    try {
+      this.options.session.setFocused(focused)
+      this.options.onFocused?.(focused)
+    } catch (cause) {
+      this.options.onError(cause, 'focus')
+    }
   }
 }
 
 export function createDomInputController(options: DomInputControllerOptions): DomInputController {
   return new BrowserInputController(options)
+}
+
+export function createDomInputLifecycleController(
+  options: DomInputLifecycleControllerOptions,
+): DomInputLifecycleController {
+  return new BrowserInputLifecycleController(options)
 }
