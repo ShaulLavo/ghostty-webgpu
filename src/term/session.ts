@@ -442,9 +442,12 @@ const defaultGrid: TerminalGrid = Object.freeze({
 })
 
 const defaultFont: TerminalFontSettings = Object.freeze({
+  boldWeight: 700,
   family: 'monospace',
+  letterSpacing: 0,
   lineHeight: 1.2,
   size: 14,
+  weight: 400,
 })
 
 const defaultCursor: TerminalCursorSettings = Object.freeze({
@@ -521,6 +524,21 @@ function validateNonNegative(name: string, value: number): number {
   throw new RangeError(`${name} must be a finite non-negative number`)
 }
 
+function validateFinite(name: string, value: number): number {
+  if (Number.isFinite(value)) return value
+  throw new RangeError(`${name} must be finite`)
+}
+
+function validateFontWeight(name: string, value: number): number {
+  if (Number.isInteger(value) && value >= 1 && value <= 1000) return value
+  throw new RangeError(`${name} must be an integer from 1 to 1000`)
+}
+
+function validateLineHeight(value: number): number {
+  if (Number.isFinite(value) && value >= 1) return value
+  throw new RangeError('font.lineHeight must be finite and at least 1')
+}
+
 function copyColor(color: RgbColor, name: string): TerminalColor {
   return Object.freeze({
     b: validateColorChannel(`${name}.b`, color.b),
@@ -594,9 +612,15 @@ function normalizeFont(
     throw new TypeError('font.family must be a non-empty string')
   }
   return Object.freeze({
+    boldWeight: validateFontWeight('font.boldWeight', next.boldWeight ?? current.boldWeight),
     family: family.slice(),
-    lineHeight: validatePositive('font.lineHeight', next.lineHeight ?? current.lineHeight, false),
+    letterSpacing: validateFinite(
+      'font.letterSpacing',
+      next.letterSpacing ?? current.letterSpacing,
+    ),
+    lineHeight: validateLineHeight(next.lineHeight ?? current.lineHeight),
     size: validatePositive('font.size', next.size ?? current.size, false),
+    weight: validateFontWeight('font.weight', next.weight ?? current.weight),
   })
 }
 
@@ -702,9 +726,12 @@ function gridsEqual(first: TerminalGrid, second: TerminalGrid): boolean {
 
 function fontsEqual(first: TerminalFontSettings, second: TerminalFontSettings): boolean {
   return (
+    first.boldWeight === second.boldWeight &&
     first.family === second.family &&
+    first.letterSpacing === second.letterSpacing &&
     first.lineHeight === second.lineHeight &&
-    first.size === second.size
+    first.size === second.size &&
+    first.weight === second.weight
   )
 }
 

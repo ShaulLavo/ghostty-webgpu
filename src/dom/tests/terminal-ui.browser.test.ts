@@ -1,10 +1,14 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { TerminalScrollbar } from '../../core/types.js'
-import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../../render/renderer.js'
+import type {
+  RendererFrameSnapshot,
+  RendererGridSize,
+  WebGpuTerminalRendererOptions,
+} from '../../render/renderer.js'
 import type { ProvidedLink } from '../../term/links.js'
 import { TerminalSession } from '../../term/session.js'
-import type { TerminalSessionOptions } from '../../term/types.js'
+import type { TerminalFittedFont, TerminalSessionOptions } from '../../term/types.js'
 import {
   createTerminalAccessibility,
   type TerminalAccessibilityController,
@@ -65,18 +69,19 @@ class FakeScrollbarClock implements TerminalScrollbarClock {
 class FrameRenderer implements GhosttyWebGpuRenderer {
   disposed = false
   emittedFrames = 0
+  private font: TerminalFittedFont
+  private grid: RendererGridSize
   readonly hasPendingFrame = false
   readonly hasPendingTimer = false
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly onFrame: WebGpuTerminalRendererOptions['onFrame'],
-    initialGrid: Pick<
-      WebGpuTerminalRendererOptions,
-      'cellHeight' | 'cellWidth' | 'columns' | 'pixelRatio' | 'rows'
-    >,
+    initial: Pick<WebGpuTerminalRendererOptions, 'columns' | 'font' | 'rows'>,
   ) {
-    this.resize({ ...initialGrid, pixelRatio: initialGrid.pixelRatio ?? 1 })
+    this.font = initial.font
+    this.grid = { columns: initial.columns, rows: initial.rows }
+    this.applyDimensions()
   }
 
   dispose(): void {
@@ -94,17 +99,16 @@ class FrameRenderer implements GhosttyWebGpuRenderer {
 
   notifyWrite(): void {}
 
-  resize(grid: {
-    cellHeight: number
-    cellWidth: number
-    columns: number
-    pixelRatio: number
-    rows: number
-  }): void {
-    const cssWidth = grid.cellWidth * grid.columns
-    const cssHeight = grid.cellHeight * grid.rows
-    this.canvas.width = Math.round(cssWidth * grid.pixelRatio)
-    this.canvas.height = Math.round(cssHeight * grid.pixelRatio)
+  resize(grid: RendererGridSize): void {
+    this.grid = grid
+    this.applyDimensions()
+  }
+
+  private applyDimensions(): void {
+    const cssWidth = this.font.cssCellWidth * this.grid.columns
+    const cssHeight = this.font.cssCellHeight * this.grid.rows
+    this.canvas.width = this.font.deviceCellWidth * this.grid.columns
+    this.canvas.height = this.font.deviceCellHeight * this.grid.rows
     this.canvas.style.height = `${cssHeight}px`
     this.canvas.style.width = `${cssWidth}px`
   }
@@ -117,7 +121,10 @@ class FrameRenderer implements GhosttyWebGpuRenderer {
 
   setFocused(): void {}
 
-  setFont(): void {}
+  setFont(font: TerminalFittedFont): void {
+    this.font = font
+    this.applyDimensions()
+  }
 
   setTheme(): void {}
 }

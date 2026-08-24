@@ -1,9 +1,10 @@
 export type AtlasKind = 'color' | 'grayscale'
 
 export interface GlyphBitmap {
-  advance: number
   height: number
   kind: AtlasKind
+  offsetX: number
+  offsetY: number
   pixels: Uint8Array
   width: number
 }
@@ -15,7 +16,9 @@ export interface AtlasGlyph {
   height: number
   key: string
   kind: AtlasKind
-  pageId: number
+  layer: number
+  offsetX: number
+  offsetY: number
   width: number
   x: number
   y: number
@@ -27,14 +30,28 @@ export interface AtlasInsertResult {
 }
 
 export interface AtlasPageUpload {
-  generation: number
-  height: number
-  id: number
+  bytesPerRow: number
+  dataOffset: number
+  extent: { height: number; width: number }
   kind: AtlasKind
+  layer: number
+  origin: { x: number; y: number }
   pixels: Uint8Array
-  width: number
+}
+
+export interface AtlasTextureLayout {
+  layerCount: number
+  pageHeight: number
+  pageWidth: number
 }
 
 export interface GlyphRasterizer {
-  rasterize(text: string, cellSpan?: number): GlyphBitmap
+  rasterize(input: GlyphRasterizationInput): GlyphBitmap | undefined
+}
+
+export interface GlyphRasterizationInput {
+  cellSpan: number
+  italic: boolean
+  text: string
+  weight: 'bold' | 'normal'
 }

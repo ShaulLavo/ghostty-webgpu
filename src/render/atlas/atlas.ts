@@ -3,11 +3,12 @@ import type {
   AtlasInsertResult,
   AtlasKind,
   AtlasPageUpload,
+  AtlasTextureLayout,
   GlyphBitmap,
 } from './types.js'
 
 export interface GlyphAtlasOptions {
-  maxPagesPerKind?: number
+  maxLayersPerKind?: number
   padding?: number
   pageHeight?: number
   pageWidth?: number
@@ -18,24 +19,36 @@ interface AtlasPosition {
   y: number
 }
 
-const defaultPageSize = 2048
+interface DirtyRectangle {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
+export const DEFAULT_ATLAS_PAGE_SIZE = 512
+export const DEFAULT_ATLAS_LAYERS_PER_KIND = 16
 const defaultPadding = 1
-const defaultMaxPagesPerKind = 1
 
 function bitmapCacheKey(key: string, kind: AtlasKind): string {
-  return `${kind}\u0000${key}`
+  return kind + '\u0000' + key
 }
 
 function validatePositiveInteger(name: string, value: number): number {
   if (Number.isInteger(value) && value > 0) return value
-  throw new RangeError(`${name} must be a positive integer`)
+  throw new RangeError(name + ' must be a positive integer')
 }
 
 function validateBitmap(bitmap: GlyphBitmap): void {
   validatePositiveInteger('glyph width', bitmap.width)
   validatePositiveInteger('glyph height', bitmap.height)
-  if (bitmap.pixels.length === bitmap.width * bitmap.height * 4) return
-  throw new RangeError('glyph pixels must contain width × height × 4 RGBA bytes')
+  const expected = bitmap.width * bitmap.height * bytesPerPixel(bitmap.kind)
+  if (bitmap.pixels.length === expected) return
+  throw new RangeError('glyph pixels must contain exactly ' + expected + ' bytes')
+}
+
+function bytesPerPixel(kind: AtlasKind): number {
+  return kind === 'grayscale' ? 1 : 4
 }
 
 class AtlasPage {
@@ -44,7 +57,7 @@ class AtlasPage {
   lastUsed = 0
   readonly pixels: Uint8Array
   readonly rows = new Set<number>()
-  private dirty = false
+  private dirty?: DirtyRectangle
   private shelfHeight = 0
   private shelfX: number
   private shelfY: number
@@ -52,25 +65,29 @@ class AtlasPage {
   constructor(
     readonly id: number,
     readonly kind: AtlasKind,
+    readonly layer: number,
     readonly width: number,
     readonly height: number,
     private readonly padding: number,
   ) {
-    this.pixels = new Uint8Array(width * height * 4)
+    this.pixels = new Uint8Array(width * height * bytesPerPixel(kind))
     this.shelfX = padding
     this.shelfY = padding
   }
 
   consumeUpload(): AtlasPageUpload | undefined {
-    if (!this.dirty) return undefined
-    this.dirty = false
+    const dirty = this.dirty
+    if (!dirty) return undefined
+    this.dirty = undefined
+    const pixelBytes = bytesPerPixel(this.kind)
     return {
-      generation: this.generation,
-      height: this.height,
-      id: this.id,
+      bytesPerRow: this.width * pixelBytes,
+      dataOffset: (dirty.top * this.width + dirty.left) * pixelBytes,
+      extent: { height: dirty.bottom - dirty.top, width: dirty.right - dirty.left },
       kind: this.kind,
+      layer: this.layer,
+      origin: { x: dirty.left, y: dirty.top },
       pixels: this.pixels,
-      width: this.width,
     }
   }
 
@@ -84,15 +101,21 @@ class AtlasPage {
       height: bitmap.height,
       key,
       kind: this.kind,
-      pageId: this.id,
+      layer: this.layer,
+      offsetX: bitmap.offsetX,
+      offsetY: bitmap.offsetY,
       width: bitmap.width,
       x: position.x,
       y: position.y,
     }
     this.blit(position, bitmap)
     this.entries.set(cacheKey, glyph)
-    this.dirty = true
+    this.markDirty(position.x, position.y, bitmap.width, bitmap.height)
     return glyph
+  }
+
+  markFullDirty(): void {
+    this.dirty = { bottom: this.height, left: 0, right: this.width, top: 0 }
   }
 
   reset(): void {
@@ -103,7 +126,7 @@ class AtlasPage {
     this.shelfHeight = 0
     this.shelfX = this.padding
     this.shelfY = this.padding
-    this.dirty = true
+    this.markFullDirty()
   }
 
   private allocate(width: number, height: number): AtlasPosition | undefined {
@@ -125,37 +148,68 @@ class AtlasPage {
   }
 
   private blit(position: AtlasPosition, bitmap: GlyphBitmap): void {
-    const sourceStride = bitmap.width * 4
+    const pixelBytes = bytesPerPixel(bitmap.kind)
+    const sourceStride = bitmap.width * pixelBytes
     for (let row = 0; row < bitmap.height; row += 1) {
       const sourceStart = row * sourceStride
-      const targetStart = ((position.y + row) * this.width + position.x) * 4
+      const targetStart = ((position.y + row) * this.width + position.x) * pixelBytes
       this.pixels.set(bitmap.pixels.subarray(sourceStart, sourceStart + sourceStride), targetStart)
     }
+  }
+
+  private markDirty(x: number, y: number, width: number, height: number): void {
+    const next = { bottom: y + height, left: x, right: x + width, top: y }
+    const dirty = this.dirty
+    if (!dirty) {
+      this.dirty = next
+      return
+    }
+    // One bounded union per layer avoids upload-list growth between frames.
+    dirty.bottom = Math.max(dirty.bottom, next.bottom)
+    dirty.left = Math.min(dirty.left, next.left)
+    dirty.right = Math.max(dirty.right, next.right)
+    dirty.top = Math.min(dirty.top, next.top)
   }
 }
 
 export class GlyphAtlas {
   private readonly cache = new Map<string, { glyph: AtlasGlyph; page: AtlasPage }>()
+  private cacheHitCountValue = 0
+  private cacheMissCountValue = 0
   private evictionCountValue = 0
-  private readonly maxPagesPerKind: number
+  readonly maxLayersPerKind: number
   private nextPageId = 1
   private readonly padding: number
-  private readonly pageHeight: number
+  readonly pageHeight: number
   private readonly pages: AtlasPage[] = []
-  private readonly pageWidth: number
+  readonly pageWidth: number
   private readonly rowReferences = new Map<number, Map<number, number>>()
   private tick = 0
 
   constructor(options: GlyphAtlasOptions = {}) {
-    this.pageWidth = validatePositiveInteger('pageWidth', options.pageWidth ?? defaultPageSize)
-    this.pageHeight = validatePositiveInteger('pageHeight', options.pageHeight ?? defaultPageSize)
-    this.maxPagesPerKind = validatePositiveInteger(
-      'maxPagesPerKind',
-      options.maxPagesPerKind ?? defaultMaxPagesPerKind,
+    this.pageWidth = validatePositiveInteger(
+      'pageWidth',
+      options.pageWidth ?? DEFAULT_ATLAS_PAGE_SIZE,
+    )
+    this.pageHeight = validatePositiveInteger(
+      'pageHeight',
+      options.pageHeight ?? DEFAULT_ATLAS_PAGE_SIZE,
+    )
+    this.maxLayersPerKind = validatePositiveInteger(
+      'maxLayersPerKind',
+      options.maxLayersPerKind ?? DEFAULT_ATLAS_LAYERS_PER_KIND,
     )
     this.padding = options.padding ?? defaultPadding
     if (Number.isInteger(this.padding) && this.padding >= 0) return
     throw new RangeError('padding must be a non-negative integer')
+  }
+
+  get cacheHitCount(): number {
+    return this.cacheHitCountValue
+  }
+
+  get cacheMissCount(): number {
+    return this.cacheMissCountValue
   }
 
   get evictionCount(): number {
@@ -164,6 +218,14 @@ export class GlyphAtlas {
 
   get pageCount(): number {
     return this.pages.length
+  }
+
+  get textureLayout(): AtlasTextureLayout {
+    return {
+      layerCount: this.maxLayersPerKind,
+      pageHeight: this.pageHeight,
+      pageWidth: this.pageWidth,
+    }
   }
 
   beginRow(row: number): void {
@@ -187,9 +249,11 @@ export class GlyphAtlas {
     const cacheKey = bitmapCacheKey(key, bitmap.kind)
     const cached = this.cache.get(cacheKey)
     if (cached) {
+      this.cacheHitCountValue += 1
       this.touch(cached.page, row)
       return { glyph: cached.glyph, invalidatedRows: [] }
     }
+    this.cacheMissCountValue += 1
     const allocation = this.allocatePage(cacheKey, key, bitmap)
     this.cache.set(cacheKey, { glyph: allocation.glyph, page: allocation.page })
     this.touch(allocation.page, row)
@@ -202,6 +266,10 @@ export class GlyphAtlas {
     this.rowReferences.clear()
     for (const page of this.pages) page.reset()
     return rows
+  }
+
+  markAllForUpload(): void {
+    for (const page of this.pages) page.markFullDirty()
   }
 
   rowsWithStaleReferences(): readonly number[] {
@@ -222,12 +290,21 @@ export class GlyphAtlas {
       const glyph = page.insert(cacheKey, key, bitmap)
       if (glyph) return { glyph, invalidatedRows: [], page }
     }
-    if (pages.length < this.maxPagesPerKind) return this.insertIntoNewPage(cacheKey, key, bitmap)
+    if (pages.length < this.maxLayersPerKind) {
+      return this.insertIntoNewPage(cacheKey, key, bitmap, pages.length)
+    }
     return this.insertIntoRecycledPage(cacheKey, key, bitmap, pages)
   }
 
-  private createPage(kind: AtlasKind): AtlasPage {
-    const page = new AtlasPage(this.nextPageId, kind, this.pageWidth, this.pageHeight, this.padding)
+  private createPage(kind: AtlasKind, layer: number): AtlasPage {
+    const page = new AtlasPage(
+      this.nextPageId,
+      kind,
+      layer,
+      this.pageWidth,
+      this.pageHeight,
+      this.padding,
+    )
     this.nextPageId += 1
     this.pages.push(page)
     return page
@@ -237,11 +314,14 @@ export class GlyphAtlas {
     cacheKey: string,
     key: string,
     bitmap: GlyphBitmap,
+    layer: number,
   ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } {
-    const page = this.createPage(bitmap.kind)
+    const page = this.createPage(bitmap.kind, layer)
     const glyph = page.insert(cacheKey, key, bitmap)
     if (glyph) return { glyph, invalidatedRows: [], page }
-    throw new RangeError(`glyph ${bitmap.width}×${bitmap.height} does not fit an empty atlas page`)
+    throw new RangeError(
+      'glyph ' + bitmap.width + '×' + bitmap.height + ' does not fit an empty atlas layer',
+    )
   }
 
   private insertIntoRecycledPage(
@@ -256,7 +336,9 @@ export class GlyphAtlas {
     const invalidatedRows = this.recyclePage(page)
     const glyph = page.insert(cacheKey, key, bitmap)
     if (glyph) return { glyph, invalidatedRows, page }
-    throw new RangeError(`glyph ${bitmap.width}×${bitmap.height} does not fit an empty atlas page`)
+    throw new RangeError(
+      'glyph ' + bitmap.width + '×' + bitmap.height + ' does not fit an empty atlas layer',
+    )
   }
 
   private pageById(id: number): AtlasPage | undefined {

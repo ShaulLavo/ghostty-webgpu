@@ -1,8 +1,9 @@
 import type { RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import {
-  BACKGROUND_INSTANCE_BYTES,
-  BACKGROUND_INSTANCE_FLOATS,
-  BackgroundOffset,
+  CELL_INSTANCE_BYTES,
+  CELL_INSTANCE_FLOATS,
+  CellFlag,
+  CellOffset,
   GLYPH_INSTANCE_BYTES,
   GLYPH_INSTANCE_FLOATS,
   GlyphFlag,
@@ -33,7 +34,7 @@ function normalized(color: RgbColor): readonly [number, number, number] {
   return [color.r / 255, color.g / 255, color.b / 255]
 }
 
-function colorsForCell(cell: RenderCell, theme: RendererTheme, cursor: boolean): CellColors {
+function colorsForCell(cell: RenderCell, theme: RendererTheme, blockCursor: boolean): CellColors {
   let foreground = cell.foreground ?? theme.foreground
   let background = cell.background ?? theme.background
   let drawBackground = cell.background !== undefined
@@ -48,27 +49,33 @@ function colorsForCell(cell: RenderCell, theme: RendererTheme, cursor: boolean):
     background = theme.selectionBackground
     drawBackground = true
   }
-  if (!cursor) return { background, drawBackground, foreground }
+  if (!blockCursor) return { background, drawBackground, foreground }
   return { background: theme.cursor, drawBackground: true, foreground: theme.background }
 }
 
-function glyphFlags(cell: RenderCell, cursor: CursorState | undefined): number {
+function cellFlags(cell: RenderCell, cursor: CursorState | undefined): number {
   let flags = 0
-  const underline = cell.style?.underline ?? 0
-  if (underline > 0) flags |= GlyphFlag.Underline
-  if (underline === 3) flags |= GlyphFlag.Undercurl
-  if (cell.style?.strikethrough) flags |= GlyphFlag.Strikethrough
-  if (cell.style?.overline) flags |= GlyphFlag.Overline
-  if (cell.style?.inverse) flags |= GlyphFlag.Inverse
-  if (cell.selected) flags |= GlyphFlag.Selected
-  if (cell.style?.invisible) flags |= GlyphFlag.Invisible
-  if (!cursor) return flags
-  flags |= GlyphFlag.Cursor
-  if (cursor.style === 'outline') flags |= GlyphFlag.OutlineCursor
+  if (cell.style?.strikethrough) flags |= CellFlag.Strikethrough
+  if (cell.style?.overline) flags |= CellFlag.Overline
+  if (cursor) flags |= CellFlag.Cursor
   return flags
 }
 
-function cursorForCell(cursor: CursorState | undefined, cell: RenderCell, row: number) {
+function cellNeedsQuad(
+  cell: RenderCell,
+  colors: CellColors,
+  cursor: CursorState | undefined,
+): boolean {
+  if (colors.drawBackground || cursor) return true
+  if ((cell.style?.underline ?? 0) > 0) return true
+  return cell.style?.strikethrough === true || cell.style?.overline === true
+}
+
+function cursorForCell(
+  cursor: CursorState | undefined,
+  cell: RenderCell,
+  row: number,
+): CursorState | undefined {
   if (!cursor?.visible) return undefined
   if (cursor.x !== cell.x || cursor.y !== row) return undefined
   return cursor
@@ -87,12 +94,24 @@ function cellSpan(cells: readonly RenderCell[], index: number): number {
   return span
 }
 
-function glyphCacheKey(text: string, span: number): string {
-  return `${span}\u0000${text}`
+function glyphCacheKey(cell: RenderCell, span: number): string {
+  return JSON.stringify([
+    span,
+    cell.style?.bold ? 'bold' : 'normal',
+    cell.style?.italic ?? false,
+    cell.text,
+  ])
+}
+
+function cursorStyleCode(style: CursorState['style'] | undefined): number {
+  if (style === 'bar') return 1
+  if (style === 'underline') return 2
+  if (style === 'outline') return 3
+  return 0
 }
 
 export class InstanceRows {
-  readonly backgroundData: Float32Array
+  readonly cellData: Float32Array
   readonly glyphData: Float32Array
   readonly cellHeight: number
   readonly cellWidth: number
@@ -105,7 +124,7 @@ export class InstanceRows {
     this.cellWidth = validateDimension('cellWidth', options.cellWidth)
     this.cellHeight = validateDimension('cellHeight', options.cellHeight)
     const cells = this.columns * this.rows
-    this.backgroundData = new Float32Array(cells * BACKGROUND_INSTANCE_FLOATS)
+    this.cellData = new Float32Array(cells * CELL_INSTANCE_FLOATS)
     this.glyphData = new Float32Array(cells * GLYPH_INSTANCE_FLOATS)
   }
 
@@ -135,7 +154,7 @@ export class InstanceRows {
       )
     }
     return {
-      background: byteRange(row.y, this.columns, BACKGROUND_INSTANCE_BYTES),
+      cell: byteRange(row.y, this.columns, CELL_INSTANCE_BYTES),
       glyph: byteRange(row.y, this.columns, GLYPH_INSTANCE_BYTES),
       invalidatedRows: [...invalidatedRows].sort((left, right) => left - right),
       row: row.y,
@@ -146,7 +165,7 @@ export class InstanceRows {
     const updates: RowInstanceUpdate[] = []
     for (let row = 0; row < this.rows; row += 1) {
       updates.push({
-        background: byteRange(row, this.columns, BACKGROUND_INSTANCE_BYTES),
+        cell: byteRange(row, this.columns, CELL_INSTANCE_BYTES),
         glyph: byteRange(row, this.columns, GLYPH_INSTANCE_BYTES),
         invalidatedRows: [],
         row,
@@ -157,10 +176,10 @@ export class InstanceRows {
 
   private clearRow(row: number): void {
     const firstCell = row * this.columns
-    const backgroundStart = firstCell * BACKGROUND_INSTANCE_FLOATS
+    const cellStart = firstCell * CELL_INSTANCE_FLOATS
     const glyphStart = firstCell * GLYPH_INSTANCE_FLOATS
-    this.backgroundData.fill(0, backgroundStart, backgroundStart + this.columns * 8)
-    this.glyphData.fill(0, glyphStart, glyphStart + this.columns * 24)
+    this.cellData.fill(0, cellStart, cellStart + this.columns * CELL_INSTANCE_FLOATS)
+    this.glyphData.fill(0, glyphStart, glyphStart + this.columns * GLYPH_INSTANCE_FLOATS)
   }
 
   private validateRow(row: number): void {
@@ -179,21 +198,34 @@ export class InstanceRows {
     invalidatedRows: Set<number>,
   ): void {
     const cursor = cursorForCell(cursorState, cell, row)
-    const blockCursor = cursor?.style === 'block'
-    const colors = colorsForCell(cell, theme, blockCursor)
-    this.writeBackground(row, cell.x, colors)
+    const colors = colorsForCell(cell, theme, cursor?.style === 'block')
+    this.writeCellInstance(row, cell, colors, cursor, theme.minimumContrast)
     if (cell.continuation) return
-    this.writeGlyph(row, cell, span, colors, cursor, glyphs, source, theme, invalidatedRows)
+    this.writeGlyph(row, cell, span, colors, glyphs, source, theme.minimumContrast, invalidatedRows)
   }
 
-  private writeBackground(row: number, column: number, colors: CellColors): void {
-    const offset = (row * this.columns + column) * BACKGROUND_INSTANCE_FLOATS
-    this.writeRect(this.backgroundData, offset + BackgroundOffset.Rect, row, column)
-    const [red, green, blue] = normalized(colors.background)
-    this.backgroundData[offset + BackgroundOffset.Color] = red
-    this.backgroundData[offset + BackgroundOffset.Color + 1] = green
-    this.backgroundData[offset + BackgroundOffset.Color + 2] = blue
-    this.backgroundData[offset + BackgroundOffset.Color + 3] = colors.drawBackground ? 1 : 0
+  private writeCellInstance(
+    row: number,
+    cell: RenderCell,
+    colors: CellColors,
+    cursor: CursorState | undefined,
+    minimumContrast: number,
+  ): void {
+    const offset = (row * this.columns + cell.x) * CELL_INSTANCE_FLOATS
+    if (cellNeedsQuad(cell, colors, cursor)) {
+      this.writeRect(this.cellData, offset + CellOffset.Rect, row, cell.x)
+    }
+    this.writeColor(this.cellData, offset + CellOffset.Foreground, colors.foreground, 1)
+    this.writeColor(
+      this.cellData,
+      offset + CellOffset.Background,
+      colors.background,
+      colors.drawBackground ? 1 : 0,
+    )
+    this.cellData[offset + CellOffset.Meta] = cellFlags(cell, cursor)
+    this.cellData[offset + CellOffset.Meta + 1] = cell.style?.underline ?? 0
+    this.cellData[offset + CellOffset.Meta + 2] = cursorStyleCode(cursor?.style)
+    this.cellData[offset + CellOffset.Meta + 3] = minimumContrast
   }
 
   private writeGlyph(
@@ -201,45 +233,48 @@ export class InstanceRows {
     cell: RenderCell,
     span: number,
     colors: CellColors,
-    cursor: CursorState | undefined,
     glyphs: GlyphLookup,
     source: GlyphSource,
-    theme: RendererTheme,
+    minimumContrast: number,
     invalidatedRows: Set<number>,
   ): void {
-    const offset = (row * this.columns + cell.x) * GLYPH_INSTANCE_FLOATS
-    this.writeRect(this.glyphData, offset + GlyphOffset.Rect, row, cell.x, span)
-    this.writeColor(this.glyphData, offset + GlyphOffset.Color, colors.foreground, 1)
-    this.writeColor(this.glyphData, offset + GlyphOffset.Background, colors.background, 1)
-    let flags = glyphFlags(cell, cursor)
-    if (cell.text)
-      flags |= this.writeGlyphAtlas(offset, cell.text, span, row, glyphs, source, invalidatedRows)
-    this.glyphData[offset + GlyphOffset.Meta] = flags
-    this.glyphData[offset + GlyphOffset.Meta + 1] = cursorStyleCode(cursor?.style)
-    this.glyphData[offset + GlyphOffset.Meta + 2] = theme.minimumContrast
-  }
-
-  private writeGlyphAtlas(
-    offset: number,
-    text: string,
-    span: number,
-    row: number,
-    glyphs: GlyphLookup,
-    source: GlyphSource,
-    invalidatedRows: Set<number>,
-  ): number {
-    const bitmap = source.rasterize(text, span)
-    const result = glyphs.resolve(glyphCacheKey(text, span), bitmap, row)
+    if (!cell.text || cell.style?.invisible) return
+    const bitmap = source.rasterize({
+      cellSpan: span,
+      italic: cell.style?.italic ?? false,
+      text: cell.text,
+      weight: cell.style?.bold ? 'bold' : 'normal',
+    })
+    if (!bitmap) return
+    const result = glyphs.resolve(glyphCacheKey(cell, span), bitmap, row)
     for (const invalidated of result.invalidatedRows) invalidatedRows.add(invalidated)
     const glyph = result.glyph
+    const offset = (row * this.columns + cell.x) * GLYPH_INSTANCE_FLOATS
+    this.writeGlyphRect(offset, row, cell.x, glyph)
+    const alpha = cell.style?.faint ? 0.5 : 1
+    this.writeColor(this.glyphData, offset + GlyphOffset.Color, colors.foreground, alpha)
+    this.writeColor(this.glyphData, offset + GlyphOffset.Background, colors.background, 1)
+    this.glyphData[offset + GlyphOffset.Meta] = GlyphFlag.Glyph
+    this.glyphData[offset + GlyphOffset.Meta + 2] = minimumContrast
     this.glyphData[offset + GlyphOffset.Uv] = glyph.x / glyph.atlasWidth
     this.glyphData[offset + GlyphOffset.Uv + 1] = glyph.y / glyph.atlasHeight
     this.glyphData[offset + GlyphOffset.Uv + 2] = (glyph.x + glyph.width) / glyph.atlasWidth
     this.glyphData[offset + GlyphOffset.Uv + 3] = (glyph.y + glyph.height) / glyph.atlasHeight
-    this.glyphData[offset + GlyphOffset.Atlas] = glyph.pageId
+    this.glyphData[offset + GlyphOffset.Atlas] = glyph.layer
     this.glyphData[offset + GlyphOffset.Atlas + 1] = glyph.generation
     this.glyphData[offset + GlyphOffset.Atlas + 2] = glyph.kind === 'color' ? 1 : 0
-    return GlyphFlag.Glyph
+  }
+
+  private writeGlyphRect(
+    offset: number,
+    row: number,
+    column: number,
+    glyph: { height: number; offsetX: number; offsetY: number; width: number },
+  ): void {
+    this.glyphData[offset + GlyphOffset.Rect] = column * this.cellWidth + glyph.offsetX
+    this.glyphData[offset + GlyphOffset.Rect + 1] = row * this.cellHeight + glyph.offsetY
+    this.glyphData[offset + GlyphOffset.Rect + 2] = glyph.width
+    this.glyphData[offset + GlyphOffset.Rect + 3] = glyph.height
   }
 
   private writeRect(
@@ -262,11 +297,4 @@ export class InstanceRows {
     data[offset + 2] = blue
     data[offset + 3] = alpha
   }
-}
-
-function cursorStyleCode(style: CursorState['style'] | undefined): number {
-  if (style === 'bar') return 1
-  if (style === 'underline') return 2
-  if (style === 'outline') return 3
-  return 0
 }

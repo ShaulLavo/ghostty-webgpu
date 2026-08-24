@@ -3,6 +3,7 @@ export { GhosttyRenderState } from './core/render-state.js'
 export { GhosttyRuntime } from './core/runtime.js'
 export { GhosttyTerminal } from './core/terminal.js'
 export { GHOSTTY_UPSTREAM_REVISION } from './core/version.js'
+export { calculateTerminalFittedFont, fitTerminalFont } from './dom/fit.js'
 export { GhosttyWebGpuTerminal } from './dom/terminal.js'
 export { WebGpuTerminalRenderer } from './render/renderer.js'
 export { TerminalSession } from './term/session.js'
@@ -45,7 +46,14 @@ export type {
 } from './core/types.js'
 export type { DomClipboardWriteDecision, DomClipboardWritePolicy } from './dom/clipboard.js'
 export type { TerminalElementPadding, TerminalElementPaddingInput } from './dom/elements.js'
-export type { TerminalFitEnvironment, TerminalFitResizeObserver } from './dom/fit.js'
+export type {
+  TerminalFitEnvironment,
+  TerminalFitFont,
+  TerminalFitGrid,
+  TerminalFitResizeObserver,
+  TerminalFitResult,
+  TerminalFontMeasurement,
+} from './dom/fit.js'
 export type { TerminalPointerOwner } from './dom/pointer.js'
 export type { TerminalScrollbarClock } from './dom/scrollbar.js'
 export type {
@@ -105,6 +113,7 @@ export type {
   TerminalDataEvent,
   TerminalErrorEvent,
   TerminalFontSettings,
+  TerminalFittedFont,
   TerminalGrid,
   TerminalInputData,
   TerminalInputResult,

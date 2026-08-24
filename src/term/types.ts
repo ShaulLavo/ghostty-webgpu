@@ -40,9 +40,26 @@ export interface TerminalGrid {
 }
 
 export interface TerminalFontSettings {
+  readonly boldWeight: number
   readonly family: string
+  readonly letterSpacing: number
   readonly lineHeight: number
   readonly size: number
+  readonly weight: number
+}
+
+export interface TerminalFittedFont {
+  readonly charLeft: number
+  readonly charTop: number
+  readonly cssCellHeight: number
+  readonly cssCellWidth: number
+  readonly deviceBaseline: number
+  readonly deviceCellHeight: number
+  readonly deviceCellWidth: number
+  readonly deviceCharHeight: number
+  readonly deviceCharWidth: number
+  readonly pixelRatio: number
+  readonly settings: TerminalFontSettings
 }
 
 export interface TerminalCursorSettings {

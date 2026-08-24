@@ -7,6 +7,7 @@ import type {
   RenderCursorSnapshot,
   RenderRow,
 } from '../../core/types.js'
+import type { TerminalFittedFont, TerminalFontSettings } from '../../term/types.js'
 import {
   WebGpuTerminalRenderer,
   type RendererFrameSnapshot,
@@ -180,15 +181,48 @@ function createCanvas(): HTMLCanvasElement {
   return canvas
 }
 
+function fittedFont(
+  cellWidth = 8,
+  cellHeight = 16,
+  pixelRatio = 1,
+  settings: Partial<TerminalFontSettings> = {},
+): TerminalFittedFont {
+  const deviceCellWidth = Math.round(cellWidth * pixelRatio)
+  const deviceCellHeight = Math.round(cellHeight * pixelRatio)
+  const size = settings.size ?? 14
+  const deviceCharHeight = Math.min(deviceCellHeight, Math.ceil(size * pixelRatio))
+  const charTop = Math.round((deviceCellHeight - deviceCharHeight) / 2)
+  return Object.freeze({
+    charLeft: 0,
+    charTop,
+    cssCellHeight: deviceCellHeight / pixelRatio,
+    cssCellWidth: deviceCellWidth / pixelRatio,
+    deviceBaseline: charTop + Math.ceil(deviceCharHeight * 0.8),
+    deviceCellHeight,
+    deviceCellWidth,
+    deviceCharHeight,
+    deviceCharWidth: deviceCellWidth,
+    pixelRatio,
+    settings: Object.freeze({
+      boldWeight: 700,
+      family: 'monospace',
+      letterSpacing: 0,
+      lineHeight: deviceCellHeight / deviceCharHeight,
+      size,
+      weight: 400,
+      ...settings,
+    }),
+  })
+}
+
 it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
+    font: fittedFont(),
     renderState: source,
     rows: 2,
     schedulerClock: clock,
@@ -197,6 +231,12 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
 
   expect(renderer.metrics.submittedFrames).toBe(1)
   expect(renderer.metrics.rebuiltRows).toBe(2)
+  expect(renderer.metrics.atlasCacheHits).toBe(1)
+  expect(renderer.metrics.atlasCacheMisses).toBe(1)
+  expect(renderer.metrics.atlasPages).toBe(1)
+  expect(renderer.metrics.atlasUploadOperations).toBe(1)
+  expect(renderer.metrics.atlasUploadedBytes).toBeGreaterThan(0)
+  expect(renderer.metrics.atlasUploadedBytes).toBeLessThan(512 * 512)
   expect(source.acknowledgements).toBe(1)
   expect(renderer.hasPendingFrame).toBe(false)
   expect(renderer.hasPendingTimer).toBe(false)
@@ -223,9 +263,8 @@ it('submits one frame per blink transition without a standing animation frame', 
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
+    font: fittedFont(),
     renderState: source,
     rows: 2,
     schedulerClock: clock,
@@ -265,9 +304,8 @@ it('renders cursor-only terminal mutations even when row damage is clean', async
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
+    font: fittedFont(),
     onFrame: (snapshot) => frames.push(snapshot),
     renderState: source,
     rows: 2,
@@ -302,10 +340,8 @@ it('separates CSS grid size from DPR backing resources and ignores semantic no-o
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
-    pixelRatio: 2,
+    font: fittedFont(8, 16, 2),
     renderState: source,
     rows: 2,
     schedulerClock: clock,
@@ -318,11 +354,11 @@ it('separates CSS grid size from DPR backing resources and ignores semantic no-o
   clock.flushFrame()
   const rebuilt = renderer.metrics.rebuiltRows
 
-  renderer.resize({ cellHeight: 16, cellWidth: 8, columns: 2, pixelRatio: 2, rows: 2 })
+  renderer.resize({ columns: 2, rows: 2 })
   expect(clock.frames.size).toBe(0)
 
-  renderer.resize({ cellHeight: 16, cellWidth: 8, columns: 2, pixelRatio: 1.5, rows: 2 })
-  renderer.resize({ cellHeight: 16, cellWidth: 8, columns: 2, pixelRatio: 1.5, rows: 2 })
+  renderer.setFont(fittedFont(8, 16, 1.5))
+  renderer.setFont(fittedFont(8, 16, 1.5))
   expect(clock.frames.size).toBe(1)
   expect(canvas.style.width).toBe('16px')
   expect(canvas.style.height).toBe('32px')
@@ -340,10 +376,8 @@ it('canonicalizes fractional CSS cell metrics to the integer native DPR grid', a
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 15.7,
-    cellWidth: 7.8,
     columns: 2,
-    pixelRatio: 2,
+    font: fittedFont(7.8, 15.7, 2),
     renderState: new FakeRenderState(2, 2),
     rows: 2,
     schedulerClock: clock,
@@ -366,21 +400,26 @@ it('coalesces a runtime font change into one full repaint', async () => {
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
+    font: fittedFont(),
     renderState: source,
     rows: 2,
     schedulerClock: clock,
   })
   clock.flushFrame()
   const rebuilt = renderer.metrics.rebuiltRows
+  const misses = renderer.metrics.atlasCacheMisses
 
-  renderer.setFont('serif', 15)
-  renderer.setFont('serif', 15)
+  renderer.setFont(fittedFont(8, 16, 1, { family: 'serif', size: 15 }))
+  renderer.setFont(fittedFont(8, 16, 1, { family: 'serif', size: 15 }))
   expect(clock.frames.size).toBe(1)
   clock.flushFrame()
   expect(renderer.metrics.rebuiltRows).toBe(rebuilt + 2)
+  expect(renderer.metrics.atlasCacheMisses).toBe(misses + 1)
+
+  renderer.resize({ columns: 3, rows: 2 })
+  clock.flushFrame()
+  expect(renderer.metrics.atlasCacheMisses).toBe(misses + 1)
 
   renderer.dispose()
   canvas.remove()
@@ -393,9 +432,8 @@ it('publishes immutable copied frame state only after submitted frames', async (
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
+    font: fittedFont(),
     onFrame: (snapshot) => frames.push(snapshot),
     renderState: source,
     rows: 2,
@@ -436,15 +474,16 @@ it.skipIf(isLinuxSwiftShader)(
     }
     const renderer = await createRenderer({
       canvas,
-      cellHeight: 16,
-      cellWidth: 8,
       columns: 2,
       deviceFactory: factory,
+      font: fittedFont(),
       renderState: source,
       rows: 2,
       schedulerClock: clock,
     })
     clock.flushFrame()
+    const uploadedBeforeRestore = renderer.metrics.atlasUploadedBytes
+    const operationsBeforeRestore = renderer.metrics.atlasUploadOperations
     await renderer.simulateDeviceLoss()
     expect(factoryCalls).toBe(2)
     expect(renderer.metrics.deviceRestores).toBe(1)
@@ -453,6 +492,8 @@ it.skipIf(isLinuxSwiftShader)(
 
     expect(renderer.metrics.submittedFrames).toBe(2)
     expect(renderer.metrics.rebuiltRows).toBe(4)
+    expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 512 * 512)
+    expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 1)
     renderer.dispose()
     canvas.remove()
   },
@@ -473,10 +514,9 @@ it('discards a replacement device that resolves after disposal', async () => {
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
     deviceFactory: factory,
+    font: fittedFont(),
     renderState: new FakeRenderState(2, 2),
     rows: 2,
     schedulerClock: clock,
@@ -510,10 +550,9 @@ it.skipIf(isLinuxSwiftShader)(
     const canvas = createCanvas()
     const renderer = await createRenderer({
       canvas,
-      cellHeight: 16,
-      cellWidth: 8,
       columns: 2,
       deviceFactory: factory,
+      font: fittedFont(),
       renderState: new FakeRenderState(2, 2),
       rows: 2,
       schedulerClock: clock,
@@ -548,10 +587,9 @@ it('unwinds a replacement when post-acquisition setup fails', async () => {
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 2,
     deviceFactory: factory,
+    font: fittedFont(),
     renderState: new FakeRenderState(2, 2),
     rows: 2,
     schedulerClock: clock,
@@ -583,13 +621,12 @@ it('validates before acquisition and destroys a device after constructor failure
   await expect(
     createRenderer({
       canvas,
-      cellHeight: 0,
-      cellWidth: 8,
       columns: 2,
       deviceFactory: async () => {
         calls += 1
         return createDevice()
       },
+      font: { ...fittedFont(), deviceCellHeight: 0 },
       renderState: new FakeRenderState(2, 2),
       rows: 2,
     }),
@@ -606,10 +643,9 @@ it('validates before acquisition and destroys a device after constructor failure
   await expect(
     createRenderer({
       canvas,
-      cellHeight: 16,
-      cellWidth: 8,
       columns: 2,
       deviceFactory: () => Promise.resolve(device),
+      font: fittedFont(),
       renderState: new FakeRenderState(2, 2),
       rows: 2,
     }),
@@ -628,9 +664,8 @@ it('consumes the real libghostty-vt damage contract in a browser', async () => {
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
-    cellHeight: 16,
-    cellWidth: 8,
     columns: 4,
+    font: fittedFont(),
     onFrame: (snapshot) => frames.push(snapshot),
     renderState: state,
     rows: 2,

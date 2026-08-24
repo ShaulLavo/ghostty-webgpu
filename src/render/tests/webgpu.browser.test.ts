@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
@@ -11,6 +12,29 @@ async function createDevice(): Promise<GPUDevice> {
   expect(adapter).not.toBeNull()
   if (!adapter) throw new Error('WebGPU requestAdapter returned null')
   return adapter.requestDevice()
+}
+
+function fittedFont(): TerminalFittedFont {
+  return Object.freeze({
+    charLeft: 0,
+    charTop: 3,
+    cssCellHeight: 24,
+    cssCellWidth: 16,
+    deviceBaseline: 18,
+    deviceCellHeight: 24,
+    deviceCellWidth: 16,
+    deviceCharHeight: 18,
+    deviceCharWidth: 16,
+    pixelRatio: 1,
+    settings: Object.freeze({
+      boldWeight: 700,
+      family: 'monospace',
+      letterSpacing: 0,
+      lineHeight: 4 / 3,
+      size: 18,
+      weight: 400,
+    }),
+  })
 }
 
 async function readClearColor(device: GPUDevice): Promise<Uint8Array> {
@@ -56,26 +80,28 @@ it('creates a WebGPU device, submits a frame, and reads pixels back', async () =
 it('rasterizes and uploads grayscale and color atlas pages', async () => {
   const device = await createDevice()
   const atlas = new GlyphAtlas({ padding: 1, pageHeight: 128, pageWidth: 128 })
-  const rasterizer = new CanvasGlyphRasterizer({
-    cellHeight: 24,
-    cellWidth: 16,
-    fontFamily: 'monospace',
-    fontSize: 18,
-  })
+  const rasterizer = new CanvasGlyphRasterizer({ font: fittedFont() })
   const values = ['A', 'e\u0301', '界', '🙂']
   const kinds = values.map((text, row) => {
-    const bitmap = rasterizer.rasterize(text)
+    const bitmap = rasterizer.rasterize({
+      cellSpan: text === '界' || text === '🙂' ? 2 : 1,
+      italic: false,
+      text,
+      weight: 'normal',
+    })
+    if (!bitmap) throw new Error(`Expected visible glyph: ${text}`)
     atlas.getOrInsert(text, bitmap, row)
     return bitmap.kind
   })
-  const textures = new AtlasGpuTextures()
+  const textures = new AtlasGpuTextures(device, atlas.textureLayout)
 
   device.pushErrorScope('validation')
-  textures.sync(device, atlas.consumeUploads())
+  textures.sync(atlas.consumeUploads())
   await device.queue.onSubmittedWorkDone()
 
   expect(kinds).toEqual(['grayscale', 'grayscale', 'grayscale', 'color'])
-  expect(rasterizer.rasterize('A')).toBe(rasterizer.rasterize('A'))
+  const cachedInput = { cellSpan: 1, italic: false, text: 'A', weight: 'normal' } as const
+  expect(rasterizer.rasterize(cachedInput)).toBe(rasterizer.rasterize(cachedInput))
   expect(textures.view('grayscale')).toBeDefined()
   expect(textures.view('color')).toBeDefined()
   expect(await device.popErrorScope()).toBeNull()

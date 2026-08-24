@@ -6,6 +6,7 @@ import type {
   TerminalColorScheme,
   TerminalCursorSettings,
   TerminalErrorEvent,
+  TerminalFittedFont,
   TerminalFontSettings,
   TerminalRendererTheme,
   TerminalScrollEvent,
@@ -91,7 +92,7 @@ export interface GhosttyWebGpuRenderer {
   setCursorBlinkEnabled(enabled: boolean): void
   setDocumentVisible(visible: boolean): void
   setFocused(focused: boolean): void
-  setFont(fontFamily: string, fontSize: number): void
+  setFont(font: TerminalFittedFont): void
   setTheme(theme: Partial<RendererTheme>): void
 }
 

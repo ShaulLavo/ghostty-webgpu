@@ -4,6 +4,7 @@ const columns = 200
 const rows = 50
 const cellWidth = 8
 const cellHeight = 16
+const pixelRatio = 2
 const canvas = requireElement<HTMLCanvasElement>('#terminal')
 const status = requireElement<HTMLElement>('#status')
 
@@ -21,16 +22,38 @@ const [wasm, bridge] = await Promise.all([
   fetch('/bridge.wasm').then((response) => response.arrayBuffer()),
 ])
 const runtime = await GhosttyRuntime.create({ bridge, wasm })
-const terminal = runtime.createTerminal({ cellHeight, cellWidth, columns, rows })
+const font = Object.freeze({
+  charLeft: 0,
+  charTop: 3,
+  cssCellHeight: cellHeight,
+  cssCellWidth: cellWidth,
+  deviceBaseline: 24,
+  deviceCellHeight: cellHeight * pixelRatio,
+  deviceCellWidth: cellWidth * pixelRatio,
+  deviceCharHeight: 26,
+  deviceCharWidth: cellWidth * pixelRatio,
+  pixelRatio,
+  settings: Object.freeze({
+    boldWeight: 700,
+    family: 'monospace',
+    letterSpacing: 0,
+    lineHeight: 32 / 26,
+    size: 13,
+    weight: 400,
+  }),
+})
+const terminal = runtime.createTerminal({
+  cellHeight: font.deviceCellHeight,
+  cellWidth: font.deviceCellWidth,
+  columns,
+  rows,
+})
 const renderState = runtime.createRenderState(terminal)
 const renderer = await WebGpuTerminalRenderer.create({
   canvas,
-  cellHeight,
-  cellWidth,
   columns,
   deviceFactory: async () => device,
-  fontFamily: 'monospace',
-  fontSize: 13,
+  font,
   renderState,
   rows,
 })
@@ -51,6 +74,23 @@ function writeLines(count: number): void {
     sequence += 1
   }
   terminal.write(output)
+  renderer.notifyWrite()
+}
+
+function glyphChurnLine(index: number): string {
+  const emoji = ['🧪', '🚀', '🫠', '🧭'][index % 4] ?? '🧪'
+  let output = ''
+  for (let offset = 0; offset < 24; offset += 1) {
+    const cjk = String.fromCodePoint(0x4e00 + ((index * 24 + offset) % 16_000))
+    const combining = String.fromCodePoint(0x300 + ((index + offset) % 80))
+    output += `${cjk}e${combining}${emoji}`
+  }
+  return `${output}\r\n`
+}
+
+function writeGlyphChurn(): void {
+  terminal.write(glyphChurnLine(sequence))
+  sequence += 1
   renderer.notifyWrite()
 }
 
@@ -79,6 +119,10 @@ function startScenario(name: string): void {
     scenarioTimer = window.setInterval(() => renderer.notifyScroll(), 16)
     return
   }
+  if (name === 'glyph-churn') {
+    scenarioTimer = window.setInterval(writeGlyphChurn, 16)
+    return
+  }
   throw new Error(`Unknown scenario: ${name}`)
 }
 
@@ -88,7 +132,12 @@ function resetMetrics(): void {
 
 function getMetrics() {
   return {
+    atlasCacheHits: renderer.metrics.atlasCacheHits - baseline.atlasCacheHits,
+    atlasCacheMisses: renderer.metrics.atlasCacheMisses - baseline.atlasCacheMisses,
     atlasEvictions: renderer.metrics.atlasEvictions - baseline.atlasEvictions,
+    atlasPages: renderer.metrics.atlasPages,
+    atlasUploadedBytes: renderer.metrics.atlasUploadedBytes - baseline.atlasUploadedBytes,
+    atlasUploadOperations: renderer.metrics.atlasUploadOperations - baseline.atlasUploadOperations,
     deviceRestores: renderer.metrics.deviceRestores - baseline.deviceRestores,
     draws: renderer.metrics.draws - baseline.draws,
     rebuiltRows: renderer.metrics.rebuiltRows - baseline.rebuiltRows,

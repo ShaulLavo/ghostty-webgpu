@@ -636,6 +636,45 @@ describe('EventEmitter', () => {
 })
 
 describe('TerminalSession', () => {
+  it('normalizes complete font defaults, numeric weights, line height, and letter spacing', async () => {
+    const session = await createSession()
+    const appearances: unknown[] = []
+    session.on('appearance', ({ appearance }) => appearances.push(appearance.font))
+
+    expect(session.appearance.font).toEqual({
+      boldWeight: 700,
+      family: 'monospace',
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      size: 14,
+      weight: 400,
+    })
+    session.setFont({
+      boldWeight: 1000,
+      letterSpacing: -0.5,
+      lineHeight: 1,
+      weight: 1,
+    })
+    expect(session.appearance.font).toMatchObject({
+      boldWeight: 1000,
+      letterSpacing: -0.5,
+      lineHeight: 1,
+      weight: 1,
+    })
+    expect(appearances).toHaveLength(1)
+
+    session.setFont({ boldWeight: 1000, letterSpacing: -0.5, lineHeight: 1, weight: 1 })
+    expect(appearances).toHaveLength(1)
+    for (const weight of [0, 1.5, 1001, Number.NaN]) {
+      expect(() => session.setFont({ weight })).toThrow(/integer from 1 to 1000/u)
+    }
+    expect(() => session.setFont({ boldWeight: Number.POSITIVE_INFINITY })).toThrow(
+      /integer from 1 to 1000/u,
+    )
+    expect(() => session.setFont({ letterSpacing: Number.NEGATIVE_INFINITY })).toThrow(/finite/u)
+    expect(() => session.setFont({ lineHeight: 0.99 })).toThrow(/at least 1/u)
+  })
+
   it('queues VT effects in native order and emits one revisioned render request per write', async () => {
     const session = await createSession({ appearance: { grid: grid() } })
     const order: string[] = []

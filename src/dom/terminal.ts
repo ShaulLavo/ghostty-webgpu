@@ -1,9 +1,5 @@
 import type { SelectionCoordinates } from '../core/selection.js'
-import {
-  normalizeCellGeometry,
-  type TerminalScrollbar,
-  type TerminalSelectionFormatOptions,
-} from '../core/types.js'
+import type { TerminalScrollbar, TerminalSelectionFormatOptions } from '../core/types.js'
 import { WebGpuTerminalRenderer, type RendererFrameSnapshot } from '../render/renderer.js'
 import { EventEmitter } from '../term/events.js'
 import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
@@ -12,6 +8,7 @@ import type {
   TerminalAppearance,
   TerminalColorScheme,
   TerminalCursorSettings,
+  TerminalFittedFont,
   TerminalFontSettings,
   TerminalGrid,
   TerminalInputData,
@@ -32,6 +29,7 @@ import {
 } from './elements.js'
 import {
   createTerminalFitController,
+  fitTerminalFont,
   type TerminalFitController,
   type TerminalFitEnvironment,
   type TerminalFitResult,
@@ -158,6 +156,16 @@ function owningWindow(element: HTMLElement): Window {
   throw new TypeError('Terminal elements must belong to a document with a window')
 }
 
+function effectivePixelRatio(
+  element: HTMLElement,
+  environment: Partial<TerminalFitEnvironment> | undefined,
+): number {
+  const injected = environment?.getPixelRatio
+  const value = injected ? injected.call(environment) : owningWindow(element).devicePixelRatio
+  if (Number.isFinite(value) && value > 0) return value
+  throw new RangeError('pixelRatio must be a finite positive number')
+}
+
 function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
   const viewport = snapshot.cursor.viewport
   const cursor = Object.freeze({
@@ -192,16 +200,6 @@ function linkFrameSignature(
   ])
 }
 
-function terminalGridEquals(left: TerminalGrid, right: TerminalGrid): boolean {
-  return (
-    left.cellHeight === right.cellHeight &&
-    left.cellWidth === right.cellWidth &&
-    left.columns === right.columns &&
-    left.pixelRatio === right.pixelRatio &&
-    left.rows === right.rows
-  )
-}
-
 function subscriptionCleanup(subscription: TerminalSessionSubscription): Cleanup {
   return () => subscription.dispose()
 }
@@ -214,6 +212,7 @@ export class GhosttyWebGpuTerminal {
   private elementsValue?: TerminalElements
   private readonly emitters = createHostEmitters()
   private fit?: TerminalFitController
+  private fittedFont?: TerminalFittedFont
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   private generation = 0
   private input?: DomInputController
@@ -526,6 +525,7 @@ export class GhosttyWebGpuTerminal {
     this.cleanup.dispose((cause) => this.emitters.error.emit({ cause, operation: 'dispose' }))
     this.accessibility = undefined
     this.fit = undefined
+    this.fittedFont = undefined
     this.input = undefined
     this.lastFrame = undefined
     this.lastLinkFrameSignature = undefined
@@ -551,17 +551,19 @@ export class GhosttyWebGpuTerminal {
   private async createRenderer(elements: TerminalElements): Promise<GhosttyWebGpuRenderer> {
     const appearance = this.session.appearance
     const grid = appearance.grid
+    const font = fitTerminalFont(
+      elements.canvas.ownerDocument,
+      appearance.font,
+      effectivePixelRatio(elements.canvas, this.fitEnvironment),
+    )
+    this.fittedFont = font
     return this.rendererFactory(
       {
         canvas: elements.canvas,
-        cellHeight: grid.cellHeight,
-        cellWidth: grid.cellWidth,
         columns: grid.columns,
         cursorBlink: appearance.cursor.blink,
-        fontFamily: appearance.font.family,
-        fontSize: appearance.font.size,
+        font,
         onFrame: (snapshot) => this.handleFrame(snapshot),
-        pixelRatio: grid.pixelRatio,
         renderState: this.session.renderState,
         rows: grid.rows,
         theme: appearance.rendererTheme,
@@ -724,19 +726,18 @@ export class GhosttyWebGpuTerminal {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
     const paddingChanged = this.elementsValue?.setPadding(result.padding) === true
     const scrollbarWidthChanged = this.scrollbar?.setWidth(result.scrollbarWidth) === true
-    const gridChanged = !terminalGridEquals(this.session.grid, result.grid)
+    this.renderer?.setFont(result.font)
+    this.fittedFont = result.font
     this.layoutCommitted = true
     if (paddingChanged || scrollbarWidthChanged) this.invalidateLinks()
     this.session.resize(result.grid)
-    if (!gridChanged) this.refreshLinks()
     if (this.stateValue !== 'open') return
-    if (this.lastFrame) this.positionTextarea(this.lastFrame)
+    this.replayLastFrame()
     this.updateScrollbar()
   }
 
   private handleAppearance(appearance: TerminalAppearance): void {
     const renderer = this.renderer
-    renderer?.setFont(appearance.font.family, appearance.font.size)
     renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     renderer?.setTheme(appearance.rendererTheme)
     this.fit?.setFont(appearance.font)
@@ -745,7 +746,7 @@ export class GhosttyWebGpuTerminal {
 
   private handleResize(grid: TerminalGrid): void {
     this.invalidateLinks()
-    this.renderer?.resize(grid)
+    this.renderer?.resize({ columns: grid.columns, rows: grid.rows })
     this.updateScrollbar()
     this.emitHostEvent('resize', { cols: grid.columns, rows: grid.rows })
   }
@@ -816,12 +817,13 @@ export class GhosttyWebGpuTerminal {
     const elements = this.elementsValue
     if (!elements || !this.layoutCommitted) return undefined
     const grid = this.session.grid
-    const geometry = normalizeCellGeometry(grid)
-    const ratio = geometry.pixelRatio
+    const font = this.fittedFont
+    if (!font) return undefined
+    const ratio = font.pixelRatio
     const padding = elements.padding
     const physical = Object.freeze({
-      deviceCellHeight: geometry.deviceCellHeight,
-      deviceCellWidth: geometry.deviceCellWidth,
+      deviceCellHeight: font.deviceCellHeight,
+      deviceCellWidth: font.deviceCellWidth,
       paddingBottom: physicalPadding(padding.bottom, ratio),
       paddingLeft: physicalPadding(padding.left, ratio),
       paddingRight: physicalPadding(padding.right, ratio),
@@ -832,9 +834,9 @@ export class GhosttyWebGpuTerminal {
     const dimensions = Object.freeze({
       ...physical,
       screenHeight:
-        physical.paddingTop + geometry.deviceCellHeight * grid.rows + physical.paddingBottom,
+        physical.paddingTop + font.deviceCellHeight * grid.rows + physical.paddingBottom,
       screenWidth:
-        physical.paddingLeft + geometry.deviceCellWidth * grid.columns + physical.paddingRight,
+        physical.paddingLeft + font.deviceCellWidth * grid.columns + physical.paddingRight,
     })
     return Object.freeze({
       canvas: elements.canvas,

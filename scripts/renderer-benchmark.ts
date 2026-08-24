@@ -16,6 +16,7 @@ const scenarios = [
   'unfocused-idle',
   'burst-output',
   'sustained-scroll',
+  'glyph-churn',
 ] as const
 const sampleSeconds = Number(process.env.BENCH_SAMPLE_SECONDS ?? '30')
 const warmupSeconds = Number(process.env.BENCH_WARMUP_SECONDS ?? '5')

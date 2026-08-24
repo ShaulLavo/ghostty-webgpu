@@ -1,7 +1,8 @@
 import type { AtlasGpuTextures } from './atlas/gpu-textures.js'
 import type { RowInstanceUpdate } from './instances/types.js'
 import type { InstanceRows } from './instances/rows.js'
-import { backgroundShader } from './shaders/background.wgsl.js'
+import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from './instances/layout.js'
+import { cellShader } from './shaders/cell.wgsl.js'
 import { glyphShader } from './shaders/glyph.wgsl.js'
 
 export interface TextPassMetrics {
@@ -26,8 +27,8 @@ export interface TextPassCopy {
 }
 
 interface PipelineResources {
-  backgroundBindGroup: GPUBindGroup
-  backgroundPipeline: GPURenderPipeline
+  cellBindGroup: GPUBindGroup
+  cellPipeline: GPURenderPipeline
   glyphPipeline: GPURenderPipeline
 }
 
@@ -38,20 +39,11 @@ function blendState(): GPUBlendState {
   }
 }
 
-function createFallbackTexture(device: GPUDevice): GPUTexture {
-  return device.createTexture({
-    format: 'rgba8unorm',
-    size: [1, 1],
-    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
-  })
-}
-
 export class WebGpuTextPass {
-  private readonly backgroundBuffer: GPUBuffer
+  private readonly cellBuffer: GPUBuffer
   private readonly device: GPUDevice
-  private readonly fallbackColor: GPUTexture
-  private readonly fallbackGrayscale: GPUTexture
   private readonly glyphBuffer: GPUBuffer
+  private glyphBindGroupCreationCountValue = 0
   private glyphBindGroup?: GPUBindGroup
   private readonly instanceCount: number
   readonly metrics: TextPassMetrics = { draws: 0, submittedFrames: 0, uploadedBytes: 0 }
@@ -62,15 +54,13 @@ export class WebGpuTextPass {
   constructor(options: WebGpuTextPassOptions) {
     this.device = options.device
     this.instanceCount = options.instanceCount
-    this.backgroundBuffer = this.createStorageBuffer(options.instanceCount * 32)
-    this.glyphBuffer = this.createStorageBuffer(options.instanceCount * 96)
+    this.cellBuffer = this.createStorageBuffer(options.instanceCount * CELL_INSTANCE_BYTES)
+    this.glyphBuffer = this.createStorageBuffer(options.instanceCount * GLYPH_INSTANCE_BYTES)
     this.viewportBuffer = options.device.createBuffer({
       size: 16,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
     })
     this.sampler = options.device.createSampler({ magFilter: 'linear', minFilter: 'linear' })
-    this.fallbackGrayscale = createFallbackTexture(options.device)
-    this.fallbackColor = createFallbackTexture(options.device)
     options.device.queue.writeBuffer(
       this.viewportBuffer,
       0,
@@ -80,23 +70,26 @@ export class WebGpuTextPass {
   }
 
   syncAtlas(textures: AtlasGpuTextures): void {
-    const grayscale = textures.view('grayscale') ?? this.fallbackGrayscale.createView()
-    const color = textures.view('color') ?? this.fallbackColor.createView()
     this.glyphBindGroup = this.device.createBindGroup({
       entries: [
         { binding: 0, resource: { buffer: this.glyphBuffer } },
         { binding: 1, resource: { buffer: this.viewportBuffer } },
         { binding: 2, resource: this.sampler },
-        { binding: 3, resource: grayscale },
-        { binding: 4, resource: color },
+        { binding: 3, resource: textures.view('grayscale') },
+        { binding: 4, resource: textures.view('color') },
       ],
       layout: this.resources.glyphPipeline.getBindGroupLayout(0),
     })
+    this.glyphBindGroupCreationCountValue += 1
+  }
+
+  get glyphBindGroupCreationCount(): number {
+    return this.glyphBindGroupCreationCountValue
   }
 
   upload(instances: InstanceRows, updates: readonly RowInstanceUpdate[]): void {
     for (const update of updates) {
-      this.writeRange(this.backgroundBuffer, instances.backgroundData, update.background)
+      this.writeRange(this.cellBuffer, instances.cellData, update.cell)
       this.writeRange(this.glyphBuffer, instances.glyphData, update.glyph)
     }
   }
@@ -114,8 +107,8 @@ export class WebGpuTextPass {
         },
       ],
     })
-    pass.setPipeline(this.resources.backgroundPipeline)
-    pass.setBindGroup(0, this.resources.backgroundBindGroup)
+    pass.setPipeline(this.resources.cellPipeline)
+    pass.setBindGroup(0, this.resources.cellBindGroup)
     pass.draw(6, this.instanceCount)
     pass.setPipeline(this.resources.glyphPipeline)
     pass.setBindGroup(0, this.glyphBindGroup)
@@ -134,25 +127,23 @@ export class WebGpuTextPass {
   }
 
   destroy(): void {
-    this.backgroundBuffer.destroy()
+    this.cellBuffer.destroy()
     this.glyphBuffer.destroy()
     this.viewportBuffer.destroy()
-    this.fallbackGrayscale.destroy()
-    this.fallbackColor.destroy()
   }
 
   private createPipelines(format: GPUTextureFormat): PipelineResources {
-    const backgroundPipeline = this.device.createRenderPipeline({
+    const cellPipeline = this.device.createRenderPipeline({
       fragment: {
         entryPoint: 'fragmentMain',
-        module: this.device.createShaderModule({ code: backgroundShader }),
+        module: this.device.createShaderModule({ code: cellShader }),
         targets: [{ blend: blendState(), format }],
       },
       layout: 'auto',
       primitive: { topology: 'triangle-list' },
       vertex: {
         entryPoint: 'vertexMain',
-        module: this.device.createShaderModule({ code: backgroundShader }),
+        module: this.device.createShaderModule({ code: cellShader }),
       },
     })
     const glyphPipeline = this.device.createRenderPipeline({
@@ -168,14 +159,14 @@ export class WebGpuTextPass {
         module: this.device.createShaderModule({ code: glyphShader }),
       },
     })
-    const backgroundBindGroup = this.device.createBindGroup({
+    const cellBindGroup = this.device.createBindGroup({
       entries: [
-        { binding: 0, resource: { buffer: this.backgroundBuffer } },
+        { binding: 0, resource: { buffer: this.cellBuffer } },
         { binding: 1, resource: { buffer: this.viewportBuffer } },
       ],
-      layout: backgroundPipeline.getBindGroupLayout(0),
+      layout: cellPipeline.getBindGroupLayout(0),
     })
-    return { backgroundBindGroup, backgroundPipeline, glyphPipeline }
+    return { cellBindGroup, cellPipeline, glyphPipeline }
   }
 
   private createStorageBuffer(size: number): GPUBuffer {

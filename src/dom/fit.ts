@@ -1,14 +1,16 @@
-import { normalizeCellGeometry } from '../core/types.js'
+import type { TerminalFittedFont, TerminalFontSettings } from '../term/types.js'
 import {
   normalizeTerminalElementPadding,
   type TerminalElementPadding,
   type TerminalElementPaddingInput,
 } from './elements.js'
 
-export interface TerminalFitFont {
-  readonly family: string
-  readonly lineHeight: number
-  readonly size: number
+export type TerminalFitFont = TerminalFontSettings
+
+export interface TerminalFontMeasurement {
+  readonly advanceWidth: number
+  readonly fontAscent: number
+  readonly fontDescent: number
 }
 
 export interface TerminalFitGrid {
@@ -20,6 +22,7 @@ export interface TerminalFitGrid {
 }
 
 export interface TerminalFitResult {
+  readonly font: TerminalFittedFont
   readonly grid: TerminalFitGrid
   readonly padding: TerminalElementPadding
   readonly scrollbarWidth: number
@@ -59,6 +62,21 @@ function positiveFinite(name: string, value: number): number {
   throw new RangeError(`${name} must be a finite positive number`)
 }
 
+function finite(name: string, value: number): number {
+  if (Number.isFinite(value)) return value
+  throw new RangeError(`${name} must be finite`)
+}
+
+function fontWeight(name: string, value: number): number {
+  if (Number.isInteger(value) && value >= 1 && value <= 1000) return value
+  throw new RangeError(`${name} must be an integer from 1 to 1000`)
+}
+
+function lineHeight(value: number): number {
+  if (Number.isFinite(value) && value >= 1) return value
+  throw new RangeError('font.lineHeight must be finite and at least 1')
+}
+
 function nonEmptyString(name: string, value: string): string {
   if (typeof value === 'string' && value.trim().length > 0) return value.slice()
   throw new TypeError(`${name} must be a non-empty string`)
@@ -66,10 +84,106 @@ function nonEmptyString(name: string, value: string): string {
 
 function normalizeFont(font: TerminalFitFont): TerminalFitFont {
   return Object.freeze({
+    boldWeight: fontWeight('font.boldWeight', font.boldWeight),
     family: nonEmptyString('font.family', font.family),
-    lineHeight: positiveFinite('font.lineHeight', font.lineHeight),
+    letterSpacing: finite('font.letterSpacing', font.letterSpacing),
+    lineHeight: lineHeight(font.lineHeight),
     size: positiveFinite('font.size', font.size),
+    weight: fontWeight('font.weight', font.weight),
   })
+}
+
+function positiveSafeInteger(name: string, value: number): number {
+  if (Number.isSafeInteger(value) && value > 0) return value
+  throw new RangeError(`${name} must be a positive safe integer`)
+}
+
+function nonNegativeFinite(name: string, value: number): number {
+  if (Number.isFinite(value) && value >= 0) return value
+  throw new RangeError(`${name} must be a finite non-negative number`)
+}
+
+export function calculateTerminalFittedFont(
+  rawFont: TerminalFitFont,
+  measurement: TerminalFontMeasurement,
+  rawPixelRatio: number,
+): TerminalFittedFont {
+  const settings = normalizeFont(rawFont)
+  const pixelRatio = canonicalPixelRatio(rawPixelRatio)
+  const advanceWidth = positiveFinite('font advance width', measurement.advanceWidth)
+  const ascent = nonNegativeFinite('font ascent', measurement.fontAscent)
+  const descent = nonNegativeFinite('font descent', measurement.fontDescent)
+  const measuredHeight = positiveFinite('font height', ascent + descent)
+  const deviceCharWidth = positiveSafeInteger(
+    'device character width',
+    Math.floor(advanceWidth * pixelRatio),
+  )
+  const deviceCharHeight = positiveSafeInteger(
+    'device character height',
+    Math.ceil(measuredHeight * pixelRatio),
+  )
+  const deviceSpacing = Math.round(settings.letterSpacing * pixelRatio)
+  const deviceCellWidth = positiveSafeInteger('device cell width', deviceCharWidth + deviceSpacing)
+  const deviceCellHeight = positiveSafeInteger(
+    'device cell height',
+    Math.floor(deviceCharHeight * settings.lineHeight),
+  )
+  const charLeft = Math.floor(deviceSpacing / 2)
+  const charTop =
+    settings.lineHeight === 1 ? 0 : Math.round((deviceCellHeight - deviceCharHeight) / 2)
+  const deviceBaseline = positiveSafeInteger(
+    'device baseline',
+    charTop + Math.ceil(ascent * pixelRatio),
+  )
+  return Object.freeze({
+    charLeft,
+    charTop,
+    cssCellHeight: deviceCellHeight / pixelRatio,
+    cssCellWidth: deviceCellWidth / pixelRatio,
+    deviceBaseline,
+    deviceCellHeight,
+    deviceCellWidth,
+    deviceCharHeight,
+    deviceCharWidth,
+    pixelRatio,
+    settings,
+  })
+}
+
+function fontDescriptor(font: TerminalFitFont): string {
+  return `${font.weight} ${font.size}px ${font.family}`
+}
+
+function measureFont(
+  context: CanvasRenderingContext2D,
+  font: TerminalFitFont,
+): TerminalFontMeasurement {
+  context.font = fontDescriptor(font)
+  const advanceWidth = context.measureText('M').width
+  const metrics = context.measureText('Mg')
+  const fontAscent =
+    metrics.fontBoundingBoxAscent || metrics.actualBoundingBoxAscent || font.size * 0.8
+  const fontDescent =
+    metrics.fontBoundingBoxDescent || metrics.actualBoundingBoxDescent || font.size * 0.2
+  return { advanceWidth, fontAscent, fontDescent }
+}
+
+function fittedFontWithContext(
+  context: CanvasRenderingContext2D,
+  font: TerminalFitFont,
+  pixelRatio: number,
+): TerminalFittedFont {
+  return calculateTerminalFittedFont(font, measureFont(context, font), pixelRatio)
+}
+
+export function fitTerminalFont(
+  document: Document,
+  font: TerminalFitFont,
+  pixelRatio: number,
+): TerminalFittedFont {
+  const context = document.createElement('canvas').getContext('2d')
+  if (!context) throw new TypeError('Unable to create a canvas text measurement context')
+  return fittedFontWithContext(context, font, pixelRatio)
 }
 
 function cssPixels(value: string): number {
@@ -135,7 +249,26 @@ function canonicalScrollbarWidth(value: number, pixelRatio: number): number {
 
 function fontEquals(left: TerminalFitFont, right: TerminalFitFont): boolean {
   return (
-    left.family === right.family && left.lineHeight === right.lineHeight && left.size === right.size
+    left.boldWeight === right.boldWeight &&
+    left.family === right.family &&
+    left.letterSpacing === right.letterSpacing &&
+    left.lineHeight === right.lineHeight &&
+    left.size === right.size &&
+    left.weight === right.weight
+  )
+}
+
+function fittedFontEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
+  if (!fontEquals(left.settings, right.settings)) return false
+  return (
+    left.charLeft === right.charLeft &&
+    left.charTop === right.charTop &&
+    left.deviceBaseline === right.deviceBaseline &&
+    left.deviceCellHeight === right.deviceCellHeight &&
+    left.deviceCellWidth === right.deviceCellWidth &&
+    left.deviceCharHeight === right.deviceCharHeight &&
+    left.deviceCharWidth === right.deviceCharWidth &&
+    left.pixelRatio === right.pixelRatio
   )
 }
 
@@ -159,6 +292,7 @@ function gridEquals(left: TerminalFitGrid, right: TerminalFitGrid): boolean {
 }
 
 function fitResultEquals(left: TerminalFitResult, right: TerminalFitResult): boolean {
+  if (!fittedFontEquals(left.font, right.font)) return false
   if (!gridEquals(left.grid, right.grid)) return false
   if (!paddingEquals(left.padding, right.padding)) return false
   return left.scrollbarWidth === right.scrollbarWidth
@@ -291,19 +425,15 @@ export class TerminalFitController {
     const availableWidth = size.width - padding.left - padding.right - scrollbarWidth
     const availableHeight = size.height - padding.bottom - padding.top
     if (availableWidth <= 0 || availableHeight <= 0) return undefined
-    const geometry = normalizeCellGeometry({
-      cellHeight: this.font.size * this.font.lineHeight,
-      cellWidth: this.measureCellWidth(),
-      pixelRatio,
-    })
+    const font = fittedFontWithContext(this.measureContext, this.font, pixelRatio)
     const grid: TerminalFitGrid = Object.freeze({
-      cellHeight: geometry.cellHeight,
-      cellWidth: geometry.cellWidth,
-      columns: Math.max(2, Math.floor(availableWidth / geometry.cellWidth)),
+      cellHeight: font.cssCellHeight,
+      cellWidth: font.cssCellWidth,
+      columns: Math.max(2, Math.floor(availableWidth / font.cssCellWidth)),
       pixelRatio,
-      rows: Math.max(1, Math.floor(availableHeight / geometry.cellHeight)),
+      rows: Math.max(1, Math.floor(availableHeight / font.cssCellHeight)),
     })
-    return Object.freeze({ grid, padding, scrollbarWidth })
+    return Object.freeze({ font, grid, padding, scrollbarWidth })
   }
 
   private readonly handleExternalAbort = (): void => {
@@ -328,11 +458,6 @@ export class TerminalFitController {
     const pixelRatio = this.readPixelRatio()
     if (pixelRatio !== this.watchedPixelRatio) this.bindPixelRatioQuery()
     this.requestFit()
-  }
-
-  private measureCellWidth(): number {
-    this.measureContext.font = `${this.font.size}px ${this.font.family}`
-    return positiveFinite('measured cell width', this.measureContext.measureText('M').width)
   }
 
   private readonly runFit = (): void => {
@@ -361,7 +486,7 @@ export class TerminalFitController {
   }
 
   private trackFontLoad(): void {
-    const descriptor = `${this.font.size}px ${this.font.family}`
+    const descriptor = fontDescriptor(this.font)
     let loading: Promise<FontFace[]>
     try {
       loading = this.document.fonts.load(descriptor, 'M')

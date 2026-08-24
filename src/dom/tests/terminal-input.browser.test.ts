@@ -3,7 +3,7 @@ import { GhosttyRuntime } from '../../core/runtime.js'
 import type { SelectionCoordinates } from '../../core/selection.js'
 import type { RendererTheme } from '../../render/instances/types.js'
 import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../../render/renderer.js'
-import type { TerminalKeyInput } from '../../term/types.js'
+import type { TerminalFittedFont, TerminalKeyInput } from '../../term/types.js'
 import { createDomInputController } from '../input.js'
 import { GhosttyWebGpuTerminal } from '../terminal.js'
 import type {
@@ -19,7 +19,7 @@ class RecordingRenderer implements GhosttyWebGpuRenderer {
   disposeCount = 0
   documentVisible: boolean[] = []
   focused: boolean[] = []
-  fonts: { family: string; size: number }[] = []
+  fonts: TerminalFittedFont[] = []
   readonly hasPendingFrame = false
   readonly hasPendingTimer = false
   notifications: string[] = []
@@ -65,8 +65,8 @@ class RecordingRenderer implements GhosttyWebGpuRenderer {
     this.focused.push(focused)
   }
 
-  setFont(family: string, size: number): void {
-    this.fonts.push({ family, size })
+  setFont(font: TerminalFittedFont): void {
+    this.fonts.push(font)
   }
 
   setTheme(theme: Partial<RendererTheme>): void {
@@ -546,9 +546,10 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     expect(scrollbar?.style.width).toBe('1px')
     const root = host.querySelector<HTMLElement>('.ghostty-webgpu')
     const initialGrid = renderer.resizes[0]!
+    const fitted = renderer.fonts.at(-1) ?? recording.options!.font
     const reservedColumns = Math.max(
       2,
-      Math.floor((root!.clientWidth - 4 - 5 - 1) / initialGrid.cellWidth),
+      Math.floor((root!.clientWidth - 4 - 5 - 1) / fitted.cssCellWidth),
     )
     expect(initialGrid.columns).toBe(reservedColumns)
 
@@ -607,11 +608,16 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     const current = terminal.appearance.theme
     terminal.setTheme({ ...current, background: { b: 3, g: 2, r: 1 } })
 
-    expect(recording.renderer?.fonts.at(-1)).toEqual({ family: 'serif', size: 18 })
+    expect(recording.renderer?.fonts.at(-1)?.settings.family).not.toBe('serif')
     expect(recording.renderer?.cursorBlink.at(-1)).toBe(true)
     expect(recording.renderer?.themes.at(-1)?.background).toEqual({ b: 3, g: 2, r: 1 })
     expect(appearanceOrder).toHaveLength(3)
     await animationFrames(3)
+    expect(recording.renderer?.fonts.at(-1)?.settings).toMatchObject({
+      family: 'serif',
+      lineHeight: 1.1,
+      size: 18,
+    })
     expect(sizes).toHaveLength(2)
   })
 

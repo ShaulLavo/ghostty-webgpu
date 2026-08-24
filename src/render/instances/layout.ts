@@ -1,11 +1,13 @@
-export const BACKGROUND_INSTANCE_FLOATS = 8
-export const BACKGROUND_INSTANCE_BYTES = BACKGROUND_INSTANCE_FLOATS * Float32Array.BYTES_PER_ELEMENT
+export const CELL_INSTANCE_FLOATS = 16
+export const CELL_INSTANCE_BYTES = CELL_INSTANCE_FLOATS * Float32Array.BYTES_PER_ELEMENT
 
 export const GLYPH_INSTANCE_FLOATS = 24
 export const GLYPH_INSTANCE_BYTES = GLYPH_INSTANCE_FLOATS * Float32Array.BYTES_PER_ELEMENT
 
-export const BackgroundOffset = {
-  Color: 4,
+export const CellOffset = {
+  Background: 8,
+  Foreground: 4,
+  Meta: 12,
   Rect: 0,
 } as const
 
@@ -19,14 +21,11 @@ export const GlyphOffset = {
 } as const
 
 export const GlyphFlag = {
-  Cursor: 1 << 7,
-  Glyph: 1 << 9,
-  Invisible: 1 << 6,
-  Inverse: 1 << 4,
-  OutlineCursor: 1 << 8,
-  Overline: 1 << 3,
-  Selected: 1 << 5,
+  Glyph: 1 << 0,
+} as const
+
+export const CellFlag = {
+  Cursor: 1 << 0,
+  Overline: 1 << 1,
   Strikethrough: 1 << 2,
-  Undercurl: 1 << 1,
-  Underline: 1 << 0,
 } as const

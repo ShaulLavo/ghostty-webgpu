@@ -1,12 +1,5 @@
 export const glyphShader = /* wgsl */ `
-const FLAG_UNDERLINE: u32 = 1u;
-const FLAG_UNDERCURL: u32 = 2u;
-const FLAG_STRIKETHROUGH: u32 = 4u;
-const FLAG_OVERLINE: u32 = 8u;
-const FLAG_INVISIBLE: u32 = 64u;
-const FLAG_CURSOR: u32 = 128u;
-const FLAG_OUTLINE_CURSOR: u32 = 256u;
-const FLAG_GLYPH: u32 = 512u;
+const FLAG_GLYPH: u32 = 1u;
 
 struct Instance {
   rect: vec4f,
@@ -29,14 +22,13 @@ struct VertexOutput {
   @location(2) background: vec4f,
   @location(3) attributes: vec4f,
   @location(4) atlas: vec4f,
-  @location(5) corner: vec2f,
 }
 
 @group(0) @binding(0) var<storage, read> instances: array<Instance>;
 @group(0) @binding(1) var<uniform> viewport: Viewport;
 @group(0) @binding(2) var atlasSampler: sampler;
-@group(0) @binding(3) var grayscaleAtlas: texture_2d<f32>;
-@group(0) @binding(4) var colorAtlas: texture_2d<f32>;
+@group(0) @binding(3) var grayscaleAtlas: texture_2d_array<f32>;
+@group(0) @binding(4) var colorAtlas: texture_2d_array<f32>;
 
 @vertex
 fn vertexMain(
@@ -62,7 +54,6 @@ fn vertexMain(
   output.background = instance.background;
   output.attributes = instance.attributes;
   output.atlas = instance.atlas;
-  output.corner = corner;
   return output;
 }
 
@@ -104,50 +95,16 @@ fn hasFlag(flags: u32, flag: u32) -> bool {
   return (flags & flag) != 0u;
 }
 
-fn lineCoverage(distance: f32, thickness: f32) -> f32 {
-  return select(0.0, 1.0, abs(distance) <= thickness);
-}
-
-fn decorationCoverage(flags: u32, cursorStyle: u32, corner: vec2f) -> f32 {
-  var coverage = 0.0;
-  if (hasFlag(flags, FLAG_UNDERLINE)) {
-    coverage = max(coverage, lineCoverage(corner.y - 0.86, 0.045));
-  }
-  if (hasFlag(flags, FLAG_UNDERCURL)) {
-    let wave = 0.86 + sin(corner.x * 18.8495559) * 0.07;
-    coverage = max(coverage, lineCoverage(corner.y - wave, 0.035));
-  }
-  if (hasFlag(flags, FLAG_STRIKETHROUGH)) {
-    coverage = max(coverage, lineCoverage(corner.y - 0.52, 0.045));
-  }
-  if (hasFlag(flags, FLAG_OVERLINE)) {
-    coverage = max(coverage, lineCoverage(corner.y - 0.08, 0.045));
-  }
-  if (hasFlag(flags, FLAG_CURSOR) && cursorStyle == 1u) {
-    coverage = max(coverage, select(0.0, 1.0, corner.x <= 0.15));
-  }
-  if (hasFlag(flags, FLAG_CURSOR) && cursorStyle == 2u) {
-    coverage = max(coverage, select(0.0, 1.0, corner.y >= 0.84));
-  }
-  if (hasFlag(flags, FLAG_OUTLINE_CURSOR)) {
-    let edge = min(min(corner.x, 1.0 - corner.x), min(corner.y, 1.0 - corner.y));
-    coverage = max(coverage, select(0.0, 1.0, edge <= 0.08));
-  }
-  return coverage;
-}
-
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   let flags = u32(input.attributes.x);
-  let cursorStyle = u32(input.attributes.y);
   let minimumContrast = input.attributes.z;
-  let hasGlyph = hasFlag(flags, FLAG_GLYPH) && !hasFlag(flags, FLAG_INVISIBLE);
-  let grayscale = textureSample(grayscaleAtlas, atlasSampler, input.uv).r;
-  let colorSample = textureSample(colorAtlas, atlasSampler, input.uv);
+  let hasGlyph = hasFlag(flags, FLAG_GLYPH);
+  let layer = i32(input.atlas.x);
+  let grayscale = textureSample(grayscaleAtlas, atlasSampler, input.uv, layer).r;
+  let colorSample = textureSample(colorAtlas, atlasSampler, input.uv, layer);
   let colorGlyph = input.atlas.z >= 0.5;
-  let glyphCoverage = select(0.0, select(grayscale, colorSample.a, colorGlyph), hasGlyph);
-  let decoration = decorationCoverage(flags, cursorStyle, input.corner);
-  let coverage = max(glyphCoverage, decoration);
+  let coverage = select(0.0, select(grayscale, colorSample.a, colorGlyph), hasGlyph);
   let adjusted = contrastColor(input.color.rgb, input.background.rgb, minimumContrast);
   let rgb = select(adjusted, colorSample.rgb, colorGlyph && hasGlyph);
   let alpha = coverage * input.color.a;

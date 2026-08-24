@@ -8,6 +8,10 @@ This is an independent, unofficial project. It is not affiliated with or endorse
 project. Ghostty's upstream code and contributors are credited in
 [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).
 
+It is not an xterm.js drop-in replacement. The renderer borrows proven geometry and atlas ideas
+from xterm.js's WebGL renderer, while the terminal model, lifecycle, input surface, and public API
+remain native to this package and libghostty-vt.
+
 The package is dist-first: JavaScript and declarations are exported from `dist`, and the checked-in
 `ghostty-vt.wasm` and `bridge.wasm` artifacts ship at the package root. Consumers do not need Zig.
 Importing the package does not touch the DOM or install browser listeners.
@@ -51,9 +55,12 @@ const terminal = await GhosttyWebGpuTerminal.create({
   appearance: {
     cursor: { blink: false },
     font: {
+      boldWeight: 700,
       family: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+      letterSpacing: 0,
       lineHeight: 1.2,
       size: 14,
+      weight: 400,
     },
     scrollbackLimit: 10_000,
   },
@@ -166,10 +173,30 @@ configured font, subtracts terminal padding and scrollbar width, and commits one
 native terminal and renderer. A zero-sized content box, such as a `display: none` host, produces no
 invalid resize; fitting resumes when an observed layout change gives it usable space.
 
-Cell dimensions in `terminal.appearance.grid` are CSS-logical values. The host rounds each device
-cell once and derives the logical value back from that device size, so canvas backing dimensions,
-pointer projection, selection geometry, and the native terminal agree at fractional DPR. Calling
-`setFont()` triggers measurement and refit; callers do not need to resize the renderer separately.
+Cell dimensions in `terminal.appearance.grid` are CSS-logical values. Font fitting first floors the
+measured character advance and rounds letter spacing in device pixels, then derives cell height,
+character offsets, baseline, and CSS dimensions from that one integer device grid. Canvas backing
+dimensions, pointer projection, selection geometry, glyph placement, and the native terminal
+therefore agree at fractional DPR without accumulating row or column drift. Calling `setFont()`
+triggers measurement and refit; callers do not need to resize the renderer separately.
+
+Font defaults are `monospace`, size `14`, line height `1.2`, letter spacing `0`, regular weight
+`400`, and bold weight `700`. Numeric weights accept integers from `1` through `1000`; line height
+must be at least `1`, and negative letter spacing is accepted only while the fitted device cell
+width remains positive.
+
+## Renderer architecture
+
+Populated frames use exactly two instanced WebGPU draws. The first pass owns fixed-cell effects:
+explicit backgrounds, cursor shapes, underlines, overlines, and strikes. The second pass draws
+bearing-aware glyph quads cropped to their actual ink bounds, with regular, bold, italic, and
+bold-italic identity kept in the glyph cache.
+
+Grayscale and color glyphs live in separate fixed-size WebGPU texture arrays. Atlas mutations
+upload only dirty rectangles, texture views and bind groups remain stable, and recycled layers use
+generation-safe row invalidation. Rendering remains damage-driven with no standing animation loop.
+The architectural alignment with xterm.js stops at these renderer principles; constructor options,
+events, addons, terminal state, and compatibility behavior are not xterm.js APIs.
 
 ## Link policy
 
@@ -251,19 +278,35 @@ Browser applications that own orchestration can use the low-level native core an
 directly:
 
 ```ts
-import { GhosttyRuntime, WebGpuTerminalRenderer } from 'ghostty-webgpu'
+import { fitTerminalFont, GhosttyRuntime, WebGpuTerminalRenderer } from 'ghostty-webgpu'
 
 const runtime = await GhosttyRuntime.create()
-const terminal = runtime.createTerminal({ columns: 80, rows: 24 })
+const font = fitTerminalFont(
+  document,
+  {
+    boldWeight: 700,
+    family: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    letterSpacing: 0,
+    lineHeight: 1.2,
+    size: 14,
+    weight: 400,
+  },
+  window.devicePixelRatio,
+)
+const terminal = runtime.createTerminal({
+  cellHeight: font.deviceCellHeight,
+  cellWidth: font.deviceCellWidth,
+  columns: 80,
+  rows: 24,
+})
 const renderState = runtime.createRenderState(terminal)
 const canvas = document.querySelector<HTMLCanvasElement>('#terminal-canvas')
 if (!canvas) throw new TypeError('Terminal canvas is missing')
 
 const renderer = await WebGpuTerminalRenderer.create({
   canvas,
-  cellHeight: 18,
-  cellWidth: 9,
   columns: 80,
+  font,
   renderState,
   rows: 24,
 })
@@ -281,8 +324,11 @@ function dispose(): void {
 window.addEventListener('pagehide', dispose, { once: true })
 ```
 
-The lower-level renderer does not install DOM input, fit, link, clipboard, selection, scrollbar,
-or accessibility integration. The embedding application owns those wake-ups and lifecycle edges.
+The low-level renderer requires a fitted-font value and accepts only rows and columns in `resize()`.
+Call `fitTerminalFont()` again after a font or DPR change, pass the result to `renderer.setFont()`,
+and resize the native terminal with the fitted device-cell dimensions. The lower-level renderer
+does not install DOM input, automatic fit, link, clipboard, selection, scrollbar, or accessibility
+integration. The embedding application owns those wake-ups and lifecycle edges.
 
 ## Development
 
@@ -294,8 +340,8 @@ bun run verify
 The verification gate runs browser-independent tests plus real Chromium WebGPU readback tests.
 Run them separately with `bun run test:unit` and `bun run test:browser`.
 
-The headed hardware benchmark measures focused idle, unfocused idle, burst output, and sustained
-scroll at 200×50 and DPR 2:
+The headed hardware benchmark measures focused idle, unfocused idle, burst output, sustained
+scroll, and glyph churn at 200×50 and DPR 2:
 
 ```bash
 bun run bench:renderer

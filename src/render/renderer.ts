@@ -1,12 +1,7 @@
 import { RenderStateDirty } from '../core/abi.js'
 import type { GhosttyRenderState } from '../core/render-state.js'
-import {
-  normalizeCellGeometry,
-  type NormalizedCellGeometry,
-  type ReadRowsOptions,
-  type RenderCursorSnapshot,
-  type RenderRow,
-} from '../core/types.js'
+import { type ReadRowsOptions, type RenderCursorSnapshot, type RenderRow } from '../core/types.js'
+import type { TerminalFittedFont } from '../term/types.js'
 import { GlyphAtlas } from './atlas/atlas.js'
 import { CanvasGlyphRasterizer } from './atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from './atlas/gpu-textures.js'
@@ -41,7 +36,12 @@ export interface RendererFrameSnapshot {
 }
 
 export interface RendererMetrics {
+  atlasCacheHits: number
+  atlasCacheMisses: number
   atlasEvictions: number
+  atlasPages: number
+  atlasUploadedBytes: number
+  atlasUploadOperations: number
   deviceRestores: number
   draws: number
   rebuiltRows: number
@@ -51,15 +51,11 @@ export interface RendererMetrics {
 
 export interface WebGpuTerminalRendererOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas
-  cellHeight: number
-  cellWidth: number
   columns: number
   cursorBlink?: boolean
   deviceFactory?: () => Promise<GPUDevice>
-  fontFamily?: string
-  fontSize?: number
+  font: TerminalFittedFont
   onFrame?: (snapshot: RendererFrameSnapshot) => void
-  pixelRatio?: number
   renderState: GhosttyRenderState | RenderStateSource
   rows: number
   schedulerClock?: RenderSchedulerClock
@@ -67,25 +63,21 @@ export interface WebGpuTerminalRendererOptions {
 }
 
 export interface RendererGridSize {
-  cellHeight: number
-  cellWidth: number
   columns: number
-  pixelRatio: number
   rows: number
 }
 
 interface PreparedRenderer {
   readonly context: GPUCanvasContext
-  readonly fontFamily: string
-  readonly fontSize: number
+  readonly font: TerminalFittedFont
   readonly format: GPUTextureFormat
-  readonly grid: NormalizedRendererGrid
+  readonly grid: RendererGridSize
 }
 
-type NormalizedRendererGrid = RendererGridSize & NormalizedCellGeometry
-
-const defaultFontFamily = 'monospace'
-const defaultFontSize = 14
+interface ReplacementResources {
+  readonly atlasTextures: AtlasGpuTextures
+  readonly textPass: WebGpuTextPass
+}
 
 function browserClock(): RenderSchedulerClock {
   return {
@@ -132,13 +124,86 @@ function nonEmptyString(name: string, value: string): string {
   throw new TypeError(`${name} must be a non-empty string`)
 }
 
-function normalizeGrid(grid: RendererGridSize): NormalizedRendererGrid {
-  const geometry = normalizeCellGeometry(grid)
-  return {
-    ...geometry,
+function normalizeGrid(grid: RendererGridSize): RendererGridSize {
+  return Object.freeze({
     columns: positiveInteger('columns', grid.columns),
     rows: positiveInteger('rows', grid.rows),
+  })
+}
+
+function safeInteger(name: string, value: number, minimum = 0): number {
+  if (Number.isSafeInteger(value) && value >= minimum) return value
+  throw new RangeError(`${name} must be a safe integer greater than or equal to ${minimum}`)
+}
+
+function fittedFontWeight(name: string, value: number): number {
+  if (Number.isInteger(value) && value >= 1 && value <= 1000) return value
+  throw new RangeError(`${name} must be an integer from 1 to 1000`)
+}
+
+function copiedFittedFont(font: TerminalFittedFont): TerminalFittedFont {
+  const settings = Object.freeze({
+    boldWeight: fittedFontWeight('font.settings.boldWeight', font.settings.boldWeight),
+    family: nonEmptyString('font.settings.family', font.settings.family),
+    letterSpacing: Number(font.settings.letterSpacing),
+    lineHeight: positiveFinite('font.settings.lineHeight', font.settings.lineHeight),
+    size: positiveFinite('font.settings.size', font.settings.size),
+    weight: fittedFontWeight('font.settings.weight', font.settings.weight),
+  })
+  if (!Number.isFinite(settings.letterSpacing)) {
+    throw new RangeError('font.settings.letterSpacing must be finite')
   }
+  if (settings.lineHeight < 1) throw new RangeError('font.settings.lineHeight must be at least 1')
+  return Object.freeze({
+    charLeft: safeInteger('font.charLeft', font.charLeft, Number.MIN_SAFE_INTEGER),
+    charTop: safeInteger('font.charTop', font.charTop),
+    cssCellHeight: positiveFinite('font.cssCellHeight', font.cssCellHeight),
+    cssCellWidth: positiveFinite('font.cssCellWidth', font.cssCellWidth),
+    deviceBaseline: positiveInteger('font.deviceBaseline', font.deviceBaseline),
+    deviceCellHeight: positiveInteger('font.deviceCellHeight', font.deviceCellHeight),
+    deviceCellWidth: positiveInteger('font.deviceCellWidth', font.deviceCellWidth),
+    deviceCharHeight: positiveInteger('font.deviceCharHeight', font.deviceCharHeight),
+    deviceCharWidth: positiveInteger('font.deviceCharWidth', font.deviceCharWidth),
+    pixelRatio: positiveFinite('font.pixelRatio', font.pixelRatio),
+    settings,
+  })
+}
+
+function fontSettingsEqual(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
+  return (
+    left.settings.boldWeight === right.settings.boldWeight &&
+    left.settings.family === right.settings.family &&
+    left.settings.letterSpacing === right.settings.letterSpacing &&
+    left.settings.lineHeight === right.settings.lineHeight &&
+    left.settings.size === right.settings.size &&
+    left.settings.weight === right.settings.weight
+  )
+}
+
+function fittedFontEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
+  if (!fontSettingsEqual(left, right)) return false
+  return (
+    left.charLeft === right.charLeft &&
+    left.charTop === right.charTop &&
+    left.cssCellHeight === right.cssCellHeight &&
+    left.cssCellWidth === right.cssCellWidth &&
+    left.deviceBaseline === right.deviceBaseline &&
+    left.deviceCellHeight === right.deviceCellHeight &&
+    left.deviceCellWidth === right.deviceCellWidth &&
+    left.deviceCharHeight === right.deviceCharHeight &&
+    left.deviceCharWidth === right.deviceCharWidth &&
+    left.pixelRatio === right.pixelRatio
+  )
+}
+
+function fontGeometryEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
+  return (
+    left.cssCellHeight === right.cssCellHeight &&
+    left.cssCellWidth === right.cssCellWidth &&
+    left.deviceCellHeight === right.deviceCellHeight &&
+    left.deviceCellWidth === right.deviceCellWidth &&
+    left.pixelRatio === right.pixelRatio
+  )
 }
 
 function cursorEquals(left: RenderCursorSnapshot, right: RenderCursorSnapshot): boolean {
@@ -169,16 +234,9 @@ function copiedFrameRow(row: RenderRow): RendererFrameRow {
 function prepareRenderer(options: WebGpuTerminalRendererOptions): PreparedRenderer {
   return {
     context: requireContext(options.canvas),
-    fontFamily: nonEmptyString('fontFamily', options.fontFamily ?? defaultFontFamily),
-    fontSize: positiveFinite('fontSize', options.fontSize ?? defaultFontSize),
+    font: copiedFittedFont(options.font),
     format: navigator.gpu.getPreferredCanvasFormat(),
-    grid: normalizeGrid({
-      cellHeight: options.cellHeight,
-      cellWidth: options.cellWidth,
-      columns: options.columns,
-      pixelRatio: options.pixelRatio ?? 1,
-      rows: options.rows,
-    }),
+    grid: normalizeGrid({ columns: options.columns, rows: options.rows }),
   }
 }
 
@@ -191,6 +249,8 @@ function releaseFailedDevice(context: GPUCanvasContext, device: GPUDevice): void
 
 export class WebGpuTerminalRenderer {
   private atlas = new GlyphAtlas()
+  private atlasUploadedBytesOffset = 0
+  private atlasUploadOperationsOffset = 0
   private atlasTextures: AtlasGpuTextures
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
   private readonly context: GPUCanvasContext
@@ -201,10 +261,9 @@ export class WebGpuTerminalRenderer {
   private readonly deviceFactory: () => Promise<GPUDevice>
   private deviceGeneration = 1
   private disposed = false
-  private fontFamily: string
-  private fontSize: number
+  private font: TerminalFittedFont
   private format: GPUTextureFormat
-  private grid: NormalizedRendererGrid
+  private grid: RendererGridSize
   private instances: InstanceRows
   private needsFullRebuild = true
   private readonly onFrame?: (snapshot: RendererFrameSnapshot) => void
@@ -218,7 +277,12 @@ export class WebGpuTerminalRenderer {
   private theme: RendererTheme
   private visibleRows: (RendererFrameRow | undefined)[]
   readonly metrics: RendererMetrics = {
+    atlasCacheHits: 0,
+    atlasCacheMisses: 0,
     atlasEvictions: 0,
+    atlasPages: 0,
+    atlasUploadedBytes: 0,
+    atlasUploadOperations: 0,
     deviceRestores: 0,
     draws: 0,
     rebuiltRows: 0,
@@ -237,8 +301,7 @@ export class WebGpuTerminalRenderer {
     this.deviceFactory = options.deviceFactory ?? defaultDeviceFactory
     this.renderState = options.renderState
     this.grid = prepared.grid
-    this.fontFamily = prepared.fontFamily
-    this.fontSize = prepared.fontSize
+    this.font = prepared.font
     this.theme = mergedTheme(options.theme)
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.onFrame = options.onFrame
@@ -248,8 +311,9 @@ export class WebGpuTerminalRenderer {
     this.configureContext(device)
     this.instances = this.createInstances()
     this.rasterizer = this.createRasterizer()
-    this.atlasTextures = new AtlasGpuTextures()
+    this.atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
     this.textPass = this.createTextPass()
+    this.textPass.syncAtlas(this.atlasTextures)
     this.scheduler = new RenderScheduler({
       clock: options.schedulerClock ?? browserClock(),
       onFrame: () => this.drawFrame(),
@@ -310,12 +374,12 @@ export class WebGpuTerminalRenderer {
     this.scheduler.setFocused(focused)
   }
 
-  setFont(fontFamily: string, fontSize: number): void {
-    const nextFamily = nonEmptyString('fontFamily', fontFamily)
-    const nextSize = positiveFinite('fontSize', fontSize)
-    if (this.fontFamily === nextFamily && this.fontSize === nextSize) return
-    this.fontFamily = nextFamily
-    this.fontSize = nextSize
+  setFont(font: TerminalFittedFont): void {
+    const next = copiedFittedFont(font)
+    if (fittedFontEquals(this.font, next)) return
+    const geometryChanged = !fontGeometryEquals(this.font, next)
+    this.font = next
+    if (geometryChanged) this.rebuildGeometryResources()
     this.rasterizer = this.createRasterizer()
     this.resetAtlasResources()
     this.invalidateAll()
@@ -329,12 +393,11 @@ export class WebGpuTerminalRenderer {
   resize(grid: RendererGridSize): void {
     const next = normalizeGrid(grid)
     if (this.gridEquals(next)) return
+    this.releaseRemovedRows(next.rows)
     this.grid = next
     this.resizeCanvas()
     this.configureContext(this.device)
     this.instances = this.createInstances()
-    this.rasterizer = this.createRasterizer()
-    this.resetAtlasResources()
     this.replaceTextPass()
     this.visibleRows = Array.from({ length: this.grid.rows })
     this.invalidateAll()
@@ -407,12 +470,7 @@ export class WebGpuTerminalRenderer {
   }
 
   private createRasterizer(): CanvasGlyphRasterizer {
-    return new CanvasGlyphRasterizer({
-      cellHeight: this.deviceCellHeight,
-      cellWidth: this.deviceCellWidth,
-      fontFamily: this.fontFamily,
-      fontSize: this.fontSize * this.grid.pixelRatio,
-    })
+    return new CanvasGlyphRasterizer({ font: this.font })
   }
 
   private createTextPass(device: GPUDevice = this.device): WebGpuTextPass {
@@ -446,8 +504,7 @@ export class WebGpuTerminalRenderer {
       this.scheduler.schedule()
       return
     }
-    this.atlasTextures.sync(this.device, this.atlas.consumeUploads())
-    this.textPass.syncAtlas(this.atlasTextures)
+    this.atlasTextures.sync(this.atlas.consumeUploads())
     this.textPass.upload(this.instances, updates)
     this.textPass.submit(this.context.getCurrentTexture().createView())
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
@@ -467,11 +524,11 @@ export class WebGpuTerminalRenderer {
   }
 
   private get deviceCellHeight(): number {
-    return this.grid.deviceCellHeight
+    return this.font.deviceCellHeight
   }
 
   private get deviceCellWidth(): number {
-    return this.grid.deviceCellWidth
+    return this.font.deviceCellWidth
   }
 
   private addCursorRow(cursor: RenderCursorSnapshot | undefined): void {
@@ -493,13 +550,7 @@ export class WebGpuTerminalRenderer {
   }
 
   private gridEquals(grid: RendererGridSize): boolean {
-    return (
-      this.grid.cellHeight === grid.cellHeight &&
-      this.grid.cellWidth === grid.cellWidth &&
-      this.grid.columns === grid.columns &&
-      this.grid.pixelRatio === grid.pixelRatio &&
-      this.grid.rows === grid.rows
-    )
+    return this.grid.columns === grid.columns && this.grid.rows === grid.rows
   }
 
   private synchronizeCursorBlink(): void {
@@ -543,29 +594,46 @@ export class WebGpuTerminalRenderer {
 
   private resetAtlasResources(): void {
     this.atlas.invalidateAll()
-    this.atlasTextures.destroy()
-    this.atlasTextures = new AtlasGpuTextures()
+  }
+
+  private rebuildGeometryResources(): void {
+    this.resizeCanvas()
+    this.configureContext(this.device)
+    this.instances = this.createInstances()
+    this.replaceTextPass()
+    this.visibleRows = Array.from({ length: this.grid.rows })
+  }
+
+  private releaseRemovedRows(nextRowCount: number): void {
+    for (let row = nextRowCount; row < this.grid.rows; row += 1) this.atlas.beginRow(row)
   }
 
   private recordFrame(updates: readonly RowInstanceUpdate[]): void {
+    this.metrics.atlasCacheHits = this.atlas.cacheHitCount
+    this.metrics.atlasCacheMisses = this.atlas.cacheMissCount
     this.metrics.atlasEvictions = this.atlas.evictionCount
+    this.metrics.atlasPages = this.atlas.pageCount
+    this.metrics.atlasUploadedBytes = this.atlasUploadedBytesOffset + this.atlasTextures.uploadBytes
+    this.metrics.atlasUploadOperations =
+      this.atlasUploadOperationsOffset + this.atlasTextures.uploadOperationCount
     this.metrics.draws += 2
     this.metrics.rebuiltRows += updates.length
     this.metrics.submittedFrames += 1
     for (const update of updates) {
-      this.metrics.uploadedBytes += update.background.byteLength + update.glyph.byteLength
+      this.metrics.uploadedBytes += update.cell.byteLength + update.glyph.byteLength
     }
   }
 
   private replaceTextPass(): void {
     const replacement = this.createTextPass()
+    replacement.syncAtlas(this.atlasTextures)
     this.textPass.destroy()
     this.textPass = replacement
   }
 
   private resizeCanvas(): void {
-    const logicalWidth = this.grid.columns * this.grid.cellWidth
-    const logicalHeight = this.grid.rows * this.grid.cellHeight
+    const logicalWidth = this.grid.columns * this.font.cssCellWidth
+    const logicalHeight = this.grid.rows * this.font.cssCellHeight
     this.canvas.width = this.grid.columns * this.deviceCellWidth
     this.canvas.height = this.grid.rows * this.deviceCellHeight
     if (!('style' in this.canvas)) return
@@ -607,20 +675,23 @@ export class WebGpuTerminalRenderer {
       replacement.destroy()
       return
     }
-    const replacementPass = this.prepareReplacement(replacement)
-    if (!replacementPass) return
+    const resources = this.prepareReplacement(replacement)
+    if (!resources) return
     if (this.disposed || expectedGeneration !== this.deviceGeneration) {
-      replacementPass.destroy()
+      resources.textPass.destroy()
+      resources.atlasTextures.destroy()
       releaseFailedDevice(this.context, replacement)
       return
     }
     const previous = this.device
+    this.atlasUploadedBytesOffset += this.atlasTextures.uploadBytes
+    this.atlasUploadOperationsOffset += this.atlasTextures.uploadOperationCount
     this.textPass.destroy()
     this.atlasTextures.destroy()
-    this.atlas.invalidateAll()
+    this.atlas.markAllForUpload()
     this.device = replacement
-    this.textPass = replacementPass
-    this.atlasTextures = new AtlasGpuTextures()
+    this.textPass = resources.textPass
+    this.atlasTextures = resources.atlasTextures
     this.deviceGeneration += 1
     this.deviceUnavailable = false
     previous.destroy()
@@ -630,14 +701,18 @@ export class WebGpuTerminalRenderer {
     this.scheduler.schedule()
   }
 
-  private prepareReplacement(device: GPUDevice): WebGpuTextPass | undefined {
+  private prepareReplacement(device: GPUDevice): ReplacementResources | undefined {
     let textPass: WebGpuTextPass | undefined
+    let atlasTextures: AtlasGpuTextures | undefined
     try {
+      atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
       textPass = this.createTextPass(device)
+      textPass.syncAtlas(atlasTextures)
       this.configureContext(device)
-      return textPass
+      return { atlasTextures, textPass }
     } catch {
       textPass?.destroy()
+      atlasTextures?.destroy()
       releaseFailedDevice(this.context, device)
       return undefined
     }

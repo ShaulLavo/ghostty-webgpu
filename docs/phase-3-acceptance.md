@@ -26,22 +26,31 @@ events.
 
 ## Automated gates
 
-| Gate                                                                                | Result                             |
-| ----------------------------------------------------------------------------------- | ---------------------------------- |
-| `bun install --cwd demo --frozen-lockfile`                                          | PASS — no changes                  |
-| `bun run --cwd demo typecheck`                                                      | PASS                               |
-| `bun run test:unit -- demo/tests/authorization.test.ts demo/tests/protocol.test.ts` | PASS — 2 files, 34 tests           |
-| `bun run verify`                                                                    | PASS — 120 unit + 62 browser tests |
-| `node -e "import('./dist/index.js')"`                                               | PASS — browser-free import         |
-| Browser-global grep of `src/core` and `src/term`                                    | PASS — no matches                  |
-| `git diff --exit-code -- bun.lock`                                                  | PASS — root lock unchanged         |
-| `git diff --exit-code -- ghostty-vt.wasm`                                           | PASS — artifact unchanged          |
-| `git diff --check`                                                                  | PASS                               |
-| `npm pack --dry-run --json`                                                         | PASS — demo/docs excluded          |
+| Gate                                                                                | Result                                       |
+| ----------------------------------------------------------------------------------- | -------------------------------------------- |
+| `bun install --cwd demo --frozen-lockfile`                                          | PASS — no changes                            |
+| `bun run --cwd demo typecheck`                                                      | PASS                                         |
+| `bun run test:unit -- demo/tests/authorization.test.ts demo/tests/protocol.test.ts` | PASS — 2 files, 34 tests                     |
+| `CI=true bun run test:browser`                                                      | PASS — 74 unique browser tests; no new skips |
+| `bun run verify`                                                                    | PASS — 135 unit + 74 browser tests           |
+| `bun run bench:renderer`                                                            | PASS — true DPR2 CPU and atlas thresholds    |
+| `node -e "import('./dist/index.js')"`                                               | PASS — browser-free import                   |
+| Browser-global grep of `src/core` and `src/term`                                    | PASS — no matches                            |
+| `git diff --exit-code -- bun.lock`                                                  | PASS — root lock unchanged                   |
+| `git diff --exit-code -- ghostty-vt.wasm`                                           | PASS — artifact unchanged                    |
+| `git diff --check`                                                                  | PASS                                         |
+| `npm pack --dry-run --json`                                                         | PASS — demo/docs excluded                    |
 
 The authorization checks cover the valid same-origin upgrade and rejection of a foreign Host,
 foreign Origin, and missing token. HTTP responses use no permissive CORS. The protocol checks
 cover binary PTY data, bounded resize messages, malformed input, and unknown message types.
+
+The renderer refactor's final hardware qualification is recorded in
+[`renderer-refactor-baseline.md`](./renderer-refactor-baseline.md). Against the corrected true-DPR2
+baseline, burst and sustained CPU medians were 8.9% versus 8.5%, a 4.71% regression within the 10%
+allowance. Populated frames remained exactly two draws, idle runs recorded zero renderer work, and
+median glyph-churn atlas traffic fell 99.633% from the Plan 001 baseline. This automated evidence
+does not satisfy any physical operator item below.
 
 The package remains pinned to Ghostty revision
 `da5ddcb0857c0e4ddb32f7a089911e9038d040f3`, matching `src/core/version.ts` and the intentional
@@ -52,6 +61,18 @@ ABI-bump commit that produced the checked-in wasm. `ghostty-vt.wasm` retained SH
 
 These observations are supplemental `CONTROL PASS` results, not substitutes for the physical
 operator gate.
+
+### Renderer refactor readiness — 2026-08-24
+
+The corrected build loaded in the headed demo at `http://127.0.0.1:4173/` on the hardware Apple
+Metal adapter with no browser warnings, errors, or WebGPU validation messages. Calendar rows,
+digits, punctuation, prompt glyphs, cursor, and selection were visually aligned at DPR 2 and after
+a live refit to fractional DPR 2.2; the pre-refactor mixed character heights were not observed.
+
+With cursor blink disabled, the built-in 11-second idle sampler reported `quiescent`. Diagnostics
+showed no pending frame, timer, or link resolution, and the snapshot retained the exact two-draw
+contract with 8 submitted frames and 16 draws. This result establishes readiness for the physical
+operator checklist; it does not mark any item below PASS.
 
 | Case                   | Exact command                                    | Controlled observations                                                                                                                                                                                                                             | Result       |
 | ---------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
