@@ -35,6 +35,7 @@ interface BrowserHarness {
 }
 
 interface HarnessOptions {
+  readonly allowEvent?: (event: PointerEvent | WheelEvent) => boolean
   readonly onPointerError?: (cause: unknown, operation: string) => void
   readonly pointerSession?: (session: TerminalSession) => TerminalPointerSession
 }
@@ -180,6 +181,7 @@ async function createHarness(
     session,
   })
   const pointer = createTerminalPointerController({
+    allowEvent: options.allowEvent,
     canvas,
     getLayout: () => layout,
     onError: options.onPointerError,
@@ -323,6 +325,58 @@ describe('physical pointer projections', () => {
 })
 
 describe('native mouse routing', () => {
+  it('refuses pointer ownership without cancelling browser defaults and releases active state', async () => {
+    let allowed = false
+    const failure = new Error('pointer predicate failed')
+    let thrown = false
+    const errors: Array<{ cause: unknown; operation: string }> = []
+    const harness = await createHarness(
+      {},
+      {
+        allowEvent: () => {
+          if (thrown) throw failure
+          return allowed
+        },
+        onPointerError: (cause, operation) => errors.push({ cause, operation }),
+      },
+    )
+    harness.session.write('abcdef')
+    const start = cellPosition(harness.layout, 0, 0)
+    const end = trailingCellPosition(harness.layout, 2, 0)
+
+    const refused = dispatchPointer(harness.layout, 'pointerdown', start.x, start.y, {
+      button: 0,
+      buttons: 1,
+    })
+    expect(refused.defaultPrevented).toBe(false)
+    expect(harness.pointer.owner).toBe('none')
+
+    allowed = true
+    dispatchPointer(harness.layout, 'pointerdown', start.x, start.y, {
+      button: 0,
+      buttons: 1,
+    })
+    expect(harness.pointer.owner).toBe('selection')
+    expect(harness.capture.captured.has(1)).toBe(true)
+
+    allowed = false
+    const refusedMove = dispatchPointer(harness.layout, 'pointermove', end.x, end.y, {
+      button: -1,
+      buttons: 1,
+    })
+    expect(refusedMove.defaultPrevented).toBe(false)
+    expect(harness.pointer.owner).toBe('none')
+    expect(harness.capture.captured.size).toBe(0)
+
+    thrown = true
+    dispatchPointer(harness.layout, 'pointerdown', start.x, start.y, {
+      button: 0,
+      buttons: 1,
+    })
+    expect(errors).toEqual([{ cause: failure, operation: 'pointer.pointerdown' }])
+    expect(harness.pointer.owner).toBe('none')
+  })
+
   it('encodes SGR cell and pixel coordinates and pairs captured outside release', async () => {
     const harness = await createHarness({
       paddingBottom: 18,

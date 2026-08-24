@@ -25,7 +25,7 @@ import type {
 } from '../render/renderer.js'
 import type { TerminalAccessibilityOptions } from './accessibility.js'
 import type { DomClipboardWritePolicy } from './clipboard.js'
-import type { TerminalElementPaddingInput } from './elements.js'
+import type { TerminalElementPaddingInput, TerminalElements } from './elements.js'
 import type { TerminalFitEnvironment } from './fit.js'
 import type { TerminalPointerOwner } from './pointer.js'
 import type { TerminalScrollbarControllerOptions } from './scrollbar.js'
@@ -108,10 +108,12 @@ export type GhosttyWebGpuTerminalScrollbarOptions = Omit<
 export interface GhosttyWebGpuRenderer {
   readonly hasPendingFrame?: boolean
   readonly hasPendingTimer?: boolean
+  clearTextureAtlas?(): void
   dispose(): void
   notifyScroll(): void
   notifySelectionChange(): void
   notifyWrite(): void
+  refreshRows?(startRow: number, endRow: number): void
   resize(grid: RendererGridSize): void
   schedule(): void
   setCursorBlinkEnabled(enabled: boolean): void
@@ -139,6 +141,25 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
   readonly runtime?: TerminalSessionRuntime
   readonly scrollbar?: GhosttyWebGpuTerminalScrollbarOptions
+}
+
+export interface GhosttyWebGpuTerminalInputHooks {
+  beforeUserInput?(): void
+  customKeyEvent?(event: KeyboardEvent): boolean
+  inputDisabled?(): boolean
+  onKey?(event: KeyboardEvent, data: Uint8Array): void
+}
+
+export interface GhosttyWebGpuTerminalPointerHooks {
+  allowPointerEvent?(event: PointerEvent | WheelEvent): boolean
+  customWheelEvent?(event: WheelEvent): boolean
+}
+
+export interface GhosttyWebGpuTerminalFromSessionOptions extends GhosttyWebGpuTerminalOptions {
+  readonly autoFit?: boolean
+  readonly elements?: TerminalElements
+  readonly inputHooks?: GhosttyWebGpuTerminalInputHooks
+  readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
 }
 
 export interface GhosttyWebGpuTerminalAppearanceApi {

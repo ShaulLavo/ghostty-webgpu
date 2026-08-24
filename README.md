@@ -126,6 +126,43 @@ the native terminal and renderer have been resized.
 The generic `on()` method also exposes `appearance`, `bell`, `error`, `scroll`, `selection`, and
 `title` events. Every subscription has an idempotent `dispose()` method.
 
+## xterm-compatible facade
+
+Consumers with xterm-shaped integrations can use the compatibility facade while the native API
+above remains available for byte-first Ghostty integrations. Construction and `open()` are
+synchronous; native WASM and WebGPU setup continues internally, and writes made before readiness
+stay ordered without requiring an application-level await:
+
+```ts
+import { Terminal } from 'ghostty-webgpu'
+
+const host = document.querySelector<HTMLElement>('#terminal')
+if (!host) throw new TypeError('Terminal host is missing')
+
+const socket = new WebSocket('wss://example.test/pty')
+const terminal = new Terminal({ cols: 80, rows: 24 })
+const dataSubscription = terminal.onData((data) => {
+  if (socket.readyState === WebSocket.OPEN) socket.send(data)
+})
+
+terminal.open(host)
+terminal.write('\u001b[32mready\u001b[0m', () => {
+  console.log('Terminal write parsed')
+})
+
+function dispose(): void {
+  dataSubscription.dispose()
+  socket.close()
+  terminal.dispose()
+}
+
+window.addEventListener('pagehide', dispose, { once: true })
+```
+
+The facade targets the released xterm 6.0 public contract incrementally; consult the compatibility
+ledger for surfaces that are still partial or missing. It does not require a public readiness
+promise.
+
 ## Lifecycle and runtime ownership
 
 `GhosttyWebGpuTerminal.create()` creates the native session but does not attach DOM. `open(parent)`

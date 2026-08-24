@@ -5307,11 +5307,13 @@
       "symbol": "LogLevel"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public class Terminal implements IDisposable",
       "id": "api:%40xterm%2Fxterm:class:Terminal",
@@ -5461,11 +5463,13 @@
       "symbol": "IDecorationOverviewRulerOptions"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IDisposable",
       "id": "api:%40xterm%2Fxterm:interface:IDisposable",
@@ -5475,11 +5479,13 @@
       "symbol": "IDisposable"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IDisposableWithEvent extends IDisposable",
       "id": "api:%40xterm%2Fxterm:interface:IDisposableWithEvent",
@@ -5489,11 +5495,13 @@
       "symbol": "IDisposableWithEvent"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IEvent<T, U = void>",
       "id": "api:%40xterm%2Fxterm:interface:IEvent",
@@ -5503,11 +5511,13 @@
       "symbol": "IEvent"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IFunctionIdentifier",
       "id": "api:%40xterm%2Fxterm:interface:IFunctionIdentifier",
@@ -5573,11 +5583,13 @@
       "symbol": "ILinkProvider"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface ILocalizableStrings",
       "id": "api:%40xterm%2Fxterm:interface:ILocalizableStrings",
@@ -5587,11 +5599,13 @@
       "symbol": "ILocalizableStrings"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface ILogger",
       "id": "api:%40xterm%2Fxterm:interface:ILogger",
@@ -5629,11 +5643,14 @@
       "symbol": "IModes"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IOverviewRulerOptions",
       "id": "api:%40xterm%2Fxterm:interface:IOverviewRulerOptions",
@@ -5657,11 +5674,13 @@
       "symbol": "IParser"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "The addon declaration is present, but its recursive Terminal parameter type is not exactly equal to released xterm.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface ITerminalAddon extends IDisposable",
       "id": "api:%40xterm%2Fxterm:interface:ITerminalAddon",
@@ -5671,11 +5690,13 @@
       "symbol": "ITerminalAddon"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface ITerminalInitOnlyOptions",
       "id": "api:%40xterm%2Fxterm:interface:ITerminalInitOnlyOptions",
@@ -5685,11 +5706,14 @@
       "symbol": "ITerminalInitOnlyOptions"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface ITerminalOptions",
       "id": "api:%40xterm%2Fxterm:interface:ITerminalOptions",
@@ -5699,11 +5723,14 @@
       "symbol": "ITerminalOptions"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface ITheme",
       "id": "api:%40xterm%2Fxterm:interface:ITheme",
@@ -5741,11 +5768,13 @@
       "symbol": "IUnicodeVersionProvider"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IViewportRange",
       "id": "api:%40xterm%2Fxterm:interface:IViewportRange",
@@ -5755,11 +5784,13 @@
       "symbol": "IViewportRange"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IViewportRangePosition",
       "id": "api:%40xterm%2Fxterm:interface:IViewportRangePosition",
@@ -5769,11 +5800,14 @@
       "symbol": "IViewportRangePosition"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IWindowOptions",
       "id": "api:%40xterm%2Fxterm:interface:IWindowOptions",
@@ -5783,11 +5817,14 @@
       "symbol": "IWindowOptions"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "Public interface IWindowsPty",
       "id": "api:%40xterm%2Fxterm:interface:IWindowsPty",
@@ -6624,12 +6661,12 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/types.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "partial",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "dispose(): void;",
       "id": "api:%40xterm%2Fxterm:member:IDisposable.dispose",
@@ -6639,11 +6676,13 @@
       "symbol": "IDisposable.dispose"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly isDisposed: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IDisposableWithEvent.isDisposed",
@@ -6653,11 +6692,13 @@
       "symbol": "IDisposableWithEvent.isDisposed"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onDispose: IEvent<void>;",
       "id": "api:%40xterm%2Fxterm:member:IDisposableWithEvent.onDispose",
@@ -6667,11 +6708,13 @@
       "symbol": "IDisposableWithEvent.onDispose"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "(listener: (arg1: T, arg2: U) => any): IDisposable;",
       "id": "api:%40xterm%2Fxterm:member:IEvent.()",
@@ -6681,11 +6724,13 @@
       "symbol": "IEvent.()"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "final: string;",
       "id": "api:%40xterm%2Fxterm:member:IFunctionIdentifier.final",
@@ -6695,11 +6740,13 @@
       "symbol": "IFunctionIdentifier.final"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "intermediates?: string;",
       "id": "api:%40xterm%2Fxterm:member:IFunctionIdentifier.intermediates",
@@ -6709,11 +6756,13 @@
       "symbol": "IFunctionIdentifier.intermediates"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "prefix?: string;",
       "id": "api:%40xterm%2Fxterm:member:IFunctionIdentifier.prefix",
@@ -6922,11 +6971,13 @@
       "symbol": "ILinkProvider.provideLinks"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "promptLabel: string;",
       "id": "api:%40xterm%2Fxterm:member:ILocalizableStrings.promptLabel",
@@ -6936,11 +6987,13 @@
       "symbol": "ILocalizableStrings.promptLabel"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "tooMuchOutput: string;",
       "id": "api:%40xterm%2Fxterm:member:ILocalizableStrings.tooMuchOutput",
@@ -6950,11 +7003,13 @@
       "symbol": "ILocalizableStrings.tooMuchOutput"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "debug(message: string, ...args: any[]): void;",
       "id": "api:%40xterm%2Fxterm:member:ILogger.debug",
@@ -6964,11 +7019,13 @@
       "symbol": "ILogger.debug"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "error(message: string | Error, ...args: any[]): void;",
       "id": "api:%40xterm%2Fxterm:member:ILogger.error",
@@ -6978,11 +7035,13 @@
       "symbol": "ILogger.error"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "info(message: string, ...args: any[]): void;",
       "id": "api:%40xterm%2Fxterm:member:ILogger.info",
@@ -6992,11 +7051,13 @@
       "symbol": "ILogger.info"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "trace(message: string, ...args: any[]): void;",
       "id": "api:%40xterm%2Fxterm:member:ILogger.trace",
@@ -7006,11 +7067,13 @@
       "symbol": "ILogger.trace"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "warn(message: string, ...args: any[]): void;",
       "id": "api:%40xterm%2Fxterm:member:ILogger.warn",
@@ -7188,11 +7251,14 @@
       "symbol": "IModes.wraparoundMode"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "showBottomBorder?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IOverviewRulerOptions.showBottomBorder",
@@ -7202,11 +7268,14 @@
       "symbol": "IOverviewRulerOptions.showBottomBorder"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "showTopBorder?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IOverviewRulerOptions.showTopBorder",
@@ -7216,11 +7285,14 @@
       "symbol": "IOverviewRulerOptions.showTopBorder"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "width?: number;",
       "id": "api:%40xterm%2Fxterm:member:IOverviewRulerOptions.width",
@@ -7286,11 +7358,13 @@
       "symbol": "IParser.registerOscHandler"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "The addon declaration is present, but its recursive Terminal parameter type is not exactly equal to released xterm.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "activate(terminal: Terminal): void;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalAddon.activate",
@@ -7301,12 +7375,12 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/types.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "partial",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "cols?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalInitOnlyOptions.cols",
@@ -7317,12 +7391,12 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/types.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "partial",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "rows?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalInitOnlyOptions.rows",
@@ -7332,11 +7406,14 @@
       "symbol": "ITerminalInitOnlyOptions.rows"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "allowProposedApi?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.allowProposedApi",
@@ -7346,11 +7423,14 @@
       "symbol": "ITerminalOptions.allowProposedApi"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "allowTransparency?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.allowTransparency",
@@ -7360,11 +7440,14 @@
       "symbol": "ITerminalOptions.allowTransparency"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "altClickMovesCursor?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.altClickMovesCursor",
@@ -7374,11 +7457,14 @@
       "symbol": "ITerminalOptions.altClickMovesCursor"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "convertEol?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.convertEol",
@@ -7388,11 +7474,14 @@
       "symbol": "ITerminalOptions.convertEol"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cursorBlink?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.cursorBlink",
@@ -7402,11 +7491,14 @@
       "symbol": "ITerminalOptions.cursorBlink"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cursorInactiveStyle?: 'outline' | 'block' | 'bar' | 'underline' | 'none';",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.cursorInactiveStyle",
@@ -7416,11 +7508,14 @@
       "symbol": "ITerminalOptions.cursorInactiveStyle"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cursorStyle?: 'block' | 'underline' | 'bar';",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.cursorStyle",
@@ -7430,11 +7525,14 @@
       "symbol": "ITerminalOptions.cursorStyle"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cursorWidth?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.cursorWidth",
@@ -7444,11 +7542,14 @@
       "symbol": "ITerminalOptions.cursorWidth"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "customGlyphs?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.customGlyphs",
@@ -7458,11 +7559,14 @@
       "symbol": "ITerminalOptions.customGlyphs"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "disableStdin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.disableStdin",
@@ -7472,11 +7576,14 @@
       "symbol": "ITerminalOptions.disableStdin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "documentOverride?: any | null;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.documentOverride",
@@ -7486,11 +7593,14 @@
       "symbol": "ITerminalOptions.documentOverride"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "drawBoldTextInBrightColors?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.drawBoldTextInBrightColors",
@@ -7500,11 +7610,14 @@
       "symbol": "ITerminalOptions.drawBoldTextInBrightColors"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "fastScrollSensitivity?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.fastScrollSensitivity",
@@ -7514,11 +7627,14 @@
       "symbol": "ITerminalOptions.fastScrollSensitivity"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "fontFamily?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.fontFamily",
@@ -7528,11 +7644,14 @@
       "symbol": "ITerminalOptions.fontFamily"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "fontSize?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.fontSize",
@@ -7542,11 +7661,14 @@
       "symbol": "ITerminalOptions.fontSize"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "fontWeight?: FontWeight;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.fontWeight",
@@ -7556,11 +7678,14 @@
       "symbol": "ITerminalOptions.fontWeight"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "fontWeightBold?: FontWeight;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.fontWeightBold",
@@ -7570,11 +7695,14 @@
       "symbol": "ITerminalOptions.fontWeightBold"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "ignoreBracketedPasteMode?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.ignoreBracketedPasteMode",
@@ -7584,11 +7712,14 @@
       "symbol": "ITerminalOptions.ignoreBracketedPasteMode"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "letterSpacing?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.letterSpacing",
@@ -7598,11 +7729,14 @@
       "symbol": "ITerminalOptions.letterSpacing"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "lineHeight?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.lineHeight",
@@ -7612,11 +7746,14 @@
       "symbol": "ITerminalOptions.lineHeight"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "linkHandler?: ILinkHandler | null;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.linkHandler",
@@ -7626,11 +7763,14 @@
       "symbol": "ITerminalOptions.linkHandler"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "logger?: ILogger | null;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.logger",
@@ -7640,11 +7780,14 @@
       "symbol": "ITerminalOptions.logger"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "logLevel?: LogLevel;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.logLevel",
@@ -7668,11 +7811,14 @@
       "symbol": "ITerminalOptions.macOptionClickForcesSelection"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "macOptionIsMeta?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.macOptionIsMeta",
@@ -7682,11 +7828,14 @@
       "symbol": "ITerminalOptions.macOptionIsMeta"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "minimumContrastRatio?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.minimumContrastRatio",
@@ -7696,11 +7845,14 @@
       "symbol": "ITerminalOptions.minimumContrastRatio"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "overviewRuler?: IOverviewRulerOptions;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.overviewRuler",
@@ -7710,11 +7862,14 @@
       "symbol": "ITerminalOptions.overviewRuler"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "reflowCursorLine?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.reflowCursorLine",
@@ -7724,11 +7879,14 @@
       "symbol": "ITerminalOptions.reflowCursorLine"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "rescaleOverlappingGlyphs?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.rescaleOverlappingGlyphs",
@@ -7738,11 +7896,14 @@
       "symbol": "ITerminalOptions.rescaleOverlappingGlyphs"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "rightClickSelectsWord?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.rightClickSelectsWord",
@@ -7752,11 +7913,14 @@
       "symbol": "ITerminalOptions.rightClickSelectsWord"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "screenReaderMode?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.screenReaderMode",
@@ -7766,11 +7930,14 @@
       "symbol": "ITerminalOptions.screenReaderMode"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollback?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.scrollback",
@@ -7780,11 +7947,14 @@
       "symbol": "ITerminalOptions.scrollback"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollOnEraseInDisplay?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.scrollOnEraseInDisplay",
@@ -7794,11 +7964,14 @@
       "symbol": "ITerminalOptions.scrollOnEraseInDisplay"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollOnUserInput?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.scrollOnUserInput",
@@ -7808,11 +7981,14 @@
       "symbol": "ITerminalOptions.scrollOnUserInput"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollSensitivity?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.scrollSensitivity",
@@ -7822,11 +7998,14 @@
       "symbol": "ITerminalOptions.scrollSensitivity"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "smoothScrollDuration?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.smoothScrollDuration",
@@ -7836,11 +8015,14 @@
       "symbol": "ITerminalOptions.smoothScrollDuration"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "tabStopWidth?: number;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.tabStopWidth",
@@ -7850,11 +8032,14 @@
       "symbol": "ITerminalOptions.tabStopWidth"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "theme?: ITheme;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.theme",
@@ -7864,11 +8049,14 @@
       "symbol": "ITerminalOptions.theme"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "windowOptions?: IWindowOptions;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.windowOptions",
@@ -7878,11 +8066,14 @@
       "symbol": "ITerminalOptions.windowOptions"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "windowsPty?: IWindowsPty;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.windowsPty",
@@ -7892,11 +8083,14 @@
       "symbol": "ITerminalOptions.windowsPty"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "wordSeparator?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITerminalOptions.wordSeparator",
@@ -7906,11 +8100,14 @@
       "symbol": "ITerminalOptions.wordSeparator"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "background?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.background",
@@ -7920,11 +8117,14 @@
       "symbol": "ITheme.background"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "black?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.black",
@@ -7934,11 +8134,14 @@
       "symbol": "ITheme.black"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "blue?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.blue",
@@ -7948,11 +8151,14 @@
       "symbol": "ITheme.blue"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightBlack?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightBlack",
@@ -7962,11 +8168,14 @@
       "symbol": "ITheme.brightBlack"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightBlue?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightBlue",
@@ -7976,11 +8185,14 @@
       "symbol": "ITheme.brightBlue"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightCyan?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightCyan",
@@ -7990,11 +8202,14 @@
       "symbol": "ITheme.brightCyan"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightGreen?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightGreen",
@@ -8004,11 +8219,14 @@
       "symbol": "ITheme.brightGreen"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightMagenta?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightMagenta",
@@ -8018,11 +8236,14 @@
       "symbol": "ITheme.brightMagenta"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightRed?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightRed",
@@ -8032,11 +8253,14 @@
       "symbol": "ITheme.brightRed"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightWhite?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightWhite",
@@ -8046,11 +8270,14 @@
       "symbol": "ITheme.brightWhite"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "brightYellow?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.brightYellow",
@@ -8060,11 +8287,14 @@
       "symbol": "ITheme.brightYellow"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cursor?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.cursor",
@@ -8074,11 +8304,14 @@
       "symbol": "ITheme.cursor"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cursorAccent?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.cursorAccent",
@@ -8088,11 +8321,14 @@
       "symbol": "ITheme.cursorAccent"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "cyan?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.cyan",
@@ -8102,11 +8338,14 @@
       "symbol": "ITheme.cyan"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "extendedAnsi?: string[];",
       "id": "api:%40xterm%2Fxterm:member:ITheme.extendedAnsi",
@@ -8116,11 +8355,14 @@
       "symbol": "ITheme.extendedAnsi"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "foreground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.foreground",
@@ -8130,11 +8372,14 @@
       "symbol": "ITheme.foreground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "green?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.green",
@@ -8144,11 +8389,14 @@
       "symbol": "ITheme.green"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "magenta?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.magenta",
@@ -8158,11 +8406,14 @@
       "symbol": "ITheme.magenta"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "overviewRulerBorder?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.overviewRulerBorder",
@@ -8172,11 +8423,14 @@
       "symbol": "ITheme.overviewRulerBorder"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "red?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.red",
@@ -8186,11 +8440,14 @@
       "symbol": "ITheme.red"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollbarSliderActiveBackground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.scrollbarSliderActiveBackground",
@@ -8200,11 +8457,14 @@
       "symbol": "ITheme.scrollbarSliderActiveBackground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollbarSliderBackground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.scrollbarSliderBackground",
@@ -8214,11 +8474,14 @@
       "symbol": "ITheme.scrollbarSliderBackground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollbarSliderHoverBackground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.scrollbarSliderHoverBackground",
@@ -8228,11 +8491,14 @@
       "symbol": "ITheme.scrollbarSliderHoverBackground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "selectionBackground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.selectionBackground",
@@ -8242,11 +8508,14 @@
       "symbol": "ITheme.selectionBackground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "selectionForeground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.selectionForeground",
@@ -8256,11 +8525,14 @@
       "symbol": "ITheme.selectionForeground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "selectionInactiveBackground?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.selectionInactiveBackground",
@@ -8270,11 +8542,14 @@
       "symbol": "ITheme.selectionInactiveBackground"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "white?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.white",
@@ -8284,11 +8559,14 @@
       "symbol": "ITheme.white"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "yellow?: string;",
       "id": "api:%40xterm%2Fxterm:member:ITheme.yellow",
@@ -8382,11 +8660,13 @@
       "symbol": "IUnicodeVersionProvider.wcwidth"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "end: IViewportRangePosition;",
       "id": "api:%40xterm%2Fxterm:member:IViewportRange.end",
@@ -8396,11 +8676,13 @@
       "symbol": "IViewportRange.end"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "start: IViewportRangePosition;",
       "id": "api:%40xterm%2Fxterm:member:IViewportRange.start",
@@ -8410,11 +8692,13 @@
       "symbol": "IViewportRange.start"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "x: number;",
       "id": "api:%40xterm%2Fxterm:member:IViewportRangePosition.x",
@@ -8424,11 +8708,13 @@
       "symbol": "IViewportRangePosition.x"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "y: number;",
       "id": "api:%40xterm%2Fxterm:member:IViewportRangePosition.y",
@@ -8438,11 +8724,14 @@
       "symbol": "IViewportRangePosition.y"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "fullscreenWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.fullscreenWin",
@@ -8466,11 +8755,14 @@
       "symbol": "IWindowOptions.getCellSizePixels"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getIconTitle?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getIconTitle",
@@ -8480,11 +8772,14 @@
       "symbol": "IWindowOptions.getIconTitle"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getScreenSizeChars?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getScreenSizeChars",
@@ -8494,11 +8789,14 @@
       "symbol": "IWindowOptions.getScreenSizeChars"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getScreenSizePixels?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getScreenSizePixels",
@@ -8508,11 +8806,14 @@
       "symbol": "IWindowOptions.getScreenSizePixels"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getWinPosition?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getWinPosition",
@@ -8522,11 +8823,14 @@
       "symbol": "IWindowOptions.getWinPosition"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getWinSizeChars?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getWinSizeChars",
@@ -8536,11 +8840,14 @@
       "symbol": "IWindowOptions.getWinSizeChars"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getWinSizePixels?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getWinSizePixels",
@@ -8550,11 +8857,14 @@
       "symbol": "IWindowOptions.getWinSizePixels"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getWinState?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getWinState",
@@ -8564,11 +8874,14 @@
       "symbol": "IWindowOptions.getWinState"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "getWinTitle?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.getWinTitle",
@@ -8578,11 +8891,14 @@
       "symbol": "IWindowOptions.getWinTitle"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "lowerWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.lowerWin",
@@ -8592,11 +8908,14 @@
       "symbol": "IWindowOptions.lowerWin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "maximizeWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.maximizeWin",
@@ -8606,11 +8925,14 @@
       "symbol": "IWindowOptions.maximizeWin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "minimizeWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.minimizeWin",
@@ -8620,11 +8942,14 @@
       "symbol": "IWindowOptions.minimizeWin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "popTitle?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.popTitle",
@@ -8634,11 +8959,14 @@
       "symbol": "IWindowOptions.popTitle"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "pushTitle?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.pushTitle",
@@ -8648,11 +8976,14 @@
       "symbol": "IWindowOptions.pushTitle"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "raiseWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.raiseWin",
@@ -8662,11 +8993,14 @@
       "symbol": "IWindowOptions.raiseWin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "refreshWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.refreshWin",
@@ -8676,11 +9010,14 @@
       "symbol": "IWindowOptions.refreshWin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "restoreWin?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.restoreWin",
@@ -8690,11 +9027,14 @@
       "symbol": "IWindowOptions.restoreWin"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "setWinLines?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.setWinLines",
@@ -8704,11 +9044,14 @@
       "symbol": "IWindowOptions.setWinLines"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "setWinPosition?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.setWinPosition",
@@ -8718,11 +9061,14 @@
       "symbol": "IWindowOptions.setWinPosition"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "setWinSizeChars?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.setWinSizeChars",
@@ -8732,11 +9078,14 @@
       "symbol": "IWindowOptions.setWinSizeChars"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "setWinSizePixels?: boolean;",
       "id": "api:%40xterm%2Fxterm:member:IWindowOptions.setWinSizePixels",
@@ -8746,11 +9095,14 @@
       "symbol": "IWindowOptions.setWinSizePixels"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "backend?: 'conpty' | 'winpty';",
       "id": "api:%40xterm%2Fxterm:member:IWindowsPty.backend",
@@ -8760,11 +9112,14 @@
       "symbol": "IWindowsPty.backend"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts",
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/options.ts",
+      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "buildNumber?: number;",
       "id": "api:%40xterm%2Fxterm:member:IWindowsPty.buildNumber",
@@ -8774,11 +9129,13 @@
       "symbol": "IWindowsPty.buildNumber"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers immediate refusal, repeat/release, latest-handler replacement, and one accepted ArrowUp key/data path; exception and keypress behavior remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "attachCustomKeyEventHandler(customKeyEventHandler: (event: KeyboardEvent) => boolean): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.attachCustomKeyEventHandler",
@@ -8788,11 +9145,13 @@
       "symbol": "Terminal.attachCustomKeyEventHandler"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers immediate and ready wheel refusal; allowed, replacement, exception, and non-terminal target behavior remains uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "attachCustomWheelEventHandler(customWheelEventHandler: (event: WheelEvent) => boolean): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.attachCustomWheelEventHandler",
@@ -8803,10 +9162,10 @@
     },
     {
       "evidence": [
-        "src/dom/tests/terminal-ui.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "The native DOM host exists, but xterm construction, synchronous open, and retained-reference semantics differ.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Synchronous textarea blur and ready-state focus reporting match browser evidence. Focus-report timing from pre-ready write callbacks remains different because native input lifecycle attachment waits for the renderer.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -8818,11 +9177,13 @@
       "symbol": "Terminal.blur"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/placeholders.test.ts"
+      ],
+      "implementationPath": "src/xterm/placeholders.ts",
+      "notes": "Stable fail-loud facade placeholder; Plan 009 owns native-backed behavior.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly buffer: IBufferNamespace;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.buffer",
@@ -8832,11 +9193,14 @@
       "symbol": "Terminal.buffer"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts",
+        "plans/008-xterm-terminal-facade.md"
+      ],
+      "implementationPath": "src/xterm/runtime.ts",
+      "notes": "Blocked: the pinned native ABI has reset/VT write but no row-preserving buffer compaction or active-line relocation; VT erase/scroll emulation cannot preserve released xterm clear semantics under DECSTBM margins and DECOM origin mode.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "blocked",
       "area": "terminal-methods-input",
       "behavior": "clear(): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.clear",
@@ -8863,11 +9227,13 @@
       "symbol": "Terminal.clearSelection"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "clearTextureAtlas(): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.clearTextureAtlas",
@@ -8878,10 +9244,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers valid typed dimensions, init-only setters, resize values, and deduplicated events; invalid and boundary cases remain uncertified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -8893,11 +9260,14 @@
       "symbol": "Terminal.cols"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers valid dimensions and init-only option observables; invalid dimension normalization and the full option/default matrix remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "constructor(options?: ITerminalOptions & ITerminalInitOnlyOptions);",
       "id": "api:%40xterm%2Fxterm:member:Terminal.constructor",
@@ -8922,10 +9292,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser evidence covers retained disconnected DOM identities; disposal with queued writes/callbacks and addon/error ordering is not fully qualified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -8937,11 +9308,13 @@
       "symbol": "Terminal.dispose"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Normal pre-open, synchronous-open, and post-open-disposal identities match browser evidence. The intentional dispose-before-first-open divergence leaves this undefined instead of reproducing released xterm's half-created connected DOM.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly element: HTMLElement | undefined;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.element",
@@ -8952,10 +9325,10 @@
     },
     {
       "evidence": [
-        "src/dom/tests/terminal-ui.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "The native DOM host exists, but xterm construction, synchronous open, and retained-reference semantics differ.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Synchronous textarea focus and ready-state focus reporting match browser evidence. Focus-report timing from pre-ready write callbacks remains different because native input lifecycle attachment waits for the renderer.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9016,10 +9389,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9031,11 +9404,14 @@
       "symbol": "Terminal.input"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/addons.ts",
+      "notes": "Browser differential evidence covers failed activation retained through terminal disposal; self-disposal, success ordering, and error/reentrancy cases remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "loadAddon(addon: ITerminalAddon): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.loadAddon",
@@ -9045,11 +9421,13 @@
       "symbol": "Terminal.loadAddon"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/placeholders.test.ts"
+      ],
+      "implementationPath": "src/xterm/placeholders.ts",
+      "notes": "Stable empty placeholder after the proposed-API gate; Plan 009 owns native-backed marker behavior.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly markers: ReadonlyArray<IMarker>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.markers",
@@ -9059,11 +9437,13 @@
       "symbol": "Terminal.markers"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/placeholders.test.ts"
+      ],
+      "implementationPath": "src/xterm/placeholders.ts",
+      "notes": "Stable fail-loud facade placeholder; Plan 009 owns native-backed behavior.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly modes: IModes;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.modes",
@@ -9074,10 +9454,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9089,11 +9469,13 @@
       "symbol": "Terminal.onBell"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onBinary: IEvent<string>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.onBinary",
@@ -9103,11 +9485,13 @@
       "symbol": "Terminal.onBinary"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onCursorMove: IEvent<void>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.onCursorMove",
@@ -9118,10 +9502,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Browser differential evidence covers one accepted ArrowUp delivery path and listener disposal ordering; failure, reentrancy, and broader input cases remain uncertified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9133,11 +9518,13 @@
       "symbol": "Terminal.onData"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Browser differential evidence covers one accepted ArrowUp delivery path; listener failure, reentrancy, disposal, and broader input cases remain uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onKey: IEvent<{ key: string, domEvent: KeyboardEvent }>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.onKey",
@@ -9147,11 +9534,13 @@
       "symbol": "Terminal.onKey"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onLineFeed: IEvent<void>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.onLineFeed",
@@ -9161,11 +9550,13 @@
       "symbol": "Terminal.onLineFeed"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onRender: IEvent<{ start: number, end: number }>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.onRender",
@@ -9176,10 +9567,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Browser differential evidence covers normal deduplicated resize delivery; listener failure, disposal, and boundary ordering remain uncertified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9192,10 +9584,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9225,10 +9617,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9240,11 +9632,14 @@
       "symbol": "Terminal.onTitleChange"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/events.ts",
+      "notes": "Browser evidence covers one write/callback ordering path; listener mutation, disposal, and failure paths are not fully qualified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "onWriteParsed: IEvent<void>;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.onWriteParsed",
@@ -9255,10 +9650,10 @@
     },
     {
       "evidence": [
-        "src/dom/tests/terminal-ui.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "The native DOM host exists, but xterm construction, synchronous open, and retained-reference semantics differ.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Normal synchronous open, reopen, disposal, and retained DOM identities match released browser evidence. Disposing before the first open intentionally rejects without reproducing released xterm's half-created connected DOM and disposable leaks.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9270,11 +9665,14 @@
       "symbol": "Terminal.open"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser evidence covers init-only dimension properties; the complete live option, validation, rendering, and interaction contract remains uncertified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "options: ITerminalOptions;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.options",
@@ -9284,11 +9682,13 @@
       "symbol": "Terminal.options"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/placeholders.test.ts"
+      ],
+      "implementationPath": "src/xterm/placeholders.ts",
+      "notes": "Stable fail-loud facade placeholder; Plan 009 owns native-backed behavior.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly parser: IParser;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.parser",
@@ -9299,10 +9699,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9314,11 +9714,13 @@
       "symbol": "Terminal.paste"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "refresh(start: number, end: number): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.refresh",
@@ -9388,10 +9790,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9404,10 +9806,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers valid typed dimensions, init-only setters, resize values, and deduplicated events; invalid and boundary cases remain uncertified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9420,10 +9823,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers valid typed dimensions, init-only setters, resize values, and deduplicated events; invalid and boundary cases remain uncertified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9436,10 +9840,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9451,11 +9855,13 @@
       "symbol": "Terminal.scrollLines"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "terminal-methods-input",
       "behavior": "scrollPages(pageCount: number): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.scrollPages",
@@ -9466,10 +9872,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9482,10 +9888,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9498,10 +9904,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9513,11 +9919,13 @@
       "symbol": "Terminal.scrollToTop"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers a normal exclusive range; out-of-range coordinate clamping still differs from released xterm.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "select(column: number, row: number, length: number): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.select",
@@ -9528,10 +9936,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9543,11 +9951,13 @@
       "symbol": "Terminal.selectAll"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "selectLines(start: number, end: number): void;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.selectLines",
@@ -9557,11 +9967,13 @@
       "symbol": "Terminal.selectLines"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "static strings: ILocalizableStrings;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.strings",
@@ -9571,11 +9983,13 @@
       "symbol": "Terminal.strings"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/terminal.browser.test.ts"
+      ],
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Normal pre-open, synchronous-open, and post-open-disposal identities match browser evidence. The intentional dispose-before-first-open divergence leaves this undefined instead of reproducing released xterm's half-created connected DOM.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly textarea: HTMLTextAreaElement | undefined;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.textarea",
@@ -9585,11 +9999,13 @@
       "symbol": "Terminal.textarea"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/placeholders.test.ts"
+      ],
+      "implementationPath": "src/xterm/placeholders.ts",
+      "notes": "Stable fail-loud facade placeholder; Plan 009 owns native-backed behavior.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
       "behavior": "readonly unicode: IUnicodeHandling;",
       "id": "api:%40xterm%2Fxterm:member:Terminal.unicode",
@@ -9600,10 +10016,11 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser evidence covers one ready string-write ordering path; pre-ready disposal callbacks and Uint8Array ownership semantics are not release-compatible.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9616,10 +10033,10 @@
     },
     {
       "evidence": [
-        "src/term/tests/session.test.ts"
+        "src/xterm/tests/terminal.test.ts"
       ],
-      "implementationPath": "src/term/session.ts",
-      "notes": "A native capability exists; xterm naming, defaults, callback ordering, and lifecycle semantics remain uncertified.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Facade/type surface exists; remaining released behavior is not yet differentially certified.",
       "ownerPlan": "008",
       "targetStatus": "partial",
       "area": "terminal-methods-input",
@@ -9631,11 +10048,13 @@
       "symbol": "Terminal.writeln"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "Public type FontWeight = 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number;",
       "id": "api:%40xterm%2Fxterm:type:FontWeight",
@@ -9645,11 +10064,13 @@
       "symbol": "FontWeight"
     },
     {
-      "evidence": [],
-      "implementationPath": null,
-      "notes": "",
+      "evidence": [
+        "src/xterm/tests/types.test.ts"
+      ],
+      "implementationPath": "src/xterm/types.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
-      "targetStatus": "missing",
+      "targetStatus": "compatible",
       "area": "core-lifecycle-options-events",
       "behavior": "Public type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'off';",
       "id": "api:%40xterm%2Fxterm:type:LogLevel",
@@ -9662,11 +10083,12 @@
       "area": "core-lifecycle-options-events",
       "behavior": "Construction exposes released defaults and rows/cols before open.",
       "evidence": [
-        "src/xterm/tests/parity-smoke.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/terminal.test.ts"
       ],
       "id": "behavior:constructor-defaults-and-pre-open-properties",
-      "implementationPath": "src/term/session.ts",
-      "notes": "The differential driver records the current mismatch without claiming compatibility.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Synchronous defaults exist, but released dimension normalization and the full pre-open option/default matrix are not differentially qualified.",
       "ownerPlan": "008",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
@@ -9678,11 +10100,11 @@
       "area": "core-lifecycle-options-events",
       "behavior": "Disposal detaches DOM while released element and textarea references remain disconnected objects.",
       "evidence": [
-        "src/xterm/tests/parity-smoke.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
       "id": "behavior:dispose-lifecycle",
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "The differential driver records the current mismatch without claiming compatibility.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser evidence covers retained disconnected DOM identities; disposal with queued writes/callbacks and addon/error ordering is not fully qualified.",
       "ownerPlan": "008",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
@@ -9694,11 +10116,12 @@
       "area": "core-lifecycle-options-events",
       "behavior": "Disposed event subscriptions stop delivery and disposal is idempotent.",
       "evidence": [
-        "src/xterm/tests/parity-smoke.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
       "id": "behavior:event-subscription-disposal",
-      "implementationPath": "src/term/session.ts",
-      "notes": "The differential driver records the current mismatch without claiming compatibility.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser differential evidence covers a listener disposed earlier in the same emission; failure, reentrancy, and async-listener ordering remain uncertified.",
       "ownerPlan": "008",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
@@ -9710,17 +10133,17 @@
       "area": "core-lifecycle-options-events",
       "behavior": "open(parent) is synchronous; a second open is a no-op and does not move the terminal.",
       "evidence": [
-        "src/xterm/tests/parity-smoke.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
       "id": "behavior:open-lifecycle",
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "The differential driver records the current mismatch without claiming compatibility.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Released observable is covered by the named automated evidence.",
       "ownerPlan": "008",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/typings/xterm.d.ts",
       "symbol": "open lifecycle",
-      "targetStatus": "partial"
+      "targetStatus": "compatible"
     },
     {
       "area": "vt-performance-manual",
@@ -9774,11 +10197,12 @@
       "area": "core-lifecycle-options-events",
       "behavior": "Write callbacks run after queued parsing and preserve call ordering.",
       "evidence": [
-        "src/xterm/tests/parity-smoke.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/terminal.browser.test.ts"
       ],
       "id": "behavior:write-callback-ordering",
-      "implementationPath": "src/term/session.ts",
-      "notes": "The differential driver records the current mismatch without claiming compatibility.",
+      "implementationPath": "src/xterm/terminal.ts",
+      "notes": "Browser evidence covers one ready write path; dispose-before-flush callbacks and Uint8Array ownership semantics remain incompatible or uncertified.",
       "ownerPlan": "008",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",

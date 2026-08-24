@@ -7,6 +7,7 @@ export { calculateTerminalFittedFont, fitTerminalFont } from './dom/fit.js'
 export { GhosttyWebGpuTerminal } from './dom/terminal.js'
 export { WebGpuTerminalRenderer } from './render/renderer.js'
 export { TerminalSession } from './term/session.js'
+export { Terminal } from './xterm/terminal.js'
 export type {
   SelectionAutoscrollDirection,
   SelectionCoordinates,
@@ -150,3 +151,41 @@ export type {
   TerminalTheme,
   TerminalTitleEvent,
 } from './term/types.js'
+export type {
+  FontWeight,
+  IBuffer,
+  IBufferCell,
+  IBufferCellPosition,
+  IBufferElementProvider,
+  IBufferLine,
+  IBufferNamespace,
+  IBufferRange,
+  IDecoration,
+  IDecorationOptions,
+  IDecorationOverviewRulerOptions,
+  IDisposable,
+  IDisposableWithEvent,
+  IEvent,
+  IFunctionIdentifier,
+  ILink,
+  ILinkDecorations,
+  ILinkHandler,
+  ILinkProvider,
+  ILocalizableStrings,
+  ILogger,
+  IMarker,
+  IModes,
+  IOverviewRulerOptions,
+  IParser,
+  ITerminalAddon,
+  ITerminalInitOnlyOptions,
+  ITerminalOptions,
+  ITheme,
+  IUnicodeHandling,
+  IUnicodeVersionProvider,
+  IViewportRange,
+  IViewportRangePosition,
+  IWindowOptions,
+  IWindowsPty,
+  LogLevel,
+} from './xterm/types.js'

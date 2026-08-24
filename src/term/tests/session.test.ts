@@ -727,6 +727,7 @@ describe('TerminalSession', () => {
     expect(decoder.decode(session.paste('a\nb\0\u001b[31m\u007f'))).toBe('a\rb  [31m ')
     session.write('\u001b[?2004h')
     expect(decoder.decode(session.paste('a\nb'))).toBe('\u001b[200~a\nb\u001b[201~')
+    expect(decoder.decode(session.paste('a\nb', { bracketed: false }))).toBe('a\rb')
 
     session.write('\u001b[?1003h\u001b[?1006h')
     const motion = mouseEvent({ action: 'motion' })
@@ -950,6 +951,9 @@ describe('TerminalSession', () => {
     session.on('data', () => {
       selectedDuringData = session.getSelection() !== undefined
     })
+    session.sendInput('p', { preserveSelection: true })
+    expect(selectedDuringData).toBe(true)
+    expect(session.getSelection()).toBe('bcdefgh\nijklmnop\nqrs')
     order.length = 0
     session.sendInput('x')
     expect(selectedDuringData).toBe(false)
@@ -966,6 +970,25 @@ describe('TerminalSession', () => {
     expect(session.revision).toBe(beforeSelectAll + 1)
     expect(session.clearSelection()).toBe(true)
     expect(session.clearSelection()).toBe(false)
+  })
+
+  it('publishes native screen-coordinate range and whole-line selections', async () => {
+    const session = await createSession({ appearance: { grid: grid({ columns: 5 }) } })
+    const selectionEvents: boolean[] = []
+    session.on('selection', ({ hasSelection }) => selectionEvents.push(hasSelection))
+    session.write('abcde\r\nfghij\r\nklmno')
+
+    expect(session.selectRange({ x: 1, y: 0 }, { x: 2, y: 1 }).selectionInstalled).toBe(true)
+    expect(session.getSelection()).toBe('bcde\nfgh')
+    expect(session.selectionCoordinates()).toEqual({
+      end: { x: 2, y: 1 },
+      rectangle: false,
+      start: { x: 1, y: 0 },
+    })
+
+    expect(session.selectLines(1, 2).selectionChanged).toBe(true)
+    expect(session.getSelection()).toBe('fghij\nklmno')
+    expect(selectionEvents).toEqual([true, true])
   })
 
   it('enforces OSC 8 precedence, composes link errors, and invalidates resolutions', async () => {

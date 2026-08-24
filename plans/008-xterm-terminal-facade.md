@@ -18,6 +18,7 @@
 - **Depends on**: Plans 006 and 007 DONE
 - **Category**: compatibility / public API / lifecycle
 - **Planned at**: commit `a7e7372`, 2026-08-24
+- **Execution state**: BLOCKED — the native ABI cannot preserve xterm `clear()` semantics
 
 ## Why this matters
 
@@ -69,14 +70,17 @@ readiness are queued in call order when xterm itself permits deferred processing
 with documented immediate values read from the compatibility shadow state until the native terminal
 is ready, then switch to verified live state without observable discontinuity.
 
-`open(parent): void` must synchronously reject an invalid parent or a post-disposal call. Once xterm
-has opened successfully, another `open` call is a no-op: it neither throws nor moves the terminal to
-a different parent. The first call exposes the documented DOM properties at the same observable
-point and starts asynchronous GPU/runtime attachment without returning a promise. Any async
-initialization failure is routed through the configured xterm logger and an internal rejected-ready
-state; queued write callbacks must not be left hanging. Do not add a required public readiness API
-to examples or types. An optional Ghostty-specific diagnostic promise may be exported under a
-non-xterm name only if differential tests prove it cannot affect compatibility.
+`open(parent): void` must synchronously reject an invalid parent. Once xterm has opened
+successfully, another `open` call is a no-op even after disposal: it neither throws nor moves the
+terminal to a different parent. Disposing before the first open remains an explicit partial row:
+released xterm creates a connected, half-initialized DOM shell, logs disposable leaks, and then
+throws, while this facade rejects without leaking DOM. The first valid call exposes the documented
+DOM properties at the same observable point and starts asynchronous GPU/runtime attachment without
+returning a promise. Any async initialization failure is routed through the configured xterm logger
+and an internal rejected-ready state; queued write callbacks must not be left hanging. Do not add a
+required public readiness API to examples or types. An optional Ghostty-specific diagnostic promise
+may be exported under a non-xterm name only if differential tests prove it cannot affect
+compatibility.
 
 Implement the released 6.0.0 behavior for these core groups in this plan:
 
@@ -250,17 +254,40 @@ Run the full gate and record counts of compatible/partial/missing/blocked rows.
 - Existing native input/renderer tests prove the facade did not change the underlying API.
 - Ledger tests enforce evidence for every newly compatible row.
 
+## Execution notes
+
+- Added the synchronous `Terminal` facade, stable pre-ready option/dimension state, asynchronous
+  native runtime attachment, FIFO write processing, xterm-shaped events/types, addon ownership,
+  selection adapters, custom key/wheel first refusal, fixed-grid renderer attachment, and retained
+  disconnected DOM identities.
+- Released-xterm differential browser evidence passes for typed valid dimensions and resize events,
+  synchronous open/reopen and retained DOM identities, focus/blur, immediate and ready custom-input
+  refusal, one accepted ArrowUp path, listener-disposal ordering, failed addon activation, one ready
+  string-write ordering path, and one normal exclusive selection range. Rows stay partial where that
+  evidence does not cover the full contract.
+- Plan 008 now owns 13 `compatible`, 171 `partial`, and one `blocked` ledger row. Compatible rows are
+  limited to type-shape or browser-differential evidence without a known counterexample.
+- Constructor normalization, dimension boundaries, recursive addon types/lifecycle, event failure,
+  reentrancy, handler replacement/exception paths, out-of-range selection, queued-write disposal,
+  `Uint8Array` ownership, pre-ready accepted DOM input, callback-time focus-report ordering, and the
+  pathological dispose-before-first-open behavior remain explicitly partial pending released-xterm
+  differential coverage and fixes.
+- `Terminal.clear()` hit the plan's explicit STOP condition. The pinned WASM and typed ABI expose
+  reset, VT write, resize, viewport scrolling, selection, and rendering, but no row-preserving
+  buffer compaction or active-line relocation. VT erase/scroll emulation is affected by DECSTBM
+  margins and DECOM origin mode and cannot guarantee xterm's prompt-line-preserving operation.
+
 ## Done criteria
 
-- [ ] `new Terminal()` and `open(parent): void` work without consumer `await`.
+- [x] `new Terminal()` and `open(parent): void` work without consumer `await`.
 - [ ] Pre-ready writes/callbacks preserve released xterm ordering and failure semantics.
 - [ ] Core properties, events, options, lifecycle, write, scroll, selection, handler, and addon rows
       owned by this plan have differential evidence.
-- [ ] `attachCustomKeyEventHandler` integrates before TanStack/raw handling without partial packets.
-- [ ] Native `GhosttyWebGpuTerminal` remains exported and behaviorally intact.
-- [ ] Production code has no runtime dependency on xterm.js.
-- [ ] Remaining extension/browser/addon gaps stay explicit in the ledger.
-- [ ] Build, parity generation, focused tests, and `bun run verify` pass.
+- [x] `attachCustomKeyEventHandler` integrates before TanStack/raw handling without partial packets.
+- [x] Native `GhosttyWebGpuTerminal` remains exported and behaviorally intact.
+- [x] Production code has no runtime dependency on xterm.js.
+- [x] Remaining extension/browser/addon gaps stay explicit in the ledger.
+- [x] Build, parity generation, focused tests, and `bun run verify` pass.
 - [ ] Plan 008 is DONE.
 
 ## STOP conditions

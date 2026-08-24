@@ -257,6 +257,44 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
   canvas.remove()
 })
 
+it('schedules bounded row refreshes and texture-atlas clears without a standing loop', async () => {
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 3)
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    font: fittedFont(),
+    renderState: source,
+    rows: 3,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  const initialDraws = renderer.metrics.draws
+  const initialRows = renderer.metrics.rebuiltRows
+
+  renderer.refreshRows(1, 1)
+  renderer.refreshRows(1, 1)
+  expect(clock.frames.size).toBe(1)
+  clock.flushFrame()
+  expect(renderer.metrics.rebuiltRows).toBe(initialRows + 1)
+  expect(renderer.metrics.draws).toBe(initialDraws + 2)
+  expect(clock.frames.size).toBe(0)
+
+  renderer.clearTextureAtlas()
+  renderer.clearTextureAtlas()
+  expect(clock.frames.size).toBe(1)
+  clock.flushFrame()
+  expect(renderer.metrics.rebuiltRows).toBe(initialRows + 4)
+  expect(renderer.metrics.draws).toBe(initialDraws + 4)
+  expect(clock.frames.size).toBe(0)
+  expect(() => renderer.refreshRows(2, 1)).toThrow('startRow must not exceed endRow')
+  expect(() => renderer.refreshRows(0, 3)).toThrow('renderer row count')
+
+  renderer.dispose()
+  canvas.remove()
+})
+
 it('submits one frame per blink transition without a standing animation frame', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)

@@ -1,6 +1,7 @@
 import { isSupportedTerminalKeyCode, type TerminalSession } from '../term/session.js'
 import type {
   TerminalInputData,
+  TerminalInputResult,
   TerminalKeyAction,
   TerminalKeyInput,
   TerminalModifierSide,
@@ -16,6 +17,7 @@ import {
 } from './hotkeys.js'
 import type {
   GhosttyWebGpuTerminalCopy,
+  GhosttyWebGpuTerminalInputHooks,
   TerminalHotkeyBinding,
   TerminalHotkeyContext,
   TerminalHotkeyDecision,
@@ -30,6 +32,7 @@ type LifecycleSession = Pick<TerminalSession<unknown>, 'setFocused'>
 
 export interface DomInputControllerOptions {
   readonly copySelection?: GhosttyWebGpuTerminalCopy
+  readonly hooks?: GhosttyWebGpuTerminalInputHooks
   readonly onError: (cause: unknown, operation: string) => void
   readonly platform?: DomHotkeyPlatform
   readonly session: InputSession
@@ -266,6 +269,7 @@ function applyShortcutPolicy(event: KeyboardEvent, policy: SuppressedShortcutPol
 
 const pastePressPolicy = Object.freeze({ preventDefault: false, stopPropagation: false })
 const pasteRepeatPolicy = Object.freeze({ preventDefault: true, stopPropagation: false })
+const refusedKeyPolicy = Object.freeze({ preventDefault: false, stopPropagation: false })
 
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
@@ -274,6 +278,7 @@ class BrowserInputController implements DomInputController {
   private readonly hotkeys: CompiledTerminalHotkeyBindings
   private readonly pasteShortcut: CompiledDomHotkey
   private readonly platform: DomHotkeyPlatform
+  private readonly publishedKeyPresses = new Set<string>()
   private readonly pressedModifierCodes = new Set<string>()
   private readonly suppressedShortcuts = new Map<string, SuppressedShortcutPolicy>()
 
@@ -348,7 +353,11 @@ class BrowserInputController implements DomInputController {
   private readonly handleKey = (event: KeyboardEvent): void => {
     if (this.disposed) return
     this.updateModifierTracking(event)
-    if (this.consumeSuppressedShortcut(event)) return
+    const suppressedBeforeCustomHandler = this.suppressedShortcuts.has(event.code)
+    const customAllowed = this.allowCustomKey(event)
+    if (suppressedBeforeCustomHandler && this.consumeSuppressedShortcut(event)) return
+    if (!customAllowed) return
+    if (this.blockDisabledKey(event)) return
     if (this.arbitrateShortcut(event)) return
     if (!isSupportedTerminalKeyCode(event.code)) return
     this.encodeKey(event)
@@ -361,12 +370,64 @@ class BrowserInputController implements DomInputController {
     return value
   }
 
-  private invokeSession(operation: 'input' | 'paste', value: TerminalInputData): void {
+  private invokeSession(
+    operation: 'input' | 'paste',
+    value: TerminalInputData,
+  ): TerminalInputResult {
+    if (this.isInputDisabled()) return new Uint8Array()
+    this.beforeUserInput()
     try {
-      if (operation === 'paste') this.options.session.paste(value)
-      if (operation === 'input') this.options.session.sendInput(value)
+      if (operation === 'paste') return this.options.session.paste(value)
+      return this.options.session.sendInput(value)
     } catch (cause) {
       this.options.onError(cause, operation)
+      return new Uint8Array()
+    }
+  }
+
+  private allowCustomKey(event: KeyboardEvent): boolean {
+    const handler = this.options.hooks?.customKeyEvent
+    if (!handler) return true
+    try {
+      if (handler(event)) return true
+      this.suppressInitialKey(event)
+      return false
+    } catch (cause) {
+      this.options.onError(cause, 'customKeyEvent')
+      if (event.type === 'keyup') return true
+      this.suppressInitialKey(event)
+      return false
+    }
+  }
+
+  private blockDisabledKey(event: KeyboardEvent): boolean {
+    if (!this.isInputDisabled(event)) return false
+    if (event.type === 'keyup' && this.publishedKeyPresses.has(event.code)) return false
+    this.suppressInitialKey(event)
+    return true
+  }
+
+  private isInputDisabled(event?: KeyboardEvent): boolean {
+    const predicate = this.options.hooks?.inputDisabled
+    if (!predicate) return false
+    try {
+      return predicate()
+    } catch (cause) {
+      this.options.onError(cause, 'inputDisabled')
+      return event?.type !== 'keyup'
+    }
+  }
+
+  private suppressInitialKey(event: KeyboardEvent): void {
+    if (event.type !== 'keydown' || event.repeat) return
+    this.suppressedShortcuts.set(event.code, refusedKeyPolicy)
+  }
+
+  private beforeUserInput(): void {
+    try {
+      this.options.hooks?.beforeUserInput?.()
+    } catch (cause) {
+      this.options.onError(cause, 'beforeUserInput')
     }
   }
 
@@ -425,12 +486,13 @@ class BrowserInputController implements DomInputController {
       event,
       getSelection: () => session.getSelection(),
       hasSelection: () => session.selectionCoordinates() !== undefined,
-      paste: (data: TerminalInputData) => session.paste(data),
-      sendInput: (data: TerminalInputData) => session.sendInput(data),
+      paste: (data: TerminalInputData) => this.invokeSession('paste', data),
+      sendInput: (data: TerminalInputData) => this.invokeSession('input', data),
     })
   }
 
   private encodeKey(event: KeyboardEvent): void {
+    this.beforeUserInput()
     try {
       const input = normalizedKeyInput(
         event,
@@ -438,16 +500,39 @@ class BrowserInputController implements DomInputController {
         this.composing,
         this.platform === 'mac',
       )
-      const bytes = this.options.session.key(input)
-      if (bytes.length > 0) event.preventDefault()
+      const bytes = this.options.session.key(input, {
+        onEncoded: (data) => this.notifyKey(event, data),
+      })
+      this.updatePublishedKeyPresses(event, bytes)
+      if (bytes.length === 0) return
+      event.preventDefault()
     } catch (cause) {
+      if (event.type === 'keyup') this.publishedKeyPresses.delete(event.code)
       this.options.onError(cause, 'key')
+    }
+  }
+
+  private updatePublishedKeyPresses(event: KeyboardEvent, bytes: TerminalInputResult): void {
+    if (event.type === 'keyup') {
+      this.publishedKeyPresses.delete(event.code)
+      return
+    }
+    if (!event.repeat && bytes.length > 0) this.publishedKeyPresses.add(event.code)
+  }
+
+  private notifyKey(event: KeyboardEvent, bytes: TerminalInputResult): void {
+    if (event.type !== 'keydown') return
+    try {
+      this.options.hooks?.onKey?.(event, Uint8Array.from(bytes))
+    } catch (cause) {
+      this.options.onError(cause, 'onKey')
     }
   }
 
   resetTransientState(): void {
     this.composing = false
     this.pressedModifierCodes.clear()
+    this.publishedKeyPresses.clear()
     this.suppressedShortcuts.clear()
     this.options.textarea.value = ''
   }
@@ -481,6 +566,7 @@ class BrowserInputLifecycleController implements DomInputLifecycleController {
       once: true,
       signal: this.abortController.signal,
     })
+    if (options.textarea.ownerDocument.activeElement === options.textarea) this.setFocused(true)
   }
 
   readonly dispose = (): void => {

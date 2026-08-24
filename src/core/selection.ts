@@ -295,6 +295,29 @@ export class GhosttySelectionGesture {
     return this.selectionUpdate(this.installCandidate(), true)
   }
 
+  selectRange(start: SelectionPoint, end: SelectionPoint): SelectionGestureUpdate {
+    this.ensureActive()
+    this.reset()
+    this.initializeSized(this.selectionPointer, this.layouts.selection)
+    const startRef = this.selectionPointer + fieldOffset(this.layouts.selection, 'start')
+    const endRef = this.selectionPointer + fieldOffset(this.layouts.selection, 'end')
+    this.writeScreenRef(startRef, start)
+    this.writeScreenRef(endRef, end)
+    this.runtime.memory.view.setUint8(
+      this.selectionPointer + fieldOffset(this.layouts.selection, 'rectangle'),
+      0,
+    )
+    return this.selectionUpdate(this.installCandidate(), true)
+  }
+
+  selectLines(startRow: number, endRow: number): SelectionGestureUpdate {
+    validateUnsigned('selection.selectLines', 'startRow', startRow, uint32Max, true)
+    validateUnsigned('selection.selectLines', 'endRow', endRow, uint32Max, true)
+    if (startRow > endRow) throw new RangeError('startRow must not exceed endRow')
+    const endColumn = this.terminal.size.columns - 1
+    return this.selectRange({ x: 0, y: startRow }, { x: endColumn, y: endRow })
+  }
+
   getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {
     this.ensureActive()
     return this.terminal.getSelection(options)
@@ -440,7 +463,7 @@ export class GhosttySelectionGesture {
   }
 
   private setRefOption(eventHandle: number, viewport: SelectionPoint): void {
-    this.writePoint(viewport)
+    this.writePoint(viewport, PointTag.Viewport)
     this.initializeSized(this.refPointer, this.layouts.ref)
     assertGhosttyResult(
       'ghostty_terminal_grid_ref',
@@ -451,6 +474,19 @@ export class GhosttySelectionGesture {
       ),
     )
     this.setEventOption(eventHandle, SelectionGestureEventOption.Ref, this.refPointer)
+  }
+
+  private writeScreenRef(pointer: number, point: SelectionPoint): void {
+    this.writePoint(point, PointTag.Screen)
+    this.initializeSized(pointer, this.layouts.ref)
+    assertGhosttyResult(
+      'ghostty_terminal_grid_ref(SCREEN)',
+      this.runtime.exports.ghostty_terminal_grid_ref(
+        this.terminal.handle,
+        this.pointPointer,
+        pointer,
+      ),
+    )
   }
 
   private setViewportOption(eventHandle: number, viewport: SelectionPoint): void {
@@ -551,19 +587,15 @@ export class GhosttySelectionGesture {
     return this.runtime.memory.view.getUint8(this.scalarPointer) !== 0
   }
 
-  private writePoint(viewport: SelectionPoint): void {
-    this.validatePoint(viewport)
+  private writePoint(pointValue: SelectionPoint, tag: PointTag): void {
+    this.validatePoint(pointValue)
     const point = this.layouts.point
-    this.runtime.memory.view.setInt32(
-      this.pointPointer + fieldOffset(point, 'tag'),
-      PointTag.Viewport,
-      true,
-    )
+    this.runtime.memory.view.setInt32(this.pointPointer + fieldOffset(point, 'tag'), tag, true)
     const coordinatePointer =
       this.pointPointer +
       fieldOffset(point, 'value') +
       fieldOffset(this.layouts.pointValue, 'coordinate')
-    this.writeCoordinate(coordinatePointer, viewport)
+    this.writeCoordinate(coordinatePointer, pointValue)
   }
 
   private writeCoordinate(pointer: number, point: SelectionPoint): void {

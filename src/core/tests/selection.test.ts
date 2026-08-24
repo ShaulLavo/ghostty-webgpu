@@ -188,6 +188,26 @@ describe('native selection gesture', () => {
     })
   })
 
+  it('installs native linear ranges and whole-line ranges from screen coordinates', async () => {
+    const terminal = await createSelectionTerminal(5, 3)
+    terminal.write('abcde\r\nfghij\r\nklmno')
+
+    expect(gesture!.selectRange({ x: 1, y: 0 }, { x: 2, y: 1 })).toEqual({
+      autoscroll: 'none',
+      selectionChanged: true,
+      selectionInstalled: true,
+    })
+    expect(gesture!.getSelection()).toBe('bcde\nfgh')
+    expect(gesture!.coordinates()).toEqual({
+      end: { x: 2, y: 1 },
+      rectangle: false,
+      start: { x: 1, y: 0 },
+    })
+
+    expect(gesture!.selectLines(1, 2).selectionChanged).toBe(true)
+    expect(gesture!.getSelection()).toBe('fghij\nklmno')
+  })
+
   it('extends selection through history with one-row native autoscroll ticks', async () => {
     const terminal = await createSelectionTerminal(8, 3)
     terminal.write('0\r\n1\r\n2\r\n3\r\n4\r\n5')

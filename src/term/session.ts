@@ -24,6 +24,7 @@ import {
   type SelectionCoordinates,
   type SelectionGestureRelease,
   type SelectionGestureUpdate,
+  type SelectionPoint,
 } from '../core/selection.js'
 import { GhosttyTerminal } from '../core/terminal.js'
 import { normalizeCellGeometry } from '../core/types.js'
@@ -960,6 +961,18 @@ function createLinkResolver<TEvent>(
   })
 }
 
+export interface TerminalSessionSendInputOptions {
+  readonly preserveSelection?: boolean
+}
+
+export interface TerminalSessionPasteOptions {
+  readonly bracketed?: boolean
+}
+
+export interface TerminalSessionKeyOptions {
+  readonly onEncoded?: (data: Uint8Array) => void
+}
+
 export class TerminalSession<TEvent = unknown> {
   private activeOperations = 0
   private appearanceValue: TerminalAppearance
@@ -1120,14 +1133,21 @@ export class TerminalSession<TEvent = unknown> {
     return this.write(appendLineEnding(data))
   }
 
-  sendInput(data: TerminalInputData): TerminalInputResult {
-    return this.runOperation(() => this.publishInput(copyInput(data), true))
+  sendInput(
+    data: TerminalInputData,
+    options: TerminalSessionSendInputOptions = {},
+  ): TerminalInputResult {
+    return this.runOperation(() =>
+      this.publishInput(copyInput(data), options.preserveSelection !== true),
+    )
   }
 
-  key(input: TerminalKeyInput): TerminalInputResult {
+  key(input: TerminalKeyInput, options: TerminalSessionKeyOptions = {}): TerminalInputResult {
     return this.runOperation(() => {
       const event = normalizeTerminalKeyInput(input)
-      return this.publishInput(this.keyEncoder.encode(event), true)
+      const bytes = this.keyEncoder.encode(event)
+      if (bytes.length > 0) options.onEncoded?.(Uint8Array.from(bytes))
+      return this.publishInput(bytes, true)
     })
   }
 
@@ -1142,8 +1162,10 @@ export class TerminalSession<TEvent = unknown> {
     this.runOperation(() => this.mouseEncoder.reset())
   }
 
-  paste(data: TerminalInputData): TerminalInputResult {
-    return this.runOperation(() => this.publishInput(encodePaste(this.terminal, data), true))
+  paste(data: TerminalInputData, options: TerminalSessionPasteOptions = {}): TerminalInputResult {
+    return this.runOperation(() =>
+      this.publishInput(encodePaste(this.terminal, data, { bracketed: options.bracketed }), true),
+    )
   }
 
   isPasteSafe(data: TerminalInputData): boolean {
@@ -1261,6 +1283,22 @@ export class TerminalSession<TEvent = unknown> {
   selectAll(): SelectionGestureUpdate {
     return this.runOperation(() => {
       const update = this.selection.selectAll()
+      this.publishSelectionUpdate(update)
+      return update
+    })
+  }
+
+  selectRange(start: SelectionPoint, end: SelectionPoint): SelectionGestureUpdate {
+    return this.runOperation(() => {
+      const update = this.selection.selectRange(start, end)
+      this.publishSelectionUpdate(update)
+      return update
+    })
+  }
+
+  selectLines(startRow: number, endRow: number): SelectionGestureUpdate {
+    return this.runOperation(() => {
+      const update = this.selection.selectLines(startRow, endRow)
       this.publishSelectionUpdate(update)
       return update
     })

@@ -389,9 +389,17 @@ export function isPasteSafe(runtime: GhosttyRuntime, value: string | Uint8Array)
   }
 }
 
-export function encodePaste(terminal: GhosttyTerminal, value: string | Uint8Array): Uint8Array {
+export interface PasteEncodingOptions {
+  readonly bracketed?: boolean
+}
+
+export function encodePaste(
+  terminal: GhosttyTerminal,
+  value: string | Uint8Array,
+  options: PasteEncodingOptions = {},
+): Uint8Array {
   const runtime = terminal.runtime
-  const bracketed = terminal.isModeEnabled(TerminalMode.BracketedPaste)
+  const bracketed = options.bracketed ?? terminal.isModeEnabled(TerminalMode.BracketedPaste)
   const input = runtime.memory.allocateBytes(value)
   try {
     return encodeNative(runtime, 'ghostty_paste_encode', (buffer, capacity, out) =>

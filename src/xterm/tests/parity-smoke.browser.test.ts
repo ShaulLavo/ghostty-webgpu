@@ -17,10 +17,12 @@ class NoopRenderer implements GhosttyWebGpuRenderer {
   readonly hasPendingFrame = false
   readonly hasPendingTimer = false
 
+  clearTextureAtlas(): void {}
   dispose(): void {}
   notifyScroll(): void {}
   notifySelectionChange(): void {}
   notifyWrite(): void {}
+  refreshRows(_startRow: number, _endRow: number): void {}
   resize(_grid: RendererGridSize): void {}
   schedule(): void {}
   setCursorBlinkEnabled(_enabled: boolean): void {}

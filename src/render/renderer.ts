@@ -342,6 +342,11 @@ export class WebGpuTerminalRenderer {
     return this.scheduler.hasPendingTimer
   }
 
+  clearTextureAtlas(): void {
+    this.resetAtlasResources()
+    this.invalidateAll()
+  }
+
   notifySelectionChange(): void {
     this.invalidateAll()
   }
@@ -352,6 +357,16 @@ export class WebGpuTerminalRenderer {
 
   notifyWrite(): void {
     this.resetCursorBlink()
+    this.scheduler.schedule()
+  }
+
+  refreshRows(startRow: number, endRow: number): void {
+    const start = safeInteger('startRow', startRow)
+    const end = safeInteger('endRow', endRow)
+    if (start > end) throw new RangeError('startRow must not exceed endRow')
+    if (end >= this.grid.rows)
+      throw new RangeError('endRow must be less than the renderer row count')
+    for (let row = start; row <= end; row += 1) this.overlayRows.add(row)
     this.scheduler.schedule()
   }
 

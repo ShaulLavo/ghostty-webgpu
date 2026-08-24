@@ -3,9 +3,11 @@ import { GhosttyRuntime } from '../../core/runtime.js'
 import type { SelectionCoordinates } from '../../core/selection.js'
 import type { RendererTheme } from '../../render/instances/types.js'
 import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../../render/renderer.js'
+import { TerminalSession } from '../../term/session.js'
 import type { TerminalFittedFont, TerminalKeyInput } from '../../term/types.js'
+import { createTerminalElements } from '../elements.js'
 import { createDomInputController } from '../input.js'
-import { GhosttyWebGpuTerminal } from '../terminal.js'
+import { createGhosttyWebGpuTerminalFromSession, GhosttyWebGpuTerminal } from '../terminal.js'
 import type {
   GhosttyWebGpuRenderer,
   GhosttyWebGpuRendererFactory,
@@ -15,6 +17,7 @@ import type {
 const decoder = new TextDecoder()
 
 class RecordingRenderer implements GhosttyWebGpuRenderer {
+  atlasClearCount = 0
   cursorBlink: boolean[] = []
   disposeCount = 0
   documentVisible: boolean[] = []
@@ -26,6 +29,10 @@ class RecordingRenderer implements GhosttyWebGpuRenderer {
   onResize?: () => void
   resizes: RendererGridSize[] = []
   themes: Partial<RendererTheme>[] = []
+
+  clearTextureAtlas(): void {
+    this.atlasClearCount += 1
+  }
 
   dispose(): void {
     this.disposeCount += 1
@@ -41,6 +48,10 @@ class RecordingRenderer implements GhosttyWebGpuRenderer {
 
   notifyWrite(): void {
     this.notifications.push('write')
+  }
+
+  refreshRows(startRow: number, endRow: number): void {
+    this.notifications.push(`refresh:${startRow}:${endRow}`)
   }
 
   resize(grid: RendererGridSize): void {
@@ -256,6 +267,153 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     expect(() => runtime.ensureActive()).not.toThrow()
   })
 
+  it('reconciles appearance and grid changes made while renderer creation is pending', async () => {
+    const host = trackedHost(320, 140)
+    const elements = createTerminalElements(host)
+    const session = await TerminalSession.create<Event>({
+      appearance: { grid: { columns: 17, rows: 6 } },
+      runtime: { kind: 'borrowed', runtime },
+    })
+    const creation = deferred<GhosttyWebGpuRenderer>()
+    let initialOptions: WebGpuTerminalRendererOptions | undefined
+    const terminal = createGhosttyWebGpuTerminalFromSession(session, {
+      autoFit: false,
+      elements,
+      rendererFactory: (options) => {
+        initialOptions = options
+        return creation.promise
+      },
+    })
+    terminals.push(terminal)
+
+    const opening = terminal.open(host)
+    await Promise.resolve()
+    const theme = session.appearance.theme
+    session.setFont({ family: 'serif', lineHeight: 1.2, size: 19 })
+    session.setCursor({ blink: true })
+    session.setTheme({ ...theme, background: { b: 3, g: 2, r: 1 } })
+    session.resize({ columns: 23, rows: 7 })
+
+    const renderer = new RecordingRenderer()
+    creation.resolve(renderer)
+    await opening
+
+    expect(initialOptions?.font.settings.size).not.toBe(19)
+    expect(renderer.fonts.at(-1)?.settings).toMatchObject({
+      family: 'serif',
+      lineHeight: 1.2,
+      size: 19,
+    })
+    expect(renderer.cursorBlink.at(-1)).toBe(true)
+    expect(renderer.themes.at(-1)?.background).toEqual({ b: 3, g: 2, r: 1 })
+    expect(renderer.resizes.at(-1)).toEqual({ columns: 23, rows: 7 })
+    expect(session.grid).toMatchObject({ columns: 23, rows: 7 })
+  })
+
+  it('adopts a synchronous DOM shell and keeps fixed-grid geometry current without auto-fit', async () => {
+    const host = trackedHost(320, 140)
+    const elements = createTerminalElements(host)
+    elements.textarea.focus({ preventScroll: true })
+    const session = await TerminalSession.create<Event>({
+      appearance: { grid: { columns: 17, rows: 6 } },
+      runtime: { kind: 'borrowed', runtime },
+    })
+    const recording: RendererRecording = {}
+    const inputOrder: string[] = []
+    let wheelAllowed = false
+    let wheelCalls = 0
+    const terminal = createGhosttyWebGpuTerminalFromSession(session, {
+      autoFit: false,
+      elements,
+      inputHooks: {
+        beforeUserInput: () => inputOrder.push('before'),
+        customKeyEvent: () => true,
+        onKey: (_event, data) => inputOrder.push(`key:${decoder.decode(data)}`),
+      },
+      pointerHooks: {
+        customWheelEvent: () => {
+          wheelCalls += 1
+          return wheelAllowed
+        },
+      },
+      rendererFactory: recordingRendererFactory(recording),
+    })
+    terminals.push(terminal)
+
+    expect(terminal.element).toBe(elements.root)
+    expect(terminal.canvas).toBe(elements.canvas)
+    expect(terminal.textarea).toBe(elements.textarea)
+    await terminal.open(host)
+    expect(terminal.element).toBe(elements.root)
+    expect(host.querySelectorAll('.ghostty-webgpu')).toHaveLength(1)
+    expect(recording.renderer!.focused).toEqual([true])
+    expect(session.grid).toMatchObject({ columns: 17, rows: 6 })
+    expect(session.grid.cellWidth).toBe(recording.options?.font.cssCellWidth)
+    expect(session.grid.cellHeight).toBe(recording.options?.font.cssCellHeight)
+
+    terminal.onData((data) => inputOrder.push(`data:${decoder.decode(data)}`))
+    dispatchKey(elements.textarea, 'keydown', { code: 'KeyA', key: 'a' })
+    expect(inputOrder).toEqual(['before', 'key:a', 'data:a'])
+
+    const resizeCount = recording.renderer!.resizes.length
+    host.style.width = '640px'
+    await animationFrames(2)
+    expect(session.grid).toMatchObject({ columns: 17, rows: 6 })
+    expect(recording.renderer!.resizes).toHaveLength(resizeCount)
+
+    terminal.setFont({ family: 'serif', lineHeight: 1.2, size: 19 })
+    expect(session.grid).toMatchObject({ columns: 17, rows: 6 })
+    expect(recording.renderer!.fonts.at(-1)?.settings).toMatchObject({
+      family: 'serif',
+      lineHeight: 1.2,
+      size: 19,
+    })
+    expect(session.grid.cellWidth).toBe(recording.renderer!.fonts.at(-1)?.cssCellWidth)
+
+    terminal.refresh(1, 3)
+    terminal.clearTextureAtlas()
+    expect(recording.renderer!.notifications).toContain('refresh:1:3')
+    expect(recording.renderer!.atlasClearCount).toBe(1)
+
+    const refusedWheel = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: session.grid.cellHeight,
+    })
+    elements.canvas.dispatchEvent(refusedWheel)
+    expect(refusedWheel.defaultPrevented).toBe(false)
+    expect(wheelCalls).toBe(1)
+
+    session.write('one\r\ntwo\r\nthree\r\nfour\r\nfive\r\nsix\r\nseven\r\neight')
+    const scrollbar = elements.root.querySelector<HTMLElement>('[role="scrollbar"]')
+    const initialOffset = session.scrollbar.offset
+    expect(scrollbar).not.toBeNull()
+    expect(initialOffset).toBeGreaterThan(0)
+    const refusedScrollbarWheel = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: -session.grid.cellHeight,
+    })
+    scrollbar!.dispatchEvent(refusedScrollbarWheel)
+    expect(refusedScrollbarWheel.defaultPrevented).toBe(false)
+    expect(session.scrollbar.offset).toBe(initialOffset)
+    expect(wheelCalls).toBe(2)
+
+    wheelAllowed = true
+    const acceptedWheel = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: session.grid.cellHeight,
+    })
+    elements.canvas.dispatchEvent(acceptedWheel)
+    expect(acceptedWheel.defaultPrevented).toBe(true)
+    expect(wheelCalls).toBe(3)
+
+    terminal.dispose()
+    expect(elements.root.isConnected).toBe(false)
+    expect(() => session.grid).toThrow('disposed')
+  })
+
   it('routes printable and Kitty press, repeat, and release keys through real wasm', async () => {
     const recording: RendererRecording = {}
     const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory(recording) })
@@ -373,6 +531,96 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     const unknown = dispatchKey(textarea, 'keydown', { code: 'FutureVendorKey', key: 'x' })
     expect(keys).toHaveLength(beforeUnknown)
     expect(unknown.defaultPrevented).toBe(false)
+    controller.dispose()
+  })
+
+  it('runs dynamic input hooks before native ownership and contains handler failures', () => {
+    const textarea = document.createElement('textarea')
+    document.body.append(textarea)
+    hosts.push(textarea)
+    const calls: string[] = []
+    const errors: Array<{ cause: unknown; operation: string }> = []
+    const keys: TerminalKeyInput[] = []
+    let disabled = false
+    let customDecision = false
+    let customFailure: Error | undefined
+    const controller = createDomInputController({
+      hooks: {
+        beforeUserInput: () => calls.push('before'),
+        customKeyEvent: (event) => {
+          calls.push(`custom:${event.type}:${event.code}`)
+          if (customFailure) throw customFailure
+          return customDecision
+        },
+        inputDisabled: () => disabled,
+        onKey: (event, data) => calls.push(`onKey:${event.code}:${decoder.decode(data)}`),
+      },
+      onError: (cause, operation) => errors.push({ cause, operation }),
+      platform: 'linux',
+      session: {
+        getSelection: () => undefined,
+        key: (input, options) => {
+          keys.push(input)
+          calls.push(`key:${input.code}:${input.action}`)
+          const bytes =
+            input.action === 'press' ? new TextEncoder().encode(input.text) : new Uint8Array()
+          if (bytes.length > 0) options?.onEncoded?.(bytes)
+          return bytes
+        },
+        paste: () => new Uint8Array(),
+        selectionCoordinates: () => undefined,
+        sendInput: () => new Uint8Array(),
+      },
+      signal: new AbortController().signal,
+      textarea,
+    })
+
+    const refusedPress = dispatchKey(textarea, 'keydown', { code: 'KeyA', key: 'a' })
+    const refusedRepeat = dispatchKey(textarea, 'keydown', {
+      code: 'KeyA',
+      key: 'a',
+      repeat: true,
+    })
+    const refusedRelease = dispatchKey(textarea, 'keyup', { code: 'KeyA', key: 'a' })
+    expect(keys).toEqual([])
+    expect(calls).toEqual(['custom:keydown:KeyA', 'custom:keydown:KeyA', 'custom:keyup:KeyA'])
+    expect([
+      refusedPress.defaultPrevented,
+      refusedRepeat.defaultPrevented,
+      refusedRelease.defaultPrevented,
+    ]).toEqual([false, false, false])
+
+    customDecision = true
+    calls.length = 0
+    const accepted = dispatchKey(textarea, 'keydown', { code: 'KeyB', key: 'b' })
+    expect(accepted.defaultPrevented).toBe(true)
+    expect(calls).toEqual(['custom:keydown:KeyB', 'before', 'key:KeyB:press', 'onKey:KeyB:b'])
+
+    disabled = true
+    calls.length = 0
+    dispatchKey(textarea, 'keydown', { code: 'KeyC', key: 'c' })
+    dispatchKey(textarea, 'keydown', { code: 'KeyC', key: 'c', repeat: true })
+    dispatchKey(textarea, 'keyup', { code: 'KeyC', key: 'c' })
+    expect(calls).toEqual(['custom:keydown:KeyC', 'custom:keydown:KeyC', 'custom:keyup:KeyC'])
+    expect(keys.map((key) => key.code)).toEqual(['KeyB'])
+
+    disabled = false
+    customFailure = new Error('custom key failed')
+    calls.length = 0
+    dispatchKey(textarea, 'keydown', { code: 'KeyD', key: 'd' })
+    dispatchKey(textarea, 'keydown', { code: 'KeyD', key: 'd', repeat: true })
+    dispatchKey(textarea, 'keyup', { code: 'KeyD', key: 'd' })
+    expect(errors).toEqual([
+      { cause: customFailure, operation: 'customKeyEvent' },
+      { cause: customFailure, operation: 'customKeyEvent' },
+      { cause: customFailure, operation: 'customKeyEvent' },
+    ])
+    expect(keys.map((key) => key.code)).toEqual(['KeyB'])
+
+    customFailure = undefined
+    calls.length = 0
+    dispatchKey(textarea, 'keydown', { code: 'KeyE', key: 'e' })
+    expect(keys.map((key) => key.code)).toEqual(['KeyB', 'KeyE'])
     controller.dispose()
   })
 

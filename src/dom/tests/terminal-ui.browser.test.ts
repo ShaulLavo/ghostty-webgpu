@@ -84,6 +84,8 @@ class FrameRenderer implements GhosttyWebGpuRenderer {
     this.applyDimensions()
   }
 
+  clearTextureAtlas(): void {}
+
   dispose(): void {
     this.disposed = true
   }
@@ -98,6 +100,8 @@ class FrameRenderer implements GhosttyWebGpuRenderer {
   notifySelectionChange(): void {}
 
   notifyWrite(): void {}
+
+  refreshRows(): void {}
 
   resize(grid: RendererGridSize): void {
     this.grid = grid
@@ -1218,6 +1222,42 @@ describe.sequential('integrated terminal UI host', () => {
     expect(harness.terminal.diagnostics.pointerOwner).toBe('none')
     expect(captured.size).toBe(0)
     expect(harness.terminal.getSelection()).toContain('select all active gesture')
+  })
+
+  it('selectRange cancels an active pointer gesture and releases capture', async () => {
+    const harness = await createIntegratedHarness()
+    harness.terminal.write('select range active gesture')
+    harness.renderer.emit(frame(['select range active gesture']))
+    const canvas = harness.terminal.canvas!
+    const captured = installPointerCapture(canvas)
+    const point = terminalCellPoint(harness.terminal, 1, 0)
+    dispatchPointer(canvas, 'pointerdown', point.clientX, point.clientY)
+    expect(harness.terminal.diagnostics.pointerOwner).toBe('selection')
+    expect(captured.has(7)).toBe(true)
+
+    harness.terminal.selectRange({ x: 0, y: 0 }, { x: 5, y: 0 })
+
+    expect(harness.terminal.diagnostics.pointerOwner).toBe('none')
+    expect(captured.size).toBe(0)
+    expect(harness.terminal.getSelection()).toBe('select')
+  })
+
+  it('selectLines cancels an active pointer gesture and releases capture', async () => {
+    const harness = await createIntegratedHarness()
+    harness.terminal.write('select lines active gesture')
+    harness.renderer.emit(frame(['select lines active gesture']))
+    const canvas = harness.terminal.canvas!
+    const captured = installPointerCapture(canvas)
+    const point = terminalCellPoint(harness.terminal, 1, 0)
+    dispatchPointer(canvas, 'pointerdown', point.clientX, point.clientY)
+    expect(harness.terminal.diagnostics.pointerOwner).toBe('selection')
+    expect(captured.has(7)).toBe(true)
+
+    harness.terminal.selectLines(0, 0)
+
+    expect(harness.terminal.diagnostics.pointerOwner).toBe('none')
+    expect(captured.size).toBe(0)
+    expect(harness.terminal.getSelection()).toContain('select lines active gesture')
   })
 
   it('preserves native wide-cell continuation in provider and accessibility text', async () => {

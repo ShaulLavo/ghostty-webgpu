@@ -51,6 +51,7 @@ export interface TerminalPointerSession {
 }
 
 export interface TerminalPointerControllerOptions {
+  readonly allowEvent?: (event: PointerEvent | WheelEvent) => boolean
   readonly canvas: HTMLCanvasElement
   readonly getLayout: () => CommittedPointerLayout | undefined
   readonly onError?: (cause: unknown, operation: string) => void
@@ -245,6 +246,7 @@ function wheelLayoutSignature(layout: CommittedPointerLayout): string {
 
 class PointerRoutingController implements TerminalPointerController {
   private activePointerId: number | undefined
+  private readonly allowEvent?: (event: PointerEvent | WheelEvent) => boolean
   private readonly canvas: HTMLCanvasElement
   private disposed = false
   private readonly getLayout: () => CommittedPointerLayout | undefined
@@ -262,6 +264,7 @@ class PointerRoutingController implements TerminalPointerController {
   private wheelResidualValue = 0
 
   constructor(options: TerminalPointerControllerOptions) {
+    this.allowEvent = options.allowEvent
     this.canvas = options.canvas
     const view = options.canvas.ownerDocument.defaultView
     if (!view) throw new TypeError('Terminal pointer canvas must belong to a Window')
@@ -331,6 +334,7 @@ class PointerRoutingController implements TerminalPointerController {
     this.runDomHandler('pointer.wheel', () => this.wheel(event))
 
   private pointerDown(event: PointerEvent): void {
+    if (!this.eventAllowed(event)) return
     const projection = this.projectionFor(event)
     if (!projection || !this.canUsePointer(event.pointerId)) return
     if (this.routesToMouse(event)) {
@@ -344,6 +348,10 @@ class PointerRoutingController implements TerminalPointerController {
   }
 
   private pointerMove(event: PointerEvent): void {
+    if (!this.eventAllowed(event)) {
+      if (event.pointerId === this.activePointerId) this.cancel()
+      return
+    }
     const projection = this.projectionFor(event)
     if (!projection || !this.canUsePointer(event.pointerId)) return
     if (this.ownerValue === 'mouse') {
@@ -363,6 +371,10 @@ class PointerRoutingController implements TerminalPointerController {
 
   private pointerUp(event: PointerEvent): void {
     if (event.pointerId !== this.activePointerId) return
+    if (!this.eventAllowed(event)) {
+      this.cancel()
+      return
+    }
     const projection = this.projectionFor(event)
     if (!projection) {
       this.cancel()
@@ -374,6 +386,7 @@ class PointerRoutingController implements TerminalPointerController {
   }
 
   private wheel(event: WheelEvent): void {
+    if (!this.eventAllowed(event)) return
     const layout = this.getLayout()
     if (!layout) return
     const projection = projectPointerPosition(event, layout)
@@ -423,6 +436,10 @@ class PointerRoutingController implements TerminalPointerController {
 
   private canUsePointer(pointerId: number): boolean {
     return this.activePointerId === undefined || this.activePointerId === pointerId
+  }
+
+  private eventAllowed(event: PointerEvent | WheelEvent): boolean {
+    return this.allowEvent?.(event) !== false
   }
 
   private routesToMouse(event: MouseEvent): boolean {

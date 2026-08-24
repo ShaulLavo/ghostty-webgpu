@@ -1,4 +1,4 @@
-import type { SelectionCoordinates } from '../core/selection.js'
+import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import type { TerminalScrollbar, TerminalSelectionFormatOptions } from '../core/types.js'
 import { WebGpuTerminalRenderer, type RendererFrameSnapshot } from '../render/renderer.js'
 import { EventEmitter } from '../term/events.js'
@@ -57,8 +57,11 @@ import type {
   GhosttyWebGpuTerminalEventType,
   GhosttyWebGpuTerminalDiagnostics,
   GhosttyWebGpuTerminalLifecycle,
+  GhosttyWebGpuTerminalFromSessionOptions,
+  GhosttyWebGpuTerminalInputHooks,
   GhosttyWebGpuTerminalListener,
   GhosttyWebGpuTerminalOptions,
+  GhosttyWebGpuTerminalPointerHooks,
   GhosttyWebGpuTerminalScrollbarOptions,
   GhosttyWebGpuTerminalSubscription,
 } from './types.js'
@@ -205,9 +208,28 @@ function subscriptionCleanup(subscription: TerminalSessionSubscription): Cleanup
   return () => subscription.dispose()
 }
 
+function fittedFontSettingsEqual(
+  fitted: TerminalFittedFont | undefined,
+  settings: TerminalFontSettings,
+): boolean {
+  if (!fitted) return false
+  const current = fitted.settings
+  return (
+    current.boldWeight === settings.boldWeight &&
+    current.family === settings.family &&
+    current.letterSpacing === settings.letterSpacing &&
+    current.lineHeight === settings.lineHeight &&
+    current.size === settings.size &&
+    current.weight === settings.weight
+  )
+}
+
+const createFromSessionInternal = Symbol('createFromSessionInternal')
+
 export class GhosttyWebGpuTerminal {
   private accessibility?: TerminalAccessibilityController
   private readonly accessibilityOptions?: GhosttyWebGpuTerminalAccessibilityOptions
+  private readonly autoFit: boolean
   private readonly cleanup = new CleanupStack()
   private readonly copySelection
   private elementsValue?: TerminalElements
@@ -217,6 +239,7 @@ export class GhosttyWebGpuTerminal {
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   private generation = 0
   private input?: DomInputController
+  private readonly inputHooks?: GhosttyWebGpuTerminalInputHooks
   private inputLifecycle?: DomInputLifecycleController
   private readonly keyboard
   private lastFrame?: RendererFrameSnapshot
@@ -227,6 +250,8 @@ export class GhosttyWebGpuTerminal {
   private readonly padding
   private readonly pendingEvents: (() => void)[] = []
   private pointer?: TerminalPointerController
+  private readonly pointerDecisions = new WeakMap<Event, boolean>()
+  private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
   private scrollbar?: TerminalScrollbarController
@@ -237,18 +262,26 @@ export class GhosttyWebGpuTerminal {
 
   private constructor(
     private readonly session: TerminalSession<Event>,
-    options: GhosttyWebGpuTerminalOptions,
+    options: GhosttyWebGpuTerminalFromSessionOptions,
   ) {
     this.accessibilityOptions = options.accessibility
+    this.autoFit = options.autoFit !== false
     this.copySelection = options.copySelection
     this.fitEnvironment = options.fitEnvironment
+    this.inputHooks = options.inputHooks
     this.keyboard = options.keyboard
     this.linkActivationModifier = options.linkActivationModifier
     this.padding = options.padding
+    this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
     this.scrollbarOptions = options.scrollbar
     this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
     this.cleanup.add(() => this.session.dispose())
+    const elements = options.elements
+    if (elements) {
+      this.elementsValue = elements
+      this.cleanup.add(() => elements.dispose())
+    }
     this.session.setClipboardWritePolicy(
       createDomClipboardPolicyAdapter({
         onError: (cause, operation) => this.reportError(cause, operation),
@@ -266,6 +299,19 @@ export class GhosttyWebGpuTerminal {
     try {
       return new GhosttyWebGpuTerminal(session, options)
     } catch (cause) {
+      session.dispose()
+      throw cause
+    }
+  }
+
+  static [createFromSessionInternal](
+    session: TerminalSession<Event>,
+    options: GhosttyWebGpuTerminalFromSessionOptions = {},
+  ): GhosttyWebGpuTerminal {
+    try {
+      return new GhosttyWebGpuTerminal(session, options)
+    } catch (cause) {
+      options.elements?.dispose()
       session.dispose()
       throw cause
     }
@@ -325,7 +371,8 @@ export class GhosttyWebGpuTerminal {
     let renderer: GhosttyWebGpuRenderer | undefined
     try {
       const elements = this.installElements(parent)
-      renderer = await this.createRenderer(elements)
+      const initialAppearance = this.session.appearance
+      renderer = await this.createRenderer(elements, initialAppearance)
       if (!this.isOpening(generation)) {
         const staleRenderer = renderer
         renderer = undefined
@@ -337,6 +384,7 @@ export class GhosttyWebGpuTerminal {
       }
       this.installRenderer(renderer)
       renderer = undefined
+      this.reconcileRendererAppearance(elements, initialAppearance)
       this.renderer?.setDocumentVisible(elements.root.ownerDocument.visibilityState !== 'hidden')
       this.subscribeToSession()
       this.installAccessibility(elements)
@@ -459,6 +507,16 @@ export class GhosttyWebGpuTerminal {
     return this.session.reset()
   }
 
+  refresh(startRow: number, endRow: number): void {
+    this.ensureOpen()
+    this.renderer?.refreshRows?.(startRow, endRow)
+  }
+
+  clearTextureAtlas(): void {
+    this.ensureOpen()
+    this.renderer?.clearTextureAtlas?.()
+  }
+
   scrollToTop(): TerminalMutationResult {
     this.ensureOpen()
     return this.session.scrollToTop()
@@ -499,6 +557,18 @@ export class GhosttyWebGpuTerminal {
     this.ensureOpen()
     this.pointer?.cancel()
     return this.session.selectAll().selectionChanged
+  }
+
+  selectRange(start: SelectionPoint, end: SelectionPoint): boolean {
+    this.ensureOpen()
+    this.pointer?.cancel()
+    return this.session.selectRange(start, end).selectionChanged
+  }
+
+  selectLines(startRow: number, endRow: number): boolean {
+    this.ensureOpen()
+    this.pointer?.cancel()
+    return this.session.selectLines(startRow, endRow).selectionChanged
   }
 
   focusNextLink(): Promise<boolean> {
@@ -551,6 +621,11 @@ export class GhosttyWebGpuTerminal {
   }
 
   private installElements(parent: HTMLElement): TerminalElements {
+    const installed = this.elementsValue
+    if (installed) {
+      if (installed.root.parentElement === parent) return installed
+      throw new TypeError('Precreated terminal elements must be direct children of the open parent')
+    }
     const options: TerminalElementsOptions = { padding: this.padding }
     const elements = createTerminalElements(parent, options)
     this.elementsValue = elements
@@ -558,8 +633,10 @@ export class GhosttyWebGpuTerminal {
     return elements
   }
 
-  private async createRenderer(elements: TerminalElements): Promise<GhosttyWebGpuRenderer> {
-    const appearance = this.session.appearance
+  private async createRenderer(
+    elements: TerminalElements,
+    appearance: TerminalAppearance,
+  ): Promise<GhosttyWebGpuRenderer> {
     const grid = appearance.grid
     const font = fitTerminalFont(
       elements.canvas.ownerDocument,
@@ -580,6 +657,27 @@ export class GhosttyWebGpuTerminal {
       },
       elements.signal,
     )
+  }
+
+  private reconcileRendererAppearance(
+    elements: TerminalElements,
+    initialAppearance: TerminalAppearance,
+  ): void {
+    const appearance = this.session.appearance
+    if (appearance === initialAppearance) return
+    const font = fitTerminalFont(
+      elements.canvas.ownerDocument,
+      appearance.font,
+      effectivePixelRatio(elements.canvas, this.fitEnvironment),
+    )
+    this.fittedFont = font
+    this.renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
+    this.renderer?.setFont(font)
+    this.renderer?.setTheme(appearance.rendererTheme)
+    this.renderer?.resize({
+      columns: appearance.grid.columns,
+      rows: appearance.grid.rows,
+    })
   }
 
   private installRenderer(renderer: GhosttyWebGpuRenderer): void {
@@ -663,6 +761,7 @@ export class GhosttyWebGpuTerminal {
         this.copySelection ?? ((text: string) => writeUserSelectionToClipboard(view, text))
       input = createDomInputController({
         copySelection,
+        hooks: this.inputHooks,
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
         session: this.session,
         shortcuts: this.keyboard?.shortcuts,
@@ -686,6 +785,12 @@ export class GhosttyWebGpuTerminal {
   }
 
   private installFit(elements: TerminalElements): void {
+    if (!this.autoFit) {
+      const font = this.fittedFont
+      if (!font) throw new Error('Fixed terminal layout requires a measured font')
+      this.commitFixedFont(font)
+      return
+    }
     const fit = createTerminalFitController({
       container: elements.root,
       environment: this.fitEnvironment,
@@ -709,6 +814,7 @@ export class GhosttyWebGpuTerminal {
     let pointer: TerminalPointerController
     try {
       pointer = createTerminalPointerController({
+        allowEvent: (event) => this.allowPointerEvent(event),
         canvas: elements.canvas,
         getLayout: () => this.committedPointerLayout(),
         onError: (cause, operation) => this.reportError(cause, operation),
@@ -758,11 +864,43 @@ export class GhosttyWebGpuTerminal {
     this.updateScrollbar()
   }
 
+  private commitFixedFont(font: TerminalFittedFont): void {
+    if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
+    const grid = this.session.grid
+    this.renderer?.setFont(font)
+    this.fittedFont = font
+    this.layoutCommitted = true
+    this.session.resize({
+      cellHeight: font.cssCellHeight,
+      cellWidth: font.cssCellWidth,
+      columns: grid.columns,
+      pixelRatio: font.pixelRatio,
+      rows: grid.rows,
+    })
+    if (this.stateValue !== 'open') return
+    this.replayLastFrame()
+    this.updateScrollbar()
+  }
+
+  private remeasureFixedFont(settings: TerminalFontSettings): void {
+    const canvas = this.elementsValue?.canvas
+    if (!canvas || fittedFontSettingsEqual(this.fittedFont, settings)) return
+    const font = fitTerminalFont(
+      canvas.ownerDocument,
+      settings,
+      effectivePixelRatio(canvas, this.fitEnvironment),
+    )
+    this.commitFixedFont(font)
+  }
+
   private handleAppearance(appearance: TerminalAppearance): void {
     const renderer = this.renderer
     renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     renderer?.setTheme(appearance.rendererTheme)
-    this.fit?.setFont(appearance.font)
+    if (this.autoFit) this.fit?.setFont(appearance.font)
+    if (!this.autoFit) {
+      this.runUiOperation('appearance.font', () => this.remeasureFixedFont(appearance.font))
+    }
     this.emitHostEvent('appearance', appearance)
   }
 
@@ -882,6 +1020,7 @@ export class GhosttyWebGpuTerminal {
   }
 
   private readonly handleScrollbarPointerDown = (event: PointerEvent): void => {
+    if (this.blockRejectedPointerEvent(event)) return
     if (this.scrollbar?.consumePointerDown(event)) return
     const elements = this.elementsValue
     if (!elements || event.target !== elements.canvas) return
@@ -889,18 +1028,62 @@ export class GhosttyWebGpuTerminal {
   }
 
   private readonly handleScrollbarPointerMove = (event: PointerEvent): void => {
+    if (this.blockRejectedPointerEvent(event)) return
     this.scrollbar?.consumePointerMove(event)
   }
 
   private readonly handleScrollbarPointerUp = (event: PointerEvent): void => {
+    if (this.blockRejectedPointerEvent(event)) return
     this.scrollbar?.consumePointerUp(event)
   }
 
   private readonly handleScrollbarWheel = (event: WheelEvent): void => {
+    if (this.blockRejectedPointerEvent(event)) return
     const scrollbar = this.scrollbar
     if (!scrollbar || scrollbar.consumeWheel(event)) return
     if (event.target !== this.elementsValue?.canvas) return
     scrollbar.notifyActivity()
+  }
+
+  private blockRejectedPointerEvent(event: PointerEvent | WheelEvent): boolean {
+    if (this.allowPointerEvent(event)) return false
+    event.stopPropagation()
+    return true
+  }
+
+  private allowPointerEvent(event: PointerEvent | WheelEvent): boolean {
+    const cached = this.pointerDecisions.get(event)
+    if (cached !== undefined) return cached
+    const allowed = this.evaluatePointerEvent(event)
+    this.pointerDecisions.set(event, allowed)
+    return allowed
+  }
+
+  private evaluatePointerEvent(event: PointerEvent | WheelEvent): boolean {
+    if (event.type === 'wheel' && !this.invokeCustomWheelEvent(event as WheelEvent)) return false
+    return this.invokeAllowPointerEvent(event)
+  }
+
+  private invokeCustomWheelEvent(event: WheelEvent): boolean {
+    const predicate = this.pointerHooks?.customWheelEvent
+    if (!predicate) return true
+    try {
+      return predicate(event) !== false
+    } catch (cause) {
+      this.reportError(cause, 'pointer.customWheelEvent')
+      return false
+    }
+  }
+
+  private invokeAllowPointerEvent(event: PointerEvent | WheelEvent): boolean {
+    const predicate = this.pointerHooks?.allowPointerEvent
+    if (!predicate) return true
+    try {
+      return predicate(event) !== false
+    } catch (cause) {
+      this.reportError(cause, 'pointer.allowPointerEvent')
+      return false
+    }
   }
 
   private positionTextarea(snapshot: RendererFrameSnapshot): void {
@@ -967,4 +1150,11 @@ export class GhosttyWebGpuTerminal {
     if (this.stateValue === 'open') return
     throw new Error(`Terminal is not open; lifecycle is ${this.stateValue}`)
   }
+}
+
+export function createGhosttyWebGpuTerminalFromSession(
+  session: TerminalSession<Event>,
+  options: GhosttyWebGpuTerminalFromSessionOptions = {},
+): GhosttyWebGpuTerminal {
+  return GhosttyWebGpuTerminal[createFromSessionInternal](session, options)
 }
