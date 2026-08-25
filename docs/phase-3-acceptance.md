@@ -52,10 +52,11 @@ allowance. Populated frames remained exactly two draws, idle runs recorded zero 
 median glyph-churn atlas traffic fell 99.633% from the Plan 001 baseline. This automated evidence
 does not satisfy any physical operator item below.
 
-The package remains pinned to Ghostty revision
+At Phase 3 acceptance, the package was pinned to Ghostty revision
 `da5ddcb0857c0e4ddb32f7a089911e9038d040f3`, matching `src/core/version.ts` and the intentional
 ABI-bump commit that produced the checked-in wasm. `ghostty-vt.wasm` retained SHA-256
 `1e2734515d9c3a88b00b5667edd5052aa00e6778a57b5b4fdaa7d43d9a821ace` throughout Phase 3.
+Current shipped-artifact provenance is recorded in [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
 ## Headed Chromium control evidence
 

@@ -1,6 +1,12 @@
 import { readFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ClipboardLocation, ClipboardWriteResult, ColorScheme, RenderStateDirty } from '../abi.js'
+import {
+  ClipboardLocation,
+  ClipboardWriteResult,
+  ColorScheme,
+  RenderStateDirty,
+  TerminalMode,
+} from '../abi.js'
 import { GhosttyRuntime } from '../runtime.js'
 import type { ClipboardWrite, RenderRow } from '../types.js'
 
@@ -31,6 +37,14 @@ describe('runtime export validation', () => {
 
     await expect(GhosttyRuntime.create({ wasm })).rejects.toThrow(
       'libghostty-vt export is missing: ghostty_cell_get',
+    )
+  })
+
+  it('rejects a wasm module without terminal state queries', async () => {
+    const wasm = await wasmWithRenamedExport('ghostty_terminal_get')
+
+    await expect(GhosttyRuntime.create({ wasm })).rejects.toThrow(
+      'libghostty-vt export is missing: ghostty_terminal_get',
     )
   })
 })
@@ -115,14 +129,14 @@ describe('libghostty-vt callback bridge', () => {
     terminal.dispose()
   })
 
-  it('denies clipboard writes when no effect is configured', async () => {
+  it('ignores an invalid clipboard request when no effect is configured', async () => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal()
     const callback = runtime.bridge.imports.env?.clipboard_write
 
     expect(callback).toBeTypeOf('function')
     if (typeof callback !== 'function') return
-    expect(callback(terminal.handle, 0, 0)).toBe(ClipboardWriteResult.Denied)
+    expect(callback(terminal.handle, 0, 0)).toBeUndefined()
     terminal.dispose()
   })
 
@@ -210,6 +224,84 @@ describe('VT corpus rendering', () => {
     expect(rows[0]?.cells[1]).toMatchObject({ continuation: false, text: '' })
     expect(rows[1]?.cells[0]).toMatchObject({ continuation: false, text: '界' })
     expect(rows[1]?.cells[1]).toMatchObject({ continuation: true, text: '' })
+    renderState.dispose()
+    terminal.dispose()
+  })
+
+  it('performs a guarded visual clear without resetting terminal state', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 5, rows: 3 })
+    const renderState = runtime.createRenderState(terminal)
+    terminal.write('\u001b]0;kept-title\u0007\u001b[?2004hone\r\ntwo\r\nthree\r\nlast!')
+    expect(terminal.selectAll()).toBe(true)
+
+    terminal.clear()
+
+    const snapshot = renderState.snapshot()
+    expect(snapshot.rows.map(rowText)).toEqual(['     ', '     ', '     '])
+    expect(terminal.cursor).toMatchObject({ pendingWrap: false, x: 0, y: 0 })
+    expect(terminal.scrollbackLength).toBe(0)
+    expect(terminal.title).toBe('kept-title')
+    expect(terminal.isModeEnabled(TerminalMode.BracketedPaste)).toBe(true)
+    expect(terminal.hasSelection).toBe(false)
+
+    terminal.write('next')
+    expect(renderState.snapshot().rows.map(rowText)).toEqual(['next ', '     ', '     '])
+
+    terminal.write('\u001b[?69h\u001b[2;4s\u001b[2;3r\u001b[?6h')
+    expect(terminal.isModeEnabled(TerminalMode.Origin)).toBe(true)
+    expect(terminal.isModeEnabled(TerminalMode.LeftRightMargin)).toBe(true)
+    expect(terminal.cursor).toMatchObject({ x: 1, y: 1 })
+    terminal.clear()
+    expect(terminal.isModeEnabled(TerminalMode.Origin)).toBe(true)
+    expect(terminal.isModeEnabled(TerminalMode.LeftRightMargin)).toBe(true)
+    expect(terminal.cursor).toMatchObject({ x: 1, y: 1 })
+    terminal.clear()
+    expect(terminal.cursor).toMatchObject({ x: 1, y: 1 })
+    renderState.dispose()
+    terminal.dispose()
+  })
+
+  it('removes ISO-protected cells through Ghostty scroll-and-clear semantics', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 9, rows: 2 })
+    const renderState = runtime.createRenderState(terminal)
+    terminal.write('\u001bVprotected\u001bW')
+
+    terminal.clear()
+
+    expect(renderState.snapshot().rows.map(rowText)).toEqual(['         ', '         '])
+    expect(terminal.scrollbackLength).toBe(0)
+    renderState.dispose()
+    terminal.dispose()
+  })
+
+  it('rejects visual clear without mutating an unfinished VT sequence', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 5, rows: 2 })
+    const renderState = runtime.createRenderState(terminal)
+    terminal.write('safe')
+    expect(terminal.selectAll()).toBe(true)
+    terminal.write('\u001b]0;par')
+    const rows = renderState.snapshot().rows.map(rowText)
+    const cursor = terminal.cursor
+
+    expect(() => terminal.clear()).toThrow(
+      'Cannot insert the visual clear sequence while the VT parser is mid-sequence',
+    )
+    expect(renderState.snapshot().rows.map(rowText)).toEqual(rows)
+    expect(terminal.cursor).toEqual(cursor)
+    expect(terminal.hasSelection).toBe(true)
+
+    terminal.write('ser\u0007')
+    expect(terminal.title).toBe('parser')
+    terminal.write(Uint8Array.of(0xf0))
+    expect(() => terminal.clear()).toThrow(
+      'Cannot insert the visual clear sequence while the VT parser is mid-sequence',
+    )
+    terminal.write(Uint8Array.of(0x9f, 0x98, 0x84))
+    terminal.clear()
+    expect(renderState.snapshot().rows.map(rowText)).toEqual(['     ', '     '])
     renderState.dispose()
     terminal.dispose()
   })

@@ -4,25 +4,30 @@ export type EventErrorSink = (cause: unknown) => unknown
 
 type EventListener<T, U> = (arg1: T, arg2: U) => any
 
-const noopDisposable: IDisposable = Object.freeze({ dispose() {} })
-
-function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-  if (value === null) return false
-  const type = typeof value
-  if (type !== 'function' && type !== 'object') return false
-  return typeof (value as PromiseLike<unknown>).then === 'function'
+interface EventDelivery<T, U> {
+  readonly arg1: T
+  readonly arg2: U
+  readonly listeners: readonly [symbol, EventListener<T, U>][]
+  index: number
 }
 
-function ignoreRejection(result: unknown): void {
-  try {
-    if (!isPromiseLike(result)) return
-    void Promise.resolve(result).catch(() => {})
-  } catch {
-    return
-  }
+const noopDisposable: IDisposable = Object.freeze({ dispose() {} })
+
+function isCancellationError(cause: unknown): boolean {
+  return cause instanceof Error && cause.name === 'Canceled' && cause.message === 'Canceled'
+}
+
+function reportUnexpectedError(cause: unknown): void {
+  if (isCancellationError(cause)) return
+  setTimeout(() => {
+    if (!cause || typeof cause !== 'object' || !('stack' in cause) || !cause.stack) throw cause
+    const message = 'message' in cause ? String(cause.message) : String(cause)
+    throw new Error(`${message}\n\n${String(cause.stack)}`)
+  }, 0)
 }
 
 export class EventEmitter<T, U = void> implements IDisposable {
+  private delivery?: EventDelivery<T, U>
   private disposed = false
   private errorSink?: EventErrorSink
   private readonly listeners = new Map<symbol, EventListener<T, U>>()
@@ -33,17 +38,21 @@ export class EventEmitter<T, U = void> implements IDisposable {
     if (errorSink !== undefined && typeof errorSink !== 'function') {
       throw new TypeError('EventEmitter error sink must be a function')
     }
-    this.errorSink = errorSink
+    this.errorSink = errorSink ?? reportUnexpectedError
     this.event = (listener) => this.subscribe(listener)
   }
 
   emit(arg1: T, arg2?: U): void {
     if (this.disposed) return
-    const listeners = Array.from(this.listeners.entries())
-    for (const [token, listener] of listeners) {
-      if (this.listeners.get(token) !== listener) continue
-      this.invoke(listener, arg1, arg2 as U)
+    this.drainDelivery()
+    const delivery: EventDelivery<T, U> = {
+      arg1,
+      arg2: arg2 as U,
+      index: 0,
+      listeners: Array.from(this.listeners.entries()),
     }
+    this.delivery = delivery
+    this.drainDelivery()
   }
 
   dispose(): void {
@@ -72,21 +81,29 @@ export class EventEmitter<T, U = void> implements IDisposable {
 
   private invoke(listener: EventListener<T, U>, arg1: T, arg2: U): void {
     try {
-      const result = listener(arg1, arg2)
-      if (!isPromiseLike(result)) return
-      void Promise.resolve(result).catch((cause: unknown) => this.reportError(cause))
+      listener(arg1, arg2)
     } catch (cause) {
       this.reportError(cause)
     }
   }
 
+  private drainDelivery(): void {
+    const delivery = this.delivery
+    if (!delivery) return
+    while (delivery.index < delivery.listeners.length) {
+      const entry = delivery.listeners[delivery.index]
+      delivery.index += 1
+      if (!entry) continue
+      const [token, listener] = entry
+      if (this.listeners.get(token) !== listener) continue
+      this.invoke(listener, delivery.arg1, delivery.arg2)
+    }
+    if (this.delivery === delivery) this.delivery = undefined
+  }
+
   private reportError(cause: unknown): void {
     const sink = this.errorSink
     if (!sink) return
-    try {
-      ignoreRejection(sink(cause))
-    } catch {
-      return
-    }
+    sink(cause)
   }
 }

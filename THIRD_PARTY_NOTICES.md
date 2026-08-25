@@ -3,7 +3,7 @@
 ## Ghostty
 
 `ghostty-webgpu` includes `ghostty-vt.wasm`, built from Ghostty revision
-`da5ddcb0857c0e4ddb32f7a089911e9038d040f3` without upstream source patches.
+`c8554f28e0efe2f5595f32020371c34b25ec628f` without build-time patch application.
 
 - Source: <https://github.com/ghostty-org/ghostty>
 - License: MIT

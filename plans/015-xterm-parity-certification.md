@@ -41,6 +41,26 @@ Do not claim pixel identity, private-internal compatibility, ownership of the `@
 bug-for-bug equivalence. Any intentional VT behavior difference must be standards-backed, listed,
 operator-approved, and must not break the public feature/API claim.
 
+### Accepted-divergence caveat inherited from Plan 008
+
+Plan 015 inherits 25 still-partial Plan 008 certification rows. Eight encode the two explicit
+operator-approved policies rather than unfinished facade plumbing: `Terminal.clear`,
+`Terminal.constructor`, `Terminal.dispose`, `Terminal.onWriteParsed`, `Terminal.write`,
+`Terminal.writeln`, `dispose lifecycle`, and `write callback ordering`. The facade does not copy
+released xterm's stale clear backing slots. Instead, it inserts Ghostty's upstream visual-clear
+sequence only from VT ground, removes the active contents and history, moves the cursor to VT home
+under the preserved origin mode and margins, and clears selection. Native creation failure or
+disposal at any lifecycle point also abandons writes not yet consumed by the native parser instead
+of reporting them complete.
+
+The accepted clear policy therefore differs more visibly than released xterm's retained-row and
+true-no-op behavior, but it needs no fork or shadow row state. These rows remain `partial`; transfer
+did not make them compatible or exempt them from the parity validator. Consequently this plan's
+current zero-gap command and DONE criteria cannot pass while the accepted divergences remain. Plan
+015 must stay open unless exact behavior is implemented or an operator separately changes the final
+compatibility claim and ledger policy. Plan 008's qualified milestone completion grants no such
+certification exception.
+
 If a newer xterm release exists when this plan executes, report it. The operator chooses either to
 certify the explicitly recorded 6.0.0 baseline or run the Plan 007 atomic upgrade flow first. Do not
 quietly move the target during certification.

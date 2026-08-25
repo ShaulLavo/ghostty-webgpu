@@ -32,6 +32,7 @@ const uint16Max = 0xffff
 const uint32Max = 0xffffffff
 const int32Min = -0x80000000
 const int32Max = 0x7fffffff
+const visualClearSequence = '\x1b[22J\x1b[3J\x1b[H'
 
 const defaultSize: TerminalSize = {
   cellHeight: 16,
@@ -568,6 +569,19 @@ export class GhosttyTerminal {
     )
     this.sizeValue = next
     this.runtime.bridge.updateTerminalSize(this.handleValue, next)
+  }
+
+  clear(): void {
+    this.ensureActive()
+    if (!this.readBoolean(TerminalData.VtGround, 'VT_GROUND')) {
+      throw createGhosttyError(
+        'terminal.clear',
+        'Cannot insert the visual clear sequence while the VT parser is mid-sequence',
+      )
+    }
+    // E3 removes the moved rows; final CUP resolves home under the preserved origin and margins.
+    this.write(visualClearSequence)
+    this.clearSelection()
   }
 
   reset(): void {

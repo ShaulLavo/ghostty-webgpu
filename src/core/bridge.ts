@@ -89,6 +89,7 @@ function installBridge(table: WebAssembly.Table, exports: BridgeWasmExports): Br
 export class CallbackBridge {
   readonly imports: WebAssembly.Imports
   private readonly clipboardContentLayout: AbiLayout
+  private readonly clipboardWriteReplyLayout: AbiLayout
   private readonly clipboardWriteLayout: AbiLayout
   private readonly exports: GhosttyWasmExports
   private readonly layouts: AbiLayouts
@@ -104,6 +105,7 @@ export class CallbackBridge {
     this.layouts = layouts
     this.memory = new WasmMemory(exports)
     this.clipboardContentLayout = requireLayout(layouts, 'GhosttyClipboardContent')
+    this.clipboardWriteReplyLayout = requireLayout(layouts, 'GhosttyClipboardWriteReply')
     this.clipboardWriteLayout = requireLayout(layouts, 'GhosttyClipboardWrite')
     this.stringLayout = requireLayout(layouts, 'GhosttyString')
     this.sysImageLayout = requireLayout(layouts, 'GhosttySysImage')
@@ -202,12 +204,15 @@ export class CallbackBridge {
     return 1
   }
 
-  private clipboardWrite(terminal = 0, _userdata = 0, pointer = 0): number {
+  private clipboardWrite(terminal = 0, _userdata = 0, pointer = 0): void {
     const effect = this.targets.get(terminal)?.effects.clipboardWrite
-    if (!effect) return ClipboardWriteResult.Denied
     const write = this.readClipboardWrite(pointer)
-    if (!write) return ClipboardWriteResult.InvalidData
-    return effect(write)
+    if (!write) {
+      this.replyClipboardWrite(pointer, ClipboardWriteResult.InvalidData)
+      return
+    }
+    const result = effect?.(write) ?? ClipboardWriteResult.Denied
+    this.replyClipboardWrite(pointer, result)
   }
 
   private deviceAttributes(terminal = 0, _userdata = 0, out = 0): number {
@@ -304,6 +309,32 @@ export class CallbackBridge {
         pointer + requireField(this.clipboardWriteLayout, 'location').offset,
         true,
       ) as ClipboardWrite['location'],
+    }
+  }
+
+  private replyClipboardWrite(pointer: number, result: ClipboardWriteResult): void {
+    if (!this.isReadable(pointer, this.clipboardWriteLayout.size)) return
+    const replyIndex = this.memory.view.getUint32(
+      pointer + requireField(this.clipboardWriteLayout, 'reply').offset,
+      true,
+    )
+    const reply = this.exports.__indirect_function_table.get(replyIndex)
+    if (typeof reply !== 'function') return
+    const response = this.memory.allocate(this.clipboardWriteReplyLayout.size)
+    try {
+      this.memory.view.setUint32(
+        response + requireField(this.clipboardWriteReplyLayout, 'size').offset,
+        this.clipboardWriteReplyLayout.size,
+        true,
+      )
+      this.memory.view.setInt32(
+        response + requireField(this.clipboardWriteReplyLayout, 'result').offset,
+        result,
+        true,
+      )
+      reply(pointer, response)
+    } finally {
+      this.memory.free(response, this.clipboardWriteReplyLayout.size)
     }
   }
 

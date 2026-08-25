@@ -21,7 +21,7 @@ import { requireLayout } from '../memory.js'
 import { GhosttyRuntime } from '../runtime.js'
 import type { GhosttyTerminal } from '../terminal.js'
 
-const phase3AbiComparison = [
+const requiredAbiComparison = [
   {
     header: 'key/event.h + key/encoder.h',
     exports: [
@@ -87,6 +87,7 @@ const phase3AbiComparison = [
       'ghostty_terminal_grid_ref',
       'ghostty_terminal_point_from_grid_ref',
       'ghostty_grid_ref_hyperlink_uri',
+      'ghostty_terminal_get',
       'ghostty_terminal_scroll_viewport',
     ],
   },
@@ -97,6 +98,7 @@ const phase3AbiComparison = [
 const requiredLayouts = [
   'GhosttyClipboardContent',
   'GhosttyClipboardWrite',
+  'GhosttyClipboardWriteReply',
   'GhosttyGridRef',
   'GhosttyMouseEncoderSize',
   'GhosttyMousePosition',
@@ -288,11 +290,11 @@ function encodeFocus(activeRuntime: GhosttyRuntime): Uint8Array {
   )
 }
 
-describe('pinned Phase 3 ABI', () => {
+describe('pinned Ghostty ABI', () => {
   it('matches the required header export table and layouts', async () => {
     runtime = await GhosttyRuntime.create()
 
-    for (const comparison of phase3AbiComparison) {
+    for (const comparison of requiredAbiComparison) {
       expect(comparison.exports, comparison.header).not.toHaveLength(0)
       for (const name of comparison.exports) {
         expect(typeof runtime.exports[name], `${comparison.header}: ${name}`).toBe('function')

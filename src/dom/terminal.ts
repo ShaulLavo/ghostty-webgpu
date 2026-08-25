@@ -250,7 +250,6 @@ export class GhosttyWebGpuTerminal {
   private readonly padding
   private readonly pendingEvents: (() => void)[] = []
   private pointer?: TerminalPointerController
-  private readonly pointerDecisions = new WeakMap<Event, boolean>()
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
@@ -390,6 +389,7 @@ export class GhosttyWebGpuTerminal {
       this.installAccessibility(elements)
       this.installScrollbar(elements)
       this.installInput(elements, parent)
+      this.inputHooks?.inputReady?.()
       this.installFit(elements)
       this.installPointer(elements)
       this.installLinks(elements)
@@ -814,7 +814,6 @@ export class GhosttyWebGpuTerminal {
     let pointer: TerminalPointerController
     try {
       pointer = createTerminalPointerController({
-        allowEvent: (event) => this.allowPointerEvent(event),
         canvas: elements.canvas,
         getLayout: () => this.committedPointerLayout(),
         onError: (cause, operation) => this.reportError(cause, operation),
@@ -1052,11 +1051,7 @@ export class GhosttyWebGpuTerminal {
   }
 
   private allowPointerEvent(event: PointerEvent | WheelEvent): boolean {
-    const cached = this.pointerDecisions.get(event)
-    if (cached !== undefined) return cached
-    const allowed = this.evaluatePointerEvent(event)
-    this.pointerDecisions.set(event, allowed)
-    return allowed
+    return this.evaluatePointerEvent(event)
   }
 
   private evaluatePointerEvent(event: PointerEvent | WheelEvent): boolean {
@@ -1070,8 +1065,8 @@ export class GhosttyWebGpuTerminal {
     try {
       return predicate(event) !== false
     } catch (cause) {
-      this.reportError(cause, 'pointer.customWheelEvent')
-      return false
+      event.stopPropagation()
+      throw cause
     }
   }
 

@@ -7,6 +7,7 @@ import {
   MouseAction,
   MouseButton,
   PhysicalKey,
+  TerminalMode,
 } from '../core/abi.js'
 import { createGhosttyError } from '../core/error.js'
 import {
@@ -1081,6 +1082,11 @@ export class TerminalSession<TEvent = unknown> {
     return this.focusedValue
   }
 
+  get focusReportingEnabled(): boolean {
+    this.ensureActive()
+    return this.terminal.isModeEnabled(TerminalMode.FocusEvent)
+  }
+
   get grid(): TerminalGrid {
     this.ensureActive()
     return this.appearanceValue.grid
@@ -1175,6 +1181,16 @@ export class TerminalSession<TEvent = unknown> {
 
   setFocused(focused: boolean): TerminalInputResult {
     return this.runOperation(() => this.setFocusedNow(focused))
+  }
+
+  reportFocus(): TerminalInputResult {
+    return this.runOperation(() =>
+      this.publishInput(encodeFocus(this.terminal, this.focusedValue), false),
+    )
+  }
+
+  clear(): TerminalMutationResult {
+    return this.runOperation(() => this.clearNow())
   }
 
   reset(): TerminalMutationResult {
@@ -1400,20 +1416,24 @@ export class TerminalSession<TEvent = unknown> {
   }
 
   private writeNow(data: TerminalInputData): TerminalMutationResult {
+    this.runVtWrite(() => this.terminal.write(data))
+    this.mouseEncoder.syncFromTerminal()
+    this.invalidateLinks()
+    this.flushEffects()
+    this.emitScrollChange()
+    return this.requestRender()
+  }
+
+  private runVtWrite(write: () => void): void {
     this.effectState.vtWriteActive = true
     try {
-      this.terminal.write(data)
+      write()
     } catch (cause) {
       this.effectState.pending.length = 0
       throw cause
     } finally {
       this.effectState.vtWriteActive = false
     }
-    this.mouseEncoder.syncFromTerminal()
-    this.invalidateLinks()
-    this.flushEffects()
-    this.emitScrollChange()
-    return this.requestRender()
   }
 
   private setFocusedNow(focused: boolean): TerminalInputResult {
@@ -1422,6 +1442,18 @@ export class TerminalSession<TEvent = unknown> {
     const bytes = encodeFocus(this.terminal, focused)
     this.focusedValue = focused
     return this.publishInput(bytes, false)
+  }
+
+  private clearNow(): TerminalMutationResult {
+    const hadSelection = this.selection.hasSelection
+    const forceScroll = this.scrollValue.scrollbackLength > 0 || this.terminal.cursor.y > 0
+    this.runVtWrite(() => this.terminal.clear())
+    this.selection.reset()
+    this.invalidateLinks()
+    this.flushEffects()
+    if (hadSelection) this.emitSelection()
+    this.emitScrollChange(forceScroll)
+    return this.requestRender()
   }
 
   private resetNow(): TerminalMutationResult {
@@ -1519,9 +1551,9 @@ export class TerminalSession<TEvent = unknown> {
     })
   }
 
-  private emitScrollChange(): boolean {
+  private emitScrollChange(force = false): boolean {
     const next = readScrollSnapshot(this.terminal)
-    if (scrollSnapshotsEqual(this.scrollValue, next)) return false
+    if (!force && scrollSnapshotsEqual(this.scrollValue, next)) return false
     this.scrollValue = next
     this.emitters.scroll.emit(next)
     return true

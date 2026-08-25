@@ -73,13 +73,18 @@ README, source maps, and tarball contents. `@ghostty-webgpu/xterm` exports
 `./css/xterm.css`. Addon packages export the official implementation when Plans 011–013 proved it
 works unchanged, or the project adapter when they did not.
 
+Plan 014 inherits nine partial Plan 008 package/declaration rows: `IViewportRange*`,
+`ITerminalAddon`, `ITerminalAddon.activate`, and `Terminal.loadAddon`. Type fixtures may certify the
+range declarations, but they must not hide runtime addon lifecycle gaps; packed browser and headless
+fixtures must exercise the actual facade.
+
 ## Headless target
 
 Implement `@xterm/headless` 6.0.0's public types and behavior through a browser-independent facade
 under `src/xterm/headless/` or a package-local exact module. It must:
 
-- construct synchronously and queue native initialization/writes through the Plan 008 deferred
-  runtime without DOM globals;
+- construct synchronously and queue writes through the Plan 008 deferred write queue while native
+  initialization proceeds, without DOM globals;
 - expose the complete headless constructor/options/events/methods/buffer/parser/unicode/modes API;
 - preserve write callback, resize, scrollback, marker, parser, Unicode, addon, and disposal behavior;
 - work in Node 20+, Bun, workers, and bundlers without importing `document`, WebGPU, Canvas, CSS, or

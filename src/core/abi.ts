@@ -286,6 +286,8 @@ export const enum FocusEvent {
 }
 
 export const enum TerminalMode {
+  Origin = 6,
+  LeftRightMargin = 69,
   FocusEvent = 1004,
   BracketedPaste = 2004,
   ColorSchemeReport = 2031,
@@ -466,6 +468,8 @@ export const enum TerminalData {
   ScrollbackMaxLines = 35,
   ContinuationMaxBytes = 36,
   Mode = 37,
+  VtGround = 38,
+  CursorAtPrompt = 39,
 }
 
 export const enum RenderStateData {

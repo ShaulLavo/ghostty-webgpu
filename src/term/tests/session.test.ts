@@ -721,6 +721,7 @@ describe('TerminalSession', () => {
 
     expect(session.setFocused(true)).toEqual(new Uint8Array())
     session.write('\u001b[?1004h')
+    expect(decoder.decode(session.reportFocus())).toBe('\u001b[I')
     expect(decoder.decode(session.setFocused(false))).toBe('\u001b[O')
     expect(decoder.decode(session.setFocused(true))).toBe('\u001b[I')
 
@@ -858,6 +859,78 @@ describe('TerminalSession', () => {
     })
     const revision = session.revision
     expect(session.scrollToTop()).toEqual({ revision })
+  })
+
+  it('visually clears top-row content even when released xterm would no-op', async () => {
+    const session = await createSession({ appearance: { grid: grid({ columns: 5 }) } })
+    const scrollEvents: TerminalScrollEvent[] = []
+    const revisions: number[] = []
+    session.on('scroll', (event) => scrollEvents.push(event))
+    session.on('renderRequest', ({ revision }) => revisions.push(revision))
+
+    session.write('top')
+    const revision = session.revision
+    scrollEvents.length = 0
+    revisions.length = 0
+
+    expect(session.clear()).toEqual({ revision: revision + 1 })
+    expect(scrollEvents).toEqual([])
+    expect(revisions).toEqual([revision + 1])
+
+    session.selectRange({ x: 0, y: 0 }, { x: 4, y: 0 })
+    expect(session.getSelection()).toBe('')
+  })
+
+  it('clears selection and scrollback before requesting a render', async () => {
+    const session = await createSession({ appearance: { grid: grid({ columns: 5 }) } })
+    session.write('r0\r\nr1\r\nr2\r\nr3\r\nr4')
+    session.selectRange({ x: 0, y: 3 }, { x: 1, y: 3 })
+    const timeline: string[] = []
+    session.on('selection', ({ hasSelection }) => timeline.push(`selection:${hasSelection}`))
+    session.on('scroll', ({ scrollbar }) => timeline.push(`scroll:${scrollbar.offset}`))
+    session.on('renderRequest', () => timeline.push('render'))
+
+    const revision = session.revision
+    expect(session.clear()).toEqual({ revision: revision + 1 })
+
+    expect(timeline).toEqual(['selection:false', 'scroll:0', 'render'])
+    expect(session.getSelection()).toBeUndefined()
+    expect(session.selectionCoordinates()).toBeUndefined()
+    expect(session.scrollbackLength).toBe(0)
+    expect(session.scrollbar).toEqual({ length: 3, offset: 0, total: 3 })
+  })
+
+  it('rejects non-ground clear without changing facade state or events', async () => {
+    const session = await createSession({ appearance: { grid: grid({ columns: 5 }) } })
+    session.write('safe')
+    session.selectRange({ x: 0, y: 0 }, { x: 3, y: 0 })
+    session.write('\u001b]0;par')
+    const before = {
+      coordinates: session.selectionCoordinates(),
+      cursor: session.cursor,
+      revision: session.revision,
+      selection: session.getSelection(),
+    }
+    const events: string[] = []
+    const titles: string[] = []
+    session.on('selection', () => events.push('selection'))
+    session.on('scroll', () => events.push('scroll'))
+    session.on('renderRequest', () => events.push('render'))
+    session.on('title', ({ title }) => titles.push(title))
+
+    expect(() => session.clear()).toThrow(
+      'Cannot insert the visual clear sequence while the VT parser is mid-sequence',
+    )
+    expect({
+      coordinates: session.selectionCoordinates(),
+      cursor: session.cursor,
+      revision: session.revision,
+      selection: session.getSelection(),
+    }).toEqual(before)
+    expect(events).toEqual([])
+
+    session.write('ser\u0007')
+    expect(titles).toEqual(['parser'])
   })
 
   it('copies clipboard writes, defaults to deny, and converts policy failures into errors', async () => {
@@ -1050,7 +1123,9 @@ describe('TerminalSession', () => {
     expect(configuredErrors.at(-1)?.cause).toBe(failure)
     expect(sessionErrors.at(-1)).toEqual({ cause: failure, operation: 'link.provide' })
 
+    session.write('\r\n')
     const operations = [
+      () => session.clear(),
       () => session.write('x'),
       () => session.resize({ columns: 39 }),
       () => session.reset(),

@@ -322,6 +322,7 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     const inputOrder: string[] = []
     let wheelAllowed = false
     let wheelCalls = 0
+    let wheelFailure: Error | undefined
     const terminal = createGhosttyWebGpuTerminalFromSession(session, {
       autoFit: false,
       elements,
@@ -333,6 +334,7 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
       pointerHooks: {
         customWheelEvent: () => {
           wheelCalls += 1
+          if (wheelFailure) throw wheelFailure
           return wheelAllowed
         },
       },
@@ -384,6 +386,12 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     expect(refusedWheel.defaultPrevented).toBe(false)
     expect(wheelCalls).toBe(1)
 
+    wheelAllowed = true
+    elements.canvas.dispatchEvent(refusedWheel)
+    expect(refusedWheel.defaultPrevented).toBe(true)
+    expect(wheelCalls).toBe(2)
+    wheelAllowed = false
+
     session.write('one\r\ntwo\r\nthree\r\nfour\r\nfive\r\nsix\r\nseven\r\neight')
     const scrollbar = elements.root.querySelector<HTMLElement>('[role="scrollbar"]')
     const initialOffset = session.scrollbar.offset
@@ -397,7 +405,7 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     scrollbar!.dispatchEvent(refusedScrollbarWheel)
     expect(refusedScrollbarWheel.defaultPrevented).toBe(false)
     expect(session.scrollbar.offset).toBe(initialOffset)
-    expect(wheelCalls).toBe(2)
+    expect(wheelCalls).toBe(3)
 
     wheelAllowed = true
     const acceptedWheel = new WheelEvent('wheel', {
@@ -407,7 +415,33 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     })
     elements.canvas.dispatchEvent(acceptedWheel)
     expect(acceptedWheel.defaultPrevented).toBe(true)
-    expect(wheelCalls).toBe(3)
+    expect(wheelCalls).toBe(4)
+
+    const wheelErrors: unknown[] = []
+    const terminalErrors: unknown[] = []
+    const handleWheelError = (event: ErrorEvent): void => {
+      wheelErrors.push(event.error)
+      event.preventDefault()
+    }
+    terminal.on('error', (event) => terminalErrors.push(event))
+    wheelFailure = new Error('custom wheel failed')
+    const thrownWheel = new WheelEvent('wheel', {
+      bubbles: true,
+      cancelable: true,
+      deltaY: session.grid.cellHeight,
+    })
+    window.addEventListener('error', handleWheelError)
+    elements.canvas.dispatchEvent(thrownWheel)
+    window.removeEventListener('error', handleWheelError)
+    expect(wheelErrors).toEqual([wheelFailure])
+    expect(terminalErrors).toEqual([])
+    expect(thrownWheel.defaultPrevented).toBe(false)
+    expect(wheelCalls).toBe(5)
+
+    wheelFailure = undefined
+    elements.canvas.dispatchEvent(thrownWheel)
+    expect(thrownWheel.defaultPrevented).toBe(true)
+    expect(wheelCalls).toBe(6)
 
     terminal.dispose()
     expect(elements.root.isConnected).toBe(false)
@@ -534,7 +568,7 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     controller.dispose()
   })
 
-  it('runs dynamic input hooks before native ownership and contains handler failures', () => {
+  it('runs dynamic input hooks and rethrows handler failures without stale key state', () => {
     const textarea = document.createElement('textarea')
     document.body.append(textarea)
     hosts.push(textarea)
@@ -607,20 +641,27 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     disabled = false
     customFailure = new Error('custom key failed')
     calls.length = 0
+    const windowErrors: unknown[] = []
+    const handleWindowError = (event: ErrorEvent): void => {
+      windowErrors.push(event.error)
+      event.preventDefault()
+    }
+    window.addEventListener('error', handleWindowError)
     dispatchKey(textarea, 'keydown', { code: 'KeyD', key: 'd' })
-    dispatchKey(textarea, 'keydown', { code: 'KeyD', key: 'd', repeat: true })
-    dispatchKey(textarea, 'keyup', { code: 'KeyD', key: 'd' })
-    expect(errors).toEqual([
-      { cause: customFailure, operation: 'customKeyEvent' },
-      { cause: customFailure, operation: 'customKeyEvent' },
-      { cause: customFailure, operation: 'customKeyEvent' },
-    ])
+    window.removeEventListener('error', handleWindowError)
+    expect(windowErrors).toEqual([customFailure])
+    expect(errors).toEqual([])
     expect(keys.map((key) => key.code)).toEqual(['KeyB'])
 
     customFailure = undefined
+    dispatchKey(textarea, 'keydown', { code: 'KeyD', key: 'd', repeat: true })
     calls.length = 0
     dispatchKey(textarea, 'keydown', { code: 'KeyE', key: 'e' })
-    expect(keys.map((key) => key.code)).toEqual(['KeyB', 'KeyE'])
+    expect(keys.map((key) => [key.code, key.action])).toEqual([
+      ['KeyB', 'press'],
+      ['KeyD', 'repeat'],
+      ['KeyE', 'press'],
+    ])
     controller.dispose()
   })
 

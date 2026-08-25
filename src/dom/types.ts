@@ -146,6 +146,7 @@ export interface GhosttyWebGpuTerminalOptions {
 export interface GhosttyWebGpuTerminalInputHooks {
   beforeUserInput?(): void
   customKeyEvent?(event: KeyboardEvent): boolean
+  inputReady?(): void
   inputDisabled?(): boolean
   onKey?(event: KeyboardEvent, data: Uint8Array): void
 }

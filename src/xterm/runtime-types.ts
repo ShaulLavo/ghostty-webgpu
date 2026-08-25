@@ -17,6 +17,7 @@ export interface XtermRuntimeHandlers {
 export interface XtermInputHooks {
   readonly beforeUserInput: () => void
   readonly customKeyEvent: (event: KeyboardEvent) => boolean
+  readonly inputReady: () => void
   readonly inputDisabled: () => boolean
   readonly onKey: (key: string, event: KeyboardEvent) => void
 }
@@ -61,9 +62,9 @@ export interface XtermTerminalRuntime extends IDisposable {
   scrollToBottom(): void
   scrollToLine(line: number): void
   scrollToTop(): void
-  select(column: number, row: number, length: number): void
-  selectAll(): void
-  selectLines(start: number, end: number): void
+  select(column: number, row: number, length: number): boolean
+  selectAll(): boolean
+  selectLines(start: number, end: number): boolean
   subscribe(handlers: XtermRuntimeHandlers): IDisposable
   write(data: TerminalInputData): void
 }
@@ -75,5 +76,4 @@ export interface XtermTerminalDependencies {
     cols: number,
     rows: number,
   ) => Promise<XtermTerminalRuntime>
-  readonly scheduleWriteParsed: (callback: () => void) => void
 }

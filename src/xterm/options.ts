@@ -77,24 +77,21 @@ function defaultValues(): TerminalOptionValues {
 }
 
 const terminalOptionKeys = Object.keys(defaultValues()) as TerminalOptionKey[]
+const terminalOptionKeySet = new Set<string>(terminalOptionKeys)
 
 function invalidMinimum(key: string, value: unknown, minimum: number): RangeError {
   return new RangeError(`${key} cannot be less than ${minimum}, value: ${String(value)}`)
 }
 
 function positiveNumber(key: string, value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${key} must be a finite number`)
+  if ((value as number) <= 0) {
+    throw new RangeError(`${key} cannot be less than or equal to 0, value: ${String(value)}`)
   }
-  if (value > 0) return value
-  throw new RangeError(`${key} cannot be less than or equal to 0, value: ${String(value)}`)
+  return value as number
 }
 
 function atLeastOne(key: string, value: unknown): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${key} must be a finite number`)
-  }
-  if (value >= 1) return value
+  if (!((value as number) < 1)) return value as number
   throw invalidMinimum(key, value, 1)
 }
 
@@ -115,22 +112,19 @@ function sanitizeOption(
   value: unknown,
   defaults: TerminalOptionValues,
 ): TerminalOptionValues[TerminalOptionKey] {
-  if (value === undefined) return defaults[key]
   if (key === 'cursorStyle') return cursorStyle(value)
-  if (key === 'wordSeparator') return value ? String(value) : defaults.wordSeparator
+  if (key === 'wordSeparator') return value ? (value as string) : defaults.wordSeparator
   if (key === 'fontWeight' || key === 'fontWeightBold') return fontWeight(key, value)
-  if (key === 'cursorWidth') return atLeastOne(key, Math.floor(Number(value)))
+  if (key === 'cursorWidth') return atLeastOne(key, Math.floor(value as number))
   if (key === 'lineHeight' || key === 'tabStopWidth') return atLeastOne(key, value)
   if (key === 'minimumContrastRatio') {
-    const ratio = Number(value)
-    if (!Number.isFinite(ratio)) return defaults.minimumContrastRatio
+    const ratio = value as number
     return Math.max(1, Math.min(21, Math.round(ratio * 10) / 10))
   }
   if (key === 'scrollback') {
-    const amount = Number(value)
-    if (!Number.isFinite(amount)) throw new TypeError('scrollback must be a finite number')
+    const amount = Math.min(value as number, 4_294_967_295)
     if (amount < 0) throw invalidMinimum(key, value, 0)
-    return Math.min(amount, 4_294_967_295)
+    return amount
   }
   if (key === 'fastScrollSensitivity' || key === 'scrollSensitivity') {
     return positiveNumber(key, value)
@@ -202,11 +196,6 @@ function publicOptions(store: TerminalOptionsStore): ITerminalOptions {
   return result
 }
 
-function rejectInitOnlyOptions(options: ITerminalOptions): void {
-  if (Object.hasOwn(options, 'cols')) readonlyDimensionSetter('cols')()
-  if (Object.hasOwn(options, 'rows')) readonlyDimensionSetter('rows')()
-}
-
 export class TerminalOptionsStore {
   private columnsValue: number
   private readonly initialColumnsValue: number
@@ -261,21 +250,21 @@ export class TerminalOptionsStore {
     if (!options || typeof options !== 'object') {
       throw new TypeError('Terminal options must be an object')
     }
-    rejectInitOnlyOptions(options)
-    const next = { ...this.values }
-    const changed: TerminalOptionKey[] = []
-    for (const key of terminalOptionKeys) {
-      if (!Object.hasOwn(options, key)) continue
-      const value = sanitizeOption(key, options[key], this.defaults)
-      if (next[key] === value) continue
-      ;(next as Record<TerminalOptionKey, unknown>)[key] = value
-      changed.push(key)
-    }
-    if (changed.length === 0) return
+    for (const rawKey in options) this.setOption(rawKey, options[rawKey as keyof ITerminalOptions])
+  }
+
+  private setOption(rawKey: string, rawValue: unknown): void {
+    if (rawKey === 'cols' || rawKey === 'rows') readonlyDimensionSetter(rawKey)()
+    if (!terminalOptionKeySet.has(rawKey)) return
+    const key = rawKey as TerminalOptionKey
+    const value = sanitizeOption(key, rawValue, this.defaults)
+    if (this.values[key] === value) return
     const previous = this.values
+    const next = { ...this.values }
+    ;(next as Record<TerminalOptionKey, unknown>)[key] = value
     this.values = next
     try {
-      this.onChange?.({ keys: Object.freeze(changed.slice()), values: next })
+      this.onChange?.({ keys: Object.freeze([key]), values: next })
     } catch (cause) {
       this.values = previous
       throw cause
@@ -284,8 +273,9 @@ export class TerminalOptionsStore {
 
   private applyInitial(options: ITerminalOptions): void {
     const next = { ...this.values }
-    for (const key of terminalOptionKeys) {
-      if (!Object.hasOwn(options, key)) continue
+    for (const rawKey in options) {
+      if (!terminalOptionKeySet.has(rawKey)) continue
+      const key = rawKey as TerminalOptionKey
       try {
         ;(next as Record<TerminalOptionKey, unknown>)[key] = sanitizeOption(
           key,

@@ -393,11 +393,15 @@ class BrowserInputController implements DomInputController {
       this.suppressInitialKey(event)
       return false
     } catch (cause) {
-      this.options.onError(cause, 'customKeyEvent')
-      if (event.type === 'keyup') return true
-      this.suppressInitialKey(event)
-      return false
+      this.clearFailedKeyLifecycle(event)
+      throw cause
     }
+  }
+
+  private clearFailedKeyLifecycle(event: KeyboardEvent): void {
+    this.pressedModifierCodes.delete(event.code)
+    this.publishedKeyPresses.delete(event.code)
+    this.suppressedShortcuts.delete(event.code)
   }
 
   private blockDisabledKey(event: KeyboardEvent): boolean {

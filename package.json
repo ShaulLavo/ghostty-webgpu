@@ -1,7 +1,16 @@
 {
   "name": "ghostty-webgpu",
   "version": "0.1.0",
-  "description": "libghostty-vt for the web with DOM input and damage-scheduled WebGPU rendering",
+  "description": "Ghostty for the web with a damage-aware WebGPU renderer and xterm-compatible API",
+  "keywords": [
+    "browser",
+    "ghostty",
+    "terminal",
+    "terminal-emulator",
+    "wasm",
+    "webgpu",
+    "xterm"
+  ],
   "homepage": "https://github.com/ShaulLavo/ghostty-webgpu#readme",
   "bugs": {
     "url": "https://github.com/ShaulLavo/ghostty-webgpu/issues"
@@ -13,6 +22,7 @@
   },
   "files": [
     "dist",
+    "types",
     "ghostty-vt.wasm",
     "bridge.wasm",
     "README.md",
@@ -23,10 +33,23 @@
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./types/legacy/index.d.ts",
+  "typesVersions": {
+    ">=7.0": {
+      "*": [
+        "dist/index.d.ts"
+      ]
+    },
+    "*": {
+      "*": [
+        "types/legacy/index.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types@>=7.0": "./dist/index.d.ts",
+      "types": "./types/legacy/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
@@ -38,32 +61,35 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "bun run clean && tsc -p tsconfig.build.json",
     "build:bridge": "bun scripts/build-bridge.ts",
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",
+    "clean": "bun scripts/clean-dist.ts",
     "demo": "bun run --cwd demo start",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "oxlint --disable-nested-config .",
     "prepack": "bun run build",
+    "prepublishOnly": "bun run verify",
     "test": "bun run test:unit && bun run test:browser",
     "test:browser": "bun scripts/browser-tests.ts",
+    "test:package": "bun scripts/package-smoke.ts",
     "test:unit": "vitest run",
     "typecheck": "tsc --noEmit",
-    "verify": "bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run xterm:reference-pack",
+    "verify": "bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run xterm:reference-pack && bun run test:package",
     "xterm:parity": "bun scripts/xterm-parity.ts --check",
     "xterm:parity:update": "bun scripts/xterm-parity.ts --write",
     "xterm:reference": "bun scripts/xterm-reference.ts",
     "xterm:reference-pack": "bun scripts/xterm-reference.ts --pack"
   },
   "dependencies": {
-    "@tanstack/hotkeys": "0.8.0"
+    "@tanstack/hotkeys": "0.8.0",
+    "@webgpu/types": "0.1.72"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "@vitest/browser-playwright": "4.1.10",
-    "@webgpu/types": "0.1.72",
     "@xterm/addon-attach": "0.12.0",
     "@xterm/addon-clipboard": "0.2.0",
     "@xterm/addon-fit": "0.11.0",
@@ -83,6 +109,7 @@
     "oxlint": "1.70.0",
     "playwright": "1.60.0",
     "typescript": "7.0.2",
+    "typescript-legacy": "npm:typescript@5.9.2",
     "vitest": "4.1.10"
   },
   "engines": {

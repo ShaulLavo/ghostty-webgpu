@@ -101,9 +101,7 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
   }
 
   clear(): void {
-    throw new Error(
-      'Terminal.clear is unavailable because the native ABI cannot preserve the active prompt line',
-    )
+    this.session.clear()
   }
 
   clearSelection(): boolean {
@@ -145,6 +143,7 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
       inputHooks: {
         beforeUserInput: inputHooks.beforeUserInput,
         customKeyEvent: inputHooks.customKeyEvent,
+        inputReady: inputHooks.inputReady,
         inputDisabled: inputHooks.inputDisabled,
         onKey: (event, data) => inputHooks.onKey(decoder.decode(data), event),
       },
@@ -187,36 +186,24 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
     this.session.scrollToTop()
   }
 
-  select(column: number, row: number, length: number): void {
+  select(column: number, row: number, length: number): boolean {
     const range = xtermSelectionRange(this.session, column, row, length)
-    if (!range) {
-      this.clearSelection()
-      return
-    }
-    if (this.host) {
-      this.host.selectRange(range[0], range[1])
-      return
-    }
-    this.session.selectRange(range[0], range[1])
+    if (!range) return this.clearSelection()
+    if (this.host) return this.host.selectRange(range[0], range[1])
+    return this.session.selectRange(range[0], range[1]).selectionChanged
   }
 
-  selectAll(): void {
-    if (this.host) {
-      this.host.selectAll()
-      return
-    }
-    this.session.selectAll()
+  selectAll(): boolean {
+    if (this.host) return this.host.selectAll()
+    return this.session.selectAll().selectionChanged
   }
 
-  selectLines(start: number, end: number): void {
+  selectLines(start: number, end: number): boolean {
     const maxRow = this.session.scrollbackLength + this.session.grid.rows - 1
     const first = Math.max(0, Math.min(maxRow, start))
     const last = Math.max(first, Math.min(maxRow, end))
-    if (this.host) {
-      this.host.selectLines(first, last)
-      return
-    }
-    this.session.selectLines(first, last)
+    if (this.host) return this.host.selectLines(first, last)
+    return this.session.selectLines(first, last).selectionChanged
   }
 
   subscribe(handlers: XtermRuntimeHandlers): IDisposable {
@@ -232,7 +219,10 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
   }
 
   write(data: TerminalInputData): void {
+    const focusReportingBefore = this.session.focusReportingEnabled
     this.session.write(data)
+    if (focusReportingBefore || !this.session.focusReportingEnabled) return
+    this.session.reportFocus()
   }
 }
 
@@ -255,16 +245,7 @@ async function createRuntime(
   }
 }
 
-function scheduleWriteParsed(callback: () => void): void {
-  if (typeof requestAnimationFrame === 'function') {
-    requestAnimationFrame(() => callback())
-    return
-  }
-  queueMicrotask(callback)
-}
-
 export const defaultXtermTerminalDependencies: XtermTerminalDependencies = Object.freeze({
   createElements: createTerminalElements,
   createRuntime,
-  scheduleWriteParsed,
 })

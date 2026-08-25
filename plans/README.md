@@ -18,23 +18,23 @@ every verification gate, and update its status row when finished.
 
 ## Execution order and status
 
-| Plan | Title                                                        | Priority | Effort | Depends on | Status                                                         |
-| ---- | ------------------------------------------------------------ | -------- | ------ | ---------- | -------------------------------------------------------------- |
-| 001  | Establish renderer characterization and metrics              | P1       | M      | —          | DONE                                                           |
-| 002  | Separate cell effects from glyph geometry                    | P1       | L      | 001        | DONE                                                           |
-| 003  | Rasterize cropped, style-aware glyphs                        | P1       | L      | 002        | DONE                                                           |
-| 004  | Replace monolithic atlases with paged texture arrays         | P1       | L      | 003        | DONE                                                           |
-| 005  | Integrate font geometry and requalify the renderer           | P1       | L      | 004        | DONE                                                           |
-| 006  | Add vanilla hotkey arbitration and explicit input ownership  | P1       | M      | 005        | DONE                                                           |
-| 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | DONE                                                           |
-| 008  | Implement the xterm Terminal facade and lifecycle contract   | P1       | XL     | 006, 007   | BLOCKED — native ABI cannot preserve xterm `clear()` semantics |
-| 009  | Expose xterm native-backed extension surfaces                | P1       | XL     | 008        | TODO                                                           |
-| 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | TODO                                                           |
-| 011  | Match attach, clipboard, fit, web-links, and progress addons | P1       | L      | 010        | TODO                                                           |
-| 012  | Match search, serialize, and Unicode addons                  | P1       | XL     | 009, 011   | TODO                                                           |
-| 013  | Match web-font, ligature, image, and WebGL addons            | P1       | XL     | 010, 012   | TODO                                                           |
-| 014  | Add headless parity and aliasable compatibility packages     | P1       | XL     | 011–013    | TODO                                                           |
-| 015  | Certify versioned xterm parity and close the program         | P1       | XL     | 006–014    | TODO                                                           |
+| Plan | Title                                                        | Priority | Effort | Depends on | Status |
+| ---- | ------------------------------------------------------------ | -------- | ------ | ---------- | ------ |
+| 001  | Establish renderer characterization and metrics              | P1       | M      | —          | DONE   |
+| 002  | Separate cell effects from glyph geometry                    | P1       | L      | 001        | DONE   |
+| 003  | Rasterize cropped, style-aware glyphs                        | P1       | L      | 002        | DONE   |
+| 004  | Replace monolithic atlases with paged texture arrays         | P1       | L      | 003        | DONE   |
+| 005  | Integrate font geometry and requalify the renderer           | P1       | L      | 004        | DONE   |
+| 006  | Add vanilla hotkey arbitration and explicit input ownership  | P1       | M      | 005        | DONE   |
+| 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | DONE   |
+| 008  | Implement the xterm Terminal facade and lifecycle contract   | P1       | XL     | 006, 007   | DONE   |
+| 009  | Expose xterm native-backed extension surfaces                | P1       | XL     | 008        | TODO   |
+| 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | TODO   |
+| 011  | Match attach, clipboard, fit, web-links, and progress addons | P1       | L      | 010        | TODO   |
+| 012  | Match search, serialize, and Unicode addons                  | P1       | XL     | 009, 011   | TODO   |
+| 013  | Match web-font, ligature, image, and WebGL addons            | P1       | XL     | 010, 012   | TODO   |
+| 014  | Add headless parity and aliasable compatibility packages     | P1       | XL     | 011–013    | TODO   |
+| 015  | Certify versioned xterm parity and close the program         | P1       | XL     | 006–014    | TODO   |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED` (with one-line reason) | `REJECTED`
 (with one-line rationale).
@@ -99,12 +99,15 @@ alone is not parity.
 - Plan 007 pins reference source/released packages and creates the parity ledger. Plan 008 starts
   only after Plans 006 and 007 are DONE.
 - Plan 008 solves synchronous xterm construction/open observables over asynchronous WASM creation.
-  Plan 009 then adds native-backed buffer/parser/Unicode/extensibility surfaces; no shadow parser or
-  visible-row proxy is allowed.
+  Its qualified completion transfers every unresolved row to Plans 009, 010, 014, or 015 without
+  promotion. The accepted visual-hard-clear and native-write-lifecycle divergences remain partial
+  under Plan 015, so Plan 008 DONE is not a full-parity claim. Plan 009 then adds native-backed
+  buffer/parser/Unicode/extensibility surfaces; no shadow parser or visible-row proxy is allowed.
 - Plan 010 completes browser interaction and accessibility. Plans 011–013 qualify every official
   addon group against those public surfaces.
 - Plan 014 adds headless behavior and package-manager-alias distribution. Plan 015 is the only plan
-  allowed to make the versioned parity/drop-in claim.
+  allowed to make the versioned parity/drop-in claim, and its zero-gap criterion remains
+  unsatisfied while either accepted Plan 008 divergence stays partial.
 
 ## Program invariants
 

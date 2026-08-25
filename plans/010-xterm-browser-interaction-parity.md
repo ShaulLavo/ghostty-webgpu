@@ -46,6 +46,13 @@ Match released xterm 6.0.0 for:
 - `documentOverride`, shadow DOM, resize/DPR/font loading, supported browser behavior, and renderer
   initialization/device loss.
 
+Plan 010 inherits 113 partial Plan 008 rows covering the remaining option/theme/window/overview
+types and behavior, DOM/open/disposal identities, custom handlers, focus/blur, exact input/paste and
+`onData`/`onKey`/`onBinary`, renderer damage ranges, dimensions/resize, scrolling, and localization.
+Transfer records ownership only; every row remains partial until this plan's differential and
+physical browser gates pass. In particular, dispose-before-first-open DOM behavior is unresolved,
+not silently accepted as another divergence.
+
 All keyboard shortcut chords use the Plan 006 vanilla TanStack boundary. Terminal key packets still
 use Ghostty. Focused ARIA widget navigation remains local semantic keyboard handling.
 

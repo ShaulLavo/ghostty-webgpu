@@ -3,7 +3,6 @@ import type { TerminalElements } from '../dom/elements.js'
 import type { TerminalInputData } from '../term/types.js'
 import { AddonManager } from './addons.js'
 import { EventEmitter } from './events.js'
-import { DeferredTargetQueue } from './operation-queue.js'
 import { TerminalOptionsStore, type TerminalOptionChange } from './options.js'
 import {
   EMPTY_MARKERS,
@@ -14,6 +13,7 @@ import {
   type ModesPlaceholder,
 } from './placeholders.js'
 import { defaultXtermTerminalDependencies } from './runtime.js'
+import { XtermWriteQueue } from './write-queue.js'
 import type {
   XtermTerminalDependencies,
   XtermTerminalHost,
@@ -39,11 +39,6 @@ import type {
 
 type FacadeLifecycle = 'constructed' | 'disposed' | 'disposing' | 'failed' | 'open' | 'opening'
 
-interface PendingWrite {
-  readonly callback?: () => void
-  readonly data: TerminalInputData
-}
-
 interface DeferredCompletion {
   readonly promise: Promise<void>
   reject(cause: unknown): void
@@ -66,7 +61,10 @@ interface FacadeEvents {
 }
 
 const textDecoder = new TextDecoder()
-const lineEnding = new Uint8Array([0x0d, 0x0a])
+const localizableStringValues: ILocalizableStrings = {
+  promptLabel: 'Terminal input',
+  tooMuchOutput: 'Too much output to announce, navigate to rows manually to read',
+}
 const allOptionKeys = [
   'cursorBlink',
   'cursorStyle',
@@ -80,20 +78,6 @@ const allOptionKeys = [
   'scrollback',
   'theme',
 ] as const satisfies readonly (keyof ITerminalOptions)[]
-
-function copiedInput(data: TerminalInputData): TerminalInputData {
-  if (typeof data === 'string') return data.slice()
-  if (data instanceof Uint8Array) return Uint8Array.from(data)
-  throw new TypeError('Terminal write data must be a string or Uint8Array')
-}
-
-function dataWithLineEnding(data: TerminalInputData): TerminalInputData {
-  if (typeof data === 'string') return `${data}\r\n`
-  const result = new Uint8Array(data.length + lineEnding.length)
-  result.set(data)
-  result.set(lineEnding, data.length)
-  return result
-}
 
 function convertedLineFeeds(data: TerminalInputData, convertEol: boolean): TerminalInputData {
   if (!convertEol) return data
@@ -111,9 +95,9 @@ function convertedLineFeeds(data: TerminalInputData, convertEol: boolean): Termi
 }
 
 function lineFeedCount(data: TerminalInputData): number {
-  if (typeof data === 'string') return [...data.matchAll(/\n/gu)].length
+  if (typeof data === 'string') return [...data.matchAll(/[\n\v\f]/gu)].length
   let count = 0
-  for (const byte of data) if (byte === 0x0a) count += 1
+  for (const byte of data) if (byte === 0x0a || byte === 0x0b || byte === 0x0c) count += 1
   return count
 }
 
@@ -122,20 +106,20 @@ function verifyIntegers(...values: number[]): void {
   throw new TypeError('This API only accepts integers')
 }
 
-function createFacadeEvents(onError: (cause: unknown) => void): FacadeEvents {
+function createFacadeEvents(): FacadeEvents {
   return {
-    bell: new EventEmitter(onError),
-    binary: new EventEmitter(onError),
-    cursorMove: new EventEmitter(onError),
-    data: new EventEmitter(onError),
-    key: new EventEmitter(onError),
-    lineFeed: new EventEmitter(onError),
-    render: new EventEmitter(onError),
-    resize: new EventEmitter(onError),
-    scroll: new EventEmitter(onError),
-    selection: new EventEmitter(onError),
-    title: new EventEmitter(onError),
-    writeParsed: new EventEmitter(onError),
+    bell: new EventEmitter(),
+    binary: new EventEmitter(),
+    cursorMove: new EventEmitter(),
+    data: new EventEmitter(),
+    key: new EventEmitter(),
+    lineFeed: new EventEmitter(),
+    render: new EventEmitter(),
+    resize: new EventEmitter(),
+    scroll: new EventEmitter(),
+    selection: new EventEmitter(),
+    title: new EventEmitter(),
+    writeParsed: new EventEmitter(),
   }
 }
 
@@ -191,10 +175,40 @@ function parentElement(value: unknown): asserts value is HTMLElement {
   throw new TypeError('Terminal.open requires a parent HTMLElement')
 }
 
+function localizableStrings(): ILocalizableStrings {
+  return {
+    get promptLabel() {
+      return localizableStringValues.promptLabel
+    },
+    set promptLabel(value: string) {
+      localizableStringValues.promptLabel = value
+    },
+    get tooMuchOutput() {
+      return localizableStringValues.tooMuchOutput
+    },
+    set tooMuchOutput(value: string) {
+      localizableStringValues.tooMuchOutput = value
+    },
+  }
+}
+
+function captureDisposal(failures: unknown[], dispose: () => void): void {
+  try {
+    dispose()
+  } catch (cause) {
+    failures.push(cause)
+  }
+}
+
+function throwDisposalFailures(failures: readonly unknown[]): void {
+  if (failures.length === 0) return
+  if (failures.length === 1) throw failures[0]
+  throw new AggregateError(failures, 'Encountered errors while disposing of terminal')
+}
+
 export class Terminal implements IDisposable {
-  static strings: ILocalizableStrings = {
-    promptLabel: 'Terminal input',
-    tooMuchOutput: 'Too much output to announce, navigate to rows manually to read',
+  static get strings(): ILocalizableStrings {
+    return localizableStrings()
   }
 
   private readonly addons: AddonManager<Terminal>
@@ -208,22 +222,19 @@ export class Terminal implements IDisposable {
   readonly ghosttyReady: Promise<void>
   private host?: XtermTerminalHost
   private hostPromise?: Promise<void>
-  private readonly keyDecisions = new WeakMap<Event, boolean>()
   private lifecycle: FacadeLifecycle = 'constructed'
   private readonly modesPlaceholder: ModesPlaceholder
-  private readonly operationQueue: DeferredTargetQueue<XtermTerminalRuntime>
+  private nativeOwnsInput = false
   private readonly opened: DeferredCompletion
   private readonly optionsStore: TerminalOptionsStore
-  private readonly pendingWrites: PendingWrite[] = []
   private readonly bufferPlaceholder: IBufferNamespace
   private readonly parserPlaceholder: IParser
+  private resizing = false
   private runtime?: XtermTerminalRuntime
   private runtimeSubscription?: IDisposable
   private textareaValue?: HTMLTextAreaElement
   private readonly unicodePlaceholder: IUnicodeHandling
-  private readonly wheelDecisions = new WeakMap<Event, boolean>()
-  private writeFlushScheduled = false
-  private writeParsedScheduled = false
+  private readonly writeQueue: XtermWriteQueue<XtermTerminalRuntime>
 
   readonly onBell: IEvent<void>
   readonly onBinary: IEvent<string>
@@ -243,7 +254,7 @@ export class Terminal implements IDisposable {
     this.optionsStore = new TerminalOptionsStore(options, (change) =>
       this.handleOptionChange(change),
     )
-    this.events = createFacadeEvents((cause) => this.reportError(cause, 'event.listener'))
+    this.events = createFacadeEvents()
     this.onBell = this.events.bell.event
     this.onBinary = this.events.binary.event
     this.onCursorMove = this.events.cursorMove.event
@@ -256,19 +267,20 @@ export class Terminal implements IDisposable {
     this.onSelectionChange = this.events.selection.event
     this.onTitleChange = this.events.title.event
     this.onWriteParsed = this.events.writeParsed.event
-    this.operationQueue = new DeferredTargetQueue((cause) => this.reportError(cause, 'write'))
     this.opened = deferredCompletion()
     this.ghosttyOpened = this.opened.promise
     void this.ghosttyOpened.catch(() => {})
-    this.addons = new AddonManager(this, (cause, operation) =>
-      this.reportError(cause, `addon.${operation}`),
-    )
+    this.addons = new AddonManager(this)
     this.bufferPlaceholder = createBufferPlaceholder()
     this.parserPlaceholder = createParserPlaceholder()
     this.modesPlaceholder = createModesPlaceholder()
     this.unicodePlaceholder = createUnicodePlaceholder(() =>
       Boolean(this.optionsStore.values.allowProposedApi),
     )
+    this.writeQueue = new XtermWriteQueue({
+      consume: (runtime, data) => this.consumeWrite(runtime, data),
+      onWriteParsed: () => this.events.writeParsed.emit(undefined),
+    })
     this.ghosttyReady = this.initialize()
     void this.ghosttyReady.catch(() => {})
   }
@@ -299,7 +311,6 @@ export class Terminal implements IDisposable {
   }
 
   set options(value: ITerminalOptions) {
-    this.ensureActive('set options')
     this.optionsStore.set(value)
   }
 
@@ -321,14 +332,12 @@ export class Terminal implements IDisposable {
   }
 
   attachCustomKeyEventHandler(handler: (event: KeyboardEvent) => boolean): void {
-    this.ensureActive('attachCustomKeyEventHandler')
     if (typeof handler !== 'function')
       throw new TypeError('Custom key event handler must be a function')
     this.customKeyEventHandler = handler
   }
 
   attachCustomWheelEventHandler(handler: (event: WheelEvent) => boolean): void {
-    this.ensureActive('attachCustomWheelEventHandler')
     if (typeof handler !== 'function') {
       throw new TypeError('Custom wheel event handler must be a function')
     }
@@ -340,13 +349,17 @@ export class Terminal implements IDisposable {
   }
 
   clear(): void {
-    this.requireRuntime('clear').clear()
+    this.ensureActive('clear')
+    if (!this.runtime) return
+    this.runtime.clear()
     this.updateModes()
   }
 
   clearSelection(): void {
     this.ensureActive('clearSelection')
-    this.runtime?.clearSelection()
+    if (!this.elementValue) return
+    const changed = this.runtime?.clearSelection() ?? false
+    if (!changed) this.events.selection.emit(undefined)
   }
 
   clearTextureAtlas(): void {
@@ -364,19 +377,20 @@ export class Terminal implements IDisposable {
     this.lifecycle = 'disposing'
     const reason = abortError()
     this.opened.reject(reason)
-    this.pendingWrites.length = 0
-    this.operationQueue.cancel(reason)
-    this.addons.dispose()
-    this.runtimeSubscription?.dispose()
+    this.writeQueue.abandon()
+    const failures: unknown[] = []
+    captureDisposal(failures, () => this.runtimeSubscription?.dispose())
     this.runtimeSubscription = undefined
-    this.host?.dispose()
+    captureDisposal(failures, () => this.host?.dispose())
     this.host = undefined
-    this.elements?.dispose()
+    captureDisposal(failures, () => this.elements?.dispose())
     this.elements = undefined
-    this.runtime?.dispose()
+    captureDisposal(failures, () => this.runtime?.dispose())
     this.runtime = undefined
-    disposeFacadeEvents(this.events)
+    captureDisposal(failures, () => disposeFacadeEvents(this.events))
+    captureDisposal(failures, () => this.addons.dispose())
     this.lifecycle = 'disposed'
+    throwDisposalFailures(failures)
   }
 
   focus(): void {
@@ -412,7 +426,6 @@ export class Terminal implements IDisposable {
   }
 
   loadAddon(addon: ITerminalAddon): void {
-    this.ensureActive('loadAddon')
     this.addons.load(addon)
   }
 
@@ -426,6 +439,7 @@ export class Terminal implements IDisposable {
     this.elementValue = elements.root
     this.textareaValue = elements.textarea
     this.installShellHandlers(elements)
+    this.writeQueue.pause()
     this.lifecycle = 'opening'
     void this.attachHost().catch((cause: unknown) => this.fail(cause, 'open'))
   }
@@ -468,39 +482,59 @@ export class Terminal implements IDisposable {
   }
 
   reset(): void {
-    this.requireRuntime('reset').reset()
+    this.ensureActive('reset')
+    if (!this.runtime) return
+    this.runtime.reset()
     this.updateModes()
   }
 
   resize(columns: number, rows: number): void {
     this.ensureActive('resize')
     verifyIntegers(columns, rows)
+    const rowsChanged = rows !== this.rows
     if (!this.optionsStore.resize(columns, rows)) return
-    this.runtime?.resize(this.cols, this.rows)
+    this.resizing = true
+    try {
+      this.runtime?.resize(this.cols, this.rows)
+    } finally {
+      this.resizing = false
+    }
     this.events.resize.emit({ cols: this.cols, rows: this.rows })
+    this.finishResizeSelection(rowsChanged)
+  }
+
+  private finishResizeSelection(rowsChanged: boolean): void {
+    if (!rowsChanged || !this.elementValue) return
+    if (this.runtime?.clearSelection()) return
+    this.events.selection.emit(undefined)
   }
 
   scrollLines(amount: number): void {
     verifyIntegers(amount)
-    this.requireRuntime('scrollLines').scrollBy(amount)
+    this.ensureActive('scrollLines')
+    this.runtime?.scrollBy(amount)
   }
 
   scrollPages(pageCount: number): void {
     verifyIntegers(pageCount)
-    this.requireRuntime('scrollPages').scrollBy(pageCount * (this.rows - 1))
+    this.ensureActive('scrollPages')
+    this.runtime?.scrollBy(pageCount * (this.rows - 1))
   }
 
   scrollToBottom(): void {
-    this.requireRuntime('scrollToBottom').scrollToBottom()
+    this.ensureActive('scrollToBottom')
+    this.runtime?.scrollToBottom()
   }
 
   scrollToLine(line: number): void {
     verifyIntegers(line)
-    this.requireRuntime('scrollToLine').scrollToLine(line)
+    this.ensureActive('scrollToLine')
+    this.runtime?.scrollToLine(Math.max(0, line))
   }
 
   scrollToTop(): void {
-    this.requireRuntime('scrollToTop').scrollToTop()
+    this.ensureActive('scrollToTop')
+    this.runtime?.scrollToTop()
   }
 
   select(column: number, row: number, length: number): void {
@@ -509,20 +543,26 @@ export class Terminal implements IDisposable {
   }
 
   selectAll(): void {
-    this.requireRuntime('selectAll').selectAll()
+    if (!this.elementValue) return
+    const changed = this.requireRuntime('selectAll').selectAll()
+    if (!changed) this.events.selection.emit(undefined)
   }
 
   selectLines(start: number, end: number): void {
     verifyIntegers(start, end)
-    this.requireRuntime('selectLines').selectLines(start, end)
+    if (!this.elementValue) return
+    const changed = this.requireRuntime('selectLines').selectLines(start, end)
+    if (!changed) this.events.selection.emit(undefined)
   }
 
   write(data: string | Uint8Array, callback?: () => void): void {
-    this.enqueueWrite(data, callback)
+    this.ensureActive('write')
+    this.writeQueue.write(data, callback)
   }
 
   writeln(data: string | Uint8Array, callback?: () => void): void {
-    this.enqueueWrite(dataWithLineEnding(copiedInput(data)), callback)
+    this.ensureActive('writeln')
+    this.writeQueue.writeln(data, callback)
   }
 
   private async initialize(): Promise<void> {
@@ -549,7 +589,7 @@ export class Terminal implements IDisposable {
     runtime.resize(this.cols, this.rows)
     this.runtimeSubscription = this.subscribeRuntime(runtime)
     this.updateModes()
-    this.operationQueue.bind(runtime)
+    this.writeQueue.bind(runtime)
     await this.attachHost()
   }
 
@@ -563,6 +603,7 @@ export class Terminal implements IDisposable {
       {
         beforeUserInput: () => this.beforeUserInput(),
         customKeyEvent: (event) => this.decideCustomKeyEvent(event),
+        inputReady: () => this.commitNativeInputOwnership(),
         inputDisabled: () => this.optionsStore.values.disableStdin,
         onKey: (key, domEvent) => this.events.key.emit({ domEvent, key }),
       },
@@ -578,36 +619,41 @@ export class Terminal implements IDisposable {
   }
 
   private decideCustomKeyEvent(event: KeyboardEvent): boolean {
-    const cached = this.keyDecisions.get(event)
-    if (cached !== undefined) return cached
-    this.keyDecisions.set(event, false)
-    const allowed = this.customKeyEventHandler?.(event) !== false
-    this.keyDecisions.set(event, allowed)
-    return allowed
+    return this.customKeyEventHandler?.(event) !== false
   }
 
   private decideCustomWheelEvent(event: WheelEvent): boolean {
-    const cached = this.wheelDecisions.get(event)
-    if (cached !== undefined) return cached
-    this.wheelDecisions.set(event, false)
-    const allowed = this.customWheelEventHandler?.(event) !== false
-    this.wheelDecisions.set(event, allowed)
-    return allowed
+    return this.customWheelEventHandler?.(event) !== false
+  }
+
+  private handleShellKeyEvent(event: KeyboardEvent): void {
+    if (this.nativeOwnsInput) return
+    this.decideCustomKeyEvent(event)
+  }
+
+  private handleShellWheelEvent(event: WheelEvent): void {
+    if (this.nativeOwnsInput) return
+    this.decideCustomWheelEvent(event)
   }
 
   private installShellHandlers(elements: TerminalElements): void {
     const listenerOptions = { signal: elements.signal }
     elements.textarea.addEventListener(
       'keydown',
-      (event) => this.decideCustomKeyEvent(event),
+      (event) => this.handleShellKeyEvent(event),
+      listenerOptions,
+    )
+    elements.textarea.addEventListener(
+      'keypress',
+      (event) => this.handleShellKeyEvent(event),
       listenerOptions,
     )
     elements.textarea.addEventListener(
       'keyup',
-      (event) => this.decideCustomKeyEvent(event),
+      (event) => this.handleShellKeyEvent(event),
       listenerOptions,
     )
-    elements.root.addEventListener('wheel', (event) => this.decideCustomWheelEvent(event), {
+    elements.root.addEventListener('wheel', (event) => this.handleShellWheelEvent(event), {
       capture: true,
       passive: true,
       signal: elements.signal,
@@ -615,6 +661,7 @@ export class Terminal implements IDisposable {
   }
 
   private beforeUserInput(): void {
+    this.writeQueue.handleUserInput()
     const runtime = this.runtime
     if (!runtime || !this.optionsStore.values.scrollOnUserInput) return
     runtime.scrollToBottom()
@@ -631,6 +678,7 @@ export class Terminal implements IDisposable {
     }
     this.lifecycle = 'open'
     this.opened.resolve()
+    this.writeQueue.resume()
   }
 
   private emitWriteEffects(
@@ -645,18 +693,6 @@ export class Terminal implements IDisposable {
     this.updateModes()
   }
 
-  private enqueueWrite(data: TerminalInputData, callback?: () => void): void {
-    this.ensureActive('write')
-    if (callback !== undefined && typeof callback !== 'function') {
-      throw new TypeError('Terminal write callback must be a function')
-    }
-    const copied = copiedInput(data)
-    this.pendingWrites.push({ callback, data: copied })
-    if (this.writeFlushScheduled) return
-    this.writeFlushScheduled = true
-    queueMicrotask(() => this.flushPendingWrites())
-  }
-
   private fail(cause: unknown, operation: string): void {
     if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') return
     this.lifecycle = 'failed'
@@ -668,16 +704,6 @@ export class Terminal implements IDisposable {
     }
   }
 
-  private flushPendingWrites(): void {
-    this.writeFlushScheduled = false
-    if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') {
-      this.pendingWrites.length = 0
-      return
-    }
-    const writes = this.pendingWrites.splice(0)
-    for (const write of writes) this.queueWrite(write)
-  }
-
   private handleFrame(snapshot: RendererFrameSnapshot): void {
     if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') return
     const range = renderRange(snapshot, this.rows)
@@ -686,26 +712,24 @@ export class Terminal implements IDisposable {
   }
 
   private handleOptionChange(change: TerminalOptionChange): void {
-    this.ensureActive('set options')
+    if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') return
     this.runtime?.applyOptions(change.values, change.keys)
+  }
+
+  private commitNativeInputOwnership(): void {
+    if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') return
+    this.nativeOwnsInput = true
   }
 
   private plan009Error(surface: string): Error {
     return new Error(`xterm ${surface} is unavailable until Plan 009`)
   }
 
-  private queueWrite(write: PendingWrite): void {
-    const data = convertedLineFeeds(write.data, this.optionsStore.values.convertEol)
-    this.operationQueue.enqueue((runtime) => {
-      const before = runtime.cursor
-      runtime.write(data)
-      this.emitWriteEffects(runtime, data, before)
-      try {
-        write.callback?.()
-      } finally {
-        this.scheduleWriteParsed()
-      }
-    })
+  private consumeWrite(runtime: XtermTerminalRuntime, input: TerminalInputData): void {
+    const data = convertedLineFeeds(input, this.optionsStore.values.convertEol)
+    const before = runtime.cursor
+    runtime.write(data)
+    this.emitWriteEffects(runtime, data, before)
   }
 
   private reportError(cause: unknown, operation: string): void {
@@ -730,27 +754,14 @@ export class Terminal implements IDisposable {
     throw new Error(`Terminal.${operation} requires the native runtime to be ready`)
   }
 
-  private scheduleWriteParsed(): void {
-    if (this.writeParsedScheduled) return
-    this.writeParsedScheduled = true
-    this.dependencies.scheduleWriteParsed(() => {
-      this.writeParsedScheduled = false
-      if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') return
-      this.events.writeParsed.emit(undefined)
-    })
-  }
-
   private subscribeRuntime(runtime: XtermTerminalRuntime): IDisposable {
     return runtime.subscribe({
       bell: () => this.events.bell.emit(undefined),
       data: (data) => this.events.data.emit(textDecoder.decode(data)),
       error: (cause, operation) => this.reportError(cause, operation),
-      resize: (cols, rows) => {
-        if (!this.optionsStore.resize(cols, rows)) return
-        this.events.resize.emit({ cols, rows })
-      },
+      resize: (cols, rows) => this.handleRuntimeResize(cols, rows),
       scroll: (position) => this.events.scroll.emit(position),
-      selection: () => this.events.selection.emit(undefined),
+      selection: () => this.handleRuntimeSelection(),
       title: (title) => this.events.title.emit(title),
     })
   }
@@ -758,6 +769,17 @@ export class Terminal implements IDisposable {
   private updateModes(): void {
     if (!this.runtime) return
     this.modesPlaceholder.update(this.runtime.modes)
+  }
+
+  private handleRuntimeSelection(): void {
+    if (this.resizing) return
+    this.events.selection.emit(undefined)
+  }
+
+  private handleRuntimeResize(cols: number, rows: number): void {
+    if (this.resizing) return
+    if (!this.optionsStore.resize(cols, rows)) return
+    this.events.resize.emit({ cols, rows })
   }
 
   private ensureActive(operation: string): void {

@@ -35,6 +35,22 @@ function addon(
 }
 
 describe('xterm Terminal facade', () => {
+  it('returns fresh static string accessors backed by shared values', () => {
+    const first = Terminal.strings
+    const second = Terminal.strings
+    const originalPromptLabel = first.promptLabel
+
+    try {
+      expect(second).not.toBe(first)
+      first.promptLabel = 'Custom prompt'
+      expect(second.promptLabel).toBe('Custom prompt')
+      expect(Terminal.strings.promptLabel).toBe('Custom prompt')
+      expect(Object.getOwnPropertyDescriptor(Terminal, 'strings')?.set).toBeUndefined()
+    } finally {
+      first.promptLabel = originalPromptLabel
+    }
+  })
+
   it('exposes synchronous constructor defaults and one live options object', async () => {
     const terminal = trackedTerminal({ cols: 92, rows: 31 })
     const options = terminal.options
@@ -67,7 +83,7 @@ describe('xterm Terminal facade', () => {
     expect(() => {
       terminal.options = { fontSize: 19, scrollback: -1 }
     }).toThrow('scrollback cannot be less than 0')
-    expect(options.fontSize).toBe(17)
+    expect(options.fontSize).toBe(19)
     expect(options.scrollback).toBe(250)
 
     await terminal.ghosttyReady
@@ -99,28 +115,34 @@ describe('xterm Terminal facade', () => {
     ])
   })
 
-  it('flushes pre-ready string and copied Uint8Array writes in FIFO callback order', async () => {
+  it('retains bytes through scheduled slices and preserves FIFO callback order', async () => {
     const terminal = trackedTerminal({ cols: 8, rows: 3 })
     const bytes = new Uint8Array([0x42])
     const timeline: string[] = []
+    let bytesWritten = false
     const parsed = new Promise<void>((resolve) => {
       const subscription = terminal.onWriteParsed(() => {
         timeline.push('parsed')
+        if (!bytesWritten) return
         subscription.dispose()
         resolve()
       })
     })
 
     terminal.write('A', () => timeline.push('string'))
-    terminal.write(bytes, () => timeline.push('bytes'))
+    terminal.write(bytes, () => {
+      timeline.push('bytes')
+      bytesWritten = true
+    })
     bytes[0] = 0x58
     timeline.push('returned')
 
     await parsed
 
-    expect(timeline).toEqual(['returned', 'string', 'bytes', 'parsed'])
+    expect(timeline.filter((event) => event !== 'parsed')).toEqual(['returned', 'string', 'bytes'])
+    expect(timeline.at(-1)).toBe('parsed')
     terminal.select(0, 0, 2)
-    expect(terminal.getSelection()).toBe('AB')
+    expect(terminal.getSelection()).toBe('AX')
   })
 
   it('emits input synchronously and honors the live disableStdin option', async () => {
@@ -142,11 +164,28 @@ describe('xterm Terminal facade', () => {
     expect(data).toEqual(['before-ready', 'after-ready'])
   })
 
-  it('fails clear explicitly when the native ABI cannot preserve the active prompt line', async () => {
-    const terminal = trackedTerminal()
+  it('visually clears the active screen after native readiness', async () => {
+    const terminal = trackedTerminal({ cols: 5, rows: 3 })
     await terminal.ghosttyReady
+    await new Promise<void>((resolve) => {
+      terminal.write('one\r\ntwo\r\nthree\r\nkeep!', resolve)
+    })
 
-    expect(() => terminal.clear()).toThrow('native ABI cannot preserve the active prompt line')
+    terminal.clear()
+    terminal.select(0, 0, 5)
+
+    expect(terminal.getSelection()).toBe('')
+  })
+
+  it('treats pre-ready clear as a synchronous no-op before queued writes', async () => {
+    const terminal = trackedTerminal({ cols: 8, rows: 3 })
+    const written = new Promise<void>((resolve) => terminal.write('queued', resolve))
+
+    expect(() => terminal.clear()).not.toThrow()
+    await Promise.all([terminal.ghosttyReady, written])
+    terminal.select(0, 0, 6)
+
+    expect(terminal.getSelection()).toBe('queued')
   })
 
   it('disposes the native session when initial option application fails', async () => {
@@ -159,6 +198,69 @@ describe('xterm Terminal facade', () => {
     } finally {
       dispose.mockRestore()
     }
+  })
+
+  it('abandons callbacks when native creation fails without claiming a parse', async () => {
+    const terminal = trackedTerminal({ logLevel: 'off', theme: null as never })
+    let callbackCount = 0
+    let parsedCount = 0
+    terminal.onWriteParsed(() => {
+      parsedCount += 1
+    })
+    terminal.write('queued', () => {
+      callbackCount += 1
+    })
+
+    await expect(terminal.ghosttyReady).rejects.toBeInstanceOf(TypeError)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(callbackCount).toBe(0)
+    expect(parsedCount).toBe(0)
+  })
+
+  it('abandons writes disposed before delivery without fake completion', async () => {
+    const terminal = trackedTerminal()
+    let callbackCount = 0
+    let parsedCount = 0
+    terminal.onWriteParsed(() => {
+      parsedCount += 1
+    })
+    terminal.write('queued', () => {
+      callbackCount += 1
+    })
+
+    terminal.dispose()
+    await Promise.allSettled([terminal.ghosttyReady])
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(callbackCount).toBe(0)
+    expect(parsedCount).toBe(0)
+  })
+
+  it('emits line-feed events for LF, VT, and FF parser controls', async () => {
+    const terminal = trackedTerminal()
+    await terminal.ghosttyReady
+    let lineFeeds = 0
+    terminal.onLineFeed(() => {
+      lineFeeds += 1
+    })
+
+    await new Promise<void>((resolve) => terminal.write('\n\v\f', resolve))
+
+    expect(lineFeeds).toBe(3)
+  })
+
+  it('treats pre-ready reset and scrolling as empty-terminal no-ops', async () => {
+    const terminal = trackedTerminal()
+
+    expect(() => terminal.reset()).not.toThrow()
+    expect(() => terminal.scrollLines(-1)).not.toThrow()
+    expect(() => terminal.scrollPages(1)).not.toThrow()
+    expect(() => terminal.scrollToLine(-1)).not.toThrow()
+    expect(() => terminal.scrollToTop()).not.toThrow()
+    expect(() => terminal.scrollToBottom()).not.toThrow()
+
+    await terminal.ghosttyReady
   })
 
   it('activates addons synchronously, honors self-disposal, and disposes the rest in reverse', () => {
@@ -240,7 +342,7 @@ describe('xterm Terminal facade', () => {
     expect(() => modes.bracketedPasteMode).toThrow(Plan009UnavailableError)
   })
 
-  it('makes subscriptions and disposal idempotent and rejects later work', async () => {
+  it('makes subscriptions and disposal idempotent and retains disposed options mutability', async () => {
     const terminal = trackedTerminal()
     let resizeEvents = 0
     const subscription = terminal.onResize(() => {
@@ -261,8 +363,24 @@ describe('xterm Terminal facade', () => {
     expect(() => terminal.resize(83, 27)).toThrow('after disposal')
     expect(() => terminal.write('late')).toThrow('after disposal')
     expect(() => {
-      terminal.options = { fontSize: 16 }
-    }).toThrow('after disposal')
+      terminal.options.fontSize = 16
+      terminal.options = { cursorBlink: true }
+    }).not.toThrow()
+    expect(terminal.options.fontSize).toBe(16)
+    expect(terminal.options.cursorBlink).toBe(true)
+
+    let lateAddonActivations = 0
+    expect(() =>
+      terminal.loadAddon({
+        activate() {
+          lateAddonActivations += 1
+        },
+        dispose() {},
+      }),
+    ).not.toThrow()
+    expect(() => terminal.attachCustomKeyEventHandler(() => true)).not.toThrow()
+    expect(() => terminal.attachCustomWheelEventHandler(() => true)).not.toThrow()
+    expect(lateAddonActivations).toBe(1)
 
     const lateSubscription = terminal.onResize(() => {
       resizeEvents += 1

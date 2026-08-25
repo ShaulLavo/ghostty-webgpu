@@ -18,7 +18,10 @@
 - **Depends on**: Plans 006 and 007 DONE
 - **Category**: compatibility / public API / lifecycle
 - **Planned at**: commit `a7e7372`, 2026-08-24
-- **Execution state**: BLOCKED — the native ABI cannot preserve xterm `clear()` semantics
+- **Execution state**: DONE — qualified facade/lifecycle milestone, not full xterm certification
+- **Compatibility decisions**: use an upstream-only guarded visual `Terminal.clear()` instead of
+  retaining xterm's cursor row or stale backing slots; abandon queued callbacks on native creation
+  failure or any disposal before native consumption rather than report writes as parsed
 
 ## Why this matters
 
@@ -65,7 +68,7 @@ constructed -> opening -> open -> disposing -> disposed
 ```
 
 Construction is synchronous. It creates option state, event emitters, addon ownership, a FIFO
-operation queue, and an asynchronous native-terminal promise. Public calls made before native
+write queue, and an asynchronous native-terminal promise. Public calls made before native
 readiness are queued in call order when xterm itself permits deferred processing. Public properties
 with documented immediate values read from the compatibility shadow state until the native terminal
 is ready, then switch to verified live state without observable discontinuity.
@@ -77,7 +80,8 @@ released xterm creates a connected, half-initialized DOM shell, logs disposable 
 throws, while this facade rejects without leaking DOM. The first valid call exposes the documented
 DOM properties at the same observable point and starts asynchronous GPU/runtime attachment without
 returning a promise. Any async initialization failure is routed through the configured xterm logger
-and an internal rejected-ready state; queued write callbacks must not be left hanging. Do not add a
+and an internal rejected-ready state; queued writes are explicitly abandoned without callbacks or
+parsed events because the native parser never consumed them. Do not add a
 required public readiness API to examples or types. An optional Ghostty-specific diagnostic promise
 may be exported under a non-xterm name only if differential tests prove it cannot affect
 compatibility.
@@ -128,7 +132,7 @@ still prevent partial Kitty lifecycles when the handler claims a keydown.
 - `src/xterm/types.ts`
 - `src/xterm/events.ts`
 - `src/xterm/options.ts`
-- `src/xterm/operation-queue.ts`
+- `src/xterm/write-queue.ts`
 - additional exact `src/xterm/*.ts` modules only when one named responsibility warrants extraction
 - `src/xterm/tests/terminal.test.ts`
 - `src/xterm/tests/terminal.browser.test.ts`
@@ -172,16 +176,20 @@ does not reuse native event payload containers when xterm promises mutable/plain
 
 **Verify**: type fixtures assign target `Terminal`/events/options to released xterm consumer shapes.
 
-### Step 2: Build the deferred runtime and operation queue
+### Step 2: Build the deferred runtime and write queue
 
-Start native creation in the constructor without awaiting. Queue only operations whose xterm
-contract is already asynchronous/deferred: writes, write lines, parser input, and addon activation
-that waits on those surfaces. Preserve FIFO ordering across string/`Uint8Array` writes and callbacks.
+Start native creation in the constructor without awaiting. Queue only `write`/`writeln` work whose
+xterm contract is asynchronous; addon activation remains synchronous. Preserve FIFO ordering,
+next-task batching, caller-owned `Uint8Array` mutation until the parse-task boundary, callback
+reentrancy, and the synchronous response path after accepted user input.
 
 Classify every public call as immediate-shadow, queued, readiness-required, or lifecycle error in a
 table beside the tests. Do not return fabricated successful results for readiness-required methods.
-Ensure dispose before readiness cancels attachment, disposes a late native resolution, rejects new
-work, and completes/cancels queued callbacks exactly as the reference does.
+Ensure disposal before readiness cancels attachment, disposes a late native resolution, rejects new
+work, and abandons queued callbacks without inventing parse success. Disposal after readiness also
+abandons any scheduled write that has not reached the native parser: released xterm can keep its
+JavaScript write task alive after disposal, while this facade synchronously destroys the native
+runtime. This lifecycle boundary is an accepted partial owned by Plan 015.
 
 **Verify**: deterministic unit tests use a deferred native factory for ordering, failure, and
 disposal races.
@@ -202,8 +210,10 @@ microtask, after readiness, and after disposal.
 
 ### Step 4: Implement options and dimensions mapping
 
-Create one normalized compatibility options store with xterm defaults and mutability rules. Map
-supported values atomically to `TerminalSession`/renderer settings. Enforce init-only options and
+Create one normalized compatibility options store with xterm defaults and mutability rules. Apply
+enumerable option-object properties sequentially, retaining earlier valid mutations if a later
+property fails, and map each supported change transactionally to `TerminalSession`/renderer
+settings. Enforce init-only options and
 the `allowProposedApi` gate. Option updates that trigger fit, redraw, scrollback resize, or cursor
 changes must emit the same public events and ordering as the reference.
 
@@ -217,7 +227,8 @@ Adapt native methods to xterm signatures and return values. In particular:
 
 - `input` models user input and respects `disableStdin`/`wasUserInput` semantics;
 - `resize(columns, rows)` validates and emits once in reference order;
-- `write`/`writeln` accept callbacks and `Uint8Array` without retaining caller-owned mutable data;
+- `write`/`writeln` accept callbacks and retain caller-owned `Uint8Array` data only until xterm's
+  scheduled parse-task boundary, then snapshot it before any readiness wait;
 - `clear` differs from `reset`; do not alias them without differential proof;
 - scrolling uses xterm line/page semantics and clamps identically;
 - selection methods use xterm 0-based buffer coordinates and exclusive/inclusive boundaries as
@@ -234,8 +245,9 @@ Connect the key handler to Plan 006 before shortcut/raw processing. Connect the 
 scrollbar or terminal wheel ownership and honor its boolean result. Handler exceptions must follow
 reference behavior and never leave pressed/suppressed state stuck.
 
-`loadAddon` activates once, owns disposal, rolls back failed activation, and disposes addons in the
-same order as the reference. Test addon self-disposal and terminal disposal.
+`loadAddon` wraps and owns the addon before activation. If activation throws, retain the failed
+addon for terminal disposal, matching released 6.0.0. Dispose addons in reference order and test
+self-disposal and terminal disposal.
 
 ### Step 7: Differentially qualify and update the ledger
 
@@ -257,38 +269,196 @@ Run the full gate and record counts of compatible/partial/missing/blocked rows.
 ## Execution notes
 
 - Added the synchronous `Terminal` facade, stable pre-ready option/dimension state, asynchronous
-  native runtime attachment, FIFO write processing, xterm-shaped events/types, addon ownership,
-  selection adapters, custom key/wheel first refusal, fixed-grid renderer attachment, and retained
-  disconnected DOM identities.
-- Released-xterm differential browser evidence passes for typed valid dimensions and resize events,
-  synchronous open/reopen and retained DOM identities, focus/blur, immediate and ready custom-input
-  refusal, one accepted ArrowUp path, listener-disposal ordering, failed addon activation, one ready
-  string-write ordering path, and one normal exclusive selection range. Rows stay partial where that
-  evidence does not cover the full contract.
-- Plan 008 now owns 13 `compatible`, 171 `partial`, and one `blocked` ledger row. Compatible rows are
-  limited to type-shape or browser-differential evidence without a known counterexample.
-- Constructor normalization, dimension boundaries, recursive addon types/lifecycle, event failure,
-  reentrancy, handler replacement/exception paths, out-of-range selection, queued-write disposal,
-  `Uint8Array` ownership, pre-ready accepted DOM input, callback-time focus-report ordering, and the
-  pathological dispose-before-first-open behavior remain explicitly partial pending released-xterm
-  differential coverage and fixes.
-- `Terminal.clear()` hit the plan's explicit STOP condition. The pinned WASM and typed ABI expose
-  reset, VT write, resize, viewport scrolling, selection, and rendering, but no row-preserving
-  buffer compaction or active-line relocation. VT erase/scroll emulation is affected by DECSTBM
-  margins and DECOM origin mode and cannot guarantee xterm's prompt-line-preserving operation.
+  native runtime attachment, xterm-shaped events/types, addon ownership, selection adapters, custom
+  key/wheel first refusal, fixed-grid renderer attachment, and retained disconnected DOM identities.
+- Replaced the generic deferred-operation queue with `XtermWriteQueue`. Successful writes now match
+  released task-boundary batching, caller-owned `Uint8Array` mutation through the scheduled parse
+  task and later time slices, callback-reentrant writes, append-to-remainder behavior between slices,
+  separate `writeln` payload/CRLF entries, the accepted-user-input synchronous response path both at
+  top level and recursively inside `onWriteParsed`, parsed-event batching, and the pending-data
+  watermark. Bytes are copied only when the parse task actually encounters a native-readiness block.
+  Nested fast-path callback failures strand the queue before the event sink can swallow them, and a
+  yielded nested remainder resumes only in its scheduled slice.
+- Native creation failure or disposal calls `abandon()`: callbacks and `onWriteParsed` events for
+  writes not yet consumed by the native parser are not fabricated, while initialization failure
+  rejects `ghosttyReady` diagnostically. This is an accepted lifecycle divergence and remains
+  explicitly `partial` under Plan 015.
+- Event delivery drains the outer listener snapshot before recursive emission, ignores listener
+  return values without assimilating thenables, continues after synchronous listener failures, and
+  reports those failures through the browser's unexpected-error path rather than the terminal
+  logger. The default path suppresses only xterm's exact `Canceled` error. Custom key/wheel decisions
+  are evaluated per dispatch, and the synchronous shell retains ownership until native key and wheel
+  listeners are installed, even while renderer creation is pending.
+- Addons activate synchronously, may self-dispose, remain owned after failed activation, dispose in
+  reverse load order, retain ownership when wrapping a non-writable `dispose` fails, and propagate
+  the first disposal failure after core teardown. Loading an addon or replacing a custom handler
+  after disposal follows released behavior.
+- Option-object assignment is sequential and retains earlier valid changes when a later property
+  fails. Released sanitizer behavior for `undefined` and non-finite values and the fresh
+  `Terminal.strings` accessor identity are covered by focused tests. Direct and bulk option changes
+  remain observable after disposal without touching the destroyed native runtime.
+- Synchronous `open()` installs the textarea/focus shell before asynchronous native/GPU attachment;
+  the write queue pauses during host attachment and resumes afterward. Differential browser evidence
+  now covers focus reporting inside pre-ready write callbacks as well as ready focus/blur behavior.
+  Due pre-ready callbacks drain in their own task, so an exception strands the batch without rejecting
+  native initialization or `open()`.
+- Focused clear evidence reports 80 unit tests passing across the core ABI/runtime, session, and
+  facade suites, plus a 25-pass/1-skip released-xterm browser differential. The final repository
+  gate passes 237 unit tests and 113 browser tests with one intentional skip, then completes the
+  declaration build, reference-package check, and packed-consumer smoke test.
+- A clean-clone `bun run build:wasm -- --zig
+/Users/shaul/Desktop/D/ghostty-webgpu-spike/ghostty/toolchain/zig` checked out immutable official
+  Ghostty commit `c8554f28e0efe2f5595f32020371c34b25ec628f` without patches. The resulting
+  `ghostty-vt.wasm` is 772,977 bytes with SHA-256
+  `dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97`; it exports
+  `ghostty_terminal_get` and `ghostty_terminal_vt_write` and does not export the fork-only
+  `ghostty_terminal_clear`. `bridge.wasm` is 577 bytes with SHA-256
+  `47fae389c94f2545b2026d756256272b65f978d97feabae21b9171ad4b54b63f`.
+- `build:wasm -- --source` now rejects tracked or untracked source changes before compiling, so a
+  dirty checkout cannot be labeled as the immutable pin. A fresh remote clone still reproduces the
+  hashes above.
+- The 172 unresolved rows formerly owned by Plan 008 were transferred without promotion: 25 native
+  extension rows to Plan 009, 113 browser/DOM rows to Plan 010, nine package/addon declaration rows
+  to Plan 014, and 25 certification/policy rows to Plan 015. Those rows were 171 `partial` rows and
+  the `blocked` clear row. Plan 008 now owns 13 `compatible` rows and no `missing`, `partial`, or
+  `blocked` rows.
+- Raw selection, exact input/paste strings, renderer damage ranges, `onBinary`, constructor and DOM
+  boundary cases, and the remaining option/event matrix stay explicitly partial under their
+  follow-on owners. Stable fail-loud Plan 009 placeholders are not implementations.
+- `Terminal.clear()` now uses only APIs and VT behavior in that official pin. It queries
+  `GHOSTTY_TERMINAL_DATA_VT_GROUND` through `ghostty_terminal_get`; a non-ground parser throws
+  synchronously before content, selection, revision, or events change. From ground it writes
+  `CSI 22 J + CSI 3 J + CUP`. Ghostty's upstream `CSI 22 J` moves every non-empty active row,
+  including ISO-protected cells, into history; following `CSI 3 J` removes that history. The sequence
+  keeps parser, title, modes, and rendition state, while CUP resolves VT home under the current
+  origin mode and margins.
+- The core operation explicitly clears native selection after the VT write. The session then resets
+  selection gesture state, emits one selection notification when needed, emits scroll zero when
+  clearing history or a lower cursor row, and always requests a render. A successful post-ready
+  clear is therefore never the released-xterm top-row no-op.
+- Browser differential evidence records the policy directly. Released xterm retains `keep!` as row
+  zero while keeping a now-empty raw row-one selection with no selection notification; this facade
+  produces a blank row, no selection coordinates, and one notification. In the cursor-origin case,
+  released xterm retains `lower` and true-no-ops while this facade blanks it and clears selection.
+- No retained target row means the old stale-slot alias and outgoing-wrap experiments are no longer
+  target behavior. Reproducing those xterm internals would still require a shadow terminal or a
+  foundational native row-identity refactor, neither of which is maintained.
+- Released xterm also disposes every marker on the active buffer synchronously before compaction,
+  while Plan 009 still owns the native marker surface.
+
+## Accepted divergence: visual hard clear
+
+Plan 008 intentionally does not reproduce released `@xterm/xterm@6.0.0` row retention or access to
+logically discarded backing slots. A ready terminal instead performs one guarded visual operation:
+
+1. Query official `GHOSTTY_TERMINAL_DATA_VT_GROUND` and throw without mutation unless true.
+2. Insert `CSI 22 J + CSI 3 J + CUP` through official `ghostty_terminal_vt_write`.
+3. Clear native selection and selection-gesture state.
+4. Publish the resulting selection/scroll changes and request a render.
+
+This blanks ordinary and ISO-protected active cells by moving them into history before deleting
+history, clears pending wrap, preserves parser/title/modes/rendition state, and positions the cursor
+at VT home. VT home follows the current origin mode and margins; this operation does not reset them.
+The pre-ready facade call remains a synchronous no-op because no native parser exists yet.
+
+The accepted differences are:
+
+- released xterm retains the cursor row, while this facade removes every active row;
+- released xterm can true-no-op at cursor origin, while a ready facade always executes and redraws;
+- released xterm can retain raw selections without notifying, while this facade clears them and
+  emits one selection change;
+- discarded rows and live row zero are never stale aliases because no row is retained;
+- a non-ground parser makes this facade throw synchronously rather than inject bytes into an OSC,
+  CSI, ESC, DCS, APC, or partial UTF-8 sequence.
+
+Reproducing xterm's stale row identities safely would require a foundational native row-identity
+refactor or facade-side retained state. A selected-text snapshot, detached-row cache, or facade-side
+buffer would be a shadow terminal and remains forbidden. The released-xterm differential cases are
+executable documentation. `Terminal.clear` stays `partial`, not `compatible`, and this divergence
+no longer blocks Plan 008. Revisit it only through an explicit compatibility-policy decision; do
+not quietly add retained state or weaken the ledger.
+
+## Qualified completion policy
+
+Plan 008 is complete as the synchronous facade and lifecycle milestone without claiming complete
+released-xterm compatibility. `DONE` for this plan means that the implemented contract and every
+known gap have current evidence and an explicit follow-on owner; it does not turn a `partial` ledger
+row into a `compatible` one. Plan 015 remains the certification gate for full released-package
+parity.
+
+The following outcomes are accepted for the asynchronous native/write lifecycle boundary:
+
+- successful pre-ready `write` and `writeln` calls retain FIFO processing and callback order;
+- native creation failure rejects the Ghostty-specific `ghosttyReady` diagnostic promise;
+- disposal before native readiness cancels attachment and disposes any late native resolution;
+- native creation failure or disposal at any lifecycle point abandons writes not yet consumed by
+  the native parser instead of invoking their callbacks as though parsing succeeded.
+
+Released xterm has no asynchronous native-construction phase and can leave its JavaScript parser
+task alive after disposal. This facade destroys the native runtime synchronously, so it cannot
+honestly settle an unconsumed write afterward. Adding a synthetic success callback would lie about
+parsing, while a new public error callback would change the xterm API. `Terminal.write`,
+`Terminal.writeln`, `Terminal.onWriteParsed`, and `Terminal.dispose` consequently remain `partial`
+under Plan 015. `Terminal.input` remains `partial` under Plan 010 for its separate exact-string
+delivery seam. `ghosttyReady` is diagnostic only and must not become required consumer control flow.
+
+The following rows also remain explicitly partial until their named lower-level dependency exists:
+
+- raw, reversed, and out-of-range selection coordinates require a native selection representation
+  that is not restricted to currently addressable PageList rows; facade-side selected text or row
+  state is forbidden;
+- exact `input` and `paste` strings require a native/facade delivery seam that separates xterm's JS
+  string event from Ghostty's UTF-8 and safe-paste encoding, plus a native bracketed-paste mode
+  query;
+- exact `onRender`, `refresh`, and `clearTextureAtlas` ranges require renderer frame metadata for
+  the rows damaged in the current frame rather than inference from the full cached frame snapshot;
+- focus/blur now attach through the synchronous DOM shell before GPU readiness; the remaining
+  browser-wide interaction matrix is owned by Plan 010;
+- `onBinary` requires a native binary-output channel distinct from ordinary UTF-8 `onData`;
+- `buffer`, `parser`, `unicode`, full `modes`, and markers require the native-backed extension and
+  C-ABI surfaces owned by Plan 009; their stable fail-loud placeholders are not implementations.
+
+These are qualification boundaries, not permission to mark placeholders compatible. Differential
+tests and ledger notes must continue to expose every difference. The parity validator was preserved:
+all 172 unresolved Plan 008 rows moved to their concrete follow-on owners, so this DONE plan owns no
+gap. No row was promoted to satisfy the gate.
+
+Plan 015 now owns the accepted clear and asynchronous-write-lifecycle divergences. Its current
+zero-gap done criterion cannot pass while those rows remain `partial`, and the clear divergence is
+operator-approved rather than standards-backed. Plan 015 must therefore remain open unless exact
+behavior is implemented or its final compatibility claim receives a separate explicit policy
+decision. Plan 008 completion does not pre-authorize that decision or weaken the validator.
+
+## Finalization sequence
+
+The Plan 008 closure performed these steps:
+
+1. recorded the focused unit/browser verification from the implementation passes;
+2. regenerated and validated the parity documents against the checked-in WASM provenance;
+3. reconciled the execution notes and ledger counts with those results;
+4. transferred every remaining partial row to its concrete follow-on owner; and
+5. changed this plan and the status table in `plans/README.md` to `DONE` only after the parity
+   validator accepted the new ownership.
 
 ## Done criteria
 
 - [x] `new Terminal()` and `open(parent): void` work without consumer `await`.
-- [ ] Pre-ready writes/callbacks preserve released xterm ordering and failure semantics.
-- [ ] Core properties, events, options, lifecycle, write, scroll, selection, handler, and addon rows
-      owned by this plan have differential evidence.
+- [x] Successful pre-ready writes preserve FIFO ordering; abandonment of unconsumed writes on
+      native failure or disposal is documented and remains `partial`.
+- [x] Core properties, events, options, lifecycle, write, scroll, selection, handler, and addon rows
+      have current evidence or a concrete partial dependency in the ledger.
 - [x] `attachCustomKeyEventHandler` integrates before TanStack/raw handling without partial packets.
 - [x] Native `GhosttyWebGpuTerminal` remains exported and behaviorally intact.
 - [x] Production code has no runtime dependency on xterm.js.
+- [x] The guarded visual-hard-clear `Terminal.clear()` divergence is documented and remains
+      `partial` in the ledger.
+- [x] Native-failure callbacks, raw selection, exact input/paste, render ranges, remaining browser
+      focus behavior, `onBinary`, and Plan 009 extension dependencies remain explicit and
+      non-compatible.
 - [x] Remaining extension/browser/addon gaps stay explicit in the ledger.
-- [x] Build, parity generation, focused tests, and `bun run verify` pass.
-- [ ] Plan 008 is DONE.
+- [x] Focused implementation tests are recorded above; parity generation and validation pass.
+- [x] The parity validator accepts Plan 008 as DONE with 13 compatible rows and no owned gaps.
+- [x] Plan 008 is DONE.
 
 ## STOP conditions
 
@@ -296,7 +466,7 @@ Stop and report if:
 
 - A documented synchronous xterm observable cannot be provided without blocking I/O, lying about
   state, or replacing public object identities later.
-- Native creation failure has no reference-compatible way to settle queued operations/callbacks.
+- A failure path invokes queued callbacks as if their writes parsed successfully.
 - Implementing an option requires buffer/parser/native support assigned to Plan 009.
 - A method would be marked compatible by returning a placeholder/no-op.
 - The facade must import xterm runtime/private internals in production.

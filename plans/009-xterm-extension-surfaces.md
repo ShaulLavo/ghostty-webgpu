@@ -50,22 +50,33 @@ Implement the 6.0.0 public behavior and stable object identity for:
   disposal;
 - `registerCharacterJoiner`/`deregisterCharacterJoiner` with renderer integration;
 - exact `registerLinkProvider` public ranges, callbacks, decorations, disposal, and precedence.
+- raw selection coordinates and events for `clearSelection`, `getSelection`,
+  `getSelectionPosition`, `hasSelection`, `onSelectionChange`, `select`, `selectAll`, and
+  `selectLines`, including reversed and out-of-range public coordinates without a facade row cache.
+
+Plan 009 also owns the 25 transferred Plan 008 partial rows whose exact behavior depends on these
+native surfaces: `IDisposableWithEvent*`, `IFunctionIdentifier*`, `IWindowsPty*`, the
+`allowProposedApi`, `linkHandler`, `reflowCursorLine`, `scrollback`, `scrollOnEraseInDisplay`,
+`tabStopWidth`, and `windowsPty` options; `Terminal.buffer`, `Terminal.markers`, `Terminal.modes`,
+`Terminal.parser`, and `Terminal.unicode`; plus the three raw selection mutators. None became
+compatible during transfer.
 
 Native truth remains authoritative. Add bridge ABI operations in `scripts/bridge.zig` and typed
 wrappers in `src/core/` only where pinned libghostty exposes the needed state/hooks. The checked-in
-Ghostty WASM must still be produced from an unpatched pinned upstream revision.
+Ghostty WASM must still be produced directly from the exact pinned source revision without
+build-time patches.
 
 ## Commands you will need
 
-| Purpose               | Command                                                              | Expected on success                              |
-| --------------------- | -------------------------------------------------------------------- | ------------------------------------------------ |
-| Rebuild bridge        | `bun run build:bridge`                                               | bridge ABI/types regenerate cleanly              |
-| Rebuild upstream WASM | `bun run build:wasm`                                                 | only if pinned upstream revision/API changes     |
-| Core extension tests  | `bun run test:unit -- src/core/tests/xterm-surfaces.test.ts`         | native reads/hooks/ownership pass                |
-| Facade unit tests     | `bun run test:unit -- src/xterm/tests/extensions.test.ts`            | stable adapters and parser ordering pass         |
-| Differential browser  | `bun run test:browser -- src/xterm/tests/extensions.browser.test.ts` | buffer/decorations/joiners/links match reference |
-| Parity ledger         | `bun run xterm:parity`                                               | owned rows all carry evidence                    |
-| Full gate             | `bun run verify`                                                     | repository gates pass                            |
+| Purpose              | Command                                                              | Expected on success                              |
+| -------------------- | -------------------------------------------------------------------- | ------------------------------------------------ |
+| Rebuild bridge       | `bun run build:bridge`                                               | bridge ABI/types regenerate cleanly              |
+| Rebuild pinned WASM  | `bun run build:wasm`                                                 | only if the pinned source revision/API changes   |
+| Core extension tests | `bun run test:unit -- src/core/tests/xterm-surfaces.test.ts`         | native reads/hooks/ownership pass                |
+| Facade unit tests    | `bun run test:unit -- src/xterm/tests/extensions.test.ts`            | stable adapters and parser ordering pass         |
+| Differential browser | `bun run test:browser -- src/xterm/tests/extensions.browser.test.ts` | buffer/decorations/joiners/links match reference |
+| Parity ledger        | `bun run xterm:parity`                                               | owned rows all carry evidence                    |
+| Full gate            | `bun run verify`                                                     | repository gates pass                            |
 
 ## Scope
 
@@ -78,6 +89,7 @@ Ghostty WASM must still be produced from an unpatched pinned upstream revision.
 - `src/core/types.ts`
 - focused `src/core/buffer.ts` and `src/core/parser.ts` modules if needed
 - `src/core/tests/xterm-surfaces.test.ts`
+- `src/core/selection.ts` and its focused tests for raw compatibility coordinates
 - `src/term/session.ts`
 - `src/term/types.ts`
 - `src/render/renderer.ts` and glyph layout only for decorations/joiner consumption
@@ -103,7 +115,7 @@ Ghostty WASM must still be produced from an unpatched pinned upstream revision.
 
 - Work in the current worktree; do not branch, commit, push, or open a PR unless requested.
 - Build the bridge from source and review generated WASM diffs. Never hand-edit generated WASM.
-- Any upstream revision bump is a separate explicit decision with provenance and full VT regression.
+- Any source revision bump is a separate explicit decision with provenance and full VT regression.
 
 ## Steps
 
@@ -189,7 +201,7 @@ Drive identical VT streams and registrations through released xterm and the targ
 buffer/cell values, event order, handler fallthrough, Unicode widths, marker movement/disposal,
 decoration elements, joined ranges, and link callbacks.
 
-Update only passing rows to `compatible`, run the full gate, and record bridge ABI/upstream revisions.
+Update only passing rows to `compatible`, run the full gate, and record bridge ABI/source revisions.
 
 ## Test plan
 

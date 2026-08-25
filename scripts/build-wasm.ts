@@ -2,10 +2,10 @@ import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { GHOSTTY_UPSTREAM_REVISION } from '../src/core/version.js'
+import { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from '../src/core/version.js'
 
-const upstreamRepository = 'https://github.com/ghostty-org/ghostty.git'
-const upstreamRevision = GHOSTTY_UPSTREAM_REVISION
+const sourceRepository = GHOSTTY_SOURCE_REPOSITORY
+const sourceRevision = GHOSTTY_SOURCE_REVISION
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
 class ArtifactBuildError extends Error {
@@ -46,18 +46,18 @@ async function verifyZigVersion(zig: string): Promise<void> {
   if (major === 0 && (minor ?? 0) >= 16) return
   if ((major ?? 0) > 0) return
   throw new ArtifactBuildError(
-    `Ghostty ${upstreamRevision} requires Zig 0.16.0+, received ${version}`,
+    `Ghostty ${sourceRevision} requires Zig 0.16.0+, received ${version}`,
   )
 }
 
 async function checkoutSource(workspace: string): Promise<string> {
   const source = join(workspace, 'ghostty')
   await run(
-    ['git', 'clone', '--filter=blob:none', '--no-checkout', upstreamRepository, source],
+    ['git', 'clone', '--filter=blob:none', '--no-checkout', sourceRepository, source],
     workspace,
   )
-  await run(['git', 'fetch', '--depth', '1', 'origin', upstreamRevision], source)
-  await run(['git', 'checkout', '--detach', upstreamRevision], source)
+  await run(['git', 'fetch', '--depth', '1', 'origin', sourceRevision], source)
+  await run(['git', 'checkout', '--detach', sourceRevision], source)
   return source
 }
 
@@ -70,8 +70,21 @@ async function verifyRevision(source: string): Promise<void> {
   const revision = (await new Response(process.stdout).text()).trim()
   const exitCode = await process.exited
   if (exitCode !== 0) throw new ArtifactBuildError('Unable to read the Ghostty source revision')
-  if (revision === upstreamRevision) return
-  throw new ArtifactBuildError(`Expected Ghostty ${upstreamRevision}, received ${revision}`)
+  if (revision === sourceRevision) return
+  throw new ArtifactBuildError(`Expected Ghostty ${sourceRevision}, received ${revision}`)
+}
+
+async function verifyCleanSource(source: string): Promise<void> {
+  const process = Bun.spawn(['git', 'status', '--porcelain=v1', '--untracked-files=all'], {
+    cwd: source,
+    stderr: 'inherit',
+    stdout: 'pipe',
+  })
+  const status = (await new Response(process.stdout).text()).trim()
+  const exitCode = await process.exited
+  if (exitCode !== 0) throw new ArtifactBuildError('Unable to inspect the Ghostty source tree')
+  if (status.length === 0) return
+  throw new ArtifactBuildError('Ghostty source tree must be clean to build pinned artifacts')
 }
 
 async function validateWasm(path: string): Promise<void> {
@@ -117,8 +130,9 @@ async function main(): Promise<void> {
     const existingSource = argument('--source')
     const source = existingSource ?? (await checkoutSource(workspace))
     await verifyRevision(source)
+    await verifyCleanSource(source)
     await buildArtifacts(source, workspace, zig)
-    console.log(`Built libghostty-vt at ${upstreamRevision}`)
+    console.log(`Built libghostty-vt at ${sourceRevision}`)
   } finally {
     await rm(workspace, { force: true, recursive: true })
   }

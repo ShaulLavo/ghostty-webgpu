@@ -31,5 +31,6 @@
   move browser-only settings into the Node config.
 - Performance evidence comes from `bun run bench:renderer` in headed Chromium on a hardware
   adapter. Headless SwiftShader runs prove correctness only.
-- The checked-in wasm must come from `bun run build:wasm`, at the pinned upstream revision, without patches.
-- The pinned upstream revision requires Zig 0.16.0 or newer.
+- The checked-in wasm must come from `bun run build:wasm`, at the pinned official upstream
+  repository and revision, without build-time patches or a maintained fork.
+- The pinned source revision requires Zig 0.16.0 or newer.
