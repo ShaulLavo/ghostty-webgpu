@@ -65,8 +65,11 @@ one pre-existing lifecycle skip per engine. Firefox and WebKit exercised the eve
 fallback over the same Ghostty render-state authority. Focused DOM/CSS, input/selection, and
 automated accessibility differentials passed against released xterm 6.0.0.
 
-This is supplemental automated evidence only. The three-run WebGPU hardware benchmark failed its
-active CPU ceiling (9.5% burst and 10.1% sustained medians versus 9.35% allowed), so Plan 010 is
+This is supplemental automated evidence only. The initial three-run WebGPU hardware benchmark
+failed its active CPU ceiling at 9.5% burst and 10.1% sustained medians versus 9.35% allowed. A
+bounded retry then coalesced adjacent instance ranges, reducing a full 50-row frame from 100
+`GPUQueue.writeBuffer` calls to two without changing bytes, rows, frames, or draws. Sustained scroll
+passed at an 8.8% three-run median, but burst remained above the ceiling at 9.8%, so Plan 010 stays
 BLOCKED. No physical screen-reader, IME, clipboard, held-key, high-DPI, or shadow-DOM item below was
 promoted.
 

@@ -49,6 +49,7 @@ export interface RendererMetrics {
   atlasUploadOperations: number
   deviceRestores: number
   draws: number
+  instanceUploadOperations: number
   rebuiltRows: number
   submittedFrames: number
   uploadedBytes: number
@@ -217,6 +218,7 @@ export class WebGpuTerminalRenderer {
     atlasUploadOperations: 0,
     deviceRestores: 0,
     draws: 0,
+    instanceUploadOperations: 0,
     rebuiltRows: 0,
     submittedFrames: 0,
     uploadedBytes: 0,
@@ -465,11 +467,11 @@ export class WebGpuTerminalRenderer {
       return
     }
     this.atlasTextures.sync(this.atlas.consumeUploads())
-    this.textPass.upload(this.instances, updates)
+    const instanceUploadOperations = this.textPass.upload(this.instances, updates)
     this.textPass.submit(this.context.getCurrentTexture().createView())
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     for (const row of rows) this.visibleRows[row.y] = copiedFrameRow(row)
-    this.recordFrame(updates)
+    this.recordFrame(updates, instanceUploadOperations)
     this.needsFullRebuild = false
     this.overlayRows.clear()
     this.emitFrame()
@@ -569,7 +571,10 @@ export class WebGpuTerminalRenderer {
     for (let row = nextRowCount; row < this.grid.rows; row += 1) this.atlas.beginRow(row)
   }
 
-  private recordFrame(updates: readonly RowInstanceUpdate[]): void {
+  private recordFrame(
+    updates: readonly RowInstanceUpdate[],
+    instanceUploadOperations: number,
+  ): void {
     this.metrics.atlasCacheHits = this.atlas.cacheHitCount
     this.metrics.atlasCacheMisses = this.atlas.cacheMissCount
     this.metrics.atlasEvictions = this.atlas.evictionCount
@@ -578,6 +583,7 @@ export class WebGpuTerminalRenderer {
     this.metrics.atlasUploadOperations =
       this.atlasUploadOperationsOffset + this.atlasTextures.uploadOperationCount
     this.metrics.draws += 2
+    this.metrics.instanceUploadOperations += instanceUploadOperations
     this.metrics.rebuiltRows += updates.length
     this.metrics.submittedFrames += 1
     for (const update of updates) {

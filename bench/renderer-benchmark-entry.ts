@@ -140,6 +140,8 @@ function getMetrics() {
     atlasUploadOperations: renderer.metrics.atlasUploadOperations - baseline.atlasUploadOperations,
     deviceRestores: renderer.metrics.deviceRestores - baseline.deviceRestores,
     draws: renderer.metrics.draws - baseline.draws,
+    instanceUploadOperations:
+      renderer.metrics.instanceUploadOperations - baseline.instanceUploadOperations,
     rebuiltRows: renderer.metrics.rebuiltRows - baseline.rebuiltRows,
     submittedFrames: renderer.metrics.submittedFrames - baseline.submittedFrames,
     uploadedBytes: renderer.metrics.uploadedBytes - baseline.uploadedBytes,

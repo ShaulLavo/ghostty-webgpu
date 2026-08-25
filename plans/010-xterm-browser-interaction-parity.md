@@ -19,7 +19,7 @@
 - **Category**: browser / interaction / accessibility / compatibility
 - **Planned at**: commit `a7e7372`, 2026-08-24
 - **Execution state**: BLOCKED — the independently authorized slice passes its automated browser
-  matrix, but the mandatory three-run hardware benchmark exceeds the qualified CPU ceiling; Plan
+  matrix, but the optimized three-run burst median remains above the qualified CPU ceiling; Plan
   009 and the physical operator gate also remain unresolved
 
 ## Independent execution evidence — 2026-08-25
@@ -60,10 +60,41 @@ atlas bytes. Every populated frame retained exactly two draws. Median glyph-chur
 70,871,473 bytes, still 99.636% below the Plan 001 baseline. Those structural results do not
 override the CPU failure.
 
-This triggers the explicit renderer-performance STOP condition after three comparable runs. Plan
-010 is not DONE, its completion/full-parity gate is not claimed, and further implementation stops
-pending an optimization/requalification decision. The Plan 009 dependency and physical operator
-gate would remain even if the benchmark cleared.
+This triggered the explicit renderer-performance STOP condition after three comparable runs. Plan
+010 was not marked DONE and its completion/full-parity gate was not claimed. The operator then
+authorized one bounded optimization attempt before moving on.
+
+### Bounded upload-coalescing retry — 2026-08-25
+
+Profiling found that `WebGpuTextPass` issued two `GPUQueue.writeBuffer` calls per dirty row. A
+full 50-row frame therefore made 100 instance-buffer uploads before its two draws. The bounded
+change coalesces only adjacent row ranges, preserving sparse damage and the exact transferred byte
+count. New metrics and real-WebGPU tests prove that a full frame now makes two instance uploads—a
+50× call-count reduction—with unchanged pixels, rebuilt rows, bytes, frames, and draws.
+
+The same hardware, DPR, grid, scenario order, 5-second warmup, and 30-second sample protocol then
+ran three more times.
+
+| Scenario              | Run 1 | Run 2 | Run 3 | Three-run median | Ceiling | Result   |
+| --------------------- | ----: | ----: | ----: | ---------------: | ------: | -------- |
+| focused-blinking-idle |  0.1% |  0.1% |  0.1% |             0.1% |    0.3% | PASS     |
+| unfocused-idle        |  0.0% |  0.0% |  0.0% |             0.0% |    0.1% | PASS     |
+| burst-output          |  9.8% |  8.6% | 13.4% |             9.8% |   9.35% | **FAIL** |
+| sustained-scroll      |  8.8% |  8.5% |  9.2% |             8.8% |   9.35% | PASS     |
+
+Burst delivered 1,809, 1,808, and 1,512 frames across the three runs; sustained scroll delivered
+1,812, 1,808, and 1,755. Every active frame rebuilt exactly 50 rows and retained two draws and two
+instance uploads. The materially lower third-run throughput alongside its 13.4% burst median is
+consistent with machine/process variance, but the result is not discarded. macOS documents the
+sampled `ps %cpu` value as a decaying average over up to one minute, so the series is correlated
+and scenario history can carry forward; the historical gate was nevertheless retained unchanged.
+
+Glyph-churn atlas traffic was 70,297,880, 64,650,263, and 69,836,521 bytes. The 69,836,521-byte
+median remains 99.641% below the Plan 001 baseline. Idle work remained zero throughout.
+
+The structural optimization is retained, but the strict burst gate still fails. Per the operator's
+instruction, no second tuning pass follows: Plan 010 remains BLOCKED and work moves on. The Plan
+009 dependency and physical operator gate also remain unresolved.
 
 ## Why this matters
 

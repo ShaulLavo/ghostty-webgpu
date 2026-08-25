@@ -29,7 +29,7 @@ every verification gate, and update its status row when finished.
 | 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | DONE                                                                                          |
 | 008  | Implement the xterm Terminal facade and lifecycle contract   | P1       | XL     | 006, 007   | DONE                                                                                          |
 | 009  | Expose xterm native-backed extension surfaces                | P1       | XL     | 008        | BLOCKED — required parser/Unicode, inactive-buffer, row-marker, and OSC 8 APIs are not public |
-| 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | BLOCKED — three-run hardware CPU medians exceed the qualified renderer ceiling                |
+| 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | BLOCKED — optimized burst CPU median remains above the qualified renderer ceiling             |
 | 011  | Match attach, clipboard, fit, web-links, and progress addons | P1       | L      | 010        | TODO                                                                                          |
 | 012  | Match search, serialize, and Unicode addons                  | P1       | XL     | 009, 011   | TODO                                                                                          |
 | 013  | Match web-font, ligature, image, and WebGL addons            | P1       | XL     | 010, 012   | TODO                                                                                          |

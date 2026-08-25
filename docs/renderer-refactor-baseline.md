@@ -125,3 +125,30 @@ After the benchmark entry was tightened so the raw Ghostty terminal also receive
 9.35% ceiling. The run retained two draws per populated frame and uploaded 72,006,318 churn-atlas
 bytes. `CI=true bun run test:browser` then passed 74 unique browser tests with no new skips, and
 `bun run verify` passed 135 unit plus 74 browser tests, typecheck, lint, formatting, and build.
+
+## Plan 010 bounded upload-coalescing retry
+
+After Plan 010's first performance attempt failed, the operator authorized one bounded
+optimization retry. The renderer had been issuing two `GPUQueue.writeBuffer` calls for each dirty
+row. Coalescing adjacent row ranges reduced a full 50-row frame from 100 instance uploads to two
+without changing transferred bytes, damage ownership, rows, frames, or the two-draw contract.
+
+The optimized renderer used the same hardware and 5-second/30-second protocol for three runs.
+
+| Scenario              | Optimized run medians | Three-run median | Allowed ceiling | Result   |
+| --------------------- | --------------------: | ---------------: | --------------: | -------- |
+| focused-blinking-idle |       0.10/0.10/0.10% |            0.10% |           0.30% | PASS     |
+| unfocused-idle        |       0.00/0.00/0.00% |            0.00% |           0.10% | PASS     |
+| burst-output          |      9.80/8.60/13.40% |            9.80% |           9.35% | **FAIL** |
+| sustained-scroll      |       8.80/8.50/9.20% |            8.80% |           9.35% | PASS     |
+
+Burst delivered 1,809, 1,808, and 1,512 frames; sustained scroll delivered 1,812, 1,808, and 1,755.
+Every active frame rebuilt 50 rows and made exactly two draws and two instance uploads. The third
+run's lower delivered throughput and higher burst CPU expose machine/process variance, but the run
+remains in the median. The historical gate still samples the GPU subprocess through macOS `ps`,
+whose `%cpu` field the local manual defines as a decaying average over up to one minute; this known
+correlation was documented without changing the acceptance method or ceiling.
+
+Glyph-churn atlas traffic measured 70,297,880, 64,650,263, and 69,836,521 bytes. Its 69,836,521-byte
+median is 99.641% below the Plan 001 baseline. Plan 010 remains blocked because the optimized burst
+median still exceeds 9.35%.
