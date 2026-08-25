@@ -4,7 +4,7 @@ an unofficial ghostty for the web inspired by [ghostty-web](https://github.com/c
 
 the goal is to bring as much of ghostty to the browser as possible while staying true to how it behaves
 
-rendering is damage-aware and webgpu only with no webgl fallback
+rendering is damage-aware and uses webgpu when available, with an event-driven canvas2d fallback
 
 there is also an xterm-compatible api for existing integrations with parity still in progress
 
@@ -62,6 +62,7 @@ this one keeps the familiar synchronous xterm shape
 
 ```ts
 import { Terminal } from 'ghostty-webgpu/xterm'
+import 'ghostty-webgpu/xterm.css'
 
 const host = document.querySelector<HTMLElement>('#terminal')
 if (!host) throw new Error('missing terminal mount')

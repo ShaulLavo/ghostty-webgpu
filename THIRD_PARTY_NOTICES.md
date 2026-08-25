@@ -1,5 +1,18 @@
 # Third-party notices
 
+## xterm.js stylesheet
+
+`ghostty-webgpu` includes the stylesheet distributed with `@xterm/xterm` 6.0.0.
+
+- Source: <https://github.com/xtermjs/xterm.js/tree/6.0.0>
+- License: MIT
+
+Copyright (c) 2014 The xterm.js authors. All rights reserved.
+
+Copyright (c) 2012-2013, Christopher Jeffrey
+
+The complete MIT license notice is retained in `dist/xterm/xterm.css`.
+
 ## Ghostty
 
 `ghostty-webgpu` includes `ghostty-vt.wasm`, built from Ghostty revision

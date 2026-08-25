@@ -58,6 +58,18 @@ ABI-bump commit that produced the checked-in wasm. `ghostty-vt.wasm` retained SH
 `1e2734515d9c3a88b00b5667edd5052aa00e6778a57b5b4fdaa7d43d9a821ace` throughout Phase 3.
 Current shipped-artifact provenance is recorded in [`THIRD_PARTY_NOTICES.md`](../THIRD_PARTY_NOTICES.md).
 
+### Plan 010 browser compatibility controls — 2026-08-25
+
+The unflagged xterm compatibility suite passed in Chromium, Firefox, and WebKit with 37 tests and
+one pre-existing lifecycle skip per engine. Firefox and WebKit exercised the event-driven Canvas2D
+fallback over the same Ghostty render-state authority. Focused DOM/CSS, input/selection, and
+automated accessibility differentials passed against released xterm 6.0.0.
+
+This is supplemental automated evidence only. The three-run WebGPU hardware benchmark failed its
+active CPU ceiling (9.5% burst and 10.1% sustained medians versus 9.35% allowed), so Plan 010 is
+BLOCKED. No physical screen-reader, IME, clipboard, held-key, high-DPI, or shadow-DOM item below was
+promoted.
+
 ## Headed Chromium control evidence
 
 These observations are supplemental `CONTROL PASS` results, not substitutes for the physical

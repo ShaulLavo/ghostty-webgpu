@@ -5,14 +5,19 @@ import type { TerminalFittedFont } from '../term/types.js'
 import { GlyphAtlas } from './atlas/atlas.js'
 import { CanvasGlyphRasterizer } from './atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from './atlas/gpu-textures.js'
-import { renderCursorState } from './cursor.js'
+import { renderCursorState, type InactiveCursorStyle } from './cursor.js'
 import type { GlyphBitmap } from './atlas/types.js'
-import { InstanceRows } from './instances/rows.js'
 import {
-  defaultRendererTheme,
-  type RendererTheme,
-  type RowInstanceUpdate,
-} from './instances/types.js'
+  browserRenderClock,
+  copyFittedFont,
+  fittedFontGeometryEquals,
+  fittedFontsEqual,
+  mergeRendererTheme,
+  normalizeRendererGrid,
+  safeRendererInteger,
+} from './config.js'
+import { InstanceRows } from './instances/rows.js'
+import { type RendererTheme, type RowInstanceUpdate } from './instances/types.js'
 import { RenderScheduler, type RenderSchedulerClock } from './scheduler.js'
 import { WebGpuTextPass } from './text-pass.js'
 
@@ -74,136 +79,54 @@ interface PreparedRenderer {
   readonly grid: RendererGridSize
 }
 
+interface ValidatedRenderer {
+  readonly font: TerminalFittedFont
+  readonly grid: RendererGridSize
+}
+
 interface ReplacementResources {
   readonly atlasTextures: AtlasGpuTextures
   readonly textPass: WebGpuTextPass
 }
 
-function browserClock(): RenderSchedulerClock {
-  return {
-    cancelFrame: (handle) => window.cancelAnimationFrame(handle),
-    clearTimer: (handle) => window.clearTimeout(handle),
-    requestFrame: (callback) => window.requestAnimationFrame(callback),
-    setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
+export type WebGpuUnavailableReason = 'adapter' | 'api' | 'context'
+
+export class WebGpuUnavailableError extends Error {
+  readonly reason: WebGpuUnavailableReason
+
+  constructor(reason: WebGpuUnavailableReason, message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'WebGpuUnavailableError'
+    this.reason = reason
   }
 }
 
 async function defaultDeviceFactory(): Promise<GPUDevice> {
-  if (!navigator.gpu) throw new Error('WebGPU is unavailable')
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
-  if (!adapter) throw new Error('WebGPU requestAdapter returned null')
-  return adapter.requestDevice()
+  if (!navigator.gpu) throw new WebGpuUnavailableError('api', 'WebGPU is unavailable')
+  let adapter: GPUAdapter | null
+  try {
+    adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
+  } catch (cause) {
+    throw new WebGpuUnavailableError('adapter', 'WebGPU adapter request failed', { cause })
+  }
+  if (!adapter) {
+    throw new WebGpuUnavailableError('adapter', 'WebGPU requestAdapter returned null')
+  }
+  try {
+    return await adapter.requestDevice()
+  } catch (cause) {
+    throw new WebGpuUnavailableError('adapter', 'WebGPU device request failed', { cause })
+  }
 }
 
 function requireContext(canvas: HTMLCanvasElement | OffscreenCanvas): GPUCanvasContext {
   const context = canvas.getContext('webgpu')
   if (context) return context
-  throw new Error('Unable to create a WebGPU canvas context')
-}
-
-function mergedTheme(theme: Partial<RendererTheme> | undefined): RendererTheme {
-  return { ...defaultRendererTheme, ...theme }
+  throw new WebGpuUnavailableError('context', 'Unable to create a WebGPU canvas context')
 }
 
 function alignedBytesPerRow(width: number): number {
   return Math.ceil((width * 4) / 256) * 256
-}
-
-function positiveFinite(name: string, value: number): number {
-  if (Number.isFinite(value) && value > 0) return value
-  throw new RangeError(`${name} must be finite and greater than zero`)
-}
-
-function positiveInteger(name: string, value: number): number {
-  if (Number.isSafeInteger(value) && value > 0) return value
-  throw new RangeError(`${name} must be a positive safe integer`)
-}
-
-function nonEmptyString(name: string, value: string): string {
-  if (typeof value === 'string' && value.length > 0) return value.slice()
-  throw new TypeError(`${name} must be a non-empty string`)
-}
-
-function normalizeGrid(grid: RendererGridSize): RendererGridSize {
-  return Object.freeze({
-    columns: positiveInteger('columns', grid.columns),
-    rows: positiveInteger('rows', grid.rows),
-  })
-}
-
-function safeInteger(name: string, value: number, minimum = 0): number {
-  if (Number.isSafeInteger(value) && value >= minimum) return value
-  throw new RangeError(`${name} must be a safe integer greater than or equal to ${minimum}`)
-}
-
-function fittedFontWeight(name: string, value: number): number {
-  if (Number.isInteger(value) && value >= 1 && value <= 1000) return value
-  throw new RangeError(`${name} must be an integer from 1 to 1000`)
-}
-
-function copiedFittedFont(font: TerminalFittedFont): TerminalFittedFont {
-  const settings = Object.freeze({
-    boldWeight: fittedFontWeight('font.settings.boldWeight', font.settings.boldWeight),
-    family: nonEmptyString('font.settings.family', font.settings.family),
-    letterSpacing: Number(font.settings.letterSpacing),
-    lineHeight: positiveFinite('font.settings.lineHeight', font.settings.lineHeight),
-    size: positiveFinite('font.settings.size', font.settings.size),
-    weight: fittedFontWeight('font.settings.weight', font.settings.weight),
-  })
-  if (!Number.isFinite(settings.letterSpacing)) {
-    throw new RangeError('font.settings.letterSpacing must be finite')
-  }
-  if (settings.lineHeight < 1) throw new RangeError('font.settings.lineHeight must be at least 1')
-  return Object.freeze({
-    charLeft: safeInteger('font.charLeft', font.charLeft, Number.MIN_SAFE_INTEGER),
-    charTop: safeInteger('font.charTop', font.charTop),
-    cssCellHeight: positiveFinite('font.cssCellHeight', font.cssCellHeight),
-    cssCellWidth: positiveFinite('font.cssCellWidth', font.cssCellWidth),
-    deviceBaseline: positiveInteger('font.deviceBaseline', font.deviceBaseline),
-    deviceCellHeight: positiveInteger('font.deviceCellHeight', font.deviceCellHeight),
-    deviceCellWidth: positiveInteger('font.deviceCellWidth', font.deviceCellWidth),
-    deviceCharHeight: positiveInteger('font.deviceCharHeight', font.deviceCharHeight),
-    deviceCharWidth: positiveInteger('font.deviceCharWidth', font.deviceCharWidth),
-    pixelRatio: positiveFinite('font.pixelRatio', font.pixelRatio),
-    settings,
-  })
-}
-
-function fontSettingsEqual(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
-  return (
-    left.settings.boldWeight === right.settings.boldWeight &&
-    left.settings.family === right.settings.family &&
-    left.settings.letterSpacing === right.settings.letterSpacing &&
-    left.settings.lineHeight === right.settings.lineHeight &&
-    left.settings.size === right.settings.size &&
-    left.settings.weight === right.settings.weight
-  )
-}
-
-function fittedFontEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
-  if (!fontSettingsEqual(left, right)) return false
-  return (
-    left.charLeft === right.charLeft &&
-    left.charTop === right.charTop &&
-    left.cssCellHeight === right.cssCellHeight &&
-    left.cssCellWidth === right.cssCellWidth &&
-    left.deviceBaseline === right.deviceBaseline &&
-    left.deviceCellHeight === right.deviceCellHeight &&
-    left.deviceCellWidth === right.deviceCellWidth &&
-    left.deviceCharHeight === right.deviceCharHeight &&
-    left.deviceCharWidth === right.deviceCharWidth &&
-    left.pixelRatio === right.pixelRatio
-  )
-}
-
-function fontGeometryEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
-  return (
-    left.cssCellHeight === right.cssCellHeight &&
-    left.cssCellWidth === right.cssCellWidth &&
-    left.deviceCellHeight === right.deviceCellHeight &&
-    left.deviceCellWidth === right.deviceCellWidth &&
-    left.pixelRatio === right.pixelRatio
-  )
 }
 
 function cursorEquals(left: RenderCursorSnapshot, right: RenderCursorSnapshot): boolean {
@@ -231,13 +154,20 @@ function copiedFrameRow(row: RenderRow): RendererFrameRow {
   return Object.freeze({ cells, continuations, text, y: row.y })
 }
 
-function prepareRenderer(options: WebGpuTerminalRendererOptions): PreparedRenderer {
+function validateRenderer(options: WebGpuTerminalRendererOptions): ValidatedRenderer {
   return {
-    context: requireContext(options.canvas),
-    font: copiedFittedFont(options.font),
-    format: navigator.gpu.getPreferredCanvasFormat(),
-    grid: normalizeGrid({ columns: options.columns, rows: options.rows }),
+    font: copyFittedFont(options.font),
+    grid: normalizeRendererGrid({ columns: options.columns, rows: options.rows }),
   }
+}
+
+function prepareRenderer(
+  options: WebGpuTerminalRendererOptions,
+  validated: ValidatedRenderer,
+): PreparedRenderer {
+  if (!navigator.gpu) throw new WebGpuUnavailableError('api', 'WebGPU is unavailable')
+  const format = navigator.gpu.getPreferredCanvasFormat()
+  return { ...validated, context: requireContext(options.canvas), format }
 }
 
 function releaseFailedDevice(context: GPUCanvasContext, device: GPUDevice): void {
@@ -258,6 +188,8 @@ export class WebGpuTerminalRenderer {
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
   private device: GPUDevice
+  private focused = false
+  private inactiveCursorStyle?: InactiveCursorStyle
   private readonly deviceFactory: () => Promise<GPUDevice>
   private deviceGeneration = 1
   private disposed = false
@@ -289,6 +221,7 @@ export class WebGpuTerminalRenderer {
     submittedFrames: 0,
     uploadedBytes: 0,
   }
+  readonly backend = 'webgpu' as const
 
   private constructor(
     options: WebGpuTerminalRendererOptions,
@@ -302,7 +235,7 @@ export class WebGpuTerminalRenderer {
     this.renderState = options.renderState
     this.grid = prepared.grid
     this.font = prepared.font
-    this.theme = mergedTheme(options.theme)
+    this.theme = mergeRendererTheme(options.theme)
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.onFrame = options.onFrame
     this.visibleRows = Array.from({ length: this.grid.rows })
@@ -315,7 +248,7 @@ export class WebGpuTerminalRenderer {
     this.textPass = this.createTextPass()
     this.textPass.syncAtlas(this.atlasTextures)
     this.scheduler = new RenderScheduler({
-      clock: options.schedulerClock ?? browserClock(),
+      clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
     })
     this.watchDeviceLoss(device, this.deviceGeneration)
@@ -323,13 +256,16 @@ export class WebGpuTerminalRenderer {
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
-    const prepared = prepareRenderer(options)
+    const validated = validateRenderer(options)
     const factory = options.deviceFactory ?? defaultDeviceFactory
     const device = await factory()
+    let prepared: PreparedRenderer | undefined
     try {
+      prepared = prepareRenderer(options, validated)
       return new WebGpuTerminalRenderer(options, device, prepared)
     } catch (cause) {
-      releaseFailedDevice(prepared.context, device)
+      if (prepared) releaseFailedDevice(prepared.context, device)
+      if (!prepared) device.destroy()
       throw cause
     }
   }
@@ -361,8 +297,8 @@ export class WebGpuTerminalRenderer {
   }
 
   refreshRows(startRow: number, endRow: number): void {
-    const start = safeInteger('startRow', startRow)
-    const end = safeInteger('endRow', endRow)
+    const start = safeRendererInteger('startRow', startRow)
+    const end = safeRendererInteger('endRow', endRow)
     if (start > end) throw new RangeError('startRow must not exceed endRow')
     if (end >= this.grid.rows)
       throw new RangeError('endRow must be less than the renderer row count')
@@ -385,14 +321,23 @@ export class WebGpuTerminalRenderer {
   }
 
   setFocused(focused: boolean): void {
+    if (this.focused === focused) return
     this.addCursorRow(this.cursor)
+    this.focused = focused
     this.scheduler.setFocused(focused)
   }
 
+  setInactiveCursorStyle(style: InactiveCursorStyle | undefined): void {
+    if (this.inactiveCursorStyle === style) return
+    this.addCursorRow(this.cursor)
+    this.inactiveCursorStyle = style
+    this.scheduler.schedule()
+  }
+
   setFont(font: TerminalFittedFont): void {
-    const next = copiedFittedFont(font)
-    if (fittedFontEquals(this.font, next)) return
-    const geometryChanged = !fontGeometryEquals(this.font, next)
+    const next = copyFittedFont(font)
+    if (fittedFontsEqual(this.font, next)) return
+    const geometryChanged = !fittedFontGeometryEquals(this.font, next)
     this.font = next
     if (geometryChanged) this.rebuildGeometryResources()
     this.rasterizer = this.createRasterizer()
@@ -401,12 +346,12 @@ export class WebGpuTerminalRenderer {
   }
 
   setTheme(theme: Partial<RendererTheme>): void {
-    this.theme = mergedTheme({ ...this.theme, ...theme })
+    this.theme = mergeRendererTheme({ ...this.theme, ...theme })
     this.invalidateAll()
   }
 
   resize(grid: RendererGridSize): void {
-    const next = normalizeGrid(grid)
+    const next = normalizeRendererGrid(grid)
     if (this.gridEquals(next)) return
     this.releaseRemovedRows(next.rows)
     this.grid = next
@@ -593,7 +538,8 @@ export class WebGpuTerminalRenderer {
 
   private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {
     const updates: RowInstanceUpdate[] = []
-    const cursor = renderCursorState(this.cursor, this.cursorPhaseVisible)
+    const style = this.focused ? undefined : this.inactiveCursorStyle
+    const cursor = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
     for (const row of rows) {
       updates.push(
         this.instances.rebuildRow(row, this.glyphLookup(), this.rasterizer, this.theme, cursor),

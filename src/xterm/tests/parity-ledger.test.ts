@@ -294,6 +294,15 @@ afterAll(async () => {
 })
 
 describe('generated xterm parity inventory', () => {
+  it('ships the certified released xterm stylesheet byte-for-byte', async () => {
+    const [reference, packaged] = await Promise.all([
+      readFile(join(projectRoot, 'node_modules/@xterm/xterm/css/xterm.css')),
+      readFile(join(projectRoot, 'src/xterm/css/xterm.css')),
+    ])
+
+    expect(packaged).toEqual(reference)
+  })
+
   it('pins the exact released and forward-reference baselines', () => {
     expect(generatedLedger.schemaVersion).toBe(1)
     expect(generatedLedger.baseline).toEqual({

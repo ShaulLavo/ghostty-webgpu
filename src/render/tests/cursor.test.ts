@@ -21,4 +21,12 @@ it('maps a native wide-tail cursor to the leading visible cell', () => {
     0,
   )
   expect(renderCursorState(cursor, false)?.visible).toBe(false)
+  expect(renderCursorState(cursor, true, 'outline')).toMatchObject({
+    style: 'outline',
+    visible: true,
+  })
+  expect(renderCursorState(cursor, true, 'none')).toMatchObject({
+    style: 'block',
+    visible: false,
+  })
 })

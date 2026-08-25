@@ -30,12 +30,17 @@
     "THIRD_PARTY_NOTICES.md"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/xterm/xterm.css"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./types/legacy/index.d.ts",
   "typesVersions": {
     ">=7.0": {
+      "xterm.css": [
+        "types/legacy/xterm-css.d.ts"
+      ],
       "xterm": [
         "dist/xterm/terminal.d.ts"
       ],
@@ -44,6 +49,9 @@
       ]
     },
     "*": {
+      "xterm.css": [
+        "types/legacy/xterm-css.d.ts"
+      ],
       "xterm": [
         "types/legacy/xterm.d.ts"
       ],
@@ -65,6 +73,10 @@
       "import": "./dist/xterm/terminal.js",
       "default": "./dist/xterm/terminal.js"
     },
+    "./xterm.css": {
+      "types": "./types/legacy/xterm-css.d.ts",
+      "default": "./dist/xterm/xterm.css"
+    },
     "./ghostty-vt.wasm": "./ghostty-vt.wasm",
     "./bridge.wasm": "./bridge.wasm"
   },
@@ -73,7 +85,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "bun run clean && tsc -p tsconfig.build.json",
+    "build": "bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
     "build:bridge": "bun scripts/build-bridge.ts",
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",
@@ -88,6 +100,7 @@
     "test:browser": "bun scripts/browser-tests.ts",
     "test:package": "bun scripts/package-smoke.ts",
     "test:unit": "vitest run",
+    "test:xterm-browsers": "bun scripts/xterm-browser-tests.ts",
     "typecheck": "tsc --noEmit",
     "verify": "bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run xterm:reference-pack && bun run test:package",
     "xterm:parity": "bun scripts/xterm-parity.ts --check",

@@ -1320,6 +1320,10 @@ export class TerminalSession<TEvent = unknown> {
     })
   }
 
+  setSelectionWordBoundaryCodepoints(value: string): boolean {
+    return this.runOperation(() => this.selection.setWordBoundaryCodepoints(value))
+  }
+
   getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {
     this.ensureActive()
     return this.selection.getSelection(options)

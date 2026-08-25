@@ -18,8 +18,52 @@
 - **Depends on**: Plan 009 DONE
 - **Category**: browser / interaction / accessibility / compatibility
 - **Planned at**: commit `a7e7372`, 2026-08-24
-- **Execution state**: IN PROGRESS — on 2026-08-25 the operator approved continuing with work
-  independent of blocked Plan 009 and circling back; this does not satisfy or remove the dependency
+- **Execution state**: BLOCKED — the independently authorized slice passes its automated browser
+  matrix, but the mandatory three-run hardware benchmark exceeds the qualified CPU ceiling; Plan
+  009 and the physical operator gate also remain unresolved
+
+## Independent execution evidence — 2026-08-25
+
+The operator authorized work independent of blocked Plan 009 and asked to circle back. That waiver
+allowed the bounded work below; it did not satisfy or remove the dependency.
+
+- The xterm entry now creates the released 6.0 DOM hierarchy while preserving native class hooks.
+  The released stylesheet is copied byte-for-byte (SHA-256
+  `854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6`), exported as
+  `ghostty-webgpu/xterm.css`, and covered by package-consumer and differential DOM tests.
+- An event-driven Canvas2D renderer consumes `RenderStateSource` directly. It uses Ghostty rows,
+  Unicode, cursor, selection, styles, and damage, acknowledges native damage only after painting,
+  and has no standing loop. Typed WebGPU capability failures select it automatically; programming
+  failures still propagate. Diagnostics report `webgpu` or `canvas2d`.
+- Native-backed `wordSeparator`, inactive cursor styles, `macOptionIsMeta`, `disableStdin`, and
+  automated `screenReaderMode` behavior gained focused coverage. No visible-row proxy, shadow
+  scrollback, JavaScript parser, or replacement terminal state was introduced.
+- The unflagged browser matrix passed in Chromium, Firefox, and WebKit: each ran 37 tests with the
+  one pre-existing, documented dispose-before-first-open lifecycle skip. Firefox and WebKit used
+  the Canvas2D compatibility path.
+- Automated accessibility checks match released public classes, roles, labels, row hooks, and
+  dynamic enable/disable lifecycle. They do not claim VoiceOver, NVDA, IME, clipboard, held-key,
+  high-DPI, or shadow-DOM operator evidence.
+
+The hardware WebGPU benchmark used the same Apple `metal-3`, DPR 2, 200×50, 5-second warmup, and
+30-second sample protocol as the qualified baseline. The active CPU ceiling is 9.35%.
+
+| Scenario              | Run 1 | Run 2 | Run 3 | Three-run median | Ceiling | Result   |
+| --------------------- | ----: | ----: | ----: | ---------------: | ------: | -------- |
+| focused-blinking-idle |  0.1% |  0.1% |  0.1% |             0.1% |    0.3% | PASS     |
+| unfocused-idle        |  0.0% |  0.0% |  0.0% |             0.0% |    0.1% | PASS     |
+| burst-output          | 11.3% |  9.5% |  9.2% |             9.5% |   9.35% | **FAIL** |
+| sustained-scroll      | 10.1% |  9.5% | 15.5% |            10.1% |   9.35% | **FAIL** |
+
+Every idle run recorded zero frames, draws, rebuilt rows, instance uploads, atlas operations, and
+atlas bytes. Every populated frame retained exactly two draws. Median glyph-churn atlas traffic was
+70,871,473 bytes, still 99.636% below the Plan 001 baseline. Those structural results do not
+override the CPU failure.
+
+This triggers the explicit renderer-performance STOP condition after three comparable runs. Plan
+010 is not DONE, its completion/full-parity gate is not claimed, and further implementation stops
+pending an optimization/requalification decision. The Plan 009 dependency and physical operator
+gate would remain even if the benchmark cleared.
 
 ## Why this matters
 

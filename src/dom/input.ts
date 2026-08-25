@@ -200,15 +200,22 @@ function normalizedKeyInput(
   pressedCodes: ReadonlySet<string>,
   locallyComposing: boolean,
   isApplePlatform: boolean,
+  macOptionIsMeta: boolean,
 ): TerminalKeyInput {
-  const composing = isComposingKey(event, locallyComposing)
+  const optionActsAsMeta = isApplePlatform && macOptionIsMeta && event.altKey
+  const composing = !optionActsAsMeta && isComposingKey(event, locallyComposing)
   const modifiers = activeModifiers(event, pressedCodes)
   const text = browserKeyText(event, composing)
   return {
     action: keyAction(event),
     code: event.code,
     composing,
-    consumedModifiers: consumedModifiers(event, modifiers, text, isApplePlatform),
+    consumedModifiers: consumedModifiers(
+      event,
+      modifiers,
+      text,
+      isApplePlatform && !macOptionIsMeta,
+    ),
     modifiers,
     text,
   }
@@ -503,17 +510,25 @@ class BrowserInputController implements DomInputController {
         this.pressedModifierCodes,
         this.composing,
         this.platform === 'mac',
+        this.options.hooks?.macOptionIsMeta?.() === true,
       )
       const bytes = this.options.session.key(input, {
         onEncoded: (data) => this.notifyKey(event, data),
       })
       this.updatePublishedKeyPresses(event, bytes)
       if (bytes.length === 0) return
+      if (this.screenReaderUsesBrowserDefault(event)) return
       event.preventDefault()
     } catch (cause) {
       if (event.type === 'keyup') this.publishedKeyPresses.delete(event.code)
       this.options.onError(cause, 'key')
     }
+  }
+
+  private screenReaderUsesBrowserDefault(event: KeyboardEvent): boolean {
+    if (event.type !== 'keydown') return false
+    if (this.options.hooks?.screenReaderMode?.() !== true) return false
+    return !event.altKey && !event.ctrlKey
   }
 
   private updatePublishedKeyPresses(event: KeyboardEvent, bytes: TerminalInputResult): void {

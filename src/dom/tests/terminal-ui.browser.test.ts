@@ -1260,6 +1260,25 @@ describe.sequential('integrated terminal UI host', () => {
     expect(harness.terminal.getSelection()).toContain('select lines active gesture')
   })
 
+  it('enables and disables the accessibility mirror without replacing terminal elements', async () => {
+    const harness = await createIntegratedHarness({ accessibility: false })
+    const element = harness.terminal.element
+    const textarea = harness.terminal.textarea
+
+    expect(harness.host.querySelector('.ghostty-webgpu-accessibility')).toBeNull()
+    expect(harness.terminal.setAccessibilityEnabled(false)).toBe(false)
+    expect(harness.terminal.setAccessibilityEnabled(true)).toBe(true)
+    expect(harness.terminal.element).toBe(element)
+    expect(harness.terminal.textarea).toBe(textarea)
+
+    harness.renderer.emit(frame(['accessible row']))
+    expect(harness.host.querySelector('[role="listitem"]')?.textContent).toBe('accessible row')
+    expect(harness.terminal.setAccessibilityEnabled(true)).toBe(false)
+    expect(harness.terminal.setAccessibilityEnabled(false)).toBe(true)
+    expect(harness.host.querySelector('.ghostty-webgpu-accessibility')).toBeNull()
+    expect(textarea?.hasAttribute('aria-controls')).toBe(false)
+  })
+
   it('preserves native wide-cell continuation in provider and accessibility text', async () => {
     const host = appendRoot(360, 100)
     let providerText: string | undefined

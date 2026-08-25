@@ -883,6 +883,86 @@ describe.sequential('Terminal DOM host', () => {
     expect(keys).toHaveLength(2)
   })
 
+  it('switches macOS Option between text consumption and native meta encoding dynamically', () => {
+    const textarea = document.createElement('textarea')
+    document.body.append(textarea)
+    hosts.push(textarea)
+    const keys: TerminalKeyInput[] = []
+    let optionIsMeta = false
+    const controller = createDomInputController({
+      hooks: { macOptionIsMeta: () => optionIsMeta },
+      onError: (cause) => {
+        throw cause
+      },
+      platform: 'mac',
+      session: {
+        getSelection: () => undefined,
+        key: (input) => {
+          keys.push(input)
+          return new Uint8Array()
+        },
+        paste: () => new Uint8Array(),
+        selectionCoordinates: () => undefined,
+        sendInput: () => new Uint8Array(),
+      },
+      signal: new AbortController().signal,
+      textarea,
+    })
+
+    dispatchKey(textarea, 'keydown', { altKey: true, code: 'AltLeft', key: 'Alt' })
+    dispatchKey(textarea, 'keydown', { altKey: true, code: 'KeyE', key: 'é' })
+    expect(keys.at(-1)?.consumedModifiers).toMatchObject({ alt: 'left' })
+
+    optionIsMeta = true
+    dispatchKey(textarea, 'keydown', {
+      altKey: true,
+      code: 'KeyE',
+      isComposing: true,
+      key: 'e',
+    })
+    expect(keys.at(-1)).toMatchObject({ composing: false, text: 'e' })
+    expect(keys.at(-1)?.consumedModifiers?.alt).toBeUndefined()
+
+    controller.dispose()
+  })
+
+  it('leaves printable key defaults available to screen readers while retaining control ownership', () => {
+    const textarea = document.createElement('textarea')
+    document.body.append(textarea)
+    hosts.push(textarea)
+    let screenReaderMode = false
+    const controller = createDomInputController({
+      hooks: { screenReaderMode: () => screenReaderMode },
+      onError: (cause) => {
+        throw cause
+      },
+      platform: 'linux',
+      session: {
+        getSelection: () => undefined,
+        key: () => new TextEncoder().encode('x'),
+        paste: () => new Uint8Array(),
+        selectionCoordinates: () => undefined,
+        sendInput: () => new Uint8Array(),
+      },
+      signal: new AbortController().signal,
+      textarea,
+    })
+
+    const ordinary = dispatchKey(textarea, 'keydown', { code: 'KeyX', key: 'x' })
+    screenReaderMode = true
+    const accessible = dispatchKey(textarea, 'keydown', { code: 'KeyX', key: 'x' })
+    const controlled = dispatchKey(textarea, 'keydown', {
+      code: 'KeyX',
+      ctrlKey: true,
+      key: 'x',
+    })
+
+    expect(ordinary.defaultPrevented).toBe(true)
+    expect(accessible.defaultPrevented).toBe(false)
+    expect(controlled.defaultPrevented).toBe(true)
+    controller.dispose()
+  })
+
   it('replaces defaults, preserves declaration order, and keeps shortcut state instance-local', () => {
     const host = document.createElement('div')
     const textarea = document.createElement('textarea')

@@ -7441,10 +7441,11 @@
     {
       "evidence": [
         "src/xterm/tests/types.test.ts",
-        "src/xterm/tests/terminal.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts"
       ],
       "implementationPath": "src/xterm/options.ts",
-      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
+      "notes": "Released construction and mutable option observables match; transparent rendering remains uncertified.",
       "ownerPlan": "010",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -7509,10 +7510,11 @@
     {
       "evidence": [
         "src/xterm/tests/types.test.ts",
-        "src/xterm/tests/terminal.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/render/tests/cursor.test.ts"
       ],
       "implementationPath": "src/xterm/options.ts",
-      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
+      "notes": "Native cursor rendering covers outline, block, bar, underline, and none; complete released browser rendering remains uncertified.",
       "ownerPlan": "010",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -7577,10 +7579,11 @@
     {
       "evidence": [
         "src/xterm/tests/types.test.ts",
-        "src/xterm/tests/terminal.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts"
       ],
       "implementationPath": "src/xterm/options.ts",
-      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
+      "notes": "Construction and mutable textarea read-only behavior matches released browser evidence; the complete interaction matrix remains uncertified.",
       "ownerPlan": "010",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -7829,10 +7832,11 @@
     {
       "evidence": [
         "src/xterm/tests/types.test.ts",
-        "src/xterm/tests/terminal.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/dom/tests/terminal-input.browser.test.ts"
       ],
       "implementationPath": "src/xterm/options.ts",
-      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
+      "notes": "Native keyboard evidence covers macOS Option-as-Meta translation; the physical macOS input gate remains open.",
       "ownerPlan": "010",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -7931,10 +7935,13 @@
     {
       "evidence": [
         "src/xterm/tests/types.test.ts",
-        "src/xterm/tests/terminal.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/accessibility.browser.test.ts",
+        "src/dom/tests/terminal-ui.browser.test.ts"
       ],
       "implementationPath": "src/xterm/options.ts",
-      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
+      "notes": "Released accessibility-tree lifecycle and printable-key default handling match automated browser evidence; physical screen-reader evidence remains open.",
       "ownerPlan": "010",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -8101,10 +8108,12 @@
     {
       "evidence": [
         "src/xterm/tests/types.test.ts",
-        "src/xterm/tests/terminal.test.ts"
+        "src/xterm/tests/terminal.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/core/tests/selection.test.ts"
       ],
       "implementationPath": "src/xterm/options.ts",
-      "notes": "The live option/type surface exists; complete released rendering and interaction semantics remain uncertified.",
+      "notes": "Construction and mutation drive Ghostty-native selection boundaries and match released browser word selection; the physical pointer matrix remains open.",
       "ownerPlan": "010",
       "targetStatus": "partial",
       "area": "core-lifecycle-options-events",
@@ -9178,7 +9187,9 @@
     },
     {
       "evidence": [
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "The synchronous DOM shell and paused write queue now match textarea blur reporting inside pre-ready write callbacks and after readiness. Plan 010 retains the complete cross-browser focus and accessibility matrix.",
@@ -9327,7 +9338,8 @@
     },
     {
       "evidence": [
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "Normal pre-open, synchronous-open, and post-open-disposal identities match browser evidence. The intentional dispose-before-first-open divergence leaves this undefined instead of reproducing released xterm's half-created connected DOM.",
@@ -9343,7 +9355,9 @@
     },
     {
       "evidence": [
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "The synchronous DOM shell and paused write queue now match textarea focus reporting inside pre-ready write callbacks and after readiness. Plan 010 retains the complete cross-browser focus and accessibility matrix.",
@@ -9672,7 +9686,8 @@
     },
     {
       "evidence": [
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "Normal synchronous open, reopen, disposal, and retained DOM identities match released browser evidence. Disposing before the first open intentionally rejects without reproducing released xterm's half-created connected DOM and disposable leaks.",
@@ -9689,7 +9704,9 @@
     {
       "evidence": [
         "src/xterm/tests/terminal.test.ts",
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/accessibility.browser.test.ts"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "Focused and browser evidence covers init-only dimensions, sequential enumerable option assignment with earlier mutations retained after a later failure, native-application rollback per property, released undefined/non-finite sanitizers, and direct or bulk mutations after disposal without native application. Plan 010 retains the complete rendering and interaction effect matrix.",
@@ -10009,7 +10026,8 @@
     },
     {
       "evidence": [
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "Normal pre-open, synchronous-open, and post-open-disposal identities match browser evidence. The intentional dispose-before-first-open divergence leaves this undefined instead of reproducing released xterm's half-created connected DOM.",
@@ -10243,11 +10261,17 @@
       "area": "dom-css-accessibility-browser",
       "behavior": "Support the latest evergreen Chrome environment named by the pinned xterm README.",
       "evidence": [
+        "scripts/xterm-browser-tests.ts",
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/accessibility.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "src/render/canvas/renderer.browser.test.ts",
         "docs/phase-3-acceptance.md"
       ],
       "id": "browser:chrome",
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "Browser-native terminal behavior exists, but the complete xterm interaction and accessibility matrix is not certified.",
+      "implementationPath": "src/xterm/runtime.ts",
+      "notes": "The unflagged Chromium engine matrix passes; the Plan 010 performance and physical operator gates remain open.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7",
@@ -10259,11 +10283,17 @@
       "area": "dom-css-accessibility-browser",
       "behavior": "Support the latest evergreen Edge environment named by the pinned xterm README.",
       "evidence": [
+        "scripts/xterm-browser-tests.ts",
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/accessibility.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "src/render/canvas/renderer.browser.test.ts",
         "docs/phase-3-acceptance.md"
       ],
       "id": "browser:edge",
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "Browser-native terminal behavior exists, but the complete xterm interaction and accessibility matrix is not certified.",
+      "implementationPath": "src/xterm/runtime.ts",
+      "notes": "The Chromium engine matrix passes, but Microsoft Edge product coverage plus the Plan 010 performance and physical gates remain open.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7",
@@ -10275,11 +10305,17 @@
       "area": "dom-css-accessibility-browser",
       "behavior": "Support the latest evergreen Firefox environment named by the pinned xterm README.",
       "evidence": [
+        "scripts/xterm-browser-tests.ts",
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/accessibility.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "src/render/canvas/renderer.browser.test.ts",
         "docs/phase-3-acceptance.md"
       ],
       "id": "browser:firefox",
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "Browser-native terminal behavior exists, but the complete xterm interaction and accessibility matrix is not certified.",
+      "implementationPath": "src/xterm/runtime.ts",
+      "notes": "The unflagged Firefox matrix passes through the Canvas2D fallback; the Plan 010 performance and physical operator gates remain open.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7",
@@ -10291,11 +10327,17 @@
       "area": "dom-css-accessibility-browser",
       "behavior": "Support the latest evergreen Safari environment named by the pinned xterm README.",
       "evidence": [
+        "scripts/xterm-browser-tests.ts",
+        "src/xterm/tests/terminal.browser.test.ts",
+        "src/xterm/tests/browser-interaction.browser.test.ts",
+        "src/xterm/tests/accessibility.browser.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "src/render/canvas/renderer.browser.test.ts",
         "docs/phase-3-acceptance.md"
       ],
       "id": "browser:safari",
-      "implementationPath": "src/dom/terminal.ts",
-      "notes": "Browser-native terminal behavior exists, but the complete xterm interaction and accessibility matrix is not certified.",
+      "implementationPath": "src/xterm/runtime.ts",
+      "notes": "The unflagged WebKit matrix passes through the Canvas2D fallback, but Safari product coverage plus the Plan 010 performance and physical gates remain open.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7",
@@ -10306,674 +10348,866 @@
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-char-measure-element selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-char-measure-element:ed8cd5eb0f",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-char-measure-element",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm.column-select.focus selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-column-select-focus:5e9cccbf07",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm.column-select.focus",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .composition-view.active selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-composition-view-active:923a72f150",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .composition-view.active",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .composition-view selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-composition-view:ac18cb3ced",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .composition-view",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-decoration-overview-ruler selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-decoration-overview-ruler:527f5cc9a5",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-decoration-overview-ruler",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-decoration-top selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-decoration-top:f02a533601",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-decoration-top",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-dim selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-dim:646c484686",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-dim",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm.enable-mouse-events selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-enable-mouse-events:c7150360dc",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm.enable-mouse-events",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm:focus selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-focus:3abe44d024",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm:focus",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm.focus selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-focus:d75122bcd1",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm.focus",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .live-region selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-live-region:5c859bc356",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .live-region",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-overline.xterm-underline-1 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-overline-xterm-underline-1:ce46777d08",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-overline.xterm-underline-1",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-overline.xterm-underline-2 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-overline-xterm-underline-2:cae00204d6",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-overline.xterm-underline-2",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-overline.xterm-underline-3 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-overline-xterm-underline-3:132064a0b4",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-overline.xterm-underline-3",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-overline.xterm-underline-4 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-overline-xterm-underline-4:6028dda1c3",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-overline.xterm-underline-4",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-overline.xterm-underline-5 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-overline-xterm-underline-5:ba9738895b",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-overline.xterm-underline-5",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-overline selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-overline:e80752bb8f",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-overline",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-screen .xterm-decoration-container .xterm-decoration.xterm-decoration-top-layer selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-screen-xterm-decoration-container-xterm-decoration-xterm-decoration-top-layer:9c26bfdf10",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-screen .xterm-decoration-container .xterm-decoration.xterm-decoration-top-layer",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-screen .xterm-decoration-container .xterm-decoration selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-screen-xterm-decoration-container-xterm-decoration:4358c2e956",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-screen .xterm-decoration-container .xterm-decoration",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-strikethrough selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-strikethrough:58066b067a",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-strikethrough",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-underline-1 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-underline-1:3115c0ab16",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-underline-1",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-underline-2 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-underline-2:88c673fd52",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-underline-2",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-underline-3 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-underline-3:bffe86afde",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-underline-3",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-underline-4 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-underline-4:3264a2ae85",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-underline-4",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm-underline-5 selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-underline-5:64c10027ee",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm-underline-5",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-accessibility:not(.debug) selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-accessibility-not-debug:9341d2ef24",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-accessibility:not(.debug)",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-accessibility-tree > div selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-accessibility-tree-div:fafe7eaf69",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-accessibility-tree > div",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-accessibility-tree:not(.debug) *::selection selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-accessibility-tree-not-debug-selection:419bfe50f3",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-accessibility-tree:not(.debug) *::selection",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-accessibility-tree selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-accessibility-tree:aab95720e2",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-accessibility-tree",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-cursor-pointer selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-cursor-pointer:0f6ef26e02",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-cursor-pointer",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm.xterm-cursor-pointer selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-cursor-pointer:ad5e02e9c9",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm.xterm-cursor-pointer",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-helper-textarea selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-helper-textarea:5ba1f96866",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-helper-textarea",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-helpers selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-helpers:15048d8505",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-helpers",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-message selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-message:a90b9738e4",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-message",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-screen canvas selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-screen-canvas:9242bb7f48",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-screen canvas",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-screen selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-screen:4cae0d400a",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-screen",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .invisible.fade selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-invisible-fade:a97a34fb85",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .invisible.fade",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .invisible selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-invisible:0a6b3e23c9",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .invisible",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .scrollbar > .scra selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-scrollbar-scra:0847ee919d",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .scrollbar > .scra",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .scrollbar selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-scrollbar:164cbbaa1e",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .scrollbar",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .shadow.left selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-shadow-left:94d930a253",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .shadow.left",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .shadow.top-left-corner selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-shadow-top-left-corner:77ed609e5a",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .shadow.top-left-corner",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .shadow.top.left selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-shadow-top-left:7c6e3a945b",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .shadow.top.left",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .shadow.top selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-shadow-top:656956d33d",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .shadow.top",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .shadow selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-shadow:c8387ab2de",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .shadow",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-scrollable-element > .visible selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-scrollable-element-visible:ece93e71b3",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-scrollable-element > .visible",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm .xterm-viewport selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm-xterm-viewport:0f21ddbba1",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm .xterm-viewport",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",
       "behavior": "The released stylesheet defines the public .xterm selector.",
-      "evidence": [],
+      "evidence": [
+        "src/xterm/tests/parity-ledger.test.ts",
+        "src/xterm/tests/dom-contract.browser.test.ts",
+        "scripts/package-smoke.ts"
+      ],
       "id": "css:xterm:eb0679b875",
-      "implementationPath": null,
-      "notes": "",
+      "implementationPath": "src/xterm/css/xterm.css",
+      "notes": "The released 6.0 stylesheet is shipped byte-for-byte; package-consumer and DOM differential tests cover delivery and public layout hooks.",
       "ownerPlan": "010",
       "package": "@xterm/xterm",
       "referenceCommit": "f447274f430fd22513f6adbf9862d19524471c04",
       "referencePath": "npm:@xterm/xterm@6.0.0/css/xterm.css",
       "symbol": ".xterm",
-      "targetStatus": "missing"
+      "targetStatus": "compatible"
     },
     {
       "area": "dom-css-accessibility-browser",

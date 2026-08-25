@@ -67,6 +67,7 @@ const localizableStringValues: ILocalizableStrings = {
 }
 const allOptionKeys = [
   'cursorBlink',
+  'cursorInactiveStyle',
   'cursorStyle',
   'fontFamily',
   'fontSize',
@@ -75,8 +76,10 @@ const allOptionKeys = [
   'letterSpacing',
   'lineHeight',
   'minimumContrastRatio',
+  'screenReaderMode',
   'scrollback',
   'theme',
+  'wordSeparator',
 ] as const satisfies readonly (keyof ITerminalOptions)[]
 
 function convertedLineFeeds(data: TerminalInputData, convertEol: boolean): TerminalInputData {
@@ -435,6 +438,7 @@ export class Terminal implements IDisposable {
     this.ensureActive('open')
     const elements = this.dependencies.createElements(parent)
     elements.textarea.setAttribute('aria-label', Terminal.strings.promptLabel)
+    this.applyShellOptions(elements)
     this.elements = elements
     this.elementValue = elements.root
     this.textareaValue = elements.textarea
@@ -605,7 +609,9 @@ export class Terminal implements IDisposable {
         customKeyEvent: (event) => this.decideCustomKeyEvent(event),
         inputReady: () => this.commitNativeInputOwnership(),
         inputDisabled: () => this.optionsStore.values.disableStdin,
+        macOptionIsMeta: () => this.optionsStore.values.macOptionIsMeta,
         onKey: (key, domEvent) => this.events.key.emit({ domEvent, key }),
+        screenReaderMode: () => this.optionsStore.values.screenReaderMode,
       },
       {
         customWheelEvent: (event) => this.decideCustomWheelEvent(event),
@@ -713,7 +719,21 @@ export class Terminal implements IDisposable {
 
   private handleOptionChange(change: TerminalOptionChange): void {
     if (this.lifecycle === 'disposed' || this.lifecycle === 'disposing') return
+    this.applyChangedShellOptions(change)
     this.runtime?.applyOptions(change.values, change.keys)
+  }
+
+  private applyChangedShellOptions(change: TerminalOptionChange): void {
+    const elements = this.elements
+    if (!elements) return
+    if (change.keys.includes('disableStdin')) {
+      elements.textarea.readOnly = change.values.disableStdin
+    }
+  }
+
+  private applyShellOptions(elements: TerminalElements): void {
+    const values = this.optionsStore.values
+    elements.textarea.readOnly = values.disableStdin
   }
 
   private commitNativeInputOwnership(): void {

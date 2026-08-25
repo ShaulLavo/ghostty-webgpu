@@ -1,13 +1,15 @@
 import type { SelectionPoint } from '../core/selection.js'
-import { createTerminalElements, type TerminalElements } from '../dom/elements.js'
+import type { TerminalElements } from '../dom/elements.js'
 import {
   createGhosttyWebGpuTerminalFromSession,
   type Terminal as NativeTerminal,
 } from '../dom/terminal.js'
-import { WebGpuTerminalRenderer, type RendererFrameSnapshot } from '../render/renderer.js'
+import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../render/renderer.js'
+import { createCompatibleTerminalRenderer } from '../render/selector.js'
 import { TerminalSession } from '../term/session.js'
 import type { TerminalInputData } from '../term/types.js'
 import { applyAllTerminalOptions, applyTerminalOptions, initialAppearance } from './appearance.js'
+import { createXtermTerminalElements } from './elements.js'
 import type { TerminalOptionKey, TerminalOptionValues } from './options.js'
 import type {
   XtermInputHooks,
@@ -39,9 +41,9 @@ function terminalParent(elements: TerminalElements): HTMLElement {
 }
 
 function rendererFactory(onFrame: (snapshot: RendererFrameSnapshot) => void) {
-  return (options: Parameters<typeof WebGpuTerminalRenderer.create>[0], _signal: AbortSignal) => {
+  return (options: WebGpuTerminalRendererOptions, _signal: AbortSignal) => {
     const nativeOnFrame = options.onFrame
-    return WebGpuTerminalRenderer.create({
+    return createCompatibleTerminalRenderer({
       ...options,
       onFrame: (snapshot) => {
         nativeOnFrame?.(snapshot)
@@ -88,9 +90,17 @@ function runtimeModes(): Readonly<Partial<IModes>> {
 class NativeXtermRuntime implements XtermTerminalRuntime {
   private disposed = false
   private host?: NativeTerminal
+  private inactiveCursorStyle: TerminalOptionValues['cursorInactiveStyle']
   readonly modes = runtimeModes()
+  private screenReaderMode: boolean
 
-  constructor(private readonly session: TerminalSession<Event>) {}
+  constructor(
+    private readonly session: TerminalSession<Event>,
+    values: TerminalOptionValues,
+  ) {
+    this.inactiveCursorStyle = values.cursorInactiveStyle
+    this.screenReaderMode = values.screenReaderMode
+  }
 
   get cursor(): Readonly<{ x: number; y: number }> {
     return this.session.cursor
@@ -98,6 +108,17 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
 
   applyOptions(values: TerminalOptionValues, keys: readonly TerminalOptionKey[]): void {
     applyTerminalOptions(this.session, values, keys)
+    if (keys.includes('wordSeparator')) {
+      this.session.setSelectionWordBoundaryCodepoints(values.wordSeparator)
+    }
+    if (keys.includes('cursorInactiveStyle')) {
+      this.inactiveCursorStyle = values.cursorInactiveStyle
+      this.host?.setCursorInactiveStyle(this.inactiveCursorStyle)
+    }
+    if (keys.includes('screenReaderMode')) {
+      this.screenReaderMode = values.screenReaderMode
+      this.host?.setAccessibilityEnabled(this.screenReaderMode)
+    }
   }
 
   clear(): void {
@@ -138,6 +159,7 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
     onFrame: (snapshot: RendererFrameSnapshot) => void,
   ): XtermTerminalHostOpening {
     const host = createGhosttyWebGpuTerminalFromSession(this.session, {
+      accessibility: this.screenReaderMode ? {} : false,
       autoFit: false,
       elements,
       inputHooks: {
@@ -145,12 +167,15 @@ class NativeXtermRuntime implements XtermTerminalRuntime {
         customKeyEvent: inputHooks.customKeyEvent,
         inputReady: inputHooks.inputReady,
         inputDisabled: inputHooks.inputDisabled,
+        macOptionIsMeta: inputHooks.macOptionIsMeta,
         onKey: (event, data) => inputHooks.onKey(decoder.decode(data), event),
+        screenReaderMode: inputHooks.screenReaderMode,
       },
       pointerHooks: { customWheelEvent: pointerHooks.customWheelEvent },
       rendererFactory: rendererFactory(onFrame),
     })
     this.host = host
+    host.setCursorInactiveStyle(this.inactiveCursorStyle)
     const ready = host.open(terminalParent(elements)).catch((cause: unknown) => {
       if (this.host === host) this.host = undefined
       throw cause
@@ -236,7 +261,7 @@ async function createRuntime(
   })
   try {
     applyAllTerminalOptions(session, values)
-    return new NativeXtermRuntime(session)
+    return new NativeXtermRuntime(session, values)
   } catch (cause) {
     try {
       session.dispose()
@@ -246,6 +271,6 @@ async function createRuntime(
 }
 
 export const defaultXtermTerminalDependencies: XtermTerminalDependencies = Object.freeze({
-  createElements: createTerminalElements,
+  createElements: createXtermTerminalElements,
   createRuntime,
 })

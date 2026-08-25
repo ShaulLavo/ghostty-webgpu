@@ -19,7 +19,9 @@ export interface XtermInputHooks {
   readonly customKeyEvent: (event: KeyboardEvent) => boolean
   readonly inputReady: () => void
   readonly inputDisabled: () => boolean
+  readonly macOptionIsMeta: () => boolean
   readonly onKey: (key: string, event: KeyboardEvent) => void
+  readonly screenReaderMode: () => boolean
 }
 
 export interface XtermPointerHooks {
@@ -31,6 +33,8 @@ export interface XtermTerminalHost extends IDisposable {
   clearTextureAtlas(): void
   focus(): void
   refresh(start: number, end: number): void
+  setAccessibilityEnabled(enabled: boolean): boolean
+  setCursorInactiveStyle(style: 'bar' | 'block' | 'none' | 'outline' | 'underline'): boolean
 }
 
 export interface XtermTerminalHostOpening {

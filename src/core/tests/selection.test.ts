@@ -172,6 +172,18 @@ describe('native selection gesture', () => {
     expect(gesture!.getSelection()).toBe('second row')
   })
 
+  it('uses caller-provided native word-boundary codepoints for repeated clicks', async () => {
+    const terminal = await createSelectionTerminal(20, 4)
+    terminal.write('alpha-beta gamma')
+    gesture!.setWordBoundaryCodepoints(' -')
+
+    performClick(gesture!, 7, 0, 1_000_000_000n)
+    const word = gesture!.press(pressEvent(7, 0, 1_100_000_000n))
+
+    expect(word.selectionInstalled).toBe(true)
+    expect(gesture!.getSelection()).toBe('beta')
+  })
+
   it('installs rectangular selections without a JavaScript range model', async () => {
     const terminal = await createSelectionTerminal(5, 3)
     terminal.write('abcde\r\nfghij\r\nklmno')

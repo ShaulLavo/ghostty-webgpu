@@ -18,6 +18,7 @@ import type {
   TerminalTheme,
 } from '../term/types.js'
 import type { RendererTheme } from '../render/instances/types.js'
+import type { InactiveCursorStyle } from '../render/cursor.js'
 import type {
   RendererFrameSnapshot,
   RendererGridSize,
@@ -92,6 +93,7 @@ export interface GhosttyWebGpuTerminalDiagnostics {
   readonly lifecycle: GhosttyWebGpuTerminalLifecycle
   readonly pointerOwner: TerminalPointerOwner
   readonly pressedButtonCount: number
+  readonly rendererBackend: 'canvas2d' | 'webgpu' | undefined
   readonly scrollbarVisible: boolean
 }
 
@@ -106,6 +108,7 @@ export type GhosttyWebGpuTerminalScrollbarOptions = Omit<
 >
 
 export interface GhosttyWebGpuRenderer {
+  readonly backend?: 'canvas2d' | 'webgpu'
   readonly hasPendingFrame?: boolean
   readonly hasPendingTimer?: boolean
   clearTextureAtlas?(): void
@@ -119,6 +122,7 @@ export interface GhosttyWebGpuRenderer {
   setCursorBlinkEnabled(enabled: boolean): void
   setDocumentVisible(visible: boolean): void
   setFocused(focused: boolean): void
+  setInactiveCursorStyle?(style: InactiveCursorStyle | undefined): void
   setFont(font: TerminalFittedFont): void
   setTheme(theme: Partial<RendererTheme>): void
 }
@@ -129,7 +133,7 @@ export type GhosttyWebGpuRendererFactory = (
 ) => Promise<GhosttyWebGpuRenderer>
 
 export interface GhosttyWebGpuTerminalOptions {
-  readonly accessibility?: GhosttyWebGpuTerminalAccessibilityOptions
+  readonly accessibility?: false | GhosttyWebGpuTerminalAccessibilityOptions
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy
   readonly copySelection?: GhosttyWebGpuTerminalCopy
@@ -148,7 +152,9 @@ export interface GhosttyWebGpuTerminalInputHooks {
   customKeyEvent?(event: KeyboardEvent): boolean
   inputReady?(): void
   inputDisabled?(): boolean
+  macOptionIsMeta?(): boolean
   onKey?(event: KeyboardEvent, data: Uint8Array): void
+  screenReaderMode?(): boolean
 }
 
 export interface GhosttyWebGpuTerminalPointerHooks {

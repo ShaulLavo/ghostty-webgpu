@@ -15,6 +15,7 @@
     "bun.lock",
     "docs/xterm-parity.json",
     "docs/xterm-parity.md",
+    "src/xterm/css/xterm.css",
     "references/xterm.js",
     "*.tsbuildinfo"
   ]

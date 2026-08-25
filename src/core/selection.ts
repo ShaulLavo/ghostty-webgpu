@@ -74,6 +74,7 @@ export interface SelectionCoordinates {
 
 interface SelectionLayouts {
   behaviors: AbiLayout
+  codepoints: AbiLayout
   coordinate: AbiLayout
   geometry: AbiLayout
   point: AbiLayout
@@ -92,6 +93,7 @@ function fieldOffset(layout: AbiLayout, field: string): number {
 function selectionLayouts(runtime: GhosttyRuntime): SelectionLayouts {
   return {
     behaviors: requireLayout(runtime.layouts, 'GhosttySelectionGestureBehaviors'),
+    codepoints: requireLayout(runtime.layouts, 'GhosttyCodepoints'),
     coordinate: requireLayout(runtime.layouts, 'GhosttyPointCoordinate'),
     geometry: requireLayout(runtime.layouts, 'GhosttySelectionGestureGeometry'),
     point: requireLayout(runtime.layouts, 'GhosttyPoint'),
@@ -144,6 +146,19 @@ function validateRepeatDistance(value: number): void {
     'selection_gesture.press',
     'repeatDistance must be a finite non-negative number',
   )
+}
+
+function scalarCodepoints(value: string): readonly number[] {
+  const result: number[] = []
+  for (const character of value) {
+    const codepoint = character.codePointAt(0)
+    if (codepoint === undefined) continue
+    if (codepoint >= 0xd800 && codepoint <= 0xdfff) {
+      throw new TypeError('Word-boundary codepoints must be Unicode scalar values')
+    }
+    result.push(codepoint)
+  }
+  return result
 }
 
 export class GhosttySelectionGesture {
@@ -316,6 +331,38 @@ export class GhosttySelectionGesture {
     if (startRow > endRow) throw new RangeError('startRow must not exceed endRow')
     const endColumn = this.terminal.size.columns - 1
     return this.selectRange({ x: 0, y: startRow }, { x: endColumn, y: endRow })
+  }
+
+  setWordBoundaryCodepoints(value: string): boolean {
+    this.ensureActive()
+    if (typeof value !== 'string') throw new TypeError('Word-boundary codepoints must be a string')
+    const codepoints = scalarCodepoints(value)
+    const memory = this.runtime.memory
+    const listPointer = memory.allocate(this.layouts.codepoints.size)
+    const valuesLength = codepoints.length * 4
+    const valuesPointer = valuesLength === 0 ? 0 : memory.allocate(valuesLength)
+    try {
+      for (const [index, codepoint] of codepoints.entries()) {
+        memory.view.setUint32(valuesPointer + index * 4, codepoint, true)
+      }
+      memory.view.setUint32(
+        listPointer + fieldOffset(this.layouts.codepoints, 'ptr'),
+        valuesPointer,
+        true,
+      )
+      memory.view.setUint32(
+        listPointer + fieldOffset(this.layouts.codepoints, 'len'),
+        codepoints.length,
+        true,
+      )
+      this.setWordBoundaryOption(this.pressEventHandle, listPointer)
+      this.setWordBoundaryOption(this.dragEventHandle, listPointer)
+      this.setWordBoundaryOption(this.tickEventHandle, listPointer)
+      return true
+    } finally {
+      if (valuesPointer !== 0) memory.free(valuesPointer, valuesLength)
+      memory.free(listPointer, this.layouts.codepoints.size)
+    }
   }
 
   getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {
@@ -538,6 +585,10 @@ export class GhosttySelectionGesture {
       'ghostty_selection_gesture_event_set',
       this.runtime.exports.ghostty_selection_gesture_event_set(eventHandle, option, pointer),
     )
+  }
+
+  private setWordBoundaryOption(eventHandle: number, pointer: number): void {
+    this.setEventOption(eventHandle, SelectionGestureEventOption.WordBoundaryCodepoints, pointer)
   }
 
   private dispatchSelectionEvent(eventHandle: number, name: string): boolean | undefined {

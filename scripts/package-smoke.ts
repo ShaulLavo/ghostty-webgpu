@@ -95,6 +95,7 @@ async function writeConsumerFiles(root: string): Promise<void> {
     join(root, 'index.ts'),
     `import { Terminal } from 'ghostty-webgpu'
 import { Terminal as XtermTerminal, type ITerminalOptions } from 'ghostty-webgpu/xterm'
+import 'ghostty-webgpu/xterm.css'
 
 const xtermOptions: ITerminalOptions = { cursorBlink: true }
 void Terminal
@@ -109,6 +110,8 @@ async function verifyInstalledPackage(root: string): Promise<void> {
   await requirePath(join(packageRoot, 'dist/index.js'))
   await requirePath(join(packageRoot, 'dist/xterm/terminal.js'))
   await requirePath(join(packageRoot, 'dist/xterm/terminal.d.ts'))
+  await requirePath(join(packageRoot, 'dist/xterm/xterm.css'))
+  await requirePath(join(packageRoot, 'types/legacy/xterm-css.d.ts'))
   await requirePath(join(packageRoot, 'types/legacy/xterm.d.ts'))
   await requirePath(join(packageRoot, 'ghostty-vt.wasm'))
   await requirePath(join(packageRoot, 'bridge.wasm'))

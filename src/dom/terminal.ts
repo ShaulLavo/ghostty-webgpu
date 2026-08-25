@@ -1,6 +1,8 @@
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import type { TerminalScrollbar, TerminalSelectionFormatOptions } from '../core/types.js'
-import { WebGpuTerminalRenderer, type RendererFrameSnapshot } from '../render/renderer.js'
+import type { RendererFrameSnapshot } from '../render/renderer.js'
+import { createCompatibleTerminalRenderer } from '../render/selector.js'
+import type { InactiveCursorStyle } from '../render/cursor.js'
 import { EventEmitter } from '../term/events.js'
 import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
 import { TerminalSession } from '../term/session.js'
@@ -129,7 +131,7 @@ class CleanupStack {
 }
 
 const defaultRendererFactory: GhosttyWebGpuRendererFactory = (options) =>
-  WebGpuTerminalRenderer.create(options)
+  createCompatibleTerminalRenderer(options)
 
 const defaultScrollbarWidth = 12
 
@@ -228,7 +230,7 @@ const createFromSessionInternal = Symbol('createFromSessionInternal')
 
 export class Terminal {
   private accessibility?: TerminalAccessibilityController
-  private readonly accessibilityOptions?: GhosttyWebGpuTerminalAccessibilityOptions
+  private readonly accessibilityOptions?: false | GhosttyWebGpuTerminalAccessibilityOptions
   private readonly autoFit: boolean
   private readonly cleanup = new CleanupStack()
   private readonly copySelection
@@ -241,6 +243,7 @@ export class Terminal {
   private input?: DomInputController
   private readonly inputHooks?: GhosttyWebGpuTerminalInputHooks
   private inputLifecycle?: DomInputLifecycleController
+  private inactiveCursorStyle?: InactiveCursorStyle
   private readonly keyboard
   private lastFrame?: RendererFrameSnapshot
   private lastLinkFrameSignature?: string
@@ -333,6 +336,7 @@ export class Terminal {
       lifecycle: this.stateValue,
       pointerOwner: this.pointer?.owner ?? 'none',
       pressedButtonCount: this.pointer?.pressedButtonCount ?? 0,
+      rendererBackend: this.renderer?.backend,
       scrollbarVisible: this.scrollbar?.visible === true,
     })
   }
@@ -586,6 +590,26 @@ export class Terminal {
     return this.session.setCursor(cursor)
   }
 
+  setAccessibilityEnabled(enabled: boolean): boolean {
+    this.ensureActive()
+    if (!enabled) return this.disableAccessibility()
+    if (this.accessibility) return false
+    const elements = this.elementsValue
+    if (!elements) return false
+    this.accessibility = this.createAccessibility(elements)
+    const snapshot = this.lastFrame
+    if (snapshot) this.accessibility.update(snapshot, this.session.scrollbar)
+    return true
+  }
+
+  setCursorInactiveStyle(style: InactiveCursorStyle | undefined): boolean {
+    this.ensureActive()
+    if (this.inactiveCursorStyle === style) return false
+    this.inactiveCursorStyle = style
+    this.renderer?.setInactiveCursorStyle?.(style)
+    return true
+  }
+
   setFont(font: Partial<TerminalFontSettings>): TerminalMutationResult {
     this.ensureOpen()
     return this.session.setFont(font)
@@ -682,6 +706,7 @@ export class Terminal {
 
   private installRenderer(renderer: GhosttyWebGpuRenderer): void {
     this.renderer = renderer
+    renderer.setInactiveCursorStyle?.(this.inactiveCursorStyle)
     this.cleanup.add(() => renderer.dispose())
   }
 
@@ -710,17 +735,33 @@ export class Terminal {
   }
 
   private installAccessibility(elements: TerminalElements): void {
-    const options = this.accessibilityOptions
-    const accessibility = createTerminalAccessibility({
-      label: options?.label,
-      liveRegionMaxCharacters: options?.liveRegionMaxCharacters,
-      liveRegionMaxEntries: options?.liveRegionMaxEntries,
+    this.cleanup.add(() => this.disableAccessibility())
+    if (this.accessibilityOptions === false) return
+    this.accessibility = this.createAccessibility(elements)
+  }
+
+  private createAccessibility(elements: TerminalElements): TerminalAccessibilityController {
+    const options = this.accessibilityOptions || undefined
+    return createTerminalAccessibility({
+      ...(options?.label === undefined ? {} : { label: options.label }),
+      ...(options?.liveRegionMaxCharacters === undefined
+        ? {}
+        : { liveRegionMaxCharacters: options.liveRegionMaxCharacters }),
+      ...(options?.liveRegionMaxEntries === undefined
+        ? {}
+        : { liveRegionMaxEntries: options.liveRegionMaxEntries }),
       root: elements.root,
       signal: elements.signal,
       textarea: elements.textarea,
     })
-    this.accessibility = accessibility
-    this.cleanup.add(() => accessibility.dispose())
+  }
+
+  private disableAccessibility(): boolean {
+    const accessibility = this.accessibility
+    if (!accessibility) return false
+    this.accessibility = undefined
+    accessibility.dispose()
+    return true
   }
 
   private installScrollbar(elements: TerminalElements): void {
@@ -923,6 +964,8 @@ export class Terminal {
   }
 
   private handleFocused(focused: boolean): void {
+    const root = this.elementsValue?.root
+    if (root?.classList.contains('xterm')) root.classList.toggle('focus', focused)
     this.renderer?.setFocused(focused)
     if (!focused) this.pointer?.cancel()
   }
