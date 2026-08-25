@@ -1,6 +1,6 @@
 import type { Terminal as XtermBrowserTerminal } from '@xterm/xterm'
 import type { Terminal as XtermHeadlessTerminal } from '@xterm/headless'
-import type { GhosttyWebGpuTerminal } from '../../dom/terminal.js'
+import type { Terminal as NativeTerminal } from '../../dom/terminal.js'
 import type { TerminalSession } from '../../term/session.js'
 
 export interface SmokeSize {
@@ -179,12 +179,12 @@ export function createXtermBrowserLifecycleDriver(
 }
 
 export function createGhosttyBrowserLifecycleDriver(
-  terminal: GhosttyWebGpuTerminal,
+  terminal: NativeTerminal,
 ): BrowserLifecycleDriver {
   return {
     dispose: () => terminal.dispose(),
     dom: () => ({ element: terminal.element, textarea: terminal.textarea }),
-    name: 'GhosttyWebGpuTerminal',
+    name: 'Terminal',
     open: (parent) => terminal.open(parent),
     size: () => ({
       columns: terminal.appearance.grid.columns,

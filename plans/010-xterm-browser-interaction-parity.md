@@ -18,6 +18,8 @@
 - **Depends on**: Plan 009 DONE
 - **Category**: browser / interaction / accessibility / compatibility
 - **Planned at**: commit `a7e7372`, 2026-08-24
+- **Execution state**: IN PROGRESS — on 2026-08-25 the operator approved continuing with work
+  independent of blocked Plan 009 and circling back; this does not satisfy or remove the dependency
 
 ## Why this matters
 

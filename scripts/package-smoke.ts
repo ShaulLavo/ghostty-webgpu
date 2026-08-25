@@ -93,13 +93,23 @@ async function writeConsumerFiles(root: string): Promise<void> {
   )
   await writeFile(
     join(root, 'index.ts'),
-    `import { GhosttyWebGpuTerminal, Terminal } from 'ghostty-webgpu'\n\nvoid GhosttyWebGpuTerminal\nvoid Terminal\n`,
+    `import { Terminal } from 'ghostty-webgpu'
+import { Terminal as XtermTerminal, type ITerminalOptions } from 'ghostty-webgpu/xterm'
+
+const xtermOptions: ITerminalOptions = { cursorBlink: true }
+void Terminal
+void XtermTerminal
+void xtermOptions
+`,
   )
 }
 
 async function verifyInstalledPackage(root: string): Promise<void> {
   const packageRoot = join(root, 'node_modules/ghostty-webgpu')
   await requirePath(join(packageRoot, 'dist/index.js'))
+  await requirePath(join(packageRoot, 'dist/xterm/terminal.js'))
+  await requirePath(join(packageRoot, 'dist/xterm/terminal.d.ts'))
+  await requirePath(join(packageRoot, 'types/legacy/xterm.d.ts'))
   await requirePath(join(packageRoot, 'ghostty-vt.wasm'))
   await requirePath(join(packageRoot, 'bridge.wasm'))
   await rejectPath(join(packageRoot, 'dist/xterm/operation-queue.js'))
@@ -117,10 +127,26 @@ async function verifyInstalledPackage(root: string): Promise<void> {
   await run(
     [
       'node',
+      join(projectRoot, 'node_modules/typescript-legacy/bin/tsc'),
+      '--project',
+      'tsconfig.json',
+      '--moduleResolution',
+      'node',
+    ],
+    root,
+  )
+  await run(
+    [
+      'node',
       '--input-type=module',
       '--eval',
-      `import { GhosttyRuntime, GhosttyWebGpuTerminal, Terminal } from 'ghostty-webgpu'
-if (!GhosttyWebGpuTerminal || !Terminal) throw new Error('missing public terminal exports')
+      `import * as Native from 'ghostty-webgpu'
+import { Terminal as XtermTerminal } from 'ghostty-webgpu/xterm'
+const { GhosttyRuntime, Terminal } = Native
+if (typeof Terminal.create !== 'function') throw new Error('root Terminal is not the native API')
+if (typeof XtermTerminal !== 'function') throw new Error('missing xterm Terminal export')
+if (Terminal === XtermTerminal) throw new Error('native and xterm entry points resolve to one class')
+if ('GhosttyWebGpuTerminal' in Native) throw new Error('root still exports the old terminal name')
 const runtime = await GhosttyRuntime.create()
 runtime.dispose()`,
     ],

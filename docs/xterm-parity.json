@@ -5323,9 +5323,11 @@
       "symbol": "Terminal"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "Blocked on authoritative libghostty-vt buffer, parser, or Unicode hooks; a visible-row shadow model is forbidden.",
+      "notes": "Ghostty owns both screens internally, but its public ABI exposes arbitrary rows only on the active screen. Normal/alternate selection is absent from GhosttyPoint and terminal/grid reads resolve screens.active, so exact live inactive-buffer access would require forbidden retained row state.",
       "ownerPlan": "009",
       "targetStatus": "blocked",
       "area": "buffer-cell-modes-parser-unicode",
@@ -5421,9 +5423,11 @@
       "symbol": "IBufferRange"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "",
+      "notes": "Decoration presentation is implementable above the renderer, but exact anchoring and lifetime inherit the native line-marker blocker recorded by Plan 009's capability proof.",
       "ownerPlan": "009",
       "targetStatus": "missing",
       "area": "selection-markers-decorations-links-joiners",
@@ -5569,9 +5573,11 @@
       "symbol": "ILinkHandler"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "",
+      "notes": "Ghostty preserves OSC 8 identity internally, but public cell inspection exposes only URI and no stable identity/range across pages or wrapped rows. Exact xterm ranges would require forbidden private-state access, parsing, or shadow state.",
       "ownerPlan": "009",
       "targetStatus": "missing",
       "area": "selection-markers-decorations-links-joiners",
@@ -5615,9 +5621,11 @@
       "symbol": "ILogger"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "",
+      "notes": "Tracked grid refs are native cell pins, not xterm line markers: row erase/reset can move or retain them, pins can affect trim, and no typed row-mutation callback supplies exact disposal semantics.",
       "ownerPlan": "009",
       "targetStatus": "missing",
       "area": "selection-markers-decorations-links-joiners",
@@ -5629,9 +5637,11 @@
       "symbol": "IMarker"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "",
+      "notes": "Pinned Ghostty's GHOSTTY_TERMINAL_DATA_MODE plus GhosttyTerminalModeConfig can authoritatively read the released ANSI/DEC modes; implementation did not begin because other mandatory Plan 009 groups triggered STOP.",
       "ownerPlan": "009",
       "targetStatus": "missing",
       "area": "buffer-cell-modes-parser-unicode",
@@ -5660,9 +5670,11 @@
       "symbol": "IOverviewRulerOptions"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "Blocked on authoritative libghostty-vt buffer, parser, or Unicode hooks; a visible-row shadow model is forbidden.",
+      "notes": "Ghostty has the parser internally, but its public terminal ABI has no CSI/DCS/ESC/OSC/APC registration, consumption, async-pause, or resume API. The unknown callback covers only unsupported APC and ghostty_osc_* is standalone; a pre-parser is forbidden.",
       "ownerPlan": "009",
       "targetStatus": "blocked",
       "area": "buffer-cell-modes-parser-unicode",
@@ -5740,9 +5752,11 @@
       "symbol": "ITheme"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "Blocked on authoritative libghostty-vt buffer, parser, or Unicode hooks; a visible-row shadow model is forbidden.",
+      "notes": "Ghostty has native Unicode width machinery, but its public ABI exposes fixed-table queries only. No provider hook participates before native cells store width, so facade version metadata cannot satisfy this interface.",
       "ownerPlan": "009",
       "targetStatus": "blocked",
       "area": "buffer-cell-modes-parser-unicode",
@@ -5754,9 +5768,11 @@
       "symbol": "IUnicodeHandling"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "Blocked on authoritative libghostty-vt buffer, parser, or Unicode hooks; a visible-row shadow model is forbidden.",
+      "notes": "Ghostty has native Unicode width machinery, but its public ABI exposes fixed-table queries only. There is no wcwidth/charProperties provider registration that can affect native parsing or reflow.",
       "ownerPlan": "009",
       "targetStatus": "blocked",
       "area": "buffer-cell-modes-parser-unicode",
@@ -9736,9 +9752,11 @@
       "symbol": "Terminal.refresh"
     },
     {
-      "evidence": [],
+      "evidence": [
+        "plans/009-xterm-extension-surfaces.md"
+      ],
       "implementationPath": null,
-      "notes": "",
+      "notes": "Native row/cell/grapheme reads and existing multi-cell glyph spans can support render-only joiner grouping without changing Ghostty width or selection; implementation did not begin because other mandatory groups triggered STOP.",
       "ownerPlan": "009",
       "targetStatus": "missing",
       "area": "selection-markers-decorations-links-joiners",
@@ -9926,7 +9944,8 @@
     },
     {
       "evidence": [
-        "src/xterm/tests/terminal.browser.test.ts"
+        "src/xterm/tests/terminal.browser.test.ts",
+        "plans/009-xterm-extension-surfaces.md"
       ],
       "implementationPath": "src/xterm/terminal.ts",
       "notes": "Browser differential evidence covers a normal exclusive range and selection-command notification ordering. Released xterm retains raw starts and lengths for reversed and out-of-range selections, while the facade clamps to addressable PageList rows; exact behavior requires the Plan 009 native raw-coordinate selection seam.",

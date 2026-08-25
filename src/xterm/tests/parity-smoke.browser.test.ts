@@ -4,7 +4,7 @@ import { GhosttyRuntime } from '../../core/runtime.js'
 import type { RendererTheme } from '../../render/instances/types.js'
 import type { RendererGridSize } from '../../render/renderer.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GhosttyWebGpuTerminal } from '../../dom/terminal.js'
+import { Terminal as NativeTerminal } from '../../dom/terminal.js'
 import type { GhosttyWebGpuRenderer } from '../../dom/types.js'
 import {
   createGhosttyBrowserLifecycleDriver,
@@ -73,7 +73,7 @@ function trackedXterm(options: ConstructorParameters<typeof XtermTerminalType>[0
 }
 
 async function trackedGhostty(size?: SmokeSize): Promise<BrowserLifecycleDriver> {
-  const terminal = await GhosttyWebGpuTerminal.create({
+  const terminal = await NativeTerminal.create({
     ...(size ? { appearance: { grid: size } } : {}),
     rendererFactory: () => Promise.resolve(new NoopRenderer()),
     runtime: { kind: 'borrowed', runtime },

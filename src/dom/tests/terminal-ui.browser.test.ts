@@ -17,7 +17,7 @@ import { createDomClipboardPolicyAdapter } from '../clipboard.js'
 import { createDomLinkController, type DomLinkController } from '../links.js'
 import type { CommittedPointerLayout } from '../pointer.js'
 import { createTerminalScrollbar, type TerminalScrollbarClock } from '../scrollbar.js'
-import { GhosttyWebGpuTerminal } from '../terminal.js'
+import { Terminal } from '../terminal.js'
 import type { GhosttyWebGpuRenderer, GhosttyWebGpuTerminalOptions } from '../types.js'
 
 const decoder = new TextDecoder()
@@ -40,7 +40,7 @@ interface LinkHarness {
 interface IntegratedHarness {
   readonly host: HTMLDivElement
   readonly renderer: FrameRenderer
-  readonly terminal: GhosttyWebGpuTerminal
+  readonly terminal: Terminal
 }
 
 class FakeScrollbarClock implements TerminalScrollbarClock {
@@ -304,7 +304,7 @@ async function animationFrames(count = 1): Promise<void> {
   }
 }
 
-async function settleTerminal(terminal: GhosttyWebGpuTerminal): Promise<void> {
+async function settleTerminal(terminal: Terminal): Promise<void> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     await animationFrames()
     if (!terminal.hasPendingFrame) return
@@ -325,7 +325,7 @@ async function createIntegratedHarness(
 ): Promise<IntegratedHarness> {
   const host = appendRoot(420, 140)
   let renderer: FrameRenderer | undefined
-  const terminal = await GhosttyWebGpuTerminal.create({
+  const terminal = await Terminal.create({
     ...options,
     appearance: {
       ...options.appearance,
@@ -348,7 +348,7 @@ async function createIntegratedHarness(
 }
 
 function terminalCellPoint(
-  terminal: GhosttyWebGpuTerminal,
+  terminal: Terminal,
   column: number,
   row: number,
 ): { readonly clientX: number; readonly clientY: number } {
@@ -362,7 +362,7 @@ function terminalCellPoint(
   }
 }
 
-function moveTerminalPointer(terminal: GhosttyWebGpuTerminal, column: number, row: number): void {
+function moveTerminalPointer(terminal: Terminal, column: number, row: number): void {
   const canvas = terminal.canvas
   if (!canvas) throw new Error('Terminal canvas is not open')
   canvas.dispatchEvent(
@@ -374,7 +374,7 @@ function moveTerminalPointer(terminal: GhosttyWebGpuTerminal, column: number, ro
 }
 
 function dispatchModifiedTerminalClick(
-  terminal: GhosttyWebGpuTerminal,
+  terminal: Terminal,
   column: number,
   row: number,
 ): MouseEvent {
@@ -1036,7 +1036,7 @@ describe.sequential('integrated terminal UI host', () => {
     const host = appendRoot(Math.ceil(cellWidth * 30 + 12), Math.ceil(cellHeight * 4))
     const text = 'https://early-frame.test'
     let renderer: FrameRenderer | undefined
-    const terminal = await GhosttyWebGpuTerminal.create({
+    const terminal = await Terminal.create({
       appearance: {
         cursor: { blink: false },
         grid: { cellHeight, cellWidth, columns: 30, pixelRatio, rows: 4 },
@@ -1263,7 +1263,7 @@ describe.sequential('integrated terminal UI host', () => {
   it('preserves native wide-cell continuation in provider and accessibility text', async () => {
     const host = appendRoot(360, 100)
     let providerText: string | undefined
-    const terminal = await GhosttyWebGpuTerminal.create({
+    const terminal = await Terminal.create({
       appearance: {
         cursor: { blink: false },
         grid: { columns: 12, rows: 2 },
@@ -1299,7 +1299,7 @@ describe.sequential('integrated terminal UI host', () => {
     const failure = new Error('clipboard permission changed')
     const writes: string[] = []
     const errors: Array<{ cause: unknown; operation: string }> = []
-    const terminal = await GhosttyWebGpuTerminal.create({
+    const terminal = await Terminal.create({
       clipboardWrite: (write) => {
         writes.push(decoder.decode(write.contents[0]!.data))
         return { completion: completion.promise, result: 'success' }
@@ -1346,7 +1346,7 @@ describe.sequential('integrated terminal UI host', () => {
       }
     })
     let renderer: FrameRenderer | undefined
-    const terminal = await GhosttyWebGpuTerminal.create({
+    const terminal = await Terminal.create({
       appearance: {
         cursor: { blink: false },
         grid: { columns: 20, rows: 3 },

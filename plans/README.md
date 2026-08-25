@@ -18,23 +18,23 @@ every verification gate, and update its status row when finished.
 
 ## Execution order and status
 
-| Plan | Title                                                        | Priority | Effort | Depends on | Status |
-| ---- | ------------------------------------------------------------ | -------- | ------ | ---------- | ------ |
-| 001  | Establish renderer characterization and metrics              | P1       | M      | —          | DONE   |
-| 002  | Separate cell effects from glyph geometry                    | P1       | L      | 001        | DONE   |
-| 003  | Rasterize cropped, style-aware glyphs                        | P1       | L      | 002        | DONE   |
-| 004  | Replace monolithic atlases with paged texture arrays         | P1       | L      | 003        | DONE   |
-| 005  | Integrate font geometry and requalify the renderer           | P1       | L      | 004        | DONE   |
-| 006  | Add vanilla hotkey arbitration and explicit input ownership  | P1       | M      | 005        | DONE   |
-| 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | DONE   |
-| 008  | Implement the xterm Terminal facade and lifecycle contract   | P1       | XL     | 006, 007   | DONE   |
-| 009  | Expose xterm native-backed extension surfaces                | P1       | XL     | 008        | TODO   |
-| 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | TODO   |
-| 011  | Match attach, clipboard, fit, web-links, and progress addons | P1       | L      | 010        | TODO   |
-| 012  | Match search, serialize, and Unicode addons                  | P1       | XL     | 009, 011   | TODO   |
-| 013  | Match web-font, ligature, image, and WebGL addons            | P1       | XL     | 010, 012   | TODO   |
-| 014  | Add headless parity and aliasable compatibility packages     | P1       | XL     | 011–013    | TODO   |
-| 015  | Certify versioned xterm parity and close the program         | P1       | XL     | 006–014    | TODO   |
+| Plan | Title                                                        | Priority | Effort | Depends on | Status                                                                                        |
+| ---- | ------------------------------------------------------------ | -------- | ------ | ---------- | --------------------------------------------------------------------------------------------- |
+| 001  | Establish renderer characterization and metrics              | P1       | M      | —          | DONE                                                                                          |
+| 002  | Separate cell effects from glyph geometry                    | P1       | L      | 001        | DONE                                                                                          |
+| 003  | Rasterize cropped, style-aware glyphs                        | P1       | L      | 002        | DONE                                                                                          |
+| 004  | Replace monolithic atlases with paged texture arrays         | P1       | L      | 003        | DONE                                                                                          |
+| 005  | Integrate font geometry and requalify the renderer           | P1       | L      | 004        | DONE                                                                                          |
+| 006  | Add vanilla hotkey arbitration and explicit input ownership  | P1       | M      | 005        | DONE                                                                                          |
+| 007  | Pin xterm reference and establish the parity ledger          | P1       | M      | 005        | DONE                                                                                          |
+| 008  | Implement the xterm Terminal facade and lifecycle contract   | P1       | XL     | 006, 007   | DONE                                                                                          |
+| 009  | Expose xterm native-backed extension surfaces                | P1       | XL     | 008        | BLOCKED — required parser/Unicode, inactive-buffer, row-marker, and OSC 8 APIs are not public |
+| 010  | Match browser interaction, DOM, CSS, and accessibility       | P1       | XL     | 009        | IN PROGRESS — independent work authorized while 009 remains blocked                           |
+| 011  | Match attach, clipboard, fit, web-links, and progress addons | P1       | L      | 010        | TODO                                                                                          |
+| 012  | Match search, serialize, and Unicode addons                  | P1       | XL     | 009, 011   | TODO                                                                                          |
+| 013  | Match web-font, ligature, image, and WebGL addons            | P1       | XL     | 010, 012   | TODO                                                                                          |
+| 014  | Add headless parity and aliasable compatibility packages     | P1       | XL     | 011–013    | TODO                                                                                          |
+| 015  | Certify versioned xterm parity and close the program         | P1       | XL     | 006–014    | TODO                                                                                          |
 
 Status values: `TODO` | `IN PROGRESS` | `DONE` | `BLOCKED` (with one-line reason) | `REJECTED`
 (with one-line rationale).
@@ -73,8 +73,8 @@ KeyboardEvent
 
 TanStack hotkeys is the shortcut layer, not a terminal protocol encoder. Physical `code`, modifier
 sides/locks, AltGraph, composition, and Kitty press/repeat/release stay on the native Ghostty path.
-The compatibility facade remains separate from `GhosttyWebGpuTerminal`, so native consumers do not
-inherit xterm naming or lifecycle compromises.
+The compatibility facade remains on `ghostty-webgpu/xterm`, so native consumers do not inherit
+xterm naming or lifecycle compromises.
 
 “Full parity” is versioned and measurable. It requires a complete public API/option/event/addon/
 headless/package/browser ledger, behavioral evidence for every compatible row, a zero-gap final

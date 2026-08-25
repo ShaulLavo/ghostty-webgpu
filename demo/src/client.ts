@@ -1,4 +1,4 @@
-import { GhosttyWebGpuTerminal } from '../../dist/dom/terminal.js'
+import { Terminal } from '../../dist/dom/terminal.js'
 import type {
   GhosttyWebGpuRendererFactory,
   GhosttyWebGpuTerminalDiagnostics,
@@ -51,7 +51,7 @@ interface AcceptanceTraceSnapshot {
 }
 
 interface DemoDiagnosticApi {
-  readonly terminal: GhosttyWebGpuTerminal | undefined
+  readonly terminal: Terminal | undefined
   clearTrace(): void
   metrics(): Readonly<RendererMetrics> | undefined
   sample(): DemoDiagnosticSnapshot
@@ -137,7 +137,7 @@ let incoming = Promise.resolve()
 let lastResize: ResizeMessage | undefined
 let socket: WebSocket | undefined
 let socketGeneration = 0
-let terminal: GhosttyWebGpuTerminal | undefined
+let terminal: Terminal | undefined
 let terminalRenderer: WebGpuTerminalRenderer | undefined
 let rendererAdapterInfo: RendererAdapterInfo | undefined
 let traceSequence = 0
@@ -196,7 +196,7 @@ function updateTraffic(): void {
   ui.traffic.textContent = `↓ ${incomingBytes} B · ↑ ${outgoingBytes} B`
 }
 
-function idleResourceNames(current: GhosttyWebGpuTerminal): readonly string[] {
+function idleResourceNames(current: Terminal): readonly string[] {
   const diagnostics = current.diagnostics
   const resources: string[] = []
   if (diagnostics.hasPendingFrame) resources.push('frame')
@@ -537,7 +537,7 @@ const createInstrumentedRenderer: GhosttyWebGpuRendererFactory = async (options,
   return created
 }
 
-function subscribeToTerminal(current: GhosttyWebGpuTerminal): void {
+function subscribeToTerminal(current: Terminal): void {
   subscriptions.push(current.onData(sendInput))
   subscriptions.push(
     current.onResize(({ cols, rows }) => {
@@ -593,7 +593,7 @@ async function start(): Promise<void> {
   const token = pageToken()
   demoToken = token
   updateSecurityStatus()
-  const current = await GhosttyWebGpuTerminal.create({
+  const current = await Terminal.create({
     accessibility: { label: 'Interactive PTY terminal' },
     appearance: {
       cursor: { blink: false },

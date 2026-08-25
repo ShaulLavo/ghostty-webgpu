@@ -23,6 +23,11 @@
 - Explain only non-obvious constraints or the bug a choice prevents.
 - Do not restate the code or leave historical essays in source files.
 
+## Package Versioning
+
+- Agents may change only the patch component of this package's version by default.
+- Do not change the major or minor component unless a human explicitly approves that change.
+
 ## Build And Tests
 
 - Consumers execute `dist`; run `bun run build` after source changes.

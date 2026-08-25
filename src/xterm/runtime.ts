@@ -2,7 +2,7 @@ import type { SelectionPoint } from '../core/selection.js'
 import { createTerminalElements, type TerminalElements } from '../dom/elements.js'
 import {
   createGhosttyWebGpuTerminalFromSession,
-  type GhosttyWebGpuTerminal,
+  type Terminal as NativeTerminal,
 } from '../dom/terminal.js'
 import { WebGpuTerminalRenderer, type RendererFrameSnapshot } from '../render/renderer.js'
 import { TerminalSession } from '../term/session.js'
@@ -87,7 +87,7 @@ function runtimeModes(): Readonly<Partial<IModes>> {
 
 class NativeXtermRuntime implements XtermTerminalRuntime {
   private disposed = false
-  private host?: GhosttyWebGpuTerminal
+  private host?: NativeTerminal
   readonly modes = runtimeModes()
 
   constructor(private readonly session: TerminalSession<Event>) {}

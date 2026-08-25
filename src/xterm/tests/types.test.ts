@@ -1,9 +1,16 @@
 import type * as Reference from '@xterm/xterm'
-import { Terminal as TargetTerminal } from '../../index.js'
-import type * as Target from '../../index.js'
+import { Terminal as NativeTerminal } from '../../index.js'
+import { Terminal as TargetTerminal } from '../terminal.js'
+import type * as Target from '../terminal.js'
 import { expect, expectTypeOf, test } from 'vitest'
 
-test('exports the facade from the public package entry point', () => {
+test('exports the native terminal from the package root', () => {
+  expect(NativeTerminal).toBeTypeOf('function')
+  expect(NativeTerminal).not.toBe(TargetTerminal)
+  expectTypeOf<Awaited<ReturnType<typeof NativeTerminal.create>>>().toEqualTypeOf<NativeTerminal>()
+})
+
+test('exports the facade from the public xterm entry point', () => {
   expect(TargetTerminal).toBeTypeOf('function')
 })
 

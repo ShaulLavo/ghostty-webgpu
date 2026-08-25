@@ -7,7 +7,7 @@ import { TerminalSession } from '../../term/session.js'
 import type { TerminalFittedFont, TerminalKeyInput } from '../../term/types.js'
 import { createTerminalElements } from '../elements.js'
 import { createDomInputController } from '../input.js'
-import { createGhosttyWebGpuTerminalFromSession, GhosttyWebGpuTerminal } from '../terminal.js'
+import { createGhosttyWebGpuTerminalFromSession, Terminal } from '../terminal.js'
 import type {
   GhosttyWebGpuRenderer,
   GhosttyWebGpuRendererFactory,
@@ -166,7 +166,7 @@ async function animationFrames(count = 2): Promise<void> {
   }
 }
 
-async function settleRenderer(terminal: GhosttyWebGpuTerminal): Promise<void> {
+async function settleRenderer(terminal: Terminal): Promise<void> {
   for (let attempt = 0; attempt < 12; attempt += 1) {
     await animationFrames(1)
     if (!terminal.hasPendingFrame && !terminal.hasPendingTimer) return
@@ -178,10 +178,10 @@ function decodedOutput(output: readonly Uint8Array[]): string[] {
   return output.map((bytes) => decoder.decode(bytes))
 }
 
-describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
+describe.sequential('Terminal DOM host', () => {
   let runtime: GhosttyRuntime
   const hosts: HTMLElement[] = []
-  const terminals: GhosttyWebGpuTerminal[] = []
+  const terminals: Terminal[] = []
 
   beforeAll(async () => {
     runtime = await GhosttyRuntime.create()
@@ -202,10 +202,8 @@ describe.sequential('GhosttyWebGpuTerminal DOM host', () => {
     return host
   }
 
-  async function trackedTerminal(
-    options: GhosttyWebGpuTerminalOptions = {},
-  ): Promise<GhosttyWebGpuTerminal> {
-    const terminal = await GhosttyWebGpuTerminal.create({
+  async function trackedTerminal(options: GhosttyWebGpuTerminalOptions = {}): Promise<Terminal> {
+    const terminal = await Terminal.create({
       ...options,
       runtime: { kind: 'borrowed', runtime },
     })

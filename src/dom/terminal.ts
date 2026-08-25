@@ -226,7 +226,7 @@ function fittedFontSettingsEqual(
 
 const createFromSessionInternal = Symbol('createFromSessionInternal')
 
-export class GhosttyWebGpuTerminal {
+export class Terminal {
   private accessibility?: TerminalAccessibilityController
   private readonly accessibilityOptions?: GhosttyWebGpuTerminalAccessibilityOptions
   private readonly autoFit: boolean
@@ -289,14 +289,14 @@ export class GhosttyWebGpuTerminal {
     )
   }
 
-  static async create(options: GhosttyWebGpuTerminalOptions = {}): Promise<GhosttyWebGpuTerminal> {
+  static async create(options: GhosttyWebGpuTerminalOptions = {}): Promise<Terminal> {
     const session = await TerminalSession.create<Event>({
       appearance: options.appearance,
       links: options.links,
       runtime: options.runtime,
     })
     try {
-      return new GhosttyWebGpuTerminal(session, options)
+      return new Terminal(session, options)
     } catch (cause) {
       session.dispose()
       throw cause
@@ -306,9 +306,9 @@ export class GhosttyWebGpuTerminal {
   static [createFromSessionInternal](
     session: TerminalSession<Event>,
     options: GhosttyWebGpuTerminalFromSessionOptions = {},
-  ): GhosttyWebGpuTerminal {
+  ): Terminal {
     try {
-      return new GhosttyWebGpuTerminal(session, options)
+      return new Terminal(session, options)
     } catch (cause) {
       options.elements?.dispose()
       session.dispose()
@@ -1150,6 +1150,6 @@ export class GhosttyWebGpuTerminal {
 export function createGhosttyWebGpuTerminalFromSession(
   session: TerminalSession<Event>,
   options: GhosttyWebGpuTerminalFromSessionOptions = {},
-): GhosttyWebGpuTerminal {
-  return GhosttyWebGpuTerminal[createFromSessionInternal](session, options)
+): Terminal {
+  return Terminal[createFromSessionInternal](session, options)
 }

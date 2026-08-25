@@ -4,10 +4,9 @@ export { GhosttyRuntime } from './core/runtime.js'
 export { GhosttyTerminal } from './core/terminal.js'
 export { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from './core/version.js'
 export { calculateTerminalFittedFont, fitTerminalFont } from './dom/fit.js'
-export { GhosttyWebGpuTerminal } from './dom/terminal.js'
+export { Terminal } from './dom/terminal.js'
 export { WebGpuTerminalRenderer } from './render/renderer.js'
 export { TerminalSession } from './term/session.js'
-export { Terminal } from './xterm/terminal.js'
 export type {
   SelectionAutoscrollDirection,
   SelectionCoordinates,
@@ -151,41 +150,3 @@ export type {
   TerminalTheme,
   TerminalTitleEvent,
 } from './term/types.js'
-export type {
-  FontWeight,
-  IBuffer,
-  IBufferCell,
-  IBufferCellPosition,
-  IBufferElementProvider,
-  IBufferLine,
-  IBufferNamespace,
-  IBufferRange,
-  IDecoration,
-  IDecorationOptions,
-  IDecorationOverviewRulerOptions,
-  IDisposable,
-  IDisposableWithEvent,
-  IEvent,
-  IFunctionIdentifier,
-  ILink,
-  ILinkDecorations,
-  ILinkHandler,
-  ILinkProvider,
-  ILocalizableStrings,
-  ILogger,
-  IMarker,
-  IModes,
-  IOverviewRulerOptions,
-  IParser,
-  ITerminalAddon,
-  ITerminalInitOnlyOptions,
-  ITerminalOptions,
-  ITheme,
-  IUnicodeHandling,
-  IUnicodeVersionProvider,
-  IViewportRange,
-  IViewportRangePosition,
-  IWindowOptions,
-  IWindowsPty,
-  LogLevel,
-} from './xterm/types.js'

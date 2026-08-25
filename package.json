@@ -1,6 +1,6 @@
 {
   "name": "ghostty-webgpu",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ghostty for the web with a damage-aware WebGPU renderer and xterm-compatible API",
   "keywords": [
     "browser",
@@ -36,11 +36,17 @@
   "types": "./types/legacy/index.d.ts",
   "typesVersions": {
     ">=7.0": {
+      "xterm": [
+        "dist/xterm/terminal.d.ts"
+      ],
       "*": [
         "dist/index.d.ts"
       ]
     },
     "*": {
+      "xterm": [
+        "types/legacy/xterm.d.ts"
+      ],
       "*": [
         "types/legacy/index.d.ts"
       ]
@@ -52,6 +58,12 @@
       "types": "./types/legacy/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./xterm": {
+      "types@>=7.0": "./dist/xterm/terminal.d.ts",
+      "types": "./types/legacy/xterm.d.ts",
+      "import": "./dist/xterm/terminal.js",
+      "default": "./dist/xterm/terminal.js"
     },
     "./ghostty-vt.wasm": "./ghostty-vt.wasm",
     "./bridge.wasm": "./bridge.wasm"

@@ -32,12 +32,12 @@ the terminal mount needs a real size
 this one keeps pty traffic as bytes all the way through
 
 ```ts
-import { GhosttyWebGpuTerminal } from 'ghostty-webgpu'
+import { Terminal } from 'ghostty-webgpu'
 
 const host = document.querySelector<HTMLElement>('#terminal')
 if (!host) throw new Error('missing terminal mount')
 
-const terminal = await GhosttyWebGpuTerminal.create()
+const terminal = await Terminal.create()
 await terminal.open(host)
 
 const socket = new WebSocket('wss://example.com/pty')
@@ -61,7 +61,7 @@ terminal.focus()
 this one keeps the familiar synchronous xterm shape
 
 ```ts
-import { Terminal } from 'ghostty-webgpu'
+import { Terminal } from 'ghostty-webgpu/xterm'
 
 const host = document.querySelector<HTMLElement>('#terminal')
 if (!host) throw new Error('missing terminal mount')
