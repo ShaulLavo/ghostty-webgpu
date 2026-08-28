@@ -1,29 +1,71 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghostty-webgpu.invalid/config-resolver-proof-progress-recipe.schema.json",
+  "$id": "https://ghostty-webgpu.invalid/config-resolver-proof-recipe.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "sourceDateEpoch",
-    "acceptedBoundary",
-    "targets",
-    "upstream",
-    "zigVersion"
-  ],
+  "required": ["schemaVersion", "sourceDateEpoch", "targets", "upstream", "zigVersion"],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "sourceDateEpoch": { "type": "integer", "minimum": 946684800, "maximum": 4102444800 },
-    "acceptedBoundary": { "const": "macos-create-capable-path-builders-skipped" },
+    "sourceDateEpoch": {
+      "const": 1787590337
+    },
     "targets": {
       "type": "object",
       "additionalProperties": false,
       "required": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"],
       "properties": {
-        "darwin-arm64": { "$ref": "#/$defs/target" },
-        "darwin-x64": { "$ref": "#/$defs/target" },
-        "linux-arm64": { "$ref": "#/$defs/target" },
-        "linux-x64": { "$ref": "#/$defs/target" }
+        "darwin-arm64": {
+          "allOf": [
+            { "$ref": "#/$defs/target" },
+            {
+              "properties": {
+                "runner": {
+                  "properties": { "os": { "const": "darwin" }, "arch": { "const": "arm64" } }
+                },
+                "targetTriple": { "pattern": "^aarch64-macos\\.[0-9]{1,2}\\.[0-9]{1,2}$" }
+              }
+            }
+          ]
+        },
+        "darwin-x64": {
+          "allOf": [
+            { "$ref": "#/$defs/target" },
+            {
+              "properties": {
+                "runner": {
+                  "properties": { "os": { "const": "darwin" }, "arch": { "const": "x64" } }
+                },
+                "targetTriple": { "pattern": "^x86_64-macos\\.[0-9]{1,2}\\.[0-9]{1,2}$" }
+              }
+            }
+          ]
+        },
+        "linux-arm64": {
+          "allOf": [
+            { "$ref": "#/$defs/target" },
+            {
+              "properties": {
+                "runner": {
+                  "properties": { "os": { "const": "linux" }, "arch": { "const": "arm64" } }
+                },
+                "targetTriple": { "const": "aarch64-linux-musl" }
+              }
+            }
+          ]
+        },
+        "linux-x64": {
+          "allOf": [
+            { "$ref": "#/$defs/target" },
+            {
+              "properties": {
+                "runner": {
+                  "properties": { "os": { "const": "linux" }, "arch": { "const": "x64" } }
+                },
+                "targetTriple": { "const": "x86_64-linux-musl" }
+              }
+            }
+          ]
+        }
       }
     },
     "upstream": {
@@ -33,13 +75,185 @@
       "properties": {
         "repository": { "const": "https://github.com/ghostty-org/ghostty.git" },
         "revision": { "const": "c8554f28e0efe2f5595f32020371c34b25ec628f" },
-        "treeSha256": { "$ref": "#/$defs/hash" }
+        "treeSha256": {
+          "const": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb"
+        }
       }
     },
     "zigVersion": { "const": "0.16.0" }
   },
   "$defs": {
     "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "httpsUrl": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^https://[^?#]+$"
+    },
+    "ascii": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[ -~]+$"
+    },
+    "argument": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^[ -~]+$"
+    },
+    "argv": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": { "$ref": "#/$defs/argument" }
+    },
+    "recordId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arch", "image", "imageVersion", "os"],
+      "properties": {
+        "arch": { "enum": ["arm64", "x64"] },
+        "image": { "$ref": "#/$defs/ascii" },
+        "imageVersion": { "$ref": "#/$defs/ascii" },
+        "os": { "enum": ["darwin", "linux"] }
+      }
+    },
+    "environment": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "value"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]{0,127}$" },
+          "value": { "type": "string", "maxLength": 4096, "pattern": "^[ -~]*$" }
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argv", "sources"],
+      "properties": {
+        "argv": { "$ref": "#/$defs/argv" },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(input|tool):[a-z0-9][a-z0-9._-]{0,127}$"
+          }
+        }
+      }
+    },
+    "officialDownload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["archiveBytes", "archiveSha256", "kind", "url"],
+      "properties": {
+        "archiveBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "archiveSha256": { "$ref": "#/$defs/hash" },
+        "kind": { "const": "official-download" },
+        "url": { "$ref": "#/$defs/httpsUrl" }
+      }
+    },
+    "gitAcquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "repository", "revision", "treeAlgorithm", "treeSha256"],
+      "properties": {
+        "kind": { "const": "git" },
+        "repository": { "$ref": "#/$defs/httpsUrl" },
+        "revision": { "$ref": "#/$defs/revision" },
+        "treeAlgorithm": { "const": "ghostty-upstream-tree-v1" },
+        "treeSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "macosSdk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sdkBuild", "sdkSettingsSha256", "sdkVersion", "xcodeBuild", "xcodeVersion"],
+      "properties": {
+        "sdkBuild": { "$ref": "#/$defs/ascii" },
+        "sdkSettingsSha256": { "$ref": "#/$defs/hash" },
+        "sdkVersion": { "$ref": "#/$defs/ascii" },
+        "xcodeBuild": { "$ref": "#/$defs/ascii" },
+        "xcodeVersion": { "$ref": "#/$defs/ascii" }
+      }
+    },
+    "runnerComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contentKind", "kind", "path", "runnerImage", "runnerImageVersion"],
+      "properties": {
+        "contentKind": { "enum": ["external-tree-v1", "file"] },
+        "kind": { "const": "runner-component" },
+        "macosSdk": { "$ref": "#/$defs/macosSdk" },
+        "path": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 4096,
+          "pattern": "^/[ -~]+$"
+        },
+        "runnerImage": { "$ref": "#/$defs/ascii" },
+        "runnerImageVersion": { "$ref": "#/$defs/ascii" }
+      }
+    },
+    "acquisition": {
+      "oneOf": [
+        { "$ref": "#/$defs/officialDownload" },
+        { "$ref": "#/$defs/gitAcquisition" },
+        { "$ref": "#/$defs/runnerComponent" }
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acquisition", "bytes", "name", "role", "sha256", "version"],
+      "properties": {
+        "acquisition": { "$ref": "#/$defs/acquisition" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "generation": { "$ref": "#/$defs/generation" },
+        "name": { "$ref": "#/$defs/recordId" },
+        "role": { "enum": ["linker", "sdk-or-sysroot", "strip", "zig"] },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "version": { "$ref": "#/$defs/ascii" }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acquisition", "bytes", "id", "role", "sha256"],
+      "properties": {
+        "acquisition": { "$ref": "#/$defs/acquisition" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "generation": { "$ref": "#/$defs/generation" },
+        "id": { "$ref": "#/$defs/recordId" },
+        "role": {
+          "enum": [
+            "dependency-archive",
+            "generated-resource-source",
+            "runtime-resource",
+            "upstream-submodule"
+          ]
+        },
+        "sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
     "target": {
       "type": "object",
       "additionalProperties": false,
@@ -50,52 +264,30 @@
         "linkArgv",
         "optimizationMode",
         "runner",
-        "state",
         "stripArgv",
         "targetTriple",
-        "toolchain",
         "tools"
       ],
       "properties": {
-        "buildArgv": { "type": "array", "maxItems": 0 },
-        "environment": { "type": "array", "maxItems": 0 },
-        "inputs": { "type": "array", "maxItems": 0 },
-        "linkArgv": { "type": "array", "maxItems": 0 },
+        "buildArgv": { "$ref": "#/$defs/argv" },
+        "environment": { "$ref": "#/$defs/environment" },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": { "$ref": "#/$defs/input" }
+        },
+        "linkArgv": { "$ref": "#/$defs/argv" },
         "optimizationMode": { "const": "ReleaseSafe" },
-        "runner": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["arch", "image", "imageVersion", "os"],
-          "properties": {
-            "arch": { "enum": ["arm64", "x64"] },
-            "image": { "const": "pending-native-run" },
-            "imageVersion": { "const": "pending-native-run" },
-            "os": { "enum": ["darwin", "linux"] }
-          }
-        },
-        "state": { "const": "pending-native-run" },
-        "stripArgv": { "type": "array", "maxItems": 0 },
+        "runner": { "$ref": "#/$defs/runner" },
+        "stripArgv": { "$ref": "#/$defs/argv" },
         "targetTriple": { "type": "string", "minLength": 1, "maxLength": 64 },
-        "toolchain": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["linkerSha256", "sdkOrSysrootSha256", "stripSha256", "zigSha256"],
-          "properties": {
-            "linkerSha256": {
-              "const": "0000000000000000000000000000000000000000000000000000000000000000"
-            },
-            "sdkOrSysrootSha256": {
-              "const": "0000000000000000000000000000000000000000000000000000000000000000"
-            },
-            "stripSha256": {
-              "const": "0000000000000000000000000000000000000000000000000000000000000000"
-            },
-            "zigSha256": {
-              "const": "0000000000000000000000000000000000000000000000000000000000000000"
-            }
-          }
-        },
-        "tools": { "type": "array", "maxItems": 0 }
+        "tools": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/tool" }
+        }
       }
     }
   }

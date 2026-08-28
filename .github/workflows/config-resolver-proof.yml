@@ -1,0 +1,307 @@
+name: Config resolver proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Collect immutable runner inventory or execute final native evidence
+        required: true
+        type: choice
+        options:
+          - inventory
+          - evidence
+      expected_head:
+        description: Exact 40-hex ghostty-webgpu commit to prove
+        required: true
+        type: string
+      upstream_revision:
+        description: Exact pinned Ghostty revision
+        required: true
+        default: c8554f28e0efe2f5595f32020371c34b25ec628f
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  BUN_VERSION: 1.4.0
+  PINNED_UPSTREAM_REVISION: c8554f28e0efe2f5595f32020371c34b25ec628f
+  THEMES_ARCHIVE_BYTES: '78218'
+  THEMES_ARCHIVE_SHA256: ea9878471420ee5b12e7f2ff480099c954ea50e573a1bdf83f43e105c9be63f0
+  THEMES_ARCHIVE_URL: https://deps.files.ghostty.org/ghostty-themes-release-20260810-152212-0173c3c.tgz
+
+jobs:
+  native:
+    name: ${{ inputs.phase }} (${{ matrix.target }})
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-15
+            runner_os: macOS
+            runner_arch: ARM64
+            uname_os: Darwin
+            uname_arch: arm64
+            zig_archive_bytes: '52238004'
+            zig_archive_name: zig-aarch64-macos-0.16.0.tar.xz
+            zig_archive_sha256: b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz
+          - target: darwin-x64
+            runner: macos-15-intel
+            runner_os: macOS
+            runner_arch: X64
+            uname_os: Darwin
+            uname_arch: x86_64
+            zig_archive_bytes: '57396836'
+            zig_archive_name: zig-x86_64-macos-0.16.0.tar.xz
+            zig_archive_sha256: 0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            runner_os: Linux
+            runner_arch: ARM64
+            uname_os: Linux
+            uname_arch: aarch64
+            zig_archive_bytes: '51211944'
+            zig_archive_name: zig-aarch64-linux-0.16.0.tar.xz
+            zig_archive_sha256: ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz
+          - target: linux-x64
+            runner: ubuntu-24.04
+            runner_os: Linux
+            runner_arch: X64
+            uname_os: Linux
+            uname_arch: x86_64
+            zig_archive_bytes: '55478392'
+            zig_archive_name: zig-x86_64-linux-0.16.0.tar.xz
+            zig_archive_sha256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+    runs-on: ${{ matrix.runner }}
+    env:
+      EXPECTED_HEAD: ${{ inputs.expected_head }}
+      EXPECTED_UPSTREAM_REVISION: ${{ inputs.upstream_revision }}
+      PROOF_PHASE: ${{ inputs.phase }}
+      PROOF_RUN_ATTEMPT: ${{ github.run_attempt }}
+      PROOF_RUN_ID: ${{ github.run_id }}
+      PROOF_RUNNER_LABEL: ${{ matrix.runner }}
+      PROOF_SOURCE_HEAD: ${{ github.sha }}
+      PROOF_TARGET: ${{ matrix.target }}
+      ZIG_ARCHIVE_BYTES: ${{ matrix.zig_archive_bytes }}
+      ZIG_ARCHIVE_NAME: ${{ matrix.zig_archive_name }}
+      ZIG_ARCHIVE_SHA256: ${{ matrix.zig_archive_sha256 }}
+      ZIG_ARCHIVE_URL: ${{ matrix.zig_archive_url }}
+    steps:
+      - name: Checkout exact proof source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.sha }}
+          submodules: false
+
+      - name: Validate immutable dispatch and native host
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_HEAD" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'expected_head must be exactly 40 lowercase hexadecimal characters' >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_UPSTREAM_REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'upstream_revision must be exactly 40 lowercase hexadecimal characters' >&2
+            exit 1
+          fi
+          if [[ "$EXPECTED_UPSTREAM_REVISION" != "$PINNED_UPSTREAM_REVISION" ]]; then
+            echo 'upstream_revision does not match the package pin' >&2
+            exit 1
+          fi
+          if [[ "$EXPECTED_HEAD" != "$GITHUB_SHA" ]]; then
+            echo 'expected_head does not match the dispatched commit' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_HEAD" ]]; then
+            echo 'checked-out proof source does not match expected_head' >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'checked-out proof source is not clean' >&2
+            exit 1
+          fi
+          if [[ "$RUNNER_OS" != "${{ matrix.runner_os }}" ]]; then
+            echo 'runner operating system does not match the matrix target' >&2
+            exit 1
+          fi
+          if [[ "$RUNNER_ARCH" != "${{ matrix.runner_arch }}" ]]; then
+            echo 'runner architecture does not match the matrix target' >&2
+            exit 1
+          fi
+          if [[ "$(uname -s)" != "${{ matrix.uname_os }}" ]]; then
+            echo 'native kernel does not match the matrix target' >&2
+            exit 1
+          fi
+          if [[ "$(uname -m)" != "${{ matrix.uname_arch }}" ]]; then
+            echo 'native machine architecture does not match the matrix target' >&2
+            exit 1
+          fi
+          if [[ -z "${ImageOS:-}" || -z "${ImageVersion:-}" ]]; then
+            echo 'runner image identity is unavailable' >&2
+            exit 1
+          fi
+
+      - name: Set up exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Verify Bun and prepare isolated paths
+        run: |
+          set -euo pipefail
+          if [[ "$(bun --version)" != "$BUN_VERSION" ]]; then
+            echo 'Bun version does not match the workflow pin' >&2
+            exit 1
+          fi
+          proof_root="$RUNNER_TEMP/config-resolver-proof-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$PROOF_TARGET"
+          if [[ -e "$proof_root" ]]; then
+            echo 'isolated proof root already exists' >&2
+            exit 1
+          fi
+          mkdir -p "$proof_root/evidence" "$proof_root/inputs"
+          {
+            echo "PROOF_ROOT=$proof_root"
+            echo "PROOF_UPSTREAM=$proof_root/upstream"
+            echo "PROOF_ZIG_ARCHIVE=$proof_root/inputs/$ZIG_ARCHIVE_NAME"
+            echo "PROOF_THEMES_ARCHIVE=$proof_root/inputs/ghostty-themes.tgz"
+            echo "PROOF_OUTPUT=$proof_root/output"
+            echo "PROOF_BUILD_EVIDENCE=$proof_root/build-evidence.json"
+            echo "PROOF_EVIDENCE=$proof_root/evidence/$PROOF_TARGET.json"
+          } >> "$GITHUB_ENV"
+
+      - name: Acquire and verify immutable inputs
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --retry 3 --silent --show-error \
+            --output "$PROOF_ZIG_ARCHIVE" "$ZIG_ARCHIVE_URL"
+          zig_bytes="$(wc -c < "$PROOF_ZIG_ARCHIVE" | tr -d '[:space:]')"
+          zig_sha256="$(shasum -a 256 "$PROOF_ZIG_ARCHIVE" | awk '{print $1}')"
+          if [[ "$zig_bytes" != "$ZIG_ARCHIVE_BYTES" || "$zig_sha256" != "$ZIG_ARCHIVE_SHA256" ]]; then
+            echo 'Zig archive identity mismatch' >&2
+            exit 1
+          fi
+          tar -xJf "$PROOF_ZIG_ARCHIVE" -C "$PROOF_ROOT/inputs"
+          zig_root="$PROOF_ROOT/inputs/${ZIG_ARCHIVE_NAME%.tar.xz}"
+          zig_binary="$zig_root/zig"
+          if [[ ! -x "$zig_binary" || "$("$zig_binary" version)" != '0.16.0' ]]; then
+            echo 'extracted Zig compiler does not match version 0.16.0' >&2
+            exit 1
+          fi
+          echo "PROOF_ZIG=$zig_binary" >> "$GITHUB_ENV"
+
+          curl --fail --location --proto '=https' --retry 3 --silent --show-error \
+            --output "$PROOF_THEMES_ARCHIVE" "$THEMES_ARCHIVE_URL"
+          themes_bytes="$(wc -c < "$PROOF_THEMES_ARCHIVE" | tr -d '[:space:]')"
+          themes_sha256="$(shasum -a 256 "$PROOF_THEMES_ARCHIVE" | awk '{print $1}')"
+          if [[ "$themes_bytes" != "$THEMES_ARCHIVE_BYTES" || "$themes_sha256" != "$THEMES_ARCHIVE_SHA256" ]]; then
+            echo 'themes archive identity mismatch' >&2
+            exit 1
+          fi
+
+          git init --quiet "$PROOF_UPSTREAM"
+          git -C "$PROOF_UPSTREAM" remote add origin https://github.com/ghostty-org/ghostty.git
+          git -C "$PROOF_UPSTREAM" -c protocol.version=2 fetch --quiet --no-tags --depth=1 \
+            origin "$EXPECTED_UPSTREAM_REVISION"
+          git -C "$PROOF_UPSTREAM" checkout --quiet --detach FETCH_HEAD
+          if [[ "$(git -C "$PROOF_UPSTREAM" rev-parse HEAD)" != "$PINNED_UPSTREAM_REVISION" ]]; then
+            echo 'upstream checkout revision mismatch' >&2
+            exit 1
+          fi
+          if [[ "$(git -C "$PROOF_UPSTREAM" rev-parse --show-object-format)" != 'sha1' ]]; then
+            echo 'upstream checkout uses an unexpected Git object format' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C "$PROOF_UPSTREAM" status --short)" ]]; then
+            echo 'upstream checkout is not clean' >&2
+            exit 1
+          fi
+          git -C "$PROOF_UPSTREAM" diff --exit-code
+
+      - name: Collect immutable runner inventory
+        if: ${{ inputs.phase == 'inventory' }}
+        run: |
+          set -euo pipefail
+          bun scripts/config-resolver-proof/run.ts \
+            --mode inventory \
+            --target "$PROOF_TARGET" \
+            --upstream "$PROOF_UPSTREAM" \
+            --zig "$PROOF_ZIG" \
+            --zig-archive "$PROOF_ZIG_ARCHIVE" \
+            --themes-archive "$PROOF_THEMES_ARCHIVE" \
+            --output "$PROOF_OUTPUT" \
+            --evidence "$PROOF_EVIDENCE"
+
+      - name: Build native proof helper
+        if: ${{ inputs.phase == 'evidence' }}
+        run: |
+          set -euo pipefail
+          bun scripts/config-resolver-proof/run.ts \
+            --mode build \
+            --target "$PROOF_TARGET" \
+            --upstream "$PROOF_UPSTREAM" \
+            --zig "$PROOF_ZIG" \
+            --zig-archive "$PROOF_ZIG_ARCHIVE" \
+            --themes-archive "$PROOF_THEMES_ARCHIVE" \
+            --output "$PROOF_OUTPUT" \
+            --evidence "$PROOF_BUILD_EVIDENCE"
+
+      - name: Verify native proof helper
+        if: ${{ inputs.phase == 'evidence' }}
+        run: |
+          set -euo pipefail
+          bun scripts/config-resolver-proof/run.ts \
+            --mode verify \
+            --target "$PROOF_TARGET" \
+            --upstream "$PROOF_UPSTREAM" \
+            --zig "$PROOF_ZIG" \
+            --zig-archive "$PROOF_ZIG_ARCHIVE" \
+            --themes-archive "$PROOF_THEMES_ARCHIVE" \
+            --output "$PROOF_OUTPUT" \
+            --evidence "$PROOF_EVIDENCE"
+
+      - name: Validate strict evidence boundary
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$PROOF_EVIDENCE" || -L "$PROOF_EVIDENCE" ]]; then
+            echo 'strict target evidence was not produced as a regular file' >&2
+            exit 1
+          fi
+          evidence_bytes="$(wc -c < "$PROOF_EVIDENCE" | tr -d '[:space:]')"
+          if (( evidence_bytes < 2 || evidence_bytes > 1048576 )); then
+            echo 'strict target evidence is outside its size bound' >&2
+            exit 1
+          fi
+          bun -e 'const path = process.argv[1]; JSON.parse(await Bun.file(path).text())' "$PROOF_EVIDENCE"
+          git diff --exit-code
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'proof execution modified the checked-out source' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C "$PROOF_UPSTREAM" status --short)" ]]; then
+            echo 'proof execution modified the upstream checkout' >&2
+            exit 1
+          fi
+          git -C "$PROOF_UPSTREAM" diff --exit-code
+
+      - name: Upload strict target evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: config-resolver-${{ inputs.phase }}-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/config-resolver-proof-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.target }}/evidence/${{ matrix.target }}.json
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 7

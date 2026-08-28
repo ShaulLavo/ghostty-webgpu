@@ -1,332 +1,428 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import {
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
+const TARGETS = ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64'] as const
+const MODES = ['build', 'inventory', 'verify'] as const
 const UPSTREAM_REVISION = 'c8554f28e0efe2f5595f32020371c34b25ec628f'
-const ZIG_VERSION = '0.16.0'
-const ZIG_ARCHIVE_BYTES = 55_478_392
-const ZIG_ARCHIVE_SHA256 = '70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00'
-const TREE_HEADER = Buffer.from('ghostty-upstream-tree-v1\0')
+const UPSTREAM_TREE_SHA256 = '63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb'
+const SOURCE_DATE_EPOCH = 1_787_590_337
+const OUTPUT_LIMIT = 1024 * 1024
+const scriptDir = dirname(fileURLToPath(import.meta.url))
 
+type Target = (typeof TARGETS)[number]
+type Mode = (typeof MODES)[number]
+type JsonObject = Record<string, unknown>
 type Arguments = {
+  readonly mode: Mode
+  readonly target: Target
   readonly upstream: string
   readonly zig: string
   readonly zigArchive: string
+  readonly themesArchive: string
+  readonly output: string
   readonly evidence: string
-}
-
-type TreeRecord = {
-  readonly mode: string
-  readonly objectId: string
-  readonly path: Buffer
-  readonly type: 'blob' | 'gitlink'
-}
-
-type BlobIdentity = {
-  readonly bytes: number
-  readonly sha256: Buffer
 }
 
 class ProofFailure extends Error {}
 
+function main(): void {
+  const args = parseArguments(process.argv.slice(2))
+  assertEnvironment(args)
+  assertNativeTarget(args.target)
+  assertSourceInputs(args)
+  if (args.mode === 'verify') {
+    verify(args)
+    return
+  }
+  buildOrInventory(args)
+}
+
 function parseArguments(argv: readonly string[]): Arguments {
+  const allowed = new Set([
+    '--mode',
+    '--target',
+    '--upstream',
+    '--zig',
+    '--zig-archive',
+    '--themes-archive',
+    '--output',
+    '--evidence',
+  ])
   const values = new Map<string, string>()
   for (let index = 0; index < argv.length; index += 2) {
     const name = argv[index]
     const value = argv[index + 1]
-    if (!name?.startsWith('--') || !value) throw new ProofFailure('invalid proof arguments')
+    if (!name || !value || !allowed.has(name)) throw new ProofFailure('invalid proof argument')
+    if (values.has(name)) throw new ProofFailure('duplicate proof argument')
     values.set(name, value)
   }
+  if (values.size !== allowed.size) throw new ProofFailure('missing proof argument')
 
-  const upstream = values.get('--upstream')
-  const zig = values.get('--zig')
-  const zigArchive = values.get('--zig-archive')
-  const evidence = values.get('--evidence')
-  if (!upstream || !zig || !zigArchive || !evidence) {
-    throw new ProofFailure('missing proof argument')
-  }
-
+  const mode = values.get('--mode')
+  const target = values.get('--target')
+  if (!MODES.includes(mode as Mode)) throw new ProofFailure('unsupported proof mode')
+  if (!TARGETS.includes(target as Target)) throw new ProofFailure('unsupported proof target')
   return {
-    upstream: realpathSync(upstream),
-    zig: realpathSync(zig),
-    zigArchive: realpathSync(zigArchive),
-    evidence,
+    mode: mode as Mode,
+    target: target as Target,
+    upstream: existingPath(values, '--upstream'),
+    zig: existingPath(values, '--zig'),
+    zigArchive: existingPath(values, '--zig-archive'),
+    themesArchive: existingPath(values, '--themes-archive'),
+    output: outputPath(values, '--output', mode === 'verify'),
+    evidence: newPath(values, '--evidence'),
   }
 }
 
-function run(
-  command: string,
-  argv: readonly string[],
-  options: { readonly cwd?: string; readonly input?: Buffer } = {},
-): Buffer {
-  const result = spawnSync(command, argv, {
-    cwd: options.cwd,
-    input: options.input,
+function existingPath(values: ReadonlyMap<string, string>, name: string): string {
+  const value = values.get(name)
+  if (!value) throw new ProofFailure('missing existing path')
+  return realpathSync(value)
+}
+
+function outputPath(values: ReadonlyMap<string, string>, name: string, mustExist: boolean): string {
+  const value = values.get(name)
+  if (!value) throw new ProofFailure('missing output path')
+  if (!mustExist && !pathExists(value)) return resolve(value)
+  if (!mustExist) throw new ProofFailure('build output already exists')
+  return realpathSync(value)
+}
+
+function newPath(values: ReadonlyMap<string, string>, name: string): string {
+  const value = values.get(name)
+  if (!value) throw new ProofFailure('missing evidence path')
+  if (pathExists(value)) throw new ProofFailure('evidence path already exists')
+  return resolve(value)
+}
+
+function assertEnvironment(args: Arguments): void {
+  const expected = {
+    PROOF_PHASE: args.mode === 'inventory' ? 'inventory' : 'evidence',
+    PROOF_TARGET: args.target,
+    PROOF_SOURCE_HEAD: requiredEnvironment('EXPECTED_HEAD'),
+  }
+  for (const [name, value] of Object.entries(expected)) {
+    if (requiredEnvironment(name) !== value) throw new ProofFailure(`${name} does not match`)
+  }
+  if (requiredEnvironment('EXPECTED_UPSTREAM_REVISION') !== UPSTREAM_REVISION) {
+    throw new ProofFailure('expected upstream revision does not match')
+  }
+  assertDecimal(requiredEnvironment('PROOF_RUN_ID'), 'run ID')
+  assertDecimal(requiredEnvironment('PROOF_RUN_ATTEMPT'), 'run attempt')
+  requiredEnvironment('ImageOS')
+  requiredEnvironment('ImageVersion')
+  requiredEnvironment('PROOF_RUNNER_LABEL')
+}
+
+function requiredEnvironment(name: string): string {
+  const value = process.env[name]
+  if (!value || value.length > 256) throw new ProofFailure(`missing or invalid ${name}`)
+  return value
+}
+
+function assertDecimal(value: string, label: string): void {
+  if (!/^[1-9][0-9]{0,19}$/.test(value)) throw new ProofFailure(`${label} is invalid`)
+}
+
+function assertNativeTarget(target: Target): void {
+  const expectedOs = target.startsWith('darwin-') ? 'Darwin' : 'Linux'
+  const expectedArch = nativeArchitecture(target)
+  if (run('/usr/bin/uname', ['-s']).trim() !== expectedOs) {
+    throw new ProofFailure('native operating system mismatch')
+  }
+  if (run('/usr/bin/uname', ['-m']).trim() !== expectedArch) {
+    throw new ProofFailure('native architecture mismatch')
+  }
+}
+
+function nativeArchitecture(target: Target): string {
+  if (!target.endsWith('arm64')) return 'x86_64'
+  if (target.startsWith('darwin-')) return 'arm64'
+  return 'aarch64'
+}
+
+function assertSourceInputs(args: Arguments): void {
+  const expectedHead = requiredEnvironment('EXPECTED_HEAD')
+  const sourceHead = run('git', ['rev-parse', 'HEAD'], repositoryRoot()).trim()
+  if (sourceHead !== expectedHead) throw new ProofFailure('proof source head mismatch')
+  const upstreamHead = run('git', ['rev-parse', 'HEAD'], args.upstream).trim()
+  if (upstreamHead !== UPSTREAM_REVISION) throw new ProofFailure('upstream head mismatch')
+  const objectFormat = run('git', ['rev-parse', '--show-object-format'], args.upstream).trim()
+  if (objectFormat !== 'sha1') throw new ProofFailure('upstream object format mismatch')
+  assertClean(repositoryRoot(), 'proof source')
+  assertClean(args.upstream, 'upstream source')
+}
+
+function assertClean(repository: string, label: string): void {
+  if (run('git', ['status', '--short'], repository).length !== 0) {
+    throw new ProofFailure(`${label} is dirty`)
+  }
+  run('git', ['diff', '--exit-code'], repository)
+}
+
+function repositoryRoot(): string {
+  return realpathSync(join(scriptDir, '..', '..'))
+}
+
+function buildOrInventory(args: Arguments): void {
+  runBun('build-helper.ts', [
+    '--mode',
+    args.mode,
+    '--target',
+    args.target,
+    '--upstream',
+    args.upstream,
+    '--zig',
+    args.zig,
+    '--zig-archive',
+    args.zigArchive,
+    '--themes-archive',
+    args.themesArchive,
+    '--output',
+    args.output,
+    '--evidence',
+    args.evidence,
+  ])
+  assertEvidenceFile(args.evidence)
+}
+
+function verify(args: Arguments): void {
+  const buildEvidencePath = requiredEnvironment('PROOF_BUILD_EVIDENCE')
+  const buildEvidence = readJson(buildEvidencePath, 'build evidence')
+  const detailPath = `${args.evidence}.detail`
+  runBun('verify-helper.ts', [
+    '--helper',
+    join(args.output, 'bin', 'ghostty-config-resolver-proof'),
+    '--resources',
+    join(args.output, 'resources'),
+    '--target',
+    args.target,
+    '--evidence',
+    detailPath,
+  ])
+  const detail = readJson(detailPath, 'verify detail')
+  rmSync(detailPath)
+  const evidence = targetEvidence(args, buildEvidence, detail)
+  mkdirSync(dirname(args.evidence), { recursive: true })
+  writeFileSync(args.evidence, `${JSON.stringify(evidence)}\n`, { flag: 'wx' })
+  assertEvidenceFile(args.evidence)
+}
+
+function targetEvidence(args: Arguments, build: JsonObject, detail: JsonObject): JsonObject {
+  const recipeSha256 = sha256(readFileSync(join(scriptDir, 'proof-recipe.json')))
+  verifyObservationAgreement(args, build, detail, recipeSha256)
+  const runner = objectValue(build.runner, 'build runner')
+  const tools = arrayValue(build.tools, 'build tools')
+  const row = {
+    runId: requiredEnvironment('PROOF_RUN_ID'),
+    runAttempt: boundedInteger(requiredEnvironment('PROOF_RUN_ATTEMPT'), 1, 100, 'run attempt'),
+    ghosttyWebGpuHead: requiredEnvironment('EXPECTED_HEAD'),
+    upstreamTreeSha256: UPSTREAM_TREE_SHA256,
+    proofRecipeSha256: recipeSha256,
+    sourceDateEpoch: SOURCE_DATE_EPOCH,
+    runner: {
+      os: runner.os,
+      arch: runner.arch,
+      image: runner.image,
+      imageVersion: runner.imageVersion,
+    },
+    toolchain: {
+      zigSha256: toolHash(tools, 'zig'),
+      linkerSha256: toolHash(tools, 'linker'),
+      stripSha256: toolHash(tools, 'strip'),
+      sdkOrSysrootSha256: toolHash(tools, 'sdk-or-sysroot'),
+    },
+    nativeExecution: passValue(detail.nativeExecution, 'native execution'),
+    artifactSha256: stringValue(build.artifactSha256, 'artifact hash'),
+    artifactBytes: integerValue(build.artifactBytes, 'artifact bytes'),
+    semanticFixtures: passValue(detail.semanticFixtures, 'semantic fixtures'),
+    noWriteFixtures: passValue(detail.noWriteFixtures, 'no-write fixtures'),
+    dependencies: passValue(detail.dependencies, 'dependencies'),
+    compatibilityProbe: passValue(detail.compatibilityProbe, 'compatibility probe'),
+    relocation: passValue(detail.relocation, 'relocation'),
+  }
+  return {
+    schemaVersion: 1,
+    kind: 'config-resolver-target-evidence',
+    target: args.target,
+    row,
+    observations: { build, verify: detail },
+  }
+}
+
+function verifyObservationAgreement(
+  args: Arguments,
+  build: JsonObject,
+  detail: JsonObject,
+  recipeSha256: string,
+): void {
+  if (build.kind !== 'config-resolver-build') throw new ProofFailure('build evidence kind mismatch')
+  if (build.target !== args.target || detail.target !== args.target) {
+    throw new ProofFailure('target evidence identity mismatch')
+  }
+  if (build.upstreamRevision !== UPSTREAM_REVISION) {
+    throw new ProofFailure('build upstream revision mismatch')
+  }
+  if (build.proofRecipeSha256 !== recipeSha256) {
+    throw new ProofFailure('build recipe digest mismatch')
+  }
+  assertEqualObservation(build, 'artifactSha256', detail, 'artifactSha256')
+  assertEqualObservation(build, 'artifactBytes', detail, 'artifactBytes')
+  assertEqualObservation(build, 'resourceTreeSha256', detail, 'resourcesSha256')
+  assertEqualObservation(build, 'resourceBytes', detail, 'resourcesBytes')
+  assertEqualObservation(build, 'resourceEntries', detail, 'resourceEntries')
+}
+
+function assertEqualObservation(
+  left: JsonObject,
+  leftKey: string,
+  right: JsonObject,
+  rightKey: string,
+): void {
+  if (left[leftKey] !== right[rightKey])
+    throw new ProofFailure('build and verify evidence disagree')
+}
+
+function toolHash(tools: readonly unknown[], role: string): string {
+  const matches = tools
+    .map((value) => objectValue(value, 'tool'))
+    .filter((tool) => tool.role === role)
+  if (matches.length !== 1) throw new ProofFailure(`${role} tool identity is not unique`)
+  return stringValue(matches[0]!.sha256, `${role} hash`)
+}
+
+function passValue(value: unknown, label: string): 'pass' {
+  if (value !== 'pass') throw new ProofFailure(`${label} did not pass`)
+  return value
+}
+
+function readJson(path: string, label: string): JsonObject {
+  const bytes = readFileSync(path)
+  if (bytes.length < 2 || bytes.length > OUTPUT_LIMIT) {
+    throw new ProofFailure(`${label} length is invalid`)
+  }
+  return objectValue(JSON.parse(bytes.toString('utf8')), label)
+}
+
+function assertEvidenceFile(path: string): void {
+  const stat = lstatSync(path)
+  if (!stat.isFile() || stat.isSymbolicLink())
+    throw new ProofFailure('evidence is not a regular file')
+  if (stat.size < 2 || stat.size > OUTPUT_LIMIT)
+    throw new ProofFailure('evidence length is invalid')
+  readJson(path, 'evidence')
+}
+
+function objectValue(value: unknown, label: string): JsonObject {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new ProofFailure(`${label} must be an object`)
+  }
+  return value as JsonObject
+}
+
+function arrayValue(value: unknown, label: string): readonly unknown[] {
+  if (!Array.isArray(value) || value.length > 512)
+    throw new ProofFailure(`${label} must be an array`)
+  return value
+}
+
+function stringValue(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 512) {
+    throw new ProofFailure(`${label} must be a bounded string`)
+  }
+  return value
+}
+
+function integerValue(value: unknown, label: string): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+    throw new ProofFailure(`${label} must be a nonnegative integer`)
+  }
+  return value as number
+}
+
+function boundedInteger(value: string, minimum: number, maximum: number, label: string): number {
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) {
+    throw new ProofFailure(`${label} is outside its bound`)
+  }
+  return parsed
+}
+
+function runBun(script: string, argv: readonly string[]): void {
+  const result = spawnSync(process.execPath, [join(scriptDir, script), ...argv], {
     encoding: 'buffer',
-    env: { PATH: process.env.PATH ?? '' },
-    maxBuffer: 1024 * 1024 * 1024,
-    stdio: ['pipe', 'pipe', 'pipe'],
+    env: process.env,
+    maxBuffer: OUTPUT_LIMIT,
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
-  if (result.status !== 0) throw new ProofFailure('proof subprocess failed')
-  if (result.stderr.length !== 0) throw new ProofFailure('proof subprocess wrote stderr')
+  if (result.status !== 0) throw new ProofFailure(`${script} failed`)
+  if (result.stderr.length !== 0) throw new ProofFailure(`${script} wrote stderr`)
+  assertNoSentinel(result.stdout)
+}
+
+function run(command: string, argv: readonly string[], cwd?: string): string {
+  const result = spawnSync(command, argv, {
+    cwd,
+    encoding: 'utf8',
+    env: { LANG: 'C', LC_ALL: 'C', PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+    maxBuffer: OUTPUT_LIMIT,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (result.status !== 0 || result.stderr.length !== 0) {
+    throw new ProofFailure('proof subprocess failed')
+  }
+  assertNoSentinel(Buffer.from(result.stdout), Buffer.from(result.stderr))
   return result.stdout
 }
 
-function runGit(upstream: string, argv: readonly string[], input?: Buffer): Buffer {
-  return run('git', argv, { cwd: upstream, input })
-}
-
-function sha256(bytes: Buffer): string {
-  return createHash('sha256').update(bytes).digest('hex')
-}
-
-function assertImmutableInputs(args: Arguments): { readonly zigSha256: string } {
-  const head = runGit(args.upstream, ['rev-parse', 'HEAD']).toString('ascii').trim()
-  if (head !== UPSTREAM_REVISION) throw new ProofFailure('unexpected upstream revision')
-
-  const objectFormat = runGit(args.upstream, ['rev-parse', '--show-object-format'])
-    .toString('ascii')
-    .trim()
-  if (objectFormat !== 'sha1') throw new ProofFailure('unexpected git object format')
-  if (runGit(args.upstream, ['status', '--short']).length !== 0) {
-    throw new ProofFailure('upstream checkout is dirty')
-  }
-  runGit(args.upstream, ['diff', '--exit-code'])
-
-  const version = run(args.zig, ['version']).toString('ascii').trim()
-  if (version !== ZIG_VERSION) throw new ProofFailure('unexpected Zig version')
-
-  const archive = readFileSync(args.zigArchive)
-  if (archive.length !== ZIG_ARCHIVE_BYTES) throw new ProofFailure('unexpected Zig archive length')
-  const archiveSha256 = sha256(archive)
-  if (archiveSha256 !== ZIG_ARCHIVE_SHA256) {
-    throw new ProofFailure('unexpected Zig archive digest')
-  }
-
-  return { zigSha256: sha256(readFileSync(args.zig)) }
-}
-
-function parseTreeRecords(raw: Buffer): TreeRecord[] {
-  const records: TreeRecord[] = []
-  let offset = 0
-  while (offset < raw.length) {
-    const end = raw.indexOf(0, offset)
-    if (end < 0) throw new ProofFailure('unterminated git tree record')
-    const record = raw.subarray(offset, end)
-    offset = end + 1
-
-    const tab = record.indexOf(0x09)
-    if (tab < 0) throw new ProofFailure('invalid git tree record')
-    const metadata = record.subarray(0, tab).toString('ascii').split(' ')
-    if (metadata.length !== 3) throw new ProofFailure('invalid git tree metadata')
-    const [mode, objectType, objectId] = metadata
-    if (!mode || !objectType || !objectId) throw new ProofFailure('incomplete git tree metadata')
-
-    const type = classifyTreeEntry(mode, objectType)
-    records.push({ mode, objectId, path: record.subarray(tab + 1), type })
-  }
-
-  records.sort((left, right) => Buffer.compare(left.path, right.path))
-  return records
-}
-
-function classifyTreeEntry(mode: string, objectType: string): 'blob' | 'gitlink' {
-  if (mode === '160000' && objectType === 'commit') return 'gitlink'
-  if (!['100644', '100755', '120000'].includes(mode)) {
-    throw new ProofFailure('unsupported git tree mode')
-  }
-  if (objectType !== 'blob') throw new ProofFailure('unexpected git tree object type')
-  return 'blob'
-}
-
-function readBlobIdentities(
-  upstream: string,
-  records: readonly TreeRecord[],
-): Map<string, BlobIdentity> {
-  const objectIds = [
-    ...new Set(records.filter((record) => record.type === 'blob').map((record) => record.objectId)),
+function assertNoSentinel(...values: readonly Buffer[]): void {
+  const sentinels = [
+    'PLAN065_PATH_SENTINEL',
+    'PLAN065_SECRET_SENTINEL',
+    'PLAN065_THEME_SENTINEL',
+    'PLAN065_DIAGNOSTIC_SENTINEL',
   ]
-  const input = Buffer.from(`${objectIds.join('\n')}\n`, 'ascii')
-  const output = runGit(upstream, ['cat-file', '--batch'], input)
-  const identities = new Map<string, BlobIdentity>()
-  let offset = 0
-
-  for (const expectedObjectId of objectIds) {
-    const headerEnd = output.indexOf(0x0a, offset)
-    if (headerEnd < 0) throw new ProofFailure('invalid git blob batch header')
-    const header = output.subarray(offset, headerEnd).toString('ascii').split(' ')
-    if (header.length !== 3) throw new ProofFailure('invalid git blob metadata')
-    const [objectId, type, sizeText] = header
-    const bytes = Number(sizeText)
-    if (objectId !== expectedObjectId || type !== 'blob' || !Number.isSafeInteger(bytes)) {
-      throw new ProofFailure('unexpected git blob metadata')
+  for (const value of values) {
+    const text = value.toString('utf8')
+    if (sentinels.some((sentinel) => text.includes(sentinel))) {
+      throw new ProofFailure('privacy sentinel leaked')
     }
-
-    const contentStart = headerEnd + 1
-    const contentEnd = contentStart + bytes
-    if (output[contentEnd] !== 0x0a) throw new ProofFailure('invalid git blob delimiter')
-    const content = output.subarray(contentStart, contentEnd)
-    identities.set(objectId, {
-      bytes,
-      sha256: createHash('sha256').update(content).digest(),
-    })
-    offset = contentEnd + 1
-  }
-
-  if (offset !== output.length) throw new ProofFailure('unexpected git blob batch suffix')
-  return identities
-}
-
-function writeUint32(value: number): Buffer {
-  const result = Buffer.alloc(4)
-  result.writeUInt32BE(value)
-  return result
-}
-
-function writeUint64(value: number): Buffer {
-  const result = Buffer.alloc(8)
-  result.writeBigUInt64BE(BigInt(value))
-  return result
-}
-
-function computeUpstreamTreeSha256(upstream: string): {
-  readonly sha256: string
-  readonly entries: number
-} {
-  const rawTree = runGit(upstream, ['ls-tree', '-r', '-z', '--full-tree', UPSTREAM_REVISION])
-  const records = parseTreeRecords(rawTree)
-  const blobs = readBlobIdentities(upstream, records)
-  const hash = createHash('sha256').update(TREE_HEADER)
-
-  for (const record of records) {
-    hash.update(writeUint32(record.path.length))
-    hash.update(record.path)
-    hash.update(Buffer.from(record.mode, 'ascii'))
-    hash.update(Buffer.from([record.type === 'blob' ? 1 : 2]))
-    if (record.type === 'gitlink') {
-      hash.update(writeUint64(20))
-      hash.update(Buffer.from(record.objectId, 'hex'))
-      continue
-    }
-
-    const blob = blobs.get(record.objectId)
-    if (!blob) throw new ProofFailure('missing git blob identity')
-    hash.update(writeUint64(blob.bytes))
-    hash.update(blob.sha256)
-  }
-
-  return { sha256: hash.digest('hex'), entries: records.length }
-}
-
-function auditConfigBoundary(upstream: string): void {
-  const global = readFileSync(join(upstream, 'src/global.zig'), 'utf8')
-  const fileLoad = readFileSync(join(upstream, 'src/config/file_load.zig'), 'utf8')
-  const macos = readFileSync(join(upstream, 'src/os/macos.zig'), 'utf8')
-  const sharedDeps = readFileSync(join(upstream, 'src/build/SharedDeps.zig'), 'utf8')
-  const rendererBackend = readFileSync(join(upstream, 'src/renderer/backend.zig'), 'utf8')
-  const proofMain = readFileSync(join(import.meta.dirname, 'main.zig'), 'utf8')
-  const proofBuild = readFileSync(join(import.meta.dirname, 'build.zig'), 'utf8')
-
-  if (!global.includes('.tool => null,')) {
-    throw new ProofFailure('tool initialization action boundary changed')
-  }
-  if (!global.includes('// Initialize glslang for shader compilation\n    try glslang.init();')) {
-    throw new ProofFailure('tool initialization no longer retains glslang')
-  }
-  if (!sharedDeps.includes('// Glslang\n    if (b.lazyDependency("glslang"')) {
-    throw new ProofFailure('shared dependency glslang boundary changed')
-  }
-  if (!sharedDeps.includes('// cimgui\n    if (b.lazyDependency("dcimgui"')) {
-    throw new ProofFailure('shared dependency renderer boundary changed')
-  }
-  if (!sharedDeps.includes('// Fonts\n    {\n        // JetBrains Mono')) {
-    throw new ProofFailure('shared dependency font boundary changed')
-  }
-  if (rendererBackend.includes('none')) {
-    throw new ProofFailure('renderer-free official backend is now available')
-  }
-  if (!proofMain.includes('global.init(.{ .tool = minimal }) catch {')) {
-    throw new ProofFailure('proof does not use the official tool initializer')
-  }
-  if (proofMain.includes('.loadDefaultFiles(') || proofMain.includes('Config.load(')) {
-    throw new ProofFailure('proof reaches the template-writing loader')
-  }
-  if (!proofMain.includes('config.loadOptionalFile(alloc, candidate.?)')) {
-    throw new ProofFailure('accepted read-only load composition changed')
-  }
-  if (
-    proofMain.includes('file_load.legacyDefaultAppSupportPath(alloc)') ||
-    proofMain.includes('file_load.preferredAppSupportPath(alloc)')
-  ) {
-    throw new ProofFailure('proof reaches a create-capable Application Support builder')
-  }
-  if (
-    !proofMain.includes(
-      'const macos_app_support_suffix = "Library/Application Support/com.mitchellh.ghostty";',
-    ) ||
-    !proofMain.includes('const home = environ.get("HOME")') ||
-    !proofMain.includes('&.{ base, "config" }') ||
-    !proofMain.includes('&.{ base, "config.ghostty" }')
-  ) {
-    throw new ProofFailure('read-only macOS candidate derivation changed')
-  }
-  if (!fileLoad.includes('internal_os.macos.appSupportDir(alloc, "config.ghostty")')) {
-    throw new ProofFailure('current Application Support path builder changed')
-  }
-  if (!fileLoad.includes('internal_os.macos.appSupportDir(alloc, "config")')) {
-    throw new ProofFailure('legacy Application Support path builder changed')
-  }
-  if (
-    !macos.includes('objc.sel("URLForDirectory:inDomain:appropriateForURL:create:error:"),') ||
-    !macos.includes(
-      '@as(?*anyopaque, null),\n            true,\n            @as(?*anyopaque, null),',
-    )
-  ) {
-    throw new ProofFailure('macOS directory-creating path boundary changed')
-  }
-  if (!proofBuild.includes('_ = try deps.add(exe);')) {
-    throw new ProofFailure('proof does not use upstream SharedDeps')
   }
 }
 
-function main(): void {
-  const args = parseArguments(process.argv.slice(2))
-  const { zigSha256 } = assertImmutableInputs(args)
-  const upstreamTree = computeUpstreamTreeSha256(args.upstream)
-  auditConfigBoundary(args.upstream)
+function sha256(value: Buffer): string {
+  return createHash('sha256').update(value).digest('hex')
+}
 
-  const evidence = {
-    proofSchemaVersion: 1,
-    status: 'incomplete',
-    reason: 'full-native-recipe-pending',
-    upstreamRevision: UPSTREAM_REVISION,
-    upstreamTreeSha256: upstreamTree.sha256,
-    upstreamTreeEntries: upstreamTree.entries,
-    zigVersion: ZIG_VERSION,
-    zigArchiveSha256: ZIG_ARCHIVE_SHA256,
-    zigSha256,
-    checks: {
-      checkoutClean: true,
-      acceptedReadOnlyComposition: true,
-      acceptedHeavyHelperGraph: true,
-      createCapableMacosBuildersSkipped: true,
-      fixedMacosCandidatesDerivedReadOnly: true,
-      macosPathBuilderPassesCreateTrue: true,
-      toolInitCallsGlslang: true,
-      sharedDepsLinksRendererStack: true,
-      fourTargetMatrixRequired: true,
-    },
-  } as const
+function pathExists(path: string): boolean {
+  try {
+    statSync(path)
+    return true
+  } catch (error) {
+    if (isNotFound(error)) return false
+    throw error
+  }
+}
 
-  writeFileSync(args.evidence, `${JSON.stringify(evidence, null, 2)}\n`, { flag: 'wx' })
-  process.stdout.write('{"status":"INCOMPLETE","reason":"full-native-recipe-pending"}\n')
+function isNotFound(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')
 }
 
 try {
   main()
 } catch (error) {
-  const message = error instanceof ProofFailure ? error.message : 'unexpected proof failure'
-  process.stdout.write(`${JSON.stringify({ status: 'proof-error', reason: message })}\n`)
+  const reason = error instanceof ProofFailure ? error.message : 'unexpected proof failure'
+  process.stdout.write(`${JSON.stringify({ result: 'fail', reason })}\n`)
   process.exitCode = 1
 }

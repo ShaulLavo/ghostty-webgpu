@@ -1,9 +1,12 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
+  accessSync,
   chmodSync,
   copyFileSync,
   cpSync,
+  constants as fsConstants,
+  linkSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -16,8 +19,8 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { delimiter, dirname, join } from 'node:path'
+import { release as osRelease, tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import type { Readable, Writable } from 'node:stream'
 
@@ -31,6 +34,10 @@ const SENTINELS = [
   'PLAN065_DIAGNOSTIC_SENTINEL',
 ] as const
 const PALETTE_SHA256 = '3924d9bb39f6716d63524fb520f2100c5e93c52708967ecf5bc7e648cab0fa65'
+const DARWIN_MINIMUM_VERSION = '13.0.0'
+const LINUX_MINIMUM_VERSION = '5.10.0'
+const MAX_DEPENDENCIES = 128
+const MAX_EVIDENCE_BYTES = 256 * 1024
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const fixtureDir = join(scriptDir, 'fixtures')
 
@@ -68,7 +75,10 @@ type ProofResult =
       readonly status: 'ready'
       readonly upstreamRevision: string
       readonly diagnosticCount: number
-      readonly profiles: { readonly light: ProofProfile; readonly dark: ProofProfile }
+      readonly profiles: {
+        readonly light: ProofProfile
+        readonly dark: ProofProfile
+      }
     }
   | {
       readonly proofSchemaVersion: 1
@@ -80,6 +90,8 @@ type Arguments = {
   readonly resources: string
   readonly target: Target
   readonly evidence: string
+  readonly node: string
+  readonly bun: string
 }
 type FixtureRoot = {
   readonly path: string
@@ -94,20 +106,80 @@ type DefaultLocation = {
   readonly fixture: string
   readonly expected: Rgb
 }
+type Runner = {
+  readonly os: 'darwin' | 'linux'
+  readonly arch: 'arm64' | 'x64'
+  readonly unameSystem: 'Darwin' | 'Linux'
+  readonly unameMachine: 'arm64' | 'aarch64' | 'x86_64'
+}
+type BinaryCompatibility = {
+  readonly format: 'elf64' | 'mach-o-64'
+  readonly arch: 'arm64' | 'x64'
+  readonly minimumOsVersion: string
+  readonly linkage: 'static' | 'system-dynamic'
+}
+type DependencyDetail = {
+  readonly format: BinaryCompatibility['format']
+  readonly linkage: BinaryCompatibility['linkage']
+  readonly entries: readonly string[]
+  readonly fileInspection: 'pass'
+  readonly platformInspection: 'pass'
+}
+type RuntimeProbe = {
+  readonly schemaVersion: 1
+  readonly target: Target
+  readonly runtime: 'bun' | 'node'
+  readonly runtimeVersion: string
+  readonly hostVersion: string
+  readonly minimumOsVersion: string
+  readonly vectors: 'pass'
+  readonly result: 'pass'
+}
+type CompatibilityDetail = {
+  readonly minimumOsVersion: string
+  readonly node: RuntimeProbe
+  readonly bun: RuntimeProbe
+}
+type FixtureDetail = {
+  readonly semanticCases: number
+  readonly immutableSnapshots: number
+  readonly absentCases: number
+  readonly deleteRaceCases: number
+  readonly renameRaceCases: number
+}
+type ResourceIdentity = {
+  readonly sha256: string
+  readonly bytes: number
+  readonly entries: number
+}
 
 class ProofFailure extends Error {}
 
 async function main(): Promise<void> {
   const args = parseArguments(process.argv.slice(2))
-  assertNativeTarget(args.target)
+  const runner = assertNativeTarget(args.target)
   verifyDisplayP3Vectors()
 
   const workRoot = mkdtempSync(join(tmpdir(), 'plan-065-verify-'))
   try {
-    const bundle = relocateBundle(workRoot, args.helper, args.resources)
-    inspectDependencies(bundle.helper, args.target)
-    await runFixtures(workRoot, bundle.helper, bundle.resources, args.target)
-    writeEvidence(args, bundle.helper)
+    const bundle = proofStage('relocation setup', () =>
+      relocateBundle(workRoot, args.helper, args.resources),
+    )
+    proofStage('relocation audit', () => assertRelocationIndependence(args, bundle.helper))
+    const binary = proofStage('binary inspection', () =>
+      inspectBinaryCompatibility(bundle.helper, args.target),
+    )
+    const dependencies = proofStage('dependency inspection', () =>
+      inspectDependencies(bundle.helper, args.target, binary),
+    )
+    const compatibility = proofStage('compatibility inspection', () =>
+      verifyCompatibilityAcrossRuntimes(args, bundle.helper, binary),
+    )
+    const fixtures = await proofAsyncStage('fixture execution', () =>
+      runFixtures(workRoot, bundle.helper, bundle.resources, args.target),
+    )
+    const resources = proofStage('resource inspection', () => resourceIdentity(bundle.resources))
+    writeEvidence(args, bundle.helper, runner, dependencies, compatibility, fixtures, resources)
   } finally {
     rmSync(workRoot, { recursive: true, force: true })
   }
@@ -115,12 +187,32 @@ async function main(): Promise<void> {
   process.stdout.write(`${JSON.stringify({ target: args.target, result: 'pass' })}\n`)
 }
 
+function proofStage<T>(label: string, action: () => T): T {
+  try {
+    return action()
+  } catch (error) {
+    if (error instanceof ProofFailure) throw error
+    throw new ProofFailure(`unexpected ${label} failure`)
+  }
+}
+
+async function proofAsyncStage<T>(label: string, action: () => Promise<T>): Promise<T> {
+  try {
+    return await action()
+  } catch (error) {
+    if (error instanceof ProofFailure) throw error
+    throw new ProofFailure(`unexpected ${label} failure`)
+  }
+}
+
 function parseArguments(argv: readonly string[]): Arguments {
+  const allowed = new Set(['--bun', '--evidence', '--helper', '--node', '--resources', '--target'])
   const values = new Map<string, string>()
   for (let index = 0; index < argv.length; index += 2) {
     const name = argv[index]
     const value = argv[index + 1]
     if (!name?.startsWith('--') || !value) throw new ProofFailure('invalid arguments')
+    if (!allowed.has(name) || values.has(name)) throw new ProofFailure('unsupported argument')
     values.set(name, value)
   }
 
@@ -136,13 +228,80 @@ function parseArguments(argv: readonly string[]): Arguments {
     resources: realpathSync(resources),
     target: target as Target,
     evidence,
+    node: optionalRuntime(values, '--node', 'node'),
+    bun: optionalRuntime(values, '--bun', 'bun'),
   }
 }
 
-function assertNativeTarget(target: Target): void {
-  const os = process.platform === 'darwin' ? 'darwin' : process.platform
-  const arch = process.arch === 'arm64' ? 'arm64' : process.arch === 'x64' ? 'x64' : process.arch
-  if (`${os}-${arch}` !== target) throw new ProofFailure('native target mismatch')
+function optionalRuntime(
+  values: ReadonlyMap<string, string>,
+  name: '--bun' | '--node',
+  fallback: 'bun' | 'node',
+): string {
+  const configured = values.get(name)
+  if (configured) return realpathSync(configured)
+  return resolveExecutable(fallback)
+}
+
+function resolveExecutable(name: 'bun' | 'node'): string {
+  const path = process.env.PATH ?? ''
+  for (const directory of path.split(delimiter)) {
+    if (!directory) continue
+    const candidate = join(directory, name)
+    try {
+      accessSync(candidate, fsConstants.X_OK)
+      return realpathSync(candidate)
+    } catch {
+      continue
+    }
+  }
+  throw new ProofFailure('required runtime unavailable')
+}
+
+function assertNativeTarget(target: Target): Runner {
+  const system = runFixed('/usr/bin/uname', ['-s']).trim()
+  const machine = runFixed('/usr/bin/uname', ['-m']).trim()
+  const os = normalizeUnameSystem(system)
+  const arch = normalizeUnameMachine(machine)
+  if (!os || !arch || `${os}-${arch}` !== target) throw new ProofFailure('native target mismatch')
+  if (process.platform !== os || normalizeRuntimeArch(process.arch) !== arch) {
+    throw new ProofFailure('runtime target mismatch')
+  }
+  if (os === 'darwin') assertNotTranslatedDarwin()
+  return {
+    os,
+    arch,
+    unameSystem: system as Runner['unameSystem'],
+    unameMachine: machine as Runner['unameMachine'],
+  }
+}
+
+function normalizeUnameSystem(value: string): Runner['os'] | null {
+  if (value === 'Darwin') return 'darwin'
+  if (value === 'Linux') return 'linux'
+  return null
+}
+
+function normalizeUnameMachine(value: string): Runner['arch'] | null {
+  if (value === 'arm64' || value === 'aarch64') return 'arm64'
+  if (value === 'x86_64') return 'x64'
+  return null
+}
+
+function normalizeRuntimeArch(value: string): Runner['arch'] | null {
+  if (value === 'arm64') return 'arm64'
+  if (value === 'x64') return 'x64'
+  return null
+}
+
+function assertNotTranslatedDarwin(): void {
+  const result = spawnSync(
+    '/usr/sbin/sysctl',
+    ['-in', 'sysctl.proc_translated'],
+    fixedProcessOptions(),
+  )
+  if (result.status !== 0) return
+  if (result.stdout.trim() === '1') throw new ProofFailure('translated Darwin runner unsupported')
 }
 
 function relocateBundle(
@@ -154,26 +313,451 @@ function relocateBundle(
   const helper = join(root, 'bin', 'ghostty-config-resolver-proof')
   const resources = join(root, 'resources')
   mkdirSync(dirname(helper), { recursive: true })
-  copyFileSync(helperSource, helper)
-  chmodSync(helper, 0o755)
-  cpSync(resourceSource, resources, { recursive: true })
+  relocateFile(helperSource, helper, true)
+  relocateTree(resourceSource, resources)
   return { helper, resources }
 }
 
-function inspectDependencies(helper: string, target: Target): void {
-  if (target.startsWith('linux-')) {
-    const result = spawnSync('readelf', ['-d', helper], fixedProcessOptions())
-    if (result.status !== 0) throw new ProofFailure('readelf failed')
-    if (result.stdout.includes('(NEEDED)')) throw new ProofFailure('Linux helper is dynamic')
+function relocateTree(source: string, target: string): void {
+  const stat = lstatSync(source)
+  if (stat.isFile()) {
+    relocateFile(source, target, false)
     return
   }
+  if (!stat.isDirectory()) throw new ProofFailure('unsupported relocation entry')
+  mkdirSync(target, { recursive: true })
+  chmodSync(target, stat.mode & 0o777)
+  const entries = readdirSync(source).sort((left, right) =>
+    Buffer.compare(Buffer.from(left), Buffer.from(right)),
+  )
+  for (const entry of entries) relocateTree(join(source, entry), join(target, entry))
+}
 
-  const result = spawnSync('otool', ['-L', helper], fixedProcessOptions())
-  if (result.status !== 0) throw new ProofFailure('otool failed')
-  const dependencies = result.stdout.trim().split('\n').slice(1)
-  if (dependencies.some((line) => line.includes('@rpath') || line.includes('@loader_path'))) {
-    throw new ProofFailure('Darwin helper has an unbundled dependency')
+function relocateFile(source: string, target: string, executable: boolean): void {
+  try {
+    linkSync(source, target)
+    if (executable && (statSync(target).mode & 0o111) === 0) {
+      throw new ProofFailure('relocated helper is not executable')
+    }
+    return
+  } catch (error) {
+    if (!isCrossDeviceLink(error)) throw error
   }
+  copyFileSync(source, target)
+  if (executable) chmodSync(target, 0o755)
+}
+
+function isCrossDeviceLink(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'EXDEV')
+}
+
+function assertRelocationIndependence(args: Arguments, relocatedHelper: string): void {
+  const artifact = readFileSync(relocatedHelper)
+  const forbidden = new Set([
+    args.helper,
+    dirname(args.helper),
+    args.resources,
+    dirname(args.resources),
+  ])
+  for (const path of forbidden) {
+    if (path.length < 2) continue
+    if (artifact.includes(Buffer.from(path))) throw new ProofFailure('artifact embeds build path')
+  }
+}
+
+function inspectBinaryCompatibility(helper: string, target: Target): BinaryCompatibility {
+  const artifact = readFileSync(helper)
+  if (target.startsWith('linux-')) return inspectElfCompatibility(artifact, target)
+  return inspectMachOCompatibility(artifact, target)
+}
+
+function inspectElfCompatibility(artifact: Buffer, target: Target): BinaryCompatibility {
+  if (artifact.length < 64) throw new ProofFailure('ELF header is truncated')
+  if (!artifact.subarray(0, 4).equals(Buffer.from([0x7f, 0x45, 0x4c, 0x46]))) {
+    throw new ProofFailure('ELF magic mismatch')
+  }
+  if (artifact[4] !== 2 || artifact[5] !== 1 || artifact[6] !== 1) {
+    throw new ProofFailure('ELF class mismatch')
+  }
+
+  const expectedMachine = target.endsWith('arm64') ? 183 : 62
+  if (artifact.readUInt16LE(18) !== expectedMachine) throw new ProofFailure('ELF machine mismatch')
+  assertNoElfInterpreter(artifact)
+  return {
+    format: 'elf64',
+    arch: target.endsWith('arm64') ? 'arm64' : 'x64',
+    minimumOsVersion: LINUX_MINIMUM_VERSION,
+    linkage: 'static',
+  }
+}
+
+function assertNoElfInterpreter(artifact: Buffer): void {
+  const tableOffset = safeBigIntNumber(artifact.readBigUInt64LE(32), 'ELF program table offset')
+  const entryBytes = artifact.readUInt16LE(54)
+  const entryCount = artifact.readUInt16LE(56)
+  if (entryBytes < 56 || entryCount > 1024) throw new ProofFailure('ELF program table mismatch')
+  const tableEnd = tableOffset + entryBytes * entryCount
+  if (tableEnd > artifact.length) throw new ProofFailure('ELF program table is truncated')
+
+  for (let index = 0; index < entryCount; index += 1) {
+    const offset = tableOffset + index * entryBytes
+    if (artifact.readUInt32LE(offset) === 3) throw new ProofFailure('ELF interpreter is present')
+  }
+}
+
+function safeBigIntNumber(value: bigint, label: string): number {
+  if (value > BigInt(Number.MAX_SAFE_INTEGER)) throw new ProofFailure(`${label} is too large`)
+  return Number(value)
+}
+
+function inspectMachOCompatibility(artifact: Buffer, target: Target): BinaryCompatibility {
+  if (artifact.length < 32 || artifact.readUInt32LE(0) !== 0xfeedfacf) {
+    throw new ProofFailure('Mach-O header mismatch')
+  }
+  const expectedCpu = target.endsWith('arm64') ? 0x0100000c : 0x01000007
+  if (artifact.readUInt32LE(4) !== expectedCpu) throw new ProofFailure('Mach-O CPU mismatch')
+  const minimum = readMachOMinimumVersion(artifact)
+  if (minimum !== DARWIN_MINIMUM_VERSION)
+    throw new ProofFailure('Mach-O deployment target mismatch')
+  return {
+    format: 'mach-o-64',
+    arch: target.endsWith('arm64') ? 'arm64' : 'x64',
+    minimumOsVersion: minimum,
+    linkage: 'system-dynamic',
+  }
+}
+
+function readMachOMinimumVersion(artifact: Buffer): string {
+  const commandCount = artifact.readUInt32LE(16)
+  const commandBytes = artifact.readUInt32LE(20)
+  if (commandCount > 4096 || 32 + commandBytes > artifact.length) {
+    throw new ProofFailure('Mach-O load commands are truncated')
+  }
+
+  let offset = 32
+  let minimum: string | null = null
+  for (let index = 0; index < commandCount; index += 1) {
+    if (offset + 8 > artifact.length) throw new ProofFailure('Mach-O load command is truncated')
+    const command = artifact.readUInt32LE(offset)
+    const bytes = artifact.readUInt32LE(offset + 4)
+    if (bytes < 8 || offset + bytes > artifact.length) {
+      throw new ProofFailure('Mach-O load command size mismatch')
+    }
+    const versionOffset = machOVersionOffset(command)
+    if (versionOffset !== null) {
+      if (bytes < versionOffset + 4) throw new ProofFailure('Mach-O version command is truncated')
+      const current = unpackMachOVersion(artifact.readUInt32LE(offset + versionOffset))
+      if (minimum && current !== minimum) throw new ProofFailure('Mach-O minimum versions differ')
+      minimum = current
+    }
+    offset += bytes
+  }
+  if (!minimum) throw new ProofFailure('Mach-O deployment target missing')
+  return minimum
+}
+
+function machOVersionOffset(command: number): 8 | 12 | null {
+  if (command === 0x32) return 12
+  if (command === 0x24) return 8
+  return null
+}
+
+function unpackMachOVersion(value: number): string {
+  return `${value >>> 16}.${(value >>> 8) & 0xff}.${value & 0xff}`
+}
+
+function inspectDependencies(
+  helper: string,
+  target: Target,
+  binary: BinaryCompatibility,
+): DependencyDetail {
+  assertFileInspection(helper, target)
+  if (target.startsWith('linux-')) return inspectLinuxDependencies(helper, binary)
+  return inspectDarwinDependencies(helper, binary)
+}
+
+function assertFileInspection(helper: string, target: Target): void {
+  const output = runFixed('/usr/bin/file', ['-b', helper])
+  if (
+    target === 'linux-arm64' &&
+    output.includes('ELF 64-bit LSB') &&
+    output.includes('ARM aarch64')
+  )
+    return
+  if (target === 'linux-x64' && output.includes('ELF 64-bit LSB') && output.includes('x86-64'))
+    return
+  if (target === 'darwin-arm64' && output.includes('Mach-O 64-bit') && output.includes('arm64'))
+    return
+  if (target === 'darwin-x64' && output.includes('Mach-O 64-bit') && output.includes('x86_64'))
+    return
+  throw new ProofFailure('file architecture inspection mismatch')
+}
+
+function inspectLinuxDependencies(helper: string, binary: BinaryCompatibility): DependencyDetail {
+  const readelf = spawnSync('/usr/bin/readelf', ['-d', helper], fixedProcessOptions())
+  if (readelf.status !== 0 || readelf.stderr.length !== 0) throw new ProofFailure('readelf failed')
+  if (readelf.stdout.includes('(NEEDED)')) throw new ProofFailure('Linux helper is dynamic')
+  assertNoSentinel(Buffer.from(readelf.stdout), Buffer.from(readelf.stderr))
+
+  const ldd = spawnSync('/usr/bin/ldd', [helper], fixedProcessOptions())
+  const lddOutput = `${ldd.stdout}${ldd.stderr}`
+  if (!/not a dynamic executable|statically linked/.test(lddOutput)) {
+    throw new ProofFailure('ldd static inspection mismatch')
+  }
+  assertNoSentinel(Buffer.from(ldd.stdout), Buffer.from(ldd.stderr))
+  return {
+    format: binary.format,
+    linkage: binary.linkage,
+    entries: [],
+    fileInspection: 'pass',
+    platformInspection: 'pass',
+  }
+}
+
+function inspectDarwinDependencies(helper: string, binary: BinaryCompatibility): DependencyDetail {
+  const result = spawnSync('/usr/bin/otool', ['-L', helper], fixedProcessOptions())
+  if (result.status !== 0 || result.stderr.length !== 0) throw new ProofFailure('otool failed')
+  assertNoSentinel(Buffer.from(result.stdout), Buffer.from(result.stderr))
+  const entries = parseDarwinDependencies(result.stdout)
+  return {
+    format: binary.format,
+    linkage: binary.linkage,
+    entries,
+    fileInspection: 'pass',
+    platformInspection: 'pass',
+  }
+}
+
+function parseDarwinDependencies(output: string): readonly string[] {
+  const entries: string[] = []
+  for (const line of output.trim().split('\n').slice(1)) {
+    const dependency = line.trim().split(/\s+\(/, 1)[0]
+    if (!dependency) throw new ProofFailure('Darwin dependency record mismatch')
+    if (!isSystemDarwinDependency(dependency)) {
+      throw new ProofFailure('Darwin helper has a non-system dependency')
+    }
+    if (dependency.length > 512 || !/^[\x20-\x7e]+$/.test(dependency)) {
+      throw new ProofFailure('Darwin dependency is not bounded ASCII')
+    }
+    entries.push(dependency)
+  }
+  if (entries.length > MAX_DEPENDENCIES) throw new ProofFailure('too many Darwin dependencies')
+  return entries.sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)))
+}
+
+function isSystemDarwinDependency(path: string): boolean {
+  if (path.startsWith('/usr/lib/')) return true
+  if (path.startsWith('/System/Library/Frameworks/')) return true
+  return path.startsWith('/System/Library/PrivateFrameworks/')
+}
+
+function verifyCompatibilityAcrossRuntimes(
+  args: Arguments,
+  helper: string,
+  binary: BinaryCompatibility,
+): CompatibilityDetail {
+  const node = runCompatibilityProbe(args.node, 'node', args.target, helper)
+  const bun = runCompatibilityProbe(args.bun, 'bun', args.target, helper)
+  if (node.minimumOsVersion !== binary.minimumOsVersion) {
+    throw new ProofFailure('Node minimum compatibility mismatch')
+  }
+  if (bun.minimumOsVersion !== binary.minimumOsVersion) {
+    throw new ProofFailure('Bun minimum compatibility mismatch')
+  }
+  return { minimumOsVersion: binary.minimumOsVersion, node, bun }
+}
+
+function runCompatibilityProbe(
+  runtime: string,
+  expectedRuntime: RuntimeProbe['runtime'],
+  target: Target,
+  helper: string,
+): RuntimeProbe {
+  const result = spawnSync(
+    runtime,
+    [
+      fileURLToPath(import.meta.url),
+      '--compatibility-probe',
+      '--helper',
+      helper,
+      '--target',
+      target,
+    ],
+    {
+      encoding: 'buffer',
+      env: { LANG: 'C', LC_ALL: 'C', PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+      maxBuffer: OUTPUT_LIMIT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+    },
+  )
+  if (result.status !== 0 || result.stderr.length !== 0) {
+    throw new ProofFailure('compatibility runtime probe failed')
+  }
+  assertNoSentinel(result.stdout, result.stderr)
+  const probe = validateRuntimeProbe(result.stdout, target)
+  if (probe.runtime !== expectedRuntime) throw new ProofFailure('compatibility runtime mismatch')
+  return probe
+}
+
+function validateRuntimeProbe(stdout: Buffer, target: Target): RuntimeProbe {
+  if (stdout.length === 0 || stdout.length > OUTPUT_LIMIT) {
+    throw new ProofFailure('compatibility probe output length mismatch')
+  }
+  let value: unknown
+  try {
+    value = JSON.parse(stdout.toString('utf8'))
+  } catch {
+    throw new ProofFailure('compatibility probe output is not JSON')
+  }
+  const probe = asObject(value, 'compatibility probe')
+  assertKeys(
+    probe,
+    [
+      'hostVersion',
+      'minimumOsVersion',
+      'result',
+      'runtime',
+      'runtimeVersion',
+      'schemaVersion',
+      'target',
+      'vectors',
+    ],
+    'compatibility probe',
+  )
+  if (
+    probe.schemaVersion !== 1 ||
+    probe.target !== target ||
+    probe.result !== 'pass' ||
+    probe.vectors !== 'pass'
+  ) {
+    throw new ProofFailure('compatibility probe identity mismatch')
+  }
+  if (probe.runtime !== 'node' && probe.runtime !== 'bun') {
+    throw new ProofFailure('compatibility probe runtime mismatch')
+  }
+  for (const key of ['hostVersion', 'minimumOsVersion', 'runtimeVersion'] as const) {
+    assertBoundedAscii(probe[key], `compatibility ${key}`)
+  }
+  return probe as RuntimeProbe
+}
+
+function compatibilityProbeMain(argv: readonly string[]): void {
+  const values = parseInternalProbeArguments(argv)
+  assertNativeTarget(values.target)
+  const binary = inspectBinaryCompatibility(values.helper, values.target)
+  verifyCompatibilityVectors(values.helper, values.target, binary)
+  const hostVersion = readHostVersion(values.target)
+  if (compareVersions(hostVersion, binary.minimumOsVersion) < 0) {
+    throw new ProofFailure('host OS is below minimum')
+  }
+  const bunVersion = process.versions.bun
+  const runtime = typeof bunVersion === 'string' ? 'bun' : 'node'
+  const runtimeVersion = bunVersion ?? process.versions.node
+  const result: RuntimeProbe = {
+    schemaVersion: 1,
+    target: values.target,
+    runtime,
+    runtimeVersion,
+    hostVersion,
+    minimumOsVersion: binary.minimumOsVersion,
+    vectors: 'pass',
+    result: 'pass',
+  }
+  process.stdout.write(`${JSON.stringify(result)}\n`)
+}
+
+function parseInternalProbeArguments(argv: readonly string[]): {
+  readonly helper: string
+  readonly target: Target
+} {
+  if (argv.length !== 4 || argv[0] !== '--helper' || argv[2] !== '--target') {
+    throw new ProofFailure('invalid compatibility probe arguments')
+  }
+  const target = argv[3]
+  if (!target || !TARGETS.includes(target as Target)) throw new ProofFailure('unsupported target')
+  if (!argv[1]) throw new ProofFailure('missing compatibility artifact')
+  return { helper: realpathSync(argv[1]), target: target as Target }
+}
+
+function readHostVersion(target: Target): string {
+  if (target.startsWith('linux-')) return normalizeVersion(osRelease())
+  return normalizeVersion(runFixed('/usr/bin/sw_vers', ['-productVersion']))
+}
+
+function normalizeVersion(value: string): string {
+  const match = /^(\d+)\.(\d+)(?:\.(\d+))?/.exec(value.trim())
+  if (!match) throw new ProofFailure('host version format mismatch')
+  return `${Number(match[1])}.${Number(match[2])}.${Number(match[3] ?? 0)}`
+}
+
+function compareVersions(left: string, right: string): number {
+  const leftParts = versionParts(left)
+  const rightParts = versionParts(right)
+  for (let index = 0; index < leftParts.length; index += 1) {
+    const difference = leftParts[index]! - rightParts[index]!
+    if (difference !== 0) return difference
+  }
+  return 0
+}
+
+function verifyCompatibilityVectors(
+  helper: string,
+  target: Target,
+  binary: BinaryCompatibility,
+): void {
+  const older = target.startsWith('linux-') ? '5.9.999' : '12.99.999'
+  const newer = target.startsWith('linux-') ? '6.0.0' : '14.0.0'
+  if (compareVersions(binary.minimumOsVersion, binary.minimumOsVersion) !== 0) {
+    throw new ProofFailure('equal compatibility vector mismatch')
+  }
+  if (compareVersions(older, binary.minimumOsVersion) >= 0) {
+    throw new ProofFailure('older compatibility vector mismatch')
+  }
+  if (compareVersions(newer, binary.minimumOsVersion) <= 0) {
+    throw new ProofFailure('newer compatibility vector mismatch')
+  }
+  assertMismatchedArtifactRejected(helper, oppositeTarget(target))
+}
+
+function oppositeTarget(target: Target): Target {
+  if (target === 'darwin-arm64') return 'darwin-x64'
+  if (target === 'darwin-x64') return 'darwin-arm64'
+  if (target === 'linux-arm64') return 'linux-x64'
+  return 'linux-arm64'
+}
+
+function assertMismatchedArtifactRejected(helper: string, target: Target): void {
+  let rejected = false
+  try {
+    inspectBinaryCompatibility(helper, target)
+  } catch (error) {
+    if (!(error instanceof ProofFailure)) throw error
+    rejected = true
+  }
+  if (!rejected) throw new ProofFailure('mismatched artifact vector was accepted')
+}
+
+function versionParts(value: string): readonly [number, number, number] {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value)
+  if (!match) throw new ProofFailure('normalized version mismatch')
+  return [Number(match[1]), Number(match[2]), Number(match[3])]
+}
+
+function assertBoundedAscii(value: unknown, label: string): asserts value is string {
+  if (typeof value !== 'string' || value.length < 1 || value.length > 256) {
+    throw new ProofFailure(`${label} is not bounded`)
+  }
+  if (!/^[\x20-\x7e]+$/.test(value)) throw new ProofFailure(`${label} is not printable ASCII`)
+}
+
+function runFixed(command: string, argv: readonly string[]): string {
+  const result = spawnSync(command, argv, fixedProcessOptions())
+  if (result.status !== 0 || result.stderr.length !== 0) {
+    throw new ProofFailure('inspection subprocess failed')
+  }
+  assertNoSentinel(Buffer.from(result.stdout), Buffer.from(result.stderr))
+  return result.stdout
 }
 
 async function runFixtures(
@@ -181,24 +765,33 @@ async function runFixtures(
   helper: string,
   resources: string,
   target: Target,
-): Promise<void> {
-  testAbsent(workRoot, helper, resources, target)
-  testNormalSearch(workRoot, helper, resources, target)
-  testIncludeGraph(workRoot, helper, resources, target)
-  testDualProfile(workRoot, helper, resources, target)
-  testVisualProjection(workRoot, helper, resources, target)
-  testFileTheme(workRoot, helper, resources, target)
-  testSurfaceVariants(workRoot, helper, resources, target)
-  await testRaces(workRoot, helper, resources, target)
+): Promise<FixtureDetail> {
+  proofStage('absent fixture', () => testAbsent(workRoot, helper, resources, target))
+  const normalCases = proofStage('normal search fixtures', () =>
+    testNormalSearch(workRoot, helper, resources, target),
+  )
+  proofStage('include fixture', () => testIncludeGraph(workRoot, helper, resources, target))
+  proofStage('dual profile fixture', () => testDualProfile(workRoot, helper, resources, target))
+  proofStage('visual fixture', () => testVisualProjection(workRoot, helper, resources, target))
+  proofStage('file theme fixture', () => testFileTheme(workRoot, helper, resources, target))
+  proofStage('surface fixtures', () => testSurfaceVariants(workRoot, helper, resources, target))
+  const raceCases = await proofAsyncStage('race fixtures', () =>
+    testRaces(workRoot, helper, resources, target),
+  )
+  const semanticCases = normalCases + 7
+  return {
+    semanticCases,
+    immutableSnapshots: semanticCases + 1 + raceCases * 2,
+    absentCases: 1,
+    deleteRaceCases: raceCases,
+    renameRaceCases: raceCases,
+  }
 }
 
 function testAbsent(workRoot: string, helper: string, resources: string, target: Target): void {
   const root = createFixtureRoot(workRoot, target)
-  const before = snapshotRoots(root)
-  const result = runHelper(helper, resources, root)
-  const after = snapshotRoots(root)
+  const result = runFixtureHelper(helper, resources, root)
   if (result.status !== 'not-configured') throw new ProofFailure('absent status mismatch')
-  if (before !== after) throw new ProofFailure('absent roots changed')
 }
 
 function testNormalSearch(
@@ -206,15 +799,16 @@ function testNormalSearch(
   helper: string,
   resources: string,
   target: Target,
-): void {
+): number {
   const firstRoot = createFixtureRoot(workRoot, target)
   const locations = defaultLocations(firstRoot, target)
+  rmSync(firstRoot.path, { recursive: true, force: true })
   for (const location of locations) {
     const root = createFixtureRoot(workRoot, target)
     const current = defaultLocations(root, target).find((item) => item.id === location.id)
     if (!current) throw new ProofFailure('location mapping failed')
     installFile(current.fixture, current.path)
-    const profile = ready(runHelper(helper, resources, root)).profiles.light
+    const profile = ready(runFixtureHelper(helper, resources, root)).profiles.light
     assertRgb(profile.background, current.expected, 'single default location')
   }
 
@@ -222,21 +816,22 @@ function testNormalSearch(
   const xdg = defaultLocations(xdgRoot, target).filter((item) => item.id.startsWith('xdg-'))
   for (const location of xdg) installFile(location.fixture, location.path)
   assertRgb(
-    ready(runHelper(helper, resources, xdgRoot)).profiles.light.background,
+    ready(runFixtureHelper(helper, resources, xdgRoot)).profiles.light.background,
     rgb(34, 34, 34),
     'XDG precedence',
   )
 
-  if (!target.startsWith('darwin-')) return
+  if (!target.startsWith('darwin-')) return locations.length + 1
   const allRoot = createFixtureRoot(workRoot, target)
   for (const location of defaultLocations(allRoot, target)) {
     installFile(location.fixture, location.path)
   }
   assertRgb(
-    ready(runHelper(helper, resources, allRoot)).profiles.light.background,
+    ready(runFixtureHelper(helper, resources, allRoot)).profiles.light.background,
     rgb(68, 68, 68),
     'macOS precedence',
   )
+  return locations.length + 2
 }
 
 function testIncludeGraph(
@@ -247,7 +842,7 @@ function testIncludeGraph(
 ): void {
   const root = createFixtureRoot(workRoot, target)
   installTree(join(fixtureDir, 'include-graph'), currentXdgPath(root))
-  const result = ready(runHelper(helper, resources, root))
+  const result = ready(runFixtureHelper(helper, resources, root))
   if (result.diagnosticCount !== 3) throw new ProofFailure('diagnostic count mismatch')
   assertRgb(result.profiles.light.background, rgb(85, 85, 85), 'include order')
   assertRgb(result.profiles.light.foreground, rgb(1, 2, 3), 'include reset')
@@ -261,7 +856,7 @@ function testDualProfile(
 ): void {
   const root = createFixtureRoot(workRoot, target)
   installTree(join(fixtureDir, 'dual-profile'), currentXdgPath(root))
-  const result = ready(runHelper(helper, resources, root))
+  const result = ready(runFixtureHelper(helper, resources, root))
   const { light, dark } = result.profiles
   assertRgb(light.background, rgb(247, 247, 247), 'light background')
   assertRgb(light.foreground, rgb(74, 69, 67), 'light foreground')
@@ -288,7 +883,7 @@ function testVisualProjection(
 ): void {
   const root = createFixtureRoot(workRoot, target)
   installTree(join(fixtureDir, 'visual'), currentXdgPath(root))
-  const result = ready(runHelper(helper, resources, root))
+  const result = ready(runFixtureHelper(helper, resources, root))
   const { light, dark } = result.profiles
   if (JSON.stringify(light) !== JSON.stringify(dark)) {
     throw new ProofFailure('null conditional clone mismatch')
@@ -315,7 +910,7 @@ function testFileTheme(workRoot: string, helper: string, resources: string, targ
   const themeSource = join(fixtureDir, 'file-theme', 'themes', 'PLAN065_THEME_SENTINEL')
   const themeTarget = join(root.config, 'ghostty', 'themes', 'PLAN065_THEME_SENTINEL')
   installFile(themeSource, themeTarget)
-  const profile = ready(runHelper(helper, resources, root)).profiles.light
+  const profile = ready(runFixtureHelper(helper, resources, root)).profiles.light
   assertRgb(profile.background, rgb(18, 58, 188), 'file theme background')
   assertRgb(profile.foreground, rgb(254, 220, 186), 'file theme foreground')
   assertColorKind(profile.cursorText, 'cell-background')
@@ -336,7 +931,7 @@ function testSurfaceVariants(
   for (const [fixture, expected] of vectors) {
     const root = createFixtureRoot(workRoot, target)
     installFile(join(fixtureDir, 'surface', fixture), currentXdgPath(root))
-    const profile = ready(runHelper(helper, resources, root)).profiles.light
+    const profile = ready(runFixtureHelper(helper, resources, root)).profiles.light
     if (JSON.stringify(profile.surface.backgroundBlur) !== JSON.stringify(expected)) {
       throw new ProofFailure('surface variant mismatch')
     }
@@ -348,13 +943,15 @@ async function testRaces(
   helper: string,
   resources: string,
   target: Target,
-): Promise<void> {
+): Promise<number> {
   const root = createFixtureRoot(workRoot, target)
   const locations = defaultLocations(root, target)
+  rmSync(root.path, { recursive: true, force: true })
   for (const location of locations) {
     await runRace(workRoot, helper, resources, target, location.id, 'delete')
     await runRace(workRoot, helper, resources, target, location.id, 'rename')
   }
+  return locations.length
 }
 
 async function runRace(
@@ -377,23 +974,48 @@ async function runRace(
   })
   const output: Buffer[] = []
   const errors: Buffer[] = []
-  child.stdout?.on('data', (chunk: Buffer) => output.push(chunk))
-  child.stderr?.on('data', (chunk: Buffer) => errors.push(chunk))
-  const closed = waitForClose(child)
-  await waitForReady(child.stdio[3] as Readable | null)
+  let outputBytes = 0
+  let errorBytes = 0
+  let overflow = false
+  child.stdout?.on('data', (chunk: Buffer) => {
+    outputBytes += chunk.length
+    if (outputBytes > OUTPUT_LIMIT) overflow = true
+    if (overflow) return
+    output.push(chunk)
+  })
+  child.stderr?.on('data', (chunk: Buffer) => {
+    errorBytes += chunk.length
+    if (errorBytes > OUTPUT_LIMIT) overflow = true
+    if (overflow) return
+    errors.push(chunk)
+  })
 
-  if (action === 'delete') rmSync(location.path)
-  if (action === 'rename') renameSync(location.path, join(root.path, 'removed-config'))
-  const before = snapshotRoots(root)
-  ;(child.stdio[4] as Writable | null)?.end('1')
-  const code = await closed
-  if (code !== 0) throw new ProofFailure('race helper failed')
+  try {
+    await waitForReady(child.stdio[3] as Readable | null)
+    if (overflow) throw new ProofFailure('race helper output exceeded limit')
+    applyRaceAction(location.path, root.path, action)
+    const before = snapshotRoots(root)
+    const continueStream = child.stdio[4] as Writable | null
+    if (!continueStream) throw new ProofFailure('race continue pipe missing')
+    continueStream.end('1')
+    const code = await waitForClose(child)
+    if (code !== 0 || overflow) throw new ProofFailure('race helper failed')
 
-  const stdout = Buffer.concat(output)
-  const stderr = Buffer.concat(errors)
-  const result = parseOutput(stdout, stderr)
-  if (result.status !== 'not-configured') throw new ProofFailure('race status mismatch')
-  if (before !== snapshotRoots(root)) throw new ProofFailure('race roots changed')
+    const result = parseOutput(Buffer.concat(output), Buffer.concat(errors))
+    if (result.status !== 'not-configured') throw new ProofFailure('race status mismatch')
+    if (before !== snapshotRoots(root)) throw new ProofFailure('race roots changed')
+  } finally {
+    await terminateChild(child)
+    rmSync(root.path, { recursive: true, force: true })
+  }
+}
+
+function applyRaceAction(path: string, root: string, action: 'delete' | 'rename'): void {
+  if (action === 'delete') {
+    rmSync(path)
+    return
+  }
+  renameSync(path, join(root, 'removed-config'))
 }
 
 function createFixtureRoot(workRoot: string, _target: Target): FixtureRoot {
@@ -462,6 +1084,23 @@ function installTree(source: string, configTarget: string): void {
 function installFile(source: string, target: string): void {
   mkdirSync(dirname(target), { recursive: true })
   copyFileSync(source, target)
+}
+
+function runFixtureHelper(helper: string, resources: string, root: FixtureRoot): ProofResult {
+  const before = snapshotRoots(root)
+  let result: ProofResult | null = null
+  let failure: unknown = null
+  try {
+    result = runHelper(helper, resources, root)
+  } catch (error) {
+    failure = error
+  }
+  const changed = before !== snapshotRoots(root)
+  rmSync(root.path, { recursive: true, force: true })
+  if (changed) throw new ProofFailure('fixture roots changed')
+  if (failure) throw failure
+  if (!result) throw new ProofFailure('fixture helper result missing')
+  return result
 }
 
 function runHelper(helper: string, resources: string, root: FixtureRoot): ProofResult {
@@ -769,28 +1408,43 @@ function walkSnapshot(path: string, label: string, records: string[]): void {
 function waitForReady(stream: Readable | null): Promise<void> {
   if (!stream) return Promise.reject(new ProofFailure('race ready pipe missing'))
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new ProofFailure('race ready timeout')), 30_000)
-    stream.once('data', (chunk: Buffer) => {
+    let settled = false
+    const timeout = setTimeout(() => fail(new ProofFailure('race ready timeout')), 30_000)
+    const fail = (error: ProofFailure): void => {
+      if (settled) return
+      settled = true
       clearTimeout(timeout)
+      reject(error)
+    }
+    const succeed = (): void => {
+      if (settled) return
+      settled = true
+      clearTimeout(timeout)
+      resolve()
+    }
+    stream.once('data', (chunk: Buffer) => {
       if (chunk.length !== 1 || chunk[0] !== 0x31) {
-        reject(new ProofFailure('race ready signal mismatch'))
+        fail(new ProofFailure('race ready signal mismatch'))
         return
       }
-      resolve()
+      succeed()
     })
-    stream.once('error', () => {
-      clearTimeout(timeout)
-      reject(new ProofFailure('race ready pipe failed'))
-    })
+    stream.once('error', () => fail(new ProofFailure('race ready pipe failed')))
+    stream.once('end', () => fail(new ProofFailure('race ready pipe ended')))
   })
 }
 
-function waitForClose(child: ReturnType<typeof spawn>): Promise<number | null> {
+function waitForClose(
+  child: ReturnType<typeof spawn>,
+  timeoutMs: number = 30_000,
+): Promise<number | null> {
+  if (child.exitCode !== null) return Promise.resolve(child.exitCode)
+  if (child.signalCode !== null) return Promise.resolve(null)
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       child.kill('SIGKILL')
       reject(new ProofFailure('race helper timeout'))
-    }, 30_000)
+    }, timeoutMs)
     child.once('close', (code) => {
       clearTimeout(timeout)
       resolve(code)
@@ -802,6 +1456,16 @@ function waitForClose(child: ReturnType<typeof spawn>): Promise<number | null> {
   })
 }
 
+async function terminateChild(child: ReturnType<typeof spawn>): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return
+  child.kill('SIGKILL')
+  try {
+    await waitForClose(child, 5_000)
+  } catch {
+    return
+  }
+}
+
 function assertNoSentinel(...values: readonly Buffer[]): void {
   for (const value of values) {
     const text = value.toString('utf8')
@@ -811,22 +1475,83 @@ function assertNoSentinel(...values: readonly Buffer[]): void {
   }
 }
 
-function writeEvidence(args: Arguments, helper: string): void {
+function resourceIdentity(root: string): ResourceIdentity {
+  const hash = createHash('sha256').update('ghostty-proof-resources-v1\0')
+  const state = { bytes: 0, entries: 0 }
+  walkResources(root, '', hash, state)
+  return {
+    sha256: hash.digest('hex'),
+    bytes: state.bytes,
+    entries: state.entries,
+  }
+}
+
+function walkResources(
+  path: string,
+  relative: string,
+  hash: ReturnType<typeof createHash>,
+  state: { bytes: number; entries: number },
+): void {
+  const stat = lstatSync(path)
+  const label = relative || '.'
+  if (stat.isFile()) {
+    const contents = readFileSync(path)
+    hash.update(`f\0${label}\0${stat.mode & 0o777}\0${contents.length}\0`)
+    hash.update(createHash('sha256').update(contents).digest())
+    state.bytes += contents.length
+    state.entries += 1
+    return
+  }
+  if (!stat.isDirectory()) throw new ProofFailure('unsupported resource entry')
+  hash.update(`d\0${label}\0${stat.mode & 0o777}\0`)
+  state.entries += 1
+  const entries = readdirSync(path).sort((left, right) =>
+    Buffer.compare(Buffer.from(left), Buffer.from(right)),
+  )
+  for (const entry of entries) {
+    const childRelative = relative ? `${relative}/${entry}` : entry
+    walkResources(join(path, entry), childRelative, hash, state)
+  }
+}
+
+function writeEvidence(
+  args: Arguments,
+  helper: string,
+  runner: Runner,
+  dependencies: DependencyDetail,
+  compatibility: CompatibilityDetail,
+  fixtures: FixtureDetail,
+  resources: ResourceIdentity,
+): void {
   const artifact = readFileSync(helper)
   const evidence = {
     schemaVersion: 1,
     target: args.target,
+    runner,
     nativeExecution: 'pass',
     artifactSha256: sha256(artifact),
     artifactBytes: statSync(helper).size,
+    resourcesSha256: resources.sha256,
+    resourcesBytes: resources.bytes,
+    resourceEntries: resources.entries,
     semanticFixtures: 'pass',
     noWriteFixtures: 'pass',
+    absentNoWrite: 'pass',
+    deleteRaceNoWrite: 'pass',
+    renameRaceNoWrite: 'pass',
+    privacy: 'pass',
     dependencies: 'pass',
-    compatibilityProbe: args.target.startsWith('linux-') ? 'pass-static' : 'pass-system-only',
+    compatibilityProbe: 'pass',
     relocation: 'pass',
     displayP3Vectors: 'pass',
+    dependencyDetail: dependencies,
+    compatibilityDetail: compatibility,
+    fixtureDetail: fixtures,
   } as const
-  writeFileSync(args.evidence, `${JSON.stringify(evidence, null, 2)}\n`, { flag: 'wx' })
+  const serialized = Buffer.from(`${JSON.stringify(evidence, null, 2)}\n`)
+  if (serialized.length > MAX_EVIDENCE_BYTES) throw new ProofFailure('verify evidence too large')
+  assertNoSentinel(serialized)
+  writeFileSync(args.evidence, serialized, { flag: 'wx' })
 }
 
 function asObject(value: unknown, label: string): JsonObject {
@@ -864,8 +1589,16 @@ function rgb(r: number, g: number, b: number): Rgb {
   return { r, g, b }
 }
 
-try {
+async function dispatch(): Promise<void> {
+  if (process.argv[2] === '--compatibility-probe') {
+    compatibilityProbeMain(process.argv.slice(3))
+    return
+  }
   await main()
+}
+
+try {
+  await dispatch()
 } catch (error) {
   const reason = error instanceof ProofFailure ? error.message : 'unexpected proof failure'
   process.stdout.write(`${JSON.stringify({ result: 'fail', reason })}\n`)
