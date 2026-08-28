@@ -17,6 +17,7 @@ import {
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { hashExternalTree, loadProofRecipe, type ProofTargetRecipe } from './proof-contract'
+import { assertPinnedUpstream, UpstreamAuditFailure, type UpstreamAudit } from './upstream-audit'
 
 const TARGETS = {
   'darwin-arm64': {
@@ -54,7 +55,6 @@ const THEMES_SHA256 = 'ea9878471420ee5b12e7f2ff480099c954ea50e573a1bdf83f43e105c
 const THEMES_URL =
   'https://deps.files.ghostty.org/ghostty-themes-release-20260810-152212-0173c3c.tgz'
 const UPSTREAM_REVISION = 'c8554f28e0efe2f5595f32020371c34b25ec628f'
-const UPSTREAM_TREE_SHA256 = '63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb'
 const SOURCE_DATE_EPOCH = '1787590337'
 const BUILD_ROOT = '/tmp/ghostty-config-resolver-proof-build-v1'
 const scriptDir = dirname(fileURLToPath(import.meta.url))
@@ -97,6 +97,7 @@ class ProofFailure extends Error {}
 function main(): void {
   const args = parseArguments(process.argv.slice(2))
   const target = TARGETS[args.target]
+  const upstreamAudit = assertPinnedUpstream(args.upstream)
   assertInputs(args, target)
 
   if (lstatExists(BUILD_ROOT)) throw new ProofFailure('fixed build root already exists')
@@ -115,7 +116,10 @@ function main(): void {
     const result = build(fixedZig, target.zigTarget, overlay, prefix, cache, globalCache)
     const stripArgv = assembleBundle(args, prefix, bundle)
     assertUpstreamClean(args.upstream)
-    writeEvidence(args, target, overlay, globalCache, bundle, { ...result, stripArgv })
+    writeEvidence(args, target, overlay, globalCache, bundle, upstreamAudit, {
+      ...result,
+      stripArgv,
+    })
     cpSync(bundle, args.output, { recursive: true, errorOnExist: true })
   } finally {
     rmSync(BUILD_ROOT, { recursive: true, force: true })
@@ -355,6 +359,7 @@ function writeEvidence(
   overlay: string,
   globalCache: string,
   bundle: string,
+  upstreamAudit: UpstreamAudit,
   buildResult: BuildResult,
 ): void {
   const helper = join(bundle, 'bin', 'ghostty-config-resolver-proof')
@@ -374,7 +379,9 @@ function writeEvidence(
     ghosttyWebGpuHead: requiredEnvironment('EXPECTED_HEAD'),
     sourceDateEpoch: Number(SOURCE_DATE_EPOCH),
     upstreamRevision: UPSTREAM_REVISION,
-    upstreamTreeSha256: UPSTREAM_TREE_SHA256,
+    upstreamTreeSha256: upstreamAudit.sha256,
+    upstreamTreeEntries: upstreamAudit.entries,
+    officialReadOnlyGraph: 'pass',
     zigVersion: ZIG_VERSION,
     proofRecipeSha256: recipeSha256,
     runner,
@@ -596,7 +603,8 @@ function packageInput(
 }
 
 function dependencyDeclarations(upstream: string, overlay: string): ReadonlyMap<string, string> {
-  const paths = [join(upstream, 'build.zig.zon')]
+  const paths: string[] = []
+  collectNamedFiles(upstream, 'build.zig.zon', paths)
   collectNamedFiles(join(overlay, 'zig-pkg'), 'build.zig.zon', paths)
   const declarations = new Map<string, string>()
   const pattern = /\.url\s*=\s*"([^"]+)"\s*,[\s\S]{0,512}?\.hash\s*=\s*"([^"]+)"/g
@@ -632,6 +640,7 @@ function recordDependencyDeclaration(
 function collectNamedFiles(root: string, name: string, paths: string[]): void {
   if (!lstatExists(root)) return
   for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (entry.name === '.git') continue
     const path = join(root, entry.name)
     if (entry.isDirectory()) {
       collectNamedFiles(path, name, paths)
@@ -757,7 +766,10 @@ function sha256(value: Buffer): string {
 try {
   main()
 } catch (error) {
-  const reason = error instanceof ProofFailure ? error.message : 'unexpected proof failure'
+  const reason =
+    error instanceof ProofFailure || error instanceof UpstreamAuditFailure
+      ? error.message
+      : 'unexpected proof failure'
   process.stdout.write(`${JSON.stringify({ result: 'fail', reason })}\n`)
   process.exitCode = 1
 }
