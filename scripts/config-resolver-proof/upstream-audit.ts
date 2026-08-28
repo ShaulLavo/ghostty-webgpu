@@ -23,7 +23,9 @@ type BlobIdentity = {
 }
 
 export type UpstreamAudit = {
+  readonly bytes: number
   readonly entries: number
+  readonly gitlinks: number
   readonly sha256: string
 }
 
@@ -31,7 +33,7 @@ export class UpstreamAuditFailure extends Error {}
 
 export function assertPinnedUpstream(upstream: string): UpstreamAudit {
   assertCheckout(upstream)
-  const tree = computeUpstreamTreeSha256(upstream)
+  const tree = computeGitTreeSha256(upstream, UPSTREAM_REVISION)
   if (tree.sha256 !== UPSTREAM_TREE_SHA256) {
     throw new UpstreamAuditFailure('unexpected upstream tree digest')
   }
@@ -57,11 +59,18 @@ function assertCheckout(upstream: string): void {
 }
 
 function runGit(upstream: string, argv: readonly string[], input?: Buffer): Buffer {
-  const result = spawnSync('git', argv, {
+  const result = spawnSync('/usr/bin/git', argv, {
     cwd: upstream,
     input,
     encoding: 'buffer',
-    env: { PATH: process.env.PATH ?? '' },
+    env: {
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_TERMINAL_PROMPT: '0',
+      LANG: 'C',
+      LC_ALL: 'C',
+      PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
+    },
     maxBuffer: 1024 * 1024 * 1024,
     stdio: ['pipe', 'pipe', 'pipe'],
   })
@@ -157,11 +166,16 @@ function writeUint64(value: number): Buffer {
   return result
 }
 
-function computeUpstreamTreeSha256(upstream: string): UpstreamAudit {
-  const rawTree = runGit(upstream, ['ls-tree', '-r', '-z', '--full-tree', UPSTREAM_REVISION])
+export function computeGitTreeSha256(upstream: string, revision: string): UpstreamAudit {
+  if (!/^[0-9a-f]{40}$/.test(revision)) {
+    throw new UpstreamAuditFailure('invalid Git tree revision')
+  }
+  const rawTree = runGit(upstream, ['ls-tree', '-r', '-z', '--full-tree', revision])
   const records = parseTreeRecords(rawTree)
   const blobs = readBlobIdentities(upstream, records)
   const hash = createHash('sha256').update(TREE_HEADER)
+  let bytes = 0
+  let gitlinks = 0
 
   for (const record of records) {
     hash.update(writeUint32(record.path.length))
@@ -171,6 +185,8 @@ function computeUpstreamTreeSha256(upstream: string): UpstreamAudit {
     if (record.type === 'gitlink') {
       hash.update(writeUint64(20))
       hash.update(Buffer.from(record.objectId, 'hex'))
+      bytes += 20
+      gitlinks += 1
       continue
     }
 
@@ -178,9 +194,11 @@ function computeUpstreamTreeSha256(upstream: string): UpstreamAudit {
     if (!blob) throw new UpstreamAuditFailure('missing git blob identity')
     hash.update(writeUint64(blob.bytes))
     hash.update(blob.sha256)
+    bytes += blob.bytes
   }
 
-  return { sha256: hash.digest('hex'), entries: records.length }
+  if (!Number.isSafeInteger(bytes)) throw new UpstreamAuditFailure('Git tree byte length overflow')
+  return { bytes, sha256: hash.digest('hex'), entries: records.length, gitlinks }
 }
 
 function auditConfigBoundary(upstream: string): void {
