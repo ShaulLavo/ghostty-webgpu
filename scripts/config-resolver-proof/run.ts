@@ -19,6 +19,22 @@ const UPSTREAM_TREE_SHA256 = '63d2b0c41531162a70b838369c0c225745e167495763ebbd0b
 const SOURCE_DATE_EPOCH = 1_787_590_337
 const OUTPUT_LIMIT = 1024 * 1024
 const scriptDir = dirname(fileURLToPath(import.meta.url))
+const CHILD_FAILURE_CODES = new Map<string, string>([
+  ['fixed build root already exists', 'build-root-exists'],
+  ['discovery Zig dependency fetch failed', 'dependency-discovery-failed'],
+  ['materialization Zig dependency fetch failed', 'dependency-materialization-failed'],
+  ['explicit Zig package fetch failed', 'dependency-fetch-failed'],
+  ['package cache changed during graph materialization', 'package-cache-materialization-mismatch'],
+  ['materialized package graph changed during the build', 'package-graph-build-mismatch'],
+  ['package cache changed during the build', 'package-cache-build-mismatch'],
+  ['Zig build failed', 'native-build-failed'],
+  ['exact link command was not observed', 'native-link-observation-missing'],
+  ['materialized build does not match the proof recipe', 'recipe-target-mismatch'],
+  ['runner identity does not match the proof recipe', 'recipe-runner-mismatch'],
+  ['tool identities do not match the proof recipe', 'recipe-tools-mismatch'],
+  ['input identities do not match the proof recipe', 'recipe-inputs-mismatch'],
+  ['materialized inputs do not match the proof recipe', 'recipe-materialized-inputs-mismatch'],
+])
 
 type Target = (typeof TARGETS)[number]
 type Mode = (typeof MODES)[number]
@@ -366,9 +382,28 @@ function runBun(script: string, argv: readonly string[]): void {
     maxBuffer: OUTPUT_LIMIT,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-  if (result.status !== 0) throw new ProofFailure(`${script} failed`)
+  if (result.status !== 0) {
+    const code = childFailureCode(result.stdout, result.stderr)
+    if (!code) throw new ProofFailure(`${script} failed`)
+    throw new ProofFailure(`${script} failed: ${code}`)
+  }
   if (result.stderr.length !== 0) throw new ProofFailure(`${script} wrote stderr`)
   assertNoSentinel(result.stdout)
+}
+
+function childFailureCode(stdout: Buffer, stderr: Buffer): string | null {
+  if (stderr.length !== 0 || stdout.length > 1024) return null
+  assertNoSentinel(stdout, stderr)
+  try {
+    const value = JSON.parse(stdout.toString('utf8')) as unknown
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+    const record = value as Record<string, unknown>
+    if (Object.keys(record).sort().join(',') !== 'reason,result') return null
+    if (record.result !== 'fail' || typeof record.reason !== 'string') return null
+    return CHILD_FAILURE_CODES.get(record.reason) ?? null
+  } catch {
+    return null
+  }
 }
 
 function run(command: string, argv: readonly string[], cwd?: string): string {
