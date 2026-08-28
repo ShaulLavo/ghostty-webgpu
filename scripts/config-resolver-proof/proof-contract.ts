@@ -33,6 +33,11 @@ const ENVIRONMENT_NAME_PATTERN = /^[A-Z_][A-Z0-9_]{0,127}$/
 const RECORD_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/
 const SOURCE_REFERENCE_PATTERN = /^(?:input|tool):[a-z0-9][a-z0-9._-]{0,127}$/
 const PRINTABLE_ASCII_PATTERN = /^[\x20-\x7e]+$/
+const ZIG_CACHE_KEY_PATTERN = /^[0-9a-f]{32}$/
+const ZIG_CACHE_TOKEN_PATTERN = /^\{\{zig-cache-key-([0-9]{4})\}\}$/
+const ZIG_CACHE_TOKEN_PREFIX = '{{zig-cache-key-'
+const ZIG_CACHE_TOKEN_LENGTH = '{{zig-cache-key-0000}}'.length
+const ZIG_OBJECT_CACHE_MARKER = '/final-cache/o/'
 const MACOS_SDK_PATH_PATTERN =
   /^\/Applications\/[^/]+\/Contents\/Developer\/Platforms\/MacOSX\.platform\/Developer\/SDKs\/MacOSX[^/]*\.sdk$/
 const MAX_RECIPE_BYTES = 2 * 1024 * 1024
@@ -205,7 +210,7 @@ export type ProofTargetRecipe = {
   readonly targetTriple: string
   readonly optimizationMode: 'ReleaseSafe'
   readonly buildArgv: readonly string[]
-  readonly linkArgv: readonly string[]
+  readonly linkPlan: readonly string[]
   readonly stripArgv: readonly string[]
   readonly environment: readonly {
     readonly name: string
@@ -216,7 +221,7 @@ export type ProofTargetRecipe = {
 }
 
 export type ProofRecipe = {
-  readonly schemaVersion: 1
+  readonly schemaVersion: 2
   readonly sourceDateEpoch: number
   readonly upstream: {
     readonly repository: string
@@ -269,7 +274,7 @@ export function validateProofRecipe(value: unknown): ProofRecipe {
     ['schemaVersion', 'sourceDateEpoch', 'targets', 'upstream', 'zigVersion'],
     'recipe',
   )
-  if (recipe.schemaVersion !== 1) fail('recipe schemaVersion must be 1')
+  if (recipe.schemaVersion !== 2) fail('recipe schemaVersion must be 2')
   if (recipe.sourceDateEpoch !== PROOF_SOURCE_DATE_EPOCH) {
     fail('recipe sourceDateEpoch does not match the upstream pin')
   }
@@ -306,7 +311,7 @@ function validateTarget(value: unknown, target: ProofTarget): void {
       'buildArgv',
       'environment',
       'inputs',
-      'linkArgv',
+      'linkPlan',
       'optimizationMode',
       'runner',
       'stripArgv',
@@ -320,7 +325,7 @@ function validateTarget(value: unknown, target: ProofTarget): void {
   if (record.optimizationMode !== 'ReleaseSafe')
     fail(`${target} optimizationMode must be ReleaseSafe`)
   validateArgv(record.buildArgv, `${target} buildArgv`)
-  validateArgv(record.linkArgv, `${target} linkArgv`)
+  validateArgv(record.linkPlan, `${target} linkPlan`)
   validateArgv(record.stripArgv, `${target} stripArgv`)
   validateEnvironment(record.environment, target)
   const tools = validateTools(record.tools, target, runner)
@@ -599,7 +604,7 @@ function validateTargetSemantics(
 ): void {
   validateOppositeRootBoundary(recipe, target, tools, inputs)
   validateTargetBuildArgv(recipe.buildArgv, target)
-  validateTargetLinkArgv(recipe.linkArgv, target)
+  validateTargetLinkPlan(recipe.linkPlan, target)
   validateTargetStripArgv(recipe.stripArgv, target)
   validateTargetEnvironment(recipe.environment, target)
   validateTargetTools(tools, target)
@@ -615,7 +620,7 @@ function validateOppositeRootBoundary(
   const oppositeTarget = target.startsWith('darwin-') ? 'linux-x64' : 'darwin-x64'
   const oppositeRoot = PROOF_TARGET_CONTRACT[oppositeTarget].root
   assertNoRootedValues(recipe.buildArgv, oppositeRoot, `${target} buildArgv`)
-  assertNoRootedValues(recipe.linkArgv, oppositeRoot, `${target} linkArgv`)
+  assertNoRootedValues(recipe.linkPlan, oppositeRoot, `${target} linkPlan`)
   assertNoRootedValues(recipe.stripArgv, oppositeRoot, `${target} stripArgv`)
   assertNoRootedValues(
     recipe.environment.map((entry) => entry.value),
@@ -682,45 +687,177 @@ function validateTargetBuildArgv(argv: readonly string[], target: ProofTarget): 
   assertExactStringArray(argv, expected, `${target} buildArgv`)
 }
 
-function validateTargetLinkArgv(argv: readonly string[], target: ProofTarget): void {
+export function projectObservedLinkArgv(
+  linkArgv: readonly string[],
+  target: ProofTarget,
+): readonly string[] {
+  const label = `${target} linkArgv`
+  validateArgv(linkArgv, label)
+  assertNoCacheTokenSyntax(linkArgv, label)
+  validateTargetLinkInvocation(linkArgv, target, label)
+  const tokens = new Map<string, string>()
+  const linkPlan = linkArgv.map((argument) => projectLinkArgument(argument, target, tokens))
+  validateTargetLinkPlan(linkPlan, target)
+  return linkPlan
+}
+
+function projectLinkArgument(
+  argument: string,
+  target: ProofTarget,
+  tokens: Map<string, string>,
+): string {
+  const match = rawCacheKeyMatch(argument, target, `${target} linkArgv`)
+  if (!match) return argument
+  let token = tokens.get(match.value)
+  if (!token) {
+    token = cacheKeyToken(tokens.size)
+    tokens.set(match.value, token)
+  }
+  return `${argument.slice(0, match.start)}${token}${argument.slice(match.end)}`
+}
+
+function cacheKeyToken(index: number): string {
+  if (index > 9_999) fail('link argv has too many distinct Zig cache keys')
+  return `{{zig-cache-key-${String(index).padStart(4, '0')}}}`
+}
+
+function validateTargetLinkPlan(argv: readonly string[], target: ProofTarget): void {
+  validateLinkPlanCacheTokens(argv, target)
+  validateTargetLinkInvocation(argv, target, `${target} linkPlan`)
+}
+
+function validateLinkPlanCacheTokens(argv: readonly string[], target: ProofTarget): void {
+  const seen = new Set<number>()
+  for (const argument of argv) validateLinkPlanArgument(argument, target, seen)
+  if (seen.size === 0) fail(`${target} linkPlan has no Zig cache key tokens`)
+}
+
+function validateLinkPlanArgument(argument: string, target: ProofTarget, seen: Set<number>): void {
+  const label = `${target} linkPlan`
+  const root = PROOF_TARGET_CONTRACT[target].root
+  const cacheStarts = stringOffsets(argument, ZIG_OBJECT_CACHE_MARKER)
+  const tokenStarts = stringOffsets(argument, ZIG_CACHE_TOKEN_PREFIX)
+  if (cacheStarts.length === 0 && tokenStarts.length === 0) return
+  if (cacheStarts.length !== 1 || tokenStarts.length !== 1) {
+    fail(`${label} argument must contain one exact Zig cache key token`)
+  }
+  const cacheStart = cacheStarts[0]
+  const tokenStart = tokenStarts[0]
+  if (cacheStart === undefined || tokenStart === undefined) {
+    fail(`${label} Zig cache key token is missing`)
+  }
+  const rootStart = cacheStart - root.length
+  if (rootStart < 0 || argument.slice(rootStart, cacheStart) !== root) {
+    fail(`${label} Zig cache key token is outside the exact cache root`)
+  }
+  assertRootValueBoundary(argument, rootStart, label)
+  if (tokenStart !== cacheStart + ZIG_OBJECT_CACHE_MARKER.length) {
+    fail(`${label} Zig cache key token is outside the exact cache root`)
+  }
+  const token = argument.slice(tokenStart, tokenStart + ZIG_CACHE_TOKEN_LENGTH)
+  const match = ZIG_CACHE_TOKEN_PATTERN.exec(token)
+  if (!match) {
+    fail(`${label} Zig cache key token is malformed`)
+  }
+  validateCachePathSuffix(argument, tokenStart + token.length, label)
+  const index = Number(match[1])
+  if (seen.has(index)) return
+  if (index !== seen.size) fail(`${label} Zig cache key tokens are not contiguous`)
+  seen.add(index)
+}
+
+function assertNoCacheTokenSyntax(values: readonly string[], label: string): void {
+  if (values.some((value) => value.includes(ZIG_CACHE_TOKEN_PREFIX))) {
+    fail(`${label} cannot contain Zig cache key tokens`)
+  }
+}
+
+function rawCacheKeyMatch(
+  argument: string,
+  target: ProofTarget,
+  label: string,
+): {
+  readonly start: number
+  readonly end: number
+  readonly value: string
+} | null {
+  const root = PROOF_TARGET_CONTRACT[target].root
+  const starts = stringOffsets(argument, ZIG_OBJECT_CACHE_MARKER)
+  if (starts.length === 0) return null
+  if (starts.length > 1) {
+    fail(`${label} argument contains multiple Zig cache key components`)
+  }
+  const markerStart = starts[0]
+  if (markerStart === undefined) fail(`${label} Zig cache key component is missing`)
+  const rootStart = markerStart - root.length
+  if (rootStart < 0 || argument.slice(rootStart, markerStart) !== root) {
+    fail(`${label} Zig cache key component is outside the exact target root`)
+  }
+  assertRootValueBoundary(argument, rootStart, label)
+  const start = markerStart + ZIG_OBJECT_CACHE_MARKER.length
+  const end = start + 32
+  const value = argument.slice(start, end)
+  if (!ZIG_CACHE_KEY_PATTERN.test(value)) {
+    fail(`${label} Zig cache key component is malformed`)
+  }
+  validateCachePathSuffix(argument, end, label)
+  return { start, end, value }
+}
+
+function assertRootValueBoundary(argument: string, rootStart: number, label: string): void {
+  if (rootStart === 0) return
+  const assignment = argument.indexOf('=')
+  if (assignment >= 0 && rootStart === assignment + 1) return
+  fail(`${label} cache path does not begin at an exact target-root boundary`)
+}
+
+function stringOffsets(value: string, search: string): readonly number[] {
+  const offsets: number[] = []
+  let offset = value.indexOf(search)
+  while (offset >= 0) {
+    offsets.push(offset)
+    offset = value.indexOf(search, offset + search.length)
+  }
+  return offsets
+}
+
+function validateCachePathSuffix(value: string, start: number, label: string): void {
+  if (start === value.length) return
+  if (value[start] !== '/') fail(`${label} Zig cache key component is malformed`)
+  const components = value.slice(start + 1).split('/')
+  if (components.some((component) => !component || component === '.' || component === '..')) {
+    fail(`${label} Zig cache path suffix is not normalized`)
+  }
+}
+
+function validateTargetLinkInvocation(
+  argv: readonly string[],
+  target: ProofTarget,
+  label: string,
+): void {
   const contract = PROOF_TARGET_CONTRACT[target]
   const zig = `${contract.root}/toolchain/zig`
   if (argv.length !== contract.linkArgvLength) {
-    fail(`${target} linkArgv length does not match`)
+    fail(`${label} length does not match`)
   }
   if (argv[0] !== zig || argv[1] !== 'build-exe') {
-    fail(`${target} linkArgv must be the fixed Zig build-exe child`)
+    fail(`${label} must be the fixed Zig build-exe child`)
   }
   if (argv.some((argument) => argument.startsWith('@'))) {
-    fail(`${target} linkArgv cannot contain response-file arguments`)
+    fail(`${label} cannot contain response-file arguments`)
   }
   if (argv.some((argument) => argument.startsWith('--verbose-link'))) {
-    fail(`${target} linkArgv cannot be a verbose-link diagnostic`)
+    fail(`${label} cannot be a verbose-link diagnostic`)
   }
-  assertUniqueOptionValue(argv, '--name', 'ghostty-config-resolver-proof', `${target} linkArgv`)
-  assertUniqueOptionValue(
-    argv,
-    '--zig-lib-dir',
-    `${contract.root}/toolchain/lib/`,
-    `${target} linkArgv`,
-  )
-  assertUniqueOptionValue(argv, '--cache-dir', `${contract.root}/final-cache`, `${target} linkArgv`)
-  assertUniqueOptionValue(
-    argv,
-    '--global-cache-dir',
-    `${contract.root}/global-cache`,
-    `${target} linkArgv`,
-  )
-  assertTargetOptionValues(
-    argv,
-    contract.targetTriple,
-    contract.linkTargetCount,
-    `${target} linkArgv`,
-  )
-  assertModuleBinding(argv, 'root', `${contract.root}/overlay/main.zig`, `${target} linkArgv`)
-  assertGeneratedModuleBindings(argv, target)
-  assertExactArgumentCount(argv, '-fincremental', 1, `${target} linkArgv`)
-  assertTerminalListenArgument(argv, target)
+  assertUniqueOptionValue(argv, '--name', 'ghostty-config-resolver-proof', label)
+  assertUniqueOptionValue(argv, '--zig-lib-dir', `${contract.root}/toolchain/lib/`, label)
+  assertUniqueOptionValue(argv, '--cache-dir', `${contract.root}/final-cache`, label)
+  assertUniqueOptionValue(argv, '--global-cache-dir', `${contract.root}/global-cache`, label)
+  assertTargetOptionValues(argv, contract.targetTriple, contract.linkTargetCount, label)
+  assertModuleBinding(argv, 'root', `${contract.root}/overlay/main.zig`, label)
+  assertGeneratedModuleBindings(argv, target, label)
+  assertExactArgumentCount(argv, '-fincremental', 1, label)
+  assertTerminalListenArgument(argv, label)
 }
 
 function assertUniqueOptionValue(
@@ -775,16 +912,20 @@ function assertModuleBinding(
   }
 }
 
-function assertGeneratedModuleBindings(argv: readonly string[], target: ProofTarget): void {
+function assertGeneratedModuleBindings(
+  argv: readonly string[],
+  target: ProofTarget,
+  label: string,
+): void {
   const contract = PROOF_TARGET_CONTRACT[target]
   const active = new Set<string>(contract.generatedIds)
   for (const [id, name] of Object.entries(PROOF_GENERATED_MODULES)) {
     if (!active.has(id)) {
-      assertMissingModuleBinding(argv, name, `${target} linkArgv`)
+      assertMissingModuleBinding(argv, name, label)
       continue
     }
     const path = `${contract.root}/prefix/proof-generated/${name}.zig`
-    assertModuleBinding(argv, name, path, `${target} linkArgv`)
+    assertModuleBinding(argv, name, path, label)
   }
 }
 
@@ -804,10 +945,10 @@ function assertExactArgumentCount(
   if (count !== expected) fail(`${label} ${argument} count does not match`)
 }
 
-function assertTerminalListenArgument(argv: readonly string[], target: ProofTarget): void {
+function assertTerminalListenArgument(argv: readonly string[], label: string): void {
   const listen = argv.filter((argument) => argument.startsWith('--listen'))
   if (listen.length !== 1 || listen[0] !== '--listen=-' || argv.at(-1) !== '--listen=-') {
-    fail(`${target} linkArgv must end in the unique build-runner IPC argument`)
+    fail(`${label} must end in the unique build-runner IPC argument`)
   }
 }
 

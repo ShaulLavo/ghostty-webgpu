@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "sourceDateEpoch", "targets", "upstream", "zigVersion"],
   "properties": {
-    "schemaVersion": { "const": 1 },
+    "schemaVersion": { "const": 2 },
     "sourceDateEpoch": {
       "const": 1787590337
     },
@@ -94,7 +94,11 @@
         "required": ["name", "value"],
         "properties": {
           "name": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]{0,127}$" },
-          "value": { "type": "string", "maxLength": 4096, "pattern": "^[ -~]*$" }
+          "value": {
+            "type": "string",
+            "maxLength": 4096,
+            "pattern": "^[ -~]*$"
+          }
         }
       }
     },
@@ -227,7 +231,11 @@
       "required": ["acquisition", "bytes", "name", "role", "sha256", "version"],
       "properties": {
         "acquisition": { "$ref": "#/$defs/acquisition" },
-        "bytes": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
         "generation": { "$ref": "#/$defs/generation" },
         "name": { "$ref": "#/$defs/recordId" },
         "role": { "enum": ["linker", "sdk-or-sysroot", "strip", "zig"] },
@@ -313,7 +321,11 @@
       "required": ["acquisition", "bytes", "id", "role", "sha256"],
       "properties": {
         "acquisition": { "$ref": "#/$defs/acquisition" },
-        "bytes": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
         "generation": { "$ref": "#/$defs/generation" },
         "id": { "$ref": "#/$defs/recordId" },
         "role": {
@@ -625,18 +637,33 @@
         }
       ]
     },
-    "darwinLinkArgv": {
+    "darwinLinkPlan": {
       "type": "array",
       "minItems": 2,
       "maxItems": 4096,
       "prefixItems": [
-        { "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig" },
+        {
+          "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig"
+        },
         { "const": "build-exe" }
       ],
       "items": {
         "allOf": [
           { "$ref": "#/$defs/argument" },
           { "not": { "pattern": "^@" } },
+          { "not": { "pattern": "/final-cache/o/.*?/final-cache/o/" } },
+          {
+            "if": { "pattern": "\\{\\{zig-cache-key-" },
+            "then": {
+              "pattern": "^(?:[^={}]+=)?/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache/o/\\{\\{zig-cache-key-[0-9]{4}\\}\\}(?:/(?!\\.{1,2}(?:/|$))[^/{}]+)*$"
+            }
+          },
+          {
+            "if": { "pattern": "/final-cache/o/" },
+            "then": {
+              "pattern": "^(?:[^={}]+=)?/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache/o/\\{\\{zig-cache-key-[0-9]{4}\\}\\}(?:/(?!\\.{1,2}(?:/|$))[^/{}]+)*$"
+            }
+          },
           {
             "if": { "pattern": "ghostty-config-resolver-proof-build-v1" },
             "then": {
@@ -674,6 +701,12 @@
       "allOf": [
         {
           "contains": {
+            "pattern": "(^|=)/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache/o/\\{\\{zig-cache-key-0000\\}\\}(?:/|$)"
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
             "const": "-Mhelp_strings=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig"
           },
           "minContains": 1,
@@ -686,7 +719,11 @@
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "--cache-dir" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "--cache-dir" },
+          "minContains": 1,
+          "maxContains": 1
+        },
         {
           "contains": {
             "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache"
@@ -706,13 +743,21 @@
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "--name" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "--name" },
+          "minContains": 1,
+          "maxContains": 1
+        },
         {
           "contains": { "const": "ghostty-config-resolver-proof" },
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "--zig-lib-dir" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "--zig-lib-dir" },
+          "minContains": 1,
+          "maxContains": 1
+        },
         {
           "contains": {
             "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/lib/"
@@ -720,30 +765,57 @@
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "-fincremental" }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "const": "--listen=-" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "-fincremental" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "const": "--listen=-" },
+          "minContains": 1,
+          "maxContains": 1
+        },
         {
           "not": {
-            "contains": { "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache" }
+            "contains": {
+              "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache"
+            }
           }
         }
       ]
     },
-    "linuxLinkArgv": {
+    "linuxLinkPlan": {
       "type": "array",
       "minItems": 2,
       "maxItems": 4096,
       "prefixItems": [
-        { "const": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig" },
+        {
+          "const": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig"
+        },
         { "const": "build-exe" }
       ],
       "items": {
         "allOf": [
           { "$ref": "#/$defs/argument" },
           { "not": { "pattern": "^@" } },
+          { "not": { "pattern": "/final-cache/o/.*?/final-cache/o/" } },
+          {
+            "if": { "pattern": "\\{\\{zig-cache-key-" },
+            "then": {
+              "pattern": "^(?:[^={}]+=)?/tmp/ghostty-config-resolver-proof-build-v1/final-cache/o/\\{\\{zig-cache-key-[0-9]{4}\\}\\}(?:/(?!\\.{1,2}(?:/|$))[^/{}]+)*$"
+            }
+          },
+          {
+            "if": { "pattern": "/final-cache/o/" },
+            "then": {
+              "pattern": "^(?:[^={}]+=)?/tmp/ghostty-config-resolver-proof-build-v1/final-cache/o/\\{\\{zig-cache-key-[0-9]{4}\\}\\}(?:/(?!\\.{1,2}(?:/|$))[^/{}]+)*$"
+            }
+          },
           {
             "if": { "pattern": "ghostty-config-resolver-proof-build-v1" },
-            "then": { "pattern": "(^|=)/tmp/ghostty-config-resolver-proof-build-v1(?:/|$)" }
+            "then": {
+              "pattern": "(^|=)/tmp/ghostty-config-resolver-proof-build-v1(?:/|$)"
+            }
           },
           {
             "if": { "pattern": "^-Mhelp_strings=" },
@@ -782,6 +854,12 @@
       "allOf": [
         {
           "contains": {
+            "pattern": "(^|=)/tmp/ghostty-config-resolver-proof-build-v1/final-cache/o/\\{\\{zig-cache-key-0000\\}\\}(?:/|$)"
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
             "const": "-Mhelp_strings=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig"
           },
           "minContains": 1,
@@ -801,9 +879,15 @@
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "--cache-dir" }, "minContains": 1, "maxContains": 1 },
         {
-          "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/final-cache" },
+          "contains": { "const": "--cache-dir" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "const": "/tmp/ghostty-config-resolver-proof-build-v1/final-cache"
+          },
           "minContains": 1,
           "maxContains": 1
         },
@@ -813,25 +897,51 @@
           "maxContains": 1
         },
         {
-          "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/global-cache" },
+          "contains": {
+            "const": "/tmp/ghostty-config-resolver-proof-build-v1/global-cache"
+          },
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "--name" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "--name" },
+          "minContains": 1,
+          "maxContains": 1
+        },
         {
           "contains": { "const": "ghostty-config-resolver-proof" },
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "--zig-lib-dir" }, "minContains": 1, "maxContains": 1 },
         {
-          "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/lib/" },
+          "contains": { "const": "--zig-lib-dir" },
           "minContains": 1,
           "maxContains": 1
         },
-        { "contains": { "const": "-fincremental" }, "minContains": 1, "maxContains": 1 },
-        { "contains": { "const": "--listen=-" }, "minContains": 1, "maxContains": 1 },
-        { "not": { "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/cache" } } }
+        {
+          "contains": {
+            "const": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/lib/"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "const": "-fincremental" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "const": "--listen=-" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "not": {
+            "contains": {
+              "const": "/tmp/ghostty-config-resolver-proof-build-v1/cache"
+            }
+          }
+        }
       ]
     },
     "darwinArm64Tools": {
@@ -1232,9 +1342,9 @@
           ]
         },
         "inputs": { "$ref": "#/$defs/darwinArm64Inputs" },
-        "linkArgv": {
+        "linkPlan": {
           "allOf": [
-            { "$ref": "#/$defs/darwinLinkArgv" },
+            { "$ref": "#/$defs/darwinLinkPlan" },
             {
               "contains": { "const": "aarch64-macos.13.0" },
               "minContains": 1
@@ -1314,9 +1424,9 @@
           ]
         },
         "inputs": { "$ref": "#/$defs/darwinX64Inputs" },
-        "linkArgv": {
+        "linkPlan": {
           "allOf": [
-            { "$ref": "#/$defs/darwinLinkArgv" },
+            { "$ref": "#/$defs/darwinLinkPlan" },
             {
               "contains": { "const": "x86_64-macos.13.0" },
               "minContains": 1
@@ -1396,9 +1506,9 @@
           ]
         },
         "inputs": { "$ref": "#/$defs/linuxArm64Inputs" },
-        "linkArgv": {
+        "linkPlan": {
           "allOf": [
-            { "$ref": "#/$defs/linuxLinkArgv" },
+            { "$ref": "#/$defs/linuxLinkPlan" },
             { "contains": { "const": "aarch64-linux-musl" }, "minContains": 1 },
             {
               "items": {
@@ -1475,9 +1585,9 @@
           ]
         },
         "inputs": { "$ref": "#/$defs/linuxX64Inputs" },
-        "linkArgv": {
+        "linkPlan": {
           "allOf": [
-            { "$ref": "#/$defs/linuxLinkArgv" },
+            { "$ref": "#/$defs/linuxLinkPlan" },
             { "contains": { "const": "x86_64-linux-musl" }, "minContains": 1 },
             {
               "items": {
@@ -1513,7 +1623,7 @@
         "buildArgv",
         "environment",
         "inputs",
-        "linkArgv",
+        "linkPlan",
         "optimizationMode",
         "runner",
         "stripArgv",
@@ -1529,7 +1639,7 @@
           "maxItems": 4096,
           "items": { "$ref": "#/$defs/input" }
         },
-        "linkArgv": { "$ref": "#/$defs/argv" },
+        "linkPlan": { "$ref": "#/$defs/argv" },
         "optimizationMode": { "const": "ReleaseSafe" },
         "runner": { "$ref": "#/$defs/runner" },
         "stripArgv": { "$ref": "#/$defs/argv" },

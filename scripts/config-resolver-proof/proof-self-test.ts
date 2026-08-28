@@ -21,6 +21,7 @@ import {
   ProofContractError,
   hashExternalTree,
   loadProofRecipe,
+  projectObservedLinkArgv,
   proofCanonicalBytes,
   type ExternalTreeIdentity,
   type ProofTarget,
@@ -36,6 +37,17 @@ type MutationCase = {
   readonly covers: readonly string[]
   readonly label: string
   readonly outcome: MutationOutcome
+}
+type ProjectionMutationCase = {
+  readonly apply: (argv: string[], target: ProofTarget) => void
+  readonly label: string
+  readonly outcome: 'equal' | 'reject'
+  readonly requiresContractRejection?: boolean
+}
+type ProjectionTestResult = {
+  readonly equal: number
+  readonly rejected: number
+  readonly transcript: readonly string[]
 }
 type SelfTestResult = {
   readonly externalTree: {
@@ -54,6 +66,8 @@ type SelfTestResult = {
     readonly changed: number
     readonly mutationSha256: string
     readonly mutations: number
+    readonly projectedEqual: number
+    readonly projectedRejected: number
     readonly rejected: number
   }
 }
@@ -81,6 +95,16 @@ const OBSERVED_LINK_ARGV_LENGTHS: Readonly<Record<ProofTarget, number>> = {
   'linux-x64': 370,
 }
 const LINK_FILLER_PREFIX = '--proof-self-test-link-filler='
+const LINK_CACHE_KEYS = {
+  primary: '0123456789abcdef0123456789abcdef',
+  secondary: 'fedcba9876543210fedcba9876543210',
+  tertiary: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+} as const
+const DRIFTED_LINK_CACHE_KEYS = {
+  primary: '13579bdf02468ace13579bdf02468ace',
+  secondary: '2468ace013579bdf2468ace013579bdf',
+  tertiary: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+} as const
 
 const TARGET_FIXTURES: Readonly<
   Record<
@@ -150,7 +174,7 @@ const RECIPE_SCHEMA_FIELDS = [
   'target.buildArgv',
   'target.environment',
   'target.inputs',
-  'target.linkArgv',
+  'target.linkPlan',
   'target.optimizationMode',
   'target.runner',
   'target.stripArgv',
@@ -221,12 +245,14 @@ const GOLDEN_RESULT: SelfTestResult = {
     mutations: 5,
   },
   recipe: {
-    canonicalBytes: 79_466,
-    canonicalSha256: 'ccd696599e01ca4e56d94c5ea3d78e506427b7200e94628331ac690cbe937243',
+    canonicalBytes: 81_038,
+    canonicalSha256: 'b33f427519c7902c23adc3ef680b6dcd047b06804806df1753cb5957691fa3f3',
     changed: 12,
-    mutationSha256: '7c7789d6f91607ba71534dfd94ba0834f0cf4ab2ccd9980921c2620a8ae8bb8b',
-    mutations: 161,
-    rejected: 149,
+    mutationSha256: '85cb96fc7ec9b39b72139de3b3a655fbe52e87c787ad9c9be5805220af163c6f',
+    mutations: 255,
+    projectedEqual: 4,
+    projectedRejected: 76,
+    rejected: 163,
   },
 }
 
@@ -496,7 +522,10 @@ function zigAcquisition(target: ProofTarget): JsonObject {
   }
 }
 
-function runnerImage(target: ProofTarget): { readonly image: string; readonly version: string } {
+function runnerImage(target: ProofTarget): {
+  readonly image: string
+  readonly version: string
+} {
   const identity = targetIdentity(target)
   return { image: `${identity.os}-proof-image`, version: '20260828.1' }
 }
@@ -726,9 +755,12 @@ function targetEnvironment(target: ProofTarget): JsonValue[] {
   ]
 }
 
-function linkArgv(target: ProofTarget): JsonValue[] {
+function observedLinkArgv(
+  target: ProofTarget,
+  keys: Readonly<Record<keyof typeof LINK_CACHE_KEYS, string>> = LINK_CACHE_KEYS,
+): string[] {
   const fixture = TARGET_FIXTURES[target]
-  const argv: JsonValue[] = [
+  const argv: string[] = [
     `${fixture.root}/toolchain/zig`,
     'build-exe',
     '--name',
@@ -752,6 +784,11 @@ function linkArgv(target: ProofTarget): JsonValue[] {
     `-Mhelp_strings=${fixture.root}/prefix/proof-generated/help_strings.zig`,
     `-Mwuffs_c=${fixture.root}/prefix/proof-generated/wuffs_c.zig`,
     '-fincremental',
+    `-Mcache_primary=${fixture.root}/final-cache/o/${keys.primary}/primary.zig`,
+    `-Mcache_primary_alias=${fixture.root}/final-cache/o/${keys.primary}/alias.zig`,
+    `--proof-secondary=${fixture.root}/final-cache/o/${keys.secondary}/secondary.a`,
+    `${fixture.root}/final-cache/o/${keys.tertiary}/tertiary.o`,
+    `--proof-secondary-alias=${fixture.root}/final-cache/o/${keys.secondary}/alias.a`,
   )
   while (argv.length < OBSERVED_LINK_ARGV_LENGTHS[target] - 1) {
     argv.push(`${LINK_FILLER_PREFIX}${argv.length}`)
@@ -769,7 +806,7 @@ function targetRecipe(target: ProofTarget): JsonObject {
     buildArgv: buildArgv(target),
     environment: targetEnvironment(target),
     inputs: targetInputs(target),
-    linkArgv: linkArgv(target),
+    linkPlan: [...projectObservedLinkArgv(observedLinkArgv(target), target)],
     optimizationMode: 'ReleaseSafe',
     runner: {
       arch: identity.arch,
@@ -796,7 +833,7 @@ function recipeFixture(): JsonObject {
   const targets: JsonObject = {}
   for (const target of PROOF_TARGETS) targets[target] = targetRecipe(target)
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceDateEpoch: PROOF_SOURCE_DATE_EPOCH,
     targets,
     upstream: {
@@ -928,21 +965,21 @@ function mutateLinkArgument(
   expected: string,
   replacement: string,
 ): void {
-  const argv = arrayAt(recipe, ['targets', target, 'linkArgv'])
+  const argv = arrayAt(recipe, ['targets', target, 'linkPlan'])
   const index = argv.indexOf(expected)
   if (index < 0) fail('fixture link argument was not found')
   argv[index] = replacement
 }
 
 function insertBeforeListen(recipe: JsonObject, target: ProofTarget, argument: string): void {
-  const argv = arrayAt(recipe, ['targets', target, 'linkArgv'])
+  const argv = arrayAt(recipe, ['targets', target, 'linkPlan'])
   const listen = argv.lastIndexOf('--listen=-')
   if (listen < 0) fail('fixture link listen argument was not found')
   argv.splice(listen, 0, argument)
 }
 
 function replaceLinkFiller(recipe: JsonObject, target: ProofTarget, replacement: string): void {
-  const argv = arrayAt(recipe, ['targets', target, 'linkArgv'])
+  const argv = arrayAt(recipe, ['targets', target, 'linkPlan'])
   const index = argv.findIndex(
     (argument) => typeof argument === 'string' && argument.startsWith(LINK_FILLER_PREFIX),
   )
@@ -973,10 +1010,281 @@ function mutateOptionValue(
   option: string,
   replacement: string,
 ): void {
-  const argv = arrayAt(recipe, ['targets', target, 'linkArgv'])
+  const argv = arrayAt(recipe, ['targets', target, 'linkPlan'])
   const optionIndex = argv.indexOf(option)
   if (optionIndex < 0 || optionIndex + 1 >= argv.length) fail('fixture link option was not found')
   argv[optionIndex + 1] = replacement
+}
+
+function linkArgumentIndex(argv: readonly string[], marker: string): number {
+  const index = argv.findIndex((argument) => argument.includes(marker))
+  if (index < 0) fail(`fixture link argument was not found: ${marker}`)
+  return index
+}
+
+function replaceLinkText(argv: string[], expected: string, replacement: string): void {
+  let replacements = 0
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index]
+    if (!argument?.includes(expected)) continue
+    argv[index] = argument.replaceAll(expected, replacement)
+    replacements += 1
+  }
+  if (replacements === 0) fail(`fixture link text was not found: ${expected}`)
+}
+
+function mutateMarkedLinkArgument(
+  argv: string[],
+  marker: string,
+  mutate: (argument: string) => string,
+): void {
+  const index = linkArgumentIndex(argv, marker)
+  const argument = argv[index]
+  if (argument === undefined) fail('fixture marked link argument is missing')
+  argv[index] = mutate(argument)
+}
+
+function planStrings(recipe: JsonObject, target: ProofTarget): string[] {
+  const values = arrayAt(recipe, ['targets', target, 'linkPlan'])
+  if (!values.every((value) => typeof value === 'string')) {
+    fail('fixture link plan contains a non-string argument')
+  }
+  return values as string[]
+}
+
+function replacePlanText(
+  recipe: JsonObject,
+  target: ProofTarget,
+  expected: string,
+  replacement: string,
+): void {
+  replaceLinkText(planStrings(recipe, target), expected, replacement)
+}
+
+function projectionMutationCases(): readonly ProjectionMutationCase[] {
+  return [
+    {
+      apply: (argv) => {
+        replaceLinkText(argv, LINK_CACHE_KEYS.primary, DRIFTED_LINK_CACHE_KEYS.primary)
+        replaceLinkText(argv, LINK_CACHE_KEYS.secondary, DRIFTED_LINK_CACHE_KEYS.secondary)
+        replaceLinkText(argv, LINK_CACHE_KEYS.tertiary, DRIFTED_LINK_CACHE_KEYS.tertiary)
+      },
+      label: 'raw-cache-key-drift',
+      outcome: 'equal',
+    },
+    {
+      apply: (argv) => replaceLinkText(argv, LINK_CACHE_KEYS.primary, '0'.repeat(31)),
+      label: 'raw-cache-key-malformed',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) =>
+        replaceLinkText(argv, LINK_CACHE_KEYS.primary, LINK_CACHE_KEYS.primary.toUpperCase()),
+      label: 'raw-cache-key-uppercase',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => replaceLinkText(argv, LINK_CACHE_KEYS.primary, '{{zig-cache-key-0000}}'),
+      label: 'raw-cache-placeholder',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '-Mcache_primary_alias=', (argument) =>
+          argument.replace(LINK_CACHE_KEYS.primary, 'cccccccccccccccccccccccccccccccc'),
+        )
+      },
+      label: 'raw-cache-alias-split',
+      outcome: 'reject',
+    },
+    {
+      apply: (argv) => replaceLinkText(argv, LINK_CACHE_KEYS.secondary, LINK_CACHE_KEYS.primary),
+      label: 'raw-cache-alias-collapsed',
+      outcome: 'reject',
+    },
+    {
+      apply: (argv, target) => {
+        const root = TARGET_FIXTURES[target].root
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace(root, '/var/tmp/ghostty-config-resolver-proof-build-v1'),
+        )
+      },
+      label: 'raw-cache-wrong-root',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv, target) => {
+        const root = TARGET_FIXTURES[target].root
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument
+            .replace(root, '/evil')
+            .replace(LINK_CACHE_KEYS.primary, LINK_CACHE_KEYS.primary.toUpperCase()),
+        )
+      },
+      label: 'raw-cache-wrong-root-uppercase',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv, target) => {
+        const root = TARGET_FIXTURES[target].root
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace(root, '/evil').replace(LINK_CACHE_KEYS.primary, '0'.repeat(31)),
+        )
+      },
+      label: 'raw-cache-wrong-root-malformed',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv, target) => {
+        const root = TARGET_FIXTURES[target].root
+        const opposite = target.startsWith('darwin-')
+          ? TARGET_FIXTURES['linux-x64'].root
+          : TARGET_FIXTURES['darwin-x64'].root
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace(root, opposite),
+        )
+      },
+      label: 'raw-cache-opposite-root',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace('/primary.zig', '/../../evil/primary.zig'),
+        )
+      },
+      label: 'raw-cache-parent-traversal',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace('/primary.zig', '/./primary.zig'),
+        )
+      },
+      label: 'raw-cache-current-directory',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace('/primary.zig', '//primary.zig'),
+        )
+      },
+      label: 'raw-cache-empty-component',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace('/primary.zig', '/changed.zig'),
+        )
+      },
+      label: 'raw-cache-suffix',
+      outcome: 'reject',
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '-Mcache_primary=', (argument) =>
+          argument.replace('-Mcache_primary=', '-Mcache_changed='),
+        )
+      },
+      label: 'raw-cache-module',
+      outcome: 'reject',
+    },
+    {
+      apply: (argv) => {
+        mutateMarkedLinkArgument(argv, '--proof-secondary=', (argument) =>
+          argument.replace('--proof-secondary=', '--proof-changed='),
+        )
+      },
+      label: 'raw-cache-flag',
+      outcome: 'reject',
+    },
+    {
+      apply: (argv) => {
+        const primary = linkArgumentIndex(argv, '-Mcache_primary=')
+        const secondary = linkArgumentIndex(argv, '--proof-secondary=')
+        ;[argv[primary], argv[secondary]] = [argv[secondary] ?? '', argv[primary] ?? '']
+      },
+      label: 'raw-cache-order',
+      outcome: 'reject',
+    },
+    {
+      apply: (argv) => argv.splice(linkArgumentIndex(argv, '-Mcache_primary_alias='), 1),
+      label: 'raw-cache-count',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv) => {
+        const index = argv.findIndex((argument) => argument.startsWith(LINK_FILLER_PREFIX))
+        if (index < 0) fail('fixture link filler was not found')
+        argv[index] = `${LINK_FILLER_PREFIX}{{zig-cache-key-0000}}`
+      },
+      label: 'raw-cache-placeholder-elsewhere',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+    {
+      apply: (argv, target) => {
+        const root = TARGET_FIXTURES[target].root
+        mutateMarkedLinkArgument(
+          argv,
+          '-Mcache_primary=',
+          (argument) => `${argument}=${root}/final-cache/o/${LINK_CACHE_KEYS.secondary}/second.zig`,
+        )
+      },
+      label: 'raw-cache-multiple-per-argument',
+      outcome: 'reject',
+      requiresContractRejection: true,
+    },
+  ]
+}
+
+function testProjectionMutations(): ProjectionTestResult {
+  const transcript: string[] = []
+  let equalCount = 0
+  let rejectedCount = 0
+  for (const target of PROOF_TARGETS) {
+    const expected = projectObservedLinkArgv(observedLinkArgv(target), target)
+    for (const entry of projectionMutationCases()) {
+      const candidate = observedLinkArgv(target)
+      entry.apply(candidate, target)
+      let projected: readonly string[] | null = null
+      let rejected = false
+      try {
+        projected = projectObservedLinkArgv(candidate, target)
+      } catch (error) {
+        if (!(error instanceof ProofContractError)) throw error
+        rejected = true
+      }
+      if (entry.requiresContractRejection && !rejected) {
+        fail(`${target} ${entry.label} did not reject at the contract boundary`)
+      }
+      const equal = !rejected && stableJson(projected) === stableJson(expected)
+      if (entry.outcome === 'equal') {
+        if (!equal) fail(`${target} ${entry.label} changed or rejected the plan`)
+        transcript.push(`${target}:${entry.label}:equal`)
+        equalCount += 1
+        continue
+      }
+      if (equal) fail(`${target} ${entry.label} did not reject the observed plan`)
+      transcript.push(`${target}:${entry.label}:reject`)
+      rejectedCount += 1
+    }
+  }
+  return { equal: equalCount, rejected: rejectedCount, transcript }
 }
 
 function setMutation(
@@ -986,7 +1294,12 @@ function setMutation(
   value: JsonValue,
   outcome: MutationOutcome,
 ): MutationCase {
-  return { apply: (recipe) => setValue(recipe, path, value), covers: [covers], label, outcome }
+  return {
+    apply: (recipe) => setValue(recipe, path, value),
+    covers: [covers],
+    label,
+    outcome,
+  }
 }
 
 function deleteMutation(
@@ -995,7 +1308,12 @@ function deleteMutation(
   path: JsonPath,
   outcome: MutationOutcome,
 ): MutationCase {
-  return { apply: (recipe) => deleteValue(recipe, path), covers: [covers], label, outcome }
+  return {
+    apply: (recipe) => deleteValue(recipe, path),
+    covers: [covers],
+    label,
+    outcome,
+  }
 }
 
 function swapMutation(
@@ -1025,7 +1343,7 @@ function customMutation(
 
 function recipeMutations(): readonly MutationCase[] {
   const cases: MutationCase[] = [
-    setMutation('schema-version', 'recipe.schemaVersion', ['schemaVersion'], 2, 'reject'),
+    setMutation('schema-version-v1', 'recipe.schemaVersion', ['schemaVersion'], 1, 'reject'),
     setMutation(
       'source-date-epoch',
       'recipe.sourceDateEpoch',
@@ -1089,9 +1407,9 @@ function recipeMutations(): readonly MutationCase[] {
     ),
     swapMutation('input-order', 'target.inputs', [...LINUX_TARGET, 'inputs'], 0, 1, 'reject'),
     swapMutation(
-      'link-argv-order',
-      'target.linkArgv',
-      [...LINUX_TARGET, 'linkArgv'],
+      'link-plan-order',
+      'target.linkPlan',
+      [...LINUX_TARGET, 'linkPlan'],
       0,
       1,
       'reject',
@@ -1380,6 +1698,7 @@ function semanticContractMutations(): readonly MutationCase[] {
     ...rootBoundaryMutations(),
     ...commandMutations(),
     ...linkContractMutations(),
+    ...linkPlanTokenMutations(),
     ...generatedInputMutations(),
     ...toolContractMutations(),
   ]
@@ -1463,7 +1782,10 @@ function commandMutations(): readonly MutationCase[] {
       arrayAt(recipe, [...LINUX_TARGET, 'environment']).splice(0, 1)
     }),
     customMutation('environment-extra-entry', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'environment']).push({ name: 'TZ', value: 'UTC' })
+      arrayAt(recipe, [...LINUX_TARGET, 'environment']).push({
+        name: 'TZ',
+        value: 'UTC',
+      })
     }),
     customMutation('environment-final-cache-boundary', [], 'reject', (recipe) => {
       objectAt(recipe, [...LINUX_TARGET, 'environment', 7]).value = `${linuxRoot}/cache`
@@ -1490,10 +1812,10 @@ function linkContractMutations(): readonly MutationCase[] {
   const darwinRoot = TARGET_FIXTURES['darwin-arm64'].root
   return [
     customMutation('link-fixed-zig-child', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'linkArgv'])[0] = '/usr/bin/zig'
+      arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])[0] = '/usr/bin/zig'
     }),
     customMutation('link-fixed-build-exe-child', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'linkArgv'])[1] = 'build-obj'
+      arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])[1] = 'build-obj'
     }),
     customMutation('link-target-value', [], 'reject', (recipe) => {
       mutateOptionValue(recipe, target, '-target', 'aarch64-linux-musl')
@@ -1502,20 +1824,20 @@ function linkContractMutations(): readonly MutationCase[] {
       mutateLinkArgument(recipe, target, '-target', `-target=${triple}`)
     }),
     customMutation('link-target-count', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkArgv'])
+      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
       const option = argv.indexOf('-target')
       if (option < 0 || option + 1 >= argv.length) fail('fixture target pair was not found')
       argv[option] = `${LINK_FILLER_PREFIX}removed-target-option`
       argv[option + 1] = `${LINK_FILLER_PREFIX}removed-target-value`
     }),
-    customMutation('link-argv-length', [], 'reject', (recipe) => {
+    customMutation('link-plan-length', [], 'reject', (recipe) => {
       insertBeforeListen(recipe, target, `${LINK_FILLER_PREFIX}extra`)
     }),
     customMutation('link-name', [], 'reject', (recipe) => {
       mutateOptionValue(recipe, target, '--name', 'other-proof')
     }),
     customMutation('link-name-form', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkArgv'])
+      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
       const option = argv.indexOf('--name')
       if (option < 0 || option + 1 >= argv.length) fail('fixture name pair was not found')
       argv[option] = '--name=ghostty-config-resolver-proof'
@@ -1528,7 +1850,7 @@ function linkContractMutations(): readonly MutationCase[] {
       mutateOptionValue(recipe, target, '--cache-dir', `${root}/cache`)
     }),
     customMutation('link-option-value-adjacency', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkArgv'])
+      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
       const option = argv.indexOf('--cache-dir')
       if (option < 0 || option + 2 >= argv.length) fail('fixture cache option was not found')
       ;[argv[option + 1], argv[option + 2]] = [argv[option + 2] ?? null, argv[option + 1] ?? null]
@@ -1583,10 +1905,89 @@ function linkContractMutations(): readonly MutationCase[] {
       replaceLinkFiller(recipe, target, '--listen=-')
     }),
     customMutation('link-listen-not-terminal', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkArgv'])
+      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
       const listen = argv.length - 1
       const previous = listen - 1
       ;[argv[previous], argv[listen]] = [argv[listen] ?? null, argv[previous] ?? null]
+    }),
+  ]
+}
+
+function linkPlanTokenMutations(): readonly MutationCase[] {
+  const target: ProofTarget = 'linux-x64'
+  const root = TARGET_FIXTURES[target].root
+  const oppositeRoot = TARGET_FIXTURES['darwin-x64'].root
+  return [
+    customMutation('link-plan-raw-cache-key', [], 'reject', (recipe) => {
+      replacePlanText(recipe, target, '{{zig-cache-key-0000}}', LINK_CACHE_KEYS.primary)
+    }),
+    customMutation('link-plan-malformed-cache-key', [], 'reject', (recipe) => {
+      replacePlanText(recipe, target, '{{zig-cache-key-0000}}', '0'.repeat(31))
+    }),
+    customMutation('link-plan-uppercase-cache-key', [], 'reject', (recipe) => {
+      replacePlanText(recipe, target, '{{zig-cache-key-0000}}', 'A'.repeat(32))
+    }),
+    customMutation('link-plan-token-gap', [], 'reject', (recipe) => {
+      replacePlanText(recipe, target, '{{zig-cache-key-0001}}', '{{zig-cache-key-0003}}')
+    }),
+    customMutation('link-plan-token-reorder', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      replaceLinkText(plan, '{{zig-cache-key-0000}}', '{{proof-token-swap}}')
+      replaceLinkText(plan, '{{zig-cache-key-0001}}', '{{zig-cache-key-0000}}')
+      replaceLinkText(plan, '{{proof-token-swap}}', '{{zig-cache-key-0001}}')
+    }),
+    customMutation('link-plan-wrong-root', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '-Mcache_primary=', (argument) =>
+        argument.replace(root, '/var/tmp/ghostty-config-resolver-proof-build-v1'),
+      )
+    }),
+    customMutation('link-plan-wrong-root-uppercase', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '{{zig-cache-key-0002}}', (argument) =>
+        argument.replace(root, '/evil').replace('{{zig-cache-key-0002}}', 'A'.repeat(32)),
+      )
+    }),
+    customMutation('link-plan-wrong-root-malformed', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '{{zig-cache-key-0002}}', (argument) =>
+        argument.replace(root, '/evil').replace('{{zig-cache-key-0002}}', '0'.repeat(31)),
+      )
+    }),
+    customMutation('link-plan-opposite-root', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '-Mcache_primary=', (argument) =>
+        argument.replace(root, oppositeRoot),
+      )
+    }),
+    customMutation('link-plan-parent-traversal', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '-Mcache_primary=', (argument) =>
+        argument.replace('/primary.zig', '/../../evil/primary.zig'),
+      )
+    }),
+    customMutation('link-plan-current-directory', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '-Mcache_primary=', (argument) =>
+        argument.replace('/primary.zig', '/./primary.zig'),
+      )
+    }),
+    customMutation('link-plan-empty-component', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(plan, '-Mcache_primary=', (argument) =>
+        argument.replace('/primary.zig', '//primary.zig'),
+      )
+    }),
+    customMutation('link-plan-placeholder-elsewhere', [], 'reject', (recipe) => {
+      replaceLinkFiller(recipe, target, `${LINK_FILLER_PREFIX}{{zig-cache-key-0000}}`)
+    }),
+    customMutation('link-plan-multiple-tokens-per-argument', [], 'reject', (recipe) => {
+      const plan = planStrings(recipe, target)
+      mutateMarkedLinkArgument(
+        plan,
+        '-Mcache_primary=',
+        (argument) => `${argument}/${root}/final-cache/o/{{zig-cache-key-0001}}/second.zig`,
+      )
     }),
   ]
 }
@@ -1824,7 +2225,8 @@ function testRecipe(root: string): SelfTestResult['recipe'] {
 
   const cases = recipeMutations()
   assertMutationCoverage(cases)
-  const transcript: string[] = []
+  const projection = testProjectionMutations()
+  const transcript = [...projection.transcript]
   let changed = 0
   let rejected = 0
   for (const entry of cases) {
@@ -1847,7 +2249,9 @@ function testRecipe(root: string): SelfTestResult['recipe'] {
     canonicalSha256,
     changed,
     mutationSha256: sha256(`${transcript.join('\n')}\n`),
-    mutations: cases.length,
+    mutations: cases.length + projection.transcript.length,
+    projectedEqual: projection.equal,
+    projectedRejected: projection.rejected,
     rejected,
   }
 }

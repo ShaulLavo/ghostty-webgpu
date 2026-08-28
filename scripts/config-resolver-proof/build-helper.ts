@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import {
   hashExternalTree,
   loadProofRecipe,
+  projectObservedLinkArgv,
   type ProofAcquisition,
   type ProofTargetRecipe,
   type ProofToolRecord,
@@ -1500,6 +1501,7 @@ function writeEvidence(
   const resources = join(bundle, 'resources')
   const resource = resourceIdentity(resources)
   const targetRecipe = buildTargetRecipe(
+    args.target,
     boundary.runner,
     target,
     buildResult,
@@ -1542,6 +1544,7 @@ function writeEvidence(
 }
 
 function buildTargetRecipe(
+  proofTarget: Target,
   runner: ReturnType<typeof runnerRecord>,
   target: (typeof TARGETS)[Target],
   buildResult: BuildResult,
@@ -1558,7 +1561,7 @@ function buildTargetRecipe(
     targetTriple: target.zigTarget,
     optimizationMode: 'ReleaseSafe',
     buildArgv: buildResult.buildArgv,
-    linkArgv: buildResult.linkArgv,
+    linkPlan: projectObservedLinkArgv(buildResult.linkArgv, proofTarget),
     stripArgv: buildResult.stripArgv,
     environment: buildResult.buildEnvironment,
     tools: tools as ProofTargetRecipe['tools'],
@@ -1785,7 +1788,13 @@ function verifyExpectedBuildInvocation(
 
 function verifyExpectedObservedLinkArgv(args: Arguments, actual: readonly string[]): void {
   if (args.mode === 'inventory') return
-  if (canonicalJson(actual) !== canonicalJson(expectedTarget(args).linkArgv)) {
+  let actualPlan: readonly string[]
+  try {
+    actualPlan = projectObservedLinkArgv(actual, args.target)
+  } catch {
+    throw new ProofFailure('observed link argv does not match the proof recipe')
+  }
+  if (canonicalJson(actualPlan) !== canonicalJson(expectedTarget(args).linkPlan)) {
     throw new ProofFailure('observed link argv does not match the proof recipe')
   }
 }

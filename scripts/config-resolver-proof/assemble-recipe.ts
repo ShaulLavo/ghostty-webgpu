@@ -16,6 +16,7 @@ import {
   PROOF_UPSTREAM_REVISION,
   PROOF_UPSTREAM_TREE_SHA256,
   PROOF_ZIG_VERSION,
+  projectObservedLinkArgv,
   proofCanonicalBytes,
   type ProofRecipe,
   type ProofTarget,
@@ -53,7 +54,7 @@ function main(): void {
     PROOF_TARGETS.map((target, index) => [target, assembled[index]?.recipe]),
   ) as Readonly<Record<ProofTarget, ProofTargetRecipe>>
   const recipe: ProofRecipe = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceDateEpoch: PROOF_SOURCE_DATE_EPOCH,
     upstream: {
       repository: PROOF_UPSTREAM_REPOSITORY,
@@ -120,7 +121,10 @@ function readTarget(path: string, target: ProofTarget): AssembledTarget {
       targetTriple: stringValue(inventory.targetTriple, `${target} triple`),
       optimizationMode: inventory.optimizationMode as 'ReleaseSafe',
       buildArgv: stringArray(inventory.buildArgv, `${target} build argv`),
-      linkArgv: stringArray(inventory.linkArgv, `${target} link argv`),
+      linkPlan: projectObservedLinkArgv(
+        stringArray(inventory.linkArgv, `${target} link argv`),
+        target,
+      ),
       stripArgv: stringArray(inventory.stripArgv, `${target} strip argv`),
       environment: inventory.environment as ProofTargetRecipe['environment'],
       tools: inventory.tools as ProofTargetRecipe['tools'],

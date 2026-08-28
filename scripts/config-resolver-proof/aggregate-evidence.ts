@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import {
   PROOF_TARGETS,
   loadProofRecipe,
+  projectObservedLinkArgv,
   toolchainHashes,
   type LoadedProofRecipe,
   type ProofRunner,
@@ -558,7 +559,7 @@ function assertBuildRecipeTarget(
     targetTriple: build.targetTriple,
     optimizationMode: build.optimizationMode,
     buildArgv: build.buildArgv,
-    linkArgv: build.linkArgv,
+    linkPlan: observedLinkPlan(build.linkArgv, target),
     stripArgv: build.stripArgv,
     environment: build.environment,
     tools: build.tools,
@@ -566,6 +567,15 @@ function assertBuildRecipeTarget(
   }
   if (!isDeepStrictEqual(observed, expected)) {
     throw new AggregateFailure(`${target} build graph does not match the recipe`)
+  }
+}
+
+function observedLinkPlan(value: unknown, target: ProofTarget): readonly string[] {
+  const linkArgv = stringArray(value, `${target} build linkArgv`, 512, 4_096)
+  try {
+    return projectObservedLinkArgv(linkArgv, target)
+  } catch {
+    throw new AggregateFailure(`${target} observed link argv does not satisfy the recipe contract`)
   }
 }
 
