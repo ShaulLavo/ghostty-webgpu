@@ -5,7 +5,6 @@ import {
   copyFileSync,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   realpathSync,
   rmSync,
@@ -14,7 +13,6 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const TARGETS = {
@@ -44,6 +42,7 @@ const THEMES_BYTES = 78_218
 const THEMES_SHA256 = 'ea9878471420ee5b12e7f2ff480099c954ea50e573a1bdf83f43e105c9be63f0'
 const UPSTREAM_REVISION = 'c8554f28e0efe2f5595f32020371c34b25ec628f'
 const SOURCE_DATE_EPOCH = '1787590337'
+const BUILD_ROOT = '/tmp/ghostty-config-resolver-proof-build-v1'
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 
 type Target = keyof typeof TARGETS
@@ -66,17 +65,18 @@ function main(): void {
   const target = TARGETS[args.target]
   assertInputs(args, target)
 
-  const temporary = mkdtempSync(join(tmpdir(), 'plan-065-build-'))
+  if (lstatExists(BUILD_ROOT)) throw new ProofFailure('fixed build root already exists')
+  mkdirSync(BUILD_ROOT)
   try {
-    const overlay = join(temporary, 'overlay')
-    const prefix = join(temporary, 'prefix')
+    const overlay = join(BUILD_ROOT, 'overlay')
+    const prefix = join(BUILD_ROOT, 'prefix')
     createOverlay(args.upstream, overlay)
     build(args, target.zigTarget, overlay, prefix)
     assembleBundle(args, prefix)
     assertUpstreamClean(args.upstream)
     writeEvidence(args)
   } finally {
-    rmSync(temporary, { recursive: true, force: true })
+    rmSync(BUILD_ROOT, { recursive: true, force: true })
   }
 
   process.stdout.write(`${JSON.stringify({ target: args.target, result: 'built' })}\n`)
