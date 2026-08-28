@@ -633,8 +633,31 @@ function recordDependencyDeclaration(
   const hash = match[2]
   if (!url || !hash) throw new ProofFailure('invalid dependency declaration')
   const previous = declarations.get(hash)
-  if (previous && previous !== url) throw new ProofFailure('dependency hash has multiple URLs')
-  declarations.set(hash, url)
+  if (!previous || previous === url) {
+    declarations.set(hash, url)
+    return
+  }
+  const preferred = preferredDependencyUrl(previous, url)
+  if (!preferred) throw new ProofFailure('dependency hash has multiple URLs')
+  declarations.set(hash, preferred)
+}
+
+function preferredDependencyUrl(first: string, second: string): string | null {
+  const mirror = [first, second].find((url) => mirrorRevision(url))
+  const git = [first, second].find((url) => gitRevision(url))
+  if (!mirror || !git) return null
+  if (mirrorRevision(mirror) !== gitRevision(git)) return null
+  return mirror
+}
+
+function mirrorRevision(url: string): string | null {
+  if (!url.startsWith('https://deps.files.ghostty.org/')) return null
+  return url.match(/([0-9a-f]{40})\.(?:tar\.gz|tgz)$/)?.[1] ?? null
+}
+
+function gitRevision(url: string): string | null {
+  if (!url.startsWith('git+https://')) return null
+  return url.match(/#([0-9a-f]{40})$/)?.[1] ?? null
 }
 
 function collectNamedFiles(root: string, name: string, paths: string[]): void {
