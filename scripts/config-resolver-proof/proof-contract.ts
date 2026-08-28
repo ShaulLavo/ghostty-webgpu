@@ -33,11 +33,99 @@ const ENVIRONMENT_NAME_PATTERN = /^[A-Z_][A-Z0-9_]{0,127}$/
 const RECORD_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/
 const SOURCE_REFERENCE_PATTERN = /^(?:input|tool):[a-z0-9][a-z0-9._-]{0,127}$/
 const PRINTABLE_ASCII_PATTERN = /^[\x20-\x7e]+$/
+const MACOS_SDK_PATH_PATTERN =
+  /^\/Applications\/[^/]+\/Contents\/Developer\/Platforms\/MacOSX\.platform\/Developer\/SDKs\/MacOSX[^/]*\.sdk$/
 const MAX_RECIPE_BYTES = 2 * 1024 * 1024
 const MAX_ARRAY_ITEMS = 4096
 const MAX_ARGUMENT_BYTES = 4096
 const MAX_STRING_BYTES = 256
 const TREE_HEADER = Buffer.from('ghostty-external-tree-v1\0')
+const PROOF_UPSTREAM_ACQUISITION = {
+  kind: 'git',
+  repository: PROOF_UPSTREAM_REPOSITORY,
+  revision: PROOF_UPSTREAM_REVISION,
+  treeAlgorithm: 'ghostty-upstream-tree-v1',
+  treeSha256: PROOF_UPSTREAM_TREE_SHA256,
+} as const
+const PROOF_GENERATED_MODULES = {
+  'proof-generated-hb-c': 'hb_c',
+  'proof-generated-help-strings': 'help_strings',
+  'proof-generated-wuffs-c': 'wuffs_c',
+} as const
+const PROOF_TARGET_CONTRACT = {
+  'darwin-arm64': {
+    root: '/private/tmp/ghostty-config-resolver-proof-build-v1',
+    targetTriple: 'aarch64-macos.13.0',
+    linkArgvLength: 391,
+    linkTargetCount: 18,
+    generatedIds: ['proof-generated-help-strings', 'proof-generated-wuffs-c'],
+    zigArchive: {
+      kind: 'official-download',
+      url: 'https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz',
+      archiveBytes: 52_238_004,
+      archiveSha256: 'b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489',
+    },
+  },
+  'darwin-x64': {
+    root: '/private/tmp/ghostty-config-resolver-proof-build-v1',
+    targetTriple: 'x86_64-macos.13.0',
+    linkArgvLength: 391,
+    linkTargetCount: 18,
+    generatedIds: ['proof-generated-help-strings', 'proof-generated-wuffs-c'],
+    zigArchive: {
+      kind: 'official-download',
+      url: 'https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz',
+      archiveBytes: 57_396_836,
+      archiveSha256: '0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7',
+    },
+  },
+  'linux-arm64': {
+    root: '/tmp/ghostty-config-resolver-proof-build-v1',
+    targetTriple: 'aarch64-linux-musl',
+    linkArgvLength: 370,
+    linkTargetCount: 17,
+    generatedIds: [
+      'proof-generated-hb-c',
+      'proof-generated-help-strings',
+      'proof-generated-wuffs-c',
+    ],
+    zigArchive: {
+      kind: 'official-download',
+      url: 'https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz',
+      archiveBytes: 51_211_944,
+      archiveSha256: 'ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17',
+    },
+  },
+  'linux-x64': {
+    root: '/tmp/ghostty-config-resolver-proof-build-v1',
+    targetTriple: 'x86_64-linux-musl',
+    linkArgvLength: 370,
+    linkTargetCount: 17,
+    generatedIds: [
+      'proof-generated-hb-c',
+      'proof-generated-help-strings',
+      'proof-generated-wuffs-c',
+    ],
+    zigArchive: {
+      kind: 'official-download',
+      url: 'https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz',
+      archiveBytes: 55_478_392,
+      archiveSha256: '70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00',
+    },
+  },
+} as const satisfies Readonly<
+  Record<
+    ProofTarget,
+    {
+      readonly root: string
+      readonly targetTriple: string
+      readonly linkArgvLength: number
+      readonly linkTargetCount: number
+      readonly generatedIds: readonly (keyof typeof PROOF_GENERATED_MODULES)[]
+      readonly zigArchive: OfficialDownloadAcquisition
+    }
+  >
+>
 
 export type ProofTarget = (typeof PROOF_TARGETS)[number]
 export type ProofToolRole = (typeof PROOF_TOOL_ROLES)[number]
@@ -238,6 +326,7 @@ function validateTarget(value: unknown, target: ProofTarget): void {
   const tools = validateTools(record.tools, target, runner)
   const inputs = validateInputs(record.inputs, target, runner)
   validateGenerationReferences(tools, inputs, target)
+  validateTargetSemantics(record as ProofTargetRecipe, target, tools, inputs)
 }
 
 function validateRunner(value: unknown, target: ProofTarget): ProofRunner {
@@ -253,13 +342,9 @@ function validateRunner(value: unknown, target: ProofTarget): ProofRunner {
 
 function validateTargetTriple(value: unknown, target: ProofTarget): void {
   assertPrintableAscii(value, 1, 64, `${target} targetTriple`)
-  const patterns: Readonly<Record<ProofTarget, RegExp>> = {
-    'darwin-arm64': /^aarch64-macos\.[0-9]{1,2}\.[0-9]{1,2}$/,
-    'darwin-x64': /^x86_64-macos\.[0-9]{1,2}\.[0-9]{1,2}$/,
-    'linux-arm64': /^aarch64-linux-musl$/,
-    'linux-x64': /^x86_64-linux-musl$/,
+  if (value !== PROOF_TARGET_CONTRACT[target].targetTriple) {
+    fail(`${target} targetTriple does not match`)
   }
-  if (!patterns[target].test(value)) fail(`${target} targetTriple does not match`)
 }
 
 function validateArgv(value: unknown, label: string): void {
@@ -504,6 +589,444 @@ function targetIdentity(target: ProofTarget): Pick<ProofRunner, 'arch' | 'os'> {
   const os = target.startsWith('darwin-') ? 'darwin' : 'linux'
   const arch = target.endsWith('arm64') ? 'arm64' : 'x64'
   return { os, arch }
+}
+
+function validateTargetSemantics(
+  recipe: ProofTargetRecipe,
+  target: ProofTarget,
+  tools: readonly ProofToolRecord[],
+  inputs: readonly ProofInputRecord[],
+): void {
+  validateOppositeRootBoundary(recipe, target, tools, inputs)
+  validateTargetBuildArgv(recipe.buildArgv, target)
+  validateTargetLinkArgv(recipe.linkArgv, target)
+  validateTargetStripArgv(recipe.stripArgv, target)
+  validateTargetEnvironment(recipe.environment, target)
+  validateTargetTools(tools, target)
+  validateTargetInputs(inputs, target)
+}
+
+function validateOppositeRootBoundary(
+  recipe: ProofTargetRecipe,
+  target: ProofTarget,
+  tools: readonly ProofToolRecord[],
+  inputs: readonly ProofInputRecord[],
+): void {
+  const oppositeTarget = target.startsWith('darwin-') ? 'linux-x64' : 'darwin-x64'
+  const oppositeRoot = PROOF_TARGET_CONTRACT[oppositeTarget].root
+  assertNoRootedValues(recipe.buildArgv, oppositeRoot, `${target} buildArgv`)
+  assertNoRootedValues(recipe.linkArgv, oppositeRoot, `${target} linkArgv`)
+  assertNoRootedValues(recipe.stripArgv, oppositeRoot, `${target} stripArgv`)
+  assertNoRootedValues(
+    recipe.environment.map((entry) => entry.value),
+    oppositeRoot,
+    `${target} environment`,
+  )
+  for (const tool of tools) validateRecordRootBoundary(tool, oppositeRoot, target)
+  for (const input of inputs) validateRecordRootBoundary(input, oppositeRoot, target)
+}
+
+function validateRecordRootBoundary(
+  record: ProofToolRecord | ProofInputRecord,
+  oppositeRoot: string,
+  target: ProofTarget,
+): void {
+  if (record.generation) {
+    assertNoRootedValues(record.generation.argv, oppositeRoot, `${target} generation argv`)
+  }
+  if (record.acquisition.kind !== 'runner-component') return
+  assertNoRootedValues([record.acquisition.path], oppositeRoot, `${target} component path`)
+}
+
+function assertNoRootedValues(values: readonly string[], root: string, label: string): void {
+  for (const value of values) {
+    if (hasRootedPathValue(value, root)) fail(`${label} uses the opposite target proof root`)
+  }
+}
+
+function hasRootedPathValue(value: string, root: string): boolean {
+  if (isAtOrBelowRoot(value, root)) return true
+  const assignment = value.indexOf('=')
+  if (assignment >= 0 && isAtOrBelowRoot(value.slice(assignment + 1), root)) return true
+  for (const prefix of ['-F', '-I', '-L']) {
+    if (!value.startsWith(prefix)) continue
+    if (isAtOrBelowRoot(value.slice(prefix.length), root)) return true
+  }
+  return false
+}
+
+function isAtOrBelowRoot(value: string, root: string): boolean {
+  return value === root || value.startsWith(`${root}/`)
+}
+
+function validateTargetBuildArgv(argv: readonly string[], target: ProofTarget): void {
+  const contract = PROOF_TARGET_CONTRACT[target]
+  const expected = [
+    `${contract.root}/toolchain/zig`,
+    'build',
+    '-j1',
+    '--seed',
+    '0',
+    '-fincremental',
+    '--prefix',
+    `${contract.root}/prefix`,
+    '--cache-dir',
+    `${contract.root}/final-cache`,
+    '--global-cache-dir',
+    `${contract.root}/global-cache`,
+    '-Doptimize=ReleaseSafe',
+    `-Dtarget=${contract.targetTriple}`,
+    '-Dproof-preverified-generated=true',
+    '--verbose',
+  ]
+  assertExactStringArray(argv, expected, `${target} buildArgv`)
+}
+
+function validateTargetLinkArgv(argv: readonly string[], target: ProofTarget): void {
+  const contract = PROOF_TARGET_CONTRACT[target]
+  const zig = `${contract.root}/toolchain/zig`
+  if (argv.length !== contract.linkArgvLength) {
+    fail(`${target} linkArgv length does not match`)
+  }
+  if (argv[0] !== zig || argv[1] !== 'build-exe') {
+    fail(`${target} linkArgv must be the fixed Zig build-exe child`)
+  }
+  if (argv.some((argument) => argument.startsWith('@'))) {
+    fail(`${target} linkArgv cannot contain response-file arguments`)
+  }
+  if (argv.some((argument) => argument.startsWith('--verbose-link'))) {
+    fail(`${target} linkArgv cannot be a verbose-link diagnostic`)
+  }
+  assertUniqueOptionValue(argv, '--name', 'ghostty-config-resolver-proof', `${target} linkArgv`)
+  assertUniqueOptionValue(
+    argv,
+    '--zig-lib-dir',
+    `${contract.root}/toolchain/lib/`,
+    `${target} linkArgv`,
+  )
+  assertUniqueOptionValue(argv, '--cache-dir', `${contract.root}/final-cache`, `${target} linkArgv`)
+  assertUniqueOptionValue(
+    argv,
+    '--global-cache-dir',
+    `${contract.root}/global-cache`,
+    `${target} linkArgv`,
+  )
+  assertTargetOptionValues(
+    argv,
+    contract.targetTriple,
+    contract.linkTargetCount,
+    `${target} linkArgv`,
+  )
+  assertModuleBinding(argv, 'root', `${contract.root}/overlay/main.zig`, `${target} linkArgv`)
+  assertGeneratedModuleBindings(argv, target)
+  assertExactArgumentCount(argv, '-fincremental', 1, `${target} linkArgv`)
+  assertTerminalListenArgument(argv, target)
+}
+
+function assertUniqueOptionValue(
+  argv: readonly string[],
+  option: string,
+  expected: string,
+  label: string,
+): void {
+  if (argv.some((argument) => argument.startsWith(`${option}=`))) {
+    fail(`${label} ${option} form does not match`)
+  }
+  const values = optionValues(argv, option, label)
+  if (values.length !== 1 || values[0] !== expected) fail(`${label} ${option} does not match`)
+}
+
+function optionValues(argv: readonly string[], option: string, label: string): readonly string[] {
+  const values: string[] = []
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] !== option) continue
+    const value = argv[index + 1]
+    if (value === undefined) fail(`${label} ${option} is missing its value`)
+    values.push(value)
+  }
+  return values
+}
+
+function assertTargetOptionValues(
+  argv: readonly string[],
+  expected: string,
+  expectedCount: number,
+  label: string,
+): void {
+  if (argv.some((argument) => argument.startsWith('-target='))) {
+    fail(`${label} target option form does not match`)
+  }
+  const values = optionValues(argv, '-target', label)
+  if (values.length !== expectedCount || values.some((value) => value !== expected)) {
+    fail(`${label} target values do not match`)
+  }
+}
+
+function assertModuleBinding(
+  argv: readonly string[],
+  name: string,
+  path: string,
+  label: string,
+): void {
+  const prefix = `-M${name}=`
+  const bindings = argv.filter((argument) => argument.startsWith(prefix))
+  if (bindings.length !== 1 || bindings[0] !== `${prefix}${path}`) {
+    fail(`${label} ${name} module binding does not match`)
+  }
+}
+
+function assertGeneratedModuleBindings(argv: readonly string[], target: ProofTarget): void {
+  const contract = PROOF_TARGET_CONTRACT[target]
+  const active = new Set<string>(contract.generatedIds)
+  for (const [id, name] of Object.entries(PROOF_GENERATED_MODULES)) {
+    if (!active.has(id)) {
+      assertMissingModuleBinding(argv, name, `${target} linkArgv`)
+      continue
+    }
+    const path = `${contract.root}/prefix/proof-generated/${name}.zig`
+    assertModuleBinding(argv, name, path, `${target} linkArgv`)
+  }
+}
+
+function assertMissingModuleBinding(argv: readonly string[], name: string, label: string): void {
+  if (argv.some((argument) => argument.startsWith(`-M${name}=`))) {
+    fail(`${label} has an inactive ${name} module binding`)
+  }
+}
+
+function assertExactArgumentCount(
+  argv: readonly string[],
+  argument: string,
+  expected: number,
+  label: string,
+): void {
+  const count = argv.filter((candidate) => candidate === argument).length
+  if (count !== expected) fail(`${label} ${argument} count does not match`)
+}
+
+function assertTerminalListenArgument(argv: readonly string[], target: ProofTarget): void {
+  const listen = argv.filter((argument) => argument.startsWith('--listen'))
+  if (listen.length !== 1 || listen[0] !== '--listen=-' || argv.at(-1) !== '--listen=-') {
+    fail(`${target} linkArgv must end in the unique build-runner IPC argument`)
+  }
+}
+
+function validateTargetStripArgv(argv: readonly string[], target: ProofTarget): void {
+  const contract = PROOF_TARGET_CONTRACT[target]
+  const option = target.startsWith('darwin-') ? '-x' : '--strip-all'
+  const expected = [
+    '/usr/bin/strip',
+    option,
+    `${contract.root}/bundle/bin/ghostty-config-resolver-proof`,
+  ]
+  assertExactStringArray(argv, expected, `${target} stripArgv`)
+}
+
+function validateTargetEnvironment(
+  environment: ProofTargetRecipe['environment'],
+  target: ProofTarget,
+): void {
+  const root = PROOF_TARGET_CONTRACT[target].root
+  const expected = [
+    { name: 'HOME', value: `${root}/cache/home` },
+    { name: 'LANG', value: 'C.UTF-8' },
+    { name: 'LC_ALL', value: 'C.UTF-8' },
+    { name: 'PATH', value: '/usr/bin:/bin:/usr/sbin:/sbin' },
+    { name: 'SOURCE_DATE_EPOCH', value: String(PROOF_SOURCE_DATE_EPOCH) },
+    { name: 'TMPDIR', value: `${root}/cache/tmp` },
+    { name: 'UMASK', value: '0022' },
+    { name: 'XDG_CACHE_HOME', value: `${root}/global-cache` },
+    { name: 'ZIG_EXE', value: `${root}/toolchain/zig` },
+  ]
+  assertExactJson(environment, expected, `${target} environment`)
+}
+
+function validateTargetTools(tools: readonly ProofToolRecord[], target: ProofTarget): void {
+  const zig = requiredTool(tools, 'zig', target)
+  const linker = requiredTool(tools, 'linker', target)
+  const strip = requiredTool(tools, 'strip', target)
+  const sdkOrSysroot = requiredTool(tools, 'sdk-or-sysroot', target)
+  for (const tool of tools) {
+    if (tool.generation !== undefined) fail(`${target} tools cannot be generated records`)
+  }
+  validateZigTool(zig, target)
+  validateLinkerTool(linker, zig, target)
+  validateStripTool(strip, target)
+  validateSdkOrSysrootTool(sdkOrSysroot, target)
+}
+
+function requiredTool(
+  tools: readonly ProofToolRecord[],
+  role: ProofToolRole,
+  target: ProofTarget,
+): ProofToolRecord {
+  const matches = tools.filter((tool) => tool.role === role)
+  if (matches.length !== 1) fail(`${target} ${role} tool is not unique`)
+  return matches[0]!
+}
+
+function validateZigTool(tool: ProofToolRecord, target: ProofTarget): void {
+  if (tool.name !== 'zig' || tool.version !== PROOF_ZIG_VERSION) {
+    fail(`${target} Zig tool identity does not match`)
+  }
+  assertExactAcquisition(tool.acquisition, PROOF_TARGET_CONTRACT[target].zigArchive, target)
+}
+
+function validateLinkerTool(
+  tool: ProofToolRecord,
+  zig: ProofToolRecord,
+  target: ProofTarget,
+): void {
+  if (tool.name !== 'zig-integrated-linker' || tool.version !== PROOF_ZIG_VERSION) {
+    fail(`${target} linker tool identity does not match`)
+  }
+  if (tool.bytes !== zig.bytes || tool.sha256 !== zig.sha256) {
+    fail(`${target} integrated linker must be the recorded Zig binary`)
+  }
+  assertExactAcquisition(tool.acquisition, PROOF_TARGET_CONTRACT[target].zigArchive, target)
+}
+
+function validateStripTool(tool: ProofToolRecord, target: ProofTarget): void {
+  if (tool.name !== 'system-strip') fail(`${target} strip tool name does not match`)
+  const acquisition = tool.acquisition
+  if (acquisition.kind !== 'runner-component') {
+    fail(`${target} strip tool must be a runner component`)
+  }
+  if (acquisition.path !== '/usr/bin/strip' || acquisition.contentKind !== 'file') {
+    fail(`${target} strip tool component does not match`)
+  }
+}
+
+function validateSdkOrSysrootTool(tool: ProofToolRecord, target: ProofTarget): void {
+  if (target.startsWith('darwin-')) {
+    validateMacosSdkTool(tool, target)
+    return
+  }
+  validateLinuxZigLibTool(tool, target)
+}
+
+function validateMacosSdkTool(tool: ProofToolRecord, target: ProofTarget): void {
+  if (tool.name !== 'macos-sdk-tree') fail(`${target} SDK tool name does not match`)
+  const acquisition = tool.acquisition
+  if (acquisition.kind !== 'runner-component' || acquisition.contentKind !== 'external-tree-v1') {
+    fail(`${target} macOS SDK must be a runner external tree`)
+  }
+  if (!MACOS_SDK_PATH_PATTERN.test(acquisition.path)) {
+    fail(`${target} macOS SDK component path does not match`)
+  }
+  if (!acquisition.macosSdk || tool.version !== acquisition.macosSdk.sdkVersion) {
+    fail(`${target} macOS SDK tool version does not match its metadata`)
+  }
+}
+
+function validateLinuxZigLibTool(tool: ProofToolRecord, target: ProofTarget): void {
+  if (tool.name !== 'zig-bundled-lib-tree' || tool.version !== PROOF_ZIG_VERSION) {
+    fail(`${target} Zig lib tool identity does not match`)
+  }
+  assertExactAcquisition(tool.acquisition, PROOF_TARGET_CONTRACT[target].zigArchive, target)
+}
+
+function validateTargetInputs(inputs: readonly ProofInputRecord[], target: ProofTarget): void {
+  validateZigLibInput(inputs, target)
+  validateProofGeneratedInputs(inputs, target)
+}
+
+function validateZigLibInput(inputs: readonly ProofInputRecord[], target: ProofTarget): void {
+  const matches = inputs.filter((input) => input.id === 'zig-bundled-lib-tree')
+  if (!target.startsWith('darwin-')) {
+    if (matches.length !== 0) fail(`${target} cannot record a separate Zig lib input`)
+    return
+  }
+  if (matches.length !== 1) fail(`${target} must record one separate Zig lib input`)
+  const input = matches[0]!
+  if (input.role !== 'generated-resource-source' || input.generation !== undefined) {
+    fail(`${target} Zig lib input shape does not match`)
+  }
+  assertExactAcquisition(input.acquisition, PROOF_TARGET_CONTRACT[target].zigArchive, target)
+}
+
+function validateProofGeneratedInputs(
+  inputs: readonly ProofInputRecord[],
+  target: ProofTarget,
+): void {
+  const contract = PROOF_TARGET_CONTRACT[target]
+  const records = inputs.filter((input) => input.id.startsWith('proof-generated-'))
+  const actualIds = records.map((input) => input.id)
+  assertExactStringArray(actualIds, contract.generatedIds, `${target} proof generated inputs`)
+  const expectedArgv = proofGenerationArgv(target)
+  const expectedSources = proofGenerationSources(inputs, target)
+  for (const input of records) {
+    if (input.role !== 'generated-resource-source' || !input.generation) {
+      fail(`${target} proof generated input shape does not match`)
+    }
+    assertExactAcquisition(input.acquisition, PROOF_UPSTREAM_ACQUISITION, target)
+    assertExactStringArray(
+      input.generation.argv,
+      expectedArgv,
+      `${target} ${input.id} generation argv`,
+    )
+    assertExactStringArray(
+      input.generation.sources,
+      expectedSources,
+      `${target} ${input.id} generation sources`,
+    )
+  }
+}
+
+function proofGenerationArgv(target: ProofTarget): readonly string[] {
+  const contract = PROOF_TARGET_CONTRACT[target]
+  return [
+    `${contract.root}/toolchain/zig`,
+    'build',
+    'proof-materialize-generated',
+    '-j1',
+    '--seed',
+    '0',
+    '-fincremental',
+    '--prefix',
+    `${contract.root}/prefix`,
+    '--cache-dir',
+    `${contract.root}/cache`,
+    '--global-cache-dir',
+    `${contract.root}/global-cache`,
+    '-Doptimize=ReleaseSafe',
+    `-Dtarget=${contract.targetTriple}`,
+    '-Dproof-preverified-generated=false',
+  ]
+}
+
+function proofGenerationSources(
+  inputs: readonly ProofInputRecord[],
+  target: ProofTarget,
+): readonly string[] {
+  const sources = inputs
+    .filter((input) => input.role !== 'runtime-resource')
+    .filter((input) => !input.id.startsWith('proof-generated-'))
+    .map((input) => `input:${input.id}`)
+  sources.push('tool:zig', 'tool:zig-integrated-linker')
+  const sdk = target.startsWith('darwin-') ? 'macos-sdk-tree' : 'zig-bundled-lib-tree'
+  sources.push(`tool:${sdk}`)
+  return sources.sort(compareUtf8)
+}
+
+function assertExactAcquisition(
+  actual: ProofAcquisition,
+  expected: ProofAcquisition,
+  target: ProofTarget,
+): void {
+  assertExactJson(actual, expected, `${target} acquisition`)
+}
+
+function assertExactStringArray(
+  actual: readonly string[],
+  expected: readonly string[],
+  label: string,
+): void {
+  if (!sameStrings(actual, expected)) fail(`${label} does not match`)
+}
+
+function assertExactJson(actual: unknown, expected: unknown, label: string): void {
+  if (canonicalize(actual) !== canonicalize(expected)) fail(`${label} does not match`)
 }
 
 export function proofCanonicalBytes(value: unknown): Buffer {

@@ -15,56 +15,16 @@
       "required": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"],
       "properties": {
         "darwin-arm64": {
-          "allOf": [
-            { "$ref": "#/$defs/target" },
-            {
-              "properties": {
-                "runner": {
-                  "properties": { "os": { "const": "darwin" }, "arch": { "const": "arm64" } }
-                },
-                "targetTriple": { "pattern": "^aarch64-macos\\.[0-9]{1,2}\\.[0-9]{1,2}$" }
-              }
-            }
-          ]
+          "allOf": [{ "$ref": "#/$defs/target" }, { "$ref": "#/$defs/darwinArm64Target" }]
         },
         "darwin-x64": {
-          "allOf": [
-            { "$ref": "#/$defs/target" },
-            {
-              "properties": {
-                "runner": {
-                  "properties": { "os": { "const": "darwin" }, "arch": { "const": "x64" } }
-                },
-                "targetTriple": { "pattern": "^x86_64-macos\\.[0-9]{1,2}\\.[0-9]{1,2}$" }
-              }
-            }
-          ]
+          "allOf": [{ "$ref": "#/$defs/target" }, { "$ref": "#/$defs/darwinX64Target" }]
         },
         "linux-arm64": {
-          "allOf": [
-            { "$ref": "#/$defs/target" },
-            {
-              "properties": {
-                "runner": {
-                  "properties": { "os": { "const": "linux" }, "arch": { "const": "arm64" } }
-                },
-                "targetTriple": { "const": "aarch64-linux-musl" }
-              }
-            }
-          ]
+          "allOf": [{ "$ref": "#/$defs/target" }, { "$ref": "#/$defs/linuxArm64Target" }]
         },
         "linux-x64": {
-          "allOf": [
-            { "$ref": "#/$defs/target" },
-            {
-              "properties": {
-                "runner": {
-                  "properties": { "os": { "const": "linux" }, "arch": { "const": "x64" } }
-                },
-                "targetTriple": { "const": "x86_64-linux-musl" }
-              }
-            }
-          ]
+          "allOf": [{ "$ref": "#/$defs/target" }, { "$ref": "#/$defs/linuxX64Target" }]
         }
       }
     },
@@ -220,6 +180,47 @@
         { "$ref": "#/$defs/runnerComponent" }
       ]
     },
+    "upstreamAcquisition": {
+      "const": {
+        "kind": "git",
+        "repository": "https://github.com/ghostty-org/ghostty.git",
+        "revision": "c8554f28e0efe2f5595f32020371c34b25ec628f",
+        "treeAlgorithm": "ghostty-upstream-tree-v1",
+        "treeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb"
+      }
+    },
+    "zigDarwinArm64Acquisition": {
+      "const": {
+        "archiveBytes": 52238004,
+        "archiveSha256": "b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489",
+        "kind": "official-download",
+        "url": "https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz"
+      }
+    },
+    "zigDarwinX64Acquisition": {
+      "const": {
+        "archiveBytes": 57396836,
+        "archiveSha256": "0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7",
+        "kind": "official-download",
+        "url": "https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz"
+      }
+    },
+    "zigLinuxArm64Acquisition": {
+      "const": {
+        "archiveBytes": 51211944,
+        "archiveSha256": "ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17",
+        "kind": "official-download",
+        "url": "https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz"
+      }
+    },
+    "zigLinuxX64Acquisition": {
+      "const": {
+        "archiveBytes": 55478392,
+        "archiveSha256": "70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00",
+        "kind": "official-download",
+        "url": "https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz"
+      }
+    },
     "tool": {
       "type": "object",
       "additionalProperties": false,
@@ -233,6 +234,78 @@
         "sha256": { "$ref": "#/$defs/hash" },
         "version": { "$ref": "#/$defs/ascii" }
       }
+    },
+    "linkerTool": {
+      "required": ["acquisition", "name", "role", "version"],
+      "properties": {
+        "name": { "const": "zig-integrated-linker" },
+        "role": { "const": "linker" },
+        "version": { "const": "0.16.0" }
+      },
+      "not": { "required": ["generation"] }
+    },
+    "zigTool": {
+      "required": ["acquisition", "name", "role", "version"],
+      "properties": {
+        "name": { "const": "zig" },
+        "role": { "const": "zig" },
+        "version": { "const": "0.16.0" }
+      },
+      "not": { "required": ["generation"] }
+    },
+    "stripTool": {
+      "required": ["acquisition", "name", "role"],
+      "properties": {
+        "acquisition": {
+          "allOf": [
+            { "$ref": "#/$defs/runnerComponent" },
+            {
+              "properties": {
+                "contentKind": { "const": "file" },
+                "kind": { "const": "runner-component" },
+                "path": { "const": "/usr/bin/strip" }
+              },
+              "not": { "required": ["macosSdk"] }
+            }
+          ]
+        },
+        "name": { "const": "system-strip" },
+        "role": { "const": "strip" }
+      },
+      "not": { "required": ["generation"] }
+    },
+    "darwinSdkTool": {
+      "required": ["acquisition", "name", "role"],
+      "properties": {
+        "acquisition": {
+          "allOf": [
+            { "$ref": "#/$defs/runnerComponent" },
+            {
+              "required": ["macosSdk"],
+              "properties": {
+                "contentKind": { "const": "external-tree-v1" },
+                "kind": { "const": "runner-component" },
+                "path": {
+                  "type": "string",
+                  "pattern": "^/Applications/[^/]+/Contents/Developer/Platforms/MacOSX\\.platform/Developer/SDKs/MacOSX[^/]*\\.sdk$"
+                }
+              }
+            }
+          ]
+        },
+        "name": { "const": "macos-sdk-tree" },
+        "role": { "const": "sdk-or-sysroot" }
+      },
+      "not": { "required": ["generation"] }
+    },
+    "linuxSysrootTool": {
+      "required": ["acquisition", "name", "role", "version"],
+      "properties": {
+        "name": { "const": "zig-bundled-lib-tree" },
+        "role": { "const": "sdk-or-sysroot" },
+        "version": { "const": "0.16.0" }
+      },
+      "not": { "required": ["generation"] }
     },
     "input": {
       "type": "object",
@@ -252,6 +325,1185 @@
           ]
         },
         "sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "generatedDarwinArm64Input": {
+      "allOf": [
+        { "$ref": "#/$defs/input" },
+        {
+          "required": ["acquisition", "generation", "id", "role"],
+          "properties": {
+            "acquisition": { "$ref": "#/$defs/upstreamAcquisition" },
+            "generation": {
+              "allOf": [
+                { "$ref": "#/$defs/generation" },
+                {
+                  "properties": {
+                    "argv": {
+                      "const": [
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+                        "build",
+                        "proof-materialize-generated",
+                        "-j1",
+                        "--seed",
+                        "0",
+                        "-fincremental",
+                        "--prefix",
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+                        "--cache-dir",
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/cache",
+                        "--global-cache-dir",
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+                        "-Doptimize=ReleaseSafe",
+                        "-Dtarget=aarch64-macos.13.0",
+                        "-Dproof-preverified-generated=false"
+                      ]
+                    },
+                    "sources": {
+                      "allOf": [
+                        {
+                          "contains": { "const": "input:zig-bundled-lib-tree" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:macos-sdk-tree" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig-integrated-linker" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "id": {
+              "enum": ["proof-generated-help-strings", "proof-generated-wuffs-c"]
+            },
+            "role": { "const": "generated-resource-source" }
+          }
+        }
+      ]
+    },
+    "generatedDarwinX64Input": {
+      "allOf": [
+        { "$ref": "#/$defs/input" },
+        {
+          "required": ["acquisition", "generation", "id", "role"],
+          "properties": {
+            "acquisition": { "$ref": "#/$defs/upstreamAcquisition" },
+            "generation": {
+              "allOf": [
+                { "$ref": "#/$defs/generation" },
+                {
+                  "properties": {
+                    "argv": {
+                      "const": [
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+                        "build",
+                        "proof-materialize-generated",
+                        "-j1",
+                        "--seed",
+                        "0",
+                        "-fincremental",
+                        "--prefix",
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+                        "--cache-dir",
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/cache",
+                        "--global-cache-dir",
+                        "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+                        "-Doptimize=ReleaseSafe",
+                        "-Dtarget=x86_64-macos.13.0",
+                        "-Dproof-preverified-generated=false"
+                      ]
+                    },
+                    "sources": {
+                      "allOf": [
+                        {
+                          "contains": { "const": "input:zig-bundled-lib-tree" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:macos-sdk-tree" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig-integrated-linker" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "id": {
+              "enum": ["proof-generated-help-strings", "proof-generated-wuffs-c"]
+            },
+            "role": { "const": "generated-resource-source" }
+          }
+        }
+      ]
+    },
+    "generatedLinuxArm64Input": {
+      "allOf": [
+        { "$ref": "#/$defs/input" },
+        {
+          "required": ["acquisition", "generation", "id", "role"],
+          "properties": {
+            "acquisition": { "$ref": "#/$defs/upstreamAcquisition" },
+            "generation": {
+              "allOf": [
+                { "$ref": "#/$defs/generation" },
+                {
+                  "properties": {
+                    "argv": {
+                      "const": [
+                        "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+                        "build",
+                        "proof-materialize-generated",
+                        "-j1",
+                        "--seed",
+                        "0",
+                        "-fincremental",
+                        "--prefix",
+                        "/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+                        "--cache-dir",
+                        "/tmp/ghostty-config-resolver-proof-build-v1/cache",
+                        "--global-cache-dir",
+                        "/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+                        "-Doptimize=ReleaseSafe",
+                        "-Dtarget=aarch64-linux-musl",
+                        "-Dproof-preverified-generated=false"
+                      ]
+                    },
+                    "sources": {
+                      "allOf": [
+                        {
+                          "contains": { "const": "tool:zig-bundled-lib-tree" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig-integrated-linker" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "id": {
+              "enum": [
+                "proof-generated-hb-c",
+                "proof-generated-help-strings",
+                "proof-generated-wuffs-c"
+              ]
+            },
+            "role": { "const": "generated-resource-source" }
+          }
+        }
+      ]
+    },
+    "generatedLinuxX64Input": {
+      "allOf": [
+        { "$ref": "#/$defs/input" },
+        {
+          "required": ["acquisition", "generation", "id", "role"],
+          "properties": {
+            "acquisition": { "$ref": "#/$defs/upstreamAcquisition" },
+            "generation": {
+              "allOf": [
+                { "$ref": "#/$defs/generation" },
+                {
+                  "properties": {
+                    "argv": {
+                      "const": [
+                        "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+                        "build",
+                        "proof-materialize-generated",
+                        "-j1",
+                        "--seed",
+                        "0",
+                        "-fincremental",
+                        "--prefix",
+                        "/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+                        "--cache-dir",
+                        "/tmp/ghostty-config-resolver-proof-build-v1/cache",
+                        "--global-cache-dir",
+                        "/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+                        "-Doptimize=ReleaseSafe",
+                        "-Dtarget=x86_64-linux-musl",
+                        "-Dproof-preverified-generated=false"
+                      ]
+                    },
+                    "sources": {
+                      "allOf": [
+                        {
+                          "contains": { "const": "tool:zig-bundled-lib-tree" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        },
+                        {
+                          "contains": { "const": "tool:zig-integrated-linker" },
+                          "minContains": 1,
+                          "maxContains": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "id": {
+              "enum": [
+                "proof-generated-hb-c",
+                "proof-generated-help-strings",
+                "proof-generated-wuffs-c"
+              ]
+            },
+            "role": { "const": "generated-resource-source" }
+          }
+        }
+      ]
+    },
+    "zigLibDarwinArm64Input": {
+      "allOf": [
+        { "$ref": "#/$defs/input" },
+        {
+          "required": ["acquisition", "id", "role"],
+          "properties": {
+            "acquisition": { "$ref": "#/$defs/zigDarwinArm64Acquisition" },
+            "id": { "const": "zig-bundled-lib-tree" },
+            "role": { "const": "generated-resource-source" }
+          },
+          "not": { "required": ["generation"] }
+        }
+      ]
+    },
+    "zigLibDarwinX64Input": {
+      "allOf": [
+        { "$ref": "#/$defs/input" },
+        {
+          "required": ["acquisition", "id", "role"],
+          "properties": {
+            "acquisition": { "$ref": "#/$defs/zigDarwinX64Acquisition" },
+            "id": { "const": "zig-bundled-lib-tree" },
+            "role": { "const": "generated-resource-source" }
+          },
+          "not": { "required": ["generation"] }
+        }
+      ]
+    },
+    "darwinLinkArgv": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4096,
+      "prefixItems": [
+        { "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig" },
+        { "const": "build-exe" }
+      ],
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/argument" },
+          { "not": { "pattern": "^@" } },
+          {
+            "if": { "pattern": "ghostty-config-resolver-proof-build-v1" },
+            "then": {
+              "pattern": "(^|=)/private/tmp/ghostty-config-resolver-proof-build-v1(?:/|$)"
+            }
+          },
+          {
+            "if": { "pattern": "^-Mhelp_strings=" },
+            "then": {
+              "const": "-Mhelp_strings=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig"
+            }
+          },
+          {
+            "if": { "pattern": "^-Mwuffs_c=" },
+            "then": {
+              "const": "-Mwuffs_c=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/wuffs_c.zig"
+            }
+          },
+          { "not": { "pattern": "^-Mhb_c=" } },
+          {
+            "if": { "pattern": "/prefix/proof-generated/" },
+            "then": {
+              "enum": [
+                "-Mhelp_strings=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig",
+                "-Mwuffs_c=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/wuffs_c.zig"
+              ]
+            }
+          },
+          {
+            "if": { "pattern": "^--listen=" },
+            "then": { "const": "--listen=-" }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "const": "-Mhelp_strings=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "const": "-Mwuffs_c=/private/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/wuffs_c.zig"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "--cache-dir" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": {
+            "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "const": "--global-cache-dir" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "--name" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "ghostty-config-resolver-proof" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "--zig-lib-dir" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": {
+            "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/lib/"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "-fincremental" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "const": "--listen=-" }, "minContains": 1, "maxContains": 1 },
+        {
+          "not": {
+            "contains": { "const": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache" }
+          }
+        }
+      ]
+    },
+    "linuxLinkArgv": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4096,
+      "prefixItems": [
+        { "const": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig" },
+        { "const": "build-exe" }
+      ],
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/argument" },
+          { "not": { "pattern": "^@" } },
+          {
+            "if": { "pattern": "ghostty-config-resolver-proof-build-v1" },
+            "then": { "pattern": "(^|=)/tmp/ghostty-config-resolver-proof-build-v1(?:/|$)" }
+          },
+          {
+            "if": { "pattern": "^-Mhelp_strings=" },
+            "then": {
+              "const": "-Mhelp_strings=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig"
+            }
+          },
+          {
+            "if": { "pattern": "^-Mhb_c=" },
+            "then": {
+              "const": "-Mhb_c=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/hb_c.zig"
+            }
+          },
+          {
+            "if": { "pattern": "^-Mwuffs_c=" },
+            "then": {
+              "const": "-Mwuffs_c=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/wuffs_c.zig"
+            }
+          },
+          {
+            "if": { "pattern": "/prefix/proof-generated/" },
+            "then": {
+              "enum": [
+                "-Mhb_c=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/hb_c.zig",
+                "-Mhelp_strings=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig",
+                "-Mwuffs_c=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/wuffs_c.zig"
+              ]
+            }
+          },
+          {
+            "if": { "pattern": "^--listen=" },
+            "then": { "const": "--listen=-" }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "const": "-Mhelp_strings=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/help_strings.zig"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "const": "-Mhb_c=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/hb_c.zig"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "const": "-Mwuffs_c=/tmp/ghostty-config-resolver-proof-build-v1/prefix/proof-generated/wuffs_c.zig"
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "--cache-dir" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/final-cache" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "const": "--global-cache-dir" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/global-cache" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "--name" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "ghostty-config-resolver-proof" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "--zig-lib-dir" }, "minContains": 1, "maxContains": 1 },
+        {
+          "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/lib/" },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "const": "-fincremental" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "const": "--listen=-" }, "minContains": 1, "maxContains": 1 },
+        { "not": { "contains": { "const": "/tmp/ghostty-config-resolver-proof-build-v1/cache" } } }
+      ]
+    },
+    "darwinArm64Tools": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/linkerTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigDarwinArm64Acquisition" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [{ "$ref": "#/$defs/tool" }, { "$ref": "#/$defs/darwinSdkTool" }]
+        },
+        {
+          "allOf": [{ "$ref": "#/$defs/tool" }, { "$ref": "#/$defs/stripTool" }]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/zigTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigDarwinArm64Acquisition" }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "darwinX64Tools": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/linkerTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigDarwinX64Acquisition" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [{ "$ref": "#/$defs/tool" }, { "$ref": "#/$defs/darwinSdkTool" }]
+        },
+        {
+          "allOf": [{ "$ref": "#/$defs/tool" }, { "$ref": "#/$defs/stripTool" }]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/zigTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigDarwinX64Acquisition" }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "linuxArm64Tools": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/linkerTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigLinuxArm64Acquisition" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/linuxSysrootTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigLinuxArm64Acquisition" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [{ "$ref": "#/$defs/tool" }, { "$ref": "#/$defs/stripTool" }]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/zigTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigLinuxArm64Acquisition" }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "linuxX64Tools": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/linkerTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigLinuxX64Acquisition" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/linuxSysrootTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigLinuxX64Acquisition" }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [{ "$ref": "#/$defs/tool" }, { "$ref": "#/$defs/stripTool" }]
+        },
+        {
+          "allOf": [
+            { "$ref": "#/$defs/tool" },
+            { "$ref": "#/$defs/zigTool" },
+            {
+              "properties": {
+                "acquisition": { "$ref": "#/$defs/zigLinuxX64Acquisition" }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    },
+    "darwinArm64Inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/input" },
+          {
+            "if": {
+              "required": ["id"],
+              "properties": { "id": { "pattern": "^proof-generated-" } }
+            },
+            "then": { "$ref": "#/$defs/generatedDarwinArm64Input" }
+          },
+          {
+            "if": {
+              "required": ["id"],
+              "properties": { "id": { "const": "zig-bundled-lib-tree" } }
+            },
+            "then": { "$ref": "#/$defs/zigLibDarwinArm64Input" }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-help-strings" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-wuffs-c" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "zig-bundled-lib-tree" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "darwinX64Inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/input" },
+          {
+            "if": {
+              "required": ["id"],
+              "properties": { "id": { "pattern": "^proof-generated-" } }
+            },
+            "then": { "$ref": "#/$defs/generatedDarwinX64Input" }
+          },
+          {
+            "if": {
+              "required": ["id"],
+              "properties": { "id": { "const": "zig-bundled-lib-tree" } }
+            },
+            "then": { "$ref": "#/$defs/zigLibDarwinX64Input" }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-help-strings" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-wuffs-c" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "zig-bundled-lib-tree" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "linuxArm64Inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/input" },
+          {
+            "if": {
+              "required": ["id"],
+              "properties": { "id": { "pattern": "^proof-generated-" } }
+            },
+            "then": { "$ref": "#/$defs/generatedLinuxArm64Input" }
+          },
+          {
+            "not": {
+              "required": ["id"],
+              "properties": { "id": { "const": "zig-bundled-lib-tree" } }
+            }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-hb-c" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-help-strings" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-wuffs-c" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "linuxX64Inputs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/input" },
+          {
+            "if": {
+              "required": ["id"],
+              "properties": { "id": { "pattern": "^proof-generated-" } }
+            },
+            "then": { "$ref": "#/$defs/generatedLinuxX64Input" }
+          },
+          {
+            "not": {
+              "required": ["id"],
+              "properties": { "id": { "const": "zig-bundled-lib-tree" } }
+            }
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-hb-c" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-help-strings" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "required": ["id"],
+            "properties": { "id": { "const": "proof-generated-wuffs-c" } }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "darwinArm64Target": {
+      "properties": {
+        "buildArgv": {
+          "const": [
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+            "build",
+            "-j1",
+            "--seed",
+            "0",
+            "-fincremental",
+            "--prefix",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+            "--cache-dir",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache",
+            "--global-cache-dir",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+            "-Doptimize=ReleaseSafe",
+            "-Dtarget=aarch64-macos.13.0",
+            "-Dproof-preverified-generated=true",
+            "--verbose"
+          ]
+        },
+        "environment": {
+          "const": [
+            {
+              "name": "HOME",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache/home"
+            },
+            { "name": "LANG", "value": "C.UTF-8" },
+            { "name": "LC_ALL", "value": "C.UTF-8" },
+            { "name": "PATH", "value": "/usr/bin:/bin:/usr/sbin:/sbin" },
+            { "name": "SOURCE_DATE_EPOCH", "value": "1787590337" },
+            {
+              "name": "TMPDIR",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache/tmp"
+            },
+            { "name": "UMASK", "value": "0022" },
+            {
+              "name": "XDG_CACHE_HOME",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache"
+            },
+            {
+              "name": "ZIG_EXE",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig"
+            }
+          ]
+        },
+        "inputs": { "$ref": "#/$defs/darwinArm64Inputs" },
+        "linkArgv": {
+          "allOf": [
+            { "$ref": "#/$defs/darwinLinkArgv" },
+            {
+              "contains": { "const": "aarch64-macos.13.0" },
+              "minContains": 1
+            },
+            {
+              "items": {
+                "if": {
+                  "pattern": "^(?:aarch64|x86_64)-(?:macos\\.[0-9]+\\.[0-9]+|linux-musl)$"
+                },
+                "then": { "const": "aarch64-macos.13.0" }
+              }
+            }
+          ]
+        },
+        "runner": {
+          "properties": {
+            "arch": { "const": "arm64" },
+            "os": { "const": "darwin" }
+          }
+        },
+        "stripArgv": {
+          "const": [
+            "/usr/bin/strip",
+            "-x",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/bundle/bin/ghostty-config-resolver-proof"
+          ]
+        },
+        "targetTriple": { "const": "aarch64-macos.13.0" },
+        "tools": { "$ref": "#/$defs/darwinArm64Tools" }
+      }
+    },
+    "darwinX64Target": {
+      "properties": {
+        "buildArgv": {
+          "const": [
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+            "build",
+            "-j1",
+            "--seed",
+            "0",
+            "-fincremental",
+            "--prefix",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+            "--cache-dir",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/final-cache",
+            "--global-cache-dir",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+            "-Doptimize=ReleaseSafe",
+            "-Dtarget=x86_64-macos.13.0",
+            "-Dproof-preverified-generated=true",
+            "--verbose"
+          ]
+        },
+        "environment": {
+          "const": [
+            {
+              "name": "HOME",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache/home"
+            },
+            { "name": "LANG", "value": "C.UTF-8" },
+            { "name": "LC_ALL", "value": "C.UTF-8" },
+            { "name": "PATH", "value": "/usr/bin:/bin:/usr/sbin:/sbin" },
+            { "name": "SOURCE_DATE_EPOCH", "value": "1787590337" },
+            {
+              "name": "TMPDIR",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/cache/tmp"
+            },
+            { "name": "UMASK", "value": "0022" },
+            {
+              "name": "XDG_CACHE_HOME",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/global-cache"
+            },
+            {
+              "name": "ZIG_EXE",
+              "value": "/private/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig"
+            }
+          ]
+        },
+        "inputs": { "$ref": "#/$defs/darwinX64Inputs" },
+        "linkArgv": {
+          "allOf": [
+            { "$ref": "#/$defs/darwinLinkArgv" },
+            {
+              "contains": { "const": "x86_64-macos.13.0" },
+              "minContains": 1
+            },
+            {
+              "items": {
+                "if": {
+                  "pattern": "^(?:aarch64|x86_64)-(?:macos\\.[0-9]+\\.[0-9]+|linux-musl)$"
+                },
+                "then": { "const": "x86_64-macos.13.0" }
+              }
+            }
+          ]
+        },
+        "runner": {
+          "properties": {
+            "arch": { "const": "x64" },
+            "os": { "const": "darwin" }
+          }
+        },
+        "stripArgv": {
+          "const": [
+            "/usr/bin/strip",
+            "-x",
+            "/private/tmp/ghostty-config-resolver-proof-build-v1/bundle/bin/ghostty-config-resolver-proof"
+          ]
+        },
+        "targetTriple": { "const": "x86_64-macos.13.0" },
+        "tools": { "$ref": "#/$defs/darwinX64Tools" }
+      }
+    },
+    "linuxArm64Target": {
+      "properties": {
+        "buildArgv": {
+          "const": [
+            "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+            "build",
+            "-j1",
+            "--seed",
+            "0",
+            "-fincremental",
+            "--prefix",
+            "/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+            "--cache-dir",
+            "/tmp/ghostty-config-resolver-proof-build-v1/final-cache",
+            "--global-cache-dir",
+            "/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+            "-Doptimize=ReleaseSafe",
+            "-Dtarget=aarch64-linux-musl",
+            "-Dproof-preverified-generated=true",
+            "--verbose"
+          ]
+        },
+        "environment": {
+          "const": [
+            {
+              "name": "HOME",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/cache/home"
+            },
+            { "name": "LANG", "value": "C.UTF-8" },
+            { "name": "LC_ALL", "value": "C.UTF-8" },
+            { "name": "PATH", "value": "/usr/bin:/bin:/usr/sbin:/sbin" },
+            { "name": "SOURCE_DATE_EPOCH", "value": "1787590337" },
+            {
+              "name": "TMPDIR",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/cache/tmp"
+            },
+            { "name": "UMASK", "value": "0022" },
+            {
+              "name": "XDG_CACHE_HOME",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/global-cache"
+            },
+            {
+              "name": "ZIG_EXE",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig"
+            }
+          ]
+        },
+        "inputs": { "$ref": "#/$defs/linuxArm64Inputs" },
+        "linkArgv": {
+          "allOf": [
+            { "$ref": "#/$defs/linuxLinkArgv" },
+            { "contains": { "const": "aarch64-linux-musl" }, "minContains": 1 },
+            {
+              "items": {
+                "if": {
+                  "pattern": "^(?:aarch64|x86_64)-(?:macos\\.[0-9]+\\.[0-9]+|linux-musl)$"
+                },
+                "then": { "const": "aarch64-linux-musl" }
+              }
+            }
+          ]
+        },
+        "runner": {
+          "properties": {
+            "arch": { "const": "arm64" },
+            "os": { "const": "linux" }
+          }
+        },
+        "stripArgv": {
+          "const": [
+            "/usr/bin/strip",
+            "--strip-all",
+            "/tmp/ghostty-config-resolver-proof-build-v1/bundle/bin/ghostty-config-resolver-proof"
+          ]
+        },
+        "targetTriple": { "const": "aarch64-linux-musl" },
+        "tools": { "$ref": "#/$defs/linuxArm64Tools" }
+      }
+    },
+    "linuxX64Target": {
+      "properties": {
+        "buildArgv": {
+          "const": [
+            "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig",
+            "build",
+            "-j1",
+            "--seed",
+            "0",
+            "-fincremental",
+            "--prefix",
+            "/tmp/ghostty-config-resolver-proof-build-v1/prefix",
+            "--cache-dir",
+            "/tmp/ghostty-config-resolver-proof-build-v1/final-cache",
+            "--global-cache-dir",
+            "/tmp/ghostty-config-resolver-proof-build-v1/global-cache",
+            "-Doptimize=ReleaseSafe",
+            "-Dtarget=x86_64-linux-musl",
+            "-Dproof-preverified-generated=true",
+            "--verbose"
+          ]
+        },
+        "environment": {
+          "const": [
+            {
+              "name": "HOME",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/cache/home"
+            },
+            { "name": "LANG", "value": "C.UTF-8" },
+            { "name": "LC_ALL", "value": "C.UTF-8" },
+            { "name": "PATH", "value": "/usr/bin:/bin:/usr/sbin:/sbin" },
+            { "name": "SOURCE_DATE_EPOCH", "value": "1787590337" },
+            {
+              "name": "TMPDIR",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/cache/tmp"
+            },
+            { "name": "UMASK", "value": "0022" },
+            {
+              "name": "XDG_CACHE_HOME",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/global-cache"
+            },
+            {
+              "name": "ZIG_EXE",
+              "value": "/tmp/ghostty-config-resolver-proof-build-v1/toolchain/zig"
+            }
+          ]
+        },
+        "inputs": { "$ref": "#/$defs/linuxX64Inputs" },
+        "linkArgv": {
+          "allOf": [
+            { "$ref": "#/$defs/linuxLinkArgv" },
+            { "contains": { "const": "x86_64-linux-musl" }, "minContains": 1 },
+            {
+              "items": {
+                "if": {
+                  "pattern": "^(?:aarch64|x86_64)-(?:macos\\.[0-9]+\\.[0-9]+|linux-musl)$"
+                },
+                "then": { "const": "x86_64-linux-musl" }
+              }
+            }
+          ]
+        },
+        "runner": {
+          "properties": {
+            "arch": { "const": "x64" },
+            "os": { "const": "linux" }
+          }
+        },
+        "stripArgv": {
+          "const": [
+            "/usr/bin/strip",
+            "--strip-all",
+            "/tmp/ghostty-config-resolver-proof-build-v1/bundle/bin/ghostty-config-resolver-proof"
+          ]
+        },
+        "targetTriple": { "const": "x86_64-linux-musl" },
+        "tools": { "$ref": "#/$defs/linuxX64Tools" }
       }
     },
     "target": {

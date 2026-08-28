@@ -183,6 +183,59 @@ jobs:
             echo "PROOF_EVIDENCE=$proof_root/evidence/$PROOF_TARGET.json"
           } >> "$GITHUB_ENV"
 
+      - name: Verify proof contract golden vectors in Bun and Node
+        run: |
+          set -euo pipefail
+          bundle="$PROOF_ROOT/proof-self-test.mjs"
+          bun_stdout="$PROOF_ROOT/proof-self-test.bun.stdout"
+          bun_stderr="$PROOF_ROOT/proof-self-test.bun.stderr"
+          node_stdout="$PROOF_ROOT/proof-self-test.node.stdout"
+          node_stderr="$PROOF_ROOT/proof-self-test.node.stderr"
+          recipe="$GITHUB_WORKSPACE/scripts/config-resolver-proof/proof-recipe.json"
+
+          command -v node >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+
+          bun build scripts/config-resolver-proof/proof-self-test.ts \
+            --target=node \
+            --format=esm \
+            --packages=bundle \
+            --reject-unresolved \
+            --outfile="$bundle"
+
+          if ! TMPDIR="$PROOF_ROOT" bun scripts/config-resolver-proof/proof-self-test.ts \
+            --recipe "$recipe" >"$bun_stdout" 2>"$bun_stderr"; then
+            echo 'Bun proof self-test failed' >&2
+            exit 1
+          fi
+          if ! TMPDIR="$PROOF_ROOT" node "$bundle" \
+            --recipe "$recipe" >"$node_stdout" 2>"$node_stderr"; then
+            echo 'Node proof self-test failed' >&2
+            exit 1
+          fi
+
+          if [[ -s "$bun_stderr" || -s "$node_stderr" ]]; then
+            echo 'proof self-test emitted stderr' >&2
+            exit 1
+          fi
+          for output in "$bun_stdout" "$node_stdout"; do
+            bytes="$(wc -c < "$output" | tr -d '[:space:]')"
+            if (( bytes < 2 || bytes > 1048576 )); then
+              echo 'proof self-test output is outside its size bound' >&2
+              exit 1
+            fi
+          done
+          bun -e '
+            for (const path of process.argv.slice(1)) {
+              const value = JSON.parse(await Bun.file(path).text())
+              if (value.status !== "PASS") process.exit(1)
+            }
+          ' "$bun_stdout" "$node_stdout"
+          if ! cmp -s "$bun_stdout" "$node_stdout"; then
+            echo 'Bun and Node proof self-test bytes differ' >&2
+            exit 1
+          fi
+
       - name: Acquire and verify immutable inputs
         run: |
           set -euo pipefail
