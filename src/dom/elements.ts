@@ -18,6 +18,7 @@ export interface TerminalElementsOptions {
 
 export interface TerminalElements {
   readonly canvas: HTMLCanvasElement
+  readonly compositionView?: HTMLDivElement
   readonly padding: TerminalElementPadding
   readonly root: HTMLDivElement
   readonly signal: AbortSignal
@@ -109,6 +110,21 @@ function applyTextareaStyles(textarea: HTMLTextAreaElement): void {
   textarea.style.width = '1px'
 }
 
+function applyCompositionStyles(compositionView: HTMLDivElement): void {
+  compositionView.hidden = true
+  compositionView.style.boxSizing = 'content-box'
+  compositionView.style.left = '0'
+  compositionView.style.margin = '0'
+  compositionView.style.overflow = 'visible'
+  compositionView.style.padding = '0'
+  compositionView.style.pointerEvents = 'none'
+  compositionView.style.position = 'absolute'
+  compositionView.style.textDecoration = 'underline'
+  compositionView.style.top = '0'
+  compositionView.style.whiteSpace = 'pre'
+  compositionView.style.zIndex = '1'
+}
+
 function finitePosition(name: string, value: number): number {
   if (Number.isFinite(value)) return Math.max(0, value)
   throw new RangeError(`${name} must be finite`)
@@ -122,6 +138,7 @@ class OwnedTerminalElements implements TerminalElements {
     readonly root: HTMLDivElement,
     readonly canvas: HTMLCanvasElement,
     readonly textarea: HTMLTextAreaElement,
+    readonly compositionView: HTMLDivElement,
     padding: TerminalElementPadding,
     private readonly abortController: AbortController,
   ) {
@@ -149,6 +166,8 @@ class OwnedTerminalElements implements TerminalElements {
     const y = finitePosition('caret y', position.y)
     this.textarea.style.left = `${x}px`
     this.textarea.style.top = `${y}px`
+    this.compositionView.style.left = `${x}px`
+    this.compositionView.style.top = `${y}px`
   }
 
   setPadding(input: TerminalElementPaddingInput): boolean {
@@ -170,11 +189,14 @@ export function createTerminalElements(
   const root = document.createElement('div')
   const canvas = document.createElement('canvas')
   const textarea = document.createElement('textarea')
+  const compositionView = document.createElement('div')
   const abortController = new AbortController()
 
   root.className = 'ghostty-webgpu'
   canvas.className = 'ghostty-webgpu-canvas'
   textarea.className = 'ghostty-webgpu-input'
+  compositionView.className = 'ghostty-webgpu-composition'
+  compositionView.setAttribute('aria-hidden', 'true')
   textarea.setAttribute('aria-label', 'Terminal input')
   textarea.tabIndex = 0
 
@@ -182,8 +204,16 @@ export function createTerminalElements(
   applyCanvasStyles(canvas, padding)
   disableTextAssistance(textarea)
   applyTextareaStyles(textarea)
+  applyCompositionStyles(compositionView)
 
-  root.append(canvas, textarea)
+  root.append(canvas, compositionView, textarea)
   parent.append(root)
-  return new OwnedTerminalElements(root, canvas, textarea, padding, abortController)
+  return new OwnedTerminalElements(
+    root,
+    canvas,
+    textarea,
+    compositionView,
+    padding,
+    abortController,
+  )
 }

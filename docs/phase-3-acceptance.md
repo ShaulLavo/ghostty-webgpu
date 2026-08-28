@@ -1,6 +1,6 @@
 # Phase 3 acceptance
 
-Status: **PENDING — physical operator gate deferred on 2026-08-23.**
+Status: **PASS — physical operator gate completed on 2026-08-28 (IDT).**
 
 This file separates evidence collected through headed browser control from checks that require a
 person using the physical keyboard, macOS input methods, clipboard UI, and VoiceOver. A control
@@ -23,6 +23,32 @@ The demo captured the renderer's actual adapter from its one `requestAdapter` ca
 make a second probe request. The acceptance snapshot also recorded a focused, visible document,
 the active terminal textarea, device-pixel ratio, diagnostics, renderer metrics, and scheduler
 events.
+
+## Current closeout candidate
+
+Pin evidence was reconciled on 2026-08-28 before reopening the physical operator gate. The
+remaining checks must run against this package state; the historical Phase 3 artifact below must
+not be restored.
+
+| Item                             | Reconciled value                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| Package                          | `ghostty-webgpu@0.1.1` worktree based on `3c3e07edef23cdbbe141410432e89276cb6504b2` |
+| Ghostty source                   | `c8554f28e0efe2f5595f32020371c34b25ec628f`                                          |
+| `ghostty-vt.wasm` SHA-256        | `dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97`                  |
+| `bridge.wasm` SHA-256            | `47fae389c94f2545b2026d756256272b65f978d97feabae21b9171ad4b54b63f`                  |
+| `ghostty_type_json` ABI manifest | schema `1`; wasm32, freestanding, little-endian, 4-byte pointers and usize          |
+| Platform's installed package     | registry `0.1.0`; both wasm artifacts byte-identical to the candidate               |
+
+The package-version difference is packaging-only for this gate: Platform's installed `0.1.0` and
+the current `0.1.1` worktree carry the same Ghostty revision and identical terminal and callback
+wasm bytes. Platform's dependency pin therefore remains unchanged. Against the candidate, the
+focused real-wasm ABI suite passed 34 tests across `input.test.ts`, `runtime.test.ts`, and
+`terminal.test.ts`; this does not satisfy any physical row.
+
+Using the package-pinned Bun 1.3.10, the root and demo frozen installs, package build, Node import,
+demo typecheck, 34 focused ABI tests, and 34 demo authorization/protocol tests all passed on the
+2026-08-28 closeout-preflight host. The lockfiles and both wasm artifacts remained unchanged. This
+Linux preflight did not evaluate or promote a headed macOS operator row.
 
 ## Automated gates
 
@@ -142,22 +168,36 @@ Stopping the server after live sessions left no demo server, sidecar, shell, or 
 
 ## Physical operator gate
 
-All items remain **PENDING**.
+All required rows are recorded **PASS**.
 
-- [ ] Hold and release a printable key in `demo/kitty-keyboard-check.py`; record Kitty repeat
-      (`:2`) and release (`:3`) packets.
-- [ ] Exercise physical Shift, Ctrl, Option, and Command modifiers, arrows, and a function key.
-- [ ] Confirm macOS-intercepted Command-Tab and Command-Space produce no PTY byte packet.
-- [ ] Add/switch to a CJK input source and commit `你好` once. Expected UTF-8 bytes:
-      `e4 bd a0 e5 a5 bd`, with no ASCII preedit bytes.
-- [ ] Insert `🧪` once through Character Viewer. Expected UTF-8 bytes: `f0 9f a7 aa`.
-- [ ] Under the ABC input source, press Option-N then `a` and commit `ã` once. Expected UTF-8
-      bytes: `c3 a3`.
-- [ ] Copy a known native terminal selection with physical Command-C, paste it with physical
-      Command-V, and confirm exact single insertion.
-- [ ] Navigate the mirrored terminal rows and cursor with VoiceOver; confirm spoken order and
-      content, then disable VoiceOver.
+- [x] PASS — held printable `f` produced the physical press/repeat/release lifecycle, including
+      Kitty repeat (`:2`) and release (`:3`) packets.
+- [x] PASS — physical Shift, Ctrl, Option, and Command modifiers, arrows, and a function key were
+      exercised and observed in the checker.
+- [x] PASS — on 2026-08-28 the operator invoked the macOS-owned Command-Tab and Command-Space
+      actions. The browser exposed only Command lifecycle events and the passive PTY capture
+      remained empty: no Meta, Tab, or Space packet leaked.
+- [x] PASS — on 2026-08-28 the operator used macOS Pinyin to compose and visibly commit `你好`
+      once. The passive trace captured exactly `e4 bd a0 e5 a5 bd`; `ni hao` remained visible
+      preedit and produced no PTY bytes.
+- [x] PASS — on 2026-08-28 the operator inserted `🧪` once through Character Viewer. The passive
+      trace captured exactly one `f0 9f a7 aa` packet, and the operator subsequently confirmed
+      visible emoji rendering in the headed terminal.
+- [x] PASS — on 2026-08-28, under the ABC input source, physical Option-N then `a` visibly
+      committed `ã` once. The passive trace captured exactly `c3 a3`; repeated tilde preedit
+      updates produced no PTY bytes.
+- [x] PASS — on 2026-08-28 the operator copied the known native selection
+      `GW055-CLIP-7Q9X` with physical Command-C and pasted it with physical Command-V. The passive
+      trace captured exactly one bracketed-paste packet containing that value; the later Return was
+      a separate `0d` packet.
+- [x] PASS — on 2026-08-28 the focused, visible terminal remained blink-off for 11 seconds with
+      submitted frames `164 / 164`, draws `328 / 328`, uploaded bytes `11,299,200 / 11,299,200`,
+      an empty scheduler trace, and no pending frame, timer, or link work. Blink-on produced four
+      timer fires, four rAF requests/runs, and four submitted frames with at most one queued rAF;
+      blink-off then returned to unchanged counters, an empty trace, and no pending work.
+- [x] PASS — on 2026-08-28 the operator navigated the mirrored terminal rows and cursor with
+      VoiceOver and confirmed that the spoken reading was correct. The operator clarified that
+      the remaining leaf concern was visual rendering only, then disabled VoiceOver.
 
-After those checks pass, add the operator result and timestamp here, change this status to PASS,
-then update the platform Phase 3 brief and plan index. Until then, platform completion status must
-remain unchanged.
+Operator result: **PASS**, recorded at `2026-08-28T12:42:24+03:00`. Every required physical
+operator row above is recorded PASS.

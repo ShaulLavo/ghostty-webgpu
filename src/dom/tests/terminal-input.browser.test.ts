@@ -2,7 +2,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { SelectionCoordinates } from '../../core/selection.js'
 import type { RendererTheme } from '../../render/instances/types.js'
-import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../../render/renderer.js'
+import type {
+  RendererFrameSnapshot,
+  RendererGridSize,
+  WebGpuTerminalRendererOptions,
+} from '../../render/renderer.js'
 import { TerminalSession } from '../../term/session.js'
 import type { TerminalFittedFont, TerminalKeyInput } from '../../term/types.js'
 import { createTerminalElements } from '../elements.js'
@@ -176,6 +180,19 @@ async function settleRenderer(terminal: Terminal): Promise<void> {
 
 function decodedOutput(output: readonly Uint8Array[]): string[] {
   return output.map((bytes) => decoder.decode(bytes))
+}
+
+function cursorFrame(x: number, y: number): RendererFrameSnapshot {
+  return Object.freeze({
+    cursor: Object.freeze({
+      blinking: false,
+      passwordInput: false,
+      style: 'block' as const,
+      viewport: Object.freeze({ wideTail: false, x, y }),
+      visible: true,
+    }),
+    rows: Object.freeze([]),
+  })
 }
 
 describe.sequential('Terminal DOM host', () => {
@@ -566,6 +583,78 @@ describe.sequential('Terminal DOM host', () => {
     controller.dispose()
   })
 
+  it('drops hidden macOS host chords without breaking terminal-owned Command lifecycles', () => {
+    const host = document.createElement('div')
+    const textarea = document.createElement('textarea')
+    host.append(textarea)
+    document.body.append(host)
+    hosts.push(host)
+    const bubbled: string[] = []
+    host.addEventListener('keydown', (event) => bubbled.push(event.code))
+    const keys: TerminalKeyInput[] = []
+    const controller = createDomInputController({
+      onError: (cause) => {
+        throw cause
+      },
+      platform: 'mac',
+      session: {
+        getSelection: () => undefined,
+        key: (input) => {
+          keys.push(input)
+          return new Uint8Array()
+        },
+        paste: () => new Uint8Array(),
+        selectionCoordinates: () => undefined,
+        sendInput: () => new Uint8Array(),
+      },
+      signal: new AbortController().signal,
+      textarea,
+    })
+
+    dispatchKey(textarea, 'keydown', { code: 'MetaLeft', key: 'Meta', metaKey: true })
+    expect(keys).toEqual([])
+    dispatchKey(textarea, 'keyup', { code: 'MetaLeft', key: 'Meta' })
+    expect(keys).toEqual([])
+
+    for (const [code, key] of [
+      ['Tab', 'Tab'],
+      ['Space', ' '],
+    ] as const) {
+      bubbled.length = 0
+      dispatchKey(textarea, 'keydown', { code: 'MetaLeft', key: 'Meta', metaKey: true })
+      const press = dispatchKey(textarea, 'keydown', { code, key, metaKey: true })
+      const repeat = dispatchKey(textarea, 'keydown', { code, key, metaKey: true, repeat: true })
+      const release = dispatchKey(textarea, 'keyup', { code, key, metaKey: true })
+      dispatchKey(textarea, 'keyup', { code: 'MetaLeft', key: 'Meta' })
+
+      expect(keys).toEqual([])
+      expect([press.defaultPrevented, repeat.defaultPrevented, release.defaultPrevented]).toEqual([
+        false,
+        false,
+        false,
+      ])
+      expect(bubbled).toEqual(['MetaLeft', code, code])
+    }
+
+    dispatchKey(textarea, 'keydown', { code: 'MetaLeft', key: 'Meta', metaKey: true })
+    controller.resetTransientState()
+    dispatchKey(textarea, 'keyup', { code: 'MetaLeft', key: 'Meta' })
+    expect(keys).toEqual([])
+
+    dispatchKey(textarea, 'keydown', { code: 'MetaLeft', key: 'Meta', metaKey: true })
+    dispatchKey(textarea, 'keydown', { code: 'KeyA', key: 'a', metaKey: true })
+    dispatchKey(textarea, 'keyup', { code: 'KeyA', key: 'a', metaKey: true })
+    dispatchKey(textarea, 'keyup', { code: 'MetaLeft', key: 'Meta' })
+
+    expect(keys.map((input) => [input.code, input.action])).toEqual([
+      ['MetaLeft', 'press'],
+      ['KeyA', 'press'],
+      ['KeyA', 'release'],
+      ['MetaLeft', 'release'],
+    ])
+    controller.dispose()
+  })
+
   it('runs dynamic input hooks and rethrows handler failures without stale key state', () => {
     const textarea = document.createElement('textarea')
     document.body.append(textarea)
@@ -676,8 +765,23 @@ describe.sequential('Terminal DOM host', () => {
       inputType: 'insertCompositionText',
       isComposing: true,
     })
+    dispatchInput(textarea, '日本', {
+      data: '日本',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    // Chromium emits no later non-composing input when this value is final.
     dispatchComposition(textarea, 'compositionend', '日本')
-    dispatchInput(textarea, '日本', { data: '日本', inputType: 'insertText', isComposing: false })
+    expect(decodedOutput(output)).toEqual(['日本'])
+
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, 'nihao', {
+      data: 'nihao',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    dispatchComposition(textarea, 'compositionend', '你好')
+    dispatchInput(textarea, '你好', { data: '你好', inputType: 'insertText', isComposing: false })
 
     dispatchComposition(textarea, 'compositionstart')
     dispatchInput(textarea, '😀', { data: '😀', inputType: 'insertText', isComposing: false })
@@ -688,6 +792,20 @@ describe.sequential('Terminal DOM host', () => {
     dispatchComposition(textarea, 'compositionend', 'é')
     dispatchInput(textarea, 'é', { data: 'é', inputType: 'insertText', isComposing: false })
 
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, 'cancel', {
+      data: 'cancel',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    dispatchInput(textarea, '', {
+      data: null,
+      inputType: 'deleteCompositionText',
+      isComposing: true,
+    })
+    dispatchComposition(textarea, 'compositionend')
+    expect(decodedOutput(output)).toEqual(['日本', '你好', '😀', 'é'])
+
     dispatchInput(textarea, 'replacement', {
       data: null,
       inputType: 'insertReplacementText',
@@ -697,8 +815,145 @@ describe.sequential('Terminal DOM host', () => {
     dispatchInput(textarea, 'same', { data: 'same', inputType: 'insertText' })
 
     expect(dead.defaultPrevented).toBe(false)
-    expect(decodedOutput(output)).toEqual(['日本', '😀', 'é', 'replacement', 'same', 'same'])
+    expect(decodedOutput(output)).toEqual([
+      '日本',
+      '你好',
+      '😀',
+      'é',
+      'replacement',
+      'same',
+      'same',
+    ])
     expect(textarea.value).toBe('')
+  })
+
+  it('shows renderer-aligned IME preedit and clears it without scheduling terminal work', async () => {
+    const recording: RendererRecording = {}
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory(recording) })
+    await terminal.open(trackedHost())
+    const root = terminal.element!
+    const textarea = terminal.textarea!
+    const preedit = root.querySelector<HTMLElement>('.ghostty-webgpu-composition')!
+    const output: Uint8Array[] = []
+    terminal.onData((bytes) => output.push(bytes))
+    terminal.focus()
+
+    const grid = terminal.appearance.grid
+    const font = recording.renderer!.fonts.at(-1) ?? recording.options!.font
+    recording.options!.onFrame?.(cursorFrame(3, 2))
+    expect(preedit.style.left).toBe(`${grid.cellWidth * 3}px`)
+    expect(preedit.style.top).toBe(`${grid.cellHeight * 2}px`)
+    expect(preedit.style.left).toBe(textarea.style.left)
+    expect(preedit.style.top).toBe(textarea.style.top)
+    expect(preedit.getAttribute('aria-hidden')).toBe('true')
+    expect(preedit.hidden).toBe(true)
+
+    const notifications = recording.renderer!.notifications.length
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, 'ni', {
+      data: 'ni',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    expect(preedit.hidden).toBe(false)
+    expect(preedit.classList.contains('active')).toBe(true)
+    expect(preedit.textContent).toBe('ni')
+    expect(textarea.value).toBe('ni')
+    expect(output).toEqual([])
+
+    dispatchInput(textarea, 'ni hao', {
+      data: 'ni hao',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    dispatchInput(textarea, '你好', {
+      data: '你好',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    expect(preedit.textContent).toBe('你好')
+    expect(preedit.getBoundingClientRect().width).toBeGreaterThan(font.cssCellWidth)
+    expect(recording.renderer!.notifications).toHaveLength(notifications)
+    expect(terminal.hasPendingTimer).toBe(false)
+
+    const theme = terminal.appearance.theme
+    terminal.setTheme({
+      ...theme,
+      background: { b: 6, g: 5, r: 4 },
+      foreground: { b: 9, g: 8, r: 7 },
+    })
+    expect(getComputedStyle(preedit).backgroundColor).toBe('rgb(4, 5, 6)')
+    expect(getComputedStyle(preedit).color).toBe('rgb(7, 8, 9)')
+
+    terminal.setFont({ family: 'serif', letterSpacing: 1, lineHeight: 1.2, size: 19 })
+    await animationFrames(3)
+    expect(preedit.style.fontFamily).toBe('serif')
+    expect(preedit.style.fontSize).toBe('19px')
+    expect(preedit.style.letterSpacing).toBe('1px')
+    expect(preedit.style.lineHeight).toBe(`${recording.renderer!.fonts.at(-1)!.cssCellHeight}px`)
+
+    dispatchComposition(textarea, 'compositionend', '你好')
+    expect(decodedOutput(output)).toEqual(['你好'])
+    expect(preedit.hidden).toBe(true)
+    expect(preedit.textContent).toBe('')
+
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, 'cancel', {
+      data: 'cancel',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    terminal.reset()
+    expect(preedit.hidden).toBe(true)
+    expect(preedit.textContent).toBe('')
+
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, 'blur', {
+      data: 'blur',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    terminal.blur()
+    expect(preedit.hidden).toBe(true)
+    expect(preedit.textContent).toBe('')
+
+    terminal.focus()
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, 'dispose', {
+      data: 'dispose',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    terminal.dispose()
+    expect(preedit.hidden).toBe(true)
+    expect(preedit.textContent).toBe('')
+    expect(root.isConnected).toBe(false)
+  })
+
+  it('suppresses a post-composition Kitty release without suppressing later keys', async () => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    terminal.onData((bytes) => output.push(bytes))
+    terminal.write('\u001b[>11u')
+
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchKey(textarea, 'keydown', {
+      code: 'KeyA',
+      isComposing: true,
+      key: 'a',
+    })
+    dispatchComposition(textarea, 'compositionend', '你')
+    dispatchInput(textarea, '你', { data: '你', inputType: 'insertText', isComposing: false })
+    dispatchKey(textarea, 'keydown', { code: 'KeyA', key: 'a', repeat: true })
+    dispatchKey(textarea, 'keyup', { code: 'KeyA', key: 'a' })
+
+    expect(decodedOutput(output)).toEqual(['你'])
+
+    dispatchKey(textarea, 'keydown', { code: 'KeyB', key: 'b' })
+    dispatchKey(textarea, 'keyup', { code: 'KeyB', key: 'b' })
+    expect(decodedOutput(output)).toEqual(['你', '\u001b[98u', '\u001b[98;1:3u'])
   })
 
   it('routes paste fallbacks and focus reports without duplicate shortcut keys', async () => {
@@ -773,6 +1028,15 @@ describe.sequential('Terminal DOM host', () => {
     expect(recording.renderer?.focused).toEqual([true, false])
 
     output.length = 0
+    terminal.focus()
+    window.dispatchEvent(new Event('blur'))
+    textarea.dispatchEvent(new FocusEvent('blur'))
+    window.dispatchEvent(new Event('focus'))
+    textarea.dispatchEvent(new FocusEvent('focus'))
+    expect(decodedOutput(output)).toEqual(['\u001b[I', '\u001b[O', '\u001b[I'])
+    expect(recording.renderer?.focused.slice(-3)).toEqual([true, false, true])
+
+    output.length = 0
     const key = dispatchKey(textarea, 'keydown', { code: 'KeyA', key: 'a' })
     dispatchKey(textarea, 'keyup', { code: 'KeyA', key: 'a' })
     dispatchComposition(textarea, 'compositionstart')
@@ -800,12 +1064,15 @@ describe.sequential('Terminal DOM host', () => {
     expect(decodedOutput(output)).toEqual(['a'])
 
     const visibleAfterManual = recording.renderer!.documentVisible.length
+    const focusedAfterManual = recording.renderer!.focused.length
     terminal.dispose()
     terminal.dispose()
     dispatchKey(textarea, 'keydown', { code: 'KeyB', key: 'b' })
     textarea.ownerDocument.dispatchEvent(new Event('visibilitychange'))
+    window.dispatchEvent(new Event('blur'))
     expect(decodedOutput(output)).toEqual(['a'])
     expect(recording.renderer!.documentVisible).toHaveLength(visibleAfterManual)
+    expect(recording.renderer!.focused).toHaveLength(focusedAfterManual)
   })
 
   it('reserves copy once, suppresses repeat/release, and removes listeners on direct disposal', () => {

@@ -1,0 +1,5 @@
+# PLAN065_PATH_SENTINEL dual profile
+theme = dark:Afterglow,light:3024 Day
+background-opacity = 0.9
+background-blur = 20
+font-family = PLAN065_SECRET_SENTINEL

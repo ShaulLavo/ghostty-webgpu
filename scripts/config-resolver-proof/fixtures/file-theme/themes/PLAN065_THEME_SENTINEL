@@ -1,0 +1,3 @@
+background = #123abc
+foreground = #fedcba
+cursor-text = cell-background

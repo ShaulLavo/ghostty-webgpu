@@ -34,6 +34,7 @@ export interface DomInputControllerOptions {
   readonly copySelection?: GhosttyWebGpuTerminalCopy
   readonly hooks?: GhosttyWebGpuTerminalInputHooks
   readonly onError: (cause: unknown, operation: string) => void
+  readonly onPreedit?: (value: string) => void
   readonly platform?: DomHotkeyPlatform
   readonly session: InputSession
   readonly shortcuts?: false | readonly TerminalHotkeyBinding[]
@@ -280,8 +281,13 @@ const refusedKeyPolicy = Object.freeze({ preventDefault: false, stopPropagation:
 
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
+  private committedDuringComposition = false
   private composing = false
+  private compositionValue = ''
+  private readonly composingKeyPresses = new Set<string>()
+  private readonly deferredMacCommandPresses = new Map<string, KeyboardEvent>()
   private disposed = false
+  private readonly forwardedMacCommandPresses = new Set<string>()
   private readonly hotkeys: CompiledTerminalHotkeyBindings
   private readonly pasteShortcut: CompiledDomHotkey
   private readonly platform: DomHotkeyPlatform
@@ -330,27 +336,47 @@ class BrowserInputController implements DomInputController {
 
   private readonly handleCompositionStart = (): void => {
     if (this.disposed) return
+    this.committedDuringComposition = false
     this.composing = true
-    this.options.textarea.value = ''
+    this.setCompositionValue('')
   }
 
-  private readonly handleCompositionEnd = (): void => {
+  private readonly handleCompositionEnd = (event: CompositionEvent): void => {
     if (this.disposed) return
     this.composing = false
+    if (this.committedDuringComposition) {
+      this.committedDuringComposition = false
+      this.setCompositionValue('')
+      return
+    }
+    const value = this.compositionValue
+    this.setCompositionValue('')
+    if (value.length === 0 || value !== event.data) return
+    // UI Events updates the control before compositionend when this is the final commit.
+    this.options.textarea.value = ''
+    this.invokeSession('input', value)
   }
 
   private readonly handleInput = (event: Event): void => {
     if (this.disposed) return
     const input = event as InputEvent
-    if (input.isComposing) return
-    const value = this.committedInput(input)
+    if (input.isComposing) {
+      this.setCompositionValue(this.inputValue(input.data))
+      return
+    }
+    const value = this.takeInputValue(input.data)
     if (value.length === 0) return
+    if (this.composing) {
+      this.committedDuringComposition = true
+      this.setCompositionValue('')
+    }
     const operation = isPasteInput(input.inputType) ? 'paste' : 'input'
     this.invokeSession(operation, value)
   }
 
   private readonly handlePaste = (event: ClipboardEvent): void => {
-    if (this.disposed || !event.clipboardData) return
+    if (this.disposed) return
+    if (!event.clipboardData) return
     const value = event.clipboardData.getData('text/plain')
     event.preventDefault()
     this.options.textarea.value = ''
@@ -362,19 +388,54 @@ class BrowserInputController implements DomInputController {
     this.updateModifierTracking(event)
     const suppressedBeforeCustomHandler = this.suppressedShortcuts.has(event.code)
     const customAllowed = this.allowCustomKey(event)
-    if (suppressedBeforeCustomHandler && this.consumeSuppressedShortcut(event)) return
-    if (!customAllowed) return
-    if (this.blockDisabledKey(event)) return
-    if (this.arbitrateShortcut(event)) return
-    if (!isSupportedTerminalKeyCode(event.code)) return
+    if (suppressedBeforeCustomHandler && this.consumeSuppressedShortcut(event)) {
+      this.deferredMacCommandPresses.clear()
+      return
+    }
+    if (!customAllowed) {
+      this.deferredMacCommandPresses.clear()
+      return
+    }
+    if (this.suppressMacHostShortcut(event)) return
+    if (this.suppressComposingKeyLifecycle(event)) {
+      this.deferredMacCommandPresses.clear()
+      return
+    }
+    if (this.blockDisabledKey(event)) {
+      this.deferredMacCommandPresses.clear()
+      return
+    }
+    if (this.arbitrateShortcut(event)) {
+      this.deferredMacCommandPresses.clear()
+      return
+    }
+    if (!isSupportedTerminalKeyCode(event.code)) {
+      this.deferredMacCommandPresses.clear()
+      return
+    }
+    if (this.deferMacCommandPress(event)) return
+    this.forwardDeferredMacCommandPresses(event)
     this.encodeKey(event)
   }
 
-  private committedInput(event: InputEvent): string {
-    const textarea = this.options.textarea
-    const value = textarea.value.length > 0 ? textarea.value : (event.data ?? '')
-    textarea.value = ''
+  private inputValue(fallback: string | null): string {
+    const value = this.options.textarea.value
+    return value.length > 0 ? value : (fallback ?? '')
+  }
+
+  private takeInputValue(fallback: string | null): string {
+    const value = this.inputValue(fallback)
+    this.options.textarea.value = ''
     return value
+  }
+
+  private setCompositionValue(value: string): void {
+    this.compositionValue = value
+    try {
+      this.options.onPreedit?.(value)
+    } catch (cause) {
+      this.options.onError(cause, 'preedit')
+    }
   }
 
   private invokeSession(
@@ -406,6 +467,8 @@ class BrowserInputController implements DomInputController {
   }
 
   private clearFailedKeyLifecycle(event: KeyboardEvent): void {
+    this.composingKeyPresses.delete(event.code)
+    this.deferredMacCommandPresses.clear()
     this.pressedModifierCodes.delete(event.code)
     this.publishedKeyPresses.delete(event.code)
     this.suppressedShortcuts.delete(event.code)
@@ -502,6 +565,42 @@ class BrowserInputController implements DomInputController {
     })
   }
 
+  private deferMacCommandPress(event: KeyboardEvent): boolean {
+    if (this.platform !== 'mac') return false
+    if (modifierDefinition(event.code)?.name !== 'super') return false
+    if (event.type === 'keydown') {
+      if (!event.repeat) this.deferredMacCommandPresses.set(event.code, event)
+      return this.deferredMacCommandPresses.has(event.code)
+    }
+    if (this.deferredMacCommandPresses.delete(event.code)) return true
+    if (!this.forwardedMacCommandPresses.delete(event.code)) return true
+    return false
+  }
+
+  private forwardDeferredMacCommandPresses(event: KeyboardEvent): void {
+    if (event.type !== 'keydown') return
+    // macOS hides host-owned chord keys, so publish Command only with a terminal-owned key.
+    for (const [code, press] of this.deferredMacCommandPresses) {
+      this.deferredMacCommandPresses.delete(code)
+      this.forwardedMacCommandPresses.add(code)
+      this.encodeKey(press)
+    }
+  }
+
+  private suppressComposingKeyLifecycle(event: KeyboardEvent): boolean {
+    if (!this.composingKeyPresses.has(event.code)) return false
+    if (event.type === 'keyup') this.composingKeyPresses.delete(event.code)
+    return event.type === 'keyup' || event.repeat
+  }
+
+  private suppressMacHostShortcut(event: KeyboardEvent): boolean {
+    if (this.platform !== 'mac' || event.type !== 'keydown' || !event.metaKey) return false
+    if (event.code !== 'Tab' && event.code !== 'Space') return false
+    this.suppressInitialKey(event)
+    this.deferredMacCommandPresses.clear()
+    return true
+  }
+
   private encodeKey(event: KeyboardEvent): void {
     this.beforeUserInput()
     try {
@@ -512,6 +611,10 @@ class BrowserInputController implements DomInputController {
         this.platform === 'mac',
         this.options.hooks?.macOptionIsMeta?.() === true,
       )
+      if (event.type === 'keydown' && !event.repeat) {
+        if (input.composing) this.composingKeyPresses.add(event.code)
+        if (!input.composing) this.composingKeyPresses.delete(event.code)
+      }
       const bytes = this.options.session.key(input, {
         onEncoded: (data) => this.notifyKey(event, data),
       })
@@ -549,7 +652,12 @@ class BrowserInputController implements DomInputController {
   }
 
   resetTransientState(): void {
+    this.committedDuringComposition = false
     this.composing = false
+    this.setCompositionValue('')
+    this.composingKeyPresses.clear()
+    this.deferredMacCommandPresses.clear()
+    this.forwardedMacCommandPresses.clear()
     this.pressedModifierCodes.clear()
     this.publishedKeyPresses.clear()
     this.suppressedShortcuts.clear()
@@ -560,6 +668,7 @@ class BrowserInputController implements DomInputController {
 class BrowserInputLifecycleController implements DomInputLifecycleController {
   private readonly abortController = new AbortController()
   private disposed = false
+  private focused = false
 
   constructor(private readonly options: DomInputLifecycleControllerOptions) {
     try {
@@ -574,8 +683,11 @@ class BrowserInputLifecycleController implements DomInputLifecycleController {
   private installListeners(): void {
     const options = this.options
     const listenerOptions = { signal: this.abortController.signal }
+    const view = inputWindow(options.textarea)
     options.textarea.addEventListener('focus', this.handleFocus, listenerOptions)
     options.textarea.addEventListener('blur', this.handleBlur, listenerOptions)
+    view.addEventListener('focus', this.handleWindowFocus, listenerOptions)
+    view.addEventListener('blur', this.handleWindowBlur, listenerOptions)
     options.textarea.ownerDocument.addEventListener(
       'visibilitychange',
       this.handleVisibilityChange,
@@ -585,7 +697,8 @@ class BrowserInputLifecycleController implements DomInputLifecycleController {
       once: true,
       signal: this.abortController.signal,
     })
-    if (options.textarea.ownerDocument.activeElement === options.textarea) this.setFocused(true)
+    const document = options.textarea.ownerDocument
+    if (document.hasFocus() && document.activeElement === options.textarea) this.setFocused(true)
   }
 
   readonly dispose = (): void => {
@@ -601,8 +714,17 @@ class BrowserInputLifecycleController implements DomInputLifecycleController {
 
   private readonly handleBlur = (): void => {
     if (this.disposed) return
-    this.options.onResetTransientState?.()
-    this.setFocused(false)
+    this.handleFocusLoss()
+  }
+
+  private readonly handleWindowFocus = (): void => {
+    if (this.disposed || !this.textareaOwnsFocus()) return
+    this.setFocused(true)
+  }
+
+  private readonly handleWindowBlur = (): void => {
+    if (this.disposed || !this.textareaOwnsFocus()) return
+    this.handleFocusLoss()
   }
 
   private readonly handleVisibilityChange = (): void => {
@@ -613,12 +735,24 @@ class BrowserInputLifecycleController implements DomInputLifecycleController {
   }
 
   private setFocused(focused: boolean): void {
+    if (focused === this.focused) return
     try {
       this.options.session.setFocused(focused)
+      this.focused = focused
       this.options.onFocused?.(focused)
     } catch (cause) {
       this.options.onError(cause, 'focus')
     }
+  }
+
+  private handleFocusLoss(): void {
+    if (!this.focused) return
+    this.options.onResetTransientState?.()
+    this.setFocused(false)
+  }
+
+  private textareaOwnsFocus(): boolean {
+    return this.options.textarea.ownerDocument.activeElement === this.options.textarea
   }
 }
 

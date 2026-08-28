@@ -1,0 +1,17 @@
+# PLAN065_PATH_SENTINEL visual projection
+background = #102030
+foreground = gold
+cursor-color = cell-foreground
+cursor-text = cell-background
+selection-background = cell-foreground
+selection-foreground = cell-background
+minimum-contrast = 4.5
+palette = 1=#010203
+palette = 42=#123456
+palette-generate = true
+palette-harmonious = true
+background-opacity = 0.75
+background-opacity-cells = true
+background-blur = true
+window-colorspace = display-p3
+font-family = PLAN065_SECRET_SENTINEL

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "decision": "FAIL",
+  "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+  "upstreamRevision": "c8554f28e0efe2f5595f32020371c34b25ec628f",
+  "zigVersion": "0.16.0",
+  "reportSha256": "7832174a63ab00cc5909bbe0de6f05f33fe563375765cbe01c10a261923dec28",
+  "checks": {
+    "officialReadOnlyGraph": "pass",
+    "absentNoWrite": "pass",
+    "deleteRaceNoWrite": "incomplete",
+    "renameRaceNoWrite": "incomplete",
+    "privacy": "incomplete",
+    "displayP3Vectors": "incomplete"
+  },
+  "matrix": {
+    "darwin-arm64": {
+      "runId": "1",
+      "runAttempt": 1,
+      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
+      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "sourceDateEpoch": 1787590337,
+      "runner": {
+        "os": "darwin",
+        "arch": "arm64",
+        "image": "not-run-after-global-stop",
+        "imageVersion": "not-run-after-global-stop"
+      },
+      "toolchain": {
+        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "nativeExecution": "incomplete",
+      "artifactSha256": null,
+      "artifactBytes": 0,
+      "semanticFixtures": "incomplete",
+      "noWriteFixtures": "incomplete",
+      "dependencies": "incomplete",
+      "compatibilityProbe": "incomplete",
+      "relocation": "incomplete"
+    },
+    "darwin-x64": {
+      "runId": "1",
+      "runAttempt": 1,
+      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
+      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "sourceDateEpoch": 1787590337,
+      "runner": {
+        "os": "darwin",
+        "arch": "x64",
+        "image": "not-run-after-global-stop",
+        "imageVersion": "not-run-after-global-stop"
+      },
+      "toolchain": {
+        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "nativeExecution": "incomplete",
+      "artifactSha256": null,
+      "artifactBytes": 0,
+      "semanticFixtures": "incomplete",
+      "noWriteFixtures": "incomplete",
+      "dependencies": "incomplete",
+      "compatibilityProbe": "incomplete",
+      "relocation": "incomplete"
+    },
+    "linux-arm64": {
+      "runId": "1",
+      "runAttempt": 1,
+      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
+      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "sourceDateEpoch": 1787590337,
+      "runner": {
+        "os": "linux",
+        "arch": "arm64",
+        "image": "not-run-after-global-stop",
+        "imageVersion": "not-run-after-global-stop"
+      },
+      "toolchain": {
+        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "nativeExecution": "incomplete",
+      "artifactSha256": null,
+      "artifactBytes": 0,
+      "semanticFixtures": "incomplete",
+      "noWriteFixtures": "incomplete",
+      "dependencies": "incomplete",
+      "compatibilityProbe": "incomplete",
+      "relocation": "incomplete"
+    },
+    "linux-x64": {
+      "runId": "1",
+      "runAttempt": 1,
+      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
+      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "sourceDateEpoch": 1787590337,
+      "runner": {
+        "os": "linux",
+        "arch": "x64",
+        "image": "not-run-after-global-stop",
+        "imageVersion": "not-run-after-global-stop"
+      },
+      "toolchain": {
+        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "nativeExecution": "incomplete",
+      "artifactSha256": null,
+      "artifactBytes": 0,
+      "semanticFixtures": "incomplete",
+      "noWriteFixtures": "incomplete",
+      "dependencies": "incomplete",
+      "compatibilityProbe": "incomplete",
+      "relocation": "incomplete"
+    }
+  },
+  "ceilings": {
+    "perTargetBytes": {
+      "darwin-arm64": 1,
+      "darwin-x64": 1,
+      "linux-arm64": 1,
+      "linux-x64": 1
+    },
+    "totalPackageBytes": 1,
+    "operatorAcceptance": "pending"
+  }
+}

@@ -17,6 +17,7 @@ import type {
   TerminalInputResult,
   TerminalKeyInput,
   TerminalMutationResult,
+  TerminalRendererTheme,
   TerminalSessionSubscription,
   TerminalTheme,
 } from '../term/types.js'
@@ -154,6 +155,26 @@ function leadingCursorColumn(snapshot: RendererFrameSnapshot): number | undefine
   if (!viewport) return undefined
   if (!viewport.wideTail) return viewport.x
   return Math.max(0, viewport.x - 1)
+}
+
+function cssRgb(color: TerminalRendererTheme['foreground']): string {
+  return `rgb(${color.r} ${color.g} ${color.b})`
+}
+
+function applyPreeditAppearance(
+  element: HTMLElement,
+  font: TerminalFittedFont,
+  theme: TerminalRendererTheme,
+): void {
+  element.style.backgroundColor = cssRgb(theme.background)
+  element.style.color = cssRgb(theme.foreground)
+  element.style.fontFamily = font.settings.family
+  element.style.fontSize = `${font.settings.size}px`
+  element.style.fontWeight = `${font.settings.weight}`
+  element.style.letterSpacing = `${font.settings.letterSpacing}px`
+  element.style.lineHeight = `${font.cssCellHeight}px`
+  element.style.minHeight = `${font.cssCellHeight}px`
+  element.style.minWidth = `${font.cssCellWidth}px`
 }
 
 function owningWindow(element: HTMLElement): Window {
@@ -507,6 +528,7 @@ export class Terminal {
 
   reset(): TerminalMutationResult {
     this.ensureOpen()
+    this.input?.resetTransientState()
     this.pointer?.cancel()
     return this.session.reset()
   }
@@ -668,6 +690,8 @@ export class Terminal {
       effectivePixelRatio(elements.canvas, this.fitEnvironment),
     )
     this.fittedFont = font
+    const compositionView = elements.compositionView
+    if (compositionView) applyPreeditAppearance(compositionView, font, appearance.rendererTheme)
     return this.rendererFactory(
       {
         canvas: elements.canvas,
@@ -695,6 +719,8 @@ export class Terminal {
       effectivePixelRatio(elements.canvas, this.fitEnvironment),
     )
     this.fittedFont = font
+    const compositionView = elements.compositionView
+    if (compositionView) applyPreeditAppearance(compositionView, font, appearance.rendererTheme)
     this.renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     this.renderer?.setFont(font)
     this.renderer?.setTheme(appearance.rendererTheme)
@@ -804,6 +830,7 @@ export class Terminal {
         copySelection,
         hooks: this.inputHooks,
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
+        onPreedit: (value) => this.updatePreedit(value),
         session: this.session,
         shortcuts: this.keyboard?.shortcuts,
         signal: elements.signal,
@@ -896,6 +923,7 @@ export class Terminal {
     const scrollbarWidthChanged = this.scrollbar?.setWidth(result.scrollbarWidth) === true
     this.renderer?.setFont(result.font)
     this.fittedFont = result.font
+    this.updatePreeditAppearance(result.font, this.session.appearance.rendererTheme)
     this.layoutCommitted = true
     if (paddingChanged || scrollbarWidthChanged) this.invalidateLinks()
     this.session.resize(result.grid)
@@ -909,6 +937,7 @@ export class Terminal {
     const grid = this.session.grid
     this.renderer?.setFont(font)
     this.fittedFont = font
+    this.updatePreeditAppearance(font, this.session.appearance.rendererTheme)
     this.layoutCommitted = true
     this.session.resize({
       cellHeight: font.cssCellHeight,
@@ -937,6 +966,7 @@ export class Terminal {
     const renderer = this.renderer
     renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     renderer?.setTheme(appearance.rendererTheme)
+    this.updatePreeditAppearance(this.fittedFont, appearance.rendererTheme)
     if (this.autoFit) this.fit?.setFont(appearance.font)
     if (!this.autoFit) {
       this.runUiOperation('appearance.font', () => this.remeasureFixedFont(appearance.font))
@@ -1137,6 +1167,23 @@ export class Terminal {
       x: elements.padding.left + column * grid.cellWidth,
       y: elements.padding.top + viewport.y * grid.cellHeight,
     })
+  }
+
+  private updatePreedit(value: string): void {
+    const compositionView = this.elementsValue?.compositionView
+    if (!compositionView) return
+    compositionView.textContent = value
+    compositionView.classList.toggle('active', value.length > 0)
+    compositionView.hidden = value.length === 0
+  }
+
+  private updatePreeditAppearance(
+    font: TerminalFittedFont | undefined,
+    theme: TerminalRendererTheme,
+  ): void {
+    const compositionView = this.elementsValue?.compositionView
+    if (!compositionView || !font) return
+    applyPreeditAppearance(compositionView, font, theme)
   }
 
   private reportError(cause: unknown, operation: string): void {

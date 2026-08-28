@@ -13,8 +13,11 @@
     "dist",
     "coverage",
     "bun.lock",
+    "docs/config-resolver-feasibility.json",
+    "docs/config-resolver-feasibility.md",
     "docs/xterm-parity.json",
     "docs/xterm-parity.md",
+    "scripts/config-resolver-proof/proof-recipe.json",
     "src/xterm/css/xterm.css",
     "references/xterm.js",
     "*.tsbuildinfo"

@@ -1,5 +1,5 @@
 import { realpathSync } from 'node:fs'
-import { delimiter, basename, join } from 'node:path'
+import { delimiter, basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -16,7 +16,7 @@ import {
 import { MAX_PTY_INPUT_BYTES, parseClientMessage } from './protocol.js'
 
 const DEMO_ROOT = fileURLToPath(new URL('../', import.meta.url))
-const REPOSITORY_ROOT = fileURLToPath(new URL('../../', import.meta.url))
+export const DEFAULT_PTY_CWD = dirname(DEMO_ROOT)
 const BRIDGE_MODULE = fileURLToPath(new URL('./pty-bridge.mjs', import.meta.url))
 const INITIAL_COLS = 80
 const INITIAL_ROWS = 24
@@ -73,7 +73,7 @@ export async function startDemoServer(options: DemoServerOptions = {}): Promise<
   const assets = await loadAssets()
   const nodeBinary = resolveNodeBinary(options.nodeBinary)
   const sessions = new Set<PtyBridge>()
-  const ptyCwd = options.ptyCwd ?? REPOSITORY_ROOT
+  const ptyCwd = options.ptyCwd ?? DEFAULT_PTY_CWD
   const context = { assets, authority, nodeBinary, ptyCwd, sessions }
   const server = createHttpServer(context)
   let stopped = false
@@ -212,8 +212,8 @@ async function loadAssets(): Promise<DemoAssets> {
   const [html, client, ghosttyWasm, bridgeWasm] = await Promise.all([
     readTextAsset(join(DEMO_ROOT, 'index.html')),
     buildClient(),
-    readBlobAsset(join(REPOSITORY_ROOT, 'ghostty-vt.wasm')),
-    readBlobAsset(join(REPOSITORY_ROOT, 'bridge.wasm')),
+    readBlobAsset(join(DEFAULT_PTY_CWD, 'ghostty-vt.wasm')),
+    readBlobAsset(join(DEFAULT_PTY_CWD, 'bridge.wasm')),
   ])
   return { bridgeWasm, client, ghosttyWasm, html }
 }
