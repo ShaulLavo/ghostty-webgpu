@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghostty-webgpu.invalid/config-resolver-proof-stop-recipe.schema.json",
+  "$id": "https://ghostty-webgpu.invalid/config-resolver-proof-macos-no-write-stop-recipe.schema.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,7 +14,7 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "sourceDateEpoch": { "type": "integer", "minimum": 946684800, "maximum": 4102444800 },
-    "stopCondition": { "const": "official-config-init-retains-gui-runtime" },
+    "stopCondition": { "const": "macos-default-path-builder-can-create-directory" },
     "targets": {
       "type": "object",
       "additionalProperties": false,

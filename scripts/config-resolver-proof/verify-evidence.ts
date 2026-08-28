@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const TARGETS = ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64'] as const
 const RESULT_VALUES = ['pass', 'fail', 'incomplete'] as const
-const HEAD = '3c3e07edef23cdbbe141410432e89276cb6504b2'
+const HEAD = 'a92108fd06d43b9e66e114ef4a863b669dd6624f'
 const UPSTREAM_REVISION = 'c8554f28e0efe2f5595f32020371c34b25ec628f'
 const UPSTREAM_TREE_SHA256 = '63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb'
 const ZIG_VERSION = '0.16.0'
@@ -104,7 +104,7 @@ function verifyStopRecipe(raw: Buffer): { readonly value: JsonObject; readonly s
   )
   if (value.schemaVersion !== 1) fail('recipe schemaVersion must be 1')
   if (value.sourceDateEpoch !== SOURCE_DATE_EPOCH) fail('recipe sourceDateEpoch does not match')
-  if (value.stopCondition !== 'official-config-init-retains-gui-runtime') {
+  if (value.stopCondition !== 'macos-default-path-builder-can-create-directory') {
     fail('recipe stop condition does not match')
   }
   if (value.zigVersion !== ZIG_VERSION) fail('recipe Zig version does not match')

@@ -1,25 +1,25 @@
 {
   "schemaVersion": 1,
   "decision": "FAIL",
-  "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+  "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
   "upstreamRevision": "c8554f28e0efe2f5595f32020371c34b25ec628f",
   "zigVersion": "0.16.0",
-  "reportSha256": "7832174a63ab00cc5909bbe0de6f05f33fe563375765cbe01c10a261923dec28",
+  "reportSha256": "944e4f1ee38562676458003cfebe76ce85add1eb137a22be329701f3589a0c1b",
   "checks": {
-    "officialReadOnlyGraph": "pass",
-    "absentNoWrite": "pass",
+    "officialReadOnlyGraph": "fail",
+    "absentNoWrite": "fail",
     "deleteRaceNoWrite": "incomplete",
     "renameRaceNoWrite": "incomplete",
-    "privacy": "incomplete",
-    "displayP3Vectors": "incomplete"
+    "privacy": "pass",
+    "displayP3Vectors": "pass"
   },
   "matrix": {
     "darwin-arm64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "darwin",
@@ -45,9 +45,9 @@
     "darwin-x64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "darwin",
@@ -73,9 +73,9 @@
     "linux-arm64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "linux",
@@ -101,9 +101,9 @@
     "linux-x64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "3c3e07edef23cdbbe141410432e89276cb6504b2",
+      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "3076a879ef28018257392dbaa7fa8deb995335f33e342188aa4118829b25f734",
+      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "linux",

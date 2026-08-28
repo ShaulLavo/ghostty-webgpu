@@ -219,8 +219,10 @@ function computeUpstreamTreeSha256(upstream: string): {
   return { sha256: hash.digest('hex'), entries: records.length }
 }
 
-function auditConfigBuildBoundary(upstream: string): void {
+function auditConfigBoundary(upstream: string): void {
   const global = readFileSync(join(upstream, 'src/global.zig'), 'utf8')
+  const fileLoad = readFileSync(join(upstream, 'src/config/file_load.zig'), 'utf8')
+  const macos = readFileSync(join(upstream, 'src/os/macos.zig'), 'utf8')
   const sharedDeps = readFileSync(join(upstream, 'src/build/SharedDeps.zig'), 'utf8')
   const rendererBackend = readFileSync(join(upstream, 'src/renderer/backend.zig'), 'utf8')
   const proofMain = readFileSync(join(import.meta.dirname, 'main.zig'), 'utf8')
@@ -253,6 +255,26 @@ function auditConfigBuildBoundary(upstream: string): void {
   if (!proofMain.includes('config.loadOptionalFile(alloc, candidate.?)')) {
     throw new ProofFailure('accepted read-only load composition changed')
   }
+  if (!proofMain.includes('file_load.legacyDefaultAppSupportPath(alloc)')) {
+    throw new ProofFailure('legacy Application Support candidate changed')
+  }
+  if (!proofMain.includes('file_load.preferredAppSupportPath(alloc)')) {
+    throw new ProofFailure('preferred Application Support candidate changed')
+  }
+  if (!fileLoad.includes('internal_os.macos.appSupportDir(alloc, "config.ghostty")')) {
+    throw new ProofFailure('current Application Support path builder changed')
+  }
+  if (!fileLoad.includes('internal_os.macos.appSupportDir(alloc, "config")')) {
+    throw new ProofFailure('legacy Application Support path builder changed')
+  }
+  if (
+    !macos.includes('objc.sel("URLForDirectory:inDomain:appropriateForURL:create:error:"),') ||
+    !macos.includes(
+      '@as(?*anyopaque, null),\n            true,\n            @as(?*anyopaque, null),',
+    )
+  ) {
+    throw new ProofFailure('macOS directory-creating path boundary changed')
+  }
   if (!proofBuild.includes('_ = try deps.add(exe);')) {
     throw new ProofFailure('proof does not use upstream SharedDeps')
   }
@@ -262,12 +284,12 @@ function main(): void {
   const args = parseArguments(process.argv.slice(2))
   const { zigSha256 } = assertImmutableInputs(args)
   const upstreamTree = computeUpstreamTreeSha256(args.upstream)
-  auditConfigBuildBoundary(args.upstream)
+  auditConfigBoundary(args.upstream)
 
   const evidence = {
     proofSchemaVersion: 1,
     status: 'fail',
-    reason: 'official-config-init-retains-gui-runtime',
+    reason: 'macos-default-path-builder-can-create-directory',
     upstreamRevision: UPSTREAM_REVISION,
     upstreamTreeSha256: upstreamTree.sha256,
     upstreamTreeEntries: upstreamTree.entries,
@@ -277,15 +299,18 @@ function main(): void {
     checks: {
       checkoutClean: true,
       acceptedReadOnlyComposition: true,
+      acceptedHeavyHelperGraph: true,
+      macosPathBuilderPassesCreateTrue: true,
       toolInitCallsGlslang: true,
       sharedDepsLinksRendererStack: true,
-      rendererFreeOfficialBackend: false,
       fourTargetMatrixRequired: true,
     },
   } as const
 
   writeFileSync(args.evidence, `${JSON.stringify(evidence, null, 2)}\n`, { flag: 'wx' })
-  process.stdout.write('{"decision":"FAIL","reason":"official-config-init-retains-gui-runtime"}\n')
+  process.stdout.write(
+    '{"decision":"FAIL","reason":"macos-default-path-builder-can-create-directory"}\n',
+  )
 }
 
 try {
