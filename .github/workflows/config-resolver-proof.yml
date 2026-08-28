@@ -167,7 +167,7 @@ jobs:
             echo 'Bun version does not match the workflow pin' >&2
             exit 1
           fi
-          proof_root="$RUNNER_TEMP/config-resolver-proof-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$PROOF_TARGET"
+          proof_root="$RUNNER_TEMP/config-resolver-proof-v1"
           if [[ -e "$proof_root" ]]; then
             echo 'isolated proof root already exists' >&2
             exit 1
@@ -301,7 +301,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: config-resolver-${{ inputs.phase }}-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/config-resolver-proof-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.target }}/evidence/${{ matrix.target }}.json
+          path: ${{ runner.temp }}/config-resolver-proof-v1/evidence/${{ matrix.target }}.json
           if-no-files-found: error
           include-hidden-files: false
           retention-days: 7
