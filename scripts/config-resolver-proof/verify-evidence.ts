@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const TARGETS = ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64'] as const
 const RESULT_VALUES = ['pass', 'fail', 'incomplete'] as const
-const HEAD = 'a92108fd06d43b9e66e114ef4a863b669dd6624f'
+const HEAD = '09b235e580432cb5e4a266ca8129fae8b6961a8b'
 const UPSTREAM_REVISION = 'c8554f28e0efe2f5595f32020371c34b25ec628f'
 const UPSTREAM_TREE_SHA256 = '63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb'
 const ZIG_VERSION = '0.16.0'

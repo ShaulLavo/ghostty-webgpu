@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
-  "decision": "FAIL",
-  "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
+  "decision": "INCOMPLETE",
+  "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
   "upstreamRevision": "c8554f28e0efe2f5595f32020371c34b25ec628f",
   "zigVersion": "0.16.0",
-  "reportSha256": "944e4f1ee38562676458003cfebe76ce85add1eb137a22be329701f3589a0c1b",
+  "reportSha256": "8459a63b6ee831f5668a422cea0f779cc4e526c3eb6151721828dd302b5de995",
   "checks": {
-    "officialReadOnlyGraph": "fail",
-    "absentNoWrite": "fail",
+    "officialReadOnlyGraph": "pass",
+    "absentNoWrite": "incomplete",
     "deleteRaceNoWrite": "incomplete",
     "renameRaceNoWrite": "incomplete",
-    "privacy": "pass",
+    "privacy": "incomplete",
     "displayP3Vectors": "pass"
   },
   "matrix": {
     "darwin-arm64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
+      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
+      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "darwin",
         "arch": "arm64",
-        "image": "not-run-after-global-stop",
-        "imageVersion": "not-run-after-global-stop"
+        "image": "pending-native-run",
+        "imageVersion": "pending-native-run"
       },
       "toolchain": {
         "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -45,15 +45,15 @@
     "darwin-x64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
+      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
+      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "darwin",
         "arch": "x64",
-        "image": "not-run-after-global-stop",
-        "imageVersion": "not-run-after-global-stop"
+        "image": "pending-native-run",
+        "imageVersion": "pending-native-run"
       },
       "toolchain": {
         "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -73,15 +73,15 @@
     "linux-arm64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
+      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
+      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "linux",
         "arch": "arm64",
-        "image": "not-run-after-global-stop",
-        "imageVersion": "not-run-after-global-stop"
+        "image": "pending-native-run",
+        "imageVersion": "pending-native-run"
       },
       "toolchain": {
         "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -101,15 +101,15 @@
     "linux-x64": {
       "runId": "1",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "a92108fd06d43b9e66e114ef4a863b669dd6624f",
+      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92",
+      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "linux",
         "arch": "x64",
-        "image": "not-run-after-global-stop",
-        "imageVersion": "not-run-after-global-stop"
+        "image": "pending-native-run",
+        "imageVersion": "pending-native-run"
       },
       "toolchain": {
         "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",

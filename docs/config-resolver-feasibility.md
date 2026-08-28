@@ -2,25 +2,23 @@
 
 ## 1. Summary
 
-Decision: **FAIL**.
+Decision: **INCOMPLETE**.
 
 The two operator-accepted divergences are viable. The proof can enumerate fixed default candidates
 instead of calling Ghostty's template-writing aggregate, and the resulting 8.3 MB stripped helper
 can be treated as a platform-specific optional host dependency. The retained GUI/shader graph is
 therefore measured packaging weight, not this decision's blocker.
 
-The decisive no-write gate fails on macOS. Both pinned Application Support candidate builders reach
-`src/os/macos.zig::commonDir`, which sends Foundation
-`URLForDirectory:inDomain:appropriateForURL:create:error:` with `create` set to `true`. Candidate
-discovery can therefore create the Application Support directory under an otherwise empty isolated
-home before the helper attempts to open a config. This violates the required structural guarantee
-that config discovery creates no file or directory.
+The next audit found that both pinned Application Support candidate builders reach
+`src/os/macos.zig::commonDir`, which asks Foundation to create the directory. The operator clarified
+that this is not a terminal gate: it refines the accepted fixed-candidate divergence. Proof source
+`09b235e580432cb5e4a266ca8129fae8b6961a8b` now skips both create-capable builders and derives the
+fixed legacy/current paths lexically from `HOME` plus the pinned Application Support suffixes. The
+first filesystem operation remains Ghostty's read-only optional-file load.
 
-Pre-creating that directory in the fixture would hide the write. Reimplementing the macOS candidate
-path with `HOME`, another Foundation call, or copied Ghostty logic would be a third divergence that
-was not authorized. No TypeScript parser, installed Ghostty, maintained fork, upstream patch, or
-weaker target matrix was substituted. The four native rows remain incomplete after the global
-failure and Plans 066–067 remain blocked.
+The corrected helper compiles and its source boundary audit passes, but the revised macOS no-write
+races and complete four-native-target evidence have not yet been observed. No unobserved row is
+promoted. Plans 066–067 remain blocked until a complete `Decision: PASS`.
 
 ## 2. Exact inputs and proof commands
 
@@ -28,8 +26,8 @@ failure and Plans 066–067 remain blocked.
   `ghostty-webgpu` `3c3e07edef23cdbbe141410432e89276cb6504b2`.
 - Final Platform checkout after concurrent repository updates:
   `4b34a1e97e6c6dd953df715aa40778f98b6ccf1e`.
-- Final `ghostty-webgpu` checkout after the proof files were concurrently committed:
-  `a92108fd06d43b9e66e114ef4a863b669dd6624f`.
+- Corrected proof-source checkout:
+  `09b235e580432cb5e4a266ca8129fae8b6961a8b`.
 - Ghostty: `https://github.com/ghostty-org/ghostty.git` at
   `c8554f28e0efe2f5595f32020371c34b25ec628f`.
 - Canonical `ghostty-upstream-tree-v1` SHA-256:
@@ -38,7 +36,9 @@ failure and Plans 066–067 remain blocked.
   `70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00`; its extracted executable
   has SHA-256 `2317bbb91798556d9d0f38aabdac23db83f0979b25f767259ae474546724087c`.
 - Shared `SOURCE_DATE_EPOCH`: `1787590337`, the pinned Ghostty commit timestamp.
-- Stop-recipe SHA-256: `b8d7325dd825696614c8481d3293b9c3750f29960ec0154d262d800a5f4d4c92`.
+- Interim progress-recipe SHA-256:
+  `475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71`. Its empty native-run
+  identities are pending placeholders and cannot satisfy `--require-pass`.
 - Built-in theme archive:
   `https://deps.files.ghostty.org/ghostty-themes-release-20260810-152212-0173c3c.tgz`, 78,218 bytes,
   SHA-256 `ea9878471420ee5b12e7f2ff480099c954ea50e573a1bdf83f43e105c9be63f0`.
@@ -46,19 +46,20 @@ failure and Plans 066–067 remain blocked.
   `33d56b070be6a9e3da0ab013038b43d1645d0534ca811ecdba4472599117eb4b`; Node 26.7.0 SHA-256
   `ad19784f7e90ba789a099eccba77ede8dc90a778c424f1c10a70fed3ff903fdc`; GNU strip 2.47 SHA-256
   `0a545ad873bc63f047e63106b9a0b069e40bd49339ab3b329c23184d5bf2df29`.
-- Native matrix runner images: none. The macOS no-write failure is structural and stops the proof
-  before a four-target workflow is authorized or useful.
+- Native matrix runner images: pending. The corrected boundary must still be exercised on all four
+  native runners before the recipe and matrix can become final evidence.
 
-The non-writing decision command was:
+The corrected non-writing boundary command is:
 
 ```text
 bun scripts/config-resolver-proof/run.ts --upstream /tmp/plan-065.fOoEIf/ghostty --zig /tmp/plan-065.fOoEIf/zig-x86_64-linux-0.16.0/zig --zig-archive /tmp/plan-065.fOoEIf/zig-x86_64-linux-0.16.0.tar.xz --evidence <new-temporary-file>
 ```
 
-It required the exact Zig version and archive, a clean detached upstream checkout, SHA-1 Git object
+It requires the exact Zig version and archive, a clean detached upstream checkout, SHA-1 Git object
 format, the exact upstream revision and canonical tree digest, the accepted optional-heavy build
 graph, the proof's read-only file-loader composition, and the pinned macOS `create: true` call. It
-emitted `macos-default-path-builder-can-create-directory`.
+also rejects either create-capable builder in proof source and freezes the lexical candidates. It
+emits `INCOMPLETE` while the full native recipe and matrix remain pending.
 
 The successful native Linux x64 build command was:
 
@@ -140,8 +141,9 @@ The demonstrated sequence is:
 1. call `global.init(.tool)` and retain `global.deinit` for process teardown;
 2. allocate `Config.default`;
 3. enumerate legacy XDG then current XDG through upstream path builders;
-4. on macOS, enumerate legacy Application Support then upstream `preferredAppSupportPath`, skipping
-   the second load when it equals legacy;
+4. on macOS, derive legacy then current Application Support candidates lexically from `HOME`,
+   `Library/Application Support/com.mitchellh.ghostty`, and the pinned filenames without invoking
+   either create-capable upstream path builder;
 5. pass each candidate only to `Config.loadOptionalFile`;
 6. return `not-configured` if none loaded, without calling `Config.loadDefaultFiles`, `Config.load`,
    or `writeConfigTemplate`;
@@ -151,10 +153,9 @@ The demonstrated sequence is:
    `Config.clone` when the transition returns `null`; and
 10. deinitialize dark, light, then global state.
 
-The conditional and clone ownership paths passed under native execution and ordinary allocator
-teardown. The blocker occurs in step 4: `legacyDefaultAppSupportPath` and
-`preferredAppSupportPath` both reach `appSupportDir`, whose Foundation request passes `true` for the
-`create` parameter before any `loadOptionalFile` call.
+The conditional and clone ownership paths passed under native Linux execution and ordinary
+allocator teardown. The corrected step 4 compiles and is source-audited, but its native macOS
+execution and no-write races remain unobserved.
 
 ## 5. Semantic fixture results
 
@@ -210,7 +211,7 @@ candidate discovery, deletes or renames each XDG candidate before open, and prov
 `not-configured` with unchanged roots. The helper contains no call to Ghostty's template-writing
 aggregate.
 
-macOS fails before those reads. At the exact pin:
+The audit found the macOS builders that must be skipped. At the exact pin:
 
 ```text
 src/config/file_load.zig:63-70
@@ -223,9 +224,11 @@ src/os/macos.zig:124-133
 ```
 
 Foundation's requested behavior is to create the requested directory when it does not exist. The
-mandatory fixture begins with an empty isolated home, so path discovery itself is not read-only.
-The verifier deliberately does not pre-create `Library/Application Support`; doing so would make
-the observation impossible rather than make the implementation safe.
+corrected helper therefore calls neither builder. It joins the fixed suffix beneath the explicit
+isolated `HOME` without opening or creating anything, then passes the two filenames to
+`loadOptionalFile`. The existing harness already begins with no `Library/Application Support`
+directory, so the native macOS runs can directly prove whether the corrected discovery leaves the
+root unchanged. Those runs are still pending and are not recorded as PASS.
 
 All executed output was one bounded JSON value of at most 128 KiB and stderr was empty. Recursive
 strict validation rejected unknown keys and out-of-range values. The harness scanned stdout and
@@ -235,19 +238,20 @@ privacy suite passed under Bun and Node.
 
 ## 7. Four-target evidence
 
-The exact required matrix remains intact. A global no-write failure makes every native row
-incomplete; the local Linux result is supporting evidence only and is not substituted for the
-required four-runner matrix.
+The exact required matrix remains intact. The local Linux result is supporting evidence only and is
+not substituted for the required four-runner matrix. Every row remains incomplete until the
+corrected proof source is built and executed on its native runner.
 
 | Target | Runner | Artifact hash / bytes | Dependencies | Native execution | Semantics | No-write | Compatibility | Relocation |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `darwin-arm64` | not run after global STOP | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
-| `darwin-x64` | not run after global STOP | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
-| `linux-arm64` | not run after global STOP | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
+| `darwin-arm64` | pending native run | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
+| `darwin-x64` | pending native run | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
+| `linux-arm64` | pending native run | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
 | `linux-x64` | local supporting run only | `null` / 0 in matrix | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
 
-No workflow was added or run. Committing, pushing, or dispatching one was not authorized, and native
-matrix work cannot turn a structural macOS write into `PASS`.
+No workflow has run against the corrected proof source. The interim recipe deliberately carries
+pending runner identities and zero tool hashes, so the strict verifier cannot promote this matrix
+to PASS. A complete dispatch-only recipe/workflow remains part of the active Plan 065 execution.
 
 ## 8. Proposed package layout, size ceiling, and runtime selection
 
@@ -257,9 +261,9 @@ dynamically resolve and spawn only the matching optional package after the regis
 feature is enabled. Missing optional bytes must preserve the existing appearance without a config
 read, subprocess, runtime download, or startup failure.
 
-No package ceiling is proposed or accepted because the no-write contract fails. The strict JSON's
-positive one-byte values are early-FAIL sentinels required by the fixed evidence shape; they are not
-shipping recommendations.
+No package ceiling is proposed or accepted yet. The strict JSON's positive one-byte values are
+pending sentinels required by the evidence shape; they are not shipping recommendations. Native
+artifact measurements and explicit operator acceptance remain required.
 
 ## 9. Known fidelity degradations and fallback recommendations
 
@@ -267,30 +271,26 @@ The visual projection itself has no observed Linux fidelity gap for the required
 cell-relative colors remain tagged rather than being guessed. Plan 066 would still need to choose a
 deterministic browser fallback for those tags and apply the frozen Display-P3 conversion.
 
-The narrow fix is upstream: add a read-only Config candidate API whose macOS directory lookup uses
-`create: false`, or expose a Config resolver that accepts already discovered candidates while
-preserving official precedence. If a future Ghostty fork is ever considered, first prefer
-contributing that read-only path boundary and a Config-only initializer/build target upstream. The
-optional-heavy-helper allowance does not authorize a fork and is not the preferred long-term graph.
-
-Until such an upstream boundary exists, retaining the current Platform appearance is the only
-authorized fallback. An installed Ghostty command, TypeScript parser, copied macOS path algorithm,
-runtime download, or startup-time probe is not an acceptable substitute.
+The preferred upstream improvement remains a read-only Config candidate API whose macOS directory
+lookup uses `create: false`, or a resolver that accepts already discovered candidates while
+preserving official precedence. The accepted interim boundary derives only the frozen default
+paths; it does not copy parsing, include, theme, conditional, diagnostic, color, or palette logic.
+An installed Ghostty command, TypeScript parser, runtime download, or startup-time probe remains
+outside the proof.
 
 ## 10. Blockers and residual risks
 
-- Blocking fact: both official macOS Application Support candidate builders call a Foundation API
-  with `create: true`; candidate discovery can write beneath an empty isolated home.
-- Avoiding that write requires changing upstream, copying/altering path policy, or authorizing a
-  third divergence. None is in scope.
+- Both official macOS Application Support candidate builders call a Foundation API with
+  `create: true`; corrected proof source skips them under the accepted fixed-candidate divergence.
+- Native macOS absent-root and delete/rename race results for the corrected source are pending.
 - The GUI/shader dependencies remain heavy but bounded under the accepted optional-helper
   divergence. A future upstream Config-only target is still preferred before any fork.
-- The four native target, macOS dependency, and macOS compatibility rows were not run after the
-  decisive global no-write failure. They remain incomplete rather than inferred.
+- The four native target, dependency, compatibility, relocation, and final privacy rows have not
+  been run against the corrected source. They remain incomplete rather than inferred.
 - The requested never-nester skill file was absent from this Linux host and no alternate copy was
   discoverable. The equivalent guard-clause, shallow-nesting, loop-inversion, and no-`else` rules in
   both repository instructions were applied.
 - Existing user work outside the proof paths was preserved. No commit, push, publish, package API
   edit, Platform source edit, or Plan 066–067 execution was performed by this proof run.
 
-Decision: FAIL
+Decision: INCOMPLETE
