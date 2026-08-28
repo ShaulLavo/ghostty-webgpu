@@ -92,20 +92,23 @@ function expectedTarget(target: ProofTarget): { readonly os: string; readonly ar
   return { os: 'linux', arch: target.endsWith('arm64') ? 'arm64' : 'x64' }
 }
 
-function verifyStopRecipe(raw: Buffer): { readonly value: JsonObject; readonly sha256: string } {
+function verifyProgressRecipe(raw: Buffer): {
+  readonly value: JsonObject
+  readonly sha256: string
+} {
   const value = asObject(JSON.parse(raw.toString('utf8')), 'recipe')
   const canonical = `${canonicalize(value)}\n`
   if (!raw.equals(Buffer.from(canonical))) fail('recipe is not canonical JSON plus one LF')
 
   assertKeys(
     value,
-    ['schemaVersion', 'sourceDateEpoch', 'stopCondition', 'targets', 'upstream', 'zigVersion'],
+    ['acceptedBoundary', 'schemaVersion', 'sourceDateEpoch', 'targets', 'upstream', 'zigVersion'],
     'recipe',
   )
   if (value.schemaVersion !== 1) fail('recipe schemaVersion must be 1')
   if (value.sourceDateEpoch !== SOURCE_DATE_EPOCH) fail('recipe sourceDateEpoch does not match')
-  if (value.stopCondition !== 'macos-default-path-builder-can-create-directory') {
-    fail('recipe stop condition does not match')
+  if (value.acceptedBoundary !== 'macos-create-capable-path-builders-skipped') {
+    fail('recipe accepted boundary does not match')
   }
   if (value.zigVersion !== ZIG_VERSION) fail('recipe Zig version does not match')
 
@@ -119,11 +122,11 @@ function verifyStopRecipe(raw: Buffer): { readonly value: JsonObject; readonly s
 
   const targets = asObject(value.targets, 'recipe targets')
   assertKeys(targets, TARGETS, 'recipe targets')
-  for (const target of TARGETS) verifyStopRecipeTarget(targets[target], target)
+  for (const target of TARGETS) verifyProgressRecipeTarget(targets[target], target)
   return { value, sha256: sha256(raw) }
 }
 
-function verifyStopRecipeTarget(value: unknown, target: ProofTarget): void {
+function verifyProgressRecipeTarget(value: unknown, target: ProofTarget): void {
   const record = asObject(value, `recipe ${target}`)
   assertKeys(
     record,
@@ -144,12 +147,12 @@ function verifyStopRecipeTarget(value: unknown, target: ProofTarget): void {
   )
   for (const key of ['buildArgv', 'environment', 'inputs', 'linkArgv', 'stripArgv', 'tools']) {
     if (!Array.isArray(record[key]) || record[key].length !== 0) {
-      fail(`recipe ${target} ${key} must be empty after global stop`)
+      fail(`recipe ${target} ${key} must be empty while its native run is pending`)
     }
   }
   if (record.optimizationMode !== 'ReleaseSafe')
     fail(`recipe ${target} optimize mode does not match`)
-  if (record.state !== 'not-run-after-global-stop') fail(`recipe ${target} state does not match`)
+  if (record.state !== 'pending-native-run') fail(`recipe ${target} state does not match`)
   assertPrintableAscii(record.targetTriple, `recipe ${target} targetTriple`)
 
   const expected = expectedTarget(target)
@@ -158,8 +161,8 @@ function verifyStopRecipeTarget(value: unknown, target: ProofTarget): void {
   if (runner.os !== expected.os || runner.arch !== expected.arch) {
     fail(`recipe ${target} runner does not match target`)
   }
-  if (runner.image !== 'not-run-after-global-stop' || runner.imageVersion !== runner.image) {
-    fail(`recipe ${target} runner stop identity does not match`)
+  if (runner.image !== 'pending-native-run' || runner.imageVersion !== runner.image) {
+    fail(`recipe ${target} pending runner identity does not match`)
   }
 
   const toolchain = asObject(record.toolchain, `recipe ${target} toolchain`)
@@ -169,7 +172,7 @@ function verifyStopRecipeTarget(value: unknown, target: ProofTarget): void {
     `recipe ${target} toolchain`,
   )
   for (const value of Object.values(toolchain)) {
-    if (value !== ZERO_HASH) fail(`recipe ${target} toolchain must be unresolved after global stop`)
+    if (value !== ZERO_HASH) fail(`recipe ${target} pending toolchain must be unresolved`)
   }
 }
 
@@ -318,7 +321,7 @@ function main(): void {
   const scriptDir = dirname(fileURLToPath(import.meta.url))
   const repository = join(scriptDir, '..', '..')
   const recipeRaw = readFileSync(join(scriptDir, 'proof-recipe.json'))
-  const recipe = verifyStopRecipe(recipeRaw)
+  const recipe = verifyProgressRecipe(recipeRaw)
   const reportRaw = readFileSync(join(repository, 'docs/config-resolver-feasibility.md'))
   const evidence = asObject(
     JSON.parse(readFileSync(join(repository, 'docs/config-resolver-feasibility.json'), 'utf8')),
@@ -376,7 +379,7 @@ function main(): void {
     fail('accepted ceilings required')
   }
 
-  process.stdout.write('{"evidence":"valid","decision":"FAIL"}\n')
+  process.stdout.write(`${JSON.stringify({ evidence: 'valid', decision: evidence.decision })}\n`)
 }
 
 try {

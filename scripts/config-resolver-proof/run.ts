@@ -255,11 +255,21 @@ function auditConfigBoundary(upstream: string): void {
   if (!proofMain.includes('config.loadOptionalFile(alloc, candidate.?)')) {
     throw new ProofFailure('accepted read-only load composition changed')
   }
-  if (!proofMain.includes('file_load.legacyDefaultAppSupportPath(alloc)')) {
-    throw new ProofFailure('legacy Application Support candidate changed')
+  if (
+    proofMain.includes('file_load.legacyDefaultAppSupportPath(alloc)') ||
+    proofMain.includes('file_load.preferredAppSupportPath(alloc)')
+  ) {
+    throw new ProofFailure('proof reaches a create-capable Application Support builder')
   }
-  if (!proofMain.includes('file_load.preferredAppSupportPath(alloc)')) {
-    throw new ProofFailure('preferred Application Support candidate changed')
+  if (
+    !proofMain.includes(
+      'const macos_app_support_suffix = "Library/Application Support/com.mitchellh.ghostty";',
+    ) ||
+    !proofMain.includes('const home = environ.get("HOME")') ||
+    !proofMain.includes('&.{ base, "config" }') ||
+    !proofMain.includes('&.{ base, "config.ghostty" }')
+  ) {
+    throw new ProofFailure('read-only macOS candidate derivation changed')
   }
   if (!fileLoad.includes('internal_os.macos.appSupportDir(alloc, "config.ghostty")')) {
     throw new ProofFailure('current Application Support path builder changed')
@@ -288,8 +298,8 @@ function main(): void {
 
   const evidence = {
     proofSchemaVersion: 1,
-    status: 'fail',
-    reason: 'macos-default-path-builder-can-create-directory',
+    status: 'incomplete',
+    reason: 'full-native-recipe-pending',
     upstreamRevision: UPSTREAM_REVISION,
     upstreamTreeSha256: upstreamTree.sha256,
     upstreamTreeEntries: upstreamTree.entries,
@@ -300,6 +310,8 @@ function main(): void {
       checkoutClean: true,
       acceptedReadOnlyComposition: true,
       acceptedHeavyHelperGraph: true,
+      createCapableMacosBuildersSkipped: true,
+      fixedMacosCandidatesDerivedReadOnly: true,
       macosPathBuilderPassesCreateTrue: true,
       toolInitCallsGlslang: true,
       sharedDepsLinksRendererStack: true,
@@ -308,9 +320,7 @@ function main(): void {
   } as const
 
   writeFileSync(args.evidence, `${JSON.stringify(evidence, null, 2)}\n`, { flag: 'wx' })
-  process.stdout.write(
-    '{"decision":"FAIL","reason":"macos-default-path-builder-can-create-directory"}\n',
-  )
+  process.stdout.write('{"status":"INCOMPLETE","reason":"full-native-recipe-pending"}\n')
 }
 
 try {

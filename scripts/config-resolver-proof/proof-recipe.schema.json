@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghostty-webgpu.invalid/config-resolver-proof-macos-no-write-stop-recipe.schema.json",
+  "$id": "https://ghostty-webgpu.invalid/config-resolver-proof-progress-recipe.schema.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
     "sourceDateEpoch",
-    "stopCondition",
+    "acceptedBoundary",
     "targets",
     "upstream",
     "zigVersion"
@@ -14,7 +14,7 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "sourceDateEpoch": { "type": "integer", "minimum": 946684800, "maximum": 4102444800 },
-    "stopCondition": { "const": "macos-default-path-builder-can-create-directory" },
+    "acceptedBoundary": { "const": "macos-create-capable-path-builders-skipped" },
     "targets": {
       "type": "object",
       "additionalProperties": false,
@@ -68,12 +68,12 @@
           "required": ["arch", "image", "imageVersion", "os"],
           "properties": {
             "arch": { "enum": ["arm64", "x64"] },
-            "image": { "const": "not-run-after-global-stop" },
-            "imageVersion": { "const": "not-run-after-global-stop" },
+            "image": { "const": "pending-native-run" },
+            "imageVersion": { "const": "pending-native-run" },
             "os": { "enum": ["darwin", "linux"] }
           }
         },
-        "state": { "const": "not-run-after-global-stop" },
+        "state": { "const": "pending-native-run" },
         "stripArgv": { "type": "array", "maxItems": 0 },
         "targetTriple": { "type": "string", "minLength": 1, "maxLength": 64 },
         "toolchain": {

@@ -6,6 +6,7 @@ const global = @import("src/global.zig");
 const terminal_color = @import("src/terminal/color.zig");
 
 const upstream_revision = "c8554f28e0efe2f5595f32020371c34b25ec628f";
+const macos_app_support_suffix = "Library/Application Support/com.mitchellh.ghostty";
 const resolver_error =
     "{\"proofSchemaVersion\":1,\"status\":\"resolver-error\",\"upstreamRevision\":\"" ++
     upstream_revision ++ "\"}\n";
@@ -115,16 +116,23 @@ fn discoverCandidates(alloc: std.mem.Allocator) !CandidateSet {
     result.append(try file_load.defaultXdgPath(alloc));
     if (comptime builtin.os.tag != .macos) return result;
 
-    const legacy = try file_load.legacyDefaultAppSupportPath(alloc);
-    result.append(legacy);
-    const preferred = try file_load.preferredAppSupportPath(alloc);
-    if (std.mem.eql(u8, legacy, preferred)) {
-        alloc.free(preferred);
-        return result;
-    }
-
-    result.append(preferred);
+    try appendReadOnlyMacosCandidates(&result, alloc);
     return result;
+}
+
+fn appendReadOnlyMacosCandidates(
+    result: *CandidateSet,
+    alloc: std.mem.Allocator,
+) !void {
+    var environ = try global.environMap();
+    defer environ.deinit();
+
+    const home = environ.get("HOME") orelse return error.HomeUnavailable;
+    const base = try std.fs.path.join(alloc, &.{ home, macos_app_support_suffix });
+    defer alloc.free(base);
+
+    result.append(try std.fs.path.join(alloc, &.{ base, "config" }));
+    result.append(try std.fs.path.join(alloc, &.{ base, "config.ghostty" }));
 }
 
 fn pauseForRace() !void {
