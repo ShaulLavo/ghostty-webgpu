@@ -164,6 +164,10 @@ function createOverlay(upstream: string, overlay: string): void {
 function build(args: Arguments, zigTarget: string, overlay: string, prefix: string): void {
   mkdirSync(args.cache, { recursive: true })
   mkdirSync(args.globalCache, { recursive: true })
+  const buildHome = join(args.cache, 'home')
+  const buildTemporary = join(args.cache, 'tmp')
+  mkdirSync(buildHome, { recursive: true })
+  mkdirSync(buildTemporary, { recursive: true })
   const argv = [
     'build',
     '--prefix',
@@ -183,7 +187,9 @@ function build(args: Arguments, zigTarget: string, overlay: string, prefix: stri
       LC_ALL: 'C.UTF-8',
       PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
       SOURCE_DATE_EPOCH,
-      TMPDIR: tmpdir(),
+      HOME: buildHome,
+      TMPDIR: buildTemporary,
+      XDG_CACHE_HOME: args.globalCache,
     },
     maxBuffer: 1024 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],
