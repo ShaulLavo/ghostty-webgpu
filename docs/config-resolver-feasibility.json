@@ -1,140 +1,140 @@
 {
   "schemaVersion": 1,
-  "decision": "INCOMPLETE",
-  "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
+  "decision": "PASS",
+  "ghosttyWebGpuHead": "e9c198e073067d5415ac4224176db1eb076f5dbf",
   "upstreamRevision": "c8554f28e0efe2f5595f32020371c34b25ec628f",
   "zigVersion": "0.16.0",
-  "reportSha256": "8459a63b6ee831f5668a422cea0f779cc4e526c3eb6151721828dd302b5de995",
+  "reportSha256": "1a7bc8ad5000d386f84e84516c80d35fa9775dc001e0c3fed6a9247c96ad7534",
   "checks": {
     "officialReadOnlyGraph": "pass",
-    "absentNoWrite": "incomplete",
-    "deleteRaceNoWrite": "incomplete",
-    "renameRaceNoWrite": "incomplete",
-    "privacy": "incomplete",
+    "absentNoWrite": "pass",
+    "deleteRaceNoWrite": "pass",
+    "renameRaceNoWrite": "pass",
+    "privacy": "pass",
     "displayP3Vectors": "pass"
   },
   "matrix": {
     "darwin-arm64": {
-      "runId": "1",
+      "runId": "33212162580",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
+      "ghosttyWebGpuHead": "e9c198e073067d5415ac4224176db1eb076f5dbf",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
+      "proofRecipeSha256": "40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "darwin",
         "arch": "arm64",
-        "image": "pending-native-run",
-        "imageVersion": "pending-native-run"
+        "image": "macos15",
+        "imageVersion": "20260727.0256.1"
       },
       "toolchain": {
-        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        "zigSha256": "e6cd688d25664983833aae272f501d4bceeae304875b8f1741209d15fd13a4ec",
+        "linkerSha256": "e6cd688d25664983833aae272f501d4bceeae304875b8f1741209d15fd13a4ec",
+        "stripSha256": "7f30f076d0e9c38f772a76449fca9da8cf97f6a3d43b94c90a00e4f9ce7ad39e",
+        "sdkOrSysrootSha256": "c9c1a6425d73dd1169710c5654d0698e16254263a34f659b6952bccf54b91d8c"
       },
-      "nativeExecution": "incomplete",
-      "artifactSha256": null,
-      "artifactBytes": 0,
-      "semanticFixtures": "incomplete",
-      "noWriteFixtures": "incomplete",
-      "dependencies": "incomplete",
-      "compatibilityProbe": "incomplete",
-      "relocation": "incomplete"
+      "nativeExecution": "pass",
+      "artifactSha256": "0195d2aba4845e59057350d3be696d64029cdf6e0a08315f9a863a270db68cdb",
+      "artifactBytes": 1422112,
+      "semanticFixtures": "pass",
+      "noWriteFixtures": "pass",
+      "dependencies": "pass",
+      "compatibilityProbe": "pass",
+      "relocation": "pass"
     },
     "darwin-x64": {
-      "runId": "1",
+      "runId": "33212162580",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
+      "ghosttyWebGpuHead": "e9c198e073067d5415ac4224176db1eb076f5dbf",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
+      "proofRecipeSha256": "40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "darwin",
         "arch": "x64",
-        "image": "pending-native-run",
-        "imageVersion": "pending-native-run"
+        "image": "macos15",
+        "imageVersion": "20260824.0482.1"
       },
       "toolchain": {
-        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        "zigSha256": "5597fba0eb9d8f1f5331e3e5822e7e96e4a12eeb6f4939781bd8e2c13b15e8b5",
+        "linkerSha256": "5597fba0eb9d8f1f5331e3e5822e7e96e4a12eeb6f4939781bd8e2c13b15e8b5",
+        "stripSha256": "7f30f076d0e9c38f772a76449fca9da8cf97f6a3d43b94c90a00e4f9ce7ad39e",
+        "sdkOrSysrootSha256": "c9c1a6425d73dd1169710c5654d0698e16254263a34f659b6952bccf54b91d8c"
       },
-      "nativeExecution": "incomplete",
-      "artifactSha256": null,
-      "artifactBytes": 0,
-      "semanticFixtures": "incomplete",
-      "noWriteFixtures": "incomplete",
-      "dependencies": "incomplete",
-      "compatibilityProbe": "incomplete",
-      "relocation": "incomplete"
+      "nativeExecution": "pass",
+      "artifactSha256": "d13180760d702dfc11a6f888244e1a85e61d587d483823046c24e3cba621a6e2",
+      "artifactBytes": 1443864,
+      "semanticFixtures": "pass",
+      "noWriteFixtures": "pass",
+      "dependencies": "pass",
+      "compatibilityProbe": "pass",
+      "relocation": "pass"
     },
     "linux-arm64": {
-      "runId": "1",
+      "runId": "33212162580",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
+      "ghosttyWebGpuHead": "e9c198e073067d5415ac4224176db1eb076f5dbf",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
+      "proofRecipeSha256": "40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "linux",
         "arch": "arm64",
-        "image": "pending-native-run",
-        "imageVersion": "pending-native-run"
+        "image": "ubuntu24-arm64",
+        "imageVersion": "20260823.101.1"
       },
       "toolchain": {
-        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        "zigSha256": "6e2989a7efbd4e81acbacb6c6378e34340d8e88bb023b10c4a941021be55cdcb",
+        "linkerSha256": "6e2989a7efbd4e81acbacb6c6378e34340d8e88bb023b10c4a941021be55cdcb",
+        "stripSha256": "3a69e3786ea2884baf4d9811e509ba6d16be03d5d6f541103b8de317a2465fca",
+        "sdkOrSysrootSha256": "2a0c38102b95ac87975f84f80710c67984841d3059031ff2cb5170b14ac8b3fd"
       },
-      "nativeExecution": "incomplete",
-      "artifactSha256": null,
-      "artifactBytes": 0,
-      "semanticFixtures": "incomplete",
-      "noWriteFixtures": "incomplete",
-      "dependencies": "incomplete",
-      "compatibilityProbe": "incomplete",
-      "relocation": "incomplete"
+      "nativeExecution": "pass",
+      "artifactSha256": "98181e3ba5f70ccf4b1ddf68f285a85cd1972c4a914b3b2535d75746d6ed9460",
+      "artifactBytes": 7737280,
+      "semanticFixtures": "pass",
+      "noWriteFixtures": "pass",
+      "dependencies": "pass",
+      "compatibilityProbe": "pass",
+      "relocation": "pass"
     },
     "linux-x64": {
-      "runId": "1",
+      "runId": "33212162580",
       "runAttempt": 1,
-      "ghosttyWebGpuHead": "09b235e580432cb5e4a266ca8129fae8b6961a8b",
+      "ghosttyWebGpuHead": "e9c198e073067d5415ac4224176db1eb076f5dbf",
       "upstreamTreeSha256": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb",
-      "proofRecipeSha256": "475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71",
+      "proofRecipeSha256": "40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0",
       "sourceDateEpoch": 1787590337,
       "runner": {
         "os": "linux",
         "arch": "x64",
-        "image": "pending-native-run",
-        "imageVersion": "pending-native-run"
+        "image": "ubuntu24",
+        "imageVersion": "20260823.283.1"
       },
       "toolchain": {
-        "zigSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "linkerSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "stripSha256": "0000000000000000000000000000000000000000000000000000000000000000",
-        "sdkOrSysrootSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        "zigSha256": "2317bbb91798556d9d0f38aabdac23db83f0979b25f767259ae474546724087c",
+        "linkerSha256": "2317bbb91798556d9d0f38aabdac23db83f0979b25f767259ae474546724087c",
+        "stripSha256": "0d980587ada7ab12193f39271f060d5663aa2f289b0e80d2a0274ce7306e4e42",
+        "sdkOrSysrootSha256": "2a0c38102b95ac87975f84f80710c67984841d3059031ff2cb5170b14ac8b3fd"
       },
-      "nativeExecution": "incomplete",
-      "artifactSha256": null,
-      "artifactBytes": 0,
-      "semanticFixtures": "incomplete",
-      "noWriteFixtures": "incomplete",
-      "dependencies": "incomplete",
-      "compatibilityProbe": "incomplete",
-      "relocation": "incomplete"
+      "nativeExecution": "pass",
+      "artifactSha256": "b8b19ec944a676c88498304f66efa4f63066f4f958df4c1df0cc41a6c08dd97c",
+      "artifactBytes": 8317808,
+      "semanticFixtures": "pass",
+      "noWriteFixtures": "pass",
+      "dependencies": "pass",
+      "compatibilityProbe": "pass",
+      "relocation": "pass"
     }
   },
   "ceilings": {
     "perTargetBytes": {
-      "darwin-arm64": 1,
-      "darwin-x64": 1,
-      "linux-arm64": 1,
-      "linux-x64": 1
+      "darwin-arm64": 2097152,
+      "darwin-x64": 2097152,
+      "linux-arm64": 8388608,
+      "linux-x64": 9437184
     },
-    "totalPackageBytes": 1,
-    "operatorAcceptance": "pending"
+    "totalPackageBytes": 22020096,
+    "operatorAcceptance": "accepted"
   }
 }

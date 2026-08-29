@@ -2,7 +2,7 @@
 
 ## 1. Summary
 
-Decision: **INCOMPLETE**.
+Decision: **PASS**.
 
 The two operator-accepted divergences are viable. The proof can enumerate fixed default candidates
 instead of calling Ghostty's template-writing aggregate, and the resulting 8.3 MB stripped helper
@@ -12,13 +12,17 @@ therefore measured packaging weight, not this decision's blocker.
 The next audit found that both pinned Application Support candidate builders reach
 `src/os/macos.zig::commonDir`, which asks Foundation to create the directory. The operator clarified
 that this is not a terminal gate: it refines the accepted fixed-candidate divergence. Proof source
-`09b235e580432cb5e4a266ca8129fae8b6961a8b` now skips both create-capable builders and derives the
+`e9c198e073067d5415ac4224176db1eb076f5dbf` skips both create-capable builders and derives the
 fixed legacy/current paths lexically from `HOME` plus the pinned Application Support suffixes. The
 first filesystem operation remains Ghostty's read-only optional-file load.
 
-The corrected helper compiles and its source boundary audit passes, but the revised macOS no-write
-races and complete four-native-target evidence have not yet been observed. No unobserved row is
-promoted. Plans 066–067 remain blocked until a complete `Decision: PASS`.
+Workflow run `33212162580`, attempt 1, observed the complete native matrix at that exact proof HEAD.
+All four rows record literal pass results for native execution, semantics, no-write behavior,
+dependencies, compatibility, relocation, privacy, and Display-P3 vectors. On 2026-08-29, the
+operator explicitly accepted the exact per-target and total package ceilings in section 8. The
+feasibility proof is complete. Plan 066 is eligible only for a separate root go/no-go scheduling
+decision; this result does not authorize packaging, and Plan 067 remains blocked on Plan 066's
+reviewed artifact.
 
 ## 2. Exact inputs and proof commands
 
@@ -26,8 +30,8 @@ promoted. Plans 066–067 remain blocked until a complete `Decision: PASS`.
   `ghostty-webgpu` `3c3e07edef23cdbbe141410432e89276cb6504b2`.
 - Final Platform checkout after concurrent repository updates:
   `4b34a1e97e6c6dd953df715aa40778f98b6ccf1e`.
-- Corrected proof-source checkout:
-  `09b235e580432cb5e4a266ca8129fae8b6961a8b`.
+- Native evidence proof-source checkout:
+  `e9c198e073067d5415ac4224176db1eb076f5dbf`.
 - Ghostty: `https://github.com/ghostty-org/ghostty.git` at
   `c8554f28e0efe2f5595f32020371c34b25ec628f`.
 - Canonical `ghostty-upstream-tree-v1` SHA-256:
@@ -36,9 +40,10 @@ promoted. Plans 066–067 remain blocked until a complete `Decision: PASS`.
   `70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00`; its extracted executable
   has SHA-256 `2317bbb91798556d9d0f38aabdac23db83f0979b25f767259ae474546724087c`.
 - Shared `SOURCE_DATE_EPOCH`: `1787590337`, the pinned Ghostty commit timestamp.
-- Interim progress-recipe SHA-256:
-  `475cc3cb3e328f64d8dc6432c680867f2b9b0e51a21f8ca6ed729c2b35591f71`. Its empty native-run
-  identities are pending placeholders and cannot satisfy `--require-pass`.
+- Final schema-v2 proof-recipe SHA-256:
+  `40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0`. It preserves the literal
+  raw link invocation in native evidence while binding a strict projection of only Zig's
+  runner-local `/final-cache/o/<32-lowercase-hex>` components.
 - Built-in theme archive:
   `https://deps.files.ghostty.org/ghostty-themes-release-20260810-152212-0173c3c.tgz`, 78,218 bytes,
   SHA-256 `ea9878471420ee5b12e7f2ff480099c954ea50e573a1bdf83f43e105c9be63f0`.
@@ -46,8 +51,9 @@ promoted. Plans 066–067 remain blocked until a complete `Decision: PASS`.
   `33d56b070be6a9e3da0ab013038b43d1645d0534ca811ecdba4472599117eb4b`; Node 26.7.0 SHA-256
   `ad19784f7e90ba789a099eccba77ede8dc90a778c424f1c10a70fed3ff903fdc`; GNU strip 2.47 SHA-256
   `0a545ad873bc63f047e63106b9a0b069e40bd49339ab3b329c23184d5bf2df29`.
-- Native matrix runner images: pending. The corrected boundary must still be exercised on all four
-  native runners before the recipe and matrix can become final evidence.
+- Native evidence workflow: run `33212162580`, attempt `1`, on `macos15` arm64 image
+  `20260727.0256.1`, `macos15` x64 image `20260824.0482.1`, `ubuntu24-arm64` image
+  `20260823.101.1`, and `ubuntu24` x64 image `20260823.283.1`.
 
 The corrected non-writing boundary command is:
 
@@ -58,8 +64,9 @@ bun scripts/config-resolver-proof/run.ts --upstream /tmp/plan-065.fOoEIf/ghostty
 It requires the exact Zig version and archive, a clean detached upstream checkout, SHA-1 Git object
 format, the exact upstream revision and canonical tree digest, the accepted optional-heavy build
 graph, the proof's read-only file-loader composition, and the pinned macOS `create: true` call. It
-also rejects either create-capable builder in proof source and freezes the lexical candidates. It
-emits `INCOMPLETE` while the full native recipe and matrix remain pending.
+also rejects either create-capable builder in proof source and freezes the lexical candidates. The
+local command remains supporting evidence; the required native observations are the four artifacts
+from workflow run `33212162580`.
 
 The successful native Linux x64 build command was:
 
@@ -77,7 +84,7 @@ The build environment contained only fixed `HOME`, `LANG`, `LC_ALL`, `PATH`, `SO
 `TMPDIR`, and `XDG_CACHE_HOME` entries. A second build from the same fixed source root produced the
 same stripped artifact hash.
 
-Gate 0 package hashes were unchanged at completion:
+Gate 0 package hashes were unchanged at native evidence collection:
 
 | Input | SHA-256 |
 | --- | --- |
@@ -116,11 +123,12 @@ graph, as accepted for an optional helper. No Ghostty source is copied or patche
 overlay symlinks `dist`, `images`, `pkg`, `src`, `vendor`, and `build.zig.zon` from the clean checkout
 and adds only the proof entry point and build file.
 
-The local `x86_64-linux-musl` executable was 57,238,240 bytes unstripped. The deterministic stripped
-artifact was 8,317,808 bytes with SHA-256
-`b8b19ec944a676c88498304f66efa4f63066f4f958df4c1df0cc41a6c08dd97c`. `file` reported a static
-x86-64 ELF, `ldd` reported `not a dynamic executable`, and `readelf -d` reported no dynamic section
-or `NEEDED` entries. It requires no installed Ghostty, Zig, libc, or system GUI library at runtime.
+The native evidence artifacts are two Mach-O 64-bit executables with system-only dynamic
+dependencies and two statically linked, stripped ELF executables with no dependency entries. The
+Linux x64 artifact remained 8,317,808 bytes with SHA-256
+`b8b19ec944a676c88498304f66efa4f63066f4f958df4c1df0cc41a6c08dd97c`. The Linux packages require
+no installed Ghostty, Zig, libc, or system GUI library at runtime; the macOS packages bind only the
+recorded `/System/Library` frameworks and `/usr/lib` libraries.
 
 The runtime bundle layout exercised by relocation was:
 
@@ -130,9 +138,11 @@ The runtime bundle layout exercised by relocation was:
   resources/themes/<602 pinned theme files>
 ```
 
-The 602 extracted theme files total 285,946 bytes. The host sets `GHOSTTY_RESOURCES_DIR` to the
-bundle-relative `resources` directory. The helper and resources worked after relocation away from
-the checkout, compiler, and build cache.
+The 602 extracted theme files total 285,946 bytes; the measured resource tree contains 604 entries
+including its directories and hashes to
+`82fedc97c3cbe87e3b56dff51a24592534172f2e6d04baf54c0e83969f8dfc18`. The host sets
+`GHOSTTY_RESOURCES_DIR` to the bundle-relative `resources` directory. Every native row passed
+relocation away from the checkout, compiler, and build cache.
 
 ## 4. Initialization, light/dark transition, ownership, and deinitialization
 
@@ -153,13 +163,14 @@ The demonstrated sequence is:
    `Config.clone` when the transition returns `null`; and
 10. deinitialize dark, light, then global state.
 
-The conditional and clone ownership paths passed under native Linux execution and ordinary
-allocator teardown. The corrected step 4 compiles and is source-audited, but its native macOS
-execution and no-write races remain unobserved.
+The sequence, conditional transition, clone ownership path, and ordinary allocator teardown passed
+on all four native targets. Both macOS rows executed the corrected lexical step 4 and passed the
+absent, delete-race, and rename-race no-write checks.
 
 ## 5. Semantic fixture results
 
-The complete fixture suite passed natively on Linux x64 under both Bun and Node harness execution:
+All four native rows passed the semantic fixture suite. The compatibility probes also passed the
+same bounded vectors under Bun and Node on each target:
 
 - empty config returned `not-configured`;
 - legacy/current XDG location and current-over-legacy precedence matched the pin;
@@ -201,15 +212,18 @@ XYZ D65 -> linear sRGB
 ```
 
 Black, white, all primaries, the mixed vector P3 `(111,85,28)` to sRGB `(116,84,8)`, gamut
-clipping, both transfer branches, and values immediately around half-up byte boundaries passed.
+clipping, both transfer branches, and values immediately around half-up byte boundaries passed on
+all four native targets.
 
 ## 6. No-write and privacy results
 
-Linux passed the complete no-write harness. The verifier snapshots the isolated home and config
-trees recursively before and after missing-config execution. It also pauses the helper after
-candidate discovery, deletes or renames each XDG candidate before open, and proves the result is
-`not-configured` with unchanged roots. The helper contains no call to Ghostty's template-writing
-aggregate.
+All four native targets passed the complete no-write harness. The verifier snapshots the isolated
+home and config trees recursively before and after missing-config execution. It also pauses the
+helper after candidate discovery, deletes or renames each candidate before open, and proves the
+result is `not-configured` with unchanged roots. Each Darwin row covered one absent case, four
+delete races, four rename races, and 22 immutable snapshots; each Linux row covered one absent
+case, two delete races, two rename races, and 15 immutable snapshots. The helper contains no call
+to Ghostty's template-writing aggregate.
 
 The audit found the macOS builders that must be skipped. At the exact pin:
 
@@ -226,50 +240,70 @@ src/os/macos.zig:124-133
 Foundation's requested behavior is to create the requested directory when it does not exist. The
 corrected helper therefore calls neither builder. It joins the fixed suffix beneath the explicit
 isolated `HOME` without opening or creating anything, then passes the two filenames to
-`loadOptionalFile`. The existing harness already begins with no `Library/Application Support`
-directory, so the native macOS runs can directly prove whether the corrected discovery leaves the
-root unchanged. Those runs are still pending and are not recorded as PASS.
+`loadOptionalFile`. The native macOS harness began with no `Library/Application Support` directory;
+both macOS rows observed that absent-root discovery and the delete/rename races left the isolated
+roots unchanged.
 
 All executed output was one bounded JSON value of at most 128 KiB and stderr was empty. Recursive
 strict validation rejected unknown keys and out-of-range values. The harness scanned stdout and
 stderr for the fixture path, secret, theme, and diagnostic sentinels. Ghostty logs used a no-op sink,
 and proof failures emit fixed reason enums rather than native messages or config data. The Linux
-privacy suite passed under Bun and Node.
+and macOS privacy checks all passed, as did the Bun and Node compatibility probes.
 
 ## 7. Four-target evidence
 
-The exact required matrix remains intact. The local Linux result is supporting evidence only and is
-not substituted for the required four-runner matrix. Every row remains incomplete until the
-corrected proof source is built and executed on its native runner.
+Workflow run `33212162580`, attempt `1`, produced all four native rows from common proof HEAD
+`e9c198e073067d5415ac4224176db1eb076f5dbf`, upstream tree
+`63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb`, recipe
+`40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0`, and
+`SOURCE_DATE_EPOCH=1787590337`.
 
 | Target | Runner | Artifact hash / bytes | Dependencies | Native execution | Semantics | No-write | Compatibility | Relocation |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `darwin-arm64` | pending native run | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
-| `darwin-x64` | pending native run | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
-| `linux-arm64` | pending native run | `null` / 0 | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
-| `linux-x64` | local supporting run only | `null` / 0 in matrix | incomplete | incomplete | incomplete | incomplete | incomplete | incomplete |
+| `darwin-arm64` | `macos15` / `20260727.0256.1` | `0195d2aba4845e59057350d3be696d64029cdf6e0a08315f9a863a270db68cdb` / 1422112 | pass | pass | pass | pass | pass | pass |
+| `darwin-x64` | `macos15` / `20260824.0482.1` | `d13180760d702dfc11a6f888244e1a85e61d587d483823046c24e3cba621a6e2` / 1443864 | pass | pass | pass | pass | pass | pass |
+| `linux-arm64` | `ubuntu24-arm64` / `20260823.101.1` | `98181e3ba5f70ccf4b1ddf68f285a85cd1972c4a914b3b2535d75746d6ed9460` / 7737280 | pass | pass | pass | pass | pass | pass |
+| `linux-x64` | `ubuntu24` / `20260823.283.1` | `b8b19ec944a676c88498304f66efa4f63066f4f958df4c1df0cc41a6c08dd97c` / 8317808 | pass | pass | pass | pass | pass | pass |
 
-No workflow has run against the corrected proof source. The interim recipe deliberately carries
-pending runner identities and zero tool hashes, so the strict verifier cannot promote this matrix
-to PASS. A complete dispatch-only recipe/workflow remains part of the active Plan 065 execution.
+The exact row toolchain identities are:
+
+| Target | Zig / linker SHA-256 | Strip SHA-256 | SDK or sysroot SHA-256 |
+| --- | --- | --- | --- |
+| `darwin-arm64` | `e6cd688d25664983833aae272f501d4bceeae304875b8f1741209d15fd13a4ec` | `7f30f076d0e9c38f772a76449fca9da8cf97f6a3d43b94c90a00e4f9ce7ad39e` | `c9c1a6425d73dd1169710c5654d0698e16254263a34f659b6952bccf54b91d8c` |
+| `darwin-x64` | `5597fba0eb9d8f1f5331e3e5822e7e96e4a12eeb6f4939781bd8e2c13b15e8b5` | `7f30f076d0e9c38f772a76449fca9da8cf97f6a3d43b94c90a00e4f9ce7ad39e` | `c9c1a6425d73dd1169710c5654d0698e16254263a34f659b6952bccf54b91d8c` |
+| `linux-arm64` | `6e2989a7efbd4e81acbacb6c6378e34340d8e88bb023b10c4a941021be55cdcb` | `3a69e3786ea2884baf4d9811e509ba6d16be03d5d6f541103b8de317a2465fca` | `2a0c38102b95ac87975f84f80710c67984841d3059031ff2cb5170b14ac8b3fd` |
+| `linux-x64` | `2317bbb91798556d9d0f38aabdac23db83f0979b25f767259ae474546724087c` | `0d980587ada7ab12193f39271f060d5663aa2f289b0e80d2a0274ce7306e4e42` | `2a0c38102b95ac87975f84f80710c67984841d3059031ff2cb5170b14ac8b3fd` |
+
+Each row also records `officialReadOnlyGraph`, absent/delete/rename no-write checks, privacy, and
+Display-P3 vectors as literal `pass`. Together with the exact operator-accepted ceilings below, the
+observed matrix establishes the final decision.
 
 ## 8. Proposed package layout, size ceiling, and runtime selection
 
-The measured optional layout is technically bounded: an approximately 8.3 MB stripped host helper
-plus 285,946 bytes of theme resources per platform package. If a future proof passes, the host must
+The measured optional layout is technically bounded. The accepted ceilings round each observed
+bundle up to the next whole MiB.
+
+| Target | Artifact bytes | Resource bytes | Bundle bytes | Package ceiling bytes |
+| --- | ---: | ---: | ---: | ---: |
+| `darwin-arm64` | 1422112 | 285946 | 1708058 | 2097152 |
+| `darwin-x64` | 1443864 | 285946 | 1729810 | 2097152 |
+| `linux-arm64` | 7737280 | 285946 | 8023226 | 8388608 |
+| `linux-x64` | 8317808 | 285946 | 8603754 | 9437184 |
+
+Total measured bundle bytes: 20064848; total package ceiling bytes: 22020096.
+
+Operator acceptance: **accepted on 2026-08-29** for the exact per-target ceilings `2097152`,
+`2097152`, `8388608`, and `9437184` bytes and total ceiling `22020096` bytes. A future host must
 dynamically resolve and spawn only the matching optional package after the registered appearance
 feature is enabled. Missing optional bytes must preserve the existing appearance without a config
 read, subprocess, runtime download, or startup failure.
 
-No package ceiling is proposed or accepted yet. The strict JSON's positive one-byte values are
-pending sentinels required by the evidence shape; they are not shipping recommendations. Native
-artifact measurements and explicit operator acceptance remain required.
-
 ## 9. Known fidelity degradations and fallback recommendations
 
-The visual projection itself has no observed Linux fidelity gap for the required fields. Dynamic
-cell-relative colors remain tagged rather than being guessed. Plan 066 would still need to choose a
-deterministic browser fallback for those tags and apply the frozen Display-P3 conversion.
+The visual projection itself has no observed fidelity gap for the required fields across the four
+native evidence rows. Dynamic cell-relative colors remain tagged rather than being guessed. Plan
+066 would still need to choose a deterministic browser fallback for those tags and apply the frozen
+Display-P3 conversion.
 
 The preferred upstream improvement remains a read-only Config candidate API whose macOS directory
 lookup uses `create: false`, or a resolver that accepts already discovered candidates while
@@ -282,15 +316,14 @@ outside the proof.
 
 - Both official macOS Application Support candidate builders call a Foundation API with
   `create: true`; corrected proof source skips them under the accepted fixed-candidate divergence.
-- Native macOS absent-root and delete/rename race results for the corrected source are pending.
 - The GUI/shader dependencies remain heavy but bounded under the accepted optional-helper
   divergence. A future upstream Config-only target is still preferred before any fork.
-- The four native target, dependency, compatibility, relocation, and final privacy rows have not
-  been run against the corrected source. They remain incomplete rather than inferred.
+- No feasibility-proof blocker remains. Plan 066 still requires a separate root go/no-go scheduling
+  decision, and Plan 067 remains blocked on Plan 066's reviewed artifact.
 - The requested never-nester skill file was absent from this Linux host and no alternate copy was
   discoverable. The equivalent guard-clause, shallow-nesting, loop-inversion, and no-`else` rules in
   both repository instructions were applied.
-- Existing user work outside the proof paths was preserved. No commit, push, publish, package API
-  edit, Platform source edit, or Plan 066–067 execution was performed by this proof run.
+- Existing user work outside the proof evidence was preserved. Closeout does not edit package APIs,
+  Platform source, or execute Plans 066–067.
 
-Decision: INCOMPLETE
+Decision: PASS
