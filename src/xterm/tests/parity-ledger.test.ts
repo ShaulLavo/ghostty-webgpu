@@ -256,7 +256,9 @@ function fixtureLedger(rows: readonly XtermParityRow[] = [fixtureRow()]): XtermP
   }
 }
 
-async function writePlanStatus(status: 'DONE' | 'TODO'): Promise<void> {
+async function writePlanStatus(
+  status: 'DONE' | 'TODO' | 'SUPERSEDED' | 'DEFERRED' | 'RETIRED',
+): Promise<void> {
   const markdown = `| Plan | Title | Status |\n| --- | --- | --- |\n| 008 | Terminal facade | ${status} |\n`
   await writeFile(join(validationRoot, 'plans/README.md'), markdown)
 }
@@ -586,6 +588,20 @@ describe('xterm parity ledger validation', () => {
       'DONE Plan 008 still owns missing row',
     )
   })
+
+  it.each(['SUPERSEDED', 'DEFERRED', 'RETIRED'] as const)(
+    'preserves unresolved rows owned by a %s plan',
+    async (status) => {
+      await writePlanStatus(status)
+      const ledger = fixtureLedger([
+        fixtureRow({ id: 'api:missing', targetStatus: 'missing' }),
+        fixtureRow({ id: 'api:partial', targetStatus: 'partial' }),
+        fixtureRow({ id: 'api:blocked', targetStatus: 'blocked' }),
+      ])
+
+      await expect(validateXtermParityLedger(ledger, validationRoot)).resolves.toBeUndefined()
+    },
+  )
 
   it('uses the exported parity error type for validation failures', async () => {
     const invalid = fixtureLedger([fixtureRow({ targetStatus: 'compatible' })])

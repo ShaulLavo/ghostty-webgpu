@@ -1242,14 +1242,16 @@ export function renderXtermParityMarkdown(ledger: XtermParityLedger): string {
   const lines = [
     '# xterm compatibility ledger',
     '',
-    `Certified release baseline: \`@xterm/xterm@${ledger.baseline.releaseVersion}\` at \`${ledger.baseline.releaseCommit}\`.`,
+    `Pinned comparison baseline: \`@xterm/xterm@${ledger.baseline.releaseVersion}\` at \`${ledger.baseline.releaseCommit}\`.`,
     `Forward reference: [xterm.js](${ledger.baseline.sourceUrl.replace(/\.git$/u, '')}/tree/${ledger.baseline.sourceCommit}) at \`${ledger.baseline.sourceCommit}\`.`,
     '',
     `Inventory: ${ledger.inventory.total} rows (${ledger.inventory.api} API, ${ledger.inventory.css} CSS, ${ledger.inventory.packages} package, ${ledger.inventory.manual} behavioral, ${ledger.inventory.forwardDrift} forward-drift).`,
     '',
     `${statusCounts(ledger.rows)}.`,
     '',
-    'Full parity requires zero `missing`, `partial`, or `blocked` rows for the certified release. A `compatible` row must name evidence. Forward-only rows are explicitly `not-applicable` to 6.0.0, not silently omitted.',
+    'This ledger is a diagnostic reference for xterm compatibility. Product release readiness follows [Plan 016: ghostty-web replacement readiness](../plans/016-ghostty-web-replacement-readiness.md). Zero-gap xterm certification is retired as a product release requirement.',
+    '',
+    'Row statuses and historical ownership remain recorded when plans are superseded, deferred, or retired. A `compatible` row must name evidence. Forward-only rows are explicitly `not-applicable` to the pinned release. Existing certification wording in row notes describes the historical xterm comparison scope, not a product readiness claim.',
     '',
   ]
   for (const section of sectionOrder) {
@@ -1306,7 +1308,7 @@ function planStatuses(markdown: string): ReadonlyMap<string, string> {
   const statuses = new Map<string, string>()
   for (const line of markdown.split('\n')) {
     const match = line.match(
-      /^\|\s*(\d{3})\s*\|.*\|\s*(TODO|IN PROGRESS|DONE|BLOCKED|REJECTED)(?:\s+[^|]*)?\s*\|$/u,
+      /^\|\s*(\d{3})\s*\|.*\|\s*(TODO|IN PROGRESS|DONE|BLOCKED|REJECTED|SUPERSEDED|DEFERRED|RETIRED)(?:\s+[^|]*)?\s*\|$/u,
     )
     if (!match?.[1] || !match[2]) continue
     statuses.set(match[1], match[2])

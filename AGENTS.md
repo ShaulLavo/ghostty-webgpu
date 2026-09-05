@@ -1,5 +1,11 @@
 # Repository Guidelines
 
+## Product Direction
+
+- The product is a standalone ghostty-web replacement; Platform is one consumer, not the scope boundary.
+- Follow `plans/README.md` and active Plan 016 when choosing work. Plans 001–015 are historical.
+- Keep the xterm ledger as compatibility evidence. Its missing rows do not automatically become release requirements.
+
 ## Organization
 
 - `src/core/` contains browser-independent wasm loading and typed libghostty-vt bindings.

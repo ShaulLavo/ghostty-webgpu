@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { chromium, type Page } from 'playwright'
+import { displayedInk } from './displayed-ink'
 
-const root = join(import.meta.dirname, '..')
+const root = process.env.GHOSTTY_PACKAGE_ROOT ?? join(import.meta.dirname, '..')
+const consumerRoot = process.env.GHOSTTY_PACKAGE_ROOT ? join(root, '../..') : root
 const origin = 'http://127.0.0.1:41799'
 const backends = ['webgpu', 'webgl2', 'canvas2d'] as const
 const requested = process.argv.slice(2)
@@ -38,32 +40,6 @@ const themeScenario = `(async () => {
   terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 0, g: 255, b: 0 } });
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 })()`
-
-async function displayedInk(page: Page): Promise<{ red: number; green: number }> {
-  const png = await page.locator('main canvas').screenshot()
-  return page.evaluate(async (encoded) => {
-    const bytes = Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))
-    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
-    const canvas = document.createElement('canvas')
-    canvas.width = bitmap.width
-    canvas.height = bitmap.height
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('Screenshot decoding requires Canvas2D')
-    context.drawImage(bitmap, 0, 0)
-    bitmap.close()
-    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
-    let red = 0
-    let green = 0
-    for (let offset = 0; offset < pixels.length; offset += 4) {
-      const r = pixels[offset] ?? 0
-      const g = pixels[offset + 1] ?? 0
-      const b = pixels[offset + 2] ?? 0
-      if (r > 150 && g < 80 && b < 80) red += 1
-      if (g > 150 && r < 80 && b < 80) green += 1
-    }
-    return { red, green }
-  }, png.toString('base64'))
-}
 
 async function checkPresentation(page: Page, backend: string): Promise<void> {
   const initial = await displayedInk(page)
@@ -106,7 +82,8 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
       path === '/ghostty-vt.wasm' ||
       path === '/bridge.wasm'
     if (!allowed) return route.abort()
-    const file = Bun.file(join(root, path))
+    const fileRoot = path.startsWith('/node_modules/') ? consumerRoot : root
+    const file = Bun.file(join(fileRoot, path))
     await route.fulfill({
       body: Buffer.from(await file.arrayBuffer()),
       contentType: path.endsWith('.wasm') ? 'application/wasm' : 'text/javascript',

@@ -1,0 +1,10 @@
+{
+  "name": "ghostty-web",
+  "version": "0.4.0",
+  "integrity": "sha512-0puDBik2qapbD/QQBW9o5ZHfXnZBqZWx/ctBiVtKZ6ZLds4NYb+wZuw1cRLXZk9zYovIQ908z3rvFhexAvc5Hg==",
+  "tarball": "https://registry.npmjs.org/ghostty-web/-/ghostty-web-0.4.0.tgz",
+  "sourceRepository": "https://github.com/coder/ghostty-web",
+  "sourceRevision": "9e4e126d89ac3537d2b2ebec075849851566de9f",
+  "documentation": "https://github.com/coder/ghostty-web/blob/9e4e126d89ac3537d2b2ebec075849851566de9f/README.md",
+  "declarations": "node_modules/ghostty-web/dist/index.d.ts"
+}

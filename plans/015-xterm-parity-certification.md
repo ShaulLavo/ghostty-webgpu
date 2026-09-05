@@ -1,6 +1,21 @@
 # Plan 015: Certify versioned xterm parity and close the compatibility program
 
-> **Executor instructions**: Follow this plan step by step. Run every verification command and
+## Current disposition
+
+**RETIRED as a product release gate, 2026-09-05.**
+[Plan 016](016-ghostty-web-replacement-readiness.md) is the sole active readiness milestone for a
+standalone ghostty-web replacement. Completing Plans 006 through 014 and reaching a zero-gap xterm
+ledger are no longer the product finish line. Keep xterm compatibility claims scoped to demonstrated
+behavior and keep every unresolved ledger row honest.
+
+The original instructions, dependencies, STOP conditions, zero-gap command, and completion criteria
+below are historical. They do not authorize work or gate release. Retiring this certification program
+does not claim full xterm parity or mark unfinished work complete. The active plan defines the
+evidence required for a ghostty-web replacement claim.
+
+## Historical plan
+
+> **Historical executor instructions, inactive**: Follow this plan step by step. Run every verification command and
 > confirm the expected result before moving to the next step. If anything in “STOP conditions”
 > occurs, stop and report; do not improvise. This plan may mark the program complete only after every
 > automated and physical gate has evidence and the parity ledger has zero gaps.
@@ -10,7 +25,7 @@
 > Confirm Plans 006–014 are DONE, the reference/source/package identities pass, and the generated
 > ledger contains no row owned by an earlier DONE plan that is still missing/partial/blocked.
 
-## Status
+## Historical status
 
 - **Priority**: P1
 - **Effort**: XL

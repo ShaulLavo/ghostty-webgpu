@@ -372,7 +372,7 @@ export class Terminal implements IDisposable {
 
   deregisterCharacterJoiner(_joinerId: number): void {
     this.requireProposedApi()
-    throw this.plan009Error('deregisterCharacterJoiner')
+    throw this.unsupportedCapabilityError('deregisterCharacterJoiner')
   }
 
   dispose(): void {
@@ -468,21 +468,21 @@ export class Terminal implements IDisposable {
 
   registerCharacterJoiner(_handler: (text: string) => [number, number][]): number {
     this.requireProposedApi()
-    throw this.plan009Error('registerCharacterJoiner')
+    throw this.unsupportedCapabilityError('registerCharacterJoiner')
   }
 
   registerDecoration(_options: IDecorationOptions): IDecoration | undefined {
     this.requireProposedApi()
-    throw this.plan009Error('registerDecoration')
+    throw this.unsupportedCapabilityError('registerDecoration')
   }
 
   registerLinkProvider(_provider: ILinkProvider): IDisposable {
-    throw this.plan009Error('registerLinkProvider')
+    throw this.unsupportedCapabilityError('registerLinkProvider')
   }
 
   registerMarker(cursorYOffset = 0): IMarker {
     verifyIntegers(cursorYOffset)
-    throw this.plan009Error('registerMarker')
+    throw this.unsupportedCapabilityError('registerMarker')
   }
 
   reset(): void {
@@ -741,8 +741,8 @@ export class Terminal implements IDisposable {
     this.nativeOwnsInput = true
   }
 
-  private plan009Error(surface: string): Error {
-    return new Error(`xterm ${surface} is unavailable until Plan 009`)
+  private unsupportedCapabilityError(surface: string): Error {
+    return new Error(`xterm ${surface} is not supported by this compatibility API`)
   }
 
   private consumeWrite(runtime: XtermTerminalRuntime, input: TerminalInputData): void {

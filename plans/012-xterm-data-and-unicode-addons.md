@@ -1,6 +1,20 @@
 # Plan 012: Match xterm search, serialize, and Unicode addons
 
-> **Executor instructions**: Follow this plan step by step. Run every verification command and
+## Current disposition
+
+**SUPERSEDED, 2026-09-05.** [Plan 016](016-ghostty-web-replacement-readiness.md) is the sole active
+readiness milestone for a standalone ghostty-web replacement. Evaluate search and serialization
+separately against consumer needs. Matching all xterm data addons and arbitrary Unicode providers is
+no longer a browser release requirement.
+
+The original instructions, dependencies, STOP conditions, and completion criteria below are
+historical. They do not authorize work or gate release. Keep the native capability constraints and
+test ideas as reference material. This disposition does not mark any unfinished addon or parity row
+complete.
+
+## Historical plan
+
+> **Historical executor instructions, inactive**: Follow this plan step by step. Run every verification command and
 > confirm the expected result before moving to the next step. If anything in “STOP conditions”
 > occurs, stop and report; do not improvise. When done, update the parity ledger and this plan's
 > status row in `plans/README.md`.
@@ -11,7 +25,7 @@
 > official released addons first and record any private-service dependency before implementing an
 > adapter.
 
-## Status
+## Historical status
 
 - **Priority**: P1
 - **Effort**: XL

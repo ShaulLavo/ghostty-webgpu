@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest'
 import {
   EMPTY_MARKERS,
-  Plan009UnavailableError,
+  CapabilityUnavailableError,
   createBufferPlaceholder,
   createModesPlaceholder,
   createParserPlaceholder,
@@ -15,7 +15,7 @@ import type {
   IUnicodeVersionProvider,
 } from '../types.js'
 
-const unavailableMessage = 'unavailable until Plan 009 provides native-backed extension surfaces'
+const unavailableMessage = 'is not supported by this compatibility API'
 const proposedApiMessage = 'You must set the allowProposedApi option to true to use proposed API'
 
 const unicodeProvider: IUnicodeVersionProvider = {
@@ -54,7 +54,7 @@ describe('xterm extension placeholders', () => {
     expect(Object.isFrozen(parser)).toBe(true)
     expect(parser).toBe(parser)
     expect(() => parser.registerCsiHandler({ final: 'm' }, () => true)).toThrow(
-      Plan009UnavailableError,
+      CapabilityUnavailableError,
     )
     expect(() => parser.registerDcsHandler({ final: 'q' }, () => true)).toThrow(unavailableMessage)
     expect(() => parser.registerEscHandler({ final: 'c' }, () => true)).toThrow(unavailableMessage)

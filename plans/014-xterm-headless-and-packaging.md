@@ -1,6 +1,20 @@
 # Plan 014: Add headless parity and aliasable xterm-compatible packages
 
-> **Executor instructions**: Follow this plan step by step. Run every verification command and
+## Current disposition
+
+**DEFERRED, 2026-09-05.** The separate headless product and fifteen aliasable xterm packages have no
+scheduled implementation milestone. [Plan 016](016-ghostty-web-replacement-readiness.md) is the sole
+active readiness milestone for a standalone ghostty-web replacement. Reliable browser package
+builds, installation, and migration remain required there. Native Ghostty config integration stays
+optional and must allow the browser library to ship independently.
+
+The original instructions, dependencies, STOP conditions, and completion criteria below are
+historical. They do not authorize work or gate a browser release. Resume this proposal only through
+a new scope decision in the active roadmap. No deferred package or headless parity row is complete.
+
+## Historical plan
+
+> **Historical executor instructions, inactive**: Follow this plan step by step. Run every verification command and
 > confirm the expected result before moving to the next step. If anything in “STOP conditions”
 > occurs, stop and report; do not improvise. When done, update the parity ledger and this plan's
 > status row in `plans/README.md`.
@@ -10,7 +24,7 @@
 > Confirm Plans 008–013 are DONE, regenerate the ledger, and inspect every planned package name for
 > collision/authorization before creating publishable manifests.
 
-## Status
+## Historical status
 
 - **Priority**: P1
 - **Effort**: XL

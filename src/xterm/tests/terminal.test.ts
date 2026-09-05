@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TerminalSession } from '../../term/session.js'
-import { Plan009UnavailableError } from '../placeholders.js'
+import { CapabilityUnavailableError } from '../placeholders.js'
 import { Terminal } from '../terminal.js'
 import type { ITerminalAddon } from '../types.js'
 
@@ -321,9 +321,9 @@ describe('xterm Terminal facade', () => {
     expect(terminal.buffer).toBe(buffer)
     expect(terminal.modes).toBe(modes)
     expect(terminal.parser).toBe(parser)
-    expect(() => buffer.active).toThrow(Plan009UnavailableError)
+    expect(() => buffer.active).toThrow(CapabilityUnavailableError)
     expect(() => parser.registerCsiHandler({ final: 'm' }, () => true)).toThrow(
-      Plan009UnavailableError,
+      CapabilityUnavailableError,
     )
     expect(() => terminal.markers).toThrow('allowProposedApi option to true')
     expect(() => terminal.unicode).toThrow('allowProposedApi option to true')
@@ -335,11 +335,11 @@ describe('xterm Terminal facade', () => {
     expect(terminal.markers).toBe(markers)
     expect(terminal.unicode).toBe(unicode)
     expect(Object.isFrozen(markers)).toBe(true)
-    expect(() => unicode.versions).toThrow(Plan009UnavailableError)
+    expect(() => unicode.versions).toThrow(CapabilityUnavailableError)
 
     await terminal.ghosttyReady
     expect(terminal.modes).toBe(modes)
-    expect(() => modes.bracketedPasteMode).toThrow(Plan009UnavailableError)
+    expect(() => modes.bracketedPasteMode).toThrow(CapabilityUnavailableError)
   })
 
   it('makes subscriptions and disposal idempotent and retains disposed options mutability', async () => {

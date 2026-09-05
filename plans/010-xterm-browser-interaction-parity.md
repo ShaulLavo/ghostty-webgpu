@@ -1,6 +1,19 @@
 # Plan 010: Match xterm browser interaction, DOM, CSS, options, and accessibility
 
-> **Executor instructions**: Follow this plan step by step. Run every verification command and
+## Current disposition
+
+**SUPERSEDED, 2026-09-05.** [Plan 016](016-ghostty-web-replacement-readiness.md) is the sole active
+readiness milestone for a standalone ghostty-web replacement. It qualifies browser interaction,
+accessibility, rendering, and performance against real consumer workloads. Plan 009 completion and
+full xterm interaction parity are no longer prerequisites for that work or a browser release.
+
+The original instructions, dependencies, STOP conditions, and completion criteria below are
+historical. They do not authorize work or gate release. Preserve the implementation evidence and
+unresolved measurements below. This disposition does not turn a failed or missing check into a pass.
+
+## Historical plan
+
+> **Historical executor instructions, inactive**: Follow this plan step by step. Run every verification command and
 > confirm the expected result before moving to the next step. If anything in “STOP conditions”
 > occurs, stop and report; do not improvise. When done, update the parity ledger and this plan's
 > status row in `plans/README.md`.
@@ -10,7 +23,7 @@
 > Confirm Plans 006, 008, and 009 are DONE. Re-run the reference/parity generators and compare the
 > live DOM/input/accessibility rows before editing.
 
-## Status
+## Historical status
 
 - **Priority**: P1
 - **Effort**: XL

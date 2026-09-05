@@ -1,13 +1,15 @@
 # xterm compatibility ledger
 
-Certified release baseline: `@xterm/xterm@6.0.0` at `f447274f430fd22513f6adbf9862d19524471c04`.
+Pinned comparison baseline: `@xterm/xterm@6.0.0` at `f447274f430fd22513f6adbf9862d19524471c04`.
 Forward reference: [xterm.js](https://github.com/xtermjs/xterm.js/tree/08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7) at `08ad9a4de9252f387cc5fbf68aa3d98e0ba8a0b7`.
 
 Inventory: 938 rows (684 API, 48 CSS, 81 package, 13 behavioral, 112 forward-drift).
 
 missing: 515 · partial: 186 · compatible: 61 · blocked: 64 · not-applicable: 112.
 
-Full parity requires zero `missing`, `partial`, or `blocked` rows for the certified release. A `compatible` row must name evidence. Forward-only rows are explicitly `not-applicable` to 6.0.0, not silently omitted.
+This ledger is a diagnostic reference for xterm compatibility. Product release readiness follows [Plan 016: ghostty-web replacement readiness](../plans/016-ghostty-web-replacement-readiness.md). Zero-gap xterm certification is retired as a product release requirement.
+
+Row statuses and historical ownership remain recorded when plans are superseded, deferred, or retired. A `compatible` row must name evidence. Forward-only rows are explicitly `not-applicable` to the pinned release. Existing certification wording in row notes describes the historical xterm comparison scope, not a product readiness claim.
 
 ## Core constructor, lifecycle, options, and events
 

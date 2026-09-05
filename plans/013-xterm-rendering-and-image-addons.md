@@ -1,6 +1,20 @@
 # Plan 013: Match xterm web-font, ligature, image, and WebGL addon behavior
 
-> **Executor instructions**: Follow this plan step by step. Run every verification command and
+## Current disposition
+
+**SUPERSEDED, 2026-09-05.** [Plan 016](016-ghostty-web-replacement-readiness.md) is the sole active
+readiness milestone for a standalone ghostty-web replacement. Evaluate fonts, ligatures, and images
+separately against consumer needs. Browser renderer fallback is an active product requirement.
+Reproducing the xterm WebGL addon's API and completing this addon group are no longer release gates.
+
+The original instructions, dependencies, STOP conditions, and completion criteria below are
+historical. They do not authorize work or gate release. Keep the rendering constraints and test
+ideas as reference material. This disposition does not mark any unfinished addon or parity row
+complete.
+
+## Historical plan
+
+> **Historical executor instructions, inactive**: Follow this plan step by step. Run every verification command and
 > confirm the expected result before moving to the next step. If anything in “STOP conditions”
 > occurs, stop and report; do not improvise. When done, update the parity ledger and this plan's
 > status row in `plans/README.md`.
@@ -10,7 +24,7 @@
 > Confirm Plans 009–012 are DONE. Re-run the renderer benchmark baseline and inspect the pinned addon
 > public types/source before modifying atlas, shaping, or image ownership.
 
-## Status
+## Historical status
 
 - **Priority**: P1
 - **Effort**: XL

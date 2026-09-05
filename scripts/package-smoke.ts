@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto'
-import { closeSync, constants, fstatSync, openSync, readSync, type BigIntStats } from 'node:fs'
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  openSync,
+  readSync,
+  type BigIntStats,
+} from 'node:fs'
 import {
   access,
   lstat,
@@ -15,6 +23,7 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { installedBytes, transferBytes } from './package-measurements'
 import { canonicalObjectBytes } from './config-resolver-native/canonical'
 import {
   validateNativeResolverManifest,
@@ -75,7 +84,7 @@ async function run(
   ])
   if (exitCode === 0) return stdout.trim()
   throw new PackageSmokeError(
-    `package smoke subprocess exited with status ${exitCode}: ${stderr.trim()}`,
+    `package smoke subprocess exited with status ${exitCode}: ${stderr.trim()}\n${stdout.trim()}`,
   )
 }
 
@@ -219,7 +228,7 @@ function sameState(left: FileState, right: FileState): boolean {
   )
 }
 
-async function writeConsumerFiles(root: string): Promise<void> {
+async function writeConsumerFiles(root: string, browserOnly = false): Promise<void> {
   await writeFile(
     join(root, 'package.json'),
     `${JSON.stringify({ name: 'ghostty-webgpu-package-smoke', private: true, type: 'module' }, null, 2)}\n`,
@@ -254,7 +263,7 @@ async function writeConsumerFiles(root: string): Promise<void> {
   type TerminalRendererTheme,
   type TerminalTheme,
 } from 'ghostty-webgpu'
-import { resolveGhosttyConfigAppearance, type GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'
+${browserOnly ? '' : "import { resolveGhosttyConfigAppearance, type GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'"}
 import { Terminal as XtermTerminal, type ITerminalOptions } from 'ghostty-webgpu/xterm'
 import 'ghostty-webgpu/xterm.css'
 
@@ -296,12 +305,16 @@ const legacyAppearanceApi: GhosttyWebGpuTerminalAppearanceApi = {
   setTheme() {},
 }
 const xtermOptions: ITerminalOptions = { cursorBlink: true, theme: { background: '#010203' } }
-const appearance: Promise<GhosttyConfigAppearance | undefined> = resolveGhosttyConfigAppearance().then(
+${
+  browserOnly
+    ? ''
+    : `const appearance: Promise<GhosttyConfigAppearance | undefined> = resolveGhosttyConfigAppearance().then(
   (result) => (result.status === 'ready' ? result.appearance : undefined),
 )
+void appearance`
+}
 void Terminal
 void XtermTerminal
-void appearance
 void appearanceOptions
 void legacyAppearanceApi
 void rendererTheme
@@ -313,7 +326,7 @@ void xtermOptions
   )
 }
 
-async function verifyPackagedFiles(packageRoot: string): Promise<NativeResolverManifest> {
+async function verifyBrowserFiles(packageRoot: string): Promise<void> {
   for (const path of [
     'dist/index.js',
     'dist/index.d.ts',
@@ -331,6 +344,10 @@ async function verifyPackagedFiles(packageRoot: string): Promise<NativeResolverM
   ]) {
     await requirePath(join(packageRoot, path))
   }
+}
+
+async function verifyPackagedFiles(packageRoot: string): Promise<NativeResolverManifest> {
+  await verifyBrowserFiles(packageRoot)
   const manifest = await verifyPackagedNativeTree(packageRoot)
   await rejectPath(join(packageRoot, 'native/config-resolver/bootstrap.json'))
   await rejectPath(join(packageRoot, 'scripts/config-resolver-native'))
@@ -476,7 +493,8 @@ async function verifyTypes(root: string): Promise<void> {
 async function verifyRootIsolation(root: string, packageRoot: string): Promise<void> {
   const native = join(packageRoot, 'native')
   const hidden = join(packageRoot, 'native.package-smoke-hidden')
-  await rename(native, hidden)
+  const hasNative = existsSync(native)
+  if (hasNative) await rename(native, hidden)
   try {
     await run(
       [
@@ -494,14 +512,17 @@ if ('GhosttyWebGpuTerminal' in Native) throw new Error('root still exports the r
       root,
     )
   } finally {
-    await rename(hidden, native)
+    if (hasNative) await rename(hidden, native)
   }
 }
 
-async function verifyBrowserConditions(root: string): Promise<void> {
+async function verifyBrowserConditions(root: string): Promise<ReturnType<typeof transferBytes>> {
   const browserRoot = join(root, 'browser-root.ts')
   const browserResolver = join(root, 'browser-resolver.ts')
-  await writeFile(browserRoot, "import { Terminal } from 'ghostty-webgpu'\nconsole.log(Terminal)\n")
+  await writeFile(
+    browserRoot,
+    "import { Terminal } from 'ghostty-webgpu'\nimport { Terminal as XtermTerminal } from 'ghostty-webgpu/xterm'\nconsole.log(Terminal, XtermTerminal)\n",
+  )
   await writeFile(
     browserResolver,
     "import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'\nconsole.log(resolveGhosttyConfigAppearance)\n",
@@ -530,10 +551,15 @@ async function verifyBrowserConditions(root: string): Promise<void> {
     entrypoints: [browserResolver],
     format: 'esm',
     target: 'browser',
+    throw: false,
   })
   if (resolverBuild.success) {
     throw new PackageSmokeError('host resolver unexpectedly resolved for a browser target')
   }
+  if (!resolverBuild.logs.some((log) => log.message.includes('ghostty-webgpu/config-resolver'))) {
+    throw new PackageSmokeError('host resolver browser build failed for an unrelated reason')
+  }
+  return transferBytes(new TextEncoder().encode(bundle))
 }
 
 async function verifyHostExportShape(packageRoot: string): Promise<void> {
@@ -756,6 +782,65 @@ async function verifyInstalledPackage(root: string, workspace: string): Promise<
   await verifyResolverRuntime(root, workspace)
 }
 
+async function verifyInstalledBrowserPackage(root: string, tarball: string): Promise<void> {
+  const packageRoot = join(root, 'node_modules/ghostty-webgpu')
+  await verifyBrowserFiles(packageRoot)
+  await verifyRelocatedInstall(packageRoot)
+  await verifyTypes(root)
+  await verifyRootIsolation(root, packageRoot)
+  const javascript = await verifyBrowserConditions(root)
+  await verifyHostExportShape(packageRoot)
+  await rejectPath(join(root, 'node_modules/ghostty-web'))
+  await recordBrowserMeasurements(root, packageRoot, tarball, javascript)
+  await run(['bun', join(projectRoot, 'scripts/renderer-fallback-smoke.ts'), 'canvas2d'], root, {
+    env: { ...process.env, GHOSTTY_PACKAGE_ROOT: packageRoot },
+  })
+  console.log(
+    'Packed browser imports, types, bundling, WASM and Canvas2D presentation verified; native artifacts were not qualified',
+  )
+}
+
+async function recordBrowserMeasurements(
+  root: string,
+  packageRoot: string,
+  tarball: string,
+  javascript: ReturnType<typeof transferBytes>,
+): Promise<void> {
+  const wasm = []
+  for (const file of ['ghostty-vt.wasm', 'bridge.wasm']) {
+    wasm.push({
+      file,
+      ...transferBytes(new Uint8Array(await Bun.file(join(packageRoot, file)).arrayBuffer())),
+    })
+  }
+  const nativeRoot = join(packageRoot, 'native')
+  const nativeExists = existsSync(nativeRoot)
+  const evidence = {
+    tarball: {
+      bytes: Bun.file(tarball).size,
+      sha256: createHash('sha256')
+        .update(new Uint8Array(await Bun.file(tarball).arrayBuffer()))
+        .digest('hex'),
+    },
+    installed: {
+      packageBytes: await installedBytes(packageRoot),
+      includingDependenciesBytes: await installedBytes(join(root, 'node_modules')),
+      optionalNativeBytes: nativeExists ? await installedBytes(nativeRoot) : 0,
+    },
+    transfer: {
+      javascript,
+      wasm,
+      method:
+        'Unminified Bun browser bundle of native and compatibility constructors; each WASM asset compressed separately. CSS and HTTP overhead excluded.',
+    },
+    nativeQualification: 'not performed',
+  }
+  const output = join(projectRoot, '.artifacts/package-browser.json')
+  await mkdir(dirname(output), { recursive: true })
+  await writeFile(output, JSON.stringify(evidence, null, 2) + '\n')
+  console.log(`Package measurements: ${output}`)
+}
+
 async function suppliedTarball(argv: readonly string[]): Promise<string | undefined> {
   if (argv.length === 0) return undefined
   if (argv.length !== 2 || argv[0] !== '--tarball' || !argv[1]) {
@@ -778,7 +863,8 @@ async function createTarball(workspace: string): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const input = await suppliedTarball(process.argv.slice(2))
+  const browserOnly = process.argv[2] === '--browser'
+  const input = await suppliedTarball(process.argv.slice(browserOnly ? 3 : 2))
   const snapshot = input ? openFileSnapshot(input, maximumTarballBytes) : undefined
   let workspace: string | undefined
   let failure: unknown
@@ -787,13 +873,14 @@ async function main(): Promise<void> {
     workspace = await mkdtemp(join(tmpdir(), 'ghostty-webgpu-package-'))
     const consumerRoot = join(workspace, 'consumer')
     await mkdir(consumerRoot)
-    await writeConsumerFiles(consumerRoot)
+    await writeConsumerFiles(consumerRoot, browserOnly)
     const tarball = input ?? (await createTarball(workspace))
     await run(
       ['npm', 'install', '--dry-run=false', '--ignore-scripts', '--no-audit', '--no-fund', tarball],
       consumerRoot,
     )
-    await verifyInstalledPackage(consumerRoot, workspace)
+    if (browserOnly) await verifyInstalledBrowserPackage(consumerRoot, tarball)
+    if (!browserOnly) await verifyInstalledPackage(consumerRoot, workspace)
     verified = input ? snapshot!.sha256 : (tarball.split('/').at(-1) ?? '')
   } catch (error) {
     failure = error

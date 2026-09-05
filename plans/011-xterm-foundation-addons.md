@@ -1,6 +1,19 @@
 # Plan 011: Match xterm attach, clipboard, fit, web-links, and progress addons
 
-> **Executor instructions**: Follow this plan step by step. Run every verification command and
+## Current disposition
+
+**SUPERSEDED, 2026-09-05.** [Plan 016](016-ghostty-web-replacement-readiness.md) is the sole active
+readiness milestone for a standalone ghostty-web replacement. Evaluate fitting, links, clipboard,
+transport integration, and progress separately against migration needs. Completing this entire addon
+group or the preceding xterm parity plans is no longer a browser release requirement.
+
+The original instructions, dependencies, STOP conditions, and completion criteria below are
+historical. They do not authorize work or gate release. Keep this design as a reference when a
+specific capability earns a place in the active plan. No unfinished addon or parity row is complete.
+
+## Historical plan
+
+> **Historical executor instructions, inactive**: Follow this plan step by step. Run every verification command and
 > confirm the expected result before moving to the next step. If anything in “STOP conditions”
 > occurs, stop and report; do not improvise. When done, update the parity ledger and this plan's
 > status row in `plans/README.md`.
@@ -11,7 +24,7 @@
 > official addons against the facade; reimplement only when public compatibility cannot make them
 > work without upstream private services.
 
-## Status
+## Historical status
 
 - **Priority**: P1
 - **Effort**: L

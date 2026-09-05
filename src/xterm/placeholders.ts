@@ -23,20 +23,18 @@ const proposedApiErrorMessage =
 
 export const EMPTY_MARKERS: ReadonlyArray<IMarker> = Object.freeze([])
 
-export class Plan009UnavailableError extends Error {
+export class CapabilityUnavailableError extends Error {
   readonly surface: string
 
   constructor(surface: string) {
-    super(
-      `xterm ${surface} is unavailable until Plan 009 provides native-backed extension surfaces`,
-    )
-    this.name = 'Plan009UnavailableError'
+    super(`xterm ${surface} is not supported by this compatibility API`)
+    this.name = 'CapabilityUnavailableError'
     this.surface = surface
   }
 }
 
 function unavailable(surface: string): never {
-  throw new Plan009UnavailableError(surface)
+  throw new CapabilityUnavailableError(surface)
 }
 
 function requireProposedApi(isAllowed: ProposedApiAllowance): void {
