@@ -29,7 +29,11 @@ export interface CanvasRendererMetrics {
 }
 
 function requireContext(canvas: HTMLCanvasElement | OffscreenCanvas): Canvas2dContext {
-  const context = canvas.getContext('2d', { alpha: true }) as Canvas2dContext | null
+  // Explicit false avoids Chromium's automatic software fallback after incidental pixel reads.
+  const context = canvas.getContext('2d', {
+    alpha: true,
+    willReadFrequently: false,
+  }) as Canvas2dContext | null
   if (context) return context
   throw new TypeError('Canvas 2D is unavailable')
 }
