@@ -1,0 +1,430 @@
+{
+  "recordedAt": "2026-09-05T13:28:53.363Z",
+  "rawEvidence": ".artifacts/performance-pass/hardware-accepted.json",
+  "sources": [
+    {
+      "label": "before",
+      "revision": "f2a56e989889fd549836cd9aae5d131cc7f5f2a9",
+      "bundleSha256": "a94c05a1779edf16245da200a8c54d2d2fc2c875ca82d0db036924e69ca94a1a",
+      "wasmSha256": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+      "bridgeSha256": "47fae389c94f2545b2026d756256272b65f978d97feabae21b9171ad4b54b63f"
+    },
+    {
+      "label": "candidate",
+      "revision": "f2a56e989889fd549836cd9aae5d131cc7f5f2a9",
+      "bundleSha256": "252329b7a8318f7bb7d4355d45ac767a0c00e88e8123033c64a66b67ce9cef33",
+      "wasmSha256": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+      "bridgeSha256": "47fae389c94f2545b2026d756256272b65f978d97feabae21b9171ad4b54b63f"
+    }
+  ],
+  "environment": {
+    "os": "linux",
+    "release": "7.1.9-arch1-2",
+    "browser": "148.0.7778.96",
+    "args": [
+      "--enable-unsafe-webgpu",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--ozone-platform=wayland"
+    ],
+    "headless": false
+  },
+  "glRenderer": "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2, OpenGL ES 3.2 NVIDIA 610.57.04)",
+  "protocol": {
+    "steps": 60,
+    "repetitions": 3,
+    "warmupSteps": 10,
+    "idleMilliseconds": 2000,
+    "performanceQualified": true,
+    "notes": "CPU deltas sum browser processes. Callback/write times measure JS, not input-to-photon latency. Startup, native/GPU memory and physical input are unmeasured."
+  },
+  "nativeGeometry": {
+    "backend": "canvas2d",
+    "columns": 200,
+    "rows": 50,
+    "dpr": 2,
+    "font": {
+      "charLeft": 0,
+      "charTop": 3,
+      "cssCellHeight": 20,
+      "cssCellWidth": 7.5,
+      "deviceBaseline": 29,
+      "deviceCellHeight": 40,
+      "deviceCellWidth": 15,
+      "deviceCharHeight": 34,
+      "deviceCharWidth": 15,
+      "pixelRatio": 2,
+      "settings": {
+        "boldWeight": 700,
+        "family": "monospace",
+        "letterSpacing": 0,
+        "lineHeight": 1.2,
+        "size": 13,
+        "weight": 400
+      }
+    },
+    "canvas": {
+      "width": 3000,
+      "height": 2000
+    }
+  },
+  "toleranceMethod": "Exploratory before samples: max(0.05 CPU seconds, 2 MAD); callback p95 max(0.5 milliseconds, 2 MAD). Engineering tolerance for these fixed-work runs, not statistical confidence. Idle assessed by scheduled frame count.",
+  "results": [
+    {
+      "backend": "canvas2d",
+      "scenario": "settled-idle",
+      "before": {
+        "cpuSeconds": [0.02, 0.03, 0.01],
+        "callbackP95Milliseconds": [0, 0, 0],
+        "elapsedMilliseconds": [2000.3, 2000.3, 2000.3],
+        "frameRequests": [0, 0, 0],
+        "decodedRows": [0, 0, 0]
+      },
+      "candidate": {
+        "cpuSeconds": [0, 0, 0],
+        "callbackP95Milliseconds": [0, 0, 0],
+        "elapsedMilliseconds": [2000.4, 2000.3, 2000.2],
+        "frameRequests": [0, 0, 0],
+        "decodedRows": [0, 0, 0]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "canvas2d",
+      "scenario": "cursor-movement",
+      "before": {
+        "cpuSeconds": [0.38, 0.35, 0.36],
+        "callbackP95Milliseconds": [5.1, 5, 5.2],
+        "elapsedMilliseconds": [1015, 1015.2, 1015.2],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3120, 3120, 3120]
+      },
+      "candidate": {
+        "cpuSeconds": [0.1, 0.1, 0.1],
+        "callbackP95Milliseconds": [0.5, 0.5, 0.5],
+        "elapsedMilliseconds": [1015.1, 1015.3, 1014.9],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [120, 120, 120]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "canvas2d",
+      "scenario": "burst-output",
+      "before": {
+        "cpuSeconds": [1.34, 1.38, 1.4],
+        "callbackP95Milliseconds": [10.5, 11.5, 11],
+        "elapsedMilliseconds": [1002.5, 1002.1, 1022.9],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [1.21, 1.22, 1.19],
+        "callbackP95Milliseconds": [8.2, 8.2, 7.8],
+        "elapsedMilliseconds": [1015.3, 1015.3, 1014.8],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "canvas2d",
+      "scenario": "sustained-scroll",
+      "before": {
+        "cpuSeconds": [1.35, 1.39, 1.61],
+        "callbackP95Milliseconds": [10.5, 10.8, 17.4],
+        "elapsedMilliseconds": [999.2, 1003.1, 1144.5],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [1.22, 1.26, 1.47],
+        "callbackP95Milliseconds": [8.3, 10.1, 12.6],
+        "elapsedMilliseconds": [1015, 1015.2, 1009.9],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "canvas2d",
+      "scenario": "glyph-churn",
+      "before": {
+        "cpuSeconds": [1.01, 1, 0.98],
+        "callbackP95Milliseconds": [10.2, 10, 11.3],
+        "elapsedMilliseconds": [1005.7, 1014.2, 1002.4],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.88, 0.93, 0.93],
+        "callbackP95Milliseconds": [8.1, 8.1, 8.2],
+        "elapsedMilliseconds": [1015.1, 1015.3, 1015.4],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgl2",
+      "scenario": "settled-idle",
+      "before": {
+        "cpuSeconds": [0, 0, 0.01],
+        "callbackP95Milliseconds": [0, 0, 0],
+        "elapsedMilliseconds": [2000.2, 2000.2, 2000.3],
+        "frameRequests": [0, 0, 0],
+        "decodedRows": [0, 0, 0]
+      },
+      "candidate": {
+        "cpuSeconds": [0, 0.01, 0],
+        "callbackP95Milliseconds": [0, 0, 0],
+        "elapsedMilliseconds": [2000.2, 2000.3, 2000.4],
+        "frameRequests": [0, 0, 0],
+        "decodedRows": [0, 0, 0]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgl2",
+      "scenario": "cursor-movement",
+      "before": {
+        "cpuSeconds": [0.34, 0.36, 0.37],
+        "callbackP95Milliseconds": [5.6, 5.6, 5.7],
+        "elapsedMilliseconds": [1014.9, 1015.4, 1015.7],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3120, 3120, 3120]
+      },
+      "candidate": {
+        "cpuSeconds": [0.12, 0.08, 0.12],
+        "callbackP95Milliseconds": [0.7, 0.6, 0.6],
+        "elapsedMilliseconds": [1015.3, 1015.4, 1015],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [120, 120, 120]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgl2",
+      "scenario": "burst-output",
+      "before": {
+        "cpuSeconds": [0.67, 0.61, 0.65],
+        "callbackP95Milliseconds": [8.9, 10.4, 8.9],
+        "elapsedMilliseconds": [1015.3, 1015, 1015.5],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.67, 0.58, 0.66],
+        "callbackP95Milliseconds": [9, 9, 9.6],
+        "elapsedMilliseconds": [1015.4, 1015.1, 1015.7],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgl2",
+      "scenario": "sustained-scroll",
+      "before": {
+        "cpuSeconds": [0.69, 0.6, 0.83],
+        "callbackP95Milliseconds": [13.2, 9, 15],
+        "elapsedMilliseconds": [1015.7, 1015.3, 1014.9],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.81, 0.59, 0.65],
+        "callbackP95Milliseconds": [14.7, 8.9, 9.2],
+        "elapsedMilliseconds": [1015.5, 1015.1, 1015.1],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgl2",
+      "scenario": "glyph-churn",
+      "before": {
+        "cpuSeconds": [0.91, 0.88, 0.93],
+        "callbackP95Milliseconds": [13.8, 13.5, 13.7],
+        "elapsedMilliseconds": [1015.7, 1015.1, 1015.3],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.93, 0.86, 0.92],
+        "callbackP95Milliseconds": [13.7, 13.2, 14],
+        "elapsedMilliseconds": [1015.2, 1015.1, 1015.6],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgpu",
+      "scenario": "settled-idle",
+      "before": {
+        "cpuSeconds": [0.02, 0, 0],
+        "callbackP95Milliseconds": [0, 0, 0],
+        "elapsedMilliseconds": [2000.5, 2000.3, 2000.2],
+        "frameRequests": [0, 0, 0],
+        "decodedRows": [0, 0, 0]
+      },
+      "candidate": {
+        "cpuSeconds": [0.01, 0.02, 0],
+        "callbackP95Milliseconds": [0, 0, 0],
+        "elapsedMilliseconds": [2000.2, 2000.3, 2000.3],
+        "frameRequests": [0, 0, 0],
+        "decodedRows": [0, 0, 0]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgpu",
+      "scenario": "cursor-movement",
+      "before": {
+        "cpuSeconds": [0.37, 0.36, 0.39],
+        "callbackP95Milliseconds": [5.3, 5.4, 5.5],
+        "elapsedMilliseconds": [1014.9, 1015.3, 1015.2],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3120, 3120, 3120]
+      },
+      "candidate": {
+        "cpuSeconds": [0.12, 0.12, 0.14],
+        "callbackP95Milliseconds": [0.6, 0.6, 0.7],
+        "elapsedMilliseconds": [1015.7, 1015.3, 1015.6],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [120, 120, 120]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgpu",
+      "scenario": "burst-output",
+      "before": {
+        "cpuSeconds": [0.66, 0.65, 0.66],
+        "callbackP95Milliseconds": [10.2, 10.2, 10.3],
+        "elapsedMilliseconds": [1015.3, 1015, 1015.8],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.69, 0.65, 0.63],
+        "callbackP95Milliseconds": [16.9, 10.2, 8.9],
+        "elapsedMilliseconds": [1015.4, 1015.5, 1015.7],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.8
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgpu",
+      "scenario": "sustained-scroll",
+      "before": {
+        "cpuSeconds": [0.81, 0.67, 0.64],
+        "callbackP95Milliseconds": [14.9, 9.7, 10.4],
+        "elapsedMilliseconds": [1015.6, 1014.9, 1014.9],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.67, 0.66, 0.65],
+        "callbackP95Milliseconds": [10.7, 9.4, 9.3],
+        "elapsedMilliseconds": [1015.3, 1015.3, 1015.4],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.5
+      },
+      "matchingTextAndBytes": true
+    },
+    {
+      "backend": "webgpu",
+      "scenario": "glyph-churn",
+      "before": {
+        "cpuSeconds": [0.9, 0.91, 0.91],
+        "callbackP95Milliseconds": [14.1, 13.3, 14],
+        "elapsedMilliseconds": [1017.8, 1015.6, 1015.4],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "candidate": {
+        "cpuSeconds": [0.9, 0.87, 0.9],
+        "callbackP95Milliseconds": [13.6, 13.3, 13.7],
+        "elapsedMilliseconds": [1015.1, 1015.5, 1015.7],
+        "frameRequests": [60, 60, 60],
+        "decodedRows": [3000, 3000, 3000]
+      },
+      "tolerance": {
+        "cpuSeconds": 0.05,
+        "callbackP95Milliseconds": 0.6
+      },
+      "matchingTextAndBytes": true
+    }
+  ],
+  "ghosttyWebIdleExploratory": {
+    "version": "0.4.0",
+    "idleMilliseconds": 2000,
+    "frameRequests": {
+      "canvas2d": [0, 0, 0],
+      "ghostty-web": [121, 121, 121]
+    },
+    "limitations": "Different cell metrics and canvas sizes. Glyph-churn text differs. No general cross-package throughput claim; original ghostty font field incorrectly contained native metrics."
+  },
+  "limitations": "One device, three repetitions, one terminal. Callback times exclude GPU completion/presentation. Runtime.getHeapUsage does not measure total native/WASM/GPU memory. Idle CPU near timer resolution. Source bundles were captured before a compatibility row-filter guard and benchmark metadata/path fixes that do not change native workload behavior."
+}

@@ -111,6 +111,39 @@ it('separates regular, bold, italic, and bold-italic cache identities', () => {
   expect(italic.offsetX).toBeLessThanOrEqual(regular.offsetX)
 })
 
+it('bounds unique glyph retention while keeping recently reused glyphs', () => {
+  const rasterizer = createRasterizer()
+  const first = requireBitmap(rasterizer.rasterize(input('A')))
+  const recent = requireBitmap(rasterizer.rasterize(input('M')))
+  for (let index = 0; index < 4_096; index += 1) {
+    rasterizer.rasterize(input(String.fromCodePoint(0x4e00 + index), 2))
+    expect(rasterizer.rasterize(input('M'))).toBe(recent)
+  }
+
+  const rerasterized = requireBitmap(rasterizer.rasterize(input('A')))
+  expect(rerasterized).not.toBe(first)
+  expect(rerasterized).toEqual(first)
+})
+
+it('bounds cached pixel memory before the glyph count limit at high DPR', () => {
+  const rasterizer = createRasterizer({ pixelRatio: 4 })
+  const first = requireBitmap(rasterizer.rasterize(input('A')))
+  let pixels = first.pixels.byteLength
+  let glyphs = 1
+  while (pixels <= 4 * 1_024 * 1_024) {
+    const bitmap = requireBitmap(
+      rasterizer.rasterize(input(String.fromCodePoint(0x4e00 + glyphs), 2)),
+    )
+    pixels += bitmap.pixels.byteLength
+    glyphs += 1
+  }
+
+  expect(glyphs).toBeLessThan(4_096)
+  const rerasterized = requireBitmap(rasterizer.rasterize(input('A')))
+  expect(rerasterized).not.toBe(first)
+  expect(rerasterized).toEqual(first)
+})
+
 it('stores monochrome coverage in one byte and actual colored output in RGBA', () => {
   const rasterizer = createRasterizer()
   const grayscale = requireBitmap(rasterizer.rasterize(input('A')))

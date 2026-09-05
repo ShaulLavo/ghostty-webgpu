@@ -387,11 +387,10 @@ export class WebGlTerminalRenderer {
     pass.submit()
     if (this.context.isContextLost()) return this.suspendContext()
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    for (const row of rows) this.visibleRows[row.y] = copiedFrameRow(row)
     this.recordFrame(pass, updates, operations)
     this.needsFullRebuild = false
     this.overlayRows.clear()
-    this.emitFrame()
+    this.emitFrame(rows)
   }
 
   private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {
@@ -416,8 +415,13 @@ export class WebGlTerminalRenderer {
       for (const row of this.renderState.readRows({ dirtyOnly: true })) rows.set(row.y, row)
     }
     if (this.overlayRows.size === 0) return [...rows.values()]
-    for (const row of this.renderState.readRows()) {
-      if (this.overlayRows.has(row.y)) rows.set(row.y, row)
+    const missingRows = new Set<number>()
+    for (const row of this.overlayRows) {
+      if (!rows.has(row)) missingRows.add(row)
+    }
+    if (missingRows.size === 0) return [...rows.values()]
+    for (const row of this.renderState.readRows({ rows: missingRows })) {
+      if (missingRows.has(row.y)) rows.set(row.y, row)
     }
     return [...rows.values()].sort((left, right) => left.y - right.y)
   }
@@ -471,8 +475,9 @@ export class WebGlTerminalRenderer {
     }
   }
 
-  private emitFrame(): void {
+  private emitFrame(updatedRows: readonly RenderRow[]): void {
     if (!this.onFrame || !this.cursor) return
+    for (const row of updatedRows) this.visibleRows[row.y] = copiedFrameRow(row)
     const viewport = this.cursor.viewport ? Object.freeze({ ...this.cursor.viewport }) : undefined
     const cursor = Object.freeze({ ...this.cursor, viewport })
     const rows = this.visibleRows.filter((row): row is RendererFrameRow => row !== undefined)

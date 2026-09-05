@@ -106,6 +106,7 @@ export class WebGlTextPass {
 
   syncAtlas(uploads: readonly AtlasPageUpload[]): void {
     this.ensureActive()
+    if (uploads.length === 0) return
     const gl = this.context
     gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)

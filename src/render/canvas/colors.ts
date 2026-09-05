@@ -22,8 +22,10 @@ function luminance(color: RgbColor): number {
 }
 
 function contrastRatio(first: RgbColor, second: RgbColor): number {
-  const bright = Math.max(luminance(first), luminance(second))
-  const dark = Math.min(luminance(first), luminance(second))
+  const firstLuminance = luminance(first)
+  const secondLuminance = luminance(second)
+  const bright = Math.max(firstLuminance, secondLuminance)
+  const dark = Math.min(firstLuminance, secondLuminance)
   return (bright + 0.05) / (dark + 0.05)
 }
 
@@ -41,6 +43,51 @@ export function contrastAdjustedColor(
 
 export function cssRgb(color: RgbColor): string {
   return `rgb(${color.r}, ${color.g}, ${color.b})`
+}
+
+function rgbKey(color: RgbColor): number | string {
+  if (color.r !== (color.r & 255) || color.g !== (color.g & 255) || color.b !== (color.b & 255)) {
+    return cssRgb(color)
+  }
+  return color.r * 65_536 + color.g * 256 + color.b
+}
+
+export class CanvasColorCache {
+  private readonly foregrounds = new Map<number | string, string>()
+  private readonly colors = new Map<number | string, string>()
+
+  constructor(private readonly minimumContrast: number) {}
+
+  css(color: RgbColor): string {
+    const key = rgbKey(color)
+    const cached = this.colors.get(key)
+    if (cached !== undefined) return cached
+    const value = typeof key === 'string' ? key : cssRgb(color)
+    if (this.colors.size >= 1_024) this.colors.clear()
+    this.colors.set(key, value)
+    return value
+  }
+
+  foreground(colors: CanvasCellColors): string {
+    if (this.minimumContrast <= 1) return this.css(colors.foreground)
+    const foreground = rgbKey(colors.foreground)
+    const background = rgbKey(colors.background)
+    const key =
+      typeof foreground === 'number' && typeof background === 'number'
+        ? foreground * 16_777_216 + background
+        : `${foreground}/${background}`
+    const cached = this.foregrounds.get(key)
+    if (cached !== undefined) return cached
+    const adjusted = contrastAdjustedColor(
+      colors.foreground,
+      colors.background,
+      this.minimumContrast,
+    )
+    const value = this.css(adjusted)
+    if (this.foregrounds.size >= 1_024) this.foregrounds.clear()
+    this.foregrounds.set(key, value)
+    return value
+  }
 }
 
 export function resolveCanvasCellColors(

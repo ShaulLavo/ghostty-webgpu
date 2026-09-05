@@ -412,13 +412,11 @@ export class GhosttyRenderState {
     const rows: RenderRow[] = []
     let y = 0
     while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
+      const row = y++
+      if (options.rows && !options.rows.has(row)) continue
       const dirty = this.readRowDirty()
-      if (options.dirtyOnly && !dirty) {
-        y += 1
-        continue
-      }
-      rows.push({ cells: this.readCells(), dirty, y })
-      y += 1
+      if (options.dirtyOnly && !dirty) continue
+      rows.push({ cells: this.readCells(), dirty, y: row })
     }
     return rows
   }

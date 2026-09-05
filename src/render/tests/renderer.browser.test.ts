@@ -118,8 +118,9 @@ class FakeRenderState implements RenderStateSource {
   }
 
   readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
-    if (!options.dirtyOnly) return this.rows
-    return this.rows.filter((row) => row.dirty)
+    return this.rows.filter(
+      (row) => (!options.dirtyOnly || row.dirty) && (!options.rows || options.rows.has(row.y)),
+    )
   }
 
   readCursor(): RenderCursorSnapshot {
@@ -370,6 +371,42 @@ it('renders cursor-only terminal mutations even when row damage is clean', async
     viewport: { x: 1, y: 1 },
   })
   expect(source.acknowledgements).toBe(1)
+  renderer.dispose()
+  canvas.remove()
+})
+
+it('limits cursor and refresh reads to affected rows without decoding the viewport', async () => {
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 5)
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    font: fittedFont(),
+    renderState: source,
+    rows: 5,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  const readRows = vi.spyOn(source, 'readRows')
+
+  source.setCursor({ ...source.readCursor(), viewport: { wideTail: false, x: 1, y: 0 } })
+  source.dirtyRow(0)
+  renderer.notifyWrite()
+  clock.flushFrame()
+  expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+
+  readRows.mockClear()
+  source.setCursor({ ...source.readCursor(), viewport: { wideTail: false, x: 1, y: 3 } })
+  renderer.schedule()
+  clock.flushFrame()
+  expect(readRows.mock.results.map((result) => result.value.length)).toEqual([2])
+
+  readRows.mockClear()
+  renderer.refreshRows(4, 4)
+  clock.flushFrame()
+  expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+  expect(renderer.hasPendingFrame).toBe(false)
   renderer.dispose()
   canvas.remove()
 })

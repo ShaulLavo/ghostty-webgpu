@@ -305,6 +305,21 @@ it('renders explicit cursor text and updates one row without replacing the atlas
   expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
 })
 
+it('leaves pixel upload state untouched when the atlas has no pending changes', () => {
+  const grid = createGrid({
+    columns: 1,
+    renderRows: [row(0, [cell(0, { text: 'X' })])],
+    rows: 1,
+  })
+  const pixelStore = vi.spyOn(grid.gl, 'pixelStorei')
+  const bindBuffer = vi.spyOn(grid.gl, 'bindBuffer')
+  const bindTexture = vi.spyOn(grid.gl, 'bindTexture')
+  grid.pass.syncAtlas(grid.atlas.consumeUploads())
+  expect(pixelStore).not.toHaveBeenCalled()
+  expect(bindBuffer).not.toHaveBeenCalled()
+  expect(bindTexture).not.toHaveBeenCalled()
+})
+
 it('releases partial initialization resources after an allocation failure', () => {
   const gl = createContext(16, 16)
   const createProgram = vi.spyOn(gl, 'createProgram')

@@ -290,6 +290,48 @@ describe('WebGlTerminalRenderer', () => {
     expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
   })
 
+  it('limits cursor and refresh reads to affected rows and skips empty atlas state setup', async () => {
+    const source = new TestRenderState(
+      Array.from({ length: 5 }, (_, y) => row(y, [cell(0), cell(1)])),
+    )
+    source.cursor = {
+      blinking: false,
+      passwordInput: false,
+      style: 'block',
+      viewport: { wideTail: false, x: 0, y: 1 },
+      visible: true,
+    }
+    const { canvas, clock, renderer } = await fixture(source)
+    clock.flushFrame()
+    const readRows = vi.spyOn(source, 'readRows')
+    const pixelStore = vi.spyOn(context(canvas), 'pixelStorei')
+
+    source.cursor = { ...source.cursor, viewport: { wideTail: false, x: 1, y: 1 } }
+    source.replaceRow(1, [cell(0, { background: rgb(255, 0, 0) }), cell(1)])
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+    expect(pixelStore).not.toHaveBeenCalled()
+
+    readRows.mockClear()
+    source.cursor = { ...source.cursor, viewport: { wideTail: false, x: 1, y: 3 } }
+    renderer.schedule()
+    clock.flushFrame()
+    expect(readRows.mock.results.map((result) => result.value.length)).toEqual([2])
+    expect(pixelStore).not.toHaveBeenCalled()
+
+    readRows.mockClear()
+    renderer.refreshRows(4, 4)
+    clock.flushFrame()
+    expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+    expect(pixelStore).not.toHaveBeenCalled()
+    expect(pixel(await renderer.capturePixels(), canvas.width, 8, 36)).toEqual([255, 0, 0, 255])
+    expect(pixel(await renderer.capturePixels(), canvas.width, 24, 84)).toEqual([
+      238, 238, 238, 255,
+    ])
+    expect(renderer.hasPendingFrame).toBe(false)
+  })
+
   it('restores glyphs and writes received during real context loss without acknowledging lost work', async () => {
     const source = new TestRenderState([
       row(0, [cell(0, { foreground: rgb(255, 0, 0), text: '█' }), cell(1)]),

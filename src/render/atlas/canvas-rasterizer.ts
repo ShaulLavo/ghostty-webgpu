@@ -16,6 +16,8 @@ type ScratchCanvas = HTMLCanvasElement | OffscreenCanvas
 type ScratchContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
 const colorChannelTolerance = 2
+const maxBitmapCacheBytes = 4 * 1_024 * 1_024
+const maxBitmapCacheEntries = 4_096
 const maxScratchAttempts = 3
 
 function validateInput(input: GlyphRasterizationInput): GlyphRasterizationInput {
@@ -32,6 +34,10 @@ function validateInput(input: GlyphRasterizationInput): GlyphRasterizationInput 
 
 function bitmapKey(input: GlyphRasterizationInput): string {
   return JSON.stringify([input.cellSpan, input.weight, input.italic, input.text])
+}
+
+function bitmapBytes(key: string, bitmap: GlyphBitmap | undefined): number {
+  return key.length * 2 + (bitmap?.pixels.byteLength ?? 0)
 }
 
 function createScratchCanvas(): ScratchCanvas {
@@ -155,6 +161,7 @@ function copyPixelRow(
 }
 
 export class CanvasGlyphRasterizer implements GlyphRasterizer {
+  private bitmapCacheBytes = 0
   private readonly bitmaps = new Map<string, GlyphBitmap | undefined>()
   private readonly canvas: ScratchCanvas
   private readonly font: TerminalFittedFont
@@ -171,10 +178,34 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
   rasterize(rawInput: GlyphRasterizationInput): GlyphBitmap | undefined {
     const input = validateInput(rawInput)
     const key = bitmapKey(input)
-    if (this.bitmaps.has(key)) return this.bitmaps.get(key)
+    const cached = this.bitmaps.get(key)
+    if (cached !== undefined || this.bitmaps.has(key)) {
+      // Defer recency bookkeeping until the cache approaches either retention limit.
+      if (
+        this.bitmaps.size > maxBitmapCacheEntries / 2 ||
+        this.bitmapCacheBytes > maxBitmapCacheBytes / 2
+      ) {
+        this.bitmaps.delete(key)
+        this.bitmaps.set(key, cached)
+      }
+      return cached
+    }
     const bitmap = input.text.length === 0 ? undefined : this.rasterizeUncached(input)
-    this.bitmaps.set(key, bitmap)
+    this.cacheBitmap(key, bitmap)
     return bitmap
+  }
+
+  private cacheBitmap(key: string, bitmap: GlyphBitmap | undefined): void {
+    const bytes = bitmapBytes(key, bitmap)
+    if (bytes > maxBitmapCacheBytes) return
+    for (const [cachedKey, cachedBitmap] of this.bitmaps) {
+      const fits = this.bitmapCacheBytes + bytes <= maxBitmapCacheBytes
+      if (this.bitmaps.size < maxBitmapCacheEntries && fits) break
+      this.bitmaps.delete(cachedKey)
+      this.bitmapCacheBytes -= bitmapBytes(cachedKey, cachedBitmap)
+    }
+    this.bitmaps.set(key, bitmap)
+    this.bitmapCacheBytes += bytes
   }
 
   private configure(input: Pick<GlyphRasterizationInput, 'italic' | 'weight'>): ScratchContext {

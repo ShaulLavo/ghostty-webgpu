@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { RenderCell } from '../../core/types.js'
 import { canonicalRendererTheme } from '../config.js'
 import { defaultRendererTheme as rawDefaultRendererTheme } from '../instances/types.js'
-import { contrastAdjustedColor, resolveCanvasCellColors } from './colors.js'
+import { CanvasColorCache, contrastAdjustedColor, resolveCanvasCellColors } from './colors.js'
 
 const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)
 
@@ -11,6 +11,28 @@ function cell(overrides: Partial<RenderCell> = {}): RenderCell {
 }
 
 describe('Canvas cell colors', () => {
+  it('keeps fractional RGB channels distinct from packed byte colors in the cache', () => {
+    const cache = new CanvasColorCache(1)
+    expect(cache.css({ r: 0, g: 0.5, b: 0 })).toBe('rgb(0, 0.5, 0)')
+    expect(cache.css({ r: 0, g: 0, b: 128 })).toBe('rgb(0, 0, 128)')
+    const contrastCache = new CanvasColorCache(1.2)
+    const background = { r: 0, g: 0, b: 0 }
+    expect(
+      contrastCache.foreground({
+        background,
+        drawBackground: false,
+        foreground: { r: 0, g: 0.5, b: 0 },
+      }),
+    ).toBe('rgb(255, 255, 255)')
+    expect(
+      contrastCache.foreground({
+        background,
+        drawBackground: false,
+        foreground: { r: 0, g: 0, b: 128 },
+      }),
+    ).toBe('rgb(0, 0, 128)')
+  })
+
   it('preserves inverse, selection, and block-cursor precedence', () => {
     const inverse = resolveCanvasCellColors(
       cell({

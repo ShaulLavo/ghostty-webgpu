@@ -86,3 +86,7 @@ runner records whether the baseline returns a disposable and makes no disposal o
 The readiness decision still requires every required row, current displayed-output coverage,
 physical acceptance where necessary, and measured comparisons against declared tolerances. No
 performance or superiority claim follows from this initial fixture.
+
+The later [renderer performance pass](renderer-performance.md) records native before/after CPU
+and idle evidence on headed Chromium hardware. Cross-package throughput, startup, total memory,
+and multiple-terminal qualification remain open.

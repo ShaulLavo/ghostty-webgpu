@@ -69,8 +69,9 @@ export class TestRenderState implements RenderStateSource {
   }
 
   readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
-    if (!options.dirtyOnly) return this.rows
-    return this.rows.filter((row) => row.dirty)
+    return this.rows.filter(
+      (row) => (!options.dirtyOnly || row.dirty) && (!options.rows || options.rows.has(row.y)),
+    )
   }
 
   update(): RenderStateDirty {

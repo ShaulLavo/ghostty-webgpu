@@ -217,3 +217,17 @@ results and screenshots are under `.artifacts/replacement/`; packed-consumer siz
 under `.artifacts/package-browser.json`. A later package check used npm's cached registry data
 after registry connections returned ENETUNREACH; the consumer still installed into a new external
 directory. No physical input, hardware performance or real Platform acceptance was completed.
+
+### Renderer performance follow-up
+
+The [renderer performance record](../docs/replacement/renderer-performance.md) adds 90 paired
+hardware samples across Canvas2D, WebGL2, and WebGPU. Cursor-update CPU falls 67–72%; Canvas2D
+burst and scroll CPU fall 12% and 9% on the measured Linux NVIDIA system. All native idle samples
+request zero frames. The exploratory ghostty-web 0.4.0 comparison requests 121 idle frames in two
+seconds; different cell sizes prevent a general cross-package throughput claim.
+
+Headed Wayland fixes the earlier environment's missing WebGPU presentation. The built package
+displays and recolors text on all three backends with `GHOSTTY_BROWSER_HARDWARE=1`; default
+software-rendered checks remain separate. Existing decoration, alpha rounding, and screenshot
+dimension assertions still fail in their recorded environments. The renderer changes do not
+complete the API, integration, physical input, startup, memory, or multiple-terminal contract.

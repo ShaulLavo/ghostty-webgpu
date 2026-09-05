@@ -190,6 +190,7 @@ export interface RenderRow {
 
 export interface ReadRowsOptions {
   dirtyOnly?: boolean
+  rows?: ReadonlySet<number>
 }
 
 export interface DamageSnapshot {

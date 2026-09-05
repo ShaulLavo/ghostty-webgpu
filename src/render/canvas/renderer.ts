@@ -1,5 +1,5 @@
 import { RenderStateDirty } from '../../core/abi.js'
-import type { RenderCell, RenderCursorSnapshot, RenderRow } from '../../core/types.js'
+import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import {
   browserRenderClock,
@@ -20,14 +20,7 @@ import type {
   WebGpuTerminalRendererOptions,
 } from '../renderer.js'
 import { RenderScheduler } from '../scheduler.js'
-import {
-  contrastAdjustedColor,
-  cssRgb,
-  resolveCanvasCellColors,
-  type CanvasCellColors,
-} from './colors.js'
-
-type Canvas2dContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+import { CanvasRowPainter, type Canvas2dContext } from './painter.js'
 
 export interface CanvasRendererMetrics {
   paintedCells: number
@@ -66,229 +59,10 @@ function copiedFrameRow(row: RenderRow): RendererFrameRow {
   return Object.freeze({ cells, continuations, text, y: row.y })
 }
 
-function fontString(font: TerminalFittedFont, cell: RenderCell): string {
-  const italic = cell.style?.italic ? 'italic ' : ''
-  const weight = cell.style?.bold ? font.settings.boldWeight : font.settings.weight
-  return `${italic}${weight} ${font.settings.size * font.pixelRatio}px ${font.settings.family}`
-}
-
-function cellSpan(cells: readonly RenderCell[], index: number): number {
-  let span = 1
-  while (cells[index + span]?.continuation) span += 1
-  return span
-}
-
-function cursorForCell(
-  cursor: CursorState | undefined,
-  cell: RenderCell,
-  row: number,
-): CursorState | undefined {
-  if (!cursor?.visible) return undefined
-  if (cursor.x !== cell.x || cursor.y !== row) return undefined
-  return cursor
-}
-
-function drawCellBackground(
-  context: Canvas2dContext,
-  cell: RenderCell,
-  row: number,
-  font: TerminalFittedFont,
-  theme: CanonicalRendererTheme,
-  cursor: CursorState | undefined,
-): void {
-  const colors = resolveCanvasCellColors(cell, theme, cursor?.style === 'block')
-  const x = cell.x * font.deviceCellWidth
-  const y = row * font.deviceCellHeight
-  if (colors.drawBackground) {
-    context.fillStyle = cssRgb(colors.background)
-    context.fillRect(x, y, font.deviceCellWidth, font.deviceCellHeight)
-  }
-  drawCellDecorations(context, cell, x, y, font, theme, colors)
-  drawCursor(context, cursor, x, y, font, theme, colors)
-}
-
-function drawCellDecorations(
-  context: Canvas2dContext,
-  cell: RenderCell,
-  x: number,
-  y: number,
-  font: TerminalFittedFont,
-  theme: CanonicalRendererTheme,
-  colors: CanvasCellColors,
-): void {
-  const style = cell.style
-  if (!style) return
-  const color = contrastAdjustedColor(colors.foreground, colors.background, theme.minimumContrast)
-  context.fillStyle = cssRgb(color)
-  if (style.overline) context.fillRect(x, y + 1, font.deviceCellWidth, 1)
-  if (style.strikethrough) {
-    context.fillRect(x, y + Math.floor(font.deviceCellHeight * 0.52), font.deviceCellWidth, 1)
-  }
-  drawUnderline(context, style.underline, x, y, font)
-}
-
-function drawUnderline(
-  context: Canvas2dContext,
-  style: number,
-  x: number,
-  y: number,
-  font: TerminalFittedFont,
-): void {
-  if (style <= 0) return
-  const lower = y + font.deviceCellHeight - 2
-  if (style === 1) {
-    context.fillRect(x, lower, font.deviceCellWidth, 1)
-    return
-  }
-  if (style === 2) {
-    context.fillRect(x, lower, font.deviceCellWidth, 1)
-    context.fillRect(x, lower - 3, font.deviceCellWidth, 1)
-    return
-  }
-  if (style === 3) {
-    drawWavyUnderline(context, x, lower, font.deviceCellWidth)
-    return
-  }
-  drawPatternUnderline(context, x, lower, font.deviceCellWidth, style === 4)
-}
-
-function drawWavyUnderline(context: Canvas2dContext, x: number, y: number, width: number): void {
-  context.beginPath()
-  for (let offset = 0; offset < width; offset += 1) {
-    const targetY = y - 1 + Math.sin(offset * (Math.PI / 2))
-    if (offset === 0) context.moveTo(x, targetY)
-    if (offset > 0) context.lineTo(x + offset, targetY)
-  }
-  context.lineWidth = 1
-  context.strokeStyle = context.fillStyle
-  context.stroke()
-}
-
-function drawPatternUnderline(
-  context: Canvas2dContext,
-  x: number,
-  y: number,
-  width: number,
-  dotted: boolean,
-): void {
-  context.save()
-  context.beginPath()
-  context.setLineDash(dotted ? [2, 2] : [5, 3])
-  context.moveTo(x, y + 0.5)
-  context.lineTo(x + width, y + 0.5)
-  context.lineWidth = 1
-  context.strokeStyle = context.fillStyle
-  context.stroke()
-  context.restore()
-}
-
-function drawCursor(
-  context: Canvas2dContext,
-  cursor: CursorState | undefined,
-  x: number,
-  y: number,
-  font: TerminalFittedFont,
-  theme: CanonicalRendererTheme,
-  colors: CanvasCellColors,
-): void {
-  if (!cursor || cursor.style === 'block') return
-  const color = contrastAdjustedColor(colors.foreground, colors.background, theme.minimumContrast)
-  context.fillStyle = cssRgb(color)
-  if (cursor.style === 'bar') {
-    const width = Math.max(1, Math.floor(font.deviceCellWidth * 0.15))
-    context.fillRect(x, y, width, font.deviceCellHeight)
-    return
-  }
-  if (cursor.style === 'underline') {
-    const height = Math.max(1, Math.floor(font.deviceCellHeight * 0.16))
-    context.fillRect(x, y + font.deviceCellHeight - height, font.deviceCellWidth, height)
-    return
-  }
-  drawOutlineCursor(context, x, y, font)
-}
-
-function drawOutlineCursor(
-  context: Canvas2dContext,
-  x: number,
-  y: number,
-  font: TerminalFittedFont,
-): void {
-  const thickness = Math.max(
-    1,
-    Math.floor(Math.min(font.deviceCellWidth, font.deviceCellHeight) * 0.08),
-  )
-  context.strokeStyle = context.fillStyle
-  context.lineWidth = thickness
-  const inset = thickness / 2
-  context.strokeRect(
-    x + inset,
-    y + inset,
-    font.deviceCellWidth - thickness,
-    font.deviceCellHeight - thickness,
-  )
-}
-
-function drawCellGlyph(
-  context: Canvas2dContext,
-  cells: readonly RenderCell[],
-  index: number,
-  row: number,
-  font: TerminalFittedFont,
-  theme: CanonicalRendererTheme,
-  cursorState: CursorState | undefined,
-): void {
-  const cell = cells[index]
-  if (!cell || cell.continuation || !cell.text || cell.style?.invisible) return
-  const cursor = cursorForCell(cursorState, cell, row)
-  const colors = resolveCanvasCellColors(cell, theme, cursor?.style === 'block')
-  const foreground = contrastAdjustedColor(
-    colors.foreground,
-    colors.background,
-    theme.minimumContrast,
-  )
-  const span = cellSpan(cells, index)
-  const deviceSpacing = font.deviceCellWidth - font.deviceCharWidth
-  const characterWidth = font.deviceCellWidth * span - deviceSpacing
-  const x = cell.x * font.deviceCellWidth + font.charLeft + characterWidth / 2
-  const y = row * font.deviceCellHeight + font.deviceBaseline
-  context.font = fontString(font, cell)
-  context.fillStyle = cssRgb(foreground)
-  context.globalAlpha = cell.style?.faint ? 0.5 : 1
-  context.textAlign = 'center'
-  context.textBaseline = 'alphabetic'
-  context.fillText(cell.text, x, y)
-  context.globalAlpha = 1
-}
-
-function paintBackgrounds(
-  context: Canvas2dContext,
-  row: RenderRow,
-  font: TerminalFittedFont,
-  theme: CanonicalRendererTheme,
-  cursor: CursorState | undefined,
-): void {
-  for (const cell of row.cells) {
-    const cellCursor = cursorForCell(cursor, cell, row.y)
-    drawCellBackground(context, cell, row.y, font, theme, cellCursor)
-  }
-}
-
-function paintGlyphs(
-  context: Canvas2dContext,
-  row: RenderRow,
-  font: TerminalFittedFont,
-  theme: CanonicalRendererTheme,
-  cursor: CursorState | undefined,
-): void {
-  for (let index = 0; index < row.cells.length; index += 1) {
-    drawCellGlyph(context, row.cells, index, row.y, font, theme, cursor)
-  }
-}
-
 export class CanvasTerminalRenderer {
   readonly backend = 'canvas2d' as const
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
-  private readonly context: Canvas2dContext
+  private readonly painter: CanvasRowPainter
   private cursor?: RenderCursorSnapshot
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
@@ -316,11 +90,11 @@ export class CanvasTerminalRenderer {
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.font = copyFittedFont(options.font)
     this.grid = normalizeRendererGrid({ columns: options.columns, rows: options.rows })
-    this.context = requireContext(options.canvas)
     this.onFrame = options.onFrame
     this.renderState = options.renderState
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
+    this.painter = new CanvasRowPainter(requireContext(options.canvas), this.font, this.theme)
     this.visibleRows = Array.from({ length: this.grid.rows })
     this.resizeCanvas()
     this.scheduler = new RenderScheduler({
@@ -410,6 +184,7 @@ export class CanvasTerminalRenderer {
   setTheme(theme: Partial<RendererTheme>): void {
     this.themeInput = mergeRendererTheme({ ...this.themeInput, ...theme })
     this.theme = canonicalRendererTheme(this.themeInput)
+    this.painter.setTheme(this.theme)
     this.invalidateAll()
   }
 
@@ -452,7 +227,9 @@ export class CanvasTerminalRenderer {
     const cursorState = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
     for (const row of rows) this.paintRow(row, cursorState)
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    for (const row of rows) this.visibleRows[row.y] = copiedFrameRow(row)
+    if (this.onFrame) {
+      for (const row of rows) this.visibleRows[row.y] = copiedFrameRow(row)
+    }
     this.metrics.paintedRows += rows.length
     this.metrics.submittedFrames += 1
     this.needsFullRebuild = false
@@ -482,15 +259,7 @@ export class CanvasTerminalRenderer {
 
   private paintRow(row: RenderRow, cursor: CursorState | undefined): void {
     if (row.y < 0 || row.y >= this.grid.rows) return
-    const y = row.y * this.font.deviceCellHeight
-    this.context.save()
-    this.context.beginPath()
-    this.context.rect(0, y, this.canvas.width, this.font.deviceCellHeight)
-    this.context.clip()
-    this.context.clearRect(0, y, this.canvas.width, this.font.deviceCellHeight)
-    paintBackgrounds(this.context, row, this.font, this.theme, cursor)
-    paintGlyphs(this.context, row, this.font, this.theme, cursor)
-    this.context.restore()
+    this.painter.paint(row, cursor, this.canvas.width)
     this.metrics.paintedCells += row.cells.length
   }
 
@@ -504,6 +273,7 @@ export class CanvasTerminalRenderer {
     const logicalHeight = this.grid.rows * this.font.cssCellHeight
     this.canvas.width = this.grid.columns * this.font.deviceCellWidth
     this.canvas.height = this.grid.rows * this.font.deviceCellHeight
+    this.painter.resetContext(this.font)
     if (!('style' in this.canvas)) return
     this.canvas.style.width = `${logicalWidth}px`
     this.canvas.style.height = `${logicalHeight}px`
@@ -516,8 +286,10 @@ export class CanvasTerminalRenderer {
       for (const row of this.renderState.readRows({ dirtyOnly: true })) rows.set(row.y, row)
     }
     if (this.overlayRows.size === 0) return [...rows.values()]
-    for (const row of this.renderState.readRows()) {
-      if (this.overlayRows.has(row.y)) rows.set(row.y, row)
+    const missing = new Set([...this.overlayRows].filter((row) => !rows.has(row)))
+    if (missing.size === 0) return [...rows.values()]
+    for (const row of this.renderState.readRows({ rows: missing })) {
+      if (missing.has(row.y)) rows.set(row.y, row)
     }
     return [...rows.values()].sort((left, right) => left.y - right.y)
   }

@@ -19,10 +19,13 @@ const imports = {
   '@tanstack/hotkeys': '/node_modules/@tanstack/hotkeys/dist/index.js',
   '@tanstack/store': '/node_modules/@tanstack/store/dist/index.js',
 }
+const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const args = ['--enable-unsafe-webgpu']
-if (process.platform === 'linux') {
+if (process.platform === 'linux' && !hardware) {
   args.push('--enable-features=Vulkan', '--use-webgpu-adapter=swiftshader')
 }
+if (hardware && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
+  args.push('--ozone-platform=wayland')
 
 const openScenario = `(async () => {
   const { Terminal } = await import('/dist/index.js');
@@ -54,7 +57,7 @@ async function checkPresentation(page: Page, backend: string): Promise<void> {
   assert.equal(updated.red, 0, `${backend}: old red glyphs remain after changing the theme`)
 }
 
-const browser = await chromium.launch({ args, channel: 'chromium', headless: true })
+const browser = await chromium.launch({ args, channel: 'chromium', headless: !hardware })
 try {
   for (const backend of selected) await checkBackend(backend)
 } finally {

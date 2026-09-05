@@ -1,174 +1,277 @@
-import { GhosttyRuntime, WebGpuTerminalRenderer } from '../src/index.js'
+import { GhosttyRuntime } from '../src/core/runtime.js'
+import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
+import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
+import { WebGpuTerminalRenderer } from '../src/render/renderer.js'
+import { fitTerminalFont } from '../src/dom/fit.js'
+import type {
+  RendererBenchmark,
+  BenchmarkScenario,
+  BenchmarkResult,
+} from './renderer-benchmark-types.js'
 
 const columns = 200
 const rows = 50
-const cellWidth = 8
-const cellHeight = 16
-const pixelRatio = 2
-const canvas = requireElement<HTMLCanvasElement>('#terminal')
-const status = requireElement<HTMLElement>('#status')
+const backend = new URL(location.href).searchParams.get('backend') ?? 'webgpu'
+const mount = document.querySelector('main')
+if (!mount) throw new Error('Missing benchmark mount')
+const nativeRequestFrame = window.requestAnimationFrame.bind(window)
+const nativeCancelFrame = window.cancelAnimationFrame.bind(window)
+const pendingFrames = new Set<number>()
+let callbackMilliseconds: number[] = []
+let frameRequests = 0
+let writeMilliseconds: number[] = []
+let writtenBytes = 0
+let sequence = 0
+let decodedRows = 0
+let decodedCells = 0
+let adapterInfo: unknown
 
-function requireElement<ElementType extends Element>(selector: string): ElementType {
-  const element = document.querySelector<ElementType>(selector)
-  if (element) return element
-  throw new Error(`Benchmark element is missing: ${selector}`)
+window.requestAnimationFrame = (callback) => {
+  frameRequests += 1
+  const handle = nativeRequestFrame((time) => {
+    pendingFrames.delete(handle)
+    const started = performance.now()
+    callback(time)
+    callbackMilliseconds.push(performance.now() - started)
+  })
+  pendingFrames.add(handle)
+  return handle
+}
+window.cancelAnimationFrame = (handle) => {
+  pendingFrames.delete(handle)
+  nativeCancelFrame(handle)
 }
 
-const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
-if (!adapter) throw new Error('WebGPU requestAdapter returned null')
-const device = await adapter.requestDevice()
-const [wasm, bridge] = await Promise.all([
-  fetch('/ghostty-vt.wasm').then((response) => response.arrayBuffer()),
-  fetch('/bridge.wasm').then((response) => response.arrayBuffer()),
-])
-const runtime = await GhosttyRuntime.create({ bridge, wasm })
-const font = Object.freeze({
-  charLeft: 0,
-  charTop: 3,
-  cssCellHeight: cellHeight,
-  cssCellWidth: cellWidth,
-  deviceBaseline: 24,
-  deviceCellHeight: cellHeight * pixelRatio,
-  deviceCellWidth: cellWidth * pixelRatio,
-  deviceCharHeight: 26,
-  deviceCharWidth: cellWidth * pixelRatio,
-  pixelRatio,
-  settings: Object.freeze({
+const font = fitTerminalFont(
+  document,
+  {
     boldWeight: 700,
     family: 'monospace',
     letterSpacing: 0,
-    lineHeight: 32 / 26,
+    lineHeight: 1.2,
     size: 13,
     weight: 400,
-  }),
-})
-const terminal = runtime.createTerminal({
-  cellHeight: font.deviceCellHeight,
-  cellWidth: font.deviceCellWidth,
-  columns,
-  rows,
-})
-const renderState = runtime.createRenderState(terminal)
-const renderer = await WebGpuTerminalRenderer.create({
-  canvas,
-  columns,
-  deviceFactory: async () => device,
-  font,
-  renderState,
-  rows,
-})
+  },
+  devicePixelRatio,
+)
 
-let baseline = { ...renderer.metrics }
-let sequence = 0
-let scenarioTimer: number | undefined
+interface Driver {
+  dispose(): void
+  metrics(): Readonly<Record<string, number>>
+  output(): string
+  scroll(delta: number): void
+  write(data: string): void
+}
+
+async function createNativeDriver(): Promise<Driver> {
+  const canvas = document.createElement('canvas')
+  mount!.append(canvas)
+  const runtime = await GhosttyRuntime.create({ wasm: '/ghostty-vt.wasm', bridge: '/bridge.wasm' })
+  const terminal = runtime.createTerminal({
+    columns,
+    rows,
+    cellWidth: font.deviceCellWidth,
+    cellHeight: font.deviceCellHeight,
+  })
+  const state = runtime.createRenderState(terminal)
+  const options = {
+    canvas,
+    columns,
+    rows,
+    font,
+    onFrame: () => {},
+    theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
+    renderState: {
+      update: () => state.update(),
+      acknowledge: () => state.acknowledge(),
+      readCursor: () => state.readCursor(),
+      readRows: (options: Parameters<typeof state.readRows>[0]) => {
+        const result = state.readRows(options)
+        decodedRows += result.length
+        decodedCells += result.reduce((sum, row) => sum + row.cells.length, 0)
+        return result
+      },
+    },
+  }
+  const renderer = await createRenderer(options)
+  renderer.setCursorBlinkEnabled(false)
+  renderer.setFocused(false)
+  return {
+    dispose() {
+      renderer.dispose()
+      runtime.dispose()
+    },
+    metrics: () => ({ ...renderer.metrics, decodedRows, decodedCells }),
+    output: () =>
+      state
+        .readRows()
+        .map((row) =>
+          row.cells
+            .map((cell) => cell.text)
+            .join('')
+            .trimEnd(),
+        )
+        .join('\n'),
+    scroll(delta) {
+      terminal.scrollBy(delta)
+      renderer.notifyScroll()
+    },
+    write(data) {
+      terminal.write(data)
+      renderer.notifyWrite()
+    },
+  }
+}
+
+async function createRenderer(options: Parameters<typeof WebGpuTerminalRenderer.create>[0]) {
+  if (backend === 'canvas2d') return CanvasTerminalRenderer.create(options)
+  if (backend === 'webgl2') return WebGlTerminalRenderer.create(options)
+  if (backend !== 'webgpu') throw new Error(`Unknown backend: ${backend}`)
+  const adapter = await navigator.gpu?.requestAdapter({ powerPreference: 'high-performance' })
+  if (!adapter) throw new Error('No WebGPU adapter')
+  adapterInfo = {
+    vendor: adapter.info.vendor,
+    architecture: adapter.info.architecture,
+    description: adapter.info.description,
+    fallback: adapter.info.isFallbackAdapter,
+  }
+  const device = await adapter.requestDevice()
+  return WebGpuTerminalRenderer.create({ ...options, deviceFactory: async () => device })
+}
+
+async function createBaselineDriver(): Promise<Driver> {
+  const { init, Terminal } = await import('ghostty-web')
+  await init()
+  const terminal = new Terminal({
+    cols: columns,
+    rows,
+    fontSize: 13,
+    fontFamily: 'monospace',
+    cursorBlink: false,
+    theme: { foreground: '#ff0000', background: '#000000' },
+  })
+  await terminal.open(mount!)
+  return {
+    dispose: () => terminal.dispose(),
+    metrics: () => ({}),
+    output: () =>
+      Array.from(
+        { length: rows },
+        (_, y) =>
+          terminal.buffer.active
+            .getLine(y + terminal.getScrollbackLength() - Math.floor(terminal.getViewportY()))
+            ?.translateToString(true) ?? '',
+      ).join('\n'),
+    scroll: (delta) => terminal.scrollLines(delta),
+    write: (data) => terminal.write(data),
+  }
+}
+
+const driver = backend === 'ghostty-web' ? await createBaselineDriver() : await createNativeDriver()
 
 function outputLine(index: number): string {
-  const label = String(index).padStart(8, '0')
-  return `${label} ${'terminal-output '.repeat(12)}`.slice(0, columns - 2) + '\r\n'
+  return (
+    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(12)}`.slice(0, columns - 2) +
+    '\r\n'
+  )
+}
+
+function write(data: string): void {
+  const started = performance.now()
+  driver.write(data)
+  writeMilliseconds.push(performance.now() - started)
+  writtenBytes += new TextEncoder().encode(data).byteLength
 }
 
 function writeLines(count: number): void {
   let output = ''
-  for (let line = 0; line < count; line += 1) {
-    output += outputLine(sequence)
+  for (let index = 0; index < count; index += 1) output += outputLine(sequence++)
+  write(output)
+}
+
+function advance(scenario: BenchmarkScenario, step: number): void {
+  if (scenario === 'cursor-movement') {
+    write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
+    return
+  }
+  if (scenario === 'burst-output') {
+    writeLines(10)
+    return
+  }
+  if (scenario === 'sustained-scroll') {
+    driver.scroll(step % 40 < 20 ? -1 : 1)
+    return
+  }
+  if (scenario === 'glyph-churn') {
+    const text = Array.from(
+      { length: 24 },
+      (_, offset) =>
+        String.fromCodePoint(0x4e00 + ((sequence * 24 + offset) % 16000)) + 'e\u0301🧪',
+    ).join('')
     sequence += 1
+    write(text + '\r\n')
   }
-  terminal.write(output)
-  renderer.notifyWrite()
 }
 
-function glyphChurnLine(index: number): string {
-  const emoji = ['🧪', '🚀', '🫠', '🧭'][index % 4] ?? '🧪'
-  let output = ''
-  for (let offset = 0; offset < 24; offset += 1) {
-    const cjk = String.fromCodePoint(0x4e00 + ((index * 24 + offset) % 16_000))
-    const combining = String.fromCodePoint(0x300 + ((index + offset) % 80))
-    output += `${cjk}e${combining}${emoji}`
-  }
-  return `${output}\r\n`
+function frame(): Promise<void> {
+  return new Promise((resolve) => nativeRequestFrame(() => resolve()))
 }
 
-function writeGlyphChurn(): void {
-  terminal.write(glyphChurnLine(sequence))
-  sequence += 1
-  renderer.notifyWrite()
-}
-
-function stopScenario(): void {
-  if (scenarioTimer === undefined) return
-  window.clearInterval(scenarioTimer)
-  scenarioTimer = undefined
-}
-
-function startScenario(name: string): void {
-  stopScenario()
-  status.textContent = name
-  renderer.setCursorBlinkEnabled(false)
-  renderer.setFocused(false)
-  if (name === 'unfocused-idle') return
-  if (name === 'focused-blinking-idle') {
-    renderer.setCursorBlinkEnabled(true)
-    renderer.setFocused(true)
-    return
+async function run(
+  scenario: BenchmarkScenario,
+  steps: number,
+  idleMilliseconds: number,
+): Promise<BenchmarkResult> {
+  const before = driver.metrics()
+  callbackMilliseconds = []
+  frameRequests = 0
+  writeMilliseconds = []
+  writtenBytes = 0
+  const started = performance.now()
+  if (scenario === 'settled-idle')
+    await new Promise((resolve) => setTimeout(resolve, idleMilliseconds))
+  for (let step = 0; step < steps && scenario !== 'settled-idle'; step += 1) {
+    advance(scenario, step)
+    await frame()
   }
-  if (name === 'burst-output') {
-    scenarioTimer = window.setInterval(() => writeLines(10), 16)
-    return
-  }
-  if (name === 'sustained-scroll') {
-    scenarioTimer = window.setInterval(() => renderer.notifyScroll(), 16)
-    return
-  }
-  if (name === 'glyph-churn') {
-    scenarioTimer = window.setInterval(writeGlyphChurn, 16)
-    return
-  }
-  throw new Error(`Unknown scenario: ${name}`)
-}
-
-function resetMetrics(): void {
-  baseline = { ...renderer.metrics }
-}
-
-function getMetrics() {
+  await frame()
+  const elapsedMilliseconds = performance.now() - started
+  const after = driver.metrics()
+  const metrics = Object.fromEntries(
+    Object.entries(after).map(([key, value]) => [key, value - (before[key] ?? 0)]),
+  )
   return {
-    atlasCacheHits: renderer.metrics.atlasCacheHits - baseline.atlasCacheHits,
-    atlasCacheMisses: renderer.metrics.atlasCacheMisses - baseline.atlasCacheMisses,
-    atlasEvictions: renderer.metrics.atlasEvictions - baseline.atlasEvictions,
-    atlasPages: renderer.metrics.atlasPages,
-    atlasUploadedBytes: renderer.metrics.atlasUploadedBytes - baseline.atlasUploadedBytes,
-    atlasUploadOperations: renderer.metrics.atlasUploadOperations - baseline.atlasUploadOperations,
-    deviceRestores: renderer.metrics.deviceRestores - baseline.deviceRestores,
-    draws: renderer.metrics.draws - baseline.draws,
-    instanceUploadOperations:
-      renderer.metrics.instanceUploadOperations - baseline.instanceUploadOperations,
-    rebuiltRows: renderer.metrics.rebuiltRows - baseline.rebuiltRows,
-    submittedFrames: renderer.metrics.submittedFrames - baseline.submittedFrames,
-    uploadedBytes: renderer.metrics.uploadedBytes - baseline.uploadedBytes,
+    callbackMilliseconds,
+    elapsedMilliseconds,
+    frameRequests,
+    metrics,
+    pendingFrames: pendingFrames.size,
+    steps: scenario === 'settled-idle' ? 0 : steps,
+    writeMilliseconds,
+    writtenBytes,
   }
 }
 
 writeLines(200)
-await new Promise((resolve) => window.setTimeout(resolve, 500))
-resetMetrics()
-status.textContent = 'ready'
-
-Object.assign(window, {
-  __rendererBench: {
-    getMetrics,
-    getPageInfo: () => ({
-      adapter: {
-        architecture: adapter.info.architecture,
-        description: adapter.info.description,
-        device: adapter.info.device,
-        vendor: adapter.info.vendor,
-      },
-      columns,
-      dpr: window.devicePixelRatio,
-      rows,
-    }),
-    resetMetrics,
-    startScenario,
-    stopScenario,
-  },
-})
+await frame()
+await frame()
+window.__rendererBench = {
+  dispose: () => driver.dispose(),
+  getPageInfo: () => ({
+    adapter: adapterInfo,
+    backend,
+    columns,
+    rows,
+    dpr: devicePixelRatio,
+    font:
+      backend === 'ghostty-web'
+        ? { requested: { family: 'monospace', size: 13 }, metrics: 'package defaults' }
+        : font,
+    canvas: {
+      width: mount.querySelector('canvas')?.width,
+      height: mount.querySelector('canvas')?.height,
+    },
+  }),
+  output: () => driver.output(),
+  run,
+} satisfies RendererBenchmark
