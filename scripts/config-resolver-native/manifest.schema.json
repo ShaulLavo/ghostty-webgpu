@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "manifest.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "upstreamRevision",
+    "upstreamTreeSha256",
+    "nativeBuildSourceHead",
+    "nativeInputsTreeSha256",
+    "sourceDateEpoch",
+    "ceilings",
+    "targets"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "upstreamRevision": { "const": "c8554f28e0efe2f5595f32020371c34b25ec628f" },
+    "upstreamTreeSha256": {
+      "const": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb"
+    },
+    "nativeBuildSourceHead": { "$ref": "contract.schema.json#/$defs/revision" },
+    "nativeInputsTreeSha256": { "$ref": "contract.schema.json#/$defs/hash" },
+    "sourceDateEpoch": { "const": 1787590337 },
+    "ceilings": { "$ref": "#/$defs/ceilings" },
+    "targets": { "$ref": "#/$defs/targets" }
+  },
+  "$defs": {
+    "ceilingRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"],
+      "properties": {
+        "darwin-arm64": { "const": 2097152 },
+        "darwin-x64": { "const": 2097152 },
+        "linux-arm64": { "const": 8388608 },
+        "linux-x64": { "const": 9437184 }
+      }
+    },
+    "ceilings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perTargetBytes", "totalPackageBytes"],
+      "properties": {
+        "perTargetBytes": { "$ref": "#/$defs/ceilingRecord" },
+        "totalPackageBytes": { "const": 22020096 }
+      }
+    },
+    "targetManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executablePath",
+        "resourcesRoot",
+        "totalBytes",
+        "files",
+        "compatibility",
+        "assemblyProvenance",
+        "assemblyProvenanceSha256"
+      ],
+      "properties": {
+        "executablePath": { "const": "bin/ghostty-config-resolver" },
+        "resourcesRoot": { "const": "resources/themes" },
+        "totalBytes": { "type": "integer", "minimum": 1, "maximum": 9437184 },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": { "$ref": "contract.schema.json#/$defs/artifactFile" }
+        },
+        "compatibility": { "$ref": "contract.schema.json#/$defs/compatibility" },
+        "assemblyProvenance": { "$ref": "provenance.schema.json" },
+        "assemblyProvenanceSha256": { "$ref": "contract.schema.json#/$defs/hash" }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"],
+      "properties": {
+        "darwin-arm64": { "$ref": "#/$defs/targetManifest" },
+        "darwin-x64": { "$ref": "#/$defs/targetManifest" },
+        "linux-arm64": { "$ref": "#/$defs/targetManifest" },
+        "linux-x64": { "$ref": "#/$defs/targetManifest" }
+      }
+    }
+  }
+}

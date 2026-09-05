@@ -5,6 +5,7 @@ import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
 import type { GlyphBitmap, GlyphRasterizer } from '../atlas/types.js'
+import { canonicalRendererTheme } from '../config.js'
 import { InstanceRows } from '../instances/rows.js'
 import { defaultRendererTheme, type CursorState, type RendererTheme } from '../instances/types.js'
 import { WebGpuTextPass } from '../text-pass.js'
@@ -139,7 +140,13 @@ async function renderGrid(
     rows,
   })
   const updates = (fixture.renderRows ?? testRows()).map((row) =>
-    instances.rebuildRow(row, glyphLookup(atlas), rasterizer, theme, cursor),
+    instances.rebuildRow(
+      row,
+      glyphLookup(atlas),
+      rasterizer,
+      canonicalRendererTheme(theme),
+      cursor,
+    ),
   )
   const atlasTextures = new AtlasGpuTextures(device, atlas.textureLayout)
   atlasTextures.sync(atlas.consumeUploads())
@@ -255,6 +262,37 @@ it('renders transparent defaults, opaque explicit colors, glyphs, and an outline
     uploadedBytes: columns * rows * (64 + 96),
     uploadOperations: 2,
   })
+  grid.destroy()
+  device.destroy()
+})
+
+it('renders explicit cursor text over a WebGPU block cursor', async () => {
+  const device = await createDevice()
+  const rasterizer: GlyphRasterizer = {
+    rasterize() {
+      return {
+        height: cellSize,
+        kind: 'grayscale',
+        offsetX: 0,
+        offsetY: 0,
+        pixels: new Uint8Array(cellSize * cellSize).fill(255),
+        width: cellSize,
+      }
+    },
+  }
+  const theme: RendererTheme = {
+    ...defaultRendererTheme,
+    cursor: rgb(0, 255, 0),
+    cursorText: rgb(0, 0, 255),
+  }
+  const grid = await renderGrid(
+    device,
+    theme,
+    { style: 'block', visible: true, x: 0, y: 0 },
+    { rasterizer, renderRows: [renderRow(0, [cell(0, { text: 'X' })])] },
+  )
+
+  expect(grid.pixel(8, 8)).toEqual([0, 0, 255, 255])
   grid.destroy()
   device.destroy()
 })

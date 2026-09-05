@@ -3,6 +3,7 @@ import type { RenderCell, RenderCursorSnapshot, RenderRow } from '../../core/typ
 import type { TerminalFittedFont } from '../../term/types.js'
 import {
   browserRenderClock,
+  canonicalRendererTheme,
   copyFittedFont,
   fittedFontsEqual,
   mergeRendererTheme,
@@ -10,7 +11,7 @@ import {
   safeRendererInteger,
 } from '../config.js'
 import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
-import type { CursorState, RendererTheme } from '../instances/types.js'
+import type { CanonicalRendererTheme, CursorState, RendererTheme } from '../instances/types.js'
 import type {
   RendererFrameRow,
   RendererFrameSnapshot,
@@ -92,7 +93,7 @@ function drawCellBackground(
   cell: RenderCell,
   row: number,
   font: TerminalFittedFont,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   cursor: CursorState | undefined,
 ): void {
   const colors = resolveCanvasCellColors(cell, theme, cursor?.style === 'block')
@@ -112,7 +113,7 @@ function drawCellDecorations(
   x: number,
   y: number,
   font: TerminalFittedFont,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   colors: CanvasCellColors,
 ): void {
   const style = cell.style
@@ -187,7 +188,7 @@ function drawCursor(
   x: number,
   y: number,
   font: TerminalFittedFont,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   colors: CanvasCellColors,
 ): void {
   if (!cursor || cursor.style === 'block') return
@@ -233,7 +234,7 @@ function drawCellGlyph(
   index: number,
   row: number,
   font: TerminalFittedFont,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   cursorState: CursorState | undefined,
 ): void {
   const cell = cells[index]
@@ -263,7 +264,7 @@ function paintBackgrounds(
   context: Canvas2dContext,
   row: RenderRow,
   font: TerminalFittedFont,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   cursor: CursorState | undefined,
 ): void {
   for (const cell of row.cells) {
@@ -276,7 +277,7 @@ function paintGlyphs(
   context: Canvas2dContext,
   row: RenderRow,
   font: TerminalFittedFont,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   cursor: CursorState | undefined,
 ): void {
   for (let index = 0; index < row.cells.length; index += 1) {
@@ -306,7 +307,8 @@ export class CanvasTerminalRenderer {
   private readonly overlayRows = new Set<number>()
   private readonly renderState: RenderStateSource
   private readonly scheduler: RenderScheduler
-  private theme: RendererTheme
+  private theme: CanonicalRendererTheme
+  private themeInput: RendererTheme
   private visibleRows: (RendererFrameRow | undefined)[]
 
   private constructor(options: WebGpuTerminalRendererOptions) {
@@ -317,7 +319,8 @@ export class CanvasTerminalRenderer {
     this.context = requireContext(options.canvas)
     this.onFrame = options.onFrame
     this.renderState = options.renderState
-    this.theme = mergeRendererTheme(options.theme)
+    this.themeInput = mergeRendererTheme(options.theme)
+    this.theme = canonicalRendererTheme(this.themeInput)
     this.visibleRows = Array.from({ length: this.grid.rows })
     this.resizeCanvas()
     this.scheduler = new RenderScheduler({
@@ -405,7 +408,8 @@ export class CanvasTerminalRenderer {
   }
 
   setTheme(theme: Partial<RendererTheme>): void {
-    this.theme = mergeRendererTheme({ ...this.theme, ...theme })
+    this.themeInput = mergeRendererTheme({ ...this.themeInput, ...theme })
+    this.theme = canonicalRendererTheme(this.themeInput)
     this.invalidateAll()
   }
 

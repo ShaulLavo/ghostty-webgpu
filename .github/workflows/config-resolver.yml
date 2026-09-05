@@ -1,0 +1,1259 @@
+name: Config resolver artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Build native artifacts or run the release-candidate graph
+        required: true
+        type: choice
+        options:
+          - build-native
+          - release-candidate
+      expected_source_head:
+        description: Exact 40-hex commit selected for this run
+        required: true
+        type: string
+      expected_native_inputs_sha256:
+        description: Exact SHA-256 of canonical native-inputs.json
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  BUN_VERSION: 1.4.0
+  PINNED_UPSTREAM_REVISION: c8554f28e0efe2f5595f32020371c34b25ec628f
+  THEMES_ARCHIVE_BYTES: '78218'
+  THEMES_ARCHIVE_SHA256: ea9878471420ee5b12e7f2ff480099c954ea50e573a1bdf83f43e105c9be63f0
+  THEMES_ARCHIVE_URL: https://deps.files.ghostty.org/ghostty-themes-release-20260810-152212-0173c3c.tgz
+
+jobs:
+  build-native:
+    if: ${{ inputs.mode == 'build-native' }}
+    name: Build native (${{ matrix.target }})
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-15
+            runner_os: macOS
+            runner_arch: ARM64
+            uname_os: Darwin
+            uname_arch: arm64
+            image: macos15
+            image_version: 20260727.0256.1
+            zig_archive_bytes: '52238004'
+            zig_archive_name: zig-aarch64-macos-0.16.0.tar.xz
+            zig_archive_sha256: b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz
+          - target: darwin-x64
+            runner: macos-15-intel
+            runner_os: macOS
+            runner_arch: X64
+            uname_os: Darwin
+            uname_arch: x86_64
+            image: macos15
+            image_version: 20260824.0482.1
+            zig_archive_bytes: '57396836'
+            zig_archive_name: zig-x86_64-macos-0.16.0.tar.xz
+            zig_archive_sha256: 0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            runner_os: Linux
+            runner_arch: ARM64
+            uname_os: Linux
+            uname_arch: aarch64
+            image: ubuntu24-arm64
+            image_version: 20260823.101.1
+            zig_archive_bytes: '51211944'
+            zig_archive_name: zig-aarch64-linux-0.16.0.tar.xz
+            zig_archive_sha256: ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz
+          - target: linux-x64
+            runner: ubuntu-24.04
+            runner_os: Linux
+            runner_arch: X64
+            uname_os: Linux
+            uname_arch: x86_64
+            image: ubuntu24
+            image_version: 20260823.283.1
+            zig_archive_bytes: '55478392'
+            zig_archive_name: zig-x86_64-linux-0.16.0.tar.xz
+            zig_archive_sha256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+    runs-on: ${{ matrix.runner }}
+    env:
+      EXPECTED_NATIVE_INPUTS_SHA256: ${{ inputs.expected_native_inputs_sha256 }}
+      EXPECTED_SOURCE_HEAD: ${{ inputs.expected_source_head }}
+      NATIVE_RUN_ATTEMPT: ${{ github.run_attempt }}
+      NATIVE_RUN_ID: ${{ github.run_id }}
+      NATIVE_TARGET: ${{ matrix.target }}
+      ZIG_ARCHIVE_BYTES: ${{ matrix.zig_archive_bytes }}
+      ZIG_ARCHIVE_NAME: ${{ matrix.zig_archive_name }}
+      ZIG_ARCHIVE_SHA256: ${{ matrix.zig_archive_sha256 }}
+      ZIG_ARCHIVE_URL: ${{ matrix.zig_archive_url }}
+    steps:
+      - name: Checkout exact native source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ inputs.expected_source_head }}
+          submodules: false
+
+      - name: Validate dispatch and native host
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SOURCE_HEAD" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'expected_source_head must be exactly 40 lowercase hexadecimal characters' >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_NATIVE_INPUTS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'expected_native_inputs_sha256 must be exactly 64 lowercase hexadecimal characters' >&2
+            exit 1
+          fi
+          if [[ "$EXPECTED_SOURCE_HEAD" != "$GITHUB_SHA" ]]; then
+            echo 'expected_source_head does not match the dispatched commit' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_SOURCE_HEAD" ]]; then
+            echo 'checked-out source does not match expected_source_head' >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'checked-out source is not clean' >&2
+            exit 1
+          fi
+          if [[ "$RUNNER_OS" != '${{ matrix.runner_os }}' ]]; then
+            echo 'runner operating system does not match the target' >&2
+            exit 1
+          fi
+          if [[ "$RUNNER_ARCH" != '${{ matrix.runner_arch }}' ]]; then
+            echo 'runner architecture does not match the target' >&2
+            exit 1
+          fi
+          if [[ "$(uname -s)" != '${{ matrix.uname_os }}' ]]; then
+            echo 'kernel does not match the target' >&2
+            exit 1
+          fi
+          if [[ "$(uname -m)" != '${{ matrix.uname_arch }}' ]]; then
+            echo 'machine architecture does not match the target' >&2
+            exit 1
+          fi
+          if [[ "${ImageOS:-}" != '${{ matrix.image }}' ]]; then
+            echo 'runner image does not match the build recipe' >&2
+            exit 1
+          fi
+          if [[ "${ImageVersion:-}" != '${{ matrix.image_version }}' ]]; then
+            echo 'runner image version does not match the build recipe' >&2
+            exit 1
+          fi
+
+      - name: Set up exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Verify maintained native contract in Bun and Node
+        run: |
+          set -euo pipefail
+          command -v node >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+          test_root="$RUNNER_TEMP/config-resolver-native-self-test"
+          if [[ -e "$test_root" ]]; then
+            echo 'native self-test root already exists' >&2
+            exit 1
+          fi
+          mkdir "$test_root"
+          bun scripts/config-resolver-native/self-test.ts \
+            >"$test_root/bun.stdout" 2>"$test_root/bun.stderr"
+          bun build scripts/config-resolver-native/self-test.ts \
+            --target=node \
+            --format=esm \
+            --packages=bundle \
+            --reject-unresolved \
+            --outfile="$test_root/self-test.mjs"
+          node "$test_root/self-test.mjs" \
+            >"$test_root/node.stdout" 2>"$test_root/node.stderr"
+          if [[ -s "$test_root/bun.stderr" || -s "$test_root/node.stderr" ]]; then
+            echo 'native self-test emitted stderr' >&2
+            exit 1
+          fi
+          cmp "$test_root/bun.stdout" "$test_root/node.stdout"
+          bun scripts/config-resolver-native/generate-native-golden.ts --check
+          bun scripts/config-resolver-native/generate-build-recipe.ts --check
+
+      - name: Verify source state and prepare isolated paths
+        run: |
+          set -euo pipefail
+          if [[ "$(bun --version)" != "$BUN_VERSION" ]]; then
+            echo 'Bun version does not match the workflow pin' >&2
+            exit 1
+          fi
+          command -v node >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+          state="$(bun scripts/verify-config-resolver-artifacts.ts --state bootstrap)"
+          if [[ "$state" != 'bootstrap' ]]; then
+            echo 'native source is not in strict bootstrap state' >&2
+            exit 1
+          fi
+          actual_inputs_sha256="$(shasum -a 256 scripts/config-resolver-native/native-inputs.json | awk '{print $1}')"
+          if [[ "$actual_inputs_sha256" != "$EXPECTED_NATIVE_INPUTS_SHA256" ]]; then
+            echo 'native input digest does not match the dispatch' >&2
+            exit 1
+          fi
+          native_root="$RUNNER_TEMP/config-resolver-native-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT-$NATIVE_TARGET"
+          if [[ -e "$native_root" ]]; then
+            echo 'isolated native build root already exists' >&2
+            exit 1
+          fi
+          mkdir -p "$native_root/inputs"
+          {
+            echo "NATIVE_ROOT=$native_root"
+            echo "NATIVE_UPSTREAM=$native_root/upstream"
+            echo "NATIVE_ZIG_ARCHIVE=$native_root/inputs/$ZIG_ARCHIVE_NAME"
+            echo "NATIVE_THEMES_ARCHIVE=$native_root/inputs/ghostty-themes.tgz"
+            echo "NATIVE_FIRST_OUTPUT=$native_root/build-first"
+            echo "NATIVE_SECOND_OUTPUT=$native_root/build-second"
+            echo "NATIVE_PAIR=$native_root/upload-pair"
+          } >> "$GITHUB_ENV"
+
+      - name: Acquire and verify immutable native inputs
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --retry 3 --silent --show-error \
+            --output "$NATIVE_ZIG_ARCHIVE" "$ZIG_ARCHIVE_URL"
+          zig_bytes="$(wc -c < "$NATIVE_ZIG_ARCHIVE" | tr -d '[:space:]')"
+          zig_sha256="$(shasum -a 256 "$NATIVE_ZIG_ARCHIVE" | awk '{print $1}')"
+          if [[ "$zig_bytes" != "$ZIG_ARCHIVE_BYTES" || "$zig_sha256" != "$ZIG_ARCHIVE_SHA256" ]]; then
+            echo 'Zig archive identity mismatch' >&2
+            exit 1
+          fi
+          tar -xJf "$NATIVE_ZIG_ARCHIVE" -C "$NATIVE_ROOT/inputs"
+          zig_root="$NATIVE_ROOT/inputs/${ZIG_ARCHIVE_NAME%.tar.xz}"
+          zig_binary="$zig_root/zig"
+          if [[ ! -x "$zig_binary" || "$("$zig_binary" version)" != '0.16.0' ]]; then
+            echo 'extracted Zig compiler does not match version 0.16.0' >&2
+            exit 1
+          fi
+          echo "NATIVE_ZIG=$zig_binary" >> "$GITHUB_ENV"
+
+          curl --fail --location --proto '=https' --retry 3 --silent --show-error \
+            --output "$NATIVE_THEMES_ARCHIVE" "$THEMES_ARCHIVE_URL"
+          themes_bytes="$(wc -c < "$NATIVE_THEMES_ARCHIVE" | tr -d '[:space:]')"
+          themes_sha256="$(shasum -a 256 "$NATIVE_THEMES_ARCHIVE" | awk '{print $1}')"
+          if [[ "$themes_bytes" != "$THEMES_ARCHIVE_BYTES" || "$themes_sha256" != "$THEMES_ARCHIVE_SHA256" ]]; then
+            echo 'themes archive identity mismatch' >&2
+            exit 1
+          fi
+
+          git init --quiet "$NATIVE_UPSTREAM"
+          git -C "$NATIVE_UPSTREAM" remote add origin https://github.com/ghostty-org/ghostty.git
+          git -C "$NATIVE_UPSTREAM" -c protocol.version=2 fetch --quiet --no-tags --depth=1 \
+            origin "$PINNED_UPSTREAM_REVISION"
+          git -C "$NATIVE_UPSTREAM" checkout --quiet --detach FETCH_HEAD
+          if [[ "$(git -C "$NATIVE_UPSTREAM" rev-parse HEAD)" != "$PINNED_UPSTREAM_REVISION" ]]; then
+            echo 'upstream checkout revision mismatch' >&2
+            exit 1
+          fi
+          if [[ "$(git -C "$NATIVE_UPSTREAM" rev-parse --show-object-format)" != 'sha1' ]]; then
+            echo 'upstream checkout uses an unexpected Git object format' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C "$NATIVE_UPSTREAM" status --short)" ]]; then
+            echo 'upstream checkout is not clean' >&2
+            exit 1
+          fi
+
+      - name: Build twice and require byte equality
+        id: native-build
+        run: |
+          set -euo pipefail
+          bun_binary="$(bun -e 'import { realpathSync } from "node:fs"; process.stdout.write(realpathSync(process.argv[1]))' "$(command -v bun)")"
+          node_binary="$(bun -e 'import { realpathSync } from "node:fs"; process.stdout.write(realpathSync(process.argv[1]))' "$(command -v node)")"
+          first_sha256="$(bun scripts/build-config-resolver.ts \
+            --mode build-target \
+            --upstream "$NATIVE_UPSTREAM" \
+            --zig "$NATIVE_ZIG" \
+            --zig-archive "$NATIVE_ZIG_ARCHIVE" \
+            --themes-archive "$NATIVE_THEMES_ARCHIVE" \
+            --target "$NATIVE_TARGET" \
+            --output "$NATIVE_FIRST_OUTPUT" \
+            --run-id "$NATIVE_RUN_ID" \
+            --run-attempt "$NATIVE_RUN_ATTEMPT" \
+            --expected-head "$EXPECTED_SOURCE_HEAD" \
+            --bun "$bun_binary" \
+            --node "$node_binary")"
+          second_sha256="$(bun scripts/build-config-resolver.ts \
+            --mode build-target \
+            --upstream "$NATIVE_UPSTREAM" \
+            --zig "$NATIVE_ZIG" \
+            --zig-archive "$NATIVE_ZIG_ARCHIVE" \
+            --themes-archive "$NATIVE_THEMES_ARCHIVE" \
+            --target "$NATIVE_TARGET" \
+            --output "$NATIVE_SECOND_OUTPUT" \
+            --run-id "$NATIVE_RUN_ID" \
+            --run-attempt "$NATIVE_RUN_ATTEMPT" \
+            --expected-head "$EXPECTED_SOURCE_HEAD" \
+            --bun "$bun_binary" \
+            --node "$node_binary")"
+          compared_sha256="$(bun scripts/build-config-resolver.ts \
+            --mode compare-builds \
+            --first "$NATIVE_FIRST_OUTPUT" \
+            --second "$NATIVE_SECOND_OUTPUT" \
+            --target "$NATIVE_TARGET")"
+          if [[ "$first_sha256" != "$second_sha256" || "$first_sha256" != "$compared_sha256" ]]; then
+            echo 'independent native build digests differ' >&2
+            exit 1
+          fi
+          archive="$NATIVE_FIRST_OUTPUT/ghostty-config-resolver-$NATIVE_TARGET.tar"
+          actual_sha256="$(shasum -a 256 "$archive" | awk '{print $1}')"
+          if [[ "$actual_sha256" != "$compared_sha256" ]]; then
+            echo 'native archive digest differs after comparison' >&2
+            exit 1
+          fi
+          mkdir "$NATIVE_PAIR"
+          cp "$archive" "$NATIVE_PAIR/"
+          cp "$NATIVE_FIRST_OUTPUT/provenance.json" "$NATIVE_PAIR/provenance.json"
+          cmp -s "$archive" "$NATIVE_PAIR/ghostty-config-resolver-$NATIVE_TARGET.tar"
+          cmp -s "$NATIVE_FIRST_OUTPUT/provenance.json" "$NATIVE_PAIR/provenance.json"
+          chmod 0444 "$NATIVE_PAIR/ghostty-config-resolver-$NATIVE_TARGET.tar" "$NATIVE_PAIR/provenance.json"
+          pair_entries=("$NATIVE_PAIR"/*)
+          if [[ "${#pair_entries[@]}" -ne 2 ]]; then
+            echo 'native upload pair contains unexpected entries' >&2
+            exit 1
+          fi
+          git diff --exit-code
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'native build modified the checked-out source' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C "$NATIVE_UPSTREAM" status --short)" ]]; then
+            echo 'native build modified the upstream checkout' >&2
+            exit 1
+          fi
+          echo "archive_sha256=$compared_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable native pair
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: config-resolver-build-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.target }}-${{ steps.native-build.outputs.archive_sha256 }}
+          path: ${{ env.NATIVE_PAIR }}
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          overwrite: false
+          retention-days: 7
+
+  release-rebuild:
+    if: ${{ inputs.mode == 'release-candidate' }}
+    name: Release rebuild (${{ matrix.target }})
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-15
+            runner_os: macOS
+            runner_arch: ARM64
+            uname_os: Darwin
+            uname_arch: arm64
+            image: macos15
+            image_version: 20260727.0256.1
+            zig_archive_bytes: '52238004'
+            zig_archive_name: zig-aarch64-macos-0.16.0.tar.xz
+            zig_archive_sha256: b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz
+          - target: darwin-x64
+            runner: macos-15-intel
+            runner_os: macOS
+            runner_arch: X64
+            uname_os: Darwin
+            uname_arch: x86_64
+            image: macos15
+            image_version: 20260824.0482.1
+            zig_archive_bytes: '57396836'
+            zig_archive_name: zig-x86_64-macos-0.16.0.tar.xz
+            zig_archive_sha256: 0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            runner_os: Linux
+            runner_arch: ARM64
+            uname_os: Linux
+            uname_arch: aarch64
+            image: ubuntu24-arm64
+            image_version: 20260823.101.1
+            zig_archive_bytes: '51211944'
+            zig_archive_name: zig-aarch64-linux-0.16.0.tar.xz
+            zig_archive_sha256: ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz
+          - target: linux-x64
+            runner: ubuntu-24.04
+            runner_os: Linux
+            runner_arch: X64
+            uname_os: Linux
+            uname_arch: x86_64
+            image: ubuntu24
+            image_version: 20260823.283.1
+            zig_archive_bytes: '55478392'
+            zig_archive_name: zig-x86_64-linux-0.16.0.tar.xz
+            zig_archive_sha256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+            zig_archive_url: https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+    runs-on: ${{ matrix.runner }}
+    env:
+      EXPECTED_NATIVE_INPUTS_SHA256: ${{ inputs.expected_native_inputs_sha256 }}
+      EXPECTED_SOURCE_HEAD: ${{ inputs.expected_source_head }}
+      NATIVE_RUN_ATTEMPT: ${{ github.run_attempt }}
+      NATIVE_RUN_ID: ${{ github.run_id }}
+      NATIVE_TARGET: ${{ matrix.target }}
+      ZIG_ARCHIVE_BYTES: ${{ matrix.zig_archive_bytes }}
+      ZIG_ARCHIVE_NAME: ${{ matrix.zig_archive_name }}
+      ZIG_ARCHIVE_SHA256: ${{ matrix.zig_archive_sha256 }}
+      ZIG_ARCHIVE_URL: ${{ matrix.zig_archive_url }}
+    steps:
+      - name: Checkout exact package source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 0
+          path: package-source
+          persist-credentials: false
+          ref: ${{ inputs.expected_source_head }}
+          submodules: false
+
+      - name: Set up exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Validate package source and select native source
+        id: release-source
+        working-directory: package-source
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SOURCE_HEAD" =~ ^[0-9a-f]{40}$ || "$EXPECTED_SOURCE_HEAD" != "$GITHUB_SHA" ]]; then
+            echo 'release package source identity is invalid' >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_NATIVE_INPUTS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release native input digest is invalid' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_SOURCE_HEAD" || -n "$(git status --short)" ]]; then
+            echo 'release package checkout identity is invalid' >&2
+            exit 1
+          fi
+          state="$(bun scripts/verify-config-resolver-artifacts.ts --state assembled)"
+          if [[ "$state" != 'assembled' ]]; then
+            echo 'release package source is not in strict assembled state' >&2
+            exit 1
+          fi
+          actual_inputs_sha256="$(shasum -a 256 scripts/config-resolver-native/native-inputs.json | awk '{print $1}')"
+          if [[ "$actual_inputs_sha256" != "$EXPECTED_NATIVE_INPUTS_SHA256" ]]; then
+            echo 'release native input digest does not match the dispatch' >&2
+            exit 1
+          fi
+          native_head="$(jq -er '.nativeBuildSourceHead | select(test("^[0-9a-f]{40}$"))' native/config-resolver/manifest.json)"
+          git merge-base --is-ancestor "$native_head" "$EXPECTED_SOURCE_HEAD"
+          echo "native_head=$native_head" >> "$GITHUB_OUTPUT"
+          echo "NATIVE_BUILD_SOURCE_HEAD=$native_head" >> "$GITHUB_ENV"
+
+      - name: Checkout exact native-build source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 1
+          path: native-source
+          persist-credentials: false
+          ref: ${{ steps.release-source.outputs.native_head }}
+          submodules: false
+
+      - name: Validate native source and runner
+        run: |
+          set -euo pipefail
+          if [[ "$(git -C native-source rev-parse HEAD)" != "$NATIVE_BUILD_SOURCE_HEAD" ]]; then
+            echo 'release native checkout identity is invalid' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C native-source status --short)" || -n "$(git -C package-source status --short)" ]]; then
+            echo 'release source checkout is not clean' >&2
+            exit 1
+          fi
+          native_inputs_sha256="$(shasum -a 256 native-source/scripts/config-resolver-native/native-inputs.json | awk '{print $1}')"
+          if [[ "$native_inputs_sha256" != "$EXPECTED_NATIVE_INPUTS_SHA256" ]]; then
+            echo 'native-build source input digest differs' >&2
+            exit 1
+          fi
+          cmp native-source/scripts/config-resolver-native/native-inputs.json \
+            package-source/scripts/config-resolver-native/native-inputs.json
+          if [[ "$RUNNER_OS" != '${{ matrix.runner_os }}' || "$RUNNER_ARCH" != '${{ matrix.runner_arch }}' ]]; then
+            echo 'release rebuild runner does not match the target' >&2
+            exit 1
+          fi
+          if [[ "$(uname -s)" != '${{ matrix.uname_os }}' || "$(uname -m)" != '${{ matrix.uname_arch }}' ]]; then
+            echo 'release rebuild host does not match the target' >&2
+            exit 1
+          fi
+          if [[ "${ImageOS:-}" != '${{ matrix.image }}' || "${ImageVersion:-}" != '${{ matrix.image_version }}' ]]; then
+            echo 'release rebuild image does not match the build recipe' >&2
+            exit 1
+          fi
+          if [[ "$(bun --version)" != "$BUN_VERSION" ]]; then
+            echo 'Bun version does not match the workflow pin' >&2
+            exit 1
+          fi
+          command -v node >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+
+      - name: Verify maintained native contract in Bun and Node
+        working-directory: native-source
+        run: |
+          set -euo pipefail
+          test_root="$RUNNER_TEMP/config-resolver-release-self-test-$NATIVE_TARGET"
+          if [[ -e "$test_root" ]]; then
+            echo 'release native self-test root already exists' >&2
+            exit 1
+          fi
+          mkdir "$test_root"
+          bun scripts/config-resolver-native/self-test.ts \
+            >"$test_root/bun.stdout" 2>"$test_root/bun.stderr"
+          bun build scripts/config-resolver-native/self-test.ts \
+            --target=node \
+            --format=esm \
+            --packages=bundle \
+            --reject-unresolved \
+            --outfile="$test_root/self-test.mjs"
+          node "$test_root/self-test.mjs" \
+            >"$test_root/node.stdout" 2>"$test_root/node.stderr"
+          if [[ -s "$test_root/bun.stderr" || -s "$test_root/node.stderr" ]]; then
+            echo 'release native self-test emitted stderr' >&2
+            exit 1
+          fi
+          cmp "$test_root/bun.stdout" "$test_root/node.stdout"
+          bun scripts/config-resolver-native/generate-native-golden.ts --check
+          bun scripts/config-resolver-native/generate-build-recipe.ts --check
+
+      - name: Prepare isolated rebuild paths
+        run: |
+          set -euo pipefail
+          native_root="$RUNNER_TEMP/config-resolver-release-rebuild-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT-$NATIVE_TARGET"
+          if [[ -e "$native_root" ]]; then
+            echo 'isolated release rebuild root already exists' >&2
+            exit 1
+          fi
+          mkdir -p "$native_root/inputs"
+          {
+            echo "NATIVE_ROOT=$native_root"
+            echo "NATIVE_UPSTREAM=$native_root/upstream"
+            echo "NATIVE_ZIG_ARCHIVE=$native_root/inputs/$ZIG_ARCHIVE_NAME"
+            echo "NATIVE_THEMES_ARCHIVE=$native_root/inputs/ghostty-themes.tgz"
+            echo "NATIVE_ZIG_ROOT=$native_root/inputs/${ZIG_ARCHIVE_NAME%.tar.xz}"
+            echo "NATIVE_REBUILD_OUTPUT=$native_root/output"
+            echo "NATIVE_REBUILD_UPLOAD=$native_root/upload"
+          } >> "$GITHUB_ENV"
+
+      - name: Acquire and verify immutable rebuild inputs
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --retry 3 --silent --show-error \
+            --output "$NATIVE_ZIG_ARCHIVE" "$ZIG_ARCHIVE_URL"
+          zig_bytes="$(wc -c < "$NATIVE_ZIG_ARCHIVE" | tr -d '[:space:]')"
+          zig_sha256="$(shasum -a 256 "$NATIVE_ZIG_ARCHIVE" | awk '{print $1}')"
+          if [[ "$zig_bytes" != "$ZIG_ARCHIVE_BYTES" || "$zig_sha256" != "$ZIG_ARCHIVE_SHA256" ]]; then
+            echo 'release Zig archive identity mismatch' >&2
+            exit 1
+          fi
+          tar -xJf "$NATIVE_ZIG_ARCHIVE" -C "$NATIVE_ROOT/inputs"
+          zig_binary="$NATIVE_ZIG_ROOT/zig"
+          if [[ ! -x "$zig_binary" || "$("$zig_binary" version)" != '0.16.0' ]]; then
+            echo 'release Zig compiler identity mismatch' >&2
+            exit 1
+          fi
+          echo "NATIVE_ZIG=$zig_binary" >> "$GITHUB_ENV"
+
+          curl --fail --location --proto '=https' --retry 3 --silent --show-error \
+            --output "$NATIVE_THEMES_ARCHIVE" "$THEMES_ARCHIVE_URL"
+          themes_bytes="$(wc -c < "$NATIVE_THEMES_ARCHIVE" | tr -d '[:space:]')"
+          themes_sha256="$(shasum -a 256 "$NATIVE_THEMES_ARCHIVE" | awk '{print $1}')"
+          if [[ "$themes_bytes" != "$THEMES_ARCHIVE_BYTES" || "$themes_sha256" != "$THEMES_ARCHIVE_SHA256" ]]; then
+            echo 'release themes archive identity mismatch' >&2
+            exit 1
+          fi
+
+          git init --quiet "$NATIVE_UPSTREAM"
+          git -C "$NATIVE_UPSTREAM" remote add origin https://github.com/ghostty-org/ghostty.git
+          git -C "$NATIVE_UPSTREAM" -c protocol.version=2 fetch --quiet --no-tags --depth=1 \
+            origin "$PINNED_UPSTREAM_REVISION"
+          git -C "$NATIVE_UPSTREAM" checkout --quiet --detach FETCH_HEAD
+          if [[ "$(git -C "$NATIVE_UPSTREAM" rev-parse HEAD)" != "$PINNED_UPSTREAM_REVISION" ]]; then
+            echo 'release upstream revision mismatch' >&2
+            exit 1
+          fi
+          if [[ "$(git -C "$NATIVE_UPSTREAM" rev-parse --show-object-format)" != 'sha1' ]]; then
+            echo 'release upstream object format mismatch' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C "$NATIVE_UPSTREAM" status --short)" ]]; then
+            echo 'release upstream checkout is not clean' >&2
+            exit 1
+          fi
+
+      - name: Rebuild and validate against assembly
+        id: rebuild
+        run: |
+          set -euo pipefail
+          bun_binary="$(bun -e 'import { realpathSync } from "node:fs"; process.stdout.write(realpathSync(process.argv[1]))' "$(command -v bun)")"
+          node_binary="$(bun -e 'import { realpathSync } from "node:fs"; process.stdout.write(realpathSync(process.argv[1]))' "$(command -v node)")"
+          archive_sha256="$(cd native-source && bun scripts/build-config-resolver.ts \
+            --mode build-target \
+            --upstream "$NATIVE_UPSTREAM" \
+            --zig "$NATIVE_ZIG" \
+            --zig-archive "$NATIVE_ZIG_ARCHIVE" \
+            --themes-archive "$NATIVE_THEMES_ARCHIVE" \
+            --target "$NATIVE_TARGET" \
+            --output "$NATIVE_REBUILD_OUTPUT" \
+            --run-id "$NATIVE_RUN_ID" \
+            --run-attempt "$NATIVE_RUN_ATTEMPT" \
+            --expected-head "$NATIVE_BUILD_SOURCE_HEAD" \
+            --bun "$bun_binary" \
+            --node "$node_binary")"
+          archive="$NATIVE_REBUILD_OUTPUT/ghostty-config-resolver-$NATIVE_TARGET.tar"
+          if [[ ! "$archive_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release rebuild did not emit an archive digest' >&2
+            exit 1
+          fi
+          if [[ "$(shasum -a 256 "$archive" | awk '{print $1}')" != "$archive_sha256" ]]; then
+            echo 'release rebuild archive digest changed' >&2
+            exit 1
+          fi
+          producer_result="$(cd package-source && bun scripts/create-release-provenance.ts \
+            --rebuild \
+            --run-id "$NATIVE_RUN_ID" \
+            --run-attempt "$NATIVE_RUN_ATTEMPT" \
+            --target "$NATIVE_TARGET" \
+            --package-source-head "$EXPECTED_SOURCE_HEAD" \
+            --runner-image "$ImageOS" \
+            --runner-image-version "$ImageVersion" \
+            --archive "$archive" \
+            --provenance "$NATIVE_REBUILD_OUTPUT/provenance.json")"
+          if [[ "$producer_result" != 'release-provenance: PASS' ]]; then
+            echo 'release rebuild provenance validation did not pass' >&2
+            exit 1
+          fi
+          mkdir "$NATIVE_REBUILD_UPLOAD"
+          cp "$NATIVE_REBUILD_OUTPUT/provenance.json" "$NATIVE_REBUILD_UPLOAD/provenance.json"
+          cmp -s "$NATIVE_REBUILD_OUTPUT/provenance.json" "$NATIVE_REBUILD_UPLOAD/provenance.json"
+          chmod 0444 "$NATIVE_REBUILD_UPLOAD/provenance.json"
+          provenance_sha256="$(shasum -a 256 "$NATIVE_REBUILD_UPLOAD/provenance.json" | awk '{print $1}')"
+          if [[ ! "$provenance_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release rebuild provenance digest is invalid' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C package-source status --short)" || -n "$(git -C native-source status --short)" ]]; then
+            echo 'release rebuild modified source' >&2
+            exit 1
+          fi
+          if [[ -n "$(git -C "$NATIVE_UPSTREAM" status --short)" ]]; then
+            echo 'release rebuild modified upstream source' >&2
+            exit 1
+          fi
+          echo "provenance_sha256=$provenance_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable release rebuild provenance
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-rebuild-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.target }}-${{ steps.rebuild.outputs.provenance_sha256 }}
+          path: ${{ env.NATIVE_REBUILD_UPLOAD }}/provenance.json
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          overwrite: false
+          retention-days: 7
+
+  release-pack:
+    if: ${{ inputs.mode == 'release-candidate' }}
+    name: Pack release candidate
+    needs: release-rebuild
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      EXPECTED_NATIVE_INPUTS_SHA256: ${{ inputs.expected_native_inputs_sha256 }}
+      EXPECTED_SOURCE_HEAD: ${{ inputs.expected_source_head }}
+    steps:
+      - name: Checkout exact package source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 0
+          path: package-source
+          persist-credentials: false
+          ref: ${{ inputs.expected_source_head }}
+          submodules: false
+
+      - name: Set up exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Download same-run rebuild provenance
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-rebuild-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/release-rebuild-download
+          merge-multiple: false
+
+      - name: Validate release package source and rebuild set
+        working-directory: package-source
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SOURCE_HEAD" =~ ^[0-9a-f]{40}$ || "$EXPECTED_SOURCE_HEAD" != "$GITHUB_SHA" ]]; then
+            echo 'release pack source identity is invalid' >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_NATIVE_INPUTS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release pack native input digest is invalid' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_SOURCE_HEAD" || -n "$(git status --short)" ]]; then
+            echo 'release pack checkout identity is invalid' >&2
+            exit 1
+          fi
+          if [[ "$(bun --version)" != "$BUN_VERSION" ]]; then
+            echo 'release pack Bun version differs' >&2
+            exit 1
+          fi
+          command -v node >/dev/null
+          command -v npm >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+          state="$(bun scripts/verify-config-resolver-artifacts.ts --state assembled)"
+          if [[ "$state" != 'assembled' ]]; then
+            echo 'release pack source is not assembled' >&2
+            exit 1
+          fi
+          actual_inputs_sha256="$(shasum -a 256 scripts/config-resolver-native/native-inputs.json | awk '{print $1}')"
+          if [[ "$actual_inputs_sha256" != "$EXPECTED_NATIVE_INPUTS_SHA256" ]]; then
+            echo 'release pack native input digest differs' >&2
+            exit 1
+          fi
+          native_head="$(jq -er '.nativeBuildSourceHead | select(test("^[0-9a-f]{40}$"))' native/config-resolver/manifest.json)"
+          download_root="$RUNNER_TEMP/release-rebuild-download"
+          shopt -s nullglob
+          all_directories=("$download_root"/release-rebuild-*)
+          if [[ "${#all_directories[@]}" -ne 4 ]]; then
+            echo 'release pack did not receive exactly four rebuild artifacts' >&2
+            exit 1
+          fi
+          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            directories=("$download_root"/release-rebuild-"$GITHUB_RUN_ID"-attempt-"$GITHUB_RUN_ATTEMPT"-"$target"-*)
+            if [[ "${#directories[@]}" -ne 1 || ! -d "${directories[0]}" ]]; then
+              echo 'release pack rebuild target set is incomplete' >&2
+              exit 1
+            fi
+            files=("${directories[0]}"/*)
+            if [[ "${#files[@]}" -ne 1 || "${files[0]##*/}" != 'provenance.json' || ! -f "${files[0]}" ]]; then
+              echo 'release pack rebuild artifact shape is invalid' >&2
+              exit 1
+            fi
+            provenance_sha256="$(shasum -a 256 "${files[0]}" | awk '{print $1}')"
+            if [[ "${directories[0]##*/}" != *-"$provenance_sha256" ]]; then
+              echo 'release pack rebuild artifact name is not content-bound' >&2
+              exit 1
+            fi
+            jq -e \
+              --arg run "$GITHUB_RUN_ID" \
+              --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+              --arg target "$target" \
+              --arg native_head "$native_head" \
+              --arg native_inputs "$EXPECTED_NATIVE_INPUTS_SHA256" \
+              '.runId == $run and .runAttempt == $attempt and .target == $target and .nativeBuildSourceHead == $native_head and .nativeInputsTreeSha256 == $native_inputs' \
+              "${files[0]}" >/dev/null
+          done
+          pack_root="$RUNNER_TEMP/release-pack-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT"
+          if [[ -e "$pack_root" ]]; then
+            echo 'release pack output root already exists' >&2
+            exit 1
+          fi
+          echo "RELEASE_PACK_ROOT=$pack_root" >> "$GITHUB_ENV"
+
+      - name: Pack candidate exactly once
+        id: pack
+        working-directory: package-source
+        run: |
+          set -euo pipefail
+          pack_result="$(bun scripts/create-release-candidate.ts \
+            --pack \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --artifacts-dir "$RELEASE_PACK_ROOT")"
+          if [[ "$pack_result" != 'release-candidate: PASS' ]]; then
+            echo 'release pack did not pass' >&2
+            exit 1
+          fi
+          tarball="$RELEASE_PACK_ROOT/ghostty-webgpu-0.1.2.tgz"
+          provisional="$RELEASE_PACK_ROOT/ghostty-webgpu-0.1.2.provisional.json"
+          shopt -s nullglob
+          files=("$RELEASE_PACK_ROOT"/*)
+          if [[ "${#files[@]}" -ne 2 || ! -f "$tarball" || ! -f "$provisional" ]]; then
+            echo 'release pack output shape is invalid' >&2
+            exit 1
+          fi
+          tarball_sha256="$(shasum -a 256 "$tarball" | awk '{print $1}')"
+          if [[ "$tarball_sha256" != "$(jq -er '.tarball.sha256' "$provisional")" ]]; then
+            echo 'release pack tarball digest differs from provisional' >&2
+            exit 1
+          fi
+          if [[ "$(jq -er '.runId' "$provisional")" != "$GITHUB_RUN_ID" || \
+                "$(jq -er '.runAttempt' "$provisional")" != "$GITHUB_RUN_ATTEMPT" || \
+                "$(jq -er '.packageSourceHead' "$provisional")" != "$EXPECTED_SOURCE_HEAD" ]]; then
+            echo 'release pack provisional binding differs' >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'release pack modified package source' >&2
+            exit 1
+          fi
+          chmod 0444 "$tarball" "$provisional"
+          echo "tarball_sha256=$tarball_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable pack pair
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-pack-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ steps.pack.outputs.tarball_sha256 }}
+          path: ${{ env.RELEASE_PACK_ROOT }}
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          overwrite: false
+          retention-days: 14
+
+  release-smoke:
+    if: ${{ inputs.mode == 'release-candidate' }}
+    name: Release smoke (${{ matrix.target }})
+    needs:
+      - release-rebuild
+      - release-pack
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-15
+            runner_os: macOS
+            runner_arch: ARM64
+            uname_os: Darwin
+            uname_arch: arm64
+            image: macos15
+            image_version: 20260727.0256.1
+          - target: darwin-x64
+            runner: macos-15-intel
+            runner_os: macOS
+            runner_arch: X64
+            uname_os: Darwin
+            uname_arch: x86_64
+            image: macos15
+            image_version: 20260824.0482.1
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            runner_os: Linux
+            runner_arch: ARM64
+            uname_os: Linux
+            uname_arch: aarch64
+            image: ubuntu24-arm64
+            image_version: 20260823.101.1
+          - target: linux-x64
+            runner: ubuntu-24.04
+            runner_os: Linux
+            runner_arch: X64
+            uname_os: Linux
+            uname_arch: x86_64
+            image: ubuntu24
+            image_version: 20260823.283.1
+    runs-on: ${{ matrix.runner }}
+    env:
+      EXPECTED_NATIVE_INPUTS_SHA256: ${{ inputs.expected_native_inputs_sha256 }}
+      EXPECTED_SOURCE_HEAD: ${{ inputs.expected_source_head }}
+      NATIVE_TARGET: ${{ matrix.target }}
+    steps:
+      - name: Checkout exact package source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 0
+          path: package-source
+          persist-credentials: false
+          ref: ${{ inputs.expected_source_head }}
+          submodules: false
+
+      - name: Set up exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Download immutable pack pair
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-pack-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/release-pack-download
+          merge-multiple: false
+
+      - name: Download matching rebuild provenance
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-rebuild-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.target }}-*
+          path: ${{ runner.temp }}/release-rebuild-download
+          merge-multiple: false
+
+      - name: Validate smoke host and immutable inputs
+        working-directory: package-source
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SOURCE_HEAD" =~ ^[0-9a-f]{40}$ || "$EXPECTED_SOURCE_HEAD" != "$GITHUB_SHA" ]]; then
+            echo 'release smoke source identity is invalid' >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_NATIVE_INPUTS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release smoke native input digest is invalid' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_SOURCE_HEAD" || -n "$(git status --short)" ]]; then
+            echo 'release smoke checkout identity is invalid' >&2
+            exit 1
+          fi
+          state="$(bun scripts/verify-config-resolver-artifacts.ts --state assembled)"
+          if [[ "$state" != 'assembled' ]]; then
+            echo 'release smoke source is not assembled' >&2
+            exit 1
+          fi
+          actual_inputs_sha256="$(shasum -a 256 scripts/config-resolver-native/native-inputs.json | awk '{print $1}')"
+          if [[ "$actual_inputs_sha256" != "$EXPECTED_NATIVE_INPUTS_SHA256" ]]; then
+            echo 'release smoke native input digest differs' >&2
+            exit 1
+          fi
+          if [[ "$RUNNER_OS" != '${{ matrix.runner_os }}' || "$RUNNER_ARCH" != '${{ matrix.runner_arch }}' ]]; then
+            echo 'release smoke runner does not match the target' >&2
+            exit 1
+          fi
+          if [[ "$(uname -s)" != '${{ matrix.uname_os }}' || "$(uname -m)" != '${{ matrix.uname_arch }}' ]]; then
+            echo 'release smoke host does not match the target' >&2
+            exit 1
+          fi
+          if [[ "${ImageOS:-}" != '${{ matrix.image }}' || "${ImageVersion:-}" != '${{ matrix.image_version }}' ]]; then
+            echo 'release smoke image does not match the build recipe' >&2
+            exit 1
+          fi
+          if [[ "$(bun --version)" != "$BUN_VERSION" ]]; then
+            echo 'release smoke Bun version differs' >&2
+            exit 1
+          fi
+          command -v node >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+
+          shopt -s nullglob
+          pack_directories=("$RUNNER_TEMP/release-pack-download"/release-pack-"$GITHUB_RUN_ID"-attempt-"$GITHUB_RUN_ATTEMPT"-*)
+          if [[ "${#pack_directories[@]}" -ne 1 || ! -d "${pack_directories[0]}" ]]; then
+            echo 'release smoke pack artifact set is invalid' >&2
+            exit 1
+          fi
+          tarball="${pack_directories[0]}/ghostty-webgpu-0.1.2.tgz"
+          provisional="${pack_directories[0]}/ghostty-webgpu-0.1.2.provisional.json"
+          pack_files=("${pack_directories[0]}"/*)
+          if [[ "${#pack_files[@]}" -ne 2 || ! -f "$tarball" || ! -f "$provisional" ]]; then
+            echo 'release smoke pack artifact shape is invalid' >&2
+            exit 1
+          fi
+          tarball_sha256="$(shasum -a 256 "$tarball" | awk '{print $1}')"
+          if [[ "${pack_directories[0]##*/}" != *-"$tarball_sha256" || \
+                "$(jq -er '.tarball.sha256' "$provisional")" != "$tarball_sha256" ]]; then
+            echo 'release smoke pack artifact is not content-bound' >&2
+            exit 1
+          fi
+
+          rebuild_directories=("$RUNNER_TEMP/release-rebuild-download"/release-rebuild-"$GITHUB_RUN_ID"-attempt-"$GITHUB_RUN_ATTEMPT"-"$NATIVE_TARGET"-*)
+          if [[ "${#rebuild_directories[@]}" -ne 1 || ! -d "${rebuild_directories[0]}" ]]; then
+            echo 'release smoke rebuild artifact set is invalid' >&2
+            exit 1
+          fi
+          rebuild_provenance="${rebuild_directories[0]}/provenance.json"
+          rebuild_files=("${rebuild_directories[0]}"/*)
+          if [[ "${#rebuild_files[@]}" -ne 1 || ! -f "$rebuild_provenance" ]]; then
+            echo 'release smoke rebuild artifact shape is invalid' >&2
+            exit 1
+          fi
+          rebuild_sha256="$(shasum -a 256 "$rebuild_provenance" | awk '{print $1}')"
+          if [[ "${rebuild_directories[0]##*/}" != *-"$rebuild_sha256" ]]; then
+            echo 'release smoke rebuild artifact is not content-bound' >&2
+            exit 1
+          fi
+          smoke_root="$RUNNER_TEMP/release-smoke-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT-$NATIVE_TARGET"
+          if [[ -e "$smoke_root" ]]; then
+            echo 'release smoke output root already exists' >&2
+            exit 1
+          fi
+          mkdir "$smoke_root"
+          {
+            echo "RELEASE_TARBALL=$tarball"
+            echo "RELEASE_PROVISIONAL=$provisional"
+            echo "RELEASE_REBUILD_PROVENANCE=$rebuild_provenance"
+            echo "RELEASE_SMOKE_ROOT=$smoke_root"
+          } >> "$GITHUB_ENV"
+
+      - name: Run maintained smoke producer
+        id: smoke
+        working-directory: package-source
+        run: |
+          set -euo pipefail
+          smoke_provenance="$RELEASE_SMOKE_ROOT/smoke-provenance.json"
+          producer_result="$(bun scripts/create-release-provenance.ts \
+            --smoke \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --target "$NATIVE_TARGET" \
+            --package-source-head "$EXPECTED_SOURCE_HEAD" \
+            --runner-image "$ImageOS" \
+            --runner-image-version "$ImageVersion" \
+            --tarball "$RELEASE_TARBALL" \
+            --provisional "$RELEASE_PROVISIONAL" \
+            --rebuild-provenance "$RELEASE_REBUILD_PROVENANCE" \
+            --output "$smoke_provenance")"
+          if [[ "$producer_result" != 'release-provenance: PASS' ]]; then
+            echo 'release smoke provenance producer did not pass' >&2
+            exit 1
+          fi
+          smoke_sha256="$(shasum -a 256 "$smoke_provenance" | awk '{print $1}')"
+          if [[ ! "$smoke_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release smoke provenance digest is invalid' >&2
+            exit 1
+          fi
+          if [[ "$(jq -er '.target' "$smoke_provenance")" != "$NATIVE_TARGET" || \
+                "$(jq -er '.runId' "$smoke_provenance")" != "$GITHUB_RUN_ID" || \
+                "$(jq -er '.runAttempt' "$smoke_provenance")" != "$GITHUB_RUN_ATTEMPT" ]]; then
+            echo 'release smoke provenance binding differs' >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'release smoke modified package source' >&2
+            exit 1
+          fi
+          chmod 0444 "$smoke_provenance"
+          echo "smoke_sha256=$smoke_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload immutable smoke provenance
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-smoke-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ matrix.target }}-${{ steps.smoke.outputs.smoke_sha256 }}
+          path: ${{ env.RELEASE_SMOKE_ROOT }}/smoke-provenance.json
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          overwrite: false
+          retention-days: 14
+
+  release-finalize:
+    if: ${{ inputs.mode == 'release-candidate' }}
+    name: Finalize release candidate
+    needs:
+      - release-rebuild
+      - release-pack
+      - release-smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: release-candidate
+    env:
+      EXPECTED_NATIVE_INPUTS_SHA256: ${{ inputs.expected_native_inputs_sha256 }}
+      EXPECTED_SOURCE_HEAD: ${{ inputs.expected_source_head }}
+    steps:
+      - name: Checkout exact package source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          clean: true
+          fetch-depth: 0
+          path: package-source
+          persist-credentials: false
+          ref: ${{ inputs.expected_source_head }}
+          submodules: false
+
+      - name: Set up exact Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Download untouched pack pair
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-pack-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/release-pack-download
+          merge-multiple: false
+
+      - name: Download original rebuild provenance
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-rebuild-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/release-rebuild-download
+          merge-multiple: false
+
+      - name: Download strict smoke provenance
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: release-smoke-${{ github.run_id }}-attempt-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/release-smoke-download
+          merge-multiple: false
+
+      - name: Finalize and verify immutable handoff
+        id: finalize
+        working-directory: package-source
+        run: |
+          set -euo pipefail
+          if [[ ! "$EXPECTED_SOURCE_HEAD" =~ ^[0-9a-f]{40}$ || "$EXPECTED_SOURCE_HEAD" != "$GITHUB_SHA" ]]; then
+            echo 'release finalizer source identity is invalid' >&2
+            exit 1
+          fi
+          if [[ ! "$EXPECTED_NATIVE_INPUTS_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo 'release finalizer native input digest is invalid' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_SOURCE_HEAD" || -n "$(git status --short)" ]]; then
+            echo 'release finalizer checkout identity is invalid' >&2
+            exit 1
+          fi
+          state="$(bun scripts/verify-config-resolver-artifacts.ts --state assembled)"
+          if [[ "$state" != 'assembled' ]]; then
+            echo 'release finalizer source is not assembled' >&2
+            exit 1
+          fi
+          actual_inputs_sha256="$(shasum -a 256 scripts/config-resolver-native/native-inputs.json | awk '{print $1}')"
+          if [[ "$actual_inputs_sha256" != "$EXPECTED_NATIVE_INPUTS_SHA256" ]]; then
+            echo 'release finalizer native input digest differs' >&2
+            exit 1
+          fi
+          if [[ "$(bun --version)" != "$BUN_VERSION" ]]; then
+            echo 'release finalizer Bun version differs' >&2
+            exit 1
+          fi
+          command -v node >/dev/null
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 20) process.exit(1)'
+
+          shopt -s nullglob
+          pack_directories=("$RUNNER_TEMP/release-pack-download"/release-pack-"$GITHUB_RUN_ID"-attempt-"$GITHUB_RUN_ATTEMPT"-*)
+          rebuild_directories=("$RUNNER_TEMP/release-rebuild-download"/release-rebuild-*)
+          smoke_directories=("$RUNNER_TEMP/release-smoke-download"/release-smoke-*)
+          if [[ "${#pack_directories[@]}" -ne 1 || "${#rebuild_directories[@]}" -ne 4 || "${#smoke_directories[@]}" -ne 4 ]]; then
+            echo 'release finalizer artifact set is incomplete' >&2
+            exit 1
+          fi
+          tarball="${pack_directories[0]}/ghostty-webgpu-0.1.2.tgz"
+          provisional="${pack_directories[0]}/ghostty-webgpu-0.1.2.provisional.json"
+          pack_files=("${pack_directories[0]}"/*)
+          if [[ "${#pack_files[@]}" -ne 2 || ! -f "$tarball" || ! -f "$provisional" ]]; then
+            echo 'release finalizer pack artifact shape is invalid' >&2
+            exit 1
+          fi
+          tarball_sha256="$(shasum -a 256 "$tarball" | awk '{print $1}')"
+          if [[ "${pack_directories[0]##*/}" != *-"$tarball_sha256" || \
+                "$(jq -er '.tarball.sha256' "$provisional")" != "$tarball_sha256" ]]; then
+            echo 'release finalizer pack artifact is not content-bound' >&2
+            exit 1
+          fi
+
+          rebuild_arguments=()
+          smoke_arguments=()
+          for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            target_rebuild=("$RUNNER_TEMP/release-rebuild-download"/release-rebuild-"$GITHUB_RUN_ID"-attempt-"$GITHUB_RUN_ATTEMPT"-"$target"-*)
+            target_smoke=("$RUNNER_TEMP/release-smoke-download"/release-smoke-"$GITHUB_RUN_ID"-attempt-"$GITHUB_RUN_ATTEMPT"-"$target"-*)
+            if [[ "${#target_rebuild[@]}" -ne 1 || "${#target_smoke[@]}" -ne 1 ]]; then
+              echo 'release finalizer target provenance set is incomplete' >&2
+              exit 1
+            fi
+            rebuild_file="${target_rebuild[0]}/provenance.json"
+            smoke_file="${target_smoke[0]}/smoke-provenance.json"
+            rebuild_files=("${target_rebuild[0]}"/*)
+            smoke_files=("${target_smoke[0]}"/*)
+            if [[ "${#rebuild_files[@]}" -ne 1 || "${#smoke_files[@]}" -ne 1 || \
+                  ! -f "$rebuild_file" || ! -f "$smoke_file" ]]; then
+              echo 'release finalizer provenance artifact shape is invalid' >&2
+              exit 1
+            fi
+            rebuild_sha256="$(shasum -a 256 "$rebuild_file" | awk '{print $1}')"
+            smoke_sha256="$(shasum -a 256 "$smoke_file" | awk '{print $1}')"
+            if [[ "${target_rebuild[0]##*/}" != *-"$rebuild_sha256" || \
+                  "${target_smoke[0]##*/}" != *-"$smoke_sha256" ]]; then
+              echo 'release finalizer provenance artifact is not content-bound' >&2
+              exit 1
+            fi
+            rebuild_arguments+=(--rebuild-provenance "$rebuild_file")
+            smoke_arguments+=(--smoke-provenance "$smoke_file")
+          done
+
+          final_root="$RUNNER_TEMP/release-final-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT"
+          if [[ -e "$final_root" ]]; then
+            echo 'release finalizer output root already exists' >&2
+            exit 1
+          fi
+          finalize_result="$(bun scripts/create-release-candidate.ts \
+            --finalize \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --tarball "$tarball" \
+            --provisional "$provisional" \
+            "${rebuild_arguments[@]}" \
+            "${smoke_arguments[@]}" \
+            --output-dir "$final_root")"
+          if [[ "$finalize_result" != 'release-candidate: PASS' ]]; then
+            echo 'release finalizer did not pass' >&2
+            exit 1
+          fi
+          final_directory="$final_root/release-final-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT-$tarball_sha256"
+          final_tarball="$final_directory/ghostty-webgpu-0.1.2.tgz"
+          final_identity="$final_directory/ghostty-webgpu-0.1.2.identity.json"
+          final_evidence="$final_directory/ghostty-webgpu-0.1.2.evidence.json"
+          final_files=("$final_directory"/*)
+          if [[ "${#final_files[@]}" -ne 3 || ! -f "$final_tarball" || ! -f "$final_identity" || ! -f "$final_evidence" ]]; then
+            echo 'release finalizer output shape is invalid' >&2
+            exit 1
+          fi
+          verify_result="$(bun scripts/create-release-candidate.ts \
+            --verify \
+            --tarball "$final_tarball" \
+            --identity "$final_identity" \
+            --evidence "$final_evidence")"
+          if [[ "$verify_result" != 'release-candidate: PASS' ]]; then
+            echo 'release handoff verification did not pass' >&2
+            exit 1
+          fi
+          if [[ "$(shasum -a 256 "$final_tarball" | awk '{print $1}')" != "$tarball_sha256" ]]; then
+            echo 'release final tarball differs from pack artifact' >&2
+            exit 1
+          fi
+          if [[ -n "$(git status --short)" ]]; then
+            echo 'release finalizer modified package source' >&2
+            exit 1
+          fi
+          chmod 0444 "$final_tarball" "$final_identity" "$final_evidence"
+          echo "final_directory=$final_directory" >> "$GITHUB_OUTPUT"
+          echo "tarball_sha256=$tarball_sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload approved release candidate trio
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ghostty-webgpu-0.1.2-release-candidate-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ steps.finalize.outputs.tarball_sha256 }}
+          path: ${{ steps.finalize.outputs.final_directory }}
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          overwrite: false
+          retention-days: 30

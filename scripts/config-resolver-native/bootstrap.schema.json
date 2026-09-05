@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packageVersion",
+    "upstreamRevision",
+    "targets",
+    "nativeInputsTreeSha256"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packageVersion": { "const": "0.1.2" },
+    "upstreamRevision": { "const": "c8554f28e0efe2f5595f32020371c34b25ec628f" },
+    "targets": {
+      "const": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"]
+    },
+    "nativeInputsTreeSha256": { "$ref": "contract.schema.json#/$defs/hash" }
+  }
+}

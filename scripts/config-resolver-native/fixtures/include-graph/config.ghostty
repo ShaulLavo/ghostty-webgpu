@@ -1,0 +1,10 @@
+# PLAN065_PATH_SENTINEL include root
+background = #010101
+foreground = #010203
+config-file = includes/ignored.conf
+config-file =
+config-file = includes/first.conf
+config-file = includes/repeated.conf
+config-file = includes/repeated.conf
+config-file = includes/cycle-a.conf
+PLAN065_DIAGNOSTIC_SENTINEL = hidden

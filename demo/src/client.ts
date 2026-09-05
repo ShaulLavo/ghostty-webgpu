@@ -4,11 +4,15 @@ import type {
   GhosttyWebGpuTerminalDiagnostics,
 } from '../../dist/dom/types.js'
 import {
-  WebGpuTerminalRenderer,
+  WebGpuUnavailableError,
   type RendererFrameSnapshot,
   type RendererMetrics,
 } from '../../dist/render/renderer.js'
 import type { RenderSchedulerClock } from '../../dist/render/scheduler.js'
+import {
+  createCompatibleTerminalRenderer,
+  type CompatibleTerminalRenderer,
+} from '../../dist/render/selector.js'
 import type { TerminalClipboardWrite } from '../../dist/term/types.js'
 
 type Tone = 'bad' | 'good' | 'warn'
@@ -138,7 +142,7 @@ let lastResize: ResizeMessage | undefined
 let socket: WebSocket | undefined
 let socketGeneration = 0
 let terminal: Terminal | undefined
-let terminalRenderer: WebGpuTerminalRenderer | undefined
+let terminalRenderer: CompatibleTerminalRenderer | undefined
 let rendererAdapterInfo: RendererAdapterInfo | undefined
 let traceSequence = 0
 const schedulerTrace: SchedulerTraceEntry[] = []
@@ -290,17 +294,33 @@ function copyAdapterInfo(info: GPUAdapterInfo): RendererAdapterInfo {
 
 async function createRendererDevice(): Promise<GPUDevice> {
   const gpu = navigator.gpu
-  if (!gpu) throw new TypeError('WebGPU is unavailable: navigator.gpu is missing')
-  const adapter = await gpu.requestAdapter({ powerPreference: 'high-performance' })
-  if (!adapter) throw new TypeError('WebGPU could not provide a high-performance adapter')
-  const device = await adapter.requestDevice()
+  if (!gpu)
+    throw new WebGpuUnavailableError('api', 'WebGPU is unavailable: navigator.gpu is missing')
+  let adapter: GPUAdapter | null
+  try {
+    adapter = await gpu.requestAdapter({ powerPreference: 'high-performance' })
+  } catch (cause) {
+    throw new WebGpuUnavailableError('adapter', 'WebGPU adapter request failed', { cause })
+  }
+  if (!adapter) {
+    throw new WebGpuUnavailableError(
+      'adapter',
+      'WebGPU could not provide a high-performance adapter',
+    )
+  }
+  let device: GPUDevice
+  try {
+    device = await adapter.requestDevice()
+  } catch (cause) {
+    throw new WebGpuUnavailableError('adapter', 'WebGPU device request failed', { cause })
+  }
   rendererAdapterInfo = copyAdapterInfo(adapter.info)
   return device
 }
 
 function rendererMetrics(): Readonly<RendererMetrics> | undefined {
   const metrics = terminalRenderer?.metrics
-  if (!metrics) return undefined
+  if (!metrics || !('draws' in metrics)) return undefined
   return Object.freeze({ ...metrics })
 }
 
@@ -328,7 +348,7 @@ function acceptanceTraceSnapshot(): AcceptanceTraceSnapshot {
       platform: navigator.platform,
       userAgent: navigator.userAgent,
     }),
-    rendererAdapterInfo,
+    rendererAdapterInfo: terminalRenderer?.backend === 'webgpu' ? rendererAdapterInfo : undefined,
     schedulerTrace: copiedSchedulerTrace(),
     timestamp: new Date().toISOString(),
   })
@@ -506,26 +526,26 @@ function connect(token: string): void {
 
 const createInstrumentedRenderer: GhosttyWebGpuRendererFactory = async (options, signal) => {
   const originalOnFrame = options.onFrame
-  let created: WebGpuTerminalRenderer | undefined
+  let created: CompatibleTerminalRenderer | undefined
   let observedSubmissions = 0
   const onFrame = (snapshot: RendererFrameSnapshot): void => {
     observedSubmissions += 1
     appendSchedulerTrace({
-      submittedFrames: created?.metrics.submittedFrames ?? observedSubmissions,
+      submittedFrames: observedSubmissions,
       type: 'frame-submit',
     })
     originalOnFrame?.(snapshot)
   }
-  created = await WebGpuTerminalRenderer.create({
-    ...options,
-    deviceFactory: createRendererDevice,
-    onFrame,
-    schedulerClock: tracingSchedulerClock(),
-  })
-  if (signal.aborted) {
-    created.dispose()
-    throw new DOMException('Terminal renderer creation was cancelled', 'AbortError')
-  }
+  created = await createCompatibleTerminalRenderer(
+    {
+      ...options,
+      deviceFactory: createRendererDevice,
+      onFrame,
+      schedulerClock: tracingSchedulerClock(),
+    },
+    signal,
+  )
+  if (created.backend !== 'webgpu') rendererAdapterInfo = undefined
   terminalRenderer = created
   signal.addEventListener(
     'abort',

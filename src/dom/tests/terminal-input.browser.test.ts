@@ -228,6 +228,73 @@ describe.sequential('Terminal DOM host', () => {
     return terminal
   }
 
+  it('projects constructor cursor text before the first renderer opens', async () => {
+    const seed = await TerminalSession.create<Event>({ runtime: { kind: 'borrowed', runtime } })
+    const cursorText = { b: 30, g: 20, r: 10 }
+    const theme = { ...seed.appearance.theme, cursorText }
+    seed.dispose()
+    const recording: RendererRecording = {}
+    const terminal = await trackedTerminal({
+      appearance: {
+        cursor: { blink: true, style: 'block' },
+        font: { boldWeight: 800 },
+        theme,
+      },
+      rendererFactory: recordingRendererFactory(recording),
+    })
+
+    expect(terminal.appearance.rendererTheme.cursorText).toEqual(cursorText)
+    await terminal.open(trackedHost())
+
+    expect(recording.options?.cursorBlink).toBe(true)
+    expect(recording.options?.font.settings.boldWeight).toBe(800)
+    expect(recording.options?.theme?.cursorText).toEqual(cursorText)
+  })
+
+  it('commits one public appearance mutation without recreating owned layers', async () => {
+    const session = await TerminalSession.create<Event>({ runtime: { kind: 'borrowed', runtime } })
+    const runtimeIdentity = session.runtime
+    const renderStateIdentity = session.renderState
+    const recording: RendererRecording = {}
+    let rendererCreations = 0
+    const terminal = createGhosttyWebGpuTerminalFromSession(session, {
+      autoFit: false,
+      rendererFactory: async (options, signal) => {
+        rendererCreations += 1
+        return recordingRendererFactory(recording)(options, signal)
+      },
+    })
+    terminals.push(terminal)
+    await terminal.open(trackedHost())
+    const revision = session.revision
+    const appearances: unknown[] = []
+    terminal.on('appearance', (appearance) => appearances.push(appearance))
+    const cursorText = { b: 60, g: 50, r: 40 }
+    const theme = {
+      ...terminal.appearance.theme,
+      cursorText,
+      foreground: { b: 90, g: 80, r: 70 },
+    }
+
+    expect(
+      terminal.setAppearance({
+        colorScheme: 'light',
+        cursor: { blink: true, style: 'bar' },
+        font: { boldWeight: 800 },
+        theme,
+      }),
+    ).toEqual({ revision: revision + 1 })
+
+    expect(appearances).toHaveLength(1)
+    expect(session.revision).toBe(revision + 1)
+    expect(session.runtime).toBe(runtimeIdentity)
+    expect(session.renderState).toBe(renderStateIdentity)
+    expect(rendererCreations).toBe(1)
+    expect(recording.renderer?.cursorBlink.at(-1)).toBe(true)
+    expect(recording.renderer?.fonts.at(-1)?.settings.boldWeight).toBe(800)
+    expect(recording.renderer?.themes.at(-1)?.cursorText).toEqual(cursorText)
+  })
+
   it('opens a real WebGPU renderer, preserves the host, and leaves idle cleanup empty', async () => {
     const host = trackedHost()
     host.dataset.owner = 'caller'

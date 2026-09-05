@@ -26,7 +26,17 @@ export interface TerminalElements {
 
   dispose(): void
   positionTextarea(position: TerminalCaretPosition): void
+  replaceCanvas?(): HTMLCanvasElement
   setPadding(padding: TerminalElementPaddingInput): boolean
+}
+
+export function replaceTerminalCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const replacement = canvas.ownerDocument.createElement('canvas')
+  for (const attribute of canvas.attributes) {
+    replacement.setAttribute(attribute.name, attribute.value)
+  }
+  canvas.replaceWith(replacement)
+  return replacement
 }
 
 const zeroPadding: TerminalElementPadding = Object.freeze({
@@ -136,13 +146,17 @@ class OwnedTerminalElements implements TerminalElements {
 
   constructor(
     readonly root: HTMLDivElement,
-    readonly canvas: HTMLCanvasElement,
+    private canvasValue: HTMLCanvasElement,
     readonly textarea: HTMLTextAreaElement,
     readonly compositionView: HTMLDivElement,
     padding: TerminalElementPadding,
     private readonly abortController: AbortController,
   ) {
     this.committedPadding = padding
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this.canvasValue
   }
 
   get padding(): TerminalElementPadding {
@@ -168,6 +182,12 @@ class OwnedTerminalElements implements TerminalElements {
     this.textarea.style.top = `${y}px`
     this.compositionView.style.left = `${x}px`
     this.compositionView.style.top = `${y}px`
+  }
+
+  replaceCanvas(): HTMLCanvasElement {
+    if (this.disposed) throw new Error('Terminal elements have been disposed')
+    this.canvasValue = replaceTerminalCanvas(this.canvasValue)
+    return this.canvasValue
   }
 
   setPadding(input: TerminalElementPaddingInput): boolean {

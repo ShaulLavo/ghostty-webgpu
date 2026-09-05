@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { defaultRendererTheme } from '../../render/instances/types.js'
+import type { TerminalSession } from '../../term/session.js'
+import type { TerminalAppearanceOptions, TerminalTheme } from '../../term/types.js'
+import { applyTerminalOptions } from '../appearance.js'
 import { TerminalOptionsStore } from '../options.js'
 import type { ITerminalInitOnlyOptions, ITerminalOptions } from '../types.js'
 
@@ -9,6 +13,32 @@ function runtimeOptions(store: TerminalOptionsStore): RuntimeOptions {
 }
 
 describe('TerminalOptionsStore', () => {
+  it('maps cursorAccent to cursor text and preserves omitted fallback semantics', () => {
+    const current: TerminalTheme = {
+      ...defaultRendererTheme,
+      palette: Array.from({ length: 256 }, () => ({ b: 0, g: 0, r: 0 })),
+    }
+    const applied: TerminalAppearanceOptions[] = []
+    const session = {
+      appearance: { theme: current },
+      setAppearance: (appearance: TerminalAppearanceOptions) => applied.push(appearance),
+    } as unknown as TerminalSession<Event>
+    const explicit = new TerminalOptionsStore({
+      theme: { background: '#010203', cursorAccent: '#040506' },
+    })
+
+    applyTerminalOptions(session, explicit.values, ['theme'])
+    expect(applied.at(-1)?.theme).toMatchObject({
+      background: { b: 3, g: 2, r: 1 },
+      cursorText: { b: 6, g: 5, r: 4 },
+    })
+
+    const fallback = new TerminalOptionsStore({ theme: { background: '#070809' } })
+    applyTerminalOptions(session, fallback.values, ['theme'])
+    expect(applied.at(-1)?.theme?.background).toEqual({ b: 9, g: 8, r: 7 })
+    expect(Object.hasOwn(applied.at(-1)?.theme ?? {}, 'cursorText')).toBe(false)
+  })
+
   it('exposes live constructor-only dimensions as enumerable own options', () => {
     const store = new TerminalOptionsStore({ cols: 91, rows: 32 })
     const options = runtimeOptions(store)

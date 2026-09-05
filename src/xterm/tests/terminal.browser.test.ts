@@ -2,7 +2,11 @@ import type { Terminal as XtermTerminalType } from '@xterm/xterm'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { GhosttyWebGpuRenderer } from '../../dom/types.js'
 import type { RendererTheme } from '../../render/instances/types.js'
-import { WebGpuTerminalRenderer, type RendererGridSize } from '../../render/renderer.js'
+import {
+  WebGpuTerminalRenderer,
+  type RendererGridSize,
+  type WebGpuTerminalRendererOptions,
+} from '../../render/renderer.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { Terminal } from '../terminal.js'
 import type { ITerminalAddon, ITerminalInitOnlyOptions, ITerminalOptions } from '../types.js'
@@ -93,6 +97,8 @@ const rendererRestores: Array<() => void> = []
 let XtermTerminal: typeof XtermTerminalType | undefined
 
 class NoopRenderer implements GhosttyWebGpuRenderer {
+  readonly themes: Partial<RendererTheme>[] = []
+
   dispose(): void {}
   notifyScroll(): void {}
   notifySelectionChange(): void {}
@@ -103,7 +109,9 @@ class NoopRenderer implements GhosttyWebGpuRenderer {
   setDocumentVisible(_visible: boolean): void {}
   setFocused(_focused: boolean): void {}
   setFont(_font: TerminalFittedFont): void {}
-  setTheme(_theme: Partial<RendererTheme>): void {}
+  setTheme(theme: Partial<RendererTheme>): void {
+    this.themes.push(theme)
+  }
 }
 
 beforeAll(async () => {
@@ -571,6 +579,29 @@ async function observeVisualClear(
 }
 
 describe.sequential('released xterm Terminal facade observables', () => {
+  it('maps cursorAccent and omitted fallback through the browser renderer', async () => {
+    const renderer = new NoopRenderer()
+    let initialOptions: WebGpuTerminalRendererOptions | undefined
+    const originalCreate = WebGpuTerminalRenderer.create
+    WebGpuTerminalRenderer.create = ((options: WebGpuTerminalRendererOptions) => {
+      initialOptions = options
+      return Promise.resolve(renderer as unknown as WebGpuTerminalRenderer)
+    }) as typeof WebGpuTerminalRenderer.create
+    rendererRestores.push(() => {
+      WebGpuTerminalRenderer.create = originalCreate
+    })
+    const driver = createGhosttyDriver({
+      theme: { background: '#010203', cursorAccent: '#040506' },
+    })
+    drivers.push(driver)
+    driver.open(trackedHost())
+    await driver.ready
+
+    expect(initialOptions?.theme?.cursorText).toEqual({ b: 6, g: 5, r: 4 })
+    driver.setOptions({ theme: { background: '#070809' } })
+    expect(renderer.themes.at(-1)?.cursorText).toEqual({ b: 9, g: 8, r: 7 })
+  })
+
   it('matches valid constructor dimensions, init-only options, and resize events', () => {
     const observations = trackedDrivers({ cols: 91, rows: 32 }).map((driver) => {
       const options = driver.options as RuntimeTerminalOptions

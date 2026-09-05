@@ -1,5 +1,9 @@
 import type { TerminalFittedFont } from '../term/types.js'
-import { defaultRendererTheme, type RendererTheme } from './instances/types.js'
+import {
+  defaultRendererTheme,
+  type CanonicalRendererTheme,
+  type RendererTheme,
+} from './instances/types.js'
 import type { RenderSchedulerClock } from './scheduler.js'
 
 export interface RendererGridInput {
@@ -106,6 +110,10 @@ export function fittedFontGeometryEquals(
 
 export function mergeRendererTheme(theme: Partial<RendererTheme> | undefined): RendererTheme {
   return { ...defaultRendererTheme, ...theme }
+}
+
+export function canonicalRendererTheme(theme: RendererTheme): CanonicalRendererTheme {
+  return { ...theme, cursorText: theme.cursorText ?? theme.background }
 }
 
 export function normalizeRendererGrid(grid: RendererGridInput): RendererGridInput {

@@ -1,5 +1,6 @@
 import {
   normalizeTerminalElementPadding,
+  replaceTerminalCanvas,
   type TerminalCaretPosition,
   type TerminalElementPadding,
   type TerminalElementPaddingInput,
@@ -84,7 +85,7 @@ class OwnedXtermTerminalElements implements XtermTerminalElements {
 
   constructor(
     readonly root: HTMLDivElement,
-    readonly canvas: HTMLCanvasElement,
+    private canvasValue: HTMLCanvasElement,
     readonly textarea: HTMLTextAreaElement,
     readonly viewport: HTMLDivElement,
     readonly scrollable: HTMLDivElement,
@@ -97,6 +98,10 @@ class OwnedXtermTerminalElements implements XtermTerminalElements {
     private readonly abortController: AbortController,
   ) {
     this.committedPadding = padding
+  }
+
+  get canvas(): HTMLCanvasElement {
+    return this.canvasValue
   }
 
   get padding(): TerminalElementPadding {
@@ -122,6 +127,12 @@ class OwnedXtermTerminalElements implements XtermTerminalElements {
     this.textarea.style.top = `${y}px`
     this.compositionView.style.left = `${x}px`
     this.compositionView.style.top = `${y}px`
+  }
+
+  replaceCanvas(): HTMLCanvasElement {
+    if (this.disposed) throw new Error('Terminal elements have been disposed')
+    this.canvasValue = replaceTerminalCanvas(this.canvasValue)
+    return this.canvasValue
   }
 
   setPadding(input: TerminalElementPaddingInput): boolean {

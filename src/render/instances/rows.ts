@@ -11,11 +11,11 @@ import {
 } from './layout.js'
 import type {
   CursorState,
+  CanonicalRendererTheme,
   GlyphLookup,
   GlyphSource,
   InstanceByteRange,
   InstanceRowsOptions,
-  RendererTheme,
   RowInstanceUpdate,
 } from './types.js'
 
@@ -34,7 +34,11 @@ function normalized(color: RgbColor): readonly [number, number, number] {
   return [color.r / 255, color.g / 255, color.b / 255]
 }
 
-function colorsForCell(cell: RenderCell, theme: RendererTheme, blockCursor: boolean): CellColors {
+function colorsForCell(
+  cell: RenderCell,
+  theme: CanonicalRendererTheme,
+  blockCursor: boolean,
+): CellColors {
   let foreground = cell.foreground ?? theme.foreground
   let background = cell.background ?? theme.background
   let drawBackground = cell.background !== undefined
@@ -50,7 +54,7 @@ function colorsForCell(cell: RenderCell, theme: RendererTheme, blockCursor: bool
     drawBackground = true
   }
   if (!blockCursor) return { background, drawBackground, foreground }
-  return { background: theme.cursor, drawBackground: true, foreground: theme.background }
+  return { background: theme.cursor, drawBackground: true, foreground: theme.cursorText }
 }
 
 function cellFlags(cell: RenderCell, cursor: CursorState | undefined): number {
@@ -132,7 +136,7 @@ export class InstanceRows {
     row: RenderRow,
     glyphs: GlyphLookup,
     source: GlyphSource,
-    theme: RendererTheme,
+    theme: CanonicalRendererTheme,
     cursor?: CursorState,
   ): RowInstanceUpdate {
     this.validateRow(row.y)
@@ -193,7 +197,7 @@ export class InstanceRows {
     span: number,
     glyphs: GlyphLookup,
     source: GlyphSource,
-    theme: RendererTheme,
+    theme: CanonicalRendererTheme,
     cursorState: CursorState | undefined,
     invalidatedRows: Set<number>,
   ): void {

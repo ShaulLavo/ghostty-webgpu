@@ -8,6 +8,7 @@ import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
 import { TerminalSession } from '../term/session.js'
 import type {
   TerminalAppearance,
+  TerminalAppearanceOptions,
   TerminalColorScheme,
   TerminalCursorSettings,
   TerminalFittedFont,
@@ -131,8 +132,8 @@ class CleanupStack {
   }
 }
 
-const defaultRendererFactory: GhosttyWebGpuRendererFactory = (options) =>
-  createCompatibleTerminalRenderer(options)
+const defaultRendererFactory: GhosttyWebGpuRendererFactory = (options, signal) =>
+  createCompatibleTerminalRenderer(options, signal)
 
 const defaultScrollbarWidth = 12
 
@@ -416,6 +417,7 @@ export class Terminal {
       this.installInput(elements, parent)
       this.inputHooks?.inputReady?.()
       this.installFit(elements)
+      this.cleanup.add(() => this.disposeCanvasControllers())
       this.installPointer(elements)
       this.installLinks(elements)
       this.replayLastFrame()
@@ -603,13 +605,11 @@ export class Terminal {
   }
 
   setColorScheme(colorScheme: TerminalColorScheme): TerminalMutationResult {
-    this.ensureOpen()
-    return this.session.setColorScheme(colorScheme)
+    return this.setAppearance({ colorScheme })
   }
 
   setCursor(cursor: Partial<TerminalCursorSettings>): TerminalMutationResult {
-    this.ensureOpen()
-    return this.session.setCursor(cursor)
+    return this.setAppearance({ cursor })
   }
 
   setAccessibilityEnabled(enabled: boolean): boolean {
@@ -633,13 +633,16 @@ export class Terminal {
   }
 
   setFont(font: Partial<TerminalFontSettings>): TerminalMutationResult {
-    this.ensureOpen()
-    return this.session.setFont(font)
+    return this.setAppearance({ font })
   }
 
   setTheme(theme: TerminalTheme): TerminalMutationResult {
+    return this.setAppearance({ theme })
+  }
+
+  setAppearance(options: TerminalAppearanceOptions): TerminalMutationResult {
     this.ensureOpen()
-    return this.session.setTheme(theme)
+    return this.session.setAppearance(options)
   }
 
   dispose(): void {
@@ -698,8 +701,12 @@ export class Terminal {
         columns: grid.columns,
         cursorBlink: appearance.cursor.blink,
         font,
+        onError: (cause) => this.reportError(cause, 'renderer.restore'),
         onFrame: (snapshot) => this.handleFrame(snapshot),
         renderState: this.session.renderState,
+        replaceCanvas: elements.replaceCanvas
+          ? () => this.replaceRendererCanvas(elements)
+          : undefined,
         rows: grid.rows,
         theme: appearance.rendererTheme,
       },
@@ -900,7 +907,6 @@ export class Terminal {
     }
     this.selection = selection
     this.pointer = pointer
-    this.cleanup.add(() => pointer.dispose())
   }
 
   private installLinks(elements: TerminalElements): void {
@@ -914,7 +920,42 @@ export class Terminal {
       signal: elements.signal,
     })
     this.links = links
-    this.cleanup.add(() => links.dispose())
+  }
+
+  private disposeCanvasControllers(): void {
+    const links = this.links
+    const pointer = this.pointer
+    this.links = undefined
+    this.pointer = undefined
+    this.selection = undefined
+    this.lastLinkFrameSignature = undefined
+    invokeCleanup(
+      () => links?.dispose(),
+      (cause) => this.reportError(cause, 'link.dispose'),
+    )
+    invokeCleanup(
+      () => pointer?.dispose(),
+      (cause) => this.reportError(cause, 'pointer.dispose'),
+    )
+  }
+
+  private replaceRendererCanvas(elements: TerminalElements): HTMLCanvasElement {
+    elements.signal.throwIfAborted()
+    if (!elements.replaceCanvas) throw new Error('Terminal elements cannot replace their canvas')
+    const active = elements.root.ownerDocument.activeElement
+    const restoreFocus =
+      active === elements.canvas ||
+      (active?.classList.contains('ghostty-webgpu-link') === true && elements.root.contains(active))
+    const rebind = this.pointer !== undefined || this.links !== undefined
+    this.disposeCanvasControllers()
+    const canvas = elements.replaceCanvas()
+    if (rebind) {
+      this.installPointer(elements)
+      this.installLinks(elements)
+    }
+    if (restoreFocus) elements.textarea.focus({ preventScroll: true })
+    this.replayLastFrame()
+    return canvas
   }
 
   private applyFit(result: TerminalFitResult): void {
@@ -964,13 +1005,13 @@ export class Terminal {
 
   private handleAppearance(appearance: TerminalAppearance): void {
     const renderer = this.renderer
-    renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
-    renderer?.setTheme(appearance.rendererTheme)
-    this.updatePreeditAppearance(this.fittedFont, appearance.rendererTheme)
     if (this.autoFit) this.fit?.setFont(appearance.font)
     if (!this.autoFit) {
       this.runUiOperation('appearance.font', () => this.remeasureFixedFont(appearance.font))
     }
+    renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
+    renderer?.setTheme(appearance.rendererTheme)
+    this.updatePreeditAppearance(this.fittedFont, appearance.rendererTheme)
     this.emitHostEvent('appearance', appearance)
   }
 

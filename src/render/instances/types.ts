@@ -13,10 +13,15 @@ export interface CursorState {
 export interface RendererTheme {
   background: RgbColor
   cursor: RgbColor
+  cursorText?: RgbColor
   foreground: RgbColor
   minimumContrast: number
   selectionBackground: RgbColor
   selectionForeground: RgbColor
+}
+
+export type CanonicalRendererTheme = Omit<RendererTheme, 'cursorText'> & {
+  cursorText: RgbColor
 }
 
 export interface GlyphLookup {

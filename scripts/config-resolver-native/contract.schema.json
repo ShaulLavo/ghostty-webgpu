@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contract.schema.json",
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "target": {
+      "enum": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"]
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\).+$"
+    },
+    "printable": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[ -~]+$"
+    },
+    "dottedVersion": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]{0,4})\\.(?:0|[1-9][0-9]{0,4})(?:\\.(?:0|[1-9][0-9]{0,4}))?$"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "arch", "image", "imageVersion"],
+      "properties": {
+        "os": { "enum": ["darwin", "linux"] },
+        "arch": { "enum": ["arm64", "x64"] },
+        "image": { "$ref": "#/$defs/printable" },
+        "imageVersion": { "$ref": "#/$defs/printable" }
+      }
+    },
+    "macosSdkAcquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["xcodeVersion", "xcodeBuild", "sdkVersion", "sdkBuild", "sdkSettingsSha256"],
+      "properties": {
+        "xcodeVersion": { "$ref": "#/$defs/printable" },
+        "xcodeBuild": { "type": "string", "pattern": "^[0-9]{1,4}[A-Z][0-9]{1,4}[a-z]?$" },
+        "sdkVersion": { "$ref": "#/$defs/dottedVersion" },
+        "sdkBuild": { "$ref": "#/$defs/printable" },
+        "sdkSettingsSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "officialDownload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url", "archiveBytes", "archiveSha256"],
+      "properties": {
+        "kind": { "const": "official-download" },
+        "url": { "type": "string", "pattern": "^https://[^#]+$", "maxLength": 2048 },
+        "archiveBytes": { "type": "integer", "minimum": 1 },
+        "archiveSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "gitAcquisition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "repository", "revision", "treeAlgorithm", "treeSha256"],
+      "properties": {
+        "kind": { "const": "git" },
+        "repository": { "type": "string", "pattern": "^https://[^#]+$", "maxLength": 2048 },
+        "revision": { "$ref": "#/$defs/revision" },
+        "treeAlgorithm": { "const": "ghostty-upstream-tree-v1" },
+        "treeSha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "runnerComponent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "runnerImage", "runnerImageVersion", "path", "contentKind"],
+      "properties": {
+        "kind": { "const": "runner-component" },
+        "runnerImage": { "$ref": "#/$defs/printable" },
+        "runnerImageVersion": { "$ref": "#/$defs/printable" },
+        "path": {
+          "type": "string",
+          "pattern": "^/(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\\\).+$",
+          "maxLength": 4096
+        },
+        "contentKind": { "enum": ["file", "external-tree-v1"] },
+        "macosSdk": { "$ref": "#/$defs/macosSdkAcquisition" }
+      }
+    },
+    "acquisition": {
+      "oneOf": [
+        { "$ref": "#/$defs/officialDownload" },
+        { "$ref": "#/$defs/gitAcquisition" },
+        { "$ref": "#/$defs/runnerComponent" }
+      ]
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources", "argv"],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:input|tool):[a-z0-9][a-z0-9._-]{0,127}$"
+          }
+        },
+        "argv": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        }
+      }
+    },
+    "toolRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "name", "version", "bytes", "sha256", "acquisition"],
+      "properties": {
+        "role": { "enum": ["zig", "linker", "strip", "sdk-or-sysroot"] },
+        "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$" },
+        "version": { "$ref": "#/$defs/printable" },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "acquisition": { "$ref": "#/$defs/acquisition" },
+        "generation": { "$ref": "#/$defs/generation" }
+      }
+    },
+    "inputRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "id", "bytes", "sha256", "acquisition"],
+      "properties": {
+        "role": {
+          "enum": [
+            "upstream-submodule",
+            "dependency-archive",
+            "generated-resource-source",
+            "runtime-resource"
+          ]
+        },
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "acquisition": { "$ref": "#/$defs/acquisition" },
+        "generation": { "$ref": "#/$defs/generation" }
+      }
+    },
+    "artifactFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "sha256", "bytes", "mode"],
+      "properties": {
+        "role": { "enum": ["executable", "resource"] },
+        "path": { "$ref": "#/$defs/relativePath" },
+        "sha256": { "$ref": "#/$defs/hash" },
+        "bytes": { "type": "integer", "minimum": 0, "maximum": 9437184 },
+        "mode": { "enum": ["0644", "0755"] }
+      }
+    },
+    "darwinCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "minimumProductVersion", "deploymentLoadCommand", "dynamicDependencies"],
+      "properties": {
+        "os": { "const": "darwin" },
+        "minimumProductVersion": { "$ref": "#/$defs/dottedVersion" },
+        "deploymentLoadCommand": { "const": "pass" },
+        "dynamicDependencies": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/printable" }
+        }
+      }
+    },
+    "staticLinuxCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "libc", "interpreter", "dynamicDependencies"],
+      "properties": {
+        "os": { "const": "linux" },
+        "libc": { "const": "none" },
+        "interpreter": { "type": "null" },
+        "dynamicDependencies": { "type": "array", "maxItems": 0 }
+      }
+    },
+    "dynamicLinuxCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "libc", "minimumVersion", "interpreter", "dynamicDependencies"],
+      "properties": {
+        "os": { "const": "linux" },
+        "libc": { "enum": ["glibc", "musl"] },
+        "minimumVersion": { "$ref": "#/$defs/dottedVersion" },
+        "interpreter": { "type": "string", "pattern": "^/[^\\\\]+$", "maxLength": 4096 },
+        "dynamicDependencies": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/printable" }
+        }
+      }
+    },
+    "compatibility": {
+      "oneOf": [
+        { "$ref": "#/$defs/darwinCompatibility" },
+        { "$ref": "#/$defs/staticLinuxCompatibility" },
+        { "$ref": "#/$defs/dynamicLinuxCompatibility" }
+      ]
+    }
+  }
+}

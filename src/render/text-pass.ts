@@ -1,7 +1,8 @@
 import type { AtlasGpuTextures } from './atlas/gpu-textures.js'
-import type { InstanceByteRange, RowInstanceUpdate } from './instances/types.js'
+import type { RowInstanceUpdate } from './instances/types.js'
 import type { InstanceRows } from './instances/rows.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from './instances/layout.js'
+import { coalesceInstanceUpdates } from './instances/uploads.js'
 import { cellShader } from './shaders/cell.wgsl.js'
 import { glyphShader } from './shaders/glyph.wgsl.js'
 
@@ -31,47 +32,6 @@ interface PipelineResources {
   cellBindGroup: GPUBindGroup
   cellPipeline: GPURenderPipeline
   glyphPipeline: GPURenderPipeline
-}
-
-export interface InstanceUploadBatch {
-  readonly cell: InstanceByteRange
-  readonly glyph: InstanceByteRange
-}
-
-function copiedRange(range: InstanceByteRange): InstanceByteRange {
-  return { byteLength: range.byteLength, byteOffset: range.byteOffset }
-}
-
-function copiedBatch(update: RowInstanceUpdate): InstanceUploadBatch {
-  return { cell: copiedRange(update.cell), glyph: copiedRange(update.glyph) }
-}
-
-function rangesAreAdjacent(left: InstanceByteRange, right: InstanceByteRange): boolean {
-  return left.byteOffset + left.byteLength === right.byteOffset
-}
-
-function batchesAreAdjacent(batch: InstanceUploadBatch, update: RowInstanceUpdate): boolean {
-  return rangesAreAdjacent(batch.cell, update.cell) && rangesAreAdjacent(batch.glyph, update.glyph)
-}
-
-function extendBatch(batch: InstanceUploadBatch, update: RowInstanceUpdate): void {
-  batch.cell.byteLength += update.cell.byteLength
-  batch.glyph.byteLength += update.glyph.byteLength
-}
-
-export function coalesceInstanceUpdates(
-  updates: readonly RowInstanceUpdate[],
-): readonly InstanceUploadBatch[] {
-  const batches: InstanceUploadBatch[] = []
-  for (const update of updates) {
-    const previous = batches.at(-1)
-    if (!previous || !batchesAreAdjacent(previous, update)) {
-      batches.push(copiedBatch(update))
-      continue
-    }
-    extendBatch(previous, update)
-  }
-  return batches
 }
 
 function blendState(): GPUBlendState {

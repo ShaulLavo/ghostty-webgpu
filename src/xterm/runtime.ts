@@ -41,15 +41,18 @@ function terminalParent(elements: TerminalElements): HTMLElement {
 }
 
 function rendererFactory(onFrame: (snapshot: RendererFrameSnapshot) => void) {
-  return (options: WebGpuTerminalRendererOptions, _signal: AbortSignal) => {
+  return (options: WebGpuTerminalRendererOptions, signal: AbortSignal) => {
     const nativeOnFrame = options.onFrame
-    return createCompatibleTerminalRenderer({
-      ...options,
-      onFrame: (snapshot) => {
-        nativeOnFrame?.(snapshot)
-        onFrame(snapshot)
+    return createCompatibleTerminalRenderer(
+      {
+        ...options,
+        onFrame: (snapshot) => {
+          nativeOnFrame?.(snapshot)
+          onFrame(snapshot)
+        },
       },
-    })
+      signal,
+    )
   }
 }
 

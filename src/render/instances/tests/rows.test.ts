@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { RenderCell, RenderRow } from '../../../core/types.js'
 import { GlyphAtlas } from '../../atlas/atlas.js'
 import type { GlyphBitmap, GlyphRasterizationInput } from '../../atlas/types.js'
+import { canonicalRendererTheme } from '../../config.js'
 import {
   CELL_INSTANCE_BYTES,
   CELL_INSTANCE_FLOATS,
@@ -13,7 +14,9 @@ import {
   GlyphOffset,
 } from '../layout.js'
 import { InstanceRows } from '../rows.js'
-import { defaultRendererTheme } from '../types.js'
+import { defaultRendererTheme as rawDefaultRendererTheme } from '../types.js'
+
+const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)
 
 const source = {
   rasterize(input: GlyphRasterizationInput): GlyphBitmap | undefined {
@@ -83,6 +86,32 @@ describe('InstanceRows', () => {
     expect(instances.cellData[CellOffset.Rect + 2]).toBe(0)
     expect(instances.cellData[CELL_INSTANCE_FLOATS + CellOffset.Background + 3]).toBe(1)
     expect(instances.cellData[CELL_INSTANCE_FLOATS + CellOffset.Rect + 2]).toBe(8)
+  })
+
+  it('encodes canonical cursor text over a block cursor', () => {
+    const instances = new InstanceRows({ cellHeight: 16, cellWidth: 8, columns: 1, rows: 1 })
+    const atlas = new GlyphAtlas({ pageHeight: 32, pageWidth: 32 })
+    const theme = canonicalRendererTheme({
+      ...rawDefaultRendererTheme,
+      cursor: { b: 0, g: 255, r: 0 },
+      cursorText: { b: 255, g: 0, r: 0 },
+    })
+    instances.rebuildRow(row(0, [cell(0, { text: 'A' })]), lookup(atlas), source, theme, {
+      style: 'block',
+      visible: true,
+      x: 0,
+      y: 0,
+    })
+
+    expect(instances.cellData.slice(CellOffset.Foreground, CellOffset.Foreground + 3)).toEqual(
+      new Float32Array([0, 0, 1]),
+    )
+    expect(instances.cellData.slice(CellOffset.Background, CellOffset.Background + 3)).toEqual(
+      new Float32Array([0, 1, 0]),
+    )
+    expect(instances.glyphData.slice(GlyphOffset.Color, GlyphOffset.Color + 3)).toEqual(
+      new Float32Array([0, 0, 1]),
+    )
   })
 
   it('does not allocate glyph atlas data for continuation cells', () => {

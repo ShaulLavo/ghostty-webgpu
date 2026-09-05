@@ -1,6 +1,6 @@
 {
   "name": "ghostty-webgpu",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Ghostty for the web with a damage-aware WebGPU renderer and xterm-compatible API",
   "keywords": [
     "browser",
@@ -23,6 +23,11 @@
   "files": [
     "dist",
     "types",
+    "native/config-resolver/manifest.json",
+    "native/config-resolver/darwin-arm64",
+    "native/config-resolver/darwin-x64",
+    "native/config-resolver/linux-arm64",
+    "native/config-resolver/linux-x64",
     "ghostty-vt.wasm",
     "bridge.wasm",
     "README.md",
@@ -38,6 +43,9 @@
   "types": "./types/legacy/index.d.ts",
   "typesVersions": {
     ">=7.0": {
+      "config-resolver": [
+        "dist/config-resolver/index.d.ts"
+      ],
       "xterm.css": [
         "types/legacy/xterm-css.d.ts"
       ],
@@ -49,6 +57,9 @@
       ]
     },
     "*": {
+      "config-resolver": [
+        "types/legacy/config-resolver.d.ts"
+      ],
       "xterm.css": [
         "types/legacy/xterm-css.d.ts"
       ],
@@ -77,6 +88,12 @@
       "types": "./types/legacy/xterm-css.d.ts",
       "default": "./dist/xterm/xterm.css"
     },
+    "./config-resolver": {
+      "types@>=7.0": "./dist/config-resolver/index.d.ts",
+      "types": "./types/legacy/config-resolver.d.ts",
+      "bun": "./dist/config-resolver/index.js",
+      "node": "./dist/config-resolver/index.js"
+    },
     "./ghostty-vt.wasm": "./ghostty-vt.wasm",
     "./bridge.wasm": "./bridge.wasm"
   },
@@ -85,8 +102,10 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
+    "build": "bun run verify:config-resolver-artifacts && bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
     "build:bridge": "bun scripts/build-bridge.ts",
+    "build:config-resolver": "bun scripts/build-config-resolver.ts",
+    "build:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",
     "clean": "bun scripts/clean-dist.ts",
@@ -99,10 +118,15 @@
     "test": "bun run test:unit && bun run test:browser",
     "test:browser": "bun scripts/browser-tests.ts",
     "test:package": "bun scripts/package-smoke.ts",
+    "test:renderer-fallbacks": "bun scripts/browser-tests.ts src/render/webgl/ src/render/tests/selector.browser.test.ts src/render/tests/fallback.browser.test.ts src/render/canvas/renderer.browser.test.ts src/dom/tests/renderer-fallback.browser.test.ts",
+    "test:renderer-smoke": "bun scripts/renderer-fallback-smoke.ts",
     "test:unit": "vitest run",
     "test:xterm-browsers": "bun scripts/xterm-browser-tests.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run xterm:reference-pack && bun run test:package",
+    "verify": "bun run verify:config-resolver-artifacts && bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run test:renderer-smoke && bun run xterm:reference-pack && bun run test:package",
+    "verify:config-resolver-artifacts": "bun scripts/verify-config-resolver-artifacts.ts --state assembled",
+    "verify:config-resolver-state": "bun scripts/verify-config-resolver-artifacts.ts",
+    "verify:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:source-only && bun run test:renderer-smoke && bun run xterm:reference-pack",
     "xterm:parity": "bun scripts/xterm-parity.ts --check",
     "xterm:parity:update": "bun scripts/xterm-parity.ts --write",
     "xterm:reference": "bun scripts/xterm-reference.ts",

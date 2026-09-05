@@ -181,7 +181,18 @@ describe('CanvasTerminalRenderer', () => {
     const clock = new FakeClock()
     const canvas = createCanvas()
     const frames: string[][] = []
-    const fillText = vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText')
+    const glyphColors: string[] = []
+    const originalFillText = CanvasRenderingContext2D.prototype.fillText
+    const fillText = vi
+      .spyOn(CanvasRenderingContext2D.prototype, 'fillText')
+      .mockImplementation(function (this: CanvasRenderingContext2D, text, x, y, maxWidth) {
+        glyphColors.push(String(this.fillStyle))
+        if (maxWidth === undefined) {
+          originalFillText.call(this, text, x, y)
+          return
+        }
+        originalFillText.call(this, text, x, y, maxWidth)
+      })
     const source = new FakeRenderState([
       row(0, [cell(0, { selected: true }), cell(1, { text: '界' })]),
       row(1, [cell(0), cell(1)]),
@@ -191,6 +202,7 @@ describe('CanvasTerminalRenderer', () => {
         onFrame: (snapshot) => frames.push(snapshot.rows.map((frameRow) => frameRow.text)),
         theme: {
           cursor: { b: 0, g: 255, r: 0 },
+          cursorText: { b: 255, g: 0, r: 0 },
           selectionBackground: { b: 0, g: 0, r: 255 },
         },
       }),
@@ -204,6 +216,7 @@ describe('CanvasTerminalRenderer', () => {
     expect(pixel(canvas, 2, 2)).toEqual([255, 0, 0, 255])
     expect(pixel(canvas, 12, 2)).toEqual([0, 255, 0, 255])
     expect(fillText).toHaveBeenCalledWith('界', 15, 16)
+    expect(glyphColors).toEqual(['#0000ff'])
     expect(frames).toEqual([[' 界', '  ']])
     expect(source.acknowledgements).toBe(1)
     expect(renderer.hasPendingFrame).toBe(false)
@@ -304,8 +317,14 @@ describe('compatible renderer selection', () => {
     renderer.dispose()
   })
 
-  it('falls back only for a classified WebGPU capability failure', async () => {
+  it('falls back to Canvas2D when WebGPU and WebGL2 are unavailable', async () => {
     const canvas = createCanvas()
+    const getContext = canvas.getContext.bind(canvas)
+    Object.defineProperty(canvas, 'getContext', {
+      configurable: true,
+      value: (type: string, attributes?: unknown) =>
+        type === 'webgl2' ? null : getContext(type, attributes),
+    })
     const clock = new FakeClock()
     const source = new FakeRenderState([row(0, [cell(0), cell(1)]), row(1, [cell(0), cell(1)])])
     const rendererOptions = options(canvas, source, clock)

@@ -5,6 +5,7 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import type { GlyphBitmap, GlyphRasterizationInput } from '../atlas/types.js'
+import { canonicalRendererTheme } from '../config.js'
 import {
   CELL_INSTANCE_FLOATS,
   CellOffset,
@@ -13,7 +14,9 @@ import {
   GlyphOffset,
 } from '../instances/layout.js'
 import { InstanceRows } from '../instances/rows.js'
-import { defaultRendererTheme } from '../instances/types.js'
+import { defaultRendererTheme as rawDefaultRendererTheme } from '../instances/types.js'
+
+const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)
 
 function rasterizer(): CanvasGlyphRasterizer {
   return new CanvasGlyphRasterizer({ font: fittedFont(20, 40, 30) })

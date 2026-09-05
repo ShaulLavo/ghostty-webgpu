@@ -92,6 +92,10 @@ import type {
 const encoder = new TextEncoder()
 const paletteLength = 256
 
+type CanonicalTerminalRendererTheme = TerminalRendererTheme & {
+  readonly cursorText: TerminalColor
+}
+
 const physicalKeyByCode: Readonly<Record<string, PhysicalKey>> = Object.freeze({
   AltLeft: PhysicalKey.AltLeft,
   AltRight: PhysicalKey.AltRight,
@@ -556,10 +560,11 @@ function copyPalette(palette: readonly RgbColor[]): readonly TerminalColor[] {
   return Object.freeze(palette.map((color, index) => copyColor(color, `theme.palette[${index}]`)))
 }
 
-function copyRendererTheme(theme: TerminalTheme): TerminalRendererTheme {
+function copyRendererTheme(theme: TerminalTheme): CanonicalTerminalRendererTheme {
   return Object.freeze({
     background: theme.background,
     cursor: theme.cursor,
+    cursorText: theme.cursorText ?? theme.background,
     foreground: theme.foreground,
     minimumContrast: theme.minimumContrast,
     selectionBackground: theme.selectionBackground,
@@ -567,11 +572,17 @@ function copyRendererTheme(theme: TerminalTheme): TerminalRendererTheme {
   })
 }
 
+function copyOptionalCursorText(theme: TerminalTheme): Readonly<{ cursorText?: TerminalColor }> {
+  if (theme.cursorText === undefined) return Object.freeze({})
+  return Object.freeze({ cursorText: copyColor(theme.cursorText, 'theme.cursorText') })
+}
+
 function copyTheme(theme: TerminalTheme): TerminalTheme {
   const minimumContrast = validateNonNegative('theme.minimumContrast', theme.minimumContrast)
   return Object.freeze({
     background: copyColor(theme.background, 'theme.background'),
     cursor: copyColor(theme.cursor, 'theme.cursor'),
+    ...copyOptionalCursorText(theme),
     foreground: copyColor(theme.foreground, 'theme.foreground'),
     minimumContrast,
     palette: copyPalette(theme.palette),
@@ -696,6 +707,14 @@ function colorsEqual(first: TerminalColor, second: TerminalColor): boolean {
   return first.r === second.r && first.g === second.g && first.b === second.b
 }
 
+function optionalColorsEqual(
+  first: TerminalColor | undefined,
+  second: TerminalColor | undefined,
+): boolean {
+  if (!first || !second) return first === second
+  return colorsEqual(first, second)
+}
+
 function palettesEqual(first: readonly TerminalColor[], second: readonly TerminalColor[]): boolean {
   if (first.length !== second.length) return false
   for (let index = 0; index < first.length; index += 1) {
@@ -709,6 +728,7 @@ function themesEqual(first: TerminalTheme, second: TerminalTheme): boolean {
     first.minimumContrast === second.minimumContrast &&
     colorsEqual(first.background, second.background) &&
     colorsEqual(first.cursor, second.cursor) &&
+    optionalColorsEqual(first.cursorText, second.cursorText) &&
     colorsEqual(first.foreground, second.foreground) &&
     colorsEqual(first.selectionBackground, second.selectionBackground) &&
     colorsEqual(first.selectionForeground, second.selectionForeground) &&

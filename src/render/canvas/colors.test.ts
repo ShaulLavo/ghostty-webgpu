@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { RenderCell } from '../../core/types.js'
-import { defaultRendererTheme } from '../instances/types.js'
+import { canonicalRendererTheme } from '../config.js'
+import { defaultRendererTheme as rawDefaultRendererTheme } from '../instances/types.js'
 import { contrastAdjustedColor, resolveCanvasCellColors } from './colors.js'
+
+const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)
 
 function cell(overrides: Partial<RenderCell> = {}): RenderCell {
   return { continuation: false, selected: false, text: '', x: 0, ...overrides }
@@ -41,7 +44,19 @@ describe('Canvas cell colors', () => {
 
     const cursor = resolveCanvasCellColors(cell({ selected: true }), defaultRendererTheme, true)
     expect(cursor.background).toBe(defaultRendererTheme.cursor)
-    expect(cursor.foreground).toBe(defaultRendererTheme.background)
+    expect(cursor.foreground).toBe(defaultRendererTheme.cursorText)
+  })
+
+  it('uses explicit cursor text and falls back to the current background when omitted', () => {
+    const background = { b: 30, g: 20, r: 10 }
+    const fallbackTheme = canonicalRendererTheme({ ...rawDefaultRendererTheme, background })
+    const fallback = resolveCanvasCellColors(cell(), fallbackTheme, true)
+    expect(fallback.foreground).toBe(background)
+
+    const cursorText = { b: 60, g: 50, r: 40 }
+    const explicitTheme = canonicalRendererTheme({ ...rawDefaultRendererTheme, cursorText })
+    const explicit = resolveCanvasCellColors(cell(), explicitTheme, true)
+    expect(explicit.foreground).toBe(cursorText)
   })
 
   it('uses the same black-or-white minimum-contrast fallback as the shaders', () => {

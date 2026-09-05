@@ -19,16 +19,22 @@ import type { LinkRequest, LinkResolverOptions } from './links.js'
 type RendererColorKey =
   | 'background'
   | 'cursor'
+  | 'cursorText'
   | 'foreground'
   | 'selectionBackground'
   | 'selectionForeground'
+
+type RequiredRendererColorKey = Exclude<RendererColorKey, 'cursorText'>
 
 export type TerminalColor = Readonly<RgbColor>
 
 export type TerminalColorScheme = 'dark' | 'light'
 
 export type TerminalRendererTheme = Readonly<
-  Omit<RendererTheme, RendererColorKey> & Record<RendererColorKey, TerminalColor>
+  Omit<RendererTheme, RendererColorKey> &
+    Record<RequiredRendererColorKey, TerminalColor> & {
+      readonly cursorText?: TerminalColor
+    }
 >
 
 export interface TerminalGrid {

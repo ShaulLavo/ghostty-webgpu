@@ -636,6 +636,53 @@ describe('EventEmitter', () => {
 })
 
 describe('TerminalSession', () => {
+  it('canonicalizes optional cursor text and commits multi-field appearance once', async () => {
+    const session = await createSession({ appearance: { grid: grid() } })
+    expect(Object.hasOwn(session.appearance.theme, 'cursorText')).toBe(false)
+    expect(session.appearance.rendererTheme.cursorText).toBe(session.appearance.theme.background)
+
+    const appearances: unknown[] = []
+    const revisions: number[] = []
+    session.on('appearance', ({ appearance }) => appearances.push(appearance))
+    session.on('renderRequest', ({ revision }) => revisions.push(revision))
+    const cursorText = { b: 30, g: 20, r: 10 }
+    const theme: TerminalTheme = {
+      ...session.appearance.theme,
+      cursorText,
+      foreground: { b: 60, g: 50, r: 40 },
+    }
+
+    expect(
+      session.setAppearance({
+        colorScheme: 'light',
+        cursor: { blink: true, style: 'bar' },
+        font: { boldWeight: 800 },
+        theme,
+      }),
+    ).toEqual({ revision: 1 })
+    cursorText.r = 99
+
+    expect(appearances).toHaveLength(1)
+    expect(revisions).toEqual([1])
+    expect(session.appearance).toMatchObject({
+      colorScheme: 'light',
+      cursor: { blink: true, style: 'bar' },
+      font: { boldWeight: 800 },
+    })
+    expect(session.appearance.theme.cursorText).toEqual({ b: 30, g: 20, r: 10 })
+    expect(session.appearance.rendererTheme.cursorText).toEqual({ b: 30, g: 20, r: 10 })
+    expect(Object.isFrozen(session.appearance.theme.cursorText)).toBe(true)
+  })
+
+  it('keeps omitted cursor text tied to each replacement background', async () => {
+    const session = await createSession({ appearance: { grid: grid() } })
+    const background = { b: 6, g: 5, r: 4 }
+    session.setTheme({ ...session.appearance.theme, background })
+
+    expect(Object.hasOwn(session.appearance.theme, 'cursorText')).toBe(false)
+    expect(session.appearance.rendererTheme.cursorText).toEqual(background)
+  })
+
   it('normalizes complete font defaults, numeric weights, line height, and letter spacing', async () => {
     const session = await createSession()
     const appearances: unknown[] = []

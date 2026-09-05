@@ -1,0 +1,24 @@
+import {
+  NATIVE_PACKAGE_VERSION,
+  NATIVE_TOTAL_CEILING,
+  NATIVE_UPSTREAM_REVISION,
+} from '../config-resolver-native/constants'
+
+export const RELEASE_PACKAGE_NAME = 'ghostty-webgpu'
+export const RELEASE_PACKAGE_VERSION = NATIVE_PACKAGE_VERSION
+export const RELEASE_UPSTREAM_REVISION = NATIVE_UPSTREAM_REVISION
+export const RELEASE_TARBALL_FILE =
+  `${RELEASE_PACKAGE_NAME}-${RELEASE_PACKAGE_VERSION}.tgz` as const
+export const RELEASE_PROVISIONAL_FILE =
+  `${RELEASE_PACKAGE_NAME}-${RELEASE_PACKAGE_VERSION}.provisional.json` as const
+export const RELEASE_EVIDENCE_FILE =
+  `${RELEASE_PACKAGE_NAME}-${RELEASE_PACKAGE_VERSION}.evidence.json` as const
+export const RELEASE_IDENTITY_FILE =
+  `${RELEASE_PACKAGE_NAME}-${RELEASE_PACKAGE_VERSION}.identity.json` as const
+export const RELEASE_NATIVE_MANIFEST_PATH = 'native/config-resolver/manifest.json'
+export const RELEASE_NATIVE_ROOT = 'native/config-resolver'
+export const RELEASE_MAX_TARBALL_BYTES = NATIVE_TOTAL_CEILING
+export const RELEASE_MAX_JSON_BYTES = NATIVE_TOTAL_CEILING
+export const RELEASE_MAX_UNCOMPRESSED_BYTES = 128 * 1024 * 1024
+export const RELEASE_MAX_FILES = 8_192
+export const RELEASE_MAX_PATH_BYTES = 240

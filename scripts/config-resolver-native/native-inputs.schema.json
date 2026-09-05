@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "native-inputs.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "upstream",
+    "proofRecipeSha256",
+    "buildRecipeSha256",
+    "ownedFiles",
+    "targets"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "upstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "revision", "treeSha256"],
+      "properties": {
+        "repository": { "const": "https://github.com/ghostty-org/ghostty.git" },
+        "revision": { "const": "c8554f28e0efe2f5595f32020371c34b25ec628f" },
+        "treeSha256": {
+          "const": "63d2b0c41531162a70b838369c0c225745e167495763ebbd0bc2fe546976a2bb"
+        }
+      }
+    },
+    "proofRecipeSha256": {
+      "const": "40083f27ad5f925808cc48e0fdd428b4ab0515eb38dedb42b0ca2065a16e44f0"
+    },
+    "buildRecipeSha256": { "$ref": "contract.schema.json#/$defs/hash" },
+    "ownedFiles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "mode", "bytes", "sha256"],
+        "properties": {
+          "path": { "$ref": "contract.schema.json#/$defs/relativePath" },
+          "mode": { "enum": ["100644", "100755"] },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "sha256": { "$ref": "contract.schema.json#/$defs/hash" }
+        }
+      }
+    },
+    "targets": { "$ref": "#/$defs/targets" }
+  },
+  "$defs": {
+    "targetInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tools", "inputs"],
+      "properties": {
+        "tools": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "contract.schema.json#/$defs/toolRecord" }
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": { "$ref": "contract.schema.json#/$defs/inputRecord" }
+        }
+      }
+    },
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"],
+      "properties": {
+        "darwin-arm64": { "$ref": "#/$defs/targetInputs" },
+        "darwin-x64": { "$ref": "#/$defs/targetInputs" },
+        "linux-arm64": { "$ref": "#/$defs/targetInputs" },
+        "linux-x64": { "$ref": "#/$defs/targetInputs" }
+      }
+    }
+  }
+}

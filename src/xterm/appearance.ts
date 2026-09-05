@@ -122,9 +122,12 @@ function nativeTheme(
   theme: ITheme,
   minimumContrast: number,
 ): TerminalTheme {
+  const background = replaceColor(current.background, theme.background)
+  const cursorText = parseXtermColor(theme.cursorAccent)
   return {
-    background: replaceColor(current.background, theme.background),
+    background,
     cursor: replaceColor(current.cursor, theme.cursor),
+    ...(cursorText ? { cursorText } : {}),
     foreground: replaceColor(current.foreground, theme.foreground),
     minimumContrast,
     palette: mappedPalette(current.palette, theme),

@@ -11,6 +11,7 @@ import type {
   TerminalFontSettings,
   TerminalInputData,
   TerminalInputResult,
+  TerminalMutationResult,
   TerminalRendererTheme,
   TerminalScrollEvent,
   TerminalSelectionEvent,
@@ -93,7 +94,7 @@ export interface GhosttyWebGpuTerminalDiagnostics {
   readonly lifecycle: GhosttyWebGpuTerminalLifecycle
   readonly pointerOwner: TerminalPointerOwner
   readonly pressedButtonCount: number
-  readonly rendererBackend: 'canvas2d' | 'webgpu' | undefined
+  readonly rendererBackend: 'canvas2d' | 'webgl2' | 'webgpu' | undefined
   readonly scrollbarVisible: boolean
 }
 
@@ -108,7 +109,7 @@ export type GhosttyWebGpuTerminalScrollbarOptions = Omit<
 >
 
 export interface GhosttyWebGpuRenderer {
-  readonly backend?: 'canvas2d' | 'webgpu'
+  readonly backend?: 'canvas2d' | 'webgl2' | 'webgpu'
   readonly hasPendingFrame?: boolean
   readonly hasPendingTimer?: boolean
   clearTextureAtlas?(): void
@@ -170,6 +171,7 @@ export interface GhosttyWebGpuTerminalFromSessionOptions extends GhosttyWebGpuTe
 }
 
 export interface GhosttyWebGpuTerminalAppearanceApi {
+  setAppearance?(options: TerminalAppearanceOptions): TerminalMutationResult
   setColorScheme(colorScheme: TerminalColorScheme): void
   setCursor(cursor: Partial<TerminalCursorSettings>): void
   setFont(font: Partial<TerminalFontSettings>): void

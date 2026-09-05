@@ -1,6 +1,7 @@
 import type { AbiLayouts, BridgeWasmExports, GhosttyWasmExports } from './abi.js'
 import { CallbackBridge } from './bridge.js'
 import { createGhosttyError } from './error.js'
+import { readNodeFileUrl } from './file-url.js'
 import { parseAbiLayouts, WasmMemory } from './memory.js'
 import { GhosttyRenderState } from './render-state.js'
 import { GhosttyTerminal } from './terminal.js'
@@ -11,9 +12,7 @@ const defaultBridge = new URL('../../bridge.wasm', import.meta.url)
 
 async function readFileUrl(url: URL): Promise<ArrayBuffer> {
   try {
-    const { readFile } = await import('node:fs/promises')
-    const bytes = await readFile(url)
-    return Uint8Array.from(bytes).buffer
+    return await readNodeFileUrl(url)
   } catch (cause) {
     throw createGhosttyError('wasm.read', `Unable to read wasm artifact at ${url.href}`, cause)
   }

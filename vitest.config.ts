@@ -4,6 +4,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     exclude: ['src/**/*.browser.test.ts'],
-    include: ['src/**/*.test.ts', 'demo/**/*.test.ts'],
+    include: [
+      'src/**/*.test.ts',
+      'demo/**/*.test.ts',
+      'scripts/release-candidate/tests/**/*.test.ts',
+    ],
   },
 })

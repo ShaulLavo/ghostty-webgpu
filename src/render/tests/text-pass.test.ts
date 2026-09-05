@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import type { RowInstanceUpdate } from '../instances/types.js'
-import { coalesceInstanceUpdates } from '../text-pass.js'
+import { coalesceInstanceUpdates } from '../instances/uploads.js'
 
 function update(row: number): RowInstanceUpdate {
   return {

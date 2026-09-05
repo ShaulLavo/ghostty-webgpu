@@ -1,5 +1,5 @@
 import type { RenderCell, RgbColor } from '../../core/types.js'
-import type { RendererTheme } from '../instances/types.js'
+import type { CanonicalRendererTheme } from '../instances/types.js'
 
 export interface CanvasCellColors {
   readonly background: RgbColor
@@ -45,7 +45,7 @@ export function cssRgb(color: RgbColor): string {
 
 export function resolveCanvasCellColors(
   cell: RenderCell,
-  theme: RendererTheme,
+  theme: CanonicalRendererTheme,
   blockCursor: boolean,
 ): CanvasCellColors {
   let foreground = cell.foreground ?? theme.foreground
@@ -63,5 +63,5 @@ export function resolveCanvasCellColors(
     drawBackground = true
   }
   if (!blockCursor) return { background, drawBackground, foreground }
-  return { background: theme.cursor, drawBackground: true, foreground: theme.background }
+  return { background: theme.cursor, drawBackground: true, foreground: theme.cursorText }
 }

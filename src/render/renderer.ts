@@ -9,6 +9,7 @@ import { renderCursorState, type InactiveCursorStyle } from './cursor.js'
 import type { GlyphBitmap } from './atlas/types.js'
 import {
   browserRenderClock,
+  canonicalRendererTheme,
   copyFittedFont,
   fittedFontGeometryEquals,
   fittedFontsEqual,
@@ -17,7 +18,11 @@ import {
   safeRendererInteger,
 } from './config.js'
 import { InstanceRows } from './instances/rows.js'
-import { type RendererTheme, type RowInstanceUpdate } from './instances/types.js'
+import {
+  type CanonicalRendererTheme,
+  type RendererTheme,
+  type RowInstanceUpdate,
+} from './instances/types.js'
 import { RenderScheduler, type RenderSchedulerClock } from './scheduler.js'
 import { WebGpuTextPass } from './text-pass.js'
 
@@ -61,7 +66,9 @@ export interface WebGpuTerminalRendererOptions {
   cursorBlink?: boolean
   deviceFactory?: () => Promise<GPUDevice>
   font: TerminalFittedFont
+  onError?: (cause: unknown) => void
   onFrame?: (snapshot: RendererFrameSnapshot) => void
+  replaceCanvas?: () => HTMLCanvasElement | OffscreenCanvas
   renderState: GhosttyRenderState | RenderStateSource
   rows: number
   schedulerClock?: RenderSchedulerClock
@@ -207,7 +214,8 @@ export class WebGpuTerminalRenderer {
   private deviceUnavailable = false
   private readonly scheduler: RenderScheduler
   private textPass: WebGpuTextPass
-  private theme: RendererTheme
+  private theme: CanonicalRendererTheme
+  private themeInput: RendererTheme
   private visibleRows: (RendererFrameRow | undefined)[]
   readonly metrics: RendererMetrics = {
     atlasCacheHits: 0,
@@ -237,7 +245,8 @@ export class WebGpuTerminalRenderer {
     this.renderState = options.renderState
     this.grid = prepared.grid
     this.font = prepared.font
-    this.theme = mergeRendererTheme(options.theme)
+    this.themeInput = mergeRendererTheme(options.theme)
+    this.theme = canonicalRendererTheme(this.themeInput)
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.onFrame = options.onFrame
     this.visibleRows = Array.from({ length: this.grid.rows })
@@ -348,7 +357,8 @@ export class WebGpuTerminalRenderer {
   }
 
   setTheme(theme: Partial<RendererTheme>): void {
-    this.theme = mergeRendererTheme({ ...this.theme, ...theme })
+    this.themeInput = mergeRendererTheme({ ...this.themeInput, ...theme })
+    this.theme = canonicalRendererTheme(this.themeInput)
     this.invalidateAll()
   }
 

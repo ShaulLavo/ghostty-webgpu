@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "native-protocol.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nativeSchemaVersion", "upstreamRevision", "diagnosticCount", "profiles"],
+  "properties": {
+    "nativeSchemaVersion": { "const": 1 },
+    "upstreamRevision": { "const": "c8554f28e0efe2f5595f32020371c34b25ec628f" },
+    "diagnosticCount": { "type": "integer", "minimum": 0, "maximum": 65535 },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light", "dark"],
+      "properties": {
+        "light": { "$ref": "#/$defs/profile" },
+        "dark": { "$ref": "#/$defs/profile" }
+      }
+    }
+  },
+  "$defs": {
+    "rgb": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["r", "g", "b"],
+      "properties": {
+        "r": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "g": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "b": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    },
+    "unsetColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": { "kind": { "const": "unset" } }
+    },
+    "rgbColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "const": "rgb" },
+        "value": { "$ref": "#/$defs/rgb" }
+      }
+    },
+    "cellForeground": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": { "kind": { "const": "cell-foreground" } }
+    },
+    "cellBackground": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": { "kind": { "const": "cell-background" } }
+    },
+    "color": {
+      "oneOf": [
+        { "$ref": "#/$defs/unsetColor" },
+        { "$ref": "#/$defs/rgbColor" },
+        { "$ref": "#/$defs/cellForeground" },
+        { "$ref": "#/$defs/cellBackground" }
+      ]
+    },
+    "noBlur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": { "kind": { "const": "none" } }
+    },
+    "radiusBlur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "const": "radius" },
+        "value": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    },
+    "glassBlur": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "variant"],
+      "properties": {
+        "kind": { "const": "macos-glass" },
+        "variant": { "enum": ["clear", "regular"] }
+      }
+    },
+    "blur": {
+      "oneOf": [
+        { "$ref": "#/$defs/noBlur" },
+        { "$ref": "#/$defs/radiusBlur" },
+        { "$ref": "#/$defs/glassBlur" }
+      ]
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "background",
+        "foreground",
+        "cursorColor",
+        "cursorText",
+        "selectionBackground",
+        "selectionForeground",
+        "minimumContrast",
+        "palette",
+        "windowColorspace",
+        "surface"
+      ],
+      "properties": {
+        "background": { "$ref": "#/$defs/rgb" },
+        "foreground": { "$ref": "#/$defs/rgb" },
+        "cursorColor": { "$ref": "#/$defs/color" },
+        "cursorText": { "$ref": "#/$defs/color" },
+        "selectionBackground": { "$ref": "#/$defs/color" },
+        "selectionForeground": { "$ref": "#/$defs/color" },
+        "minimumContrast": { "type": "number", "minimum": 1, "maximum": 21 },
+        "palette": {
+          "type": "array",
+          "minItems": 256,
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/rgb" }
+        },
+        "windowColorspace": { "enum": ["display-p3", "srgb"] },
+        "surface": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["backgroundOpacity", "backgroundOpacityCells", "backgroundBlur"],
+          "properties": {
+            "backgroundOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "backgroundOpacityCells": { "type": "boolean" },
+            "backgroundBlur": { "$ref": "#/$defs/blur" }
+          }
+        }
+      }
+    }
+  }
+}
