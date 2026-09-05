@@ -1,8 +1,10 @@
 # Renderer performance, 2026-09-05
 
 This pass reduces Canvas2D drawing work and cursor-update CPU on all three renderers.
-It compares the working tree with `f2a56e989889fd549836cd9aae5d131cc7f5f2a9`.
-The [recorded samples](renderer-performance-2026-09-05.json) include bundle hashes and per-run values.
+The Linux and Apple M1 runs compare performance-pass source with
+`f2a56e989889fd549836cd9aae5d131cc7f5f2a9`. The
+[Linux samples](renderer-performance-2026-09-05.json) and
+[Mac samples](renderer-performance-macos-2026-09-05.json) include bundle hashes and per-run values.
 
 ## Measurements
 
@@ -50,6 +52,18 @@ the packages produced different cell sizes, and the baseline's glyph-churn buffe
 The original comparison's `font` field incorrectly reported native metrics for ghostty-web.
 The runner now reports its requested font separately from native measured metrics.
 
+### Apple M1 follow-up
+
+The Mac run adds 90 hardware samples comparing `4f7801e` with `f2a56e9` on a 16GiB M1 MacBook Air,
+macOS 26.4, and headed Chromium 148.0.7778.96 through ANGLE Metal. It uses the same workload and
+unchanged Linux tolerances. All paired runs match text, bytes, and native geometry.
+
+Median Canvas2D CPU falls 10% for burst output, 11% for scrolling, and 7% for glyph churn.
+Cursor-update CPU falls 37–41% across the three renderers. WebGPU and WebGL2 output CPU changes
+stay within 1%. Every idle sample requests zero frames. No median regression exceeds the existing
+tolerances. These are results for one M1 device; different font metrics prevent absolute speed
+comparisons between the Mac and Linux runs.
+
 ## Changes and correctness
 
 Canvas2D batches adjacent cell backgrounds, reuses paint state and font strings, and caches color
@@ -69,14 +83,46 @@ measured regression during development. Eviction and high-DPR tests cover both l
 Speculative shader changes were removed because the measurements did not justify them.
 
 This pass does not measure cold startup, total native or GPU memory, physical input latency,
-multiple terminals, or other devices. Plan 016 remains open.
+multiple terminals, or devices beyond the two recorded hosts. Plan 016 remains open.
 
 Local validation passes typecheck, lint, formatting, 355 unit tests, the build, and an external
-packed-consumer check. Headed Canvas2D and atlas tests pass all 21 cases. The full software-rendered
-browser suite passed 181 cases and failed one existing dotted-versus-dashed decoration assertion.
-That assertion also fails on the original shaders. Hardware GPU tests additionally reproduce
-existing alpha rounding and screenshot dimension failures. These assertions remain enabled.
+packed-consumer check. The Mac passes 355 unit tests and 185 headed Chromium browser tests, with
+one skip. Three earlier screenshot-size failures also occurred on the baseline: Vitest's preview
+UI scaled the test iframe. Setting `browser.ui: false` fixes that test-environment defect.
+
+The latest full Linux headed run passes 180 tests, fails three, and skips three. The remaining
+baseline failures are equal dotted and dashed decoration counts, 36 each; WebGPU clear green 127
+instead of 128; and WebGL2 alpha 127 instead of 128. Their assertions remain unchanged.
 Built-package hardware checks display and recolor text, select text, and dispose all three backends.
+WebKit passes 19 CPU-only Canvas2D and rasterizer checks on the Mac. Its test build has no
+`navigator.gpu`; this establishes no WebGPU result. Firefox passes the same 19 checks on Linux
+after accepting equivalent `bold` and `700` font serialization and sampling a cursor background
+before glyph antialiasing blends into it. The original background sample also fails on the unchanged
+baseline. Actual Safari 26.4 remains
+unverified because remote automation is disabled; that setting was left untouched.
+
+## Canvas2D GPU preference
+
+Commit `2dd15af` sets `willReadFrequently: false` on the display canvas. Chromium distinguishes an
+omitted value from explicit `false`: only omission enables its automatic readback-triggered CPU
+fallback. This preserves the drawing preference when a consumer reads pixels; it cannot guarantee
+an available GPU. [Chromium readback implementation](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/modules/canvas/canvas2d/base_rendering_context_2d.cc).
+
+An M1 Chromium trace probe performs 16 reads per fresh canvas. Omission produces two GPU readbacks
+before migration to software; explicit `false` produces 16 GPU readbacks with no migration;
+explicit `true` starts in software and produces none. All readback pixels match. The Mac evidence
+JSON retains event counts and trace hashes. This probe tests backend behavior, not CPU speed.
+The hint commit postdates both CPU benchmarks, so no additional CPU gain is claimed.
+
+Current Gecko and WebKit store this option as a boolean defaulting to `false`. Omission and explicit
+`false` therefore behave identically there, so no Chrome-only user-agent gate is needed.
+[Gecko settings](https://searchfox.org/firefox-main/source/dom/webidl/CanvasRenderingContext2D.webidl),
+[WebKit settings](https://raw.githubusercontent.com/WebKit/WebKit/main/Source/WebCore/html/canvas/CanvasRenderingContext2DSettings.h).
+The glyph rasterizer keeps `willReadFrequently: true` for its repeated pixel reads. The display
+canvas keeps transparency; `alpha: false` would change that contract. This evidence identifies no
+additional Safari- or Firefox-specific GPU hint to add. `desynchronized` remains disabled: it can
+reduce latency at the cost of tearing, and does not force acceleration.
+[Canvas settings](https://html.spec.whatwg.org/dev/canvas.html).
 
 ## Reproduce
 
@@ -108,3 +154,15 @@ bun run build
 GHOSTTY_BROWSER_HARDWARE=1 bun run test:renderer-smoke
 GHOSTTY_BROWSER_HARDWARE=1 bun run test:browser src/render/canvas/ src/render/atlas/
 ```
+
+Canvas2D and atlas correctness can also run through the other installed Playwright engines:
+
+```sh
+GHOSTTY_BROWSER_ENGINE=firefox bun run test:browser \
+  src/render/canvas/renderer.browser.test.ts src/render/atlas/canvas-rasterizer.browser.test.ts
+GHOSTTY_BROWSER_ENGINE=webkit bun run test:browser \
+  src/render/canvas/renderer.browser.test.ts src/render/atlas/canvas-rasterizer.browser.test.ts
+```
+
+These commands run headlessly by default. WebKit automation does not establish actual Safari
+acceptance or hardware performance.

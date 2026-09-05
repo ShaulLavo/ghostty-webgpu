@@ -325,7 +325,7 @@ describe('CanvasTerminalRenderer', () => {
       { alpha: 1, text: 'C', x: 5 },
       { alpha: 1, text: 'D', x: 15 },
     ])
-    expect(glyphs[0]?.font).toContain('bold')
+    expect(glyphs[0]?.font).toMatch(/\b(?:bold|700)\b/u)
     expect(glyphs[1]?.font).toContain('italic')
     expect(glyphs[2]?.font).not.toContain('italic')
     expect(glyphs[4]?.font).toBe(glyphs[2]?.font)
@@ -381,11 +381,14 @@ describe('CanvasTerminalRenderer', () => {
     const canvas = createCanvas()
     const frames: string[][] = []
     const glyphColors: string[] = []
+    const cursorBackgrounds: (readonly number[])[] = []
     const originalFillText = CanvasRenderingContext2D.prototype.fillText
     const fillText = vi
       .spyOn(CanvasRenderingContext2D.prototype, 'fillText')
       .mockImplementation(function (this: CanvasRenderingContext2D, text, x, y, maxWidth) {
         glyphColors.push(String(this.fillStyle))
+        // Font-dependent glyph antialiasing can cover this background pixel after drawing.
+        cursorBackgrounds.push(pixel(canvas, 12, 2))
         if (maxWidth === undefined) {
           originalFillText.call(this, text, x, y)
           return
@@ -413,7 +416,7 @@ describe('CanvasTerminalRenderer', () => {
     expect(canvas.style.width).toBe('20px')
     expect(canvas.style.height).toBe('40px')
     expect(pixel(canvas, 2, 2)).toEqual([255, 0, 0, 255])
-    expect(pixel(canvas, 12, 2)).toEqual([0, 255, 0, 255])
+    expect(cursorBackgrounds).toEqual([[0, 255, 0, 255]])
     expect(fillText).toHaveBeenCalledWith('界', 15, 16)
     expect(glyphColors).toEqual(['#0000ff'])
     expect(frames).toEqual([[' 界', '  ']])

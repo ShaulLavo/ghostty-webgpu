@@ -220,14 +220,25 @@ directory. No physical input, hardware performance or real Platform acceptance w
 
 ### Renderer performance follow-up
 
-The [renderer performance record](../docs/replacement/renderer-performance.md) adds 90 paired
+The [renderer performance record](../docs/replacement/renderer-performance.md) adds 90 paired Linux
 hardware samples across Canvas2D, WebGL2, and WebGPU. Cursor-update CPU falls 67–72%; Canvas2D
 burst and scroll CPU fall 12% and 9% on the measured Linux NVIDIA system. All native idle samples
 request zero frames. The exploratory ghostty-web 0.4.0 comparison requests 121 idle frames in two
 seconds; different cell sizes prevent a general cross-package throughput claim.
 
-Headed Wayland fixes the earlier environment's missing WebGPU presentation. The built package
-displays and recolors text on all three backends with `GHOSTTY_BROWSER_HARDWARE=1`; default
-software-rendered checks remain separate. Existing decoration, alpha rounding, and screenshot
-dimension assertions still fail in their recorded environments. The renderer changes do not
-complete the API, integration, physical input, startup, memory, or multiple-terminal contract.
+A further 90 hardware samples compare `4f7801e` with `f2a56e9` on an M1 MacBook Air. Canvas2D CPU
+falls 10–11% for burst output and scrolling, and 7% for glyph churn. Cursor-update CPU falls
+37–41% across all renderers; GPU output CPU stays within 1%. All paired text and geometry match,
+all idle samples request zero frames, and no median regression exceeds the unchanged Linux
+tolerances. The later `2dd15af` Canvas2D GPU hint has separate trace evidence, not a CPU gain claim.
+
+Headed Wayland fixes the earlier environment's missing WebGPU presentation. Built-package checks
+display and recolor text on all three backends. The Mac passes 355 unit and 185 headed browser
+tests with one skip. Baseline screenshot-size failures came from Vitest UI scaling and are fixed
+by `browser.ui: false`. Linux's full headed run passes 180 tests, fails three, and skips three:
+the remaining baseline failures are equal dotted/dashed counts, 36 each, WebGPU clear-color rounding,
+and WebGL2 alpha rounding, 127 instead of 128. Assertions remain unchanged. WebKit passes 19 CPU-only
+Canvas2D and rasterizer checks on the Mac; its test build lacks WebGPU. Firefox passes the same
+19 checks on Linux after removing font-dependent test assumptions. Actual Safari acceptance
+remains pending because remote automation is disabled. The renderer changes do not complete the API,
+integration, physical input, startup, memory, or multiple-terminal contract.
