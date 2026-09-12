@@ -197,6 +197,9 @@ function buildTabs(): void {
 }
 
 function wireControls(): void {
+  // The terminal's own wheel handler scrolls its scrollback and blocks the
+  // page. Stop the event in the capture phase so the page scrolls instead.
+  ui.host.addEventListener('wheel', (event) => event.stopPropagation(), { capture: true })
   ui.copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText('npm install ghostty-webgpu')

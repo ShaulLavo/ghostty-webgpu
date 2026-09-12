@@ -297,7 +297,7 @@ h1 {
 #terminal {
   height: 100%;
   width: 100%;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .fatal {
