@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ghostty-webgpu</title>
+    <meta
+      name="description"
+      content="An unofficial Ghostty for the web: libghostty-vt in WebAssembly with a damage-aware WebGPU renderer and an xterm-shaped API. Try it live."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <a class="wordmark" href="https://github.com/ShaulLavo/ghostty-webgpu">ghostty-webgpu</a>
+      <nav class="links" aria-label="Project links">
+        <a href="https://github.com/ShaulLavo/ghostty-webgpu">GitHub</a>
+        <a href="https://www.npmjs.com/package/ghostty-webgpu">npm</a>
+        <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/integration.md">Docs</a>
+      </nav>
+    </header>
+
+    <main class="page">
+      <section class="intro">
+        <h1>An unofficial Ghostty for the web.</h1>
+        <p class="lede">
+          libghostty-vt compiled to WebAssembly, drawn by a damage-aware WebGPU renderer, behind an
+          xterm-shaped API. Click the terminal and type.
+        </p>
+        <div class="install">
+          <code>npm install ghostty-webgpu</code>
+          <button id="copy-install" type="button">Copy</button>
+        </div>
+      </section>
+
+      <section class="window" id="window" aria-label="Live terminal">
+        <div class="chrome">
+          <div class="tabs" id="tabs" role="tablist" aria-label="Demos">
+            <span class="tab-marker" id="tab-marker" aria-hidden="true"></span>
+          </div>
+          <div class="chrome-side">
+            <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
+            <button id="pause" type="button" aria-pressed="false" hidden>Pause</button>
+          </div>
+        </div>
+        <div class="screen">
+          <div id="terminal" role="tabpanel" aria-label="Terminal"></div>
+          <div class="fatal" id="fatal" role="alert" hidden>
+            <p>The terminal could not start in this browser.</p>
+            <pre id="fatal-message"></pre>
+            <p>WebGPU, WebGL2, or Canvas2D is needed, along with WebAssembly.</p>
+          </div>
+        </div>
+      </section>
+      <p class="caption" id="caption" aria-live="polite">Starting the terminal.</p>
+
+      <section class="facts" aria-label="What makes it different">
+        <p>
+          <strong>Only what changed is drawn.</strong> The renderer tracks damage per cell, so an
+          idle terminal costs nothing and a busy one costs only its busy rows.
+        </p>
+        <p>
+          <strong>Falls back on its own.</strong> WebGPU first, then WebGL2, then Canvas2D, with the
+          same output. This page is drawing with <span id="backend-fact">a renderer it is still choosing</span>.
+        </p>
+        <p>
+          <strong>Speaks xterm.</strong> Import <code>ghostty-webgpu/xterm</code> for the familiar
+          constructor, options, and addon shape, or use the native API and keep PTY traffic as
+          bytes end to end.
+        </p>
+      </section>
+    </main>
+
+    <footer class="colophon">
+      <p>
+        MIT licensed. Built on libghostty-vt. Not affiliated with the Ghostty project. Still a
+        preview, so expect gaps.
+      </p>
+    </footer>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

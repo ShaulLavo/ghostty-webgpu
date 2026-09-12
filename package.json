@@ -134,7 +134,9 @@
     "build:host": "bun run verify:config-resolver-artifacts && bun run build",
     "test:package:host": "bun scripts/package-smoke.ts",
     "verify:host": "bun run verify:config-resolver-artifacts && bun run verify && bun run test:package:host",
-    "test:replacement": "bun scripts/replacement/compare.ts"
+    "test:replacement": "bun scripts/replacement/compare.ts",
+    "site:build": "bun site/build.ts",
+    "site:dev": "bun site/build.ts && bun site/serve.ts"
   },
   "dependencies": {
     "@tanstack/hotkeys": "0.8.0",

@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["bun", "@webgpu/types"]
+  },
+  "include": ["src/**/*.ts", "build.ts", "serve.ts"]
+}
