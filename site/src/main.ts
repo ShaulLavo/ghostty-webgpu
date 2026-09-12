@@ -189,7 +189,7 @@ async function boot(): Promise<void> {
   const instance = await Terminal.create({
     appearance: {
       cursor: { blink: true, style: 'block' },
-      font: { family: FONT_FAMILY, lineHeight: 1.3, size: 14 },
+      font: { family: FONT_FAMILY, lineHeight: 1.1, size: 14 },
       scrollbackLimit: 2000,
       theme: buildTheme(),
     },

@@ -28,7 +28,9 @@ const commands: Record<string, Command> = {
     '',
     `${fg(dusk)}Up and down recall history. Ctrl+L clears. Ctrl+C abandons the line.${reset}`,
   ],
-  uname: (_args, shell) => [`ghostty-webgpu ${shell.info().version} wasm32 ${shell.info().backend}`],
+  uname: (_args, shell) => [
+    `ghostty-webgpu ${shell.info().version} wasm32 ${shell.info().backend}`,
+  ],
   whoami: () => ['ghost'],
 }
 

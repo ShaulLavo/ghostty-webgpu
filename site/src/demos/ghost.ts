@@ -40,6 +40,8 @@ export class GhostDemo extends AnimatedDemo {
   private particles: Particle[] = []
   private redrawn = 0
   private redrawSampleIn = 0
+  private redrawSum = 0
+  private redrawFrames = 0
 
   protected layout(): void {
     const { cols, rows } = this.context!.grid()
@@ -67,7 +69,12 @@ export class GhostDemo extends AnimatedDemo {
     for (const particle of this.particles) {
       const fade = 1 - particle.age / particle.life
       const color = mix(ink, spectre, fade * 0.9)
-      this.buffer.set(Math.round(particle.y), Math.round(particle.x), fade > 0.5 ? '∘' : '·', fg(color))
+      this.buffer.set(
+        Math.round(particle.y),
+        Math.round(particle.x),
+        fade > 0.5 ? '∘' : '·',
+        fg(color),
+      )
     }
     drawGhost(this.buffer, col, row, ink, {
       blinking: this.blinkFor > 0,
@@ -78,14 +85,18 @@ export class GhostDemo extends AnimatedDemo {
     this.buffer.text(
       rows - 1,
       1,
-      `${numberFormat.format(this.redrawn)} of ${numberFormat.format(cols * rows)} cells redrawn`,
+      `${numberFormat.format(this.redrawn)} of ${numberFormat.format(cols * rows)} cells redrawn per frame`,
       fg(dusk),
     )
     const written = this.buffer.flush((data) => context.write(data))
+    this.redrawSum += written
+    this.redrawFrames += 1
     this.redrawSampleIn -= delta
     if (this.redrawSampleIn > 0) return
-    this.redrawSampleIn = 0.4
-    this.redrawn = written
+    this.redrawSampleIn = 0.5
+    this.redrawn = Math.round(this.redrawSum / this.redrawFrames)
+    this.redrawSum = 0
+    this.redrawFrames = 0
   }
 
   private steer(delta: number): void {

@@ -13,7 +13,7 @@ export class PixelCanvas {
   constructor(cols: number, rows: number) {
     this.width = cols
     this.height = rows * 2
-    this.pixels = new Array<Rgb | undefined>(this.width * this.height).fill(undefined)
+    this.pixels = Array.from({ length: this.width * this.height }, () => undefined)
   }
 
   clear(): void {

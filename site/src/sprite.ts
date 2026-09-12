@@ -54,7 +54,8 @@ function pixelAt(x: number, y: number, look: GhostLook, background: Rgb): Rgb | 
   if (!row) return undefined
   const char = row[x]
   if (char === undefined || char === '.') return undefined
-  const body = look.opacity >= 1 ? ghostColors.body : mix(background, ghostColors.body, look.opacity)
+  const body =
+    look.opacity >= 1 ? ghostColors.body : mix(background, ghostColors.body, look.opacity)
   if (char === '#') return body
   if (look.blinking) return y === 7 ? mix(body, ghostColors.eye, 0.85) : body
   for (const eye of EYES) {

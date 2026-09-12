@@ -44,8 +44,8 @@ export class DonutDemo extends AnimatedDemo {
     this.depth.fill(0)
     this.shade.fill(-2)
 
-    const scale = Math.min(cols / 2, rows) * 1.1
-    const k1 = (scale * K2) / (R1 + R2)
+    // Fit the outer ring inside the grid; cells are about twice as tall as wide.
+    const k1 = Math.min(rows * 1.15, cols * 0.58)
     const cosA = Math.cos(a)
     const sinA = Math.sin(a)
     const cosB = Math.cos(b)
@@ -80,8 +80,8 @@ export class DonutDemo extends AnimatedDemo {
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < cols; col += 1) {
         const luminance = this.shade[row * cols + col]!
-        if (luminance <= -2) continue
-        const level = Math.max(0, Math.min(SHADES.length - 1, Math.floor((luminance + 1) * 5.5)))
+        if (luminance <= 0) continue
+        const level = Math.min(SHADES.length - 1, Math.floor(luminance * 8))
         this.buffer.set(row, col, SHADES[level]!, fg(this.ramp[level]!))
       }
     }

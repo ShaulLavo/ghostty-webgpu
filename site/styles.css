@@ -425,9 +425,19 @@ h1 {
     padding-inline: 6px;
   }
 
+  .backend {
+    display: none;
+  }
+
   .tabs [role='tab'] {
-    padding-inline: 12px;
+    padding-inline: 9px;
     font-size: 14px;
+  }
+
+  #pause {
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: 13px;
   }
 
   .install {
