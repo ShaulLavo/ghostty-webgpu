@@ -1678,6 +1678,23 @@ describe.sequential('Terminal DOM host', () => {
     expect(sizes).toHaveLength(disposedResizeCount)
   })
 
+  it('fits inside the resize observer callback instead of one frame later', async () => {
+    const recording: RendererRecording = {}
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory(recording) })
+    const host = trackedHost(320, 140)
+    await terminal.open(host)
+    await animationFrames(3)
+    const renderer = recording.renderer!
+    const resized = renderer.resizes.length
+
+    // Set during the frame-callback phase, so this frame's observer sees it.
+    host.style.width = '400px'
+    // A fit deferred to its own frame would still be pending at the next callback.
+    await animationFrames(1)
+    expect(renderer.resizes).toHaveLength(resized + 1)
+    expect(terminal.hasPendingFrame).toBe(false)
+  })
+
   it('keeps zero-sized hosts idle until a real resize source and updates appearance atomically', async () => {
     const recording: RendererRecording = {}
     const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory(recording) })

@@ -133,6 +133,27 @@ describe('RenderScheduler', () => {
     expect(frames.at(-1)?.cursorVisible).toBe(true)
   })
 
+  it('flushes a frame synchronously and defers only while hidden', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = createScheduler(clock, frames)
+    scheduler.schedule()
+    const staleFrame = clock.takeFrame()
+
+    scheduler.flush()
+    expect(frames).toHaveLength(1)
+    expect(scheduler.hasPendingFrame).toBe(false)
+    staleFrame()
+    expect(frames).toHaveLength(1)
+
+    scheduler.setDocumentVisible(false)
+    scheduler.flush()
+    expect(frames).toHaveLength(1)
+    scheduler.setDocumentVisible(true)
+    clock.takeFrame()()
+    expect(frames).toHaveLength(2)
+  })
+
   it('makes callbacks captured before disposal inert', () => {
     const clock = new FakeClock()
     const frames: RenderFrameState[] = []

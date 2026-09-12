@@ -450,8 +450,11 @@ export class TerminalFitController {
     this.requestFit()
   }
 
+  // The observer runs after layout and before paint. Deferring to a frame
+  // paints one frame with the stale grid before the resize lands.
   private readonly handleResize = (): void => {
-    this.requestFit()
+    if (this.frameHandle !== undefined) this.cancelFrame(this.frameHandle)
+    this.runFit()
   }
 
   private readonly handleWindowResize = (): void => {

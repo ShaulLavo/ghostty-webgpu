@@ -262,7 +262,7 @@ export class WebGlTerminalRenderer {
     for (let row = next.rows; row < this.grid.rows; row += 1) this.atlas.beginRow(row)
     this.grid = next
     this.rebuildGeometry()
-    this.invalidateAll()
+    this.repaintNow()
   }
 
   async capturePixels(): Promise<Uint8Array> {
@@ -452,6 +452,16 @@ export class WebGlTerminalRenderer {
   private invalidateAll(): void {
     this.needsFullRebuild = true
     this.schedule()
+  }
+
+  // Assigning the canvas size wiped the backbuffer; a scheduled frame would
+  // present it empty once before repainting.
+  private repaintNow(): void {
+    this.needsFullRebuild = true
+    if (this.state.kind === 'unavailable') {
+      this.scheduler.setDocumentVisible(this.documentVisible)
+    }
+    this.scheduler.flush()
   }
 
   private recordFrame(

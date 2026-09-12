@@ -244,7 +244,8 @@ describe('WebGlTerminalRenderer', () => {
     renderer.setFont(fittedFont(20, 30, 24))
     source.replaceRow(1, [cell(0, { background: rgb(0, 0, 255) }), cell(1)])
     renderer.resize({ columns: 2, rows: 2 })
-    clock.flushFrame()
+    // Resize paints synchronously, so no frame is left to flush.
+    expect(clock.frames.size).toBe(0)
     const after = await renderer.capturePixels()
 
     expect([canvas.width, canvas.height]).toEqual([40, 60])

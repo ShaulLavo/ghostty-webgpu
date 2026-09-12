@@ -368,11 +368,10 @@ export class WebGpuTerminalRenderer {
     this.releaseRemovedRows(next.rows)
     this.grid = next
     this.resizeCanvas()
-    this.configureContext(this.device)
     this.instances = this.createInstances()
     this.replaceTextPass()
     this.visibleRows = Array.from({ length: this.grid.rows })
-    this.invalidateAll()
+    this.repaintNow()
   }
 
   async capturePixels(): Promise<Uint8Array> {
@@ -562,6 +561,13 @@ export class WebGpuTerminalRenderer {
   private resetCursorBlink(): void {
     this.scheduler.setCursorBlinkEnabled(false)
     this.synchronizeCursorBlink()
+  }
+
+  // Assigning the canvas size wiped the backbuffer; a scheduled frame would
+  // present it empty once before repainting.
+  private repaintNow(): void {
+    this.needsFullRebuild = true
+    this.scheduler.flush()
   }
 
   private resetAtlasResources(): void {

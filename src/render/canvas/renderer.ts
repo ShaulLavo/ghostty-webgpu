@@ -199,7 +199,7 @@ export class CanvasTerminalRenderer {
     this.resizeCanvas()
     this.visibleRows = Array.from({ length: this.grid.rows })
     this.overlayRows.clear()
-    this.invalidateAll()
+    this.repaintNow()
   }
 
   dispose(): void {
@@ -259,6 +259,13 @@ export class CanvasTerminalRenderer {
   private invalidateAll(): void {
     this.needsFullRebuild = true
     this.scheduler.schedule()
+  }
+
+  // Assigning the canvas size wiped the backbuffer; a scheduled frame would
+  // present it empty once before repainting.
+  private repaintNow(): void {
+    this.needsFullRebuild = true
+    this.scheduler.flush()
   }
 
   private paintRow(row: RenderRow, cursor: CursorState | undefined): void {

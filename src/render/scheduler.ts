@@ -62,6 +62,14 @@ export class RenderScheduler {
     this.frameHandle = this.clock.requestFrame(() => this.runFrame(token))
   }
 
+  /** Runs the frame now instead of waiting for the next animation frame. */
+  flush(): void {
+    if (this.disposed) return
+    if (!this.documentVisible) return
+    this.cancelFrame()
+    this.onFrame({ cursorVisible: this.cursorVisibleValue })
+  }
+
   setCursorBlinkEnabled(enabled: boolean): void {
     if (this.disposed) return
     if (this.blinkEnabled === enabled) return

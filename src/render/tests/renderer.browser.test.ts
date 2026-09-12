@@ -471,6 +471,37 @@ it('canonicalizes fractional CSS cell metrics to the integer native DPR grid', a
   canvas.remove()
 })
 
+it('repaints synchronously on resize so the wiped backbuffer is never presented', async () => {
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    font: fittedFont(),
+    renderState: new FakeRenderState(2, 2),
+    rows: 2,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  const submitted = renderer.metrics.submittedFrames
+
+  renderer.resize({ columns: 3, rows: 2 })
+  expect(clock.frames.size).toBe(0)
+  expect(renderer.metrics.submittedFrames).toBe(submitted + 1)
+  expect(canvas.width).toBe(24)
+
+  renderer.setDocumentVisible(false)
+  renderer.resize({ columns: 2, rows: 2 })
+  expect(clock.frames.size).toBe(0)
+  expect(renderer.metrics.submittedFrames).toBe(submitted + 1)
+  renderer.setDocumentVisible(true)
+  clock.flushFrame()
+  expect(renderer.metrics.submittedFrames).toBe(submitted + 2)
+
+  renderer.dispose()
+  canvas.remove()
+})
+
 it('coalesces a runtime font change into one full repaint', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
@@ -495,7 +526,7 @@ it('coalesces a runtime font change into one full repaint', async () => {
   expect(renderer.metrics.atlasCacheMisses).toBe(misses + 1)
 
   renderer.resize({ columns: 3, rows: 2 })
-  clock.flushFrame()
+  expect(clock.frames.size).toBe(0)
   expect(renderer.metrics.atlasCacheMisses).toBe(misses + 1)
 
   renderer.dispose()
