@@ -10,12 +10,14 @@ import { ink, pale, palette256, spectre } from './theme.js'
 
 declare const __SITE_VERSION__: string
 
-const FONT_FAMILY = '"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace'
+const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace'
 const BASE_FONT_SIZE = 14
+const BASE_LINE_HEIGHT = 1.1
+// ghostty.org shows its frames at 12px on large screens; go smaller only when the width demands it.
+const FIT_FONT_SIZE = 12
+const FIT_LINE_HEIGHT = 1
 const MIN_FONT_SIZE = 5
-// IBM Plex Mono advances 0.6em per cell; its line box is about 1.3em, times the 1.1 line height.
-const CELL_WIDTH_EM = 0.6
-const CELL_HEIGHT_EM = 1.45
+const MAX_SCREEN_VIEWPORT_SHARE = 0.8
 const PADDING = { bottom: 12, left: 16, right: 16, top: 12 }
 const demos: readonly Demo[] = [
   new GhostDemo(),
@@ -34,13 +36,13 @@ function required<T extends Element>(selector: string): T {
 const ui = {
   backend: required<HTMLElement>('#backend'),
   backendFact: required<HTMLElement>('#backend-fact'),
-  caption: required<HTMLElement>('#caption'),
   copy: required<HTMLButtonElement>('#copy-install'),
   fatal: required<HTMLElement>('#fatal'),
   fatalMessage: required<HTMLElement>('#fatal-message'),
   host: required<HTMLElement>('#terminal'),
+  screen: required<HTMLElement>('.screen'),
+  stat: required<HTMLElement>('#stat'),
   marker: required<HTMLElement>('#tab-marker'),
-  pause: required<HTMLButtonElement>('#pause'),
   tabs: required<HTMLElement>('#tabs'),
   window: required<HTMLElement>('#window'),
 }
@@ -79,9 +81,12 @@ function createContext(instance: Terminal): DemoContext {
       cols: instance.appearance.grid.columns,
       rows: instance.appearance.grid.rows,
     }),
+    stat: (text) => {
+      ui.stat.textContent = text
+    },
     info: () => ({
       backend: instance.diagnostics.rendererBackend ?? 'unknown',
-      fontFamily: 'IBM Plex Mono',
+      fontFamily: 'JetBrains Mono',
       revision: GHOSTTY_SOURCE_REVISION,
       version: __SITE_VERSION__,
     }),
@@ -91,20 +96,47 @@ function createContext(instance: Terminal): DemoContext {
   }
 }
 
-function fontSizeFor(demo: Demo): number {
-  if (!demo.fit) return BASE_FONT_SIZE
-  const width = ui.host.clientWidth - PADDING.left - PADDING.right
-  const height = ui.host.clientHeight - PADDING.top - PADDING.bottom
-  const byWidth = width / (demo.fit.cols * CELL_WIDTH_EM)
-  const byHeight = height / (demo.fit.rows * CELL_HEIGHT_EM)
-  return Math.max(MIN_FONT_SIZE, Math.min(BASE_FONT_SIZE, Math.floor(Math.min(byWidth, byHeight))))
+/** CSS cell size per font pixel, measured from the rendered canvas. */
+function cellPerPixel(): { readonly height: number; readonly width: number } {
+  const canvas = ui.host.querySelector('canvas')
+  const { font, grid } = terminal!.appearance
+  if (canvas && grid.columns > 0 && grid.rows > 0) {
+    const rect = canvas.getBoundingClientRect()
+    return {
+      height: rect.height / grid.rows / font.size,
+      width: rect.width / grid.columns / font.size,
+    }
+  }
+  // JetBrains Mono advances about 0.6em per cell; its line box is about 1.4em.
+  return { height: 1.4, width: 0.6 }
 }
 
-function applyFont(demo: Demo): void {
+/** Sizes the window and font so a demo's requested grid shows whole. */
+function applyFit(demo: Demo): void {
   if (!terminal) return
-  const size = fontSizeFor(demo)
-  if (terminal.appearance.font.size === size) return
-  terminal.setFont({ size })
+  if (!demo.fit) {
+    ui.screen.style.height = ''
+    setFont(BASE_FONT_SIZE, BASE_LINE_HEIGHT)
+    return
+  }
+  const cell = cellPerPixel()
+  const width = ui.host.clientWidth - PADDING.left - PADDING.right
+  const maxHeight = window.innerHeight * MAX_SCREEN_VIEWPORT_SHARE - PADDING.top - PADDING.bottom
+  const byWidth = width / (demo.fit.cols * cell.width)
+  const byHeight = maxHeight / (demo.fit.rows * cell.height)
+  const size = Math.max(
+    MIN_FONT_SIZE,
+    Math.min(FIT_FONT_SIZE, Math.floor(Math.min(byWidth, byHeight))),
+  )
+  const rowsHeight = Math.ceil(demo.fit.rows * cell.height * size)
+  ui.screen.style.height = `${rowsHeight + PADDING.top + PADDING.bottom + 2}px`
+  setFont(size, FIT_LINE_HEIGHT)
+}
+
+function setFont(size: number, lineHeight: number): void {
+  const current = terminal!.appearance.font
+  if (current.size === size && current.lineHeight === lineHeight) return
+  terminal!.setFont({ lineHeight, size })
 }
 
 function moveMarker(button: HTMLButtonElement): void {
@@ -112,19 +144,13 @@ function moveMarker(button: HTMLButtonElement): void {
   ui.marker.style.width = `${button.offsetWidth}px`
 }
 
-function updatePauseButton(): void {
-  const animated = active?.animated ?? false
-  ui.pause.hidden = !animated
-  ui.pause.textContent = paused ? 'Play' : 'Pause'
-  ui.pause.setAttribute('aria-pressed', String(paused))
-}
-
 function activate(demo: Demo, focusTerminal: boolean): void {
   if (!terminal || demo === active) return
   active?.stop()
   active = undefined
   terminal.reset()
-  applyFont(demo)
+  ui.stat.textContent = ''
+  applyFit(demo)
   active = demo
   for (const [id, button] of tabButtons) {
     const selected = id === demo.id
@@ -133,11 +159,9 @@ function activate(demo: Demo, focusTerminal: boolean): void {
   }
   const button = tabButtons.get(demo.id)
   if (button) moveMarker(button)
-  ui.caption.textContent = demo.caption
   ui.window.dataset['demo'] = demo.id
   demo.start(createContext(terminal))
   demo.setPaused(paused)
-  updatePauseButton()
   if (focusTerminal || demo.input) terminal.focus()
   history.replaceState(null, '', `#${demo.id}`)
 }
@@ -173,11 +197,6 @@ function buildTabs(): void {
 }
 
 function wireControls(): void {
-  ui.pause.addEventListener('click', () => {
-    paused = !paused
-    active?.setPaused(paused)
-    updatePauseButton()
-  })
   ui.copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText('npm install ghostty-webgpu')
@@ -192,7 +211,7 @@ function wireControls(): void {
   window.addEventListener('resize', () => {
     const button = active ? tabButtons.get(active.id) : undefined
     if (button) moveMarker(button)
-    if (active) applyFont(active)
+    if (active) applyFit(active)
   })
   document.addEventListener('visibilitychange', () => {
     if (!active?.animated || paused) return
@@ -214,7 +233,7 @@ async function boot(): Promise<void> {
   const instance = await Terminal.create({
     appearance: {
       cursor: { blink: true, style: 'block' },
-      font: { family: FONT_FAMILY, lineHeight: 1.1, size: BASE_FONT_SIZE },
+      font: { family: FONT_FAMILY, lineHeight: BASE_LINE_HEIGHT, size: BASE_FONT_SIZE },
       scrollbackLimit: 2000,
       theme: buildTheme(),
     },

@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -47,7 +47,6 @@
           </div>
           <div class="chrome-side">
             <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
-            <button id="pause" type="button" aria-pressed="false" hidden>Pause</button>
           </div>
         </div>
         <div class="screen">
@@ -59,7 +58,7 @@
           </div>
         </div>
       </section>
-      <p class="caption" id="caption" aria-live="polite">Starting the terminal.</p>
+      <p class="stat" id="stat" aria-live="polite"></p>
 
       <section class="facts" aria-label="What makes it different">
         <p>

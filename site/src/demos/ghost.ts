@@ -7,7 +7,6 @@ import { AnimatedDemo } from './types.js'
 // site/scripts/pack-ghost-frames.ts from ghostty-org/website (MIT).
 const FRAMES_URL = 'ghost-frames.txt.gz'
 const FRAME_SECONDS = 0.031
-const DRIFT_PERIOD_SECONDS = 16
 const GLOW_START = String.fromCharCode(1)
 const GLOW_END = String.fromCharCode(2)
 const FRAME_SEPARATOR = String.fromCharCode(12)
@@ -90,8 +89,8 @@ export class GhostDemo extends AnimatedDemo {
   readonly id = 'ghost'
   readonly label = 'Ghost'
   readonly caption =
-    'The ghost from ghostty.org, all 235 frames of it, drifting across the grid. The count at the bottom is how many cells actually changed each frame.'
-  readonly fit = { cols: 80, rows: 42 }
+    'The ghost from ghostty.org, all 235 frames of it, played at their frame rate. The figure on the right is how many cells actually changed per frame.'
+  readonly fit = { cols: 78, rows: 40 }
 
   private readonly buffer = new CellBuffer()
   private frames: GhostFrames | undefined
@@ -131,25 +130,21 @@ export class GhostDemo extends AnimatedDemo {
 
     const index = Math.floor(elapsed / FRAME_SECONDS) % frames.frames.length
     const frame = frames.frames[index]!
-    const spare = Math.max(0, (cols - frames.width) / 2 - 1)
-    const drift = Math.sin((elapsed / DRIFT_PERIOD_SECONDS) * Math.PI * 2) * spare
-    const originCol = Math.round((cols - frames.width) / 2 + drift)
-    const originRow = Math.max(0, Math.floor((rows - 1 - frames.rows) / 2))
-    const lastRow = rows - 2
+    const originCol = Math.floor((cols - frames.width) / 2)
+    const originRow = Math.floor((rows - frames.rows) / 2)
 
     for (let r = 0; r < frame.length; r += 1) {
       const row = originRow + r
-      if (row < 0 || row > lastRow) continue
+      if (row < 0 || row >= rows) continue
       for (const run of frame[r]!) this.drawRun(row, originCol + run.col, run, cols)
     }
-    this.buffer.text(
-      rows - 1,
-      1,
-      `${numberFormat.format(this.redrawn)} of ${numberFormat.format(cols * rows)} cells redrawn per frame`,
-      fg(dusk),
-    )
     const written = this.buffer.flush((data) => context.write(data))
     this.sampleRedraw(written, delta)
+    if (this.redrawSampleIn > 0) return
+    context.stat(
+      `${numberFormat.format(this.redrawn)} of ${numberFormat.format(cols * rows)} cells redrawn per frame`,
+    )
+    this.resetSample()
   }
 
   private drawRun(row: number, col: number, run: Run, cols: number): void {
@@ -165,9 +160,12 @@ export class GhostDemo extends AnimatedDemo {
     this.redrawFrames += 1
     this.redrawSampleIn -= delta
     if (this.redrawSampleIn > 0) return
-    this.redrawSampleIn = 0.5
     this.redrawn = Math.round(this.redrawSum / this.redrawFrames)
     this.redrawSum = 0
     this.redrawFrames = 0
+  }
+
+  private resetSample(): void {
+    this.redrawSampleIn = 0.5
   }
 }

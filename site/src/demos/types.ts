@@ -13,6 +13,8 @@ export interface DemoInfo {
 export interface DemoContext {
   grid(): DemoGrid
   info(): DemoInfo
+  /** Show a short live figure under the window, or clear it with an empty string. */
+  stat(text: string): void
   write(data: string): void
 }
 
