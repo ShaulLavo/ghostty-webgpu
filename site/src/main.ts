@@ -150,6 +150,9 @@ function activate(demo: Demo, focusTerminal: boolean): void {
   active = undefined
   terminal.reset()
   ui.stat.textContent = ''
+  // Animated tabs are decorative; muting a11y keeps the live region from
+  // announcing every frame. Shell and Colors keep it, where content matters.
+  terminal.setAccessibilityEnabled(!demo.animated)
   applyFit(demo)
   active = demo
   for (const [id, button] of tabButtons) {
