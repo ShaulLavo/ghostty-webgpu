@@ -1,83 +1,79 @@
-import { mix, rgb, type Rgb } from './ansi.js'
+import { rgb, type Rgb } from './ansi.js'
 import type { CellBuffer } from './cells.js'
 import { halfBlock } from './pixels.js'
 
-// '.' clear, '#' body, 'E' eye. 20 wide, 18 tall: 20 columns by 9 rows.
-const SHAPE = [
-  '......########......',
-  '....############....',
-  '...##############...',
-  '..################..',
-  '.##################.',
-  '.###EEEE####EEEE###.',
-  '.###EEEE####EEEE###.',
-  '.###EEEE####EEEE###.',
-  '.###EEEE####EEEE###.',
-  '.##################.',
-  '.##################.',
-  '.##################.',
-  '.##################.',
-  '.##################.',
-  '.##################.',
-  '.##################.',
-  '.####..######..####.',
-  '.###....####....###.',
+// Traced from the Ghostty logo silhouette at 26 by 26 pixels, which is
+// 26 columns by 13 rows once each cell shows two pixels. Half-block pixels
+// are taller than wide, so a square trace lands at the logo's proportions.
+// '.' clear, '#' body, '>' the chevron, '_' the cursor.
+export const SPRITE_SHAPE = [
+  '.........########.........',
+  '......#############.......',
+  '.....################.....',
+  '...###################....',
+  '..#####################...',
+  '..######################..',
+  '.##>>>##################..',
+  '.###>>>##################.',
+  '#####>>>#################.',
+  '######>>>###__________####',
+  '######>>>###__________####',
+  '#####>>>####__________####',
+  '####>>>###################',
+  '###>>>####################',
+  '##########################',
+  '##########################',
+  '##########################',
+  '##########################',
+  '##########################',
+  '##########################',
+  '##########################',
+  '##########################',
+  '#########################.',
+  '.########################.',
+  '..#######.######.#######..',
+  '...#####...####...#####...',
 ]
 
-export const SPRITE_WIDTH = SHAPE[0]!.length
-export const SPRITE_HEIGHT = SHAPE.length
+export const SPRITE_WIDTH = SPRITE_SHAPE[0]!.length
+export const SPRITE_HEIGHT = SPRITE_SHAPE.length
 export const SPRITE_ROWS = SPRITE_HEIGHT / 2
-
-const EYES = [
-  { left: 4, top: 5 },
-  { left: 12, top: 5 },
-]
 
 export const ghostColors = {
   body: rgb('#E6E2F7'),
-  eye: rgb('#15131F'),
-  glint: rgb('#7EE6CE'),
+  face: rgb('#15131F'),
 }
 
 export interface GhostLook {
-  /** Pupil offset, each axis in -1..1. */
-  readonly gazeX: number
-  readonly gazeY: number
-  readonly blinking: boolean
-  readonly opacity: number
+  /** Whether the underscore in the face is showing; it blinks like a cursor. */
+  readonly cursorVisible: boolean
 }
 
-const defaultLook: GhostLook = { blinking: false, gazeX: 0, gazeY: 0, opacity: 1 }
+const defaultLook: GhostLook = { cursorVisible: true }
 
-function pixelAt(x: number, y: number, look: GhostLook, background: Rgb): Rgb | undefined {
-  const row = SHAPE[y]
-  if (!row) return undefined
-  const char = row[x]
-  if (char === undefined || char === '.') return undefined
-  const body =
-    look.opacity >= 1 ? ghostColors.body : mix(background, ghostColors.body, look.opacity)
-  if (char === '#') return body
-  if (look.blinking) return y === 7 ? mix(body, ghostColors.eye, 0.85) : body
-  for (const eye of EYES) {
-    const glintX = eye.left + 1 + Math.round(look.gazeX)
-    const glintY = eye.top + 1 + Math.round(look.gazeY)
-    if (x >= glintX && x < glintX + 2 && y >= glintY && y < glintY + 2) return ghostColors.glint
-  }
-  return ghostColors.eye
+function shapeAt(x: number, y: number): string {
+  return SPRITE_SHAPE[y]?.[x] ?? '.'
 }
 
-/** Draws the ghost with its top-left corner at a cell position. */
+function pixelAt(x: number, y: number, look: GhostLook): Rgb | undefined {
+  const char = shapeAt(x, y)
+  if (char === '#') return ghostColors.body
+  if (char === '>') return ghostColors.face
+  if (char === '_') return look.cursorVisible ? ghostColors.face : ghostColors.body
+  return undefined
+}
+
+/** Draws the ghost with its top-left body corner at a cell position. */
 export function drawGhost(
   buffer: CellBuffer,
   col: number,
   row: number,
-  background: Rgb,
   look: GhostLook = defaultLook,
 ): void {
   for (let spriteRow = 0; spriteRow < SPRITE_ROWS; spriteRow += 1) {
     for (let x = 0; x < SPRITE_WIDTH; x += 1) {
-      const top = pixelAt(x, spriteRow * 2, look, background)
-      const bottom = pixelAt(x, spriteRow * 2 + 1, look, background)
+      const top = pixelAt(x, spriteRow * 2, look)
+      const bottom = pixelAt(x, spriteRow * 2 + 1, look)
       if (!top && !bottom) continue
       buffer.set(row + spriteRow, col + x, ...halfBlock(top, bottom))
     }
@@ -86,13 +82,12 @@ export function drawGhost(
 
 /** The same ghost as plain text lines, for places without cursor control. */
 export function ghostLines(look: GhostLook = defaultLook): string[] {
-  const background = rgb('#15131F')
   const lines: string[] = []
   for (let spriteRow = 0; spriteRow < SPRITE_ROWS; spriteRow += 1) {
     let line = ''
     for (let x = 0; x < SPRITE_WIDTH; x += 1) {
-      const top = pixelAt(x, spriteRow * 2, look, background)
-      const bottom = pixelAt(x, spriteRow * 2 + 1, look, background)
+      const top = pixelAt(x, spriteRow * 2, look)
+      const bottom = pixelAt(x, spriteRow * 2 + 1, look)
       const [text, style] = halfBlock(top, bottom)
       line += style === '' ? text : `${style}${text}\x1b[0m`
     }

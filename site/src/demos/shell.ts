@@ -1,5 +1,5 @@
 import { clearScreen, CSI, fg, reset, showCursor } from '../ansi.js'
-import { ghostLines } from '../sprite.js'
+import { ghostLines, SPRITE_WIDTH } from '../sprite.js'
 import { dusk, pale, spectre } from '../theme.js'
 import type { Demo, DemoContext } from './types.js'
 
@@ -95,7 +95,7 @@ export class ShellDemo implements Demo {
     const lines: string[] = []
     const count = Math.max(art.length, facts.length)
     for (let i = 0; i < count; i += 1) {
-      const left = art[i] ?? ' '.repeat(20)
+      const left = art[i] ?? ' '.repeat(SPRITE_WIDTH)
       lines.push(`${left}   ${facts[i] ?? ''}`)
     }
     return lines

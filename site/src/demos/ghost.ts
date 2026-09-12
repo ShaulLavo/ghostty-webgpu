@@ -15,6 +15,8 @@ interface Particle {
 
 const SPEED_COLS = 7
 const SPEED_ROWS = 2.2
+const CURSOR_ON_SECONDS = 0.75
+const CURSOR_OFF_SECONDS = 0.4
 const numberFormat = new Intl.NumberFormat('en-US')
 
 function random(min: number, max: number): number {
@@ -35,8 +37,7 @@ export class GhostDemo extends AnimatedDemo {
   private targetVx = SPEED_COLS
   private targetVy = SPEED_ROWS * 0.4
   private retargetIn = 2
-  private blinkIn = 3
-  private blinkFor = 0
+  private cursorPhase = 0
   private particles: Particle[] = []
   private redrawn = 0
   private redrawSampleIn = 0
@@ -76,12 +77,7 @@ export class GhostDemo extends AnimatedDemo {
         fg(color),
       )
     }
-    drawGhost(this.buffer, col, row, ink, {
-      blinking: this.blinkFor > 0,
-      gazeX: Math.max(-1, Math.min(1, this.vx / SPEED_COLS)),
-      gazeY: Math.max(-1, Math.min(1, this.vy / SPEED_ROWS)),
-      opacity: 1,
-    })
+    drawGhost(this.buffer, col, row, { cursorVisible: this.cursorPhase < CURSOR_ON_SECONDS })
     this.buffer.text(
       rows - 1,
       1,
@@ -118,10 +114,10 @@ export class GhostDemo extends AnimatedDemo {
   private move(delta: number, cols: number, rows: number): void {
     this.x += this.vx * delta
     this.y += this.vy * delta
-    const maxX = Math.max(0, cols - SPRITE_WIDTH)
-    const maxY = Math.max(0, rows - SPRITE_ROWS - 1)
-    if (this.x < 0 && this.vx < 0) {
-      this.x = 0
+    const maxX = Math.max(1, cols - SPRITE_WIDTH - 1)
+    const maxY = Math.max(1, rows - SPRITE_ROWS - 2)
+    if (this.x < 1 && this.vx < 0) {
+      this.x = 1
       this.vx = Math.abs(this.vx)
       this.targetVx = Math.abs(this.targetVx)
     }
@@ -143,14 +139,7 @@ export class GhostDemo extends AnimatedDemo {
   }
 
   private blink(delta: number): void {
-    if (this.blinkFor > 0) {
-      this.blinkFor -= delta
-      return
-    }
-    this.blinkIn -= delta
-    if (this.blinkIn > 0) return
-    this.blinkIn = random(2.5, 6)
-    this.blinkFor = 0.14
+    this.cursorPhase = (this.cursorPhase + delta) % (CURSOR_ON_SECONDS + CURSOR_OFF_SECONDS)
   }
 
   private spawnParticles(delta: number): void {
