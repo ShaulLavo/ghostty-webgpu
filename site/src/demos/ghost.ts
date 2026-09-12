@@ -7,6 +7,7 @@ import { AnimatedDemo } from './types.js'
 // site/scripts/pack-ghost-frames.ts from ghostty-org/website (MIT).
 const FRAMES_URL = 'ghost-frames.txt.gz'
 const FRAME_SECONDS = 0.031
+const DRIFT_PERIOD_SECONDS = 22
 const GLOW_START = String.fromCharCode(1)
 const GLOW_END = String.fromCharCode(2)
 const FRAME_SEPARATOR = String.fromCharCode(12)
@@ -130,7 +131,10 @@ export class GhostDemo extends AnimatedDemo {
 
     const index = Math.floor(elapsed / FRAME_SECONDS) % frames.frames.length
     const frame = frames.frames[index]!
-    const originCol = Math.floor((cols - frames.width) / 2)
+    // Drift left and right through whatever room the grid has beyond the frame.
+    const amplitude = Math.max(0, (cols - frames.width) / 2 - 1)
+    const drift = Math.sin((elapsed / DRIFT_PERIOD_SECONDS) * Math.PI * 2) * amplitude
+    const originCol = Math.round((cols - frames.width) / 2 + drift)
     const originRow = Math.floor((rows - frames.rows) / 2)
 
     for (let r = 0; r < frame.length; r += 1) {

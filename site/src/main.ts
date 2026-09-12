@@ -13,8 +13,8 @@ declare const __SITE_VERSION__: string
 const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace'
 const BASE_FONT_SIZE = 14
 const BASE_LINE_HEIGHT = 1.1
-// ghostty.org shows its frames at 12px on large screens; go smaller only when the width demands it.
-const FIT_FONT_SIZE = 12
+// A touch smaller than ghostty.org's 12px, which also opens room for the sideways drift.
+const FIT_FONT_SIZE = 10
 const FIT_LINE_HEIGHT = 1
 const MIN_FONT_SIZE = 5
 const MAX_SCREEN_VIEWPORT_SHARE = 0.8
