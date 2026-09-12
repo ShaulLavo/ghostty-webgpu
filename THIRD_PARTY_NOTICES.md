@@ -43,6 +43,19 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## ghostty.org home animation
+
+The demo site under `site/` includes the terminal animation frames from the ghostty.org website,
+packed into `site/ghost-frames.txt.gz` by `site/scripts/pack-ghost-frames.ts`. They are not part
+of the published npm package.
+
+- Source: <https://github.com/ghostty-org/website>, `terminals/home/animation_frames`
+- License: MIT
+
+Copyright (c) 2024 Ghostty
+
+The complete MIT license text appears in the Ghostty section above.
+
 ## iTerm2 Color Schemes
 
 The native resolver resources include the Ghostty-formatted theme collection distributed by

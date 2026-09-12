@@ -11,6 +11,12 @@ import { ink, pale, palette256, spectre } from './theme.js'
 declare const __SITE_VERSION__: string
 
 const FONT_FAMILY = '"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace'
+const BASE_FONT_SIZE = 14
+const MIN_FONT_SIZE = 5
+// IBM Plex Mono advances 0.6em per cell; its line box is about 1.3em, times the 1.1 line height.
+const CELL_WIDTH_EM = 0.6
+const CELL_HEIGHT_EM = 1.45
+const PADDING = { bottom: 12, left: 16, right: 16, top: 12 }
 const demos: readonly Demo[] = [
   new GhostDemo(),
   new DonutDemo(),
@@ -85,6 +91,22 @@ function createContext(instance: Terminal): DemoContext {
   }
 }
 
+function fontSizeFor(demo: Demo): number {
+  if (!demo.fit) return BASE_FONT_SIZE
+  const width = ui.host.clientWidth - PADDING.left - PADDING.right
+  const height = ui.host.clientHeight - PADDING.top - PADDING.bottom
+  const byWidth = width / (demo.fit.cols * CELL_WIDTH_EM)
+  const byHeight = height / (demo.fit.rows * CELL_HEIGHT_EM)
+  return Math.max(MIN_FONT_SIZE, Math.min(BASE_FONT_SIZE, Math.floor(Math.min(byWidth, byHeight))))
+}
+
+function applyFont(demo: Demo): void {
+  if (!terminal) return
+  const size = fontSizeFor(demo)
+  if (terminal.appearance.font.size === size) return
+  terminal.setFont({ size })
+}
+
 function moveMarker(button: HTMLButtonElement): void {
   ui.marker.style.transform = `translateX(${button.offsetLeft}px)`
   ui.marker.style.width = `${button.offsetWidth}px`
@@ -100,7 +122,9 @@ function updatePauseButton(): void {
 function activate(demo: Demo, focusTerminal: boolean): void {
   if (!terminal || demo === active) return
   active?.stop()
+  active = undefined
   terminal.reset()
+  applyFont(demo)
   active = demo
   for (const [id, button] of tabButtons) {
     const selected = id === demo.id
@@ -168,6 +192,7 @@ function wireControls(): void {
   window.addEventListener('resize', () => {
     const button = active ? tabButtons.get(active.id) : undefined
     if (button) moveMarker(button)
+    if (active) applyFont(active)
   })
   document.addEventListener('visibilitychange', () => {
     if (!active?.animated || paused) return
@@ -189,11 +214,11 @@ async function boot(): Promise<void> {
   const instance = await Terminal.create({
     appearance: {
       cursor: { blink: true, style: 'block' },
-      font: { family: FONT_FAMILY, lineHeight: 1.1, size: 14 },
+      font: { family: FONT_FAMILY, lineHeight: 1.1, size: BASE_FONT_SIZE },
       scrollbackLimit: 2000,
       theme: buildTheme(),
     },
-    padding: { bottom: 12, left: 16, right: 16, top: 12 },
+    padding: PADDING,
     runtime: {
       kind: 'owned',
       options: {

@@ -21,6 +21,8 @@ export interface Demo {
   readonly label: string
   readonly caption: string
   readonly animated: boolean
+  /** A grid the demo would like to fit; the page shrinks the font to make room. */
+  readonly fit?: DemoGrid
   start(context: DemoContext): void
   stop(): void
   resize(): void

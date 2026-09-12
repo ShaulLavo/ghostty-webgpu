@@ -1,83 +1,147 @@
-import { clearScreen, fg, hideCursor, mix } from '../ansi.js'
+import { clearScreen, fg, hideCursor, rgb } from '../ansi.js'
 import { CellBuffer } from '../cells.js'
-import { drawGhost, SPRITE_ROWS, SPRITE_WIDTH } from '../sprite.js'
-import { dusk, ink, spectre } from '../theme.js'
+import { dusk } from '../theme.js'
 import { AnimatedDemo } from './types.js'
 
-interface Particle {
-  x: number
-  y: number
-  vx: number
-  vy: number
-  age: number
-  life: number
-}
-
-const SPEED_COLS = 7
-const SPEED_ROWS = 2.2
-const CURSOR_ON_SECONDS = 0.75
-const CURSOR_OFF_SECONDS = 0.4
+// The frames are the ghostty.org home animation, packed by
+// site/scripts/pack-ghost-frames.ts from ghostty-org/website (MIT).
+const FRAMES_URL = 'ghost-frames.txt.gz'
+const FRAME_SECONDS = 0.031
+const DRIFT_PERIOD_SECONDS = 16
+const GLOW_START = String.fromCharCode(1)
+const GLOW_END = String.fromCharCode(2)
+const FRAME_SEPARATOR = String.fromCharCode(12)
+const BODY_STYLE = fg(rgb('#FFFFFF'))
+const GLOW_STYLE = fg(rgb('#3551F3'))
 const numberFormat = new Intl.NumberFormat('en-US')
 
-function random(min: number, max: number): number {
-  return min + Math.random() * (max - min)
+interface Run {
+  readonly col: number
+  readonly glow: boolean
+  readonly text: string
+}
+
+interface GhostFrames {
+  readonly frames: readonly (readonly (readonly Run[])[])[]
+  readonly rows: number
+  readonly width: number
+}
+
+let framesPromise: Promise<GhostFrames> | undefined
+
+function parseLine(line: string): Run[] {
+  const runs: Run[] = []
+  let glow = false
+  let col = 0
+  let start = 0
+  let text = ''
+  const flush = () => {
+    if (text !== '') runs.push({ col: start, glow, text })
+    text = ''
+  }
+  for (const char of line) {
+    if (char === GLOW_START || char === GLOW_END) {
+      flush()
+      glow = char === GLOW_START
+      continue
+    }
+    if (char === ' ') {
+      flush()
+      col += 1
+      continue
+    }
+    if (text === '') start = col
+    text += char
+    col += 1
+  }
+  flush()
+  return runs
+}
+
+function parseFrames(packed: string): GhostFrames {
+  const newline = packed.indexOf('\n')
+  const [width = 0, rows = 0] = packed.slice(0, newline).split(' ').map(Number)
+  const frames = packed
+    .slice(newline + 1)
+    .split(FRAME_SEPARATOR)
+    .map((frame) => frame.split('\n').map(parseLine))
+  return { frames, rows, width }
+}
+
+async function inflate(buffer: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buffer)
+  const isGzip = bytes[0] === 0x1f && bytes[1] === 0x8b
+  if (!isGzip) return new TextDecoder().decode(buffer)
+  const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'))
+  return new Response(stream).text()
+}
+
+function loadFrames(): Promise<GhostFrames> {
+  framesPromise ??= fetch(new URL(FRAMES_URL, document.baseURI))
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`Frames request failed: ${response.status}`)
+      return inflate(await response.arrayBuffer())
+    })
+    .then(parseFrames)
+  return framesPromise
 }
 
 export class GhostDemo extends AnimatedDemo {
   readonly id = 'ghost'
   readonly label = 'Ghost'
   readonly caption =
-    'The ghost drifts across the grid. Only the cells it touches are redrawn, and the count at the bottom says how many.'
+    'The ghost from ghostty.org, all 235 frames of it, drifting across the grid. The count at the bottom is how many cells actually changed each frame.'
+  readonly fit = { cols: 80, rows: 42 }
 
   private readonly buffer = new CellBuffer()
-  private x = 0
-  private y = 0
-  private vx = SPEED_COLS
-  private vy = SPEED_ROWS * 0.4
-  private targetVx = SPEED_COLS
-  private targetVy = SPEED_ROWS * 0.4
-  private retargetIn = 2
-  private cursorPhase = 0
-  private particles: Particle[] = []
+  private frames: GhostFrames | undefined
+  private failure: string | undefined
   private redrawn = 0
   private redrawSampleIn = 0
   private redrawSum = 0
   private redrawFrames = 0
 
   protected layout(): void {
-    const { cols, rows } = this.context!.grid()
     this.context!.write(clearScreen + hideCursor)
     this.buffer.forget()
-    this.x = Math.min(this.x, Math.max(0, cols - SPRITE_WIDTH))
-    this.y = Math.min(this.y, Math.max(0, rows - SPRITE_ROWS - 1))
-    if (this.x === 0 && this.y === 0) {
-      this.x = -SPRITE_WIDTH
-      this.y = Math.max(0, (rows - SPRITE_ROWS) / 2)
-    }
+    if (this.frames || this.failure) return
+    loadFrames()
+      .then((frames) => {
+        this.frames = frames
+      })
+      .catch((cause: unknown) => {
+        this.failure = cause instanceof Error ? cause.message : String(cause)
+      })
   }
 
   protected frame(delta: number, elapsed: number): void {
     const context = this.context!
     const { cols, rows } = context.grid()
-    this.steer(delta)
-    this.move(delta, cols, rows - 1)
-    this.blink(delta)
-    this.spawnParticles(delta)
-
-    const bob = Math.sin(elapsed * 2.6) * 0.9
-    const col = Math.round(this.x)
-    const row = Math.round(this.y + bob)
-    for (const particle of this.particles) {
-      const fade = 1 - particle.age / particle.life
-      const color = mix(ink, spectre, fade * 0.9)
-      this.buffer.set(
-        Math.round(particle.y),
-        Math.round(particle.x),
-        fade > 0.5 ? '∘' : '·',
-        fg(color),
-      )
+    if (this.failure) {
+      this.buffer.text(1, 1, `The ghost did not load. ${this.failure}`, fg(dusk))
+      this.buffer.flush((data) => context.write(data))
+      return
     }
-    drawGhost(this.buffer, col, row, { cursorVisible: this.cursorPhase < CURSOR_ON_SECONDS })
+    const frames = this.frames
+    if (!frames) {
+      this.buffer.text(1, 1, 'Summoning the ghost.', fg(dusk))
+      this.buffer.flush((data) => context.write(data))
+      return
+    }
+
+    const index = Math.floor(elapsed / FRAME_SECONDS) % frames.frames.length
+    const frame = frames.frames[index]!
+    const spare = Math.max(0, (cols - frames.width) / 2 - 1)
+    const drift = Math.sin((elapsed / DRIFT_PERIOD_SECONDS) * Math.PI * 2) * spare
+    const originCol = Math.round((cols - frames.width) / 2 + drift)
+    const originRow = Math.max(0, Math.floor((rows - 1 - frames.rows) / 2))
+    const lastRow = rows - 2
+
+    for (let r = 0; r < frame.length; r += 1) {
+      const row = originRow + r
+      if (row < 0 || row > lastRow) continue
+      for (const run of frame[r]!) this.drawRun(row, originCol + run.col, run, cols)
+    }
     this.buffer.text(
       rows - 1,
       1,
@@ -85,6 +149,18 @@ export class GhostDemo extends AnimatedDemo {
       fg(dusk),
     )
     const written = this.buffer.flush((data) => context.write(data))
+    this.sampleRedraw(written, delta)
+  }
+
+  private drawRun(row: number, col: number, run: Run, cols: number): void {
+    const start = Math.max(0, -col)
+    const end = Math.min(run.text.length, cols - col)
+    if (end <= start) return
+    const text = start === 0 && end === run.text.length ? run.text : run.text.slice(start, end)
+    this.buffer.text(row, col + start, text, run.glow ? GLOW_STYLE : BODY_STYLE)
+  }
+
+  private sampleRedraw(written: number, delta: number): void {
     this.redrawSum += written
     this.redrawFrames += 1
     this.redrawSampleIn -= delta
@@ -93,71 +169,5 @@ export class GhostDemo extends AnimatedDemo {
     this.redrawn = Math.round(this.redrawSum / this.redrawFrames)
     this.redrawSum = 0
     this.redrawFrames = 0
-  }
-
-  private steer(delta: number): void {
-    this.retargetIn -= delta
-    if (this.retargetIn <= 0) {
-      this.retargetIn = random(1.5, 3.5)
-      const angle = random(0, Math.PI * 2)
-      this.targetVx = Math.cos(angle) * SPEED_COLS
-      this.targetVy = Math.sin(angle) * SPEED_ROWS
-      if (Math.abs(this.targetVx) < SPEED_COLS * 0.35) {
-        this.targetVx = Math.sign(this.targetVx || 1) * SPEED_COLS * 0.35
-      }
-    }
-    const ease = 1 - Math.exp(-delta * 1.6)
-    this.vx += (this.targetVx - this.vx) * ease
-    this.vy += (this.targetVy - this.vy) * ease
-  }
-
-  private move(delta: number, cols: number, rows: number): void {
-    this.x += this.vx * delta
-    this.y += this.vy * delta
-    const maxX = Math.max(1, cols - SPRITE_WIDTH - 1)
-    const maxY = Math.max(1, rows - SPRITE_ROWS - 2)
-    if (this.x < 1 && this.vx < 0) {
-      this.x = 1
-      this.vx = Math.abs(this.vx)
-      this.targetVx = Math.abs(this.targetVx)
-    }
-    if (this.x > maxX && this.vx > 0) {
-      this.x = maxX
-      this.vx = -Math.abs(this.vx)
-      this.targetVx = -Math.abs(this.targetVx)
-    }
-    if (this.y < 1 && this.vy < 0) {
-      this.y = 1
-      this.vy = Math.abs(this.vy)
-      this.targetVy = Math.abs(this.targetVy)
-    }
-    if (this.y > maxY && this.vy > 0) {
-      this.y = maxY
-      this.vy = -Math.abs(this.vy)
-      this.targetVy = -Math.abs(this.targetVy)
-    }
-  }
-
-  private blink(delta: number): void {
-    this.cursorPhase = (this.cursorPhase + delta) % (CURSOR_ON_SECONDS + CURSOR_OFF_SECONDS)
-  }
-
-  private spawnParticles(delta: number): void {
-    for (const particle of this.particles) {
-      particle.age += delta
-      particle.x += particle.vx * delta
-      particle.y += particle.vy * delta
-    }
-    this.particles = this.particles.filter((particle) => particle.age < particle.life)
-    if (Math.random() > delta * 9 || this.particles.length >= 28) return
-    const behind = this.vx > 0 ? -1 : SPRITE_WIDTH
-    this.particles.push({
-      age: 0,
-      life: random(0.9, 1.6),
-      vx: -this.vx * 0.25 + random(-1.5, 1.5),
-      vy: random(-1.2, -0.2),
-      x: this.x + behind + random(-1, 1),
-      y: this.y + random(SPRITE_ROWS * 0.5, SPRITE_ROWS),
-    })
   }
 }

@@ -38,6 +38,7 @@ async function main(): Promise<void> {
     [`${siteRoot}index.html`, 'index.html'],
     [`${siteRoot}styles.css`, 'styles.css'],
     [`${siteRoot}favicon.svg`, 'favicon.svg'],
+    [`${siteRoot}ghost-frames.txt.gz`, 'ghost-frames.txt.gz'],
     [`${projectRoot}ghostty-vt.wasm`, 'ghostty-vt.wasm'],
     [`${projectRoot}bridge.wasm`, 'bridge.wasm'],
   ] as const

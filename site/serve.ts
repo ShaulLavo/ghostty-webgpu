@@ -4,6 +4,7 @@ const outDir = fileURLToPath(new URL('./dist/', import.meta.url))
 const port = Number(process.env['PORT'] ?? 4321)
 const types: Record<string, string> = {
   '.css': 'text/css; charset=utf-8',
+  '.gz': 'application/gzip',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.map': 'application/json',
