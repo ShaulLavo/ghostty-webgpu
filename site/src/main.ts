@@ -94,6 +94,7 @@ function createContext(instance: Terminal): DemoContext {
       instance.write(data)
     },
     fit: (grid) => fitTo(grid),
+    grow: (grid) => growTo(grid),
   }
 }
 
@@ -128,6 +129,29 @@ function fitTo(grid: { readonly cols: number; readonly rows: number } | undefine
   const size = Math.max(
     MIN_FONT_SIZE,
     Math.min(FIT_FONT_SIZE, Math.floor(Math.min(byWidth, byHeight))),
+  )
+  const rowsHeight = Math.ceil(grid.rows * cell.height * size)
+  ui.screen.style.height = `${rowsHeight + PADDING.top + PADDING.bottom + 2}px`
+  setFont(size, FIT_LINE_HEIGHT)
+}
+
+/**
+ * Sizes the font from the width alone, up to the normal reading size, then
+ * grows the window tall enough for every row. Lets a tall block print whole
+ * at a readable size instead of shrinking the text to fit a short window.
+ */
+function growTo(grid: { readonly cols: number; readonly rows: number } | undefined): void {
+  if (!terminal) return
+  if (!grid) {
+    ui.screen.style.height = ''
+    setFont(BASE_FONT_SIZE, BASE_LINE_HEIGHT)
+    return
+  }
+  const cell = cellPerPixel()
+  const width = ui.host.clientWidth - PADDING.left - PADDING.right
+  const size = Math.max(
+    MIN_FONT_SIZE,
+    Math.min(BASE_FONT_SIZE, Math.floor(width / (grid.cols * cell.width))),
   )
   const rowsHeight = Math.ceil(grid.rows * cell.height * size)
   ui.screen.style.height = `${rowsHeight + PADDING.top + PADDING.bottom + 2}px`

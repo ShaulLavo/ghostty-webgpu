@@ -1,4 +1,4 @@
-import { clearScreen, cup, fg, hideCursor, CSI, reset, showCursor } from '../ansi.js'
+import { clearScreen, CSI, fg, reset, showCursor } from '../ansi.js'
 import { frameToLines, loadGhostFrames, type GhostFrames } from '../ghost-frames.js'
 import { dusk, pale, spectre } from '../theme.js'
 import type { Demo, DemoContext } from './types.js'
@@ -49,14 +49,11 @@ export class ShellDemo implements Demo {
   private historyIndex = 0
   private escape = ''
   private ghost: GhostFrames | undefined
-  private splash = false
-  private stackedFit = false
 
   start(context: DemoContext): void {
     this.context = context
     this.line = ''
     this.escape = ''
-    this.splash = false
     loadGhostFrames()
       .then((frames) => {
         this.ghost = frames
@@ -72,14 +69,10 @@ export class ShellDemo implements Demo {
   }
 
   stop(): void {
-    if (this.splash) this.context?.fit(undefined)
-    this.splash = false
     this.context = undefined
   }
 
-  resize(): void {
-    if (this.splash) this.drawAbout()
-  }
+  resize(): void {}
 
   setPaused(): void {}
 
@@ -108,45 +101,33 @@ export class ShellDemo implements Demo {
     ]
   }
 
-  // Fit the terminal to the real 78x40 ghost, then draw it whole with the
-  // facts beside it. Any key returns to the shell at its normal size.
+  /**
+   * Prints the neofetch card from the top left, the way a command answers.
+   * The window grows tall enough for the whole ghost so the text stays at a
+   * readable size instead of shrinking to fit a short terminal.
+   */
   private enterAbout(): void {
     if (!this.ghost) {
       this.print(this.factLines())
       this.prompt()
       return
     }
-    this.splash = true
-    this.stackedFit = false
-    // First try the beside layout at a tight height; a couple of spare rows
-    // keep the feet from clipping to cell-size rounding.
-    this.context!.fit({ cols: this.ghost.width + ART_GAP + FACTS_WIDTH, rows: this.ghost.rows + 2 })
-    requestAnimationFrame(() => requestAnimationFrame(() => this.drawAbout()))
-  }
-
-  private drawAbout(): void {
-    if (!this.splash || !this.ghost) return
-    const { cols, rows } = this.context!.grid()
-    const beside = cols >= this.ghost.width + ART_GAP + FACTS_WIDTH
-    if (!beside && !this.stackedFit) {
-      // Too narrow for facts beside; re-fit taller and stack them below.
-      this.stackedFit = true
-      this.context!.fit({
-        cols: this.ghost.width,
-        rows: this.ghost.rows + this.factLines().length + 3,
-      })
-      requestAnimationFrame(() => requestAnimationFrame(() => this.drawAbout()))
-      return
-    }
-    const art = frameToLines(this.ghost, ABOUT_FRAME)
-    const facts = this.factLines()
-    const block = beside ? this.besideLines(art, facts) : this.stackedLines(art, facts)
-    const width = beside ? this.ghost.width + ART_GAP + FACTS_WIDTH : this.ghost.width
-    const left = Math.max(0, Math.floor((cols - width) / 2))
-    const top = Math.max(0, Math.floor((rows - block.length) / 2))
-    let out = clearScreen + hideCursor
-    for (let i = 0; i < block.length; i += 1) out += cup(top + i, left) + block[i]
-    this.context!.write(out)
+    const ghost = this.ghost
+    const besideWidth = ghost.width + ART_GAP + FACTS_WIDTH
+    // Facts sit beside the ghost when the terminal is wide enough for both.
+    const beside = this.context!.grid().cols >= besideWidth
+    const rows = beside ? ghost.rows : ghost.rows + 1 + this.factLines().length
+    this.context!.grow({ cols: beside ? besideWidth : ghost.width, rows: rows + 1 })
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        // Built after the resize so the grid line reports the size on screen.
+        const art = frameToLines(ghost, ABOUT_FRAME)
+        const facts = this.factLines()
+        this.write(clearScreen + showCursor)
+        this.print(beside ? this.besideLines(art, facts) : [...art, '', ...facts])
+        this.prompt()
+      }),
+    )
   }
 
   private besideLines(art: string[], facts: string[]): string[] {
@@ -157,32 +138,7 @@ export class ShellDemo implements Demo {
     })
   }
 
-  private stackedLines(art: string[], facts: string[]): string[] {
-    const pad = (text: string, visible: number) =>
-      ' '.repeat(Math.max(0, Math.floor((this.ghost!.width - visible) / 2))) + text
-    const centeredFacts = [
-      pad(facts[0]!, 20),
-      pad(facts[1]!, 20),
-      ...facts.slice(2).map((fact) => pad(fact, 40)),
-    ]
-    return [...art, '', ...centeredFacts]
-  }
-
-  private exitAbout(): void {
-    this.splash = false
-    this.line = ''
-    this.context!.fit(undefined)
-    requestAnimationFrame(() => {
-      this.write(clearScreen + showCursor)
-      this.prompt()
-    })
-  }
-
   private key(char: string): void {
-    if (this.splash) {
-      this.exitAbout()
-      return
-    }
     if (this.escape !== '') {
       this.escape += char
       this.finishEscape()
@@ -266,8 +222,11 @@ export class ShellDemo implements Demo {
       return
     }
     if (name === 'clear') {
-      this.write(clearScreen)
-      this.prompt()
+      this.context!.grow(undefined)
+      requestAnimationFrame(() => {
+        this.write(clearScreen)
+        this.prompt()
+      })
       return
     }
     this.print(command(rest.join(' '), this))
