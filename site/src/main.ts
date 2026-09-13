@@ -93,6 +93,7 @@ function createContext(instance: Terminal): DemoContext {
     write: (data) => {
       instance.write(data)
     },
+    fit: (grid) => fitTo(grid),
   }
 }
 
@@ -111,10 +112,10 @@ function cellPerPixel(): { readonly height: number; readonly width: number } {
   return { height: 1.4, width: 0.6 }
 }
 
-/** Sizes the window and font so a demo's requested grid shows whole. */
-function applyFit(demo: Demo): void {
+/** Sizes the window and font so a grid shows whole; undefined restores base. */
+function fitTo(grid: { readonly cols: number; readonly rows: number } | undefined): void {
   if (!terminal) return
-  if (!demo.fit) {
+  if (!grid) {
     ui.screen.style.height = ''
     setFont(BASE_FONT_SIZE, BASE_LINE_HEIGHT)
     return
@@ -122,15 +123,19 @@ function applyFit(demo: Demo): void {
   const cell = cellPerPixel()
   const width = ui.host.clientWidth - PADDING.left - PADDING.right
   const maxHeight = window.innerHeight * MAX_SCREEN_VIEWPORT_SHARE - PADDING.top - PADDING.bottom
-  const byWidth = width / (demo.fit.cols * cell.width)
-  const byHeight = maxHeight / (demo.fit.rows * cell.height)
+  const byWidth = width / (grid.cols * cell.width)
+  const byHeight = maxHeight / (grid.rows * cell.height)
   const size = Math.max(
     MIN_FONT_SIZE,
     Math.min(FIT_FONT_SIZE, Math.floor(Math.min(byWidth, byHeight))),
   )
-  const rowsHeight = Math.ceil(demo.fit.rows * cell.height * size)
+  const rowsHeight = Math.ceil(grid.rows * cell.height * size)
   ui.screen.style.height = `${rowsHeight + PADDING.top + PADDING.bottom + 2}px`
   setFont(size, FIT_LINE_HEIGHT)
+}
+
+function applyFit(demo: Demo): void {
+  fitTo(demo.fit)
 }
 
 function setFont(size: number, lineHeight: number): void {

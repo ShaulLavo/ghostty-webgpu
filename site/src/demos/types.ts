@@ -16,6 +16,8 @@ export interface DemoContext {
   /** Show a short live figure under the window, or clear it with an empty string. */
   stat(text: string): void
   write(data: string): void
+  /** Shrink the font so a grid shows whole; pass undefined to restore the default. */
+  fit(grid: DemoGrid | undefined): void
 }
 
 export interface Demo {
