@@ -1,90 +1,18 @@
-import { clearScreen, fg, hideCursor, rgb } from '../ansi.js'
+import { clearScreen, fg, hideCursor } from '../ansi.js'
 import { CellBuffer } from '../cells.js'
+import {
+  GHOST_BODY_STYLE as BODY_STYLE,
+  GHOST_GLOW_STYLE as GLOW_STYLE,
+  loadGhostFrames,
+  type GhostFrames,
+  type Run,
+} from '../ghost-frames.js'
 import { dusk } from '../theme.js'
 import { AnimatedDemo } from './types.js'
 
-// The frames are the ghostty.org home animation, packed by
-// site/scripts/pack-ghost-frames.ts from ghostty-org/website (MIT).
-const FRAMES_URL = 'ghost-frames.txt.gz'
 const FRAME_SECONDS = 0.031
 const DRIFT_PERIOD_SECONDS = 22
-const GLOW_START = String.fromCharCode(1)
-const GLOW_END = String.fromCharCode(2)
-const FRAME_SEPARATOR = String.fromCharCode(12)
-const BODY_STYLE = fg(rgb('#FFFFFF'))
-const GLOW_STYLE = fg(rgb('#3551F3'))
 const numberFormat = new Intl.NumberFormat('en-US')
-
-interface Run {
-  readonly col: number
-  readonly glow: boolean
-  readonly text: string
-}
-
-interface GhostFrames {
-  readonly frames: readonly (readonly (readonly Run[])[])[]
-  readonly rows: number
-  readonly width: number
-}
-
-let framesPromise: Promise<GhostFrames> | undefined
-
-function parseLine(line: string): Run[] {
-  const runs: Run[] = []
-  let glow = false
-  let col = 0
-  let start = 0
-  let text = ''
-  const flush = () => {
-    if (text !== '') runs.push({ col: start, glow, text })
-    text = ''
-  }
-  for (const char of line) {
-    if (char === GLOW_START || char === GLOW_END) {
-      flush()
-      glow = char === GLOW_START
-      continue
-    }
-    if (char === ' ') {
-      flush()
-      col += 1
-      continue
-    }
-    if (text === '') start = col
-    text += char
-    col += 1
-  }
-  flush()
-  return runs
-}
-
-function parseFrames(packed: string): GhostFrames {
-  const newline = packed.indexOf('\n')
-  const [width = 0, rows = 0] = packed.slice(0, newline).split(' ').map(Number)
-  const frames = packed
-    .slice(newline + 1)
-    .split(FRAME_SEPARATOR)
-    .map((frame) => frame.split('\n').map(parseLine))
-  return { frames, rows, width }
-}
-
-async function inflate(buffer: ArrayBuffer): Promise<string> {
-  const bytes = new Uint8Array(buffer)
-  const isGzip = bytes[0] === 0x1f && bytes[1] === 0x8b
-  if (!isGzip) return new TextDecoder().decode(buffer)
-  const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'))
-  return new Response(stream).text()
-}
-
-function loadFrames(): Promise<GhostFrames> {
-  framesPromise ??= fetch(new URL(FRAMES_URL, document.baseURI))
-    .then(async (response) => {
-      if (!response.ok) throw new Error(`Frames request failed: ${response.status}`)
-      return inflate(await response.arrayBuffer())
-    })
-    .then(parseFrames)
-  return framesPromise
-}
 
 export class GhostDemo extends AnimatedDemo {
   readonly id = 'ghost'
@@ -105,7 +33,7 @@ export class GhostDemo extends AnimatedDemo {
     this.context!.write(clearScreen + hideCursor)
     this.buffer.forget()
     if (this.frames || this.failure) return
-    loadFrames()
+    loadGhostFrames()
       .then((frames) => {
         this.frames = frames
       })

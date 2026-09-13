@@ -1,9 +1,11 @@
 import { clearScreen, CSI, fg, reset, showCursor } from '../ansi.js'
-import { ghostLines, GHOST_ART_WIDTH } from '../sprite.js'
+import { frameToLines, loadGhostFrames, type GhostFrames } from '../ghost-frames.js'
 import { dusk, pale, spectre } from '../theme.js'
 import type { Demo, DemoContext } from './types.js'
 
 const decoder = new TextDecoder()
+// A full-ghost pose from the real animation, shown verbatim in `about`.
+const ABOUT_FRAME = 116
 const PROMPT = `${fg(spectre)}ghost${reset} ${fg(dusk)}›${reset} `
 const PROMPT_WIDTH = 8
 
@@ -45,11 +47,17 @@ export class ShellDemo implements Demo {
   private history: string[] = []
   private historyIndex = 0
   private escape = ''
+  private ghost: GhostFrames | undefined
 
   start(context: DemoContext): void {
     this.context = context
     this.line = ''
     this.escape = ''
+    loadGhostFrames()
+      .then((frames) => {
+        this.ghost = frames
+      })
+      .catch(() => undefined)
     context.write(clearScreen + showCursor)
     this.print([
       `${fg(pale)}ghostty-webgpu ${context.info().version}${reset} ${fg(dusk)}rendering with ${context.info().backend}${reset}`,
@@ -91,14 +99,15 @@ export class ShellDemo implements Demo {
       `${fg(pale)}Input${reset}     bytes over onData, no PTY here`,
       `${fg(pale)}License${reset}   MIT`,
     ]
-    const art = ghostLines()
-    const lines: string[] = []
-    const count = Math.max(art.length, facts.length)
-    for (let i = 0; i < count; i += 1) {
-      const left = art[i] ?? ' '.repeat(GHOST_ART_WIDTH)
-      lines.push(`${left}   ${facts[i] ?? ''}`)
-    }
-    return lines
+    if (!this.ghost) return facts
+    const art = frameToLines(this.ghost, ABOUT_FRAME)
+    // Center the facts vertically against the ghost so they land beside it.
+    const factTop = Math.max(0, Math.floor((art.length - facts.length) / 2))
+    const blank = ' '.repeat(this.ghost.width)
+    return art.map((line, i) => {
+      const fact = facts[i - factTop]
+      return fact ? `${line}   ${fact}` : line || blank
+    })
   }
 
   private key(char: string): void {
