@@ -39,9 +39,11 @@ export const SPRITE_WIDTH = SPRITE_SHAPE[0]!.length
 export const SPRITE_HEIGHT = SPRITE_SHAPE.length
 export const SPRITE_ROWS = SPRITE_HEIGHT / 2
 
+// The ghostty.org animation renders a white ghost with a blue glow; match it.
 export const ghostColors = {
-  body: rgb('#E6E2F7'),
+  body: rgb('#F4F2FA'),
   face: rgb('#15131F'),
+  glow: rgb('#3551F3'),
 }
 
 export interface GhostLook {
@@ -55,13 +57,29 @@ function shapeAt(x: number, y: number): string {
   return SPRITE_SHAPE[y]?.[x] ?? '.'
 }
 
+/** An empty pixel touching the body, so the glow hugs the ghost's edge. */
+function isGlow(x: number, y: number): boolean {
+  if (shapeAt(x, y) !== '.') return false
+  for (let dy = -1; dy <= 1; dy += 1) {
+    for (let dx = -1; dx <= 1; dx += 1) {
+      const neighbor = shapeAt(x + dx, y + dy)
+      if (neighbor === '#' || neighbor === '>') return true
+    }
+  }
+  return false
+}
+
 function pixelAt(x: number, y: number, look: GhostLook): Rgb | undefined {
   const char = shapeAt(x, y)
   if (char === '#') return ghostColors.body
   if (char === '>') return ghostColors.face
   if (char === '_') return look.cursorVisible ? ghostColors.face : ghostColors.body
-  return undefined
+  return isGlow(x, y) ? ghostColors.glow : undefined
 }
+
+// One cell of margin all around leaves room for the glow ring.
+export const GHOST_ART_WIDTH = SPRITE_WIDTH + 2
+const GHOST_ART_ROWS = SPRITE_ROWS + 1
 
 /** Draws the ghost with its top-left body corner at a cell position. */
 export function drawGhost(
@@ -70,8 +88,8 @@ export function drawGhost(
   row: number,
   look: GhostLook = defaultLook,
 ): void {
-  for (let spriteRow = 0; spriteRow < SPRITE_ROWS; spriteRow += 1) {
-    for (let x = 0; x < SPRITE_WIDTH; x += 1) {
+  for (let spriteRow = -1; spriteRow < SPRITE_ROWS + 1; spriteRow += 1) {
+    for (let x = -1; x < SPRITE_WIDTH + 1; x += 1) {
       const top = pixelAt(x, spriteRow * 2, look)
       const bottom = pixelAt(x, spriteRow * 2 + 1, look)
       if (!top && !bottom) continue
@@ -83,9 +101,9 @@ export function drawGhost(
 /** The same ghost as plain text lines, for places without cursor control. */
 export function ghostLines(look: GhostLook = defaultLook): string[] {
   const lines: string[] = []
-  for (let spriteRow = 0; spriteRow < SPRITE_ROWS; spriteRow += 1) {
+  for (let spriteRow = -1; spriteRow < GHOST_ART_ROWS; spriteRow += 1) {
     let line = ''
-    for (let x = 0; x < SPRITE_WIDTH; x += 1) {
+    for (let x = -1; x < SPRITE_WIDTH + 1; x += 1) {
       const top = pixelAt(x, spriteRow * 2, look)
       const bottom = pixelAt(x, spriteRow * 2 + 1, look)
       const [text, style] = halfBlock(top, bottom)
