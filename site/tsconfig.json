@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "rootDir": "..",
-    "types": ["bun", "@webgpu/types"]
+    "types": ["bun", "@webgpu/types", "astro/client"]
   },
-  "include": ["src/**/*.ts", "build.ts", "serve.ts"]
+  "include": ["src/**/*.ts", "astro.config.ts", "scripts/**/*.ts"]
 }

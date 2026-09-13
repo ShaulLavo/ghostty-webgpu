@@ -14,7 +14,7 @@ const MARKERS = new RegExp(`[${GLOW_START}${GLOW_END}]`, 'g')
 const websiteRoot = process.argv[2]
 if (!websiteRoot) throw new Error('Pass the path to a checkout of ghostty-org/website')
 const framesDir = join(websiteRoot, 'terminals/home/animation_frames')
-const outFile = fileURLToPath(new URL('../ghost-frames.txt.gz', import.meta.url))
+const outFile = fileURLToPath(new URL('../public/ghost-frames.txt.gz', import.meta.url))
 
 const names = (await readdir(framesDir)).filter((name) => name.endsWith('.txt')).sort()
 const frames: string[][] = []

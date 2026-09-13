@@ -1,0 +1,17 @@
+{
+  "name": "ghostty-webgpu-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun scripts/sync-assets.ts && astro build",
+    "dev": "bun scripts/sync-assets.ts && astro dev",
+    "preview": "astro preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@webgpu/types": "0.1.72",
+    "astro": "7.3.2",
+    "typescript": "7.0.2"
+  }
+}
