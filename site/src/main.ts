@@ -1,14 +1,8 @@
-import { GHOSTTY_SOURCE_REVISION, Terminal } from '../../dist/index.js'
+import { Terminal } from '../../dist/index.js'
 import type { TerminalTheme } from '../../dist/index.js'
-import { ColorsDemo } from './demos/colors.js'
-import { CubeDemo } from './demos/cube.js'
-import { DonutDemo } from './demos/donut.js'
 import { GhostDemo } from './demos/ghost.js'
-import { ShellDemo } from './demos/shell.js'
-import type { Demo, DemoContext } from './demos/types.js'
+import type { DemoContext } from './demos/types.js'
 import { ink, pale, palette256, spectre } from './theme.js'
-
-declare const __SITE_VERSION__: string
 
 const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace'
 const BASE_FONT_SIZE = 14
@@ -19,13 +13,7 @@ const FIT_LINE_HEIGHT = 1
 const MIN_FONT_SIZE = 5
 const MAX_SCREEN_VIEWPORT_SHARE = 0.8
 const PADDING = { bottom: 12, left: 16, right: 16, top: 12 }
-const demos: readonly Demo[] = [
-  new GhostDemo(),
-  new DonutDemo(),
-  new CubeDemo(),
-  new ColorsDemo(),
-  new ShellDemo(),
-]
+const ghost = new GhostDemo()
 
 function required<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -42,16 +30,12 @@ const ui = {
   host: required<HTMLElement>('#terminal'),
   screen: required<HTMLElement>('.screen'),
   stat: required<HTMLElement>('#stat'),
-  marker: required<HTMLElement>('#tab-marker'),
-  tabs: required<HTMLElement>('#tabs'),
   window: required<HTMLElement>('#window'),
 }
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let terminal: Terminal | undefined
-let active: Demo | undefined
-let paused = reducedMotion.matches
-const tabButtons = new Map<string, HTMLButtonElement>()
+const paused = reducedMotion.matches
 
 function buildTheme(): TerminalTheme {
   return {
@@ -84,17 +68,9 @@ function createContext(instance: Terminal): DemoContext {
     stat: (text) => {
       ui.stat.textContent = text
     },
-    info: () => ({
-      backend: instance.diagnostics.rendererBackend ?? 'unknown',
-      fontFamily: 'JetBrains Mono',
-      revision: GHOSTTY_SOURCE_REVISION,
-      version: __SITE_VERSION__,
-    }),
     write: (data) => {
       instance.write(data)
     },
-    fit: (grid) => fitTo(grid),
-    grow: (grid) => growTo(grid),
   }
 }
 
@@ -135,97 +111,10 @@ function fitTo(grid: { readonly cols: number; readonly rows: number } | undefine
   setFont(size, FIT_LINE_HEIGHT)
 }
 
-/**
- * Sizes the font from the width alone, up to the normal reading size, then
- * grows the window tall enough for every row. Lets a tall block print whole
- * at a readable size instead of shrinking the text to fit a short window.
- */
-function growTo(grid: { readonly cols: number; readonly rows: number } | undefined): void {
-  if (!terminal) return
-  if (!grid) {
-    ui.screen.style.height = ''
-    setFont(BASE_FONT_SIZE, BASE_LINE_HEIGHT)
-    return
-  }
-  const cell = cellPerPixel()
-  const width = ui.host.clientWidth - PADDING.left - PADDING.right
-  const size = Math.max(
-    MIN_FONT_SIZE,
-    Math.min(BASE_FONT_SIZE, Math.floor(width / (grid.cols * cell.width))),
-  )
-  const rowsHeight = Math.ceil(grid.rows * cell.height * size)
-  ui.screen.style.height = `${rowsHeight + PADDING.top + PADDING.bottom + 2}px`
-  setFont(size, FIT_LINE_HEIGHT)
-}
-
-function applyFit(demo: Demo): void {
-  fitTo(demo.fit)
-}
-
 function setFont(size: number, lineHeight: number): void {
   const current = terminal!.appearance.font
   if (current.size === size && current.lineHeight === lineHeight) return
   terminal!.setFont({ lineHeight, size })
-}
-
-function moveMarker(button: HTMLButtonElement): void {
-  ui.marker.style.transform = `translateX(${button.offsetLeft}px)`
-  ui.marker.style.width = `${button.offsetWidth}px`
-}
-
-function activate(demo: Demo, focusTerminal: boolean): void {
-  if (!terminal || demo === active) return
-  active?.stop()
-  active = undefined
-  terminal.reset()
-  ui.stat.textContent = ''
-  // Animated tabs are decorative; muting a11y keeps the live region from
-  // announcing every frame. Shell and Colors keep it, where content matters.
-  terminal.setAccessibilityEnabled(!demo.animated)
-  applyFit(demo)
-  active = demo
-  for (const [id, button] of tabButtons) {
-    const selected = id === demo.id
-    button.setAttribute('aria-selected', String(selected))
-    button.tabIndex = selected ? 0 : -1
-  }
-  const button = tabButtons.get(demo.id)
-  if (button) moveMarker(button)
-  ui.window.dataset['demo'] = demo.id
-  demo.start(createContext(terminal))
-  demo.setPaused(paused)
-  if (focusTerminal || demo.input) terminal.focus()
-  history.replaceState(null, '', `#${demo.id}`)
-}
-
-function buildTabs(): void {
-  for (const demo of demos) {
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.role = 'tab'
-    button.id = `tab-${demo.id}`
-    button.textContent = demo.label
-    button.setAttribute('aria-controls', 'terminal')
-    button.setAttribute('aria-selected', 'false')
-    button.tabIndex = -1
-    button.addEventListener('click', () => activate(demo, true))
-    ui.tabs.append(button)
-    tabButtons.set(demo.id, button)
-  }
-  ui.tabs.addEventListener('keydown', (event) => {
-    const order = demos.map((demo) => demo.id)
-    const index = order.indexOf(active?.id ?? '')
-    let next = -1
-    if (event.key === 'ArrowRight') next = (index + 1) % order.length
-    if (event.key === 'ArrowLeft') next = (index - 1 + order.length) % order.length
-    if (event.key === 'Home') next = 0
-    if (event.key === 'End') next = order.length - 1
-    if (next < 0) return
-    event.preventDefault()
-    const demo = demos[next]!
-    activate(demo, false)
-    tabButtons.get(demo.id)?.focus()
-  })
 }
 
 function wireControls(): void {
@@ -244,13 +133,11 @@ function wireControls(): void {
     }, 1600)
   })
   window.addEventListener('resize', () => {
-    const button = active ? tabButtons.get(active.id) : undefined
-    if (button) moveMarker(button)
-    if (active) applyFit(active)
+    fitTo(ghost.fit)
   })
   document.addEventListener('visibilitychange', () => {
-    if (!active?.animated || paused) return
-    active.setPaused(document.hidden)
+    if (paused) return
+    ghost.setPaused(document.hidden)
   })
 }
 
@@ -261,7 +148,6 @@ function showFatal(cause: unknown): void {
 }
 
 async function boot(): Promise<void> {
-  buildTabs()
   wireControls()
   await loadFonts()
   const base = document.baseURI
@@ -289,11 +175,12 @@ async function boot(): Promise<void> {
   ui.backendFact.textContent = backend
   ui.window.dataset['ready'] = 'true'
 
-  instance.onResize(() => active?.resize())
-  instance.onData((bytes) => active?.input?.(bytes))
-
-  const requested = demos.find((demo) => demo.id === location.hash.slice(1))
-  activate(requested ?? demos[0]!, false)
+  instance.onResize(() => ghost.resize())
+  // Avoid announcing every frame of the decorative animation.
+  instance.setAccessibilityEnabled(false)
+  fitTo(ghost.fit)
+  ghost.start(createContext(instance))
+  ghost.setPaused(paused || document.hidden)
 }
 
 boot().catch(showFatal)

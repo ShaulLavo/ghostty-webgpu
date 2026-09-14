@@ -3,23 +3,11 @@ export interface DemoGrid {
   readonly rows: number
 }
 
-export interface DemoInfo {
-  readonly backend: string
-  readonly fontFamily: string
-  readonly revision: string
-  readonly version: string
-}
-
 export interface DemoContext {
   grid(): DemoGrid
-  info(): DemoInfo
   /** Show a short live figure under the window, or clear it with an empty string. */
   stat(text: string): void
   write(data: string): void
-  /** Shrink the font so a grid shows whole; pass undefined to restore the default. */
-  fit(grid: DemoGrid | undefined): void
-  /** Grow the window to fit `rows` at a readable font sized to `cols`; undefined restores. */
-  grow(grid: DemoGrid | undefined): void
 }
 
 export interface Demo {

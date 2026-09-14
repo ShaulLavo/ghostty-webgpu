@@ -35,7 +35,7 @@ import '../styles/styles.css'
         <h1>An unofficial Ghostty for the web.</h1>
         <p class="lede">
           libghostty-vt compiled to WebAssembly, drawn by a damage-aware WebGPU renderer, behind an
-          xterm-shaped API. Open the Shell tab to type into it.
+          xterm-shaped API.
         </p>
         <div class="install">
           <code>npm install ghostty-webgpu</code>
@@ -45,15 +45,13 @@ import '../styles/styles.css'
 
       <section class="window" id="window" aria-label="Live terminal">
         <div class="chrome">
-          <div class="tabs" id="tabs" role="tablist" aria-label="Demos">
-            <span class="tab-marker" id="tab-marker" aria-hidden="true"></span>
+          <div class="window-dots" aria-hidden="true">
+            <span></span><span></span><span></span>
           </div>
-          <div class="chrome-side">
-            <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
-          </div>
+          <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
         </div>
         <div class="screen">
-          <div id="terminal" role="tabpanel" aria-label="Terminal"></div>
+          <div id="terminal" role="img" aria-label="Animated Ghostty ghost"></div>
           <div class="fatal" id="fatal" role="alert" hidden>
             <p>The terminal could not start in this browser.</p>
             <pre id="fatal-message"></pre>
