@@ -1,3 +1,4 @@
+import { encodeTerminalViewport } from './viewport.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import type { TerminalScrollbar, TerminalSelectionFormatOptions } from '../core/types.js'
 import type { RendererFrameSnapshot } from '../render/renderer.js'
@@ -86,6 +87,7 @@ function createHostEmitters(): HostEmitters {
     bell: new EventEmitter(sink('event.bell')),
     data: new EventEmitter(sink('event.data')),
     error,
+    frame: new EventEmitter(sink('event.frame')),
     resize: new EventEmitter(sink('event.resize')),
     scroll: new EventEmitter(sink('event.scroll')),
     selection: new EventEmitter(sink('event.selection')),
@@ -97,6 +99,7 @@ function disposeHostEmitters(emitters: HostEmitters): void {
   emitters.appearance.dispose()
   emitters.bell.dispose()
   emitters.data.dispose()
+  emitters.frame.dispose()
   emitters.resize.dispose()
   emitters.scroll.dispose()
   emitters.selection.dispose()
@@ -208,7 +211,13 @@ function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
       y: row.y,
     }),
   )
-  return Object.freeze({ cursor, rows: Object.freeze(rows) })
+  return Object.freeze({
+    cursor,
+    rows: Object.freeze(rows),
+    paintedCursor: snapshot.paintedCursor
+      ? Object.freeze({ ...snapshot.paintedCursor })
+      : undefined,
+  })
 }
 
 function physicalPadding(value: number, pixelRatio: number): number {
@@ -268,6 +277,7 @@ export class Terminal {
   private inactiveCursorStyle?: InactiveCursorStyle
   private readonly keyboard
   private lastFrame?: RendererFrameSnapshot
+  private lastFrameRevision?: number
   private lastLinkFrameSignature?: string
   private readonly linkActivationModifier
   private links?: DomLinkController
@@ -457,6 +467,42 @@ export class Terminal {
     this.ensureActive()
     if (!this.lastFrame) return undefined
     return copiedFrame(this.lastFrame)
+  }
+
+  captureViewport(): string | undefined {
+    this.ensureActive()
+    const elements = this.elementsValue
+    const font = this.fittedFont
+    const cursor = this.lastFrame?.cursor
+    const parent = elements?.root.parentElement
+    if (
+      !parent ||
+      !elements ||
+      !font ||
+      !cursor ||
+      this.lastFrameRevision !== this.session.revision
+    )
+      return undefined
+    const painted = this.lastFrame?.paintedCursor
+    const savedCursor = painted
+      ? {
+          ...cursor,
+          visible: painted.visible,
+          style: painted.style,
+          viewport: { x: painted.x, y: painted.y, wideTail: false },
+        }
+      : cursor
+    return encodeTerminalViewport({
+      width: parent.clientWidth,
+      height: parent.clientHeight,
+      columns: this.session.grid.columns,
+      rows: this.session.renderState.readRows(),
+      cursor: savedCursor,
+      scrollbar: this.session.scrollbar,
+      font,
+      theme: this.session.appearance.rendererTheme,
+      padding: elements.padding,
+    })
   }
 
   visibleLines(): readonly string[] {
@@ -1049,11 +1095,17 @@ export class Terminal {
   private replayLastFrame(): void {
     const snapshot = this.lastFrame
     if (!snapshot) return
-    this.handleFrame(snapshot)
+    this.updateFrameUi(snapshot)
   }
 
   private handleFrame(snapshot: RendererFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
+    this.lastFrameRevision = this.session.revision
+    this.updateFrameUi(snapshot)
+    this.emitters.frame.emit()
+  }
+
+  private updateFrameUi(snapshot: RendererFrameSnapshot): void {
     this.lastFrame = snapshot
     const scrollbar = this.session.scrollbar
     this.runUiOperation('frame.caret', () => this.positionTextarea(snapshot))

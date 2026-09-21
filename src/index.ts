@@ -150,3 +150,6 @@ export type {
   TerminalTheme,
   TerminalTitleEvent,
 } from './term/types.js'
+
+export { paintTerminalViewport, TERMINAL_VIEWPORT_MAX_BYTES } from './dom/viewport.js'
+export type { TerminalViewportOptions, TerminalViewportPaint } from './dom/viewport.js'

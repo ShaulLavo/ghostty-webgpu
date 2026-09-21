@@ -48,6 +48,7 @@ export interface GhosttyWebGpuTerminalEventMap {
   readonly appearance: TerminalAppearance
   readonly bell: void
   readonly data: Uint8Array
+  readonly frame: void
   readonly error: TerminalErrorEvent
   readonly resize: GhosttyWebGpuTerminalResizeEvent
   readonly scroll: TerminalScrollEvent

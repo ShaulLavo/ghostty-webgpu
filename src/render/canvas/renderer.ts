@@ -247,6 +247,11 @@ export class CanvasTerminalRenderer {
     this.onFrame(
       Object.freeze({
         cursor: copiedCursor(this.cursor),
+        paintedCursor: renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
         rows: Object.freeze([...rows]),
       }),
     )

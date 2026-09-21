@@ -20,6 +20,7 @@ import {
 import { InstanceRows } from './instances/rows.js'
 import {
   type CanonicalRendererTheme,
+  type CursorState,
   type RendererTheme,
   type RowInstanceUpdate,
 } from './instances/types.js'
@@ -41,6 +42,7 @@ export interface RendererFrameRow {
 }
 
 export interface RendererFrameSnapshot {
+  readonly paintedCursor?: Readonly<CursorState>
   readonly cursor: Readonly<RenderCursorSnapshot>
   readonly rows: readonly RendererFrameRow[]
 }
@@ -515,6 +517,11 @@ export class WebGpuTerminalRenderer {
     this.onFrame(
       Object.freeze({
         cursor: copiedCursor(this.cursor),
+        paintedCursor: renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
         rows: Object.freeze([...rows]),
       }),
     )

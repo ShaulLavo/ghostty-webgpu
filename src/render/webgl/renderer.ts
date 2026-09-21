@@ -491,6 +491,16 @@ export class WebGlTerminalRenderer {
     const viewport = this.cursor.viewport ? Object.freeze({ ...this.cursor.viewport }) : undefined
     const cursor = Object.freeze({ ...this.cursor, viewport })
     const rows = this.visibleRows.filter((row): row is RendererFrameRow => row !== undefined)
-    this.onFrame(Object.freeze({ cursor, rows: Object.freeze(rows) }))
+    this.onFrame(
+      Object.freeze({
+        cursor,
+        rows: Object.freeze(rows),
+        paintedCursor: renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
+      }),
+    )
   }
 }
