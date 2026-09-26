@@ -307,12 +307,15 @@ describe('CanvasTerminalRenderer', () => {
     source.cursor.visible = false
     const glyphs: { alpha: number; font: string; text: string; x: number }[] = []
     const original = CanvasRenderingContext2D.prototype.fillText
-    vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText').mockImplementation(
-      function (this: CanvasRenderingContext2D, text, x, y) {
-        glyphs.push({ alpha: this.globalAlpha, font: this.font, text, x })
-        original.call(this, text, x, y)
-      },
-    )
+    vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText').mockImplementation(function (
+      this: CanvasRenderingContext2D,
+      text,
+      x,
+      y,
+    ) {
+      glyphs.push({ alpha: this.globalAlpha, font: this.font, text, x })
+      original.call(this, text, x, y)
+    })
     await createRenderer(options(canvas, source, clock, { columns: 6 }))
 
     clock.flushFrame()
@@ -345,12 +348,15 @@ describe('CanvasTerminalRenderer', () => {
     source.cursor.visible = false
     const glyphColors: string[] = []
     const original = CanvasRenderingContext2D.prototype.fillText
-    vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText').mockImplementation(
-      function (this: CanvasRenderingContext2D, text, x, y) {
-        glyphColors.push(String(this.fillStyle))
-        original.call(this, text, x, y)
-      },
-    )
+    vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText').mockImplementation(function (
+      this: CanvasRenderingContext2D,
+      text,
+      x,
+      y,
+    ) {
+      glyphColors.push(String(this.fillStyle))
+      original.call(this, text, x, y)
+    })
     const renderer = await createRenderer(
       options(canvas, source, clock, {
         theme: {
