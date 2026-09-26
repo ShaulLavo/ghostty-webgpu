@@ -45,3 +45,5 @@
 - The checked-in wasm must come from `bun run build:wasm`, at the pinned official upstream
   repository and revision, without build-time patches or a maintained fork.
 - The pinned source revision requires Zig 0.16.0 or newer.
+
+- Firefox/WebKit Playwright runs on the Arch dev machine need `/work/projects/platform/scripts/playwright-webkit-arch.sh` after any `playwright install` that downloads a new WebKit.
