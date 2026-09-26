@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { chromium, type Page } from 'playwright'
 import { displayedInk } from './displayed-ink'
+import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch'
 
 const root = process.env.GHOSTTY_PACKAGE_ROOT ?? join(import.meta.dirname, '..')
 const consumerRoot = process.env.GHOSTTY_PACKAGE_ROOT ? join(root, '../..') : root
@@ -21,15 +22,8 @@ const imports = {
 }
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const args = ['--enable-unsafe-webgpu']
-// Headless SwiftShader presents WebGPU canvases only when the compositor shares Dawn's Vulkan device.
 const swiftShader = process.platform === 'linux' && !hardware
-if (swiftShader) {
-  args.push(
-    '--use-angle=vulkan',
-    '--enable-features=Vulkan,VulkanFromANGLE',
-    '--use-webgpu-adapter=swiftshader',
-  )
-}
+if (swiftShader) args.push(...swiftShaderArgs)
 if (hardware && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
   args.push('--ozone-platform=wayland')
 
@@ -65,7 +59,8 @@ async function checkPresentation(page: Page, backend: string): Promise<void> {
 
 // Full headless Chromium finds no adapter with ANGLE on Vulkan; the headless shell does.
 const channel = swiftShader ? undefined : 'chromium'
-const browser = await chromium.launch({ args, channel, headless: !hardware })
+const env = swiftShader ? swiftShaderEnv() : undefined
+const browser = await chromium.launch({ args, channel, env, headless: !hardware })
 try {
   for (const backend of selected) await checkBackend(backend)
 } finally {

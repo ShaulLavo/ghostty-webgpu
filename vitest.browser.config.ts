@@ -1,5 +1,6 @@
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
+import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch'
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const engine = process.env.GHOSTTY_BROWSER_ENGINE ?? 'chromium'
@@ -7,16 +8,8 @@ if (engine !== 'chromium' && engine !== 'firefox' && engine !== 'webkit')
   throw new Error(`Unsupported GHOSTTY_BROWSER_ENGINE: ${engine}`)
 
 const launchArgs = engine === 'chromium' ? ['--enable-unsafe-webgpu'] : []
-// Headless SwiftShader can back a WebGPU canvas swap chain only when the compositor shares Dawn's
-// Vulkan device; without it Chromium drops the WebGPU instance and destroys every live device.
 const swiftShader = engine === 'chromium' && process.platform === 'linux' && !hardware
-if (swiftShader) {
-  launchArgs.push(
-    '--use-angle=vulkan',
-    '--enable-features=Vulkan,VulkanFromANGLE',
-    '--use-webgpu-adapter=swiftshader',
-  )
-}
+if (swiftShader) launchArgs.push(...swiftShaderArgs)
 // Full headless Chromium finds no adapter with ANGLE on Vulkan; the headless shell does.
 const chromiumChannel = swiftShader ? undefined : 'chromium'
 if (
@@ -36,7 +29,14 @@ export default defineConfig({
       ui: false,
       instances: [{ browser: engine }],
       provider: playwright({
-        launchOptions: engine === 'chromium' ? { args: launchArgs, channel: chromiumChannel } : {},
+        launchOptions:
+          engine === 'chromium'
+            ? {
+                args: launchArgs,
+                channel: chromiumChannel,
+                env: swiftShader ? swiftShaderEnv() : undefined,
+              }
+            : {},
       }),
       screenshotFailures: false,
     },
