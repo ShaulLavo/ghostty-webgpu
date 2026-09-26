@@ -165,7 +165,6 @@
     "oxlint": "1.85.0",
     "playwright": "1.63.0",
     "typescript": "7.0.2",
-    "typescript-legacy": "npm:typescript@5.9.3",
     "vitest": "5.0.2"
   },
   "engines": {

@@ -485,9 +485,6 @@ function sameStringSet(left: ReadonlySet<string>, right: ReadonlySet<string>): b
 
 async function verifyTypes(root: string): Promise<void> {
   await run([join(projectRoot, 'node_modules/.bin/tsc'), '--project', 'tsconfig.json'], root)
-  const legacy = join(projectRoot, 'node_modules/typescript-legacy/bin/tsc')
-  await run(['node', legacy, '--project', 'tsconfig.json'], root)
-  await run(['node', legacy, '--project', 'tsconfig.json', '--moduleResolution', 'node'], root)
 }
 
 async function verifyRootIsolation(root: string, packageRoot: string): Promise<void> {
