@@ -1,5 +1,6 @@
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { NativeContractError } from './config-resolver-native/canonical'
 import {
   verifyNativeRepositoryState,
   type NativeRepositoryState,
@@ -11,8 +12,10 @@ try {
   const required = parseArguments(process.argv.slice(2))
   const state = verifyNativeRepositoryState(repositoryRoot, required)
   process.stdout.write(`${state}\n`)
-} catch {
-  process.stderr.write('config resolver artifact verification failed\n')
+} catch (error) {
+  // Contract errors carry fixed, path-free reasons; anything else stays opaque.
+  const reason = error instanceof NativeContractError ? `: ${error.message}` : ''
+  process.stderr.write(`config resolver artifact verification failed${reason}\n`)
   process.exitCode = 1
 }
 

@@ -105,6 +105,7 @@
     "build": "bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
     "build:bridge": "bun scripts/build-bridge.ts",
     "build:config-resolver": "bun scripts/build-config-resolver.ts",
+    "config-resolver:bootstrap": "bun scripts/config-resolver-native/generate-native-inputs.ts --write && bun scripts/config-resolver-native/generate-bootstrap.ts --write",
     "build:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",

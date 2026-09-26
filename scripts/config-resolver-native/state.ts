@@ -1,4 +1,4 @@
-import { lstatSync, readdirSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { canonicalObjectBytes, canonicalSha256, NativeContractError } from './canonical'
 import {
@@ -135,6 +135,7 @@ function assertSameRun(
 }
 
 function assertDirectory(path: string, label: string): void {
+  if (!existsSync(path)) throw new NativeContractError(`${label} is missing`)
   const stat = lstatSync(path)
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
     throw new NativeContractError(`${label} is not a real directory`)

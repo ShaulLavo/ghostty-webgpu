@@ -68,7 +68,9 @@ export function verifyNativeInputs(
   const loaded = loadNativeInputs(join(repositoryRoot, NATIVE_INPUTS_PATH))
   const expected = createNativeInputs(repositoryRoot)
   if (!loaded.bytes.equals(canonicalObjectBytes(expected))) {
-    throw new NativeContractError('native inputs do not match the worktree closure')
+    throw new NativeContractError(
+      'native inputs do not match the worktree closure; run `bun run config-resolver:bootstrap`',
+    )
   }
   if (options.gitHead) verifyOwnedFilesAtHead(repositoryRoot, loaded.value, options.gitHead)
   if (options.gitHead && options.requireCurrentCleanHead) {
