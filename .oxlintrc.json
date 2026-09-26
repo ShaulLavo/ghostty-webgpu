@@ -1,3 +1,15 @@
 {
-  "ignorePatterns": ["references/xterm.js/**"]
+  "ignorePatterns": ["references/xterm.js/**"],
+  "rules": {
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": true,
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  }
 }

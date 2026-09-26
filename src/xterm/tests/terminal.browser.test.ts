@@ -578,7 +578,7 @@ async function observeVisualClear(
   return { ...observation, content: driver.getSelection() }
 }
 
-describe.sequential('released xterm Terminal facade observables', () => {
+describe('released xterm Terminal facade observables', () => {
   it('maps cursorAccent and omitted fallback through the browser renderer', async () => {
     const renderer = new NoopRenderer()
     let initialOptions: WebGpuTerminalRendererOptions | undefined

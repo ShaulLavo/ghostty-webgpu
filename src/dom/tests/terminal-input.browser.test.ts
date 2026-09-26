@@ -195,7 +195,7 @@ function cursorFrame(x: number, y: number): RendererFrameSnapshot {
   })
 }
 
-describe.sequential('Terminal DOM host', () => {
+describe('Terminal DOM host', () => {
   let runtime: GhosttyRuntime
   const hosts: HTMLElement[] = []
   const terminals: Terminal[] = []

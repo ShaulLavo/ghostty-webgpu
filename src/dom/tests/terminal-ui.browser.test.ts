@@ -485,7 +485,7 @@ function scrollbar(offset: number, total: number, length = 2): Readonly<Terminal
   return Object.freeze({ length, offset, total })
 }
 
-describe.sequential('terminal links in Chromium', () => {
+describe('terminal links in Chromium', () => {
   it('keeps native OSC 8 ahead of providers and regex, and activates only by explicit callback', async () => {
     const activated: Array<{ event: Event; uri: string }> = []
     let providerCalls = 0
@@ -979,7 +979,7 @@ describe('terminal accessibility mirror in Chromium', () => {
   })
 })
 
-describe.sequential('terminal clipboard policy in Chromium', () => {
+describe('terminal clipboard policy in Chromium', () => {
   it('default-denies OSC 52 and separates opt-in acceptance from asynchronous completion', async () => {
     const defaultErrors: unknown[] = []
     expect(createDomClipboardPolicyAdapter({ onError: (cause) => defaultErrors.push(cause) })).toBe(
@@ -1025,7 +1025,7 @@ describe.sequential('terminal clipboard policy in Chromium', () => {
   })
 })
 
-describe.sequential('integrated terminal UI host', () => {
+describe('integrated terminal UI host', () => {
   it('replays a renderer frame that arrives before the first fit commit', async () => {
     const context = document.createElement('canvas').getContext('2d')
     if (!context) throw new TypeError('Expected a 2D canvas context')

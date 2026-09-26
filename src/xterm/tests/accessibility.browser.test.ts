@@ -184,7 +184,7 @@ afterEach(() => {
   for (const host of hosts.splice(0).reverse()) host.remove()
 })
 
-describe.sequential('xterm accessibility DOM compatibility', () => {
+describe('xterm accessibility DOM compatibility', () => {
   it('matches released xterm roles, hooks, prompt label, and initial enabled state', async () => {
     const promptLabel = 'Plan 010 terminal prompt'
     const originalReferenceLabel = XtermTerminal.strings.promptLabel

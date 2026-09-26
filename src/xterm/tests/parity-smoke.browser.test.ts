@@ -83,7 +83,7 @@ async function trackedGhostty(size?: SmokeSize): Promise<BrowserLifecycleDriver>
   return driver
 }
 
-describe.sequential('released xterm browser lifecycle smoke observables', () => {
+describe('released xterm browser lifecycle smoke observables', () => {
   it('records matching constructor dimensions and absent pre-open DOM references', async () => {
     const xtermDefault = trackedXterm()
     const ghosttyDefault = await trackedGhostty()

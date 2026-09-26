@@ -235,7 +235,7 @@ async function selectedWord(harness: TrackedTerminal, mutateSeparator?: string):
   return harness.terminal.getSelection()
 }
 
-describe.sequential('released xterm browser interaction observables', () => {
+describe('released xterm browser interaction observables', () => {
   it('matches disableStdin at construction and after mutable option changes', async () => {
     const reference = trackedReference({ allowTransparency: true, disableStdin: true })
     const target = trackedTarget({ allowTransparency: true, disableStdin: true })
