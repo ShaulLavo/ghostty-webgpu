@@ -21,8 +21,14 @@ const imports = {
 }
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const args = ['--enable-unsafe-webgpu']
-if (process.platform === 'linux' && !hardware) {
-  args.push('--enable-features=Vulkan', '--use-webgpu-adapter=swiftshader')
+// Headless SwiftShader presents WebGPU canvases only when the compositor shares Dawn's Vulkan device.
+const swiftShader = process.platform === 'linux' && !hardware
+if (swiftShader) {
+  args.push(
+    '--use-angle=vulkan',
+    '--enable-features=Vulkan,VulkanFromANGLE',
+    '--use-webgpu-adapter=swiftshader',
+  )
 }
 if (hardware && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
   args.push('--ozone-platform=wayland')
@@ -57,7 +63,9 @@ async function checkPresentation(page: Page, backend: string): Promise<void> {
   assert.equal(updated.red, 0, `${backend}: old red glyphs remain after changing the theme`)
 }
 
-const browser = await chromium.launch({ args, channel: 'chromium', headless: !hardware })
+// Full headless Chromium finds no adapter with ANGLE on Vulkan; the headless shell does.
+const channel = swiftShader ? undefined : 'chromium'
+const browser = await chromium.launch({ args, channel, headless: !hardware })
 try {
   for (const backend of selected) await checkBackend(backend)
 } finally {

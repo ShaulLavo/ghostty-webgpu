@@ -201,7 +201,10 @@ it('samples grayscale and color texture arrays with premultiplied faint coverage
   })
   expect(grid.atlas.pageCount).toBe(3)
   expect(grid.pixel(8, 8)).toEqual([20, 100, 200, 255])
-  expect(grid.pixel(24, 8)).toEqual([10, 50, 100, 128])
+  const faint = grid.pixel(24, 8)
+  expect(faint.slice(0, 3)).toEqual([10, 50, 100])
+  // Half coverage is 127.5 before unorm conversion; GL and Vulkan may round that tie either way.
+  expect(faint[3]).toBeOneOf([127, 128])
   expect(grid.pixel(40, 8)).toEqual([100, 50, 25, 128])
   expect(grid.pixel(56, 8)).toEqual([50, 25, 13, 64])
   expect(grid.pass.atlasUploadOperations).toBe(3)
