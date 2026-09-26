@@ -35,6 +35,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "vitest@5.0.2": "patches/vitest@5.0.2.patch",
+  },
   "packages": {
     "@blazediff/core": ["@blazediff/core@1.10.0", "", {}, "sha512-AOQff0zgR7cGsZL+4E7hVkmujoPUpm0J9xzWGWZj5wCjd3gmxESXAPfKyuzs93VdpQNFhHlBhfOjrcZ+XTERtQ=="],
 

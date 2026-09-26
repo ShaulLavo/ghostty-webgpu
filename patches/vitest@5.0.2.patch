@@ -1,0 +1,13 @@
+diff --git a/dist/chunks/index.C-uw7tH9.js b/dist/chunks/index.C-uw7tH9.js
+index cdf7f640a05be5e7fd0b3b1b8905cafc1672fdec..90964fde2ca5c3227d7e0667c25bf234774fbdba 100644
+--- a/dist/chunks/index.C-uw7tH9.js
++++ b/dist/chunks/index.C-uw7tH9.js
+@@ -21435,6 +21435,8 @@ class Vitest {
+ 				for (const error of errors) this.logger.error("error during close", error);
+ 				this._checkUnhandledErrors(errors);
+ 			});
++			// vitest#11248: the root temp dir outlived every run; the pool is down, so nothing reads it now
++			await rm(this._tmpDir, { recursive: true, force: true }).catch(() => {});
+ 			await this._traces?.finish();
+ 		})();
+ 		return this.closingPromise;
