@@ -6,6 +6,7 @@ import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
 import type { GlyphBitmap, GlyphRasterizer } from '../atlas/types.js'
 import { canonicalRendererTheme } from '../config.js'
+import { fitTerminalFont } from '../../dom/fit.js'
 import { InstanceRows } from '../instances/rows.js'
 import { defaultRendererTheme, type CursorState, type RendererTheme } from '../instances/types.js'
 import { WebGpuTextPass } from '../text-pass.js'
@@ -57,26 +58,29 @@ function renderRow(y: number, cells: readonly RenderCell[]): RenderRow {
 }
 
 function fittedFont(): TerminalFittedFont {
-  return Object.freeze({
-    charLeft: 0,
-    charTop: 1,
-    cssCellHeight: cellSize,
-    cssCellWidth: cellSize,
-    deviceBaseline: 12,
-    deviceCellHeight: cellSize,
-    deviceCellWidth: cellSize,
-    deviceCharHeight: 14,
-    deviceCharWidth: cellSize,
-    pixelRatio: 1,
-    settings: Object.freeze({
-      boldWeight: 700,
-      family: 'monospace',
-      letterSpacing: 0,
-      lineHeight: cellSize / 14,
-      size: 14,
-      weight: 400,
-    }),
-  })
+  const settings = {
+    boldWeight: 700,
+    family: 'monospace',
+    letterSpacing: 0,
+    lineHeight: 1,
+    size: 11,
+    weight: 400,
+  }
+  // Measure the host font so glyphs sit inside the fixed test cell whatever `monospace` resolves to.
+  const natural = fitTerminalFont(document, settings, 1)
+  const font = fitTerminalFont(
+    document,
+    {
+      ...settings,
+      letterSpacing: cellSize - natural.deviceCharWidth,
+      lineHeight: (cellSize + 0.5) / natural.deviceCharHeight,
+    },
+    1,
+  )
+  if (font.deviceCellWidth !== cellSize || font.deviceCellHeight !== cellSize) {
+    throw new Error(`host monospace does not fit a ${cellSize}px cell`)
+  }
+  return font
 }
 
 async function createDevice(): Promise<GPUDevice> {
