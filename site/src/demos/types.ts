@@ -1,4 +1,4 @@
-export interface DemoGrid {
+interface DemoGrid {
   readonly cols: number
   readonly rows: number
 }
@@ -10,7 +10,7 @@ export interface DemoContext {
   write(data: string): void
 }
 
-export interface Demo {
+interface Demo {
   readonly id: string
   readonly label: string
   readonly caption: string

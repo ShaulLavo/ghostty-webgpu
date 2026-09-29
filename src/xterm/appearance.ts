@@ -65,7 +65,7 @@ function rgbColor(value: string): TerminalColor | undefined {
   return Object.freeze({ b: blue, g: green, r: red })
 }
 
-export function parseXtermColor(value: string | undefined): TerminalColor | undefined {
+function parseXtermColor(value: string | undefined): TerminalColor | undefined {
   if (!value) return undefined
   return hexColor(value.trim()) ?? rgbColor(value.trim())
 }

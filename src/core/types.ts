@@ -12,7 +12,7 @@ export type WasmSource =
   | URL
   | string
 
-export interface AbiFieldLayout {
+interface AbiFieldLayout {
   offset: number
   size: number
   type: string

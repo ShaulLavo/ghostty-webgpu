@@ -230,7 +230,7 @@ function verifyGitObjectFile(
   const committed = commandBuffer(
     runner,
     'git',
-    ['show', `${head}:${path}`],
+    ['show', `${head}:./${path}`],
     root,
     'release verifier Git object',
   )

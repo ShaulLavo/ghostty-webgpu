@@ -82,7 +82,7 @@ export function loadGhostFrames(): Promise<GhostFrames> {
 }
 
 /** One frame as colored text lines: white body, blue glow, one string per row. */
-export function frameToLines(frames: GhostFrames, index: number): string[] {
+function frameToLines(frames: GhostFrames, index: number): string[] {
   const frame =
     frames.frames[((index % frames.frames.length) + frames.frames.length) % frames.frames.length]!
   const lines: string[] = []

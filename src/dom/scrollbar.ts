@@ -1,6 +1,6 @@
 import type { TerminalScrollbar } from '../core/types.js'
 
-export interface TerminalScrollbarActions {
+interface TerminalScrollbarActions {
   scrollBy(delta: number): unknown
   scrollToBottom(): unknown
   scrollToRow(row: number): unknown

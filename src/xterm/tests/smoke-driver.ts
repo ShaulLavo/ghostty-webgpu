@@ -8,17 +8,17 @@ export interface SmokeSize {
   readonly rows: number
 }
 
-export interface EventSubscriptionObservation {
+interface EventSubscriptionObservation {
   readonly events: readonly unknown[]
   readonly operationReturns: readonly unknown[]
 }
 
-export interface WriteObservation {
+interface WriteObservation {
   readonly returnValue: unknown
   readonly timeline: readonly string[]
 }
 
-export interface TerminalSmokeDriver {
+interface TerminalSmokeDriver {
   readonly name: string
   dispose(): void
   size(): SmokeSize
@@ -30,7 +30,7 @@ export interface TerminalBehaviorDriver extends TerminalSmokeDriver {
   observeWrite(data: string): Promise<WriteObservation>
 }
 
-export interface DomObservation {
+interface DomObservation {
   readonly element: HTMLElement | undefined
   readonly textarea: HTMLTextAreaElement | undefined
 }

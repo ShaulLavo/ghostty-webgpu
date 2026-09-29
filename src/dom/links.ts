@@ -7,7 +7,7 @@ import {
   type RawPhysicalPointerPosition,
 } from './pointer.js'
 
-export interface DomLinkSession {
+interface DomLinkSession {
   activateLink(resolution: LinkResolution<Event>, event: Event): Promise<boolean>
   isLinkCurrent(resolution: LinkResolution<Event>): boolean
   resolveLink(request: TerminalLinkRequest): Promise<LinkResolution<Event>>

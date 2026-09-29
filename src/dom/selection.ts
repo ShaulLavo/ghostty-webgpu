@@ -1,6 +1,6 @@
-export type TerminalSelectionAutoscroll = 'down' | 'none' | 'up'
+type TerminalSelectionAutoscroll = 'down' | 'none' | 'up'
 
-export interface TerminalSelectionPoint {
+interface TerminalSelectionPoint {
   readonly x: number
   readonly y: number
 }
@@ -16,18 +16,18 @@ export interface TerminalSelectionProjection {
   readonly viewport: TerminalSelectionPoint
 }
 
-export interface TerminalSelectionUpdate {
+interface TerminalSelectionUpdate {
   readonly autoscroll: TerminalSelectionAutoscroll
   readonly selectionChanged: boolean
   readonly selectionInstalled: boolean
 }
 
-export interface TerminalSelectionRelease {
+interface TerminalSelectionRelease {
   readonly autoscroll: TerminalSelectionAutoscroll
   readonly dragged: boolean
 }
 
-export interface TerminalSelectionSession {
+interface TerminalSelectionSession {
   resetSelectionGesture(): void
   selectionAutoscrollTick(input: {
     readonly geometry: TerminalSelectionProjection['geometry']
@@ -67,7 +67,7 @@ export interface TerminalSelectionControllerOptions {
   readonly view?: Window
 }
 
-export interface TerminalSelectionDragOptions {
+interface TerminalSelectionDragOptions {
   readonly captured: boolean
   readonly rectangle: boolean
 }

@@ -171,13 +171,11 @@ export function validateGhosttyConfigAppearance(value: unknown): GhosttyConfigAp
   return result
 }
 
-export function appearanceRevision(value: GhosttyConfigAppearance): string {
+function appearanceRevision(value: GhosttyConfigAppearance): string {
   return canonicalObjectSha256(appearancePreimage(value))
 }
 
-export function appearancePreimage(
-  value: GhosttyConfigAppearance,
-): GhosttyConfigAppearancePreimage {
+function appearancePreimage(value: GhosttyConfigAppearance): GhosttyConfigAppearancePreimage {
   return {
     diagnosticCount: value.diagnosticCount,
     profiles: value.profiles,

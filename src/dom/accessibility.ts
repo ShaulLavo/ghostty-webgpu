@@ -10,7 +10,7 @@ export interface TerminalAccessibilityOptions {
   readonly textarea: HTMLTextAreaElement
 }
 
-export interface TerminalAccessibilityUpdate {
+interface TerminalAccessibilityUpdate {
   readonly announced: boolean
   readonly full: boolean
   readonly updatedRows: number

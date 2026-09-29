@@ -19,7 +19,7 @@ export interface CompiledDomHotkey {
   readonly matches: (event: KeyboardEvent) => boolean
 }
 
-export interface TerminalHotkeyClaim {
+interface TerminalHotkeyClaim {
   readonly id: string
   readonly preventDefault: boolean
   readonly stopPropagation: boolean

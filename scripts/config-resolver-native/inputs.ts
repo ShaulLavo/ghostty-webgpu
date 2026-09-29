@@ -23,7 +23,6 @@ import { compareBytes } from './order'
 const FIXED_OWNED_PATHS = [
   '.github/workflows/ci.yml',
   '.github/workflows/config-resolver.yml',
-  'bun.lock',
   'package.json',
   'scripts/build-config-resolver.ts',
   'scripts/config-resolver-proof/proof-contract.ts',
@@ -198,7 +197,7 @@ function gitOwnedFile(repositoryRoot: string, head: string, path: string): Nativ
   const match = /^(100644|100755) blob ([0-9a-f]{40})\t([^\r\n]+)$/.exec(record.slice(0, -1))
   if (!match || match[3] !== path)
     throw new NativeContractError(`native owned input is untracked: ${path}`)
-  const contents = gitBuffer(repositoryRoot, ['cat-file', 'blob', `${head}:${path}`])
+  const contents = gitBuffer(repositoryRoot, ['cat-file', 'blob', `${head}:./${path}`])
   return {
     path,
     mode: match[1] as '100644' | '100755',

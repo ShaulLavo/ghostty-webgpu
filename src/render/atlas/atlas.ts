@@ -26,8 +26,8 @@ interface DirtyRectangle {
   top: number
 }
 
-export const DEFAULT_ATLAS_PAGE_SIZE = 512
-export const DEFAULT_ATLAS_LAYERS_PER_KIND = 16
+const DEFAULT_ATLAS_PAGE_SIZE = 512
+const DEFAULT_ATLAS_LAYERS_PER_KIND = 16
 const defaultPadding = 1
 
 function bitmapCacheKey(key: string, kind: AtlasKind): string {

@@ -1,7 +1,8 @@
+import { existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export interface XtermPackageManifest {
@@ -174,7 +175,7 @@ function readSubmoduleSnapshot(root: string): XtermSubmoduleSnapshot {
     originUrl: git(['remote', 'get-url', 'origin'], referenceRoot),
     headCommit: git(['rev-parse', 'HEAD'], referenceRoot),
     headRef: git(['rev-parse', '--abbrev-ref', 'HEAD'], referenceRoot),
-    indexCommit: git(['rev-parse', ':references/xterm.js'], root),
+    indexCommit: git(['rev-parse', ':0:./references/xterm.js'], root),
     dirty: git(['status', '--porcelain=v1', '--untracked-files=all'], referenceRoot),
   }
 }
@@ -246,7 +247,8 @@ async function verifyPackagePins(root: string, manifest: XtermReferenceManifest)
   const packageJson = await readJson<{
     readonly devDependencies?: Readonly<Record<string, string>>
   }>(join(root, 'package.json'))
-  const lock = await readFile(join(root, 'bun.lock'), 'utf8')
+  const lockRoot = existsSync(join(root, 'bun.lock')) ? root : resolve(root, '..')
+  const lock = await readFile(join(lockRoot, 'bun.lock'), 'utf8')
   const expectedPackages = [...manifest.packages, ...manifest.addons]
   for (const expected of expectedPackages) {
     assertEqual(

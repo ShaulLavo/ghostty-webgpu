@@ -41,7 +41,7 @@ export function contrastAdjustedColor(
   return black
 }
 
-export function cssRgb(color: RgbColor): string {
+function cssRgb(color: RgbColor): string {
   return `rgb(${color.r}, ${color.g}, ${color.b})`
 }
 

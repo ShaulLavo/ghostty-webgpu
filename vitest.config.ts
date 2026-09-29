@@ -6,6 +6,7 @@ export default defineConfig({
     exclude: ['src/**/*.browser.test.ts'],
     include: [
       'src/**/*.test.ts',
+      'scripts/config-resolver-native/*.test.ts',
       'demo/**/*.test.ts',
       'scripts/release-candidate/tests/**/*.test.ts',
     ],

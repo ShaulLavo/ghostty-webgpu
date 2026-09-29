@@ -34,7 +34,7 @@ const XCODE_BUILD_PATTERN = /^[0-9]{1,4}[A-Z][0-9]{1,4}[a-z]?$/
 const PRINTABLE_ASCII_PATTERN = /^[\x20-\x7e]+$/
 
 export type NativeResolverTarget = (typeof NATIVE_RESOLVER_TARGETS)[number]
-export type NativeTargetRecord<T> = Readonly<Record<NativeResolverTarget, T>>
+type NativeTargetRecord<T> = Readonly<Record<NativeResolverTarget, T>>
 
 export type NativeCompatibility =
   | {
@@ -120,7 +120,7 @@ interface NativeTool {
   readonly version: string
 }
 
-export interface NativeManifestTarget {
+interface NativeManifestTarget {
   readonly assemblyProvenance: NativeArtifactProvenance
   readonly assemblyProvenanceSha256: string
   readonly compatibility: NativeCompatibility
@@ -349,7 +349,7 @@ function validateProvenanceManifestIdentity(
   }
 }
 
-export function validateNativeArtifactProvenance(
+function validateNativeArtifactProvenance(
   value: unknown,
   expectedTarget?: NativeResolverTarget,
 ): NativeArtifactProvenance {
