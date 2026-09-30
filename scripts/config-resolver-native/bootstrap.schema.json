@@ -11,7 +11,7 @@
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "packageVersion": { "const": "0.1.2" },
+    "packageVersion": { "const": "0.2.0" },
     "upstreamRevision": { "const": "c8554f28e0efe2f5595f32020371c34b25ec628f" },
     "targets": {
       "const": ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64"]

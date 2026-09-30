@@ -217,11 +217,9 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
     readonly mirror: HTMLDivElement,
     readonly cursorStatus: HTMLDivElement,
     readonly liveRegion: HTMLDivElement,
-    private readonly container: HTMLDivElement | undefined,
     private readonly root: HTMLElement,
     private readonly textarea: HTMLTextAreaElement,
     private readonly textareaAttributes: TextareaAttributes,
-    private readonly xtermFacade: boolean,
     private readonly liveRegionMaxEntries: number,
     private readonly liveRegionMaxCharacters: number,
     private readonly signal: AbortSignal | undefined,
@@ -247,7 +245,6 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
     this.mirror.remove()
     this.cursorStatus.remove()
     this.liveRegion.remove()
-    this.container?.remove()
     this.rows.length = 0
     this.announcements.length = 0
     this.previous = undefined
@@ -293,7 +290,6 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
       const row = this.root.ownerDocument.createElement('div')
       row.id = nextElementId(this.root.ownerDocument, 'row')
       row.setAttribute('role', 'listitem')
-      if (this.xtermFacade) row.tabIndex = -1
       this.mirror.append(row)
       this.rows.push(row)
     }
@@ -331,7 +327,6 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
     this.cursorStatus.textContent = coordinates
       ? `Cursor at row ${coordinates.row}, column ${coordinates.column}`
       : 'Cursor location unavailable'
-    if (this.xtermFacade) return
     const activeRow = this.updateCurrentRow(rows, coordinates?.viewportRow)
     if (!coordinates) {
       this.textarea.removeAttribute('aria-activedescendant')
@@ -407,12 +402,7 @@ export function createTerminalAccessibility(
   const document = options.root.ownerDocument
   if (options.textarea.ownerDocument !== document)
     throw new TypeError('root and textarea must belong to the same document')
-  const xtermFacade = options.root.classList.contains('xterm')
-  const existingLabel = options.textarea.getAttribute('aria-label')
-  const label =
-    xtermFacade && options.label === undefined
-      ? (existingLabel ?? defaultLabel)
-      : nonEmptyLabel(options.label)
+  const label = nonEmptyLabel(options.label)
   const maxEntries = positiveSafeInteger(
     'liveRegionMaxEntries',
     options.liveRegionMaxEntries ?? defaultLiveRegionMaxEntries,
@@ -424,25 +414,20 @@ export function createTerminalAccessibility(
   const mirror = document.createElement('div')
   const cursorStatus = document.createElement('div')
   const liveRegion = document.createElement('div')
-  const container = xtermFacade ? document.createElement('div') : undefined
   mirror.classList.add('ghostty-webgpu-accessibility')
-  if (xtermFacade) mirror.classList.add('xterm-accessibility-tree')
   mirror.id = nextElementId(document, 'screen')
-  if (!xtermFacade) mirror.setAttribute('aria-label', 'Terminal screen')
+  mirror.setAttribute('aria-label', 'Terminal screen')
   mirror.setAttribute('role', 'list')
   cursorStatus.className = 'ghostty-webgpu-cursor-status'
   cursorStatus.id = nextElementId(document, 'cursor')
   cursorStatus.textContent = 'Cursor location unavailable'
   liveRegion.classList.add('ghostty-webgpu-live-region')
-  if (xtermFacade) liveRegion.classList.add('live-region')
   liveRegion.setAttribute('aria-atomic', 'false')
-  liveRegion.setAttribute('aria-live', xtermFacade ? 'assertive' : 'polite')
+  liveRegion.setAttribute('aria-live', 'polite')
   liveRegion.setAttribute('aria-relevant', 'additions text')
   applyOffscreenStyles(cursorStatus)
-  if (!xtermFacade) {
-    applyOffscreenStyles(mirror)
-    applyOffscreenStyles(liveRegion)
-  }
+  applyOffscreenStyles(mirror)
+  applyOffscreenStyles(liveRegion)
 
   const textareaAttributes: TextareaAttributes = {
     activeDescendant: options.textarea.getAttribute('aria-activedescendant'),
@@ -450,25 +435,16 @@ export function createTerminalAccessibility(
     describedBy: options.textarea.getAttribute('aria-describedby'),
     label: options.textarea.getAttribute('aria-label'),
   }
-  if (!xtermFacade) {
-    options.textarea.setAttribute(
-      'aria-controls',
-      withIdReference(textareaAttributes.controls, mirror.id),
-    )
-    options.textarea.setAttribute(
-      'aria-describedby',
-      withIdReference(textareaAttributes.describedBy, cursorStatus.id),
-    )
-  }
+  options.textarea.setAttribute(
+    'aria-controls',
+    withIdReference(textareaAttributes.controls, mirror.id),
+  )
+  options.textarea.setAttribute(
+    'aria-describedby',
+    withIdReference(textareaAttributes.describedBy, cursorStatus.id),
+  )
   options.textarea.setAttribute('aria-label', label)
-  if (container) {
-    container.className = 'xterm-accessibility'
-    container.append(mirror, liveRegion)
-    options.root.prepend(container)
-    options.root.append(cursorStatus)
-  } else {
-    options.root.append(mirror, cursorStatus, liveRegion)
-  }
+  options.root.append(mirror, cursorStatus, liveRegion)
 
   let controller: OwnedTerminalAccessibility
   const abortListener = () => controller.dispose()
@@ -476,11 +452,9 @@ export function createTerminalAccessibility(
     mirror,
     cursorStatus,
     liveRegion,
-    container,
     options.root,
     options.textarea,
     textareaAttributes,
-    xtermFacade,
     maxEntries,
     maxCharacters,
     options.signal,

@@ -7,7 +7,7 @@ export interface TerminalElementPadding {
 
 export type TerminalElementPaddingInput = number | Partial<TerminalElementPadding>
 
-export interface TerminalCaretPosition {
+interface TerminalCaretPosition {
   readonly x: number
   readonly y: number
 }
@@ -30,7 +30,7 @@ export interface TerminalElements {
   setPadding(padding: TerminalElementPaddingInput): boolean
 }
 
-export function replaceTerminalCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
+function replaceTerminalCanvas(canvas: HTMLCanvasElement): HTMLCanvasElement {
   const replacement = canvas.ownerDocument.createElement('canvas')
   for (const attribute of canvas.attributes) {
     replacement.setAttribute(attribute.name, attribute.value)

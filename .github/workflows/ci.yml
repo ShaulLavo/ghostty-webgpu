@@ -16,7 +16,6 @@ jobs:
         with:
           clean: true
           persist-credentials: false
-          submodules: recursive
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
@@ -24,6 +23,11 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - name: Verify browser package
         run: bun run verify
+      - name: Verify browser package with production npm settings
+        env:
+          NODE_ENV: production
+          npm_config_omit: dev
+        run: bun run test:package
 
   native-artifacts:
     runs-on: ubuntu-latest
@@ -32,7 +36,6 @@ jobs:
         with:
           clean: true
           persist-credentials: false
-          submodules: recursive
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2

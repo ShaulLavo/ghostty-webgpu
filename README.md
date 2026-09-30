@@ -7,7 +7,7 @@ an unofficial ghostty for the web, inspired by [ghostty-web](https://github.com/
 
 damage-aware rendering with webgpu, webgl2, and canvas2d fallbacks. byte-based pty traffic, automatic fitting, and live themes
 
-still a preview. [compatibility gaps and migration status](docs/replacement/README.md)
+still a preview.
 
 ## try it
 
@@ -37,7 +37,7 @@ call `terminal.dispose()` when you're done with it
 
 ## more
 
-- [pty wiring and the xterm-shaped api](docs/integration.md)
+- [pty wiring and the native api](docs/integration.md)
 - [live demo](https://shaullavo.github.io/ghostty-webgpu/), built from [site/](site/) with `bun run site:dev`
 - [optional native ghostty config](docs/config-resolver.md)
-- [replacement roadmap](plans/016-ghostty-web-replacement-readiness.md)
+- [product roadmap](plans/README.md)

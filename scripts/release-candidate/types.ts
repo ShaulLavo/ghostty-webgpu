@@ -4,7 +4,7 @@ import type { NativeTarget } from '../config-resolver-native/constants'
 export type NativeTargetRecord<T> = Readonly<Record<NativeTarget, T>>
 
 export type ReleaseCandidateTarball = {
-  readonly file: 'ghostty-webgpu-0.1.2.tgz'
+  readonly file: 'ghostty-webgpu-0.2.0.tgz'
   readonly sha256: string
   readonly bytes: number
   readonly npmShasum: string
@@ -15,7 +15,7 @@ export type ReleaseCandidateProvisional = {
   readonly schemaVersion: 1
   readonly runId: string
   readonly runAttempt: number
-  readonly packageVersion: '0.1.2'
+  readonly packageVersion: '0.2.0'
   readonly packageSourceHead: string
   readonly nativeBuildSourceHead: string
   readonly nativeInputsTreeSha256: string
@@ -47,7 +47,7 @@ export type ReleaseSmokeProvenance = {
   readonly packageSourceHead: string
   readonly nativeBuildSourceHead: string
   readonly nativeInputsTreeSha256: string
-  readonly packageVersion: '0.1.2'
+  readonly packageVersion: '0.2.0'
   readonly upstreamRevision: 'c8554f28e0efe2f5595f32020371c34b25ec628f'
   readonly tarball: { readonly file: string; readonly sha256: string; readonly bytes: number }
   readonly nativeManifestSha256: string
@@ -85,7 +85,7 @@ export type ProvenanceDigests = {
 
 export type ReleaseCandidateIdentity = {
   readonly schemaVersion: 1
-  readonly packageVersion: '0.1.2'
+  readonly packageVersion: '0.2.0'
   readonly packageSourceHead: string
   readonly nativeBuildSourceHead: string
   readonly nativeInputsTreeSha256: string
@@ -98,7 +98,7 @@ export type ReleaseCandidateIdentity = {
   readonly packedFileListSha256: string
   readonly provisionalSha256: string
   readonly evidence: {
-    readonly file: 'ghostty-webgpu-0.1.2.evidence.json'
+    readonly file: 'ghostty-webgpu-0.2.0.evidence.json'
     readonly sha256: string
     readonly bytes: number
   }

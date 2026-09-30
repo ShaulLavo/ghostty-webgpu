@@ -4,7 +4,6 @@ import { GhosttyRuntime } from '../../core/runtime.js'
 import { WebGpuUnavailableError } from '../../render/renderer.js'
 import { createCompatibleTerminalRenderer } from '../../render/selector.js'
 import { TerminalSession } from '../../term/session.js'
-import { createXtermTerminalElements } from '../../xterm/elements.js'
 import { createTerminalElements } from '../elements.js'
 import { createGhosttyWebGpuTerminalFromSession, type Terminal } from '../terminal.js'
 
@@ -28,7 +27,7 @@ afterAll(async () => {
   await page.viewport(originalViewport.width, originalViewport.height)
 })
 
-async function fixture(layout: 'native' | 'xterm' = 'native') {
+async function fixture() {
   const host = document.createElement('div')
   host.style.width = '320px'
   host.style.height = '160px'
@@ -43,8 +42,9 @@ async function fixture(layout: 'native' | 'xterm' = 'native') {
     },
     runtime: { kind: 'borrowed', runtime },
   })
-  const createElements = layout === 'native' ? createTerminalElements : createXtermTerminalElements
-  const elements = createElements(host, { padding: { bottom: 4, left: 5, right: 6, top: 3 } })
+  const elements = createTerminalElements(host, {
+    padding: { bottom: 4, left: 5, right: 6, top: 3 },
+  })
   const observations = { frames: 0 }
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
@@ -147,93 +147,90 @@ function typeInput(textarea: HTMLTextAreaElement, data: string): void {
 }
 
 describe('runtime renderer fallback in the DOM host', () => {
-  it.each(['native', 'xterm'] as const)(
-    'preserves %s elements, pixels, input, selection, links, and layout after WebGL loss',
-    async (layout) => {
-      const { elements, errors, observations, session, terminal } = await fixture(layout)
-      const canvas = requiredCanvas(terminal)
-      const root = terminal.element
-      const textarea = elements.textarea
-      const padding = canvas.style.padding
-      const parent = canvas.parentElement
-      const nextSibling = canvas.nextSibling
-      canvas.dataset.owner = 'retained'
-      terminal.selectRange({ x: 0, y: 1 }, { x: 2, y: 1 })
-      expect(terminal.getSelection()).toBe('hel')
-      const initial = await screenshot(canvas)
-      expect(displayedCell(initial, terminal, 0, 0)).toEqual([255, 0, 0, 255])
-      expect(displayedCell(initial, terminal, 1, 0)).toEqual([0, 0, 255, 255])
+  it('preserves native elements, pixels, input, selection, links, and layout after WebGL loss', async () => {
+    const { elements, errors, observations, session, terminal } = await fixture()
+    const canvas = requiredCanvas(terminal)
+    const root = terminal.element
+    const textarea = elements.textarea
+    const padding = canvas.style.padding
+    const parent = canvas.parentElement
+    const nextSibling = canvas.nextSibling
+    canvas.dataset.owner = 'retained'
+    terminal.selectRange({ x: 0, y: 1 }, { x: 2, y: 1 })
+    expect(terminal.getSelection()).toBe('hel')
+    const initial = await screenshot(canvas)
+    expect(displayedCell(initial, terminal, 0, 0)).toEqual([255, 0, 0, 255])
+    expect(displayedCell(initial, terminal, 1, 0)).toEqual([0, 0, 255, 255])
 
-      await loseContext(terminal)
-      const replacement = requiredCanvas(terminal)
-      expect(replacement).not.toBe(canvas)
-      expect(replacement.parentElement).toBe(parent)
-      expect(replacement.nextSibling).toBe(nextSibling)
-      expect(replacement.dataset.owner).toBe('retained')
-      expect(replacement.style.padding).toBe(padding)
-      expect(canvas.isConnected).toBe(false)
-      expect(elements.canvas).toBe(replacement)
-      expect(terminal.element).toBe(root)
-      expect(terminal.textarea).toBe(textarea)
-      expect(document.activeElement).toBe(textarea)
-      expect(terminal.getSelection()).toBe('hel')
-      const recovered = await screenshot(replacement)
-      expect(displayedCell(recovered, terminal, 0, 0)).toEqual([255, 0, 0, 255])
-      expect(displayedCell(recovered, terminal, 1, 0)).toEqual([0, 0, 255, 255])
+    await loseContext(terminal)
+    const replacement = requiredCanvas(terminal)
+    expect(replacement).not.toBe(canvas)
+    expect(replacement.parentElement).toBe(parent)
+    expect(replacement.nextSibling).toBe(nextSibling)
+    expect(replacement.dataset.owner).toBe('retained')
+    expect(replacement.style.padding).toBe(padding)
+    expect(canvas.isConnected).toBe(false)
+    expect(elements.canvas).toBe(replacement)
+    expect(terminal.element).toBe(root)
+    expect(terminal.textarea).toBe(textarea)
+    expect(document.activeElement).toBe(textarea)
+    expect(terminal.getSelection()).toBe('hel')
+    const recovered = await screenshot(replacement)
+    expect(displayedCell(recovered, terminal, 0, 0)).toEqual([255, 0, 0, 255])
+    expect(displayedCell(recovered, terminal, 1, 0)).toEqual([0, 0, 255, 255])
 
-      const previousFrames = observations.frames
-      terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 0, g: 255, b: 0 } })
-      terminal.write(`${escape}[1;2H${escape}[48;2;255;255;0m ${escape}[0m`)
-      await settle(terminal)
-      const updated = await screenshot(replacement)
-      expect(displayedCell(updated, terminal, 0, 0)).toEqual([0, 255, 0, 255])
-      expect(displayedCell(updated, terminal, 1, 0)).toEqual([255, 255, 0, 255])
-      expect(observations.frames).toBeGreaterThan(previousFrames)
+    const previousFrames = observations.frames
+    terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 0, g: 255, b: 0 } })
+    terminal.write(`${escape}[1;2H${escape}[48;2;255;255;0m ${escape}[0m`)
+    await settle(terminal)
+    const updated = await screenshot(replacement)
+    expect(displayedCell(updated, terminal, 0, 0)).toEqual([0, 255, 0, 255])
+    expect(displayedCell(updated, terminal, 1, 0)).toEqual([255, 255, 0, 255])
+    expect(observations.frames).toBeGreaterThan(previousFrames)
 
-      const data: string[] = []
-      terminal.onData((bytes) => data.push(decoder.decode(bytes)))
-      typeInput(textarea, 'hello')
-      expect(data).toEqual(['hello'])
-      terminal.clearSelection()
-      await page.elementLocator(replacement).dblClick({ position: cellPosition(terminal, 1, 1) })
-      expect(terminal.getSelection()).toBe('hello')
+    const data: string[] = []
+    terminal.onData((bytes) => data.push(decoder.decode(bytes)))
+    typeInput(textarea, 'hello')
+    expect(data).toEqual(['hello'])
+    terminal.clearSelection()
+    await page.elementLocator(replacement).dblClick({ position: cellPosition(terminal, 1, 1) })
+    expect(terminal.getSelection()).toBe('hello')
 
-      let activations = 0
-      terminal.registerLinkProvider({
-        provideLinks: (line) =>
-          line.text.startsWith('hello')
-            ? [
-                {
-                  activate: () => {
-                    activations += 1
-                  },
-                  range: { start: 0, end: 4 },
-                  text: 'hello link',
+    let activations = 0
+    terminal.registerLinkProvider({
+      provideLinks: (line) =>
+        line.text.startsWith('hello')
+          ? [
+              {
+                activate: () => {
+                  activations += 1
                 },
-              ]
-            : undefined,
-      })
-      await expect(terminal.focusNextLink()).resolves.toBe(true)
-      const link = root?.querySelector('[role="link"]')
-      expect(document.activeElement).toBe(link)
-      link?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-      expect(activations).toBe(1)
+                range: { start: 0, end: 4 },
+                text: 'hello link',
+              },
+            ]
+          : undefined,
+    })
+    await expect(terminal.focusNextLink()).resolves.toBe(true)
+    const link = root?.querySelector('[role="link"]')
+    expect(document.activeElement).toBe(link)
+    link?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(activations).toBe(1)
 
-      const width = replacement.width
-      session.resize({ columns: 16, rows: 4 })
-      await settle(terminal)
-      expect(replacement.width).toBeGreaterThan(width)
-      expect(replacement.style.padding).toBe(padding)
-      expect(errors).toEqual([])
-      terminal.dispose()
-      expect(terminal.lifecycle).toBe('disposed')
-      expect(terminal.hasPendingFrame).toBe(false)
-      expect(terminal.hasPendingTimer).toBe(false)
-      expect(replacement.isConnected).toBe(false)
-      typeInput(textarea, 'ignored')
-      expect(data).toEqual(['hello'])
-    },
-  )
+    const width = replacement.width
+    session.resize({ columns: 16, rows: 4 })
+    await settle(terminal)
+    expect(replacement.width).toBeGreaterThan(width)
+    expect(replacement.style.padding).toBe(padding)
+    expect(errors).toEqual([])
+    terminal.dispose()
+    expect(terminal.lifecycle).toBe('disposed')
+    expect(terminal.hasPendingFrame).toBe(false)
+    expect(terminal.hasPendingTimer).toBe(false)
+    expect(replacement.isConnected).toBe(false)
+    typeInput(textarea, 'ignored')
+    expect(data).toEqual(['hello'])
+  })
 
   it('cancels an active pointer gesture when its WebGL canvas is lost', async () => {
     const { errors, terminal } = await fixture()

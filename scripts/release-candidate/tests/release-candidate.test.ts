@@ -903,7 +903,7 @@ function syntheticRepository(): string {
   mkdirSync(join(root, 'src/config-resolver'), { recursive: true })
   writeFileSync(
     join(root, 'package.json'),
-    JSON.stringify({ name: 'ghostty-webgpu', version: '0.1.2' }),
+    JSON.stringify({ name: 'ghostty-webgpu', version: '0.2.0' }),
   )
   writeFileSync(join(root, 'scripts/create-release-candidate.ts'), 'entrypoint\n')
   writeFileSync(join(root, 'scripts/release-candidate/core.ts'), 'core\n')

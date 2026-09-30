@@ -803,8 +803,8 @@ jobs:
             echo 'release pack did not pass' >&2
             exit 1
           fi
-          tarball="$RELEASE_PACK_ROOT/ghostty-webgpu-0.1.2.tgz"
-          provisional="$RELEASE_PACK_ROOT/ghostty-webgpu-0.1.2.provisional.json"
+          tarball="$RELEASE_PACK_ROOT/ghostty-webgpu-0.2.0.tgz"
+          provisional="$RELEASE_PACK_ROOT/ghostty-webgpu-0.2.0.provisional.json"
           shopt -s nullglob
           files=("$RELEASE_PACK_ROOT"/*)
           if [[ "${#files[@]}" -ne 2 || ! -f "$tarball" || ! -f "$provisional" ]]; then
@@ -970,8 +970,8 @@ jobs:
             echo 'release smoke pack artifact set is invalid' >&2
             exit 1
           fi
-          tarball="${pack_directories[0]}/ghostty-webgpu-0.1.2.tgz"
-          provisional="${pack_directories[0]}/ghostty-webgpu-0.1.2.provisional.json"
+          tarball="${pack_directories[0]}/ghostty-webgpu-0.2.0.tgz"
+          provisional="${pack_directories[0]}/ghostty-webgpu-0.2.0.provisional.json"
           pack_files=("${pack_directories[0]}"/*)
           if [[ "${#pack_files[@]}" -ne 2 || ! -f "$tarball" || ! -f "$provisional" ]]; then
             echo 'release smoke pack artifact shape is invalid' >&2
@@ -1156,8 +1156,8 @@ jobs:
             echo 'release finalizer artifact set is incomplete' >&2
             exit 1
           fi
-          tarball="${pack_directories[0]}/ghostty-webgpu-0.1.2.tgz"
-          provisional="${pack_directories[0]}/ghostty-webgpu-0.1.2.provisional.json"
+          tarball="${pack_directories[0]}/ghostty-webgpu-0.2.0.tgz"
+          provisional="${pack_directories[0]}/ghostty-webgpu-0.2.0.provisional.json"
           pack_files=("${pack_directories[0]}"/*)
           if [[ "${#pack_files[@]}" -ne 2 || ! -f "$tarball" || ! -f "$provisional" ]]; then
             echo 'release finalizer pack artifact shape is invalid' >&2
@@ -1218,9 +1218,9 @@ jobs:
             exit 1
           fi
           final_directory="$final_root/release-final-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT-$tarball_sha256"
-          final_tarball="$final_directory/ghostty-webgpu-0.1.2.tgz"
-          final_identity="$final_directory/ghostty-webgpu-0.1.2.identity.json"
-          final_evidence="$final_directory/ghostty-webgpu-0.1.2.evidence.json"
+          final_tarball="$final_directory/ghostty-webgpu-0.2.0.tgz"
+          final_identity="$final_directory/ghostty-webgpu-0.2.0.identity.json"
+          final_evidence="$final_directory/ghostty-webgpu-0.2.0.evidence.json"
           final_files=("$final_directory"/*)
           if [[ "${#final_files[@]}" -ne 3 || ! -f "$final_tarball" || ! -f "$final_identity" || ! -f "$final_evidence" ]]; then
             echo 'release finalizer output shape is invalid' >&2
@@ -1250,7 +1250,7 @@ jobs:
       - name: Upload approved release candidate trio
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ghostty-webgpu-0.1.2-release-candidate-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ steps.finalize.outputs.tarball_sha256 }}
+          name: ghostty-webgpu-0.2.0-release-candidate-${{ github.run_id }}-attempt-${{ github.run_attempt }}-${{ steps.finalize.outputs.tarball_sha256 }}
           path: ${{ steps.finalize.outputs.final_directory }}
           if-no-files-found: error
           include-hidden-files: false

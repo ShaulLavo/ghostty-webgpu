@@ -10,7 +10,7 @@ import '../styles/styles.css'
     <title>ghostty-webgpu</title>
     <meta
       name="description"
-      content="An unofficial Ghostty for the web: libghostty-vt in WebAssembly with a damage-aware WebGPU renderer and an xterm-shaped API. Try it live."
+      content="An unofficial Ghostty for the web: libghostty-vt in WebAssembly with a damage-aware WebGPU renderer and a native API. Try it live."
     />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,8 +34,8 @@ import '../styles/styles.css'
       <section class="intro">
         <h1>An unofficial Ghostty for the web.</h1>
         <p class="lede">
-          libghostty-vt compiled to WebAssembly, drawn by a damage-aware WebGPU renderer, behind an
-          xterm-shaped API.
+          libghostty-vt compiled to WebAssembly, drawn by a damage-aware WebGPU renderer, behind a
+          native API.
         </p>
         <div class="install">
           <code>npm install ghostty-webgpu</code>
@@ -72,9 +72,8 @@ import '../styles/styles.css'
           <span id="backend-fact">a renderer it is still choosing</span>.
         </p>
         <p>
-          <strong>Speaks xterm.</strong> Import <code>ghostty-webgpu/xterm</code> for the familiar
-          constructor, options, and addon shape, or use the native API and keep PTY traffic as bytes
-          end to end.
+          <strong>PTY traffic stays as bytes.</strong> The native API takes
+          <code>Uint8Array</code> input and emits bytes for your PTY connection.
         </p>
       </section>
     </main>

@@ -1,15 +1,14 @@
 {
   "name": "ghostty-webgpu",
-  "version": "0.1.2",
-  "description": "Ghostty for the web with a damage-aware WebGPU renderer and xterm-compatible API",
+  "version": "0.2.0",
+  "description": "Ghostty for the web with a damage-aware WebGPU renderer and native API",
   "keywords": [
     "browser",
     "ghostty",
     "terminal",
     "terminal-emulator",
     "wasm",
-    "webgpu",
-    "xterm"
+    "webgpu"
   ],
   "homepage": "https://github.com/ShaulLavo/ghostty-webgpu#readme",
   "bugs": {
@@ -35,9 +34,7 @@
     "THIRD_PARTY_NOTICES.md"
   ],
   "type": "module",
-  "sideEffects": [
-    "./dist/xterm/xterm.css"
-  ],
+  "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./types/legacy/index.d.ts",
@@ -46,13 +43,7 @@
       "config-resolver": [
         "dist/config-resolver/index.d.ts"
       ],
-      "xterm.css": [
-        "types/legacy/xterm-css.d.ts"
-      ],
-      "xterm": [
-        "dist/xterm/terminal.d.ts"
-      ],
-      "*": [
+      "types/legacy/index.d.ts": [
         "dist/index.d.ts"
       ]
     },
@@ -60,13 +51,7 @@
       "config-resolver": [
         "types/legacy/config-resolver.d.ts"
       ],
-      "xterm.css": [
-        "types/legacy/xterm-css.d.ts"
-      ],
-      "xterm": [
-        "types/legacy/xterm.d.ts"
-      ],
-      "*": [
+      "types/legacy/index.d.ts": [
         "types/legacy/index.d.ts"
       ]
     }
@@ -77,16 +62,6 @@
       "types": "./types/legacy/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./xterm": {
-      "types@>=7.0": "./dist/xterm/terminal.d.ts",
-      "types": "./types/legacy/xterm.d.ts",
-      "import": "./dist/xterm/terminal.js",
-      "default": "./dist/xterm/terminal.js"
-    },
-    "./xterm.css": {
-      "types": "./types/legacy/xterm-css.d.ts",
-      "default": "./dist/xterm/xterm.css"
     },
     "./config-resolver": {
       "types@>=7.0": "./dist/config-resolver/index.d.ts",
@@ -102,11 +77,11 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
+    "build": "bun run clean && tsc -p tsconfig.build.json",
     "build:bridge": "bun scripts/build-bridge.ts",
     "build:config-resolver": "bun scripts/build-config-resolver.ts",
     "config-resolver:bootstrap": "bun scripts/config-resolver-native/generate-native-inputs.ts --write && bun scripts/config-resolver-native/generate-bootstrap.ts --write",
-    "build:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run clean && tsc -p tsconfig.build.json && bun scripts/copy-build-assets.ts",
+    "build:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run clean && tsc -p tsconfig.build.json",
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",
     "clean": "bun scripts/clean-dist.ts",
@@ -122,20 +97,14 @@
     "test:renderer-fallbacks": "bun scripts/browser-tests.ts src/render/webgl/ src/render/tests/selector.browser.test.ts src/render/tests/fallback.browser.test.ts src/render/canvas/renderer.browser.test.ts src/dom/tests/renderer-fallback.browser.test.ts",
     "test:renderer-smoke": "bun scripts/renderer-fallback-smoke.ts",
     "test:unit": "vitest run",
-    "test:xterm-browsers": "bun scripts/xterm-browser-tests.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run test:renderer-smoke && bun run xterm:reference-pack && bun run test:package",
+    "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run test:renderer-smoke && bun run test:package",
     "verify:config-resolver-artifacts": "bun scripts/verify-config-resolver-artifacts.ts --state assembled",
     "verify:config-resolver-state": "bun scripts/verify-config-resolver-artifacts.ts",
-    "verify:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run xterm:reference && bun run xterm:parity && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:source-only && bun run test:renderer-smoke && bun run xterm:reference-pack",
-    "xterm:parity": "bun scripts/xterm-parity.ts --check",
-    "xterm:parity:update": "bun scripts/xterm-parity.ts --write",
-    "xterm:reference": "bun scripts/xterm-reference.ts",
-    "xterm:reference-pack": "bun scripts/xterm-reference.ts --pack",
+    "verify:source-only": "bun run verify:config-resolver-state --state bootstrap && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:source-only && bun run test:renderer-smoke",
     "build:host": "bun run verify:config-resolver-artifacts && bun run build",
     "test:package:host": "bun scripts/package-smoke.ts",
     "verify:host": "bun run verify:config-resolver-artifacts && bun run verify && bun run test:package:host",
-    "test:replacement": "bun scripts/replacement/compare.ts",
     "site:build": "bun run --cwd site build",
     "site:dev": "bun run --cwd site dev"
   },
@@ -146,21 +115,6 @@
   "devDependencies": {
     "@types/bun": "1.4.2",
     "@vitest/browser-playwright": "5.0.2",
-    "@xterm/addon-attach": "0.12.0",
-    "@xterm/addon-clipboard": "0.2.0",
-    "@xterm/addon-fit": "0.11.0",
-    "@xterm/addon-image": "0.9.0",
-    "@xterm/addon-ligatures": "0.10.0",
-    "@xterm/addon-progress": "0.2.0",
-    "@xterm/addon-search": "0.16.0",
-    "@xterm/addon-serialize": "0.14.0",
-    "@xterm/addon-unicode-graphemes": "0.4.0",
-    "@xterm/addon-unicode11": "0.9.0",
-    "@xterm/addon-web-fonts": "0.1.0",
-    "@xterm/addon-web-links": "0.12.0",
-    "@xterm/addon-webgl": "0.19.0",
-    "@xterm/headless": "6.0.0",
-    "@xterm/xterm": "6.0.0",
     "ghostty-web": "0.4.0",
     "oxfmt": "0.70.0",
     "oxlint": "1.85.0",

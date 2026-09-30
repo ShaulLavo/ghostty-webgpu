@@ -2,7 +2,7 @@ export const NATIVE_TARGETS = ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'lin
 
 export type NativeTarget = (typeof NATIVE_TARGETS)[number]
 
-export const NATIVE_PACKAGE_VERSION = '0.1.2'
+export const NATIVE_PACKAGE_VERSION = '0.2.0'
 export const NATIVE_SCHEMA_VERSION = 1
 export const NATIVE_SOURCE_DATE_EPOCH = 1_787_590_337
 export const NATIVE_UPSTREAM_REPOSITORY = 'https://github.com/ghostty-org/ghostty.git'

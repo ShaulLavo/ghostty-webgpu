@@ -1,5 +1,4 @@
 {
-  "ignorePatterns": ["references/xterm.js/**"],
   "rules": {
     "no-unused-vars": [
       "warn",

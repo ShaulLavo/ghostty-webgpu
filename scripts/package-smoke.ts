@@ -263,9 +263,12 @@ async function writeConsumerFiles(root: string, browserOnly = false): Promise<vo
   type TerminalRendererTheme,
   type TerminalTheme,
 } from 'ghostty-webgpu'
-${browserOnly ? '' : "import { resolveGhosttyConfigAppearance, type GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'"}
-import { Terminal as XtermTerminal, type ITerminalOptions } from 'ghostty-webgpu/xterm'
-import 'ghostty-webgpu/xterm.css'
+import type { GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'
+${browserOnly ? '' : "import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'"}
+// @ts-expect-error The package has no facade entry point.
+import type * as RemovedFacade from 'ghostty-webgpu/xterm'
+// @ts-expect-error The package has no stylesheet entry point.
+import type * as RemovedStylesheet from 'ghostty-webgpu/xterm.css'
 
 const color = { b: 3, g: 2, r: 1 }
 const rendererTheme: RendererTheme = {
@@ -304,7 +307,6 @@ const legacyAppearanceApi: GhosttyWebGpuTerminalAppearanceApi = {
   setFont() {},
   setTheme() {},
 }
-const xtermOptions: ITerminalOptions = { cursorBlink: true, theme: { background: '#010203' } }
 ${
   browserOnly
     ? ''
@@ -314,14 +316,12 @@ ${
 void appearance`
 }
 void Terminal
-void XtermTerminal
 void appearanceOptions
 void legacyAppearanceApi
 void rendererTheme
 void terminalAppearance
 void terminalRendererTheme
 void terminalTheme
-void xtermOptions
 `,
   )
 }
@@ -332,13 +332,8 @@ async function verifyBrowserFiles(packageRoot: string): Promise<void> {
     'dist/index.d.ts',
     'dist/config-resolver/index.js',
     'dist/config-resolver/index.d.ts',
-    'dist/xterm/terminal.js',
-    'dist/xterm/terminal.d.ts',
-    'dist/xterm/xterm.css',
     'types/legacy/config-resolver.d.ts',
     'types/legacy/index.d.ts',
-    'types/legacy/xterm-css.d.ts',
-    'types/legacy/xterm.d.ts',
     'ghostty-vt.wasm',
     'bridge.wasm',
   ]) {
@@ -351,7 +346,6 @@ async function verifyPackagedFiles(packageRoot: string): Promise<NativeResolverM
   const manifest = await verifyPackagedNativeTree(packageRoot)
   await rejectPath(join(packageRoot, 'native/config-resolver/bootstrap.json'))
   await rejectPath(join(packageRoot, 'scripts/config-resolver-native'))
-  await rejectPath(join(packageRoot, 'dist/xterm/operation-queue.js'))
   await rejectPath(join(packageRoot, 'dist/render/shaders/background.wgsl.js'))
   return manifest
 }
@@ -484,7 +478,53 @@ function sameStringSet(left: ReadonlySet<string>, right: ReadonlySet<string>): b
 }
 
 async function verifyTypes(root: string): Promise<void> {
-  await run([join(projectRoot, 'node_modules/.bin/tsc'), '--project', 'tsconfig.json'], root)
+  const compilerRoot = join(dirname(root), 'legacy-compiler')
+  await mkdir(compilerRoot)
+  await writeFile(
+    join(compilerRoot, 'package.json'),
+    JSON.stringify({
+      private: true,
+      devDependencies: { '@types/node': '26.6.3', typescript: '5.9.3' },
+    }),
+  )
+  await run(
+    [
+      'npm',
+      'install',
+      '--dry-run=false',
+      '--include=dev',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--cache',
+      join(compilerRoot, 'npm-cache'),
+    ],
+    compilerRoot,
+  )
+  for (const [compiler, version, resolution] of [
+    [projectRoot, '7', 'Bundler'],
+    [compilerRoot, '5', 'Bundler'],
+    [compilerRoot, '5', 'Node10'],
+  ] as const) {
+    await run(
+      [
+        'node',
+        join(compiler, 'node_modules/typescript/bin/tsc'),
+        '--project',
+        'tsconfig.json',
+        '--moduleResolution',
+        resolution,
+        '--typeRoots',
+        join(compilerRoot, 'node_modules/@types'),
+        '--types',
+        'node',
+      ],
+      root,
+    )
+    console.log(
+      `Packed TypeScript ${version} ${resolution} declarations and removed-subpath rejection verified`,
+    )
+  }
 }
 
 async function verifyRootIsolation(root: string, packageRoot: string): Promise<void> {
@@ -498,13 +538,14 @@ async function verifyRootIsolation(root: string, packageRoot: string): Promise<v
         'node',
         '--input-type=module',
         '--eval',
-        `import * as Native from 'ghostty-webgpu'
-import { Terminal as XtermTerminal } from 'ghostty-webgpu/xterm'
+        `import { rejects } from 'node:assert/strict'
+import * as Native from 'ghostty-webgpu'
 const { Terminal } = Native
 if (typeof Terminal.create !== 'function') throw new Error('root Terminal is not the native API')
-if (typeof XtermTerminal !== 'function') throw new Error('missing xterm Terminal export')
-if (Terminal === XtermTerminal) throw new Error('native and xterm entry points resolve to one class')
-if ('GhosttyWebGpuTerminal' in Native) throw new Error('root still exports the removed terminal name')`,
+if ('GhosttyWebGpuTerminal' in Native) throw new Error('root still exports the removed terminal name')
+for (const specifier of ['ghostty-webgpu/xterm', 'ghostty-webgpu/xterm.css']) {
+  await rejects(() => import(specifier), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
+}`,
       ],
       root,
     )
@@ -516,10 +557,7 @@ if ('GhosttyWebGpuTerminal' in Native) throw new Error('root still exports the r
 async function verifyBrowserConditions(root: string): Promise<ReturnType<typeof transferBytes>> {
   const browserRoot = join(root, 'browser-root.ts')
   const browserResolver = join(root, 'browser-resolver.ts')
-  await writeFile(
-    browserRoot,
-    "import { Terminal } from 'ghostty-webgpu'\nimport { Terminal as XtermTerminal } from 'ghostty-webgpu/xterm'\nconsole.log(Terminal, XtermTerminal)\n",
-  )
+  await writeFile(browserRoot, "import { Terminal } from 'ghostty-webgpu'\nconsole.log(Terminal)\n")
   await writeFile(
     browserResolver,
     "import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'\nconsole.log(resolveGhosttyConfigAppearance)\n",
@@ -828,7 +866,7 @@ async function recordBrowserMeasurements(
       javascript,
       wasm,
       method:
-        'Unminified Bun browser bundle of native and compatibility constructors; each WASM asset compressed separately. CSS and HTTP overhead excluded.',
+        'Unminified Bun browser bundle of the native constructor; each WASM asset compressed separately. HTTP overhead excluded.',
     },
     nativeQualification: 'not performed',
   }
