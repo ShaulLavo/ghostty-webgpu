@@ -110,6 +110,17 @@ export interface RuntimeOptions {
   wasm?: WasmSource
 }
 
+export interface TerminalLine {
+  text: string
+  /** This row soft-wraps into the next row. */
+  wrapped: boolean
+}
+
+export interface ReadLinesOptions {
+  /** Drop trailing U+0020 spaces. Native text omits empty grid padding. Defaults to true. */
+  trimRight?: boolean
+}
+
 export interface TerminalOptions {
   cellHeight?: number
   cellWidth?: number

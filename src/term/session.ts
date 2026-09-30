@@ -31,8 +31,10 @@ import { GhosttyTerminal } from '../core/terminal.js'
 import { normalizeCellGeometry } from '../core/types.js'
 import type {
   ClipboardWrite,
+  ReadLinesOptions,
   RgbColor,
   TerminalEffects,
+  TerminalLine,
   TerminalScrollbar,
   TerminalSelectionFormatOptions,
   TerminalSize,
@@ -1135,6 +1137,16 @@ export class TerminalSession<TEvent = unknown> {
   get scrollbar(): Readonly<TerminalScrollbar> {
     this.ensureActive()
     return this.scrollValue.scrollbar
+  }
+
+  lineCount(): number {
+    this.ensureActive()
+    return this.terminal.lineCount()
+  }
+
+  readLines(start: number, end: number, options: ReadLinesOptions = {}): readonly TerminalLine[] {
+    this.ensureActive()
+    return this.terminal.readLines(start, end, options)
   }
 
   get viewportActive(): boolean {

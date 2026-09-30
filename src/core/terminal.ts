@@ -1,5 +1,4 @@
 import {
-  FormatterFormat,
   GhosttyResult,
   PointTag,
   ScrollViewportTag,
@@ -11,11 +10,16 @@ import {
 } from './abi.js'
 import type { AbiLayout } from './abi.js'
 import { assertGhosttyResult, createGhosttyError } from './error.js'
+import { readTerminalLines } from './grid-text.js'
 import { requireLayout } from './memory.js'
+import { readNativeBuffer } from './native-buffer.js'
+import { readSelectionText } from './native-text.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type {
+  ReadLinesOptions,
   RgbColor,
   TerminalColors,
+  TerminalLine,
   TerminalCursor,
   TerminalCursorStyle,
   TerminalEffects,
@@ -40,8 +44,6 @@ const defaultSize: TerminalSize = {
   columns: 80,
   rows: 24,
 }
-
-type NativeBufferReader = (buffer: number, length: number, outWritten: number) => number
 
 function validateDimension(name: string, value: number, maximum: number): number {
   if (Number.isInteger(value) && value > 0 && value <= maximum) return value
@@ -120,27 +122,12 @@ function nativeCursorStyle(style: TerminalCursorStyle): NativeTerminalCursorStyl
   )
 }
 
-function nativeFormatterFormat(format: TerminalSelectionFormatOptions['format']): FormatterFormat {
-  if (format === undefined || format === 'plain') return FormatterFormat.Plain
-  if (format === 'vt') return FormatterFormat.Vt
-  if (format === 'html') return FormatterFormat.Html
-  throw createGhosttyError(
-    'ghostty_terminal_selection_format_buf',
-    `Unknown format: ${String(format)}`,
-  )
-}
-
 function nativePointTag(point: TerminalPoint): PointTag {
   if (point.tag === 'active') return PointTag.Active
   if (point.tag === 'viewport') return PointTag.Viewport
   if (point.tag === 'screen') return PointTag.Screen
   if (point.tag === 'history') return PointTag.History
   throw createGhosttyError('ghostty_terminal_grid_ref', `Unknown point tag: ${String(point.tag)}`)
-}
-
-function assertOutOfSpace(operation: string, result: number): void {
-  if (result === GhosttyResult.OutOfSpace) return
-  assertGhosttyResult(operation, result)
 }
 
 export class GhosttyTerminal {
@@ -229,6 +216,15 @@ export class GhosttyTerminal {
 
   get totalRows(): number {
     return this.readUint32(TerminalData.TotalRows, 'TOTAL_ROWS')
+  }
+
+  lineCount(): number {
+    return this.totalRows
+  }
+
+  readLines(start: number, end: number, options: ReadLinesOptions = {}): readonly TerminalLine[] {
+    this.ensureActive()
+    return readTerminalLines(this, start, end, options)
   }
 
   get scrollbackLength(): number {
@@ -421,26 +417,7 @@ export class GhosttyTerminal {
 
   getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {
     this.ensureActive()
-    const layout = requireLayout(this.runtime.layouts, 'GhosttyTerminalSelectionFormatOptions')
-    const pointer = this.runtime.memory.allocate(layout.size)
-    try {
-      this.initializeSelectionFormatOptions(pointer, layout, options)
-      const bytes = this.readNativeBuffer(
-        'ghostty_terminal_selection_format_buf',
-        (buffer, length, out) =>
-          this.runtime.exports.ghostty_terminal_selection_format_buf(
-            this.handleValue,
-            pointer,
-            buffer,
-            length,
-            out,
-          ),
-      )
-      if (!bytes) return undefined
-      return decoder.decode(bytes)
-    } finally {
-      this.runtime.memory.free(pointer, layout.size)
-    }
+    return readSelectionText(this, options)
   }
 
   linkAt(point: TerminalPoint): string | undefined {
@@ -463,8 +440,11 @@ export class GhosttyTerminal {
       )
       if (result === GhosttyResult.NoValue) return undefined
       assertGhosttyResult('ghostty_terminal_grid_ref', result)
-      const bytes = this.readNativeBuffer('ghostty_grid_ref_hyperlink_uri', (buffer, length, out) =>
-        this.runtime.exports.ghostty_grid_ref_hyperlink_uri(refPointer, buffer, length, out),
+      const bytes = readNativeBuffer(
+        this.runtime,
+        'ghostty_grid_ref_hyperlink_uri',
+        (buffer, length, out) =>
+          this.runtime.exports.ghostty_grid_ref_hyperlink_uri(refPointer, buffer, length, out),
       )
       if (!bytes || bytes.length === 0) return undefined
       return decoder.decode(bytes)
@@ -728,61 +708,6 @@ export class GhosttyTerminal {
       this.runtime.exports.ghostty_terminal_scroll_viewport(this.handleValue, pointer)
     } finally {
       this.runtime.memory.free(pointer, layout.size)
-    }
-  }
-
-  private initializeSelectionFormatOptions(
-    pointer: number,
-    layout: AbiLayout,
-    options: TerminalSelectionFormatOptions,
-  ): void {
-    this.runtime.memory.view.setUint32(pointer + fieldOffset(layout, 'size'), layout.size, true)
-    this.runtime.memory.view.setInt32(
-      pointer + fieldOffset(layout, 'emit'),
-      nativeFormatterFormat(options.format),
-      true,
-    )
-    this.runtime.memory.view.setUint8(
-      pointer + fieldOffset(layout, 'unwrap'),
-      Number(options.unwrap ?? true),
-    )
-    this.runtime.memory.view.setUint8(
-      pointer + fieldOffset(layout, 'trim'),
-      Number(options.trim ?? true),
-    )
-  }
-
-  private readNativeBuffer(operation: string, read: NativeBufferReader): Uint8Array | undefined {
-    const outWritten = this.runtime.memory.allocate(4)
-    try {
-      const result = read(0, 0, outWritten)
-      if (result === GhosttyResult.NoValue) return undefined
-      if (result === GhosttyResult.Success) return new Uint8Array()
-      assertOutOfSpace(operation, result)
-      const required = this.runtime.memory.view.getUint32(outWritten, true)
-      return this.readAllocatedBuffer(operation, required, outWritten, read)
-    } finally {
-      this.runtime.memory.free(outWritten, 4)
-    }
-  }
-
-  private readAllocatedBuffer(
-    operation: string,
-    required: number,
-    outWritten: number,
-    read: NativeBufferReader,
-  ): Uint8Array {
-    if (required === 0) return new Uint8Array()
-    const buffer = this.runtime.memory.allocate(required)
-    try {
-      assertGhosttyResult(operation, read(buffer, required, outWritten))
-      const written = this.runtime.memory.view.getUint32(outWritten, true)
-      if (written <= required) {
-        return Uint8Array.from(this.runtime.memory.bytes.subarray(buffer, buffer + written))
-      }
-      throw createGhosttyError(operation, `Native call wrote ${written} bytes into ${required}`)
-    } finally {
-      this.runtime.memory.free(buffer, required)
     }
   }
 

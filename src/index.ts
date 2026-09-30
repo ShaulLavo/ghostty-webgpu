@@ -1,4 +1,5 @@
 export { GhosttyError } from './core/error.js'
+export { TERMINAL_READ_LINES_MAX_ROWS } from './core/grid-text.js'
 export { GhosttyRenderState } from './core/render-state.js'
 export { GhosttyRuntime } from './core/runtime.js'
 export { GhosttyTerminal } from './core/terminal.js'
@@ -25,6 +26,7 @@ export type {
   DamageSnapshot,
   DecodedPng,
   DeviceAttributes,
+  ReadLinesOptions,
   ReadRowsOptions,
   RenderCell,
   RenderCursorSnapshot,
@@ -36,6 +38,7 @@ export type {
   TerminalCursor,
   TerminalCursorStyle,
   TerminalEffects,
+  TerminalLine,
   TerminalOptions,
   TerminalPoint,
   TerminalPointTag,

@@ -12,6 +12,11 @@ export const enum CellData {
   Wide = 3,
 }
 
+export const enum RowData {
+  Wrap = 1,
+  WrapContinuation = 2,
+}
+
 export const enum CellWide {
   Narrow = 0,
   Wide = 1,
@@ -552,6 +557,15 @@ export interface GhosttyWasmExports extends WebAssembly.Exports {
   ghostty_wasm_free(pointer: number, length: number): void
   ghostty_wasm_take_opaque(pointer: number): number
   ghostty_cell_get(cell: bigint, data: number, out: number): number
+  ghostty_row_get(row: bigint, data: number, out: number): number
+  ghostty_grid_ref_cell(ref: number, outCell: number): number
+  ghostty_grid_ref_row(ref: number, outRow: number): number
+  ghostty_grid_ref_graphemes(
+    ref: number,
+    buffer: number,
+    capacity: number,
+    outLength: number,
+  ): number
   ghostty_terminal_new(
     allocator: number,
     outTerminal: number,

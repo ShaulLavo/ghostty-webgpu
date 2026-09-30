@@ -1,6 +1,11 @@
 import { encodeTerminalViewport } from './viewport.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
-import type { TerminalScrollbar, TerminalSelectionFormatOptions } from '../core/types.js'
+import type {
+  ReadLinesOptions,
+  TerminalLine,
+  TerminalScrollbar,
+  TerminalSelectionFormatOptions,
+} from '../core/types.js'
 import type { RendererFrameSnapshot } from '../render/renderer.js'
 import { createCompatibleTerminalRenderer } from '../render/selector.js'
 import type { InactiveCursorStyle } from '../render/cursor.js'
@@ -503,6 +508,19 @@ export class Terminal {
       theme: this.session.appearance.rendererTheme,
       padding: elements.padding,
     })
+  }
+
+  /** Count retained scrollback and visible rows on the active screen. */
+  lineCount(): number {
+    this.ensureActive()
+    return this.session.lineCount()
+  }
+
+  /** Read clamped, oldest-first active-screen rows [start, end), capped at TERMINAL_READ_LINES_MAX_ROWS.
+   * trimRight defaults to true. Upstream has no inactive-screen selector. */
+  readLines(start: number, end: number, options: ReadLinesOptions = {}): readonly TerminalLine[] {
+    this.ensureActive()
+    return this.session.readLines(start, end, options)
   }
 
   visibleLines(): readonly string[] {
