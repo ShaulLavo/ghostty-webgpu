@@ -317,7 +317,7 @@ function parsePackResult(output: string): PackResult {
   throw new XtermReferenceError('npm pack returned no package result')
 }
 
-function verifyProjectPack(root: string): void {
+async function verifyProjectPack(root: string): Promise<void> {
   const output = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
     cwd: root,
     encoding: 'utf8',
@@ -327,9 +327,7 @@ function verifyProjectPack(root: string): void {
   if (forbidden) {
     throw new XtermReferenceError(`npm artifact includes reference file ${forbidden.path}`)
   }
-  const projectPackage = JSON.parse(
-    execFileSync('npm', ['pkg', 'get', 'name', 'version'], { cwd: root, encoding: 'utf8' }),
-  ) as { readonly name: string; readonly version: string }
+  const projectPackage = await readJson<InstalledPackageJson>(join(root, 'package.json'))
   assertEqual('packed package name', result.name, projectPackage.name)
   assertEqual('packed package version', result.version, projectPackage.version)
 }
@@ -343,7 +341,7 @@ export async function verifyXtermReference(
   await verifyPackagePins(root, manifest)
   await verifyAddons(root, manifest)
   await verifyBrowserClaim(root, manifest)
-  if (options.pack) verifyProjectPack(root)
+  if (options.pack) await verifyProjectPack(root)
   return manifest
 }
 
