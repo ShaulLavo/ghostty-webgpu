@@ -19,6 +19,7 @@ import {
   type NativeOwnedFile,
 } from './contract'
 import { compareBytes } from './order'
+import { verifyWorkspaceNativeWorkflow } from './workflow'
 
 const FIXED_OWNED_PATHS = [
   '.github/workflows/ci.yml',
@@ -37,6 +38,7 @@ const FIXED_OWNED_PATHS = [
 ] as const
 
 export function createNativeInputs(repositoryRoot: string): NativeInputs {
+  verifyWorkspaceNativeWorkflow(repositoryRoot)
   const recipe = loadBuildRecipe(join(repositoryRoot, NATIVE_BUILD_RECIPE_PATH))
   const ownedFiles = discoverOwnedPaths(repositoryRoot).map((path) =>
     worktreeOwnedFile(repositoryRoot, path),
