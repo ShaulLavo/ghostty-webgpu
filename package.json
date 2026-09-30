@@ -144,7 +144,7 @@
     "@webgpu/types": "0.1.74"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.2",
+    "@types/bun": "1.4.2",
     "@vitest/browser-playwright": "5.0.2",
     "@xterm/addon-attach": "0.12.0",
     "@xterm/addon-clipboard": "0.2.0",

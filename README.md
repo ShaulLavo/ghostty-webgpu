@@ -1,5 +1,8 @@
 # ghostty-webgpu
 
+Development happens in the [Fregat monorepo](https://github.com/ShaulLavo/fregat/tree/main/ghostty-webgpu).
+This repository mirrors its `ghostty-webgpu/` folder. Submit changes to Fregat.
+
 an unofficial ghostty for the web, inspired by [ghostty-web](https://github.com/coder/ghostty-web) and powered by libghostty-vt
 
 damage-aware rendering with webgpu, webgl2, and canvas2d fallbacks. byte-based pty traffic, automatic fitting, and live themes
