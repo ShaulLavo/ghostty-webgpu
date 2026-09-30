@@ -2,9 +2,8 @@
 
 ## Product Direction
 
-- The product is a standalone ghostty-web replacement; Platform is one consumer, not the scope boundary.
-- Follow `plans/README.md` and active Plan 016 when choosing work. Plans 001–015 are historical.
-- Keep the xterm ledger as compatibility evidence. Its missing rows do not automatically become release requirements.
+- The product is Ghostty for the web with its own native API; Platform is one consumer, not the scope boundary.
+- Follow `plans/README.md` and active Plan 017 when choosing work. Plans 001–016 are historical.
 
 ## Organization
 
@@ -31,8 +30,8 @@
 
 ## Package Versioning
 
-- Agents may change only the patch component of this package's version by default.
-- Do not change the major or minor component unless a human explicitly approves that change.
+- Greenfield: breaking changes are wanted. Rename, remove and reshape the API whenever that makes it
+  better, and bump major, minor or patch as the change warrants. No deprecations, aliases or shims.
 
 ## Build And Tests
 

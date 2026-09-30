@@ -1,4 +1,4 @@
-# Plan 017: Drop the xterm facade, read history, and say what we are
+# Plan 017: Drop the xterm facade, read history, measure, and say what we are
 
 Status: Approved, 2026-09-30. Not started. Supersedes Plan 016.
 
@@ -11,8 +11,12 @@ compatibility and does not ship an xterm-shaped facade. After this plan:
   ledger and every script and test that serves them are gone.
 - The native `Terminal` can read any row as text, scrollback included, through the upstream
   libghostty-vt grid API.
-- The README says plainly why this library exists, how it differs from ghostty-web, and when
-  xterm.js is the better choice.
+- Published benchmarks compare it with xterm.js and ghostty-web on the same machine.
+- The README makes the case for Ghostty in the browser with those numbers, says how it differs
+  from ghostty-web, and says when xterm.js is the better choice.
+
+Breaking changes are wanted. This is greenfield: remove and reshape the API freely, bump the
+version to match, and add no deprecations, aliases or shims.
 
 ## Why
 
@@ -46,12 +50,9 @@ Then:
 
 - `plans/README.md`: Plans 007–016 become historical, retired by this plan; this plan is the
   active milestone. The plan files stay as history.
-- `AGENTS.md` Product Direction: the product is Ghostty for the web with a native API; Platform
-  is one consumer. Remove the ghostty-web-replacement and xterm-ledger lines.
 - `docs/integration.md`: native API only.
-- **Versioning:** removing exports is breaking. The package is `0.1.2`; AGENTS.md lets agents change
-  only the patch version, so the implementer asks the owner before release whether this ships as
-  `0.2.0`. Record the answer in a changeset.
+- Bump the version for the removed exports (`0.1.2` → `0.2.0`) with a changeset. `AGENTS.md`
+  already points at this plan and welcomes breaking changes.
 
 Acceptance: `bun run build`, core and browser tests, `test:package` and `test:package:host` pass;
 `rg -i xterm src scripts package.json` finds nothing that is not deliberate (for example a comment
@@ -82,25 +83,63 @@ is no public way to read history rows.
   emoji ZWJ sequences, soft-wrapped rows, the alternate screen, clamping, and equality with what
   selection copies for the same range. Write the history test first and watch it fail.
 
-## 3. Say what we are in the README
+## 3. Benchmarks
 
-Replace the "inspired by ghostty-web" framing with three short sections, facts only, each one
-checked against source before it is written:
+Measure what Ghostty in the browser buys, against `@xterm/xterm` (current release, WebGL renderer
+addon, and its default DOM renderer) and ghostty-web (pinned 0.4.0), on the same machine, fixtures,
+font, size and DPR. Headed Chromium on a hardware adapter (AGENTS.md: SwiftShader proves
+correctness only); add Firefox and Safari where each library runs there.
 
-- **Why this exists:** Ghostty's own terminal emulator (libghostty-vt, pinned upstream, unpatched)
-  in the browser: the same parsing, Unicode and behavior as the Ghostty app, with a damage-aware
-  renderer on WebGPU, then WebGL2, then Canvas2D.
+| Measure                 | What it shows                                                                                                                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parse throughput (MB/s) | libghostty-vt's SIMD parser against xterm.js's JS parser, with rendering paused or off-screen, over corpora: plain ASCII, dense SGR color, Unicode and emoji ZWJ, cursor-motion heavy (TUI redraw), and a large `cat` of real logs |
+| Write-to-frame latency  | time from `write` to the frame that shows it, p50/p95                                                                                                                                                                              |
+| Burst frame time        | frame time and dropped frames while streaming the corpora                                                                                                                                                                          |
+| Input latency           | key event to echoed glyph on screen, through a local echo fixture                                                                                                                                                                  |
+| Memory                  | per terminal, and per 10,000 scrollback rows                                                                                                                                                                                       |
+| Many terminals          | 1, 8 and 17 terminals open, CPU and memory while idle and under output                                                                                                                                                             |
+| Correctness spot checks | the same Unicode and escape-sequence fixtures rendered by all three, screenshots compared by eye and recorded                                                                                                                      |
+
+- Byte streaming is part of the story: this library takes `Uint8Array` straight from the PTY into
+  wasm, with no decode into JS strings on the way. Measure the string path of the other two
+  alongside their byte path where they have one.
+- Reuse `bench/` and `bun run bench:renderer`. Write the new runner as `bun run bench:compare`, with
+  JSON artifacts that record commit, browser, GPU, OS, font, DPR and fixture hashes, and a
+  `docs/benchmarks.md` that reports medians over repeated, order-alternated runs.
+- Report losses as plainly as wins. A number that was not measured does not appear in the README.
+
+## 4. Say what we are in the README
+
+Replace the "inspired by ghostty-web" framing with short sections, facts only, each checked against
+source or a benchmark artifact before it is written:
+
+- **Why Ghostty:** Ghostty is one of the best terminal emulators, and this is its emulator core,
+  libghostty-vt, pinned upstream and unpatched, running in the browser. Say concretely what that
+  buys, with sources:
+  - a SIMD-optimized parser, strong Unicode and grapheme handling, optimized memory use, and a
+    fuzzed, Valgrind-tested core (libghostty's own claims; link
+    [Mitchell Hashimoto's libghostty post](https://mitchellh.com/writing/libghostty-is-coming));
+  - the same parsing and behavior as the Ghostty app, including modern protocols it parses;
+  - bytes in from the PTY, no JS string decoding;
+  - the benchmark results from part 3;
+  - the xterm.js team itself is exploring libghostty because its JS parser has hit hard limits
+    ([xterm.js #5686](https://github.com/xtermjs/xterm.js/issues/5686)).
+- **Renderer:** damage-aware drawing on WebGPU, then WebGL2, then Canvas2D, with live themes and
+  recovery from lost GPU contexts.
 - **Why not ghostty-web:** a few blunt bullets, each verified against the pinned ghostty-web 0.4.0
-  source (`coder/ghostty-web@9e4e126d`):
-  - it builds Ghostty from a 1,620-line fork patch instead of upstream's C API;
+  source (`coder/ghostty-web@9e4e126d`) or our own run:
+  - it builds Ghostty from a 1,620-line fork patch (`patches/ghostty-wasm-api.patch`) that
+    hand-writes a wasm API, where this library uses upstream's C API;
   - it claims xterm.js API compatibility and lists no gaps;
   - it needs `await init()` before a terminal exists;
-  - its renderer: state exactly which backends it has (canvas only, if the source confirms it);
-  - anything else measured on the same machine and fixture (damage-aware drawing, live themes,
-    transparency, recovery from lost GPU contexts). No claim that was not measured.
-- **Why not xterm.js:** honest. xterm.js is mature, has a large addon ecosystem, broader API and
-  proven accessibility. Choose it when you need those. Choose this when you want Ghostty's
-  emulator and rendering in the browser.
+  - its renderer backends, stated exactly (canvas only, if the source confirms it);
+  - reported crashes: a WASM memory corruption where `free()` after an emoji breaks every
+    terminal opened afterwards ([AkaraChen/2code #145](https://github.com/AkaraChen/2code/issues/145));
+    include it only if it reproduces on 0.4.0;
+  - the part 3 numbers.
+- **Why not xterm.js:** honest. xterm.js is mature, with a large addon ecosystem, a broader API and
+  proven accessibility. Choose it when you need those; choose this when you want Ghostty's
+  emulator, byte streaming and the part 3 numbers.
 
 Keep the README's current voice (short, lowercase headings). No "rather than" or "instead of"
 framing in the positioning copy.
@@ -108,15 +147,17 @@ framing in the positioning copy.
 ## How to run it
 
 One Sol worker (high) in its own worktree off Fregat main, one independent Sol reviewer (xhigh),
-per the orchestrate skill. Parts 1 and 2 can be one PR or two; part 3 goes last so it describes the
-shipped API. Heavy runs go through `/work/tmp/wave-heavy/run.sh`. The standalone
+per the orchestrate skill. Parts 1 and 2 can be one PR or two; part 3 is its own PR; part 4 goes last
+so it describes the shipped API and cites the part 3 artifacts. Benchmark runs are CPU- and
+GPU-sensitive: run them when no other heavy work is on the machine, and never alongside a Fregat
+input-latency calibration. Heavy runs go through `/work/tmp/wave-heavy/run.sh`. The standalone
 `ShaulLavo/ghostty-webgpu` repository updates through Fregat's mirror workflow; never push to it
 directly.
 
 ## Done when
 
-- The three parts are merged in Fregat, the mirror is updated, and the package builds and installs
+- The four parts are merged in Fregat, the mirror is updated, and the package builds and installs
   from a packed tarball.
 - The history API has tests that failed before it existed.
-- Every README comparison claim names its evidence (source path, or a measured run).
-- The owner has answered the version question and the changeset records it.
+- `docs/benchmarks.md` and its JSON artifacts are published, losses included.
+- Every README claim names its evidence (source path, link, or a benchmark artifact).
