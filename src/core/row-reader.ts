@@ -45,6 +45,7 @@ export class RowReader {
     )
     if (result === GhosttyResult.OutOfSpace) {
       const required = this.runtime.memory.view.getUint32(this.pointer + 32, true)
+      if (required <= this.graphemesCapacity) assertGhosttyResult('bridge_read_rows', result)
       this.reserveGraphemes(required)
       result = this.extract(
         state,

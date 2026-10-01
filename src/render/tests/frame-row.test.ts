@@ -42,7 +42,6 @@ it.each([
     terminal.write('changed')
     state.update()
     state.readRows({ packed: true })
-    runtime.dispose()
     expect(actual).toEqual(expected)
     expect(packed.map(copiedFrameRow)).toEqual(expected)
   } finally {

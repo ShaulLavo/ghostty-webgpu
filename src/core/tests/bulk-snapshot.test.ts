@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it } from 'vitest'
+import { GhosttyResult } from '../abi.js'
+import { GhosttyError } from '../error.js'
 import { emptyRenderCell } from '../packed-cells.js'
+import { RowReader } from '../row-reader.js'
 import { GhosttyRuntime } from '../runtime.js'
+import { expectSnapshotTransitions } from './bulk-parity.js'
 import { readPerCellRows } from './per-cell-reader.js'
 
 let runtime: GhosttyRuntime | undefined
@@ -81,6 +85,42 @@ describe('bulk snapshots', () => {
         }
       }
       state.acknowledge()
+    }
+  })
+
+  it('matches per-cell reads across default styles, palette changes, and screen switches', async () => {
+    runtime = await GhosttyRuntime.create()
+    expectSnapshotTransitions(runtime)
+  })
+
+  it.each([
+    { columns: 0, rows: 2 },
+    { columns: 4, rows: 1 },
+  ])('reports row/cell capacity shortfalls as out of space (%j)', async (grid) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 4, rows: 2 })
+    const state = runtime.createRenderState(terminal)
+    let handles: number[] = []
+    const bulkRead = runtime.bridge.readRows.bind(runtime.bridge)
+    runtime.bridge.readRows = (...args) => {
+      handles = args
+      return bulkRead(...args)
+    }
+    terminal.write('test')
+    state.update()
+    state.readRows()
+    const reader = new RowReader(runtime)
+    try {
+      expect(() => reader.read(handles[0]!, handles[1]!, handles[2]!, grid, {})).toThrowError(
+        expect.objectContaining({
+          name: GhosttyError.name,
+          operation: 'bridge_read_rows',
+          result: GhosttyResult.OutOfSpace,
+          message: `bridge_read_rows failed: out of space (${GhosttyResult.OutOfSpace})`,
+        }),
+      )
+    } finally {
+      reader.dispose()
     }
   })
 

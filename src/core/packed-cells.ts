@@ -41,7 +41,7 @@ export class PackedCells {
     this.length = words.length / PACKED_CELL_WORDS
   }
 
-  // The target is a scratch cell. Consumers finish using it before the next read.
+  // The target and its color/style objects are reused scratch; finish using them before the next read.
   read(index: number, target: RenderCell): RenderCell {
     const offset = index * PACKED_CELL_WORDS
     const flags = this.words[offset + 3]!

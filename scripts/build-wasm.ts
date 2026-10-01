@@ -4,16 +4,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from '../src/core/version.js'
 
+import { ArtifactBuildError, verifyCleanSource, verifyRevision } from './ghostty-source.js'
+
 const sourceRepository = GHOSTTY_SOURCE_REPOSITORY
 const sourceRevision = GHOSTTY_SOURCE_REVISION
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
-
-class ArtifactBuildError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ArtifactBuildError'
-  }
-}
 
 async function run(command: string[], cwd: string): Promise<void> {
   const process = Bun.spawn(command, {
@@ -59,32 +54,6 @@ async function checkoutSource(workspace: string): Promise<string> {
   await run(['git', 'fetch', '--depth', '1', 'origin', sourceRevision], source)
   await run(['git', 'checkout', '--detach', sourceRevision], source)
   return source
-}
-
-async function verifyRevision(source: string): Promise<void> {
-  const process = Bun.spawn(['git', 'rev-parse', 'HEAD'], {
-    cwd: source,
-    stderr: 'inherit',
-    stdout: 'pipe',
-  })
-  const revision = (await new Response(process.stdout).text()).trim()
-  const exitCode = await process.exited
-  if (exitCode !== 0) throw new ArtifactBuildError('Unable to read the Ghostty source revision')
-  if (revision === sourceRevision) return
-  throw new ArtifactBuildError(`Expected Ghostty ${sourceRevision}, received ${revision}`)
-}
-
-async function verifyCleanSource(source: string): Promise<void> {
-  const process = Bun.spawn(['git', 'status', '--porcelain=v1', '--untracked-files=all'], {
-    cwd: source,
-    stderr: 'inherit',
-    stdout: 'pipe',
-  })
-  const status = (await new Response(process.stdout).text()).trim()
-  const exitCode = await process.exited
-  if (exitCode !== 0) throw new ArtifactBuildError('Unable to inspect the Ghostty source tree')
-  if (status.length === 0) return
-  throw new ArtifactBuildError('Ghostty source tree must be clean to build pinned artifacts')
 }
 
 async function validateWasm(path: string): Promise<void> {
