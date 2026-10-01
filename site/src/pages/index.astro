@@ -91,7 +91,18 @@ socket.addEventListener(
             <button type="button" role="tab" data-demo="matrix" aria-selected="false">Matrix</button>
             <button type="button" role="tab" data-demo="shell" aria-selected="false">Shell</button>
           </div>
-          <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
+          <div class="chrome-end">
+            <button
+              type="button"
+              class="toggle"
+              id="damage"
+              aria-pressed="false"
+              title="Tint each row the renderer repaints"
+            >
+              Redraws
+            </button>
+            <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
+          </div>
         </div>
         <div class="screen">
           <div id="terminal" role="tabpanel" aria-label="Animated Ghostty ghost"></div>

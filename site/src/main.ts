@@ -4,6 +4,7 @@ import { GhostDemo } from './demos/ghost.js'
 import { MatrixDemo } from './demos/matrix.js'
 import { ShellDemo } from './demos/shell.js'
 import type { Demo, DemoContext } from './demos/types.js'
+import { DamageOverlay } from './damage-overlay.js'
 import { fittedScreenHeight, roundedFitPadding } from './fit.js'
 import { ink, pale, palette256, spectre } from './theme.js'
 
@@ -32,6 +33,7 @@ const ui = {
   backendFact: required<HTMLElement>('#backend-fact'),
   caption: required<HTMLElement>('#caption'),
   copy: required<HTMLButtonElement>('#copy-install'),
+  damage: required<HTMLButtonElement>('#damage'),
   fatal: required<HTMLElement>('#fatal'),
   fatalMessage: required<HTMLElement>('#fatal-message'),
   host: required<HTMLElement>('#terminal'),
@@ -41,6 +43,7 @@ const ui = {
   window: required<HTMLElement>('#window'),
 }
 
+const overlay = new DamageOverlay(ui.screen)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let terminal: Terminal | undefined
 const paused = reducedMotion.matches
@@ -130,7 +133,18 @@ function setFont(size: number, lineHeight: number): void {
   terminal!.setFont({ lineHeight, size })
 }
 
+function toggleOverlay(): void {
+  if (!terminal) return
+  const wasOn = overlay.enabled
+  if (wasOn) overlay.disable()
+  if (!wasOn) overlay.enable(terminal)
+  ui.damage.setAttribute('aria-pressed', String(overlay.enabled))
+  // Typing right after toggling belongs to the shell, and Space would flip the toggle back.
+  if (active.input) terminal.focus()
+}
+
 function wireControls(): void {
+  ui.damage.addEventListener('click', toggleOverlay)
   // The terminal's own wheel handler scrolls its scrollback and blocks the
   // page. Stop the event in the capture phase so the page scrolls instead.
   ui.host.addEventListener('wheel', (event) => event.stopPropagation(), { capture: true })

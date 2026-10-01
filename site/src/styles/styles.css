@@ -253,6 +253,36 @@ h1 {
   color: var(--pale);
 }
 
+.chrome-end {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle {
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #a8a3c6;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  transition:
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.toggle:hover,
+.toggle[aria-pressed='true'] {
+  color: var(--pale);
+}
+
+.toggle[aria-pressed='true'] {
+  background: rgba(126, 230, 206, 0.16);
+}
+
+.toggle:focus-visible,
 .tabs button:focus-visible {
   outline-color: var(--spectre);
   outline-offset: 1px;
@@ -282,6 +312,11 @@ h1 {
   height: clamp(320px, 62vh, 620px);
   background: var(--ink);
   overflow: hidden;
+}
+
+.damage-overlay {
+  position: absolute;
+  pointer-events: none;
 }
 
 #terminal {
@@ -401,6 +436,19 @@ h1 {
     display: flex;
     justify-content: space-between;
     font-size: 14px;
+  }
+
+  /* The dots are decoration; the tabs, toggle and backend label need the width. */
+  .window-dots {
+    display: none;
+  }
+
+  .chrome {
+    padding-inline: 10px;
+  }
+
+  .chrome-end {
+    gap: 6px;
   }
 }
 
