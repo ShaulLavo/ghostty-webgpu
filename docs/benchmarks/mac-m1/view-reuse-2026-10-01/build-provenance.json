@@ -1,0 +1,7 @@
+{
+  "toolingBase": "5021f44c1fdb3a0ee4c8bde410e796ba1c75d9e8",
+  "head": "8d04140332d90f94cac8ac7f87069c3538adf177",
+  "baselineProductionModule": "git show 5021f44c1fdb3a0ee4c8bde410e796ba1c75d9e8:ghostty-webgpu/src/core/memory.ts",
+  "beforeMemorySha256": "7ca307809349e36fb953b2dee2464d46c02d3c9d840cd6fe17f3ee739f586e09",
+  "afterMemorySha256": "b18a76f98999f5c9a8e164f5f974bf8c02bdc9de13c88fd95cf4a77caea70613"
+}

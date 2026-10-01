@@ -1,0 +1,62 @@
+[
+  {
+    "directory": "before-17-sgr-0-0",
+    "repetition": 0,
+    "attempt": 0,
+    "startedAt": "2026-10-01T12:43:24.299Z",
+    "finishedAt": "2026-10-01T12:44:29.573Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--only-repetition",
+      "0",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-17-sgr-0-0"
+    ],
+    "comparisonSha256": "9a1353f895c937f74ba3776589d561898e31fbe095629dab7d6d2a62e113f3e8"
+  },
+  {
+    "directory": "before-17-sgr-1-0",
+    "repetition": 1,
+    "attempt": 0,
+    "startedAt": "2026-10-01T12:46:40.128Z",
+    "finishedAt": "2026-10-01T12:47:44.952Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--only-repetition",
+      "1",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-17-sgr-1-0"
+    ],
+    "comparisonSha256": "0d4362788f4ea47230bad991319d92df030a0e033ff6df42cd7d7f12daf94aea"
+  },
+  {
+    "directory": "before-17-sgr-2-0",
+    "repetition": 2,
+    "attempt": 0,
+    "startedAt": "2026-10-01T12:47:45.609Z",
+    "finishedAt": "2026-10-01T12:48:51.793Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--only-repetition",
+      "2",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-17-sgr-2-0"
+    ],
+    "comparisonSha256": "2dc5e53c7de61b2b777fc165151bcbe2417bf406dbbe323f74ddec7f224d5364"
+  }
+]

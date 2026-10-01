@@ -1,0 +1,56 @@
+[
+  {
+    "kind": "before",
+    "count": 17,
+    "phase": "sgr",
+    "repetition": 0,
+    "attempt": 0,
+    "directory": "before-17-sgr-0-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "phase": "sgr",
+    "repetition": 0,
+    "attempt": 0,
+    "directory": "after-17-sgr-0-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "phase": "sgr",
+    "repetition": 1,
+    "attempt": 0,
+    "directory": "after-17-sgr-1-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "before",
+    "count": 17,
+    "phase": "sgr",
+    "repetition": 1,
+    "attempt": 0,
+    "directory": "before-17-sgr-1-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "before",
+    "count": 17,
+    "phase": "sgr",
+    "repetition": 2,
+    "attempt": 0,
+    "directory": "before-17-sgr-2-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "phase": "sgr",
+    "repetition": 2,
+    "attempt": 0,
+    "directory": "after-17-sgr-2-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  }
+]

@@ -1,0 +1,3517 @@
+{
+  "environment": {
+    "browser": "153.0.8010.12",
+    "os": "darwin 25.4.0 arm64",
+    "cpu": "Apple M1",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "gpu": {
+      "gpu": {
+        "devices": [
+          {
+            "vendorId": 4203,
+            "deviceId": 0,
+            "vendorString": "Google Inc. (Apple)",
+            "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+            "driverVendor": "Apple",
+            "driverVersion": "26.4"
+          }
+        ],
+        "auxAttributes": {
+          "amdSwitchable": false,
+          "canSupportThreadedTextureMailbox": false,
+          "directRenderingVersion": "",
+          "displayType": "ANGLE_METAL",
+          "glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_size GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_provoking_vertex GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_translated_shader_source GL_APPLE_clip_distance GL_ARM_rgba8 GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_base_instance GL_EXT_blend_func_extended GL_EXT_blend_minmax GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_multisampled_render_to_texture GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_pvrtc_sRGB GL_EXT_read_format_bgra GL_EXT_render_snorm GL_EXT_robustness GL_EXT_sRGB GL_EXT_shader_texture_lod GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_norm16 GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_IMG_texture_compression_pvrtc GL_KHR_debug GL_KHR_parallel_shader_compile GL_KHR_robustness GL_KHR_texture_compression_astc_hdr GL_KHR_texture_compression_astc_ldr GL_KHR_texture_compression_astc_sliced_3d GL_MESA_framebuffer_flip_y GL_NV_fence GL_NV_framebuffer_blit GL_NV_pixel_buffer_object GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_vertex_array_object GL_QCOM_render_shared_exponent ",
+          "glImplementationParts": "(gl=egl-angle,angle=metal)",
+          "glRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+          "glResetNotificationStrategy": 33362,
+          "glVendor": "Google Inc. (Apple)",
+          "glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28646 git hash: a6bc9eff8444)",
+          "glWsExtensions": "",
+          "glWsVendor": "",
+          "glWsVersion": "",
+          "inProcessGpu": false,
+          "initializationTime": 0.023904,
+          "isAsan": false,
+          "isClangCoverage": false,
+          "jpegDecodeAcceleratorSupported": false,
+          "maxMsaaSamples": "4",
+          "optimus": false,
+          "passthroughCmdDecoder": true,
+          "pixelShaderVersion": "3.00",
+          "processCrashCount": 0,
+          "sandboxed": false,
+          "skiaBackendType": "GraphiteDawnMetal",
+          "subpixelFontRendering": true,
+          "targetCpuBits": 64,
+          "vertexShaderVersion": "3.00",
+          "visibilityCallbackCallCount": 0
+        },
+        "featureStatus": {
+          "2d_canvas": "enabled",
+          "direct_rendering_display_compositor": "disabled_off_ok",
+          "gpu_compositing": "enabled",
+          "multiple_raster_threads": "enabled_on",
+          "opengl": "enabled_on",
+          "rasterization": "enabled",
+          "raw_draw": "disabled_off_ok",
+          "skia_graphite": "enabled_on",
+          "trees_in_viz": "disabled_off",
+          "video_decode": "enabled",
+          "video_encode": "enabled",
+          "webgl": "enabled",
+          "webgpu": "enabled",
+          "webnn": "disabled_off"
+        },
+        "driverBugWorkarounds": [
+          "disable_2d_canvas_auto_flush",
+          "enable_webgl_timer_query_extensions",
+          "disabled_extension_GL_KHR_blend_equation_advanced",
+          "disabled_extension_GL_KHR_blend_equation_advanced_coherent"
+        ],
+        "videoDecoding": [],
+        "videoEncoding": []
+      },
+      "modelName": "MacBookAir",
+      "modelVersion": "10.1",
+      "commandLine": "/Users/shaul/Library/Caches/ms-playwright/chromium-1243/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --force-device-scale-factor=2 --enable-unsafe-webgpu --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --max-active-webgl-contexts=32 --user-data-dir=/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before/tmp/playwright_chromiumdev_profile-EDKFKj --remote-debugging-pipe --no-startup-window --flag-switches-begin --flag-switches-end --enable-unsafe-swiftshader"
+    },
+    "headed": true,
+    "displayAwake": "caffeinate -d -u -t 1800",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "1",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-1-sgr-0-0"
+    ],
+    "launchArguments": [
+      "--force-device-scale-factor=2",
+      "--enable-unsafe-webgpu",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--max-active-webgl-contexts=32"
+    ],
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  "manifest": {
+    "schema": 1,
+    "commit": "8d04140332d90f94cac8ac7f87069c3538adf177",
+    "dirty": "M ghostty-webgpu/src/core/memory.ts",
+    "sourceSha256": "ee3c6b7c0212a3ab067a03b7c0948316133735826b5e539d131207d1ca42e024",
+    "bundleSha256": "2eece08b080a6f89e349609dac823a57f3a1ce348cfb784782dd59a9c7138336",
+    "versions": {
+      "@xterm/xterm": "6.0.0",
+      "@xterm/addon-webgl": "0.19.0",
+      "ghostty-web": "0.4.0",
+      "@fontsource/jetbrains-mono": "5.3.0",
+      "playwright": "1.63.0",
+      "ws": "8.22.0",
+      "ghostty-webgpu": "0.2.0"
+    },
+    "settings": {
+      "columns": 40,
+      "rows": 12,
+      "fontFamily": "Bench Mono",
+      "fontSize": 12,
+      "lineHeight": 1.2,
+      "dpr": 2,
+      "viewport": {
+        "width": 1600,
+        "height": 1400
+      },
+      "scrollback": 10000,
+      "ghosttyScrollbackBytes": 67108864,
+      "counts": [1, 8, 17],
+      "repetitions": 3,
+      "latencySamples": 12,
+      "burstFrames": 32,
+      "idleMilliseconds": 1000,
+      "outputFrames": 60,
+      "chunkBytes": 4096,
+      "corpusBytes": 1048576
+    },
+    "variants": [
+      {
+        "id": "ghostty-webgpu",
+        "library": "ghostty-webgpu",
+        "renderer": "webgpu"
+      },
+      {
+        "id": "xterm-webgl",
+        "library": "@xterm/xterm",
+        "renderer": "webgl"
+      },
+      {
+        "id": "xterm-dom",
+        "library": "@xterm/xterm",
+        "renderer": "dom"
+      },
+      {
+        "id": "ghostty-web",
+        "library": "ghostty-web",
+        "renderer": "canvas2d"
+      }
+    ],
+    "fixtures": [
+      {
+        "name": "ascii",
+        "bytes": 1048600,
+        "sha256": "cbe356164d371a7c5ab0006ecbba813dfbf9b56a1a68341b500938eeba662230"
+      },
+      {
+        "name": "sgr",
+        "bytes": 1048606,
+        "sha256": "1df6298849df77bfe761b398eebdef6b4cd6ce7b621ba2612d3ac78869a5300a"
+      },
+      {
+        "name": "unicode",
+        "bytes": 1048599,
+        "sha256": "3de374da842539cce32936959e858bf0b9ac841ff52f3f93e60b9b703091c7ef"
+      },
+      {
+        "name": "cursor",
+        "bytes": 1048628,
+        "sha256": "bc88592f18d2b0aaf914429ea57e5e3566294f135bb5e3cbaf859594a49c5a19"
+      },
+      {
+        "name": "logs",
+        "bytes": 1059649,
+        "sha256": "5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834"
+      }
+    ],
+    "assets": {
+      "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+      "bridge.wasm": "47fae389c94f2545b2026d756256272b65f978d97feabae21b9171ad4b54b63f",
+      "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+      "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+      "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+      "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+      "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+      "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+      "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+      "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+      "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+      "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+      "comparison-runner.mjs": "bf6edbe7450b56db34040e0176dff11962962cc8c8d401647b16681eb4b01325",
+      "comparison-report.mjs": "8e824a9834632a5ba7959c8d418dcf1d14c9a5cb53071d68237ca27df6d79c17",
+      "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+      "comparison-guards.mjs": "729f3ff328599d23dd571bfd25cd529e5996821dcb948ffe0de146b359c40417",
+      "comparison-trace.mjs": "a857b9d7127a7d240db7326bdf0f7680ec1a534edb85ebcfe87269c3bb565b59",
+      "comparison-attribution.mjs": "d373ea72919a9a0904ece5f4797278c6a65116b329b24f24a72bcf6e901ffc39",
+      "comparison-options.mjs": "6076c0034ca8467363b7b85f19996c1faced2a2ebb433cec38c6977233dc4786",
+      "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+    },
+    "logs": {
+      "kind": "real Git history log",
+      "repository": "ShaulLavo/fregat",
+      "revision": "5d98d10f4",
+      "entries": 256
+    },
+    "pairedRunnerChange": "Skip other repetitions with --only-repetition. Combine all three complete repetitions before corrected analyzer validation. Browser bundle unchanged."
+  },
+  "qualifications": [
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 0,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1869010595,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:54:37.194Z",
+      "frameCount": 120,
+      "median": 16.675000000000182,
+      "p95": 33.3449999999998,
+      "max": 33.375,
+      "periodsSha256": "e23f9c948563e67d103ddd27098c36c997c2661b494240aeb9869571057ef373"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 0,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1869010595,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:54:40.957Z",
+      "frameCount": 120,
+      "median": 16.672500000000127,
+      "p95": 33.344999999999345,
+      "max": 33.474999999999454,
+      "periodsSha256": "aa7a2ac3ad30590153de6eaba77f290d6d462f4b677fbcac5819a976a7aca27e"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 0,
+      "phase": "trace/sgr/control/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1869010595,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:54:44.806Z",
+      "frameCount": 120,
+      "median": 16.68749999999909,
+      "p95": 33.344999999999345,
+      "max": 33.42000000000007,
+      "periodsSha256": "b3ef652f687924c2f263126d1c11dfaf589fdc2a85988f194059c090404d0743"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 0,
+      "phase": "trace/sgr/trace/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1869010595,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:54:51.374Z",
+      "frameCount": 120,
+      "median": 16.674999999999272,
+      "p95": 33.340000000000146,
+      "max": 33.75,
+      "periodsSha256": "229af67179dd589086b213cab4f5f8913bd74486ca6b428cb3a587cf9ca4838a"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 0,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1869010597,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:54:59.241Z",
+      "frameCount": 120,
+      "median": 16.674999999999955,
+      "p95": 33.335000000000036,
+      "max": 33.65499999999997,
+      "periodsSha256": "e699606dcc46ee6a24a9397ebef874de90b90afa873b3819fb342db96bb40c1c"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 0,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1869010597,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:55:02.853Z",
+      "frameCount": 120,
+      "median": 16.67999999999938,
+      "p95": 33.31500000000051,
+      "max": 33.350000000000364,
+      "periodsSha256": "f59d22137d3157a4f8401bac92aab46a55103500f547d2b8af32e45df1ee0b10"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 0,
+      "phase": "trace/sgr/control/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1869010597,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:55:06.574Z",
+      "frameCount": 120,
+      "median": 16.709999999999127,
+      "p95": 33.32999999999993,
+      "max": 33.399999999999636,
+      "periodsSha256": "2909ad6df669a287adf4f5ba363f7df820df7e9c11ccdf6bc527d6dc818aa32b"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 0,
+      "phase": "trace/sgr/trace/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65114/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1869010597,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:55:13.308Z",
+      "frameCount": 120,
+      "median": 16.720000000000255,
+      "p95": 33.344999999997526,
+      "max": 34.13000000000102,
+      "periodsSha256": "ec13820c93d4966010ebf06e418fa7bbafd438b364ef011f3a4baf0b4ab3ed3f"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 1,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1868647345,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:56:55.178Z",
+      "frameCount": 120,
+      "median": 16.679999999999836,
+      "p95": 33.33999999999992,
+      "max": 33.944999999999936,
+      "periodsSha256": "3af6bae713f8691e9c8c5a1d237b7853f1fc52f672bd58c82382fb4c4b2dc83e"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 1,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1868647345,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:56:58.854Z",
+      "frameCount": 120,
+      "median": 16.6850000000004,
+      "p95": 33.340000000000146,
+      "max": 33.85999999999967,
+      "periodsSha256": "96bb5513a13b97f73c8802030f51389700a0b2ee9e88398eac80b05622192f5e"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 1,
+      "phase": "trace/sgr/trace/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1868647345,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:02.625Z",
+      "frameCount": 120,
+      "median": 16.68249999999989,
+      "p95": 33.344999999999345,
+      "max": 33.835000000000946,
+      "periodsSha256": "c877783803eafe74c98e99211ff630dc8617c4f3efd4a77f7503e5ff98ea3b76"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 1,
+      "phase": "trace/sgr/control/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1868647345,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:11.109Z",
+      "frameCount": 120,
+      "median": 16.707500000000437,
+      "p95": 33.35000000000218,
+      "max": 33.92499999999927,
+      "periodsSha256": "20828a49b01b40bcd5e12834d91205f8bc33869da54562f0202a1f51253ec29b"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 1,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1868647347,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:18.059Z",
+      "frameCount": 120,
+      "median": 16.690000000000055,
+      "p95": 33.3449999999998,
+      "max": 33.534999999999854,
+      "periodsSha256": "498eb3c30afaf0f856b6df3cf52bfb9360739eee519fd5860c563dee807669fb"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 1,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1868647347,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:21.870Z",
+      "frameCount": 120,
+      "median": 16.6850000000004,
+      "p95": 33.335000000000036,
+      "max": 33.63999999999942,
+      "periodsSha256": "ebd4e15545da74179a83e2521789866cdd5b5e9c7b26b6ac6ac028620638f149"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 1,
+      "phase": "trace/sgr/trace/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1868647347,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:25.675Z",
+      "frameCount": 120,
+      "median": 16.68499999999949,
+      "p95": 33.33999999999833,
+      "max": 33.850000000000364,
+      "periodsSha256": "cc0f9df23498b995368373fe1c70dd825c03cf25216b73d862b2c2359e967fec"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 1,
+      "phase": "trace/sgr/control/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:65462/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1868647347,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:33.622Z",
+      "frameCount": 120,
+      "median": 16.69000000000051,
+      "p95": 33.340000000000146,
+      "max": 33.525000000001455,
+      "periodsSha256": "c81a357750818b7ad206635c37198c0ab2d3955c927f6e3096572ad16c8d023a"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 2,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1636359738,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:41.511Z",
+      "frameCount": 120,
+      "median": 16.69500000000005,
+      "p95": 33.33499999999981,
+      "max": 34.225000000000364,
+      "periodsSha256": "a4c1ad907b6645fa5e3d13d17de511c6ccf44a9de5394a217441e12da23f87dd"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 2,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1636359738,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:45.257Z",
+      "frameCount": 120,
+      "median": 16.68249999999989,
+      "p95": 33.335000000000036,
+      "max": 33.375,
+      "periodsSha256": "0ad622a2b71794505b659e6e8f093e6832f96173e93cef4a1bd5f1194a939a55"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 2,
+      "phase": "trace/sgr/control/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1636359738,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:48.960Z",
+      "frameCount": 120,
+      "median": 16.679999999998472,
+      "p95": 33.335000000000946,
+      "max": 33.720000000001164,
+      "periodsSha256": "46c01c9e44bda82f1f296c25c175b601240b911c0cb224e91f3ea806f538dbf9"
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 2,
+      "phase": "trace/sgr/trace/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 60,
+          "height": 46
+        }
+      ],
+      "window": {
+        "windowId": 1636359738,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:57:55.676Z",
+      "frameCount": 120,
+      "median": 16.6899999999996,
+      "p95": 33.345000000001164,
+      "max": 33.44499999999971,
+      "periodsSha256": "238e4c375ba2a90926218446b4a89f0c9fa92355c80dfc6e827355bd0c98a421"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 2,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1636359740,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:58:04.308Z",
+      "frameCount": 120,
+      "median": 16.690000000000055,
+      "p95": 33.345000000000255,
+      "max": 33.88500000000022,
+      "periodsSha256": "59aebe29819cac3f04376248f6e1513d37498a7e92ff9b2252eec07a2f1f7628"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 2,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1636359740,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:58:08.124Z",
+      "frameCount": 120,
+      "median": 16.690000000000055,
+      "p95": 33.344999999999345,
+      "max": 33.41999999999916,
+      "periodsSha256": "608df32500323862e4c0e6dfbc8aae1586246de8f8a16c6f211d978bddb46a0c"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 2,
+      "phase": "trace/sgr/control/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1636359740,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:58:11.924Z",
+      "frameCount": 120,
+      "median": 16.68249999999989,
+      "p95": 33.350000000000364,
+      "max": 34.20499999999993,
+      "periodsSha256": "87ff19d211795fc189a575b4adfaef14882212ba47610c6cc20d9760aba90dec"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 2,
+      "phase": "trace/sgr/trace/mounted-probe",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:49174/?trace",
+      "innerWidth": 1408,
+      "innerHeight": 781,
+      "outerWidth": 1408,
+      "outerHeight": 868,
+      "screenX": 16,
+      "screenY": 16,
+      "screen": {
+        "width": 1440,
+        "height": 900,
+        "availWidth": 1440,
+        "availHeight": 900
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1636359740,
+        "bounds": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-01T12:58:18.592Z",
+      "frameCount": 120,
+      "median": 16.68499999999858,
+      "p95": 33.340000000000146,
+      "max": 33.455000000001746,
+      "periodsSha256": "39f86222866fc93660e4cb95b6134e0cd82d58a6e4be73b6b4423a71019efa9b"
+    }
+  ],
+  "startedAt": "2026-10-01T12:54:33.049Z",
+  "finishedAt": "2026-10-01T12:58:22.849Z",
+  "fileHashes": {
+    "comparison.json": "ebab49c1b9be4ec5ffada0e3f4635889bb1f714453980e8104cb973bfa85d022",
+    "ghostty-webgpu-1-0-sgr-trace.trace.json.gz": "0869c8d81ba6e0dfba0746da058ba85ef637e0bd6d34f9a2a9f0a12f92af4512",
+    "xterm-webgl-1-0-sgr-trace.trace.json.gz": "e15d8fd55d9b0beec4c714d627dd4a3648699b998e8ab3fcb5b9bf11d8bfa1e9",
+    "xterm-webgl-1-1-sgr-trace.trace.json.gz": "2362e1a06c90870c34f60fd6dc1f40473ad508b808746e0abc8d6ab2c233f023",
+    "ghostty-webgpu-1-1-sgr-trace.trace.json.gz": "26029c36fb92849a8ea7018914241efaf918e5253a23b9382e89a0bdf979358d",
+    "xterm-webgl-1-2-sgr-trace.trace.json.gz": "56e4114bbeb0ae30b38ba6fd90340fc115e0e96d00f80b2f694d44afaaf0943a",
+    "ghostty-webgpu-1-2-sgr-trace.trace.json.gz": "dee784deef5fcaaa1644f273295c4001ac7d0b6c7cea007e62702417bc5c3566"
+  },
+  "rows": [
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 0,
+      "label": "ghostty-webgpu-1-0-sgr-control",
+      "traced": false,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.01023799999999997,
+          "renderer": 0.8205210000000001,
+          "GPU": 0.29867199999999994,
+          "network.mojom.NetworkService": 0.002617000000000008,
+          "storage.mojom.StorageService": 0
+        },
+        "percentOfOneCore": 36.79567617131221,
+        "processChurn": false,
+        "milliseconds": 3076.5788749999992,
+        "interval": {
+          "before": {
+            "requested": 12090.475667,
+            "completed": 12091.321334
+          },
+          "after": {
+            "requested": 15167.093292,
+            "completed": 15167.861459
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.8069169999998849
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3075.739083999999,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      }
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 0,
+      "label": "ghostty-webgpu-1-0-sgr-trace",
+      "traced": true,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.015017000000000058,
+          "renderer": 0.8614419999999998,
+          "GPU": 0.27652,
+          "network.mojom.NetworkService": 0.005118000000000011,
+          "storage.mojom.StorageService": 0.0008559999999999957,
+          "tracing.mojom.TracingService": 0.005878000000000001
+        },
+        "percentOfOneCore": 37.99159264190053,
+        "processChurn": false,
+        "milliseconds": 3066.023083,
+        "interval": {
+          "before": {
+            "requested": 18754.019084,
+            "completed": 18754.384084
+          },
+          "after": {
+            "requested": 21819.647375,
+            "completed": 21820.801959
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.7597920000007434
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3065.2577089999977,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "summary": {
+        "milliseconds": {
+          "parse": 21.250003337860107,
+          "js": 51.269997119903564,
+          "snapshot": 261.02500200271606,
+          "damage": 1.6399989128112793,
+          "instances": 64.66999816894531,
+          "upload": 16.89499807357788,
+          "commands": 9.175002574920654
+        },
+        "instrumentedMilliseconds": 425.92500019073486,
+        "shares": {
+          "parse": 4.9891420621809175,
+          "js": 12.037329834347405,
+          "snapshot": 61.284264104202755,
+          "damage": 0.3850440598877422,
+          "instances": 15.183423875091911,
+          "upload": 3.9666603430209726,
+          "commands": 2.1541357212682906
+        },
+        "byTerminal": {
+          "0": {
+            "stateUpdates": 181,
+            "rowsCopied": 2172,
+            "cellsCopied": 86880,
+            "atlasUploads": 0,
+            "atlasBytes": 0,
+            "buffersWritten": 362,
+            "bufferBytes": 13900800,
+            "draws": 362,
+            "submissions": 181,
+            "frames": 181
+          }
+        },
+        "ownership": {
+          "scheduler": 1,
+          "device": 1,
+          "queue": 1,
+          "pipelines": 2
+        },
+        "frameCounterDistribution": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          }
+        ]
+      },
+      "mainTaskMilliseconds": 511.77500343322754,
+      "instrumentedShareOfMainTasks": 83.2250495497884,
+      "timelines": [],
+      "frameCadence": {
+        "pacedIntervals": {
+          "samples": 184,
+          "p50": 16.665000000000873,
+          "p95": 17.645000000000437,
+          "max": 17.68000000000029
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 181,
+          "p50": 2.1999998092651367,
+          "p95": 2.804999828338623,
+          "max": 3.0149998664855957
+        }
+      },
+      "sampledLeaves": {
+        "(idle)": 2477.965950012207,
+        "(program)": 263.92700004577637,
+        "get view": 113.52899980545044,
+        "wasm-function[751]": 40.025999546051025,
+        "decode": 25.637001037597656,
+        "read": 17.004000186920166,
+        "writeGlyph": 14.954999923706055,
+        "get buffer": 14.12100076675415,
+        "writeColor": 12.973000049591064,
+        "(garbage collector)": 11.630000591278076,
+        "": 11.505000591278076,
+        "mark": 9.126046657562256,
+        "wasm-function[753]": 8.800999641418457,
+        "writeBuffer": 8.425000667572021,
+        "getOrInsert": 6.640999794006348,
+        "linkFrameSignature": 5.766000270843506,
+        "requestAnimationFrame": 5.164000511169434,
+        "wasm-function[860]": 4.779999256134033,
+        "copiedFrameRow3": 3.881000518798828,
+        "writeCell": 3.8570008277893066,
+        "submit": 3.365999698638916,
+        "readStyle": 2.947000026702881,
+        "rebuildRow": 2.932999610900879,
+        "getBoundingClientRect": 2.8429999351501465,
+        "get bytes": 2.6640000343322754,
+        "readWide": 2.357999801635742,
+        "encode": 2.335000514984131,
+        "readBufferLength": 2.2990002632141113,
+        "wasm-function[721]": 1.9970006942749023,
+        "readColor": 1.9559998512268066,
+        "wasm-function[62]": 1.940000057220459,
+        "readBoolean": 1.8899993896484375,
+        "js-to-wasm:i:i": 1.8829998970031738,
+        "setAttribute": 1.7620000839233398,
+        "touch": 1.7509994506835938,
+        "wasm-function[195]": 1.6750001907348633,
+        "readText": 1.625,
+        "initializeTextBuffer": 1.6119999885559082,
+        "js-to-wasm:iiii:": 1.5229997634887695,
+        "get exports": 1.515000343322754,
+        "readStyleBoolean": 1.498000144958496,
+        "readCells": 1.4250001907348633,
+        "count": 1.4089999198913574,
+        "createView": 1.260000228881836,
+        "decodeSafeUint64": 1.1890006065368652,
+        "wasm-function[287]": 1.183000087738037,
+        "input": 1.0370001792907715,
+        "wasm-function[418]": 1.0339999198913574,
+        "positionTextarea": 1.0269999504089355,
+        "renderSnapshot": 1.0229997634887695,
+        "beginRenderPass": 1.0209999084472656,
+        "now": 1.0180001258850098,
+        "readRows": 1.0139999389648438,
+        "wasm-function[779]": 1.004000186920166,
+        "wasm-function[746]": 1.004000186920166,
+        "update": 0.9869999885559082,
+        "wasm-function[164]": 0.9840002059936523,
+        "wasm-function[747]": 0.9330000877380371,
+        "wasm-function[257]": 0.8519997596740723,
+        "wasm-function[5]": 0.8510003089904785,
+        "wasm-function[199]": 0.7569999694824219,
+        "writeNow": 0.7130002975463867,
+        "wasm-function[162]": 0.6510000228881836,
+        "wasm-function[194]": 0.6219997406005859,
+        "validateInput": 0.5830001831054688,
+        "writeRange": 0.5799999237060547,
+        "wasm-function[309]": 0.5279998779296875,
+        "wasm-function[226]": 0.5250000953674316,
+        "readThumbGeometry": 0.5190000534057617,
+        "allocateBytes": 0.5190000534057617,
+        "wasm-function[160]": 0.5139999389648438,
+        "updateScrollbar": 0.5130000114440918,
+        "setPipeline": 0.5120000839233398,
+        "writeRect": 0.5120000839233398,
+        "createCommandEncoder": 0.5110001564025879,
+        "pacedBurst": 0.5100002288818359,
+        "emitFrame": 0.5069999694824219,
+        "assertGhosttyResult": 0.505000114440918,
+        "upload": 0.5029997825622559,
+        "onFrame": 0.5019998550415039,
+        "wasm-function[741]": 0.4980001449584961,
+        "requestFrame": 0.4679999351501465,
+        "copyCursor": 0.4479999542236328,
+        "sync": 0.434999942779541,
+        "wasm-function[262]": 0.2740001678466797,
+        "wasm-function[289]": 0.26199960708618164,
+        "frame": 0.23999977111816406,
+        "js-to-wasm:iii:i": 0.2369999885559082,
+        "frameContentEquals": 0.23600006103515625,
+        "wasm-function[263]": 0.21299982070922852,
+        "maximumOffset": 0.20300006866455078,
+        "notifyScroll": 0.17199993133544922,
+        "write": 0.07399988174438477,
+        "wasm-function[419]": 0.06699991226196289,
+        "wasm-function[163]": 0.053999900817871094,
+        "getCurrentTexture": 0,
+        "updateLinkFrame": 0,
+        "remove": 0,
+        "measure": 0,
+        "end": 0,
+        "innerSerialize": 0,
+        "serialize": 0,
+        "isTypedArray": 0,
+        "isRegExp": 0,
+        "isURL": 0
+      },
+      "trace": "ghostty-webgpu-1-0-sgr-trace.trace.json.gz",
+      "byOperation": {
+        "ghostty_terminal_vt_write": 21.250003337860107,
+        "write": 14.89499807357788,
+        "notifyWrite": 0.25999927520751953,
+        "update": 4.870000839233398,
+        "readRows": 256.15500116348267,
+        "rowsToRebuild": 0.23999977111816406,
+        "rebuildRows": 64.66999816894531,
+        "sync": 0.6149992942810059,
+        "upload": 16.279998779296875,
+        "submit": 9.175002574920654,
+        "acknowledge": 1.3999991416931152,
+        "drawFrame": 36.114999771118164
+      }
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 0,
+      "label": "xterm-webgl-1-0-sgr-control",
+      "traced": false,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.009025999999999978,
+          "renderer": 0.6773310000000001,
+          "GPU": 0.43793800000000016,
+          "network.mojom.NetworkService": 0.002943000000000001,
+          "storage.mojom.StorageService": 0,
+          "tracing.mojom.TracingService": 0
+        },
+        "percentOfOneCore": 36.44004183019968,
+        "processChurn": false,
+        "milliseconds": 3093.4047914999974,
+        "interval": {
+          "before": {
+            "requested": 33858.781917,
+            "completed": 33859.722542
+          },
+          "after": {
+            "requested": 36951.987625,
+            "completed": 36953.326417
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 1.1397084999989602
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3092.224833,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      }
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 0,
+      "label": "xterm-webgl-1-0-sgr-trace",
+      "traced": true,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.01553899999999997,
+          "renderer": 0.851645,
+          "GPU": 0.39985500000000007,
+          "network.mojom.NetworkService": 0.004404000000000019,
+          "storage.mojom.StorageService": 0.0009380000000000013,
+          "tracing.mojom.TracingService": 0.009836999999999985
+        },
+        "percentOfOneCore": 41.52794479574185,
+        "processChurn": false,
+        "milliseconds": 3087.602832999997,
+        "interval": {
+          "before": {
+            "requested": 40664.326167,
+            "completed": 40664.763334
+          },
+          "after": {
+            "requested": 43751.719417,
+            "completed": 43752.57575
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.6467500000035216
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3086.949790999999,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "summary": {
+        "milliseconds": {
+          "js": 12.325003623962402,
+          "damage": 1.1599969863891602,
+          "parse": 197.79499578475952,
+          "snapshot": 17.564996242523193,
+          "upload": 5.285003185272217,
+          "commands": 4.715000152587891
+        },
+        "instrumentedMilliseconds": 238.84499597549438,
+        "shares": {
+          "js": 5.16025197581571,
+          "damage": 0.48566936964765905,
+          "parse": 82.8131211110043,
+          "snapshot": 7.35414035817831,
+          "upload": 2.2127334774953633,
+          "commands": 1.9740837078586533
+        },
+        "byTerminal": {
+          "0": {
+            "stateUpdates": 181,
+            "rowsCopied": 2172,
+            "buffersWritten": 543,
+            "bufferBytes": 1886960,
+            "draws": 543,
+            "frames": 181
+          }
+        },
+        "ownership": {
+          "scheduler": 1,
+          "context": 1,
+          "programs": 2
+        },
+        "frameCounterDistribution": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "buffersWritten": 3,
+              "bufferBytes": 1280,
+              "draws": 3,
+              "frames": 1
+            },
+            "samples": 1
+          },
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "buffersWritten": 3,
+              "bufferBytes": 10476,
+              "draws": 3,
+              "frames": 1
+            },
+            "samples": 180
+          }
+        ]
+      },
+      "mainTaskMilliseconds": 402.9810109138489,
+      "instrumentedShareOfMainTasks": 59.269541121518444,
+      "timelines": [],
+      "frameCadence": {
+        "pacedIntervals": {
+          "samples": 184,
+          "p50": 16.665000000000873,
+          "p95": 17.635000000002037,
+          "max": 32.61999999999898
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 181,
+          "p50": 0.21000003814697266,
+          "p95": 0.309999942779541,
+          "max": 0.7049999237060547
+        }
+      },
+      "sampledLeaves": {
+        "(idle)": 2620.6209874153137,
+        "(program)": 338.45600032806396,
+        "setTimeout": 57.62499666213989,
+        "clearTimeout": 35.89300012588501,
+        "mark": 19.78001594543457,
+        "(garbage collector)": 16.958000659942627,
+        "parse": 14.952000141143799,
+        "print": 13.828001022338867,
+        "": 10.510000705718994,
+        "_reveal": 8.712000370025635,
+        "clone": 7.145999431610107,
+        "requestAnimationFrame": 4.298999786376953,
+        "_onElementScrollPosition": 4.205000400543213,
+        "charAttributes": 4.153000354766846,
+        "_onElementScrollSize": 4.134999752044678,
+        "encode": 3.9539999961853027,
+        "_onDidScroll": 2.7719998359680176,
+        "_setState": 2.4459996223449707,
+        "scroll": 2.11299991607666,
+        "s": 1.860999584197998,
+        "_updateModel": 1.5749998092651367,
+        "decode": 1.5460000038146973,
+        "_sync": 1.5280003547668457,
+        "push": 1.2579998970031738,
+        "bufferData": 1.0900001525878906,
+        "write": 1.004000186920166,
+        "refresh": 0.9910001754760742,
+        "_extractColor": 0.9779996871948242,
+        "input": 0.8350000381469727,
+        "writeAll": 0.629000186920166,
+        "now": 0.6009998321533203,
+        "fire": 0.5630002021789551,
+        "burst": 0.5240001678466797,
+        "_syncTextArea": 0.5190000534057617,
+        "uniformMatrix4fv": 0.5149998664855957,
+        "Ie": 0.5130000114440918,
+        "count": 0.5100002288818359,
+        "drawElementsInstanced": 0.504000186920166,
+        "setTop": 0.5029997825622559,
+        "get normal": 0.5019998550415039,
+        "render": 0.495999813079834,
+        "setRight": 0.4609999656677246,
+        "setHeight": 0.37799978256225586,
+        "_renderDomNode": 0.3400001525878906,
+        "innerSerialize": 0.2090001106262207,
+        "resolve": 0.1829996109008789,
+        "renderRows": 0.1789999008178711,
+        "addRefreshCallback": 0.09600019454956055,
+        "_innerWrite": 0.015999794006347656,
+        "_refresh": 0,
+        "forEachByKey": 0,
+        "handleSelectionChanged": 0,
+        "_doRefreshDecorations": 0,
+        "useProgram": 0,
+        "_requestRedrawViewport": 0,
+        "get buffers": 0,
+        "_renderVertices": 0,
+        "_runRefreshCallbacks": 0,
+        "refreshRows": 0,
+        "measure": 0,
+        "end": 0,
+        "isTypedArray": 0,
+        "serialize": 0,
+        "isURL": 0
+      },
+      "trace": "xterm-webgl-1-0-sgr-trace.trace.json.gz",
+      "byOperation": {
+        "write": 3.2750015258789062,
+        "refreshRows": 1.1599969863891602,
+        "parse": 197.79499578475952,
+        "_updateModel": 17.564996242523193,
+        "bufferData": 5.285003185272217,
+        "drawElementsInstanced": 4.715000152587891,
+        "renderRows": 9.050002098083496
+      }
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 1,
+      "label": "xterm-webgl-1-1-sgr-trace",
+      "traced": true,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.017866999999999966,
+          "renderer": 0.937281,
+          "GPU": 0.3817759999999999,
+          "network.mojom.NetworkService": 0.004906999999999995,
+          "storage.mojom.StorageService": 0.0008839999999999959,
+          "tracing.mojom.TracingService": 0.008362000000000001
+        },
+        "percentOfOneCore": 43.88758796116782,
+        "processChurn": false,
+        "milliseconds": 3078.4945419999985,
+        "interval": {
+          "before": {
+            "requested": 12109.156,
+            "completed": 12109.496583
+          },
+          "after": {
+            "requested": 15187.324,
+            "completed": 15188.317667
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.6671249999990323
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3077.8125839999993,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "summary": {
+        "milliseconds": {
+          "js": 11.02499771118164,
+          "damage": 1.4599967002868652,
+          "parse": 205.47000122070312,
+          "snapshot": 16.75499963760376,
+          "upload": 4.905003547668457,
+          "commands": 4.079997539520264
+        },
+        "instrumentedMilliseconds": 243.6949963569641,
+        "shares": {
+          "js": 4.52409687354936,
+          "damage": 0.5991081975882114,
+          "parse": 84.31441116654317,
+          "snapshot": 6.875397479668011,
+          "upload": 2.0127633398281244,
+          "commands": 1.6742229428231215
+        },
+        "byTerminal": {
+          "0": {
+            "stateUpdates": 181,
+            "rowsCopied": 2172,
+            "buffersWritten": 543,
+            "bufferBytes": 1886960,
+            "draws": 543,
+            "frames": 181
+          }
+        },
+        "ownership": {
+          "scheduler": 1,
+          "context": 1,
+          "programs": 2
+        },
+        "frameCounterDistribution": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "buffersWritten": 3,
+              "bufferBytes": 1280,
+              "draws": 3,
+              "frames": 1
+            },
+            "samples": 1
+          },
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "buffersWritten": 3,
+              "bufferBytes": 10476,
+              "draws": 3,
+              "frames": 1
+            },
+            "samples": 180
+          }
+        ]
+      },
+      "mainTaskMilliseconds": 406.7429986000061,
+      "instrumentedShareOfMainTasks": 59.91375320429682,
+      "timelines": [],
+      "frameCadence": {
+        "pacedIntervals": {
+          "samples": 184,
+          "p50": 16.665000000000873,
+          "p95": 17.600000000000364,
+          "max": 32.47999999999956
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 181,
+          "p50": 0.19000005722045898,
+          "p95": 0.28999996185302734,
+          "max": 0.37000036239624023
+        }
+      },
+      "sampledLeaves": {
+        "(idle)": 2605.2900104522705,
+        "(program)": 325.6170024871826,
+        "setTimeout": 60.88400363922119,
+        "clearTimeout": 35.498998165130615,
+        "(garbage collector)": 19.340999603271484,
+        "mark": 19.273988723754883,
+        "clone": 15.75099802017212,
+        "": 14.237001419067383,
+        "parse": 8.985999584197998,
+        "setCellFromCodepoint": 7.614998817443848,
+        "print": 5.579999923706055,
+        "fire": 4.427000045776367,
+        "requestAnimationFrame": 3.75700044631958,
+        "charAttributes": 3.7029995918273926,
+        "encode": 3.560000419616699,
+        "_onElementScrollSize": 3.432000160217285,
+        "s": 2.625,
+        "_reveal": 2.50100040435791,
+        "_onDidScroll": 2.3090004920959473,
+        "_onElementScrollPosition": 2.2059998512268066,
+        "Ie": 2.124000072479248,
+        "scroll": 2.0900001525878906,
+        "cancel": 2.013000011444092,
+        "writeAll": 1.4760003089904785,
+        "equals": 1.4190001487731934,
+        "render": 1.4129996299743652,
+        "_extractColor": 1.3590002059936523,
+        "_sync": 1.1389999389648438,
+        "decode": 1.0379996299743652,
+        "setScrollDimensions": 1.0220003128051758,
+        "write": 1.0159997940063477,
+        "cancelAndSet": 0.9970002174377441,
+        "input": 0.9800000190734863,
+        "_computeValues": 0.9769997596740723,
+        "createScrollEvent": 0.9229998588562012,
+        "_render": 0.8159999847412109,
+        "_innerWrite": 0.7569994926452637,
+        "lineFeed": 0.7009997367858887,
+        "setScrollPositionNow": 0.6560001373291016,
+        "push": 0.5659999847412109,
+        "_updateModel": 0.560999870300293,
+        "_updateShouldBeVisible": 0.554999828338623,
+        "setScrollSize": 0.5170001983642578,
+        "_updateAttrColor": 0.504000186920166,
+        "setFromCharData": 0.5029997825622559,
+        "bindBuffer": 0.500999927520752,
+        "updateExtended": 0.48799991607666016,
+        "forEachDecorationAtCell": 0.4869999885559082,
+        "evaluate": 0.47499990463256836,
+        "setClassName": 0.4739999771118164,
+        "_processSGR0": 0.4289999008178711,
+        "setScrollPosition": 0.41900014877319336,
+        "copyFrom": 0.3399996757507324,
+        "refresh": 0.32200002670288086,
+        "charProperties": 0.23600006103515625,
+        "isTypedArray": 0.2199997901916504,
+        "count": 0.21700000762939453,
+        "drawElementsInstanced": 0.21199989318847656,
+        "_getCurrentLinkId": 0.14499998092651367,
+        "bufferData": 0.12200021743774414,
+        "forEachByKey": 0.07600021362304688,
+        "markDirty": 0.06199979782104492,
+        "get buffer": 0.018000125885009766,
+        "eraseInDisplay": 0,
+        "now": 0,
+        "resolve": 0,
+        "_refresh": 0,
+        "values": 0,
+        "withScrollDimensions": 0,
+        "_flushCleanupInserted": 0,
+        "getCode": 0,
+        "renderBackgrounds": 0,
+        "bindVertexArray": 0,
+        "_renderRows": 0,
+        "loadCell": 0,
+        "_runRefreshCallbacks": 0,
+        "refreshRows": 0,
+        "getChars": 0,
+        "measure": 0,
+        "end": 0,
+        "serialize": 0,
+        "innerSerialize": 0,
+        "isArrayBuffer": 0,
+        "isURL": 0
+      },
+      "trace": "xterm-webgl-1-1-sgr-trace.trace.json.gz",
+      "byOperation": {
+        "write": 2.984999656677246,
+        "refreshRows": 1.4599967002868652,
+        "parse": 205.47000122070312,
+        "_updateModel": 16.75499963760376,
+        "bufferData": 4.905003547668457,
+        "drawElementsInstanced": 4.079997539520264,
+        "renderRows": 8.039998054504395
+      }
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 1,
+      "label": "xterm-webgl-1-1-sgr-control",
+      "traced": false,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.011099999999999999,
+          "renderer": 0.5693269999999999,
+          "GPU": 0.44816100000000003,
+          "network.mojom.NetworkService": 0.004876000000000019,
+          "storage.mojom.StorageService": 0.00003299999999999831,
+          "tracing.mojom.TracingService": 0.00008800000000008801
+        },
+        "percentOfOneCore": 33.40957750810273,
+        "processChurn": false,
+        "milliseconds": 3093.6787504999957,
+        "interval": {
+          "before": {
+            "requested": 20495.982208,
+            "completed": 20496.759208
+          },
+          "after": {
+            "requested": 23589.384125,
+            "completed": 23590.714792
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 1.0538334999982908
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3092.595333000001,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      }
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 1,
+      "label": "ghostty-webgpu-1-1-sgr-trace",
+      "traced": true,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.015787999999999913,
+          "renderer": 0.9673400000000001,
+          "GPU": 0.28966999999999987,
+          "network.mojom.NetworkService": 0.004981000000000013,
+          "storage.mojom.StorageService": 0.0011820000000000025,
+          "tracing.mojom.TracingService": 0.005025000000000057
+        },
+        "percentOfOneCore": 42.0093648918945,
+        "processChurn": false,
+        "milliseconds": 3056.4280209999997,
+        "interval": {
+          "before": {
+            "requested": 35116.069583,
+            "completed": 35116.537875
+          },
+          "after": {
+            "requested": 38172.081667,
+            "completed": 38173.381833
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.8842290000029607
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3055.5369580000042,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "summary": {
+        "milliseconds": {
+          "parse": 22.92499876022339,
+          "js": 52.13498830795288,
+          "snapshot": 262.78000497817993,
+          "damage": 1.720003604888916,
+          "instances": 76.83999729156494,
+          "upload": 17.080002784729004,
+          "commands": 9.065001010894775
+        },
+        "instrumentedMilliseconds": 442.54499673843384,
+        "shares": {
+          "parse": 5.180263911959489,
+          "js": 11.780720309163783,
+          "snapshot": 59.3792737269372,
+          "damage": 0.38866185756598304,
+          "instances": 17.363205517603266,
+          "upload": 3.859495172379982,
+          "commands": 2.048379504390294
+        },
+        "byTerminal": {
+          "0": {
+            "stateUpdates": 181,
+            "rowsCopied": 2172,
+            "cellsCopied": 86880,
+            "atlasUploads": 0,
+            "atlasBytes": 0,
+            "buffersWritten": 362,
+            "bufferBytes": 13900800,
+            "draws": 362,
+            "submissions": 181,
+            "frames": 181
+          }
+        },
+        "ownership": {
+          "scheduler": 1,
+          "device": 1,
+          "queue": 1,
+          "pipelines": 2
+        },
+        "frameCounterDistribution": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          }
+        ]
+      },
+      "mainTaskMilliseconds": 539.0349926948547,
+      "instrumentedShareOfMainTasks": 82.09949311935608,
+      "timelines": [],
+      "frameCadence": {
+        "pacedIntervals": {
+          "samples": 184,
+          "p50": 16.665000000000873,
+          "p95": 17.55999999999949,
+          "max": 17.654999999998836
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 181,
+          "p50": 2.229999542236328,
+          "p95": 2.875,
+          "max": 3.2950000762939453
+        }
+      },
+      "sampledLeaves": {
+        "(idle)": 2440.167040348053,
+        "(program)": 272.8390073776245,
+        "get view": 119.53200197219849,
+        "wasm-function[751]": 32.26000165939331,
+        "(garbage collector)": 25.481000900268555,
+        "decode": 23.33500099182129,
+        "writeColor": 17.74000120162964,
+        "get buffer": 17.166000366210938,
+        "read": 14.74000072479248,
+        "": 13.034000396728516,
+        "wasm-function[753]": 9.51800012588501,
+        "writeBuffer": 8.033000469207764,
+        "mark": 8.017945289611816,
+        "glyphKey": 7.8610005378723145,
+        "readStyle": 4.743999481201172,
+        "wasm-function[860]": 4.440000057220459,
+        "getOrInsert": 3.9830007553100586,
+        "writeGlyph": 3.9370007514953613,
+        "readWide": 3.8979997634887695,
+        "rasterizeCached": 3.869999408721924,
+        "linkFrameSignature": 3.576000690460205,
+        "readStyleBoolean": 3.4050002098083496,
+        "requestAnimationFrame": 3.3869996070861816,
+        "readColor": 3.3389997482299805,
+        "normalized": 2.9150004386901855,
+        "readBoolean": 2.912999153137207,
+        "get bytes": 2.8269996643066406,
+        "wasm-function[721]": 2.564000129699707,
+        "copiedFrameRow3": 2.495999813079834,
+        "initializeTextBuffer": 2.489999771118164,
+        "writeCell": 2.4860000610351562,
+        "readCells": 2.4170002937316895,
+        "setAttribute": 2.242000102996826,
+        "wasm-function[287]": 2.142000198364258,
+        "encode": 2.1389999389648438,
+        "renderSnapshot": 2.0490007400512695,
+        "submit": 2.0440006256103516,
+        "js-to-wasm:i:i": 1.8940000534057617,
+        "wasm-function[194]": 1.7319998741149902,
+        "touch": 1.6589999198913574,
+        "clearRow": 1.5380001068115234,
+        "readText": 1.4239997863769531,
+        "wasm-function[195]": 1.2489995956420898,
+        "wasm-function[262]": 1.1620001792907715,
+        "wasm-function[289]": 1.0350003242492676,
+        "resolve": 1.0280003547668457,
+        "writeCellInstance": 1.0250000953674316,
+        "js-to-wasm:iii:i": 1.0249996185302734,
+        "wasm-function[164]": 1.0240001678466797,
+        "createView": 1.015000343322754,
+        "wasm-function[746]": 1.005000114440918,
+        "readRows": 1.0039997100830078,
+        "wasm-function[775]": 0.9939999580383301,
+        "wasm-function[62]": 0.9879999160766602,
+        "colorsForCell": 0.9689998626708984,
+        "writeRange": 0.9600000381469727,
+        "update": 0.9130001068115234,
+        "wasm-function[161]": 0.9019999504089355,
+        "wasm-function[162]": 0.8939995765686035,
+        "wasm-function[257]": 0.8839998245239258,
+        "wasm-function[199]": 0.8390002250671387,
+        "cursorForCell2": 0.8220000267028809,
+        "wasm-function[160]": 0.6969995498657227,
+        "getCurrentTexture": 0.685999870300293,
+        "allocate": 0.5799999237060547,
+        "readUint32": 0.5250000953674316,
+        "readThumbGeometry": 0.5190000534057617,
+        "wasm-function[263]": 0.5180001258850098,
+        "get revision": 0.5180001258850098,
+        "writeAll": 0.5180001258850098,
+        "wasm-function[761]": 0.5180001258850098,
+        "drawFrame": 0.5170001983642578,
+        "wasm-function[741]": 0.5170001983642578,
+        "wasm-function[485]": 0.5159997940063477,
+        "wasm-function[226]": 0.5149998664855957,
+        "validateBitmap": 0.5110001564025879,
+        "emitScrollChange": 0.5100002288818359,
+        "beginRenderPass": 0.5089998245239258,
+        "rasterize": 0.5079998970031738,
+        "positionTextarea": 0.5079998970031738,
+        "runFrame": 0.5079998970031738,
+        "readScrollSnapshot": 0.505000114440918,
+        "updateLinkFrame": 0.505000114440918,
+        "getBoundingClientRect": 0.5029997825622559,
+        "fieldOffset": 0.5019998550415039,
+        "emit": 0.5019998550415039,
+        "wasm-function[779]": 0.500999927520752,
+        "ensureActive": 0.4980001449584961,
+        "wasm-function[781]": 0.495999813079834,
+        "assertGhosttyResult": 0.4930000305175781,
+        "updateFrameUi": 0.4869999885559082,
+        "coalesceInstanceUpdates": 0.48000001907348633,
+        "wasm-function[747]": 0.4239997863769531,
+        "beginRow": 0.41699981689453125,
+        "js-to-wasm:lii:i": 0.39499998092651367,
+        "get exports": 0.39099979400634766,
+        "frame": 0.30700016021728516,
+        "readRequiredData": 0.2069997787475586,
+        "cellFlags": 0.10400009155273438,
+        "write": 0.09499979019165039,
+        "wasm-function[419]": 0.08699989318847656,
+        "setBindGroup": 0,
+        "upload": 0,
+        "emitFrame": 0,
+        "rangesAreAdjacent": 0,
+        "createCommandEncoder": 0,
+        "draw": 0,
+        "physicalPadding": 0,
+        "renderCursorState": 0,
+        "rebuildRow": 0,
+        "measure": 0,
+        "end": 0,
+        "traceEnd": 0,
+        "isTypedArray": 0,
+        "innerSerialize": 0,
+        "serialize": 0,
+        "isError": 0
+      },
+      "trace": "ghostty-webgpu-1-1-sgr-trace.trace.json.gz",
+      "byOperation": {
+        "ghostty_terminal_vt_write": 22.92499876022339,
+        "write": 14.86999797821045,
+        "notifyWrite": 0.24499893188476562,
+        "update": 5.070003032684326,
+        "readRows": 257.7100019454956,
+        "rowsToRebuild": 0.3449997901916504,
+        "rebuildRows": 76.83999729156494,
+        "sync": 0.5750026702880859,
+        "upload": 16.505000114440918,
+        "submit": 9.065001010894775,
+        "acknowledge": 1.3750038146972656,
+        "drawFrame": 37.019991397857666
+      }
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 1,
+      "label": "ghostty-webgpu-1-1-sgr-control",
+      "traced": false,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.010832000000000175,
+          "renderer": 0.7089170000000004,
+          "GPU": 0.3220240000000003,
+          "network.mojom.NetworkService": 0.0033420000000000116,
+          "storage.mojom.StorageService": 0,
+          "tracing.mojom.TracingService": 0.00006599999999989947
+        },
+        "percentOfOneCore": 33.74028848828757,
+        "processChurn": false,
+        "milliseconds": 3097.7239580000023,
+        "interval": {
+          "before": {
+            "requested": 43009.437792,
+            "completed": 43010.097042
+          },
+          "after": {
+            "requested": 46106.607917,
+            "completed": 46108.374833
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 1.2130830000023707
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3096.4890000000014,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      }
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 2,
+      "label": "xterm-webgl-1-2-sgr-control",
+      "traced": false,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.012954999999999939,
+          "renderer": 0.670537,
+          "GPU": 0.431561,
+          "network.mojom.NetworkService": 0.0028690000000000104,
+          "storage.mojom.StorageService": 0
+        },
+        "percentOfOneCore": 36.13431112085406,
+        "processChurn": false,
+        "milliseconds": 3093.796354000002,
+        "interval": {
+          "before": {
+            "requested": 12017.875333,
+            "completed": 12018.769458
+          },
+          "after": {
+            "requested": 15110.933666,
+            "completed": 15113.303833
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 1.6321459999999206
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3092.1256670000002,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      }
+    },
+    {
+      "variant": "xterm-webgl",
+      "count": 1,
+      "repetition": 2,
+      "label": "xterm-webgl-1-2-sgr-trace",
+      "traced": true,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.017151000000000027,
+          "renderer": 0.8544430000000001,
+          "GPU": 0.39816799999999986,
+          "network.mojom.NetworkService": 0.006326000000000026,
+          "storage.mojom.StorageService": 0.0008859999999999979,
+          "tracing.mojom.TracingService": 0.008803999999999992
+        },
+        "percentOfOneCore": 41.723439331432644,
+        "processChurn": false,
+        "milliseconds": 3081.668291500002,
+        "interval": {
+          "before": {
+            "requested": 18826.311583,
+            "completed": 18826.704875
+          },
+          "after": {
+            "requested": 21907.822583,
+            "completed": 21908.530458
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.5505835000003572
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3081.1115830000017,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 560,
+            "height": 456
+          },
+          {
+            "width": 60,
+            "height": 46
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "summary": {
+        "milliseconds": {
+          "js": 11.664998054504395,
+          "damage": 1.4149985313415527,
+          "parse": 196.83000326156616,
+          "snapshot": 16.920000076293945,
+          "upload": 5.21000337600708,
+          "commands": 4.57999849319458
+        },
+        "instrumentedMilliseconds": 236.62000179290771,
+        "shares": {
+          "js": 4.929844462055969,
+          "damage": 0.5980046152564795,
+          "parse": 83.18400886237582,
+          "snapshot": 7.150705751030509,
+          "upload": 2.2018440269335002,
+          "commands": 1.9355922823477292
+        },
+        "byTerminal": {
+          "0": {
+            "stateUpdates": 181,
+            "rowsCopied": 2172,
+            "buffersWritten": 543,
+            "bufferBytes": 1886960,
+            "draws": 543,
+            "frames": 181
+          }
+        },
+        "ownership": {
+          "scheduler": 1,
+          "context": 1,
+          "programs": 2
+        },
+        "frameCounterDistribution": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "buffersWritten": 3,
+              "bufferBytes": 1280,
+              "draws": 3,
+              "frames": 1
+            },
+            "samples": 1
+          },
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "buffersWritten": 3,
+              "bufferBytes": 10476,
+              "draws": 3,
+              "frames": 1
+            },
+            "samples": 180
+          }
+        ]
+      },
+      "mainTaskMilliseconds": 404.41399669647217,
+      "instrumentedShareOfMainTasks": 58.50935025142066,
+      "timelines": [],
+      "frameCadence": {
+        "pacedIntervals": {
+          "samples": 184,
+          "p50": 16.667999999997846,
+          "p95": 17.580000000001746,
+          "max": 32.80999999999767
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 181,
+          "p50": 0.19999980926513672,
+          "p95": 0.2950000762939453,
+          "max": 0.3400001525878906
+        }
+      },
+      "sampledLeaves": {
+        "(idle)": 2605.224000453949,
+        "(program)": 355.43899965286255,
+        "setTimeout": 55.76300096511841,
+        "clearTimeout": 40.37900257110596,
+        "mark": 23.30399799346924,
+        "(garbage collector)": 18.985000133514404,
+        "parse": 14.918998718261719,
+        "clone": 13.657999515533447,
+        "": 11.281999111175537,
+        "print": 10.462000846862793,
+        "_reveal": 5.451999664306641,
+        "charAttributes": 4.789999485015869,
+        "encode": 4.061999797821045,
+        "fire": 3.140000343322754,
+        "_onDidScroll": 2.9690003395080566,
+        "_onElementScrollSize": 2.654999256134033,
+        "s": 1.9000000953674316,
+        "requestAnimationFrame": 1.7120003700256348,
+        "_onElementScrollPosition": 1.419999599456787,
+        "setScrollPosition": 1.2170000076293945,
+        "_extractColor": 1.1630001068115234,
+        "scroll": 1.0910000801086426,
+        "_sync": 1.0049996376037598,
+        "writeAll": 0.9850001335144043,
+        "setTop": 0.5890002250671387,
+        "decode": 0.5850000381469727,
+        "_updateModel": 0.5619997978210449,
+        "push": 0.5539999008178711,
+        "copyFrom": 0.5239996910095215,
+        "write": 0.5069999694824219,
+        "drawElementsInstanced": 0.505000114440918,
+        "_renderRows": 0.505000114440918,
+        "_innerRefresh": 0.505000114440918,
+        "bindBuffer": 0.504000186920166,
+        "setIfNotSet": 0.5,
+        "bufferData": 0.5,
+        "input": 0.4980001449584961,
+        "refresh": 0.27299976348876953,
+        "pacedBurst": 0.2090001106262207,
+        "frame": 0.18900012969970703,
+        "bindVertexArray": 0.1119999885559082,
+        "addRefreshCallback": 0.07499980926513672,
+        "clearRange": 0.015999794006347656,
+        "_innerWrite": 0.014999866485595703,
+        "setHeight": 0,
+        "render": 0,
+        "resolve": 0,
+        "count": 0,
+        "_renderVertices": 0,
+        "renderRows": 0,
+        "forEachByKey": 0,
+        "_refresh": 0,
+        "handleSelectionChanged": 0,
+        "useProgram": 0,
+        "get value": 0,
+        "_requestRedrawViewport": 0,
+        "get buffers": 0,
+        "get decorations": 0,
+        "beginFrame": 0,
+        "update": 0,
+        "now": 0,
+        "measure": 0,
+        "end": 0,
+        "isError": 0,
+        "isTypedArray": 0,
+        "innerSerialize": 0,
+        "serialize": 0
+      },
+      "trace": "xterm-webgl-1-2-sgr-trace.trace.json.gz",
+      "byOperation": {
+        "write": 3.305002212524414,
+        "refreshRows": 1.4149985313415527,
+        "parse": 196.83000326156616,
+        "_updateModel": 16.920000076293945,
+        "bufferData": 5.21000337600708,
+        "drawElementsInstanced": 4.57999849319458,
+        "renderRows": 8.35999584197998
+      }
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 2,
+      "label": "ghostty-webgpu-1-2-sgr-control",
+      "traced": false,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.009697000000000067,
+          "renderer": 0.8306530000000001,
+          "GPU": 0.29874299999999976,
+          "network.mojom.NetworkService": 0.002840000000000009,
+          "storage.mojom.StorageService": 0,
+          "tracing.mojom.TracingService": 0
+        },
+        "percentOfOneCore": 36.89130321500515,
+        "processChurn": false,
+        "milliseconds": 3095.398916500002,
+        "interval": {
+          "before": {
+            "requested": 34982.191583,
+            "completed": 34982.833125
+          },
+          "after": {
+            "requested": 38077.253666,
+            "completed": 38078.568875
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.9783754999989469
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3094.3811669999996,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      }
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "count": 1,
+      "repetition": 2,
+      "label": "ghostty-webgpu-1-2-sgr-trace",
+      "traced": true,
+      "cpu": {
+        "secondsByType": {
+          "browser": 0.013117000000000045,
+          "renderer": 0.8839680000000001,
+          "GPU": 0.2710140000000001,
+          "network.mojom.NetworkService": 0.004969000000000001,
+          "storage.mojom.StorageService": 0.0010259999999999991,
+          "tracing.mojom.TracingService": 0.005184999999999995
+        },
+        "percentOfOneCore": 38.197828338314494,
+        "processChurn": false,
+        "milliseconds": 3087.2933129999947,
+        "interval": {
+          "before": {
+            "requested": 41707.682416,
+            "completed": 41708.133041
+          },
+          "after": {
+            "requested": 44794.497125,
+            "completed": 44795.904958
+          }
+        },
+        "acquisitionUncertaintyMilliseconds": 0.9292289999975765
+      },
+      "cpuIntervalQualified": true,
+      "milliseconds": 3086.3573749999996,
+      "grid": {
+        "scale": 1,
+        "width": 380,
+        "height": 260,
+        "innerWidth": 1408,
+        "innerHeight": 781,
+        "backingBefore": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "backingAfter": [
+          {
+            "width": 560,
+            "height": 456
+          }
+        ],
+        "sections": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 380,
+            "bottom": 260
+          }
+        ]
+      },
+      "window": {
+        "screen": {
+          "left": 0,
+          "top": 0,
+          "width": 1440,
+          "height": 900
+        },
+        "before": {
+          "left": 22,
+          "top": 22,
+          "width": 1200,
+          "height": 856,
+          "windowState": "normal"
+        },
+        "after": {
+          "left": 16,
+          "top": 16,
+          "width": 1408,
+          "height": 868,
+          "windowState": "normal"
+        }
+      },
+      "summary": {
+        "milliseconds": {
+          "parse": 21.66000270843506,
+          "js": 50.56499433517456,
+          "snapshot": 278.59500312805176,
+          "damage": 1.6599960327148438,
+          "instances": 66.74999904632568,
+          "upload": 17.185000896453857,
+          "commands": 9.164998054504395
+        },
+        "instrumentedMilliseconds": 445.57999420166016,
+        "shares": {
+          "parse": 4.861080611853547,
+          "js": 11.348129402840717,
+          "snapshot": 62.52412737407719,
+          "damage": 0.37254725398725247,
+          "instances": 14.980474867575863,
+          "upload": 3.856771201598492,
+          "commands": 2.0568692880669386
+        },
+        "byTerminal": {
+          "0": {
+            "stateUpdates": 181,
+            "rowsCopied": 2172,
+            "cellsCopied": 86880,
+            "atlasUploads": 0,
+            "atlasBytes": 0,
+            "buffersWritten": 362,
+            "bufferBytes": 13900800,
+            "draws": 362,
+            "submissions": 181,
+            "frames": 181
+          }
+        },
+        "ownership": {
+          "scheduler": 1,
+          "device": 1,
+          "queue": 1,
+          "pipelines": 2
+        },
+        "frameCounterDistribution": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          }
+        ]
+      },
+      "mainTaskMilliseconds": 531.9170002937317,
+      "instrumentedShareOfMainTasks": 83.76870713957345,
+      "timelines": [],
+      "frameCadence": {
+        "pacedIntervals": {
+          "samples": 184,
+          "p50": 16.665000000000873,
+          "p95": 17.57999999999811,
+          "max": 33.32999999999811
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 181,
+          "p50": 2.390000343322754,
+          "p95": 2.7899999618530273,
+          "max": 3.5199999809265137
+        }
+      },
+      "sampledLeaves": {
+        "(idle)": 2483.055941104889,
+        "(program)": 271.92299699783325,
+        "get view": 119.19299697875977,
+        "decode": 35.59199905395508,
+        "wasm-function[751]": 27.640999794006348,
+        "writeColor": 21.967000484466553,
+        "get buffer": 18.873998641967773,
+        "read": 16.380999088287354,
+        "writeGlyph": 14.958001136779785,
+        "(garbage collector)": 12.49399995803833,
+        "mark": 7.266066074371338,
+        "readStyleBoolean": 6.889000415802002,
+        "wasm-function[753]": 6.824000835418701,
+        "": 6.57999849319458,
+        "readWide": 5.66200065612793,
+        "writeCell": 4.805000305175781,
+        "writeBuffer": 4.715000629425049,
+        "requestAnimationFrame": 4.523000240325928,
+        "readBoolean": 4.4200005531311035,
+        "getOrInsert": 4.271999359130859,
+        "readCells": 4.167999744415283,
+        "rebuildRow": 3.827000141143799,
+        "initializeTextBuffer": 3.750999927520752,
+        "wasm-function[860]": 3.3350000381469727,
+        "touch": 3.308999538421631,
+        "wasm-function[721]": 3.1440000534057617,
+        "linkFrameSignature": 2.747000217437744,
+        "wasm-function[287]": 2.63700008392334,
+        "copiedFrameRow3": 2.4720001220703125,
+        "get bytes": 2.464999198913574,
+        "js-to-wasm:i:i": 2.3969998359680176,
+        "submit": 2.2920002937316895,
+        "wasm-function[747]": 1.890000343322754,
+        "update": 1.7850003242492676,
+        "wasm-function[746]": 1.7709999084472656,
+        "readStyle": 1.7639999389648438,
+        "wasm-function[195]": 1.6770000457763672,
+        "getBoundingClientRect": 1.6730003356933594,
+        "wasm-function[418]": 1.6060004234313965,
+        "encode": 1.5820002555847168,
+        "setAttribute": 1.5469999313354492,
+        "wasm-function[62]": 1.5300002098083496,
+        "readText": 1.4739999771118164,
+        "wasm-function[164]": 1.254000186920166,
+        "wasm-function[419]": 1.2360000610351562,
+        "wasm-function[289]": 1.1419997215270996,
+        "wasm-function[194]": 1.0869998931884766,
+        "write": 1.0250000953674316,
+        "rebuildRows": 1.0230002403259277,
+        "getCurrentTexture": 1.0210003852844238,
+        "js-to-wasm:iiii:": 1.0130000114440918,
+        "count": 1.0120000839233398,
+        "createView": 0.9980001449584961,
+        "readColor": 0.7660002708435059,
+        "wasm-function[257]": 0.7349996566772461,
+        "writeRange": 0.695000171661377,
+        "wasm-function[779]": 0.6820001602172852,
+        "wasm-function[199]": 0.6729998588562012,
+        "wasm-function[161]": 0.6310000419616699,
+        "wasm-function[163]": 0.6030001640319824,
+        "readBufferLength": 0.5830001831054688,
+        "readRequiredData": 0.5500001907348633,
+        "wasm-function[56]": 0.5349998474121094,
+        "writeAll": 0.5229997634887695,
+        "resetCursorBlink": 0.5209999084472656,
+        "get exports": 0.5149998664855957,
+        "now": 0.5130000114440918,
+        "consumeUpload": 0.5110001564025879,
+        "updateFrameUi": 0.5110001564025879,
+        "renderSnapshot": 0.5089998245239258,
+        "positionTextarea": 0.5089998245239258,
+        "wasm-function[3]": 0.5089998245239258,
+        "wasm-function[777]": 0.5,
+        "createCommandEncoder": 0.49900007247924805,
+        "ensureActive": 0.49900007247924805,
+        "readScrollSnapshot": 0.4980001449584961,
+        "readRows": 0.495999813079834,
+        "innerSerialize": 0.49499988555908203,
+        "invalidateAll": 0.48799991607666016,
+        "js-to-wasm:iii:i": 0.48199987411499023,
+        "drawFrame": 0.43599987030029297,
+        "wasm-function[226]": 0.4069995880126953,
+        "rowsToRebuild": 0.2519998550415039,
+        "free": 0.20399999618530273,
+        "cursorEquals2": 0.20399999618530273,
+        "wasm-function[308]": 0.19000005722045898,
+        "get scrollbackLength": 0.18200016021728516,
+        "emitScrollChange": 0.11800003051757812,
+        "allocateBytes": 0.0689997673034668,
+        "input": 0.06400012969970703,
+        "clearVisibleHit": 0.046000003814697266,
+        "sync": 0,
+        "consumeUploads": 0,
+        "beginRenderPass": 0,
+        "emitFrame": 0,
+        "runUiOperation": 0,
+        "measure": 0,
+        "end": 0,
+        "traceEnd": 0,
+        "serialize": 0,
+        "isRegExp": 0,
+        "isTypedArray": 0
+      },
+      "trace": "ghostty-webgpu-1-2-sgr-trace.trace.json.gz",
+      "byOperation": {
+        "ghostty_terminal_vt_write": 21.66000270843506,
+        "write": 14.32999563217163,
+        "notifyWrite": 0.28999853134155273,
+        "update": 4.650003433227539,
+        "readRows": 273.9449996948242,
+        "rowsToRebuild": 0.34999704360961914,
+        "rebuildRows": 66.74999904632568,
+        "sync": 0.650001049041748,
+        "upload": 16.53499984741211,
+        "submit": 9.164998054504395,
+        "acknowledge": 1.3099989891052246,
+        "drawFrame": 35.94500017166138
+      }
+    }
+  ]
+}

@@ -9,6 +9,43 @@ afterEach(() => {
 })
 
 describe('render row reads', () => {
+  it('reuses memory views and refreshes them after growth between cell reads', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[38;2;10;20;30m\x1b[48;2;40;50;60m\x1b[1mAé界')
+    state.update()
+    const before = state.readRows()
+    const bytes = runtime.memory.bytes
+    const view = runtime.memory.view
+    expect(runtime.memory.bytes).toBe(bytes)
+    expect(runtime.memory.view).toBe(view)
+    expect(before[0]!.cells[0]!.foreground).toEqual({ r: 10, g: 20, b: 30 })
+    expect(before[0]!.cells[0]!.background).toEqual({ r: 40, g: 50, b: 60 })
+    expect(before[0]!.cells[0]!.style?.bold).toBe(true)
+    expect(before[0]!.cells.slice(0, 4).map((cell) => cell.text)).toEqual(['A', 'é', '界', ''])
+    expect(before[0]!.cells[3]!.continuation).toBe(true)
+
+    runtime.exports.memory.grow(1)
+    expect(bytes.byteLength).toBe(0)
+    expect(state.readRows()).toEqual(before)
+    expect(runtime.memory.bytes === bytes).toBe(false)
+    expect(runtime.memory.view === view).toBe(false)
+    expect(runtime.memory.bytes.buffer).toBe(runtime.exports.memory.buffer)
+    expect(runtime.memory.view.buffer).toBe(runtime.exports.memory.buffer)
+    expect(runtime.memory.bytes).toBe(runtime.memory.bytes)
+    expect(runtime.memory.view).toBe(runtime.memory.view)
+
+    terminal.write('\x1b[0m\r\nnew')
+    state.update()
+    expect(
+      state
+        .readRows()[1]!
+        .cells.slice(0, 3)
+        .map((cell) => cell.text),
+    ).toEqual(['n', 'e', 'w'])
+  })
+
   it('keeps ZWJ cell ownership and cursor widths in sync with mode 2027 across writes', async () => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 24, rows: 3 })

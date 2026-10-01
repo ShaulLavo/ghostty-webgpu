@@ -12,17 +12,25 @@ export interface WasmAllocation {
 
 export class WasmMemory {
   readonly exports: GhosttyWasmExports
+  private cachedBytes: Uint8Array
+  private cachedView: DataView
 
   constructor(exports: GhosttyWasmExports) {
     this.exports = exports
+    this.cachedBytes = new Uint8Array(exports.memory.buffer)
+    this.cachedView = new DataView(exports.memory.buffer)
   }
 
   get bytes(): Uint8Array {
-    return new Uint8Array(this.exports.memory.buffer)
+    const buffer = this.exports.memory.buffer
+    if (this.cachedBytes.buffer !== buffer) this.cachedBytes = new Uint8Array(buffer)
+    return this.cachedBytes
   }
 
   get view(): DataView {
-    return new DataView(this.exports.memory.buffer)
+    const buffer = this.exports.memory.buffer
+    if (this.cachedView.buffer !== buffer) this.cachedView = new DataView(buffer)
+    return this.cachedView
   }
 
   allocate(length: number): number {

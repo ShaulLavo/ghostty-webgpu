@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-10-01",
+  "toolingBase": "5021f44c1fdb3a0ee4c8bde410e796ba1c75d9e8",
+  "measuredHead": "8d04140332d90f94cac8ac7f87069c3538adf177",
+  "machine": "Owner's Apple M1 MacBook",
+  "conditions": {
+    "counts": [1, 17],
+    "phases": ["ascii", "sgr"],
+    "repetitions": 3,
+    "pairedOrder": [
+      ["before", "after"],
+      ["after", "before"],
+      ["before", "after"]
+    ]
+  },
+  "power": {
+    "source": "AC Power",
+    "check": "pmset -g batt before every invocation",
+    "displayHold": "caffeinate -d -u -t 1800",
+    "pairedWindowBudgetMinutes": 29
+  },
+  "displayQualification": "Unchanged corrected #242 idle-display and mounted workload probes; rejected windows contribute no timings",
+  "runner": {
+    "filter": "--only-repetition selects one of the configured three repetitions per invocation",
+    "location": "Portable scratch bundles only",
+    "manifest": "Runner asset hash updated and pairedRunnerChange recorded",
+    "analysis": "Combine all three complete invocations before corrected analyzer validation"
+  },
+  "cpu": {
+    "source": "Inactive-wrapper controls",
+    "rendererCpu": "100 * cpu.secondsByType.renderer / (cpu.milliseconds / 1000)",
+    "totalCpu": "cpu.percentOfOneCore",
+    "aggregation": "Median of three run-level values",
+    "qualification": "cpuIntervalQualified must be true for every analyzed row"
+  },
+  "attribution": {
+    "snapshotShare": "100 * sum exclusive snapshot milliseconds / sum renderer-main RunTask milliseconds",
+    "getViewShare": "100 * sum sampledLeaves['get view'] milliseconds / sum renderer-main RunTask milliseconds",
+    "sampledGetter": "Sampled leaf estimate; overlaps snapshot work and must not be added to snapshot share",
+    "traceWindows": "180 output intervals per phase",
+    "cpuScope": "Renderer process includes all renderer threads; GPU process CPU is CPU consumption, not GPU hardware execution time"
+  },
+  "baseline": "Only src/core/memory.ts is temporarily replaced with the pinned tooling-base version during the baseline build, then restored before treatment build",
+  "excludedEvidence": "All partial artifacts generated before merging the corrected #242 tooling",
+  "rawEvidenceRoot": "/work/tmp/plan-283-fix1/corrected",
+  "macEvidenceRoot": "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected"
+}

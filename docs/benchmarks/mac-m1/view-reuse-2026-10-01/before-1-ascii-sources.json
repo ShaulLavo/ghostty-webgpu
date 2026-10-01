@@ -1,0 +1,62 @@
+[
+  {
+    "directory": "before-1-ascii-0-0",
+    "repetition": 0,
+    "attempt": 0,
+    "startedAt": "2026-10-01T12:50:00.838Z",
+    "finishedAt": "2026-10-01T12:50:47.073Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "1",
+      "--trace-phase",
+      "ascii",
+      "--display-awake",
+      "--only-repetition",
+      "0",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-1-ascii-0-0"
+    ],
+    "comparisonSha256": "a15224d229353645a60b9a3b0b562866eb886f349d531b7a5e120ecfe8ca9ba2"
+  },
+  {
+    "directory": "before-1-ascii-1-0",
+    "repetition": 1,
+    "attempt": 0,
+    "startedAt": "2026-10-01T12:52:18.156Z",
+    "finishedAt": "2026-10-01T12:53:02.580Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "1",
+      "--trace-phase",
+      "ascii",
+      "--display-awake",
+      "--only-repetition",
+      "1",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-1-ascii-1-0"
+    ],
+    "comparisonSha256": "bb76e38db063c6fca0f98e944ebb06c566077c0d03b4b9a7fc495e9f7c86e808"
+  },
+  {
+    "directory": "before-1-ascii-2-0",
+    "repetition": 2,
+    "attempt": 0,
+    "startedAt": "2026-10-01T12:53:03.011Z",
+    "finishedAt": "2026-10-01T12:53:47.537Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "1",
+      "--trace-phase",
+      "ascii",
+      "--display-awake",
+      "--only-repetition",
+      "2",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-view-reuse-corrected/before-1-ascii-2-0"
+    ],
+    "comparisonSha256": "370c5e1421693567d9dcd78a4839c1f3b1003e041ce1a8d0f107848ba454d3b4"
+  }
+]
