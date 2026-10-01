@@ -113,12 +113,12 @@ export class ComparisonTracing {
     this.wrap(core, 'write', terminal, 'js')
     this.wrap(state, 'update', terminal, 'snapshot', () => this.count(terminal, 'stateUpdates'))
     this.wrap(state, 'readRows', terminal, 'snapshot', (result) => {
-      const rows = result as { cells: unknown[] }[]
+      const rows = result as { cells: readonly unknown[]; packed?: { length: number } }[]
       this.count(terminal, 'rowsCopied', rows.length)
       this.count(
         terminal,
         'cellsCopied',
-        rows.reduce((sum, row) => sum + row.cells.length, 0),
+        rows.reduce((sum, row) => sum + (row.packed?.length ?? row.cells.length), 0),
       )
     })
     this.wrap(state, 'acknowledge', terminal, 'damage')

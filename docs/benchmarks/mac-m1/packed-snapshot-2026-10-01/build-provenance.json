@@ -1,0 +1,22 @@
+{
+  "upstreamRepository": "https://github.com/ghostty-org/ghostty.git",
+  "upstreamCommit": "c8554f28e0efe2f5595f32020371c34b25ec628f",
+  "upstreamTrackedSourceClean": true,
+  "buildCommand": "bun run build:wasm --source /work/worktrees/platform/plan-283-bulk-snapshot/references/ghostty",
+  "wasmSha256": {
+    "ghostty-vt.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+    "bridge.wasm": "e2e1fb9a1b6d36f6b8ee4aa7e615e5bc6aeefda69f494832317b46fdea84241a"
+  },
+  "secondBuildReproducedArtifacts": true,
+  "unitTests": {
+    "files": 34,
+    "tests": 354
+  },
+  "builtApiChromiumTests": {
+    "files": 2,
+    "tests": 13
+  },
+  "gatesAndRepositoryTypecheck": "passed",
+  "sourceSha256": "0e8b7fb53e29b68a403e589e46146e2376469ef06ecdd97a060f67be1fd8f933",
+  "bunLockSha256": "6a5acd952dc9cfa0118869126a1240f132c3408d68baf3271aa59897af177573"
+}

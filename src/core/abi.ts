@@ -730,6 +730,16 @@ export interface GhosttyWasmExports extends WebAssembly.Exports {
 }
 
 export interface BridgeWasmExports extends WebAssembly.Exports {
+  __stack_pointer: WebAssembly.Global
+  bridge_read_rows(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    snapshot: number,
+  ): number
   bridge_bell: WebAssembly.ExportValue
   bridge_clipboard_write: WebAssembly.ExportValue
   bridge_color_scheme: WebAssembly.ExportValue

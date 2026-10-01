@@ -1,0 +1,14 @@
+{
+  "ghostty-vt.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+  "bridge.wasm": "e2e1fb9a1b6d36f6b8ee4aa7e615e5bc6aeefda69f494832317b46fdea84241a",
+  "measuredImplementationCommit": "04b2d2437e8366b3c703c457f8dd07c19b9e979d",
+  "sourceSha256": "7dffdb328db33f62da70a4d22dc0da22aa0a2aaf9af0fdbdbdbc46795a802dc7",
+  "bundleSha256": "26e60e4a8f78c8f048e4aa5ec112dcd88324426130116e28a56ba18234dc97de",
+  "upstreamRevision": "c8554f28e0efe2f5595f32020371c34b25ec628f",
+  "correctness": {
+    "unit": 357,
+    "browserPassed": 66,
+    "existingBrowserSkips": 2
+  },
+  "nativeChanges": "Direct text/continuation reads for immutable DOM frame rows; no further optimization."
+}

@@ -11,6 +11,7 @@ import {
   safeRendererInteger,
 } from '../config.js'
 import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
+import { copiedFrameRow } from '../frame-row.js'
 import type { CanonicalRendererTheme, CursorState, RendererTheme } from '../instances/types.js'
 import type {
   RendererFrameRow,
@@ -54,13 +55,6 @@ function cursorSnapshotsEqual(left: RenderCursorSnapshot, right: RenderCursorSna
 function copiedCursor(cursor: RenderCursorSnapshot): Readonly<RenderCursorSnapshot> {
   const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
   return Object.freeze({ ...cursor, viewport })
-}
-
-function copiedFrameRow(row: RenderRow): RendererFrameRow {
-  const cells = Object.freeze(row.cells.map((cell) => cell.text.slice()))
-  const continuations = Object.freeze(row.cells.map((cell) => cell.continuation))
-  const text = cells.map((cell, index) => (continuations[index] ? '' : cell || ' ')).join('')
-  return Object.freeze({ cells, continuations, text, y: row.y })
 }
 
 export class CanvasTerminalRenderer {

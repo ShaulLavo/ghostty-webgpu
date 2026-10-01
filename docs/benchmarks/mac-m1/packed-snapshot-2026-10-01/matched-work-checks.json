@@ -1,0 +1,659 @@
+[
+  {
+    "count": 1,
+    "phase": "ascii",
+    "cpuIntervalsQualified": true,
+    "sameNativeCountersAndGrid": true,
+    "frameCountSource": "Authoritative raw spans and terminal-tagged counters",
+    "persistedFrameSummaryMismatches": [],
+    "sameVersionsSettingsFixturesAndControlAssets": true,
+    "changedNativeAsset": "bridge.wasm",
+    "sameHardwareEnvironment": true,
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "screenshotsIdentical": [
+      {
+        "file": "ghostty-webgpu-bytes-1.png",
+        "sha256": "6f782416f222f047e18db651913bb37ab60d1d7cd753dab496abb1214f37d42d"
+      }
+    ],
+    "allRepetitionsScreenshotsIdentical": [
+      {
+        "repetition": 0,
+        "file": "ghostty-webgpu-bytes-1.png",
+        "sha256": "6f782416f222f047e18db651913bb37ab60d1d7cd753dab496abb1214f37d42d"
+      }
+    ],
+    "successfulInvocations": 6
+  },
+  {
+    "count": 1,
+    "phase": "sgr",
+    "cpuIntervalsQualified": true,
+    "sameNativeCountersAndGrid": true,
+    "frameCountSource": "Authoritative raw spans and terminal-tagged counters",
+    "persistedFrameSummaryMismatches": [],
+    "sameVersionsSettingsFixturesAndControlAssets": true,
+    "changedNativeAsset": "bridge.wasm",
+    "sameHardwareEnvironment": true,
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "screenshotsIdentical": [
+      {
+        "file": "ghostty-webgpu-bytes-1.png",
+        "sha256": "6f782416f222f047e18db651913bb37ab60d1d7cd753dab496abb1214f37d42d"
+      }
+    ],
+    "allRepetitionsScreenshotsIdentical": [
+      {
+        "repetition": 0,
+        "file": "ghostty-webgpu-bytes-1.png",
+        "sha256": "6f782416f222f047e18db651913bb37ab60d1d7cd753dab496abb1214f37d42d"
+      }
+    ],
+    "successfulInvocations": 6
+  },
+  {
+    "count": 17,
+    "phase": "ascii",
+    "cpuIntervalsQualified": true,
+    "sameNativeCountersAndGrid": true,
+    "frameCountSource": "Authoritative raw spans and terminal-tagged counters",
+    "persistedFrameSummaryMismatches": [
+      {
+        "kind": "before",
+        "repetition": 2,
+        "persisted": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 180
+          },
+          {
+            "terminal": 1,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 180
+          },
+          {
+            "terminal": 2,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 183
+          },
+          {
+            "terminal": 3,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 4,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 5,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 6,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 7,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 8,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 9,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 10,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 11,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 12,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 13,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 14,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 15,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 16,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          }
+        ],
+        "reconstructedFromRawSpansAndCounters": [
+          {
+            "terminal": 0,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 1,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 2,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 3,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 4,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 5,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 6,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 7,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 8,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 9,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 10,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 11,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 12,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 13,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 14,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 15,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          },
+          {
+            "terminal": 16,
+            "counts": {
+              "stateUpdates": 1,
+              "rowsCopied": 12,
+              "cellsCopied": 480,
+              "atlasUploads": 0,
+              "atlasBytes": 0,
+              "buffersWritten": 2,
+              "bufferBytes": 76800,
+              "draws": 2,
+              "submissions": 1,
+              "frames": 1
+            },
+            "samples": 181
+          }
+        ]
+      }
+    ],
+    "sameVersionsSettingsFixturesAndControlAssets": true,
+    "changedNativeAsset": "bridge.wasm",
+    "sameHardwareEnvironment": true,
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "screenshotsIdentical": [
+      {
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "allRepetitionsScreenshotsIdentical": [
+      {
+        "repetition": 0,
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "successfulInvocations": 6
+  },
+  {
+    "count": 17,
+    "phase": "sgr",
+    "cpuIntervalsQualified": true,
+    "sameNativeCountersAndGrid": true,
+    "frameCountSource": "Authoritative raw spans and terminal-tagged counters",
+    "persistedFrameSummaryMismatches": [],
+    "sameVersionsSettingsFixturesAndControlAssets": true,
+    "changedNativeAsset": "bridge.wasm",
+    "sameHardwareEnvironment": true,
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "screenshotsIdentical": [
+      {
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "allRepetitionsScreenshotsIdentical": [
+      {
+        "repetition": 0,
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "successfulInvocations": 6
+  }
+]

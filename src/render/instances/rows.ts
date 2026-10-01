@@ -1,3 +1,4 @@
+import { emptyRenderCell } from '../../core/packed-cells.js'
 import type { RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import { glyphKey } from '../atlas/key.js'
 import type { GlyphRasterizationInput } from '../atlas/types.js'
@@ -137,13 +138,16 @@ export class InstanceRows {
     glyphs.beginRow(row.y)
     this.clearRow(row.y)
     const invalidatedRows = new Set<number>()
-    for (let index = 0; index < row.cells.length; index += 1) {
-      const cell = row.cells[index]!
+    const packed = row.packed
+    const length = packed?.length ?? row.cells.length
+    const scratch = emptyRenderCell()
+    for (let index = 0; index < length; index += 1) {
+      const cell = packed ? packed.read(index, scratch) : row.cells[index]!
       if (cell.x >= this.columns) continue
       this.writeCell(
         row.y,
         cell,
-        cellSpan(row.cells, index),
+        packed ? packed.span(index) : cellSpan(row.cells, index),
         glyphs,
         source,
         theme,

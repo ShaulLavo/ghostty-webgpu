@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "before",
+    "count": 1,
+    "phase": "ascii",
+    "repetition": 0,
+    "attempt": 0,
+    "directory": "before-1-ascii-0-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n",
+    "powerAfter": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "after",
+    "count": 1,
+    "phase": "ascii",
+    "repetition": 0,
+    "attempt": 0,
+    "directory": "after-1-ascii-0-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n",
+    "powerAfter": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "after",
+    "count": 1,
+    "phase": "ascii",
+    "repetition": 1,
+    "attempt": 0,
+    "directory": "after-1-ascii-1-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n",
+    "powerAfter": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "before",
+    "count": 1,
+    "phase": "ascii",
+    "repetition": 1,
+    "attempt": 0,
+    "directory": "before-1-ascii-1-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n",
+    "powerAfter": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "before",
+    "count": 1,
+    "phase": "ascii",
+    "repetition": 2,
+    "attempt": 0,
+    "directory": "before-1-ascii-2-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n",
+    "powerAfter": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  },
+  {
+    "kind": "after",
+    "count": 1,
+    "phase": "ascii",
+    "repetition": 2,
+    "attempt": 0,
+    "directory": "after-1-ascii-2-0",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n",
+    "powerAfter": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=22478947)\t100%; charged; 0:00 remaining present: true\n"
+  }
+]

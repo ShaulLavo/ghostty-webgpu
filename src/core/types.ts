@@ -1,3 +1,4 @@
+import type { PackedCells } from './packed-cells.js'
 import type {
   ClipboardLocation,
   ClipboardWriteResult,
@@ -194,12 +195,15 @@ export interface RenderCell {
 }
 
 export interface RenderRow {
+  packed?: PackedCells
   cells: readonly RenderCell[]
   dirty: boolean
   y: number
 }
 
 export interface ReadRowsOptions {
+  /** Keep packed records for direct renderer consumption. Cells materialize on access. */
+  packed?: boolean
   dirtyOnly?: boolean
   rows?: ReadonlySet<number>
 }

@@ -144,6 +144,7 @@ export class GhosttyRuntime {
     for (const renderState of this.renderStates) renderState.dispose()
     for (const terminal of this.terminals) terminal.dispose()
     this.bridge.configurePngDecoder(undefined)
+    this.bridge.dispose()
     this.disposed = true
   }
 

@@ -1,0 +1,1150 @@
+[
+  {
+    "kind": "before",
+    "count": 17,
+    "variant": "ghostty-webgpu",
+    "output": "ascii",
+    "rendererCpu": 70.74501472801029,
+    "totalCpu": 100.84205746318628,
+    "rendererCpuSeconds": 2.200644,
+    "totalCpuSeconds": 3.1302610000000004,
+    "operationMilliseconds": 3097.932458999996,
+    "gpuProcessCpu": 29.94563372926775,
+    "snapshotShare": 39.52338077977925,
+    "getViewShare": 5.926649003099635,
+    "instancesShare": 32.49009720603106,
+    "snapshotAndInstancesShare": 72.01347798581031,
+    "instancesMilliseconds": 1905.834988117218,
+    "jsMilliseconds": 717.3500294685364,
+    "jsShare": 12.2291658687654,
+    "snapshotInstancesAndJsMilliseconds": 4941.585035324097,
+    "snapshotAndInstancesMilliseconds": 4224.23500585556,
+    "mainTaskMilliseconds": 5865.895001888275,
+    "snapshotMilliseconds": 2318.4000177383423,
+    "getViewSampledMilliseconds": 347.6510076522827,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 71.64757900371667,
+        "totalCpu": 99.20936904839013,
+        "rendererCpuSeconds": 2.200644,
+        "totalCpuSeconds": 3.0471999999999997,
+        "gpuProcessCpu": 27.111226098014008,
+        "cpuIntervalMilliseconds": 3071.484104000001,
+        "operationMilliseconds": 3070.798334000001,
+        "acquisitionUncertaintyMilliseconds": 0.6539789999997083,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 67.9531472148012,
+        "totalCpu": 101.02265817450164,
+        "rendererCpuSeconds": 2.1055780000000004,
+        "totalCpuSeconds": 3.1302610000000004,
+        "gpuProcessCpu": 32.50215305225829,
+        "cpuIntervalMilliseconds": 3098.573188000002,
+        "operationMilliseconds": 3097.932458999996,
+        "acquisitionUncertaintyMilliseconds": 0.6098959999981162,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 70.74501472801029,
+        "totalCpu": 100.84205746318628,
+        "rendererCpuSeconds": 2.223149,
+        "totalCpuSeconds": 3.1689429999999996,
+        "gpuProcessCpu": 29.94563372926775,
+        "cpuIntervalMilliseconds": 3142.4815000000017,
+        "operationMilliseconds": 3141.623459000002,
+        "acquisitionUncertaintyMilliseconds": 0.8086669999975129,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1950.4709978103638,
+        "snapshotMilliseconds": 773.2949962615967,
+        "getViewSampledMilliseconds": 121.47200536727905,
+        "totalCpu": 107.53308972614745,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.639999999999418,
+            "max": 17.665000000000873
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 9.40999984741211,
+            "p95": 10.309998989105225,
+            "max": 11.609999656677246
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1959.6480169296265,
+        "snapshotMilliseconds": 765.2750210762024,
+        "getViewSampledMilliseconds": 111.20400094985962,
+        "totalCpu": 109.17374782072902,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.645000000000437,
+            "max": 17.67500000000109
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 9.554999351501465,
+            "p95": 10.369999885559082,
+            "max": 11.6899995803833
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1955.775987148285,
+        "snapshotMilliseconds": 779.8300004005432,
+        "getViewSampledMilliseconds": 114.97500133514404,
+        "totalCpu": 107.72548850561097,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.600000000000364,
+            "max": 17.670000000000073
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 9.49000072479248,
+            "p95": 10.44999885559082,
+            "max": 10.895001411437988
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "before",
+    "count": 17,
+    "variant": "xterm-webgl",
+    "output": "ascii",
+    "rendererCpu": 53.85494340846391,
+    "totalCpu": 94.27654031813297,
+    "rendererCpuSeconds": 1.6556449999999998,
+    "totalCpuSeconds": 2.898313,
+    "operationMilliseconds": 3070.781959,
+    "gpuProcessCpu": 39.96165852688181,
+    "snapshotShare": 4.754243960124257,
+    "getViewShare": 0.0,
+    "instancesShare": 0.0,
+    "snapshotAndInstancesShare": 4.754243960124257,
+    "instancesMilliseconds": 0,
+    "jsMilliseconds": 86.66502809524536,
+    "jsShare": 2.3900156895519165,
+    "snapshotInstancesAndJsMilliseconds": 259.0599994659424,
+    "snapshotAndInstancesMilliseconds": 172.39497137069702,
+    "mainTaskMilliseconds": 3626.127998828888,
+    "snapshotMilliseconds": 172.39497137069702,
+    "getViewSampledMilliseconds": 0,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 53.85494340846391,
+        "totalCpu": 94.27654031813297,
+        "rendererCpuSeconds": 1.6556449999999998,
+        "totalCpuSeconds": 2.898313,
+        "gpuProcessCpu": 40.298120340006776,
+        "cpuIntervalMilliseconds": 3074.267458500006,
+        "operationMilliseconds": 3073.1691250000003,
+        "acquisitionUncertaintyMilliseconds": 1.062916499999119,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 55.731781357100616,
+        "totalCpu": 95.80051809111711,
+        "rendererCpuSeconds": 1.71185,
+        "totalCpuSeconds": 2.942596,
+        "gpuProcessCpu": 39.96165852688181,
+        "cpuIntervalMilliseconds": 3071.5867290000024,
+        "operationMilliseconds": 3070.781959,
+        "acquisitionUncertaintyMilliseconds": 0.7787290000014764,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 51.74850062927745,
+        "totalCpu": 90.84013209039415,
+        "rendererCpuSeconds": 1.5889820000000001,
+        "totalCpuSeconds": 2.789324,
+        "gpuProcessCpu": 38.65223644563497,
+        "cpuIntervalMilliseconds": 3070.5855835,
+        "operationMilliseconds": 3069.836625,
+        "acquisitionUncertaintyMilliseconds": 0.709666499999912,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1209.5530009269714,
+        "snapshotMilliseconds": 57.45999050140381,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 91.47616002941676,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.625,
+            "max": 17.669999999998254
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5525007247924805,
+            "p95": 0.7200007438659668,
+            "max": 3.0450010299682617
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1231.2139825820923,
+        "snapshotMilliseconds": 57.14498996734619,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 96.53241951044339,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.639999999999418,
+            "max": 17.654999999998836
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5499992370605469,
+            "p95": 0.7400002479553223,
+            "max": 1.215001106262207
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1185.3610153198242,
+        "snapshotMilliseconds": 57.78999090194702,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 92.50043218410528,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.667999999999665,
+            "p95": 17.625,
+            "max": 17.68500000000131
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5400018692016602,
+            "p95": 0.7100000381469727,
+            "max": 1.9200000762939453
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "variant": "ghostty-webgpu",
+    "output": "ascii",
+    "rendererCpu": 50.10893511271972,
+    "totalCpu": 81.68048232424674,
+    "rendererCpuSeconds": 1.5406559999999998,
+    "totalCpuSeconds": 2.5113589999999997,
+    "operationMilliseconds": 3070.3021670000016,
+    "gpuProcessCpu": 31.184246477734234,
+    "snapshotShare": 6.101686595467969,
+    "getViewShare": 0.03955160572048153,
+    "instancesShare": 51.256859434848636,
+    "snapshotAndInstancesShare": 57.3585460303166,
+    "instancesMilliseconds": 1903.7499737739563,
+    "jsMilliseconds": 610.8850340843201,
+    "jsShare": 16.447563364027435,
+    "snapshotInstancesAndJsMilliseconds": 2741.260006427765,
+    "snapshotAndInstancesMilliseconds": 2130.374972343445,
+    "mainTaskMilliseconds": 3714.1369853019714,
+    "snapshotMilliseconds": 226.62499856948853,
+    "getViewSampledMilliseconds": 1.4690008163452148,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 50.10893511271972,
+        "totalCpu": 81.68048232424674,
+        "rendererCpuSeconds": 1.5406559999999998,
+        "totalCpuSeconds": 2.5113589999999997,
+        "gpuProcessCpu": 31.184246477734234,
+        "cpuIntervalMilliseconds": 3074.613333000001,
+        "operationMilliseconds": 3073.7060409999995,
+        "acquisitionUncertaintyMilliseconds": 0.8687080000008791,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 49.45462782632126,
+        "totalCpu": 86.22975411812882,
+        "rendererCpuSeconds": 1.5187379999999995,
+        "totalCpuSeconds": 2.6480919999999997,
+        "gpuProcessCpu": 36.228654442034056,
+        "cpuIntervalMilliseconds": 3070.972458499993,
+        "operationMilliseconds": 3070.3021670000016,
+        "acquisitionUncertaintyMilliseconds": 0.6454584999992221,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 50.59039787172605,
+        "totalCpu": 81.05891009385479,
+        "rendererCpuSeconds": 1.552507,
+        "totalCpuSeconds": 2.487518,
+        "gpuProcessCpu": 30.359967387670217,
+        "cpuIntervalMilliseconds": 3068.7780000000057,
+        "operationMilliseconds": 3067.904708000002,
+        "acquisitionUncertaintyMilliseconds": 0.8398330000018177,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1262.9249992370605,
+        "snapshotMilliseconds": 78.32000732421875,
+        "getViewSampledMilliseconds": 1.0350003242492676,
+        "totalCpu": 89.3723868852866,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.645000000000437,
+            "max": 17.665000000000873
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 5.60999870300293,
+            "p95": 6.185000419616699,
+            "max": 15.605000495910645
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1256.8999881744385,
+        "snapshotMilliseconds": 77.95999050140381,
+        "getViewSampledMilliseconds": 0.12900018692016602,
+        "totalCpu": 89.66656518004481,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.625,
+            "max": 17.68000000000029
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 5.4550018310546875,
+            "p95": 6.045001029968262,
+            "max": 10.205000400543213
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1194.3119978904724,
+        "snapshotMilliseconds": 70.34500074386597,
+        "getViewSampledMilliseconds": 0.30500030517578125,
+        "totalCpu": 85.32972361355884,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 18.635000000002037,
+            "max": 18.664999999997235
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 5.330000400543213,
+            "p95": 5.619998931884766,
+            "max": 8.274999618530273
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "variant": "xterm-webgl",
+    "output": "ascii",
+    "rendererCpu": 51.95405303983672,
+    "totalCpu": 91.83455638483511,
+    "rendererCpuSeconds": 1.5976900000000003,
+    "totalCpuSeconds": 2.822646,
+    "operationMilliseconds": 3073.0035829999997,
+    "gpuProcessCpu": 40.31976776356347,
+    "snapshotShare": 4.804205124506145,
+    "getViewShare": 0.0,
+    "instancesShare": 0.0,
+    "snapshotAndInstancesShare": 4.804205124506145,
+    "instancesMilliseconds": 0,
+    "jsMilliseconds": 88.08503198623657,
+    "jsShare": 2.3802828423315456,
+    "snapshotInstancesAndJsMilliseconds": 265.8700222969055,
+    "snapshotAndInstancesMilliseconds": 177.78499031066895,
+    "mainTaskMilliseconds": 3700.611978530884,
+    "snapshotMilliseconds": 177.78499031066895,
+    "getViewSampledMilliseconds": 0,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 51.95405303983672,
+        "totalCpu": 91.10554832566865,
+        "rendererCpuSeconds": 1.5976900000000003,
+        "totalCpuSeconds": 2.801675999999999,
+        "gpuProcessCpu": 39.056867232613904,
+        "cpuIntervalMilliseconds": 3075.198000000004,
+        "operationMilliseconds": 3074.1870839999974,
+        "acquisitionUncertaintyMilliseconds": 0.9677499999997963,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 55.695305710263135,
+        "totalCpu": 96.11771966051589,
+        "rendererCpuSeconds": 1.7080889999999993,
+        "totalCpuSeconds": 2.9477819999999992,
+        "gpuProcessCpu": 40.31976776356347,
+        "cpuIntervalMilliseconds": 3066.845541499999,
+        "operationMilliseconds": 3066.1413750000065,
+        "acquisitionUncertaintyMilliseconds": 0.6780415000030189,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 48.710791328784886,
+        "totalCpu": 91.83455638483511,
+        "rendererCpuSeconds": 1.497185,
+        "totalCpuSeconds": 2.822646,
+        "gpuProcessCpu": 42.66414426830405,
+        "cpuIntervalMilliseconds": 3073.6207710000017,
+        "operationMilliseconds": 3073.0035829999997,
+        "acquisitionUncertaintyMilliseconds": 0.5852709999999206,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1253.398983001709,
+        "snapshotMilliseconds": 61.13499212265015,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 97.02974300022052,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.625,
+            "max": 17.664999999997235
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5824999809265137,
+            "p95": 0.8650007247924805,
+            "max": 1.4350004196166992
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1244.6229844093323,
+        "snapshotMilliseconds": 58.855008602142334,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 99.02751918371348,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.6349999999984,
+            "max": 17.69499999999971
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.550001859664917,
+            "p95": 0.7650008201599121,
+            "max": 1.1600008010864258
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1202.5900111198425,
+        "snapshotMilliseconds": 57.794989585876465,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 92.53651658652507,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 18.614999999997963,
+            "max": 18.68000000000029
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.550001859664917,
+            "p95": 0.6950006484985352,
+            "max": 1.39500093460083
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "before",
+    "count": 17,
+    "variant": "ghostty-webgpu",
+    "output": "sgr",
+    "rendererCpu": 72.59020490215016,
+    "totalCpu": 99.66700023254386,
+    "rendererCpuSeconds": 2.2332389999999998,
+    "totalCpuSeconds": 3.0650180000000002,
+    "operationMilliseconds": 3074.3517499999944,
+    "gpuProcessCpu": 27.079457104224534,
+    "snapshotShare": 47.812732011359785,
+    "getViewShare": 8.733473318424805,
+    "instancesShare": 20.068660651980483,
+    "snapshotAndInstancesShare": 67.88139266334026,
+    "instancesMilliseconds": 1224.6849937438965,
+    "jsMilliseconds": 687.4950017929077,
+    "jsShare": 11.265838939314872,
+    "snapshotInstancesAndJsMilliseconds": 4829.940000534058,
+    "snapshotAndInstancesMilliseconds": 4142.44499874115,
+    "mainTaskMilliseconds": 6102.474973201752,
+    "snapshotMilliseconds": 2917.7600049972534,
+    "getViewSampledMilliseconds": 532.9580235481262,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 72.59020490215016,
+        "totalCpu": 100.05168680453332,
+        "rendererCpuSeconds": 2.2332389999999998,
+        "totalCpuSeconds": 3.078092,
+        "gpuProcessCpu": 27.079457104224534,
+        "cpuIntervalMilliseconds": 3076.5018545000003,
+        "operationMilliseconds": 3075.900708000001,
+        "acquisitionUncertaintyMilliseconds": 0.5816875000000437,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 70.4709597770381,
+        "totalCpu": 98.07666387429146,
+        "rendererCpuSeconds": 2.164224,
+        "totalCpuSeconds": 3.0120190000000004,
+        "gpuProcessCpu": 27.179079812983886,
+        "cpuIntervalMilliseconds": 3071.0863125000033,
+        "operationMilliseconds": 3070.5158749999973,
+        "acquisitionUncertaintyMilliseconds": 0.5418544999993173,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 72.66101124287768,
+        "totalCpu": 99.66700023254386,
+        "rendererCpuSeconds": 2.234514,
+        "totalCpuSeconds": 3.0650180000000002,
+        "gpuProcessCpu": 26.883202567897,
+        "cpuIntervalMilliseconds": 3075.258603999995,
+        "operationMilliseconds": 3074.3517499999944,
+        "acquisitionUncertaintyMilliseconds": 0.8448959999986982,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 2034.348985671997,
+        "snapshotMilliseconds": 972.8350162506104,
+        "getViewSampledMilliseconds": 180.64501190185547,
+        "totalCpu": 111.90123735714262,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.639999999999418,
+            "max": 17.669999999998254
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 9.230000019073486,
+            "p95": 10.220000743865967,
+            "max": 14.785000324249268
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 2079.531988143921,
+        "snapshotMilliseconds": 988.5249967575073,
+        "getViewSampledMilliseconds": 180.19802379608154,
+        "totalCpu": 115.24209686658703,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.664999999999054,
+            "max": 17.68000000000029
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 9.414999008178711,
+            "p95": 10.009997844696045,
+            "max": 14.655001163482666
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1988.5939993858337,
+        "snapshotMilliseconds": 956.3999919891357,
+        "getViewSampledMilliseconds": 172.1149878501892,
+        "totalCpu": 109.20492289605507,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 18.625,
+            "max": 18.674999999999272
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 9.084999561309814,
+            "p95": 9.690000534057617,
+            "max": 11.340000629425049
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "before",
+    "count": 17,
+    "variant": "xterm-webgl",
+    "output": "sgr",
+    "rendererCpu": 54.40900883356302,
+    "totalCpu": 91.9748074534443,
+    "rendererCpuSeconds": 1.672125,
+    "totalCpuSeconds": 2.8266159999999996,
+    "operationMilliseconds": 3072.3115,
+    "gpuProcessCpu": 37.363776964627405,
+    "snapshotShare": 4.582887369253444,
+    "getViewShare": 0.0,
+    "instancesShare": 0.0,
+    "snapshotAndInstancesShare": 4.582887369253444,
+    "instancesMilliseconds": 0,
+    "jsMilliseconds": 83.77999591827393,
+    "jsShare": 2.243640890410063,
+    "snapshotInstancesAndJsMilliseconds": 254.9100046157837,
+    "snapshotAndInstancesMilliseconds": 171.13000869750977,
+    "mainTaskMilliseconds": 3734.108977794647,
+    "snapshotMilliseconds": 171.13000869750977,
+    "getViewSampledMilliseconds": 0,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 54.40900883356302,
+        "totalCpu": 91.9748074534443,
+        "rendererCpuSeconds": 1.672125,
+        "totalCpuSeconds": 2.8266159999999996,
+        "gpuProcessCpu": 37.480254007951295,
+        "cpuIntervalMilliseconds": 3073.2502500000046,
+        "operationMilliseconds": 3072.4244589999944,
+        "acquisitionUncertaintyMilliseconds": 0.7883330000004207,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 61.05046460644549,
+        "totalCpu": 98.53147609393761,
+        "rendererCpuSeconds": 1.8726349999999998,
+        "totalCpuSeconds": 3.0223109999999997,
+        "gpuProcessCpu": 37.363776964627405,
+        "cpuIntervalMilliseconds": 3067.355853999994,
+        "operationMilliseconds": 3066.521166999999,
+        "acquisitionUncertaintyMilliseconds": 0.8005620000039926,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 53.16338484793705,
+        "totalCpu": 90.81403713378154,
+        "rendererCpuSeconds": 1.633775,
+        "totalCpuSeconds": 2.790825,
+        "gpuProcessCpu": 37.2338772506454,
+        "cpuIntervalMilliseconds": 3073.120729000002,
+        "operationMilliseconds": 3072.3115,
+        "acquisitionUncertaintyMilliseconds": 0.7738120000003619,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1202.0659713745117,
+        "snapshotMilliseconds": 55.920011043548584,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 91.81977745521064,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.625,
+            "max": 17.664999999997235
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5299997329711914,
+            "p95": 0.6950006484985352,
+            "max": 0.9799985885620117
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1249.1939840316772,
+        "snapshotMilliseconds": 57.79998207092285,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 99.01948716555557,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.625,
+            "max": 17.655000000000655
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5474984645843506,
+            "p95": 0.7400007247924805,
+            "max": 1.1999998092651367
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1282.8490223884583,
+        "snapshotMilliseconds": 57.41001558303833,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 96.44077463049446,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.6150000000016,
+            "max": 17.68000000000029
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5550000667572021,
+            "p95": 0.6999998092651367,
+            "max": 0.9300003051757812
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "variant": "ghostty-webgpu",
+    "output": "sgr",
+    "rendererCpu": 46.885982857391866,
+    "totalCpu": 80.15023978469571,
+    "rendererCpuSeconds": 1.441593,
+    "totalCpuSeconds": 2.464652,
+    "operationMilliseconds": 3074.1957079999993,
+    "gpuProcessCpu": 32.92792850401368,
+    "snapshotShare": 8.336466545350405,
+    "getViewShare": 0.04281118506147181,
+    "instancesShare": 38.49224710499828,
+    "snapshotAndInstancesShare": 46.82871365034868,
+    "instancesMilliseconds": 1298.3250169754028,
+    "jsMilliseconds": 593.764970779419,
+    "jsShare": 17.603718390005017,
+    "snapshotInstancesAndJsMilliseconds": 2173.275002479553,
+    "snapshotAndInstancesMilliseconds": 1579.5100317001343,
+    "mainTaskMilliseconds": 3372.9519958496094,
+    "snapshotMilliseconds": 281.18501472473145,
+    "getViewSampledMilliseconds": 1.4440007209777832,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 46.885982857391866,
+        "totalCpu": 80.09306990845866,
+        "rendererCpuSeconds": 1.441593,
+        "totalCpuSeconds": 2.462604,
+        "gpuProcessCpu": 32.82129055465319,
+        "cpuIntervalMilliseconds": 3074.6780000000017,
+        "operationMilliseconds": 3074.1957079999993,
+        "acquisitionUncertaintyMilliseconds": 0.46300000000064756,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 46.82859547751985,
+        "totalCpu": 82.639905337763,
+        "rendererCpuSeconds": 1.4395520000000002,
+        "totalCpuSeconds": 2.5404230000000005,
+        "gpuProcessCpu": 35.311942161698475,
+        "cpuIntervalMilliseconds": 3074.087499999994,
+        "operationMilliseconds": 3073.2810830000017,
+        "acquisitionUncertaintyMilliseconds": 0.7779999999984284,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 47.09294711330121,
+        "totalCpu": 80.15023978469571,
+        "rendererCpuSeconds": 1.4481270000000002,
+        "totalCpuSeconds": 2.464652,
+        "gpuProcessCpu": 32.92792850401368,
+        "cpuIntervalMilliseconds": 3075.0400829999926,
+        "operationMilliseconds": 3074.407583,
+        "acquisitionUncertaintyMilliseconds": 0.5973750000011933,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1104.0439896583557,
+        "snapshotMilliseconds": 87.64498853683472,
+        "getViewSampledMilliseconds": 0.45400047302246094,
+        "totalCpu": 80.73719836231179,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.625,
+            "max": 17.674999999999272
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 4.365001201629639,
+            "p95": 4.755000114440918,
+            "max": 7.509998798370361
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1163.7070035934448,
+        "snapshotMilliseconds": 104.14999961853027,
+        "getViewSampledMilliseconds": 0.6649999618530273,
+        "totalCpu": 85.19434670842064,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.6299999999992,
+            "max": 17.665000000000873
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 4.469999313354492,
+            "p95": 5.345000267028809,
+            "max": 18.36500120162964
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1105.2010025978088,
+        "snapshotMilliseconds": 89.39002656936646,
+        "getViewSampledMilliseconds": 0.3250002861022949,
+        "totalCpu": 80.3561987394383,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 18.63000000000102,
+            "max": 18.655000000000655
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 181,
+            "p50": 4.375000476837158,
+            "p95": 4.754998683929443,
+            "max": 7.954998970031738
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "device": 17,
+          "queue": 17,
+          "pipelines": 34
+        }
+      }
+    ]
+  },
+  {
+    "kind": "after",
+    "count": 17,
+    "variant": "xterm-webgl",
+    "output": "sgr",
+    "rendererCpu": 54.16275644378117,
+    "totalCpu": 93.87580621480447,
+    "rendererCpuSeconds": 1.665413,
+    "totalCpuSeconds": 2.886522000000001,
+    "operationMilliseconds": 3073.3574170000065,
+    "gpuProcessCpu": 37.32432993332352,
+    "snapshotShare": 4.604574477009715,
+    "getViewShare": 0.0,
+    "instancesShare": 0.0,
+    "snapshotAndInstancesShare": 4.604574477009715,
+    "instancesMilliseconds": 0,
+    "jsMilliseconds": 82.44999694824219,
+    "jsShare": 2.2236695528606063,
+    "snapshotInstancesAndJsMilliseconds": 253.18001890182495,
+    "snapshotAndInstancesMilliseconds": 170.73002195358276,
+    "mainTaskMilliseconds": 3707.83495426178,
+    "snapshotMilliseconds": 170.73002195358276,
+    "getViewSampledMilliseconds": 0,
+    "controlRuns": [
+      {
+        "repetition": 0,
+        "rendererCpu": 53.609397354750975,
+        "totalCpu": 90.54095919599705,
+        "rendererCpuSeconds": 1.6472499999999999,
+        "totalCpuSeconds": 2.782042,
+        "gpuProcessCpu": 36.83903701703628,
+        "cpuIntervalMilliseconds": 3072.6888965000035,
+        "operationMilliseconds": 3072.0384580000027,
+        "acquisitionUncertaintyMilliseconds": 0.6155624999992142,
+        "latency": null
+      },
+      {
+        "repetition": 1,
+        "rendererCpu": 59.30174239015851,
+        "totalCpu": 96.72652056863652,
+        "rendererCpuSeconds": 1.8230659999999999,
+        "totalCpuSeconds": 2.9735860000000005,
+        "gpuProcessCpu": 37.32432993332352,
+        "cpuIntervalMilliseconds": 3074.2199580000015,
+        "operationMilliseconds": 3073.3574170000065,
+        "acquisitionUncertaintyMilliseconds": 0.8321250000008149,
+        "latency": null
+      },
+      {
+        "repetition": 2,
+        "rendererCpu": 54.16275644378117,
+        "totalCpu": 93.87580621480447,
+        "rendererCpuSeconds": 1.665413,
+        "totalCpuSeconds": 2.886522000000001,
+        "gpuProcessCpu": 39.2541952222325,
+        "cpuIntervalMilliseconds": 3074.830583499999,
+        "operationMilliseconds": 3074.0440830000007,
+        "acquisitionUncertaintyMilliseconds": 0.7534584999993967,
+        "latency": null
+      }
+    ],
+    "traceRuns": [
+      {
+        "repetition": 0,
+        "mainTaskMilliseconds": 1243.9059829711914,
+        "snapshotMilliseconds": 56.69500780105591,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 93.8505413394689,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.61999999999898,
+            "max": 17.665000000000873
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5399982929229736,
+            "p95": 0.6900005340576172,
+            "max": 0.9449987411499023
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 1,
+        "mainTaskMilliseconds": 1211.1349830627441,
+        "snapshotMilliseconds": 56.72500467300415,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 93.51156941631761,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 17.600000000000364,
+            "max": 17.664999999999054
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5399994850158691,
+            "p95": 0.6949987411499023,
+            "max": 1.195000171661377
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      },
+      {
+        "repetition": 2,
+        "mainTaskMilliseconds": 1252.7939882278442,
+        "snapshotMilliseconds": 57.310009479522705,
+        "getViewSampledMilliseconds": 0,
+        "totalCpu": 95.21433122095904,
+        "cadence": {
+          "pacedIntervals": {
+            "samples": 184,
+            "p50": 16.665000000000873,
+            "p95": 18.614999999997963,
+            "max": 18.665000000000873
+          },
+          "terminalWorkPerAnimationFrame": {
+            "samples": 182,
+            "p50": 0.5399982929229736,
+            "p95": 0.7199997901916504,
+            "max": 1.015000820159912
+          }
+        },
+        "ownership": {
+          "scheduler": 17,
+          "context": 17,
+          "programs": 34
+        }
+      }
+    ]
+  }
+]

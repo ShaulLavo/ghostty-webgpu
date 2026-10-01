@@ -1,0 +1,62 @@
+[
+  {
+    "directory": "after-17-sgr-0-0",
+    "repetition": 0,
+    "attempt": 0,
+    "startedAt": "2026-10-01T16:08:09.694Z",
+    "finishedAt": "2026-10-01T16:09:41.635Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--only-repetition",
+      "0",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/after-17-sgr-0-0"
+    ],
+    "comparisonSha256": "6f9dcf867ef9903e4496bfcf7743894b5671269553232014337828e3deb3171d"
+  },
+  {
+    "directory": "after-17-sgr-1-0",
+    "repetition": 1,
+    "attempt": 0,
+    "startedAt": "2026-10-01T16:09:43.502Z",
+    "finishedAt": "2026-10-01T16:11:07.678Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--only-repetition",
+      "1",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/after-17-sgr-1-0"
+    ],
+    "comparisonSha256": "ca9f7eb7b995f6d8314b4411b6f3a1e49b8f59d554516ca6b14585fcf2c77b39"
+  },
+  {
+    "directory": "after-17-sgr-2-0",
+    "repetition": 2,
+    "attempt": 0,
+    "startedAt": "2026-10-01T16:14:07.820Z",
+    "finishedAt": "2026-10-01T16:15:29.803Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "sgr",
+      "--display-awake",
+      "--only-repetition",
+      "2",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/after-17-sgr-2-0"
+    ],
+    "comparisonSha256": "d178a1c6bffcbb8f57322a80d49df9ec07ede5433618a1e8a7951d7e2eeafb52"
+  }
+]

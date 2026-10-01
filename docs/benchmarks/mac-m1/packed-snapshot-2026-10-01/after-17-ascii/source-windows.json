@@ -1,0 +1,62 @@
+[
+  {
+    "directory": "after-17-ascii-0-0",
+    "repetition": 0,
+    "attempt": 0,
+    "startedAt": "2026-10-01T15:57:47.824Z",
+    "finishedAt": "2026-10-01T15:59:23.022Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "ascii",
+      "--display-awake",
+      "--only-repetition",
+      "0",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/after-17-ascii-0-0"
+    ],
+    "comparisonSha256": "cd09e52475232016e726135cfcef9ca4aa8dbd4fd7afb73bd6e735471bbf096a"
+  },
+  {
+    "directory": "after-17-ascii-1-0",
+    "repetition": 1,
+    "attempt": 0,
+    "startedAt": "2026-10-01T15:59:25.480Z",
+    "finishedAt": "2026-10-01T16:01:02.117Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "ascii",
+      "--display-awake",
+      "--only-repetition",
+      "1",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/after-17-ascii-1-0"
+    ],
+    "comparisonSha256": "49ffcc41e8d0b0838c6d3045ead2f081cf1ac6ce4f3c80e5ad92c376b531b26c"
+  },
+  {
+    "directory": "after-17-ascii-2-0",
+    "repetition": 2,
+    "attempt": 0,
+    "startedAt": "2026-10-01T16:04:26.213Z",
+    "finishedAt": "2026-10-01T16:06:08.521Z",
+    "arguments": [
+      "--trace",
+      "--trace-count",
+      "17",
+      "--trace-phase",
+      "ascii",
+      "--display-awake",
+      "--only-repetition",
+      "2",
+      "--output",
+      "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/after-17-ascii-2-0"
+    ],
+    "comparisonSha256": "7e51584bb6306eb4b7469e0eddd8cb4a1d008bc1f90458c50a59b5fc1b50ab05"
+  }
+]

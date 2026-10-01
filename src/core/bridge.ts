@@ -98,6 +98,8 @@ export class CallbackBridge {
   private readonly sysImageLayout: AbiLayout
   private readonly targets = new Map<number, TerminalTarget>()
   private indexes?: BridgeIndexes
+  private stackPointer = 0
+  private bridgeExports?: BridgeWasmExports
   private pngDecoder?: (bytes: Uint8Array) => DecodedPng | undefined
 
   constructor(exports: GhosttyWasmExports, layouts: AbiLayouts) {
@@ -111,6 +113,7 @@ export class CallbackBridge {
     this.sysImageLayout = requireLayout(layouts, 'GhosttySysImage')
     this.imports = {
       env: {
+        ...exports,
         bell: (...args: number[]) => this.bell(...args),
         clipboard_write: (...args: number[]) => this.clipboardWrite(...args),
         color_scheme: (...args: number[]) => this.colorScheme(...args),
@@ -129,7 +132,34 @@ export class CallbackBridge {
   }
 
   install(exports: BridgeWasmExports): void {
+    this.stackPointer = this.memory.allocate(65536)
+    exports.__stack_pointer.value = Math.floor((this.stackPointer + 65536) / 16) * 16
+    this.bridgeExports = exports
     this.indexes = installBridge(this.exports.__indirect_function_table, exports)
+  }
+
+  readRows(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    snapshot: number,
+  ): number {
+    return this.bridgeExports!.bridge_read_rows(
+      state,
+      iterator,
+      cells,
+      mask,
+      maskLength,
+      dirtyOnly,
+      snapshot,
+    )
+  }
+
+  dispose(): void {
+    this.memory.free(this.stackPointer, 65536)
   }
 
   configurePngDecoder(decoder?: (bytes: Uint8Array) => DecodedPng | undefined): void {

@@ -1,0 +1,8 @@
+{
+  "file": "raw-evidence.tar.gz",
+  "bytes": 341387340,
+  "sha256": "dd0cd5413ba27110590a210a443b36372689e0d16db476a3c84663866980d350",
+  "linuxPath": "/work/tmp/plan-283-fix2/corrected/raw-evidence.tar.gz",
+  "macPath": "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected/raw-evidence.tar.gz",
+  "measuredImplementationCommit": "201ed6ee9298ad3ac06ed79d66f18f62737c15a0"
+}

@@ -43,6 +43,8 @@ async function main(): Promise<void> {
   try {
     const output = join(workspace, 'bridge.wasm')
     const zig = argument('--zig') ?? 'zig'
+    const source = argument('--source')
+    if (!source) throw new BridgeBuildError('--source requires the pinned Ghostty checkout')
     await run(
       [
         zig,
@@ -52,6 +54,12 @@ async function main(): Promise<void> {
         'wasm32-freestanding',
         '-fno-entry',
         '-rdynamic',
+        '--import-memory',
+        '--export=__stack_pointer',
+        '--stack',
+        '65536',
+        '-I',
+        join(source, 'include'),
         '-O',
         'ReleaseSmall',
         `-femit-bin=${output}`,

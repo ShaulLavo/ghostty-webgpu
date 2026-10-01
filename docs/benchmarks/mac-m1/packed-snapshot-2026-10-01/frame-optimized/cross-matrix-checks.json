@@ -1,0 +1,28 @@
+{
+  "sameRecordedHardwareFields": [
+    "browser",
+    "os",
+    "cpu",
+    "renderer",
+    "headed",
+    "launchArguments",
+    "power"
+  ],
+  "hardwareFieldsMatch": true,
+  "baselineAssetsMatch": true,
+  "baselineSourceAndBundleMatch": true,
+  "baselineBrowserBundleSha256": "57614ba05268e55303a48b224569df2e9e5487f201a13a2fc906c9aea7383195",
+  "baselineCpu": [
+    {
+      "variant": "ghostty-webgpu",
+      "initialBaselineRendererCpu": 107.83543867860969,
+      "freshBaselineRendererCpu": 70.74501472801029
+    },
+    {
+      "variant": "xterm-webgl",
+      "initialBaselineRendererCpu": 79.52602579036923,
+      "freshBaselineRendererCpu": 53.85494340846391
+    }
+  ],
+  "limitation": "Broader performance drift is unexplained. Clock/thermal state is unavailable. The fresh matrix compares packed-plus-frame treatment against main; it does not isolate the incremental frame optimization from the initial packed treatment under identical conditions. No cross-matrix treatment delta is assigned causally to frame copying."
+}

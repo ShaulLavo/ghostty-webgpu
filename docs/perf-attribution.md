@@ -1,6 +1,6 @@
 # Output and input latency attribution
 
-Status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original matrix. The headed Apple M1 matrix covers 1, 8, and 17 terminals, ASCII, SGR, and loopback input echo, with three repetitions and paired trace/control phases. No product fixes were made. Phase 2 remains separate.
+Status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original attribution matrix. Phase 2 implements packed damaged-row snapshots and measures main versus treatment on the Apple M1 at 1 and 17 terminals, ASCII and SGR. The initial matrix has mixed CPU results. A single direct-packed DOM frame follow-up improves CPU in all fresh 17-terminal ASCII/SGR pairs; substantial baseline drift between matrices remains unexplained. The PR stays draft for review. Phase 1's input/echo conclusions remain separate.
 
 ## Conclusions and target reproducibility
 
@@ -243,3 +243,118 @@ nice -n 19 taskset -c 0-7 bun run typecheck
 ```
 
 All 44 narrow tooling tests pass. They cover matched CPU acquisition intervals and asynchronous timing uncertainty, run/page failures and incomplete case/phase evidence, numeric option validation and compact CLI parsing, awaited and bounded trace cleanup, stale refresh cancellation, reusable ordinary outputs, portable temporary roots, and display qualification versus workload cadence, diagnostic retention/cleanup, process churn and trace-stream closure, nested-exclusive counters, terminal/frame isolation, ownership identities, clock alignment and main-task union, sampled-profile identity, unique frame aggregation, presentation identity, and compact-evidence preservation. The analyzer rejects failed or unfinished windows before publishing rows, and verifies the selected case matrix, trace/control pairs, sample counts, and display probes. A case deadline awaits context closure and trace finalization; stalled drain has a ten-second give-up and stops the entire window. Package/portable builds, repository pre-commit gates and typechecks, and Linux native/xterm byte/string smoke also passed. The existing `bench:compare:test` entry now includes tracing, attribution, and option regressions through its test imports; pinned package metadata and native-resolver provenance remain unchanged. Seven existing package lint warnings remain outside the changed files. The first repair push passed Ghostty CI jobs; the repository package job failed in unrelated Raspberry Pi tests because CI checks out shallow history (`fregatCheckout` cannot find `3d86637e8`, followed by two lane-lock child-process failures). Product deployment, product fixes, optical measurements, and merge are deliberately outside this Phase 1 delivery.
+
+## Phase 2: packed damaged-row snapshots
+
+### Data boundary and upstream API
+
+The bulk reader moves the per-cell WASM boundary into our existing `bridge.wasm`. One `bridge_read_rows` call iterates requested or damaged rows and writes a reusable packed workspace. A new largest grapheme payload requires one capacity-growth retry; subsequent reads reuse that allocation. JavaScript copies the populated records into owned typed arrays, so returned snapshots survive writes, memory growth, resize, and disposal. Damage acknowledgement remains a separate operation.
+
+The source is official Ghostty at `c8554f28e0efe2f5595f32020371c34b25ec628f`. `GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW` supplies the contiguous borrowed `GhosttyCellsView`. The bridge uses `ghostty_cell_get` for codepoint, content tag, styling presence, and width, plus the official row/cell accessors for resolved colors, styles, graphemes, and row-local selection. It avoids decoding upstream raw-cell bit positions, which are outside the stable ABI contract. Ghostty is unpatched; rebuilding with `bun run build:wasm --source <clean-pinned-checkout>` reproduces the unchanged `ghostty-vt.wasm` and the new bridge.
+
+| Record           |     Size | Fields, in order                                                                            |
+| ---------------- | -------: | ------------------------------------------------------------------------------------------- |
+| Snapshot header  | 36 bytes | Row pointer/capacity/length; cell pointer/capacity/length; grapheme pointer/capacity/length |
+| Row              | 16 bytes | Viewport y, dirty flag, first cell index, cell count                                        |
+| Cell             | 24 bytes | Codepoint, foreground RGB, background RGB, flags, grapheme index, grapheme length           |
+| Grapheme element |  4 bytes | Unicode codepoint; a cluster contains its base and subsequent codepoints                    |
+
+All fields are little-endian u32 values. RGB is `r | g << 8 | b << 16`; `0xffffffff` means an unset explicit color. Cell flags use bits 0–1 for width, bit 2 for selection, bit 3 for styling presence, bits 4–11 for bold/italic/faint/blink/inverse/invisible/strikethrough/overline, and bits 12 onward for underline style. This layout belongs to our bridge, independent of Ghostty's private raw-cell layout.
+
+WebGPU and WebGL request packed rows. `InstanceRows` reads the records with one reusable scratch cell per row and never materializes a cell array. Public `readRows()` retains owned object snapshots by default; a packed row's `cells` getter materializes lazily for inspection. The initial treatment also invokes that getter for DOM frame data. The targeted follow-up derives frozen text/continuation arrays directly from packed records for caret, links, and accessibility, preserving the existing frame contract. Canvas rendering uses the public object shape and the shared frame helper, with extraction still supplied by the bulk bridge. Wide-cell spans retain the previous continuation scan.
+
+The bridge imports Ghostty's memory and C exports. Its stack is a separately allocated, 16-byte-aligned 64 KiB region, freed with the runtime. The bridge has no memory-initializing data section; a regression test verifies that instantiation leaves existing Ghostty memory intact.
+
+### Correctness
+
+The complete package unit suite passes 354 tests. Five bulk-reader tests include forty seeded random screens compared against the previous per-cell reader on the same native render state. They cover wide text, combining and ZWJ graphemes, palette and truecolor values, every supported style, selection, viewport changes, retained-state dimensions after resize, empty first reads, damaged/requested row filtering, allocation growth, and owned snapshot lifetime. The instance-builder comparison requires equal cell/glyph buffers and throws if the packed path reads the materialized `cells` array. Thirteen built-API Chromium history and pointer-selection tests and twenty-five WebGPU/WebGL renderer browser tests also pass. Two existing Linux SwiftShader device-replacement success/retry cases are skipped. Repository pre-commit gates and typechecks pass.
+
+### Main versus packed snapshots on Apple M1
+
+The initial treatment is measured commit `201ed6ee9298ad3ac06ed79d66f18f62737c15a0`, against main at `24a6f3d04290fb37311fd0fa9c50777ca953d8a0` (PR #245 included). Each condition uses three alternated pairs, AB/BA/AB, with native and paired pinned xterm WebGL controls in every invocation. CPU values below are independently aggregated medians of inactive-wrapper controls, in percent of one core. Traces use 180 paced writes plus one clear render. No CPU-rate improvement is inferred from a smaller snapshot share.
+
+| Count / output | Native renderer before → after | Native total before → after | xterm renderer before → after | xterm total before → after |
+| -------------- | -----------------------------: | --------------------------: | ----------------------------: | -------------------------: |
+| 1 / ASCII      |                  23.73 → 23.00 |               36.44 → 37.41 |                 20.92 → 19.56 |              36.50 → 34.93 |
+| 1 / SGR        |                  24.91 → 23.10 |               37.63 → 37.52 |                 19.89 → 20.90 |              36.27 → 35.74 |
+| 17 / ASCII     |                107.84 → 113.42 |             155.89 → 179.98 |                 79.53 → 83.30 |            142.44 → 160.30 |
+| 17 / SGR       |                 104.62 → 96.14 |             154.29 → 146.52 |                 93.02 → 87.10 |            168.65 → 161.13 |
+
+**Losses:** 17-terminal ASCII renderer CPU rises 5.58 percentage points and total CPU rises 24.09 points; all three paired native rate deltas lose. One-terminal ASCII total CPU rises 0.97 points. The 17-terminal SGR medians improve, but repetition 0 loses: renderer +8.53 points and total +24.84 points. xterm controls also vary, particularly at 17 terminals, so three pairs establish an observed result rather than a confidence interval or isolated causal effect. Native after-treatment renderer CPU remains higher than its paired xterm median in all four conditions.
+
+The paced 180-write workloads have different elapsed times when frames stretch. CPU rate measures utilization per wall-clock second; CPU seconds measure consumption for the fixed work. They answer different questions. Values below are separate medians, not an additive synthetic run.
+
+| Count / output | Native elapsed ms before → after | Native renderer CPU seconds before → after | Native total CPU seconds before → after | xterm after renderer / total CPU seconds | Native GPU-process CPU before → after |
+| -------------- | -------------------------------: | -----------------------------------------: | --------------------------------------: | ---------------------------------------: | ------------------------------------: |
+| 1 / ASCII      |                3079.87 → 3078.68 |                              0.731 → 0.708 |                           1.123 → 1.151 |                            0.602 / 1.076 |                         12.45 → 13.71 |
+| 1 / SGR        |                3073.29 → 3077.66 |                              0.762 → 0.712 |                           1.153 → 1.156 |                            0.643 / 1.101 |                         12.65 → 13.95 |
+| 17 / ASCII     |                4191.14 → 3590.36 |                              4.520 → 4.209 |                           6.633 → 6.476 |                            2.706 / 4.979 |                         48.17 → 62.90 |
+| 17 / SGR       |                3877.41 → 3086.28 |                              3.970 → 2.959 |                           5.854 → 4.509 |                            2.680 / 4.958 |                         47.65 → 54.74 |
+
+GPU-process CPU is process CPU consumption, not GPU execution time. The lower fixed-work CPU seconds at 17-terminal ASCII coexist with higher CPU rates and a shorter output interval. This does not satisfy an unqualified claim that the CPU-rate disadvantage is fixed.
+
+### Whole-main attribution and migrated work
+
+The sums below cover all three traced runs. Shares use whole renderer-main task time, including uninstrumented residual. Trace perturbation prevents extrapolating these percentages into control CPU savings.
+
+| Count / output | Snapshot share before → after | Snapshot ms before → after | Instances ms before → after | JS ms before → after | Snapshot + instances + JS ms before → after | Whole-main ms before → after |
+| -------------- | ----------------------------: | -------------------------: | --------------------------: | -------------------: | ------------------------------------------: | ---------------------------: |
+| 1 / ASCII      |                22.44% → 6.59% |             170.73 → 43.48 |             141.17 → 141.10 |      135.26 → 149.38 |                             447.16 → 333.96 |              760.90 → 659.31 |
+| 1 / SGR        |                26.11% → 7.34% |             223.21 → 52.86 |              99.14 → 110.06 |      147.53 → 167.00 |                             469.87 → 329.92 |              854.75 → 720.23 |
+| 17 / ASCII     |                39.21% → 5.51% |           5680.76 → 670.31 |           4656.72 → 5916.82 |    1932.16 → 2892.23 |                          12269.64 → 9479.36 |          14486.55 → 12156.12 |
+| 17 / SGR       |                47.22% → 7.06% |           6997.83 → 722.16 |           2988.71 → 3603.48 |    1893.92 → 2601.25 |                          11880.47 → 6926.90 |          14819.77 → 10229.93 |
+
+Snapshot extraction shrinks, while packed text/style decoding moves into instances and DOM frame consumers materialize cells under JS. Both stages rise at 17 terminals. Their combined absolute time falls 22.74% for ASCII and 41.70% for SGR; whole-main task time falls 16.09% and 30.97%. Those trace reductions are real within the recorded boundaries, but they are not evidence of a universal process CPU-rate win.
+
+The targeted 17-ASCII sample-stack inspection measures inclusive `copiedFrameRow` work at 71.58 / 92.53 / 79.69 ms before and 257.72 / 312.00 / 311.48 ms after. The summed increase is 637.41 ms, with after materialization/getter descendants accounting for about 512.33 ms. Total after frame-copy work is 7.25% of whole-main task time. GC leaf samples rise 162.29 → 408.09 ms, but these CPU traces measure neither allocation bytes nor which prior allocator caused a collection. This identifies a concrete avoidable cost to test; it does not prove that removing it fixes the process CPU regression.
+
+### Qualification, parity, and provenance
+
+The owner’s Apple M1 MacBook Air uses headed Chromium 153.0.8010.12, Darwin 25.4.0 arm64, and ANGLE Metal. WebGPU is hardware-enabled with a non-fallback adapter. Every one of 24 invocations records an AC-power check, each condition holds the display with `caffeinate -d -u -t 1800`, and exclusivity is checked before its window. Windows take 9.97 minutes (17 ASCII), 9.34 (17 SGR), 4.67 (1 ASCII), and 4.50 (1 SGR), each below 30 minutes. All 48 idle-display probes qualify; process CPU acquisition intervals qualify. The PR #245 on-screen transform, backing dimensions, fonts, grid, fixtures, and browser are matched. Mounted cadence remains workload evidence.
+
+All native counters and ownership totals match: 181 terminal renders, 2172 rows and 86880 cells per terminal per trace; each render copies 12 rows / 480 cells, writes two buffers totaling 76800 bytes, draws twice, submits once, and uploads no warm atlas data. One saved baseline 17-ASCII repetition-2 frame summary mislabels its first two rows, despite correct raw spans and terminal-tagged counters. The validator reconstructs the exact per-frame distributions from those raw records, verifies 181 matching frames per terminal, and retains the saved-summary discrepancy in `matched-work-checks.json`. Its cause in the persisted summary is unconfirmed; raw records are authoritative for this check.
+
+The established runner captures the shared correctness fixture before output only in repetition 0. Native PNG bytes match main for both counts in both condition windows, and all eight before/after PNGs were read back: ASCII, foreground colors, wide text, combining text, emoji and overwrite output are visible, with all 17 terminals placed on-screen. These are correctness-fixture screenshots, not distinct ASCII/SGR endpoint captures. Repetitions 1 and 2 retain matching correctness records but no PNGs; no all-repetition screenshot claim is made.
+
+[Compact evidence and reproduction inputs](benchmarks/mac-m1/packed-snapshot-2026-10-01/) include eight analyses, per-run CPU values and timings, raw-window hashes, before/after manifests, matched-work checks, stack sampling, and screenshots. The 336 MiB full archive remains at `/work/tmp/plan-283-fix2/corrected/raw-evidence.tar.gz` and the Mac’s `~/tmp/gw-bench/p283-bulk-snapshot/corrected/raw-evidence.tar.gz`, SHA256 `dd0cd5413ba27110590a210a443b36372689e0d16db476a3c84663866980d350`. Faulty damage-scratch runs and every overlapping duplicate-session matrix are excluded.
+
+The frozen treatment source SHA256 is `0e8b7fb53e29b68a403e589e46146e2376469ef06ecdd97a060f67be1fd8f933`; its browser bundle is `511fca66a42d2d8b8da47dec9ae30057a096170c6cc8cc6cf40c42dce01f36ae`. Baseline carries the equivalent tracing-counter change only. Control assets and portable runners are byte-identical; only the native browser source/bundle and `bridge.wasm` change. The pinned upstream `ghostty-vt.wasm` SHA256 remains `dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97`; bridge SHA256 is `e2e1fb9a1b6d36f6b8ee4aa7e615e5bc6aeefda69f494832317b46fdea84241a`.
+
+To reproduce offline, extract the full archive into a fresh evidence root, set `root` in the supplied Python inputs to that path, run `combine.py`, run the checked-in `scripts/comparison-attribution.mjs <condition-directory> <condition-directory>/analysis.json --compact` for all eight combinations, then run `summarize.py`, `validate-matched.py`, and `profile-frame.py`. `method.json`, the paired runner and window script preserve the hardware protocol. Use the heavy scheduler for browser/build/trace work.
+
+### Targeted follow-up: direct-packed DOM frame text
+
+The only follow-up changes `copiedFrameRow` to read text and continuation flags directly from packed cells, retaining its frozen row/cell/continuation arrays for caret, link and accessibility consumers. Three real-terminal differential cases compare the former materialized mapping against the direct path and object fallback, reject access to the lazy `cells` getter, and verify retained frame data after memory growth, resize, writes and disposal. The complete suite now passes 357 unit tests and 66 Chromium browser tests covering terminal UI, history, pointer selection, WebGPU and WebGL; the same two SwiftShader device-replacement cases remain skipped. Package build/typecheck and repository commit gates pass.
+
+Measured candidate `04b2d2437e8366b3c703c457f8dd07c19b9e979d` is compared with the same frozen main bundle at `24a6f3d04` in a **fresh** two-condition AB/BA/AB matrix. The following values belong exclusively to that rerun; the initial matrix above is retained in full.
+
+| 17-terminal output | Native renderer before → after | Native total before → after | xterm renderer before → after | xterm total before → after |
+| ------------------ | -----------------------------: | --------------------------: | ----------------------------: | -------------------------: |
+| ASCII              |                  70.75 → 50.11 |              100.84 → 81.68 |                 53.85 → 51.95 |              94.28 → 91.83 |
+| SGR                |                  72.59 → 46.89 |               99.67 → 80.15 |                 54.41 → 54.16 |              91.97 → 93.88 |
+
+Native renderer/total rate deltas are negative in all three pairs: ASCII renderer −21.54 / −18.50 / −20.15 percentage points, total −17.53 / −14.79 / −19.78; SGR renderer −25.70 / −23.64 / −25.57, total −19.96 / −15.44 / −19.52. These are materially larger than the changes in paired xterm controls. Native after-treatment renderer medians are below xterm in both conditions, but ASCII repetition 2 remains above its paired xterm renderer, 50.59% versus 48.71%. xterm total CPU rises in ASCII repetitions 1/2 and SGR repetition 2. Three pairs remain observations rather than confidence intervals or a general parity claim.
+
+| 17-terminal output | Native elapsed ms before → after | Native renderer CPU seconds before → after | Native total CPU seconds before → after | xterm after renderer / total CPU seconds | Native GPU-process CPU before → after |
+| ------------------ | -------------------------------: | -----------------------------------------: | --------------------------------------: | ---------------------------------------: | ------------------------------------: |
+| ASCII              |                3097.93 → 3070.30 |                              2.201 → 1.541 |                           3.130 → 2.511 |                            1.598 / 2.823 |                         29.95 → 31.18 |
+| SGR                |                3074.35 → 3074.20 |                              2.233 → 1.442 |                           3.065 → 2.465 |                            1.665 / 2.886 |                         27.08 → 32.93 |
+
+**Remaining losses:** native GPU-process CPU rises in both conditions. SGR instance work rises 73.64 ms across the three traces. Total process CPU nevertheless falls in every native pair. CPU rates, CPU seconds and elapsed work stay separate observables; GPU-process CPU remains a CPU measure, with no GPU execution-time claim.
+
+| 17-terminal output | Snapshot share before → after | Snapshot ms before → after | Instances ms before → after | JS ms before → after | Snapshot + instances + JS ms before → after | Whole-main ms before → after |
+| ------------------ | ----------------------------: | -------------------------: | --------------------------: | -------------------: | ------------------------------------------: | ---------------------------: |
+| ASCII              |                39.52% → 6.10% |           2318.40 → 226.63 |           1905.83 → 1903.75 |      717.35 → 610.88 |                           4941.59 → 2741.26 |            5865.90 → 3714.14 |
+| SGR                |                47.81% → 8.34% |           2917.76 → 281.19 |           1224.68 → 1298.33 |      687.50 → 593.76 |                           4829.94 → 2173.27 |            6102.48 → 3372.95 |
+
+These are absolute sums across three traced runs. Snapshot extraction shrinks; instance decoding remains, with SGR migration into that stage. Combined snapshot/instances/JS and whole-main time fall in both conditions. The control CPU measurements establish the observed utilization improvement; snapshot share alone does not establish it.
+
+Fresh ASCII sample stacks expose `copiedFrameRow` inclusive totals of 13.67 ms for main and 2.15 ms for the candidate, with no named materialization/getter descendants in the candidate. GC leaf samples are 98.85 → 108.00 ms. Sampling and inlining limit named-function attribution; these traces measure neither allocation bytes nor causally attributable GC. The getter-rejection differential tests establish the eliminated materialization path independently of samples.
+
+**Cross-matrix limitation:** the byte-identical main bundle's ASCII renderer CPU shifts 107.84% in the initial matrix to 70.75% in the fresh matrix; xterm shifts 79.53% to 53.85%. Main's trace frame-copy samples also shrink substantially. Recorded browser/OS/hardware, launch flags, baseline source/bundle hashes, versions, settings, fixtures and assets match; the cause of this broader performance shift is unconfirmed. Clock/thermal state is unavailable. The fresh matrix compares the complete packed-plus-frame treatment with main, and does not isolate the incremental frame change from the first packed implementation under identical conditions. Consequently, 113.42% → 50.11% across the two treatment matrices is **not** attributed to the frame-copy change. The fresh paired improvement meets the observed 17-ASCII CPU bar in this window; its reproducibility across operating conditions remains open for review.
+
+Both exclusive windows record AC before/after all twelve invocations, hardware Metal with a non-fallback WebGPU adapter, unchanged idle-display qualification, and `caffeinate -d -u -t 1800`. ASCII takes 6.31 minutes and SGR 6.26 minutes. All 24 idle probes and CPU acquisition intervals qualify. Counters, raw per-frame distributions, grid, ownership and correctness records match; this rerun has no persisted-frame-summary discrepancy. The four captured native repetition-0 correctness-fixture PNGs are byte-identical to main and were read back, showing the same colored/wide/combining/emoji/overwrite fixture with all 17 terminals on-screen. These are fixture screenshots, with the same capture limitations as the initial matrix.
+
+[Follow-up evidence and reproduction inputs](benchmarks/mac-m1/packed-snapshot-2026-10-01/frame-optimized/) retain four compact analyses, every pair, manifests, power/window records, parity checks, sampled stacks, cross-matrix checks and PNGs. The 227 MiB raw archive remains at `/work/tmp/plan-283-fix2/frame-optimized/raw-evidence.tar.gz` and the Mac's `~/tmp/gw-bench/p283-bulk-snapshot/frame-optimized/raw-evidence.tar.gz`; verified transfer SHA256 is `049eb6f2ea03d47310cfc276dca180c1e4a303b83dd4fc7d38e054ff48ca9f0b`. Candidate source SHA256 is `7dffdb328db33f62da70a4d22dc0da22aa0a2aaf9af0fdbdbdbc46795a802dc7`, browser bundle `26e60e4a8f78c8f048e4aa5ec112dcd88324426130116e28a56ba18234dc97de`; both WASM hashes remain unchanged from the initial packed treatment. Reproduction uses the same supplied offline pipeline with these four combinations.
+
+After measurement, current main is merged normally into the task branch to settle CI gate-list integration drift; main's files are retained and the frozen measured implementation is identified separately from the resulting PR head. No further optimization or hardware condition is added. The PR remains draft for review. One-terminal targets are not rerun after the frame change; input echo, idle workload, parse-only and memory targets are not remeasured. Production deployment and PR merge are outside this delivery.

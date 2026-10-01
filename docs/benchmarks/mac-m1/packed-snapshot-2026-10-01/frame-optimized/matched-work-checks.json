@@ -1,0 +1,54 @@
+[
+  {
+    "count": 17,
+    "phase": "ascii",
+    "cpuIntervalsQualified": true,
+    "sameNativeCountersAndGrid": true,
+    "frameCountSource": "Authoritative raw spans and terminal-tagged counters",
+    "persistedFrameSummaryMismatches": [],
+    "sameVersionsSettingsFixturesAndControlAssets": true,
+    "changedNativeAsset": "bridge.wasm",
+    "sameHardwareEnvironment": true,
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "screenshotsIdentical": [
+      {
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "allRepetitionsScreenshotsIdentical": [
+      {
+        "repetition": 0,
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "successfulInvocations": 6
+  },
+  {
+    "count": 17,
+    "phase": "sgr",
+    "cpuIntervalsQualified": true,
+    "sameNativeCountersAndGrid": true,
+    "frameCountSource": "Authoritative raw spans and terminal-tagged counters",
+    "persistedFrameSummaryMismatches": [],
+    "sameVersionsSettingsFixturesAndControlAssets": true,
+    "changedNativeAsset": "bridge.wasm",
+    "sameHardwareEnvironment": true,
+    "hardwareRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+    "screenshotsIdentical": [
+      {
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "allRepetitionsScreenshotsIdentical": [
+      {
+        "repetition": 0,
+        "file": "ghostty-webgpu-bytes-17.png",
+        "sha256": "a2abdcd99ff35bc698a8b43c0ef65cbef48a413cbc96468e0e7b276d28609043"
+      }
+    ],
+    "successfulInvocations": 6
+  }
+]

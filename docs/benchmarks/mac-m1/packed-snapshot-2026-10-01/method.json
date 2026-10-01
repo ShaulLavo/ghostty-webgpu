@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "date": "2026-10-01",
+  "baselineCommit": "24a6f3d04290fb37311fd0fa9c50777ca953d8a0",
+  "measuredImplementationCommit": "201ed6ee9298ad3ac06ed79d66f18f62737c15a0",
+  "machine": "Owner's Apple M1 MacBook",
+  "conditions": {
+    "counts": [1, 17],
+    "phases": ["ascii", "sgr"],
+    "repetitions": 3,
+    "pairedOrder": [
+      ["before", "after"],
+      ["after", "before"],
+      ["before", "after"]
+    ]
+  },
+  "power": {
+    "source": "AC Power",
+    "check": "pmset -g batt before every invocation",
+    "displayHold": "caffeinate -d -u -t 1800",
+    "pairedWindowBudgetMinutes": 29
+  },
+  "exclusivity": "Before every condition window, reject active comparison-runner, paired-run, or finish-windows processes. Leave the owner's caffeinate process intact.",
+  "qualification": "Unchanged PR #245 idle-display qualification; mounted cadence is workload evidence. Rejected windows contribute no timings.",
+  "runner": {
+    "filter": "--only-repetition selects one configured repetition per invocation",
+    "location": "Portable scratch bundles only",
+    "matching": "Baseline and treatment use byte-identical comparison-runner.mjs and control assets. Only bridge.wasm and native browser source differ.",
+    "analysis": "Combine three complete invocations per build and condition before strict corrected attribution analysis"
+  },
+  "cpu": {
+    "source": "Inactive-wrapper controls",
+    "rendererCpu": "100 * cpu.secondsByType.renderer / (cpu.milliseconds / 1000)",
+    "totalCpu": "cpu.percentOfOneCore",
+    "aggregation": "Median of three run-level values",
+    "qualification": "cpuIntervalQualified is required for every analyzed row"
+  },
+  "attribution": {
+    "share": "100 * summed exclusive category milliseconds / summed renderer-main RunTask milliseconds",
+    "traceFrames": 180,
+    "interpretation": "Packed text/style decoding moves into instances; DOM onFrame still materializes cells under JS. Report absolute snapshot + instances + JS time and whole-main task time alongside snapshot share.",
+    "cpuScope": "Renderer CPU includes every renderer thread; GPU-process CPU measures CPU consumption, not GPU hardware execution time"
+  },
+  "baseline": "Main at 24a6f3d04 with the same packed-aware tracing counter change as treatment; production library source is unchanged.",
+  "excludedEvidence": "Earlier partial measurements using the faulty damage scratch alias, all overlapping duplicate-session matrices, and the EEXIST invocation contribute no evidence.",
+  "rawEvidenceRoot": "/work/tmp/plan-283-fix2/corrected",
+  "macEvidenceRoot": "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/corrected"
+}

@@ -1,0 +1,138 @@
+[
+  {
+    "kind": "before",
+    "repetition": 0,
+    "trace": "ghostty-webgpu-17-0-ascii-trace.trace.json.gz",
+    "mainTaskMilliseconds": 4503.649991989136,
+    "copiedFrameInclusiveMilliseconds": 71.57500267028809,
+    "copiedFrameLeavesMilliseconds": {
+      "copiedFrameRow3": 61.60900115966797,
+      "": 9.966001510620117
+    },
+    "targetInclusiveMilliseconds": {
+      "copiedFrameRow3": 71.57500267028809,
+      "linkFrameSignature": 64.7459979057312,
+      "(garbage collector)": 40.91400384902954
+    },
+    "garbageCollectorLeafMilliseconds": 40.91400384902954,
+    "allocationAttribution": "CPU samples measure work, not allocation bytes. GC leaf samples cannot be assigned to a prior allocating function."
+  },
+  {
+    "kind": "before",
+    "repetition": 1,
+    "trace": "ghostty-webgpu-17-1-ascii-trace.trace.json.gz",
+    "mainTaskMilliseconds": 4869.277000427246,
+    "copiedFrameInclusiveMilliseconds": 92.53300714492798,
+    "copiedFrameLeavesMilliseconds": {
+      "copiedFrameRow3": 72.09600400924683,
+      "": 20.437003135681152
+    },
+    "targetInclusiveMilliseconds": {
+      "copiedFrameRow3": 92.53300714492798,
+      "linkFrameSignature": 92.52200126647949,
+      "(garbage collector)": 69.99900102615356
+    },
+    "garbageCollectorLeafMilliseconds": 69.99900102615356,
+    "allocationAttribution": "CPU samples measure work, not allocation bytes. GC leaf samples cannot be assigned to a prior allocating function."
+  },
+  {
+    "kind": "before",
+    "repetition": 2,
+    "trace": "ghostty-webgpu-17-2-ascii-trace.trace.json.gz",
+    "mainTaskMilliseconds": 5113.626992702484,
+    "copiedFrameInclusiveMilliseconds": 79.687997341156,
+    "copiedFrameLeavesMilliseconds": {
+      "copiedFrameRow3": 70.24499750137329,
+      "": 9.442999839782715
+    },
+    "targetInclusiveMilliseconds": {
+      "linkFrameSignature": 94.53099870681763,
+      "(garbage collector)": 51.37200164794922,
+      "copiedFrameRow3": 79.687997341156
+    },
+    "garbageCollectorLeafMilliseconds": 51.37200164794922,
+    "allocationAttribution": "CPU samples measure work, not allocation bytes. GC leaf samples cannot be assigned to a prior allocating function."
+  },
+  {
+    "kind": "after",
+    "repetition": 0,
+    "trace": "ghostty-webgpu-17-0-ascii-trace.trace.json.gz",
+    "mainTaskMilliseconds": 3910.644018173218,
+    "copiedFrameInclusiveMilliseconds": 257.71600341796875,
+    "copiedFrameLeavesMilliseconds": {
+      "materialize": 109.63499927520752,
+      "copiedFrameRow3": 84.09800100326538,
+      "read": 22.439000606536865,
+      "": 22.43499994277954,
+      "text": 8.8360013961792,
+      "emptyRenderCell": 4.43200159072876,
+      "get cells": 3.2629995346069336,
+      "style": 1.939000129699707,
+      "color": 0.6389999389648438
+    },
+    "targetInclusiveMilliseconds": {
+      "copiedFrameRow3": 257.71600341796875,
+      "linkFrameSignature": 99.51000928878784,
+      "get cells": 158.29000234603882,
+      "(garbage collector)": 129.475004196167,
+      "materialize": 154.7530026435852,
+      "emptyRenderCell": 4.43200159072876
+    },
+    "garbageCollectorLeafMilliseconds": 129.475004196167,
+    "allocationAttribution": "CPU samples measure work, not allocation bytes. GC leaf samples cannot be assigned to a prior allocating function."
+  },
+  {
+    "kind": "after",
+    "repetition": 1,
+    "trace": "ghostty-webgpu-17-1-ascii-trace.trace.json.gz",
+    "mainTaskMilliseconds": 4005.2429876327515,
+    "copiedFrameInclusiveMilliseconds": 312.0030026435852,
+    "copiedFrameLeavesMilliseconds": {
+      "materialize": 121.41600227355957,
+      "copiedFrameRow3": 106.11400175094604,
+      "": 45.16299915313721,
+      "read": 23.557000160217285,
+      "text": 8.808999061584473,
+      "emptyRenderCell": 4.208000659942627,
+      "style": 1.310999870300293,
+      "color": 0.8269996643066406,
+      "get cells": 0.5980000495910645
+    },
+    "targetInclusiveMilliseconds": {
+      "linkFrameSignature": 123.86400842666626,
+      "copiedFrameRow3": 312.0030026435852,
+      "materialize": 166.54600191116333,
+      "get cells": 166.9550018310547,
+      "(garbage collector)": 145.78900241851807,
+      "emptyRenderCell": 4.208000659942627
+    },
+    "garbageCollectorLeafMilliseconds": 145.78900241851807,
+    "allocationAttribution": "CPU samples measure work, not allocation bytes. GC leaf samples cannot be assigned to a prior allocating function."
+  },
+  {
+    "kind": "after",
+    "repetition": 2,
+    "trace": "ghostty-webgpu-17-2-ascii-trace.trace.json.gz",
+    "mainTaskMilliseconds": 4240.232996940613,
+    "copiedFrameInclusiveMilliseconds": 311.4849977493286,
+    "copiedFrameLeavesMilliseconds": {
+      "get cells": 136.17899799346924,
+      "copiedFrameRow3": 101.5640001296997,
+      "": 51.47600030899048,
+      "read": 12.553999423980713,
+      "text": 5.3299994468688965,
+      "emptyRenderCell": 1.6560001373291016,
+      "color": 1.4089999198913574,
+      "style": 1.317000389099121
+    },
+    "targetInclusiveMilliseconds": {
+      "copiedFrameRow3": 311.4849977493286,
+      "get cells": 187.08199787139893,
+      "linkFrameSignature": 102.94600582122803,
+      "(garbage collector)": 132.82799816131592,
+      "emptyRenderCell": 1.6560001373291016
+    },
+    "garbageCollectorLeafMilliseconds": 132.82799816131592,
+    "allocationAttribution": "CPU samples measure work, not allocation bytes. GC leaf samples cannot be assigned to a prior allocating function."
+  }
+]

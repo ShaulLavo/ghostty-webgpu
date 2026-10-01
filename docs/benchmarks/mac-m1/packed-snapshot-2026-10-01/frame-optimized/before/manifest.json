@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "commit": "24a6f3d04290fb37311fd0fa9c50777ca953d8a0",
+  "dirty": "M ghostty-webgpu/bench/comparison-tracing.ts",
+  "sourceSha256": "1d900c04ad7fec486208213564b7b458f211d7f30430d6461159cef107b1c952",
+  "bundleSha256": "57614ba05268e55303a48b224569df2e9e5487f201a13a2fc906c9aea7383195",
+  "versions": {
+    "@xterm/xterm": "6.0.0",
+    "@xterm/addon-webgl": "0.19.0",
+    "ghostty-web": "0.4.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "playwright": "1.63.0",
+    "ws": "8.22.0",
+    "ghostty-webgpu": "0.2.0"
+  },
+  "settings": {
+    "columns": 40,
+    "rows": 12,
+    "fontFamily": "Bench Mono",
+    "fontSize": 12,
+    "lineHeight": 1.2,
+    "dpr": 2,
+    "viewport": {
+      "width": 1600,
+      "height": 1400
+    },
+    "scrollback": 10000,
+    "ghosttyScrollbackBytes": 67108864,
+    "counts": [1, 8, 17],
+    "repetitions": 3,
+    "latencySamples": 12,
+    "burstFrames": 32,
+    "idleMilliseconds": 1000,
+    "outputFrames": 60,
+    "chunkBytes": 4096,
+    "corpusBytes": 1048576
+  },
+  "variants": [
+    {
+      "id": "ghostty-webgpu",
+      "library": "ghostty-webgpu",
+      "renderer": "webgpu"
+    },
+    {
+      "id": "xterm-webgl",
+      "library": "@xterm/xterm",
+      "renderer": "webgl"
+    },
+    {
+      "id": "xterm-dom",
+      "library": "@xterm/xterm",
+      "renderer": "dom"
+    },
+    {
+      "id": "ghostty-web",
+      "library": "ghostty-web",
+      "renderer": "canvas2d"
+    }
+  ],
+  "fixtures": [
+    {
+      "name": "ascii",
+      "bytes": 1048600,
+      "sha256": "cbe356164d371a7c5ab0006ecbba813dfbf9b56a1a68341b500938eeba662230"
+    },
+    {
+      "name": "sgr",
+      "bytes": 1048606,
+      "sha256": "1df6298849df77bfe761b398eebdef6b4cd6ce7b621ba2612d3ac78869a5300a"
+    },
+    {
+      "name": "unicode",
+      "bytes": 1048599,
+      "sha256": "3de374da842539cce32936959e858bf0b9ac841ff52f3f93e60b9b703091c7ef"
+    },
+    {
+      "name": "cursor",
+      "bytes": 1048628,
+      "sha256": "bc88592f18d2b0aaf914429ea57e5e3566294f135bb5e3cbaf859594a49c5a19"
+    },
+    {
+      "name": "logs",
+      "bytes": 1059649,
+      "sha256": "5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834"
+    }
+  ],
+  "assets": {
+    "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+    "bridge.wasm": "47fae389c94f2545b2026d756256272b65f978d97feabae21b9171ad4b54b63f",
+    "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+    "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+    "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+    "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+    "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+    "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+    "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+    "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+    "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+    "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+    "comparison-runner.mjs": "5f277b676d8ea03cef0381f152aa08f4058c03352353638d4ace3f1b3089de50",
+    "comparison-report.mjs": "8e824a9834632a5ba7959c8d418dcf1d14c9a5cb53071d68237ca27df6d79c17",
+    "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+    "comparison-guards.mjs": "729f3ff328599d23dd571bfd25cd529e5996821dcb948ffe0de146b359c40417",
+    "comparison-trace.mjs": "a857b9d7127a7d240db7326bdf0f7680ec1a534edb85ebcfe87269c3bb565b59",
+    "comparison-attribution.mjs": "d373ea72919a9a0904ece5f4797278c6a65116b329b24f24a72bcf6e901ffc39",
+    "comparison-options.mjs": "6076c0034ca8467363b7b85f19996c1faced2a2ebb433cec38c6977233dc4786",
+    "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+  },
+  "logs": {
+    "kind": "real Git history log",
+    "repository": "ShaulLavo/fregat",
+    "revision": "5d98d10f4",
+    "entries": 256
+  },
+  "pairedRunnerChange": "Portable scratch runner adds --only-repetition; before/after runners byte-identical; three complete windows combined before strict analysis."
+}

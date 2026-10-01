@@ -45,3 +45,8 @@ export fn bridge_title_changed(terminal: u32, userdata: u32) void {
 export fn bridge_decode_png(userdata: u32, allocator: u32, data: u32, len: u32, out: u32) u32 {
     return host.decode_png(userdata, allocator, data, len, out);
 }
+
+pub const snapshot = @import("snapshot.zig");
+comptime {
+    @export(&snapshot.readRows, .{ .name = "bridge_read_rows" });
+}

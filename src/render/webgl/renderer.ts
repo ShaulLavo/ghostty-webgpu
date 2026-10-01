@@ -15,6 +15,7 @@ import {
   safeRendererInteger,
 } from '../config.js'
 import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
+import { copiedFrameRow } from '../frame-row.js'
 import { InstanceRows } from '../instances/rows.js'
 import type {
   CanonicalRendererTheme,
@@ -72,13 +73,6 @@ function cursorEquals(left: RenderCursorSnapshot, right: RenderCursorSnapshot): 
     left.viewport.x === right.viewport.x &&
     left.viewport.y === right.viewport.y
   )
-}
-
-function copiedFrameRow(row: RenderRow): RendererFrameRow {
-  const cells = Object.freeze(row.cells.map((cell) => cell.text.slice()))
-  const continuations = Object.freeze(row.cells.map((cell) => cell.continuation))
-  const text = cells.map((cell, index) => (continuations[index] ? '' : cell || ' ')).join('')
-  return Object.freeze({ cells, continuations, text, y: row.y })
 }
 
 export class WebGlTerminalRenderer {
@@ -409,10 +403,11 @@ export class WebGlTerminalRenderer {
   }
 
   private rowsToRebuild(damage: RenderStateDirty): readonly RenderRow[] {
-    if (this.needsFullRebuild) return this.renderState.readRows()
+    if (this.needsFullRebuild) return this.renderState.readRows({ packed: true })
     const rows = new Map<number, RenderRow>()
     if (damage !== RenderStateDirty.False) {
-      for (const row of this.renderState.readRows({ dirtyOnly: true })) rows.set(row.y, row)
+      for (const row of this.renderState.readRows({ packed: true, dirtyOnly: true }))
+        rows.set(row.y, row)
     }
     if (this.overlayRows.size === 0) return [...rows.values()]
     const missingRows = new Set<number>()
@@ -420,7 +415,7 @@ export class WebGlTerminalRenderer {
       if (!rows.has(row)) missingRows.add(row)
     }
     if (missingRows.size === 0) return [...rows.values()]
-    for (const row of this.renderState.readRows({ rows: missingRows })) {
+    for (const row of this.renderState.readRows({ packed: true, rows: missingRows })) {
       if (missingRows.has(row.y)) rows.set(row.y, row)
     }
     return [...rows.values()].sort((left, right) => left.y - right.y)

@@ -1,0 +1,8 @@
+{
+  "sha256": "049eb6f2ea03d47310cfc276dca180c1e4a303b83dd4fc7d38e054ff48ca9f0b",
+  "bytes": 238270777,
+  "linux": "/work/tmp/plan-283-fix2/frame-optimized/raw-evidence.tar.gz",
+  "mac": "/Users/shaul/tmp/gw-bench/p283-bulk-snapshot/frame-optimized/raw-evidence.tar.gz",
+  "transferVerified": true,
+  "screenshotsReadBack": "All four captured native before/after repetition-0 fixture PNGs read back; byte-identical; no repetition-1/2 PNG capture."
+}
