@@ -176,14 +176,41 @@ function fittedFontWithContext(
   return calculateTerminalFittedFont(font, measureFont(context, font), pixelRatio)
 }
 
+function measureDomFont(document: Document, font: TerminalFitFont): TerminalFontMeasurement {
+  const probe = document.createElement('span')
+  const baseline = document.createElement('span')
+  probe.style.cssText =
+    'position:absolute;visibility:hidden;white-space:pre;padding:0;border:0;line-height:normal;'
+  probe.style.font = fontDescriptor(font)
+  probe.textContent = 'M'
+  baseline.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline;'
+  probe.append(baseline)
+  document.body.append(probe)
+  try {
+    const bounds = probe.getBoundingClientRect()
+    const baselineY = baseline.getBoundingClientRect().top
+    return {
+      advanceWidth: bounds.width,
+      fontAscent: baselineY - bounds.top,
+      fontDescent: bounds.bottom - baselineY,
+    }
+  } finally {
+    probe.remove()
+  }
+}
+
 export function fitTerminalFont(
   document: Document,
   font: TerminalFitFont,
   pixelRatio: number,
 ): TerminalFittedFont {
   const context = document.createElement('canvas').getContext('2d')
-  if (!context) throw new TypeError('Unable to create a canvas text measurement context')
-  return fittedFontWithContext(context, font, pixelRatio)
+  if (context) return fittedFontWithContext(context, font, pixelRatio)
+  return calculateTerminalFittedFont(
+    font,
+    measureDomFont(document, normalizeFont(font)),
+    pixelRatio,
+  )
 }
 
 function cssPixels(value: string): number {
@@ -311,7 +338,7 @@ export class TerminalFitController {
   private readonly getPixelRatio: () => number
   private lastResult?: TerminalFitResult
   private readonly lifecycle = new AbortController()
-  private readonly measureContext: CanvasRenderingContext2D
+  private readonly measureContext: CanvasRenderingContext2D | null
   private pixelRatioQuery?: MediaQueryList
   private readonly requestFrame: (callback: FrameRequestCallback) => number
   private resizeObserver?: TerminalFitResizeObserver
@@ -346,7 +373,6 @@ export class TerminalFitController {
         ? computedPadding(view, options.paddingElement)
         : normalizeTerminalElementPadding(options.padding)
     const context = this.document.createElement('canvas').getContext('2d')
-    if (!context) throw new TypeError('Unable to create a canvas text measurement context')
     this.measureContext = context
     this.watchedPixelRatio = this.readPixelRatio()
     this.externalSignal = options.signal
@@ -425,7 +451,9 @@ export class TerminalFitController {
     const availableWidth = size.width - padding.left - padding.right - scrollbarWidth
     const availableHeight = size.height - padding.bottom - padding.top
     if (availableWidth <= 0 || availableHeight <= 0) return undefined
-    const font = fittedFontWithContext(this.measureContext, this.font, pixelRatio)
+    const font = this.measureContext
+      ? fittedFontWithContext(this.measureContext, this.font, pixelRatio)
+      : calculateTerminalFittedFont(this.font, measureDomFont(this.document, this.font), pixelRatio)
     const grid: TerminalFitGrid = Object.freeze({
       cellHeight: font.cssCellHeight,
       cellWidth: font.cssCellWidth,

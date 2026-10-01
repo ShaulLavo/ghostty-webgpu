@@ -5,7 +5,7 @@ This repository mirrors its `ghostty-webgpu/` folder. Submit changes to Fregat.
 
 an unofficial ghostty for the web, inspired by [ghostty-web](https://github.com/coder/ghostty-web) and powered by libghostty-vt
 
-damage-aware rendering with webgpu, webgl2, and canvas2d fallbacks. byte-based pty traffic, automatic fitting, and live themes
+damage-aware rendering with webgpu, webgl2, canvas2d, and dom fallbacks. byte-based pty traffic, automatic fitting, and live themes
 
 still a preview.
 
@@ -34,6 +34,18 @@ terminal.focus()
 ```
 
 call `terminal.dispose()` when you're done with it
+
+## first frames and damage
+
+`renderFrameToHtml(snapshot, { font, columns, rows, theme })` produces the DOM backend's
+cell runs as HTML under Node or in a browser. `snapshotRenderState(renderState)` reads an
+immutable styled snapshot from the core. Cell geometry can be supplied through the inherited
+`--ghostty-cell-width`, `--ghostty-cell-height`, `--ghostty-font-size`, and
+`--ghostty-letter-spacing` CSS properties.
+
+`terminal.onFrame(({ rows }) => …)` reports the viewport rows painted by each frame across
+all backends. It returns a subscription with `dispose()`, like `onResize`; no damage array is
+allocated when there are no listeners.
 
 ## more
 

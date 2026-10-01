@@ -48,7 +48,7 @@ export interface GhosttyWebGpuTerminalEventMap {
   readonly appearance: TerminalAppearance
   readonly bell: void
   readonly data: Uint8Array
-  readonly frame: void
+  readonly frame: { readonly rows: readonly number[] }
   readonly error: TerminalErrorEvent
   readonly resize: GhosttyWebGpuTerminalResizeEvent
   readonly scroll: TerminalScrollEvent
@@ -95,7 +95,7 @@ export interface GhosttyWebGpuTerminalDiagnostics {
   readonly lifecycle: GhosttyWebGpuTerminalLifecycle
   readonly pointerOwner: TerminalPointerOwner
   readonly pressedButtonCount: number
-  readonly rendererBackend: 'canvas2d' | 'webgl2' | 'webgpu' | undefined
+  readonly rendererBackend: 'dom' | 'canvas2d' | 'webgl2' | 'webgpu' | undefined
   readonly scrollbarVisible: boolean
 }
 
@@ -110,7 +110,7 @@ export type GhosttyWebGpuTerminalScrollbarOptions = Omit<
 >
 
 export interface GhosttyWebGpuRenderer {
-  readonly backend?: 'canvas2d' | 'webgl2' | 'webgpu'
+  readonly backend?: 'dom' | 'canvas2d' | 'webgl2' | 'webgpu'
   readonly hasPendingFrame?: boolean
   readonly hasPendingTimer?: boolean
   clearTextureAtlas?(): void

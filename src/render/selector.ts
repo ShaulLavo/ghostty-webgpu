@@ -1,4 +1,5 @@
-import { CanvasTerminalRenderer } from './canvas/renderer.js'
+import { DomTerminalRenderer } from './dom/renderer.js'
+import { CanvasUnavailableError, CanvasTerminalRenderer } from './canvas/renderer.js'
 import { FallbackTerminalRenderer } from './fallback.js'
 import {
   WebGpuTerminalRenderer,
@@ -8,6 +9,7 @@ import {
 import { WebGlTerminalRenderer, WebGlUnavailableError } from './webgl/renderer.js'
 
 export type CompatibleTerminalRenderer =
+  | DomTerminalRenderer
   | CanvasTerminalRenderer
   | FallbackTerminalRenderer
   | WebGlTerminalRenderer
@@ -45,5 +47,11 @@ async function createRenderer(
     if (!(cause instanceof WebGlUnavailableError)) throw cause
   }
   signal?.throwIfAborted()
-  return CanvasTerminalRenderer.create(options)
+  try {
+    return await CanvasTerminalRenderer.create(options)
+  } catch (cause) {
+    if (!(cause instanceof CanvasUnavailableError)) throw cause
+  }
+  signal?.throwIfAborted()
+  return DomTerminalRenderer.create(options)
 }

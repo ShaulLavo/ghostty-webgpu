@@ -184,6 +184,11 @@ function frame(
 ): RendererFrameSnapshot {
   const rows = lines.map((text, y) =>
     Object.freeze({
+      renderCells: Object.freeze(
+        Array.from(text, (text, x) =>
+          Object.freeze({ text, x, continuation: false, selected: false }),
+        ),
+      ),
       cells: Object.freeze(Array.from(text)),
       continuations: Object.freeze(Array.from(text, () => false)),
       text,

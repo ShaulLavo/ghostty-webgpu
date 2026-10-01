@@ -1,6 +1,6 @@
 {
   "name": "ghostty-webgpu",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Ghostty for the web with a damage-aware WebGPU renderer and native API",
   "keywords": [
     "browser",
@@ -96,7 +96,7 @@
     "test": "bun run test:unit && bun run test:browser",
     "test:browser": "bun scripts/browser-tests.ts",
     "test:package": "bun scripts/package-smoke.ts --browser",
-    "test:renderer-fallbacks": "bun scripts/browser-tests.ts src/render/webgl/ src/render/tests/selector.browser.test.ts src/render/tests/fallback.browser.test.ts src/render/canvas/renderer.browser.test.ts src/dom/tests/renderer-fallback.browser.test.ts",
+    "test:renderer-fallbacks": "bun scripts/browser-tests.ts src/render/webgl/ src/render/tests/selector.browser.test.ts src/render/tests/fallback.browser.test.ts src/render/canvas/renderer.browser.test.ts src/render/dom/renderer.browser.test.ts src/dom/tests/renderer-fallback.browser.test.ts",
     "test:renderer-smoke": "bun scripts/renderer-fallback-smoke.ts",
     "test:unit": "vitest run",
     "typecheck": "tsc --noEmit",

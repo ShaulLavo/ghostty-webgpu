@@ -1,5 +1,18 @@
-import type { RenderRow } from '../core/types.js'
-import type { RendererFrameRow } from './renderer.js'
+import type { RenderCell, RenderRow } from '../core/types.js'
+import type { RendererFrameCell, RendererFrameRow } from './renderer.js'
+
+function copiedCells(cells: readonly RenderCell[]): readonly RendererFrameCell[] {
+  return Object.freeze(
+    cells.map((cell) =>
+      Object.freeze({
+        ...cell,
+        background: cell.background ? Object.freeze({ ...cell.background }) : undefined,
+        foreground: cell.foreground ? Object.freeze({ ...cell.foreground }) : undefined,
+        style: cell.style ? Object.freeze({ ...cell.style }) : undefined,
+      }),
+    ),
+  )
+}
 
 export function copiedFrameRow(row: RenderRow): RendererFrameRow {
   const packed = row.packed
@@ -14,7 +27,12 @@ export function copiedFrameRow(row: RenderRow): RendererFrameRow {
     continuations.push(continuation)
     text += continuation ? '' : cell || ' '
   }
+  // Packed records own detached storage; styled cells decode only for snapshot consumers.
+  let renderCells = packed ? undefined : copiedCells(row.cells)
   return Object.freeze({
+    get renderCells(): readonly RendererFrameCell[] {
+      return (renderCells ??= copiedCells(packed!.materialize()))
+    },
     cells: Object.freeze(cells),
     continuations: Object.freeze(continuations),
     text,

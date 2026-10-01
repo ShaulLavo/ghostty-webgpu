@@ -1,6 +1,13 @@
 import { RenderStateDirty } from '../core/abi.js'
 import type { GhosttyRenderState } from '../core/render-state.js'
-import { type ReadRowsOptions, type RenderCursorSnapshot, type RenderRow } from '../core/types.js'
+import {
+  type CellStyle,
+  type RgbColor,
+  type RenderCell,
+  type ReadRowsOptions,
+  type RenderCursorSnapshot,
+  type RenderRow,
+} from '../core/types.js'
 import type { TerminalFittedFont } from '../term/types.js'
 import { GlyphAtlas } from './atlas/atlas.js'
 import { CanvasGlyphRasterizer } from './atlas/canvas-rasterizer.js'
@@ -35,7 +42,16 @@ export interface RenderStateSource {
   update(): RenderStateDirty
 }
 
+export type RendererFrameCell = Readonly<
+  Omit<RenderCell, 'background' | 'foreground' | 'style'>
+> & {
+  readonly background?: Readonly<RgbColor>
+  readonly foreground?: Readonly<RgbColor>
+  readonly style?: Readonly<CellStyle>
+}
+
 export interface RendererFrameRow {
+  readonly renderCells: readonly RendererFrameCell[]
   readonly cells: readonly string[]
   readonly continuations: readonly boolean[]
   readonly text: string
@@ -71,6 +87,7 @@ export interface WebGpuTerminalRendererOptions {
   font: TerminalFittedFont
   onError?: (cause: unknown) => void
   onFrame?: (snapshot: RendererFrameSnapshot) => void
+  onRowsPainted?: (rows: readonly RenderRow[]) => void
   replaceCanvas?: () => HTMLCanvasElement | OffscreenCanvas
   renderState: GhosttyRenderState | RenderStateSource
   rows: number
@@ -203,6 +220,7 @@ export class WebGpuTerminalRenderer {
   private instances: InstanceRows
   private needsFullRebuild = true
   private readonly onFrame?: (snapshot: RendererFrameSnapshot) => void
+  private readonly onRowsPainted?: (rows: readonly RenderRow[]) => void
   private readonly overlayRows = new Set<number>()
   private rasterizer: CanvasGlyphRasterizer
   private readonly renderState: RenderStateSource
@@ -245,6 +263,7 @@ export class WebGpuTerminalRenderer {
     this.theme = canonicalRendererTheme(this.themeInput)
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.onFrame = options.onFrame
+    this.onRowsPainted = options.onRowsPainted
     this.visibleRows = Array.from({ length: this.grid.rows })
     this.format = prepared.format
     this.resizeCanvas()
@@ -479,6 +498,7 @@ export class WebGpuTerminalRenderer {
     this.needsFullRebuild = false
     this.overlayRows.clear()
     this.emitFrame(rows)
+    this.onRowsPainted?.(rows)
   }
 
   private glyphLookup() {

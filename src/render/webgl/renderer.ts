@@ -109,6 +109,7 @@ export class WebGlTerminalRenderer {
   private readonly onError?: (cause: unknown) => void
   private readonly onContextLost?: () => void
   private readonly onFrame?: (snapshot: RendererFrameSnapshot) => void
+  private readonly onRowsPainted?: (rows: readonly RenderRow[]) => void
   private readonly overlayRows = new Set<number>()
   private rasterizer: CanvasGlyphRasterizer
   private readonly renderState: RenderStateSource
@@ -132,6 +133,7 @@ export class WebGlTerminalRenderer {
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.onFrame = options.onFrame
+    this.onRowsPainted = options.onRowsPainted
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
@@ -385,6 +387,7 @@ export class WebGlTerminalRenderer {
     this.needsFullRebuild = false
     this.overlayRows.clear()
     this.emitFrame(rows)
+    this.onRowsPainted?.(rows)
   }
 
   private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {

@@ -1,3 +1,4 @@
+import { copiedFrameRow } from '../render/frame-row.js'
 import { encodeTerminalViewport } from './viewport.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import type {
@@ -209,12 +210,7 @@ function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
     viewport: viewport ? Object.freeze({ ...viewport }) : undefined,
   })
   const rows = snapshot.rows.map((row) =>
-    Object.freeze({
-      cells: Object.freeze(row.cells.map((cell) => cell.slice())),
-      continuations: Object.freeze(row.continuations.slice()),
-      text: row.text.slice(),
-      y: row.y,
-    }),
+    copiedFrameRow({ cells: row.renderCells, dirty: false, y: row.y }),
   )
   return Object.freeze({
     cursor,
@@ -466,6 +462,10 @@ export class Terminal {
 
   onResize(listener: GhosttyWebGpuTerminalListener<'resize'>): GhosttyWebGpuTerminalSubscription {
     return this.on('resize', listener)
+  }
+
+  onFrame(listener: GhosttyWebGpuTerminalListener<'frame'>): GhosttyWebGpuTerminalSubscription {
+    return this.on('frame', listener)
   }
 
   frameSnapshot(): RendererFrameSnapshot | undefined {
@@ -767,6 +767,10 @@ export class Terminal {
         font,
         onError: (cause) => this.reportError(cause, 'renderer.restore'),
         onFrame: (snapshot) => this.handleFrame(snapshot),
+        onRowsPainted: (rows) => {
+          if (!this.emitters.frame.hasListeners) return
+          this.emitters.frame.emit(Object.freeze({ rows: Object.freeze(rows.map((row) => row.y)) }))
+        },
         renderState: this.session.renderState,
         replaceCanvas: elements.replaceCanvas
           ? () => this.replaceRendererCanvas(elements)
@@ -1118,7 +1122,6 @@ export class Terminal {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
     this.lastFrameRevision = this.session.revision
     this.updateFrameUi(snapshot)
-    this.emitters.frame.emit()
   }
 
   private updateFrameUi(snapshot: RendererFrameSnapshot): void {

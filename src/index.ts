@@ -82,6 +82,7 @@ export type {
   TerminalHotkeyDecision,
 } from './dom/types.js'
 export type {
+  RendererFrameCell,
   RendererFrameRow,
   RendererFrameSnapshot,
   RendererGridSize,
@@ -156,3 +157,7 @@ export type {
 
 export { paintTerminalViewport, TERMINAL_VIEWPORT_MAX_BYTES } from './dom/viewport.js'
 export type { TerminalViewportOptions, TerminalViewportPaint } from './dom/viewport.js'
+
+export { DomTerminalRenderer, renderFrameToHtml } from './render/dom/renderer.js'
+export type { RenderFrameHtmlOptions } from './render/dom/renderer.js'
+export { snapshotRenderState } from './render/frame.js'

@@ -1,5 +1,10 @@
+import { DomTerminalRenderer } from './dom/renderer.js'
 import type { TerminalFittedFont } from '../term/types.js'
-import { CanvasTerminalRenderer, type CanvasRendererMetrics } from './canvas/renderer.js'
+import {
+  CanvasUnavailableError,
+  CanvasTerminalRenderer,
+  type CanvasRendererMetrics,
+} from './canvas/renderer.js'
 import {
   copyFittedFont,
   mergeRendererTheme,
@@ -18,8 +23,11 @@ import { WebGlTerminalRenderer } from './webgl/renderer.js'
 type FallbackState =
   | { kind: 'webgl2'; renderer: WebGlTerminalRenderer }
   | { kind: 'switching' | 'failed'; renderer: WebGlTerminalRenderer }
-  | { kind: 'canvas2d'; renderer: CanvasTerminalRenderer }
-  | { kind: 'disposed'; renderer: CanvasTerminalRenderer | WebGlTerminalRenderer }
+  | { kind: 'canvas2d' | 'dom'; renderer: CanvasTerminalRenderer | DomTerminalRenderer }
+  | {
+      kind: 'disposed'
+      renderer: CanvasTerminalRenderer | DomTerminalRenderer | WebGlTerminalRenderer
+    }
 
 export class FallbackTerminalRenderer {
   private documentVisible = true
@@ -65,7 +73,7 @@ export class FallbackTerminalRenderer {
     return fallback
   }
 
-  get backend(): 'canvas2d' | 'webgl2' {
+  get backend(): 'canvas2d' | 'dom' | 'webgl2' {
     return this.state.renderer.backend
   }
 
@@ -156,8 +164,13 @@ export class FallbackTerminalRenderer {
     renderer.dispose()
   }
 
-  private get activeRenderer(): CanvasTerminalRenderer | WebGlTerminalRenderer | undefined {
-    if (this.state.kind === 'webgl2' || this.state.kind === 'canvas2d') return this.state.renderer
+  private get activeRenderer():
+    | CanvasTerminalRenderer
+    | DomTerminalRenderer
+    | WebGlTerminalRenderer
+    | undefined {
+    if (this.state.kind === 'webgl2' || this.state.kind === 'canvas2d' || this.state.kind === 'dom')
+      return this.state.renderer
     return undefined
   }
 
@@ -180,7 +193,13 @@ export class FallbackTerminalRenderer {
     const canvas = this.replaceCanvas()
     if (this.state.kind === 'disposed') return
     this.options.canvas = canvas
-    const renderer = await CanvasTerminalRenderer.create({ ...this.options, canvas })
+    let renderer: CanvasTerminalRenderer | DomTerminalRenderer
+    try {
+      renderer = await CanvasTerminalRenderer.create({ ...this.options, canvas })
+    } catch (cause) {
+      if (!(cause instanceof CanvasUnavailableError)) throw cause
+      renderer = await DomTerminalRenderer.create({ ...this.options, canvas })
+    }
     if (this.state.kind !== 'switching') {
       renderer.dispose()
       return
@@ -191,10 +210,10 @@ export class FallbackTerminalRenderer {
       renderer.dispose()
       throw cause
     }
-    this.state = { kind: 'canvas2d', renderer }
+    this.state = { kind: renderer.backend, renderer }
   }
 
-  private applySettings(renderer: CanvasTerminalRenderer): void {
+  private applySettings(renderer: CanvasTerminalRenderer | DomTerminalRenderer): void {
     renderer.setDocumentVisible(false)
     renderer.setFont(this.options.font)
     renderer.resize(this.options)

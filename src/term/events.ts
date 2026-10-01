@@ -34,6 +34,10 @@ export class EventEmitter<T> {
     this.errorSink = errorSink
   }
 
+  get hasListeners(): boolean {
+    return !this.disposed && this.listeners.size > 0
+  }
+
   readonly emit = (event: T): void => {
     if (this.disposed) return
     const listeners = Array.from(this.listeners.values())

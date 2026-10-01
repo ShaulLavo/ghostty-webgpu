@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { copiedFrameRow } from '../frame-row.js'
 
@@ -29,21 +29,34 @@ it.each([
         },
       })
     }
+    const materialize = packed.map((row) => vi.spyOn(row.packed!, 'materialize'))
     const actual = packed.map(copiedFrameRow)
-    expect(actual).toEqual(expected)
-    expect(decoded.map(copiedFrameRow)).toEqual(expected)
+    for (const spy of materialize) expect(spy).not.toHaveBeenCalled()
+    const projection = (rows: typeof actual) =>
+      rows.map(({ cells, continuations, text, y }) => ({ cells, continuations, text, y }))
+    expect(projection(actual)).toEqual(expected)
+    expect(projection(decoded.map(copiedFrameRow))).toEqual(expected)
     for (const row of actual) {
       expect(Object.isFrozen(row)).toBe(true)
       expect(Object.isFrozen(row.cells)).toBe(true)
       expect(Object.isFrozen(row.continuations)).toBe(true)
     }
+    const styledExpected = decoded.map((row) => copiedFrameRow(row).renderCells)
     runtime.exports.memory.grow(1)
     terminal.resize({ columns: 4, rows: 1 })
     terminal.write('changed')
     state.update()
     state.readRows({ packed: true })
-    expect(actual).toEqual(expected)
-    expect(packed.map(copiedFrameRow)).toEqual(expected)
+    expect(projection(actual)).toEqual(expected)
+    expect(projection(packed.map(copiedFrameRow))).toEqual(expected)
+    expect(actual.map((row) => row.renderCells)).toEqual(styledExpected)
+    for (const row of actual) {
+      expect(Object.isFrozen(row.renderCells)).toBe(true)
+      for (const cell of row.renderCells) {
+        expect(Object.isFrozen(cell)).toBe(true)
+        if (cell.style) expect(Object.isFrozen(cell.style)).toBe(true)
+      }
+    }
   } finally {
     runtime.dispose()
   }
