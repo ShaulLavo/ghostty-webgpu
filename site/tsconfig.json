@@ -2,6 +2,7 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
+    "resolveJsonModule": true,
     "rootDir": "..",
     "types": ["bun", "@webgpu/types", "astro/client"]
   },

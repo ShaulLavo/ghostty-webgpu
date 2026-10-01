@@ -1,7 +1,8 @@
-import { Terminal } from '../../dist/index.js'
+import { fitTerminalFont, Terminal } from '../../dist/index.js'
 import type { TerminalTheme } from '../../dist/index.js'
 import { GhostDemo } from './demos/ghost.js'
 import type { DemoContext } from './demos/types.js'
+import { fittedScreenHeight, roundedFitPadding } from './fit.js'
 import { ink, pale, palette256, spectre } from './theme.js'
 
 const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace'
@@ -12,6 +13,7 @@ const FIT_FONT_SIZE = 10
 const FIT_LINE_HEIGHT = 1
 const MIN_FONT_SIZE = 5
 const MAX_SCREEN_VIEWPORT_SHARE = 0.8
+const PHONE_SCREEN_VIEWPORT_SHARE = 0.45
 const PADDING = { bottom: 12, left: 16, right: 16, top: 12 }
 const ghost = new GhostDemo()
 
@@ -74,19 +76,14 @@ function createContext(instance: Terminal): DemoContext {
   }
 }
 
-/** CSS cell size per font pixel, measured from the rendered canvas. */
-function cellPerPixel(): { readonly height: number; readonly width: number } {
-  const canvas = ui.host.querySelector('canvas')
-  const { font, grid } = terminal!.appearance
-  if (canvas && grid.columns > 0 && grid.rows > 0) {
-    const rect = canvas.getBoundingClientRect()
-    return {
-      height: rect.height / grid.rows / font.size,
-      width: rect.width / grid.columns / font.size,
-    }
-  }
-  // JetBrains Mono advances about 0.6em per cell; its line box is about 1.4em.
-  return { height: 1.4, width: 0.6 }
+/** Measure the candidate font with the same pixel rounding as the renderer. */
+function cellSize(size: number): { readonly height: number; readonly width: number } {
+  const font = fitTerminalFont(
+    document,
+    { ...terminal!.appearance.font, lineHeight: FIT_LINE_HEIGHT, size },
+    window.devicePixelRatio,
+  )
+  return { height: font.cssCellHeight, width: font.cssCellWidth }
 }
 
 /** Sizes the window and font so a grid shows whole; undefined restores base. */
@@ -97,17 +94,24 @@ function fitTo(grid: { readonly cols: number; readonly rows: number } | undefine
     setFont(BASE_FONT_SIZE, BASE_LINE_HEIGHT)
     return
   }
-  const cell = cellPerPixel()
-  const width = ui.host.clientWidth - PADDING.left - PADDING.right
-  const maxHeight = window.innerHeight * MAX_SCREEN_VIEWPORT_SHARE - PADDING.top - PADDING.bottom
-  const byWidth = width / (grid.cols * cell.width)
-  const byHeight = maxHeight / (grid.rows * cell.height)
-  const size = Math.max(
-    MIN_FONT_SIZE,
-    Math.min(FIT_FONT_SIZE, Math.floor(Math.min(byWidth, byHeight))),
-  )
-  const rowsHeight = Math.ceil(grid.rows * cell.height * size)
-  ui.screen.style.height = `${rowsHeight + PADDING.top + PADDING.bottom + 2}px`
+  const scrollbarWidth = ui.host.querySelector<HTMLElement>('[role="scrollbar"]')?.offsetWidth ?? 0
+  const ratio = window.devicePixelRatio
+  const padding = roundedFitPadding(PADDING, ratio)
+  const scrollbar = Math.round(scrollbarWidth * ratio) / ratio
+  const width = ui.host.clientWidth - padding.left - padding.right - scrollbar
+  const share = window.innerWidth < 480 ? PHONE_SCREEN_VIEWPORT_SHARE : MAX_SCREEN_VIEWPORT_SHARE
+  const maxHeight = window.innerHeight * share
+  let size = FIT_FONT_SIZE
+  let cell = cellSize(size)
+  while (
+    size > MIN_FONT_SIZE &&
+    (grid.cols * cell.width > width ||
+      fittedScreenHeight(grid.rows, cell.height, padding) > maxHeight)
+  ) {
+    size -= 1
+    cell = cellSize(size)
+  }
+  ui.screen.style.height = `${fittedScreenHeight(grid.rows, cell.height, padding)}px`
   setFont(size, FIT_LINE_HEIGHT)
 }
 

@@ -1,5 +1,9 @@
 ---
 import '../styles/styles.css'
+import { measurements, measurementEnvironment, SHOW_MEASUREMENTS } from '../measurements'
+
+const version = __SITE_VERSION__
+const base = import.meta.env.BASE_URL
 ---
 
 <!doctype html>
@@ -22,7 +26,10 @@ import '../styles/styles.css'
   </head>
   <body>
     <header class="masthead">
-      <a class="wordmark" href="https://github.com/ShaulLavo/ghostty-webgpu">ghostty-webgpu</a>
+      <div class="identity">
+        <a class="wordmark" href={base}>ghostty-webgpu</a>
+        <a class="version" href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md">v{version}</a>
+      </div>
       <nav class="links" aria-label="Project links">
         <a href="https://github.com/ShaulLavo/ghostty-webgpu">GitHub</a>
         <a href="https://www.npmjs.com/package/ghostty-webgpu">npm</a>
@@ -34,13 +41,44 @@ import '../styles/styles.css'
       <section class="intro">
         <h1>An unofficial Ghostty for the web.</h1>
         <p class="lede">
-          libghostty-vt compiled to WebAssembly, drawn by a damage-aware WebGPU renderer, behind a
-          native API.
+          libghostty-vt compiled to WebAssembly and drawn by a damage-aware WebGPU renderer. Its own API: bytes in, bytes out.
         </p>
         <div class="install">
           <code>npm install ghostty-webgpu</code>
           <button id="copy-install" type="button">Copy</button>
         </div>
+        <pre class="example" aria-label="Create a terminal"><code><span class="syntax-keyword">import</span> {'{ Terminal }'} <span class="syntax-keyword">from</span> <span class="syntax-string">'ghostty-webgpu'</span>
+
+<span class="syntax-keyword">const</span> host =
+  document.getElementById(<span class="syntax-string">'terminal'</span>)!
+<span class="syntax-keyword">const</span> terminal = <span class="syntax-keyword">await</span> Terminal.create()
+<span class="syntax-keyword">await</span> terminal.open(host)
+terminal.write(<span class="syntax-string">'hello from ghostty\r\n'</span>)
+terminal.focus()</code></pre>
+        <details class="pty-example">
+          <summary>Connect a WebSocket PTY</summary>
+          <pre class="example" aria-label="WebSocket PTY wiring"><code><span class="syntax-keyword">const</span> socket = <span class="syntax-keyword">new</span> WebSocket(
+  <span class="syntax-string">'wss://example.com/pty'</span>,
+)
+socket.binaryType = <span class="syntax-string">'arraybuffer'</span>
+
+terminal.onData((bytes) =&gt; {'{'}
+  <span class="syntax-keyword">if</span> (
+    socket.readyState !== WebSocket.OPEN
+  ) <span class="syntax-keyword">return</span>
+  socket.send(bytes)
+{'}'})
+
+socket.addEventListener(
+  <span class="syntax-string">'message'</span>,
+  ({'{'} data {'}'}) =&gt; {'{'}
+    <span class="syntax-keyword">if</span> (!(data <span class="syntax-keyword">instanceof</span> ArrayBuffer))
+      <span class="syntax-keyword">return</span>
+    terminal.write(<span class="syntax-keyword">new</span> Uint8Array(data))
+  {'}'},
+)</code></pre>
+          <p>The mount needs a height and width. Dispose the terminal and close the socket when the connection ends.</p>
+        </details>
       </section>
 
       <section class="window" id="window" aria-label="Live terminal">
@@ -67,22 +105,47 @@ import '../styles/styles.css'
           idle terminal costs nothing and a busy one costs only its busy rows.
         </p>
         <p>
-          <strong>Falls back on its own.</strong> WebGPU first, then WebGL2, then Canvas2D, with the
-          same output. This page is drawing with
-          <span id="backend-fact">a renderer it is still choosing</span>.
+          <strong>Runs anywhere.</strong> WebGPU where the browser has it, then WebGL2, then Canvas2D, then plain DOM. Each draws the same cells. This page is drawing with <span id="backend-fact">…</span>.
         </p>
         <p>
           <strong>PTY traffic stays as bytes.</strong> The native API takes
           <code>Uint8Array</code> input and emits bytes for your PTY connection.
         </p>
       </section>
+      <section class="measured" aria-labelledby="measured-heading">
+        <h2 id="measured-heading">Measured</h2>
+        {SHOW_MEASUREMENTS ? (
+          <>
+            <p>{measurementEnvironment}</p>
+            <div class="measurement-table">
+              <table>
+                <caption>One terminal, byte input. Median of three runs; latency ends at the captured frame.</caption>
+                <thead><tr><th scope="col">Measure</th><th scope="col">ghostty-webgpu</th><th scope="col">xterm.js WebGL</th></tr></thead>
+                <tbody>{measurements.map((row) => (
+                  <tr><th scope="row">{row.label}</th><td>{row.ghostty}</td><td>{row.xterm}</td></tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </>
+        ) : <p>Measurements in progress.</p>}
+        <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md">Benchmark method and results</a>
+      </section>
     </main>
 
     <footer class="colophon">
+      <section class="preview" aria-labelledby="preview-heading">
+        <h2 id="preview-heading">In progress</h2>
+        <ul>
+          <li>Lower CPU while many terminals stream output.</li>
+          <li>Faster keystroke-to-screen latency.</li>
+          <li>Keybindings shared with the host app.</li>
+        </ul>
+        <a href="https://github.com/ShaulLavo/fregat/blob/main/PLAN.md">Development roadmap</a>
+      </section>
       <p>
         MIT licensed. Built on libghostty-vt. Not affiliated with the Ghostty project. The ghost
         animation is from <a href="https://github.com/ghostty-org/website">ghostty.org</a>, used
-        under its MIT license. Still a preview, so expect gaps.
+        under its MIT license.
       </p>
     </footer>
 

@@ -151,6 +151,7 @@ h1 {
 
 .install code {
   font-family: inherit;
+  font-variant-ligatures: none;
 }
 
 .install button {
@@ -291,11 +292,18 @@ h1 {
 
 .facts strong {
   font-weight: 600;
+}
+
+.facts strong,
+.measured h2,
+.preview h2 {
   color: var(--ink);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .facts strong {
+  :root:not([data-theme='light']) .facts strong,
+  :root:not([data-theme='light']) .measured h2,
+  :root:not([data-theme='light']) .preview h2 {
     color: var(--pale);
   }
 }
@@ -339,8 +347,9 @@ h1 {
     gap: 14px;
   }
 
-  .backend {
-    display: none;
+  .masthead {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .install {
@@ -362,4 +371,109 @@ h1 {
   .install button {
     transition: none;
   }
+}
+
+.identity {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.version {
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--fog);
+  color: var(--dusk);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.example {
+  font-variant-ligatures: none;
+  margin: 20px 0 0;
+  padding: 16px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--fog);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+  tab-size: 2;
+}
+
+.example code {
+  font-family: inherit;
+}
+
+.syntax-keyword {
+  color: var(--dusk);
+  font-weight: 600;
+}
+
+.syntax-string {
+  color: inherit;
+}
+
+.pty-example {
+  margin-top: 14px;
+  color: var(--dusk);
+  font-size: 14px;
+}
+
+.pty-example summary {
+  cursor: pointer;
+}
+
+.measured {
+  margin-top: 40px;
+  color: var(--dusk);
+  font-size: 15px;
+}
+
+.measured h2,
+.preview h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.measured p {
+  margin: 12px 0;
+}
+
+.measurement-table {
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.measurement-table table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+}
+
+.measurement-table caption {
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.measurement-table th,
+.measurement-table td {
+  padding: 8px;
+}
+
+.measurement-table td {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.preview {
+  margin-bottom: 28px;
+}
+
+.preview ul {
+  margin: 12px 0;
+  padding-left: 20px;
 }
