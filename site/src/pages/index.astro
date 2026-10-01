@@ -1,5 +1,10 @@
 ---
-import '../styles/styles.css'
+import pageCss from '../styles/styles.css?inline'
+import fontCss from '../styles/fonts.css?inline'
+import firstFrameCss from '../styles/first-frame.css?inline'
+import { firstGhostFrame } from '../first-frame.js'
+
+const firstFrame = await firstGhostFrame()
 import { measurements, measurementEnvironment, SHOW_MEASUREMENTS } from '../measurements'
 
 const version = __SITE_VERSION__
@@ -12,17 +17,21 @@ const base = import.meta.env.BASE_URL
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ghostty-webgpu</title>
+    <style is:inline set:html={pageCss + fontCss + firstFrameCss}></style>
     <meta
       name="description"
       content="An unofficial Ghostty for the web: libghostty-vt in WebAssembly with a damage-aware WebGPU renderer and a native API. Try it live."
     />
+    <script is:inline>
+      document.documentElement.style.setProperty('--ghost-device-pixel', `${1 / devicePixelRatio}px`)
+    </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
-    />
+    <link rel="preload" href="fonts/jetbrains-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/jetbrains-mono-latin-600-normal.woff2" fetchpriority="low" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/jetbrains-mono-latin-400-italic.woff2" fetchpriority="low" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="ghostty-vt.wasm" fetchpriority="low" as="fetch" type="application/wasm" crossorigin />
+    <link rel="preload" href="ghost-frames.txt.gz" fetchpriority="low" as="fetch" crossorigin />
   </head>
   <body>
     <header class="masthead">
@@ -81,7 +90,7 @@ socket.addEventListener(
         </details>
       </section>
 
-      <section class="window" id="window" aria-label="Live terminal">
+      <section class="window" id="window" data-ready="true" aria-label="Live terminal">
         <div class="chrome">
           <div class="window-dots" aria-hidden="true">
             <span></span><span></span><span></span>
@@ -101,15 +110,12 @@ socket.addEventListener(
             >
               Redraws
             </button>
-            <span class="backend" id="backend" title="Renderer in use on this device">loading</span>
+            <span class="backend" id="backend" title="Renderer in use on this device">html</span>
           </div>
         </div>
         <div class="screen">
-          <div id="terminal" role="tabpanel" aria-label="Animated Ghostty ghost"></div>
-          <div class="fatal" id="fatal" role="alert" hidden>
-            <p>The terminal could not start in this browser.</p>
-            <pre id="fatal-message"></pre>
-            <p>WebGPU, WebGL2, or Canvas2D is needed, along with WebAssembly.</p>
+          <div id="terminal" role="tabpanel" aria-label="Animated Ghostty ghost">
+            <div id="ghost-first-frame" set:html={firstFrame}></div>
           </div>
         </div>
       </section>
@@ -122,7 +128,7 @@ socket.addEventListener(
           idle terminal costs nothing and a busy one costs only its busy rows.
         </p>
         <p>
-          <strong>Runs anywhere.</strong> WebGPU where the browser has it, then WebGL2, then Canvas2D, then plain DOM. Each draws the same cells. This page is drawing with <span id="backend-fact">…</span>.
+          <strong>Runs anywhere.</strong> WebGPU where the browser has it, then WebGL2, then Canvas2D, then plain DOM. Each draws the same cells. This page is drawing with <span id="backend-fact">html</span>.
         </p>
         <p>
           <strong>PTY traffic stays as bytes.</strong> The native API takes

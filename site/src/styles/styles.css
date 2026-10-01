@@ -244,7 +244,7 @@ h1 {
     color 160ms var(--ease-out);
 }
 
-.tabs button:hover {
+.tabs button:enabled:hover {
   color: var(--pale);
 }
 
@@ -273,13 +273,19 @@ h1 {
     color 160ms var(--ease-out);
 }
 
-.toggle:hover,
+.toggle:enabled:hover,
 .toggle[aria-pressed='true'] {
   color: var(--pale);
 }
 
 .toggle[aria-pressed='true'] {
   background: rgba(126, 230, 206, 0.16);
+}
+
+.tabs button:disabled,
+.toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .toggle:focus-visible,
@@ -294,6 +300,10 @@ h1 {
   color: var(--dusk);
   font-size: 15px;
   line-height: 1.5;
+}
+
+.caption[data-still] {
+  max-width: none;
 }
 
 .caption + .stat {
@@ -323,26 +333,6 @@ h1 {
   height: 100%;
   width: 100%;
   touch-action: pan-y;
-}
-
-.fatal {
-  position: absolute;
-  inset: 0;
-  padding: 24px;
-  color: var(--pale);
-  background: var(--ink);
-}
-
-.fatal p {
-  margin: 0 0 12px;
-}
-
-.fatal pre {
-  margin: 0 0 12px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  white-space: pre-wrap;
-  color: #f07c8c;
 }
 
 .stat {

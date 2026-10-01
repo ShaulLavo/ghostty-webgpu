@@ -1,0 +1,200 @@
+@property --ghost-font-size {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 10px;
+}
+
+@property --ghost-cell-width {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 6px;
+}
+
+@property --ghost-cell-height {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 13px;
+}
+
+.window {
+  container-type: inline-size;
+}
+
+.screen {
+  --ghost-pixel: 1px;
+  --ghost-viewport-share: 0.8;
+  --ghost-padding-x: round(nearest, 16px, var(--ghost-device-pixel, var(--ghost-pixel)));
+  --ghost-padding-y: round(nearest, 12px, var(--ghost-device-pixel, var(--ghost-pixel)));
+  --ghost-scrollbar: round(nearest, 12px, var(--ghost-device-pixel, var(--ghost-pixel)));
+  --ghost-grid-width: calc(
+    round(nearest, 100cqw, 1px) - 2 * var(--ghost-padding-x) - var(--ghost-scrollbar)
+  );
+  --ghost-available-width: calc(var(--ghost-grid-width) / 78);
+  --ghost-available-height: calc(
+    (round(down, 100vh * var(--ghost-viewport-share), 1px) - 1px - 2 * var(--ghost-padding-y)) / 40
+  );
+  /* Chromium's measured JetBrains Mono advances and bounding boxes, quantized like fitTerminalFont. */
+  --ghost-fit-6: clamp(
+    5px,
+    round(
+        down,
+        min(
+          var(--ghost-available-width) /
+            round(down, 4px, var(--ghost-device-pixel, var(--ghost-pixel))),
+          var(--ghost-available-height) /
+            round(up, 8px, var(--ghost-device-pixel, var(--ghost-pixel)))
+        ),
+        1
+      ) *
+      6px,
+    6px
+  );
+  --ghost-fit-7: clamp(
+    5px,
+    round(
+        down,
+        min(
+          var(--ghost-available-width) /
+            round(down, 4px, var(--ghost-device-pixel, var(--ghost-pixel))),
+          var(--ghost-available-height) /
+            round(up, 9px, var(--ghost-device-pixel, var(--ghost-pixel)))
+        ),
+        1
+      ) *
+      7px,
+    7px
+  );
+  --ghost-fit-8: clamp(
+    5px,
+    round(
+        down,
+        min(
+          var(--ghost-available-width) /
+            round(down, 5px, var(--ghost-device-pixel, var(--ghost-pixel))),
+          var(--ghost-available-height) /
+            round(up, 10px, var(--ghost-device-pixel, var(--ghost-pixel)))
+        ),
+        1
+      ) *
+      8px,
+    8px
+  );
+  --ghost-fit-9: clamp(
+    5px,
+    round(
+        down,
+        min(
+          var(--ghost-available-width) /
+            round(down, 5px, var(--ghost-device-pixel, var(--ghost-pixel))),
+          var(--ghost-available-height) /
+            round(up, 12px, var(--ghost-device-pixel, var(--ghost-pixel)))
+        ),
+        1
+      ) *
+      9px,
+    9px
+  );
+  --ghost-fit-10: clamp(
+    5px,
+    round(
+        down,
+        min(
+          var(--ghost-available-width) /
+            round(down, 6px, var(--ghost-device-pixel, var(--ghost-pixel))),
+          var(--ghost-available-height) /
+            round(up, 13px, var(--ghost-device-pixel, var(--ghost-pixel)))
+        ),
+        1
+      ) *
+      10px,
+    10px
+  );
+  --ghost-font-size: max(
+    var(--ghost-fit-6),
+    var(--ghost-fit-7),
+    var(--ghost-fit-8),
+    var(--ghost-fit-9),
+    var(--ghost-fit-10)
+  );
+  --ghost-cell-width: round(
+    down,
+    round(nearest, var(--ghost-font-size) * 0.6, 1px),
+    var(--ghost-device-pixel, var(--ghost-pixel))
+  );
+  --ghost-cell-height: round(
+    up,
+    round(nearest, var(--ghost-font-size) * 1.02, 1px) +
+      round(nearest, var(--ghost-font-size) * 0.3, 1px),
+    var(--ghost-device-pixel, var(--ghost-pixel))
+  );
+  height: calc(round(up, 40 * var(--ghost-cell-height) + 2 * var(--ghost-padding-y), 1px) + 1px);
+}
+
+#ghost-first-frame {
+  --ghostty-font-size: var(--ghost-font-size);
+  --ghostty-cell-width: var(--ghost-cell-width);
+  --ghostty-cell-height: var(--ghost-cell-height);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--ink);
+  overflow: hidden;
+}
+
+#ghost-first-frame > .ghostty-webgpu-frame {
+  position: absolute;
+  top: var(--ghost-padding-y);
+  left: calc(
+    var(--ghost-padding-x) +
+      round(
+        nearest,
+        (round(down, var(--ghost-grid-width), var(--ghost-cell-width)) - 78 *
+            var(--ghost-cell-width)) /
+          2,
+        var(--ghost-cell-width)
+      )
+  );
+}
+
+@media (max-width: 479.98px) {
+  .screen {
+    --ghost-viewport-share: 0.45;
+  }
+}
+
+@media (min-resolution: 1.25dppx) {
+  .screen {
+    --ghost-pixel: calc(1px / 1.25);
+  }
+}
+
+@media (min-resolution: 1.5dppx) {
+  .screen {
+    --ghost-pixel: calc(1px / 1.5);
+  }
+}
+
+@media (min-resolution: 1.75dppx) {
+  .screen {
+    --ghost-pixel: calc(1px / 1.75);
+  }
+}
+
+@media (min-resolution: 2dppx) {
+  .screen {
+    --ghost-pixel: calc(1px / 2);
+  }
+}
+
+@media (min-resolution: 2.5dppx) {
+  .screen {
+    --ghost-pixel: calc(1px / 2.5);
+  }
+}
+
+@media (min-resolution: 3dppx) {
+  .screen {
+    --ghost-pixel: calc(1px / 3);
+  }
+}

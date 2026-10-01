@@ -1,17 +1,10 @@
 import { clearScreen, fg, hideCursor } from '../ansi.js'
 import { CellBuffer } from '../cells.js'
-import {
-  GHOST_BODY_STYLE as BODY_STYLE,
-  GHOST_GLOW_STYLE as GLOW_STYLE,
-  loadGhostFrames,
-  type GhostFrames,
-  type Run,
-} from '../ghost-frames.js'
+import type { GhostFrames } from '../ghost-frames.js'
+import { drawGhostFrame, GHOST_GRID } from '../ghost-drawing.js'
 import { dusk } from '../theme.js'
 import { AnimatedDemo } from './types.js'
 
-const FRAME_SECONDS = 0.031
-const DRIFT_PERIOD_SECONDS = 22
 const numberFormat = new Intl.NumberFormat('en-US')
 
 export class GhostDemo extends AnimatedDemo {
@@ -19,7 +12,7 @@ export class GhostDemo extends AnimatedDemo {
   readonly label = 'Ghost'
   readonly caption =
     'The ghost from ghostty.org, all 235 frames of it, played at their frame rate. The figure on the right is how many cells actually changed per frame.'
-  readonly fit = { cols: 78, rows: 40 }
+  readonly fit = GHOST_GRID
 
   private readonly buffer = new CellBuffer()
   private frames: GhostFrames | undefined
@@ -29,18 +22,25 @@ export class GhostDemo extends AnimatedDemo {
   private redrawSum = 0
   private redrawFrames = 0
 
-  protected layout(): void {
-    this.context!.write(clearScreen + hideCursor)
-    this.buffer.forget()
-    if (this.frames || this.failure) return
-    loadGhostFrames()
-      .then((frames) => {
-        this.frames = frames
+  prepare(frames: Promise<GhostFrames>): void {
+    frames
+      .then((loaded) => {
+        this.frames = loaded
         this.paintStill()
       })
       .catch((cause: unknown) => {
         this.failure = cause instanceof Error ? cause.message : String(cause)
+        this.paintStill()
       })
+  }
+
+  protected layout(): void {
+    this.context!.write(clearScreen + hideCursor)
+    this.buffer.forget()
+    this.redrawSampleIn = 0
+    this.redrawSum = 0
+    this.redrawFrames = 0
+    this.frame(0, 0)
   }
 
   protected frame(delta: number, elapsed: number): void {
@@ -58,18 +58,9 @@ export class GhostDemo extends AnimatedDemo {
       return
     }
 
-    const index = Math.floor(elapsed / FRAME_SECONDS) % frames.frames.length
-    const frame = frames.frames[index]!
-    // Drift left and right through whatever room the grid has beyond the frame.
-    const amplitude = Math.max(0, (cols - frames.width) / 2 - 1)
-    const drift = Math.sin((elapsed / DRIFT_PERIOD_SECONDS) * Math.PI * 2) * amplitude
-    const originCol = Math.round((cols - frames.width) / 2 + drift)
-    const originRow = Math.floor((rows - frames.rows) / 2)
-
-    for (let r = 0; r < frame.length; r += 1) {
-      const row = originRow + r
-      if (row < 0 || row >= rows) continue
-      for (const run of frame[r]!) this.drawRun(row, originCol + run.col, run, cols)
+    drawGhostFrame(this.buffer, frames, { cols, rows }, elapsed)
+    if (performance.getEntriesByName('ghost:first-write').length === 0) {
+      performance.mark('ghost:first-write')
     }
     const written = this.buffer.flush((data) => context.write(data))
     this.sampleRedraw(written, delta)
@@ -78,14 +69,6 @@ export class GhostDemo extends AnimatedDemo {
       `${numberFormat.format(this.redrawn)} of ${numberFormat.format(cols * rows)} cells redrawn per frame`,
     )
     this.resetSample()
-  }
-
-  private drawRun(row: number, col: number, run: Run, cols: number): void {
-    const start = Math.max(0, -col)
-    const end = Math.min(run.text.length, cols - col)
-    if (end <= start) return
-    const text = start === 0 && end === run.text.length ? run.text : run.text.slice(start, end)
-    this.buffer.text(row, col + start, text, run.glow ? GLOW_STYLE : BODY_STYLE)
   }
 
   private sampleRedraw(written: number, delta: number): void {

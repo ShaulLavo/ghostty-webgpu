@@ -53,9 +53,18 @@ function parseLine(line: string): Run[] {
   return runs
 }
 
-function parseFrames(packed: string): GhostFrames {
+export function parseGhostFrames(packed: string): GhostFrames {
   const newline = packed.indexOf('\n')
   const [width = 0, rows = 0] = packed.slice(0, newline).split(' ').map(Number)
+  if (
+    newline < 0 ||
+    !Number.isSafeInteger(width) ||
+    width <= 0 ||
+    !Number.isSafeInteger(rows) ||
+    rows <= 0
+  ) {
+    throw new TypeError('Ghost frame dimensions must be positive integers.')
+  }
   const frames = packed
     .slice(newline + 1)
     .split(FRAME_SEPARATOR)
@@ -77,7 +86,10 @@ export function loadGhostFrames(): Promise<GhostFrames> {
       if (!response.ok) throw new Error(`Frames request failed: ${response.status}`)
       return inflate(await response.arrayBuffer())
     })
-    .then(parseFrames)
+    .then((packed) => {
+      performance.mark('ghost:frames-ready')
+      return parseGhostFrames(packed)
+    })
   return framesPromise
 }
 

@@ -8,7 +8,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 /** Tints each row the renderer repainted, fading so a steady redraw reads as a steady glow. */
 export class DamageOverlay {
   private readonly canvas = document.createElement('canvas')
-  private readonly context = this.canvas.getContext('2d')!
+  private readonly context = this.canvas.getContext('2d')
   private heat: number[] = []
   private handle = 0
   private lastAt = 0
@@ -19,12 +19,16 @@ export class DamageOverlay {
     this.canvas.setAttribute('aria-hidden', 'true')
   }
 
+  get supported(): boolean {
+    return this.context !== null
+  }
+
   get enabled(): boolean {
     return this.subscription !== undefined
   }
 
   enable(terminal: Terminal): void {
-    if (this.subscription) return
+    if (this.subscription || !this.context) return
     this.host.append(this.canvas)
     this.subscription = terminal.onFrame(({ rows }) => this.mark(terminal, rows))
   }
@@ -58,6 +62,7 @@ export class DamageOverlay {
 
   private paint(now: number): void {
     this.handle = 0
+    if (!this.context) return
     const still = reducedMotion.matches
     const delta = this.lastAt === 0 || still ? 0 : (now - this.lastAt) / 1000
     this.lastAt = now
@@ -104,6 +109,6 @@ export class DamageOverlay {
     this.canvas.height = pixelHeight
     this.canvas.style.width = `${width}px`
     this.canvas.style.height = `${height}px`
-    this.context.setTransform(ratio, 0, 0, ratio, 0, 0)
+    this.context?.setTransform(ratio, 0, 0, ratio, 0, 0)
   }
 }

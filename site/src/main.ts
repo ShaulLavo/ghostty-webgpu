@@ -1,12 +1,12 @@
 import { fitTerminalFont, Terminal } from '../../dist/index.js'
-import type { TerminalTheme } from '../../dist/index.js'
 import { GhostDemo } from './demos/ghost.js'
 import { MatrixDemo } from './demos/matrix.js'
 import { ShellDemo } from './demos/shell.js'
 import type { Demo, DemoContext } from './demos/types.js'
+import { terminalTheme } from './theme.js'
+import { loadGhostFrames } from './ghost-frames.js'
 import { DamageOverlay } from './damage-overlay.js'
 import { fittedScreenHeight, roundedFitPadding } from './fit.js'
-import { ink, pale, palette256, spectre } from './theme.js'
 
 const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace'
 const BASE_FONT_SIZE = 14
@@ -19,7 +19,8 @@ const MAX_SCREEN_VIEWPORT_SHARE = 0.8
 const PHONE_SCREEN_VIEWPORT_SHARE = 0.45
 const PADDING = { bottom: 12, left: 16, right: 16, top: 12 }
 const TAB_STEPS: Readonly<Record<string, number>> = { ArrowLeft: -1, ArrowRight: 1 }
-const demos: readonly Demo[] = [new GhostDemo(), new MatrixDemo(), new ShellDemo()]
+const ghost = new GhostDemo()
+const demos: readonly Demo[] = [ghost, new MatrixDemo(), new ShellDemo()]
 let active: Demo = demos[0]!
 
 function required<T extends Element>(selector: string): T {
@@ -33,9 +34,8 @@ const ui = {
   backendFact: required<HTMLElement>('#backend-fact'),
   caption: required<HTMLElement>('#caption'),
   copy: required<HTMLButtonElement>('#copy-install'),
+  firstFrame: required<HTMLElement>('#ghost-first-frame'),
   damage: required<HTMLButtonElement>('#damage'),
-  fatal: required<HTMLElement>('#fatal'),
-  fatalMessage: required<HTMLElement>('#fatal-message'),
   host: required<HTMLElement>('#terminal'),
   screen: required<HTMLElement>('.screen'),
   stat: required<HTMLElement>('#stat'),
@@ -47,19 +47,6 @@ const overlay = new DamageOverlay(ui.screen)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let terminal: Terminal | undefined
 const paused = reducedMotion.matches
-
-function buildTheme(): TerminalTheme {
-  return {
-    background: ink,
-    cursor: spectre,
-    cursorText: ink,
-    foreground: pale,
-    minimumContrast: 1,
-    palette: palette256(),
-    selectionBackground: { r: 62, g: 58, b: 92 },
-    selectionForeground: pale,
-  }
-}
 
 async function loadFonts(): Promise<void> {
   if (!('fonts' in document)) return
@@ -144,6 +131,8 @@ function toggleOverlay(): void {
 }
 
 function wireControls(): void {
+  ui.damage.disabled = !overlay.supported
+  if (!overlay.supported) ui.damage.title = 'Redraw tint uses Canvas2D.'
   ui.damage.addEventListener('click', toggleOverlay)
   // The terminal's own wheel handler scrolls its scrollback and blocks the
   // page. Stop the event in the capture phase so the page scrolls instead.
@@ -196,37 +185,45 @@ function syncTabs(): void {
 }
 
 function select(demo: Demo): void {
-  if (demo === active) return
+  if (demo === active || tabButton(demo).disabled) return
   active.stop()
   active = demo
   syncTabs()
   ui.stat.textContent = ''
   if (!terminal) return
   terminal.reset()
-  fitTo(demo.fit)
-  // Only the shell takes input; the animations would announce every frame.
-  terminal.setAccessibilityEnabled(demo.input !== undefined)
-  demo.start(createContext(terminal))
-  demo.setPaused(demo.animated && (paused || document.hidden))
-  if (demo.input) terminal.focus()
+  startActive()
 }
 
-function showFatal(cause: unknown): void {
-  const message = cause instanceof Error ? cause.message : String(cause)
-  ui.fatalMessage.textContent = message
-  ui.fatal.hidden = false
+function startActive(waitForPaint = false): void {
+  if (!terminal) return
+  fitTo(active.fit)
+  // Only the shell takes input; the animations would announce every frame.
+  terminal.setAccessibilityEnabled(active.input !== undefined)
+  active.setPaused(true)
+  active.start(createContext(terminal))
+  if (!waitForPaint) active.setPaused(active.animated && (paused || document.hidden))
+  if (active.input) terminal.focus()
 }
 
 async function boot(): Promise<void> {
   wireControls()
-  await loadFonts()
+  if (typeof WebAssembly === 'undefined') {
+    showStillFrame()
+    return
+  }
+  const fonts = loadFonts().then(() => performance.mark('ghost:fonts-ready'))
+  ghost.prepare(loadGhostFrames())
+  const frame = ui.firstFrame.querySelector('.ghostty-webgpu-frame')!
+  const firstFontSize = Number.parseFloat(getComputedStyle(frame).fontSize)
   const base = document.baseURI
-  const instance = await Terminal.create({
+  performance.mark('ghost:create-start')
+  const creating = Terminal.create({
     appearance: {
       cursor: { blink: true, style: 'block' },
-      font: { family: FONT_FAMILY, lineHeight: BASE_LINE_HEIGHT, size: BASE_FONT_SIZE },
+      font: { family: FONT_FAMILY, lineHeight: FIT_LINE_HEIGHT, size: firstFontSize },
       scrollbackLimit: 2000,
-      theme: buildTheme(),
+      theme: terminalTheme(),
     },
     padding: PADDING,
     runtime: {
@@ -237,7 +234,13 @@ async function boot(): Promise<void> {
       },
     },
   })
+  const created = creating.then((instance) => {
+    performance.mark('ghost:create-resolved')
+    return instance
+  })
+  const [instance] = await Promise.all([created, fonts])
   await instance.open(ui.host)
+  performance.mark('ghost:open-resolved')
   terminal = instance
 
   const backend = instance.diagnostics.rendererBackend ?? 'unknown'
@@ -247,12 +250,36 @@ async function boot(): Promise<void> {
 
   instance.onResize(() => active.resize())
   instance.onData((bytes) => active.input?.(bytes))
-  // Avoid announcing every frame of the decorative animation.
-  instance.setAccessibilityEnabled(false)
   syncTabs()
-  fitTo(active.fit)
-  active.start(createContext(instance))
-  active.setPaused(paused || document.hidden)
+  const firstPaint = instance.onFrame(() => {
+    firstPaint.dispose()
+    requestAnimationFrame(() => {
+      ui.firstFrame.remove()
+      performance.mark('ghost:first-frame')
+      active.setPaused(active.animated && (paused || document.hidden))
+    })
+  })
+  startActive(true)
 }
 
-boot().catch(showFatal)
+function showStillFrame(): void {
+  active.stop()
+  active = ghost
+  syncTabs()
+  for (const demo of demos) tabButton(demo).disabled = true
+  overlay.disable()
+  ui.damage.disabled = true
+  ui.damage.setAttribute('aria-pressed', 'false')
+  ui.backend.textContent = 'html'
+  ui.backendFact.textContent = 'html'
+  ui.stat.textContent = ''
+  ui.caption.dataset['still'] = 'true'
+  ui.caption.setAttribute('role', 'status')
+  ui.caption.textContent =
+    'The live terminal did not start in this browser, so this is a still frame.'
+}
+
+boot().catch((cause: unknown) => {
+  showStillFrame()
+  console.error('Live ghost animation failed to start', cause)
+})

@@ -28,7 +28,7 @@ const ansiColors: readonly Rgb[] = [
 ]
 
 /** The xterm 256-color table with our 16 named colors in front. */
-export function palette256(): Rgb[] {
+function palette256(): Rgb[] {
   const levels = [0, 95, 135, 175, 215, 255]
   const colors = [...ansiColors]
   for (let i = 0; i < 216; i += 1) {
@@ -43,4 +43,17 @@ export function palette256(): Rgb[] {
     colors.push({ r: level, g: level, b: level })
   }
   return colors
+}
+
+export function terminalTheme() {
+  return {
+    background: ink,
+    cursor: spectre,
+    cursorText: ink,
+    foreground: pale,
+    minimumContrast: 1,
+    palette: palette256(),
+    selectionBackground: { r: 62, g: 58, b: 92 },
+    selectionForeground: pale,
+  }
 }
