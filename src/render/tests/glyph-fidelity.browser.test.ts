@@ -48,7 +48,7 @@ function fittedFont(cellWidth: number, cellHeight: number, size: number): Termin
 }
 
 function input(text: string, cellSpan = 1): GlyphRasterizationInput {
-  return { cellSpan, italic: false, text, weight: 'normal' }
+  return { cellSpan, foreground: { r: 255, g: 255, b: 255 }, italic: false, text, weight: 'normal' }
 }
 
 function requireBitmap(bitmap: GlyphBitmap | undefined): GlyphBitmap {

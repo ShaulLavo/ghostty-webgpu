@@ -1,3 +1,5 @@
+import type { RgbColor } from '../../core/types.js'
+
 export type AtlasKind = 'color' | 'grayscale'
 
 export interface GlyphBitmap {
@@ -51,6 +53,7 @@ export interface GlyphRasterizer {
 
 export interface GlyphRasterizationInput {
   cellSpan: number
+  foreground: RgbColor
   italic: boolean
   text: string
   weight: 'bold' | 'normal'

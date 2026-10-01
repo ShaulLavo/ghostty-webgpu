@@ -1,4 +1,7 @@
 import type { RenderCell, RenderRow, RgbColor } from '../../core/types.js'
+import { glyphKey } from '../atlas/key.js'
+import type { GlyphRasterizationInput } from '../atlas/types.js'
+import { contrastAdjustedColor } from '../contrast.js'
 import {
   CELL_INSTANCE_BYTES,
   CELL_INSTANCE_FLOATS,
@@ -96,15 +99,6 @@ function cellSpan(cells: readonly RenderCell[], index: number): number {
   let span = 1
   while (cells[index + span]?.continuation) span += 1
   return span
-}
-
-function glyphCacheKey(cell: RenderCell, span: number): string {
-  return JSON.stringify([
-    span,
-    cell.style?.bold ? 'bold' : 'normal',
-    cell.style?.italic ?? false,
-    cell.text,
-  ])
 }
 
 function cursorStyleCode(style: CursorState['style'] | undefined): number {
@@ -243,14 +237,16 @@ export class InstanceRows {
     invalidatedRows: Set<number>,
   ): void {
     if (!cell.text || cell.style?.invisible) return
-    const bitmap = source.rasterize({
+    const input: GlyphRasterizationInput = {
       cellSpan: span,
+      foreground: contrastAdjustedColor(colors.foreground, colors.background, minimumContrast),
       italic: cell.style?.italic ?? false,
       text: cell.text,
       weight: cell.style?.bold ? 'bold' : 'normal',
-    })
+    }
+    const bitmap = source.rasterize(input)
     if (!bitmap) return
-    const result = glyphs.resolve(glyphCacheKey(cell, span), bitmap, row)
+    const result = glyphs.resolve(glyphKey(input, bitmap.kind), bitmap, row)
     for (const invalidated of result.invalidatedRows) invalidatedRows.add(invalidated)
     const glyph = result.glyph
     const offset = (row * this.columns + cell.x) * GLYPH_INSTANCE_FLOATS

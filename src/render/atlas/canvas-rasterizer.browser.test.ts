@@ -8,7 +8,14 @@ function input(
   cellSpan = 1,
   overrides: Partial<GlyphRasterizationInput> = {},
 ): GlyphRasterizationInput {
-  return { cellSpan, italic: false, text, weight: 'normal', ...overrides }
+  return {
+    cellSpan,
+    foreground: { r: 255, g: 255, b: 255 },
+    italic: false,
+    text,
+    weight: 'normal',
+    ...overrides,
+  }
 }
 
 function requireBitmap(bitmap: GlyphBitmap | undefined): GlyphBitmap {

@@ -84,6 +84,7 @@ it('rasterizes and uploads grayscale and color atlas pages', async () => {
   const values = ['A', 'e\u0301', '界', '🙂']
   const kinds = values.map((text, row) => {
     const bitmap = rasterizer.rasterize({
+      foreground: { r: 255, g: 255, b: 255 },
       cellSpan: text === '界' || text === '🙂' ? 2 : 1,
       italic: false,
       text,
@@ -100,7 +101,13 @@ it('rasterizes and uploads grayscale and color atlas pages', async () => {
   await device.queue.onSubmittedWorkDone()
 
   expect(kinds).toEqual(['grayscale', 'grayscale', 'grayscale', 'color'])
-  const cachedInput = { cellSpan: 1, italic: false, text: 'A', weight: 'normal' } as const
+  const cachedInput = {
+    cellSpan: 1,
+    foreground: { r: 255, g: 255, b: 255 },
+    italic: false,
+    text: 'A',
+    weight: 'normal',
+  } as const
   expect(rasterizer.rasterize(cachedInput)).toBe(rasterizer.rasterize(cachedInput))
   expect(textures.view('grayscale')).toBeDefined()
   expect(textures.view('color')).toBeDefined()
