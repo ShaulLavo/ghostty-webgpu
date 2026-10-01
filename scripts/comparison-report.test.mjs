@@ -6,6 +6,10 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { droppedFrames, markdown, order, quantile, summaries } from './comparison-report.mjs'
 import { cpuSample, verifyHash, withDeadline } from './comparison-guards.mjs'
+// Package metadata is pinned by resolver provenance; keep the tooling suites under this entry.
+import './comparison-trace.test.mjs'
+import './comparison-attribution.test.mjs'
+import './comparison-options.test.mjs'
 import {
   expectedScreen,
   inputChunks,

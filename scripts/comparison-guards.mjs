@@ -31,16 +31,71 @@ export function cpuSample(before, after, milliseconds) {
   }
 }
 
-export async function withDeadline(operation, milliseconds, expire) {
+async function cpuSnapshot(session, now) {
+  const requested = now()
+  const { processInfo } = await session.send('SystemInfo.getProcessInfo')
+  const completed = now()
+  return { processInfo, requested, completed, sampledAt: (requested + completed) / 2 }
+}
+
+export async function measureCpu(session, operation, { now = () => performance.now() } = {}) {
+  const before = await cpuSnapshot(session, now)
+  const started = now()
+  const sample = await operation()
+  const milliseconds = now() - started
+  const after = await cpuSnapshot(session, now)
+  const interval = after.sampledAt - before.sampledAt
+  assert(Number.isFinite(interval) && interval > 0, 'Positive CPU sampling interval required')
+  return {
+    sample,
+    milliseconds,
+    cpu: {
+      ...cpuSample(before.processInfo, after.processInfo, interval),
+      milliseconds: interval,
+      interval: {
+        before: { requested: before.requested, completed: before.completed },
+        after: { requested: after.requested, completed: after.completed },
+      },
+      acquisitionUncertaintyMilliseconds:
+        (before.completed - before.requested + after.completed - after.requested) / 2,
+    },
+  }
+}
+
+export class ComparisonDeadlineError extends Error {
+  constructor() {
+    super('Comparison case deadline exceeded')
+  }
+}
+
+export async function withDeadline(
+  operation,
+  milliseconds,
+  expire,
+  { drain = false, drainMilliseconds = 10_000 } = {},
+) {
   let timer
+  let cleanup
+  const running = Promise.resolve().then(operation)
   const deadline = new Promise((_, reject) => {
     timer = setTimeout(() => {
-      expire()
-      reject(new Error('Comparison case deadline exceeded'))
+      cleanup = Promise.resolve().then(expire)
+      reject(new ComparisonDeadlineError())
     }, milliseconds)
   })
   try {
-    return await Promise.race([operation(), deadline])
+    return await Promise.race([running, deadline])
+  } catch (error) {
+    if (cleanup) await cleanup
+    // A case owns the browser-wide trace until its finalizer drains the stream.
+    if (cleanup && drain) {
+      await withDeadline(
+        () => running.catch(() => {}),
+        drainMilliseconds,
+        () => {},
+      )
+    }
+    throw error
   } finally {
     clearTimeout(timer)
   }
