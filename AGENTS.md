@@ -3,7 +3,6 @@
 ## Product Direction
 
 - The product is Ghostty for the web with its own native API; Platform is one consumer, not the scope boundary.
-- Follow `plans/README.md` and active Plan 017 when choosing work. Plans 001–016 are historical.
 
 ## Organization
 

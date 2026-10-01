@@ -40,4 +40,3 @@ call `terminal.dispose()` when you're done with it
 - [pty wiring and the native api](docs/integration.md)
 - [live demo](https://shaullavo.github.io/ghostty-webgpu/), built from [site/](site/) with `bun run site:dev`
 - [optional native ghostty config](docs/config-resolver.md)
-- [product roadmap](plans/README.md)
