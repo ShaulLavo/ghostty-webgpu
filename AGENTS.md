@@ -3,6 +3,8 @@
 ## Product Direction
 
 - The product is Ghostty for the web with its own native API; Platform is one consumer, not the scope boundary.
+- The roadmap is Fregat's [PLAN.md](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md) and its `plans/`;
+  this package keeps no plans of its own.
 
 ## Organization
 
