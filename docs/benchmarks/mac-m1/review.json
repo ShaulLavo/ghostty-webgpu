@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-01",
+  "coverage": "Reviewed the first terminal in all 24 first-repetition screenshots across both input paths and all three counts, all four complete 17-terminal byte-path grids, all five xterm DOM direct/capture failure pairs, a ghostty-web Unicode-trap screenshot, and atlas-inclusive headed smoke screenshots. The measured build includes main 913cb14f3 (#237).",
+  "observations": [
+    "ASCII, SGR text, Japanese text, combining accents, and cursor overwrite are visible across all baseline screenshots. Each complete 17-terminal grid has all 17 hosts populated.",
+    "The native woman-technologist sequence now shows the laptop with its intrinsic grayscale detail; the first run's white rectangular laptop block is gone. The woman and laptop still appear as separate constituents, so this fixes atlas color preservation and does not establish composed ZWJ shaping.",
+    "Native and ghostty-web timing-run screenshots show separate family constituents; xterm WebGL shows overlapping constituents, while xterm DOM composes the sequences. The legacy string smoke composes them, unlike the repeated-chunk timing baseline. Unicode/ZWJ shaping parity is not claimed.",
+    "Default ANSI palette shades and ghostty-web row spacing differ. Font family, font size, DPR, corpora, and terminal grid are held constant."
+  ],
+  "limits": [
+    "The corrected matrix attempted 72 cases in 10 minutes 59.706 seconds (08:25:03.430–08:36:03.136 UTC): 49 completed rendered cases and 23 retained failures. Native WebGPU and xterm WebGL completed all 18 cases each. AC was checked immediately before starting and before every case; the artifact records AC Power and a headed Apple M1 Metal renderer.",
+    "All 120 timed isolated-parser samples (four variants × two paths × five corpora × three repetitions) passed same-instance final viewport, cursor, and SGR qualification. They use the corrected synchronous parser boundary, and remain eligible independently of rendered failures. The first run's parser numbers had a different timing boundary and cannot establish a code-only performance delta.",
+    "The former ghostty-web/string/1 parser failure was the harness's empty decoder flush during ASCII warmup, not Unicode. Empty streaming chunks and an empty final flush are now omitted. Direct core and documented mounted Terminal.write('') still throw RangeError: offset is out of bounds in the pinned 0.4.0 library; the benchmark no longer sends that unnecessary call.",
+    "ghostty-web 0.4.0 now qualifies all byte/string parser corpora, but every rendered case traps in synchronous nonempty Unicode burst writes at 1, 8, and 17 terminals (18 failures). The untimed original-corpus diagnostic reproduces RuntimeError: memory access out of bounds on the 22nd mounted public write and 23rd direct core write, using 4,118 nonempty bytes per call, on both input paths. The trace stops before write completion. No presentation callback is passed; the trap is independent of the removed empty flush and extra-frame adapter wait. Its rendered/resource cells remain unmeasured.",
+    "The one-byte UTF-8 correctness smoke records xterm 6.0.0 losing ZWJ codepoints on the byte path for both renderers. The same original corpus qualifies with timed 4 KiB chunks and on the decoded-string smoke path. Smoke exits nonzero for these diagnostics; its baseline renderer, echo, and history checks pass. No smoke timing replaces measured values.",
+    "Five xterm DOM cases timed out awaiting a captured green glyph: bytes/8 repetitions 1 and 3, bytes/17 repetition 2, string/8 repetition 3, and string/17 repetition 3. All five direct failure screenshots show the green glyph; all five final screencast images leave its first-terminal area blank. These are capture qualification failures, not evidence of a renderer failure. The cause of missing compositor capture remains unconfirmed. Incomplete three-repetition rendered/resource cells are unmeasured.",
+    "Successful latency phases retain classification, timestamp, metadata, and encoded length for every screencast frame, including unaccepted frames. Failed latency phases retain the final capture image/metadata and direct screenshot, but their partial stream is not serialized. Equal capture cadence or optical-display latency is not established.",
+    "Per-10k memory deltas include first ASCII-output and renderer-cache growth. Retained JS/backing storage, WASM capacity, and whole-Chromium RSS are separate buckets; none is per-terminal total memory. CPU samples reject process-set churn. PNG paths are retained per case; Git deduplicates identical blobs."
+  ],
+  "links": [
+    {
+      "label": "Native WebGPU, 17 terminals; laptop atlas detail",
+      "path": "ghostty-webgpu-bytes-17.png"
+    },
+    {
+      "label": "xterm WebGL, 17 terminals",
+      "path": "xterm-webgl-bytes-17.png"
+    },
+    {
+      "label": "xterm DOM, 17 terminals",
+      "path": "xterm-dom-bytes-17.png"
+    },
+    {
+      "label": "ghostty-web, 17 terminals",
+      "path": "ghostty-web-bytes-17.png"
+    },
+    {
+      "label": "Direct screenshot with echoed green glyph",
+      "path": "failure-xterm-dom-bytes-8-0.png"
+    },
+    {
+      "label": "Final compositor capture missing that glyph",
+      "path": "capture-failure-xterm-dom-bytes-8-0.png"
+    },
+    {
+      "label": "ghostty-web nonempty Unicode burst trap screenshot",
+      "path": "failure-ghostty-web-bytes-17-0.png"
+    },
+    {
+      "label": "Atlas-inclusive headed correctness and exact API diagnostics",
+      "path": "smoke-headed/comparison.json"
+    },
+    {
+      "label": "Native atlas-inclusive headed smoke screenshot",
+      "path": "smoke-headed/ghostty-webgpu-string-1.png"
+    }
+  ]
+}

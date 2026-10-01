@@ -1,0 +1,256 @@
+5d98d10f4 2026-10-01T07:05:36+03:00 docs(ghostty): retire obsolete plans
+66f10141f 2026-10-01T05:12:13+03:00 Map snippet token offsets back to the submitted text (#228)
+879af51d2 2026-10-01T03:55:36+03:00 Keep CRLF separator widths in Shiki token offsets (#227)
+b4a39276f 2026-10-01T03:32:52+03:00 Keep cold-start coverage after browser doctor failures (#226)
+af9a777d5 2026-10-01T03:10:29+03:00 Separate browser doctor from cold startup in CI (#225)
+d920819ab 2026-10-01T02:49:23+03:00 Keep Bun installs in the repo's local store
+f50bda2ff 2026-10-01T02:37:36+03:00 Share Markdown runtime in standalone Editor installs (#208)
+8afd0c83e 2026-10-01T02:08:44+03:00 Build Ghostty distribution before standalone verification (#223)
+b9ef7c35e 2026-10-01T01:28:05+03:00 Remove ghostty-webgpu xterm facade and release 0.2.0 (#219)
+a382d29c2 2026-10-01T01:16:44+03:00 Add native ghostty-webgpu history row reads (#218)
+ce6eb19d8 2026-10-01T01:07:33+03:00 Fix terminal offline scenario socket interception (#221)
+320359029 2026-10-01T00:52:55+03:00 Predeclare highlighting themes for cold Vite startup (#220)
+7f0dfc9e2 2026-09-30T23:42:27+03:00 Leave Shiki lines over a tokenization limit as one plain token (#215)
+d39f146b4 2026-09-30T23:20:42+03:00 Report failed frontend loads in browser doctor health (#216)
+09d30c354 2026-09-30T23:20:33+03:00 Preserve nested closing pairs and verify complete burst undo (#214)
+a872122dd 2026-09-30T23:11:09+03:00 Stop federation fixture recovery before handler reset (#217)
+23adbe920 2026-09-30T22:29:22+03:00 Add benchmarks and the case for Ghostty to plan 017; welcome breaking changes
+2fce212fb 2026-09-30T22:23:25+03:00 Plan dropping the xterm facade, reading history, and ghostty-webgpu's positioning
+77088dea0 2026-09-30T22:04:14+03:00 Merge pull request #213 from ShaulLavo/wave/worker-cleanup
+23c0832b5 2026-09-30T21:40:15+03:00 Merge remote-tracking branch 'origin/main' into wave/worker-cleanup
+f75eed804 2026-09-30T21:39:17+03:00 Prevent disposed worker continuations retaining document source
+9798e56a8 2026-09-30T21:12:29+03:00 Merge pull request #211 from ShaulLavo/wave/foundations-roadmap
+1942b8bc6 2026-09-30T21:03:58+03:00 Merge current main into worker lifecycle repair
+98d103ff9 2026-09-30T21:02:17+03:00 Terminate owned syntax workers before settling disposal
+236647e51 2026-09-30T21:00:11+03:00 Cover disposal of busy syntax workers
+1e02e31ce 2026-09-30T20:58:16+03:00 Keep worker disposal and long-line reconciliation open in the wave
+98093a54b 2026-09-30T20:56:48+03:00 Merge remote-tracking branch 'origin/main' into wave/foundations-roadmap
+c65b3407e 2026-09-30T20:53:26+03:00 Merge pull request #212 from ShaulLavo/wave/agent-settings-shortcut
+8cd426b82 2026-09-30T20:34:28+03:00 Fix browser shortcut driving and bound preview typing proof
+cffdf6016 2026-09-30T20:28:57+03:00 Reconcile the roadmap with the foundations wave
+4edb43b18 2026-09-30T20:21:21+03:00 Merge pull request #210 from ShaulLavo/wave/foundations-126
+614e672fe 2026-09-30T20:09:27+03:00 Merge current main into bounded lifecycle delivery
+b1668a716 2026-09-30T20:07:29+03:00 Align lifecycle tests and inventory with bounded delivery
+3ca862a4b 2026-09-30T20:04:49+03:00 Drop the app-save hot-update skip
+d2935b6a9 2026-09-30T19:59:36+03:00 Stop asking about app saves once the API refuses the dev server's origin
+ef44ea220 2026-09-30T19:58:55+03:00 Merge pull request #209 from ShaulLavo/wave/tree-sitter-x-recovery
+405d70b56 2026-09-30T19:57:16+03:00 Diff files whose names hold spaces or non-ASCII characters
+a449942c8 2026-09-30T19:44:03+03:00 Match parser update PRs by their originating repository
+4fa3aea5e 2026-09-30T19:41:19+03:00 Protect quiet Codex terminals and verify two-owner lifecycle
+bfabd3cb7 2026-09-30T19:26:49+03:00 Merge pull request #202 from ShaulLavo/wave/foundations-highlighting
+4f9589d25 2026-09-30T19:19:14+03:00 Record reviewed highlighting exports in the architecture baseline
+ba515d229 2026-09-30T19:13:27+03:00 Recover parser update PRs and CI after partial workflow failures
+7076858b1 2026-09-30T19:15:22+03:00 Merge pull request #207 from ShaulLavo/wave/deploy-workspace-build
+5c8c7310b 2026-09-30T19:09:05+03:00 Merge pull request #205 from ShaulLavo/wave/paged-session-tests
+f9edfc5b6 2026-09-30T19:04:22+03:00 Use portable temp roots in deployment fixtures
+5841b0a3a 2026-09-30T18:57:39+03:00 Record Plan 197 follow-up repairs and the merge with main
+247bffee4 2026-09-30T18:54:37+03:00 Merge remote-tracking branch 'origin/main' into wave/foundations-highlighting
+803707fc3 2026-09-30T18:54:01+03:00 Pair document theme revisions with their content and close admission after disposal
+3a0f097d6 2026-09-30T18:49:27+03:00 Merge pull request #206 from ShaulLavo/ci/textbuffer-height-isolated
+98e805e23 2026-09-30T18:40:07+03:00 Assert restored client identity without formatting its proxy
+41810f6ab 2026-09-30T18:37:40+03:00 Build workspace artifacts before web deployment checks
+abbbcc8a7 2026-09-30T18:33:32+03:00 Restore deferred clients before fixture teardown
+3293142d2 2026-09-30T18:31:54+03:00 Merge pull request #204 from ShaulLavo/wave/foundations-179
+d7b24b14d 2026-09-30T18:14:09+03:00 Record the Plan 197 review round and its fixes
+9928d8bf6 2026-09-30T18:13:07+03:00 Install and prepare the textbuffer benchmarks without the network
+36c82241c 2026-09-30T18:06:48+03:00 Control paged-file index and direct-read invalidation order
+e2d0459d9 2026-09-30T18:08:56+03:00 Fix Mermaid class parsing and late font remeasurement
+5e4820029 2026-09-30T18:08:51+03:00 Address PR 202 review: config identity, content revisions, disposal, palettes, grammar outages
+cf4e84419 2026-09-30T18:07:39+03:00 Merge pull request #203 from ShaulLavo/wave/foundations-documents
+e91bda26d 2026-09-30T17:47:23+03:00 Separate publication readers from current edit command sources
+862d91f25 2026-09-30T17:27:30+03:00 Scope document publication reads to active editor delivery
+c2061eba0 2026-09-30T17:15:11+03:00 Record Plan 197 completion, evidence and remaining limits
+b31f3258d 2026-09-30T17:13:16+03:00 Measure highlighting under contention and in every engine, and prove preview parity
+837f3841d 2026-09-30T17:06:39+03:00 Isolate rendered Mermaid diagrams and measure stylesheet costs
+d28813d0a 2026-09-30T16:55:56+03:00 Move prepared diff syntax and built-in palette snippets into the highlighting service
+1cbdeae78 2026-09-30T16:51:00+03:00 Publish immutable document revisions across retained consumers
+92185c785 2026-09-30T16:39:09+03:00 Record Plan 197 progress, evidence and remaining units
+db5cc643b 2026-09-30T16:37:22+03:00 Hold streamed fence colours until the worker answers the longer prefix
+d1e03d660 2026-09-30T16:32:09+03:00 Render Markdown fences through the Editor highlighting service
+d3fb84bbf 2026-09-30T16:28:04+03:00 Add Editor highlighting service and move editors and theme previews onto it
+2ac20743c 2026-09-30T14:27:03+03:00 Keep resource refresh boundaries scoped to development
+459ec5732 2026-09-30T14:23:02+03:00 Complete dev ownership closeout with native Vite updates
+a1467e509 2026-09-30T11:41:17+03:00 Advance roadmap and restrict package reloads to served source
+6919a0094 2026-09-30T10:41:05+03:00 Run subtree mirrors with Bash and record migration delivery
+f1b47731d 2026-09-30T10:27:16+03:00 Merge pull request #201 from ShaulLavo/monorepo-completion
+03e1df89d 2026-09-30T10:16:03+03:00 Resolve the docs formatter from the shared tool catalog
+9dd7c98d1 2026-09-30T10:12:43+03:00 Complete monorepo tooling, standalone verification and mirror setup
+280e60e58 2026-09-30T09:54:41+03:00 Align Editor compiler tooling with the root workspace
+f4c8833e6 2026-09-30T09:18:42+03:00 Merge pull request #199 from ShaulLavo/plan-207-monorepo
+31980637a 2026-09-30T09:09:10+03:00 Fix monorepo native release contracts and dev graph capture
+bc7d7f5e5 2026-09-30T07:24:51+03:00 Merge origin/main and align tracked mirror family checks
+162302f03 2026-09-30T07:21:43+03:00 Resolve Editor workspace roots by parent membership
+74dca4edc 2026-09-30T07:19:35+03:00 Restore standalone library verification in canonical CI
+400f40d51 2026-09-30T07:18:13+03:00 Dispatch canonical CI and Editor checks for parser updates
+2b8308653 2026-09-30T07:17:03+03:00 Resolve native release paths within nested family checkouts
+059b1daa8 2026-09-30T07:15:57+03:00 Order ghostty site builds after the terminal library
+cdd3aa5d9 2026-09-30T07:11:46+03:00 Restrict Fregat dev launcher to application tasks
+1ba159574 2026-09-30T00:10:31+03:00 plans: index Zed parity plans 220-280
+ebea1951e 2026-09-30T00:06:52+03:00 Add Approved Zed implementation plans 220–229
+839605e25 2026-09-30T00:04:10+03:00 Add Approved Zed implementation plans 240 through 249
+644c9f888 2026-09-30T00:03:46+03:00 Add approved Zed feature plans 250 through 259
+5f4caff29 2026-09-30T00:01:34+03:00 Add approved Zed triage plans 270 through 280
+9e558eef0 2026-09-30T00:01:45+03:00 Add approved Zed feature plans 260 through 269
+f12b00be5 2026-09-29T23:58:26+03:00 Plan Zed feature implementation ZT-11 through ZT-20
+40a9641e9 2026-09-29T23:53:19+03:00 Merge pull request #200 from ShaulLavo/plan-207-mirror
+b25dfdb53 2026-09-29T23:48:18+03:00 Merge origin/main into plan-207-mirror
+d4fb4325f 2026-09-29T23:41:36+03:00 Keep proxy account logins independent of Codex
+b1ef0a4c1 2026-09-29T23:38:22+03:00 Merge main into plan-207-mirror
+a6eb8272c 2026-09-29T23:36:15+03:00 docs: clarify trusted publishing activation and allowed actions
+1f41da799 2026-09-29T23:35:39+03:00 fix: skip stale mirror snapshots before splitting
+606e3e26d 2026-09-29T23:33:38+03:00 fix: isolate OIDC publishing behind release activation
+270b6bd80 2026-09-29T23:32:13+03:00 fix: prepare Fregat repository metadata for npm provenance
+8064ccfe6 2026-09-29T23:30:37+03:00 fix: limit Editor releases to public packages
+be7dd5154 2026-09-29T23:30:30+03:00 Record second account quota verification
+273a898af 2026-09-29T23:27:56+03:00 Use remote device login for the Codex account pool
+330a2a806 2026-09-29T23:26:57+03:00 Record Plan 207 local validation closeout
+71932aa04 2026-09-29T23:22:55+03:00 Preserve Editor lint policy and carry bundle attribution budget into the workspace
+165a34a08 2026-09-29T23:21:11+03:00 Add native GPT subagents to Claude Code through a mesh-managed proxy
+a1269c074 2026-09-29T23:17:27+03:00 Hash Editor workspace lookup inputs and verify family site paths
+8d0bafc14 2026-09-29T23:13:53+03:00 Resolve Editor and ghostty from root workspaces; consolidate CI and tooling
+f0a6dabc2 2026-09-29T23:06:24+03:00 ci: scaffold Plan 207 mirrors and package releases
+30ed862b3 2026-09-29T22:53:25+03:00 Import ghostty-webgpu history into the monorepo
+c4372a290 2026-09-29T22:53:21+03:00 Import Editor history into the monorepo
+8ac6b7af6 2026-09-29T22:42:41+03:00 docs: inventory plans and sequence package and consumer cutovers
+17a020ad4 2026-09-29T22:41:52+03:00 Merge pull request #20 from ShaulLavo/docs/e047-platform-agnostic-core
+6befc7f90 2026-09-29T22:37:02+03:00 docs(plans): group E056 under its parked portability lane
+237d66026 2026-09-29T22:35:06+03:00 docs(plans): reconcile parked portability plan as E056
+f01c4bb91 2026-09-29T22:34:12+03:00 docs: choose Paraglide for plan 208 localization
+011600284 2026-09-29T22:33:51+03:00 Merge pull request #195 from ShaulLavo/docs/202-unified-workspace-plan
+caabf3abe 2026-09-29T22:32:45+03:00 docs: reconcile workspace plan 209 with current roadmap
+ec87a104f 2026-09-29T22:31:22+03:00 Merge pull request #66 from ShaulLavo/docs/tui-ui-upstream-2026-09-29
+e0cf87369 2026-09-29T22:31:15+03:00 Merge pull request #198 from ShaulLavo/docs/tui-ui-upstream-2026-09-29
+2b9718b85 2026-09-29T22:26:28+03:00 Merge pull request #197 from ShaulLavo/plan-203-hotkeys
+774861c48 2026-09-29T22:24:56+03:00 docs: approve plan 208 for all app text in JSON
+328c69096 2026-09-29T22:22:09+03:00 Merge branch 'main' into plan-203-hotkeys
+24f50927f 2026-09-29T22:21:35+03:00 test(chat): reset-credit browser test clicks the renamed 'Use 1 credit' button
+49e11a8cc 2026-09-29T22:17:49+03:00 agent: scenarios for settings dropdown labels and the settings.json conflict banner
+3567b3de0 2026-09-29T22:17:25+03:00 docs: rename the shared Markdown plan discovery link
+11535dcc9 2026-09-29T22:17:03+03:00 docs: align shared Markdown consumer plan with app-local Fregat UI
+7fe97c908 2026-09-29T22:15:56+03:00 test(chat-mode): freeze Date while dispatching the timer-wake snooze
+07199b1e0 2026-09-29T22:14:26+03:00 docs: reconcile roadmap and plan links for app-local terminal UI
+c81bb0ead 2026-09-29T22:13:14+03:00 agent: editor-undo-barrier builds its own two-file rename fixture
+ce83df14f 2026-09-29T22:11:32+03:00 docs: move Plan 202 to app-local UI on upstream OpenTUI
+ca1ccec6d 2026-09-29T22:10:42+03:00 plans: 203 keeps @tanstack/store, shadow report moves to 206, review fixes
+bdb8a590e 2026-09-29T22:09:53+03:00 hotkeys: a base source between default and pack, as Zed's BASE
+ac531702d 2026-09-29T22:09:46+03:00 copy: plain-language chat, worktree, error and command text
+a4a28a8e2 2026-09-29T22:09:12+03:00 editor: plain-language history, multi-file edit and recovery copy
+dff03a9e5 2026-09-29T22:09:01+03:00 hotkeys: an identifier predicate matches a key=value context key
+bf04ace1b 2026-09-29T22:08:44+03:00 git: discard, publish and sync copy say what happens
+fd9e7f9c8 2026-09-29T22:08:11+03:00 hotkeys: bench times each keyboard event against the Editor trie
+c1cbafa73 2026-09-29T22:08:06+03:00 settings: plain-language copy and labelled dropdown options
+ad4392a20 2026-09-29T22:06:22+03:00 hotkeys: exports name the shipped build
+a460d703a 2026-09-29T22:04:34+03:00 hotkeys: unregister removes the registration's command handler
+d0eeaa33e 2026-09-29T22:03:21+03:00 hotkeys: a chord mismatch matches the leftover keys again, as Zed does
+76a58bf5f 2026-09-29T22:01:56+03:00 hotkeys: the browser dispatcher ends a chord when DOM focus moves
+8c9ad79ca 2026-09-29T22:01:05+03:00 hotkeys: a chord timeout in another focus drops the prefix
+ba166cd39 2026-09-29T22:00:17+03:00 hotkeys: registration filters apply before a chord prefix pends
+c510b560d 2026-09-29T21:49:38+03:00 editor: conflict toast names both sides of the conflict
+a2475c9cf 2026-09-29T21:48:10+03:00 editor: plain-language buttons on the changed-on-disk toast
+abeb9cfd8 2026-09-29T21:43:53+03:00 hotkeys: KeyStateTracker reset and hidden-tab clearing
+8a799bac7 2026-09-29T21:43:02+03:00 hotkeys: benchmark and README
+7014788bb 2026-09-29T21:41:05+03:00 hotkeys: rebuild the convenience API on the dispatcher, delete the managers
+6b49fb15a 2026-09-29T21:34:11+03:00 hotkeys: terminal-input adapter
+dd4b544f0 2026-09-29T21:32:47+03:00 hotkeys: focus nodes and the dispatcher
+3fe11cf81 2026-09-29T21:29:17+03:00 hotkeys: Zed context predicates and keymap resolution
+96d96833e 2026-09-29T21:24:14+03:00 plans: 207 one root lockfile
+583c270a2 2026-09-29T21:24:13+03:00 hotkeys: Zed pending semantics, focus-bound chords and replay
+36fcfd90e 2026-09-29T21:21:13+03:00 hotkeys: port the Editor's chord trie and runtime with their tests
+02c8f15c6 2026-09-29T21:18:54+03:00 plans: 207 rehearsal findings; mirrors use git subtree split
+d0e142c1f 2026-09-29T21:17:46+03:00 hotkeys: KeyInput and the browser adapter
+3939eb222 2026-09-29T21:15:17+03:00 hotkeys: import TanStack Hotkeys as @fregat/hotkeys and @fregat/react-hotkeys
+52e58e36c 2026-09-29T20:16:06+03:00 plans: 207 records the @fregat npm org
+86c8d3358 2026-09-29T19:50:17+03:00 plans: 207 trusted-publishing checklist
+d7eaf08cb 2026-09-29T19:37:51+03:00 plans: 207 one repo with mirrors; hotkeys lives in Fregat
+c3e935826 2026-09-29T09:50:34+03:00 plans: 203 library location is an open owner decision
+0a87b3c2c 2026-09-29T09:41:28+03:00 plans: keymap architecture and plans 203-206 (@fregat/hotkeys, Editor, ghostty, one Platform keymap)
+21c3ba3bd 2026-09-29T09:14:35+03:00 agent: cover bold inside a link label and destination in markdown-authoring
+54e1e6488 2026-09-29T09:14:27+03:00 markdown: format a whole link, code span or raw HTML when the selection ends inside it
+e200597ec 2026-09-29T00:54:40+03:00 plans: requested plans are APPROVED; IDEA is only for what the owner calls an idea
+2f88771d3 2026-09-29T00:54:30+03:00 plans: requested plans are Approved; Idea is only for what the owner calls an idea
+36072f3a9 2026-09-29T00:51:07+03:00 plans: register E062 and E063, mark E058 in progress
+81dcbdd4d 2026-09-29T00:47:03+03:00 plans: E064, one highlight pipeline for tokens and range highlights
+6d8269f39 2026-09-29T00:41:51+03:00 docs: update shared Markdown consumer to Fregat Plan 202 (#64)
+94b82a993 2026-09-29T00:39:33+03:00 Merge pull request #194 from ShaulLavo/docs/bubli-plans-2026-09-28
+6c8fc37bd 2026-09-29T00:33:00+03:00 Record tree-sitter-md 0.1.1 in the native language catalog
+c1e8a9f05 2026-09-29T00:31:46+03:00 Take documentAnalysis out of the editor import cycle
+fb951e736 2026-09-29T00:25:46+03:00 Build CI against Editor with tree-sitter-md 0.1.1
+eb7c9cbb9 2026-09-29T00:25:36+03:00 Take tree-sitter-md 0.1.1 so importing Kind no longer loads web-tree-sitter
+565b4ae14 2026-09-29T00:23:57+03:00 Serve tree-sitter-md unoptimized in core browser tests
+56a0034b2 2026-09-29T00:14:08+03:00 Drive the eviction notice test on fake timers
+96c93d13f 2026-09-29T00:12:03+03:00 Justify the paged and Markdown timers and record the retained-analysis API
+17f0f840c 2026-09-29T00:11:25+03:00 Record the Markdown authoring bindings and their context key in the keymap tests
+ee4599298 2026-09-29T00:11:03+03:00 Merge main into bubli planning branch and resolve plan ID collision
+d86e59171 2026-09-29T00:10:45+03:00 Cover detectIndentation and folding in the Solid controlled-option samples
+6d8c6425f 2026-09-29T00:04:37+03:00 docs: plan shared Markdown semantics and bubli consumer coordination (#62)
+43d146903 2026-09-28T23:34:40+03:00 Watch each repository's git directories where they live
+94cdf51fe 2026-09-28T23:32:38+03:00 Merge pull request #196 from ShaulLavo/claude/adoring-lovelace-0uzvi7
+95ef8c197 2026-09-28T20:21:48Z Site: add tree-sitter-x, tree-sitter-md and the mcp server
+83175dda0 2026-09-28T20:20:11Z Site: curate what's inside, add an on-the-way section
+f43b9c76e 2026-09-28T23:19:57+03:00 Split the git state delivery check into guard lines
+8cf8f035c 2026-09-28T23:19:22+03:00 Format the git state delivery check
+efb83fe8e 2026-09-28T23:18:19+03:00 Refresh git status when a commit, stage or checkout happens outside the app
+730b2027a 2026-09-28T23:16:21+03:00 docs: plan unified chat and editor workspace
+e079090e9 2026-09-28T20:13:55Z Rewrite site copy around chat-first, one window, from scratch
+bafc8b34c 2026-09-28T23:08:35+03:00 Drop a stale change row quietly instead of failing navigation
+69c9b85ba 2026-09-28T23:05:14+03:00 docs: set Plan 201's bar to one 120 Hz frame per keystroke
+794a6414e 2026-09-28T22:44:37+03:00 docs: plan cheap overlay marks for large-file typing
+ae166b7f2 2026-09-28T22:32:56+03:00 docs: close Plan 112 with the shipped release
+8d49903bc 2026-09-28T22:31:51+03:00 Load the read-only viewer lazily and move stale tests to the byte transport
+fa8708e36 2026-09-28T22:26:47+03:00 Show the large-file notice as a row under the editor
+e4a13fa9a 2026-09-28T22:14:17+03:00 Pause analysis and minimap on large files and view oversized files read-only
+128acbec4 2026-09-28T22:03:49+03:00 docs: preserve the existing plan index wording
+bb106e8e2 2026-09-28T22:03:20+03:00 docs: register Plan 201 in the plan index
+cb64df86d 2026-09-28T22:02:54+03:00 docs: add coordinated bubli TUI workstream to the execution roadmap
+467792766 2026-09-28T22:02:27+03:00 docs: plan bubli adoption in the existing React TUI
+560d35db2 2026-09-28T21:51:35+03:00 Invalidate paged documents when source revisions become unavailable
+40d32de34 2026-09-28T21:48:36+03:00 fix(git): derive patch output cap from comparison budget
+70e5dc3a4 2026-09-28T21:46:46+03:00 Bind paged query cancellation to individual requests
+6a4a61b0a 2026-09-28T21:49:51+03:00 Keep formatted Markdown links navigable and stable on first paint
+1b2223fc0 2026-09-28T21:47:21+03:00 Render Markdown links as anchors and preserve table column widths
+fcb3fb5ec 2026-09-28T21:40:06+03:00 Record large resident editing and minimap limits
+3c5adbf0c 2026-09-28T21:39:52+03:00 Share Shiki token accessors to reduce retained syntax memory
+3741196ed 2026-09-28T21:32:36+03:00 Allow hosts to switch folding and indentation analysis per document
+4f587e900 2026-09-28T21:28:54+03:00 Avoid Eden string enumeration and measure large-file worker heaps
+79895646e 2026-09-28T21:27:38+03:00 Format paged benchmark package scripts
+71fa3c268 2026-09-28T21:27:28+03:00 Add bounded read-only paged UTF-8 documents and browser proof
+6f65b71c9 2026-09-28T21:23:05+03:00 Let LSP websocket frames fit the file-open budget
+fdad531fe 2026-09-28T21:21:17+03:00 Add bounded read sessions for paged large-file viewing
+4ab990a90 2026-09-28T21:12:34+03:00 Use byte transport for text file reads and saves
+66fa7aeed 2026-09-28T21:21:59+03:00 Bound Git patches before materialization and preserve oversized comparisons
+7dfc2ce8c 2026-09-28T21:16:03+03:00 Verify deferred fold projections preserve captured revisions
+ade31e676 2026-09-28T21:06:33+03:00 Defer secondary-view fold materialization until requested
+704530240 2026-09-28T21:11:22+03:00 fix(editor): retain immutable saved snapshots without joined text
+fa0b94ea3 2026-09-28T21:14:13+03:00 test: add reproducible large file open edit save benchmark
+57e16c115 2026-09-28T21:07:19+03:00 docs: trim roadmap and retire obsolete plans and scratch files
+8ca59fd7d 2026-09-28T20:56:03+03:00 docs: reconcile wave 2 closeout plans and dependency order
+1875fea55 2026-09-28T20:52:12+03:00 Ship Markdown review fixes and exercise formatting edge cases
+ad59752ea 2026-09-28T20:51:51+03:00 Fix Markdown formatting boundaries and wait for current syntax
+185c80603 2026-09-28T20:44:25+03:00 docs: record Plan 112 diff budget delivery
+c4af13ca2 2026-09-28T20:42:57+03:00 feat(git): separate diff size budget from file open limit
+cf7bc9343 2026-09-28T20:34:27+03:00 docs: plan shared document ownership across content views
+4a85ec005 2026-09-28T20:30:03+03:00 fix(editor): start unvisited diffs at the top
+075507aab 2026-09-28T20:28:54+03:00 Register Markdown authoring verification and record its release
+0e2395cef 2026-09-28T20:26:37+03:00 Add Markdown authoring and independent rendered-pane settings
+401d30cdb 2026-09-28T20:25:45+03:00 Preserve host modified-Tab shortcuts in Markdown lists
+84c70dab6 2026-09-28T20:24:24+03:00 Add source-preserving Markdown authoring commands
+a7545ebd8 2026-09-28T20:19:50+03:00 Keep disabled commands out of recent palette slots
+4e5db7c11 2026-09-28T20:15:01+03:00 Rank disabled palette commands after enabled results
+88fa80fa9 2026-09-28T19:38:44+03:00 Keep plain Markdown source and make presentation user configurable
+7ea51a604 2026-09-28T19:38:04+03:00 Separate Markdown editing style from rendered-pane layout
+b4a58f332 2026-09-28T19:36:43+03:00 Record shared Markdown experiences and gate composer swap on authoring
+9de5aa6b7 2026-09-28T18:37:18+03:00 Lead LSP documentation with the simple connection API
+e94c62fae 2026-09-28T18:28:32+03:00 Use retained Markdown analysis for editor preview and syntax
+169bb5c64 2026-09-28T18:23:56+03:00 Let Solid own editor mounting through an element ref
+7edf180ce 2026-09-28T18:19:31+03:00 Complete retained analysis and Markdown integration for npm release
+cdaaa10a1 2026-09-28T18:08:21+03:00 Include decode and markdown in npm package releases
+beda947c6 2026-09-28T17:04:47+03:00 chore: ignore local agent scratch files
+385e69d9f 2026-09-28T15:43:05+03:00 Refresh markdown parser plan and research editor behaviour
+5a5c512a7 2026-09-28T14:44:52+03:00 tui: use tree-sitter-x for OpenTUI's highlighting
+a9bdf87bb 2026-09-28T14:10:57+03:00 ci: pin Singapore to latest main commit
+50d002e0c 2026-09-28T14:04:33+03:00 Keep file tree clipping fixed below sticky folders
+b72d40b8c 2026-09-28T13:49:29+03:00 Fix tree guide clipping between scroll frames
+2c4a27bcc 2026-09-28T13:30:55+03:00 Use tree-sitter-x as web-tree-sitter (#61)
+0b8513275 2026-09-28T11:01:47+03:00 Merge pull request #193 from ShaulLavo/claude/wizardly-bardeen-f8nsv1
+8def2ec21 2026-09-28T11:01:36+03:00 Merge pull request #60 from ShaulLavo/claude/wizardly-bardeen-f8nsv1
+603fb1743 2026-09-28T10:06:29+03:00 Pin Editor review fixes for prepared syntax and grammar warm-up
