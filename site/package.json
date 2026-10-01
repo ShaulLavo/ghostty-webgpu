@@ -12,6 +12,7 @@
     "@types/bun": "1.4.2",
     "@webgpu/types": "0.1.74",
     "astro": "7.3.5",
+    "just-bash": "3.6.0",
     "typescript": "7.0.2"
   }
 }

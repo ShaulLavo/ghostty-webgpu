@@ -36,6 +36,7 @@ export class GhostDemo extends AnimatedDemo {
     loadGhostFrames()
       .then((frames) => {
         this.frames = frames
+        this.paintStill()
       })
       .catch((cause: unknown) => {
         this.failure = cause instanceof Error ? cause.message : String(cause)

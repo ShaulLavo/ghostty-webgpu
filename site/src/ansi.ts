@@ -3,7 +3,7 @@ const CSI = `${ESC}[`
 
 export const reset = `${CSI}0m`
 export const hideCursor = `${CSI}?25l`
-const showCursor = `${CSI}?25h`
+export const showCursor = `${CSI}?25h`
 export const clearScreen = `${CSI}2J${CSI}H`
 export const syncStart = `${CSI}?2026h`
 export const syncEnd = `${CSI}?2026l`

@@ -225,6 +225,51 @@ h1 {
   background: #22c55e;
 }
 
+.tabs {
+  display: flex;
+  gap: 2px;
+}
+
+.tabs button {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #a8a3c6;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  transition:
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.tabs button:hover {
+  color: var(--pale);
+}
+
+.tabs button[aria-selected='true'] {
+  background: rgba(230, 226, 247, 0.08);
+  color: var(--pale);
+}
+
+.tabs button:focus-visible {
+  outline-color: var(--spectre);
+  outline-offset: 1px;
+}
+
+.caption {
+  margin: 12px 0 0;
+  max-width: 62ch;
+  color: var(--dusk);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.caption + .stat {
+  margin-top: 4px;
+}
+
 .backend {
   font-family: var(--font-mono);
   font-size: 12px;

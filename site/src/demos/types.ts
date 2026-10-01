@@ -8,9 +8,10 @@ export interface DemoContext {
   /** Show a short live figure under the window, or clear it with an empty string. */
   stat(text: string): void
   write(data: string): void
+  writeBytes(data: Uint8Array): void
 }
 
-interface Demo {
+export interface Demo {
   readonly id: string
   readonly label: string
   readonly caption: string
@@ -55,7 +56,7 @@ export abstract class AnimatedDemo implements Demo {
   resize(): void {
     if (!this.context) return
     this.layout()
-    if (this.paused) this.frame(0, this.elapsed)
+    this.paintStill()
   }
 
   setPaused(paused: boolean): void {
@@ -63,10 +64,16 @@ export abstract class AnimatedDemo implements Demo {
     if (paused) {
       cancelAnimationFrame(this.handle)
       this.handle = 0
+      this.paintStill()
       return
     }
     this.lastFrameAt = 0
     this.schedule()
+  }
+
+  /** Paused demos still show a frame, so reduced motion gets a picture. */
+  protected paintStill(): void {
+    if (this.context && this.paused) this.frame(0, this.elapsed)
   }
 
   protected abstract layout(): void
