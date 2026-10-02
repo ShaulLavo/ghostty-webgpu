@@ -117,10 +117,20 @@ function setFont(size: number, lineHeight: number): void {
   terminal!.setFont({ lineHeight, size })
 }
 
+function keepPointerForInput(event: Event): void {
+  if (active.input) return
+  event.stopPropagation()
+}
+
 function wireControls(): void {
   // The terminal's own wheel handler scrolls its scrollback and blocks the
   // page. Stop the event in the capture phase so the page scrolls instead.
   ui.host.addEventListener('wheel', (event) => event.stopPropagation(), { capture: true })
+  // A tap would focus the terminal's input and pop the phone keyboard, and a drag would start a
+  // selection; on demos that take no typing the touch belongs to the page scroll.
+  for (const type of ['pointerdown', 'pointermove', 'pointerup', 'click'] as const) {
+    ui.host.addEventListener(type, keepPointerForInput, { capture: true })
+  }
   ui.copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText('npm install ghostty-webgpu')
