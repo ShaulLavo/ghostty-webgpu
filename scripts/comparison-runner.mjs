@@ -892,6 +892,23 @@ try {
   throw error
 } finally {
   await writeFile(artifactPath, JSON.stringify(artifact, null, 2) + '\n')
+  await writeFile(
+    join(output, 'qualification.json'),
+    JSON.stringify(
+      {
+        environment: artifact.environment,
+        qualifications: artifact.qualifications,
+        runs: artifact.runs.map(({ variant, count, repetition, gpuWindows }) => ({
+          variant,
+          count,
+          repetition,
+          gpuWindows,
+        })),
+      },
+      null,
+      2,
+    ) + '\n',
+  )
   await browser?.close()
   echo.close()
   await new Promise((resolve) => server.close(resolve))

@@ -19,9 +19,10 @@ function number(value) {
   return Number(value)
 }
 
-export function parseGpuSample(gpuOutput, computeOutput, allowedComputePids = []) {
-  const lines = (output) => output.trim().split(/\r?\n/).filter(Boolean)
-  const gpus = lines(gpuOutput).map((line) => {
+const lines = (output) => output.trim().split(/\r?\n/).filter(Boolean)
+
+function parseGpus(output) {
+  const gpus = lines(output).map((line) => {
     const fields = line.split(',').map((value) => value.trim())
     assert.equal(fields.length, 2, 'NVIDIA GPU sample requires UUID and utilization')
     const utilizationPercent = number(fields[1])
@@ -30,18 +31,29 @@ export function parseGpuSample(gpuOutput, computeOutput, allowedComputePids = []
   })
   assert(gpus.length > 0, 'NVIDIA sample requires at least one GPU')
   assert.equal(new Set(gpus.map((gpu) => gpu.uuid)).size, gpus.length, 'Duplicate NVIDIA GPU UUID')
+  return gpus
+}
+
+function parseProcesses(output, allowedComputePids) {
   const allowed = new Set(allowedComputePids)
-  const processes = lines(computeOutput).map((line) => {
+  return lines(output).map((line) => {
     const fields = line.split(',').map((value) => value.trim())
     assert.equal(fields.length, 3, 'NVIDIA process sample requires UUID, PID and memory')
     const pid = number(fields[1])
     assert(Number.isInteger(pid) && pid > 0, 'NVIDIA sample requires a positive process ID')
-    assert(
-      gpus.some((gpu) => gpu.uuid === fields[0]),
-      'NVIDIA process GPU must be present',
-    )
     return { uuid: fields[0], pid, memoryMiB: number(fields[2]), allowed: allowed.has(pid) }
   })
+}
+
+export function parseGpuSample(gpuOutput, computeOutput, allowedComputePids = []) {
+  const gpus = parseGpus(gpuOutput)
+  const processes = parseProcesses(computeOutput, allowedComputePids)
+  for (const process of processes) {
+    assert(
+      gpus.some((gpu) => gpu.uuid === process.uuid),
+      'NVIDIA process GPU must be present',
+    )
+  }
   return {
     gpus,
     processes,
@@ -49,6 +61,81 @@ export function parseGpuSample(gpuOutput, computeOutput, allowedComputePids = []
     computeMemoryMiB: processes
       .filter((entry) => !entry.allowed)
       .reduce((total, entry) => total + entry.memoryMiB, 0),
+  }
+}
+
+function isTimeout(error) {
+  return (
+    error.code === 'ETIMEDOUT' ||
+    (error.code == null && error.killed && ['SIGTERM', 'SIGKILL'].includes(error.signal))
+  )
+}
+
+async function sampleCommand(command, args, options, receipt, now) {
+  let timer
+  let pending
+  let expired = false
+  const captureStdout = (chunk) => {
+    receipt.stdout += chunk.toString()
+  }
+  const captureStderr = (chunk) => {
+    receipt.stderr += chunk.toString()
+  }
+  try {
+    pending = command('nvidia-smi', args, options)
+    const deadline = new Promise((_resolve, reject) => {
+      timer = setTimeout(() => {
+        expired = true
+        receipt.requestedSignal = pending.child ? 'SIGKILL' : null
+        pending.child?.kill('SIGKILL')
+        reject(
+          Object.assign(new GpuQualificationError('NVIDIA command deadline expired', null), {
+            code: 'ETIMEDOUT',
+            signal: pending.child?.signalCode ?? null,
+            killed: Boolean(pending.child?.killed),
+            stdout: receipt.stdout,
+            stderr: receipt.stderr,
+          }),
+        )
+      }, options.timeout)
+    })
+    pending.child?.stdout?.on('data', captureStdout)
+    pending.child?.stderr?.on('data', captureStderr)
+    const output = await Promise.race([pending, deadline])
+    Object.assign(receipt, {
+      code: output.code ?? pending.child?.exitCode ?? 0,
+      signal: output.signal ?? pending.child?.signalCode ?? null,
+      killed: Boolean(output.killed || pending.child?.killed),
+      stdout: output.stdout,
+      stderr: output.stderr ?? '',
+    })
+    if (receipt.killed || receipt.signal || receipt.code !== 0) {
+      throw Object.assign(new GpuQualificationError('NVIDIA command terminated', null), {
+        ...receipt,
+        code: receipt.killed ? 'ETIMEDOUT' : receipt.code,
+      })
+    }
+    return output
+  } catch (error) {
+    Object.assign(receipt, {
+      code: error.code ?? null,
+      signal: error.signal ?? null,
+      killed: Boolean(error.killed || pending?.child?.killed),
+      stdout: error.stdout ?? receipt.stdout,
+      stderr: error.stderr ?? receipt.stderr,
+      deadlineExpired: expired,
+    })
+    throw error
+  } finally {
+    clearTimeout(timer)
+    pending?.child?.stdout?.off('data', captureStdout)
+    pending?.child?.stderr?.off('data', captureStderr)
+    receipt.processPending = Boolean(
+      pending?.child && pending.child.exitCode === null && pending.child.signalCode === null,
+    )
+    receipt.exitCode = pending?.child?.exitCode ?? null
+    receipt.signalCode = pending?.child?.signalCode ?? null
+    receipt.completed = now()
   }
 }
 
@@ -63,23 +150,70 @@ export async function sampleNvidiaGpu({
     'Positive NVIDIA command timeout required',
   )
   const started = now()
-  const options = { timeout: timeoutMilliseconds, maxBuffer: 1024 * 1024, encoding: 'utf8' }
-  const [gpu, compute] = await Promise.all([
-    command(
-      'nvidia-smi',
-      ['--query-gpu=uuid,utilization.gpu', '--format=csv,noheader,nounits'],
-      options,
-    ),
-    command(
-      'nvidia-smi',
-      ['--query-compute-apps=gpu_uuid,pid,used_gpu_memory', '--format=csv,noheader,nounits'],
-      options,
-    ),
-  ])
-  return {
-    ...parseGpuSample(gpu.stdout, compute.stdout, allowedComputePids),
-    started,
-    completed: now(),
+  // Hard termination avoids an exit-zero SIGTERM handler concealing a command timeout.
+  const options = {
+    timeout: timeoutMilliseconds,
+    killSignal: 'SIGKILL',
+    maxBuffer: 1024 * 1024,
+    encoding: 'utf8',
+  }
+  const commands = []
+  const queries = [
+    ['--query-gpu=uuid,utilization.gpu', '--format=csv,noheader,nounits'],
+    ['--query-compute-apps=gpu_uuid,pid,used_gpu_memory', '--format=csv,noheader,nounits'],
+  ]
+  const results = await Promise.allSettled(
+    queries.map(async (args) => {
+      const receipt = {
+        binary: 'nvidia-smi',
+        args,
+        started: now(),
+        observedAt: new Date().toISOString(),
+        stdout: '',
+        stderr: '',
+      }
+      commands.push(receipt)
+      return sampleCommand(command, args, options, receipt, now)
+    }),
+  )
+  try {
+    const failures = results
+      .filter((result) => result.status === 'rejected')
+      .map((result) => result.reason)
+    for (const [index, result] of results.entries()) {
+      if (result.status !== 'fulfilled' || failures.length === 0) continue
+      try {
+        if (index === 0) parseGpus(result.value.stdout)
+        if (index === 1) parseProcesses(result.value.stdout, allowedComputePids)
+      } catch (error) {
+        failures.push(error)
+      }
+    }
+    const failed = failures.find((error) => !isTimeout(error)) ?? failures[0]
+    if (failed) {
+      failed.samplingFailures = failures.map(
+        ({ name, code, message, killed, signal, stdout, stderr }) => ({
+          name,
+          code,
+          message,
+          killed,
+          signal,
+          stdout,
+          stderr,
+        }),
+      )
+      throw failed
+    }
+    const [gpu, compute] = results.map((result) => result.value)
+    return {
+      ...parseGpuSample(gpu.stdout, compute.stdout, allowedComputePids),
+      started,
+      completed: now(),
+    }
+  } catch (error) {
+    // A driver command can exit successfully with empty output; retain its evidence on parse failure.
+    error.samplingCommands = commands
+    throw error
   }
 }
 
@@ -146,8 +280,14 @@ export function createGpuGate(
       sampledSuccessfully = true
       return reading
     } catch (error) {
-      const noDevices = /no devices were found|no devices found/i.test(error.stdout ?? '')
-      if (!sampledSuccessfully && (error.code === 'ENOENT' || noDevices)) {
+      const failures = error.samplingFailures ?? [error]
+      const noDevices = failures.every((failure) =>
+        /no devices were found|no devices found/i.test(failure.stdout ?? ''),
+      )
+      const unavailable = failures.every((failure) => failure.code === 'ENOENT')
+      const allQueriesFailed =
+        !error.samplingCommands || failures.length === error.samplingCommands.length
+      if (!sampledSuccessfully && allQueriesFailed && (unavailable || noDevices)) {
         skipReason = noDevices ? 'No NVIDIA GPU devices found' : 'nvidia-smi is unavailable'
         evidence.status = 'skipped'
         evidence.qualified = true
@@ -158,10 +298,10 @@ export function createGpuGate(
         name: error.name,
         code: error.code ?? null,
         message: error.message,
+        commands: error.samplingCommands,
+        failures: error.samplingFailures,
       }
-      const timedOut =
-        error.code === 'ETIMEDOUT' ||
-        (error.killed && (error.signal === 'SIGTERM' || error.signal === 'SIGKILL'))
+      const timedOut = failures.every(isTimeout)
       if (retryTimeout && timedOut) {
         evidence.samplingTimeouts ??= []
         evidence.samplingTimeouts.push(samplingError)
