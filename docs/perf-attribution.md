@@ -2,6 +2,149 @@
 
 Status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original attribution matrix. Phase 2 implements packed damaged-row snapshots and measures main versus treatment on the Apple M1 at 1 and 17 terminals, ASCII and SGR. The initial matrix has mixed CPU results. A single direct-packed DOM frame follow-up improves CPU in all fresh 17-terminal ASCII/SGR pairs; substantial baseline drift between matrices remains unexplained. The PR stays draft for review. Phase 1's input/echo conclusions remain separate.
 
+## Bounded-upload experiment, Linux 2026-10-02
+
+**Not merging: no CPU gain.** Coalescing native WebGPU uploads reduces API crossings but does not
+clear the owner's complexity bar. This remains a draft experiment; the full native-frame move
+still fails its total-CPU gate. The useful outcome is the retained GPU-process attribution.
+
+The candidate independently coalesces persistent WASM cell and glyph ranges across individual gaps
+of at most 4 KiB. Distant edits retain narrow changed-record uploads. An unbounded first-to-last
+span was rejected by an upload-only hardware probe: opposite-corner edits in a 200×100 grid sent
+320 bytes in four writes, versus 3.2 MB in two writes; average queue completion was approximately
+0.21 versus 4.02 ms. This probe draws nothing and carries no CPU or presentation verdict. The
+selected cap applies to each gap, not the total clean bytes across a chained batch.
+
+The candidate also skips GPU submission for unchanged successful native frames while settling
+damage and callbacks. Renderer and benchmark upload-byte counters read the text pass's actual
+written-byte delta; a fragmented fixture sends 5,440 bytes, including clean gaps, rather than its
+1,920 logical changed bytes. Real GPU regressions check destination buffers, source WASM offsets,
+changed records, two writes for twelve rows, and unchanged-frame callback/damage settlement.
+
+### Ordinary paired timing
+
+Before and after use separate frozen bundles. Each native/xterm pair stays in one browser session:
+ASCII/bytes, four balanced repetitions, output plus latency, 96 samples per operation/repetition.
+17 terminals use 1,200 output frames; one terminal uses 2,700. Every ordinary run and measured GPU
+window qualifies, all CPU target pairs exceed the 100-tick and one-tick-difference thresholds, and
+page-error arrays are empty. These are hardware-adapter headless-shell measurements. Latency ends
+at on-demand compositor acknowledgement of the submitting frame, with no physical-vsync or
+optical-latency claim. Separate prototype/Dawn traces are perturbed attribution, not CPU timing.
+
+| Terminals | Output CPU, % of one core | Native before → after | xterm WebGL before → after |
+| --------: | ------------------------- | --------------------: | -------------------------: |
+|        17 | Renderer                  |       18.293 → 18.344 |            15.342 → 15.534 |
+|        17 | GPU process               |       60.168 → 59.906 |            24.307 → 25.068 |
+|        17 | Total                     |       78.263 → 78.653 |            39.699 → 40.652 |
+|         1 | Renderer                  |         3.550 → 3.340 |              2.818 → 2.730 |
+|         1 | GPU process               |         5.891 → 5.932 |              2.463 → 2.264 |
+|         1 | Total                     |         9.441 → 9.254 |              5.270 → 5.026 |
+
+Absolute medians show no material total-CPU improvement at either size. The optimized paired
+renderer/total ratios remain **1.175/1.922× at 17 terminals** and **1.241/1.887× at one terminal**,
+all failed. These are medians of individual pair ratios, not ratios of the table's medians.
+
+| Terminals | Latency, ms | Native before → after | xterm WebGL before → after |
+| --------: | ----------- | --------------------: | -------------------------: |
+|        17 | Input p50   |       20.099 → 20.248 |            20.561 → 20.538 |
+|        17 | Input p95   |       28.341 → 28.849 |            27.160 → 28.701 |
+|        17 | Write p50   |       15.694 → 16.262 |            15.294 → 14.878 |
+|        17 | Write p95   |       20.448 → 20.642 |            19.414 → 18.980 |
+|         1 | Input p50   |         4.750 → 5.309 |              4.612 → 4.760 |
+|         1 | Input p95   |       20.423 → 29.665 |            20.985 → 20.983 |
+|         1 | Write p50   |       12.848 → 11.869 |              7.526 → 9.079 |
+|         1 | Write p95   |       20.113 → 20.444 |            19.924 → 19.881 |
+
+The one-terminal input tail worsens; all five optimized one-terminal paired targets fail. The
+stored p95-nearest input samples place 18.565–27.115 ms before parse completion, 0.295–0.430 ms
+between parse and submission, and 2.123–4.693 ms between submission and acknowledgement. That
+quick pattern does not establish a missed frame or its cause; indirect scheduling regression is
+not ruled out. No deep latency follow-up or new latency-only run is claimed.
+
+### Upload call reduction without CPU reduction
+
+A separate four-repetition ASCII trace records 5,117 submitted terminal frames per case. Native
+`writeBuffer` calls fall from 122,808 to 10,234: **24 → 2 per submitted terminal frame**. Actual
+bytes stay at 392,985,600 per case, **76,800 per terminal frame**. Warm atlas writes are zero.
+
+Texture/view acquisition, encoder creation, pass begin/end, encoder finish and submission remain
+one each per terminal frame; pipelines, bind groups and full-grid draws remain two each. These
+are 13 fixed WebGPU method calls, so this census falls from 37 to 15 total calls per terminal
+frame. Unchanged successful native frames avoid those submission-related calls. Encoders,
+passes and swapchain views cannot be retained indiscriminately across presented frames.
+
+Median upload-wrapper inclusive time falls from 160.010 to 129.818 ms. GPU-process inclusive
+`DawnCommands` falls 1704.305 → 1649.801 ms, `WebGPUDecoderImpl::HandleDawnCommands`
+1694.723 → 1640.324 ms, and `CommandBuffer::Flush` 2896.133 → 2818.108 ms. Nested durations
+overlap and must not be summed. These window-clipped host events are neither CPU samples nor
+GPU-device execution time, and the traced windows need not contain every later compositor task.
+Their modest change does not establish a material output-CPU gain. `DawnCommands` event counts
+stay approximately three per submit: median 15,356 → 15,359.5 over 5,117 native submits. Fewer JS
+`writeBuffer` calls therefore do not demonstrate fewer GPU-process Dawn command batches. The
+trace does not qualify an exact packet-to-API or packet-to-canvas mapping.
+
+### Fresh same-session WebGPU, native WebGL and xterm GPU seams
+
+A separate balanced three-way ASCII/bytes trace uses the final WebGPU/Zig candidate, our native
+WebGL renderer with its JS frame builder, and xterm WebGL in browser session
+`1ef45499-1b35-4cb9-acb0-81f4dd1ec01e`. All 12 runs and 24 measured GPU windows qualify. Four
+repetitions per renderer each contain 5,117 actual terminal render/submission boundaries. This
+compares the existing implementations; it does not isolate the graphics API from the builder.
+
+Values below are medians of repetition-normalized **inclusive GPU-process host microseconds per
+observed terminal render**. They evenly divide a shared process window, not an isolated canvas
+cost. Event names overlap: do not add them or interpret them as GPU-device execution.
+
+| Exact event                                     | WebGPU/Zig | Native WebGL/JS | xterm WebGL |
+| ----------------------------------------------- | ---------: | --------------: | ----------: |
+| `Scheduler::RunTask`                            |    654.963 |         268.676 |     262.995 |
+| `GpuChannel::ExecuteDeferredRequest`            |    582.503 |         171.152 |     166.562 |
+| `CommandBuffer::Flush`                          |    575.795 |         160.518 |     156.752 |
+| `SkiaOutputSurfaceImplOnGpu::BeginAccessImages` |      4.357 |          46.879 |      40.493 |
+| `SkiaOutputSurfaceImplOnGpu::SwapBuffers`       |     60.012 |          41.430 |      43.840 |
+| `Display::DrawAndSwap`                          |      8.284 |           8.289 |      10.882 |
+| `GLContextEGL::MakeCurrent`                     | Unobserved |           3.454 |       4.124 |
+| `SyncToken::Wait`                               |      0.011 |           0.198 |       0.199 |
+
+WebGPU also exposes `DawnCommands` at 333.509 µs/render and
+`WebGPUDecoderImpl::HandleDawnCommands` at 331.600 µs/render, with approximately 3.002 events
+per submit. These are nested within command handling. The largest observed difference is there,
+not a uniformly larger compositor/image-access cost. Wait durations describe observed host
+intervals; missing native operation names cannot establish absent device waits or internal copies.
+
+GPU `RunTask` all-thread temporal-union medians are 3487.875 / 1414.015 / 1380.384 ms per window
+(WebGPU / native WebGL / xterm); corresponding `CrGpuMain` thread unions are
+3444.841 / 1405.067 / 1369.719 ms. Neither union measures CPU consumption or device time.
+Native WebGL and xterm are close in this trace, while WebGPU's main-thread interval is about
+2.45× native WebGL's. This supports measuring WebGL as the Linux default next for this
+Linux/Chromium/Vulkan configuration. No fresh untraced native-WebGL CPU/latency comparison or
+cross-platform default verdict is claimed. It does not prove that one shared WebGPU canvas removes
+the excess: no canvas-consolidation treatment was run. GL's many observed context IDs coexist with
+lower host work, so context/canvas multiplicity alone is not a demonstrated cause.
+
+Fresh inclusive synchronous upload-wrapper medians are 127.980 / 29.165 / 20.810 ms per window.
+WebGPU writes 76,800 bytes/render; xterm's wrapper records 19,610.897 bytes/render. Native WebGL
+observes two `bufferSubData` calls/render, but its wrapper bytes are unavailable and its direct
+byte counter's zero is unqualified instrumentation coverage, not zero-upload evidence. Xterm's
+direct prototype counters are unavailable; renderer markers provide its three uploads and draws.
+Exact GPU-process implementation time for `getCurrentTexture` remains unobservable.
+
+Context arguments need event-specific interpretation. WebGPU's two `context` values belong only
+to `EpollEvent`, not GPU devices or canvases. Native WebGL exposes 17/18/18/17 distinct
+`GLContextEGL::MakeCurrent` context values by repetition; xterm exposes 17 each. For repetition 0,
+native GL has 385–393 calls/ID and 0.565–1.479 ms inclusive/ID; xterm has 368–379 and
+0.952–2.069 ms. No terminal-to-context mapping is qualified, and no Dawn context/channel/
+command-buffer identifier is exposed. Shared-process averages cannot answer true per-canvas cost.
+Exact event counts, thread strata, argument examples and ID distributions are retained in
+[three-way-gpu-seams.json](benchmarks/linux-one-write-2026-10-02/three-way-gpu-seams.json).
+
+Evidence, exact ratios, individual ticks, qualification, manifests, sparse decision samples and
+read-back smoke screenshots live in [the experiment evidence](benchmarks/linux-one-write-2026-10-02/).
+The before/after 17-terminal smoke PNGs are byte-identical; existing ZWJ-width observations remain
+tracked in #360. Raw artifacts stay in `/work/tmp/plan283-one-write/`. Focused checks pass: 29 unit,
+31 browser plus two existing Linux skips, four tracing regressions, build/typecheck and root gates.
+The full package test suite was not rerun; no production deployment or merge was performed.
+
 ## Linux hardware comparison instrument
 
 The Linux runner measures native WebGPU and xterm WebGL in the same Chromium headless-shell session over secure loopback HTTP. It enables Vulkan with `--enable-features=Vulkan --use-angle=vulkan --ignore-gpu-blocklist`, records CDP GPU feature status and the WebGPU adapter, and rejects software/fallback adapters. Adapter acquisition retries up to three times, 100 ms apart. macOS retains headed Chromium and its AC-power/caffeinate checks. Full Chromium headless on the RTX 3060 Ti exposed the NVIDIA adapter but captured a black WebGPU canvas; the same minimal red-canvas diagnostic visibly rendered on headless-shell. This harness selection requires no terminal-library change.

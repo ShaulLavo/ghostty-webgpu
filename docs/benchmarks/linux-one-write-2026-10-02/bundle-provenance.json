@@ -1,0 +1,633 @@
+{
+  "schema": "fregat.webgpu-upload-provenance.v1",
+  "baseCommit": "9a323574f807543e2bb15f39e49ee4728545ab32",
+  "rawRoot": "/work/tmp/plan283-one-write",
+  "bundles": [
+    {
+      "bundle": "before-bundle",
+      "manifestSha256": "53cc55822bb319dc7df83b763751199410db6dd5f1bc584177828a6b376e98a8",
+      "manifest": {
+        "schema": 1,
+        "commit": "9a323574f807543e2bb15f39e49ee4728545ab32",
+        "dirty": "",
+        "sourceSha256": "89065f66fa1eab404fc3d1eba97b365700bfdd79b96b2737ac3136ee01cd22b5",
+        "bundleSha256": "28e82e72ffe5cfb42a2824e644e616e9a0228233ad8cfc69836c62d1dab505d1",
+        "versions": {
+          "@xterm/xterm": "6.0.0",
+          "@xterm/addon-webgl": "0.19.0",
+          "ghostty-web": "0.4.0",
+          "@fontsource/jetbrains-mono": "5.3.0",
+          "playwright": "1.63.0",
+          "ws": "8.22.0",
+          "ghostty-webgpu": "0.3.0"
+        },
+        "settings": {
+          "columns": 40,
+          "rows": 12,
+          "fontFamily": "Bench Mono",
+          "fontSize": 12,
+          "lineHeight": 1.2,
+          "dpr": 2,
+          "viewport": {
+            "width": 1600,
+            "height": 1400
+          },
+          "scrollback": 10000,
+          "ghosttyScrollbackBytes": 67108864,
+          "counts": [1, 8, 17],
+          "repetitions": 4,
+          "latencySamples": 240,
+          "presentationDrainMilliseconds": 100,
+          "presentationValidationSamples": 24,
+          "presentationValidationDelayFrames": 1,
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 250,
+          "gpuMeasuredSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000,
+          "adapterAttempts": 3,
+          "adapterRetryMilliseconds": 100,
+          "burstFrames": 32,
+          "idleMilliseconds": 1000,
+          "outputFrames": 2700,
+          "minimumCpuTicks": 100,
+          "caseDeadlineMilliseconds": 600000,
+          "chunkBytes": 4096,
+          "corpusBytes": 1048576
+        },
+        "variants": [
+          {
+            "id": "ghostty-webgpu",
+            "library": "ghostty-webgpu",
+            "renderer": "webgpu"
+          },
+          {
+            "id": "ghostty-webgl",
+            "library": "ghostty-webgpu",
+            "renderer": "webgl2"
+          },
+          {
+            "id": "ghostty-canvas",
+            "library": "ghostty-webgpu",
+            "renderer": "canvas2d"
+          },
+          {
+            "id": "ghostty-dom",
+            "library": "ghostty-webgpu",
+            "renderer": "dom"
+          },
+          {
+            "id": "xterm-webgl",
+            "library": "@xterm/xterm",
+            "renderer": "webgl"
+          },
+          {
+            "id": "xterm-dom",
+            "library": "@xterm/xterm",
+            "renderer": "dom"
+          },
+          {
+            "id": "ghostty-web",
+            "library": "ghostty-web",
+            "renderer": "canvas2d"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "ascii",
+            "bytes": 1048600,
+            "sha256": "cbe356164d371a7c5ab0006ecbba813dfbf9b56a1a68341b500938eeba662230"
+          },
+          {
+            "name": "sgr",
+            "bytes": 1048606,
+            "sha256": "1df6298849df77bfe761b398eebdef6b4cd6ce7b621ba2612d3ac78869a5300a"
+          },
+          {
+            "name": "unicode",
+            "bytes": 1048599,
+            "sha256": "3de374da842539cce32936959e858bf0b9ac841ff52f3f93e60b9b703091c7ef"
+          },
+          {
+            "name": "cursor",
+            "bytes": 1048628,
+            "sha256": "bc88592f18d2b0aaf914429ea57e5e3566294f135bb5e3cbaf859594a49c5a19"
+          },
+          {
+            "name": "logs",
+            "bytes": 1059649,
+            "sha256": "5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834"
+          }
+        ],
+        "assets": {
+          "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+          "bridge.wasm": "eda64f25441cfb015392f614631e1f0204795e5260e24815fc850f1ebf227510",
+          "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+          "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+          "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+          "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+          "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+          "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+          "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+          "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+          "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+          "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+          "comparison-runner.mjs": "3f7d7672d0f78c35ac67a12e97f185239f9ff498836a7de9994306b105afda42",
+          "comparison-report.mjs": "0e4499af8867c35060842a65ffc95ad7ed582e56fa4b5a4b67ead81c51f7f46e",
+          "comparison-compact.mjs": "e17e3b48bb9c3957d59bb8b835cc82860f0af2e55e3f4c9dd365ffe0db0a5158",
+          "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+          "comparison-guards.mjs": "9889693798a9442ac31f7243f3e8d896a526fddf991d7c9664582398b5f63ccf",
+          "comparison-trace.mjs": "741c9eec26482b8052820983edea366a2ad339c87e39a46c0ea4403be939318f",
+          "comparison-attribution.mjs": "8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d",
+          "comparison-options.mjs": "42bdcada9b1786dc35c9eb210542c9910dcaeef46c670cec4ae1e9b377fe53fd",
+          "comparison-latency.mjs": "32a6bc3aedb49923a192134851063e12b0f2f52bbc4a5a83428999fb35144631",
+          "comparison-render.mjs": "0b98bb08c6157acd23631a353ff913d679b2c51daa5debf9ae667afc814d0e82",
+          "comparison-gpu.mjs": "a43cee53c8f1bb0fcec15bfaab764f93b6133965263e6ec0abe8672483abebd8",
+          "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+        },
+        "logs": {
+          "kind": "real Git history log",
+          "repository": "ShaulLavo/fregat",
+          "revision": "5d98d10f4",
+          "entries": 256
+        }
+      }
+    },
+    {
+      "bundle": "before-trace-bundle",
+      "manifestSha256": "7378917a56cdff9400b35f264da87c653e7bdab3492b2d597fe121a8ee30881c",
+      "manifest": {
+        "schema": 1,
+        "commit": "9a323574f807543e2bb15f39e49ee4728545ab32",
+        "dirty": "",
+        "sourceSha256": "89065f66fa1eab404fc3d1eba97b365700bfdd79b96b2737ac3136ee01cd22b5",
+        "bundleSha256": "28e82e72ffe5cfb42a2824e644e616e9a0228233ad8cfc69836c62d1dab505d1",
+        "versions": {
+          "@xterm/xterm": "6.0.0",
+          "@xterm/addon-webgl": "0.19.0",
+          "ghostty-web": "0.4.0",
+          "@fontsource/jetbrains-mono": "5.3.0",
+          "playwright": "1.63.0",
+          "ws": "8.22.0",
+          "ghostty-webgpu": "0.3.0"
+        },
+        "settings": {
+          "columns": 40,
+          "rows": 12,
+          "fontFamily": "Bench Mono",
+          "fontSize": 12,
+          "lineHeight": 1.2,
+          "dpr": 2,
+          "viewport": {
+            "width": 1600,
+            "height": 1400
+          },
+          "scrollback": 10000,
+          "ghosttyScrollbackBytes": 67108864,
+          "counts": [1, 8, 17],
+          "repetitions": 4,
+          "latencySamples": 240,
+          "presentationDrainMilliseconds": 100,
+          "presentationValidationSamples": 24,
+          "presentationValidationDelayFrames": 1,
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 250,
+          "gpuMeasuredSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000,
+          "adapterAttempts": 3,
+          "adapterRetryMilliseconds": 100,
+          "burstFrames": 32,
+          "idleMilliseconds": 1000,
+          "outputFrames": 2700,
+          "minimumCpuTicks": 100,
+          "caseDeadlineMilliseconds": 600000,
+          "chunkBytes": 4096,
+          "corpusBytes": 1048576
+        },
+        "variants": [
+          {
+            "id": "ghostty-webgpu",
+            "library": "ghostty-webgpu",
+            "renderer": "webgpu"
+          },
+          {
+            "id": "ghostty-webgl",
+            "library": "ghostty-webgpu",
+            "renderer": "webgl2"
+          },
+          {
+            "id": "ghostty-canvas",
+            "library": "ghostty-webgpu",
+            "renderer": "canvas2d"
+          },
+          {
+            "id": "ghostty-dom",
+            "library": "ghostty-webgpu",
+            "renderer": "dom"
+          },
+          {
+            "id": "xterm-webgl",
+            "library": "@xterm/xterm",
+            "renderer": "webgl"
+          },
+          {
+            "id": "xterm-dom",
+            "library": "@xterm/xterm",
+            "renderer": "dom"
+          },
+          {
+            "id": "ghostty-web",
+            "library": "ghostty-web",
+            "renderer": "canvas2d"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "ascii",
+            "bytes": 1048600,
+            "sha256": "cbe356164d371a7c5ab0006ecbba813dfbf9b56a1a68341b500938eeba662230"
+          },
+          {
+            "name": "sgr",
+            "bytes": 1048606,
+            "sha256": "1df6298849df77bfe761b398eebdef6b4cd6ce7b621ba2612d3ac78869a5300a"
+          },
+          {
+            "name": "unicode",
+            "bytes": 1048599,
+            "sha256": "3de374da842539cce32936959e858bf0b9ac841ff52f3f93e60b9b703091c7ef"
+          },
+          {
+            "name": "cursor",
+            "bytes": 1048628,
+            "sha256": "bc88592f18d2b0aaf914429ea57e5e3566294f135bb5e3cbaf859594a49c5a19"
+          },
+          {
+            "name": "logs",
+            "bytes": 1059649,
+            "sha256": "5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834"
+          }
+        ],
+        "assets": {
+          "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+          "bridge.wasm": "eda64f25441cfb015392f614631e1f0204795e5260e24815fc850f1ebf227510",
+          "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+          "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+          "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+          "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+          "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+          "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+          "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+          "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+          "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+          "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+          "comparison-runner.mjs": "3f7d7672d0f78c35ac67a12e97f185239f9ff498836a7de9994306b105afda42",
+          "comparison-report.mjs": "0e4499af8867c35060842a65ffc95ad7ed582e56fa4b5a4b67ead81c51f7f46e",
+          "comparison-compact.mjs": "e17e3b48bb9c3957d59bb8b835cc82860f0af2e55e3f4c9dd365ffe0db0a5158",
+          "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+          "comparison-guards.mjs": "9889693798a9442ac31f7243f3e8d896a526fddf991d7c9664582398b5f63ccf",
+          "comparison-trace.mjs": "fc2e1b355cbcee92825e5e9782075443ced42c2296a8cf077daeb9312b3fad6c",
+          "comparison-attribution.mjs": "8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d",
+          "comparison-options.mjs": "42bdcada9b1786dc35c9eb210542c9910dcaeef46c670cec4ae1e9b377fe53fd",
+          "comparison-latency.mjs": "32a6bc3aedb49923a192134851063e12b0f2f52bbc4a5a83428999fb35144631",
+          "comparison-render.mjs": "0b98bb08c6157acd23631a353ff913d679b2c51daa5debf9ae667afc814d0e82",
+          "comparison-gpu.mjs": "a43cee53c8f1bb0fcec15bfaab764f93b6133965263e6ec0abe8672483abebd8",
+          "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+        },
+        "logs": {
+          "kind": "real Git history log",
+          "repository": "ShaulLavo/fregat",
+          "revision": "5d98d10f4",
+          "entries": 256
+        },
+        "apiAudit": {
+          "scope": "one-off trace-only GPU prototype counters and Dawn categories",
+          "timingBundleModified": false
+        }
+      }
+    },
+    {
+      "bundle": "after-final-bundle",
+      "manifestSha256": "92f0b824683fb25ff78506cb8d00cf0c7bad21d26f4a05367f42dc874ab6ed7c",
+      "manifest": {
+        "schema": 1,
+        "commit": "9a323574f807543e2bb15f39e49ee4728545ab32",
+        "dirty": "M ghostty-webgpu/bench/comparison-tracing.ts\n M ghostty-webgpu/package.json\n M ghostty-webgpu/scripts/comparison-tracing.test.mjs\n M ghostty-webgpu/src/render/instances/uploads.ts\n M ghostty-webgpu/src/render/renderer.ts\n M ghostty-webgpu/src/render/tests/renderer.browser.test.ts\n M ghostty-webgpu/src/render/tests/text-pass.browser.test.ts\n M ghostty-webgpu/src/render/tests/text-pass.test.ts\n M ghostty-webgpu/src/render/text-pass.ts",
+        "sourceSha256": "c1d874cbd2b0c7f43080ba4a241af942890e5d8d938360f0d2e4e9c5f279436a",
+        "bundleSha256": "6b1bf57c7c40fbf42b1fbfa1f5dd42507964abcdd0251985c2788529357972d1",
+        "versions": {
+          "@xterm/xterm": "6.0.0",
+          "@xterm/addon-webgl": "0.19.0",
+          "ghostty-web": "0.4.0",
+          "@fontsource/jetbrains-mono": "5.3.0",
+          "playwright": "1.63.0",
+          "ws": "8.22.0",
+          "ghostty-webgpu": "0.3.1"
+        },
+        "settings": {
+          "columns": 40,
+          "rows": 12,
+          "fontFamily": "Bench Mono",
+          "fontSize": 12,
+          "lineHeight": 1.2,
+          "dpr": 2,
+          "viewport": {
+            "width": 1600,
+            "height": 1400
+          },
+          "scrollback": 10000,
+          "ghosttyScrollbackBytes": 67108864,
+          "counts": [1, 8, 17],
+          "repetitions": 4,
+          "latencySamples": 240,
+          "presentationDrainMilliseconds": 100,
+          "presentationValidationSamples": 24,
+          "presentationValidationDelayFrames": 1,
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 250,
+          "gpuMeasuredSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000,
+          "adapterAttempts": 3,
+          "adapterRetryMilliseconds": 100,
+          "burstFrames": 32,
+          "idleMilliseconds": 1000,
+          "outputFrames": 2700,
+          "minimumCpuTicks": 100,
+          "caseDeadlineMilliseconds": 600000,
+          "chunkBytes": 4096,
+          "corpusBytes": 1048576
+        },
+        "variants": [
+          {
+            "id": "ghostty-webgpu",
+            "library": "ghostty-webgpu",
+            "renderer": "webgpu"
+          },
+          {
+            "id": "ghostty-webgl",
+            "library": "ghostty-webgpu",
+            "renderer": "webgl2"
+          },
+          {
+            "id": "ghostty-canvas",
+            "library": "ghostty-webgpu",
+            "renderer": "canvas2d"
+          },
+          {
+            "id": "ghostty-dom",
+            "library": "ghostty-webgpu",
+            "renderer": "dom"
+          },
+          {
+            "id": "xterm-webgl",
+            "library": "@xterm/xterm",
+            "renderer": "webgl"
+          },
+          {
+            "id": "xterm-dom",
+            "library": "@xterm/xterm",
+            "renderer": "dom"
+          },
+          {
+            "id": "ghostty-web",
+            "library": "ghostty-web",
+            "renderer": "canvas2d"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "ascii",
+            "bytes": 1048600,
+            "sha256": "cbe356164d371a7c5ab0006ecbba813dfbf9b56a1a68341b500938eeba662230"
+          },
+          {
+            "name": "sgr",
+            "bytes": 1048606,
+            "sha256": "1df6298849df77bfe761b398eebdef6b4cd6ce7b621ba2612d3ac78869a5300a"
+          },
+          {
+            "name": "unicode",
+            "bytes": 1048599,
+            "sha256": "3de374da842539cce32936959e858bf0b9ac841ff52f3f93e60b9b703091c7ef"
+          },
+          {
+            "name": "cursor",
+            "bytes": 1048628,
+            "sha256": "bc88592f18d2b0aaf914429ea57e5e3566294f135bb5e3cbaf859594a49c5a19"
+          },
+          {
+            "name": "logs",
+            "bytes": 1059649,
+            "sha256": "5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834"
+          }
+        ],
+        "assets": {
+          "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+          "bridge.wasm": "eda64f25441cfb015392f614631e1f0204795e5260e24815fc850f1ebf227510",
+          "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+          "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+          "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+          "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+          "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+          "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+          "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+          "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+          "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+          "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+          "comparison-runner.mjs": "3f7d7672d0f78c35ac67a12e97f185239f9ff498836a7de9994306b105afda42",
+          "comparison-report.mjs": "0e4499af8867c35060842a65ffc95ad7ed582e56fa4b5a4b67ead81c51f7f46e",
+          "comparison-compact.mjs": "e17e3b48bb9c3957d59bb8b835cc82860f0af2e55e3f4c9dd365ffe0db0a5158",
+          "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+          "comparison-guards.mjs": "9889693798a9442ac31f7243f3e8d896a526fddf991d7c9664582398b5f63ccf",
+          "comparison-trace.mjs": "741c9eec26482b8052820983edea366a2ad339c87e39a46c0ea4403be939318f",
+          "comparison-attribution.mjs": "8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d",
+          "comparison-options.mjs": "42bdcada9b1786dc35c9eb210542c9910dcaeef46c670cec4ae1e9b377fe53fd",
+          "comparison-latency.mjs": "32a6bc3aedb49923a192134851063e12b0f2f52bbc4a5a83428999fb35144631",
+          "comparison-render.mjs": "0b98bb08c6157acd23631a353ff913d679b2c51daa5debf9ae667afc814d0e82",
+          "comparison-gpu.mjs": "a43cee53c8f1bb0fcec15bfaab764f93b6133965263e6ec0abe8672483abebd8",
+          "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+        },
+        "logs": {
+          "kind": "real Git history log",
+          "repository": "ShaulLavo/fregat",
+          "revision": "5d98d10f4",
+          "entries": 256
+        }
+      }
+    },
+    {
+      "bundle": "after-trace-bundle",
+      "manifestSha256": "9f86d57d706fb01d9a9f8fc854798837b12fa01489cf9015c0b9c614171759fd",
+      "manifest": {
+        "schema": 1,
+        "commit": "9a323574f807543e2bb15f39e49ee4728545ab32",
+        "dirty": "M ghostty-webgpu/bench/comparison-tracing.ts\n M ghostty-webgpu/package.json\n M ghostty-webgpu/scripts/comparison-tracing.test.mjs\n M ghostty-webgpu/src/render/instances/uploads.ts\n M ghostty-webgpu/src/render/renderer.ts\n M ghostty-webgpu/src/render/tests/renderer.browser.test.ts\n M ghostty-webgpu/src/render/tests/text-pass.browser.test.ts\n M ghostty-webgpu/src/render/tests/text-pass.test.ts\n M ghostty-webgpu/src/render/text-pass.ts",
+        "sourceSha256": "c1d874cbd2b0c7f43080ba4a241af942890e5d8d938360f0d2e4e9c5f279436a",
+        "bundleSha256": "6b1bf57c7c40fbf42b1fbfa1f5dd42507964abcdd0251985c2788529357972d1",
+        "versions": {
+          "@xterm/xterm": "6.0.0",
+          "@xterm/addon-webgl": "0.19.0",
+          "ghostty-web": "0.4.0",
+          "@fontsource/jetbrains-mono": "5.3.0",
+          "playwright": "1.63.0",
+          "ws": "8.22.0",
+          "ghostty-webgpu": "0.3.1"
+        },
+        "settings": {
+          "columns": 40,
+          "rows": 12,
+          "fontFamily": "Bench Mono",
+          "fontSize": 12,
+          "lineHeight": 1.2,
+          "dpr": 2,
+          "viewport": {
+            "width": 1600,
+            "height": 1400
+          },
+          "scrollback": 10000,
+          "ghosttyScrollbackBytes": 67108864,
+          "counts": [1, 8, 17],
+          "repetitions": 4,
+          "latencySamples": 240,
+          "presentationDrainMilliseconds": 100,
+          "presentationValidationSamples": 24,
+          "presentationValidationDelayFrames": 1,
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 250,
+          "gpuMeasuredSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000,
+          "adapterAttempts": 3,
+          "adapterRetryMilliseconds": 100,
+          "burstFrames": 32,
+          "idleMilliseconds": 1000,
+          "outputFrames": 2700,
+          "minimumCpuTicks": 100,
+          "caseDeadlineMilliseconds": 600000,
+          "chunkBytes": 4096,
+          "corpusBytes": 1048576
+        },
+        "variants": [
+          {
+            "id": "ghostty-webgpu",
+            "library": "ghostty-webgpu",
+            "renderer": "webgpu"
+          },
+          {
+            "id": "ghostty-webgl",
+            "library": "ghostty-webgpu",
+            "renderer": "webgl2"
+          },
+          {
+            "id": "ghostty-canvas",
+            "library": "ghostty-webgpu",
+            "renderer": "canvas2d"
+          },
+          {
+            "id": "ghostty-dom",
+            "library": "ghostty-webgpu",
+            "renderer": "dom"
+          },
+          {
+            "id": "xterm-webgl",
+            "library": "@xterm/xterm",
+            "renderer": "webgl"
+          },
+          {
+            "id": "xterm-dom",
+            "library": "@xterm/xterm",
+            "renderer": "dom"
+          },
+          {
+            "id": "ghostty-web",
+            "library": "ghostty-web",
+            "renderer": "canvas2d"
+          }
+        ],
+        "fixtures": [
+          {
+            "name": "ascii",
+            "bytes": 1048600,
+            "sha256": "cbe356164d371a7c5ab0006ecbba813dfbf9b56a1a68341b500938eeba662230"
+          },
+          {
+            "name": "sgr",
+            "bytes": 1048606,
+            "sha256": "1df6298849df77bfe761b398eebdef6b4cd6ce7b621ba2612d3ac78869a5300a"
+          },
+          {
+            "name": "unicode",
+            "bytes": 1048599,
+            "sha256": "3de374da842539cce32936959e858bf0b9ac841ff52f3f93e60b9b703091c7ef"
+          },
+          {
+            "name": "cursor",
+            "bytes": 1048628,
+            "sha256": "bc88592f18d2b0aaf914429ea57e5e3566294f135bb5e3cbaf859594a49c5a19"
+          },
+          {
+            "name": "logs",
+            "bytes": 1059649,
+            "sha256": "5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834"
+          }
+        ],
+        "assets": {
+          "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+          "bridge.wasm": "eda64f25441cfb015392f614631e1f0204795e5260e24815fc850f1ebf227510",
+          "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+          "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+          "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+          "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+          "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+          "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+          "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+          "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+          "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+          "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+          "comparison-runner.mjs": "3f7d7672d0f78c35ac67a12e97f185239f9ff498836a7de9994306b105afda42",
+          "comparison-report.mjs": "0e4499af8867c35060842a65ffc95ad7ed582e56fa4b5a4b67ead81c51f7f46e",
+          "comparison-compact.mjs": "e17e3b48bb9c3957d59bb8b835cc82860f0af2e55e3f4c9dd365ffe0db0a5158",
+          "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+          "comparison-guards.mjs": "9889693798a9442ac31f7243f3e8d896a526fddf991d7c9664582398b5f63ccf",
+          "comparison-trace.mjs": "fc2e1b355cbcee92825e5e9782075443ced42c2296a8cf077daeb9312b3fad6c",
+          "comparison-attribution.mjs": "8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d",
+          "comparison-options.mjs": "42bdcada9b1786dc35c9eb210542c9910dcaeef46c670cec4ae1e9b377fe53fd",
+          "comparison-latency.mjs": "32a6bc3aedb49923a192134851063e12b0f2f52bbc4a5a83428999fb35144631",
+          "comparison-render.mjs": "0b98bb08c6157acd23631a353ff913d679b2c51daa5debf9ae667afc814d0e82",
+          "comparison-gpu.mjs": "a43cee53c8f1bb0fcec15bfaab764f93b6133965263e6ec0abe8672483abebd8",
+          "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+        },
+        "logs": {
+          "kind": "real Git history log",
+          "repository": "ShaulLavo/fregat",
+          "revision": "5d98d10f4",
+          "entries": 256
+        },
+        "apiAudit": {
+          "scope": "one-off trace-only GPU prototype counters and Dawn categories",
+          "timingBundleModified": false
+        }
+      }
+    }
+  ],
+  "traceAudit": {
+    "scriptSha256": "d58ad553d1586757c8a2ffd2ceb3b82f3a9c560e702a37bc0fdcb87d246892e0",
+    "scope": "One-off prototype counters and additional Dawn/Skia trace categories are applied only to copied trace bundles. Ordinary timing bundles remain unpatched.",
+    "invalidAttempt": "before-trace failed copied-asset hash validation and is excluded; before-trace-qualified is the valid baseline capture.",
+    "supersededOptimizedBundle": "after-bundle is excluded; after-final-bundle includes actual uploaded-byte telemetry and bounded per-gap coalescing."
+  }
+}

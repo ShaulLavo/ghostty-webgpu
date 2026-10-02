@@ -1,0 +1,76 @@
+{
+  "schema": "fregat.webgpu-upload-verification.v1",
+  "date": "2026-10-02",
+  "baseCommit": "9a323574f807543e2bb15f39e49ee4728545ab32",
+  "design": {
+    "streams": ["cell", "glyph"],
+    "maximumIndividualMergedGapBytes": 4096,
+    "totalCleanGapBytesAreCapped": false,
+    "persistentRecordsAllowCleanGapCopies": true,
+    "zigStagingAdded": false,
+    "unchangedNativeFramesSkipGpuSubmission": true,
+    "uploadMetricsCountActualWrittenBytes": true
+  },
+  "checks": {
+    "packageBuild": "passed",
+    "packageTypecheck": "passed",
+    "zigAndUploadRangeUnitTests": {
+      "passed": 29,
+      "files": 2
+    },
+    "tracingTests": {
+      "passed": 4
+    },
+    "webGpuBrowserTests": {
+      "passed": 31,
+      "skipped": 2,
+      "files": 3,
+      "skipReason": "Existing Linux SwiftShader device replacement/loss coverage"
+    },
+    "independentCorrectnessReview": "passed",
+    "smokeScreenshotsRead": [
+      "before-17.png",
+      "after-17.png",
+      "native-webgl-17.png",
+      "xterm-webgl-17.png"
+    ],
+    "smokeObservation": "All 17 panes show expected ASCII, SGR colors, wide-character diagnostic and overwrite content. No obvious new rendering failure. Existing ZWJ-width observations remain tracked in issue #360.",
+    "exactUploadRegression": "Checks two writes for twelve fragmented rows, destination buffers and offsets, source WASM backing buffer and view offsets, changed record bytes, actual uploaded byte metrics, empty and single-stream uploads.",
+    "unchangedFrameRegression": "A real GPU queue spy observes no submission while damage acknowledgement and frame callbacks settle.",
+    "rootGates": "passed",
+    "rootConsumerTypechecks": "passed",
+    "experimentalCodeCommitHooks": "passed",
+    "smokePngSha256": "31e600f6fa31fe82f09a7aa2e03fb52998c827af82a790f4926c36e5b3c8c68b",
+    "independentOrdinaryEvidenceAndWriteupReview": "passed; recomputed medians, ratios, bytes, counts, ticks and screenshot hashes",
+    "freshThreeWayAttribution": {
+      "sessionId": "1ef45499-1b35-4cb9-acb0-81f4dd1ec01e",
+      "runsQualified": 12,
+      "measuredGpuWindowsQualified": 24,
+      "repetitionsPerRenderer": 4,
+      "observedTerminalRenderBoundariesPerRun": 5117,
+      "traceValidator": "passed",
+      "independentPublicationReview": "passed; tables, context identities, byte coverage, native JS builder and host-only scope independently checked"
+    },
+    "freshWebGpuSmokeMatchesReadBeforeAfterSmoke": true
+  },
+  "limits": [
+    "Focused checks cover the changed Zig/WebGPU upload and renderer paths; the full package test suite was not rerun.",
+    "Hardware timing is ASCII-only under the reviewed benchmark qualification.",
+    "Latency is compositor acknowledgement of the submitting terminal frame in headless-shell, not optical or physical-vsync latency.",
+    "GPU-process CPU is host CPU consumption, not GPU-device execution time.",
+    "Prototype-counter and Dawn traces are perturbed attribution evidence, separate from ordinary output CPU timing.",
+    "The sparse upload-only decision probe waits for queue completion after each batch and has no terminal rendering, presentation or CPU pass verdict.",
+    "No production deployment or merge is part of this unmerged PR task.",
+    "Fresh GPU seam values are shared-process window averages normalized by actual terminal renders, not isolated per-canvas costs.",
+    "Fresh trace compares WebGPU/Zig with native WebGL/JS and xterm WebGL implementations; graphics API and frame builder are not isolated.",
+    "Native WebGL direct upload byte coverage is unqualified; zero direct-counter bytes do not indicate zero uploads.",
+    "No shared WebGPU canvas treatment or production Linux renderer-default change was run."
+  ],
+  "experiment": {
+    "status": "not merging: no CPU gain",
+    "complexityBar": "not cleared",
+    "codeCommit": "dccfb6475",
+    "gpuCanvasArchitectureDecision": "Fresh same-session trace supports measuring Linux WebGL-default treatment next; shared WebGPU canvas benefit is unproven and per-canvas GPU attribution unobservable.",
+    "draftPullRequest": "https://github.com/ShaulLavo/fregat/pull/374"
+  }
+}

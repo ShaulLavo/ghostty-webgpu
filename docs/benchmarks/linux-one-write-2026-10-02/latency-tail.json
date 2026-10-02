@@ -1,0 +1,1760 @@
+{
+  "schema": 1,
+  "scope": "Per-run input p95 is the nearest-rank sample (rank 92 of 96). Tail samples are at or above that threshold. parseEnd and terminal command-boundary end are stored endpoint-relative timestamps; boundary-to-presentation is their difference, not GPU-device execution time. Optional trace checkpoints use the exact selected animation identity to recover input-relative clock. An elevated pre-parse/echo delay does not establish its cause or rule out an indirect scheduling regression.",
+  "datasets": [
+    {
+      "dataset": "before-1",
+      "inputDirectory": "/work/tmp/plan283-one-write/before-1",
+      "sessionId": "41c59f13-dbf1-4441-8011-7eb54fe0fa1d",
+      "environmentEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "headless": true,
+      "rows": [
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 0,
+          "sampleCount": 96,
+          "inputP50": 4.834563463926315,
+          "inputP95": 20.113029271364212,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "a7f02db48e35917b",
+            "milliseconds": 20.113029271364212,
+            "captureMilliseconds": 25.089111328125,
+            "parseEnd": 0.38502928614616394,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 15.970029294490814,
+            "inputSampleIndex": 27,
+            "parseToTerminalBoundaryMilliseconds": 15.58500000834465,
+            "terminalBoundaryToPresentationMilliseconds": 4.142999976873398
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "a7f02db48e35917b",
+              "milliseconds": 20.113029271364212,
+              "captureMilliseconds": 25.089111328125,
+              "parseEnd": 0.38502928614616394,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 15.970029294490814,
+              "inputSampleIndex": 27,
+              "parseToTerminalBoundaryMilliseconds": 15.58500000834465,
+              "terminalBoundaryToPresentationMilliseconds": 4.142999976873398
+            },
+            {
+              "operation": "input",
+              "animationId": "a7f02db48e358df3",
+              "milliseconds": 21.30202928185463,
+              "captureMilliseconds": 26.140869140625,
+              "parseEnd": 1.4600293040275574,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 17.965029299259186,
+              "inputSampleIndex": 10,
+              "parseToTerminalBoundaryMilliseconds": 16.50499999523163,
+              "terminalBoundaryToPresentationMilliseconds": 3.3369999825954437
+            },
+            {
+              "operation": "input",
+              "animationId": "a7f02db48e3595d0",
+              "milliseconds": 21.751107394695282,
+              "captureMilliseconds": 26.860107421875,
+              "parseEnd": 1.965107411146164,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 18.48010742664337,
+              "inputSampleIndex": 41,
+              "parseToTerminalBoundaryMilliseconds": 16.515000015497208,
+              "terminalBoundaryToPresentationMilliseconds": 3.2709999680519104
+            },
+            {
+              "operation": "input",
+              "animationId": "a7f02db48e359d8c",
+              "milliseconds": 31.526999980211258,
+              "captureMilliseconds": 37.08984375,
+              "parseEnd": 27.229999989271164,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 27.525000005960464,
+              "inputSampleIndex": 71,
+              "parseToTerminalBoundaryMilliseconds": 0.29500001668930054,
+              "terminalBoundaryToPresentationMilliseconds": 4.0019999742507935
+            },
+            {
+              "operation": "input",
+              "animationId": "a7f02db48e359546",
+              "milliseconds": 59.17005857825279,
+              "captureMilliseconds": 65.18505859375,
+              "parseEnd": 32.09505859017372,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 48.950058579444885,
+              "inputSampleIndex": 43,
+              "parseToTerminalBoundaryMilliseconds": 16.854999989271164,
+              "terminalBoundaryToPresentationMilliseconds": 10.219999998807907
+            }
+          ],
+          "medianTailParseEndMilliseconds": 1.965107411146164,
+          "medianTailParseToTerminalBoundaryMilliseconds": 16.50499999523163,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.0019999742507935,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 0,
+          "sampleCount": 96,
+          "inputP50": 4.525004863739014,
+          "inputP95": 21.52293160557747,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "3394e51ebdce6bea",
+            "milliseconds": 21.52293160557747,
+            "captureMilliseconds": 26.386962890625,
+            "parseEnd": 6.149931639432907,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 16.08493161201477,
+            "inputSampleIndex": 84,
+            "parseToTerminalBoundaryMilliseconds": 9.934999972581863,
+            "terminalBoundaryToPresentationMilliseconds": 5.437999993562698
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "3394e51ebdce6bea",
+              "milliseconds": 21.52293160557747,
+              "captureMilliseconds": 26.386962890625,
+              "parseEnd": 6.149931639432907,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.08493161201477,
+              "inputSampleIndex": 84,
+              "parseToTerminalBoundaryMilliseconds": 9.934999972581863,
+              "terminalBoundaryToPresentationMilliseconds": 5.437999993562698
+            },
+            {
+              "operation": "input",
+              "animationId": "3394e51ebdce6d03",
+              "milliseconds": 25.639999985694885,
+              "captureMilliseconds": 31.285888671875,
+              "parseEnd": 21.65499997138977,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 22.269999980926514,
+              "inputSampleIndex": 88,
+              "parseToTerminalBoundaryMilliseconds": 0.6150000095367432,
+              "terminalBoundaryToPresentationMilliseconds": 3.3700000047683716
+            },
+            {
+              "operation": "input",
+              "animationId": "3394e51ebdce6eab",
+              "milliseconds": 25.972029268741608,
+              "captureMilliseconds": 31.781982421875,
+              "parseEnd": 22.215029269456863,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 22.615029275417328,
+              "inputSampleIndex": 94,
+              "parseToTerminalBoundaryMilliseconds": 0.4000000059604645,
+              "terminalBoundaryToPresentationMilliseconds": 3.35699999332428
+            },
+            {
+              "operation": "input",
+              "animationId": "3394e51ebdce5846",
+              "milliseconds": 27.740029275417328,
+              "captureMilliseconds": 33.523193359375,
+              "parseEnd": 24.23002928495407,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 24.790029287338257,
+              "inputSampleIndex": 13,
+              "parseToTerminalBoundaryMilliseconds": 0.5600000023841858,
+              "terminalBoundaryToPresentationMilliseconds": 2.949999988079071
+            },
+            {
+              "operation": "input",
+              "animationId": "3394e51ebdce46e6",
+              "milliseconds": 28.718921840190887,
+              "captureMilliseconds": 34.416015625,
+              "parseEnd": 23.654921859502792,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 24.274921864271164,
+              "inputSampleIndex": 8,
+              "parseToTerminalBoundaryMilliseconds": 0.6200000047683716,
+              "terminalBoundaryToPresentationMilliseconds": 4.4439999759197235
+            }
+          ],
+          "medianTailParseEndMilliseconds": 22.215029269456863,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.6150000095367432,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.3700000047683716,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 1,
+          "sampleCount": 96,
+          "inputP50": 4.610490247607231,
+          "inputP95": 19.930068373680115,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "73cb4df5f3d9534d",
+            "milliseconds": 19.930068373680115,
+            "captureMilliseconds": 25.659912109375,
+            "parseEnd": 0.445068359375,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 16.060068368911743,
+            "inputSampleIndex": 26,
+            "parseToTerminalBoundaryMilliseconds": 15.615000009536743,
+            "terminalBoundaryToPresentationMilliseconds": 3.8700000047683716
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "73cb4df5f3d9534d",
+              "milliseconds": 19.930068373680115,
+              "captureMilliseconds": 25.659912109375,
+              "parseEnd": 0.445068359375,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.060068368911743,
+              "inputSampleIndex": 26,
+              "parseToTerminalBoundaryMilliseconds": 15.615000009536743,
+              "terminalBoundaryToPresentationMilliseconds": 3.8700000047683716
+            },
+            {
+              "operation": "input",
+              "animationId": "73cb4df5f3d95ebb",
+              "milliseconds": 19.97804883122444,
+              "captureMilliseconds": 25.68798828125,
+              "parseEnd": 0.3600488305091858,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.08504882454872,
+              "inputSampleIndex": 67,
+              "parseToTerminalBoundaryMilliseconds": 15.724999994039536,
+              "terminalBoundaryToPresentationMilliseconds": 3.89300000667572
+            },
+            {
+              "operation": "input",
+              "animationId": "73cb4df5f3d96610",
+              "milliseconds": 19.978951185941696,
+              "captureMilliseconds": 24.891845703125,
+              "parseEnd": 0.24495118856430054,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.379951179027557,
+              "inputSampleIndex": 95,
+              "parseToTerminalBoundaryMilliseconds": 16.134999990463257,
+              "terminalBoundaryToPresentationMilliseconds": 3.599000006914139
+            },
+            {
+              "operation": "input",
+              "animationId": "73cb4df5f3d96205",
+              "milliseconds": 20.696048855781555,
+              "captureMilliseconds": 25.52099609375,
+              "parseEnd": 0.3600488305091858,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.96004882454872,
+              "inputSampleIndex": 80,
+              "parseToTerminalBoundaryMilliseconds": 16.599999994039536,
+              "terminalBoundaryToPresentationMilliseconds": 3.736000031232834
+            },
+            {
+              "operation": "input",
+              "animationId": "73cb4df5f3d95dac",
+              "milliseconds": 22.830039083957672,
+              "captureMilliseconds": 29.032958984375,
+              "parseEnd": 0.5200390815734863,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.640039056539536,
+              "inputSampleIndex": 63,
+              "parseToTerminalBoundaryMilliseconds": 16.11999997496605,
+              "terminalBoundaryToPresentationMilliseconds": 6.190000027418137
+            }
+          ],
+          "medianTailParseEndMilliseconds": 0.3600488305091858,
+          "medianTailParseToTerminalBoundaryMilliseconds": 16.11999997496605,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.8700000047683716,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 1,
+          "sampleCount": 96,
+          "inputP50": 4.614980459213257,
+          "inputP95": 20.425029277801514,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "fbbdd4586b13782b",
+            "milliseconds": 20.425029277801514,
+            "captureMilliseconds": 25.421142578125,
+            "parseEnd": 0.23502928018569946,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 16.255029290914536,
+            "inputSampleIndex": 14,
+            "parseToTerminalBoundaryMilliseconds": 16.020000010728836,
+            "terminalBoundaryToPresentationMilliseconds": 4.169999986886978
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "fbbdd4586b13782b",
+              "milliseconds": 20.425029277801514,
+              "captureMilliseconds": 25.421142578125,
+              "parseEnd": 0.23502928018569946,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 16.255029290914536,
+              "inputSampleIndex": 14,
+              "parseToTerminalBoundaryMilliseconds": 16.020000010728836,
+              "terminalBoundaryToPresentationMilliseconds": 4.169999986886978
+            },
+            {
+              "operation": "input",
+              "animationId": "fbbdd4586b135329",
+              "milliseconds": 20.603951156139374,
+              "captureMilliseconds": 27.546875,
+              "parseEnd": 0.48995116353034973,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 16.129951149225235,
+              "inputSampleIndex": 95,
+              "parseToTerminalBoundaryMilliseconds": 15.639999985694885,
+              "terminalBoundaryToPresentationMilliseconds": 4.474000006914139
+            },
+            {
+              "operation": "input",
+              "animationId": "fbbdd4586b1354d0",
+              "milliseconds": 25.26303905248642,
+              "captureMilliseconds": 31.083984375,
+              "parseEnd": 21.645039051771164,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 21.835039049386978,
+              "inputSampleIndex": 90,
+              "parseToTerminalBoundaryMilliseconds": 0.1899999976158142,
+              "terminalBoundaryToPresentationMilliseconds": 3.4280000030994415
+            },
+            {
+              "operation": "input",
+              "animationId": "fbbdd4586b1378a6",
+              "milliseconds": 26.228960931301117,
+              "captureMilliseconds": 31.11376953125,
+              "parseEnd": 22.094960927963257,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 22.45496091246605,
+              "inputSampleIndex": 12,
+              "parseToTerminalBoundaryMilliseconds": 0.35999998450279236,
+              "terminalBoundaryToPresentationMilliseconds": 3.7740000188350677
+            },
+            {
+              "operation": "input",
+              "animationId": "fbbdd4586b1360b3",
+              "milliseconds": 34.99710741639137,
+              "captureMilliseconds": 39.927001953125,
+              "parseEnd": 15.645107418298721,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 32.10510739684105,
+              "inputSampleIndex": 43,
+              "parseToTerminalBoundaryMilliseconds": 16.459999978542328,
+              "terminalBoundaryToPresentationMilliseconds": 2.8920000195503235
+            }
+          ],
+          "medianTailParseEndMilliseconds": 15.645107418298721,
+          "medianTailParseToTerminalBoundaryMilliseconds": 15.639999985694885,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.7740000188350677,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 2,
+          "sampleCount": 96,
+          "inputP50": 4.713917002081871,
+          "inputP95": 20.447097659111023,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "9105079c04c8fe42",
+            "milliseconds": 20.447097659111023,
+            "captureMilliseconds": 25.216064453125,
+            "parseEnd": 0.5400976538658142,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 16.370097666978836,
+            "inputSampleIndex": 5,
+            "parseToTerminalBoundaryMilliseconds": 15.830000013113022,
+            "terminalBoundaryToPresentationMilliseconds": 4.076999992132187
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "9105079c04c8fe42",
+              "milliseconds": 20.447097659111023,
+              "captureMilliseconds": 25.216064453125,
+              "parseEnd": 0.5400976538658142,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.370097666978836,
+              "inputSampleIndex": 5,
+              "parseToTerminalBoundaryMilliseconds": 15.830000013113022,
+              "terminalBoundaryToPresentationMilliseconds": 4.076999992132187
+            },
+            {
+              "operation": "input",
+              "animationId": "9105079c04c8ffe0",
+              "milliseconds": 20.45100000500679,
+              "captureMilliseconds": 25.279052734375,
+              "parseEnd": 0.38499999046325684,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.439999997615814,
+              "inputSampleIndex": 0,
+              "parseToTerminalBoundaryMilliseconds": 16.055000007152557,
+              "terminalBoundaryToPresentationMilliseconds": 4.011000007390976
+            },
+            {
+              "operation": "input",
+              "animationId": "9105079c04c8e125",
+              "milliseconds": 20.484960943460464,
+              "captureMilliseconds": 26.22607421875,
+              "parseEnd": 0.37996092438697815,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.36996093392372,
+              "inputSampleIndex": 25,
+              "parseToTerminalBoundaryMilliseconds": 15.990000009536743,
+              "terminalBoundaryToPresentationMilliseconds": 4.115000009536743
+            },
+            {
+              "operation": "input",
+              "animationId": "9105079c04c8d2dc",
+              "milliseconds": 21.64094141125679,
+              "captureMilliseconds": 28.968017578125,
+              "parseEnd": 17.789941400289536,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 18.19494140148163,
+              "inputSampleIndex": 77,
+              "parseToTerminalBoundaryMilliseconds": 0.4050000011920929,
+              "terminalBoundaryToPresentationMilliseconds": 3.4460000097751617
+            },
+            {
+              "operation": "input",
+              "animationId": "9105079c04c8ec65",
+              "milliseconds": 31.75992187857628,
+              "captureMilliseconds": 37.4638671875,
+              "parseEnd": 27.36992186307907,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 27.819921880960464,
+              "inputSampleIndex": 72,
+              "parseToTerminalBoundaryMilliseconds": 0.45000001788139343,
+              "terminalBoundaryToPresentationMilliseconds": 3.939999997615814
+            }
+          ],
+          "medianTailParseEndMilliseconds": 0.5400976538658142,
+          "medianTailParseToTerminalBoundaryMilliseconds": 15.830000013113022,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.011000007390976,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 2,
+          "sampleCount": 96,
+          "inputP50": 4.960970729589462,
+          "inputP95": 23.242019563913345,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "b90af9e9ed5b9b1d",
+            "milliseconds": 23.242019563913345,
+            "captureMilliseconds": 29.055908203125,
+            "parseEnd": 18.475019544363022,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 18.89001953601837,
+            "inputSampleIndex": 16,
+            "parseToTerminalBoundaryMilliseconds": 0.41499999165534973,
+            "terminalBoundaryToPresentationMilliseconds": 4.352000027894974
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "b90af9e9ed5b9b1d",
+              "milliseconds": 23.242019563913345,
+              "captureMilliseconds": 29.055908203125,
+              "parseEnd": 18.475019544363022,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 18.89001953601837,
+              "inputSampleIndex": 16,
+              "parseToTerminalBoundaryMilliseconds": 0.41499999165534973,
+              "terminalBoundaryToPresentationMilliseconds": 4.352000027894974
+            },
+            {
+              "operation": "input",
+              "animationId": "b90af9e9ed5b9e1b",
+              "milliseconds": 24.383980482816696,
+              "captureMilliseconds": 32.289794921875,
+              "parseEnd": 19.449980467557907,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 19.684980481863022,
+              "inputSampleIndex": 35,
+              "parseToTerminalBoundaryMilliseconds": 0.23500001430511475,
+              "terminalBoundaryToPresentationMilliseconds": 4.699000000953674
+            },
+            {
+              "operation": "input",
+              "animationId": "b90af9e9ed5babd5",
+              "milliseconds": 25.888087898492813,
+              "captureMilliseconds": 31.677001953125,
+              "parseEnd": 22.075087904930115,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 22.46008789539337,
+              "inputSampleIndex": 78,
+              "parseToTerminalBoundaryMilliseconds": 0.38499999046325684,
+              "terminalBoundaryToPresentationMilliseconds": 3.4280000030994415
+            },
+            {
+              "operation": "input",
+              "animationId": "b90af9e9ed5b9f10",
+              "milliseconds": 26.041097670793533,
+              "captureMilliseconds": 33.921142578125,
+              "parseEnd": 21.535097658634186,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 21.840097665786743,
+              "inputSampleIndex": 31,
+              "parseToTerminalBoundaryMilliseconds": 0.3050000071525574,
+              "terminalBoundaryToPresentationMilliseconds": 4.20100000500679
+            },
+            {
+              "operation": "input",
+              "animationId": "b90af9e9ed5b99f8",
+              "milliseconds": 28.310029327869415,
+              "captureMilliseconds": 36.261962890625,
+              "parseEnd": 23.880029290914536,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 24.230029314756393,
+              "inputSampleIndex": 24,
+              "parseToTerminalBoundaryMilliseconds": 0.3500000238418579,
+              "terminalBoundaryToPresentationMilliseconds": 4.080000013113022
+            }
+          ],
+          "medianTailParseEndMilliseconds": 21.535097658634186,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.3500000238418579,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.20100000500679,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 3,
+          "sampleCount": 96,
+          "inputP50": 4.665004879236221,
+          "inputP95": 20.420107424259186,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "d473a090f31630aa",
+            "milliseconds": 20.420107424259186,
+            "captureMilliseconds": 27.490234375,
+            "parseEnd": 0.37510743737220764,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 16.315107434988022,
+            "inputSampleIndex": 38,
+            "parseToTerminalBoundaryMilliseconds": 15.939999997615814,
+            "terminalBoundaryToPresentationMilliseconds": 4.104999989271164
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "d473a090f31630aa",
+              "milliseconds": 20.420107424259186,
+              "captureMilliseconds": 27.490234375,
+              "parseEnd": 0.37510743737220764,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 16.315107434988022,
+              "inputSampleIndex": 38,
+              "parseToTerminalBoundaryMilliseconds": 15.939999997615814,
+              "terminalBoundaryToPresentationMilliseconds": 4.104999989271164
+            },
+            {
+              "operation": "input",
+              "animationId": "d473a090f3163d49",
+              "milliseconds": 20.512078136205673,
+              "captureMilliseconds": 26.55322265625,
+              "parseEnd": 0.4250781238079071,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 16.180078119039536,
+              "inputSampleIndex": 60,
+              "parseToTerminalBoundaryMilliseconds": 15.754999995231628,
+              "terminalBoundaryToPresentationMilliseconds": 4.332000017166138
+            },
+            {
+              "operation": "input",
+              "animationId": "d473a090f31633eb",
+              "milliseconds": 21.1179316341877,
+              "captureMilliseconds": 25.990966796875,
+              "parseEnd": 1.0899316370487213,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 17.63993164896965,
+              "inputSampleIndex": 35,
+              "parseToTerminalBoundaryMilliseconds": 16.55000001192093,
+              "terminalBoundaryToPresentationMilliseconds": 3.477999985218048
+            },
+            {
+              "operation": "input",
+              "animationId": "d473a090f3163613",
+              "milliseconds": 22.236931651830673,
+              "captureMilliseconds": 28.079833984375,
+              "parseEnd": 18.404931634664536,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 18.744931638240814,
+              "inputSampleIndex": 16,
+              "parseToTerminalBoundaryMilliseconds": 0.3400000035762787,
+              "terminalBoundaryToPresentationMilliseconds": 3.492000013589859
+            },
+            {
+              "operation": "input",
+              "animationId": "d473a090f3163ec7",
+              "milliseconds": 52.30189257860184,
+              "captureMilliseconds": 57.1669921875,
+              "parseEnd": 35.83989259600639,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 48.85489258170128,
+              "inputSampleIndex": 46,
+              "parseToTerminalBoundaryMilliseconds": 13.014999985694885,
+              "terminalBoundaryToPresentationMilliseconds": 3.4469999969005585
+            }
+          ],
+          "medianTailParseEndMilliseconds": 1.0899316370487213,
+          "medianTailParseToTerminalBoundaryMilliseconds": 15.754999995231628,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.492000013589859,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 3,
+          "sampleCount": 96,
+          "inputP50": 4.612558573484421,
+          "inputP95": 23.586931616067886,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "1c8b768d9629b56d",
+            "milliseconds": 23.586931616067886,
+            "captureMilliseconds": 29.034912109375,
+            "parseEnd": 19.5999316573143,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 20.09493163228035,
+            "inputSampleIndex": 56,
+            "parseToTerminalBoundaryMilliseconds": 0.4949999749660492,
+            "terminalBoundaryToPresentationMilliseconds": 3.4919999837875366
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "1c8b768d9629b56d",
+              "milliseconds": 23.586931616067886,
+              "captureMilliseconds": 29.034912109375,
+              "parseEnd": 19.5999316573143,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 20.09493163228035,
+              "inputSampleIndex": 56,
+              "parseToTerminalBoundaryMilliseconds": 0.4949999749660492,
+              "terminalBoundaryToPresentationMilliseconds": 3.4919999837875366
+            },
+            {
+              "operation": "input",
+              "animationId": "1c8b768d96298e16",
+              "milliseconds": 24.588941395282745,
+              "captureMilliseconds": 32.452880859375,
+              "parseEnd": 19.969941407442093,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 20.504941403865814,
+              "inputSampleIndex": 74,
+              "parseToTerminalBoundaryMilliseconds": 0.5349999964237213,
+              "terminalBoundaryToPresentationMilliseconds": 4.083999991416931
+            },
+            {
+              "operation": "input",
+              "animationId": "1c8b768d96298a47",
+              "milliseconds": 28.614970684051514,
+              "captureMilliseconds": 33.48291015625,
+              "parseEnd": 24.12997069954872,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 24.664970695972443,
+              "inputSampleIndex": 88,
+              "parseToTerminalBoundaryMilliseconds": 0.5349999964237213,
+              "terminalBoundaryToPresentationMilliseconds": 3.949999988079071
+            },
+            {
+              "operation": "input",
+              "animationId": "1c8b768d9629bb62",
+              "milliseconds": 35.003892570734024,
+              "captureMilliseconds": 40.27978515625,
+              "parseEnd": 30.079892575740814,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 30.714892596006393,
+              "inputSampleIndex": 34,
+              "parseToTerminalBoundaryMilliseconds": 0.6350000202655792,
+              "terminalBoundaryToPresentationMilliseconds": 4.288999974727631
+            },
+            {
+              "operation": "input",
+              "animationId": "1c8b768d9629a3b7",
+              "milliseconds": 37.24500975012779,
+              "captureMilliseconds": 45.133056640625,
+              "parseEnd": 15.865009754896164,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 32.71500977873802,
+              "inputSampleIndex": 4,
+              "parseToTerminalBoundaryMilliseconds": 16.850000023841858,
+              "terminalBoundaryToPresentationMilliseconds": 4.5299999713897705
+            }
+          ],
+          "medianTailParseEndMilliseconds": 19.969941407442093,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.5349999964237213,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.083999991416931,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.6700000000003
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "after-1",
+      "inputDirectory": "/work/tmp/plan283-one-write/after-1",
+      "sessionId": "a640382d-0603-4186-9b80-4f526953a381",
+      "environmentEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "headless": true,
+      "rows": [
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 0,
+          "sampleCount": 96,
+          "inputP50": 5.695504859089851,
+          "inputP95": 31.528048813343048,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "dc0ff2c5a8913b43",
+            "milliseconds": 31.528048813343048,
+            "captureMilliseconds": 37.359130859375,
+            "parseEnd": 26.520048826932907,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 26.83504882454872,
+            "inputSampleIndex": 92,
+            "parseToTerminalBoundaryMilliseconds": 0.3149999976158142,
+            "terminalBoundaryToPresentationMilliseconds": 4.692999988794327
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "dc0ff2c5a8913b43",
+              "milliseconds": 31.528048813343048,
+              "captureMilliseconds": 37.359130859375,
+              "parseEnd": 26.520048826932907,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 26.83504882454872,
+              "inputSampleIndex": 92,
+              "parseToTerminalBoundaryMilliseconds": 0.3149999976158142,
+              "terminalBoundaryToPresentationMilliseconds": 4.692999988794327
+            },
+            {
+              "operation": "input",
+              "animationId": "dc0ff2c5a8910336",
+              "milliseconds": 31.61801952123642,
+              "captureMilliseconds": 37.4072265625,
+              "parseEnd": 27.330019503831863,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 27.55501952767372,
+              "inputSampleIndex": 61,
+              "parseToTerminalBoundaryMilliseconds": 0.2250000238418579,
+              "terminalBoundaryToPresentationMilliseconds": 4.062999993562698
+            },
+            {
+              "operation": "input",
+              "animationId": "dc0ff2c5a89111b8",
+              "milliseconds": 33.086999982595444,
+              "captureMilliseconds": 37.955078125,
+              "parseEnd": 28.524999976158142,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 28.939999997615814,
+              "inputSampleIndex": 6,
+              "parseToTerminalBoundaryMilliseconds": 0.4150000214576721,
+              "terminalBoundaryToPresentationMilliseconds": 4.1469999849796295
+            },
+            {
+              "operation": "input",
+              "animationId": "dc0ff2c5a89108f0",
+              "milliseconds": 33.20501950383186,
+              "captureMilliseconds": 39.82421875,
+              "parseEnd": 27.455019503831863,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 27.80001950263977,
+              "inputSampleIndex": 41,
+              "parseToTerminalBoundaryMilliseconds": 0.3449999988079071,
+              "terminalBoundaryToPresentationMilliseconds": 5.405000001192093
+            },
+            {
+              "operation": "input",
+              "animationId": "dc0ff2c5a8910448",
+              "milliseconds": 36.42505857348442,
+              "captureMilliseconds": 44.185302734375,
+              "parseEnd": 22.38505858182907,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 32.34505859017372,
+              "inputSampleIndex": 58,
+              "parseToTerminalBoundaryMilliseconds": 9.96000000834465,
+              "terminalBoundaryToPresentationMilliseconds": 4.0799999833106995
+            }
+          ],
+          "medianTailParseEndMilliseconds": 27.330019503831863,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.3449999988079071,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.1469999849796295,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 0,
+          "sampleCount": 96,
+          "inputP50": 4.97745606303215,
+          "inputP95": 22.52408790588379,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "aef21d588994074f",
+            "milliseconds": 22.52408790588379,
+            "captureMilliseconds": 28.19921875,
+            "parseEnd": 18.690087914466858,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 19.05508789420128,
+            "inputSampleIndex": 55,
+            "parseToTerminalBoundaryMilliseconds": 0.3649999797344208,
+            "terminalBoundaryToPresentationMilliseconds": 3.4690000116825104
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "aef21d588994074f",
+              "milliseconds": 22.52408790588379,
+              "captureMilliseconds": 28.19921875,
+              "parseEnd": 18.690087914466858,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 19.05508789420128,
+              "inputSampleIndex": 55,
+              "parseToTerminalBoundaryMilliseconds": 0.3649999797344208,
+              "terminalBoundaryToPresentationMilliseconds": 3.4690000116825104
+            },
+            {
+              "operation": "input",
+              "animationId": "aef21d5889943e25",
+              "milliseconds": 24.65195119380951,
+              "captureMilliseconds": 32.387939453125,
+              "parseEnd": 19.81995117664337,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 20.28495118021965,
+              "inputSampleIndex": 82,
+              "parseToTerminalBoundaryMilliseconds": 0.4650000035762787,
+              "terminalBoundaryToPresentationMilliseconds": 4.367000013589859
+            },
+            {
+              "operation": "input",
+              "animationId": "aef21d58899402d2",
+              "milliseconds": 24.87302929162979,
+              "captureMilliseconds": 29.639892578125,
+              "parseEnd": 20.890029311180115,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 21.28502929210663,
+              "inputSampleIndex": 64,
+              "parseToTerminalBoundaryMilliseconds": 0.39499998092651367,
+              "terminalBoundaryToPresentationMilliseconds": 3.587999999523163
+            },
+            {
+              "operation": "input",
+              "animationId": "aef21d5889940d5a",
+              "milliseconds": 25.818921893835068,
+              "captureMilliseconds": 31.532958984375,
+              "parseEnd": 21.994921892881393,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 22.409921884536743,
+              "inputSampleIndex": 18,
+              "parseToTerminalBoundaryMilliseconds": 0.41499999165534973,
+              "terminalBoundaryToPresentationMilliseconds": 3.4090000092983246
+            },
+            {
+              "operation": "input",
+              "animationId": "aef21d5889943d3c",
+              "milliseconds": 26.57995116710663,
+              "captureMilliseconds": 32.279052734375,
+              "parseEnd": 21.849951177835464,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 22.439951181411743,
+              "inputSampleIndex": 78,
+              "parseToTerminalBoundaryMilliseconds": 0.5900000035762787,
+              "terminalBoundaryToPresentationMilliseconds": 4.139999985694885
+            }
+          ],
+          "medianTailParseEndMilliseconds": 20.890029311180115,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.41499999165534973,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.587999999523163,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 1,
+          "sampleCount": 96,
+          "inputP50": 4.63795118033886,
+          "inputP95": 21.484960943460464,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "680603e6bb465f8e",
+            "milliseconds": 21.484960943460464,
+            "captureMilliseconds": 26.321044921875,
+            "parseEnd": 0.35496094822883606,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 15.79496094584465,
+            "inputSampleIndex": 58,
+            "parseToTerminalBoundaryMilliseconds": 15.439999997615814,
+            "terminalBoundaryToPresentationMilliseconds": 5.689999997615814
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "680603e6bb465f8e",
+              "milliseconds": 21.484960943460464,
+              "captureMilliseconds": 26.321044921875,
+              "parseEnd": 0.35496094822883606,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 15.79496094584465,
+              "inputSampleIndex": 58,
+              "parseToTerminalBoundaryMilliseconds": 15.439999997615814,
+              "terminalBoundaryToPresentationMilliseconds": 5.689999997615814
+            },
+            {
+              "operation": "input",
+              "animationId": "680603e6bb464d71",
+              "milliseconds": 22.13088282942772,
+              "captureMilliseconds": 28.144775390625,
+              "parseEnd": 0.3548828065395355,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.189882814884186,
+              "inputSampleIndex": 10,
+              "parseToTerminalBoundaryMilliseconds": 15.83500000834465,
+              "terminalBoundaryToPresentationMilliseconds": 5.941000014543533
+            },
+            {
+              "operation": "input",
+              "animationId": "680603e6bb46504f",
+              "milliseconds": 22.199078142642975,
+              "captureMilliseconds": 27.93994140625,
+              "parseEnd": 2.390078127384186,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 19.0350781083107,
+              "inputSampleIndex": 28,
+              "parseToTerminalBoundaryMilliseconds": 16.644999980926514,
+              "terminalBoundaryToPresentationMilliseconds": 3.1640000343322754
+            },
+            {
+              "operation": "input",
+              "animationId": "680603e6bb466206",
+              "milliseconds": 22.217931658029556,
+              "captureMilliseconds": 27.10791015625,
+              "parseEnd": 2.0499316453933716,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 18.76993164420128,
+              "inputSampleIndex": 78,
+              "parseToTerminalBoundaryMilliseconds": 16.719999998807907,
+              "terminalBoundaryToPresentationMilliseconds": 3.4480000138282776
+            },
+            {
+              "operation": "input",
+              "animationId": "680603e6bb466354",
+              "milliseconds": 25.516999989748,
+              "captureMilliseconds": 30.47119140625,
+              "parseEnd": 0.5,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.24500000476837,
+              "inputSampleIndex": 75,
+              "parseToTerminalBoundaryMilliseconds": 15.745000004768372,
+              "terminalBoundaryToPresentationMilliseconds": 9.27199998497963
+            }
+          ],
+          "medianTailParseEndMilliseconds": 0.5,
+          "medianTailParseToTerminalBoundaryMilliseconds": 15.83500000834465,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 5.689999997615814,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 1,
+          "sampleCount": 96,
+          "inputP50": 5.073460936546326,
+          "inputP95": 29.567990243434906,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "21b96c189526734f",
+            "milliseconds": 29.567990243434906,
+            "captureMilliseconds": 35.60791015625,
+            "parseEnd": 27.114990234375,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 27.444990247488022,
+            "inputSampleIndex": 2,
+            "parseToTerminalBoundaryMilliseconds": 0.33000001311302185,
+            "terminalBoundaryToPresentationMilliseconds": 2.122999995946884
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "21b96c189526734f",
+              "milliseconds": 29.567990243434906,
+              "captureMilliseconds": 35.60791015625,
+              "parseEnd": 27.114990234375,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 27.444990247488022,
+              "inputSampleIndex": 2,
+              "parseToTerminalBoundaryMilliseconds": 0.33000001311302185,
+              "terminalBoundaryToPresentationMilliseconds": 2.122999995946884
+            },
+            {
+              "operation": "input",
+              "animationId": "21b96c1895266f3c",
+              "milliseconds": 29.85091209411621,
+              "captureMilliseconds": 35.69384765625,
+              "parseEnd": 25.259912103414536,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 25.589912116527557,
+              "inputSampleIndex": 16,
+              "parseToTerminalBoundaryMilliseconds": 0.33000001311302185,
+              "terminalBoundaryToPresentationMilliseconds": 4.260999977588654
+            },
+            {
+              "operation": "input",
+              "animationId": "21b96c1895266679",
+              "milliseconds": 30.48203906416893,
+              "captureMilliseconds": 38.60986328125,
+              "parseEnd": 25.91003906726837,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 26.350039064884186,
+              "inputSampleIndex": 51,
+              "parseToTerminalBoundaryMilliseconds": 0.4399999976158142,
+              "terminalBoundaryToPresentationMilliseconds": 4.131999999284744
+            },
+            {
+              "operation": "input",
+              "animationId": "21b96c189526672d",
+              "milliseconds": 30.791999995708466,
+              "captureMilliseconds": 38.635986328125,
+              "parseEnd": 26.330000013113022,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 26.650000005960464,
+              "inputSampleIndex": 46,
+              "parseToTerminalBoundaryMilliseconds": 0.3199999928474426,
+              "terminalBoundaryToPresentationMilliseconds": 4.141999989748001
+            },
+            {
+              "operation": "input",
+              "animationId": "21b96c1895266798",
+              "milliseconds": 35.06901952624321,
+              "captureMilliseconds": 42.89892578125,
+              "parseEnd": 30.135019540786743,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 30.455019533634186,
+              "inputSampleIndex": 45,
+              "parseToTerminalBoundaryMilliseconds": 0.3199999928474426,
+              "terminalBoundaryToPresentationMilliseconds": 4.613999992609024
+            }
+          ],
+          "medianTailParseEndMilliseconds": 26.330000013113022,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.33000001311302185,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.141999989748001,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 2,
+          "sampleCount": 96,
+          "inputP50": 4.782470718026161,
+          "inputP95": 20.480892598628998,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "ea0ff9e03f1f29aa",
+            "milliseconds": 20.480892598628998,
+            "captureMilliseconds": 26.26708984375,
+            "parseEnd": 0.4848925769329071,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 16.81489259004593,
+            "inputSampleIndex": 2,
+            "parseToTerminalBoundaryMilliseconds": 16.330000013113022,
+            "terminalBoundaryToPresentationMilliseconds": 3.666000008583069
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "ea0ff9e03f1f29aa",
+              "milliseconds": 20.480892598628998,
+              "captureMilliseconds": 26.26708984375,
+              "parseEnd": 0.4848925769329071,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.81489259004593,
+              "inputSampleIndex": 2,
+              "parseToTerminalBoundaryMilliseconds": 16.330000013113022,
+              "terminalBoundaryToPresentationMilliseconds": 3.666000008583069
+            },
+            {
+              "operation": "input",
+              "animationId": "ea0ff9e03f1f2b2e",
+              "milliseconds": 21.008941411972046,
+              "captureMilliseconds": 25.949951171875,
+              "parseEnd": 1.2999414205551147,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 17.964941412210464,
+              "inputSampleIndex": 11,
+              "parseToTerminalBoundaryMilliseconds": 16.66499999165535,
+              "terminalBoundaryToPresentationMilliseconds": 3.0439999997615814
+            },
+            {
+              "operation": "input",
+              "animationId": "ea0ff9e03f1f3dd3",
+              "milliseconds": 24.819117188453674,
+              "captureMilliseconds": 30.548095703125,
+              "parseEnd": 21.145117193460464,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 21.685117185115814,
+              "inputSampleIndex": 47,
+              "parseToTerminalBoundaryMilliseconds": 0.5399999916553497,
+              "terminalBoundaryToPresentationMilliseconds": 3.13400000333786
+            },
+            {
+              "operation": "input",
+              "animationId": "ea0ff9e03f1f3020",
+              "milliseconds": 35.72795116901398,
+              "captureMilliseconds": 40.52294921875,
+              "parseEnd": 26.269951164722443,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 32.599951177835464,
+              "inputSampleIndex": 29,
+              "parseToTerminalBoundaryMilliseconds": 6.330000013113022,
+              "terminalBoundaryToPresentationMilliseconds": 3.1279999911785126
+            },
+            {
+              "operation": "input",
+              "animationId": "ea0ff9e03f1f39ab",
+              "milliseconds": 36.37091213464737,
+              "captureMilliseconds": 42.16015625,
+              "parseEnd": 27.234912127256393,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 32.56491211056709,
+              "inputSampleIndex": 60,
+              "parseToTerminalBoundaryMilliseconds": 5.3299999833106995,
+              "terminalBoundaryToPresentationMilliseconds": 3.8060000240802765
+            }
+          ],
+          "medianTailParseEndMilliseconds": 21.145117193460464,
+          "medianTailParseToTerminalBoundaryMilliseconds": 6.330000013113022,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.13400000333786,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 2,
+          "sampleCount": 96,
+          "inputP50": 5.245024427771568,
+          "inputP95": 23.022009760141373,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "e21e52dca9166818",
+            "milliseconds": 23.022009760141373,
+            "captureMilliseconds": 28.893798828125,
+            "parseEnd": 18.565009772777557,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 18.995009750127792,
+            "inputSampleIndex": 36,
+            "parseToTerminalBoundaryMilliseconds": 0.429999977350235,
+            "terminalBoundaryToPresentationMilliseconds": 4.02700001001358
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "e21e52dca9166818",
+              "milliseconds": 23.022009760141373,
+              "captureMilliseconds": 28.893798828125,
+              "parseEnd": 18.565009772777557,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 18.995009750127792,
+              "inputSampleIndex": 36,
+              "parseToTerminalBoundaryMilliseconds": 0.429999977350235,
+              "terminalBoundaryToPresentationMilliseconds": 4.02700001001358
+            },
+            {
+              "operation": "input",
+              "animationId": "e21e52dca9166480",
+              "milliseconds": 23.093990236520767,
+              "captureMilliseconds": 28.909912109375,
+              "parseEnd": 17.64999023079872,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 17.94999024271965,
+              "inputSampleIndex": 49,
+              "parseToTerminalBoundaryMilliseconds": 0.30000001192092896,
+              "terminalBoundaryToPresentationMilliseconds": 5.143999993801117
+            },
+            {
+              "operation": "input",
+              "animationId": "e21e52dca91670f4",
+              "milliseconds": 23.321912109851837,
+              "captureMilliseconds": 30.706787109375,
+              "parseEnd": 18.584912091493607,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 18.924912095069885,
+              "inputSampleIndex": 4,
+              "parseToTerminalBoundaryMilliseconds": 0.3400000035762787,
+              "terminalBoundaryToPresentationMilliseconds": 4.397000014781952
+            },
+            {
+              "operation": "input",
+              "animationId": "e21e52dca9166be2",
+              "milliseconds": 24.448097676038742,
+              "captureMilliseconds": 31.35595703125,
+              "parseEnd": 19.97509765625,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 20.410097658634186,
+              "inputSampleIndex": 38,
+              "parseToTerminalBoundaryMilliseconds": 0.4350000023841858,
+              "terminalBoundaryToPresentationMilliseconds": 4.038000017404556
+            },
+            {
+              "operation": "input",
+              "animationId": "e21e52dca91663cc",
+              "milliseconds": 27.025931656360626,
+              "captureMilliseconds": 34.02685546875,
+              "parseEnd": 22.479931622743607,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 22.949931621551514,
+              "inputSampleIndex": 69,
+              "parseToTerminalBoundaryMilliseconds": 0.4699999988079071,
+              "terminalBoundaryToPresentationMilliseconds": 4.0760000348091125
+            }
+          ],
+          "medianTailParseEndMilliseconds": 18.584912091493607,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.429999977350235,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.0760000348091125,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "frameBuilder": "zig",
+          "count": 1,
+          "repetition": 3,
+          "sampleCount": 96,
+          "inputP50": 5.372480481863022,
+          "inputP95": 29.762048840522766,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "42bc717690f6a44e",
+            "milliseconds": 29.762048840522766,
+            "captureMilliseconds": 37.75,
+            "parseEnd": 25.230048835277557,
+            "renderBoundary": "submit",
+            "renderBoundaryEnd": 25.525048822164536,
+            "inputSampleIndex": 30,
+            "parseToTerminalBoundaryMilliseconds": 0.29499998688697815,
+            "terminalBoundaryToPresentationMilliseconds": 4.237000018358231
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "42bc717690f6a44e",
+              "milliseconds": 29.762048840522766,
+              "captureMilliseconds": 37.75,
+              "parseEnd": 25.230048835277557,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 25.525048822164536,
+              "inputSampleIndex": 30,
+              "parseToTerminalBoundaryMilliseconds": 0.29499998688697815,
+              "terminalBoundaryToPresentationMilliseconds": 4.237000018358231
+            },
+            {
+              "operation": "input",
+              "animationId": "42bc717690f6afe6",
+              "milliseconds": 31.628117203712463,
+              "captureMilliseconds": 37.43408203125,
+              "parseEnd": 27.03511717915535,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 27.340117186307907,
+              "inputSampleIndex": 74,
+              "parseToTerminalBoundaryMilliseconds": 0.3050000071525574,
+              "terminalBoundaryToPresentationMilliseconds": 4.288000017404556
+            },
+            {
+              "operation": "input",
+              "animationId": "42bc717690f690b7",
+              "milliseconds": 34.45600000023842,
+              "captureMilliseconds": 41.569091796875,
+              "parseEnd": 29.55000001192093,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 29.75499999523163,
+              "inputSampleIndex": 79,
+              "parseToTerminalBoundaryMilliseconds": 0.20499998331069946,
+              "terminalBoundaryToPresentationMilliseconds": 4.70100000500679
+            },
+            {
+              "operation": "input",
+              "animationId": "42bc717690f6a633",
+              "milliseconds": 35.14404883980751,
+              "captureMilliseconds": 43.115234375,
+              "parseEnd": 29.89004883170128,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 30.115048825740814,
+              "inputSampleIndex": 39,
+              "parseToTerminalBoundaryMilliseconds": 0.22499999403953552,
+              "terminalBoundaryToPresentationMilliseconds": 5.029000014066696
+            },
+            {
+              "operation": "input",
+              "animationId": "42bc717690f6934c",
+              "milliseconds": 35.477048844099045,
+              "captureMilliseconds": 42.383056640625,
+              "parseEnd": 29.855048835277557,
+              "renderBoundary": "submit",
+              "renderBoundaryEnd": 30.155048817396164,
+              "inputSampleIndex": 87,
+              "parseToTerminalBoundaryMilliseconds": 0.29999998211860657,
+              "terminalBoundaryToPresentationMilliseconds": 5.322000026702881
+            }
+          ],
+          "medianTailParseEndMilliseconds": 29.55000001192093,
+          "medianTailParseToTerminalBoundaryMilliseconds": 0.29499998688697815,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 4.70100000500679,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        },
+        {
+          "variant": "xterm-webgl",
+          "count": 1,
+          "repetition": 3,
+          "sampleCount": 96,
+          "inputP50": 4.73746095597744,
+          "inputP95": 20.459921896457672,
+          "p95Sample": {
+            "operation": "input",
+            "animationId": "68359bd2a938bc45",
+            "milliseconds": 20.459921896457672,
+            "captureMilliseconds": 27.372802734375,
+            "parseEnd": 0.4299218952655792,
+            "renderBoundary": "drawElementsInstanced",
+            "renderBoundaryEnd": 15.894921898841858,
+            "inputSampleIndex": 45,
+            "parseToTerminalBoundaryMilliseconds": 15.465000003576279,
+            "terminalBoundaryToPresentationMilliseconds": 4.564999997615814
+          },
+          "tail": [
+            {
+              "operation": "input",
+              "animationId": "68359bd2a938bc45",
+              "milliseconds": 20.459921896457672,
+              "captureMilliseconds": 27.372802734375,
+              "parseEnd": 0.4299218952655792,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 15.894921898841858,
+              "inputSampleIndex": 45,
+              "parseToTerminalBoundaryMilliseconds": 15.465000003576279,
+              "terminalBoundaryToPresentationMilliseconds": 4.564999997615814
+            },
+            {
+              "operation": "input",
+              "animationId": "68359bd2a938bd9d",
+              "milliseconds": 20.707882821559906,
+              "captureMilliseconds": 27.748046875,
+              "parseEnd": 0.5048828125,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 16.444882810115814,
+              "inputSampleIndex": 44,
+              "parseToTerminalBoundaryMilliseconds": 15.939999997615814,
+              "terminalBoundaryToPresentationMilliseconds": 4.263000011444092
+            },
+            {
+              "operation": "input",
+              "animationId": "68359bd2a938b24d",
+              "milliseconds": 21.466902375221252,
+              "captureMilliseconds": 27.281982421875,
+              "parseEnd": 17.05990234017372,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 17.599902361631393,
+              "inputSampleIndex": 38,
+              "parseToTerminalBoundaryMilliseconds": 0.5400000214576721,
+              "terminalBoundaryToPresentationMilliseconds": 3.867000013589859
+            },
+            {
+              "operation": "input",
+              "animationId": "68359bd2a938b858",
+              "milliseconds": 24.079078137874603,
+              "captureMilliseconds": 29.817138671875,
+              "parseEnd": 19.82507812976837,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 20.24007812142372,
+              "inputSampleIndex": 60,
+              "parseToTerminalBoundaryMilliseconds": 0.41499999165534973,
+              "terminalBoundaryToPresentationMilliseconds": 3.839000016450882
+            },
+            {
+              "operation": "input",
+              "animationId": "68359bd2a938817b",
+              "milliseconds": 35.80796095728874,
+              "captureMilliseconds": 40.76318359375,
+              "parseEnd": 15.279960960149765,
+              "renderBoundary": "drawElementsInstanced",
+              "renderBoundaryEnd": 31.909960955381393,
+              "inputSampleIndex": 86,
+              "parseToTerminalBoundaryMilliseconds": 16.62999999523163,
+              "terminalBoundaryToPresentationMilliseconds": 3.8980000019073486
+            }
+          ],
+          "medianTailParseEndMilliseconds": 15.279960960149765,
+          "medianTailParseToTerminalBoundaryMilliseconds": 15.465000003576279,
+          "medianTailTerminalBoundaryToPresentationMilliseconds": 3.8980000019073486,
+          "refreshPeriod": 16.664999999999964,
+          "display": [
+            {
+              "kind": "idle-display",
+              "phase": "idle-display/qualification",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            },
+            {
+              "kind": "mounted-workload",
+              "phase": "rendered/prepare",
+              "visibility": "visible",
+              "focus": true,
+              "frameCount": 120,
+              "median": 16.664999999999964,
+              "p95": 16.670000000000073,
+              "max": 16.670000000000073
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
