@@ -429,10 +429,9 @@ export async function analyze(directory) {
 export function compactAnalysis(analysis) {
   return {
     ...analysis,
-    qualifications: analysis.qualifications.map(({ periods, ...probe }) => ({
-      ...probe,
-      periodsSha256: sha256(JSON.stringify(periods)),
-    })),
+    qualifications: analysis.qualifications.map(({ periods, ...probe }) =>
+      periods === undefined ? probe : { ...probe, periodsSha256: sha256(JSON.stringify(periods)) },
+    ),
     rows: analysis.rows.map((row) => {
       const { before: _before, after: _after, ...cpu } = row.cpu
       if (!row.summary) return { ...row, cpu }

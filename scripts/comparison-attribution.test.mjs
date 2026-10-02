@@ -36,6 +36,22 @@ test('compact evidence preserves terminal frame distributions and hashes raw int
   ])
 })
 
+test('compact evidence preserves GPU qualifications without display periods', () => {
+  const gpu = {
+    kind: 'idle',
+    status: 'qualified',
+    qualified: true,
+    samples: [{ utilizationPercent: 0, computeMemoryMiB: 0 }],
+    settings: { gpuIdleConsecutiveSamples: 3 },
+  }
+  const result = compactAnalysis({
+    qualifications: [gpu, { median: 16.67, periods: [16.67] }],
+    rows: [],
+  })
+  assert.deepEqual(result.qualifications[0], gpu)
+  assert.match(result.qualifications[1].periodsSha256, /^[a-f0-9]{64}$/)
+})
+
 test('main task denominator clips the window and unions nested tasks', () => {
   assert.equal(
     unionMilliseconds([
