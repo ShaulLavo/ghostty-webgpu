@@ -32,7 +32,8 @@
 ## Package Versioning
 
 - Greenfield: breaking changes are wanted. Rename, remove and reshape the API whenever that makes it
-  better, and bump major, minor or patch as the change warrants. No deprecations, aliases or shims.
+  better. No deprecations, aliases or shims.
+- Agents bump the patch version only. A minor or major bump needs the owner's approval first.
 
 ## Build And Tests
 
