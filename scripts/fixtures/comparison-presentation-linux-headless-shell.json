@@ -1,0 +1,262 @@
+{
+  "source": "Linux qualified-1 ghostty-webgpu-bytes-1-0-latency.trace.json.gz; first write and first input submission frames",
+  "browserChannel": "chromium-headless-shell",
+  "browserVersion": "153.0.8010.12",
+  "recordsSource": "Spans reconstructed from trace user-timing startTime and paired begin/end trace durations; capture timestamps and expected latencies from comparison.json.",
+  "events": [
+    {
+      "args": {
+        "data": {
+          "callTime": 156635098973,
+          "detail": "{\"timeOrigin\":1790939525339.21}",
+          "navigationId": "6C6F936111336F65BD9111AB08F3CC21",
+          "sampleTraceId": 7354887445384906,
+          "startTime": 8710.830000013113
+        }
+      },
+      "cat": "blink.user_timing",
+      "name": "compare/begin",
+      "ph": "I",
+      "pid": 4083347,
+      "s": "t",
+      "tid": 4083347,
+      "ts": 156635098960,
+      "tts": 103512
+    },
+    {
+      "args": {},
+      "cat": "disabled-by-default-devtools.timeline",
+      "dur": 451,
+      "name": "RunTask",
+      "ph": "X",
+      "pid": 4083347,
+      "tdur": 445,
+      "tid": 4083347,
+      "ts": 156635289342,
+      "tts": 109825
+    },
+    {
+      "args": {
+        "animation_frame_timing_info": {
+          "begin_frame_id": {
+            "sequence_number": 536,
+            "source_id": 4294967297
+          },
+          "blocking_duration_ms": 0,
+          "duration_ms": 1,
+          "num_scripts": 0
+        },
+        "id": "79da213b2d8b8e5f"
+      },
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x22"
+      },
+      "name": "AnimationFrame",
+      "ph": "b",
+      "pid": 4083347,
+      "tid": 4083347,
+      "ts": 156635289337
+    },
+    {
+      "args": {},
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x22"
+      },
+      "name": "AnimationFrame",
+      "ph": "e",
+      "pid": 4083347,
+      "tid": 4083347,
+      "ts": 156635290364
+    },
+    {
+      "args": {
+        "begin_frame_id": {
+          "sequence_number": 536,
+          "source_id": 4294967297
+        },
+        "id": "79da213b2d8b8e5f"
+      },
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x22"
+      },
+      "name": "AnimationFrame::Presentation",
+      "ph": "n",
+      "pid": 4083347,
+      "tid": 4083347,
+      "ts": 156635294050
+    },
+    {
+      "args": {
+        "data": {
+          "callTime": 156646821878,
+          "navigationId": "6C6F936111336F65BD9111AB08F3CC21",
+          "sampleTraceId": 7354887445385911,
+          "startTime": 20433.75
+        }
+      },
+      "cat": "blink.user_timing",
+      "name": "compare/echo-received",
+      "ph": "I",
+      "pid": 4083347,
+      "s": "t",
+      "tid": 4083347,
+      "ts": 156646821878,
+      "tts": 348959
+    },
+    {
+      "args": {},
+      "cat": "disabled-by-default-devtools.timeline",
+      "dur": 208,
+      "name": "RunTask",
+      "ph": "X",
+      "pid": 4083347,
+      "tdur": 191,
+      "tid": 4083347,
+      "ts": 156646821841,
+      "tts": 348925
+    },
+    {
+      "args": {
+        "animation_frame_timing_info": {
+          "begin_frame_id": {
+            "sequence_number": 1228,
+            "source_id": 4294967297
+          },
+          "blocking_duration_ms": 0,
+          "duration_ms": 0,
+          "num_scripts": 0
+        },
+        "id": "79da213b2d8b92ae"
+      },
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x22"
+      },
+      "name": "AnimationFrame",
+      "ph": "b",
+      "pid": 4083347,
+      "tid": 4083347,
+      "ts": 156646821840
+    },
+    {
+      "args": {},
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x22"
+      },
+      "name": "AnimationFrame",
+      "ph": "e",
+      "pid": 4083347,
+      "tid": 4083347,
+      "ts": 156646822649
+    },
+    {
+      "args": {
+        "begin_frame_id": {
+          "sequence_number": 1228,
+          "source_id": 4294967297
+        },
+        "id": "79da213b2d8b92ae"
+      },
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x22"
+      },
+      "name": "AnimationFrame::Presentation",
+      "ph": "n",
+      "pid": 4083347,
+      "tid": 4083347,
+      "ts": 156646826258
+    }
+  ],
+  "phase": {
+    "records": {
+      "timeOrigin": 1790939525339.21,
+      "markers": [
+        {
+          "operation": "begin",
+          "time": 8710.830000013113
+        },
+        {
+          "operation": "end",
+          "time": 40496.65500000119
+        },
+        {
+          "operation": "echo-received",
+          "time": 20433.75
+        }
+      ],
+      "spans": [
+        {
+          "terminal": 0,
+          "category": "parse",
+          "operation": "ghostty_terminal_vt_write",
+          "start": 8901.47499999404,
+          "end": 8901.480999994039,
+          "self": 0.006
+        },
+        {
+          "terminal": 0,
+          "category": "js",
+          "operation": "drawFrame",
+          "start": 8901.745000004768,
+          "end": 8902.170000004768,
+          "self": 0.425
+        },
+        {
+          "terminal": 0,
+          "category": "commands",
+          "operation": "submit",
+          "start": 8901.960000008345,
+          "end": 8902.009000008346,
+          "self": 0.049
+        },
+        {
+          "terminal": 0,
+          "category": "parse",
+          "operation": "ghostty_terminal_vt_write",
+          "start": 20433.77500000596,
+          "end": 20433.78400000596,
+          "self": 0.009
+        },
+        {
+          "terminal": 0,
+          "category": "js",
+          "operation": "drawFrame",
+          "start": 20434.09000000358,
+          "end": 20434.45500000358,
+          "self": 0.365
+        },
+        {
+          "terminal": 0,
+          "category": "commands",
+          "operation": "submit",
+          "start": 20434.20500001311,
+          "end": 20434.23500001311,
+          "self": 0.03
+        }
+      ]
+    },
+    "sample": {
+      "captures": [
+        {
+          "operation": "write",
+          "started": 1790939534240.575,
+          "timestamp": 1790939534250.0369
+        },
+        {
+          "operation": "input",
+          "started": 1790939545772.515,
+          "timestamp": 1790939545782.1902
+        }
+      ]
+    }
+  },
+  "expected": {
+    "write": 4.5550097823143005,
+    "input": 4.823068350553513
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "source": "Mac M1 attribution-2026-10-01 ghostty-webgpu-1-0-latency-trace.trace.json.gz; first write submission frame",
+  "events": [
+    {
+      "args": {
+        "data": {
+          "callTime": 2536172386308,
+          "detail": "{\"timeOrigin\":1790851945093.165}",
+          "navigationId": "1FA61D0288C6DFD95CE5E296AD51C68E",
+          "sampleTraceId": 6451019553488155,
+          "startTime": 17591.71500015259
+        }
+      },
+      "cat": "blink.user_timing",
+      "name": "compare/begin",
+      "ph": "I",
+      "pid": 8776,
+      "s": "t",
+      "tid": 73293339,
+      "ts": 2536172386289,
+      "tts": 466185
+    },
+    {
+      "args": {
+        "data": {
+          "callTime": 2536172432411,
+          "detail": "{\"color\":\"green\"}",
+          "navigationId": "1FA61D0288C6DFD95CE5E296AD51C68E",
+          "sampleTraceId": 6451019553488350,
+          "startTime": 17637.8250002861
+        }
+      },
+      "cat": "blink.user_timing",
+      "name": "compare/write-marker",
+      "ph": "I",
+      "pid": 8776,
+      "s": "t",
+      "tid": 73293339,
+      "ts": 2536172432396,
+      "tts": 470559
+    },
+    {
+      "args": {},
+      "cat": "disabled-by-default-devtools.timeline",
+      "dur": 486,
+      "name": "RunTask",
+      "ph": "X",
+      "pid": 8776,
+      "tdur": 467,
+      "tid": 73293339,
+      "ts": 2536172446701,
+      "tts": 471058
+    },
+    {
+      "args": {
+        "animation_frame_timing_info": {
+          "begin_frame_id": {
+            "sequence_number": 1066,
+            "source_id": 4294967296
+          },
+          "blocking_duration_ms": 0,
+          "duration_ms": 14,
+          "num_scripts": 0
+        },
+        "id": "4ab6eb2b08ecbdda"
+      },
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x39"
+      },
+      "name": "AnimationFrame",
+      "ph": "b",
+      "pid": 8776,
+      "tid": 73293339,
+      "ts": 2536172432326
+    },
+    {
+      "args": {},
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x39"
+      },
+      "name": "AnimationFrame",
+      "ph": "e",
+      "pid": 8776,
+      "tid": 73293339,
+      "ts": 2536172447120
+    },
+    {
+      "args": {
+        "begin_frame_id": {
+          "sequence_number": 1066,
+          "source_id": 4294967296
+        },
+        "id": "4ab6eb2b08ecbdda"
+      },
+      "cat": "devtools.timeline",
+      "id2": {
+        "local": "0x39"
+      },
+      "name": "AnimationFrame::Presentation",
+      "ph": "n",
+      "pid": 8776,
+      "tid": 73293339,
+      "ts": 2536172470530
+    }
+  ],
+  "phase": {
+    "records": {
+      "timeOrigin": 1790851945093.165,
+      "markers": [
+        {
+          "operation": "begin",
+          "time": 17591.71500015259
+        },
+        {
+          "operation": "end",
+          "time": 17685.956000328064
+        }
+      ],
+      "spans": [
+        {
+          "terminal": 0,
+          "category": "parse",
+          "operation": "ghostty_terminal_vt_write",
+          "start": 17637.93400001526,
+          "end": 17637.953999996185,
+          "self": 0.02
+        },
+        {
+          "terminal": 0,
+          "category": "js",
+          "operation": "drawFrame",
+          "start": 17652.1890001297,
+          "end": 17652.479000091553,
+          "self": 0.29
+        },
+        {
+          "terminal": 0,
+          "category": "commands",
+          "operation": "submit",
+          "start": 17652.364000320435,
+          "end": 17652.393000125885,
+          "self": 0.029
+        }
+      ]
+    },
+    "sample": {
+      "captures": [
+        {
+          "operation": "write",
+          "started": 1790851962730.99,
+          "timestamp": 1790851962755.644
+        }
+      ]
+    }
+  },
+  "expected": 38.13100004196531
+}

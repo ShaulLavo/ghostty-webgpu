@@ -21,3 +21,26 @@ export function analysisArguments(args) {
   )
   return { input: positional[0], output: positional[1], compact: args.includes('--compact') }
 }
+
+export function selection(args, flag, fallback, allowed) {
+  const index = args.indexOf(flag)
+  if (index < 0) return fallback
+  const value = args[index + 1]
+  assert(value && !value.startsWith('--'), `${flag} needs a comma-separated value`)
+  const selected = value.split(',')
+  assert(selected.length === new Set(selected).size, `${flag} contains duplicates`)
+  assert(
+    selected.every((item) => allowed.includes(item)),
+    `${flag} contains an unsupported value`,
+  )
+  return selected
+}
+
+export function hardwareLaunch(host, smoke, smokeHeaded = false) {
+  const headless = host === 'linux' ? !smokeHeaded : smoke && !smokeHeaded
+  const arguments_ =
+    host === 'linux' && !smoke
+      ? ['--enable-features=Vulkan', '--use-angle=vulkan', '--ignore-gpu-blocklist']
+      : []
+  return { headless, arguments: arguments_ }
+}

@@ -121,7 +121,13 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     autoFit: false,
     accessibility: false,
     rendererFactory: async (options) => {
-      const adapter = await navigator.gpu?.requestAdapter()
+      let adapter: GPUAdapter | null | undefined
+      for (let attempt = 0; attempt < settings.adapterAttempts; attempt++) {
+        adapter = await navigator.gpu?.requestAdapter()
+        if (adapter) break
+        if (attempt + 1 < settings.adapterAttempts)
+          await new Promise((resolve) => setTimeout(resolve, settings.adapterRetryMilliseconds))
+      }
       if (!adapter) throw new Error('Hardware WebGPU adapter required')
       adapterInfo = {
         vendor: adapter.info.vendor,
@@ -579,9 +585,10 @@ async function prepareInput(color: 'red' | 'green'): Promise<void> {
   drivers[0]!.focus()
 }
 
-async function writeMarker(color: 'red' | 'green'): Promise<number> {
+async function writeMarker(color: 'red' | 'green', delayFrames = 0): Promise<number> {
   const started = performance.timeOrigin + performance.now()
-  tracing.mark('write-marker', { color })
+  tracing.mark('write-marker', { color, delayFrames })
+  for (let index = 0; index < delayFrames; index++) await frame()
   await drivers[0]!.write(input(marker(color)))
   return started
 }

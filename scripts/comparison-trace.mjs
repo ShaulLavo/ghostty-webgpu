@@ -212,10 +212,20 @@ async function collectTrace(browserSession, completed) {
   return Buffer.concat(chunks)
 }
 
-export async function tracePhase({ page, browserSession, output, label, operation, traced, now }) {
+export async function tracePhase({
+  page,
+  browserSession,
+  output,
+  label,
+  operation,
+  traced,
+  now,
+  categories,
+}) {
   if (traced)
     await browserSession.send('Tracing.start', {
       categories:
+        categories ??
         'toplevel,devtools.timeline,blink.user_timing,v8,cc,viz,gpu,disabled-by-default-devtools.timeline,disabled-by-default-v8.cpu_profiler',
       transferMode: 'ReturnAsStream',
     })

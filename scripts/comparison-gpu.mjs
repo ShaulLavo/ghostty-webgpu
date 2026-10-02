@@ -1,0 +1,324 @@
+import assert from 'node:assert/strict'
+import { execFile } from 'node:child_process'
+import { performance } from 'node:perf_hooks'
+import { setTimeout as delay } from 'node:timers/promises'
+import { promisify } from 'node:util'
+
+const execute = promisify(execFile)
+
+export class GpuQualificationError extends Error {
+  constructor(reason, evidence) {
+    super(reason)
+    this.name = 'GpuQualificationError'
+    this.evidence = evidence
+  }
+}
+
+function number(value) {
+  assert(/^\d+(?:\.\d+)?$/.test(value.trim()), 'NVIDIA sample requires a numeric value')
+  return Number(value)
+}
+
+export function parseGpuSample(gpuOutput, computeOutput, allowedComputePids = []) {
+  const lines = (output) => output.trim().split(/\r?\n/).filter(Boolean)
+  const gpus = lines(gpuOutput).map((line) => {
+    const fields = line.split(',').map((value) => value.trim())
+    assert.equal(fields.length, 2, 'NVIDIA GPU sample requires UUID and utilization')
+    const utilizationPercent = number(fields[1])
+    assert(utilizationPercent <= 100, 'NVIDIA utilization must be a percentage')
+    return { uuid: fields[0], utilizationPercent }
+  })
+  assert(gpus.length > 0, 'NVIDIA sample requires at least one GPU')
+  assert.equal(new Set(gpus.map((gpu) => gpu.uuid)).size, gpus.length, 'Duplicate NVIDIA GPU UUID')
+  const allowed = new Set(allowedComputePids)
+  const processes = lines(computeOutput).map((line) => {
+    const fields = line.split(',').map((value) => value.trim())
+    assert.equal(fields.length, 3, 'NVIDIA process sample requires UUID, PID and memory')
+    const pid = number(fields[1])
+    assert(Number.isInteger(pid) && pid > 0, 'NVIDIA sample requires a positive process ID')
+    assert(
+      gpus.some((gpu) => gpu.uuid === fields[0]),
+      'NVIDIA process GPU must be present',
+    )
+    return { uuid: fields[0], pid, memoryMiB: number(fields[2]), allowed: allowed.has(pid) }
+  })
+  return {
+    gpus,
+    processes,
+    utilizationPercent: Math.max(...gpus.map((gpu) => gpu.utilizationPercent)),
+    computeMemoryMiB: processes
+      .filter((entry) => !entry.allowed)
+      .reduce((total, entry) => total + entry.memoryMiB, 0),
+  }
+}
+
+export async function sampleNvidiaGpu({
+  command = execute,
+  timeoutMilliseconds,
+  allowedComputePids = [],
+  now = () => performance.now(),
+} = {}) {
+  assert(
+    Number.isFinite(timeoutMilliseconds) && timeoutMilliseconds > 0,
+    'Positive NVIDIA command timeout required',
+  )
+  const started = now()
+  const options = { timeout: timeoutMilliseconds, maxBuffer: 1024 * 1024, encoding: 'utf8' }
+  const [gpu, compute] = await Promise.all([
+    command(
+      'nvidia-smi',
+      ['--query-gpu=uuid,utilization.gpu', '--format=csv,noheader,nounits'],
+      options,
+    ),
+    command(
+      'nvidia-smi',
+      ['--query-compute-apps=gpu_uuid,pid,used_gpu_memory', '--format=csv,noheader,nounits'],
+      options,
+    ),
+  ])
+  return {
+    ...parseGpuSample(gpu.stdout, compute.stdout, allowedComputePids),
+    started,
+    completed: now(),
+  }
+}
+
+function validateSettings(settings) {
+  for (const key of [
+    'gpuSampleMilliseconds',
+    'gpuIdleWaitMilliseconds',
+    'gpuCommandTimeoutMilliseconds',
+  ]) {
+    assert(Number.isFinite(settings[key]) && settings[key] > 0, `Positive ${key} required`)
+  }
+  assert(
+    Number.isInteger(settings.gpuIdleConsecutiveSamples) && settings.gpuIdleConsecutiveSamples > 0,
+    'Positive gpuIdleConsecutiveSamples required',
+  )
+  assert(
+    Number.isFinite(settings.gpuIdleUtilizationPercent) &&
+      settings.gpuIdleUtilizationPercent >= 0 &&
+      settings.gpuIdleUtilizationPercent <= 100,
+    'gpuIdleUtilizationPercent must be between zero and 100',
+  )
+  assert(
+    Number.isFinite(settings.gpuWindowUtilizationPercent) &&
+      settings.gpuWindowUtilizationPercent >= 0 &&
+      settings.gpuWindowUtilizationPercent <= 100,
+    'gpuWindowUtilizationPercent must be between zero and 100',
+  )
+  assert(
+    Number.isFinite(settings.gpuComputeMemoryMiB) && settings.gpuComputeMemoryMiB >= 0,
+    'Nonnegative gpuComputeMemoryMiB required',
+  )
+}
+
+export function createGpuGate(
+  settings,
+  {
+    platform = process.platform,
+    command = execute,
+    allowedComputePids = [],
+    now = () => performance.now(),
+    sleep = delay,
+    sample = (timeoutMilliseconds) =>
+      sampleNvidiaGpu({
+        command,
+        allowedComputePids,
+        now,
+        timeoutMilliseconds,
+      }),
+  } = {},
+) {
+  validateSettings(settings)
+  let skipReason = platform === 'linux' ? null : 'NVIDIA qualification is available on Linux'
+  let sampledSuccessfully = false
+  let idleBaseline = null
+
+  async function acquire(
+    evidence,
+    timeoutMilliseconds = settings.gpuCommandTimeoutMilliseconds,
+    retryTimeout = false,
+  ) {
+    try {
+      const reading = await sample(timeoutMilliseconds)
+      evidence.samples.push(reading)
+      sampledSuccessfully = true
+      return reading
+    } catch (error) {
+      const noDevices = /no devices were found|no devices found/i.test(error.stdout ?? '')
+      if (!sampledSuccessfully && (error.code === 'ENOENT' || noDevices)) {
+        skipReason = noDevices ? 'No NVIDIA GPU devices found' : 'nvidia-smi is unavailable'
+        evidence.status = 'skipped'
+        evidence.qualified = true
+        evidence.skipReason = skipReason
+        return null
+      }
+      const samplingError = {
+        name: error.name,
+        code: error.code ?? null,
+        message: error.message,
+      }
+      const timedOut =
+        error.code === 'ETIMEDOUT' ||
+        (error.killed && (error.signal === 'SIGTERM' || error.signal === 'SIGKILL'))
+      if (retryTimeout && timedOut) {
+        evidence.samplingTimeouts ??= []
+        evidence.samplingTimeouts.push(samplingError)
+        return undefined
+      }
+      evidence.status = 'failed'
+      evidence.reason = 'NVIDIA GPU sampling failed'
+      evidence.samplingError = samplingError
+      throw new GpuQualificationError(evidence.reason, evidence)
+    }
+  }
+
+  function evidence(kind) {
+    return {
+      kind,
+      foreignActivityMetric: 'resident-compute-memory-mib',
+      limitation:
+        'Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.',
+      status: skipReason ? 'skipped' : 'sampling',
+      qualified: Boolean(skipReason),
+      skipReason,
+      settings: {
+        gpuIdleUtilizationPercent: settings.gpuIdleUtilizationPercent,
+        gpuWindowUtilizationPercent: settings.gpuWindowUtilizationPercent,
+        gpuComputeMemoryMiB: settings.gpuComputeMemoryMiB,
+        gpuSampleMilliseconds: settings.gpuSampleMilliseconds,
+        gpuIdleConsecutiveSamples: settings.gpuIdleConsecutiveSamples,
+        gpuIdleWaitMilliseconds: settings.gpuIdleWaitMilliseconds,
+        gpuCommandTimeoutMilliseconds: settings.gpuCommandTimeoutMilliseconds,
+      },
+      samples: [],
+    }
+  }
+
+  async function waitForIdle() {
+    const result = evidence('idle')
+    if (skipReason) return result
+    const started = now()
+    idleBaseline = null
+    let consecutive = 0
+    while (now() - started < settings.gpuIdleWaitMilliseconds) {
+      const remaining = settings.gpuIdleWaitMilliseconds - (now() - started)
+      const reading = await acquire(
+        result,
+        Math.min(remaining, settings.gpuCommandTimeoutMilliseconds),
+        true,
+      )
+      if (reading === null) return result
+      const idle =
+        reading !== undefined &&
+        reading.utilizationPercent <= settings.gpuIdleUtilizationPercent &&
+        reading.computeMemoryMiB <= settings.gpuComputeMemoryMiB
+      consecutive = idle ? consecutive + 1 : 0
+      result.waitMilliseconds = now() - started
+      if (
+        consecutive >= settings.gpuIdleConsecutiveSamples &&
+        result.waitMilliseconds <= settings.gpuIdleWaitMilliseconds
+      ) {
+        idleBaseline = reading
+        result.status = 'qualified'
+        result.qualified = true
+        return result
+      }
+      const pause = Math.min(
+        settings.gpuSampleMilliseconds,
+        settings.gpuIdleWaitMilliseconds - (now() - started),
+      )
+      if (pause > 0) await sleep(pause)
+    }
+    result.status = 'failed'
+    result.reason = 'NVIDIA GPU idle wait expired'
+    if (result.samplingTimeouts?.length) result.samplingError = result.samplingTimeouts.at(-1)
+    result.waitMilliseconds = now() - started
+    throw new GpuQualificationError(result.reason, result)
+  }
+
+  async function monitorWindow(
+    operation,
+    { sampleMilliseconds = settings.gpuSampleMilliseconds } = {},
+  ) {
+    assert(
+      Number.isFinite(sampleMilliseconds) && sampleMilliseconds > 0,
+      'Positive sampleMilliseconds required',
+    )
+    const result = evidence('window')
+    result.settings.gpuSampleMilliseconds = sampleMilliseconds
+    if (skipReason) return { value: await operation(), gpu: result }
+    const first = await acquire(result)
+    if (!first) return { value: await operation(), gpu: result }
+    const baseline = idleBaseline ?? first
+    const foreignPids = new Set(
+      baseline.processes.filter((entry) => !entry.allowed).map((entry) => entry.pid),
+    )
+    result.baselineForeignComputePids = [...foreignPids]
+    assertCompute(first, result, foreignPids)
+    let stopped = false
+    const controller = new AbortController()
+    // Attach the rejection handler before running the window so sampler failures are retained.
+    const monitoring = monitor(
+      result,
+      () => stopped,
+      controller.signal,
+      foreignPids,
+      sampleMilliseconds,
+    ).catch((error) => error)
+    let value
+    let operationFailure
+    let monitoringFailure
+    try {
+      value = await operation()
+    } catch (error) {
+      operationFailure = { error }
+    } finally {
+      stopped = true
+      controller.abort()
+      monitoringFailure = await monitoring
+    }
+    if (monitoringFailure) throw monitoringFailure
+    if (operationFailure) throw operationFailure.error
+    const last = await acquire(result)
+    if (last) assertCompute(last, result, foreignPids)
+    if (result.status !== 'skipped') result.status = 'qualified'
+    result.qualified = true
+    return { value, gpu: result }
+  }
+
+  function assertCompute(reading, result, foreignPids) {
+    const busy = reading.utilizationPercent > settings.gpuWindowUtilizationPercent
+    const newForeignPids = reading.processes
+      .filter((entry) => !entry.allowed && !foreignPids.has(entry.pid))
+      .map((entry) => entry.pid)
+    const foreign =
+      reading.computeMemoryMiB > settings.gpuComputeMemoryMiB || newForeignPids.length > 0
+    if (newForeignPids.length > 0) result.newForeignComputePids = [...new Set(newForeignPids)]
+    if (!busy && !foreign) return
+    result.status = 'failed'
+    result.qualified = false
+    result.reason = busy
+      ? 'NVIDIA GPU utilization exceeded the measurement threshold'
+      : 'External NVIDIA compute activity detected during measurement'
+    throw new GpuQualificationError(result.reason, result)
+  }
+
+  async function monitor(result, stopped, signal, foreignPids, sampleMilliseconds) {
+    while (!stopped()) {
+      try {
+        await sleep(sampleMilliseconds, undefined, { signal })
+      } catch (error) {
+        if (signal.aborted) return
+        throw error
+      }
+      if (stopped()) return
+      const reading = await acquire(result)
+      if (!reading) return
+      assertCompute(reading, result, foreignPids)
+    }
+  }
+
+  return { waitForIdle, monitorWindow }
+}

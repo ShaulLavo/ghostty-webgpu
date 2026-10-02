@@ -50,11 +50,14 @@ for (const [name, path] of Object.entries(assets)) {
 for (const name of [
   'comparison-runner.mjs',
   'comparison-report.mjs',
+  'comparison-compact.mjs',
   'comparison-pixels.mjs',
   'comparison-guards.mjs',
   'comparison-trace.mjs',
   'comparison-attribution.mjs',
   'comparison-options.mjs',
+  'comparison-latency.mjs',
+  'comparison-gpu.mjs',
 ]) {
   await copyFile(join(root, 'scripts', name), join(output, name))
   hashes[name] = hash(await readFile(join(output, name)))

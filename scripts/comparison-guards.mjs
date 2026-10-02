@@ -38,7 +38,11 @@ async function cpuSnapshot(session, now) {
   return { processInfo, requested, completed, sampledAt: (requested + completed) / 2 }
 }
 
-export async function measureCpu(session, operation, { now = () => performance.now() } = {}) {
+export async function measureCpu(
+  session,
+  operation,
+  { now = () => performance.now(), tickSeconds = null } = {},
+) {
   const before = await cpuSnapshot(session, now)
   const started = now()
   const sample = await operation()
@@ -51,6 +55,7 @@ export async function measureCpu(session, operation, { now = () => performance.n
     milliseconds,
     cpu: {
       ...cpuSample(before.processInfo, after.processInfo, interval),
+      tickSeconds,
       milliseconds: interval,
       interval: {
         before: { requested: before.requested, completed: before.completed },
