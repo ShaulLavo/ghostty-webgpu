@@ -253,42 +253,11 @@ h1 {
   color: var(--pale);
 }
 
-.chrome-end {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.toggle {
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: #a8a3c6;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1;
-  transition:
-    background-color 160ms var(--ease-out),
-    color 160ms var(--ease-out);
-}
-
-.toggle:enabled:hover,
-.toggle[aria-pressed='true'] {
-  color: var(--pale);
-}
-
-.toggle[aria-pressed='true'] {
-  background: rgba(126, 230, 206, 0.16);
-}
-
-.tabs button:disabled,
-.toggle:disabled {
+.tabs button:disabled {
   cursor: default;
   opacity: 0.5;
 }
 
-.toggle:focus-visible,
 .tabs button:focus-visible {
   outline-color: var(--spectre);
   outline-offset: 1px;
@@ -322,11 +291,6 @@ h1 {
   height: clamp(320px, 62vh, 620px);
   background: var(--ink);
   overflow: hidden;
-}
-
-.damage-overlay {
-  position: absolute;
-  pointer-events: none;
 }
 
 #terminal {
@@ -428,17 +392,13 @@ h1 {
     font-size: 14px;
   }
 
-  /* The dots are decoration; the tabs, toggle and backend label need the width. */
+  /* The dots are decoration; the tabs and backend label need the width. */
   .window-dots {
     display: none;
   }
 
   .chrome {
     padding-inline: 10px;
-  }
-
-  .chrome-end {
-    gap: 6px;
   }
 }
 
@@ -472,16 +432,21 @@ h1 {
   text-decoration: none;
 }
 
+.usage {
+  margin-top: 40px;
+}
+
 .example {
   font-variant-ligatures: none;
-  margin: 20px 0 0;
-  padding: 16px;
+  margin: 0;
+  padding: 18px 20px;
   overflow-x: auto;
-  border-radius: 8px;
-  background: var(--fog);
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--pale);
   font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.65;
+  font-size: 13px;
+  line-height: 1.7;
   tab-size: 2;
 }
 
@@ -489,13 +454,25 @@ h1 {
   font-family: inherit;
 }
 
-.syntax-keyword {
-  color: var(--dusk);
-  font-weight: 600;
+/* Token colors are the terminal's own ANSI palette, so the code reads like the demo above it. */
+.tk-k {
+  color: #c79df2;
 }
 
-.syntax-string {
-  color: inherit;
+.tk-s {
+  color: #8ddba4;
+}
+
+.tk-f {
+  color: #86a9f5;
+}
+
+.tk-t {
+  color: #f2cf87;
+}
+
+.tk-p {
+  color: #8f8aae;
 }
 
 .pty-example {
@@ -506,6 +483,20 @@ h1 {
 
 .pty-example summary {
   cursor: pointer;
+}
+
+.pty-example .example {
+  margin-top: 12px;
+}
+
+/* Edge to edge on phones so the longest sample line fits without wrapping or scrolling. */
+@media (max-width: 480px) {
+  .example {
+    margin-inline: -16px;
+    padding: 16px 14px;
+    border-radius: 0;
+    font-size: 11px;
+  }
 }
 
 .measured {

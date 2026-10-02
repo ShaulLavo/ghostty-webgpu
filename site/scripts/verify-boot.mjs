@@ -72,7 +72,6 @@ async function runtimeFailure(page, asset, name) {
   await page.goto(url, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => performance.getEntriesByName('ghost:create-start').length > 0)
   assert.equal(await page.locator('#ghost-first-frame [data-row]').count(), 40)
-  assert.equal(await page.locator('#damage').isEnabled(), true)
   await page.screenshot({ path: `${directory}/${name}-before.png`, fullPage: true })
   await page.locator('#tabs button[data-demo=shell]').click()
   release()
@@ -84,7 +83,6 @@ async function runtimeFailure(page, asset, name) {
   )
   assert.equal(await page.locator('#ghost-first-frame [data-row]').count(), 40)
   assert.equal(await page.locator('#tabs button:disabled').count(), 3)
-  assert.equal(await page.locator('#damage').isDisabled(), true)
   assert.equal(await page.locator('#backend').textContent(), 'html')
   assert.equal(await page.locator('#backend-fact').textContent(), 'html')
   assert.equal(await page.locator('#caption').isVisible(), true)
@@ -93,7 +91,7 @@ async function runtimeFailure(page, asset, name) {
     'true',
   )
   assert.equal(await page.locator('#terminal').getAttribute('aria-label'), 'Ghost demo')
-  for (const selector of ['#tabs button[data-demo=shell]', '#damage']) {
+  for (const selector of ['#tabs button[data-demo=shell]']) {
     const button = page.locator(selector)
     await page.mouse.move(0, 0)
     await page.waitForTimeout(200)

@@ -5,7 +5,6 @@ import { ShellDemo } from './demos/shell.js'
 import type { Demo, DemoContext } from './demos/types.js'
 import { terminalTheme } from './theme.js'
 import { loadGhostFrames } from './ghost-frames.js'
-import { DamageOverlay } from './damage-overlay.js'
 import { fittedScreenHeight, roundedFitPadding } from './fit.js'
 
 const FONT_FAMILY = '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace'
@@ -35,7 +34,6 @@ const ui = {
   caption: required<HTMLElement>('#caption'),
   copy: required<HTMLButtonElement>('#copy-install'),
   firstFrame: required<HTMLElement>('#ghost-first-frame'),
-  damage: required<HTMLButtonElement>('#damage'),
   host: required<HTMLElement>('#terminal'),
   screen: required<HTMLElement>('.screen'),
   stat: required<HTMLElement>('#stat'),
@@ -43,7 +41,6 @@ const ui = {
   window: required<HTMLElement>('#window'),
 }
 
-const overlay = new DamageOverlay(ui.screen)
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let terminal: Terminal | undefined
 const paused = reducedMotion.matches
@@ -120,20 +117,7 @@ function setFont(size: number, lineHeight: number): void {
   terminal!.setFont({ lineHeight, size })
 }
 
-function toggleOverlay(): void {
-  if (!terminal) return
-  const wasOn = overlay.enabled
-  if (wasOn) overlay.disable()
-  if (!wasOn) overlay.enable(terminal)
-  ui.damage.setAttribute('aria-pressed', String(overlay.enabled))
-  // Typing right after toggling belongs to the shell, and Space would flip the toggle back.
-  if (active.input) terminal.focus()
-}
-
 function wireControls(): void {
-  ui.damage.disabled = !overlay.supported
-  if (!overlay.supported) ui.damage.title = 'Redraw tint uses Canvas2D.'
-  ui.damage.addEventListener('click', toggleOverlay)
   // The terminal's own wheel handler scrolls its scrollback and blocks the
   // page. Stop the event in the capture phase so the page scrolls instead.
   ui.host.addEventListener('wheel', (event) => event.stopPropagation(), { capture: true })
@@ -267,9 +251,6 @@ function showStillFrame(): void {
   active = ghost
   syncTabs()
   for (const demo of demos) tabButton(demo).disabled = true
-  overlay.disable()
-  ui.damage.disabled = true
-  ui.damage.setAttribute('aria-pressed', 'false')
   ui.backend.textContent = 'html'
   ui.backendFact.textContent = 'html'
   ui.stat.textContent = ''

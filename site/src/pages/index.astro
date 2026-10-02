@@ -56,38 +56,6 @@ const base = import.meta.env.BASE_URL
           <code>npm install ghostty-webgpu</code>
           <button id="copy-install" type="button">Copy</button>
         </div>
-        <pre class="example" aria-label="Create a terminal"><code><span class="syntax-keyword">import</span> {'{ Terminal }'} <span class="syntax-keyword">from</span> <span class="syntax-string">'ghostty-webgpu'</span>
-
-<span class="syntax-keyword">const</span> host =
-  document.getElementById(<span class="syntax-string">'terminal'</span>)!
-<span class="syntax-keyword">const</span> terminal = <span class="syntax-keyword">await</span> Terminal.create()
-<span class="syntax-keyword">await</span> terminal.open(host)
-terminal.write(<span class="syntax-string">'hello from ghostty\r\n'</span>)
-terminal.focus()</code></pre>
-        <details class="pty-example">
-          <summary>Connect a WebSocket PTY</summary>
-          <pre class="example" aria-label="WebSocket PTY wiring"><code><span class="syntax-keyword">const</span> socket = <span class="syntax-keyword">new</span> WebSocket(
-  <span class="syntax-string">'wss://example.com/pty'</span>,
-)
-socket.binaryType = <span class="syntax-string">'arraybuffer'</span>
-
-terminal.onData((bytes) =&gt; {'{'}
-  <span class="syntax-keyword">if</span> (
-    socket.readyState !== WebSocket.OPEN
-  ) <span class="syntax-keyword">return</span>
-  socket.send(bytes)
-{'}'})
-
-socket.addEventListener(
-  <span class="syntax-string">'message'</span>,
-  ({'{'} data {'}'}) =&gt; {'{'}
-    <span class="syntax-keyword">if</span> (!(data <span class="syntax-keyword">instanceof</span> ArrayBuffer))
-      <span class="syntax-keyword">return</span>
-    terminal.write(<span class="syntax-keyword">new</span> Uint8Array(data))
-  {'}'},
-)</code></pre>
-          <p>The mount needs a height and width. Dispose the terminal and close the socket when the connection ends.</p>
-        </details>
       </section>
 
       <section class="window" id="window" data-ready="true" aria-label="Live terminal">
@@ -100,18 +68,7 @@ socket.addEventListener(
             <button type="button" role="tab" data-demo="matrix" aria-selected="false">Matrix</button>
             <button type="button" role="tab" data-demo="shell" aria-selected="false">Shell</button>
           </div>
-          <div class="chrome-end">
-            <button
-              type="button"
-              class="toggle"
-              id="damage"
-              aria-pressed="false"
-              title="Tint each row the renderer repaints"
-            >
-              Redraws
-            </button>
-            <span class="backend" id="backend" title="Renderer in use on this device">html</span>
-          </div>
+          <span class="backend" id="backend" title="Renderer in use on this device">html</span>
         </div>
         <div class="screen">
           <div id="terminal" role="tabpanel" aria-label="Animated Ghostty ghost">
@@ -121,6 +78,31 @@ socket.addEventListener(
       </section>
       <p class="caption" id="caption"></p>
       <p class="stat" id="stat" aria-live="polite"></p>
+      <section class="usage" aria-label="Usage">
+        <pre class="example" aria-label="Create a terminal"><code><span class="tk-k">import</span> <span class="tk-p">{'{'}</span> <span class="tk-t">Terminal</span> <span class="tk-p">{'}'}</span> <span class="tk-k">from</span> <span class="tk-s">'ghostty-webgpu'</span>
+
+<span class="tk-k">const</span> host <span class="tk-p">=</span> document.<span class="tk-f">getElementById</span><span class="tk-p">(</span><span class="tk-s">'terminal'</span><span class="tk-p">)!</span>
+<span class="tk-k">const</span> terminal <span class="tk-p">=</span> <span class="tk-k">await</span> <span class="tk-t">Terminal</span>.<span class="tk-f">create</span><span class="tk-p">()</span>
+<span class="tk-k">await</span> terminal.<span class="tk-f">open</span><span class="tk-p">(</span>host<span class="tk-p">)</span>
+terminal.<span class="tk-f">write</span><span class="tk-p">(</span><span class="tk-s">'hello from ghostty\r\n'</span><span class="tk-p">)</span>
+terminal.<span class="tk-f">focus</span><span class="tk-p">()</span></code></pre>
+        <details class="pty-example">
+          <summary>Connect a WebSocket PTY</summary>
+          <pre class="example" aria-label="WebSocket PTY wiring"><code><span class="tk-k">const</span> socket <span class="tk-p">=</span> <span class="tk-k">new</span> <span class="tk-t">WebSocket</span><span class="tk-p">(</span><span class="tk-s">'wss://host/pty'</span><span class="tk-p">)</span>
+socket.binaryType <span class="tk-p">=</span> <span class="tk-s">'arraybuffer'</span>
+
+terminal.<span class="tk-f">onData</span><span class="tk-p">((</span>bytes<span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
+  <span class="tk-k">if</span> <span class="tk-p">(</span>socket.readyState <span class="tk-p">!==</span> <span class="tk-t">WebSocket</span>.OPEN<span class="tk-p">)</span> <span class="tk-k">return</span>
+  socket.<span class="tk-f">send</span><span class="tk-p">(</span>bytes<span class="tk-p">)</span>
+<span class="tk-p">{'}'})</span>
+
+socket.<span class="tk-f">addEventListener</span><span class="tk-p">(</span><span class="tk-s">'message'</span><span class="tk-p">,</span> <span class="tk-p">(</span><span class="tk-p">{'{'}</span> data <span class="tk-p">{'}'}</span><span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
+  <span class="tk-k">if</span> <span class="tk-p">(!(</span>data <span class="tk-k">instanceof</span> <span class="tk-t">ArrayBuffer</span><span class="tk-p">))</span> <span class="tk-k">return</span>
+  terminal.<span class="tk-f">write</span><span class="tk-p">(</span><span class="tk-k">new</span> <span class="tk-t">Uint8Array</span><span class="tk-p">(</span>data<span class="tk-p">))</span>
+<span class="tk-p">{'}'})</span></code></pre>
+          <p>The mount needs a height and width. Dispose the terminal and close the socket when the connection ends.</p>
+        </details>
+      </section>
 
       <section class="facts" aria-label="What makes it different">
         <p>

@@ -72,7 +72,6 @@ async function handoff(width, height, deviceScaleFactor) {
   const before = await geometry(page)
   assert.equal(before.rows, 40, 'HTML contains the complete first frame before wasm arrives')
   assert.equal(before.backend, 'html')
-  assert.equal(await page.locator('#damage').getAttribute('aria-pressed'), 'false')
   assert.equal(await page.locator('#tabs button[role=tab]').count(), 3)
   assert.equal(await page.locator('#backend-fact').textContent(), 'html')
   const name = `${width}-dpr${deviceScaleFactor}`
@@ -83,11 +82,6 @@ async function handoff(width, height, deviceScaleFactor) {
   release()
   await page.waitForFunction(() => performance.getEntriesByName('ghost:first-frame').length > 0)
   const after = await geometry(page)
-  await page.locator('#damage').click()
-  assert.equal(await page.locator('#damage').getAttribute('aria-pressed'), 'true')
-  assert.equal(await page.locator('.damage-overlay').count(), 1)
-  await page.locator('#damage').click()
-  assert.equal(await page.locator('.damage-overlay').count(), 0)
   assert.deepEqual(after.screen, before.screen, 'The hand-off preserves screen geometry')
   assert.equal(after.grid.rows, 40, 'The live renderer retains all ghost rows')
   assert.equal(after.grid.columns >= 78, true, 'The live renderer retains all ghost columns')
@@ -123,7 +117,6 @@ try {
   await page.waitForFunction(() => !document.querySelector('#ghost-first-frame'))
   assert.equal((await page.locator('#terminal .ghostty-webgpu-frame [data-row]').count()) > 0, true)
   await page.screenshot({ path: `${directory}/no-canvas-dom.png`, fullPage: true })
-  assert.equal(await page.locator('#damage').isDisabled(), true)
   results.push({ name: 'no-canvas-dom', ...(await geometry(page)) })
   await page.locator('#tabs button[data-demo=matrix]').click()
   await page.waitForFunction(() =>
@@ -167,7 +160,6 @@ try {
     'The live terminal did not start in this browser, so this is a still frame.',
   )
   assert.equal(await noWasmPage.locator('#tabs button:disabled').count(), 3)
-  assert.equal(await noWasmPage.locator('#damage').isDisabled(), true)
   await noWasmPage.screenshot({ path: `${directory}/no-webassembly.png`, fullPage: true })
   results.push({ name: 'no-webassembly', rows: 40 })
   await noWasmContext.close()
@@ -180,7 +172,6 @@ try {
   assert.equal(await staticPage.locator('#ghost-first-frame [data-row]').count(), 40)
   assert.equal(await staticPage.locator('#tabs button[role=tab]').count(), 3)
   assert.equal(await staticPage.locator('#backend').textContent(), 'html')
-  assert.equal(await staticPage.locator('#damage').getAttribute('aria-pressed'), 'false')
   await staticPage.screenshot({ path: `${directory}/no-javascript.png`, fullPage: true })
   await staticContext.close()
 } finally {
