@@ -5,6 +5,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { corpus, fixtureNames, fixtureText, settings, variants } from '../bench/comparison-fixtures'
+import { comparisonSourceHash } from './comparison-source'
 
 const root = resolve(import.meta.dirname, '..')
 const output = resolve(process.argv[2] ?? join(root, '.artifacts/comparison-bundle'))
@@ -95,27 +96,6 @@ const versions = Object.fromEntries(
 )
 versions['ghostty-webgpu'] = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).version
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
-const sourceFiles = execFileSync(
-  'git',
-  [
-    'ls-files',
-    '--cached',
-    '--others',
-    '--exclude-standard',
-    'src',
-    'bench',
-    'scripts/comparison*',
-    'scripts/build-comparison.ts',
-  ],
-  { cwd: root, encoding: 'utf8' },
-)
-  .trim()
-  .split('\n')
-const sourceHash = createHash('sha256')
-for (const path of sourceFiles) {
-  sourceHash.update(path)
-  sourceHash.update(await readFile(join(root, path)))
-}
 const manifest = {
   schema: 1,
   commit,
@@ -123,7 +103,7 @@ const manifest = {
     cwd: root,
     encoding: 'utf8',
   }).trim(),
-  sourceSha256: sourceHash.digest('hex'),
+  sourceSha256: await comparisonSourceHash(root),
   bundleSha256: hash(await readFile(join(output, 'browser.js'))),
   versions,
   settings,
