@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
 
+// NOT-PORTABLE: Site proof relies on surrounding Playwright install and external serving.
 const [url, directory] = process.argv.slice(2)
 if (!url || !directory) throw new TypeError('Supply the built-site URL and evidence directory')
 await mkdir(directory, { recursive: true })

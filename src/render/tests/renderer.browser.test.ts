@@ -21,6 +21,7 @@ const renderers = new Set<WebGpuTerminalRenderer>()
 // Keep Dawn's external instance alive while SwiftShader churns test-owned devices.
 let sentinelDevice: GPUDevice
 // Chromium's SwiftShader adapter lags configured-canvas teardown on Linux.
+// NOT-PORTABLE: Any Linux user agent skips device replacement, including hardware rendering.
 const isLinuxSwiftShader = navigator.userAgent.includes('Linux')
 // Linux SwiftShader cannot configure an independent replacement device.
 const deviceCleanupDelayMs = isLinuxSwiftShader ? 50 : 0

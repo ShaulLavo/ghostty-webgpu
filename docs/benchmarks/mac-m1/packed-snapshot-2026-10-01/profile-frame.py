@@ -3,6 +3,7 @@ import gzip
 import json
 from pathlib import Path
 
+# NOT-PORTABLE: Default input requires external raw captures under /work/tmp/plan-283-fix2.
 root = Path('/work/tmp/plan-283-fix2/corrected')
 results = []
 for kind in ['before', 'after']:

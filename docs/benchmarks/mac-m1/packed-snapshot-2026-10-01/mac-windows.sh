@@ -1,4 +1,5 @@
 #!/bin/bash
+# NOT-PORTABLE: Requires owner Mac benchmark dirs, mise shims and Homebrew Node.
 export PATH=$HOME/.local/share/mise/shims:$PATH
 cd "$HOME/tmp/gw-bench/p283-bulk-snapshot/corrected" || exit
 for spec in "17 ascii" "17 sgr" "1 ascii" "1 sgr"; do

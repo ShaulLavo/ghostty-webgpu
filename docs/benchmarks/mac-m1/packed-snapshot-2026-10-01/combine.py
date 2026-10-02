@@ -3,6 +3,7 @@ import json
 import shutil
 from pathlib import Path
 
+# NOT-PORTABLE: Default input requires external raw captures under /work/tmp/plan-283-fix2.
 root = Path('/work/tmp/plan-283-fix2/corrected')
 for count in [1, 17]:
     for phase in ['ascii', 'sgr']:

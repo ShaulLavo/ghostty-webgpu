@@ -16,6 +16,7 @@ for (let repetition = 0; repetition < 3; repetition++) {
   for (const kind of order) {
     let completed = false
     for (let attempt = 0; attempt < 3; attempt++) {
+      // NOT-PORTABLE: Requires macOS pmset and separately prepared archived runner copies.
       const power = execFileSync('/usr/bin/pmset', ['-g', 'batt'], { encoding: 'utf8' })
       assert(power.includes("'AC Power'"), 'AC power required')
       const remaining = 29 * 60_000 - (Date.now() - started)

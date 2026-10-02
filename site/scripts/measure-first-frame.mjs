@@ -1,6 +1,7 @@
 import { chromium } from 'playwright'
 import { mkdir, writeFile } from 'node:fs/promises'
 
+// NOT-PORTABLE: Site proof relies on surrounding Playwright install and external serving.
 const url = process.argv[2]
 const directory = process.argv[3]
 if (!url || !directory) throw new TypeError('Supply the built-site URL and evidence directory')

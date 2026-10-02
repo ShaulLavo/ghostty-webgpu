@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from statistics import median
 
+# NOT-PORTABLE: Default input requires external raw captures under /work/tmp/plan-283-fix2.
 root = Path('/work/tmp/plan-283-fix2/corrected')
 results = []
 for count in [1, 17]:
