@@ -1,5 +1,8 @@
 export const variants = [
   { id: 'ghostty-webgpu', library: 'ghostty-webgpu', renderer: 'webgpu' },
+  { id: 'ghostty-webgl', library: 'ghostty-webgpu', renderer: 'webgl2' },
+  { id: 'ghostty-canvas', library: 'ghostty-webgpu', renderer: 'canvas2d' },
+  { id: 'ghostty-dom', library: 'ghostty-webgpu', renderer: 'dom' },
   { id: 'xterm-webgl', library: '@xterm/xterm', renderer: 'webgl' },
   { id: 'xterm-dom', library: '@xterm/xterm', renderer: 'dom' },
   { id: 'ghostty-web', library: 'ghostty-web', renderer: 'canvas2d' },

@@ -98,7 +98,7 @@ test('recorded Linux headless-shell write and input select their own submission 
   }
   assert.notEqual(result.presentations[0].animationId, result.presentations[1].animationId)
   for (const presentation of result.presentations)
-    assert.ok(presentation.milliseconds >= presentation.submitEnd)
+    assert.ok(presentation.milliseconds >= presentation.renderBoundaryEnd)
 })
 
 test('matching frame identity with positive feedback before GPU submission fails closed', () => {
@@ -116,9 +116,12 @@ test('matching frame identity with positive feedback before GPU submission fails
         event.name === 'AnimationFrame::Presentation' && event.args.id === selected.animationId,
     )
     const started = capture.started - fixture.phase.records.timeOrigin
-    feedback.ts = (started + offset + selected.submitEnd / 2) * 1000
+    feedback.ts = (started + offset + selected.renderBoundaryEnd / 2) * 1000
     assert.ok(feedback.ts / 1000 - offset - started > 0)
-    assert.throws(() => presentationLatency(fixture.phase, fixture.events), /GPU submission end/)
+    assert.throws(
+      () => presentationLatency(fixture.phase, fixture.events),
+      /terminal render boundary end/,
+    )
   }
 })
 
@@ -131,7 +134,7 @@ test('presentation feedback exactly at GPU submission end is accepted', () => {
   feedback.ts = (submit.end + offset) * 1000
   submit.end = feedback.ts / 1000 - offset
   const result = presentationLatency(fixture.phase, fixture.events)
-  assert.equal(result.presentations[0].milliseconds, result.presentations[0].submitEnd)
+  assert.equal(result.presentations[0].milliseconds, result.presentations[0].renderBoundaryEnd)
 })
 
 test('recorded xterm WebGL submission selects its own Chrome frame presentation', async () => {
@@ -140,4 +143,98 @@ test('recorded xterm WebGL submission selects its own Chrome frame presentation'
   )
   const result = presentationLatency(fixture.phase, fixture.events)
   assert.ok(Math.abs(result.write[0] - fixture.expected) < 0.001)
+})
+
+function paintedFixture(backend, operation, frameOperation = 'drawFrame') {
+  const fixture = structuredClone(recorded)
+  fixture.phase.records.ownership = [{ terminal: 0, backend }]
+  fixture.phase.records.spans.find((span) => span.operation === 'drawFrame').operation =
+    frameOperation
+  fixture.phase.records.spans.find((span) => span.operation === 'submit').operation = operation
+  return fixture
+}
+
+test('canvas and DOM join actual terminal paint to its own compositor frame identity', () => {
+  for (const [backend, operation, frame] of [
+    ['canvas2d', 'paint', 'drawFrame'],
+    ['dom', 'replaceWith', 'drawFrame'],
+    ['ghostty-web', 'renderLine', 'render'],
+    ['xterm-dom', 'replaceChildren', 'renderRows'],
+    ['webgl2', 'submit', 'drawFrame'],
+  ]) {
+    const fixture = paintedFixture(backend, operation, frame)
+    const result = presentationLatency(fixture.phase, fixture.events)
+    assert.ok(Math.abs(result.write[0] - recorded.expected) < 0.001)
+    assert.equal(result.presentations[0].renderBoundary, operation)
+    assert.ok(result.presentations[0].milliseconds >= result.presentations[0].renderBoundaryEnd)
+    const unrelated = structuredClone(fixture.events)
+    unrelated.find((event) => event.name === 'AnimationFrame::Presentation').args.id = 'unrelated'
+    assert.throws(() => presentationLatency(fixture.phase, unrelated), /presentation feedback/)
+    fixture.phase.records.spans = fixture.phase.records.spans.filter(
+      (span) => span.category !== 'commands',
+    )
+    assert.throws(() => presentationLatency(fixture.phase, fixture.events), /committed row paint/)
+  }
+})
+
+test('software frames require their renderer-specific commit and reject incidental work', () => {
+  for (const [backend, actual] of [
+    ['canvas2d', 'paint'],
+    ['dom', 'replaceWith'],
+    ['ghostty-web', 'renderLine'],
+    ['xterm-dom', 'replaceChildren'],
+  ]) {
+    for (const incidental of ['clearDirty', 'fillRect', 'createRow', 'submit']) {
+      const fixture = paintedFixture(backend, incidental)
+      assert.throws(() => presentationLatency(fixture.phase, fixture.events), /committed row paint/)
+    }
+    const fixture = paintedFixture(backend, actual)
+    fixture.phase.records.spans.find((span) => span.operation === actual).terminal = 1
+    assert.throws(() => presentationLatency(fixture.phase, fixture.events), /committed row paint/)
+  }
+})
+
+test('last committed row, not first paint, bounds the feedback timestamp', () => {
+  const fixture = paintedFixture('canvas2d', 'paint')
+  const last = fixture.phase.records.spans.find((span) => span.operation === 'paint')
+  fixture.phase.records.spans.push({ ...last, end: (last.start + last.end) / 2 })
+  const begin = fixture.events.find((event) => event.name === 'compare/begin')
+  const offset = begin.ts / 1000 - begin.args.data.startTime
+  const feedback = fixture.events.find((event) => event.name === 'AnimationFrame::Presentation')
+  feedback.ts = ((last.start + last.end) / 2 + offset) * 1000
+  assert.throws(
+    () => presentationLatency(fixture.phase, fixture.events),
+    /terminal render boundary end/,
+  )
+  feedback.ts = (last.end + offset + 1) * 1000
+  const result = presentationLatency(fixture.phase, fixture.events)
+  assert.equal(
+    result.presentations[0].renderBoundaryEnd,
+    last.end - (result.captures[0].started - fixture.phase.records.timeOrigin),
+  )
+})
+
+test('deferred software no-op callback cannot become a paint presentation endpoint', () => {
+  for (const [backend, operation] of [
+    ['canvas2d', 'paint'],
+    ['dom', 'replaceWith'],
+    ['xterm-dom', 'replaceChildren'],
+  ]) {
+    const fixture = paintedFixture(backend, operation)
+    const frame = fixture.phase.records.spans.find((span) => span.operation === 'drawFrame')
+    const parse = fixture.phase.records.spans.find((span) => span.category === 'parse')
+    const noop = { ...frame, start: parse.end, end: (parse.end + frame.start) / 2 }
+    fixture.phase.records.spans.unshift(noop)
+    const result = presentationLatency(fixture.phase, fixture.events)
+    assert.ok(Math.abs(result.write[0] - recorded.expected) < 0.001)
+  }
+})
+
+test('renderer ownership cannot downgrade WebGPU or xterm WebGL submission safeguards', () => {
+  for (const backend of ['webgpu', 'xterm-webgl']) {
+    const fixture = paintedFixture(backend, 'paint')
+    assert.throws(() => presentationLatency(fixture.phase, fixture.events), /submitted glyph frame/)
+  }
+  const fixture = paintedFixture('unknown', 'paint')
+  assert.throws(() => presentationLatency(fixture.phase, fixture.events), /known terminal renderer/)
 })

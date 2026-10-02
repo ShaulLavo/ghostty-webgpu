@@ -1,0 +1,4910 @@
+{
+  "mode": "perturbed-attribution-only",
+  "gpuDurationScope": "Window-clipped complete X-event inclusive durations in the Chrome GPU process; nested events overlap, B/E and async durations are excluded; these are host events, not GPU-device execution time. Two settling animation frames do not prove every GPU/compositor operation completed before the analysis end mark.",
+  "apiCountScope": "Window-total library API calls divided by callbacks with actual paint/submission boundaries; this is an average, not a per-frame distribution.",
+  "sessionId": "272efd58-82d5-45aa-b937-90e1ada55828",
+  "browser": "153.0.8010.12",
+  "featureStatus": {
+    "2d_canvas": "enabled",
+    "direct_rendering_display_compositor": "disabled_off_ok",
+    "gpu_compositing": "enabled",
+    "multiple_raster_threads": "enabled_on",
+    "opengl": "enabled_on",
+    "rasterization": "enabled",
+    "raw_draw": "disabled_off_ok",
+    "skia_graphite": "disabled_off",
+    "trees_in_viz": "disabled_off",
+    "video_decode": "enabled",
+    "video_encode": "disabled_software",
+    "vulkan": "enabled_on",
+    "webgl": "enabled",
+    "webgpu": "enabled",
+    "webgpu_on_vk_via_gl_interop": "disabled_off",
+    "webnn": "disabled_off"
+  },
+  "auxAttributes": {
+    "amdSwitchable": false,
+    "canSupportThreadedTextureMailbox": false,
+    "directRenderingVersion": "",
+    "displayType": "ANGLE_VULKAN",
+    "glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_logic_op GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_func_extended GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_fragment_shading_rate GL_EXT_fragment_shading_rate_primitive GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_multisample_compatibility GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_render_snorm GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_norm16 GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent GL_KHR_debug GL_KHR_robustness GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_shading_rate GL_QCOM_texture_lod_bias ",
+    "glImplementationParts": "(gl=egl-angle,angle=vulkan)",
+    "glRenderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+    "glResetNotificationStrategy": 33362,
+    "glVendor": "Google Inc. (NVIDIA)",
+    "glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28646 git hash: a6bc9eff8444)",
+    "glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_texture_3D_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANDROID_native_fence_sync EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_EXT_image_dma_buf_import EGL_EXT_image_dma_buf_import_modifiers EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_KHR_mutable_render_buffer EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+    "glWsVendor": "Google Inc. (NVIDIA)",
+    "glWsVersion": "1.5 (ANGLE 2.1.28646 git hash: a6bc9eff8444)",
+    "hardwareSupportsVulkan": true,
+    "inProcessGpu": false,
+    "initializationTime": 0.398542,
+    "isAsan": false,
+    "isClangCoverage": false,
+    "jpegDecodeAcceleratorSupported": false,
+    "maxMsaaSamples": "8",
+    "optimus": false,
+    "passthroughCmdDecoder": true,
+    "pixelShaderVersion": "3.00",
+    "processCrashCount": 0,
+    "sandboxed": false,
+    "skiaBackendType": "GaneshVulkan",
+    "subpixelFontRendering": true,
+    "targetCpuBits": 64,
+    "vertexShaderVersion": "3.00",
+    "visibilityCallbackCallCount": 0
+  },
+  "cases": [
+    {
+      "variant": "ghostty-webgpu",
+      "frameBuilder": "zig",
+      "gpuQualification": {
+        "kind": "window",
+        "foreignActivityMetric": "resident-compute-memory-mib",
+        "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+        "status": "qualified",
+        "qualified": true,
+        "skipReason": null,
+        "settings": {
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000
+        },
+        "samples": [
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 4526.309616,
+            "completed": 4549.699589
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 13
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 13,
+            "computeMemoryMiB": 339,
+            "started": 5550.710189,
+            "completed": 5574.889112
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 13
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 13,
+            "computeMemoryMiB": 339,
+            "started": 6575.627584,
+            "completed": 6599.225687
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 33
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 33,
+            "computeMemoryMiB": 339,
+            "started": 7599.603538,
+            "completed": 7629.42097
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 34
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 34,
+            "computeMemoryMiB": 339,
+            "started": 8629.632851,
+            "completed": 8660.480359
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 36
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 36,
+            "computeMemoryMiB": 339,
+            "started": 9660.616255,
+            "completed": 9692.182933
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 10693.36665,
+            "completed": 10725.515217
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 11976.923075,
+            "completed": 12724.556378
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 13725.644353,
+            "completed": 13755.667214
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 14756.878277,
+            "completed": 14792.432861
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 15792.644549,
+            "completed": 15827.741511
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 16828.977158,
+            "completed": 16862.083404
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 17862.613109,
+            "completed": 17893.276506
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 18893.671674,
+            "completed": 18947.701815
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 20874.696113,
+            "completed": 20913.32192
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 636,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 20913.332708,
+            "completed": 20945.417318
+          }
+        ],
+        "baselineForeignComputePids": [3558, 6166, 1168573, 2577867]
+      },
+      "adapter": {
+        "vendor": "nvidia",
+        "architecture": "ampere",
+        "description": "",
+        "fallback": false
+      },
+      "errors": [],
+      "output": {
+        "intervals": [
+          16.664999999999964, 16.66500000000042, 16.664999999999964, 16.669999999999618,
+          16.66500000000042, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.66000000000031, 16.669999999999618, 16.664999999999964, 16.66500000000042,
+          16.664999999999964, 16.669999999999618, 16.66500000000042, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.66000000000031, 16.669999999999618,
+          16.664999999999964, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.66500000000042, 16.669999999999163,
+          16.665000000000873, 16.664999999999964, 16.669999999999163, 16.665000000000873,
+          16.664999999999964, 16.669999999999163, 16.660000000000764, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.665000000000873, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.665000000000873, 16.664999999999964, 16.669999999999163,
+          16.665000000000873, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+          16.669999999999163, 16.665000000000873, 16.664999999999964, 16.669999999999163,
+          16.660000000000764, 16.664999999999964, 16.670000000000073, 16.670000000000073,
+          16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964
+        ],
+        "bytes": 21012000,
+        "milliseconds": 5049.949999988079
+      },
+      "clock": {
+        "start": 2734.1449999809265,
+        "end": 7819.579999983311,
+        "mainTaskMilliseconds": 982.5389997065067
+      },
+      "stages": {
+        "parse": {
+          "milliseconds": 66.43999895453453,
+          "shareOfMainTasksPercent": 6.762072444389562
+        },
+        "js": {
+          "milliseconds": 292.9900018274784,
+          "shareOfMainTasksPercent": 29.819681652839957
+        },
+        "snapshot": {
+          "milliseconds": 97.3949998319149,
+          "shareOfMainTasksPercent": 9.912583608488585
+        },
+        "instances": {
+          "milliseconds": 88.3599990606308,
+          "shareOfMainTasksPercent": 8.99302715587114
+        },
+        "upload": {
+          "milliseconds": 161.53500014543533,
+          "shareOfMainTasksPercent": 16.440568791028884
+        },
+        "commands": {
+          "milliseconds": 73.06500083208084,
+          "shareOfMainTasksPercent": 7.436346125080634
+        },
+        "damage": {
+          "milliseconds": 5.295000374317169,
+          "shareOfMainTasksPercent": 0.5389099441242367
+        }
+      },
+      "browserMainSplit": {
+        "htmlParsing": {
+          "milliseconds": 0,
+          "events": 0
+        },
+        "styleRecalculation": {
+          "milliseconds": 0.8919999003410339,
+          "events": 85
+        },
+        "layout": {
+          "milliseconds": 0.9559997916221619,
+          "events": 85
+        },
+        "paint": {
+          "milliseconds": 14.703999996185303,
+          "events": 364
+        },
+        "instrumentedOwnJs": {
+          "milliseconds": 716.7990024983883,
+          "definition": "union of instrumented library spans, excluding parser and nested HTML/style/layout/paint"
+        },
+        "instrumentedParser": {
+          "milliseconds": 66.43599885702133
+        },
+        "otherMainTasks": {
+          "milliseconds": 182.7519986629486,
+          "definition": "unattributed remainder; includes harness JS, GC and browser work"
+        }
+      },
+      "cadence": {
+        "pacedIntervals": {
+          "samples": 304,
+          "p50": 16.664999999999964,
+          "p95": 16.670000000000073,
+          "max": 16.670000000000073
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 301,
+          "p50": 2.0099999606609344,
+          "p95": 3.880000025033951,
+          "max": 4.599999904632568
+        }
+      },
+      "sampledLeaves": {
+        "(program)": 437.35215562582016,
+        "writeBuffer": 78.7509999871254,
+        "(idle)": 40.9577152132988,
+        "wasm-function[20]": 39.55199980735779,
+        "(garbage collector)": 33.53371527791023,
+        "mark": 25.288906693458557,
+        "": 22.325907051563263,
+        "wasm-function[263]": 20.255000591278076,
+        "submit": 19.643999725580215,
+        "wasm-function[287]": 16.200000405311584,
+        "requestAnimationFrame": 15.58285304903984,
+        "getCurrentTexture": 15.51500028371811,
+        "linkFrameSignature": 15.509000033140182,
+        "read": 13.104999840259552,
+        "count": 12.620999842882156,
+        "wasm-function[17]": 8.967000037431717,
+        "copiedFrameRow": 8.846000134944916,
+        "getBoundingClientRect": 8.8160001039505,
+        "wasm-function[860]": 7.906000018119812,
+        "wasm-function[721]": 6.910958617925644,
+        "renderSnapshot": 6.812000215053558,
+        "prototype.<computed>": 6.4250001311302185,
+        "wasm-function[865]": 6.3659999668598175,
+        "wasm-function[262]": 6.134000152349472,
+        "wasm-function[111]": 5.406000047922134,
+        "now": 4.5200000405311584,
+        "beginRenderPass": 4.2750000059604645,
+        "wasm-function[21]": 3.860999971628189,
+        "emitFrame": 3.809000164270401,
+        "wasm-function[199]": 3.6720001101493835,
+        "createView": 3.437999963760376,
+        "wasm-function[289]": 3.3119582533836365,
+        "setAttribute": 3.285000056028366,
+        "wasm-function[751]": 3.203000009059906,
+        "writeRange": 2.533999979496002,
+        "identify": 2.459999978542328,
+        "get bytes": 2.3800000846385956,
+        "wasm-function[752]": 2.3799999952316284,
+        "wasm-function[747]": 2.2609998881816864,
+        "uploadFrame": 2.1270000338554382,
+        "drawZigFrame": 1.987999975681305,
+        "wasm-function[779]": 1.9870000183582306,
+        "clearVisibleHit": 1.8289999663829803,
+        "encode": 1.7560000717639923,
+        "readRequiredData": 1.5290000438690186,
+        "createCommandEncoder": 1.5029999613761902,
+        "build": 1.4759999811649323,
+        "readThumbGeometry": 1.3880000114440918,
+        "get cellData": 1.3660000264644623,
+        "positionTextarea": 1.350000113248825,
+        "get view": 1.344999998807907,
+        "emit": 1.3289999961853027,
+        "wasm-function[777]": 1.2709999978542328,
+        "write": 1.2290000319480896,
+        "wasm-function[19]": 1.2089999616146088,
+        "update": 1.1330000162124634,
+        "changedRanges": 1.0819999873638153,
+        "finish": 0.9919999837875366,
+        "js-to-wasm:iii:": 0.8869999945163727,
+        "drawFrame": 0.8770000040531158,
+        "get buffer": 0.8640000224113464,
+        "setPipeline": 0.8150000274181366,
+        "get glyphData": 0.8139999806880951,
+        "js-to-wasm:iiii:": 0.8090000152587891,
+        "assertGhosttyResult": 0.7960000336170197,
+        "consumeUploads": 0.7870000302791595,
+        "readRows": 0.7660000026226044,
+        "js-to-wasm:i:i": 0.7589999735355377,
+        "writeNow": 0.7559999823570251,
+        "ensureActive": 0.7270000278949738,
+        "emitScrollChange": 0.7150000035762787,
+        "setBindGroup": 0.7090000212192535,
+        "invalidateLinks": 0.6130000352859497,
+        "wasm-function[272]": 0.6119999587535858,
+        "flushEffects": 0.6080000102519989,
+        "writeAll": 0.6070000231266022,
+        "decodeSafeUint64": 0.6069999933242798,
+        "wasm-function[226]": 0.5690000355243683,
+        "readScrollSnapshot": 0.5610000193119049,
+        "wasm-function[761]": 0.5590000450611115,
+        "input": 0.4610000252723694,
+        "js-to-wasm:iiiiiii:i": 0.4610000252723694,
+        "allocateBytes": 0.4359999895095825,
+        "onFrame": 0.43000003695487976,
+        "wasm-function[16]": 0.4169999659061432,
+        "remove": 0.41499999165534973,
+        "validateSnapshot": 0.325920969247818,
+        "wasm-function[485]": 0.3070000112056732,
+        "pacedBurst": 0.3070000112056732,
+        "mutationResult": 0.3070000112056732,
+        "wasm-function[96]": 0.3060000240802765,
+        "js-to-wasm:ii:": 0.3050000071525574,
+        "wasm-function[3]": 0.30400002002716064,
+        "wasm-function[713]": 0.30399999022483826,
+        "copyCursor": 0.30300000309944153,
+        "wasm-function[769]": 0.30300000309944153,
+        "runOperation": 0.3019999861717224,
+        "runFrame": 0.2770000100135803,
+        "updateLinkFrame": 0.2759999930858612,
+        "wasm-function[765]": 0.2709999978542328,
+        "committedPointerLayout": 0.27000001072883606,
+        "renderCursorState": 0.26200002431869507,
+        "wasm-function[589]": 0.2580000162124634,
+        "schedule": 0.25699999928474426,
+        "wasm-function[778]": 0.24500000476837158,
+        "js-to-wasm:ii:i": 0.23800000548362732,
+        "wasm-function[736]": 0.21800002455711365,
+        "setUint": 0.21799999475479126,
+        "get scrollbar": 0.20900002121925354,
+        "wasm-function[760]": 0.20099997520446777,
+        "wasm-function[753]": 0.19900000095367432,
+        "PackedCells": 0.18400001525878906,
+        "frame": 0.17900002002716064,
+        "js-to-wasm:iii:i": 0.16200000047683716,
+        "wasm-function[297]": 0.15700000524520874,
+        "invoke": 0.1550000011920929,
+        "invalidateAll": 0.1550000011920929,
+        "get viewportActive": 0.15400001406669617,
+        "updateCursor": 0.15300002694129944,
+        "requestFrame": 0.15299999713897705,
+        "runVtWrite": 0.15299999713897705,
+        "emitHostEvent": 0.15299999713897705,
+        "wasm-function[94]": 0.15200001001358032,
+        "wasm-function[496]": 0.15200001001358032,
+        "wasm-function[46]": 0.15200001001358032,
+        "setCursorBlinkEnabled": 0.15200001001358032,
+        "fieldOffset": 0.15200001001358032,
+        "requireLayout": 0.15200001001358032,
+        "handleRenderRequest": 0.15200001001358032,
+        "burst": 0.15200001001358032,
+        "free": 0.1509999930858612,
+        "snapshotsEqual": 0.1509999930858612,
+        "nonNegativeSafeInteger2": 0.1509999930858612,
+        "get scrollbackLength": 0.1509999930858612,
+        "wasm-function[6]": 0.1509999930858612,
+        "wasm-function[7]": 0.1509999930858612,
+        "requestRender": 0.14900001883506775,
+        "runUiOperation": 0.13100001215934753,
+        "draw": 0.12599998712539673,
+        "wasm-function[772]": 0.11899998784065247,
+        "wasm-function[771]": 0.11699998378753662,
+        "cursorEquals2": 0.11100000143051147,
+        "wasm-function[590]": 0.11100000143051147,
+        "buildFrame": 0.10899999737739563,
+        "end": 0.10600000619888306,
+        "sync": 0.1029999852180481,
+        "evaluate": 0.07390666007995605,
+        "acknowledge": 0.041999995708465576,
+        "readRowDirty": 0.030000030994415283,
+        "updateFrame": 0.02799999713897705,
+        "recordFrame": 0.02000001072883606,
+        "resetIterator": 0.006000012159347534,
+        "get hasListeners": 0.0059999823570251465
+      },
+      "ownership": {
+        "scheduler": 17,
+        "device": 17,
+        "queue": 17,
+        "pipelines": 34
+      },
+      "terminalRenders": 5117,
+      "apiTotals": {
+        "GPUQueue.writeBuffer": 122808,
+        "GPUCanvasContext.getCurrentTexture": 5117,
+        "GPUCommandEncoder.beginRenderPass": 5117,
+        "GPURenderPassEncoder.draw": 10234,
+        "GPURenderPassEncoder.end": 5117,
+        "GPUCommandEncoder.finish": 5117,
+        "GPUQueue.submit": 5117
+      },
+      "apiPerTerminalRender": {
+        "GPUQueue.writeBuffer": 24,
+        "GPUCanvasContext.getCurrentTexture": 1,
+        "GPUCommandEncoder.beginRenderPass": 1,
+        "GPURenderPassEncoder.draw": 2,
+        "GPURenderPassEncoder.end": 1,
+        "GPUCommandEncoder.finish": 1,
+        "GPUQueue.submit": 1
+      },
+      "bufferPayloadBytes": 392985600,
+      "bufferPayloadBytesPerTerminalRender": 76800,
+      "bufferAllocationBytes": 0,
+      "instrumentedAtlasUploadBytes": 0,
+      "renderCallbacks": 5117,
+      "skippedRenderCallbacks": 0,
+      "gpuEventInclusiveTop": [
+        {
+          "name": "RunTask",
+          "count": 13094,
+          "inclusiveMilliseconds": 2943.8800001442432,
+          "threads": ["PerfettoTrace", "VizCompositorThread", "CrGpuMain", "Chrome_ChildIOThread"],
+          "categories": ["disabled-by-default-devtools.timeline"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "ThreadControllerImpl::RunTask",
+          "count": 13094,
+          "inclusiveMilliseconds": 2931.9919991493225,
+          "threads": ["PerfettoTrace", "VizCompositorThread", "CrGpuMain", "Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "src_file": "base/tracing/perfetto_task_runner.cc",
+            "src_func": "PostDelayedTask",
+            "src_line": 49
+          }
+        },
+        {
+          "name": "Scheduler::RunTask",
+          "count": 6090,
+          "inclusiveMilliseconds": 2734.1539988815784,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu,toplevel.flow"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GpuChannel::ExecuteDeferredRequest",
+          "count": 5487,
+          "inclusiveMilliseconds": 2443.9520003199577,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GPUTask",
+          "count": 5488,
+          "inclusiveMilliseconds": 2436.1589999198914,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-devtools.timeline"],
+          "exampleArgs": {
+            "data": {
+              "renderer_pid": 3557350,
+              "used_bytes": 58490880
+            }
+          }
+        },
+        {
+          "name": "WebGPU",
+          "count": 5487,
+          "inclusiveMilliseconds": 2415.7810014486313,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBuffer::Flush",
+          "count": 5486,
+          "inclusiveMilliseconds": 2412.346003651619,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu,toplevel.flow"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBufferStub::OnAsyncFlush",
+          "count": 5486,
+          "inclusiveMilliseconds": 2409.4040029644966,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "put_offset": 8370
+          }
+        },
+        {
+          "name": "CommandBufferService:PutChanged",
+          "count": 5486,
+          "inclusiveMilliseconds": 2401.4699983000755,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "handler": "WebGPUDecoderImpl",
+            "put_offset": 8370
+          }
+        },
+        {
+          "name": "DawnCommands",
+          "count": 15357,
+          "inclusiveMilliseconds": 1447.5690006613731,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "WebGPUDecoderImpl::HandleDawnCommands",
+          "count": 15357,
+          "inclusiveMilliseconds": 1438.1090023517609,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {
+            "bytes": 64800
+          }
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "count": 301,
+          "inclusiveMilliseconds": 239.01200032234192,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "bool GrVkGpu::submitCommandBuffer(const GrSubmitInfo &)",
+          "count": 301,
+          "inclusiveMilliseconds": 229.50599977374077,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandPool::reset(GrVkGpu *)",
+          "count": 300,
+          "inclusiveMilliseconds": 219.5259997844696,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandPool::releaseResources()",
+          "count": 300,
+          "inclusiveMilliseconds": 218.76800015568733,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandBuffer::releaseResources()",
+          "count": 300,
+          "inclusiveMilliseconds": 218.3050000667572,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Graphics.Pipeline",
+          "count": 2419,
+          "inclusiveMilliseconds": 116.53000077605247,
+          "threads": ["VizCompositorThread", "CrGpuMain"],
+          "categories": ["viz,benchmark,graphics.pipeline"],
+          "exampleArgs": {
+            "chrome_graphics_pipeline": {
+              "step": "STEP_ISSUE_BEGIN_FRAME",
+              "surface_frame_trace_id": 9185790696113559000
+            },
+            "current_task": {
+              "event_offset_from_task_start_time_us": 50,
+              "task_start_time_us": 167916050641
+            }
+          }
+        },
+        {
+          "name": "WebGPUDecoderImpl::PerformPollingWork",
+          "count": 15655,
+          "inclusiveMilliseconds": 106.03099930286407,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DisplayScheduler::OnBeginFrameDeadline",
+          "count": 304,
+          "inclusiveMilliseconds": 95.44899988174438,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz,input.scrolling"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DisplayScheduler::DrawAndSwap",
+          "count": 301,
+          "inclusiveMilliseconds": 95.19600009918213,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Display::DrawAndSwap",
+          "count": 301,
+          "inclusiveMilliseconds": 94.9710002541542,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBufferStub::PerformWork",
+          "count": 298,
+          "inclusiveMilliseconds": 53.398000091314316,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "EpollEvent",
+          "count": 5903,
+          "inclusiveMilliseconds": 52.079000413417816,
+          "threads": ["Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "can_read": true,
+            "can_write": false,
+            "context": "0x24e40177c788",
+            "controller_created_from": {
+              "file_name": "mojo/core/channel_posix.cc",
+              "function_name": "StartOnIOThread",
+              "line_number": 219
+            },
+            "fd": 96
+          }
+        },
+        {
+          "name": "SimpleWatcher::OnHandleReady",
+          "count": 6105,
+          "inclusiveMilliseconds": 44.595000356435776,
+          "threads": ["VizCompositorThread", "Chrome_ChildIOThread", "PerfettoTrace"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "chrome_mojo_event_info": {
+              "watcher_notify_interface_tag": "viz.mojom.CompositorFrameSink"
+            }
+          }
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::FinishPaintCurrentFrame",
+          "count": 301,
+          "inclusiveMilliseconds": 35.86600041389465,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Receive mojo message",
+          "count": 6091,
+          "inclusiveMilliseconds": 30.718999475240707,
+          "threads": ["VizCompositorThread", "Chrome_ChildIOThread", "PerfettoTrace", "CrGpuMain"],
+          "categories": ["toplevel,mojom"],
+          "exampleArgs": {
+            "chrome_mojo_event_info": {
+              "data_num_bytes": 72,
+              "ipc_hash": 965229546,
+              "mojo_interface_method": {
+                "native_symbol": {
+                  "mapping_id": 4,
+                  "rel_pc": 82128752
+                }
+              },
+              "mojo_interface_tag": "viz.mojom.CompositorFrameSink",
+              "payload_size": 16
+            }
+          }
+        },
+        {
+          "name": "DawnServiceSerializer::Flush",
+          "count": 5117,
+          "inclusiveMilliseconds": 28.906999170780182,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {
+            "bytes": 64
+          }
+        },
+        {
+          "name": "DirectRenderer::DrawFrame",
+          "count": 301,
+          "inclusiveMilliseconds": 25.085000097751617,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz,benchmark"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DirectRenderer::DrawRenderPass",
+          "count": 301,
+          "inclusiveMilliseconds": 21.772000014781952,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {
+            "NumberOfQuads": 18,
+            "id": 1
+          }
+        },
+        {
+          "name": "GrDirectContextPriv::flushSurfaces",
+          "count": 301,
+          "inclusiveMilliseconds": 19.850999921560287,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GrDrawingManager::flush",
+          "count": 301,
+          "inclusiveMilliseconds": 19.457999855279922,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaRenderer::DoDrawQuad",
+          "count": 3009,
+          "inclusiveMilliseconds": 12.580000907182693,
+          "threads": ["VizCompositorThread"],
+          "categories": ["disabled-by-default-viz.quads"],
+          "exampleArgs": {
+            "material": "kSolidColor"
+          }
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::BeginAccessImages",
+          "count": 301,
+          "inclusiveMilliseconds": 12.458000212907791,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GpuChannelMessageFilter::FlushDeferredRequests",
+          "count": 5471,
+          "inclusiveMilliseconds": 11.281000286340714,
+          "threads": ["Chrome_ChildIOThread"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "VulkanQueueSubmitHook",
+          "count": 301,
+          "inclusiveMilliseconds": 7.284999877214432,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        }
+      ],
+      "copyReadbackAndInteropEvents": [
+        {
+          "name": "WebGPUDecoderImpl::PerformPollingWork",
+          "count": 15655,
+          "inclusiveMilliseconds": 106.03099930286407,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DawnCommands",
+          "count": 15357,
+          "inclusiveMilliseconds": 1447.5690006613731,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "WebGPUDecoderImpl::HandleDawnCommands",
+          "count": 15357,
+          "inclusiveMilliseconds": 1438.1090023517609,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {
+            "bytes": 64800
+          }
+        },
+        {
+          "name": "WebGPU",
+          "count": 5487,
+          "inclusiveMilliseconds": 2415.7810014486313,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DawnServiceSerializer::Flush",
+          "count": 5117,
+          "inclusiveMilliseconds": 28.906999170780182,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {
+            "bytes": 64
+          }
+        },
+        {
+          "name": "DawnReturnCommands",
+          "count": 5117,
+          "inclusiveMilliseconds": 2.1059999465942383,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.dawn"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::unmapMemory",
+          "count": 301,
+          "inclusiveMilliseconds": 1.244000107049942,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "VulkanQueueSubmitHook",
+          "count": 301,
+          "inclusiveMilliseconds": 7.284999877214432,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::mapMemory",
+          "count": 287,
+          "inclusiveMilliseconds": 0.2959999144077301,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        }
+      ]
+    },
+    {
+      "variant": "ghostty-webgl",
+      "gpuQualification": {
+        "kind": "window",
+        "foreignActivityMetric": "resident-compute-memory-mib",
+        "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+        "status": "qualified",
+        "qualified": true,
+        "skipReason": null,
+        "settings": {
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000
+        },
+        "samples": [
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 23034.800203,
+            "completed": 23061.74623
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 4
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 4,
+            "computeMemoryMiB": 339,
+            "started": 24062.604679,
+            "completed": 24084.619118
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 4
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 4,
+            "computeMemoryMiB": 339,
+            "started": 25085.611702,
+            "completed": 25118.692329
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 17
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 17,
+            "computeMemoryMiB": 339,
+            "started": 26119.698567,
+            "completed": 26155.925517
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 20
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 20,
+            "computeMemoryMiB": 339,
+            "started": 27156.568563,
+            "completed": 27195.657287
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 21
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 21,
+            "computeMemoryMiB": 339,
+            "started": 28195.712273,
+            "completed": 28226.591039
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 29857.939027,
+            "completed": 30382.278837
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 31382.608892,
+            "completed": 31414.475835
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 32414.653621,
+            "completed": 32450.519771
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 33451.743177,
+            "completed": 33487.554579
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 34488.586525,
+            "completed": 34520.946871
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 35522.144512,
+            "completed": 35555.314562
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 36556.465971,
+            "completed": 36587.703037
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 37587.579681,
+            "completed": 37624.012535
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 38849.364459,
+            "completed": 38901.597273
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 454,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 38901.610743,
+            "completed": 38947.996389
+          }
+        ],
+        "baselineForeignComputePids": [3558, 6166, 1168573, 2577867]
+      },
+      "errors": [],
+      "output": {
+        "intervals": [
+          16.660000000000082, 16.669999999999845, 16.664999999999964, 16.66500000000019,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.66500000000019, 16.669999999999845,
+          16.664999999999964, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.66500000000019, 16.669999999999845,
+          16.664999999999964, 16.66500000000019, 16.664999999999964, 16.669999999999845,
+          16.66500000000019, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.66000000000031, 16.669999999999618, 16.66500000000042, 16.664999999999964,
+          16.669999999999618, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.66500000000042, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.659999999999854,
+          16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.66000000000031,
+          16.669999999999618, 16.664999999999964, 16.66500000000042, 16.669999999999618,
+          16.66000000000031, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.66000000000031, 16.669999999999618,
+          16.66500000000042, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.665000000000873, 16.669999999999163,
+          16.660000000000764, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.659999999999854, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.665000000000873,
+          16.669999999999163, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.659999999999854,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073
+        ],
+        "bytes": 21012000,
+        "milliseconds": 5049.9000000059605
+      },
+      "clock": {
+        "start": 1227.574999988079,
+        "end": 6300.544999986887,
+        "mainTaskMilliseconds": 1429.0950000882149
+      },
+      "stages": {
+        "parse": {
+          "milliseconds": 70.08500111103058,
+          "shareOfMainTasksPercent": 4.9041527055027405
+        },
+        "js": {
+          "milliseconds": 244.144999563694,
+          "shareOfMainTasksPercent": 17.083888723186593
+        },
+        "snapshot": {
+          "milliseconds": 94.92500111460686,
+          "shareOfMainTasksPercent": 6.642315668919656
+        },
+        "damage": {
+          "milliseconds": 7.349999278783798,
+          "shareOfMainTasksPercent": 0.5143114543350931
+        },
+        "instances": {
+          "milliseconds": 777.054998666048,
+          "shareOfMainTasksPercent": 54.37392186090373
+        },
+        "upload": {
+          "milliseconds": 38.27000120282173,
+          "shareOfMainTasksPercent": 2.677918626855416
+        },
+        "commands": {
+          "milliseconds": 26.00500038266182,
+          "shareOfMainTasksPercent": 1.8196831128131152
+        }
+      },
+      "browserMainSplit": {
+        "htmlParsing": {
+          "milliseconds": 0,
+          "events": 0
+        },
+        "styleRecalculation": {
+          "milliseconds": 0.8479999005794525,
+          "events": 85
+        },
+        "layout": {
+          "milliseconds": 0.9339998960494995,
+          "events": 85
+        },
+        "paint": {
+          "milliseconds": 14.533999919891357,
+          "events": 364
+        },
+        "instrumentedOwnJs": {
+          "milliseconds": 1185.9990002214909,
+          "definition": "union of instrumented library spans, excluding parser and nested HTML/style/layout/paint"
+        },
+        "instrumentedParser": {
+          "milliseconds": 70.07400119304657
+        },
+        "otherMainTasks": {
+          "milliseconds": 156.70599895715714,
+          "definition": "unattributed remainder; includes harness JS, GC and browser work"
+        }
+      },
+      "cadence": {
+        "pacedIntervals": {
+          "samples": 304,
+          "p50": 16.664999999999964,
+          "p95": 16.670000000000073,
+          "max": 16.670000000000073
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 301,
+          "p50": 3.4750000536441803,
+          "p95": 5.8899999260902405,
+          "max": 9.409999966621399
+        }
+      },
+      "sampledLeaves": {
+        "(program)": 459.97689375281334,
+        "writeColor": 120.70500048995018,
+        "glyphKey": 104.06100088357925,
+        "getOrInsert": 88.5859996676445,
+        "rasterizeCached": 81.89800056815147,
+        "writeGlyph": 51.54000025987625,
+        "(garbage collector)": 48.39708986878395,
+        "rebuildRow": 36.71600005030632,
+        "read": 32.6520000398159,
+        "touch": 29.875999957323074,
+        "writeCell": 29.263000011444092,
+        "mark": 25.314891785383224,
+        "wasm-function[263]": 23.6190005838871,
+        "wasm-function[17]": 22.84100043773651,
+        "": 18.654000401496887,
+        "wasm-function[287]": 16.543000251054764,
+        "linkFrameSignature": 12.633999913930893,
+        "resolve": 12.001999944448471,
+        "requestAnimationFrame": 11.884911745786667,
+        "rasterize": 11.465000092983246,
+        "bufferSubData": 11.183000087738037,
+        "getBoundingClientRect": 9.42600029706955,
+        "(idle)": 8.484314024448395,
+        "copiedFrameRow": 7.771000236272812,
+        "writeGlyphRect": 7.483000040054321,
+        "wasm-function[860]": 7.159000128507614,
+        "wasm-function[262]": 6.81600022315979,
+        "validateBitmap": 6.294999957084656,
+        "renderSnapshot": 6.294000148773193,
+        "wasm-function[111]": 6.206000119447708,
+        "wasm-function[721]": 6.057000041007996,
+        "now": 5.110000163316727,
+        "setAttribute": 4.972000151872635,
+        "wasm-function[289]": 4.885000169277191,
+        "beginRow": 4.796000003814697,
+        "validateInput": 4.715000003576279,
+        "wasm-function[747]": 4.2720001339912415,
+        "wasm-function[199]": 3.958000063896179,
+        "wasm-function[751]": 3.65200012922287,
+        "count": 3.035000115633011,
+        "clearVisibleHit": 2.8090000450611115,
+        "clear": 2.7120000422000885,
+        "drawFrame": 2.235999971628189,
+        "emit": 2.13700008392334,
+        "emitFrame": 2.050000101327896,
+        "readRows": 1.9910000264644623,
+        "js-to-wasm:iiii:": 1.75600004196167,
+        "positionTextarea": 1.7180000245571136,
+        "get bytes": 1.6760000586509705,
+        "contrastAdjustedColor": 1.5890000462532043,
+        "wasm-function[779]": 1.5349999964237213,
+        "wasm-function[777]": 1.3819999992847443,
+        "wasm-function[752]": 1.3799999952316284,
+        "wasm-function[272]": 1.371000051498413,
+        "validColorChannel": 1.3590000569820404,
+        "emitHostEvent": 1.2200000286102295,
+        "wasm-function[16]": 1.1930000483989716,
+        "readRequiredData": 1.074000060558319,
+        "js-to-wasm:ii:": 1.0670000314712524,
+        "bindBuffer": 0.9560000002384186,
+        "rebuildRows": 0.9520000219345093,
+        "update": 0.9360000491142273,
+        "emitScrollChange": 0.9210000336170197,
+        "encode": 0.9190000295639038,
+        "get view": 0.8690000474452972,
+        "write": 0.7600000202655792,
+        "drawArraysInstanced": 0.7500000596046448,
+        "bindVertexArray": 0.7490000128746033,
+        "bindTexture": 0.7329999804496765,
+        "bitmapCacheKey": 0.7300000190734863,
+        "bytesPerPixel": 0.6759999990463257,
+        "flushEffects": 0.6110000312328339,
+        "get buffer": 0.6110000014305115,
+        "cursorStyle": 0.6110000014305115,
+        "schedule": 0.6100000143051147,
+        "wasm-function[736]": 0.6100000143051147,
+        "wasm-function[760]": 0.609000027179718,
+        "requestRender": 0.6089999973773956,
+        "updateScrollbar": 0.5300000011920929,
+        "prototype.<computed>": 0.5290000140666962,
+        "wasm-function[778]": 0.5169999897480011,
+        "wasm-function[761]": 0.5070000290870667,
+        "readThumbGeometry": 0.4820000231266022,
+        "wasm-function[496]": 0.46400001645088196,
+        "js-to-wasm:ii:i": 0.46299999952316284,
+        "readScrollSnapshot": 0.4610000252723694,
+        "PackedCells": 0.4580000042915344,
+        "wasm-function[226]": 0.4570000171661377,
+        "rowsToRebuild": 0.4560000002384186,
+        "writeAll": 0.4540000557899475,
+        "validateSnapshot": 0.42500001192092896,
+        "writeNow": 0.42000001668930054,
+        "wasm-function[713]": 0.4099999964237213,
+        "handleFrame": 0.3490000069141388,
+        "bindFramebuffer": 0.34800001978874207,
+        "clearColor": 0.335999995470047,
+        "submit": 0.3149999976158142,
+        "remove": 0.3140000104904175,
+        "invalidateAll": 0.30900001525878906,
+        "pacedBurst": 0.30900001525878906,
+        "updateCursor": 0.30800002813339233,
+        "invalidateLinks": 0.30799999833106995,
+        "wasm-function[769]": 0.3060000240802765,
+        "wasm-function[589]": 0.30500003695487976,
+        "allocateBytes": 0.3050000071525574,
+        "decodeSafeUint64": 0.3050000071525574,
+        "input": 0.30400002002716064,
+        "useProgram": 0.30400002002716064,
+        "wasm-function[7]": 0.30300000309944153,
+        "recordFrame": 0.289000004529953,
+        "wasm-function[753]": 0.27799999713897705,
+        "wasm-function[485]": 0.27000001072883606,
+        "bindAtlas": 0.25699999928474426,
+        "ensureActive": 0.25200003385543823,
+        "identify": 0.24399998784065247,
+        "disable": 0.23800000548362732,
+        "coalesceInstanceUpdates": 0.23100000619888306,
+        "wasm-function[772]": 0.2239999771118164,
+        "blendFunc": 0.2199999988079071,
+        "js-to-wasm:iiiiiii:i": 0.21300002932548523,
+        "js-to-wasm:iii:i": 0.2120000123977661,
+        "frame": 0.20800000429153442,
+        "requestFrame": 0.19900000095367432,
+        "get scrollbar": 0.1810000240802765,
+        "draw": 0.1770000159740448,
+        "acknowledge": 0.17500001192092896,
+        "viewport": 0.16699999570846558,
+        "wasm-function[771]": 0.164000004529953,
+        "colorMask": 0.1599999964237213,
+        "wasm-function[775]": 0.15799999237060547,
+        "runFrame": 0.15599998831748962,
+        "pageById": 0.1550000011920929,
+        "onFrame": 0.1550000011920929,
+        "allocate": 0.15400001406669617,
+        "requireLayout": 0.15400001406669617,
+        "isContextLost": 0.15400001406669617,
+        "get viewportActive": 0.15400001406669617,
+        "blendEquation": 0.15300002694129944,
+        "isPromiseLike": 0.15299999713897705,
+        "wasm-function[94]": 0.15299999713897705,
+        "wasm-function[46]": 0.15299999713897705,
+        "wasm-function[96]": 0.15299999713897705,
+        "snapshotsEqual": 0.15299999713897705,
+        "js-to-wasm:iii:": 0.15299999713897705,
+        "free": 0.15299999713897705,
+        "consumeUploads": 0.15299999713897705,
+        "copyCursor": 0.15299999713897705,
+        "freeBytes": 0.15200001001358032,
+        "get scrollbackLength": 0.15200001001358032,
+        "wasm-function[83]": 0.15200001001358032,
+        "invoke": 0.15200001001358032,
+        "upload": 0.1510000228881836,
+        "assertGhosttyResult": 0.1510000228881836,
+        "setCursorBlinkEnabled": 0.1509999930858612,
+        "burst": 0.15000000596046448,
+        "writeRange": 0.13600000739097595,
+        "wasm-function[756]": 0.13199999928474426,
+        "enable": 0.11399999260902405,
+        "consumeUpload": 0.09200000762939453,
+        "activeTexture": 0.07900002598762512,
+        "batchesAreAdjacent": 0.078000009059906,
+        "get grid": 0.05700001120567322,
+        "committedPointerLayout": 0.054000020027160645,
+        "runUiOperation": 0.050999999046325684,
+        "readRowDirty": 0.039000004529953,
+        "updateFrame": 0.034000009298324585,
+        "js-to-wasm:i:i": 0.03299999237060547,
+        "updateLinkFrame": 0.03299999237060547,
+        "updateFrameUi": 0.03200000524520874,
+        "traceEnd": 0.02089133858680725,
+        "preserveEquivalentFrame": 0.018999993801116943,
+        "onRowsPainted": 0.009000003337860107,
+        "get hasListeners": 0.006000012159347534
+      },
+      "ownership": {
+        "scheduler": 17
+      },
+      "terminalRenders": 5117,
+      "apiTotals": {
+        "WebGL2RenderingContext.bufferSubData": 10234,
+        "WebGL2RenderingContext.clear": 5117,
+        "WebGL2RenderingContext.drawArraysInstanced": 10234
+      },
+      "apiPerTerminalRender": {
+        "WebGL2RenderingContext.bufferSubData": 2,
+        "WebGL2RenderingContext.clear": 1,
+        "WebGL2RenderingContext.drawArraysInstanced": 2
+      },
+      "bufferPayloadBytes": 392985600,
+      "bufferPayloadBytesPerTerminalRender": 76800,
+      "bufferAllocationBytes": 0,
+      "instrumentedAtlasUploadBytes": 0,
+      "renderCallbacks": 5117,
+      "skippedRenderCallbacks": 0,
+      "gpuEventInclusiveTop": [
+        {
+          "name": "RunTask",
+          "count": 34191,
+          "inclusiveMilliseconds": 1523.6230020225048,
+          "threads": ["VizCompositorThread", "PerfettoTrace", "CrGpuMain", "Chrome_ChildIOThread"],
+          "categories": ["disabled-by-default-devtools.timeline"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "ThreadControllerImpl::RunTask",
+          "count": 34191,
+          "inclusiveMilliseconds": 1503.124000519514,
+          "threads": ["VizCompositorThread", "PerfettoTrace", "CrGpuMain", "Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "src_file": "mojo/public/cpp/system/simple_watcher.cc",
+            "src_func": "Notify",
+            "src_line": 103
+          }
+        },
+        {
+          "name": "Scheduler::RunTask",
+          "count": 7619,
+          "inclusiveMilliseconds": 1255.7819997370243,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu,toplevel.flow"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GpuChannel::ExecuteDeferredRequest",
+          "count": 7007,
+          "inclusiveMilliseconds": 811.3350002467632,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GPUTask",
+          "count": 7000,
+          "inclusiveMilliseconds": 801.0659998655319,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-devtools.timeline"],
+          "exampleArgs": {
+            "data": {
+              "renderer_pid": 3558797,
+              "used_bytes": 77987840
+            }
+          }
+        },
+        {
+          "name": "WebGL",
+          "count": 6990,
+          "inclusiveMilliseconds": 770.1770010590553,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBuffer::Flush",
+          "count": 6980,
+          "inclusiveMilliseconds": 766.4040010273457,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu,toplevel.flow"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBufferStub::OnAsyncFlush",
+          "count": 6980,
+          "inclusiveMilliseconds": 762.735001385212,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "put_offset": 2090
+          }
+        },
+        {
+          "name": "CommandBufferService:PutChanged",
+          "count": 6980,
+          "inclusiveMilliseconds": 752.8539996147156,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "handler": ".WebGL-0x19c0042c200",
+            "put_offset": 2090
+          }
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::FinishPaintCurrentFrame",
+          "count": 301,
+          "inclusiveMilliseconds": 221.26200020313263,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "count": 301,
+          "inclusiveMilliseconds": 205.58500027656555,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "bool GrVkGpu::submitCommandBuffer(const GrSubmitInfo &)",
+          "count": 318,
+          "inclusiveMilliseconds": 191.60600009560585,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandPool::reset(GrVkGpu *)",
+          "count": 317,
+          "inclusiveMilliseconds": 181.03099977970123,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandPool::releaseResources()",
+          "count": 317,
+          "inclusiveMilliseconds": 180.101999938488,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandBuffer::releaseResources()",
+          "count": 317,
+          "inclusiveMilliseconds": 179.63999989628792,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::BeginAccessImages",
+          "count": 301,
+          "inclusiveMilliseconds": 176.24399983882904,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Graphics.Pipeline",
+          "count": 2419,
+          "inclusiveMilliseconds": 132.6490000784397,
+          "threads": ["VizCompositorThread", "CrGpuMain"],
+          "categories": ["viz,benchmark,graphics.pipeline"],
+          "exampleArgs": {
+            "chrome_graphics_pipeline": {
+              "step": "STEP_ISSUE_BEGIN_FRAME",
+              "surface_frame_trace_id": 9185790696113568000
+            },
+            "current_task": {
+              "event_offset_from_task_start_time_us": 48,
+              "task_start_time_us": 167934561586
+            }
+          }
+        },
+        {
+          "name": "DisplayScheduler::OnBeginFrameDeadline",
+          "count": 304,
+          "inclusiveMilliseconds": 106.79799962043762,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz,input.scrolling"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DisplayScheduler::DrawAndSwap",
+          "count": 301,
+          "inclusiveMilliseconds": 106.52199965715408,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Display::DrawAndSwap",
+          "count": 301,
+          "inclusiveMilliseconds": 106.28699994087219,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBufferStub::PerformWork",
+          "count": 23156,
+          "inclusiveMilliseconds": 80.67700001597404,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GLContextEGL::MakeCurrent",
+          "count": 29058,
+          "inclusiveMilliseconds": 57.137001633644104,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "context": "0x5",
+            "surface": "0x24e40001d360"
+          }
+        },
+        {
+          "name": "EpollEvent",
+          "count": 2304,
+          "inclusiveMilliseconds": 45.06300127506256,
+          "threads": ["Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "can_read": true,
+            "can_write": false,
+            "context": "0x24e40177f888",
+            "controller_created_from": {
+              "file_name": "mojo/core/channel_posix.cc",
+              "function_name": "StartOnIOThread",
+              "line_number": 219
+            },
+            "fd": 91
+          }
+        },
+        {
+          "name": "SimpleWatcher::OnHandleReady",
+          "count": 2886,
+          "inclusiveMilliseconds": 43.471999138593674,
+          "threads": ["VizCompositorThread", "PerfettoTrace", "Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "chrome_mojo_event_info": {
+              "watcher_notify_interface_tag": "viz.mojom.CompositorFrameSink"
+            }
+          }
+        },
+        {
+          "name": "GrDirectContextPriv::flushSurfaces",
+          "count": 301,
+          "inclusiveMilliseconds": 41.131999880075455,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GrDrawingManager::flush",
+          "count": 318,
+          "inclusiveMilliseconds": 40.83199992775917,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Receive mojo message",
+          "count": 2861,
+          "inclusiveMilliseconds": 32.63799977302551,
+          "threads": ["VizCompositorThread", "Chrome_ChildIOThread", "PerfettoTrace", "CrGpuMain"],
+          "categories": ["toplevel,mojom"],
+          "exampleArgs": {
+            "chrome_mojo_event_info": {
+              "data_num_bytes": 72,
+              "ipc_hash": 965229546,
+              "mojo_interface_method": {
+                "native_symbol": {
+                  "mapping_id": 3,
+                  "rel_pc": 82128752
+                }
+              },
+              "mojo_interface_tag": "viz.mojom.CompositorFrameSink",
+              "payload_size": 16
+            }
+          }
+        },
+        {
+          "name": "DirectRenderer::DrawFrame",
+          "count": 301,
+          "inclusiveMilliseconds": 27.39599972963333,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz,benchmark"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DirectRenderer::DrawRenderPass",
+          "count": 301,
+          "inclusiveMilliseconds": 23.835999816656113,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {
+            "NumberOfQuads": 18,
+            "id": 1
+          }
+        },
+        {
+          "name": "SkiaRenderer::DoDrawQuad",
+          "count": 3008,
+          "inclusiveMilliseconds": 13.788999646902084,
+          "threads": ["VizCompositorThread"],
+          "categories": ["disabled-by-default-viz.quads"],
+          "exampleArgs": {
+            "material": "kSolidColor"
+          }
+        },
+        {
+          "name": "GpuChannelMessageFilter::FlushDeferredRequests",
+          "count": 2238,
+          "inclusiveMilliseconds": 13.609000504016876,
+          "threads": ["Chrome_ChildIOThread"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "VulkanQueueSubmitHook",
+          "count": 318,
+          "inclusiveMilliseconds": 9.420999765396118,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DelayBasedBeginFrameSource::OnTimerTick",
+          "count": 305,
+          "inclusiveMilliseconds": 8.117999702692032,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {
+            "frame_time": 167934565682,
+            "interval": 16666
+          }
+        },
+        {
+          "name": "SkiaRenderer::FinishDrawingRenderPass",
+          "count": 301,
+          "inclusiveMilliseconds": 7.798999756574631,
+          "threads": ["VizCompositorThread"],
+          "categories": ["disabled-by-default-viz.quads"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaRenderer::DrawTextureQuad",
+          "count": 2709,
+          "inclusiveMilliseconds": 6.842999249696732,
+          "threads": ["VizCompositorThread"],
+          "categories": ["disabled-by-default-viz.quads"],
+          "exampleArgs": {}
+        }
+      ],
+      "copyReadbackAndInteropEvents": [
+        {
+          "name": "VulkanQueueSubmitHook",
+          "count": 318,
+          "inclusiveMilliseconds": 9.420999765396118,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::unmapMemory",
+          "count": 301,
+          "inclusiveMilliseconds": 0.9440000057220459,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::mapMemory",
+          "count": 294,
+          "inclusiveMilliseconds": 0.31400030851364136,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SharedImageStub::OnCreateSharedImage",
+          "count": 17,
+          "inclusiveMilliseconds": 1.4350000321865082,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "height": 456,
+            "width": 560
+          }
+        }
+      ]
+    },
+    {
+      "variant": "xterm-webgl",
+      "gpuQualification": {
+        "kind": "window",
+        "foreignActivityMetric": "resident-compute-memory-mib",
+        "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+        "status": "qualified",
+        "qualified": true,
+        "skipReason": null,
+        "settings": {
+          "gpuIdleUtilizationPercent": 5,
+          "gpuWindowUtilizationPercent": 80,
+          "gpuComputeMemoryMiB": 1024,
+          "gpuSampleMilliseconds": 1000,
+          "gpuIdleConsecutiveSamples": 3,
+          "gpuIdleWaitMilliseconds": 30000,
+          "gpuCommandTimeoutMilliseconds": 2000
+        },
+        "samples": [
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 4
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 193,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 4,
+            "computeMemoryMiB": 339,
+            "started": 41481.717301,
+            "completed": 41514.733
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 25
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 229,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 25,
+            "computeMemoryMiB": 339,
+            "started": 42516.238977,
+            "completed": 42557.965195
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 25
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 229,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 25,
+            "computeMemoryMiB": 339,
+            "started": 43558.609939,
+            "completed": 43592.032958
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 23
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 229,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 23,
+            "computeMemoryMiB": 339,
+            "started": 44592.608253,
+            "completed": 44629.910494
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 23
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 229,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 23,
+            "computeMemoryMiB": 339,
+            "started": 45629.658965,
+            "completed": 45672.311476
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 22
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 229,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 22,
+            "computeMemoryMiB": 339,
+            "started": 46672.569532,
+            "completed": 46710.334798
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 47710.445128,
+            "completed": 47745.893538
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 49282.007037,
+            "completed": 49315.816954
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 50316.980841,
+            "completed": 50350.174126
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 51351.310526,
+            "completed": 51386.191435
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 52387.483981,
+            "completed": 52421.768646
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 53422.981192,
+            "completed": 53456.860923
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 54457.61046,
+            "completed": 54495.830247
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 55496.59262,
+            "completed": 55533.075415
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 56533.606269,
+            "completed": 56569.587621
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 57570.669386,
+            "completed": 57608.346048
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 58608.674266,
+            "completed": 58642.237053
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 59642.587198,
+            "completed": 59678.824629
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 60679.011348,
+            "completed": 60712.566021
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 61713.626508,
+            "completed": 61747.871932
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 62748.698027,
+            "completed": 62782.865381
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 63789.813026,
+            "completed": 63823.690788
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 64823.993096,
+            "completed": 64863.400847
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 67155.823848,
+            "completed": 67214.055659
+          },
+          {
+            "gpus": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "utilizationPercent": 0
+              }
+            ],
+            "processes": [
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3558,
+                "memoryMiB": 7,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 6166,
+                "memoryMiB": 4,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 1168573,
+                "memoryMiB": 70,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 2577867,
+                "memoryMiB": 258,
+                "allowed": false
+              },
+              {
+                "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+                "pid": 3557280,
+                "memoryMiB": 189,
+                "allowed": true
+              }
+            ],
+            "utilizationPercent": 0,
+            "computeMemoryMiB": 339,
+            "started": 67214.067166,
+            "completed": 67261.501994
+          }
+        ],
+        "baselineForeignComputePids": [3558, 6166, 1168573, 2577867]
+      },
+      "errors": [],
+      "output": {
+        "intervals": [
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.660000000000082,
+          16.669999999999845, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.669999999999845, 16.660000000000082,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.660000000000082, 16.669999999999845, 16.660000000000082,
+          16.670000000000073, 16.669999999999845, 16.660000000000082, 16.670000000000073,
+          16.664999999999964, 16.664999999999736, 16.66500000000042, 16.664999999999964,
+          16.669999999999618, 16.66000000000031, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.664999999999964, 16.670000000000073, 16.670000000000073,
+          16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.66500000000042, 16.669999999999618, 16.664999999999964, 16.66500000000042,
+          16.664999999999964, 16.669999999999618, 16.66000000000031, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.66500000000042,
+          16.669999999999618, 16.664999999999964, 16.66500000000042, 16.664999999999964,
+          16.669999999999618, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.659999999999854,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.66000000000031, 16.669999999999618,
+          16.664999999999964, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.665000000000873, 16.669999999999163,
+          16.664999999999964, 16.665000000000873, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.659999999999854, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.670000000000073, 16.660000000000764,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+          16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+          16.665000000000873, 16.669999999999163, 16.664999999999964, 16.665000000000873,
+          16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964
+        ],
+        "bytes": 21012000,
+        "milliseconds": 5049.089999973774
+      },
+      "clock": {
+        "start": 1506.905000001192,
+        "end": 6591.129999995232,
+        "mainTaskMilliseconds": 1416.0120005011559
+      },
+      "stages": {
+        "js": {
+          "milliseconds": 42.749999672174454,
+          "shareOfMainTasksPercent": 3.0190421872868556
+        },
+        "damage": {
+          "milliseconds": 2.860000431537628,
+          "shareOfMainTasksPercent": 0.2019757198756377
+        },
+        "parse": {
+          "milliseconds": 955.1449998915195,
+          "shareOfMainTasksPercent": 67.45317126927414
+        },
+        "snapshot": {
+          "milliseconds": 66.84000125527382,
+          "shareOfMainTasksPercent": 4.7202990674950325
+        },
+        "upload": {
+          "milliseconds": 27.600000381469727,
+          "shareOfMainTasksPercent": 1.9491360505208655
+        },
+        "commands": {
+          "milliseconds": 17.465000092983246,
+          "shareOfMainTasksPercent": 1.2333935084449865
+        }
+      },
+      "browserMainSplit": {
+        "htmlParsing": {
+          "milliseconds": 0,
+          "events": 0
+        },
+        "styleRecalculation": {
+          "milliseconds": 4.815000087022781,
+          "events": 63
+        },
+        "layout": {
+          "milliseconds": 0.5870000123977661,
+          "events": 3
+        },
+        "paint": {
+          "milliseconds": 27.396999686956406,
+          "events": 469
+        },
+        "instrumentedOwnJs": {
+          "milliseconds": 156.22500145435333,
+          "definition": "union of instrumented library spans, excluding parser and nested HTML/style/layout/paint"
+        },
+        "instrumentedParser": {
+          "milliseconds": 956.4350002706051
+        },
+        "otherMainTasks": {
+          "milliseconds": 270.5529989898205,
+          "definition": "unattributed remainder; includes harness JS, GC and browser work"
+        }
+      },
+      "cadence": {
+        "pacedIntervals": {
+          "samples": 304,
+          "p50": 16.664999999999964,
+          "p95": 16.670000000000073,
+          "max": 16.670000000000073
+        },
+        "terminalWorkPerAnimationFrame": {
+          "samples": 301,
+          "p50": 0.4049997627735138,
+          "p95": 0.8350000083446503,
+          "max": 2.8749999701976776
+        }
+      },
+      "sampledLeaves": {
+        "(program)": 555.9338189065456,
+        "setTimeout": 259.85045450925827,
+        "clearTimeout": 166.09266206622124,
+        "(garbage collector)": 70.67295524477959,
+        "clone": 59.82695069909096,
+        "": 45.595701575279236,
+        "print": 25.695624738931656,
+        "mark": 23.812887400388718,
+        "setCellFromCodepoint": 18.067166686058044,
+        "fire": 16.611816376447678,
+        "requestAnimationFrame": 13.467320322990417,
+        "parse": 13.37937417626381,
+        "(idle)": 10.171745330095291,
+        "decode": 8.599706441164017,
+        "onDidScroll": 7.082000195980072,
+        "_deliver": 6.37582665681839,
+        "_onElementScrollSize": 6.020000129938126,
+        "lineFeed": 5.697862595319748,
+        "scroll": 5.378890424966812,
+        "setTop": 5.35600021481514,
+        "_updateModel": 5.064999997615814,
+        "_sync": 4.978889912366867,
+        "s": 4.913000106811523,
+        "_computeValues": 4.612000107765198,
+        "_deliverQueue": 4.501000136137009,
+        "resolve": 4.351000159978867,
+        "_render": 2.580996036529541,
+        "createScrollEvent": 2.476000040769577,
+        "getFg": 2.3748995661735535,
+        "_onElementScrollPosition": 2.2990000247955322,
+        "setScrollDimensions": 2.1389549672603607,
+        "encode": 2.1209999322891235,
+        "render": 2.1050000190734863,
+        "now": 2.060892730951309,
+        "copyFrom": 1.9378204941749573,
+        "setHeight": 1.7590000629425049,
+        "setScrollPosition": 1.7559999823570251,
+        "createPropertyValue": 1.5529999136924744,
+        "write": 1.5169999301433563,
+        "writeAll": 1.4820000231266022,
+        "loadCell": 1.4800000488758087,
+        "count": 1.4549999833106995,
+        "Ie": 1.3840000331401825,
+        "bufferData": 1.3599997758865356,
+        "forEachByKey": 1.2739999294281006,
+        "enqueue": 1.1118596196174622,
+        "_getCurrentLinkId": 1.0410000085830688,
+        "drawElementsInstanced": 1.031999945640564,
+        "push": 0.9190000295639038,
+        "setFromCharData": 0.8840000033378601,
+        "setScrollSize": 0.870000034570694,
+        "fromCharData": 0.8690000474452972,
+        "get": 0.8599086999893188,
+        "charProperties": 0.8580000698566437,
+        "withScrollDimensions": 0.8189999759197235,
+        "addRefreshCallback": 0.785999983549118,
+        "setWidth": 0.782978355884552,
+        "get urlId": 0.7729004919528961,
+        "recycle": 0.7649309933185577,
+        "addCodepointToCell": 0.7360000312328339,
+        "equals": 0.7257949411869049,
+        "_renderDomNode": 0.7000000178813934,
+        "extractShouldJoin": 0.679950475692749,
+        "refresh": 0.6599999666213989,
+        "_onElementSize": 0.6120000183582306,
+        "get dimensions": 0.609000027179718,
+        "setRight": 0.6040000319480896,
+        "extractWidth": 0.5979675948619843,
+        "_setState": 0.5329999923706055,
+        "uniformMatrix4fv": 0.5329999625682831,
+        "get value": 0.5129999816417694,
+        "_getCyclicIndex": 0.48695656657218933,
+        "frame": 0.4699721038341522,
+        "_refreshComputedValues": 0.46300002932548523,
+        "e": 0.46199992299079895,
+        "setScrollPositionNow": 0.4360000491142273,
+        "input": 0.4130000174045563,
+        "useProgram": 0.40700000524520874,
+        "wcwidth": 0.3590000569820404,
+        "pacedBurst": 0.33289337158203125,
+        "bindVertexArray": 0.32899993658065796,
+        "get buffer": 0.30799999833106995,
+        "prototype.<computed>": 0.27699998021125793,
+        "bindBuffer": 0.27699995040893555,
+        "markDirty": 0.2449934184551239,
+        "_renderVertices": 0.2369999885559082,
+        "updateBackgrounds": 0.22499999403953552,
+        "get cols": 0.2219998836517334,
+        "_innerRefresh": 0.2149999737739563,
+        "withScrollPosition": 0.20600000023841858,
+        "_innerWrite": 0.19891604781150818,
+        "get active": 0.18900001049041748,
+        "queueSync": 0.17800003290176392,
+        "getWidth": 0.17691782116889954,
+        "kn": 0.1679999828338623,
+        "_updateCell": 0.1589999794960022,
+        "getArrowSize": 0.15299999713897705,
+        "getRectangleSmallSize": 0.15200001001358032,
+        "_renderRows": 0.12999996542930603,
+        "getJoinedCharacters": 0.1029999852180481,
+        "getCode": 0.09999999403953552,
+        "_eraseAttrData": 0.0769549310207367,
+        "identify": 0.06400001049041748,
+        "handleSelectionChanged": 0.06100001931190491,
+        "markRangeDirty": 0.057999998331069946,
+        "getChars": 0.054999977350234985,
+        "beginFrame": 0.04399996995925903,
+        "_resetBufferLine": 0.04300001263618469,
+        "renderRows": 0.04199996590614319,
+        "_runRefreshCallbacks": 0.03999999165534973,
+        "traceBegin": 0.034999996423721313,
+        "_refresh": 0.0339999794960022,
+        "get isFull": 0.0339999794960022,
+        "mr": 0.03299996256828308,
+        "refreshRows": 0.02799999713897705,
+        "get normal": 0.027000010013580322,
+        "setIsNeeded": 0.026999980211257935,
+        "traceEnd": 0.026886731386184692,
+        "handleCursorMove": 0.0169999897480011,
+        "updateCell": 0.014999985694885254,
+        "setClassName": 0.014999985694885254,
+        "updateCursor": 0.013000011444091797,
+        "setCell": 0.01199999451637268,
+        "get decorations": 0.011000007390975952,
+        "updateCompositionElements": 0.010000020265579224,
+        "update": 0.009000003337860107,
+        "get finalSelectionStart": 0.0040000081062316895
+      },
+      "ownership": {
+        "scheduler": 17,
+        "context": 17,
+        "programs": 34
+      },
+      "terminalRenders": 5117,
+      "apiTotals": {
+        "WebGL2RenderingContext.bufferData": 15351,
+        "WebGL2RenderingContext.drawElementsInstanced": 15351
+      },
+      "apiPerTerminalRender": {
+        "WebGL2RenderingContext.bufferData": 3,
+        "WebGL2RenderingContext.drawElementsInstanced": 3
+      },
+      "bufferPayloadBytes": 100348960,
+      "bufferPayloadBytesPerTerminalRender": 19610.89700996678,
+      "bufferAllocationBytes": 0,
+      "instrumentedAtlasUploadBytes": 0,
+      "renderCallbacks": 5117,
+      "skippedRenderCallbacks": 0,
+      "gpuEventInclusiveTop": [
+        {
+          "name": "RunTask",
+          "count": 31739,
+          "inclusiveMilliseconds": 1606.1309977173805,
+          "threads": ["VizCompositorThread", "CrGpuMain", "PerfettoTrace", "Chrome_ChildIOThread"],
+          "categories": ["disabled-by-default-devtools.timeline"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "ThreadControllerImpl::RunTask",
+          "count": 31739,
+          "inclusiveMilliseconds": 1585.8799963891506,
+          "threads": ["VizCompositorThread", "CrGpuMain", "PerfettoTrace", "Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "src_file": "components/viz/service/display/display_scheduler.cc",
+            "src_func": "ScheduleBeginFrameDeadline",
+            "src_line": 803
+          }
+        },
+        {
+          "name": "Scheduler::RunTask",
+          "count": 7389,
+          "inclusiveMilliseconds": 1274.6329995691776,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu,toplevel.flow"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GpuChannel::ExecuteDeferredRequest",
+          "count": 6782,
+          "inclusiveMilliseconds": 835.9619991481304,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GPUTask",
+          "count": 6775,
+          "inclusiveMilliseconds": 826.41899985075,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-devtools.timeline"],
+          "exampleArgs": {
+            "data": {
+              "renderer_pid": 3559521,
+              "used_bytes": 95584256
+            }
+          }
+        },
+        {
+          "name": "WebGL",
+          "count": 6767,
+          "inclusiveMilliseconds": 791.7839998304844,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBuffer::Flush",
+          "count": 6772,
+          "inclusiveMilliseconds": 789.0240001380444,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu,toplevel.flow"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBufferStub::OnAsyncFlush",
+          "count": 6772,
+          "inclusiveMilliseconds": 785.3480000197887,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "put_offset": 3381
+          }
+        },
+        {
+          "name": "CommandBufferService:PutChanged",
+          "count": 6772,
+          "inclusiveMilliseconds": 774.9430007338524,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "handler": ".WebGL-0x19c00436200",
+            "put_offset": 3381
+          }
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::FinishPaintCurrentFrame",
+          "count": 304,
+          "inclusiveMilliseconds": 238.62399980425835,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::BeginAccessImages",
+          "count": 304,
+          "inclusiveMilliseconds": 207.0140001475811,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Graphics.Pipeline",
+          "count": 2433,
+          "inclusiveMilliseconds": 190.7710002362728,
+          "threads": ["VizCompositorThread", "CrGpuMain"],
+          "categories": ["viz,benchmark,graphics.pipeline"],
+          "exampleArgs": {
+            "chrome_graphics_pipeline": {
+              "display_trace_id": 9185790696113569000,
+              "step": "STEP_DRAW_AND_SWAP"
+            },
+            "current_task": {
+              "event_offset_from_task_start_time_us": 4,
+              "task_start_time_us": 167953015631
+            }
+          }
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "count": 304,
+          "inclusiveMilliseconds": 181.26799976825714,
+          "threads": ["CrGpuMain"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "bool GrVkGpu::submitCommandBuffer(const GrSubmitInfo &)",
+          "count": 305,
+          "inclusiveMilliseconds": 170.21000000834465,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandPool::reset(GrVkGpu *)",
+          "count": 304,
+          "inclusiveMilliseconds": 163.86600017547607,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandPool::releaseResources()",
+          "count": 304,
+          "inclusiveMilliseconds": 162.89399993419647,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DisplayScheduler::OnBeginFrameDeadline",
+          "count": 305,
+          "inclusiveMilliseconds": 162.67599973082542,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz,input.scrolling"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrVkCommandBuffer::releaseResources()",
+          "count": 304,
+          "inclusiveMilliseconds": 162.4100002348423,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "DisplayScheduler::DrawAndSwap",
+          "count": 304,
+          "inclusiveMilliseconds": 162.36599975824356,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "Display::DrawAndSwap",
+          "count": 304,
+          "inclusiveMilliseconds": 162.1389998793602,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "CommandBufferStub::PerformWork",
+          "count": 22019,
+          "inclusiveMilliseconds": 72.01100242137909,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GLContextEGL::MakeCurrent",
+          "count": 28011,
+          "inclusiveMilliseconds": 48.46100163459778,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "context": "0x16",
+            "surface": "0x24e40001d360"
+          }
+        },
+        {
+          "name": "SimpleWatcher::OnHandleReady",
+          "count": 2339,
+          "inclusiveMilliseconds": 44.242999881505966,
+          "threads": ["Chrome_ChildIOThread", "VizCompositorThread", "PerfettoTrace"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "chrome_mojo_event_info": {
+              "watcher_notify_interface_tag": "IPC Channel"
+            }
+          }
+        },
+        {
+          "name": "DirectRenderer::DrawFrame",
+          "count": 304,
+          "inclusiveMilliseconds": 42.023000091314316,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz,benchmark"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "EpollEvent",
+          "count": 1816,
+          "inclusiveMilliseconds": 41.5629997253418,
+          "threads": ["Chrome_ChildIOThread"],
+          "categories": ["toplevel"],
+          "exampleArgs": {
+            "can_read": true,
+            "can_write": false,
+            "context": "0x24e402b19f28",
+            "controller_created_from": {
+              "file_name": "mojo/core/channel_posix.cc",
+              "function_name": "StartOnIOThread",
+              "line_number": 219
+            },
+            "fd": 91
+          }
+        },
+        {
+          "name": "DirectRenderer::DrawRenderPass",
+          "count": 304,
+          "inclusiveMilliseconds": 37.355999767780304,
+          "threads": ["VizCompositorThread"],
+          "categories": ["viz"],
+          "exampleArgs": {
+            "NumberOfQuads": 38,
+            "id": 2
+          }
+        },
+        {
+          "name": "Receive mojo message",
+          "count": 2319,
+          "inclusiveMilliseconds": 33.91300052404404,
+          "threads": ["Chrome_ChildIOThread", "VizCompositorThread", "PerfettoTrace", "CrGpuMain"],
+          "categories": ["toplevel,mojom"],
+          "exampleArgs": {
+            "chrome_mojo_event_info": {
+              "data_num_bytes": 208,
+              "ipc_hash": 969905136,
+              "mojo_interface_method": {
+                "native_symbol": {
+                  "mapping_id": 4,
+                  "rel_pc": 82127568
+                }
+              },
+              "mojo_interface_tag": "gpu.mojom.GpuChannel",
+              "payload_size": 152
+            }
+          }
+        },
+        {
+          "name": "GrDirectContextPriv::flushSurfaces",
+          "count": 308,
+          "inclusiveMilliseconds": 27.40599974989891,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaRenderer::DoDrawQuad",
+          "count": 4177,
+          "inclusiveMilliseconds": 27.086000204086304,
+          "threads": ["VizCompositorThread"],
+          "categories": ["disabled-by-default-viz.quads"],
+          "exampleArgs": {
+            "material": "kTextureContent"
+          }
+        },
+        {
+          "name": "GrDrawingManager::flush",
+          "count": 309,
+          "inclusiveMilliseconds": 26.936999410390854,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "GpuChannelMessageFilter::FlushDeferredRequests",
+          "count": 2002,
+          "inclusiveMilliseconds": 14.600000143051147,
+          "threads": ["Chrome_ChildIOThread"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "void GrDirectContext::performDeferredCleanup(std::chrono::milliseconds, GrPurgeResourceOptions)",
+          "count": 5,
+          "inclusiveMilliseconds": 14.414000004529953,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "TextureOp",
+          "count": 1980,
+          "inclusiveMilliseconds": 9.839000314474106,
+          "threads": ["VizCompositorThread", "CrGpuMain"],
+          "categories": ["disabled-by-default-skia.gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::freeMemory",
+          "count": 118,
+          "inclusiveMilliseconds": 9.472000032663345,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "VulkanQueueSubmitHook",
+          "count": 304,
+          "inclusiveMilliseconds": 9.085000395774841,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        }
+      ],
+      "copyReadbackAndInteropEvents": [
+        {
+          "name": "SkiaVulkanMemoryAllocator::unmapMemory",
+          "count": 306,
+          "inclusiveMilliseconds": 1.6189996302127838,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "VulkanQueueSubmitHook",
+          "count": 304,
+          "inclusiveMilliseconds": 9.085000395774841,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::mapMemory",
+          "count": 301,
+          "inclusiveMilliseconds": 0.3210003972053528,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::freeMemory",
+          "count": 118,
+          "inclusiveMilliseconds": 9.472000032663345,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SharedImageStub::OnCreateSharedImage",
+          "count": 4,
+          "inclusiveMilliseconds": 0.4139999747276306,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {
+            "height": 704,
+            "width": 3200
+          }
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::allocateMemoryForImage",
+          "count": 4,
+          "inclusiveMilliseconds": 0.34700000286102295,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SkiaVulkanMemoryAllocator::getAllocInfo",
+          "count": 4,
+          "inclusiveMilliseconds": 0.0029999911785125732,
+          "threads": ["CrGpuMain"],
+          "categories": ["disabled-by-default-gpu.vulkan.vma"],
+          "exampleArgs": {}
+        },
+        {
+          "name": "SharedImageStub::OnDestroySharedImage",
+          "count": 4,
+          "inclusiveMilliseconds": 0.02499997615814209,
+          "threads": ["CrGpuMain"],
+          "categories": ["gpu"],
+          "exampleArgs": {}
+        }
+      ]
+    }
+  ],
+  "knownCopyControl": {
+    "counts": {
+      "GPUQueue.writeTexture": 1,
+      "GPUCommandEncoder.copyTextureToTexture": 1,
+      "GPUCommandEncoder.copyTextureToBuffer": 1,
+      "GPUCommandEncoder.finish": 1,
+      "GPUQueue.submit": 1,
+      "GPUBuffer.mapAsync": 1
+    },
+    "contexts": {
+      "10269": {
+        "type": "GPUQueue",
+        "counts": {
+          "GPUQueue.writeTexture": 1,
+          "GPUQueue.submit": 1
+        }
+      },
+      "10270": {
+        "type": "GPUCommandEncoder",
+        "counts": {
+          "GPUCommandEncoder.copyTextureToTexture": 1,
+          "GPUCommandEncoder.copyTextureToBuffer": 1,
+          "GPUCommandEncoder.finish": 1
+        }
+      },
+      "10271": {
+        "type": "GPUBuffer",
+        "counts": {
+          "GPUBuffer.mapAsync": 1
+        }
+      }
+    },
+    "pacedObserverFrames": 7,
+    "contentVerified": true,
+    "validationError": null,
+    "gpuErrors": []
+  },
+  "analysisImplementation": {
+    "sampledProfileSha256": "8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d",
+    "sampleScope": "Timestamp-sorted forward leaf weights intersected with merged renderer-main RunTask intervals; unsampled edges remain explicit. Sample weights are estimates and overlap parent wrapper intervals."
+  },
+  "knownCopyTraceEvents": [],
+  "knownCopyNativeVisibility": {
+    "status": "unobservable",
+    "coverage": {
+      "CopyTextureToTexture": [],
+      "CopyTextureToBuffer": [],
+      "MapAsync": []
+    },
+    "definition": "exact copy/map operation names on GPU-process events in GPU/Dawn/WebGPU/Vulkan/Viz/Skia categories inside verified positive-control marks",
+    "windowMicroseconds": [167932430094, 167932524932],
+    "caveat": "Absent operation coverage cannot establish absence of internal copies in terminal traces; this control does not qualify WebGL readPixels visibility."
+  }
+}

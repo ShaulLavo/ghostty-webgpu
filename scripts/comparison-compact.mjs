@@ -9,7 +9,7 @@ export function comparisonLatencyEndpoint({ tracing, headless, platform }) {
   if (tracing) return 'keydown/write to first screencast PNG containing the intended colored glyph'
   if (platform === 'linux' && headless)
     return 'keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)'
-  return 'keydown/write to Chrome presentation feedback (terminal submission frame)'
+  return 'keydown/write to Chrome presentation feedback (terminal rendered frame)'
 }
 
 function cpu(value) {
@@ -81,7 +81,7 @@ async function timeline(run, directory) {
         event.pid === ack.pid &&
         relative >= -0.05 &&
         relative <= selected.milliseconds &&
-        (/^compare\/(keydown|echo-sent|echo-received|0\/parse\/|0\/js\/(drawFrame|renderRows)|0\/commands\/)/.test(
+        (/^compare\/(keydown|echo-sent|echo-received|0\/parse\/|0\/js\/(drawFrame|renderRows|render)|0\/commands\/)/.test(
           event.name,
         ) ||
           event.name === 'AnimationFrame::Presentation')
@@ -96,7 +96,8 @@ async function timeline(run, directory) {
     animationId: selected.animationId,
     endpointMilliseconds: selected.milliseconds,
     parseEndMilliseconds: selected.parseEnd,
-    submitEndMilliseconds: selected.submitEnd,
+    renderBoundary: selected.renderBoundary,
+    renderBoundaryEndMilliseconds: selected.renderBoundaryEnd,
     events,
   }
 }
@@ -109,6 +110,8 @@ export async function compactEvidence(artifact, directory) {
     counts: artifact.counts,
     paths: artifact.paths,
     variants: artifact.variants,
+    phases: artifact.phases,
+    frameBuilders: artifact.frameBuilders,
     fixtures: artifact.fixtures,
     repetitions: artifact.repetitions,
     latencySamples: artifact.latencySamples,
@@ -147,6 +150,7 @@ export async function compactEvidence(artifact, directory) {
     qualifications: artifact.qualifications,
     runs: artifact.runs.map((run) => ({
       variant: run.variant,
+      frameBuilder: run.frameBuilder,
       path: run.path,
       count: run.count,
       repetition: run.repetition,

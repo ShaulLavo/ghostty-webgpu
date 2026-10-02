@@ -78,6 +78,8 @@ function cursorEquals(left: RenderCursorSnapshot, right: RenderCursorSnapshot): 
 export class WebGlTerminalRenderer {
   readonly backend = 'webgl2' as const
   readonly metrics: RendererMetrics = {
+    zigFrames: 0,
+    jsFallbackFrames: 0,
     atlasCacheHits: 0,
     atlasCacheMisses: 0,
     atlasEvictions: 0,

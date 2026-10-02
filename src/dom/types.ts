@@ -135,6 +135,8 @@ export type GhosttyWebGpuRendererFactory = (
 ) => Promise<GhosttyWebGpuRenderer>
 
 export interface GhosttyWebGpuTerminalOptions {
+  /** Experimental WASM WebGPU instance construction. */
+  readonly zigFrame?: boolean
   readonly accessibility?: false | GhosttyWebGpuTerminalAccessibilityOptions
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy

@@ -44,3 +44,84 @@ test('measurement selections reject missing, unsupported and duplicate values', 
   for (const value of [undefined, '--output', '2', '1,1', ''])
     assert.throws(() => selection(['--counts', value], '--counts', ['1'], ['1', '8', '17']))
 })
+
+test('variant selection adds only the native renderer counterparts', async () => {
+  const { variants } = await import('../bench/comparison-fixtures.ts')
+  const { selectedVariants } = await import('./comparison-options.mjs')
+  const available = variants.map(({ id }) => id)
+  const fallback = ['ghostty-webgpu', 'xterm-webgl']
+  assert.deepEqual(selectedVariants([], available, fallback), fallback)
+  assert.deepEqual(
+    selectedVariants(
+      ['--variants', 'ghostty-webgl,ghostty-canvas,ghostty-dom'],
+      available,
+      fallback,
+    ),
+    ['ghostty-webgl', 'ghostty-canvas', 'ghostty-dom', 'xterm-webgl', 'ghostty-web', 'xterm-dom'],
+  )
+  assert.deepEqual(
+    selectedVariants(['--variants', 'ghostty-webgpu,ghostty-webgl'], available, fallback),
+    ['ghostty-webgpu', 'ghostty-webgl', 'xterm-webgl'],
+  )
+  for (const value of [undefined, '', 'unknown', 'ghostty-dom,ghostty-dom'])
+    assert.throws(() => selectedVariants(['--variants', value], available, fallback))
+})
+
+test('WebGPU frame-builder selection supports one path and rejects conflicting selectors', async () => {
+  const { frameBuilders } = await import('./comparison-options.mjs')
+  assert.deepEqual(frameBuilders([]), ['js'])
+  assert.deepEqual(frameBuilders(['--paired-frame-builders']), ['js', 'zig'])
+  for (const value of ['js', 'zig', 'js,zig', 'zig,js'])
+    assert.deepEqual(frameBuilders(['--frame-builders', value]), value.split(','))
+  for (const value of [undefined, '', 'canvas', 'js,js'])
+    assert.throws(() => frameBuilders(['--frame-builders', value]))
+  assert.throws(() => frameBuilders(['--paired-frame-builders', '--frame-builders', 'zig']))
+})
+
+test('phase selection retains explicit narrow phases and rejects malformed values', async () => {
+  const { selectedPhases, measurementPhases } = await import('./comparison-options.mjs')
+  assert.deepEqual(selectedPhases([]), measurementPhases)
+  assert.deepEqual(selectedPhases(['--phases', 'output,latency']), ['output', 'latency'])
+  for (const phase of measurementPhases)
+    assert.deepEqual(selectedPhases(['--phases', phase]), [phase])
+  for (const value of [undefined, '', 'warmup', 'output,output'])
+    assert.throws(() => selectedPhases(['--phases', value]))
+})
+
+test('even repetitions remain at least four and selected native/counterpart order is balanced', async () => {
+  const { measurementRepetitions, measurementCases, counterparts } =
+    await import('./comparison-options.mjs')
+  for (const value of ['1', '2', '3', '5', '0', 'NaN'])
+    assert.throws(() => measurementRepetitions(['--repetitions', value], 4))
+  assert.equal(measurementRepetitions([], 4), 4)
+  for (const repetitions of [4, 6, 8]) {
+    const variants = Object.keys(counterparts).concat([...new Set(Object.values(counterparts))])
+    const before = Object.fromEntries(Object.keys(counterparts).map((native) => [native, 0]))
+    for (let repetition = 0; repetition < repetitions; repetition++) {
+      const cases = measurementCases(variants, ['bytes', 'string'], [1, 17], ['zig'], repetition)
+      for (const count of [1, 17])
+        for (const path of ['bytes', 'string']) {
+          const selected = cases.filter((entry) => entry.count === count && entry.path === path)
+          assert.equal(selected.length, variants.length)
+          assert.deepEqual(
+            selected.filter((entry) => entry.frameBuilder).map((entry) => entry.variant),
+            ['ghostty-webgpu'],
+          )
+          for (const [native, counterpart] of Object.entries(counterparts)) {
+            if (
+              selected.findIndex((entry) => entry.variant === native) <
+              selected.findIndex((entry) => entry.variant === counterpart)
+            )
+              before[native]++
+          }
+        }
+    }
+    for (const count of Object.values(before)) assert.equal(count, repetitions * 2)
+  }
+  const native = (repetition) =>
+    measurementCases(['ghostty-webgpu', 'xterm-webgl'], ['bytes'], [17], ['js', 'zig'], repetition)
+      .filter((entry) => entry.variant === 'ghostty-webgpu')
+      .map((entry) => entry.frameBuilder)
+  assert.deepEqual(native(0), ['js', 'zig'])
+  assert.deepEqual(native(1), ['zig', 'js'])
+})

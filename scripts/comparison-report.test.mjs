@@ -1,6 +1,7 @@
 import { PNG } from 'pngjs'
 import { compactEvidence, comparisonLatencyEndpoint } from './comparison-compact.mjs'
 import { ink } from './comparison-pixels.mjs'
+import { ComparisonTracing } from '../bench/comparison-tracing.ts'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -105,6 +106,70 @@ test('results take medians across repetitions and preserve negative memory noise
   assert.equal(rows.find(({ metric }) => metric === 'write/p50').median, 2.5)
   assert.equal(rows.find(({ metric }) => metric === 'memory/terminal').median, -10 / 1048576)
   assert.equal(rows.find(({ metric }) => metric === 'parse/ascii').repetitions, 3)
+})
+
+test('paired frame-builder summaries keep JS and Zig treatments separate', () => {
+  const runs = ['js', 'zig'].map((frameBuilder, index) => ({
+    variant: 'ghostty-webgpu',
+    frameBuilder,
+    path: 'bytes',
+    count: 17,
+    latency: { write: [index + 1] },
+  }))
+  const rows = summaries({ runs })
+  assert.equal(rows.find((row) => row.variant === 'ghostty-webgpu-js').median, 1)
+  assert.equal(rows.find((row) => row.variant === 'ghostty-webgpu-zig').median, 2)
+})
+
+test('builders created before recording acquire their own measured boundary', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', { configurable: true, value: { search: '?trace' } })
+  try {
+    const tracing = new ComparisonTracing()
+    const factory = { create: () => ({ build: () => 42 }) }
+    tracing.wrap(
+      factory,
+      'create',
+      0,
+      'js',
+      (builder) => {
+        tracing.wrap(builder, 'build', 0, 'instances')
+      },
+      true,
+    )
+    const builder = factory.create()
+    tracing.begin()
+    assert.equal(builder.build(), 42)
+    const result = tracing.end()
+    assert.deepEqual(
+      result.spans.map((span) => [span.operation, span.category]),
+      [['build', 'instances']],
+    )
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete globalThis.location
+  }
+})
+
+test('paired frame-builder report exposes both native absolute measurements', () => {
+  const artifact = pairedArtifact()
+  const baselineRows = pairedRatios(artifact)
+  artifact.runs = artifact.runs.flatMap((run) =>
+    run.variant === 'ghostty-webgpu'
+      ? ['js', 'zig'].map((frameBuilder) => ({ ...run, frameBuilder }))
+      : [run],
+  )
+  const report = markdown(artifact)
+  assert(report.includes('| Measure | ghostty-webgpu-js | ghostty-webgpu-zig | xterm-webgl |'))
+  const nativeRows = pairedRatios(artifact)
+  assert.equal(nativeRows.length, baselineRows.length * 2)
+  for (const builder of ['js', 'zig'])
+    assert.deepEqual(
+      nativeRows
+        .filter((row) => row.frameBuilder === builder)
+        .map(({ frameBuilder: _, ...row }) => row),
+      baselineRows,
+    )
 })
 
 test('software smoke never produces a results document', () => {
@@ -436,7 +501,7 @@ test('paired ratios use per-repetition divisions, retain absolutes, and accept e
       [0.5, 0.1, 100 / 101],
     )
     assert.equal(row.pairs[1].native, 10)
-    assert.equal(row.pairs[1].xterm, 100)
+    assert.equal(row.pairs[1].counterpart, 100)
   }
   for (const run of artifact.runs) run.latency.write = [5]
   assert.equal(pairedRatios(artifact).find(({ metric }) => metric === 'write/p50').status, 'pass')
@@ -524,7 +589,11 @@ test('paired report exposes each condition status, median and individual ratio',
   artifact.runs[0].gpuIdle = { qualified: false }
   const report = markdown(artifact)
   assert(report.includes('## Paired pass rule'))
-  assert(report.includes('| 1 | bytes | xterm-webgl | write/p50 | 0.55 | ≤ 1 | 2/3 | incomplete |'))
+  assert(
+    report.includes(
+      '| 1 | bytes | ghostty-webgpu ↔ xterm-webgl | write/p50 | 0.55 | ≤ 1 | 2/3 | incomplete |',
+    ),
+  )
   assert(report.includes('| session/1 | 2 | 10.00 ms | 100.00 ms | 0.10 |'))
 })
 
@@ -643,6 +712,23 @@ test('portable compaction preserves between-repetition qualifications and bounde
   assert(!JSON.stringify(compact).includes('Infinity'))
 })
 
+test('compaction preserves paired frame-builder identities and ratios', async () => {
+  const artifact = pairedArtifact()
+  artifact.environment.gpu = { gpu: { devices: [], featureStatus: {} } }
+  artifact.qualifications = []
+  artifact.runs = artifact.runs.flatMap((run) =>
+    run.variant === 'ghostty-webgpu'
+      ? ['js', 'zig'].map((frameBuilder) => ({ ...run, frameBuilder }))
+      : [run],
+  )
+  const compact = await compactEvidence(artifact)
+  assert.deepEqual(
+    compact.runs.map((run) => run.frameBuilder),
+    artifact.runs.map((run) => run.frameBuilder),
+  )
+  assert.deepEqual(pairedRatios(compact), pairedRatios(artifact))
+})
+
 test('compaction retains preparation failures and incomplete paired verdicts', async () => {
   const artifact = pairedArtifact()
   artifact.environment.gpu = { gpu: { devices: [], featureStatus: {} } }
@@ -712,7 +798,171 @@ test('trace latency metadata names PNG capture while ordinary mode keeps present
     const expected =
       options.platform === 'linux' && options.headless
         ? 'keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)'
-        : 'keydown/write to Chrome presentation feedback (terminal submission frame)'
+        : 'keydown/write to Chrome presentation feedback (terminal rendered frame)'
     assert.equal(comparisonLatencyEndpoint({ ...options, tracing: false }), expected)
+  }
+})
+
+test('native renderer pairs retain generic counterpart values and per-session identity', () => {
+  const artifact = pairedArtifact()
+  const nativeRuns = artifact.runs.filter((run) => run.variant === 'ghostty-webgpu')
+  const otherRuns = artifact.runs.filter((run) => run.variant === 'xterm-webgl')
+  const counterparts = {
+    'ghostty-webgl': 'xterm-webgl',
+    'ghostty-canvas': 'ghostty-web',
+    'ghostty-dom': 'xterm-dom',
+  }
+  artifact.variants = Object.keys(counterparts).concat(Object.values(counterparts))
+  artifact.runs = Object.entries(counterparts).flatMap(([native, counterpart]) => [
+    ...nativeRuns.map((run) => ({ ...run, variant: native })),
+    ...otherRuns.map((run) => ({ ...run, variant: counterpart })),
+  ])
+  artifact.frameBuilders = ['zig']
+  const rows = pairedRatios(artifact)
+  assert.equal(rows.length, 21)
+  for (const [native, counterpart] of Object.entries(counterparts)) {
+    const selected = rows.filter((row) => row.nativeVariant === native)
+    assert.equal(selected.length, 7)
+    for (const row of selected) {
+      assert.equal(row.variant, counterpart)
+      assert.equal(row.status, 'pass')
+      assert.equal(row.frameBuilder, undefined)
+      assert.equal(row.pairs[1].counterpart, 100)
+      assert.equal(row.pairs[1].sessionId, 'browser-session')
+    }
+  }
+  artifact.runs.find((run) => run.variant === 'ghostty-web').sessionId = 'foreign-session'
+  assert(
+    pairedRatios(artifact)
+      .filter((row) => row.nativeVariant === 'ghostty-canvas')
+      .every((row) => row.status === 'incomplete'),
+  )
+  const report = markdown(artifact)
+  assert(report.includes('xterm removed its canvas renderer'))
+  assert(report.includes('ghostty-canvas ↔ ghostty-web'))
+  assert(report.includes('| Native | Counterpart |'))
+})
+
+test('omitted phases never consume stale samples or receive a paired verdict', () => {
+  const artifact = pairedArtifact()
+  artifact.phases = ['latency', 'output']
+  artifact.fixtures = ['ascii', 'sgr']
+  artifact.frameBuilders = ['js']
+  artifact.runs = artifact.runs.map((run) =>
+    run.variant === 'ghostty-webgpu' ? { ...run, frameBuilder: 'js' } : run,
+  )
+  for (const run of artifact.runs) {
+    run.parse = { ascii: { bytes: 1000, milliseconds: 1, validation: { qualified: true } } }
+    run.burst = { ascii: { intervals: [1] } }
+    run.refreshPeriod = 16.67
+  }
+  assert(summaries(artifact).every((row) => !/^(idle|parse|burst)\//.test(row.metric)))
+  for (const row of pairedRatios(artifact).filter((entry) => entry.metric.startsWith('idle/'))) {
+    assert.equal(row.status, 'not measured')
+    assert.deepEqual(row.pairs, [])
+    assert.equal(row.median, null)
+  }
+  assert(
+    pairedRatios(artifact)
+      .filter((entry) => !entry.metric.startsWith('idle/'))
+      .every((row) => row.status === 'pass'),
+  )
+  const report = markdown(artifact)
+  for (const metric of ['idle/cpu', 'parse/ascii', 'parse/sgr', 'burst/ascii/p95', 'memory/10k'])
+    assert(report.includes(`| ${metric} | not measured | not measured |`))
+  const idlePair = report
+    .split('\n')
+    .find((line) => line.includes('↔') && line.includes('idle/cpu/renderer | not measured'))
+  assert(idlePair.includes('| — | — | not measured |'))
+  assert(!idlePair.includes('incomplete'))
+})
+
+test('skipped latency emits not measured while selected missing output stays incomplete', () => {
+  const artifact = pairedArtifact()
+  artifact.phases = ['output']
+  artifact.runs = []
+  for (const row of pairedRatios(artifact)) {
+    const expected = row.metric.startsWith('output/') ? 'incomplete' : 'not measured'
+    assert.equal(row.status, expected)
+  }
+  const report = markdown(artifact)
+  for (const metric of ['write/p50', 'write/p95', 'input/p50', 'input/p95'])
+    assert(report.includes(`| ${metric} | not measured | not measured |`))
+})
+
+test('benchmark row tracing records actual DOM commits including newly replaced rows', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', { configurable: true, value: { search: '?trace' } })
+  try {
+    const tracing = new ComparisonTracing()
+    const children = []
+    const makeRow = () => ({
+      replaceWith(next) {
+        children[0] = next
+      },
+    })
+    children[0] = makeRow()
+    const surface = {
+      container: { firstElementChild: { children } },
+      paint(row) {
+        const previous = children[row.y]
+        if (previous) previous.replaceWith(makeRow())
+      },
+    }
+    const renderer = {
+      backend: 'dom',
+      scheduler: {},
+      surface,
+      rowsToPaint() {},
+      notifyWrite() {},
+      drawFrame(row) {
+        surface.paint(row)
+      },
+    }
+    tracing.nativeRenderer(0, renderer)
+    tracing.begin()
+    renderer.drawFrame({ y: 0 })
+    renderer.drawFrame({ y: 0 })
+    renderer.drawFrame({ y: 9 })
+    const records = tracing.end()
+    assert.equal(records.spans.filter((span) => span.operation === 'drawFrame').length, 3)
+    assert.equal(
+      records.spans.filter(
+        (span) => span.category === 'commands' && span.operation === 'replaceWith',
+      ).length,
+      2,
+    )
+    assert.equal(records.ownership[0].backend, 'dom')
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete globalThis.location
+  }
+})
+
+test('xterm DOM tracing follows replacement row instances and rejects non-committing frames', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'location')
+  Object.defineProperty(globalThis, 'location', { configurable: true, value: { search: '?trace' } })
+  try {
+    const tracing = new ComparisonTracing()
+    const renderer = {
+      _rowElements: [{ replaceChildren() {} }],
+      _rowFactory: { createRow() {} },
+      renderRows(commit) {
+        if (commit) this._rowElements[0].replaceChildren()
+      },
+    }
+    const service = { _renderer: { value: renderer }, _renderDebouncer: {}, refreshRows() {} }
+    tracing.xtermDom(0, { _core: { _renderService: service, _inputHandler: { parse() {} } } })
+    tracing.begin()
+    renderer.renderRows(true)
+    renderer._rowElements = [{ replaceChildren() {} }]
+    renderer.renderRows(true)
+    renderer.renderRows(false)
+    const records = tracing.end()
+    assert.equal(records.spans.filter((span) => span.operation === 'renderRows').length, 3)
+    assert.equal(records.spans.filter((span) => span.operation === 'replaceChildren').length, 2)
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'location', original)
+    else delete globalThis.location
   }
 })

@@ -8,6 +8,7 @@ import {
 } from './abi.js'
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
+import { ZigFrameBuilder } from './zig-frame.js'
 import { RowReader } from './row-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { GhosttyTerminal } from './terminal.js'
@@ -202,6 +203,19 @@ export class GhosttyRenderState {
     const snapshot = this.cursorReader.read(this.state.handle)
     this.cursorSnapshot = snapshot.cursor
     return snapshot.dirty
+  }
+
+  createFrameBuilder(columns: number, rows: number): ZigFrameBuilder {
+    this.ensureActive()
+    return new ZigFrameBuilder(
+      this.runtime,
+      this.state.handle,
+      this.iterator.handle,
+      this.cells.handle,
+      columns,
+      rows,
+      () => this.ensureActive(),
+    )
   }
 
   snapshot(options: ReadRowsOptions = {}): DamageSnapshot {

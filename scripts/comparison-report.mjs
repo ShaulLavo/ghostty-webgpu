@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { counterparts } from './comparison-options.mjs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { dirname, relative, resolve } from 'node:path'
@@ -27,14 +28,52 @@ export function droppedFrames(intervals, period) {
   )
 }
 
+function phaseMeasured(artifact, metric) {
+  if (!artifact.phases) return true
+  const prefix = metric.split('/')[0]
+  const phase = { parse: 'parser', write: 'latency', input: 'latency' }[prefix] ?? prefix
+  if (metric.startsWith('memory/output/') && !artifact.phases.includes('output')) return false
+  return artifact.phases.includes(phase)
+}
+
+function omittedMetrics(artifact) {
+  if (!artifact.phases) return []
+  const metrics = [
+    ...(artifact.fixtures ?? artifact.manifest.fixtures?.map(({ name }) => name) ?? []).flatMap(
+      (name) => [
+        `parse/${name}`,
+        `burst/${name}/p50`,
+        `burst/${name}/p95`,
+        `burst/${name}/dropped`,
+      ],
+    ),
+    'write/p50',
+    'write/p95',
+    'input/p50',
+    'input/p95',
+    'idle/cpu',
+    'idle/cpu/renderer',
+    'output/cpu',
+    'output/cpu/renderer',
+    'memory/terminal',
+    'memory/10k',
+    'memory/output/terminal',
+    ...['initial', 'history', 'output'].flatMap((state) => [
+      `memory/${state}/wasm`,
+      `memory/${state}/rss-delta`,
+    ]),
+  ]
+  return metrics.filter((metric) => !phaseMeasured(artifact, metric))
+}
+
 export function summaries(artifact) {
   const groups = new Map()
   const add = (run, metric, value, unit) => {
-    if (!Number.isFinite(value)) return
-    const key = [run.variant, run.path, run.count, metric].join('/')
+    if (!phaseMeasured(artifact, metric) || !Number.isFinite(value)) return
+    const key = [run.variant, run.frameBuilder ?? '', run.path, run.count, metric].join('/')
     if (!groups.has(key))
       groups.set(key, {
-        variant: run.variant,
+        variant: run.frameBuilder ? `${run.variant}-${run.frameBuilder}` : run.variant,
         path: run.path,
         count: run.count,
         metric,
@@ -176,12 +215,13 @@ function pairedValues(native, other, { read, cpu }, minimumCpuTicks) {
   )
     return null
   const nativeValue = read(native)
-  const xtermValue = read(other)
-  if (![nativeValue, xtermValue].every((value) => Number.isFinite(value) && value >= 0)) return null
-  const ratio = xtermValue > 0 ? nativeValue / xtermValue : null
+  const counterpartValue = read(other)
+  if (![nativeValue, counterpartValue].every((value) => Number.isFinite(value) && value >= 0))
+    return null
+  const ratio = counterpartValue > 0 ? nativeValue / counterpartValue : null
   let ratioReason
   if (ratio === null)
-    ratioReason = nativeValue === 0 ? 'both sides are zero' : 'xterm baseline is zero'
+    ratioReason = nativeValue === 0 ? 'both sides are zero' : 'counterpart baseline is zero'
   const gpuSkipped = [native.gpuIdle?.skipped, other.gpuIdle?.skipped].filter(Boolean)
   let reason = ratioReason
   let ticks
@@ -197,13 +237,13 @@ function pairedValues(native, other, { read, cpu }, minimumCpuTicks) {
   }
   let status = ratio <= 1 ? 'pass' : 'fail'
   if (reason) status = 'unresolved'
-  if (!cpu && nativeValue > 0 && xtermValue === 0) status = 'fail'
+  if (!cpu && nativeValue > 0 && counterpartValue === 0) status = 'fail'
   return {
     pairId: native.pairId,
     sessionId: native.sessionId,
     repetition: native.repetition,
     native: nativeValue,
-    xterm: xtermValue,
+    counterpart: counterpartValue,
     ratio,
     ratioReason,
     ticks,
@@ -218,7 +258,7 @@ function ratioMedian(pairs) {
   const sorted = pairs
     .map(
       ({ ratio, ratioReason }) =>
-        ratio ?? (ratioReason === 'xterm baseline is zero' ? Infinity : NaN),
+        ratio ?? (ratioReason === 'counterpart baseline is zero' ? Infinity : NaN),
     )
     .sort((a, b) => a - b)
   if (sorted.some(Number.isNaN)) return null
@@ -226,13 +266,23 @@ function ratioMedian(pairs) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
 }
 
-function pairedRow(groups, condition, variant, definition, repetitions, minimumCpuTicks) {
+function pairedRow(
+  groups,
+  condition,
+  nativeVariant,
+  variant,
+  definition,
+  repetitions,
+  minimumCpuTicks,
+  frameBuilder,
+  measured,
+) {
   const { metric, unit } = definition
   const pairs = []
   for (const group of groups.values()) {
-    const native = group.get('ghostty-webgpu')
+    const native = group.get(nativeVariant)?.filter((run) => run.frameBuilder === frameBuilder)
     const other = group.get(variant)
-    if (native?.length !== 1 || other?.length !== 1) continue
+    if (!measured || native?.length !== 1 || other?.length !== 1) continue
     if (native[0].path !== condition.path || native[0].count !== condition.count) continue
     const pair = pairedValues(native[0], other[0], definition, minimumCpuTicks)
     if (pair) pairs.push(pair)
@@ -246,13 +296,16 @@ function pairedRow(groups, condition, variant, definition, repetitions, minimumC
   let status = 'incomplete'
   if (complete) status = median <= 1 ? 'pass' : 'fail'
   if (complete && pairs.some((pair) => pair.status === 'unresolved')) status = 'unresolved'
+  if (!measured) status = 'not measured'
   let medianReason
-  if (median === Infinity) medianReason = 'unbounded: xterm baseline is zero'
+  if (median === Infinity) medianReason = 'unbounded: counterpart baseline is zero'
   if (median === null) medianReason = 'ratio unavailable'
   const gpuSkipped = [...new Set(pairs.flatMap((pair) => pair.gpuSkipped))]
   return {
     ...condition,
+    nativeVariant,
     variant,
+    ...(frameBuilder ? { frameBuilder } : {}),
     metric,
     unit,
     target: 1,
@@ -294,27 +347,55 @@ export function pairedRatios(artifact) {
     for (const path of artifact.paths)
       conditions.set(JSON.stringify([path, count]), { path, count })
   }
-  const variants = artifact.variants.filter((id) => id.startsWith('xterm-'))
   const rows = []
+  const treatments = artifact.variants
+    .filter((id) => counterparts[id])
+    .flatMap((nativeVariant) => {
+      const variant = counterparts[nativeVariant]
+      if (!artifact.variants.includes(variant)) return []
+      if (nativeVariant !== 'ghostty-webgpu') return [{ nativeVariant, variant }]
+      const builders = artifact.frameBuilders ?? [
+        ...new Set(
+          artifact.runs
+            .filter((run) => run.variant === nativeVariant)
+            .map((run) => run.frameBuilder),
+        ),
+      ]
+      return (builders.length ? builders : [undefined]).map((frameBuilder) => ({
+        nativeVariant,
+        variant,
+        frameBuilder,
+      }))
+    })
   for (const condition of conditions.values()) {
-    for (const variant of variants)
+    for (const { nativeVariant, variant, frameBuilder } of treatments) {
       rows.push(
         ...pairedMetrics.map((metric) =>
           pairedRow(
             groups,
             condition,
+            nativeVariant,
             variant,
             metric,
             artifact.repetitions,
             artifact.manifest.settings.minimumCpuTicks ?? 100,
+            frameBuilder,
+            phaseMeasured(artifact, metric.metric),
           ),
         ),
       )
+    }
   }
   return rows
 }
 
 const number = (value) => (value === null ? 'unbounded/unavailable' : value.toFixed(2))
+
+function pairedMedian(row) {
+  if (row.status === 'not measured') return 'not measured'
+  if (row.median === null) return row.medianReason
+  return number(row.median)
+}
 
 function pairedMarkdown(artifact) {
   if (!hasPairConfiguration(artifact))
@@ -328,27 +409,28 @@ function pairedMarkdown(artifact) {
   const lines = [
     '## Paired pass rule',
     '',
-    'Targets are native/xterm ratios ≤ 1 for renderer CPU, total Chromium CPU, input p50/p95, and write p50 in every path/count condition. Each pair shares its browser session ID, pair ID, repetition, path, and terminal count. The median of the individual pair ratios determines pass or fail; absolute measurements provide context.',
-    'Every configured repetition must have exactly one qualified native and xterm run. Missing IDs, duplicate runs, failures, missing metrics, and rejected GPU-idle runs leave the condition incomplete. CPU pairs are unresolved when either side has fewer than the configured minimum ticks or sides differ by at most one tick. Zero/zero never passes. Unbounded ratios are null with a reason. Skipped GPU qualification is explicitly labeled.',
+    'xterm removed its canvas renderer. ghostty-web is the closest available canvas 2D counterpart for ghostty-canvas; their parsers and host adapters differ.',
+    'Targets are native/counterpart ratios ≤ 1 for renderer CPU, total Chromium CPU, input p50/p95, and write p50 in every path/count condition. Each pair shares its browser session ID, pair ID, repetition, path, and terminal count. The median of the individual pair ratios determines pass or fail; absolute measurements provide context.',
+    'Every configured repetition must have exactly one qualified native and counterpart run. Missing IDs, duplicate runs, failures, missing metrics, and rejected GPU-idle runs leave the condition incomplete. CPU pairs are unresolved when either side has fewer than the configured minimum ticks or sides differ by at most one tick. Zero/zero never passes. Unbounded ratios are null with a reason. Skipped GPU qualification is explicitly labeled.',
     '',
-    '| Terminals | Path | Against | Measure | Median ratio | Target | Pairs | Status |',
+    '| Terminals | Path | Native ↔ counterpart | Measure | Median ratio | Target | Pairs | Status |',
     '| ---: | --- | --- | --- | ---: | ---: | ---: | --- |',
   ]
   for (const row of rows)
     lines.push(
-      `| ${row.count} | ${row.path} | ${row.variant} | ${row.metric} | ${row.median === null ? row.medianReason : number(row.median)} | ≤ 1 | ${row.repetitions}/${artifact.repetitions} | ${row.status}${row.gpuSkipped.length ? ` (GPU unqualified: ${row.gpuSkipped.join('; ')})` : ''} |`,
+      `| ${row.count} | ${row.path} | ${row.nativeVariant}${row.frameBuilder ? `-${row.frameBuilder}` : ''} ↔ ${row.variant} | ${row.metric} | ${pairedMedian(row)} | ${row.status === 'not measured' ? '—' : '≤ 1'} | ${row.status === 'not measured' ? '—' : `${row.repetitions}/${artifact.repetitions}`} | ${row.status}${row.gpuSkipped.length ? ` (GPU unqualified: ${row.gpuSkipped.join('; ')})` : ''} |`,
     )
   lines.push(
     '',
     '### Individual pairs',
     '',
-    '| Terminals | Path | Against | Measure | Pair ID | Repetition | Native | xterm | Ratio | Resolution |',
+    '| Terminals | Path | Native ↔ counterpart | Measure | Pair ID | Repetition | Native | Counterpart | Ratio | Resolution |',
     '| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |',
   )
   for (const row of rows) {
     for (const pair of row.pairs)
       lines.push(
-        `| ${row.count} | ${row.path} | ${row.variant} | ${row.metric} | ${pair.pairId.replaceAll('|', '\\|').replaceAll('\n', ' ')} | ${pair.repetition + 1} | ${number(pair.native)} ${row.unit} | ${number(pair.xterm)} ${row.unit} | ${number(pair.ratio)} | ${pair.status}${pair.reason ? `: ${pair.reason}` : ''}${pair.ticks ? ` (${pair.ticks.join('/')} ticks)` : ''} |`,
+        `| ${row.count} | ${row.path} | ${row.nativeVariant}${row.frameBuilder ? `-${row.frameBuilder}` : ''} ↔ ${row.variant} | ${row.metric} | ${pair.pairId.replaceAll('|', '\\|').replaceAll('\n', ' ')} | ${pair.repetition + 1} | ${number(pair.native)} ${row.unit} | ${number(pair.counterpart)} ${row.unit} | ${number(pair.ratio)} | ${pair.status}${pair.reason ? `: ${pair.reason}` : ''}${pair.ticks ? ` (${pair.ticks.join('/')} ticks)` : ''} |`,
       )
   }
   return lines
@@ -387,6 +469,8 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     `- Font: JetBrains Mono ${artifact.manifest.versions['@fontsource/jetbrains-mono']}, bundled regular/bold Latin faces. Emoji and CJK use the same OS fallback fonts.`,
     `- Font size: ${artifact.manifest.settings.fontSize}px. DPR: ${artifact.manifest.settings.dpr}. Grid: ${artifact.manifest.settings.columns} × ${artifact.manifest.settings.rows}.`,
     `- Libraries: ghostty-webgpu ${artifact.manifest.versions['ghostty-webgpu']}; xterm ${artifact.manifest.versions['@xterm/xterm']} with WebGL addon ${artifact.manifest.versions['@xterm/addon-webgl']}; ghostty-web ${artifact.manifest.versions['ghostty-web']}.`,
+    `- Selected phases: ${(artifact.phases ?? ['parser', 'memory', 'idle', 'latency', 'burst', 'output']).join(', ')}. Omitted-phase metrics are not measured.`,
+    `- Selected variants: ${(artifact.variants ?? []).join(', ')}. WebGPU frame builders: ${(artifact.frameBuilders ?? ['js']).join(', ')}.`,
     `- Repetitions: ${artifact.repetitions}. Each table cell is the median of the per-run result, including per-run p50/p95.`,
     `- Artifact: [comparison.json](${link('comparison.json')}).`,
     '',
@@ -414,6 +498,7 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     'Write latency starts at the browser write call. Input latency starts at the captured keydown event and crosses a loopback WebSocket byte echo.',
     'The endpoint recorded in each run identifies its presentation measurement. AnimationFrame::Presentation is correlated to the animation frame containing that terminal’s render span.',
     'PNG glyph captures qualify correctness. In headless-shell, presentation acknowledgement is on-demand and follows submission independently of physical vsync. Renderer rAF pacing still determines when a terminal can draw.',
+    'GPU variants require a submitted glyph draw. Canvas and DOM variants require a real terminal row paint within the selected animation frame; deferred no-op frames are excluded.',
     'Physical-vsync and optical display latency are unmeasured. The optional --validate-presentation phase inserts one renderer rAF before write, and retains the delayed samples beside the ordinary samples.',
     'GPU windows retain utilization samples, owned/foreign compute-process memory, thresholds, and qualification. Their recorded idle and in-window limits allow the benchmark’s own measured load while bounding shared GPU saturation and foreign compute residency.',
     'Screencasting is stopped for burst, CPU, and memory measurements.',
@@ -423,7 +508,7 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     'Frame intervals come from requestAnimationFrame timestamps. Dropped frames are inferred from the measured idle refresh period,',
     'rounded to the nearest number of display intervals. They are missed animation-frame opportunities, not GPU presentation counters.',
     'CPU sums Chromium process CPU time, including browser, renderer, and GPU, as a percentage of one core. Samples reject any process birth or exit.',
-    'Every case has a 10-minute deadline capped by the remaining 30-minute window; timeout closes its contexts and retains the failure.',
+    'Every case has a 10-minute deadline capped by the remaining configured matrix budget; the heavy wrapper quiet hold is the outer limit. Timeout closes its contexts and retains the failure.',
     'Bundle and asset hashes are verified before serving; both font weights are loaded and checked before rendered phases.',
     'Successful latency phases retain metadata and colored-glyph classification for every screencast frame, including frames that did not qualify a sample.',
     'Failed latency phases retain the last capture image/metadata and a direct screenshot; their partial capture stream is not serialized.',
@@ -445,7 +530,13 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     '## Results',
     '',
   ]
-  const variants = artifact.variants ?? artifact.manifest.variants.map(({ id }) => id)
+  const selectedVariants = artifact.variants ?? artifact.manifest.variants.map(({ id }) => id)
+  const builders = [...new Set(artifact.runs.map((run) => run.frameBuilder).filter(Boolean))]
+  const variants = selectedVariants.flatMap((id) =>
+    id === 'ghostty-webgpu' && builders.length
+      ? builders.map((builder) => `${id}-${builder}`)
+      : [id],
+  )
   const cases = (artifact.counts ?? artifact.manifest.settings.counts).flatMap((count) =>
     (artifact.paths ?? ['bytes', 'string']).map((path) => ({ count, path })),
   )
@@ -457,10 +548,11 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
       `| --- | ${variants.map(() => '---:').join(' | ')} |`,
     )
     const subset = rows.filter((row) => row.count === count && row.path === path)
-    const metrics = [...new Set(subset.map((row) => row.metric))]
+    const metrics = [...new Set([...subset.map((row) => row.metric), ...omittedMetrics(artifact)])]
     for (const metric of metrics) {
       const cells = variants.map((id) => {
         const row = subset.find((entry) => entry.variant === id && entry.metric === metric)
+        if (!phaseMeasured(artifact, metric)) return 'not measured'
         return row ? `${number(row.median)} ${row.unit}` : 'unmeasured'
       })
       lines.push(`| ${metric} | ${cells.join(' | ')} |`)

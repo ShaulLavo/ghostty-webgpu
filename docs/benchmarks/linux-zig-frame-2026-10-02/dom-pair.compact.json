@@ -1,0 +1,3996 @@
+{
+  "schema": 1,
+  "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+  "startedAt": "2026-10-02T14:29:21.255Z",
+  "finishedAt": "2026-10-02T14:35:12.273Z",
+  "counts": [17],
+  "paths": ["bytes"],
+  "variants": ["ghostty-dom", "xterm-dom"],
+  "phases": ["output", "latency"],
+  "frameBuilders": ["js"],
+  "fixtures": ["ascii"],
+  "repetitions": 4,
+  "latencySamples": 96,
+  "outputFrames": 1200,
+  "cpuTickSeconds": 0.01,
+  "hardware": true,
+  "manifest": {
+    "commit": "37441317bf6649f06563c5ddf31079d5638b6d4e",
+    "dirty": "",
+    "sourceSha256": "68d22cb1d6a14c385b7dd1eb83b919633e5fd3b133d84feb7fb3ba8c6db4be5a",
+    "bundleSha256": "c3038ba1bb88bc5d13cd4183ecc36fc72e8d668eeaecef325c204c8abea24128",
+    "assets": {
+      "native.wasm": "dfb171587bc11b6610fb95d3b583926d51287f5d6e528c45ff2aa05218608a97",
+      "bridge.wasm": "eda64f25441cfb015392f614631e1f0204795e5260e24815fc850f1ebf227510",
+      "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+      "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+      "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+      "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+      "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+      "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+      "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+      "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+      "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+      "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+      "comparison-runner.mjs": "dd0066987f00b87c78b771ae8cbb80b07270794cc7103825c4c1a6d76b086e77",
+      "comparison-report.mjs": "0e4499af8867c35060842a65ffc95ad7ed582e56fa4b5a4b67ead81c51f7f46e",
+      "comparison-compact.mjs": "e17e3b48bb9c3957d59bb8b835cc82860f0af2e55e3f4c9dd365ffe0db0a5158",
+      "comparison-pixels.mjs": "7494d727792687aad15fe43dd311f00fc8553d1874220ad9cdadd3e830d9f2b1",
+      "comparison-guards.mjs": "9889693798a9442ac31f7243f3e8d896a526fddf991d7c9664582398b5f63ccf",
+      "comparison-trace.mjs": "741c9eec26482b8052820983edea366a2ad339c87e39a46c0ea4403be939318f",
+      "comparison-attribution.mjs": "de8fb7b6c4a22e6e6fce5021c541596691f300286ca882050d26d0b916880a08",
+      "comparison-options.mjs": "42bdcada9b1786dc35c9eb210542c9910dcaeef46c670cec4ae1e9b377fe53fd",
+      "comparison-latency.mjs": "32a6bc3aedb49923a192134851063e12b0f2f52bbc4a5a83428999fb35144631",
+      "comparison-render.mjs": "0b98bb08c6157acd23631a353ff913d679b2c51daa5debf9ae667afc814d0e82",
+      "comparison-gpu.mjs": "a43cee53c8f1bb0fcec15bfaab764f93b6133965263e6ec0abe8672483abebd8",
+      "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+    },
+    "versions": {
+      "@xterm/xterm": "6.0.0",
+      "@xterm/addon-webgl": "0.19.0",
+      "ghostty-web": "0.4.0",
+      "@fontsource/jetbrains-mono": "5.3.0",
+      "playwright": "1.63.0",
+      "ws": "8.22.0",
+      "ghostty-webgpu": "0.3.0"
+    },
+    "settings": {
+      "columns": 40,
+      "rows": 12,
+      "fontFamily": "Bench Mono",
+      "fontSize": 12,
+      "lineHeight": 1.2,
+      "dpr": 2,
+      "viewport": {
+        "width": 1600,
+        "height": 1400
+      },
+      "scrollback": 10000,
+      "ghosttyScrollbackBytes": 67108864,
+      "counts": [1, 8, 17],
+      "repetitions": 4,
+      "latencySamples": 240,
+      "presentationDrainMilliseconds": 100,
+      "presentationValidationSamples": 24,
+      "presentationValidationDelayFrames": 1,
+      "gpuIdleUtilizationPercent": 5,
+      "gpuWindowUtilizationPercent": 80,
+      "gpuComputeMemoryMiB": 1024,
+      "gpuSampleMilliseconds": 250,
+      "gpuMeasuredSampleMilliseconds": 1000,
+      "gpuIdleConsecutiveSamples": 3,
+      "gpuIdleWaitMilliseconds": 30000,
+      "gpuCommandTimeoutMilliseconds": 2000,
+      "adapterAttempts": 3,
+      "adapterRetryMilliseconds": 100,
+      "burstFrames": 32,
+      "idleMilliseconds": 1000,
+      "outputFrames": 2700,
+      "minimumCpuTicks": 100,
+      "caseDeadlineMilliseconds": 600000,
+      "chunkBytes": 4096,
+      "corpusBytes": 1048576
+    }
+  },
+  "environment": {
+    "browser": "153.0.8010.12",
+    "browserChannel": "chromium-headless-shell",
+    "os": "linux 7.2.5-3-omarchy x64",
+    "cpu": "Intel(R) Core(TM) i7-14700K",
+    "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+    "headless": true,
+    "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+    "launchArguments": [
+      "--force-device-scale-factor=2",
+      "--enable-unsafe-webgpu",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--max-active-webgl-contexts=32",
+      "--enable-features=Vulkan",
+      "--use-angle=vulkan",
+      "--ignore-gpu-blocklist"
+    ],
+    "gpuIdleSettings": {
+      "gpuIdleUtilizationPercent": 5,
+      "gpuWindowUtilizationPercent": 80,
+      "gpuComputeMemoryMiB": 1024,
+      "gpuSampleMilliseconds": 250,
+      "gpuMeasuredSampleMilliseconds": 1000,
+      "gpuIdleConsecutiveSamples": 3,
+      "gpuIdleWaitMilliseconds": 30000,
+      "gpuCommandTimeoutMilliseconds": 2000
+    },
+    "gpuDevices": [
+      {
+        "vendorId": 4318,
+        "deviceId": 9353,
+        "vendorString": "Google Inc. (NVIDIA)",
+        "deviceString": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "driverVendor": "NVIDIA",
+        "driverVersion": "610.57.4.0"
+      }
+    ],
+    "gpuFeatureStatus": {
+      "2d_canvas": "enabled",
+      "direct_rendering_display_compositor": "disabled_off_ok",
+      "gpu_compositing": "enabled",
+      "multiple_raster_threads": "enabled_on",
+      "opengl": "enabled_on",
+      "rasterization": "enabled",
+      "raw_draw": "disabled_off_ok",
+      "skia_graphite": "disabled_off",
+      "trees_in_viz": "disabled_off",
+      "video_decode": "enabled",
+      "video_encode": "disabled_software",
+      "vulkan": "enabled_on",
+      "webgl": "enabled",
+      "webgpu": "enabled",
+      "webgpu_on_vk_via_gl_interop": "disabled_off",
+      "webnn": "disabled_off"
+    }
+  },
+  "limitations": [
+    "Compositor acknowledgement is on-demand; physical-vsync and optical display latency are unmeasured.",
+    "GPU-process CPU is CPU consumption, not GPU hardware execution time.",
+    "NVIDIA total utilization includes benchmark load; foreign compute residency is a conservative activity proxy, and sampling can miss short bursts.",
+    "CPU verdicts require at least the configured minimum ticks per side and a difference exceeding one tick; idle and zero/zero can remain unresolved.",
+    "Tracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrapper call counts differ by renderer."
+  ],
+  "qualifications": [
+    {
+      "kind": "between-repetitions-gpu",
+      "foreignActivityMetric": "resident-compute-memory-mib",
+      "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+      "status": "qualified",
+      "qualified": true,
+      "skipReason": null,
+      "settings": {
+        "gpuIdleUtilizationPercent": 5,
+        "gpuWindowUtilizationPercent": 80,
+        "gpuComputeMemoryMiB": 1024,
+        "gpuSampleMilliseconds": 250,
+        "gpuIdleConsecutiveSamples": 3,
+        "gpuIdleWaitMilliseconds": 30000,
+        "gpuCommandTimeoutMilliseconds": 2000
+      },
+      "samples": [
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 0
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 16,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 0,
+          "computeMemoryMiB": 339,
+          "started": 690.495141,
+          "completed": 709.107689
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 2
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 16,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 2,
+          "computeMemoryMiB": 339,
+          "started": 959.629443,
+          "completed": 980.44602
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 2
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 16,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 2,
+          "computeMemoryMiB": 339,
+          "started": 1230.839018,
+          "completed": 1251.611441
+        }
+      ],
+      "waitMilliseconds": 561.263683,
+      "repetition": 0
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 0,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 1,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:29:25.399Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.66500000000019, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.660000000000082, 16.669999999999845,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.660000000000082,
+        16.670000000000073, 16.669999999999845, 16.660000000000082, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.669999999999845, 16.66500000000019,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.664999999999964, 16.669999999999845, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.66000000000031, 16.669999999999618, 16.664999999999964, 16.66500000000042,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.66000000000031,
+        16.669999999999618, 16.664999999999964, 16.66500000000042, 16.669999999999618,
+        16.664999999999964, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 0,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 1,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:29:28.632Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.660000000000764, 16.664999999999964,
+        16.669999999999163, 16.665000000000873, 16.664999999999964, 16.669999999999163,
+        16.665000000000873, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.665000000000873, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 0,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 2,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:30:08.814Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.660000000000082, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.660000000000082, 16.669999999999845,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.669999999999845, 16.66500000000019,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.660000000000082,
+        16.664999999999964, 16.669999999999845, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999736,
+        16.66500000000042, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.66500000000042,
+        16.664999999999964, 16.669999999999618, 16.66500000000042, 16.664999999999964,
+        16.669999999999618, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 0,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 2,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:30:12.080Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.665000000000873,
+        16.669999999999163, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.665000000000873,
+        16.669999999999163, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964
+      ]
+    },
+    {
+      "kind": "between-repetitions-gpu",
+      "foreignActivityMetric": "resident-compute-memory-mib",
+      "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+      "status": "qualified",
+      "qualified": true,
+      "skipReason": null,
+      "settings": {
+        "gpuIdleUtilizationPercent": 5,
+        "gpuWindowUtilizationPercent": 80,
+        "gpuComputeMemoryMiB": 1024,
+        "gpuSampleMilliseconds": 250,
+        "gpuIdleConsecutiveSamples": 3,
+        "gpuIdleWaitMilliseconds": 30000,
+        "gpuCommandTimeoutMilliseconds": 2000
+      },
+      "samples": [
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 7
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 7,
+          "computeMemoryMiB": 339,
+          "started": 88261.181477,
+          "completed": 88289.500698
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 1
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 1,
+          "computeMemoryMiB": 339,
+          "started": 88539.859728,
+          "completed": 88566.756414
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 0
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 0,
+          "computeMemoryMiB": 339,
+          "started": 88817.116077,
+          "completed": 88845.128333
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 0
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 0,
+          "computeMemoryMiB": 339,
+          "started": 89095.462418,
+          "completed": 89122.067322
+        }
+      ],
+      "waitMilliseconds": 860.8911439999938,
+      "repetition": 1
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 1,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 3,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:30:53.246Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.669999999999845, 16.66500000000019, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.660000000000082,
+        16.669999999999845, 16.664999999999964, 16.66500000000019, 16.664999999999964,
+        16.669999999999845, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.669999999999845,
+        16.660000000000082, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.660000000000082, 16.669999999999845, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.669999999999845, 16.660000000000082,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.66500000000019, 16.669999999999845, 16.670000000000073,
+        16.660000000000082, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999736, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.66500000000042, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.66000000000031, 16.669999999999618, 16.66500000000042,
+        16.664999999999964, 16.669999999999618, 16.66500000000042, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 1,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 3,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:30:56.362Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.665000000000873, 16.664999999999964, 16.669999999999163, 16.660000000000764,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.665000000000873, 16.669999999999163, 16.660000000000764,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 1,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 4,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:31:36.610Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.664999999999964, 16.669999999999845, 16.660000000000082, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.66500000000019, 16.664999999999964,
+        16.669999999999845, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.669999999999845, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.660000000000082, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.660000000000082, 16.669999999999845,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.660000000000082,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.669999999999845,
+        16.664999999999964, 16.664999999999964, 16.66500000000042, 16.669999999999618,
+        16.66000000000031, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.66000000000031, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.669999999999618, 16.66500000000042,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 1,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 4,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:31:39.692Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.664999999999964, 16.665000000000873,
+        16.669999999999163, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.669999999999163, 16.664999999999964,
+        16.660000000000764, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073
+      ]
+    },
+    {
+      "kind": "between-repetitions-gpu",
+      "foreignActivityMetric": "resident-compute-memory-mib",
+      "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+      "status": "qualified",
+      "qualified": true,
+      "skipReason": null,
+      "settings": {
+        "gpuIdleUtilizationPercent": 5,
+        "gpuWindowUtilizationPercent": 80,
+        "gpuComputeMemoryMiB": 1024,
+        "gpuSampleMilliseconds": 250,
+        "gpuIdleConsecutiveSamples": 3,
+        "gpuIdleWaitMilliseconds": 30000,
+        "gpuCommandTimeoutMilliseconds": 2000
+      },
+      "samples": [
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 7
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 7,
+          "computeMemoryMiB": 339,
+          "started": 175763.519696,
+          "completed": 175790.444723
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 3
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 3,
+          "computeMemoryMiB": 339,
+          "started": 176040.847918,
+          "completed": 176069.550097
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 3
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 3,
+          "computeMemoryMiB": 339,
+          "started": 176319.980786,
+          "completed": 176348.717134
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 0
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 0,
+          "computeMemoryMiB": 339,
+          "started": 176598.972353,
+          "completed": 176625.910062
+        }
+      ],
+      "waitMilliseconds": 862.396316999977,
+      "repetition": 2
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 2,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 5,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:32:20.758Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.660000000000082, 16.669999999999845, 16.66500000000019, 16.669999999999845,
+        16.664999999999964, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.660000000000082,
+        16.669999999999845, 16.664999999999964, 16.670000000000073, 16.660000000000082,
+        16.669999999999845, 16.66500000000019, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.66500000000019, 16.669999999999845,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.669999999999845, 16.660000000000082,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.664999999999964,
+        16.66500000000019, 16.669999999999845, 16.664999999999964, 16.66500000000019,
+        16.664999999999964, 16.669999999999845, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.669999999999845,
+        16.66500000000042, 16.664999999999964, 16.669999999999618, 16.66500000000042,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.66500000000042, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.669999999999618, 16.66000000000031, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.66500000000042, 16.669999999999618
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 2,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 5,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:32:23.858Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.669999999999163, 16.665000000000873, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.670000000000073, 16.664999999999964, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.665000000000873,
+        16.669999999999163, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.669999999999163, 16.660000000000764, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 2,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 6,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:33:04.707Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.66500000000019, 16.669999999999845, 16.664999999999964, 16.66500000000019,
+        16.664999999999964, 16.669999999999845, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.660000000000082,
+        16.669999999999845, 16.664999999999964, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.669999999999845,
+        16.66500000000019, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.660000000000082,
+        16.669999999999845, 16.66500000000019, 16.664999999999964, 16.669999999999845,
+        16.66500000000019, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.669999999999845, 16.664999999999964, 16.66500000000042, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.66000000000031,
+        16.669999999999618, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.66500000000042, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 2,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 6,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:33:07.789Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.665000000000873, 16.664999999999964, 16.669999999999163,
+        16.665000000000873, 16.669999999999163, 16.664999999999964, 16.665000000000873,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.660000000000764, 16.669999999999163,
+        16.665000000000873, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.659999999999854
+      ]
+    },
+    {
+      "kind": "between-repetitions-gpu",
+      "foreignActivityMetric": "resident-compute-memory-mib",
+      "limitation": "Resident memory is a conservative proxy for foreign compute activity; utilization includes the benchmark. Sampling can miss bursts shorter than the sample interval.",
+      "status": "qualified",
+      "qualified": true,
+      "skipReason": null,
+      "settings": {
+        "gpuIdleUtilizationPercent": 5,
+        "gpuWindowUtilizationPercent": 80,
+        "gpuComputeMemoryMiB": 1024,
+        "gpuSampleMilliseconds": 250,
+        "gpuIdleConsecutiveSamples": 3,
+        "gpuIdleWaitMilliseconds": 30000,
+        "gpuCommandTimeoutMilliseconds": 2000
+      },
+      "samples": [
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 6
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 6,
+          "computeMemoryMiB": 339,
+          "started": 263761.834117,
+          "completed": 263790.973184
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 1
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 1,
+          "computeMemoryMiB": 339,
+          "started": 264041.32759,
+          "completed": 264073.709127
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 1
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 1,
+          "computeMemoryMiB": 339,
+          "started": 264324.112507,
+          "completed": 264356.268731
+        },
+        {
+          "gpus": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "utilizationPercent": 0
+            }
+          ],
+          "processes": [
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3558,
+              "memoryMiB": 7,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 6166,
+              "memoryMiB": 4,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 1168573,
+              "memoryMiB": 70,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 2577867,
+              "memoryMiB": 258,
+              "allowed": false
+            },
+            {
+              "uuid": "GPU-b6439d31-2ac3-fff1-f4a1-37a99d7a43bc",
+              "pid": 3587690,
+              "memoryMiB": 104,
+              "allowed": true
+            }
+          ],
+          "utilizationPercent": 0,
+          "computeMemoryMiB": 339,
+          "started": 264606.670897,
+          "completed": 264637.638508
+        }
+      ],
+      "waitMilliseconds": 875.8109769999865,
+      "repetition": 3
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 3,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 7,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:33:48.773Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.66500000000019, 16.669999999999845, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.669999999999845, 16.66500000000019,
+        16.664999999999964, 16.669999999999845, 16.66500000000019, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.669999999999845, 16.660000000000082, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.669999999999845, 16.664999999999964, 16.66500000000019, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.66000000000031, 16.669999999999618, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.66500000000042, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.66500000000042, 16.664999999999964, 16.669999999999618,
+        16.66500000000042, 16.664999999999964, 16.664999999999964, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "count": 17,
+      "repetition": 3,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        },
+        {
+          "width": 560,
+          "height": 456
+        }
+      ],
+      "window": {
+        "windowId": 7,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:33:51.855Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.660000000000764, 16.664999999999964, 16.669999999999163, 16.665000000000873,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.660000000000764, 16.669999999999163,
+        16.665000000000873, 16.669999999999163, 16.660000000000764, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.670000000000073
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 3,
+      "phase": "idle-display/qualification",
+      "kind": "idle-display",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 8,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:34:31.920Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.669999999999845, 16.664999999999964, 16.66500000000019, 16.664999999999964,
+        16.669999999999845, 16.66500000000019, 16.664999999999964, 16.669999999999845,
+        16.660000000000082, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.670000000000073, 16.660000000000082, 16.669999999999845, 16.660000000000082,
+        16.670000000000073, 16.669999999999845, 16.660000000000082, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.66500000000019, 16.669999999999845, 16.660000000000082, 16.670000000000073,
+        16.669999999999845, 16.660000000000082, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.66500000000019,
+        16.669999999999845, 16.660000000000082, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.66500000000019, 16.664999999999964, 16.669999999999618, 16.66000000000031,
+        16.664999999999964, 16.670000000000073, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.66500000000042, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.659999999999854, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "count": 17,
+      "repetition": 3,
+      "phase": "rendered/prepare",
+      "kind": "mounted-workload",
+      "visibility": "visible",
+      "focus": true,
+      "url": "http://127.0.0.1:44363/?trace=",
+      "innerWidth": 1600,
+      "innerHeight": 1400,
+      "outerWidth": 1600,
+      "outerHeight": 1400,
+      "screenX": 0,
+      "screenY": 0,
+      "screen": {
+        "width": 1600,
+        "height": 1400,
+        "availWidth": 1600,
+        "availHeight": 1400
+      },
+      "canvases": [],
+      "window": {
+        "windowId": 8,
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1600,
+          "height": 1400,
+          "windowState": "normal"
+        }
+      },
+      "warmupMilliseconds": 1000,
+      "measuredAt": "2026-10-02T14:34:35.019Z",
+      "frameCount": 120,
+      "median": 16.664999999999964,
+      "p95": 16.670000000000073,
+      "max": 16.670000000000073,
+      "periods": [
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.665000000000873, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.670000000000073, 16.664999999999964, 16.670000000000073, 16.659999999999854,
+        16.664999999999964, 16.670000000000073, 16.670000000000073, 16.659999999999854,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.665000000000873, 16.669999999999163, 16.664999999999964, 16.665000000000873,
+        16.669999999999163, 16.664999999999964, 16.660000000000764, 16.670000000000073,
+        16.664999999999964, 16.670000000000073, 16.659999999999854, 16.664999999999964,
+        16.670000000000073, 16.664999999999964, 16.664999999999964, 16.670000000000073,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.670000000000073, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964,
+        16.659999999999854, 16.670000000000073, 16.664999999999964, 16.670000000000073,
+        16.664999999999964, 16.664999999999964, 16.664999999999964, 16.664999999999964,
+        16.664999999999964, 16.664999999999964, 16.670000000000073, 16.664999999999964
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "variant": "ghostty-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 0,
+      "pairId": "0/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 0,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20069.759700000002,
+          "secondsByType": {
+            "browser": 0.040000000000000036,
+            "renderer": 12.17,
+            "GPU": 0.9900000000000002,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 65.7705931576251,
+          "acquisitionUncertaintyMilliseconds": 0.5723500000021886,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "ghostty-dom-bytes-17-0-latency.trace.json.gz",
+        "input": [
+          19.81599998474121, 5.968009740114212, 19.782882809638977, 5.377058565616608,
+          5.094902336597443, 5.350912094116211, 26.01009765267372, 5.672058582305908,
+          5.334107398986816, 5.1970683336257935, 5.119990229606628, 21.254960924386978,
+          21.087931632995605, 20.882087886333466, 20.70294138789177, 19.987902343273163,
+          20.011048823595047, 21.068107396364212, 20.743931621313095, 5.238097637891769,
+          5.285019516944885, 4.92989256978035, 4.698019504547119, 19.930009752511978,
+          19.972107410430908, 20.39191210269928, 21.11592185497284, 4.684882789850235,
+          19.97299998998642, 5.159931629896164, 5.212882786989212, 4.894019514322281,
+          5.230039060115814, 5.318078100681305, 5.889058589935303, 21.92411717772484,
+          5.428980439901352, 19.946019530296326, 5.486980468034744, 5.043912082910538,
+          5.168980449438095, 5.179990231990814, 19.927107393741608, 5.390931636095047,
+          19.853019505739212, 5.037078112363815, 4.641048818826675, 20.014882802963257,
+          5.697960913181305, 20.009912103414536, 19.64808788895607, 20.585902333259583,
+          19.87008786201477, 5.281019508838654, 18.31199997663498, 5.625048816204071,
+          20.30594140291214, 20.758009761571884, 3.690019518136978, 4.841902315616608,
+          4.999097645282745, 19.862078100442886, 20.386980444192886, 5.248097628355026,
+          4.829097628593445, 4.725980460643768, 20.48103904724121, 5.349019527435303,
+          20.935117185115814, 5.343892574310303, 5.181097626686096, 20.247009754180908,
+          5.270921856164932, 5.57899022102356, 20.472019523382187, 19.874892562627792,
+          31.699892550706863, 20.25, 30.261048823595047, 21.203097641468048, 21.50695115327835,
+          21.19595116376877, 5.439009755849838, 5.426912099123001, 4.98506835103035,
+          5.087882786989212, 5.051107406616211, 5.274048805236816, 5.789048820734024,
+          20.629097640514374, 20.745009750127792, 20.82806834578514, 5.105097651481628,
+          5.256039053201675, 5.134902328252792, 21.192078113555908
+        ],
+        "write": [
+          4.329990208148956, 4.269892573356628, 10.822019517421722, 5.108087867498398,
+          9.021107405424118, 5.326980441808701, 10.077892571687698, 4.228087872266769,
+          4.9120878875255585, 5.713980466127396, 7.181892573833466, 8.824951171875,
+          8.62903904914856, 16.432087868452072, 8.532931625843048, 18.918039053678513,
+          12.826068341732025, 14.437029272317886, 18.468048810958862, 13.771048814058304,
+          17.295029282569885, 11.725999981164932, 18.31991210579872, 7.517931640148163,
+          18.949892550706863, 4.490941405296326, 18.892097651958466, 13.543039053678513,
+          20.088058590888977, 13.79407811164856, 7.470921874046326, 16.608882784843445,
+          19.622921854257584, 15.393951147794724, 6.664970695972443, 16.800087869167328,
+          18.540882796049118, 9.931029289960861, 12.001078099012375, 15.990087866783142,
+          17.5299511551857, 18.09905856847763, 19.076117157936096, 12.77491208910942,
+          13.682941377162933, 20.59703904390335, 17.693048804998398, 18.823892563581467,
+          19.953882783651352, 14.089941382408142, 13.190039038658142, 11.850912094116211,
+          17.89405858516693, 19.784941405057907, 13.979970693588257, 17.075941383838654,
+          19.25109764933586, 17.120048820972443, 11.063058584928513, 16.642999976873398,
+          4.606117159128189, 19.38590231537819, 16.504960924386978, 16.385078102350235,
+          15.655029296875, 18.129019528627396, 20.633980453014374, 16.881970673799515,
+          19.321019530296326, 14.886999994516373, 19.749951153993607, 5.920097649097443,
+          5.677912086248398, 15.909990221261978, 13.736960917711258, 16.086951166391373,
+          16.162048816680908, 15.975931614637375, 20.61611717939377, 11.636039048433304,
+          8.079990208148956, 15.438058584928513, 11.790078103542328, 14.766058564186096,
+          4.1449902057647705, 11.484921872615814, 16.838107407093048, 16.52195116877556,
+          11.228990226984024, 11.948941379785538, 18.857087880373, 20.11289256811142,
+          17.037068337202072, 19.634960919618607, 15.890078097581863, 20.86705857515335
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 592.5870759999998,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 108
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 12],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 615.5684089999995,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [0, 7],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 0,
+      "pairId": "0/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 1,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20085.422894500007,
+          "secondsByType": {
+            "browser": 0.040000000000000036,
+            "renderer": 7.660000000000001,
+            "GPU": 0.9000000000000004,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 42.817121875760655,
+          "acquisitionUncertaintyMilliseconds": 0.6290115000010701,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "xterm-dom-bytes-17-0-latency.trace.json.gz",
+        "input": [
+          5.4140976667404175, 19.74309766292572, 5.1319902539253235, 5.326902359724045,
+          5.125980466604233, 20.14591211080551, 20.31606838107109, 20.574970722198486,
+          5.016931653022766, 5.425970703363419, 20.216039061546326, 4.661951184272766,
+          5.352107435464859, 4.905000001192093, 4.583960950374603, 4.947039067745209,
+          5.041117191314697, 5.680058598518372, 9.774048835039139, 19.195097655057907,
+          20.123882830142975, 5.08705860376358, 4.505941420793533, 5.078117191791534,
+          4.747039079666138, 4.744068384170532, 19.77094140648842, 5.086068361997604,
+          6.402117192745209, 5.404039084911346, 20.949960947036743, 19.807000011205673,
+          5.104912132024765, 4.732892602682114, 20.62193164229393, 6.241960942745209,
+          19.202117204666138, 20.622990250587463, 23.77893164753914, 20.42007812857628,
+          22.911941409111023, 20.712039083242416, 5.156058609485626, 19.98199024796486,
+          4.545882821083069, 5.19999024271965, 5.437087893486023, 5.811902344226837,
+          5.205107420682907, 4.802058607339859, 5.340068370103836, 5.160990238189697,
+          6.991009771823883, 21.194078147411346, 25.47194141149521, 19.98792189359665,
+          28.006999999284744, 4.994009763002396, 4.402019530534744, 20.325960963964462,
+          5.056058615446091, 3.837048828601837, 4.815980494022369, 21.02300000190735,
+          21.153117209672928, 20.21698048710823, 4.89788281917572, 4.828107446432114,
+          19.954009771347046, 5.486990243196487, 4.7510683834552765, 5.326980471611023,
+          5.260019540786743, 59.928980469703674, 4.519117206335068, 4.479960948228836,
+          4.92407813668251, 4.585029304027557, 15.990892589092255, 4.806980490684509,
+          4.7600879073143005, 4.689019531011581, 19.829078137874603, 19.571902364492416,
+          19.720068365335464, 5.268048852682114, 5.013058602809906, 5.121951192617416,
+          22.872951179742813, 4.640048831701279, 4.4500488340854645, 4.547882825136185,
+          4.552000015974045, 5.080912113189697, 5.221980482339859, 25.327921897172928
+        ],
+        "write": [
+          12.315951198339462, 17.103941410779953, 10.692980468273163, 16.694892585277557,
+          19.99607813358307, 20.748039066791534, 20.651980489492416, 10.44099023938179,
+          13.310107439756393, 18.181000024080276, 16.83111721277237, 19.72303906083107,
+          16.135912120342255, 20.31897071003914, 19.286029309034348, 20.434019535779953,
+          20.254009783267975, 18.44595119357109, 14.74700978398323, 17.259058594703674,
+          12.342029303312302, 21.224097669124603, 9.156000018119812, 4.195087909698486,
+          7.083912134170532, 18.22602930665016, 19.931951195001602, 4.102912127971649,
+          19.589980483055115, 4.277117192745209, 19.401882827281952, 17.73293164372444,
+          18.04911720752716, 16.85898047685623, 15.200931638479233, 6.266921877861023,
+          15.794029295444489, 14.782068371772766, 14.596902340650558, 4.3650878965854645,
+          14.326029300689697, 18.07188281416893, 14.104912132024765, 10.518117189407349,
+          9.129912108182907, 12.857000023126602, 16.794019550085068, 11.288902342319489,
+          20.08689257502556, 19.260921895503998, 18.361048847436905, 16.002892583608627,
+          20.321097671985626, 12.823117196559906, 20.988990247249603, 10.717029303312302,
+          21.003029316663742, 14.435107439756393, 5.380921900272369, 15.78309765458107,
+          18.248912125825882, 12.896117210388184, 16.31094142794609, 13.802970707416534,
+          15.79193165898323, 13.693912118673325, 11.044902354478836, 4.517019540071487,
+          19.90909767150879, 4.548107445240021, 20.023039072752, 7.026980489492416,
+          9.796097666025162, 10.928097665309906, 15.955097675323486, 18.559921890497208,
+          11.726048827171326, 10.97509765625, 15.27090236544609, 20.296078145503998,
+          12.091058611869812, 17.17597070336342, 8.844970703125, 13.99293166399002,
+          18.191980481147766, 4.894941419363022, 16.46310743689537, 11.459117203950882,
+          20.340912133455276, 15.999892592430115, 14.95495119690895, 6.9120683670043945,
+          11.871087908744812, 18.25088283419609, 14.904921889305115, 13.846078127622604
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 590.082957999999,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 108
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 12],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 599.1666930000065,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 121
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [0, 7],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 121
+          }
+        }
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 1,
+      "pairId": "1/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 2,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20073.551556000006,
+          "secondsByType": {
+            "browser": 0.05000000000000071,
+            "renderer": 7.760000000000001,
+            "GPU": 1.0300000000000002,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 44.0380466572579,
+          "acquisitionUncertaintyMilliseconds": 0.5941800000000512,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "xterm-dom-bytes-17-1-latency.trace.json.gz",
+        "input": [
+          5.606019526720047, 5.499921888113022, 19.947058588266373, 5.539931654930115,
+          5.288078129291534, 4.566019535064697, 19.888931661844254, 5.468068361282349,
+          19.777097672224045, 5.533882826566696, 5.969999998807907, 19.31400978565216,
+          19.445882827043533, 20.073087900877, 20.44798046350479, 5.582087904214859,
+          5.440941423177719, 5.26109766960144, 4.878029316663742, 5.386960953474045,
+          4.5080293118953705, 4.847990244626999, 5.1679414212703705, 20.931931644678116,
+          31.324000000953674, 6.42791211605072, 21.03289258480072, 27.78608790040016,
+          5.141902357339859, 5.136980473995209, 5.105931639671326, 20.500990241765976,
+          5.600960940122604, 21.646931648254395, 4.609107434749603, 4.590039074420929,
+          5.592999994754791, 5.868087887763977, 20.096000015735626, 5.525048851966858,
+          20.567902356386185, 20.884951174259186, 5.314902365207672, 21.13388282060623,
+          20.548019528388977, 23.99491211771965, 20.3869511783123, 5.553048849105835,
+          5.497921884059906, 5.541931658983231, 19.03389260172844, 20.657912105321884,
+          20.430078148841858, 20.318117201328278, 20.640107423067093, 5.262951195240021,
+          20.367097675800323, 5.384941428899765, 5.100117206573486, 20.548892587423325,
+          23.69199025630951, 7.451019525527954, 20.636068373918533, 5.572097659111023,
+          5.045107424259186, 5.278970718383789, 53.84695118665695, 19.921029299497604,
+          19.847931653261185, 5.101990252733231, 28.259951174259186, 4.93998047709465,
+          15.431117206811905, 4.844107419252396, 19.928902357816696, 4.395029306411743,
+          5.023990243673325, 18.79411718249321, 13.071048825979233, 19.83495119214058,
+          20.21698048710823, 5.460902363061905, 21.02397072315216, 20.934107422828674,
+          17.446980476379395, 29.004902362823486, 5.372000008821487, 21.921068370342255,
+          5.565902352333069, 5.122990250587463, 19.700892597436905, 5.222097665071487,
+          3.5390195548534393, 20.610960960388184, 20.067912131547928, 5.826951175928116
+        ],
+        "write": [
+          4.041931658983231, 17.259912133216858, 17.239087909460068, 15.75411719083786,
+          13.899960935115814, 13.487078130245209, 20.877117186784744, 12.692009776830673,
+          15.55799999833107, 4.095117211341858, 15.357970714569092, 19.573078125715256,
+          10.69405859708786, 18.946931660175323, 16.025048851966858, 20.17800000309944,
+          12.266078144311905, 13.645990252494812, 4.706058591604233, 8.063097655773163,
+          18.17701953649521, 7.623970717191696, 12.393117189407349, 16.869931638240814,
+          19.511970698833466, 20.444892585277557, 19.670980483293533, 20.17307811975479,
+          19.693960934877396, 17.315882831811905, 17.543087899684906, 19.503048837184906,
+          19.95290234684944, 4.147941410541534, 4.362029314041138, 17.250941425561905,
+          14.89889258146286, 16.915087908506393, 20.67198047041893, 2.44304883480072,
+          3.973009765148163, 6.573068380355835, 4.568990230560303, 18.292039066553116,
+          4.199019551277161, 17.12092188000679, 4.124970704317093, 18.65398046374321,
+          17.344058603048325, 18.069039076566696, 17.399000018835068, 19.228087902069092,
+          11.76694142818451, 19.427970707416534, 16.037912130355835, 17.76897069811821,
+          8.7900390625, 17.140078127384186, 19.179960936307907, 11.337882816791534, 9.02490234375,
+          18.74910742044449, 18.076029300689697, 8.924019545316696, 16.864931643009186,
+          4.947117209434509, 15.224882811307907, 9.796902358531952, 18.664048850536346,
+          15.914058595895767, 11.737019538879395, 17.00511720776558, 8.802048832178116,
+          19.894882827997208, 9.506999999284744, 13.51306837797165, 14.610107421875,
+          7.729912132024765, 17.54500976204872, 18.280941426753998, 3.473980486392975,
+          12.77308788895607, 4.930990248918533, 19.305951178073883, 9.891107439994812,
+          4.510078132152557, 7.797087907791138, 20.568921893835068, 14.821931660175323,
+          14.01100978255272, 12.447990238666534, 18.231058597564697, 17.409048825502396,
+          14.803058594465256, 19.567970722913742, 14.904039084911346
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 601.4441999999981,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 120
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 12],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 604.4993560000003,
+            "utilizationPercent": [0, 4],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [3, 9],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 1,
+      "pairId": "1/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 3,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20069.26453049999,
+          "secondsByType": {
+            "browser": 0.03999999999999915,
+            "renderer": 11.9,
+            "GPU": 0.9299999999999997,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 64.12791051929678,
+          "acquisitionUncertaintyMilliseconds": 0.5269455000088783,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "ghostty-dom-bytes-17-1-latency.trace.json.gz",
+        "input": [
+          4.744951158761978, 19.08402928709984, 4.449980467557907, 4.660009741783142,
+          4.783951163291931, 20.22303906083107, 5.477970689535141, 20.767912089824677,
+          51.87411716580391, 20.692960917949677, 20.498009741306305, 21.375058591365814,
+          21.058990210294724, 21.111902326345444, 5.844980448484421, 21.197107404470444,
+          20.96690234541893, 20.51396092772484, 4.947912096977234, 20.739882797002792,
+          20.032990217208862, 4.7660292983055115, 5.024048805236816, 22.81095117330551,
+          4.624990224838257, 5.413019508123398, 22.1118925511837, 36.193117171525955,
+          36.11805859208107, 32.04404881596565, 34.85594138503075, 20.19188278913498,
+          19.85789257287979, 20.326941400766373, 21.651019513607025, 21.079009741544724,
+          28.956970691680908, 4.835882812738419, 4.223087877035141, 5.413087874650955,
+          20.24895116686821, 20.500078111886978, 20.407117187976837, 20.752078115940094,
+          20.180087864398956, 3.62907811999321, 5.725902318954468, 23.098058581352234,
+          20.470931619405746, 5.428999990224838, 26.703009754419327, 19.237902343273163,
+          19.91088280081749, 26.319048821926117, 4.308058589696884, 5.639892578125,
+          5.275931626558304, 31.611068338155746, 20.662009745836258, 20.572951167821884,
+          27.738980442285538, 20.414980441331863, 20.335058569908142, 19.366999983787537,
+          20.976097643375397, 25.231068342924118, 21.07507809996605, 27.615009754896164,
+          28.302931636571884, 18.524941384792328, 20.61790233850479, 19.731048822402954,
+          19.981892555952072, 23.838892579078674, 5.463921874761581, 20.69491210579872,
+          19.248921871185303, 20.268960922956467, 24.813029289245605, 21.223117172718048,
+          21.139039039611816, 37.35989257693291, 6.163960933685303, 20.85110741853714,
+          20.418980449438095, 20.37899997830391, 20.2750683426857, 19.85408788919449,
+          21.880029290914536, 26.93599021434784, 4.799107402563095, 20.41597068309784,
+          5.077999979257584, 18.48199999332428, 20.18490234017372, 19.97889256477356
+        ],
+        "write": [
+          13.305068343877792, 15.929882794618607, 13.335990220308304, 4.874941378831863,
+          15.91597068309784, 16.648882806301117, 9.149941384792328, 19.918892562389374,
+          18.935029298067093, 18.612117171287537, 15.96803903579712, 11.88908788561821,
+          9.598009765148163, 17.005097657442093, 7.95399022102356, 20.91604882478714,
+          18.450019508600235, 7.993912100791931, 10.800990223884583, 17.318970680236816,
+          12.610087871551514, 14.299097657203674, 18.622999995946884, 18.443990230560303,
+          17.484078109264374, 17.34303903579712, 19.536068350076675, 10.895117163658142,
+          18.598882794380188, 18.87993162870407, 18.28798046708107, 13.33896091580391,
+          13.23293161392212, 18.385009765625, 17.036912083625793, 12.611990213394165,
+          14.546970695257187, 7.868882805109024, 23.784980446100235, 8.586058586835861,
+          9.772902339696884, 14.55494138598442, 14.325068354606628, 4.901068359613419,
+          18.482882797718048, 11.678068339824677, 17.182039052248, 17.811048805713654,
+          17.167960911989212, 13.529068350791931, 14.432058572769165, 15.919921875,
+          13.749019503593445, 4.981019526720047, 16.75791209936142, 17.28604882955551,
+          17.917960911989212, 3.290892571210861, 14.177087873220444, 5.857960909605026,
+          4.883009761571884, 17.11697068810463, 8.886068344116211, 16.15402927994728,
+          8.931029289960861, 18.53492185473442, 13.225009739398956, 17.55288279056549,
+          10.809970676898956, 12.308078110218048, 17.050087869167328, 14.994902342557907,
+          8.35009765625, 15.468058586120605, 14.305999994277954, 15.723029285669327,
+          18.8670195043087, 6.003980457782745, 12.675117164850235, 18.360087871551514,
+          7.131892561912537, 4.600107401609421, 5.53798046708107, 8.42505857348442,
+          10.247019529342651, 13.074097633361816, 15.410107403993607, 9.551048815250397,
+          4.635019510984421, 16.567048817873, 14.275019526481628, 16.493078112602234,
+          12.340931624174118, 11.234999984502792, 16.786019504070282, 13.460999995470047
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 605.0986010000051,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 120
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 12],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 616.0793800000101,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [0, 7],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 2,
+      "pairId": "2/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 4,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20074.511948,
+          "secondsByType": {
+            "browser": 0.05000000000000071,
+            "renderer": 7.58,
+            "GPU": 0.9500000000000011,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 42.74076511660757,
+          "acquisitionUncertaintyMilliseconds": 0.5772979999892414,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "xterm-dom-bytes-17-2-latency.trace.json.gz",
+        "input": [
+          4.879931658506393, 20.59097069501877, 20.329892575740814, 4.697019547224045,
+          27.18897071480751, 4.6351074278354645, 4.476097673177719, 20.385058611631393,
+          5.28305858373642, 5.3810195326805115, 6.361097663640976, 5.681970715522766,
+          26.86297070980072, 20.291990250349045, 5.399117201566696, 20.3168828189373,
+          5.811000019311905, 4.692902356386185, 5.1369218826293945, 24.46710741519928,
+          5.695951163768768, 20.47307813167572, 20.100019544363022, 26.553039073944092,
+          5.462999999523163, 27.252882808446884, 20.101980477571487, 6.439039081335068,
+          20.9580195248127, 26.25992187857628, 20.800107419490814, 21.01307812333107,
+          5.431097656488419, 5.5160097777843475, 4.974970698356628, 4.866892576217651,
+          5.226048827171326, 19.6769902408123, 32.607097655534744, 5.339931637048721,
+          5.499087899923325, 4.600951164960861, 4.3701171875, 20.42311719059944, 4.974980473518372,
+          5.10288280248642, 4.986902356147766, 5.331882804632187, 4.306931644678116,
+          5.491019546985626, 5.630960941314697, 5.256068378686905, 5.31106835603714,
+          5.226019531488419, 4.719912111759186, 20.56602931022644, 5.166097670793533,
+          19.352019548416138, 5.378921866416931, 6.396941423416138, 5.1700195372104645,
+          23.245980471372604, 5.5768828094005585, 4.87193164229393, 19.969999998807907,
+          5.024078130722046, 20.121058613061905, 23.026117205619812, 5.060068368911743,
+          5.311087906360626, 4.934068351984024, 4.779107421636581, 30.25109764933586,
+          5.068078130483627, 21.123087882995605, 5.450058609247208, 5.520921885967255,
+          23.271970719099045, 5.449941396713257, 5.526087909936905, 5.54593163728714,
+          5.0049609541893005, 5.671107441186905, 5.206902354955673, 20.202117204666138,
+          5.573931634426117, 4.8869218826293945, 5.621039062738419, 5.259009778499603,
+          5.27203905582428, 5.32002928853035, 5.495980471372604, 5.508009761571884,
+          5.76800000667572, 24.385019540786743, 22.619902342557907
+        ],
+        "write": [
+          19.726000010967255, 15.751921892166138, 18.715999990701675, 16.25702929496765,
+          19.71198046207428, 15.794058591127396, 18.54706835746765, 11.501107424497604,
+          18.635107427835464, 18.468009769916534, 20.11106836795807, 14.089029312133789,
+          20.611980468034744, 18.01190236210823, 20.066892594099045, 15.039019525051117,
+          21.137902349233627, 15.794951170682907, 15.124892592430115, 19.478960931301117,
+          16.731087893247604, 20.942912101745605, 20.156107425689697, 17.180990248918533,
+          10.393941402435303, 3.9300585985183716, 20.390882819890976, 14.816931635141373,
+          19.290107429027557, 8.200892597436905, 19.470107436180115, 8.846902340650558,
+          4.803009778261185, 8.718078136444092, 8.671000003814697, 19.251960933208466,
+          16.25290235877037, 13.95100000500679, 9.740097671747208, 18.196019530296326,
+          17.72292187809944, 6.933980464935303, 14.452107429504395, 18.804912120103836,
+          16.256107419729233, 18.98602929711342, 13.868882805109024, 16.977980464696884,
+          9.236980468034744, 14.546921879053116, 16.73603907227516, 13.66608789563179,
+          11.854029297828674, 18.980000019073486, 16.391960948705673, 19.06005859375,
+          19.038009762763977, 6.5999511778354645, 5.634087890386581, 22.878009766340256,
+          10.983912110328674, 12.674912124872208, 7.299009770154953, 20.018058598041534,
+          16.343097656965256, 17.891980469226837, 18.027097672224045, 7.096951186656952,
+          14.848097652196884, 14.347941398620605, 9.057058602571487, 19.698960930109024,
+          18.111009776592255, 17.458039075136185, 13.504999995231628, 7.996107429265976,
+          18.94697070121765, 14.666912108659744, 14.778921872377396, 18.29204884171486,
+          5.112980484962463, 9.272912114858627, 18.90588280558586, 13.703951179981232,
+          14.450892597436905, 8.934078127145767, 19.705990225076675, 8.436039060354233,
+          12.663941413164139, 17.04310742020607, 4.4049316346645355, 19.3599414229393,
+          7.6220488250255585, 15.760078132152557, 19.875980466604233, 19.65588280558586
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 593.9296060000197,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 120
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 12],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 5,
+            "waitMilliseconds": 1161.4093240000075,
+            "utilizationPercent": [0, 6],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [3, 9],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 2,
+      "pairId": "2/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 5,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20071.566050999973,
+          "secondsByType": {
+            "browser": 0.03999999999999915,
+            "renderer": 11.809999999999999,
+            "GPU": 0.9900000000000002,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 63.97109207809076,
+          "acquisitionUncertaintyMilliseconds": 0.4889109999930952,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "ghostty-dom-bytes-17-2-latency.trace.json.gz",
+        "input": [
+          20.08795115351677, 19.158097624778748, 4.893931597471237, 30.36807808279991,
+          5.666970670223236, 20.543912082910538, 20.67292183637619, 20.26090231537819,
+          25.16190230846405, 5.688009738922119, 5.033097624778748, 5.6100976169109344,
+          20.36204880475998, 20.697078108787537, 5.170999974012375, 4.912980437278748,
+          20.30711716413498, 21.802029252052307, 20.441951155662537, 20.370107382535934,
+          5.4208827912807465, 20.515882790088654, 5.459970682859421, 4.858960896730423,
+          19.974970668554306, 4.496107399463654, 19.65597066283226, 5.8280390202999115,
+          21.370980441570282, 30.281039029359818, 28.553902328014374, 20.548941373825073,
+          5.492117166519165, 6.528892546892166, 5.62311714887619, 19.97991207242012,
+          4.770048797130585, 24.01110738515854, 20.614009737968445, 20.263068318367004,
+          4.928970664739609, 22.018970668315887, 4.974058568477631, 30.403882771730423,
+          4.979882776737213, 5.377960920333862, 5.854019492864609, 5.643107384443283,
+          5.589117169380188, 18.77006831765175, 5.51611715555191, 3.5610585510730743,
+          5.375048786401749, 4.925999969244003, 4.948039025068283, 4.699029266834259,
+          18.392912089824677, 20.580921858549118, 21.094019502401352, 5.4979120790958405,
+          20.77910739183426, 20.525951147079468, 20.13101950287819, 5.764990210533142,
+          6.325990200042725, 21.25706833600998, 21.0890976190567, 21.05602926015854,
+          21.769912093877792, 20.515999972820282, 21.49209761619568, 5.827931612730026,
+          20.110087871551514, 4.591999977827072, 20.568039029836655, 5.243068337440491,
+          5.584107398986816, 20.393912076950073, 5.621882796287537, 20.0939804315567,
+          5.402009725570679, 20.865951150655746, 21.296039044857025, 5.00889253616333,
+          4.6970194876194, 20.361980438232422, 20.94294136762619, 5.217117160558701,
+          5.61209762096405, 5.4219218492507935, 20.75897067785263, 20.224990218877792,
+          20.2999706864357, 20.344882786273956, 5.418087869882584, 4.902107387781143
+        ],
+        "write": [
+          15.576087862253189, 15.897951155900955, 20.5690780878067, 14.350039035081863,
+          16.799921840429306, 19.788931608200073, 13.24294137954712, 9.684882789850235,
+          12.724902302026749, 12.244892537593842, 11.743117153644562, 7.3909023106098175,
+          15.886039018630981, 17.714029252529144, 16.03201949596405, 11.324009746313095,
+          9.274980425834656, 16.144960910081863, 12.28391209244728, 13.005039036273956,
+          10.429117143154144, 4.731892555952072, 17.644117146730423, 15.617097616195679,
+          13.45997068285942, 17.01990231871605, 19.68789255619049, 17.9938827753067,
+          13.358951151371002, 7.314009726047516, 19.4670390188694, 14.761912077665329,
+          8.378097623586655, 14.886882781982422, 21.107019513845444, 16.65907809138298,
+          14.181892544031143, 11.077912092208862, 16.382980436086655, 12.114951133728027,
+          19.314999967813492, 17.82402926683426, 11.594048798084259, 12.476902306079865,
+          6.142951130867004, 17.333892554044724, 17.61298042535782, 14.0821073949337,
+          7.803892552852631, 17.181087851524353, 17.73410740494728, 15.766107380390167,
+          15.423019498586655, 9.398892551660538, 19.231960892677307, 16.00490230321884,
+          14.829882770776749, 17.503029257059097, 15.700999975204468, 19.811902314424515,
+          9.2799511551857, 19.352029263973236, 11.92699021100998, 17.083951145410538,
+          15.902019500732422, 18.45194137096405, 17.825019508600235, 12.874960899353027,
+          14.44289255142212, 18.416921854019165, 9.231009721755981, 20.885117143392563,
+          17.325999975204468, 18.360107392072678, 4.726921856403351, 20.856951147317886,
+          18.46598044037819, 12.656068325042725, 16.44906833767891, 8.230048805475235,
+          18.448921859264374, 4.375951141119003, 9.506048798561096, 15.901882767677307,
+          19.1520976126194, 17.825087875127792, 8.425087869167328, 17.92803904414177,
+          19.54799997806549, 4.831980437040329, 14.47804880142212, 19.41888278722763,
+          20.060931622982025, 17.378029257059097, 15.927048802375793, 13.658117145299911
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 593.845983999985,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 120
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 13],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 612.8661060000013,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [0, 8],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    },
+    {
+      "variant": "ghostty-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 3,
+      "pairId": "3/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 6,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20064.77417150006,
+          "secondsByType": {
+            "browser": 0.05000000000000071,
+            "renderer": 12.42,
+            "GPU": 0.9600000000000009,
+            "network.mojom.NetworkService": 0.010000000000000009,
+            "tracing.mojom.TracingService": 0.009999999999999787
+          },
+          "percentOfOneCore": 67.0328999720532,
+          "acquisitionUncertaintyMilliseconds": 0.5485824999923352,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "ghostty-dom-bytes-17-3-latency.trace.json.gz",
+        "input": [
+          21.080941408872604, 23.73191210627556, 5.287048816680908, 20.299970716238022,
+          5.684941411018372, 5.208039075136185, 4.710048824548721, 20.17600977420807,
+          4.675068348646164, 5.254058599472046, 20.63701954483986, 6.511009752750397,
+          22.49200975894928, 5.148921877145767, 19.35102930665016, 5.601970702409744,
+          20.951902359724045, 20.930117189884186, 5.209931641817093, 21.566087901592255,
+          20.50109764933586, 20.56400975584984, 19.995087891817093, 5.804990231990814,
+          21.241107434034348, 21.34892186522484, 4.44789257645607, 5.4711074233055115,
+          20.89109766483307, 26.064097672700882, 20.897990226745605, 20.76892188191414,
+          21.262970715761185, 20.473058581352234, 20.862019538879395, 5.200970709323883,
+          20.713892579078674, 20.695941418409348, 4.65297070145607, 4.600892573595047,
+          20.641921877861023, 20.677892565727234, 20.055912107229233, 5.607009768486023,
+          20.779960930347443, 21.48990234732628, 21.75100976228714, 5.553048819303513,
+          20.794009774923325, 5.261951178312302, 20.322117179632187, 24.513892590999603,
+          5.653058588504791, 5.162931650876999, 5.523029297590256, 5.1159316301345825,
+          5.556941419839859, 4.618107438087463, 24.27106836438179, 5.451117187738419,
+          5.423107415437698, 20.478960931301117, 5.371912121772766, 20.957107424736023,
+          20.119980484247208, 5.110078126192093, 20.959980458021164, 20.630902349948883,
+          21.255048841238022, 20.127029299736023, 20.601902335882187, 6.029921889305115,
+          20.39804881811142, 20.7929804623127, 20.388902336359024, 27.267980456352234,
+          23.896087884902954, 24.676960945129395, 20.578892588615417, 5.13605859875679,
+          21.012078136205673, 20.773029297590256, 19.885087877511978, 4.691019535064697,
+          20.00089257955551, 20.299019545316696, 22.727892577648163, 23.500009775161743,
+          26.78906837105751, 4.6780000030994415, 19.89702931046486, 20.59690234065056,
+          5.898019522428513, 20.991029292345047, 21.191941410303116, 5.549009770154953
+        ],
+        "write": [
+          9.087970703840256, 10.369990229606628, 16.611941397190094, 17.57503905892372,
+          18.01198047399521, 13.542882800102234, 11.568912118673325, 17.17796093225479,
+          8.580980479717255, 15.447117179632187, 4.7889218628406525, 8.679990231990814,
+          8.392990231513977, 17.76307812333107, 12.301117181777954, 13.944912105798721,
+          7.372058600187302, 3.518980473279953, 13.580058604478836, 15.92795118689537,
+          15.990058600902557, 4.5440488159656525, 19.255019545555115, 18.51905858516693,
+          14.367902338504791, 19.436970710754395, 14.583000004291534, 20.818960934877396,
+          14.963970690965652, 19.41205859184265, 12.907990247011185, 19.367951184511185,
+          20.391960948705673, 8.203029304742813, 12.067980468273163, 4.199960947036743,
+          14.914058595895767, 18.97101953625679, 15.258951187133789, 16.019107431173325,
+          13.918009757995605, 13.932097643613815, 16.36297070980072, 20.838941395282745,
+          20.095921874046326, 17.005097657442093, 7.65611720085144, 10.443117201328278,
+          10.193039059638977, 14.944117188453674, 15.412951171398163, 16.469097644090652,
+          15.475921869277954, 6.813980460166931, 19.596087902784348, 17.44393163919449,
+          17.161068350076675, 10.159000009298325, 15.606048822402954, 20.50807812809944,
+          4.359078139066696, 11.822951167821884, 16.471078127622604, 17.468931645154953,
+          18.030970692634583, 19.31091210246086, 18.931117177009583, 19.35405859351158,
+          14.003921866416931, 14.829941421747208, 6.968980461359024, 4.470029294490814,
+          15.389892578125, 18.77005860209465, 20.76606836915016, 19.238960951566696,
+          19.71988281607628, 20.225960940122604, 14.954087883234024, 18.351921886205673,
+          5.299921870231628, 4.830980479717255, 10.673009753227234, 16.76206836104393,
+          8.419941395521164, 18.08605858683586, 18.846039056777954, 15.509882807731628,
+          4.993921875953674, 17.818912118673325, 4.833931654691696, 15.568921864032745,
+          11.089931637048721, 20.99809765815735, 17.478980481624603, 12.700078129768372
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 595.1047109999927,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 120
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 12],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 607.2451330000185,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [0, 8],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    },
+    {
+      "variant": "xterm-dom",
+      "path": "bytes",
+      "count": 17,
+      "repetition": 3,
+      "pairId": "3/bytes/17",
+      "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+      "executionOrder": 7,
+      "status": "complete",
+      "pageErrors": [],
+      "gpuIdle": {
+        "qualified": true
+      },
+      "refreshPeriod": 16.664999999999964,
+      "output": {
+        "cpu": {
+          "milliseconds": 20070.128891,
+          "secondsByType": {
+            "browser": 0.05000000000000071,
+            "renderer": 7.74,
+            "GPU": 1.0300000000000011,
+            "network.mojom.NetworkService": 0,
+            "tracing.mojom.TracingService": 0
+          },
+          "percentOfOneCore": 43.945906117001236,
+          "acquisitionUncertaintyMilliseconds": 0.5593940000107978,
+          "tickSeconds": 0.01
+        }
+      },
+      "latency": {
+        "endpoint": "AnimationFrame::Presentation (terminal rendered frame identity)",
+        "trace": "xterm-dom-bytes-17-3-latency.trace.json.gz",
+        "input": [
+          4.812068343162537, 19.862931609153748, 6.31898045539856, 20.207931607961655,
+          19.293941378593445, 20.785048812627792, 15.331999987363815, 20.724970668554306,
+          5.417048811912537, 20.110912084579468, 5.924941390752792, 20.896107405424118,
+          37.189029276371, 26.61605855822563, 25.309960901737213, 19.892029285430908,
+          22.330990225076675, 20.192039042711258, 19.88804879784584, 18.218009740114212,
+          22.21807810664177, 26.522078096866608, 20.012029260396957, 4.870892554521561,
+          5.565990209579468, 5.313951134681702, 5.250078111886978, 5.388999968767166,
+          5.054931610822678, 20.239097625017166, 29.593990206718445, 3.6270292699337006,
+          20.295960903167725, 5.347097635269165, 20.05489256978035, 19.56902927160263,
+          5.675892561674118, 26.766931623220444, 4.6580683290958405, 4.809951156377792,
+          4.881117165088654, 4.8669902086257935, 23.636892557144165, 18.238921850919724,
+          4.716087877750397, 18.52996090054512, 19.7189804315567, 4.798882782459259,
+          4.510912090539932, 4.433087855577469, 34.414951145648956, 19.426970690488815,
+          20.923931628465652, 20.29795116186142, 4.371999979019165, 3.885058581829071,
+          22.720068335533142, 4.752882778644562, 19.946019500494003, 20.54198044538498,
+          14.621078103780746, 4.6989316046237946, 5.024980455636978, 4.988039046525955,
+          4.61006835103035, 21.802980452775955, 20.68905857205391, 18.465087860822678,
+          20.730980455875397, 20.66410741209984, 5.987931609153748, 22.071951150894165,
+          5.067058563232422, 19.963990211486816, 20.045882791280746, 20.472019493579865,
+          20.338009744882584, 20.76606833934784, 5.95989254117012, 3.9570780992507935,
+          21.319931626319885, 20.95391207933426, 20.654941380023956, 20.66892185807228,
+          5.087078094482422, 5.038097620010376, 18.525951147079468, 4.888097643852234,
+          4.694921851158142, 20.30308786034584, 5.521019518375397, 3.6489706933498383,
+          4.7450878620147705, 5.057048797607422, 5.566882789134979, 20.570970684289932
+        ],
+        "write": [
+          18.757882803678513, 8.020078092813492, 20.750999987125397, 4.815048813819885,
+          19.350902318954468, 20.347892552614212, 20.10298043489456, 18.071882784366608,
+          13.614941388368607, 15.858902335166931, 17.458048790693283, 4.576039046049118,
+          14.278068333864212, 12.088902324438095, 7.693902313709259, 17.497068345546722,
+          18.00101950764656, 11.28209763765335, 11.562931627035141, 20.6150780916214,
+          4.565039038658142, 19.009029269218445, 11.996970683336258, 13.066029280424118,
+          15.900951147079468, 21.24604880809784, 13.957931607961655, 18.30510738492012,
+          15.1349316239357, 14.387970685958862, 14.13501951098442, 19.987039029598236,
+          16.517097622156143, 20.073882788419724, 15.038087874650955, 13.389921844005585,
+          15.936970680952072, 20.681892544031143, 8.185058563947678, 5.057039052248001,
+          18.830941379070282, 7.784019500017166, 19.977912098169327, 10.137019515037537,
+          13.86806833744049, 15.357019513845444, 4.136951148509979, 15.828048795461655,
+          20.79599019885063, 14.320970684289932, 21.02199998497963, 4.482960909605026,
+          9.8700390458107, 7.754921853542328, 4.644097626209259, 6.504990220069885,
+          19.405980437994003, 14.131970673799515, 6.5749218463897705, 10.309048801660538,
+          15.620009750127792, 9.338117152452469, 14.73402926325798, 6.419039040803909,
+          19.94608786702156, 17.3339706659317, 19.268029272556305, 12.757009744644165,
+          13.288097620010376, 20.642097622156143, 6.275951147079468, 18.322960913181305,
+          18.279921859502792, 17.7049999833107, 18.874019503593445, 14.68688279390335,
+          19.193117171525955, 12.897117167711258, 4.330960929393768, 16.610009729862213,
+          20.046078115701675, 19.555009752511978, 10.128048807382584, 16.31309762597084,
+          9.940931618213654, 9.603882789611816, 19.08493161201477, 19.63211715221405,
+          16.26898044347763, 10.84389254450798, 20.87601950764656, 5.438029259443283,
+          20.38607808947563, 15.661999970674515, 5.040087878704071, 20.438921838998795
+        ]
+      },
+      "gpuWindows": [
+        {
+          "label": "latency",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 593.8496560000349,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 120
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 16,
+            "utilizationPercent": [0, 9],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 166
+          }
+        },
+        {
+          "label": "output/ascii",
+          "idle": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 250,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "sampleCount": 3,
+            "waitMilliseconds": 611.2173809999949,
+            "utilizationPercent": [0, 0],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 113
+          },
+          "window": {
+            "status": "qualified",
+            "qualified": true,
+            "skipReason": null,
+            "settings": {
+              "gpuIdleUtilizationPercent": 5,
+              "gpuWindowUtilizationPercent": 80,
+              "gpuComputeMemoryMiB": 1024,
+              "gpuSampleMilliseconds": 1000,
+              "gpuIdleConsecutiveSamples": 3,
+              "gpuIdleWaitMilliseconds": 30000,
+              "gpuCommandTimeoutMilliseconds": 2000
+            },
+            "baselineForeignComputePids": [3558, 6166, 1168573, 2577867],
+            "sampleCount": 21,
+            "utilizationPercent": [0, 8],
+            "maxForeignComputeMemoryMiB": 339,
+            "maxOwnedComputeMemoryMiB": 114
+          }
+        }
+      ]
+    }
+  ],
+  "representativeInputTimelines": [],
+  "pairedRatios": [
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "idle/cpu/renderer",
+      "unit": "% core",
+      "target": 1,
+      "pairs": [],
+      "median": null,
+      "medianReason": "ratio unavailable",
+      "repetitions": 0,
+      "status": "not measured",
+      "gpuSkipped": []
+    },
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "idle/cpu/total",
+      "unit": "% core",
+      "target": 1,
+      "pairs": [],
+      "median": null,
+      "medianReason": "ratio unavailable",
+      "repetitions": 0,
+      "status": "not measured",
+      "gpuSkipped": []
+    },
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "output/cpu/renderer",
+      "unit": "% core",
+      "target": 1,
+      "pairs": [
+        {
+          "pairId": "0/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 0,
+          "native": 60.638493843052835,
+          "counterpart": 38.13711088003797,
+          "ratio": 1.5900127839729126,
+          "ticks": [1217, 766],
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "1/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 1,
+          "native": 59.29464919810658,
+          "counterpart": 38.65783281225354,
+          "ratio": 1.533832728960215,
+          "ticks": [1190, 776],
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "2/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 2,
+          "native": 58.83945462945887,
+          "counterpart": 37.75932396082579,
+          "ratio": 1.5582761675103907,
+          "ticks": [1181, 758],
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "3/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 3,
+          "native": 61.8995254760521,
+          "counterpart": 38.564774755735776,
+          "ratio": 1.6050793987029763,
+          "ticks": [1242, 774],
+          "status": "fail",
+          "gpuSkipped": []
+        }
+      ],
+      "median": 1.5741444757416516,
+      "repetitions": 4,
+      "status": "fail",
+      "gpuSkipped": []
+    },
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "output/cpu/total",
+      "unit": "% core",
+      "target": 1,
+      "pairs": [
+        {
+          "pairId": "0/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 0,
+          "native": 65.7705931576251,
+          "counterpart": 42.817121875760655,
+          "ratio": 1.5360816018523353,
+          "ticks": [1320, 860],
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "1/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 1,
+          "native": 64.12791051929678,
+          "counterpart": 44.0380466572579,
+          "ratio": 1.4561933461398853,
+          "ticks": [1287, 884],
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "2/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 2,
+          "native": 63.97109207809076,
+          "counterpart": 42.74076511660757,
+          "ratio": 1.4967231378184624,
+          "ticks": [1284, 858],
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "3/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 3,
+          "native": 67.0328999720532,
+          "counterpart": 43.945906117001236,
+          "ratio": 1.5253502748034216,
+          "ticks": [1345, 882],
+          "status": "fail",
+          "gpuSkipped": []
+        }
+      ],
+      "median": 1.511036706310942,
+      "repetitions": 4,
+      "status": "fail",
+      "gpuSkipped": []
+    },
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "input/p50",
+      "unit": "ms",
+      "target": 1,
+      "pairs": [
+        {
+          "pairId": "0/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 0,
+          "native": 5.7435048669576645,
+          "counterpart": 5.326941415667534,
+          "ratio": 1.0781993678520547,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "1/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 1,
+          "native": 20.41104881465435,
+          "counterpart": 6.939465820789337,
+          "ratio": 2.9412997112121624,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "2/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 2,
+          "native": 19.407034143805504,
+          "counterpart": 5.512009769678116,
+          "ratio": 3.520863524329133,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "3/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 3,
+          "native": 20.393475577235222,
+          "counterpart": 18.911951139569283,
+          "ratio": 1.0783380004914545,
+          "status": "fail",
+          "gpuSkipped": []
+        }
+      ],
+      "median": 2.009818855851808,
+      "repetitions": 4,
+      "status": "fail",
+      "gpuSkipped": []
+    },
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "input/p95",
+      "unit": "ms",
+      "target": 1,
+      "pairs": [
+        {
+          "pairId": "0/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 0,
+          "native": 21.50695115327835,
+          "counterpart": 23.77893164753914,
+          "ratio": 0.9044540550459964,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "1/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 1,
+          "native": 34.85594138503075,
+          "counterpart": 27.78608790040016,
+          "ratio": 1.2544386064699942,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "2/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 2,
+          "native": 25.16190230846405,
+          "counterpart": 26.86297070980072,
+          "ratio": 0.936676087700306,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "3/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 3,
+          "native": 24.513892590999603,
+          "counterpart": 26.61605855822563,
+          "ratio": 0.9210188855488387,
+          "status": "pass",
+          "gpuSkipped": []
+        }
+      ],
+      "median": 0.9288474866245724,
+      "repetitions": 4,
+      "status": "pass",
+      "gpuSkipped": []
+    },
+    {
+      "path": "bytes",
+      "count": 17,
+      "nativeVariant": "ghostty-dom",
+      "variant": "xterm-dom",
+      "metric": "write/p50",
+      "unit": "ms",
+      "target": 1,
+      "pairs": [
+        {
+          "pairId": "0/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 0,
+          "native": 15.546543940901756,
+          "counterpart": 15.52700001001358,
+          "ratio": 1.001258706181205,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "1/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 1,
+          "native": 14.315534174442291,
+          "counterpart": 15.656058594584465,
+          "ratio": 0.9143766349593332,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "2/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 2,
+          "native": 15.826073199510574,
+          "counterpart": 16.2545048892498,
+          "ratio": 0.9736422799304962,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "pairId": "3/bytes/17",
+          "sessionId": "44d222d9-2642-4872-9409-2b70df0efade",
+          "repetition": 3,
+          "native": 15.430034175515175,
+          "counterpart": 15.245975568890572,
+          "ratio": 1.0120726027529636,
+          "status": "fail",
+          "gpuSkipped": []
+        }
+      ],
+      "median": 0.9874504930558506,
+      "repetitions": 4,
+      "status": "pass",
+      "gpuSkipped": []
+    }
+  ]
+}

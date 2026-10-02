@@ -44,3 +44,62 @@ export function hardwareLaunch(host, smoke, smokeHeaded = false) {
       : []
   return { headless, arguments: arguments_ }
 }
+
+export const counterparts = {
+  'ghostty-webgpu': 'xterm-webgl',
+  'ghostty-webgl': 'xterm-webgl',
+  'ghostty-canvas': 'ghostty-web',
+  'ghostty-dom': 'xterm-dom',
+}
+
+export const measurementPhases = ['parser', 'memory', 'idle', 'latency', 'burst', 'output']
+
+export function frameBuilders(args) {
+  assert(
+    !(args.includes('--paired-frame-builders') && args.includes('--frame-builders')),
+    'Choose --frame-builders or --paired-frame-builders',
+  )
+  return selection(
+    args,
+    '--frame-builders',
+    args.includes('--paired-frame-builders') ? ['js', 'zig'] : ['js'],
+    ['js', 'zig'],
+  )
+}
+
+export function selectedVariants(args, available, fallback) {
+  const selected = [...selection(args, '--variants', fallback, available)]
+  for (const native of selected) {
+    const counterpart = counterparts[native]
+    if (counterpart && !selected.includes(counterpart)) selected.push(counterpart)
+  }
+  return selected
+}
+
+export function selectedPhases(args) {
+  return selection(args, '--phases', measurementPhases, measurementPhases)
+}
+
+export function measurementCases(variants, paths, counts, builders, repetition) {
+  const ordered = (values) => {
+    const offset = Math.floor(repetition / 2) % values.length
+    const rotated = [...values.slice(offset), ...values.slice(0, offset)]
+    return repetition % 2 ? rotated.reverse() : rotated
+  }
+  const treatments = ordered(variants).flatMap((variant) => {
+    if (variant !== 'ghostty-webgpu') return [{ variant }]
+    return ordered(builders).map((frameBuilder) => ({ variant, frameBuilder }))
+  })
+  return (repetition % 2 ? paths.toReversed() : paths).flatMap((path) =>
+    counts.flatMap((count) => treatments.map((treatment) => ({ ...treatment, path, count }))),
+  )
+}
+
+export function measurementRepetitions(args, fallback) {
+  const repetitions = positiveInteger(args, '--repetitions', fallback)
+  assert(
+    repetitions >= 4 && repetitions % 2 === 0,
+    'Measurements require an even number of at least four repetitions',
+  )
+  return repetitions
+}

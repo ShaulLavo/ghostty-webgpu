@@ -158,6 +158,34 @@ export class CallbackBridge {
     )
   }
 
+  buildFrame(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    frame: number,
+  ): number {
+    return this.bridgeExports!.bridge_build_frame(
+      state,
+      iterator,
+      cells,
+      mask,
+      maskLength,
+      dirtyOnly,
+      frame,
+    )
+  }
+
+  registerGlyph(index: number, key: number, entry: number): void {
+    this.bridgeExports!.bridge_register_glyph(index, key, entry)
+  }
+
+  clearGlyphs(index: number): void {
+    this.bridgeExports!.bridge_clear_glyphs(index)
+  }
+
   dispose(): void {
     this.memory.free(this.stackPointer, 65536)
   }

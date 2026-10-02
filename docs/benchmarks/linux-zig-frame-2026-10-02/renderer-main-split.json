@@ -1,0 +1,2985 @@
+{
+  "mode": "perturbed-attribution-only",
+  "sampleDefinition": "Reconstruct sample timestamps by cumulative V8 timeDeltas, sort them, attribute each sample until the next timestamp, clip to begin/end. Values are sample leaf estimates, not measured function intervals. Also intersect those estimated segments with the renderer-main RunTask union. Sorting removes overlap from negative deltas; this matches the repaired sampledProfile forward weighting. First sample gaps are uncovered; final sample receives zero tail without a subsequent timestamp. Both captured profiles start before and end after the measured window, so the existing classification needs no numeric adjustment.",
+  "bridgeExports": [
+    {
+      "name": "bridge_build_frame",
+      "kind": 0,
+      "index": 19
+    }
+  ],
+  "nativeExports": [
+    {
+      "name": "ghostty_render_state_update",
+      "kind": 0,
+      "index": 778
+    },
+    {
+      "name": "ghostty_terminal_vt_write",
+      "kind": 0,
+      "index": 721
+    },
+    {
+      "name": "ghostty_terminal_vt_write_until_ground",
+      "kind": 0,
+      "index": 720
+    }
+  ],
+  "cases": [
+    {
+      "variant": "ghostty-webgpu",
+      "ownedFunctionRenderDurationDifference": 13.656998813152313,
+      "windowMilliseconds": 5085.435000002384,
+      "mainTaskMilliseconds": 982.5389997065067,
+      "opSummary": {
+        "ghostty_terminal_vt_write": {
+          "category": "parse",
+          "count": 5117,
+          "self": 66.43999895453453,
+          "inclusive": 66.43999895453453
+        },
+        "write": {
+          "category": "js",
+          "count": 10234,
+          "self": 56.380001336336136,
+          "inclusive": 194.79999941587448
+        },
+        "notifyWrite": {
+          "category": "js",
+          "count": 5117,
+          "self": 0.939999908208847,
+          "inclusive": 0.939999908208847
+        },
+        "update": {
+          "category": "snapshot",
+          "count": 5117,
+          "self": 13.810000449419022,
+          "inclusive": 13.810000449419022
+        },
+        "build": {
+          "category": "instances",
+          "count": 5117,
+          "self": 88.3599990606308,
+          "inclusive": 88.3599990606308
+        },
+        "sync": {
+          "category": "upload",
+          "count": 5117,
+          "self": 2.7250004410743713,
+          "inclusive": 2.7250004410743713
+        },
+        "uploadFrame": {
+          "category": "upload",
+          "count": 5117,
+          "self": 158.80999970436096,
+          "inclusive": 158.80999970436096
+        },
+        "submit": {
+          "category": "commands",
+          "count": 5117,
+          "self": 73.06500083208084,
+          "inclusive": 73.06500083208084
+        },
+        "readRows": {
+          "category": "snapshot",
+          "count": 5117,
+          "self": 83.58499938249588,
+          "inclusive": 83.58499938249588
+        },
+        "acknowledge": {
+          "category": "damage",
+          "count": 5117,
+          "self": 5.295000374317169,
+          "inclusive": 5.295000374317169
+        },
+        "drawZigFrame": {
+          "category": "js",
+          "count": 5117,
+          "self": 229.8500010073185,
+          "inclusive": 641.6900008022785
+        },
+        "drawFrame": {
+          "category": "js",
+          "count": 5117,
+          "self": 5.819999575614929,
+          "inclusive": 661.3200008273125
+        }
+      },
+      "raf": {
+        "allCount": 5728,
+        "allInclusive": 836.9390006959438,
+        "ownedCount": 5108,
+        "ownedInclusive": 691.5230005979538,
+        "ownedOutsideMeasuredRender": 31.920001715421677,
+        "ownedFunctionCallInclusive": 674.9769996404648,
+        "ownedFunctionCallOutsideMeasuredRender": 20.598017752170563,
+        "callbackGroups": [
+          {
+            "functionName": "frame",
+            "url": "",
+            "line": 65,
+            "column": 21,
+            "count": 306,
+            "milliseconds": 6.459999859333038
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/browser.js",
+            "line": 5278,
+            "column": 48,
+            "count": 5117,
+            "milliseconds": 674.9769996404648
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/browser.js",
+            "line": 14464,
+            "column": 47,
+            "count": 305,
+            "milliseconds": 4.943000465631485
+          }
+        ],
+        "exactContainmentStatus": "Incomplete correlation; use source-identified FunctionCall group count and duration difference for scheduler envelope.",
+        "durationDifferenceScope": "Source-identified render callback FunctionCall duration minus measured drawFrame/renderRows duration. Includes recorder overhead, caller bookkeeping, browser callback entry/exit, and GC; not pure scheduler time."
+      },
+      "sampleDiagnostics": {
+        "negativeDeltas": 4155,
+        "negativeDeltaMilliseconds": 228.0609999999973,
+        "minDeltaMilliseconds": -0.171,
+        "rawSamples": 126323,
+        "startTimestamp": 2733.8610000014305,
+        "endTimestamp": 10859.448138535023,
+        "normalizedWindowEstimate": 5085.435000002384,
+        "normalizedTaskClippedEstimate": 982.5389997065067
+      },
+      "sampleGroups": {
+        "(program)": {
+          "windowEstimate": 493.3590102791786,
+          "mainTaskClippedEstimate": 437.35215562582016,
+          "samples": 6687
+        },
+        "other-named": {
+          "windowEstimate": 174.10890999436378,
+          "mainTaskClippedEstimate": 173.60748273134232,
+          "samples": 1481
+        },
+        "(idle)": {
+          "windowEstimate": 4086.1820790469646,
+          "mainTaskClippedEstimate": 40.9577152132988,
+          "samples": 27208
+        },
+        "webgpu-upload-wrapper-other": {
+          "windowEstimate": 19.895999938249588,
+          "mainTaskClippedEstimate": 19.895999938249588,
+          "samples": 187
+        },
+        "callback-emitFrame-and-ui": {
+          "windowEstimate": 34.32200035452843,
+          "mainTaskClippedEstimate": 34.32200035452843,
+          "samples": 1205
+        },
+        "webgpu-native-buffer-upload": {
+          "windowEstimate": 78.7509999871254,
+          "mainTaskClippedEstimate": 78.7509999871254,
+          "samples": 800
+        },
+        "callback-readRows": {
+          "windowEstimate": 27.930999904870987,
+          "mainTaskClippedEstimate": 27.930999904870987,
+          "samples": 510
+        },
+        "webgpu-native-command-and-acquire": {
+          "windowEstimate": 47.12299996614456,
+          "mainTaskClippedEstimate": 47.12299996614456,
+          "samples": 620
+        },
+        "bridge-build-native-descendants": {
+          "windowEstimate": 61.02799963951111,
+          "mainTaskClippedEstimate": 61.02799963951111,
+          "samples": 538
+        },
+        "webgpu-command-wrapper-other": {
+          "windowEstimate": 6.477999925613403,
+          "mainTaskClippedEstimate": 6.477999925613403,
+          "samples": 76
+        },
+        "terminal-scheduler-exclusive": {
+          "windowEstimate": 18.045000463724136,
+          "mainTaskClippedEstimate": 18.02793115377426,
+          "samples": 134
+        },
+        "(garbage collector)": {
+          "windowEstimate": 34.68000051379204,
+          "mainTaskClippedEstimate": 33.53371527791023,
+          "samples": 243
+        },
+        "zig-builder-wrapper-other": {
+          "windowEstimate": 3.4280000030994415,
+          "mainTaskClippedEstimate": 3.4280000030994415,
+          "samples": 26
+        },
+        "atlas-sync": {
+          "windowEstimate": 0.1029999852180481,
+          "mainTaskClippedEstimate": 0.1029999852180481,
+          "samples": 1
+        }
+      },
+      "sampledSubtrees": {
+        "runFrame": {
+          "windowEstimate": 314.33600026369095,
+          "mainTaskClippedEstimate": 314.33600026369095
+        },
+        "emitFrame": {
+          "windowEstimate": 34.32200035452843,
+          "mainTaskClippedEstimate": 34.32200035452843
+        },
+        "linkFrameSignature": {
+          "windowEstimate": 17.37600004673004,
+          "mainTaskClippedEstimate": 17.37600004673004
+        },
+        "readRows": {
+          "windowEstimate": 27.930999904870987,
+          "mainTaskClippedEstimate": 27.930999904870987
+        },
+        "buildFrame": {
+          "windowEstimate": 61.74699965119362,
+          "mainTaskClippedEstimate": 61.74699965119362
+        },
+        "build": {
+          "windowEstimate": 64.45599964261055,
+          "mainTaskClippedEstimate": 64.45599964261055
+        },
+        "copiedFrameRow": {
+          "windowEstimate": 8.846000134944916,
+          "mainTaskClippedEstimate": 8.846000134944916
+        },
+        "schedule": {
+          "windowEstimate": 14.941000372171402,
+          "mainTaskClippedEstimate": 14.923931062221527
+        }
+      },
+      "modulePaths": {
+        "wasm://wasm/002f2dc6": {
+          "example": "wasm-function[865]",
+          "callers": [
+            "wasm-function[865]",
+            "wasm-function[20]",
+            "wasm-function[19]",
+            "js-to-wasm:iiii:",
+            "buildFrame",
+            "build",
+            "",
+            "drawZigFrame",
+            "",
+            "drawFrame",
+            "",
+            "onFrame",
+            "runFrame",
+            "",
+            "(root)"
+          ]
+        },
+        "wasm://wasm/26717242": {
+          "example": "wasm-function[20]",
+          "callers": [
+            "wasm-function[865]",
+            "wasm-function[20]",
+            "wasm-function[19]",
+            "js-to-wasm:iiii:",
+            "buildFrame",
+            "build",
+            "",
+            "drawZigFrame",
+            "",
+            "drawFrame",
+            "",
+            "onFrame",
+            "runFrame",
+            "",
+            "(root)"
+          ]
+        }
+      },
+      "topLeaves": [
+        {
+          "leaf": {
+            "id": 2,
+            "codeType": "other",
+            "functionName": "(program)",
+            "scriptId": 0
+          },
+          "windowEstimate": 493.3590102791786,
+          "mainTaskClippedEstimate": 437.35215562582016,
+          "samples": 6687
+        },
+        {
+          "leaf": {
+            "id": 67,
+            "codeType": "JS",
+            "functionName": "writeBuffer",
+            "scriptId": 0
+          },
+          "windowEstimate": 78.7509999871254,
+          "mainTaskClippedEstimate": 78.7509999871254,
+          "samples": 800
+        },
+        {
+          "leaf": {
+            "id": 12,
+            "codeType": "other",
+            "functionName": "(idle)",
+            "scriptId": 0
+          },
+          "windowEstimate": 4086.1820790469646,
+          "mainTaskClippedEstimate": 40.9577152132988,
+          "samples": 27208
+        },
+        {
+          "leaf": {
+            "id": 125,
+            "codeType": "wasm",
+            "columnNumber": 2303,
+            "functionName": "wasm-function[20]",
+            "lineNumber": 0,
+            "scriptId": 27,
+            "url": "wasm://wasm/26717242"
+          },
+          "windowEstimate": 39.55199980735779,
+          "mainTaskClippedEstimate": 39.55199980735779,
+          "samples": 353
+        },
+        {
+          "leaf": {
+            "id": 145,
+            "codeType": "other",
+            "functionName": "(garbage collector)",
+            "scriptId": 0
+          },
+          "windowEstimate": 34.68000051379204,
+          "mainTaskClippedEstimate": 33.53371527791023,
+          "samples": 243
+        },
+        {
+          "leaf": {
+            "id": 9,
+            "codeType": "JS",
+            "functionName": "mark",
+            "scriptId": 0
+          },
+          "windowEstimate": 25.31900030374527,
+          "mainTaskClippedEstimate": 25.237906724214554,
+          "samples": 325
+        },
+        {
+          "leaf": {
+            "id": 191,
+            "codeType": "wasm",
+            "columnNumber": 170595,
+            "functionName": "wasm-function[263]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 20.255000591278076,
+          "mainTaskClippedEstimate": 20.255000591278076,
+          "samples": 135
+        },
+        {
+          "leaf": {
+            "id": 83,
+            "codeType": "JS",
+            "functionName": "submit",
+            "scriptId": 0
+          },
+          "windowEstimate": 19.23199972510338,
+          "mainTaskClippedEstimate": 19.23199972510338,
+          "samples": 285
+        },
+        {
+          "leaf": {
+            "id": 118,
+            "codeType": "wasm",
+            "columnNumber": 194832,
+            "functionName": "wasm-function[287]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 16.21000039577484,
+          "mainTaskClippedEstimate": 16.200000405311584,
+          "samples": 107
+        },
+        {
+          "leaf": {
+            "id": 11,
+            "codeType": "JS",
+            "functionName": "requestAnimationFrame",
+            "scriptId": 0
+          },
+          "windowEstimate": 15.76700034737587,
+          "mainTaskClippedEstimate": 15.58285304903984,
+          "samples": 112
+        },
+        {
+          "leaf": {
+            "id": 86,
+            "codeType": "JS",
+            "functionName": "getCurrentTexture",
+            "scriptId": 0
+          },
+          "windowEstimate": 15.51500028371811,
+          "mainTaskClippedEstimate": 15.51500028371811,
+          "samples": 184
+        },
+        {
+          "leaf": {
+            "id": 72,
+            "codeType": "JS",
+            "columnNumber": 27,
+            "functionName": "linkFrameSignature",
+            "lineNumber": 13072,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 15.509000033140182,
+          "mainTaskClippedEstimate": 15.509000033140182,
+          "samples": 661
+        },
+        {
+          "leaf": {
+            "id": 28,
+            "codeType": "JS",
+            "columnNumber": 38,
+            "functionName": "",
+            "lineNumber": 14107,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 14.751000225543976,
+          "mainTaskClippedEstimate": 14.747000217437744,
+          "samples": 148
+        },
+        {
+          "leaf": {
+            "id": 75,
+            "codeType": "JS",
+            "columnNumber": 6,
+            "functionName": "read",
+            "lineNumber": 862,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 11.609999865293503,
+          "mainTaskClippedEstimate": 11.609999865293503,
+          "samples": 218
+        },
+        {
+          "leaf": {
+            "id": 128,
+            "codeType": "JS",
+            "columnNumber": 20,
+            "functionName": "count",
+            "lineNumber": 22,
+            "scriptId": 4
+          },
+          "windowEstimate": 9.51599982380867,
+          "mainTaskClippedEstimate": 9.51599982380867,
+          "samples": 96
+        },
+        {
+          "leaf": {
+            "id": 80,
+            "codeType": "wasm",
+            "columnNumber": 1118,
+            "functionName": "wasm-function[17]",
+            "lineNumber": 0,
+            "scriptId": 27,
+            "url": "wasm://wasm/26717242"
+          },
+          "windowEstimate": 8.967000037431717,
+          "mainTaskClippedEstimate": 8.967000037431717,
+          "samples": 161
+        },
+        {
+          "leaf": {
+            "id": 127,
+            "codeType": "JS",
+            "columnNumber": 23,
+            "functionName": "copiedFrameRow",
+            "lineNumber": 4609,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 8.846000134944916,
+          "mainTaskClippedEstimate": 8.846000134944916,
+          "samples": 209
+        },
+        {
+          "leaf": {
+            "id": 47,
+            "codeType": "JS",
+            "functionName": "getBoundingClientRect",
+            "scriptId": 0
+          },
+          "windowEstimate": 8.919000148773193,
+          "mainTaskClippedEstimate": 8.8160001039505,
+          "samples": 101
+        },
+        {
+          "leaf": {
+            "id": 129,
+            "codeType": "wasm",
+            "columnNumber": 482037,
+            "functionName": "wasm-function[860]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 7.906000018119812,
+          "mainTaskClippedEstimate": 7.906000018119812,
+          "samples": 93
+        },
+        {
+          "leaf": {
+            "id": 110,
+            "codeType": "wasm",
+            "columnNumber": 404850,
+            "functionName": "wasm-function[721]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 6.928000092506409,
+          "mainTaskClippedEstimate": 6.910958617925644,
+          "samples": 46
+        },
+        {
+          "leaf": {
+            "id": 62,
+            "codeType": "JS",
+            "columnNumber": 16,
+            "functionName": "renderSnapshot",
+            "lineNumber": 12638,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 6.813000202178955,
+          "mainTaskClippedEstimate": 6.812000215053558,
+          "samples": 80
+        },
+        {
+          "leaf": {
+            "id": 66,
+            "codeType": "JS",
+            "columnNumber": 34,
+            "functionName": "prototype.<computed>",
+            "lineNumber": 33,
+            "scriptId": 4
+          },
+          "windowEstimate": 6.4250001311302185,
+          "mainTaskClippedEstimate": 6.4250001311302185,
+          "samples": 65
+        },
+        {
+          "leaf": {
+            "id": 126,
+            "codeType": "wasm",
+            "columnNumber": 482581,
+            "functionName": "wasm-function[865]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 6.3659999668598175,
+          "mainTaskClippedEstimate": 6.3659999668598175,
+          "samples": 55
+        },
+        {
+          "leaf": {
+            "id": 112,
+            "codeType": "wasm",
+            "columnNumber": 166619,
+            "functionName": "wasm-function[262]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 6.142000168561935,
+          "mainTaskClippedEstimate": 6.134000152349472,
+          "samples": 41
+        },
+        {
+          "leaf": {
+            "id": 354,
+            "codeType": "wasm",
+            "columnNumber": 42546,
+            "functionName": "wasm-function[111]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 5.406000047922134,
+          "mainTaskClippedEstimate": 5.406000047922134,
+          "samples": 36
+        },
+        {
+          "leaf": {
+            "id": 171,
+            "codeType": "JS",
+            "functionName": "now",
+            "scriptId": 0
+          },
+          "windowEstimate": 4.5200000405311584,
+          "mainTaskClippedEstimate": 4.5200000405311584,
+          "samples": 46
+        },
+        {
+          "leaf": {
+            "id": 84,
+            "codeType": "JS",
+            "functionName": "beginRenderPass",
+            "scriptId": 0
+          },
+          "windowEstimate": 4.2750000059604645,
+          "mainTaskClippedEstimate": 4.2750000059604645,
+          "samples": 50
+        },
+        {
+          "leaf": {
+            "id": 152,
+            "codeType": "wasm",
+            "columnNumber": 4212,
+            "functionName": "wasm-function[21]",
+            "lineNumber": 0,
+            "scriptId": 27,
+            "url": "wasm://wasm/26717242"
+          },
+          "windowEstimate": 3.860999971628189,
+          "mainTaskClippedEstimate": 3.860999971628189,
+          "samples": 32
+        },
+        {
+          "leaf": {
+            "id": 57,
+            "codeType": "JS",
+            "columnNumber": 11,
+            "functionName": "emitFrame",
+            "lineNumber": 8765,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 3.809000164270401,
+          "mainTaskClippedEstimate": 3.809000164270401,
+          "samples": 93
+        },
+        {
+          "leaf": {
+            "id": 146,
+            "codeType": "wasm",
+            "columnNumber": 120312,
+            "functionName": "wasm-function[199]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 3.6720001101493835,
+          "mainTaskClippedEstimate": 3.6720001101493835,
+          "samples": 25
+        },
+        {
+          "leaf": {
+            "id": 160,
+            "codeType": "JS",
+            "functionName": "createView",
+            "scriptId": 0
+          },
+          "windowEstimate": 3.437999963760376,
+          "mainTaskClippedEstimate": 3.437999963760376,
+          "samples": 41
+        },
+        {
+          "leaf": {
+            "id": 117,
+            "codeType": "wasm",
+            "columnNumber": 196810,
+            "functionName": "wasm-function[289]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 3.319000095129013,
+          "mainTaskClippedEstimate": 3.3119582533836365,
+          "samples": 22
+        },
+        {
+          "leaf": {
+            "id": 167,
+            "codeType": "JS",
+            "functionName": "setAttribute",
+            "scriptId": 0
+          },
+          "windowEstimate": 3.2920000553131104,
+          "mainTaskClippedEstimate": 3.285000056028366,
+          "samples": 41
+        },
+        {
+          "leaf": {
+            "id": 170,
+            "codeType": "wasm",
+            "columnNumber": 419865,
+            "functionName": "wasm-function[751]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 3.203000009059906,
+          "mainTaskClippedEstimate": 3.203000009059906,
+          "samples": 34
+        },
+        {
+          "leaf": {
+            "id": 234,
+            "codeType": "JS",
+            "columnNumber": 7,
+            "functionName": "count",
+            "lineNumber": 14096,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 3.1050000190734863,
+          "mainTaskClippedEstimate": 3.1050000190734863,
+          "samples": 40
+        },
+        {
+          "leaf": {
+            "id": 65,
+            "codeType": "JS",
+            "columnNumber": 12,
+            "functionName": "writeRange",
+            "lineNumber": 8290,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 2.533999979496002,
+          "mainTaskClippedEstimate": 2.533999979496002,
+          "samples": 24
+        },
+        {
+          "leaf": {
+            "id": 209,
+            "codeType": "JS",
+            "columnNumber": 23,
+            "functionName": "identify",
+            "lineNumber": 18,
+            "scriptId": 4
+          },
+          "windowEstimate": 2.459999978542328,
+          "mainTaskClippedEstimate": 2.459999978542328,
+          "samples": 28
+        },
+        {
+          "leaf": {
+            "id": 205,
+            "codeType": "JS",
+            "columnNumber": 11,
+            "functionName": "get bytes",
+            "lineNumber": 161,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 2.384000062942505,
+          "mainTaskClippedEstimate": 2.3800000846385956,
+          "samples": 21
+        },
+        {
+          "leaf": {
+            "id": 172,
+            "codeType": "wasm",
+            "columnNumber": 420102,
+            "functionName": "wasm-function[752]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 2.3799999952316284,
+          "mainTaskClippedEstimate": 2.3799999952316284,
+          "samples": 30
+        },
+        {
+          "leaf": {
+            "id": 150,
+            "codeType": "wasm",
+            "columnNumber": 419090,
+            "functionName": "wasm-function[747]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 2.2609998881816864,
+          "mainTaskClippedEstimate": 2.2609998881816864,
+          "samples": 33
+        },
+        {
+          "leaf": {
+            "id": 56,
+            "codeType": "JS",
+            "columnNumber": 13,
+            "functionName": "uploadFrame",
+            "lineNumber": 8205,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 2.1270000338554382,
+          "mainTaskClippedEstimate": 2.1270000338554382,
+          "samples": 20
+        },
+        {
+          "leaf": {
+            "id": 54,
+            "codeType": "JS",
+            "columnNumber": 14,
+            "functionName": "drawZigFrame",
+            "lineNumber": 8671,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.987999975681305,
+          "mainTaskClippedEstimate": 1.987999975681305,
+          "samples": 24
+        },
+        {
+          "leaf": {
+            "id": 159,
+            "codeType": "wasm",
+            "columnNumber": 429095,
+            "functionName": "wasm-function[779]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 1.9870000183582306,
+          "mainTaskClippedEstimate": 1.9870000183582306,
+          "samples": 15
+        },
+        {
+          "leaf": {
+            "id": 175,
+            "codeType": "JS",
+            "columnNumber": 22,
+            "functionName": "",
+            "lineNumber": 13076,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.867000013589859,
+          "mainTaskClippedEstimate": 1.867000013589859,
+          "samples": 53
+        },
+        {
+          "leaf": {
+            "id": 257,
+            "codeType": "JS",
+            "columnNumber": 17,
+            "functionName": "clearVisibleHit",
+            "lineNumber": 12193,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.8309999704360962,
+          "mainTaskClippedEstimate": 1.8289999663829803,
+          "samples": 14
+        },
+        {
+          "leaf": {
+            "id": 131,
+            "codeType": "JS",
+            "functionName": "encode",
+            "scriptId": 0
+          },
+          "windowEstimate": 1.7560000717639923,
+          "mainTaskClippedEstimate": 1.7560000717639923,
+          "samples": 12
+        },
+        {
+          "leaf": {
+            "id": 136,
+            "codeType": "JS",
+            "columnNumber": 18,
+            "functionName": "readRequiredData",
+            "lineNumber": 1766,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.5290000438690186,
+          "mainTaskClippedEstimate": 1.5290000438690186,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 202,
+            "codeType": "JS",
+            "functionName": "createCommandEncoder",
+            "scriptId": 0
+          },
+          "windowEstimate": 1.5029999613761902,
+          "mainTaskClippedEstimate": 1.5029999613761902,
+          "samples": 18
+        },
+        {
+          "leaf": {
+            "id": 181,
+            "codeType": "JS",
+            "columnNumber": 6,
+            "functionName": "read",
+            "lineNumber": 993,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.4949999749660492,
+          "mainTaskClippedEstimate": 1.4949999749660492,
+          "samples": 12
+        },
+        {
+          "leaf": {
+            "id": 121,
+            "codeType": "JS",
+            "columnNumber": 7,
+            "functionName": "build",
+            "lineNumber": 680,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.4759999811649323,
+          "mainTaskClippedEstimate": 1.4759999811649323,
+          "samples": 11
+        },
+        {
+          "leaf": {
+            "id": 32,
+            "codeType": "JS",
+            "columnNumber": 19,
+            "functionName": "readThumbGeometry",
+            "lineNumber": 12652,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.3880000114440918,
+          "mainTaskClippedEstimate": 1.3880000114440918,
+          "samples": 12
+        },
+        {
+          "leaf": {
+            "id": 148,
+            "codeType": "JS",
+            "columnNumber": 14,
+            "functionName": "get cellData",
+            "lineNumber": 670,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.3660000264644623,
+          "mainTaskClippedEstimate": 1.3660000264644623,
+          "samples": 12
+        },
+        {
+          "leaf": {
+            "id": 169,
+            "codeType": "JS",
+            "columnNumber": 10,
+            "functionName": "get view",
+            "lineNumber": 167,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.344999998807907,
+          "mainTaskClippedEstimate": 1.344999998807907,
+          "samples": 17
+        },
+        {
+          "leaf": {
+            "id": 237,
+            "codeType": "JS",
+            "columnNumber": 9,
+            "functionName": "emit",
+            "lineNumber": 2896,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.3289999961853027,
+          "mainTaskClippedEstimate": 1.3289999961853027,
+          "samples": 9
+        },
+        {
+          "leaf": {
+            "id": 158,
+            "codeType": "wasm",
+            "columnNumber": 424314,
+            "functionName": "wasm-function[777]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 1.2709999978542328,
+          "mainTaskClippedEstimate": 1.2709999978542328,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 277,
+            "codeType": "wasm",
+            "columnNumber": 2018,
+            "functionName": "wasm-function[19]",
+            "lineNumber": 0,
+            "scriptId": 27,
+            "url": "wasm://wasm/26717242"
+          },
+          "windowEstimate": 1.2089999616146088,
+          "mainTaskClippedEstimate": 1.2089999616146088,
+          "samples": 11
+        },
+        {
+          "leaf": {
+            "id": 179,
+            "codeType": "JS",
+            "columnNumber": 18,
+            "functionName": "positionTextarea",
+            "lineNumber": 9555,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.1030001044273376,
+          "mainTaskClippedEstimate": 1.1030001044273376,
+          "samples": 32
+        },
+        {
+          "leaf": {
+            "id": 230,
+            "codeType": "JS",
+            "columnNumber": 15,
+            "functionName": "changedRanges",
+            "lineNumber": 706,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.0819999873638153,
+          "mainTaskClippedEstimate": 1.0819999873638153,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 216,
+            "codeType": "JS",
+            "functionName": "finish",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.9919999837875366,
+          "mainTaskClippedEstimate": 0.9919999837875366,
+          "samples": 13
+        },
+        {
+          "leaf": {
+            "id": 280,
+            "codeType": "JS",
+            "functionName": "js-to-wasm:iii:",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.8869999945163727,
+          "mainTaskClippedEstimate": 0.8869999945163727,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 52,
+            "codeType": "JS",
+            "columnNumber": 11,
+            "functionName": "drawFrame",
+            "lineNumber": 8628,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.8770000040531158,
+          "mainTaskClippedEstimate": 0.8770000040531158,
+          "samples": 8
+        },
+        {
+          "leaf": {
+            "id": 196,
+            "codeType": "JS",
+            "functionName": "get buffer",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.8640000224113464,
+          "mainTaskClippedEstimate": 0.8640000224113464,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 222,
+            "codeType": "JS",
+            "functionName": "setPipeline",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.8150000274181366,
+          "mainTaskClippedEstimate": 0.8150000274181366,
+          "samples": 11
+        },
+        {
+          "leaf": {
+            "id": 73,
+            "codeType": "JS",
+            "columnNumber": 15,
+            "functionName": "get glyphData",
+            "lineNumber": 673,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.8139999806880951,
+          "mainTaskClippedEstimate": 0.8139999806880951,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 78,
+            "codeType": "JS",
+            "columnNumber": 4609,
+            "functionName": "js-to-wasm:iiii:",
+            "lineNumber": 0,
+            "scriptId": 27,
+            "url": "wasm://wasm/26717242"
+          },
+          "windowEstimate": 0.8090000152587891,
+          "mainTaskClippedEstimate": 0.8090000152587891,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 307,
+            "codeType": "JS",
+            "columnNumber": 28,
+            "functionName": "assertGhosttyResult",
+            "lineNumber": 138,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.7960000336170197,
+          "mainTaskClippedEstimate": 0.7960000336170197,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 210,
+            "codeType": "JS",
+            "columnNumber": 16,
+            "functionName": "consumeUploads",
+            "lineNumber": 6095,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.7870000302791595,
+          "mainTaskClippedEstimate": 0.7870000302791595,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 107,
+            "codeType": "JS",
+            "columnNumber": 7,
+            "functionName": "write",
+            "lineNumber": 1720,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.7700000107288361,
+          "mainTaskClippedEstimate": 0.7700000107288361,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 207,
+            "codeType": "JS",
+            "columnNumber": 7592,
+            "functionName": "js-to-wasm:i:i",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 0.7609999775886536,
+          "mainTaskClippedEstimate": 0.7589999735355377,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 103,
+            "codeType": "JS",
+            "columnNumber": 10,
+            "functionName": "writeNow",
+            "lineNumber": 4385,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.7600000202655792,
+          "mainTaskClippedEstimate": 0.7559999823570251,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 132,
+            "codeType": "JS",
+            "columnNumber": 18,
+            "functionName": "emitScrollChange",
+            "lineNumber": 4524,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.7150000035762787,
+          "mainTaskClippedEstimate": 0.7150000035762787,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 147,
+            "codeType": "JS",
+            "functionName": "setBindGroup",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.7090000212192535,
+          "mainTaskClippedEstimate": 0.7090000212192535,
+          "samples": 11
+        },
+        {
+          "leaf": {
+            "id": 74,
+            "codeType": "JS",
+            "columnNumber": 10,
+            "functionName": "readRows",
+            "lineNumber": 1113,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.6490000188350677,
+          "mainTaskClippedEstimate": 0.6490000188350677,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 248,
+            "codeType": "JS",
+            "columnNumber": 17,
+            "functionName": "invalidateLinks",
+            "lineNumber": 13847,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.6130000352859497,
+          "mainTaskClippedEstimate": 0.6130000352859497,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 111,
+            "codeType": "wasm",
+            "columnNumber": 178968,
+            "functionName": "wasm-function[272]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 0.613999992609024,
+          "mainTaskClippedEstimate": 0.6119999587535858,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 235,
+            "codeType": "JS",
+            "columnNumber": 14,
+            "functionName": "flushEffects",
+            "lineNumber": 4532,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.6080000102519989,
+          "mainTaskClippedEstimate": 0.6080000102519989,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 95,
+            "codeType": "JS",
+            "columnNumber": 23,
+            "functionName": "writeAll",
+            "lineNumber": 14656,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.6110000312328339,
+          "mainTaskClippedEstimate": 0.6070000231266022,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 219,
+            "codeType": "JS",
+            "columnNumber": 25,
+            "functionName": "decodeSafeUint64",
+            "lineNumber": 1406,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.6069999933242798,
+          "mainTaskClippedEstimate": 0.6069999933242798,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 155,
+            "codeType": "JS",
+            "columnNumber": 8,
+            "functionName": "update",
+            "lineNumber": 1098,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.5800000131130219,
+          "mainTaskClippedEstimate": 0.5800000131130219,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 371,
+            "codeType": "wasm",
+            "columnNumber": 146028,
+            "functionName": "wasm-function[226]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 0.5690000355243683,
+          "mainTaskClippedEstimate": 0.5690000355243683,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 244,
+            "codeType": "JS",
+            "columnNumber": 53,
+            "functionName": "",
+            "lineNumber": 14150,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.56700000166893,
+          "mainTaskClippedEstimate": 0.56700000166893,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 133,
+            "codeType": "JS",
+            "columnNumber": 27,
+            "functionName": "readScrollSnapshot",
+            "lineNumber": 3972,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.5620000064373016,
+          "mainTaskClippedEstimate": 0.5610000193119049,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 302,
+            "codeType": "wasm",
+            "columnNumber": 421064,
+            "functionName": "wasm-function[761]",
+            "lineNumber": 0,
+            "scriptId": 28,
+            "url": "wasm://wasm/002f2dc6"
+          },
+          "windowEstimate": 0.5590000450611115,
+          "mainTaskClippedEstimate": 0.5590000450611115,
+          "samples": 8
+        },
+        {
+          "leaf": {
+            "id": 46,
+            "codeType": "JS",
+            "columnNumber": 8,
+            "functionName": "update",
+            "lineNumber": 12585,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.5530000030994415,
+          "mainTaskClippedEstimate": 0.5530000030994415,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 130,
+            "codeType": "JS",
+            "columnNumber": 14,
+            "functionName": "input",
+            "lineNumber": 14472,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.4610000252723694,
+          "mainTaskClippedEstimate": 0.4610000252723694,
+          "samples": 3
+        },
+        {
+          "leaf": {
+            "id": 270,
+            "codeType": "JS",
+            "functionName": "js-to-wasm:iiiiiii:i",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.4610000252723694,
+          "mainTaskClippedEstimate": 0.4610000252723694,
+          "samples": 3
+        },
+        {
+          "leaf": {
+            "id": 208,
+            "codeType": "JS",
+            "columnNumber": 48,
+            "functionName": "",
+            "lineNumber": 1790,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.46000000834465027,
+          "mainTaskClippedEstimate": 0.46000000834465027,
+          "samples": 3
+        },
+        {
+          "leaf": {
+            "id": 96,
+            "codeType": "JS",
+            "columnNumber": 32,
+            "functionName": "",
+            "lineNumber": 14658,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.45900002121925354,
+          "mainTaskClippedEstimate": 0.45900002121925354,
+          "samples": 3
+        },
+        {
+          "leaf": {
+            "id": 94,
+            "codeType": "JS",
+            "columnNumber": 37,
+            "functionName": "",
+            "lineNumber": 14876,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.4580000042915344,
+          "mainTaskClippedEstimate": 0.4580000042915344,
+          "samples": 3
+        },
+        {
+          "leaf": {
+            "id": 140,
+            "codeType": "JS",
+            "columnNumber": 53,
+            "functionName": "",
+            "lineNumber": 13567,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.4570000171661377,
+          "mainTaskClippedEstimate": 0.4570000171661377,
+          "samples": 3
+        }
+      ],
+      "measuredMainIntervalPartition": {
+        "ghostty_terminal_vt_write": 66.43999895453453,
+        "build": 88.3599990606308,
+        "readRows": 83.58499938249588,
+        "sync": 2.7250004410743713,
+        "uploadFrame": 158.80999970436096,
+        "submit": 73.06500083208084,
+        "everythingElse": 509.55400133132935
+      },
+      "sourceReferences": [
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/bench/comparison-tracing.ts:108-205",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/core/zig-frame.ts:93-126",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/core/bridge.ts:161-179",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/render/renderer.ts:523-595",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/render/renderer.ts:622-636",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/dom/terminal.ts:764-776",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/dom/terminal.ts:1124-1139",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/render/scheduler.ts:57-63",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/src/render/scheduler.ts:150-155",
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/scripts/bridge.zig:287-309"
+      ]
+    },
+    {
+      "variant": "xterm-webgl",
+      "ownedFunctionRenderDurationDifference": 15.829999208450317,
+      "windowMilliseconds": 5084.2249999940395,
+      "mainTaskMilliseconds": 1416.0120005011559,
+      "opSummary": {
+        "write": {
+          "category": "js",
+          "count": 5117,
+          "self": 9.42000025510788,
+          "inclusive": 9.42000025510788
+        },
+        "refreshRows": {
+          "category": "damage",
+          "count": 10234,
+          "self": 2.860000431537628,
+          "inclusive": 2.860000431537628
+        },
+        "parse": {
+          "category": "parse",
+          "count": 5117,
+          "self": 955.1449998915195,
+          "inclusive": 956.4350002706051
+        },
+        "_updateModel": {
+          "category": "snapshot",
+          "count": 5117,
+          "self": 66.84000125527382,
+          "inclusive": 66.84000125527382
+        },
+        "bufferData": {
+          "category": "upload",
+          "count": 15351,
+          "self": 27.600000381469727,
+          "inclusive": 27.600000381469727
+        },
+        "drawElementsInstanced": {
+          "category": "commands",
+          "count": 15351,
+          "self": 17.465000092983246,
+          "inclusive": 17.465000092983246
+        },
+        "renderRows": {
+          "category": "js",
+          "count": 5117,
+          "self": 33.329999417066574,
+          "inclusive": 145.23500114679337
+        }
+      },
+      "raf": {
+        "allCount": 10844,
+        "allInclusive": 231.52999925613403,
+        "ownedCount": 4294,
+        "ownedInclusive": 149.8319995701313,
+        "ownedOutsideMeasuredRender": 30.475944012403488,
+        "ownedFunctionCallInclusive": 161.06500035524368,
+        "ownedFunctionCallOutsideMeasuredRender": 27.001920968294144,
+        "callbackGroups": [
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/xterm.mjs",
+            "line": 49,
+            "column": 116950,
+            "count": 5117,
+            "milliseconds": 972.0390003025532
+          },
+          {
+            "functionName": "frame",
+            "url": "",
+            "line": 65,
+            "column": 21,
+            "count": 305,
+            "milliseconds": 5.122000068426132
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/xterm.mjs",
+            "line": 49,
+            "column": 252,
+            "count": 5117,
+            "milliseconds": 17.726000905036926
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/xterm.mjs",
+            "line": 47,
+            "column": 38404,
+            "count": 5117,
+            "milliseconds": 161.06500035524368
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/browser.js",
+            "line": 14464,
+            "column": 47,
+            "count": 305,
+            "milliseconds": 6.3160001039505005
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/xterm.mjs",
+            "line": 45,
+            "column": 36172,
+            "count": 2,
+            "milliseconds": 0.5129999816417694
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/xterm.mjs",
+            "line": 45,
+            "column": 13912,
+            "count": 17,
+            "milliseconds": 0.04499998688697815
+          },
+          {
+            "functionName": "",
+            "url": "http://127.0.0.1:42631/xterm.mjs",
+            "line": 45,
+            "column": 13740,
+            "count": 16,
+            "milliseconds": 0.05600002408027649
+          }
+        ],
+        "exactContainmentStatus": "Incomplete correlation; use source-identified FunctionCall group count and duration difference for scheduler envelope.",
+        "durationDifferenceScope": "Source-identified render callback FunctionCall duration minus measured drawFrame/renderRows duration. Includes recorder overhead, caller bookkeeping, browser callback entry/exit, and GC; not pure scheduler time."
+      },
+      "sampleDiagnostics": {
+        "negativeDeltas": 3625,
+        "negativeDeltaMilliseconds": 246.32699999999744,
+        "minDeltaMilliseconds": -0.765,
+        "rawSamples": 128829,
+        "startTimestamp": 1506.6579999923706,
+        "endTimestamp": 9238.94912827015,
+        "normalizedWindowEstimate": 5084.2249999940395,
+        "normalizedTaskClippedEstimate": 1416.0120005011559
+      },
+      "sampleGroups": {
+        "other-named": {
+          "windowEstimate": 47.22988721728325,
+          "mainTaskClippedEstimate": 45.66100725531578,
+          "samples": 596
+        },
+        "(idle)": {
+          "windowEstimate": 3647.524073302746,
+          "mainTaskClippedEstimate": 10.171745330095291,
+          "samples": 24319
+        },
+        "(program)": {
+          "windowEstimate": 571.2340246737003,
+          "mainTaskClippedEstimate": 555.9338189065456,
+          "samples": 17256
+        },
+        "parser-and-sync-descendants": {
+          "windowEstimate": 712.6130144298077,
+          "mainTaskClippedEstimate": 700.5118280947208,
+          "samples": 6157
+        },
+        "webgl-render-other": {
+          "windowEstimate": 6.007999658584595,
+          "mainTaskClippedEstimate": 6.007999658584595,
+          "samples": 302
+        },
+        "render-model": {
+          "windowEstimate": 13.9339998960495,
+          "mainTaskClippedEstimate": 13.9339998960495,
+          "samples": 414
+        },
+        "terminal-render-debouncer-exclusive": {
+          "windowEstimate": 9.576000094413757,
+          "mainTaskClippedEstimate": 9.15164652466774,
+          "samples": 149
+        },
+        "webgl-native-api": {
+          "windowEstimate": 3.937999576330185,
+          "mainTaskClippedEstimate": 3.937999576330185,
+          "samples": 220
+        },
+        "(garbage collector)": {
+          "windowEstimate": 72.13900113105774,
+          "mainTaskClippedEstimate": 70.67295524477959,
+          "samples": 491
+        },
+        "glyph-atlas-cpu": {
+          "windowEstimate": 0.029000014066696167,
+          "mainTaskClippedEstimate": 0.029000014066696167,
+          "samples": 1
+        }
+      },
+      "sampledSubtrees": {
+        "parse": {
+          "windowEstimate": 721.1480146348476,
+          "mainTaskClippedEstimate": 708.6224747300148
+        },
+        "_innerRefresh": {
+          "windowEstimate": 24.945999085903168,
+          "mainTaskClippedEstimate": 24.945999085903168
+        },
+        "_updateModel": {
+          "windowEstimate": 13.962999910116196,
+          "mainTaskClippedEstimate": 13.962999910116196
+        },
+        "_sync": {
+          "windowEstimate": 520.3990113735199,
+          "mainTaskClippedEstimate": 516.1675837337971
+        },
+        "getRasterizedGlyph": {
+          "windowEstimate": 0.029000014066696167,
+          "mainTaskClippedEstimate": 0.029000014066696167
+        }
+      },
+      "modulePaths": {},
+      "topLeaves": [
+        {
+          "leaf": {
+            "id": 2,
+            "codeType": "other",
+            "functionName": "(program)",
+            "scriptId": 0
+          },
+          "windowEstimate": 571.2340246737003,
+          "mainTaskClippedEstimate": 555.9338189065456,
+          "samples": 17256
+        },
+        {
+          "leaf": {
+            "id": 22,
+            "codeType": "JS",
+            "functionName": "setTimeout",
+            "scriptId": 0
+          },
+          "windowEstimate": 261.63200545310974,
+          "mainTaskClippedEstimate": 259.85045450925827,
+          "samples": 1975
+        },
+        {
+          "leaf": {
+            "id": 128,
+            "codeType": "JS",
+            "functionName": "clearTimeout",
+            "scriptId": 0
+          },
+          "windowEstimate": 167.318003565073,
+          "mainTaskClippedEstimate": 166.09266206622124,
+          "samples": 1265
+        },
+        {
+          "leaf": {
+            "id": 142,
+            "codeType": "other",
+            "functionName": "(garbage collector)",
+            "scriptId": 0
+          },
+          "windowEstimate": 72.13900113105774,
+          "mainTaskClippedEstimate": 70.67295524477959,
+          "samples": 491
+        },
+        {
+          "leaf": {
+            "id": 104,
+            "codeType": "JS",
+            "columnNumber": 24958,
+            "functionName": "clone",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 60.15500104427338,
+          "mainTaskClippedEstimate": 59.82695069909096,
+          "samples": 467
+        },
+        {
+          "leaf": {
+            "id": 109,
+            "codeType": "JS",
+            "columnNumber": 57518,
+            "functionName": "",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 26.72100070118904,
+          "mainTaskClippedEstimate": 26.434890270233154,
+          "samples": 210
+        },
+        {
+          "leaf": {
+            "id": 90,
+            "codeType": "JS",
+            "columnNumber": 83998,
+            "functionName": "print",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 27.843000441789627,
+          "mainTaskClippedEstimate": 25.695624738931656,
+          "samples": 384
+        },
+        {
+          "leaf": {
+            "id": 9,
+            "codeType": "JS",
+            "functionName": "mark",
+            "scriptId": 0
+          },
+          "windowEstimate": 23.809000313282013,
+          "mainTaskClippedEstimate": 23.760887384414673,
+          "samples": 331
+        },
+        {
+          "leaf": {
+            "id": 136,
+            "codeType": "JS",
+            "columnNumber": 22037,
+            "functionName": "setCellFromCodepoint",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 19.31600049138069,
+          "mainTaskClippedEstimate": 18.067166686058044,
+          "samples": 289
+        },
+        {
+          "leaf": {
+            "id": 96,
+            "codeType": "JS",
+            "columnNumber": 1018,
+            "functionName": "fire",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 17.00700005888939,
+          "mainTaskClippedEstimate": 16.59681636095047,
+          "samples": 185
+        },
+        {
+          "leaf": {
+            "id": 78,
+            "codeType": "JS",
+            "functionName": "requestAnimationFrame",
+            "scriptId": 0
+          },
+          "windowEstimate": 14.644000262022018,
+          "mainTaskClippedEstimate": 13.467320322990417,
+          "samples": 164
+        },
+        {
+          "leaf": {
+            "id": 28,
+            "codeType": "JS",
+            "columnNumber": 66103,
+            "functionName": "parse",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 11.858000069856644,
+          "mainTaskClippedEstimate": 11.502707362174988,
+          "samples": 160
+        },
+        {
+          "leaf": {
+            "id": 11,
+            "codeType": "other",
+            "functionName": "(idle)",
+            "scriptId": 0
+          },
+          "windowEstimate": 3647.524073302746,
+          "mainTaskClippedEstimate": 10.171745330095291,
+          "samples": 24319
+        },
+        {
+          "leaf": {
+            "id": 140,
+            "codeType": "JS",
+            "columnNumber": 2163,
+            "functionName": "decode",
+            "lineNumber": 16,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 9.109000146389008,
+          "mainTaskClippedEstimate": 8.599706441164017,
+          "samples": 92
+        },
+        {
+          "leaf": {
+            "id": 61,
+            "codeType": "JS",
+            "columnNumber": 55106,
+            "functionName": "onDidScroll",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 7.1100000739097595,
+          "mainTaskClippedEstimate": 7.082000195980072,
+          "samples": 59
+        },
+        {
+          "leaf": {
+            "id": 199,
+            "codeType": "JS",
+            "columnNumber": 797,
+            "functionName": "_deliver",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 6.5940001308918,
+          "mainTaskClippedEstimate": 6.371826648712158,
+          "samples": 60
+        },
+        {
+          "leaf": {
+            "id": 206,
+            "codeType": "JS",
+            "columnNumber": 47275,
+            "functionName": "_onElementScrollSize",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 6.030000150203705,
+          "mainTaskClippedEstimate": 6.020000129938126,
+          "samples": 45
+        },
+        {
+          "leaf": {
+            "id": 92,
+            "codeType": "JS",
+            "columnNumber": 86765,
+            "functionName": "lineFeed",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 5.939000189304352,
+          "mainTaskClippedEstimate": 5.697862595319748,
+          "samples": 65
+        },
+        {
+          "leaf": {
+            "id": 93,
+            "codeType": "JS",
+            "columnNumber": 39553,
+            "functionName": "scroll",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 5.53000020980835,
+          "mainTaskClippedEstimate": 5.378890424966812,
+          "samples": 55
+        },
+        {
+          "leaf": {
+            "id": 114,
+            "codeType": "JS",
+            "columnNumber": 26606,
+            "functionName": "setTop",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 5.369000226259232,
+          "mainTaskClippedEstimate": 5.35600021481514,
+          "samples": 37
+        },
+        {
+          "leaf": {
+            "id": 41,
+            "codeType": "JS",
+            "columnNumber": 34461,
+            "functionName": "_updateModel",
+            "lineNumber": 99,
+            "scriptId": 7,
+            "url": "http://127.0.0.1:42631/addon-webgl.mjs"
+          },
+          "windowEstimate": 5.064999997615814,
+          "mainTaskClippedEstimate": 5.064999997615814,
+          "samples": 155
+        },
+        {
+          "leaf": {
+            "id": 98,
+            "codeType": "JS",
+            "columnNumber": 1174,
+            "functionName": "_sync",
+            "lineNumber": 45,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 5.150000065565109,
+          "mainTaskClippedEstimate": 4.978889912366867,
+          "samples": 53
+        },
+        {
+          "leaf": {
+            "id": 103,
+            "codeType": "JS",
+            "columnNumber": 294,
+            "functionName": "",
+            "lineNumber": 45,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 4.7010000348091125,
+          "mainTaskClippedEstimate": 4.693000018596649,
+          "samples": 34
+        },
+        {
+          "leaf": {
+            "id": 135,
+            "codeType": "JS",
+            "columnNumber": 51035,
+            "functionName": "_computeValues",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 4.620000123977661,
+          "mainTaskClippedEstimate": 4.612000107765198,
+          "samples": 35
+        },
+        {
+          "leaf": {
+            "id": 238,
+            "codeType": "JS",
+            "columnNumber": 925,
+            "functionName": "_deliverQueue",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 4.516000121831894,
+          "mainTaskClippedEstimate": 4.501000136137009,
+          "samples": 41
+        },
+        {
+          "leaf": {
+            "id": 42,
+            "codeType": "JS",
+            "columnNumber": 8526,
+            "functionName": "resolve",
+            "lineNumber": 37,
+            "scriptId": 7,
+            "url": "http://127.0.0.1:42631/addon-webgl.mjs"
+          },
+          "windowEstimate": 4.351000159978867,
+          "mainTaskClippedEstimate": 4.351000159978867,
+          "samples": 127
+        },
+        {
+          "leaf": {
+            "id": 40,
+            "codeType": "JS",
+            "columnNumber": 38,
+            "functionName": "",
+            "lineNumber": 14107,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 4.089999884366989,
+          "mainTaskClippedEstimate": 4.075999855995178,
+          "samples": 120
+        },
+        {
+          "leaf": {
+            "id": 127,
+            "codeType": "JS",
+            "columnNumber": 20569,
+            "functionName": "s",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 3.277000069618225,
+          "mainTaskClippedEstimate": 3.2730000615119934,
+          "samples": 25
+        },
+        {
+          "leaf": {
+            "id": 141,
+            "codeType": "JS",
+            "columnNumber": 63159,
+            "functionName": "_render",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.643000066280365,
+          "mainTaskClippedEstimate": 2.580996036529541,
+          "samples": 18
+        },
+        {
+          "leaf": {
+            "id": 256,
+            "codeType": "JS",
+            "columnNumber": 39553,
+            "functionName": "createScrollEvent",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.480000078678131,
+          "mainTaskClippedEstimate": 2.476000040769577,
+          "samples": 19
+        },
+        {
+          "leaf": {
+            "id": 248,
+            "codeType": "JS",
+            "columnNumber": 21187,
+            "functionName": "getFg",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.4560000896453857,
+          "mainTaskClippedEstimate": 2.3748995661735535,
+          "samples": 21
+        },
+        {
+          "leaf": {
+            "id": 106,
+            "codeType": "JS",
+            "columnNumber": 47496,
+            "functionName": "_onElementScrollPosition",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.3130000233650208,
+          "mainTaskClippedEstimate": 2.2990000247955322,
+          "samples": 17
+        },
+        {
+          "leaf": {
+            "id": 99,
+            "codeType": "JS",
+            "columnNumber": 40818,
+            "functionName": "setScrollDimensions",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.2640000581741333,
+          "mainTaskClippedEstimate": 2.1389549672603607,
+          "samples": 21
+        },
+        {
+          "leaf": {
+            "id": 365,
+            "codeType": "JS",
+            "functionName": "encode",
+            "scriptId": 0
+          },
+          "windowEstimate": 2.1209999322891235,
+          "mainTaskClippedEstimate": 2.1209999322891235,
+          "samples": 14
+        },
+        {
+          "leaf": {
+            "id": 67,
+            "codeType": "JS",
+            "functionName": "now",
+            "scriptId": 0
+          },
+          "windowEstimate": 2.1559999883174896,
+          "mainTaskClippedEstimate": 2.060892730951309,
+          "samples": 66
+        },
+        {
+          "leaf": {
+            "id": 389,
+            "codeType": "JS",
+            "columnNumber": 24646,
+            "functionName": "copyFrom",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.329999953508377,
+          "mainTaskClippedEstimate": 1.9378204941749573,
+          "samples": 53
+        },
+        {
+          "leaf": {
+            "id": 27,
+            "codeType": "JS",
+            "columnNumber": 82167,
+            "functionName": "parse",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 2.2740000784397125,
+          "mainTaskClippedEstimate": 1.8766668140888214,
+          "samples": 22
+        },
+        {
+          "leaf": {
+            "id": 139,
+            "codeType": "JS",
+            "columnNumber": 26510,
+            "functionName": "setHeight",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.7610000669956207,
+          "mainTaskClippedEstimate": 1.7590000629425049,
+          "samples": 13
+        },
+        {
+          "leaf": {
+            "id": 178,
+            "codeType": "JS",
+            "columnNumber": 50773,
+            "functionName": "setScrollPosition",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.761000007390976,
+          "mainTaskClippedEstimate": 1.7559999823570251,
+          "samples": 13
+        },
+        {
+          "leaf": {
+            "id": 284,
+            "codeType": "JS",
+            "columnNumber": 51537,
+            "functionName": "createPropertyValue",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.5649999678134918,
+          "mainTaskClippedEstimate": 1.5529999136924744,
+          "samples": 26
+        },
+        {
+          "leaf": {
+            "id": 81,
+            "codeType": "JS",
+            "columnNumber": 23,
+            "functionName": "writeAll",
+            "lineNumber": 14656,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 1.4899999797344208,
+          "mainTaskClippedEstimate": 1.4820000231266022,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 255,
+            "codeType": "JS",
+            "columnNumber": 21625,
+            "functionName": "loadCell",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.4800000488758087,
+          "mainTaskClippedEstimate": 1.4800000488758087,
+          "samples": 52
+        },
+        {
+          "leaf": {
+            "id": 224,
+            "codeType": "JS",
+            "columnNumber": 121579,
+            "functionName": "",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.4400000274181366,
+          "mainTaskClippedEstimate": 1.4350000619888306,
+          "samples": 16
+        },
+        {
+          "leaf": {
+            "id": 115,
+            "codeType": "JS",
+            "columnNumber": 29824,
+            "functionName": "Ie",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.3880000412464142,
+          "mainTaskClippedEstimate": 1.3840000331401825,
+          "samples": 12
+        },
+        {
+          "leaf": {
+            "id": 159,
+            "codeType": "JS",
+            "functionName": "bufferData",
+            "scriptId": 0
+          },
+          "windowEstimate": 1.3599997758865356,
+          "mainTaskClippedEstimate": 1.3599997758865356,
+          "samples": 92
+        },
+        {
+          "leaf": {
+            "id": 177,
+            "codeType": "JS",
+            "columnNumber": 227,
+            "functionName": "",
+            "lineNumber": 45,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.351000040769577,
+          "mainTaskClippedEstimate": 1.346000075340271,
+          "samples": 11
+        },
+        {
+          "leaf": {
+            "id": 241,
+            "codeType": "JS",
+            "columnNumber": 23414,
+            "functionName": "",
+            "lineNumber": 50,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.3380000293254852,
+          "mainTaskClippedEstimate": 1.3260000944137573,
+          "samples": 22
+        },
+        {
+          "leaf": {
+            "id": 48,
+            "codeType": "JS",
+            "columnNumber": 5288,
+            "functionName": "render",
+            "lineNumber": 76,
+            "scriptId": 7,
+            "url": "http://127.0.0.1:42631/addon-webgl.mjs"
+          },
+          "windowEstimate": 1.2819999754428864,
+          "mainTaskClippedEstimate": 1.2819999754428864,
+          "samples": 76
+        },
+        {
+          "leaf": {
+            "id": 157,
+            "codeType": "JS",
+            "columnNumber": 129986,
+            "functionName": "forEachByKey",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.2739999294281006,
+          "mainTaskClippedEstimate": 1.2739999294281006,
+          "samples": 38
+        },
+        {
+          "leaf": {
+            "id": 122,
+            "codeType": "JS",
+            "columnNumber": 5287,
+            "functionName": "",
+            "lineNumber": 39,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.2559999823570251,
+          "mainTaskClippedEstimate": 1.2499999403953552,
+          "samples": 12
+        },
+        {
+          "leaf": {
+            "id": 405,
+            "codeType": "JS",
+            "columnNumber": 1442,
+            "functionName": "enqueue",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.2490000128746033,
+          "mainTaskClippedEstimate": 1.1118596196174622,
+          "samples": 31
+        },
+        {
+          "leaf": {
+            "id": 310,
+            "codeType": "JS",
+            "columnNumber": 82119,
+            "functionName": "_getCurrentLinkId",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.054999977350235,
+          "mainTaskClippedEstimate": 1.0410000085830688,
+          "samples": 19
+        },
+        {
+          "leaf": {
+            "id": 62,
+            "codeType": "JS",
+            "functionName": "drawElementsInstanced",
+            "scriptId": 0
+          },
+          "windowEstimate": 1.031999945640564,
+          "mainTaskClippedEstimate": 1.031999945640564,
+          "samples": 57
+        },
+        {
+          "leaf": {
+            "id": 72,
+            "codeType": "JS",
+            "columnNumber": 7,
+            "functionName": "count",
+            "lineNumber": 14096,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.9690000712871552,
+          "mainTaskClippedEstimate": 0.9690000712871552,
+          "samples": 50
+        },
+        {
+          "leaf": {
+            "id": 58,
+            "codeType": "JS",
+            "columnNumber": 38356,
+            "functionName": "s",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.9420000612735748,
+          "mainTaskClippedEstimate": 0.9380000233650208,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 187,
+            "codeType": "JS",
+            "columnNumber": 18719,
+            "functionName": "push",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.9210000336170197,
+          "mainTaskClippedEstimate": 0.9190000295639038,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 171,
+            "codeType": "JS",
+            "columnNumber": 7686,
+            "functionName": "setFromCharData",
+            "lineNumber": 16,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8860000371932983,
+          "mainTaskClippedEstimate": 0.8840000033378601,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 138,
+            "codeType": "JS",
+            "columnNumber": 7962,
+            "functionName": "",
+            "lineNumber": 39,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.0440000295639038,
+          "mainTaskClippedEstimate": 0.8799921870231628,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 290,
+            "codeType": "JS",
+            "columnNumber": 50647,
+            "functionName": "setScrollSize",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8710000216960907,
+          "mainTaskClippedEstimate": 0.870000034570694,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 222,
+            "codeType": "JS",
+            "columnNumber": 7330,
+            "functionName": "fromCharData",
+            "lineNumber": 16,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8720000088214874,
+          "mainTaskClippedEstimate": 0.8690000474452972,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 68,
+            "codeType": "JS",
+            "columnNumber": 18619,
+            "functionName": "get",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.9510000646114349,
+          "mainTaskClippedEstimate": 0.8309086859226227,
+          "samples": 18
+        },
+        {
+          "leaf": {
+            "id": 131,
+            "codeType": "JS",
+            "columnNumber": 47829,
+            "functionName": "render",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8240000307559967,
+          "mainTaskClippedEstimate": 0.8230000436306,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 63,
+            "codeType": "JS",
+            "columnNumber": 38997,
+            "functionName": "withScrollDimensions",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8199999928474426,
+          "mainTaskClippedEstimate": 0.8189999759197235,
+          "samples": 9
+        },
+        {
+          "leaf": {
+            "id": 219,
+            "codeType": "JS",
+            "columnNumber": 26415,
+            "functionName": "setWidth",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8460000455379486,
+          "mainTaskClippedEstimate": 0.782978355884552,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 323,
+            "codeType": "JS",
+            "columnNumber": 6855,
+            "functionName": "get urlId",
+            "lineNumber": 16,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8940000236034393,
+          "mainTaskClippedEstimate": 0.7729004919528961,
+          "samples": 8
+        },
+        {
+          "leaf": {
+            "id": 387,
+            "codeType": "JS",
+            "columnNumber": 18907,
+            "functionName": "recycle",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.8999999463558197,
+          "mainTaskClippedEstimate": 0.7649309933185577,
+          "samples": 23
+        },
+        {
+          "leaf": {
+            "id": 250,
+            "codeType": "JS",
+            "columnNumber": 22189,
+            "functionName": "addCodepointToCell",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.7380000054836273,
+          "mainTaskClippedEstimate": 0.7360000312328339,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 174,
+            "codeType": "JS",
+            "columnNumber": 38715,
+            "functionName": "equals",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 1.0349999964237213,
+          "mainTaskClippedEstimate": 0.7257949411869049,
+          "samples": 10
+        },
+        {
+          "leaf": {
+            "id": 208,
+            "codeType": "JS",
+            "columnNumber": 54990,
+            "functionName": "_renderDomNode",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.7000000178813934,
+          "mainTaskClippedEstimate": 0.7000000178813934,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 276,
+            "codeType": "JS",
+            "columnNumber": 51416,
+            "functionName": "extractShouldJoin",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.7879999876022339,
+          "mainTaskClippedEstimate": 0.679950475692749,
+          "samples": 9
+        },
+        {
+          "leaf": {
+            "id": 242,
+            "codeType": "JS",
+            "columnNumber": 135,
+            "functionName": "refresh",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6570000052452087,
+          "mainTaskClippedEstimate": 0.656000018119812,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 227,
+            "codeType": "JS",
+            "columnNumber": 51044,
+            "functionName": "charProperties",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6230000555515289,
+          "mainTaskClippedEstimate": 0.6150000691413879,
+          "samples": 14
+        },
+        {
+          "leaf": {
+            "id": 80,
+            "codeType": "JS",
+            "columnNumber": 37,
+            "functionName": "",
+            "lineNumber": 14876,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.6129999756813049,
+          "mainTaskClippedEstimate": 0.6129999756813049,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 184,
+            "codeType": "JS",
+            "columnNumber": 47057,
+            "functionName": "_onElementSize",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6120000183582306,
+          "mainTaskClippedEstimate": 0.6120000183582306,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 268,
+            "codeType": "JS",
+            "columnNumber": 43612,
+            "functionName": "get dimensions",
+            "lineNumber": 46,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.617000013589859,
+          "mainTaskClippedEstimate": 0.609000027179718,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 88,
+            "codeType": "JS",
+            "columnNumber": 116629,
+            "functionName": "write",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6079999804496765,
+          "mainTaskClippedEstimate": 0.6079999804496765,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 209,
+            "codeType": "JS",
+            "columnNumber": 26880,
+            "functionName": "setRight",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6040000319480896,
+          "mainTaskClippedEstimate": 0.6040000319480896,
+          "samples": 4
+        },
+        {
+          "leaf": {
+            "id": 91,
+            "codeType": "JS",
+            "columnNumber": 78095,
+            "functionName": "",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6049999892711639,
+          "mainTaskClippedEstimate": 0.6029999852180481,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 362,
+            "codeType": "JS",
+            "columnNumber": 51455,
+            "functionName": "extractWidth",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.7099999785423279,
+          "mainTaskClippedEstimate": 0.5979675948619843,
+          "samples": 15
+        },
+        {
+          "leaf": {
+            "id": 107,
+            "codeType": "JS",
+            "columnNumber": 42798,
+            "functionName": "_setState",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.5389999747276306,
+          "mainTaskClippedEstimate": 0.5329999923706055,
+          "samples": 8
+        },
+        {
+          "leaf": {
+            "id": 217,
+            "codeType": "JS",
+            "functionName": "uniformMatrix4fv",
+            "scriptId": 0
+          },
+          "windowEstimate": 0.5329999625682831,
+          "mainTaskClippedEstimate": 0.5329999625682831,
+          "samples": 21
+        },
+        {
+          "leaf": {
+            "id": 269,
+            "codeType": "JS",
+            "columnNumber": 2168,
+            "functionName": "get value",
+            "lineNumber": 39,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.5139999985694885,
+          "mainTaskClippedEstimate": 0.5129999816417694,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 25,
+            "codeType": "JS",
+            "columnNumber": 121804,
+            "functionName": "",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.5720000267028809,
+          "mainTaskClippedEstimate": 0.48793214559555054,
+          "samples": 5
+        },
+        {
+          "leaf": {
+            "id": 286,
+            "codeType": "JS",
+            "columnNumber": 20452,
+            "functionName": "_getCyclicIndex",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.6060000061988831,
+          "mainTaskClippedEstimate": 0.48695656657218933,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 47,
+            "codeType": "JS",
+            "columnNumber": 20,
+            "functionName": "count",
+            "lineNumber": 22,
+            "scriptId": 4
+          },
+          "windowEstimate": 0.4859999120235443,
+          "mainTaskClippedEstimate": 0.4859999120235443,
+          "samples": 22
+        },
+        {
+          "leaf": {
+            "id": 259,
+            "codeType": "JS",
+            "columnNumber": 38263,
+            "functionName": "addRefreshCallback",
+            "lineNumber": 46,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.4869999885559082,
+          "mainTaskClippedEstimate": 0.4819999933242798,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 134,
+            "codeType": "JS",
+            "columnNumber": 51495,
+            "functionName": "_refreshComputedValues",
+            "lineNumber": 44,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.46300002932548523,
+          "mainTaskClippedEstimate": 0.46300002932548523,
+          "samples": 3
+        },
+        {
+          "leaf": {
+            "id": 218,
+            "codeType": "JS",
+            "columnNumber": 42045,
+            "functionName": "e",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.46199992299079895,
+          "mainTaskClippedEstimate": 0.46199992299079895,
+          "samples": 7
+        },
+        {
+          "leaf": {
+            "id": 23,
+            "codeType": "JS",
+            "columnNumber": 116949,
+            "functionName": "",
+            "lineNumber": 48,
+            "scriptId": 6,
+            "url": "http://127.0.0.1:42631/xterm.mjs"
+          },
+          "windowEstimate": 0.4630000591278076,
+          "mainTaskClippedEstimate": 0.4580000638961792,
+          "samples": 6
+        },
+        {
+          "leaf": {
+            "id": 84,
+            "codeType": "JS",
+            "columnNumber": 33,
+            "functionName": "",
+            "lineNumber": 14624,
+            "scriptId": 5,
+            "url": "http://127.0.0.1:42631/browser.js"
+          },
+          "windowEstimate": 0.453000009059906,
+          "mainTaskClippedEstimate": 0.453000009059906,
+          "samples": 3
+        }
+      ],
+      "measuredMainIntervalPartition": {
+        "parse": 956.4350002706051,
+        "_updateModel": 66.84000125527382,
+        "bufferData": 27.600000381469727,
+        "drawElementsInstanced": 17.465000092983246,
+        "everythingElse": 347.671998500824
+      },
+      "sourceReferences": [
+        "/work/worktrees/platform/plan-283-zig-frame/ghostty-webgpu/bench/comparison-tracing.ts:298-335",
+        "/work/reports/ghostty-benchmarks/plan-283/renderer-2026-10-02/bundle/addon-webgl.mjs",
+        "/work/reports/ghostty-benchmarks/plan-283/renderer-2026-10-02/bundle/xterm.mjs"
+      ]
+    }
+  ],
+  "intervalDefinition": "Instrumented spans use performance.now. Builder and parser are inclusive synchronous call intervals, including native work and caller-side wrapper work where noted. Do not add nested intervals, rAF callback envelopes, or sample estimates to the measured partition.",
+  "limitations": [
+    "Not controlled timing: traces enable broad GPU/V8 categories plus tracing and API-count wrappers. Do not compare perturbed totals or project shares onto independent renderer CPU figures.",
+    "No separate bridge_build_frame interval exists. Wasm export index and ancestry permit only sampled native-descendant attribution.",
+    "Callback readRows is measured, emitFrame and onFrame/onRowsPainted downstream UI are not individually instrumented.",
+    "Recorded FunctionCall groups identify each render scheduler callback. FireAnimationFrame correlations in raf.ownedCount are incomplete under exact containment and must not be reported as total terminal callback count; callbackGroups contains the authoritative 5117 group count.",
+    "Sample estimates reconstruct and sort negative-delta timestamps then weight until the next sample. Program, idle and GC leaves have no useful library ancestry; native-call sampling is not uniformly spaced. Main-task intersection is an attribution estimate, not CPU accounting.",
+    "WebGPU command submit span excludes acquisition of getCurrentTexture/createView and buffer uploads; xterm only wraps drawElementsInstanced and flush at the command stage. Neither measures GPU-device execution."
+  ],
+  "sourceSessionId": "272efd58-82d5-45aa-b937-90e1ada55828",
+  "analysisImplementation": {
+    "sampledProfileSha256": "8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d",
+    "sampleScope": "Timestamp-sorted forward leaf weights intersected with merged renderer-main RunTask intervals; unsampled edges remain explicit. Sample weights are estimates and overlap parent wrapper intervals."
+  }
+}

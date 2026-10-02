@@ -36,8 +36,20 @@ async function run(command: string[], cwd: string): Promise<void> {
 async function validateWasm(path: string): Promise<void> {
   const bytes = await readFile(path)
   const magic = bytes.subarray(0, 4)
-  if (magic.equals(Uint8Array.from([0, 97, 115, 109]))) return
-  throw new BridgeBuildError(`Generated file is not wasm: ${path}`)
+  if (!magic.equals(Uint8Array.from([0, 97, 115, 109]))) {
+    throw new BridgeBuildError(`Generated file is not wasm: ${path}`)
+  }
+  const module = await WebAssembly.compile(bytes)
+  const exports = new Set(WebAssembly.Module.exports(module).map((entry) => entry.name))
+  for (const name of [
+    'bridge_read_rows',
+    'bridge_build_frame',
+    'bridge_register_glyph',
+    'bridge_clear_glyphs',
+  ]) {
+    if (exports.has(name)) continue
+    throw new BridgeBuildError(`Generated bridge is missing export: ${name}`)
+  }
 }
 
 async function main(): Promise<void> {

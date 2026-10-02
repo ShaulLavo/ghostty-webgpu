@@ -17,6 +17,10 @@ import { TerminalOption } from '../src/core/abi.js'
 import { TerminalSession } from '../src/term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../src/dom/terminal.js'
 import { WebGpuTerminalRenderer } from '../src/render/renderer.js'
+import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
+import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
+import { DomTerminalRenderer } from '../src/render/dom/renderer.js'
+import type { RowRendererMetrics } from '../src/render/row-renderer.js'
 import { ComparisonTracing } from './comparison-tracing.js'
 import { refreshSampler } from './comparison-refresh.js'
 import {
@@ -37,6 +41,10 @@ interface Driver {
   focus(): void
   onData(listener: (data: string | Uint8Array) => void): void
   dispose(): void
+  frameMetrics?():
+    | import('../src/render/renderer.js').RendererMetrics
+    | RowRendererMetrics
+    | undefined
 }
 
 const tracing = new ComparisonTracing()
@@ -117,10 +125,29 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     background: { r: 0, g: 0, b: 0 },
     foreground: { r: 255, g: 255, b: 255 },
   })
+  let mountedRenderer:
+    | WebGpuTerminalRenderer
+    | WebGlTerminalRenderer
+    | CanvasTerminalRenderer
+    | DomTerminalRenderer
+    | undefined
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
     accessibility: false,
     rendererFactory: async (options) => {
+      if (current.variant !== 'ghostty-webgpu') {
+        const factories = {
+          'ghostty-webgl': WebGlTerminalRenderer,
+          'ghostty-canvas': CanvasTerminalRenderer,
+          'ghostty-dom': DomTerminalRenderer,
+        }
+        const factory = factories[current.variant as keyof typeof factories]
+        if (!factory) throw new Error('Explicit native renderer required')
+        const renderer = await factory.create(options)
+        tracing.nativeRenderer(drivers.length, renderer)
+        mountedRenderer = renderer
+        return renderer
+      }
       let adapter: GPUAdapter | null | undefined
       for (let attempt = 0; attempt < settings.adapterAttempts; attempt++) {
         adapter = await navigator.gpu?.requestAdapter()
@@ -138,9 +165,11 @@ async function createNative(host: HTMLElement): Promise<Driver> {
       const device = await adapter.requestDevice()
       const renderer = await WebGpuTerminalRenderer.create({
         ...options,
+        zigFrame: new URLSearchParams(location.search).has('zig'),
         deviceFactory: async () => device,
       })
       tracing.renderer(drivers.length, renderer)
+      mountedRenderer = renderer
       return renderer
     },
   })
@@ -154,6 +183,7 @@ async function createNative(host: HTMLElement): Promise<Driver> {
       terminal.write(data)
     },
     text: () => terminal.visibleLines(),
+    frameMetrics: () => (mountedRenderer ? { ...mountedRenderer.metrics } : undefined),
     history: () => terminal.lineCount() - settings.rows,
     focus: () => terminal.focus(),
     onData: (listener) => {
@@ -176,6 +206,8 @@ async function createLegacy(host: HTMLElement): Promise<Driver> {
     theme: { foreground: '#ffffff', background: '#000000' },
   })
   terminal.open(host)
+  tracing.legacy(drivers.length, terminal)
+  tracing.wrap(terminal, 'write', drivers.length, 'js')
   return {
     write: synchronousWrite((data) => terminal.write(data)),
     text: () =>
@@ -211,8 +243,10 @@ function createXterm(host: HTMLElement): Driver {
     const addon = new WebglAddon()
     terminal.loadAddon(addon)
     tracing.xterm(drivers.length, terminal, addon)
-    tracing.wrap(terminal, 'write', drivers.length, 'js')
+  } else {
+    tracing.xtermDom(drivers.length, terminal)
   }
+  tracing.wrap(terminal, 'write', drivers.length, 'js')
   return {
     write: (data) => new Promise((resolve) => terminal.write(data, resolve)),
     text: () =>
@@ -245,7 +279,8 @@ async function prepare(testCase: ComparisonCase): Promise<void> {
     const host = document.createElement('section')
     mount.append(host)
     let driver: Driver
-    if (current.variant === 'ghostty-webgpu') driver = await createNative(host)
+    if (current.variant !== 'ghostty-web' && current.variant.startsWith('ghostty-'))
+      driver = await createNative(host)
     else if (current.variant === 'ghostty-web') driver = await createLegacy(host)
     else driver = createXterm(host)
     drivers.push(driver)
@@ -636,6 +671,7 @@ window.__compare = {
       height: canvas.height,
     })),
     texts: drivers.map((driver) => driver.text()),
+    frameMetrics: drivers.map((driver) => driver.frameMetrics?.()),
   }),
   fixtureNames,
   cancelRefresh: refresh.cancel,

@@ -740,6 +740,17 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     dirtyOnly: number,
     snapshot: number,
   ): number
+  bridge_build_frame(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    frame: number,
+  ): number
+  bridge_register_glyph(index: number, key: number, entry: number): void
+  bridge_clear_glyphs(index: number): void
   bridge_bell: WebAssembly.ExportValue
   bridge_clipboard_write: WebAssembly.ExportValue
   bridge_color_scheme: WebAssembly.ExportValue

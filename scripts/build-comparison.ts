@@ -57,6 +57,7 @@ for (const name of [
   'comparison-attribution.mjs',
   'comparison-options.mjs',
   'comparison-latency.mjs',
+  'comparison-render.mjs',
   'comparison-gpu.mjs',
 ]) {
   await copyFile(join(root, 'scripts', name), join(output, name))

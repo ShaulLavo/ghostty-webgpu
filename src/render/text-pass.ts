@@ -103,6 +103,19 @@ export class WebGpuTextPass {
     return this.metrics.uploadOperations - operationsBefore
   }
 
+  uploadFrame(
+    data: { cellData: Float32Array; glyphData: Float32Array },
+    updates: readonly RowInstanceUpdate[],
+  ): number {
+    const operationsBefore = this.metrics.uploadOperations
+    for (const update of updates) {
+      if (update.cell.byteLength > 0) this.writeRange(this.cellBuffer, data.cellData, update.cell)
+      if (update.glyph.byteLength > 0)
+        this.writeRange(this.glyphBuffer, data.glyphData, update.glyph)
+    }
+    return this.metrics.uploadOperations - operationsBefore
+  }
+
   submit(view: GPUTextureView, copy?: TextPassCopy): void {
     if (!this.glyphBindGroup) throw new Error('Atlas textures must be synchronized before drawing')
     const encoder = this.device.createCommandEncoder()
@@ -190,11 +203,12 @@ export class WebGpuTextPass {
     data: Float32Array,
     range: { byteLength: number; byteOffset: number },
   ): void {
+    if (range.byteLength === 0) return
     this.device.queue.writeBuffer(
       buffer,
       range.byteOffset,
       data.buffer,
-      range.byteOffset,
+      data.byteOffset + range.byteOffset,
       range.byteLength,
     )
     this.metrics.uploadedBytes += range.byteLength
