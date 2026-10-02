@@ -275,7 +275,11 @@ h1 {
   max-width: none;
 }
 
-.caption + .stat {
+.caption:empty {
+  display: none;
+}
+
+.caption:not(:empty) + .stat {
   margin-top: 4px;
 }
 

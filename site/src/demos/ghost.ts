@@ -10,8 +10,7 @@ const numberFormat = new Intl.NumberFormat('en-US')
 export class GhostDemo extends AnimatedDemo {
   readonly id = 'ghost'
   readonly label = 'Ghost'
-  readonly caption =
-    'The ghost from ghostty.org, all 235 frames of it, played at their frame rate. The figure on the right is how many cells actually changed per frame.'
+  readonly caption = ''
   readonly fit = GHOST_GRID
 
   private readonly buffer = new CellBuffer()
