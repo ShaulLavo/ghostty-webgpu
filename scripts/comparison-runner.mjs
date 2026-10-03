@@ -19,6 +19,7 @@ import {
   gpuCommandTimeout,
   selection,
   hardwareLaunch,
+  browserExecutable,
   accessibilityMode,
   selectedVariants,
   selectedPhases,
@@ -27,9 +28,10 @@ import {
   outputFixture,
   selectedTracePhases,
 } from './comparison-options.mjs'
-import { presentationLatency } from './comparison-latency.mjs'
+import { presentationResult } from './comparison-latency.mjs'
 import { comparisonLatencyEndpoint } from './comparison-compact.mjs'
 import { createGpuGate } from './comparison-gpu.mjs'
+import { createMacHostGate, macCpuAccounting, macHostSettings } from './comparison-mac.mjs'
 import { ink } from './comparison-pixels.mjs'
 import {
   assertDisplay,
@@ -59,6 +61,7 @@ assert(
 assert(!(smoke && tracing), 'Trace measurements require hardware Chromium')
 const launch = hardwareLaunch(platform(), smoke, smoke && args.includes('--smoke-headed'))
 const headless = launch.headless
+const executablePath = browserExecutable(args)
 const value = (flag, fallback) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : fallback)
 const output = resolve(value('--output', join(root, smoke ? 'smoke' : 'results')))
 const repetitions = measurementRepetitions(args, manifest.settings.repetitions)
@@ -97,15 +100,19 @@ const variantIds = selectedVariants(
 )
 const s = manifest.settings
 const gpuCommandTimeoutMilliseconds = gpuCommandTimeout(s, tracing)
-const gpuSettings = { ...s, gpuCommandTimeoutMilliseconds }
+let gpuSettings = { ...s, gpuCommandTimeoutMilliseconds }
+if (platform() === 'darwin') gpuSettings = macHostSettings(gpuSettings)
 const ownedComputePids = []
-const gpuGate = createGpuGate(gpuSettings, { allowedComputePids: ownedComputePids })
+const gpuGate =
+  platform() === 'darwin'
+    ? createMacHostGate(gpuSettings)
+    : createGpuGate(gpuSettings, { allowedComputePids: ownedComputePids })
 if (!smoke && platform() === 'darwin') {
   const power = execFileSync('/usr/bin/pmset', ['-g', 'batt'], { encoding: 'utf8' })
   assert(power.includes("'AC Power'"), 'waiting for AC')
   assert(
     args.includes('--display-awake'),
-    'Mac measurements require caffeinate -d -u -t 1800 and --display-awake',
+    'Mac measurements require caffeinate -d -u and --display-awake',
   )
 }
 const latencySamples = positiveInteger(
@@ -115,10 +122,21 @@ const latencySamples = positiveInteger(
 )
 const outputFrames = positiveInteger(args, '--output-frames', s.outputFrames)
 const selectedOutputFixture = outputFixture(args, manifest.fixtures)
-const tickSeconds =
-  platform() === 'linux'
-    ? 1 / Number(execFileSync('getconf', ['CLK_TCK'], { encoding: 'utf8' }).trim())
-    : null
+let tickSeconds = null
+let cpuTickSource = null
+if (platform() === 'linux')
+  tickSeconds = 1 / Number(execFileSync('getconf', ['CLK_TCK'], { encoding: 'utf8' }).trim())
+if (platform() === 'darwin') {
+  const accounting = macCpuAccounting(
+    execFileSync('/usr/sbin/sysctl', ['kern.clockrate'], {
+      encoding: 'utf8',
+      timeout: gpuCommandTimeoutMilliseconds,
+      killSignal: 'SIGKILL',
+    }),
+  )
+  tickSeconds = accounting.tickSeconds
+  cpuTickSource = accounting.source
+}
 const cpuOptions = { tickSeconds }
 const traceFrames = positiveInteger(args, '--trace-frames', 180)
 const tracePhases = selectedTracePhases(args, manifest.fixtures)
@@ -188,6 +206,16 @@ if (smoke && platform() === 'linux') {
   const driver = join(dirname(chromium.executablePath()), 'vk_swiftshader_icd.json')
   launchEnv = { ...process.env, VK_ICD_FILENAMES: driver, VK_DRIVER_FILES: driver }
 }
+let browserChannel = 'chromium'
+if (platform() === 'linux' && headless) browserChannel = 'chromium-headless-shell'
+if (executablePath) browserChannel = 'explicit-executable'
+const browserLaunchOptions = {
+  channel: browserChannel === 'chromium' ? 'chromium' : undefined,
+  executablePath,
+  headless,
+  args: browserArgs,
+  env: launchEnv,
+}
 let browser
 let browserSession
 const artifact = {
@@ -202,6 +230,7 @@ const artifact = {
   outputFrames,
   outputFixture: selectedOutputFixture,
   cpuTickSeconds: tickSeconds,
+  cpuTickSource,
   counts,
   variants: variantIds,
   phases,
@@ -553,9 +582,10 @@ async function presentedLatency(page, session, browserSession, run, label, optio
       traced: true,
     }),
   )
-  assert(!phase.error, phase.error)
-  const trace = JSON.parse(gunzipSync(await readFile(join(output, phase.trace))).toString())
-  return { ...presentationLatency(phase, trace.traceEvents), trace: phase.trace }
+  const trace = phase.error
+    ? undefined
+    : JSON.parse(gunzipSync(await readFile(join(output, phase.trace))).toString())
+  return presentationResult(run, phase, trace?.traceEvents)
 }
 
 async function measureBody(testCase, repetition, browserSession, run, contexts) {
@@ -568,7 +598,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
     await parserOnly(testCase, run, contexts)
   run.phase = 'rendered/prepare'
   const context = await browser.newContext(
-    tracing && platform() === 'darwin'
+    platform() === 'darwin' && !headless
       ? { viewport: null }
       : { viewport: s.viewport, deviceScaleFactor: s.dpr },
   )
@@ -586,7 +616,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
     await page.waitForFunction(() => Boolean(window.__compare))
     await page.bringToFront()
     const session = await context.newCDPSession(page)
-    if (tracing && platform() === 'darwin')
+    if (platform() === 'darwin' && !headless)
       run.window = await fitWindow(page, browserSession, session)
     if (!smoke) {
       run.phase = 'idle-display/qualification'
@@ -608,7 +638,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
     }
     if (tracing) run.historyLengths = await page.evaluate(() => window.__compare.history())
     run.correctness = await page.evaluate(() => window.__compare.correctness())
-    if (tracing) {
+    if (tracing || (platform() === 'darwin' && !headless)) {
       run.grid = await fitGrid(page)
       assert.deepEqual(run.grid.backingBefore, run.grid.backingAfter)
       assert(
@@ -648,12 +678,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
       assert.deepEqual(errors, [])
       if (testCase.variant === 'ghostty-web') {
         const diagnosticOptions = {
-          launchOptions: {
-            channel: platform() === 'linux' && headless ? undefined : 'chromium',
-            headless,
-            args: browserArgs,
-            env: launchEnv,
-          },
+          launchOptions: browserLaunchOptions,
           contextOptions: { viewport: s.viewport, deviceScaleFactor: s.dpr },
           origin,
           testCase,
@@ -673,9 +698,19 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
       }
       if (args.includes('--smoke-instrumentation')) {
         run.phase = 'smoke/instrumentation'
+        const before = await processCpu(browserSession)
         await page.evaluate(() => window.__compare.traceBegin())
-        await page.evaluate(() => window.__compare.burst('ascii', 2))
+        await page.evaluate((name) => window.__compare.burst(name, 16), selectedOutputFixture)
         run.instrumentationCheck = await page.evaluate(() => window.__compare.traceEnd())
+        run.processCpuCheck = { before, after: await processCpu(browserSession) }
+        run.finalInfo = await page.evaluate(() => window.__compare.info())
+        run.webglRenderers = await page.evaluate(() =>
+          Array.from(document.querySelectorAll('canvas')).flatMap((canvas) => {
+            const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl')
+            const debug = gl?.getExtension('WEBGL_debug_renderer_info')
+            return debug ? [gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)] : []
+          }),
+        )
       }
       run.status = 'correctness-only'
       return run
@@ -826,19 +861,15 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
 }
 
 try {
-  browser = await chromium.launch({
-    channel: platform() === 'linux' && headless ? undefined : 'chromium',
-    headless,
-    args: browserArgs,
-    env: launchEnv,
-  })
+  browser = await chromium.launch(browserLaunchOptions)
   browserSession = await browser.newBrowserCDPSession()
   const gpu = await browserSession.send('SystemInfo.getInfo')
   artifact.hardware = !smoke && !/unknown|swiftshader|llvmpipe|software/i.test(renderer(gpu))
   assert(smoke || artifact.hardware, 'Hardware GPU required for measurements')
   artifact.environment = {
     browser: browser.version(),
-    browserChannel: platform() === 'linux' && headless ? 'chromium-headless-shell' : 'chromium',
+    browserChannel,
+    executablePath,
     latencyEndpoint: comparisonLatencyEndpoint({ tracing, headless, platform: platform() }),
     os: `${platform()} ${release()} ${arch()}`,
     cpu: cpus()[0]?.model,
@@ -846,7 +877,7 @@ try {
     gpu,
     headed: !headless,
     headless,
-    displayAwake: args.includes('--display-awake') ? 'caffeinate -d -u -t 1800' : null,
+    displayAwake: args.includes('--display-awake') ? 'caller-managed caffeinate' : null,
     arguments: args,
     launchArguments: browserArgs,
     power:

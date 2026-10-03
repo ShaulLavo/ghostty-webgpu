@@ -52,6 +52,14 @@ export function hardwareLaunch(host, smoke, smokeHeaded = false) {
   return { headless, arguments: arguments_ }
 }
 
+export function browserExecutable(args) {
+  const index = args.indexOf('--browser-executable')
+  if (index < 0) return undefined
+  const path = args[index + 1]
+  assert(path && !path.startsWith('--'), '--browser-executable needs a path')
+  return path
+}
+
 // The primary is selected automatically; secondary comparisons require explicit selection.
 export const counterparts = {
   'ghostty-webgpu': ['xterm-webgl'],

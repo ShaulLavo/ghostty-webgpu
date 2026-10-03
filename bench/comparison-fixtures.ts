@@ -38,6 +38,7 @@ export const settings = {
   presentationDrainMilliseconds: 100,
   presentationValidationSamples: 24,
   presentationValidationDelayFrames: 1,
+  macIdleLoadAverage: 4,
   gpuIdleUtilizationPercent: 5,
   gpuWindowUtilizationPercent: 80,
   gpuComputeMemoryMiB: 1024,

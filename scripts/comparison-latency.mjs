@@ -4,6 +4,16 @@ import { renderedFrame } from './comparison-render.mjs'
 
 export const latencyEndpoint = 'AnimationFrame::Presentation (terminal rendered frame identity)'
 
+export function presentationResult(run, phase, events) {
+  try {
+    assert(!phase.error, phase.error)
+    return { ...presentationLatency(phase, events), trace: phase.trace }
+  } catch (error) {
+    run.latencyFailure = phase
+    throw error
+  }
+}
+
 export function presentationLatency(phase, events) {
   const { records, sample } = phase
   const clock = mainThread(events, records)

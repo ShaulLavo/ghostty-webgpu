@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { presentationLatency, latencyEndpoint } from './comparison-latency.mjs'
+import { presentationLatency, presentationResult, latencyEndpoint } from './comparison-latency.mjs'
 
 const recorded = JSON.parse(
   await readFile(new URL('./fixtures/comparison-presentation.json', import.meta.url)),
@@ -12,6 +12,31 @@ const linuxRecorded = JSON.parse(
     new URL('./fixtures/comparison-presentation-linux-headless-shell.json', import.meta.url),
   ),
 )
+
+test('operation and correlation failures retain their raw presentation phase and stay rejected', () => {
+  for (const failure of ['operation', 'correlation']) {
+    const phase = structuredClone(recorded.phase)
+    phase.trace = 'retained.trace.json.gz'
+    if (failure === 'operation') phase.error = 'Presented green glyph timed out'
+    if (failure === 'correlation') phase.records.spans = []
+    const run = {}
+    assert.throws(() => presentationResult(run, phase, recorded.events))
+    assert.throws(() => presentationResult(run, phase, undefined))
+    assert.equal(run.latencyFailure, phase)
+    assert.equal(run.latency, undefined)
+    assert.equal(run.latencyFailure.trace, phase.trace)
+  }
+})
+
+test('successful presentation qualification returns the measured endpoint without failure evidence', () => {
+  const phase = { ...recorded.phase, trace: 'success.trace.json.gz' }
+  const run = {}
+  assert.deepEqual(presentationResult(run, phase, recorded.events), {
+    ...presentationLatency(phase, recorded.events),
+    trace: phase.trace,
+  })
+  assert.equal(run.latencyFailure, undefined)
+})
 
 test('recorded render identity selects presentation feedback, independently of PNG capture time', () => {
   const result = presentationLatency(recorded.phase, recorded.events)

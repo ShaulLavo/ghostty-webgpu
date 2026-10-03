@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { gunzipSync } from 'node:zlib'
 import { join, dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { pairedRatios, quantile } from './comparison-report.mjs'
+import { pairedRatios, qualificationNotes, quantile } from './comparison-report.mjs'
 
 export function comparisonLatencyEndpoint({ tracing, headless, platform }) {
   if (tracing) return 'keydown/write to first screencast PNG containing the intended colored glyph'
@@ -32,6 +32,8 @@ function cpu(value) {
 function gpu(value) {
   if (!value) return undefined
   const readings = value.samples ?? []
+  if (value.foreignActivityMetric === 'host-load-average-and-t3-process-presence')
+    return { ...value, sampleCount: readings.length }
   const range = readings.length
     ? [
         Math.min(...readings.map((sample) => sample.utilizationPercent)),
@@ -39,6 +41,9 @@ function gpu(value) {
       ]
     : null
   return {
+    kind: value.kind,
+    foreignActivityMetric: value.foreignActivityMetric,
+    limitation: value.limitation,
     status: value.status,
     qualified: value.qualified,
     skipReason: value.skipReason,
@@ -119,6 +124,7 @@ export async function compactEvidence(artifact, directory) {
     outputFrames: artifact.outputFrames,
     outputFixture: artifact.outputFixture,
     cpuTickSeconds: artifact.cpuTickSeconds,
+    cpuTickSource: artifact.cpuTickSource,
     gpuCommandTimeoutMilliseconds: artifact.gpuCommandTimeoutMilliseconds,
     hardware: artifact.hardware,
     manifest: {
@@ -152,7 +158,7 @@ export async function compactEvidence(artifact, directory) {
     limitations: [
       'Compositor acknowledgement is on-demand; physical-vsync and optical display latency are unmeasured.',
       'GPU-process CPU is CPU consumption, not GPU hardware execution time.',
-      'NVIDIA total utilization includes benchmark load; foreign compute residency is a conservative activity proxy, and sampling can miss short bursts.',
+      ...qualificationNotes(artifact),
       'CPU verdicts require at least the configured minimum ticks per side and a difference exceeding one tick; idle and zero/zero can remain unresolved.',
       'Tracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrapper call counts differ by renderer.',
     ],
@@ -169,6 +175,7 @@ export async function compactEvidence(artifact, directory) {
       status: run.status,
       error: run.error,
       pageErrors: run.pageErrors,
+      latencyFailure: run.latencyFailure,
       gpuIdle: run.gpuIdle,
       adapter: run.info?.adapter,
       refreshPeriod: run.refreshPeriod,
