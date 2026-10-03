@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "commit": "45f22aa0b69a5eb111d64763cf537913e13b6843",
+    "runtimeSha256": "1a740a3b1258d988e5f0cb5d7186c54b8e45458c1d3bdea2a0366a0a58dce8c0",
+    "bundleSha256": "7b19f93d7aa9fdec42333faddacda0c0ce2b40cdeeaf8c4f04ee8b095d278360"
+  },
+  "treatment": {
+    "commit": "3ea4a9d64b2e17d08928c4242649bc73cc3156d8",
+    "runtimeSha256": "a22a3075d995e67dff087c7495e3ba0224346d5689b06899e129ad1b912faabb",
+    "bundleSha256": "ef108f612ca761dd16b02b914b0ce7e06bfb75782ca7c710b72ba7a9dbc7da56"
+  },
+  "benchmarkSha256": "319bf475fbccd67e759b1651a54f75f41e831fd1c426afe39cb59ec0a105d908",
+  "runtimeChangedFiles": [
+    "src/render/config.ts",
+    "src/render/shared-clock.ts",
+    "src/render/tests/scheduler.browser.test.ts",
+    "src/render/tests/scheduler.test.ts"
+  ],
+  "assetsIdentical": true,
+  "fixturesIdentical": true,
+  "versionsIdentical": true
+}

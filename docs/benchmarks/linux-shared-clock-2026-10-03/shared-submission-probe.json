@@ -1,0 +1,579 @@
+{
+  "synthetic": true,
+  "productionInference": false,
+  "ordinaryFramesPerCase": 1200,
+  "repetitions": 4,
+  "pairOrders": [
+    {
+      "pair": "AB",
+      "aBeforeB": 2
+    },
+    {
+      "pair": "BC",
+      "aBeforeB": 2
+    },
+    {
+      "pair": "AC",
+      "aBeforeB": 2
+    }
+  ],
+  "modes": [
+    {
+      "mode": "A",
+      "devices": 17,
+      "submitsPerPageFrame": 17,
+      "gpuPercentOfOneCore": {
+        "median": 65.18125548511652,
+        "min": 64.49271921458134,
+        "max": 65.58104487470814,
+        "values": [64.49271921458134, 65.58104487470814, 65.15647621480066, 65.20603475543238]
+      },
+      "rendererPercentOfOneCore": {
+        "median": 8.405613075843572,
+        "min": 8.105368900513716,
+        "max": 8.70748276856887,
+        "values": [8.105368900513716, 8.504025651182602, 8.307200500504543, 8.70748276856887]
+      },
+      "gpuMillisecondsPerPageFrame": {
+        "median": 10.854166666666664,
+        "min": 10.741666666666667,
+        "max": 10.924999999999997,
+        "values": [10.741666666666667, 10.924999999999997, 10.849999999999996, 10.858333333333333]
+      },
+      "gpuCpuTicks": {
+        "median": 1302.4999999999998,
+        "min": 1289,
+        "max": 1310.9999999999995,
+        "values": [1289, 1310.9999999999995, 1301.9999999999995, 1303]
+      },
+      "ordinaryCpuDenominatorMilliseconds": {
+        "median": 19984.782626,
+        "min": 19982.66443550001,
+        "max": 19990.53236350001,
+        "values": [19986.752236499997, 19990.53236350001, 19982.66443550001, 19982.813015500004]
+      },
+      "cdpAcquisitionUncertaintyMilliseconds": {
+        "median": 0.5006990000001679,
+        "min": 0.46391250000124273,
+        "max": 0.6785415000013018,
+        "values": [0.6785415000013018, 0.49951949999376666, 0.5018785000065691, 0.46391250000124273]
+      },
+      "flushInclusiveMillisecondsPerObservedPageFrame": {
+        "median": 9.249695833333334,
+        "min": 9.173204166666666,
+        "max": 9.324220833333333,
+        "values": [9.1946375, 9.324220833333333, 9.173204166666666, 9.304754166666667]
+      },
+      "flushSpanCount": {
+        "median": 4574,
+        "min": 4571,
+        "max": 4575,
+        "values": [4571, 4574, 4574, 4575]
+      },
+      "traceFrameCount": [240, 240, 240, 240]
+    },
+    {
+      "mode": "B",
+      "devices": 1,
+      "submitsPerPageFrame": 17,
+      "gpuPercentOfOneCore": {
+        "median": 63.452732265258135,
+        "min": 61.290754619214816,
+        "max": 64.70581865887766,
+        "values": [63.246898031849454, 64.70581865887766, 61.290754619214816, 63.65856649866682]
+      },
+      "rendererPercentOfOneCore": {
+        "median": 7.606310134608783,
+        "min": 7.354890554305778,
+        "max": 8.557382050013985,
+        "values": [7.705713842487988, 8.557382050013985, 7.354890554305778, 7.506906426729579]
+      },
+      "gpuMillisecondsPerPageFrame": {
+        "median": 10.566666666666666,
+        "min": 10.208333333333334,
+        "max": 10.774999999999999,
+        "values": [10.533333333333333, 10.774999999999999, 10.208333333333334, 10.599999999999998]
+      },
+      "gpuCpuTicks": {
+        "median": 1268,
+        "min": 1225,
+        "max": 1292.9999999999998,
+        "values": [1264, 1292.9999999999998, 1225, 1271.9999999999998]
+      },
+      "ordinaryCpuDenominatorMilliseconds": {
+        "median": 19983.958399249997,
+        "min": 19981.599806000013,
+        "max": 19986.701218000002,
+        "values": [19985.1698555, 19982.746943, 19986.701218000002, 19981.599806000013]
+      },
+      "cdpAcquisitionUncertaintyMilliseconds": {
+        "median": 0.5634139999983745,
+        "min": 0.45040049999806797,
+        "max": 0.6246519999986049,
+        "values": [0.45040049999806797, 0.6246519999986049, 0.6092380000009143, 0.5175899999958347]
+      },
+      "flushInclusiveMillisecondsPerObservedPageFrame": {
+        "median": 8.743289583333333,
+        "min": 8.5602875,
+        "max": 8.9927375,
+        "values": [8.87595, 8.610629166666666, 8.9927375, 8.5602875]
+      },
+      "flushSpanCount": {
+        "median": 4546.5,
+        "min": 4410,
+        "max": 4572,
+        "values": [4521, 4572, 4410, 4572]
+      },
+      "traceFrameCount": [240, 240, 240, 240]
+    },
+    {
+      "mode": "C",
+      "devices": 1,
+      "submitsPerPageFrame": 1,
+      "gpuPercentOfOneCore": {
+        "median": 57.43061743525341,
+        "min": 57.26971831192834,
+        "max": 57.83806455477517,
+        "values": [57.291225158605265, 57.83806455477517, 57.26971831192834, 57.570009711901555]
+      },
+      "rendererPercentOfOneCore": {
+        "median": 5.653026037495043,
+        "min": 5.351860155667652,
+        "max": 5.853852554419287,
+        "values": [5.754140518113192, 5.853852554419287, 5.551911556876894, 5.351860155667652]
+      },
+      "gpuMillisecondsPerPageFrame": {
+        "median": 9.566666666666666,
+        "min": 9.541666666666666,
+        "max": 9.633333333333331,
+        "values": [9.541666666666666, 9.633333333333331, 9.541666666666668, 9.591666666666665]
+      },
+      "gpuCpuTicks": {
+        "median": 1148,
+        "min": 1145,
+        "max": 1155.9999999999998,
+        "values": [1145, 1155.9999999999998, 1145, 1150.9999999999998]
+      },
+      "ordinaryCpuDenominatorMilliseconds": {
+        "median": 19989.943053000003,
+        "min": 19985.608561,
+        "max": 19993.1138785,
+        "values": [19985.608561, 19986.837541999997, 19993.1138785, 19993.048564000004]
+      },
+      "cdpAcquisitionUncertaintyMilliseconds": {
+        "median": 0.49745325000003504,
+        "min": 0.4398129999972298,
+        "max": 0.6629390000016429,
+        "values": [0.4398129999972298, 0.6629390000016429, 0.5199814999978116, 0.47492500000225846]
+      },
+      "flushInclusiveMillisecondsPerObservedPageFrame": {
+        "median": 7.7071375,
+        "min": 7.610566666666667,
+        "max": 8.411366666666668,
+        "values": [7.610566666666667, 7.7764625, 8.411366666666668, 7.6378125]
+      },
+      "flushSpanCount": {
+        "median": 848.5,
+        "min": 847,
+        "max": 849,
+        "values": [849, 849, 848, 847]
+      },
+      "traceFrameCount": [240, 240, 240, 240]
+    }
+  ],
+  "comparisons": [
+    {
+      "from": "A",
+      "to": "B",
+      "gpuCpuPercentOfOneCore": [
+        {
+          "repetition": 0,
+          "from": 64.49271921458134,
+          "to": 63.246898031849454,
+          "delta": -1.2458211827318877,
+          "ratio": 0.9806827623659847,
+          "reductionPercent": 1.9317237634015272
+        },
+        {
+          "repetition": 1,
+          "from": 65.58104487470814,
+          "to": 64.70581865887766,
+          "delta": -0.8752262158304802,
+          "ratio": 0.9866542807071375,
+          "reductionPercent": 1.3345719292862546
+        },
+        {
+          "repetition": 2,
+          "from": 65.15647621480066,
+          "to": 61.290754619214816,
+          "delta": -3.865721595585846,
+          "ratio": 0.9406701862936577,
+          "reductionPercent": 5.932981370634227
+        },
+        {
+          "repetition": 3,
+          "from": 65.20603475543238,
+          "to": 63.65856649866682,
+          "delta": -1.547468256765562,
+          "ratio": 0.9762680208577376,
+          "reductionPercent": 2.373197914226244
+        }
+      ],
+      "gpuCpuReductionPercent": {
+        "median": 2.1524608388138855,
+        "min": 1.3345719292862546,
+        "max": 5.932981370634227,
+        "values": [1.9317237634015272, 1.3345719292862546, 5.932981370634227, 2.373197914226244]
+      },
+      "rendererCpuPercentOfOneCore": [
+        {
+          "repetition": 0,
+          "from": 8.105368900513716,
+          "to": 7.705713842487988,
+          "delta": -0.3996550580257274,
+          "ratio": 0.9506925516986158,
+          "reductionPercent": 4.930744830138423
+        },
+        {
+          "repetition": 1,
+          "from": 8.504025651182602,
+          "to": 8.557382050013985,
+          "delta": 0.05335639883138299,
+          "ratio": 1.0062742518684622,
+          "reductionPercent": -0.62742518684622
+        },
+        {
+          "repetition": 2,
+          "from": 8.307200500504543,
+          "to": 7.354890554305778,
+          "delta": -0.9523099461987643,
+          "ratio": 0.8853633126898857,
+          "reductionPercent": 11.463668731011435
+        },
+        {
+          "repetition": 3,
+          "from": 8.70748276856887,
+          "to": 7.506906426729579,
+          "delta": -1.200576341839291,
+          "ratio": 0.862121307185014,
+          "reductionPercent": 13.7878692814986
+        }
+      ],
+      "traceFlushInclusive": [
+        {
+          "repetition": 0,
+          "from": 9.1946375,
+          "to": 8.87595,
+          "delta": -0.3186875000000011,
+          "ratio": 0.9653398516254718,
+          "reductionPercent": 3.4660148374528243
+        },
+        {
+          "repetition": 1,
+          "from": 9.324220833333333,
+          "to": 8.610629166666666,
+          "delta": -0.7135916666666677,
+          "ratio": 0.9234690298072269,
+          "reductionPercent": 7.653097019277311
+        },
+        {
+          "repetition": 2,
+          "from": 9.173204166666666,
+          "to": 8.9927375,
+          "delta": -0.1804666666666659,
+          "ratio": 0.9803267578713182,
+          "reductionPercent": 1.9673242128681823
+        },
+        {
+          "repetition": 3,
+          "from": 9.304754166666667,
+          "to": 8.5602875,
+          "delta": -0.7444666666666677,
+          "ratio": 0.9199907215890084,
+          "reductionPercent": 8.000927841099159
+        }
+      ],
+      "traceFlushReductionPercent": {
+        "median": 5.559555928365068,
+        "min": 1.9673242128681823,
+        "max": 8.000927841099159,
+        "values": [3.4660148374528243, 7.653097019277311, 1.9673242128681823, 8.000927841099159]
+      }
+    },
+    {
+      "from": "B",
+      "to": "C",
+      "gpuCpuPercentOfOneCore": [
+        {
+          "repetition": 0,
+          "from": 63.246898031849454,
+          "to": 57.291225158605265,
+          "delta": -5.95567287324419,
+          "ratio": 0.9058345459053965,
+          "reductionPercent": 9.416545409460353
+        },
+        {
+          "repetition": 1,
+          "from": 64.70581865887766,
+          "to": 57.83806455477517,
+          "delta": -6.867754104102488,
+          "ratio": 0.8938618775490876,
+          "reductionPercent": 10.613812245091236
+        },
+        {
+          "repetition": 2,
+          "from": 61.290754619214816,
+          "to": 57.26971831192834,
+          "delta": -4.021036307286479,
+          "ratio": 0.9343940806037021,
+          "reductionPercent": 6.56059193962979
+        },
+        {
+          "repetition": 3,
+          "from": 63.65856649866682,
+          "to": 57.570009711901555,
+          "delta": -6.088556786765267,
+          "ratio": 0.9043560494424143,
+          "reductionPercent": 9.564395055758567
+        }
+      ],
+      "gpuCpuReductionPercent": {
+        "median": 9.49047023260946,
+        "min": 6.56059193962979,
+        "max": 10.613812245091236,
+        "values": [9.416545409460353, 10.613812245091236, 6.56059193962979, 9.564395055758567]
+      },
+      "rendererCpuPercentOfOneCore": [
+        {
+          "repetition": 0,
+          "from": 7.705713842487988,
+          "to": 5.754140518113192,
+          "delta": -1.9515733243747961,
+          "ratio": 0.7467368547201747,
+          "reductionPercent": 25.32631452798253
+        },
+        {
+          "repetition": 1,
+          "from": 8.557382050013985,
+          "to": 5.853852554419287,
+          "delta": -2.7035294955946974,
+          "ratio": 0.6840704926116651,
+          "reductionPercent": 31.59295073883349
+        },
+        {
+          "repetition": 2,
+          "from": 7.354890554305778,
+          "to": 5.551911556876894,
+          "delta": -1.802978997428884,
+          "ratio": 0.7548598467759163,
+          "reductionPercent": 24.514015322408365
+        },
+        {
+          "repetition": 3,
+          "from": 7.506906426729579,
+          "to": 5.351860155667652,
+          "delta": -2.1550462710619263,
+          "ratio": 0.7129248523215197,
+          "reductionPercent": 28.707514767848032
+        }
+      ],
+      "traceFlushInclusive": [
+        {
+          "repetition": 0,
+          "from": 8.87595,
+          "to": 7.610566666666667,
+          "delta": -1.2653833333333324,
+          "ratio": 0.8574368565242783,
+          "reductionPercent": 14.256314347572175
+        },
+        {
+          "repetition": 1,
+          "from": 8.610629166666666,
+          "to": 7.7764625,
+          "delta": -0.8341666666666656,
+          "ratio": 0.9031236103052865,
+          "reductionPercent": 9.687638969471346
+        },
+        {
+          "repetition": 2,
+          "from": 8.9927375,
+          "to": 8.411366666666668,
+          "delta": -0.5813708333333327,
+          "ratio": 0.9353510726479748,
+          "reductionPercent": 6.464892735202521
+        },
+        {
+          "repetition": 3,
+          "from": 8.5602875,
+          "to": 7.6378125,
+          "delta": -0.9224749999999995,
+          "ratio": 0.8922378483199309,
+          "reductionPercent": 10.776215168006908
+        }
+      ],
+      "traceFlushReductionPercent": {
+        "median": 10.231927068739127,
+        "min": 6.464892735202521,
+        "max": 14.256314347572175,
+        "values": [14.256314347572175, 9.687638969471346, 6.464892735202521, 10.776215168006908]
+      }
+    },
+    {
+      "from": "A",
+      "to": "C",
+      "gpuCpuPercentOfOneCore": [
+        {
+          "repetition": 0,
+          "from": 64.49271921458134,
+          "to": 57.291225158605265,
+          "delta": -7.201494055976077,
+          "ratio": 0.8883363247250416,
+          "reductionPercent": 11.166367527495835
+        },
+        {
+          "repetition": 1,
+          "from": 65.58104487470814,
+          "to": 57.83806455477517,
+          "delta": -7.742980319932968,
+          "ratio": 0.8819326478447264,
+          "reductionPercent": 11.806735215527365
+        },
+        {
+          "repetition": 2,
+          "from": 65.15647621480066,
+          "to": 57.26971831192834,
+          "delta": -7.886757902872326,
+          "ratio": 0.8789566538731755,
+          "reductionPercent": 12.104334612682454
+        },
+        {
+          "repetition": 3,
+          "from": 65.20603475543238,
+          "to": 57.570009711901555,
+          "delta": -7.636025043530829,
+          "ratio": 0.8828938905398681,
+          "reductionPercent": 11.710610946013189
+        }
+      ],
+      "gpuCpuReductionPercent": {
+        "median": 11.758673080770276,
+        "min": 11.166367527495835,
+        "max": 12.104334612682454,
+        "values": [11.166367527495835, 11.806735215527365, 12.104334612682454, 11.710610946013189]
+      },
+      "rendererCpuPercentOfOneCore": [
+        {
+          "repetition": 0,
+          "from": 8.105368900513716,
+          "to": 5.754140518113192,
+          "delta": -2.3512283824005236,
+          "ratio": 0.7099171658613215,
+          "reductionPercent": 29.00828341386785
+        },
+        {
+          "repetition": 1,
+          "from": 8.504025651182602,
+          "to": 5.853852554419287,
+          "delta": -2.6501730967633144,
+          "ratio": 0.6883625231780938,
+          "reductionPercent": 31.163747682190625
+        },
+        {
+          "repetition": 2,
+          "from": 8.307200500504543,
+          "to": 5.551911556876894,
+          "delta": -2.755288943627648,
+          "ratio": 0.6683252145581049,
+          "reductionPercent": 33.16747854418951
+        },
+        {
+          "repetition": 3,
+          "from": 8.70748276856887,
+          "to": 5.351860155667652,
+          "delta": -3.355622612901217,
+          "ratio": 0.6146277056081116,
+          "reductionPercent": 38.537229439188835
+        }
+      ],
+      "traceFlushInclusive": [
+        {
+          "repetition": 0,
+          "from": 9.1946375,
+          "to": 7.610566666666667,
+          "delta": -1.5840708333333335,
+          "ratio": 0.8277179678553577,
+          "reductionPercent": 17.228203214464234
+        },
+        {
+          "repetition": 1,
+          "from": 9.324220833333333,
+          "to": 7.7764625,
+          "delta": -1.5477583333333333,
+          "ratio": 0.834006684204623,
+          "reductionPercent": 16.5993315795377
+        },
+        {
+          "repetition": 2,
+          "from": 9.173204166666666,
+          "to": 8.411366666666668,
+          "delta": -0.7618374999999986,
+          "ratio": 0.916949684520449,
+          "reductionPercent": 8.3050315479551
+        },
+        {
+          "repetition": 3,
+          "from": 9.304754166666667,
+          "to": 7.6378125,
+          "delta": -1.6669416666666672,
+          "ratio": 0.8208505419048774,
+          "reductionPercent": 17.91494580951226
+        }
+      ],
+      "traceFlushReductionPercent": {
+        "median": 16.913767397000967,
+        "min": 8.3050315479551,
+        "max": 17.91494580951226,
+        "values": [17.228203214464234, 16.5993315795377, 8.3050315479551, 17.91494580951226]
+      }
+    }
+  ],
+  "verification": "All ordinary CPU windows exceed 100 GPU CPU ticks, use CDP midpoint brackets, keep process sets stable, qualify the recorded NVIDIA idle/window gates, verify actual encoder/draw/submit/canvas/device counts, and pass bright/dark pixel sanity checks. Per-canvas red-channel checksums match across accepted treatments; full RGBA equivalence was not verified. Separate traces have matched begin/end and one marker per observed page-frame.",
+  "limits": [
+    "Synthetic WebGPU workload; no Ghostty renderer, frame building, parser, terminal lifecycle, or production scheduler integration.",
+    "Two instanced draws per canvas with per-canvas resource bundles; identical fixed instance data and animated uniform writes, no streaming glyph atlas work.",
+    "Linux NVIDIA Vulkan Chromium headless-shell; rAF workload page frames are not physical display frames.",
+    "CDP process CPU is coarse process-wide CPU in CLK_TCK units; no isolated render-thread measurement.",
+    "GPU gate bounds foreign compute residency and utilization; it can miss short bursts and ordinary graphics activity.",
+    "CommandBuffer::Flush duration is inclusive trace span duration, may overlap and is not self CPU time. Traced CPU is retained as context, excluded from ordinary CPU comparisons.",
+    "Four paired repetitions provide bounded descriptive evidence, not production inference or statistical confidence.",
+    "A acquires 17 GPUAdapter wrappers because Chromium consumes each wrapper; adapter creation is outside measurement.",
+    "Production sharing would require leases/generation recovery and submission-before-callback semantics; existing renderer device destruction on disposal/construction failure/recovery is untouched.",
+    "Readback pixelHash covers only each pixel red-channel byte; matching hashes establish a red-channel checksum match, not full RGBA equality. Captured measurement sources and original provenance remain unchanged.",
+    "B→C groups per-canvas writeBuffer operations before the single submit; it does not isolate a fixed per-submit cost.",
+    "Pair precedence is balanced, but A never occupies the middle within ABC/CBA/BCA/ACB treatment orders.",
+    "trace-r2/B contains one 33.3 ms requestAnimationFrame gap.",
+    "Recorded NVIDIA qualification permits stable 269 MiB foreign compute residency and does not establish uncontended graphics."
+  ],
+  "inputs": [
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/cpu-r0/results.json",
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/cpu-r1/results.json",
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/cpu-r2/results.json",
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/cpu-r3/results.json"
+  ],
+  "traceInputs": [
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/trace-r0/results.json",
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/trace-r1/results.json",
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/trace-r2/results.json",
+    "/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/trace-r3/results.json"
+  ],
+  "derivedFrom": {
+    "path": "aggregate.json",
+    "sha256": "b5e38a0520841ef70216252c0ee841d01786b6d3dc1e4e936f8334361f063cd0"
+  },
+  "independentReview": {
+    "reviewer": "Sol",
+    "arithmetic": "Raw CDP snapshots and all 12 trace files recomputed; claimed paired medians confirmed.",
+    "sources": "Recorded provenance SHA256s verified.",
+    "qualification": "Descriptive synthetic evidence only; no production inference, dominance or fixed submission cost claim."
+  }
+}

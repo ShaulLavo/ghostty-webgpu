@@ -2,6 +2,216 @@
 
 Status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original attribution matrix. Phase 2 implements packed damaged-row snapshots and measures main versus treatment on the Apple M1 at 1 and 17 terminals, ASCII and SGR. The initial matrix has mixed CPU results. A single direct-packed DOM frame follow-up improves CPU in all fresh 17-terminal ASCII/SGR pairs; substantial baseline drift between matrices remains unexplained. The PR stays draft for review. Phase 1's input/echo conclusions remain separate.
 
+## Shared browser clock and bounded GPU sharing, Linux 2026-10-03
+
+**Decision: no established CPU benefit; leave the scheduler unmerged.** The shared-clock candidate
+has adverse WebGL CPU observations at 17 terminals and essentially unchanged WebGPU CPU. Latency
+is mixed, and the single-terminal no-regression guard is unestablished. The remaining two WebGPU
+single-terminal windows and all four rolling-output callback traces were stopped before execution
+by coordinator direction. This section and its evidence are documentation only; scheduler code
+remains on [`plan-283-shared-scheduler`](https://github.com/ShaulLavo/fregat/tree/plan-283-shared-scheduler)
+at `3ea4a9d64b2e17d08928c4242649bc73cc3156d8`, unmerged and undeployed. No version changes are included.
+
+### Candidate, matched work, and qualification
+
+The candidate caches one browser clock per Window and delivers pending terminal callbacks in one
+synchronous animation-frame batch. Each terminal retains its own RenderScheduler, blink timers,
+focus/visibility/disposal state and stale-callback guards. Cancellation can remove a peer during
+delivery; synchronous flush stays synchronous, and the owning Window reports callback exceptions
+synchronously so error recovery can cancel a peer. New work during delivery waits for another
+frame. The batch intentionally changes ordering: microtasks and unrelated native rAF callbacks
+cannot interleave between terminal callbacks. This is an atomic-batch tradeoff, not native
+per-callback ordering equivalence. GPU device ownership and submission remain unchanged.
+
+Baseline `45f22aa0b69a5eb111d64763cf537913e13b6843` and treatment `3ea4a9d64…` use separately frozen
+runtime archives with identical benchmark sources, versions, fonts, WASM and fixtures. The exact
+runtime inventory delta is `config.ts`, `shared-clock.ts` and their two scheduler test files.
+The shared benchmark source SHA-256 is `319bf475fbccd67e759b1651a54f75f41e831fd1c426afe39cb59ec0a105d908`.
+An earlier baseline containing an atlas confound was excluded before measurement. Full identities
+and source inventories are retained in [the clock evidence](benchmarks/linux-shared-clock-2026-10-03/).
+
+Six ordinary windows complete: before/after WebGL at 17 and one terminal, and before/after WebGPU
+at 17. Each window has four balanced native/xterm-WebGL repetitions, rolling Git-history bytes,
+output plus latency, and 96 input and 96 write samples per repetition. Seventeen terminals use
+1,200 output frames; one uses 2,700. WebGPU explicitly selects `--frame-builders zig`. Every native
+terminal submits exactly the expected output frames through Zig, with zero measured-window JS
+fallback. All 48 cases complete with empty page-error arrays, stable CPU process sets and qualified
+recorded GPU idle/measured windows. No rejected or operator-stopped partial case enters these tables.
+
+Chromium headless-shell 153.0.8010.12 uses NVIDIA Vulkan on the RTX 3060 Ti, NVIDIA 610.57.4;
+WebGPU records a non-fallback NVIDIA Ampere adapter. These are hardware-adapter headless workload
+measurements, not physical-display frame timing. The rolling corpus and stream hashes are the
+same as the preceding headline WebGL matrix: `5b962d02…` and `044a9381…`. The original GPU limits
+remain utilization ≤5% for idle admission and foreign compute residency ≤1,024 MiB; qualification
+bounds those observations, not graphics uncontendedness or CPU/thermal stability.
+
+### Ordinary output CPU
+
+Values are medians across four repetitions, percent of one core. GPU process means CPU consumed
+by that process, not GPU hardware execution time. Totals are calculated per case before taking
+medians; component medians need not sum to the total. Before/after conditions occupy separate
+browser sessions. Only native/xterm ratios within each condition are paired; cross-condition
+changes below are descriptive observations, not same-session paired treatment speedups.
+
+| Backend / terminals | Output CPU  | Native before → after | xterm WebGL before → after |
+| ------------------- | ----------- | --------------------: | -------------------------: |
+| WebGL / 17          | Renderer    |       21.146 → 28.695 |            25.022 → 25.894 |
+| WebGL / 17          | GPU process |       29.451 → 38.184 |            30.722 → 33.214 |
+| WebGL / 17          | Total       |       51.116 → 68.703 |            56.888 → 60.203 |
+| WebGPU / 17         | Renderer    |       25.518 → 25.261 |            23.299 → 23.976 |
+| WebGPU / 17         | GPU process |       64.870 → 65.026 |            29.224 → 29.075 |
+| WebGPU / 17         | Total       |       90.778 → 90.987 |            54.201 → 53.844 |
+| WebGL / 1           | Renderer    |         4.182 → 4.515 |              4.216 → 5.164 |
+| WebGL / 1           | GPU process |         2.407 → 2.574 |              2.418 → 2.937 |
+| WebGL / 1           | Total       |         7.310 → 7.910 |              7.423 → 9.054 |
+
+All four native WebGL-17 renderer samples rise: 21.523/20.672/20.769/24.007 →
+35.411/23.383/23.019/34.007% core. Treatment repetition 0 includes a 349.985 ms paced interval
+and 9.265 ms CPU-acquisition uncertainty; its xterm repetition 1 has a 133.328 ms interval and
+eight intervals over 25 ms. These outliers remain in the evidence. The smooth native repetition 2
+also rises, so discarding outliers cannot erase the adverse observation. Independent source and
+first-pair evidence review found no correctness defect or unmatched output work explaining it.
+GPU qualification does not resolve CPU/thermal/GC drift, and no output trace was taken to attribute
+the increase to Map allocation, dispatch, rendering or ANGLE. WebGPU-17 total and GPU-process CPU
+stay essentially flat. Neither backend establishes the intended CPU improvement.
+
+### Latency and paired targets
+
+Latency is milliseconds to compositor presentation acknowledgement of the submitting frame,
+not physical-vsync or optical latency. Values are medians of run quantiles: p50 uses the mean
+of the two middle samples, p95 uses nearest rank.
+
+| Backend / terminals | Latency   | Native before → after | xterm WebGL before → after |
+| ------------------- | --------- | --------------------: | -------------------------: |
+| WebGL / 17          | Input p50 |       21.144 → 20.478 |            20.688 → 20.916 |
+| WebGL / 17          | Input p95 |       24.831 → 24.006 |            27.682 → 27.320 |
+| WebGL / 17          | Write p50 |       15.432 → 15.354 |            14.568 → 13.262 |
+| WebGL / 17          | Write p95 |       19.333 → 20.501 |            19.366 → 18.811 |
+| WebGPU / 17         | Input p50 |       20.107 → 20.055 |            20.597 → 20.699 |
+| WebGPU / 17         | Input p95 |       28.760 → 26.602 |            31.175 → 26.995 |
+| WebGPU / 17         | Write p50 |       15.587 → 16.674 |            15.008 → 16.602 |
+| WebGPU / 17         | Write p95 |       20.434 → 20.688 |            19.648 → 19.600 |
+| WebGL / 1           | Input p50 |         5.009 → 5.176 |              4.875 → 5.008 |
+| WebGL / 1           | Input p95 |       21.083 → 26.576 |            20.637 → 24.444 |
+| WebGL / 1           | Write p50 |        9.797 → 15.066 |             7.945 → 13.505 |
+| WebGL / 1           | Write p95 |       20.311 → 20.624 |            19.999 → 20.081 |
+
+Paired values below are medians of individual native/xterm ratios, target ≤1, not ratios of the
+absolute medians above. CPU retains the runner's 100-tick/one-tick resolution rules: both
+single-terminal renderer comparisons are unresolved. Idle CPU was not measured; GPU-process CPU
+and write p95 have no formal paired target in this runner.
+
+| Backend / terminals | Target       |              Before |               After |
+| ------------------- | ------------ | ------------------: | ------------------: |
+| WebGL / 17          | Renderer CPU |       0.891362 pass |       1.102044 fail |
+| WebGL / 17          | Total CPU    |       0.958804 pass |       1.176398 fail |
+| WebGL / 17          | Input p50    |       1.010291 fail |       0.974098 pass |
+| WebGL / 17          | Input p95    |       0.869884 pass |       0.864815 pass |
+| WebGL / 17          | Write p50    |       1.045326 fail |       1.217566 fail |
+| WebGPU / 17         | Renderer CPU |       1.088882 fail |       1.067466 fail |
+| WebGPU / 17         | Total CPU    |       1.695180 fail |       1.694628 fail |
+| WebGPU / 17         | Input p50    |       0.972755 pass |       0.970473 pass |
+| WebGPU / 17         | Input p95    |       0.911965 pass |       1.030543 fail |
+| WebGPU / 17         | Write p50    |       1.038431 fail |       0.991949 pass |
+| WebGL / 1           | Renderer CPU | 1.002406 unresolved | 0.873190 unresolved |
+| WebGL / 1           | Total CPU    |       1.003142 fail |       0.875608 pass |
+| WebGL / 1           | Input p50    |       1.038989 fail |       1.101060 fail |
+| WebGL / 1           | Input p95    |       1.020320 fail |       1.118534 fail |
+| WebGL / 1           | Write p50    |       1.234769 fail |       1.186313 fail |
+
+WebGL-17 absolute write p50 is essentially unchanged, while its normalized ratio worsens because
+the control changes. WebGPU-17 absolute input p95 improves, while the control improves more and
+the paired-ratio median worsens. Single-terminal native WebGL latency rises, with substantial
+control shifts too. Arrival phase and cross-session variation limit causal attribution; these
+observations establish neither a scheduler-caused latency regression nor the required no-regression
+guard. WebGPU single-terminal latency was not measured. No favorable-only rerun replaces a
+qualified window.
+
+### Bounded shared-device/submission probe
+
+Production integration stopped at the complexity boundary. A standalone synthetic ABC probe keeps
+17 separate canvases and 17 encoders per page frame while changing device/submit ownership:
+A uses 17 devices and 17 submits, B one device and 17 submits, C one device and one submit. Each
+canvas has a 560×456 backing surface at DPR 2 and a 40×12 instanced grid with two draws. All three
+modes use the same single page-rAF callback. Fixed instances and animated uniform writes omit the
+terminal parser, builder and streaming glyph atlas.
+
+Four ordinary repetitions use 1,200 frames per mode; four separate trace repetitions use 240.
+Orders ABC/CBA/BCA/ACB balance pair precedence, but A never occupies the middle position. Recorded
+encoder, draw, submit, device and canvas counts are checked. Pre-measurement checks draw each canvas
+at frame zero and compare red-channel checksums plus bright/dark pixel sanity. Warmup and measurement
+follow; measured-output correctness and full-RGBA equality are unverified. The positive C screenshot was read back. All ordinary CPU windows have stable process sets, 1,145–1,311 GPU CPU
+ticks, midpoint CDP denominators and acquisition uncertainty ≤0.679 ms. Recorded NVIDIA gates
+qualify while permitting stable 269 MiB foreign compute residency; graphics uncontendedness is
+unestablished. Every trace has 240 observed page-frame markers; trace-r2/B contains one 33.3 ms gap.
+
+| Synthetic mode | Devices / submits per page frame | GPU-process CPU, % core | Renderer CPU, % core | Inclusive Flush, ms / observed page frame |
+| -------------- | -------------------------------: | ----------------------: | -------------------: | ----------------------------------------: |
+| A              |                          17 / 17 |                  65.181 |                8.406 |                                     9.250 |
+| B              |                           1 / 17 |                  63.453 |                7.606 |                                     8.743 |
+| C              |                            1 / 1 |                  57.431 |                5.653 |                                     7.707 |
+
+| Paired synthetic reduction | GPU-process CPU | Inclusive Flush duration |
+| -------------------------- | --------------: | -----------------------: |
+| A → B                      |          2.152% |                   5.560% |
+| B → C                      |          9.490% |                  10.232% |
+| A → C                      |         11.759% |                  16.914% |
+
+These are medians of per-repetition reductions, distinct from ratios of mode medians. Flush is
+an inclusive host trace-span sum, may overlap, and is neither self CPU nor hardware GPU time.
+Traced CPU does not enter ordinary CPU comparisons. B→C also groups `writeBuffer` operations
+before submission, so it does not isolate a fixed per-submit cost. Headless page frames are not
+physical display frames. This toy result establishes neither production benefit nor dominance of
+submission cost. Shared-device generation leases, loss recovery and disposal, plus deferred-submit
+resource lifetime, damage acknowledgement and callback settlement, would expand production
+ownership contracts. Those changes were deliberately not integrated.
+
+### Evidence, verification, and stop boundary
+
+[Retained compact evidence](benchmarks/linux-shared-clock-2026-10-03/) includes the six-condition
+results, every repetition's CPU snapshots/brackets/ticks, latency quantiles, pacing and terminal
+counters, exact paired verdicts, frozen manifests and the qualified synthetic probe aggregate.
+The raw ordinary comparisons, latency traces, screenshots, rejected attempts, admission logs,
+frozen bundles and one-off analysis input are preserved under
+`/work/reports/ghostty-benchmarks/plan-283/shared-scheduler/`. Raw synthetic inputs, 12 traces,
+recorded sources/provenance and the original unmodified aggregate remain under
+`/work/reports/ghostty-benchmarks/plan-283/shared-submission-probe/`; `aggregate-qualified.json`
+corrects the earlier overly broad pixel-equality wording without relabeling captured originals.
+
+Focused source verification passed 22 scheduler/configuration/cursor units; the later frozen-source
+check passed 21 scheduler/configuration units and 129 browser tests. Three existing skips cover
+two Linux replacement-device cases and a DOM font-layout case lacking Liberation Mono and
+WenQuanYi Zen Hei. Package build/typecheck passed in both runs; commands and complete zero-exit
+logs are retained in the ordinary report's `source-verification/`. Real Chromium confirms atomic batch ordering
+and native/shared synchronous error recovery. The six native correctness-fixture screenshots were
+read back: all expected canvases show ASCII, colors, wide/accented text, emoji and overwrite output.
+These are fixture screenshots, not final rolling-history captures.
+
+Callback source locations were calibrated against existing real latency traces and the frozen
+bundles; this proves observability, not multi-terminal output callback reduction. A focused test
+proves 17 pending terminals share one native frame, but the planned four rolling-output traces
+were canceled, so no measured output callback-reduction or output-CPU attribution claim is made.
+The two GPU-one-terminal windows also remain unmeasured. Failed GPU admission, the pre-fix
+fractional-timeout attempt, and operator-stopped quiet/server-deadlock setup remain rejected.
+Foreign GPU/browser processes were not stopped and admission thresholds were not loosened.
+
+Historical reproduction uses the measured treatment checkout for the identical benchmark driver:
+
+```sh
+bun scripts/build-comparison.ts <before-bundle> --runtime-ref 45f22aa0b69a5eb111d64763cf537913e13b6843
+bun scripts/build-comparison.ts <after-bundle> --runtime-ref 3ea4a9d64b2e17d08928c4242649bc73cc3156d8
+node <bundle>/comparison-runner.mjs --variants ghostty-webgl --phases output,latency \
+  --counts 17 --paths bytes --repetitions 4 --output-frames 1200 --latency-samples 96 \
+  --output-fixture rolling-logs --fixtures rolling-logs --output <run-directory>
+```
+
+For the measured WebGPU pair use `--variants ghostty-webgpu --frame-builders zig`; the measured
+single-terminal WebGL pair uses `--counts 1 --output-frames 2700`. Hardware jobs use quiet heavy
+admission, yielding to owner-priority windows and waiting outside the queue for long-lived dev
+servers and the original GPU limits. These commands document the six completed windows; they
+request no additional run. The stopped candidate provides a negative result worth retaining,
+not an approved scheduler optimization or a production shared-device/submission implementation.
+
 ## Zig-fed native WebGL, Linux 2026-10-02–03
 
 WebGL now defaults to the existing Zig frame builder for supported content. Its persistent WASM
