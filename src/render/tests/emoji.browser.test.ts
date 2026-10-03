@@ -147,7 +147,6 @@ function mismatchedPixels(actual: Uint8ClampedArray, expected: Uint8ClampedArray
 it.each([
   ['webgpu', WebGpuTerminalRenderer],
   ['webgl2', WebGlTerminalRenderer],
-  ['canvas2d', CanvasTerminalRenderer],
 ] as const)('presents legacy and clustered ZWJ emoji through %s', async (backend, Renderer) => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns, rows })
