@@ -41,6 +41,9 @@ export class WorkerTerminalExecution {
   private readonly generation = 1
   private control = 0
   private output = 0
+  private readonly outputControls = new Set<number>()
+  private submittedOutputValue = false
+  private submittedProducerOutput = 0
   private nextId = 0
   private state?: WorkerState
   private summary?: TerminalSubmittedFrame
@@ -136,6 +139,9 @@ export class WorkerTerminalExecution {
   get submittedFrame(): TerminalSubmittedFrame | undefined {
     return this.summary
   }
+  get submittedOutput(): boolean {
+    return this.submittedOutputValue
+  }
   get backend() {
     return this.state?.backend
   }
@@ -183,6 +189,8 @@ export class WorkerTerminalExecution {
       command,
       args,
     } as WorkerRequest
+    if (command === 'write' || command === 'writeln' || command === 'writeAndReadGeometry')
+      this.outputControls.add(request.control)
     try {
       this.port.postMessage(request, transfer)
     } catch {
@@ -208,10 +216,25 @@ export class WorkerTerminalExecution {
         )
         return
       }
+      // Producer submissions advance independently of the host's requested output fence.
+      this.submittedOutputValue = message.output > this.submittedProducerOutput
+      this.submittedProducerOutput = message.output
+      for (const control of this.outputControls) {
+        if (control > message.control) break
+        this.submittedOutputValue = true
+        this.outputControls.delete(control)
+      }
       this.summary = freezeWorkerValue(message.summary)
       this.projection = freezeWorkerValue(message.snapshot)
       this.frameListener?.(this.textFrame()!)
       return
+    }
+    // FIFO delivery has already handled frames preceding this acknowledgement.
+    let retained = false
+    for (const control of this.outputControls) {
+      if (control > message.control) break
+      if (retained) this.outputControls.delete(control)
+      retained = true
     }
     this.state = freezeWorkerValue(message.state)
     if (message.type === 'event') {
@@ -383,6 +406,7 @@ export class WorkerTerminalExecution {
     this.port.close()
     for (const emitter of this.emitters.values()) emitter.dispose()
     this.frameListener = undefined
+    this.outputControls.clear()
     this.summary = undefined
     this.projection = undefined
   }

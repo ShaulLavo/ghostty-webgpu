@@ -710,7 +710,11 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.accessibility = this.createAccessibility(elements)
     const snapshot = this.readFrame()
     if (snapshot && this.execution.submittedFrame)
-      this.accessibility.update(snapshot, this.execution.submittedFrame.scrollbar)
+      this.accessibility.update(
+        snapshot,
+        this.execution.submittedFrame.scrollbar,
+        this.execution.kind === 'sync' ? undefined : this.execution.submittedOutput,
+      )
     return true
   }
 
@@ -1247,7 +1251,11 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       else this.invalidateLinks()
     })
     this.runUiOperation('frame.accessibility', () =>
-      this.accessibility?.update(snapshot, scrollbar),
+      this.accessibility?.update(
+        snapshot,
+        scrollbar,
+        this.execution.kind === 'sync' ? undefined : this.execution.submittedOutput,
+      ),
     )
     this.runUiOperation('frame.scrollbar', () => this.scrollbar?.update(scrollbar))
   }
