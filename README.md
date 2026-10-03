@@ -64,6 +64,16 @@ context replacement still invalidate prior pixels.
 Canvas 2D, DOM, accessibility, selection/copy and frame callbacks retain their shared row readers.
 Styled snapshots and text-only rows describe those consumers; GPU rendering reads native records.
 
+## comparisons
+
+From this package, use `bun run bench:compare -- --headed --bundle /path/to/bundle`
+for headed hardware Chromium measurements. A built bundle accepts
+`node comparison-runner.mjs --headed --output results`.
+
+`--headed` selects the browser window independently of `--smoke`, which selects
+correctness checks. Defaults remain headless on Linux and headed on macOS for
+hardware measurements; smoke runs default to headless on both.
+
 ## more
 
 - [pty wiring and the native api](docs/integration.md)

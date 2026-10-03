@@ -43,8 +43,8 @@ export function selection(args, flag, fallback, allowed) {
   return selected
 }
 
-export function hardwareLaunch(host, smoke, smokeHeaded = false) {
-  const headless = host === 'linux' ? !smokeHeaded : smoke && !smokeHeaded
+export function hardwareLaunch(host, smoke, headed = false) {
+  const headless = host === 'linux' ? !headed : smoke && !headed
   const arguments_ =
     host === 'linux' && !smoke
       ? ['--enable-features=Vulkan', '--use-angle=vulkan', '--ignore-gpu-blocklist']

@@ -59,7 +59,7 @@ assert(
   '--validate-presentation requires the latency phase',
 )
 assert(!(smoke && tracing), 'Trace measurements require hardware Chromium')
-const launch = hardwareLaunch(platform(), smoke, smoke && args.includes('--smoke-headed'))
+const launch = hardwareLaunch(platform(), smoke, args.includes('--headed'))
 const headless = launch.headless
 const executablePath = browserExecutable(args)
 const value = (flag, fallback) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : fallback)
