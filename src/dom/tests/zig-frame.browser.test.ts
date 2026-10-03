@@ -1,19 +1,36 @@
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
+import { WebGpuTerminalRenderer } from '../../render/renderer.js'
 import { WebGlTerminalRenderer } from '../../render/webgl/renderer.js'
 import { displayedPixels } from '../../render/webgl/tests/fixture.js'
 import { TerminalSession } from '../../term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../terminal.js'
 
 const disposables: (() => void)[] = []
+let sentinelDevice: GPUDevice | undefined
 
 afterEach(() => {
   for (const dispose of disposables.splice(0).reverse()) dispose()
   vi.restoreAllMocks()
 })
 
-async function hostFixture(zigFrame: false | undefined) {
+afterAll(async () => {
+  if (!sentinelDevice) return
+  const loss = sentinelDevice.lost
+  sentinelDevice.destroy()
+  await loss
+})
+
+async function retainGpuInstance(): Promise<void> {
+  if (sentinelDevice) return
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
+  expect(adapter).not.toBeNull()
+  // Keep Dawn's external instance alive across test-owned device teardown.
+  sentinelDevice = await adapter!.requestDevice()
+}
+
+async function hostFixture(zigFrame: false | undefined, backend: 'webgl2' | 'webgpu' = 'webgl2') {
   const runtime = await GhosttyRuntime.create()
   disposables.push(() => runtime.dispose())
   const host = document.createElement('div')
@@ -36,12 +53,17 @@ async function hostFixture(zigFrame: false | undefined) {
     },
     runtime: { kind: 'borrowed', runtime },
   })
-  let renderer: WebGlTerminalRenderer | undefined
+  let renderer: WebGlTerminalRenderer | WebGpuTerminalRenderer | undefined
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
     ...(zigFrame === undefined ? {} : { zigFrame }),
     rendererFactory: async (options) => {
-      expect(options.zigFrame).toBe(zigFrame)
+      expect(options.zigFrame).toBe(zigFrame ?? true)
+      if (backend === 'webgpu') {
+        await retainGpuInstance()
+        renderer = await WebGpuTerminalRenderer.create(options)
+        return renderer
+      }
       renderer = await WebGlTerminalRenderer.create(options)
       return renderer
     },
@@ -54,22 +76,85 @@ async function hostFixture(zigFrame: false | undefined) {
   return { canvas: host.querySelector('canvas')!, errors, renderer: renderer!, terminal }
 }
 
-it.each([undefined, false] as const)(
-  'preserves the WebGL producer choice through the real Terminal host (zigFrame=%s)',
-  async (zigFrame) => {
-    const { terminal, renderer, errors } = await hostFixture(zigFrame)
+it.each([
+  { backend: 'webgl2', zigFrame: undefined },
+  { backend: 'webgl2', zigFrame: false },
+  { backend: 'webgpu', zigFrame: undefined },
+  { backend: 'webgpu', zigFrame: false },
+] as const)(
+  'resolves the real Terminal producer choice ($backend, zigFrame=$zigFrame)',
+  async ({ backend, zigFrame }) => {
+    const { canvas, terminal, renderer, errors } = await hostFixture(zigFrame, backend)
+    await expect.poll(() => terminal.hasPendingFrame).toBe(false)
+    const before = await displayedPixels(canvas)
     terminal.write('\x1b[?25l\x1b[31;44mASCII')
     await expect.poll(() => terminal.hasPendingFrame).toBe(false)
-    expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
+    expect(terminal.diagnostics.rendererBackend).toBe(backend)
     expect(renderer.metrics.submittedFrames).toBeGreaterThan(0)
     expect(renderer.metrics.jsFallbackFrames).toBe(0)
     if (zigFrame === undefined) expect(renderer.metrics.zigFrames).toBeGreaterThan(0)
     if (zigFrame === false) expect(renderer.metrics.zigFrames).toBe(0)
-    expect((await renderer.capturePixels()).some((value) => value !== 0)).toBe(true)
+    expect(await displayedPixels(canvas)).not.toEqual(before)
     expect(errors).toEqual([])
     terminal.dispose()
     expect(terminal.hasPendingFrame).toBe(false)
     expect(terminal.hasPendingTimer).toBe(false)
+  },
+)
+
+async function expectHostParity(
+  native: Awaited<ReturnType<typeof hostFixture>>,
+  js: Awaited<ReturnType<typeof hostFixture>>,
+): Promise<void> {
+  await expect
+    .poll(() => native.terminal.hasPendingFrame || js.terminal.hasPendingFrame)
+    .toBe(false)
+  const nativePixels = await displayedPixels(native.canvas)
+  const jsPixels = await displayedPixels(js.canvas)
+  expect(nativePixels.byteLength).toBe(jsPixels.byteLength)
+  const firstDifference = nativePixels.findIndex((value, index) => value !== jsPixels[index])
+  expect(firstDifference, 'Scheduled native and JS compositor pixels match').toBe(-1)
+  expect(native.errors).toEqual([])
+  expect(js.errors).toEqual([])
+}
+
+it.each(['webgl2', 'webgpu'] as const)(
+  'uses whole-frame Unicode fallback and returns to the default native producer (%s)',
+  async (backend) => {
+    const native = await hostFixture(undefined, backend)
+    const js = await hostFixture(false, backend)
+    for (const host of [native, js]) host.terminal.write('\x1b[?25lASCII\r\nsecond\r\nthird')
+    await expectHostParity(native, js)
+    expect(native.terminal.diagnostics.rendererBackend).toBe(backend)
+    expect(js.terminal.diagnostics.rendererBackend).toBe(backend)
+    expect(native.renderer.metrics.zigFrames).toBeGreaterThan(0)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    expect(js.renderer.metrics.zigFrames).toBe(0)
+    const nativeFrames = native.renderer.metrics.zigFrames
+    const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    for (const host of [native, js]) host.terminal.write('\x1b[3;1H界')
+    await expectHostParity(native, js)
+    expect(build.mock.results.map((result) => result.value)).toEqual([1])
+    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(1)
+    build.mockClear()
+    for (const host of [native, js]) host.terminal.write('\x1b[1;1Hchanged')
+    await expectHostParity(native, js)
+    expect(build.mock.results.map((result) => result.value)).toEqual([1])
+    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(2)
+    build.mockClear()
+    for (const host of [native, js]) host.terminal.write('\x1b[3;1H\x1b[2KASCII')
+    await expectHostParity(native, js)
+    expect(build.mock.results.at(-1)?.value).toBe(0)
+    expect(native.renderer.metrics.zigFrames).toBeGreaterThan(nativeFrames)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(2)
+    expect(js.renderer.metrics.zigFrames).toBe(0)
+    for (const host of [native, js]) {
+      host.terminal.dispose()
+      expect(host.terminal.hasPendingFrame).toBe(false)
+      expect(host.terminal.hasPendingTimer).toBe(false)
+    }
   },
 )
 
