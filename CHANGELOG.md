@@ -1,5 +1,13 @@
 # ghostty-webgpu
 
+## 0.3.10
+
+### Patch Changes
+
+- c0dc2ac: Skip absent extension contribution groups during attachment. Keep fresh handles and independent disposal while removing empty array creation and traversal for inert extensions.
+- e4818e1: Bundle the maintained native compatibility verifier to Node-compatible ESM before launching its Node probe, preserving runtime identity and binary compatibility assertions.
+- c4bdd00: Expose native printing-unit text measurement and live terminal geometry, capturing prompt geometry and committing native revisions before observers run.
+
 ## 0.3.9
 
 ### Patch Changes
