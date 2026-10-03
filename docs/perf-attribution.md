@@ -1,6 +1,60 @@
 # Output and input latency attribution
 
-Status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original attribution matrix. Phase 2 implements packed damaged-row snapshots and measures main versus treatment on the Apple M1 at 1 and 17 terminals, ASCII and SGR. The initial matrix has mixed CPU results. A single direct-packed DOM frame follow-up improves CPU in all fresh 17-terminal ASCII/SGR pairs; substantial baseline drift between matrices remains unexplained. The PR stays draft for review. Phase 1's input/echo conclusions remain separate.
+Historical status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original attribution matrix. Phase 2 implements packed damaged-row snapshots and measures main versus treatment on the Apple M1 at 1 and 17 terminals, ASCII and SGR. The initial matrix has mixed CPU results. A single direct-packed DOM frame follow-up improves CPU in all fresh 17-terminal ASCII/SGR pairs; substantial baseline drift between matrices remains unexplained. The PR stays draft for review. Phase 1's input/echo conclusions remain separate.
+
+## Current GPU architecture, 2026-10-03
+
+WebGL and WebGPU build every GPU frame in Zig. The bridge owns persistent 64-byte cell and
+96-byte glyph records, dirty-range detection and glyph lookup. JavaScript owns browser font
+rasterization, atlas textures and submission. The JavaScript row-to-instance producer and producer
+selection flags have been deleted. The benchmark runs the native GPU pipeline automatically.
+
+After three bounded atlas-recovery sweeps, an unsuccessful build reports `frame_builder`. It makes
+no GPU upload or submission, leaves damage unacknowledged and retains the last submitted frame.
+The next write, resize, font change, explicit refresh or cursor activity attempts a full rebuild.
+Recovery adds no failure-specific retry loop. Canvas resizing and context replacement still
+invalidate prior pixels. Canvas 2D, DOM, text-only extraction, accessibility, selection/copy and
+public frame snapshots keep the shared row readers they consume.
+
+### Native-only WebGL control
+
+The deletion control compares runtime `b991384e0` with implementation `98fea7825` in two frozen,
+separately admitted `--quiet` windows: rolling Git-history bytes, 17 visible terminals, 1,200 output
+frames, 96 input and 96 write samples, and four balanced native/xterm-WebGL repetitions per window.
+The #462 font, geometry, GPU limits and presentation endpoint are retained. All 16 cases complete
+with qualified GPU windows, stable CPU process sets and empty page-error arrays. Each native
+terminal submits exactly 1,200 Zig frames, 81,600 native submissions per window.
+
+| Output CPU (% of one core) | Native before → after | xterm WebGL before → after |
+| -------------------------- | --------------------: | -------------------------: |
+| Renderer                   |       15.327 → 15.170 |            22.631 → 22.598 |
+| GPU process                |       24.395 → 24.491 |            25.719 → 25.696 |
+| Total                      |       40.444 → 40.719 |            49.321 → 49.154 |
+
+Paired native/xterm renderer and total ratios remain below one: 0.6801/0.8226 before and
+0.6674/0.8165 after. Native input p50/p95 is 5.795/22.915 → 6.005/23.674 ms; write p50/p95 is
+15.248/20.638 → 14.312/20.523 ms. The paired write-p50 comparator changes from 1.0802 (fail) to
+0.9184 (pass); input comparators pass both windows. Before/after sessions are separate: these are
+descriptive observations, not a causal latency improvement, CPU benefit or statistically proven
+no-regression claim. GPU-process CPU measures CPU consumption, and the endpoint is headless
+compositor acknowledgement rather than physical-display timing.
+
+[Compact before/after records and verification](benchmarks/linux-native-only-2026-10-03/verification.json)
+retain exact source inventories, per-run CPU/latency, qualified windows and matched-work counters.
+All 281 frozen runtime source hashes match their respective Git commits. The measurement runner,
+browser entry, tracing wrappers, fonts, fixture and WASM assets are matched. The single benchmark
+inventory difference is an offline historical-artifact expectation loop in
+`comparison-attribution.mjs`, which the measurement runner and report do not import. The driver
+checkout labels both bundles 0.3.4; exact runtime package versions are 0.3.3 before and 0.3.4 after.
+Raw artifacts and latency traces remain under `/work/reports/ghostty-native-only-2026-10-03/`.
+Native-only [WebGL](benchmarks/linux-native-only-2026-10-03/zig-unicode-webgl2.png) and
+[WebGPU](benchmarks/linux-native-only-2026-10-03/zig-unicode-webgpu.png) Unicode captures were read
+back. Earlier measured evidence is unchanged. No additional benchmark window or attribution trace
+was run.
+
+The sections below are historical measurements. Their producer choices and comparisons describe
+the measured revisions; they do not define current runtime options. Archived benchmark evidence
+remains unchanged.
 
 ## Shared browser clock and bounded GPU sharing, Linux 2026-10-03
 

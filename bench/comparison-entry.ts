@@ -154,7 +154,6 @@ async function createNative(host: HTMLElement): Promise<Driver> {
         if (!factory) throw new Error('Explicit native renderer required')
         const renderer = await factory.create({
           ...options,
-          zigFrame: new URLSearchParams(location.search).has('zig'),
         })
         tracing.nativeRenderer(drivers.length, renderer)
         mountedRenderer = renderer
@@ -177,7 +176,6 @@ async function createNative(host: HTMLElement): Promise<Driver> {
       const device = await adapter.requestDevice()
       const renderer = await WebGpuTerminalRenderer.create({
         ...options,
-        zigFrame: new URLSearchParams(location.search).has('zig'),
         deviceFactory: async () => device,
       })
       tracing.renderer(drivers.length, renderer)

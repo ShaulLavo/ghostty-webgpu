@@ -432,7 +432,7 @@ test('qualified analysis rejects a missing case or phase even with finishedAt', 
 })
 function pairedFrameArtifact() {
   const artifact = completeArtifact()
-  artifact.environment.arguments = ['--paired-frame-builders']
+  artifact.frameBuilders = ['js', 'zig']
   artifact.runs = artifact.runs.flatMap((run) => {
     if (run.variant !== 'ghostty-webgpu') return [run]
     return ['js', 'zig'].map((frameBuilder) => ({

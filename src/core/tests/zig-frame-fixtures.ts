@@ -1,3 +1,8 @@
+import type { RenderRow } from '../types.js'
+import type { GlyphRasterizationInput } from '../../render/atlas/types.js'
+import { contrastAdjustedColor } from '../../render/contrast.js'
+import type { CanonicalRendererTheme } from '../../render/instances/types.js'
+
 export const zigFrameContents = [
   'plain ASCII abc 123',
   '\x1b[31;44mANSI\x1b[0m default',
@@ -33,3 +38,26 @@ export const zigGlyphCollisionFixtures = [
 ] as const
 
 export const zigFrameCursorStyles = ['block', 'bar', 'underline', 'outline'] as const
+
+// Decode through the styled reader, independently of the native frame's glyph descriptors.
+export function expectedGlyphs(rows: readonly RenderRow[], theme: CanonicalRendererTheme) {
+  return rows.flatMap((row) =>
+    row.cells.flatMap((cell, index) => {
+      if (cell.continuation || !cell.text || cell.style?.invisible) return []
+      const foreground = cell.foreground ?? theme.foreground
+      const background = cell.background ?? theme.background
+      const input: GlyphRasterizationInput = {
+        text: cell.text,
+        cellSpan: row.cells[index + 1]?.continuation ? 2 : 1,
+        weight: cell.style?.bold ? 'bold' : 'normal',
+        italic: cell.style?.italic ?? false,
+        foreground: contrastAdjustedColor(
+          cell.style?.inverse ? background : foreground,
+          cell.style?.inverse ? foreground : background,
+          theme.minimumContrast,
+        ),
+      }
+      return [{ x: cell.x, y: row.y, input }]
+    }),
+  )
+}

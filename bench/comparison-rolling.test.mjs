@@ -81,16 +81,8 @@ test('synthetic Unicode rolling logs preserve history and periodically add shell
 })
 
 test('burst metric deltas preserve missing baseline counters and unavailable control metrics', () => {
-  const before = [
-    undefined,
-    { submittedFrames: 3 },
-    { submittedFrames: 3, zigFrames: 3, jsFallbackFrames: 0 },
-  ]
-  const after = [
-    undefined,
-    { submittedFrames: 1203 },
-    { submittedFrames: 1203, zigFrames: 1195, jsFallbackFrames: 8 },
-  ]
+  const before = [undefined, { submittedFrames: 3 }, { submittedFrames: 3, zigFrames: 3 }]
+  const after = [undefined, { submittedFrames: 1203 }, { submittedFrames: 1203, zigFrames: 1195 }]
   const metrics = frameMetricDeltas(before, after)
   assert.deepEqual(metrics[0], {
     terminal: 0,
@@ -99,11 +91,9 @@ test('burst metric deltas preserve missing baseline counters and unavailable con
     delta: undefined,
   })
   assert.deepEqual(metrics[1].delta, { submittedFrames: 1200 })
-  assert.equal(metrics[1].delta.jsFallbackFrames, undefined)
   assert.deepEqual(metrics[2].delta, {
     submittedFrames: 1200,
     zigFrames: 1192,
-    jsFallbackFrames: 8,
   })
   assert.equal(metrics[2].before, before[2])
   assert.equal(metrics[2].after, after[2])

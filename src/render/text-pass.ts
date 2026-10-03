@@ -1,8 +1,6 @@
 import type { AtlasGpuTextures } from './atlas/gpu-textures.js'
 import type { RowInstanceUpdate } from './instances/types.js'
-import type { InstanceRows } from './instances/rows.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from './instances/layout.js'
-import { coalesceInstanceUpdates } from './instances/uploads.js'
 import { cellShader } from './shaders/cell.wgsl.js'
 import { glyphShader } from './shaders/glyph.wgsl.js'
 
@@ -92,15 +90,6 @@ export class WebGpuTextPass {
 
   get glyphBindGroupCreationCount(): number {
     return this.glyphBindGroupCreationCountValue
-  }
-
-  upload(instances: InstanceRows, updates: readonly RowInstanceUpdate[]): number {
-    const operationsBefore = this.metrics.uploadOperations
-    for (const batch of coalesceInstanceUpdates(updates)) {
-      this.writeRange(this.cellBuffer, instances.cellData, batch.cell)
-      this.writeRange(this.glyphBuffer, instances.glyphData, batch.glyph)
-    }
-    return this.metrics.uploadOperations - operationsBefore
   }
 
   uploadFrame(

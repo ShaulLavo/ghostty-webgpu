@@ -5,7 +5,8 @@ import type { ZigFrameOptions } from '../../core/zig-frame.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import type { GlyphBitmap, GlyphRasterizer } from '../atlas/types.js'
 import { canonicalRendererTheme } from '../config.js'
-import { InstanceRows } from '../instances/rows.js'
+import { createNativeTestState } from '../tests/native-state.js'
+import { buildZigFrame } from '../atlas/zig-glyphs.js'
 import { defaultRendererTheme, type CursorState, type RendererTheme } from '../instances/types.js'
 import { WebGlTextPass } from './text-pass.js'
 
@@ -60,16 +61,9 @@ function row(y: number, cells: readonly RenderCell[]): RenderRow {
   return { cells, dirty: true, y }
 }
 
-function glyphLookup(atlas: GlyphAtlas) {
-  return {
-    beginRow: (rowIndex: number) => atlas.beginRow(rowIndex),
-    resolve: (key: string, bitmap: GlyphBitmap, rowIndex: number) =>
-      atlas.getOrInsert(key, bitmap, rowIndex),
-  }
-}
-
 const rasterizer: GlyphRasterizer = {
   rasterize(input) {
+    if (input.text === ' ') return undefined
     const bitmap: GlyphBitmap = {
       height: cellSize,
       kind: 'grayscale',
@@ -78,7 +72,7 @@ const rasterizer: GlyphRasterizer = {
       pixels: new Uint8Array(cellSize * cellSize).fill(255),
       width: cellSize,
     }
-    if (input.text !== 'color') return bitmap
+    if (input.text !== 'C') return bitmap
     const pixels = new Uint8Array(cellSize * cellSize * 4)
     for (let offset = 0; offset < pixels.length; offset += 4)
       pixels.set([200, 100, 50, 128], offset)
@@ -86,7 +80,7 @@ const rasterizer: GlyphRasterizer = {
   },
 }
 
-function createGrid(options: {
+async function createGrid(options: {
   atlas?: GlyphAtlas
   columns: number
   cursor?: CursorState
@@ -98,16 +92,22 @@ function createGrid(options: {
   const height = options.rows * cellSize
   const gl = createContext(width, height)
   const atlas = options.atlas ?? new GlyphAtlas({ pageHeight: 128, pageWidth: 128 })
-  const instances = new InstanceRows({
+  const native = await createNativeTestState(options.columns, options.rows)
+  native.writeRows(options.renderRows)
+  native.state.update()
+  const builder = native.state.createFrameBuilder(options.columns, options.rows)
+  disposables.push(() => builder.dispose())
+  const theme = canonicalRendererTheme(options.theme ?? defaultRendererTheme)
+  const frameOptions = {
     cellHeight: cellSize,
     cellWidth: cellSize,
-    columns: options.columns,
-    rows: options.rows,
-  })
-  const theme = canonicalRendererTheme(options.theme ?? defaultRendererTheme)
-  const updates = options.renderRows.map((renderRow) =>
-    instances.rebuildRow(renderRow, glyphLookup(atlas), rasterizer, theme, options.cursor),
-  )
+    theme,
+    cursor: options.cursor,
+    full: true,
+    overlayRows: new Set<number>(),
+  }
+  expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+  const updates = builder.changedRanges()
   const pass = new WebGlTextPass({
     atlasLayout: atlas.textureLayout,
     context: gl,
@@ -117,13 +117,15 @@ function createGrid(options: {
   })
   disposables.push(() => pass.destroy())
   pass.syncAtlas(atlas.consumeUploads())
-  const uploadOperations = pass.upload(instances, updates)
+  const uploadOperations = pass.uploadFrame(builder, updates)
   const pixels = pass.capturePixels()
   expect(gl.getError()).toBe(gl.NO_ERROR)
   return {
     atlas,
     gl,
-    instances,
+    builder,
+    native,
+    frameOptions,
     pass,
     pixel(x: number, y: number) {
       const offset = (y * width + x) * 4
@@ -157,8 +159,8 @@ function coveredRowPixels(pixels: Uint8Array, width: number, left: number, y: nu
   return covered
 }
 
-it('renders transparent defaults, explicit backgrounds, inverse and selected cells', () => {
-  const grid = createGrid({
+it('renders transparent defaults, explicit backgrounds, inverse and selected cells', async () => {
+  const grid = await createGrid({
     columns: 4,
     renderRows: [
       row(0, [cell(0), cell(1, { background: { r: 255, g: 0, b: 0 } })]),
@@ -179,12 +181,12 @@ it('renders transparent defaults, explicit backgrounds, inverse and selected cel
   expect(grid.pixel(8, 24)).toEqual([0, 255, 0, 255])
   expect(grid.pixel(24, 24)).toEqual([0, 0, 255, 255])
   expect(grid.pixel(40, 24)).toEqual([0, 0, 0, 0])
-  expect(grid.uploadOperations).toBe(2)
+  expect(grid.uploadOperations).toBe(4)
 })
 
-it('samples grayscale and color texture arrays with premultiplied faint coverage', () => {
+it('samples grayscale and color texture arrays with premultiplied faint coverage', async () => {
   const atlas = new GlyphAtlas({ maxLayersPerKind: 2, pageHeight: 18, pageWidth: 18 })
-  const grid = createGrid({
+  const grid = await createGrid({
     atlas,
     columns: 4,
     renderRows: [
@@ -195,8 +197,8 @@ it('samples grayscale and color texture arrays with premultiplied faint coverage
           style: style({ faint: true }),
           text: 'Y',
         }),
-        cell(2, { text: 'color' }),
-        cell(3, { style: style({ faint: true }), text: 'color' }),
+        cell(2, { text: 'C' }),
+        cell(3, { style: style({ faint: true }), text: 'C' }),
       ]),
     ],
     rows: 1,
@@ -213,8 +215,8 @@ it('samples grayscale and color texture arrays with premultiplied faint coverage
   expect(grid.pass.atlasUploadedBytes).toBeGreaterThan(0)
 })
 
-it('renders every underline style, other decorations, contrast and an outline cursor', () => {
-  const grid = createGrid({
+it('renders every underline style, other decorations, contrast and an outline cursor', async () => {
+  const grid = await createGrid({
     columns: 8,
     cursor: { style: 'outline', visible: true, x: 7, y: 0 },
     renderRows: [
@@ -247,8 +249,8 @@ it('renders every underline style, other decorations, contrast and an outline cu
   expect(grid.pixel(8, 24)).toEqual([0, 0, 0, 255])
 })
 
-it('renders explicit cursor text and updates one row without replacing the atlas on resize', () => {
-  const grid = createGrid({
+it('renders explicit cursor text and updates one row without replacing the atlas on resize', async () => {
+  const grid = await createGrid({
     columns: 2,
     cursor: { style: 'block', visible: true, x: 0, y: 0 },
     renderRows: [row(0, [cell(0, { text: 'X' })]), row(1, [cell(0)])],
@@ -260,43 +262,28 @@ it('renders explicit cursor text and updates one row without replacing the atlas
     },
   })
   expect(grid.pixel(8, 8)).toEqual([0, 0, 255, 255])
-  const update = grid.instances.rebuildRow(
-    row(1, [cell(0, { background: { r: 255, g: 0, b: 0 } })]),
-    glyphLookup(grid.atlas),
-    rasterizer,
-    grid.theme,
-  )
-  expect(grid.pass.upload(grid.instances, [update])).toBe(2)
+  grid.native.state.acknowledge()
+  grid.native.terminal.write('\x1b[2;1H\x1b[48;2;255;0;0m ')
+  grid.native.state.update()
+  expect(
+    buildZigFrame(grid.builder, grid.atlas, rasterizer, { ...grid.frameOptions, full: false }),
+  ).toBe(0)
+  expect(grid.pass.uploadFrame(grid.builder, grid.builder.changedRanges())).toBe(1)
   const updated = grid.pass.capturePixels()
   expect([...updated.subarray(8 * 4, 8 * 4 + 4)]).toEqual([0, 0, 255, 255])
   const rowOffset = (24 * grid.width + 8) * 4
   expect([...updated.subarray(rowOffset, rowOffset + 4)]).toEqual([255, 0, 0, 255])
 
   const atlasOperations = grid.pass.atlasUploadOperations
-  const resized = new InstanceRows({
-    cellHeight: cellSize,
-    cellWidth: cellSize,
-    columns: 3,
-    rows: 2,
-  })
-  const resizeUpdates = [
-    resized.rebuildRow(
-      row(0, [cell(0, { text: 'X' })]),
-      glyphLookup(grid.atlas),
-      rasterizer,
-      grid.theme,
-      { style: 'block', visible: true, x: 0, y: 0 },
-    ),
-    resized.rebuildRow(
-      row(1, [cell(0, { background: { r: 255, g: 0, b: 0 } })]),
-      glyphLookup(grid.atlas),
-      rasterizer,
-      grid.theme,
-    ),
-  ]
+  grid.native.terminal.resize({ columns: 3, rows: 2 })
+  grid.native.state.update()
+  const resized = grid.native.state.createFrameBuilder(3, 2)
+  disposables.push(() => resized.dispose())
+  expect(buildZigFrame(resized, grid.atlas, rasterizer, grid.frameOptions)).toBe(0)
+  const resizeUpdates = resized.changedRanges()
   grid.gl.canvas.width = cellSize * 3
   grid.pass.resize({ height: cellSize * 2, instanceCount: 6, width: cellSize * 3 })
-  grid.pass.upload(resized, resizeUpdates)
+  grid.pass.uploadFrame(resized, resizeUpdates)
   grid.gl.clearColor(0, 0, 0, 0)
   grid.gl.clear(grid.gl.COLOR_BUFFER_BIT)
   const resizedPixels = grid.pass.capturePixels()
@@ -310,8 +297,8 @@ it('renders explicit cursor text and updates one row without replacing the atlas
   expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
 })
 
-it('leaves pixel upload state untouched when the atlas has no pending changes', () => {
-  const grid = createGrid({
+it('leaves pixel upload state untouched when the atlas has no pending changes', async () => {
+  const grid = await createGrid({
     columns: 1,
     renderRows: [row(0, [cell(0, { text: 'X' })])],
     rows: 1,
@@ -325,7 +312,7 @@ it('leaves pixel upload state untouched when the atlas has no pending changes', 
   expect(bindTexture).not.toHaveBeenCalled()
 })
 
-it('releases partial initialization resources after an allocation failure', () => {
+it('releases partial initialization resources after an allocation failure', async () => {
   const gl = createContext(16, 16)
   const createProgram = vi.spyOn(gl, 'createProgram')
   const createShader = vi.spyOn(gl, 'createShader')
@@ -359,7 +346,7 @@ it('releases partial initialization resources after an allocation failure', () =
 })
 
 it('uploads native changed-range byte offsets into the matching GPU buffer regions', async () => {
-  const grid = createGrid({ columns: 4, renderRows: [], rows: 3 })
+  const grid = await createGrid({ columns: 4, renderRows: [], rows: 3 })
   const runtime = await GhosttyRuntime.create()
   disposables.push(() => runtime.dispose())
   const terminal = runtime.createTerminal({ columns: 4, rows: 3 })
@@ -399,13 +386,11 @@ it('uploads native changed-range byte offsets into the matching GPU buffer regio
   expect(changes).toEqual([
     {
       row: 0,
-      invalidatedRows: [],
       cell: { byteOffset: 0, byteLength: 0 },
       glyph: { byteOffset: 0, byteLength: 0 },
     },
     {
       row: 1,
-      invalidatedRows: [],
       cell: { byteOffset: 6 * 64, byteLength: 64 },
       glyph: { byteOffset: 6 * 96, byteLength: 96 },
     },
@@ -434,13 +419,13 @@ it('uploads native changed-range byte offsets into the matching GPU buffer regio
   expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
 })
 
-it('skips empty native ranges and counts cell-only and glyph-only uploads separately', () => {
-  const grid = createGrid({
+it('skips empty native ranges and counts cell-only and glyph-only uploads separately', async () => {
+  const grid = await createGrid({
     columns: 2,
     renderRows: [row(0, [cell(0, { text: 'X' }), cell(1, { text: 'X' })])],
     rows: 1,
   })
-  const frame = { cellData: grid.instances.cellData, glyphData: grid.instances.glyphData }
+  const frame = { cellData: grid.builder.cellData, glyphData: grid.builder.glyphData }
   const bufferSubData = vi.spyOn(grid.gl, 'bufferSubData')
   const bindBuffer = vi.spyOn(grid.gl, 'bindBuffer')
   expect(grid.pass.uploadFrame(frame, [])).toBe(0)

@@ -1,4 +1,3 @@
-import type { AtlasInsertResult, GlyphBitmap, GlyphRasterizationInput } from '../atlas/types.js'
 import type { RgbColor } from '../../core/types.js'
 
 export type CursorStyle = 'bar' | 'block' | 'outline' | 'underline'
@@ -24,15 +23,6 @@ export type CanonicalRendererTheme = Omit<RendererTheme, 'cursorText'> & {
   cursorText: RgbColor
 }
 
-export interface GlyphLookup {
-  beginRow(row: number): void
-  resolve(key: string, bitmap: GlyphBitmap, row: number): AtlasInsertResult
-}
-
-export interface GlyphSource {
-  rasterize(input: GlyphRasterizationInput): GlyphBitmap | undefined
-}
-
 export interface InstanceByteRange {
   byteLength: number
   byteOffset: number
@@ -41,15 +31,7 @@ export interface InstanceByteRange {
 export interface RowInstanceUpdate {
   cell: InstanceByteRange
   glyph: InstanceByteRange
-  invalidatedRows: readonly number[]
   row: number
-}
-
-export interface InstanceRowsOptions {
-  cellHeight: number
-  cellWidth: number
-  columns: number
-  rows: number
 }
 
 export const defaultRendererTheme: RendererTheme = {

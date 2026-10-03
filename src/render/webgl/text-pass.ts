@@ -1,9 +1,7 @@
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../instances/layout.js'
-import type { InstanceRows } from '../instances/rows.js'
-import type { InstanceByteRange, RowInstanceUpdate } from '../instances/types.js'
-import { coalesceInstanceUpdates } from '../instances/uploads.js'
+import type { InstanceByteRange } from '../instances/types.js'
 import {
   cellFragmentShader,
   cellVertexShader,
@@ -119,10 +117,6 @@ export class WebGlTextPass {
       gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0)
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4)
     }
-  }
-
-  upload(instances: InstanceRows, updates: readonly RowInstanceUpdate[]): number {
-    return this.uploadFrame(instances, coalesceInstanceUpdates(updates))
   }
 
   uploadFrame(

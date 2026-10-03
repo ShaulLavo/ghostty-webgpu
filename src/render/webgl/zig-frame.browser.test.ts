@@ -13,7 +13,6 @@ import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import type { AtlasInsertResult } from '../atlas/types.js'
 import { buildZigFrame, registerZigGlyphs, zigGlyphRow } from '../atlas/zig-glyphs.js'
 import { canonicalRendererTheme } from '../config.js'
-import { InstanceRows } from '../instances/rows.js'
 import { defaultRendererTheme } from '../instances/types.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../renderer.js'
 import { WebGlTerminalRenderer } from './renderer.js'
@@ -70,77 +69,51 @@ async function rendererFixture(
   return { canvas, clock, renderer }
 }
 
-async function parityFixture(content: string) {
+async function nativeFixture(content: string) {
   const nativeSource = await runtimeFixture()
-  const jsSource = await runtimeFixture()
   nativeSource.terminal.write(content)
-  jsSource.terminal.write(content)
   const native = await rendererFixture(nativeSource)
-  const js = await rendererFixture(jsSource, { zigFrame: false })
   const readRows = vi.spyOn(nativeSource.state, 'readRows')
   const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
-  return { build, js, jsSource, native, nativeSource, readRows }
+  return { build, native, nativeSource, readRows }
 }
 
-async function expectPixelParity(
-  native: WebGlTerminalRenderer,
-  js: WebGlTerminalRenderer,
-): Promise<Uint8Array> {
-  const nativePaint = paintObservers.get(native)!
-  const jsPaint = paintObservers.get(js)!
-  for (const renderer of [native, js]) {
-    const observer = paintObservers.get(renderer)!
-    expect(observer.count()).toBe((renderer.metrics.submittedFrames - observer.submitted) * 2)
-    observer.submitted = renderer.metrics.submittedFrames
-  }
-  const nativeDisplayed = await displayedPixels(nativePaint.canvas)
-  const jsDisplayed = await displayedPixels(jsPaint.canvas)
-  const nativePixels = await native.capturePixels()
-  expect(nativePixels).toEqual(await js.capturePixels())
-  nativePaint.reset()
-  jsPaint.reset()
-  expect(nativeDisplayed.byteLength).toBe(jsDisplayed.byteLength)
-  const firstDifference = nativeDisplayed.findIndex((value, index) => value !== jsDisplayed[index])
-  expect(firstDifference, 'Scheduled compositor pixels match before capture redraws').toBe(-1)
-  return nativePixels
+async function expectPainted(native: WebGlTerminalRenderer): Promise<Uint8Array> {
+  const observer = paintObservers.get(native)!
+  expect(observer.count()).toBe((native.metrics.submittedFrames - observer.submitted) * 2)
+  observer.submitted = native.metrics.submittedFrames
+  const displayed = await displayedPixels(observer.canvas)
+  expect(displayed.byteLength).toBe(observer.canvas.width * observer.canvas.height * 4)
+  const pixels = await native.capturePixels()
+  observer.reset()
+  expect(pixels.some((value, index) => index % 4 === 3 && value > 0)).toBe(true)
+  return pixels
 }
 
-function writePair(
-  native: { terminal: GhosttyTerminal },
-  js: { terminal: GhosttyTerminal },
-  content: string,
-): void {
+function writeFrame(native: { terminal: GhosttyTerminal }, content: string): void {
   native.terminal.write(content)
-  js.terminal.write(content)
 }
 
-describe('WebGL WASM frame pixel parity', () => {
-  it.each(zigFrameContents)('matches the JS producer for %j', async (content) => {
-    const { native, js, readRows } = await parityFixture(`\x1b[?25l${content}`)
+describe('WebGL WASM frame pixels', () => {
+  it.each(zigFrameContents)('paints native records for %j', async (content) => {
+    const { native, readRows } = await nativeFixture(`\x1b[?25l${content}`)
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(native.renderer.metrics.zigFrames).toBe(1)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
-    expect(js.renderer.metrics.zigFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
-    const pixels = await expectPixelParity(native.renderer, js.renderer)
+    const pixels = await expectPainted(native.renderer)
     expect(pixels.some((value) => value !== 0)).toBe(true)
     expect(native.renderer.hasPendingFrame).toBe(false)
   })
 
   it.each(zigFrameCursorStyles)('matches a visible %s cursor and its movement', async (style) => {
-    const { native, js, nativeSource, jsSource, readRows } = await parityFixture('ABC\x1b[1;2H')
+    const { native, nativeSource, readRows } = await nativeFixture('ABC\x1b[1;2H')
     native.renderer.setInactiveCursorStyle(style)
-    js.renderer.setInactiveCursorStyle(style)
     native.clock.flushFrame()
-    js.clock.flushFrame()
-    const before = await expectPixelParity(native.renderer, js.renderer)
-    writePair(nativeSource, jsSource, '\x1b[2;4H')
+    const before = await expectPainted(native.renderer)
+    writeFrame(nativeSource, '\x1b[2;4H')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     native.clock.flushFrame()
-    js.clock.flushFrame()
-    const after = await expectPixelParity(native.renderer, js.renderer)
+    const after = await expectPainted(native.renderer)
     expect(after).not.toEqual(before)
     expect(native.renderer.metrics.zigFrames).toBe(2)
     expect(readRows).not.toHaveBeenCalled()
@@ -148,22 +121,19 @@ describe('WebGL WASM frame pixel parity', () => {
   })
 
   it('uploads newly colored cells after a missing-glyph retry and preserves clean rows', async () => {
-    const { native, js, nativeSource, jsSource, readRows, build } = await parityFixture(
+    const { native, nativeSource, readRows, build } = await nativeFixture(
       '\x1b[?25lold\r\nsecond\r\nthird\x1b[2;1H',
     )
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
-    const before = await expectPixelParity(native.renderer, js.renderer)
+    const before = await expectPainted(native.renderer)
     build.mockClear()
     const uploaded = native.renderer.metrics.uploadedBytes
-    writePair(nativeSource, jsSource, '\x1b[2;6H\x1b[31;44mX')
+    writeFrame(nativeSource, '\x1b[2;6H\x1b[31;44mX')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
-    const after = await expectPixelParity(native.renderer, js.renderer)
+    const after = await expectPainted(native.renderer)
     expect(after).not.toEqual(before)
     const firstRowBytes = native.canvas.width * fittedFont().deviceCellHeight * 4
     expect(after.subarray(0, firstRowBytes)).toEqual(before.subarray(0, firstRowBytes))
@@ -174,24 +144,20 @@ describe('WebGL WASM frame pixel parity', () => {
     expect(readRows).not.toHaveBeenCalled()
   })
 
-  it('diffs viewport scroll records while preserving scheduled JS pixel parity', async () => {
-    const { native, js, nativeSource, jsSource, readRows, build } = await parityFixture(
+  it('diffs viewport scroll records while preserving scheduled pixels', async () => {
+    const { native, nativeSource, readRows, build } = await nativeFixture(
       '\x1b[?25lsame\r\nsame\r\nother\r\nsame',
     )
     native.clock.flushFrame()
-    js.clock.flushFrame()
-    const bottom = await expectPixelParity(native.renderer, js.renderer)
+    const bottom = await expectPainted(native.renderer)
     const fullBufferBytes = 32 * 3 * (64 + 96)
     for (const delta of [-1, 1]) {
       const uploaded = native.renderer.metrics.uploadedBytes
       build.mockClear()
       nativeSource.terminal.scrollBy(delta)
-      jsSource.terminal.scrollBy(delta)
       native.renderer.notifyScroll()
-      js.renderer.notifyScroll()
       native.clock.flushFrame()
-      js.clock.flushFrame()
-      const pixels = await expectPixelParity(native.renderer, js.renderer)
+      const pixels = await expectPainted(native.renderer)
       if (delta === -1) expect(pixels).not.toEqual(bottom)
       if (delta === 1) expect(pixels).toEqual(bottom)
       const uploadedBytes = native.renderer.metrics.uploadedBytes - uploaded
@@ -206,38 +172,28 @@ describe('WebGL WASM frame pixel parity', () => {
   })
 
   it('keeps Unicode and clean wide rows resident in Zig across ASCII writes', async () => {
-    const { native, js, nativeSource, jsSource, readRows } = await parityFixture('\x1b[?25lASCII')
+    const { native, nativeSource, readRows } = await nativeFixture('\x1b[?25lASCII')
     native.clock.flushFrame()
-    js.clock.flushFrame()
-    await expectPixelParity(native.renderer, js.renderer)
-    writePair(nativeSource, jsSource, '\x1b[3;1H界')
+    await expectPainted(native.renderer)
+    writeFrame(nativeSource, '\x1b[3;1H界')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(native.renderer.metrics.zigFrames).toBe(2)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
-    await expectPixelParity(native.renderer, js.renderer)
-    writePair(nativeSource, jsSource, '\x1b[2;1Hchanged')
+    await expectPainted(native.renderer)
+    writeFrame(nativeSource, '\x1b[2;1Hchanged')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(native.renderer.metrics.zigFrames).toBe(3)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
-    await expectPixelParity(native.renderer, js.renderer)
+    await expectPainted(native.renderer)
     readRows.mockClear()
-    writePair(nativeSource, jsSource, '\x1b[3;1H\x1b[2KASCII')
+    writeFrame(nativeSource, '\x1b[3;1H\x1b[2KASCII')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(native.renderer.metrics.zigFrames).toBe(4)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
-    await expectPixelParity(native.renderer, js.renderer)
+    await expectPainted(native.renderer)
     native.renderer.schedule()
     native.clock.flushFrame()
     expect(native.renderer.metrics.submittedFrames).toBe(4)
@@ -281,12 +237,9 @@ describe('WebGL WASM frame lifecycle', () => {
   })
 
   it('restores native glyphs and pending writes after real WebGL context loss', async () => {
-    const { native, js, nativeSource, jsSource, readRows } = await parityFixture(
-      '\x1b[?25lfirst\r\nsecond',
-    )
+    const { native, nativeSource, readRows } = await nativeFixture('\x1b[?25lfirst\r\nsecond')
     native.clock.flushFrame()
-    js.clock.flushFrame()
-    await expectPixelParity(native.renderer, js.renderer)
+    await expectPainted(native.renderer)
     const gl = native.canvas.getContext('webgl2')!
     const extension = gl.getExtension('WEBGL_lose_context')!
     expect(extension).toBeDefined()
@@ -296,10 +249,8 @@ describe('WebGL WASM frame lifecycle', () => {
     extension.loseContext()
     expect((await lost).defaultPrevented).toBe(true)
     const acknowledge = vi.spyOn(nativeSource.state, 'acknowledge')
-    writePair(nativeSource, jsSource, '\x1b[2;1H\x1b[31;44mX')
+    writeFrame(nativeSource, '\x1b[2;1H\x1b[31;44mX')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
-    flushPendingFrames(js.clock)
     expect(acknowledge).not.toHaveBeenCalled()
     expect(native.renderer.metrics.zigFrames).toBe(1)
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0))
@@ -309,11 +260,10 @@ describe('WebGL WASM frame lifecycle', () => {
     extension.restoreContext()
     await restored
     flushPendingFrames(native.clock)
-    await expectPixelParity(native.renderer, js.renderer)
+    await expectPainted(native.renderer)
     expect(acknowledge).toHaveBeenCalledTimes(1)
     expect(native.renderer.metrics.zigFrames).toBe(2)
     expect(native.renderer.metrics.deviceRestores).toBe(1)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
     expect(gl.getError()).toBe(gl.NO_ERROR)
   })
@@ -418,7 +368,8 @@ describe('WebGL WASM frame lifecycle', () => {
   it('frees partial replacement allocations and recovers from a failed builder resize', async () => {
     const source = await runtimeFixture(8, 2)
     source.terminal.write('\x1b[?25lfirst')
-    const { clock, renderer } = await rendererFixture(source)
+    const onError = vi.fn()
+    const { clock, renderer } = await rendererFixture(source, { onError })
     clock.flushFrame()
     source.terminal.resize({ columns: 9, rows: 2 })
     const memory = source.runtime.memory
@@ -432,7 +383,8 @@ describe('WebGL WASM frame lifecycle', () => {
       return pointer
     })
     const free = vi.spyOn(memory, 'free')
-    expect(() => renderer.resize({ columns: 9, rows: 2 })).toThrow(injected)
+    expect(() => renderer.resize({ columns: 9, rows: 2 })).not.toThrow()
+    expect(onError).toHaveBeenCalledExactlyOnceWith(injected)
     expect(free.mock.calls.slice(-2)).toEqual(
       allocations.map(({ pointer, length }) => [pointer, length]),
     )
@@ -531,25 +483,10 @@ describe('WebGL native atlas residency', () => {
     expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
     expect(builds.mock.results.map((result) => result.value)).toEqual([2, 2, 0])
     expect(atlas.evictionCount).toBe(1)
-    // Atlas repacking changes UVs; reconstruct all instances through the same live atlas.
-    const js = new InstanceRows({
-      columns: 2,
-      rows: 2,
-      cellWidth: font.deviceCellWidth,
-      cellHeight: font.deviceCellHeight,
-    })
-    for (const row of source.state.readRows())
-      js.rebuildRow(
-        row,
-        {
-          beginRow: (row) => atlas.beginRow(row),
-          resolve: (key, bitmap, row) => atlas.getOrInsert(key, bitmap, row),
-        },
-        rasterizer,
-        theme,
-      )
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    const records = { cells: builder.cellData.slice(), glyphs: builder.glyphData.slice() }
+    expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: true })).toBe(0)
+    expect(builder.cellData).toEqual(records.cells)
+    expect(builder.glyphData).toEqual(records.glyphs)
     expect(builder.glyphData.slice(0, 2 * 24)).not.toEqual(new Float32Array(clean.length))
     expect(builder.changedRanges().map((range) => range.row)).toEqual([0, 1])
     expect(builder.missingGlyphs).toEqual([])
@@ -603,44 +540,36 @@ describe('WebGL native atlas residency', () => {
   })
 
   it('rebuilds native pixels after clearing the atlas and changing the fitted font', async () => {
-    const { native, js, readRows, build } = await parityFixture('\x1b[?25lfirst\r\nsecond')
+    const { native, readRows, build } = await nativeFixture('\x1b[?25lfirst\r\nsecond')
     native.clock.flushFrame()
-    js.clock.flushFrame()
-    const before = await expectPixelParity(native.renderer, js.renderer)
+    const before = await expectPainted(native.renderer)
     build.mockClear()
     native.renderer.clearTextureAtlas()
-    js.renderer.clearTextureAtlas()
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
-    expect(await expectPixelParity(native.renderer, js.renderer)).toEqual(before)
+    expect(await expectPainted(native.renderer)).toEqual(before)
     build.mockClear()
     const font = fittedFont(20, 30, 24)
     native.renderer.setFont(font)
-    js.renderer.setFont(font)
     native.clock.flushFrame()
-    js.clock.flushFrame()
     expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
     expect([native.canvas.width, native.canvas.height]).toEqual([32 * 20, 3 * 30])
-    await expectPixelParity(native.renderer, js.renderer)
+    await expectPainted(native.renderer)
     expect(native.renderer.metrics.zigFrames).toBe(3)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
   })
 
-  it('recovers native atlas eviction with zero fallback and clean-row pixels intact', async ({
+  it('recovers native atlas eviction through native retries and clean-row pixels intact', async ({
     onTestFinished,
   }) => {
     const viewport = { width: window.innerWidth, height: window.innerHeight }
     onTestFinished(() => page.viewport(viewport.width, viewport.height))
     await page.viewport(800, 1200)
     const nativeSource = await runtimeFixture(1, 2)
-    const jsSource = await runtimeFixture(1, 2)
     const font = fittedFont(320, 512, 500)
-    writePair(nativeSource, jsSource, '\x1b[?25lM\x1b[2;1H_')
+    writeFrame(nativeSource, '\x1b[?25lM\x1b[2;1H_')
     const native = await rendererFixture(nativeSource, { font })
-    const js = await rendererFixture(jsSource, { font, zigFrame: false })
-    for (const canvas of [native.canvas, js.canvas]) {
+    for (const canvas of [native.canvas]) {
       const bounds = canvas.getBoundingClientRect()
       expect(bounds.left).toBeGreaterThanOrEqual(0)
       expect(bounds.top).toBeGreaterThanOrEqual(0)
@@ -648,32 +577,26 @@ describe('WebGL native atlas residency', () => {
       expect(bounds.bottom).toBeLessThanOrEqual(window.innerHeight)
     }
     flushPendingFrames(native.clock)
-    flushPendingFrames(js.clock)
-    const before = await expectPixelParity(native.renderer, js.renderer)
+    const before = await expectPainted(native.renderer)
     const readRows = vi.spyOn(nativeSource.state, 'readRows')
     const glyphs = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].flatMap((letter) => [
       `\x1b[0m${letter}`,
       `\x1b[1m${letter}`,
     ])
     for (const glyph of glyphs) {
-      writePair(nativeSource, jsSource, `\x1b[1;1H${glyph}`)
+      writeFrame(nativeSource, `\x1b[1;1H${glyph}`)
       native.renderer.notifyWrite()
-      js.renderer.notifyWrite()
       flushPendingFrames(native.clock)
-      flushPendingFrames(js.clock)
     }
     expect(native.renderer.metrics.atlasEvictions).toBeGreaterThan(0)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
     expect(readRows).not.toHaveBeenCalled()
     const frames = native.renderer.metrics.zigFrames
-    writePair(nativeSource, jsSource, '\x1b[1;1H\x1b[0mZ')
+    writeFrame(nativeSource, '\x1b[1;1H\x1b[0mZ')
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     flushPendingFrames(native.clock)
-    flushPendingFrames(js.clock)
     expect(native.renderer.metrics.zigFrames).toBe(frames + 1)
-    const after = await expectPixelParity(native.renderer, js.renderer)
+    const after = await expectPainted(native.renderer)
     const rowBytes = native.canvas.width * font.deviceCellHeight * 4
     expect(after.subarray(rowBytes)).toEqual(before.subarray(rowBytes))
   }, 20_000)
@@ -691,7 +614,6 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
   onTestFinished(() => page.viewport(viewport.width, viewport.height))
   await page.viewport(1000, 1500)
   const nativeSource = await runtimeFixture(1, 2)
-  const jsSource = await runtimeFixture(1, 2)
   const face = new FontFace(
     'AtlasResidencyTest',
     `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
@@ -703,13 +625,11 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
   })
   const fitted = fittedFont(400, 650, 650)
   const font = { ...fitted, settings: { ...fitted.settings, family: 'AtlasResidencyTest' } }
-  writePair(nativeSource, jsSource, '\x1b[?25lM\x1b[2;1HA')
+  writeFrame(nativeSource, '\x1b[?25lM\x1b[2;1HA')
   const insertions = vi.spyOn(GlyphAtlas.prototype, 'getOrInsert')
   const native = await rendererFixture(nativeSource, { font })
-  const js = await rendererFixture(jsSource, { font, zigFrame: false })
   flushPendingFrames(native.clock)
   const nativeM = atlasInsertion(insertions, 0, JSON.stringify([1, 'normal', false, 'M']))?.glyph
-  flushPendingFrames(js.clock)
   if (!nativeM) expect.fail('The native renderer must register M')
   expect(nativeM.width).toBeGreaterThan(256)
   expect(nativeM.height).toBeGreaterThan(256)
@@ -735,35 +655,27 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
     })
   let next = 0
   while (native.renderer.metrics.atlasPages < 16 && next < seed.length) {
-    writePair(nativeSource, jsSource, `\x1b[2;1H${seed[next++]}`)
+    writeFrame(nativeSource, `\x1b[2;1H${seed[next++]}`)
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     flushPendingFrames(native.clock)
-    flushPendingFrames(js.clock)
   }
   expect(native.renderer.metrics.atlasPages).toBe(16)
-  expect(js.renderer.metrics.atlasPages).toBe(16)
   expect(native.renderer.metrics.atlasEvictions).toBe(0)
-  expect(js.renderer.metrics.atlasEvictions).toBe(0)
   const nativeReadRows = vi.spyOn(nativeSource.state, 'readRows')
   const builds = vi.spyOn(ZigFrameBuilder.prototype, 'build')
   const touches = vi.spyOn(GlyphAtlas.prototype, 'touchGlyph')
-  const before = { native: { ...native.renderer.metrics }, js: { ...js.renderer.metrics } }
+  const before = { native: { ...native.renderer.metrics } }
   for (const color of [31, 32, 33]) {
-    writePair(nativeSource, jsSource, `\x1b[1;1H\x1b[0;${color}mM`)
+    writeFrame(nativeSource, `\x1b[1;1H\x1b[0;${color}mM`)
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     flushPendingFrames(native.clock)
-    flushPendingFrames(js.clock)
   }
   expect(native.renderer.metrics.zigFrames).toBe(before.native.zigFrames + 3)
-  expect(js.renderer.metrics.atlasCacheHits).toBeGreaterThan(before.js.atlasCacheHits)
   expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches).not.toHaveBeenCalled()
-  const warm = { native: { ...native.renderer.metrics }, js: { ...js.renderer.metrics } }
-  const warmPixels = await expectPixelParity(native.renderer, js.renderer)
+  const warm = { native: { ...native.renderer.metrics } }
+  const warmPixels = await expectPainted(native.renderer)
   let nativeFirstEviction: AtlasInsertResult | undefined
-  let jsFirstEviction: AtlasInsertResult | undefined
   for (; next < seed.length && !nativeFirstEviction; next++) {
     const cold = seed[next]!
     const coldKey = JSON.stringify([
@@ -772,26 +684,19 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
       false,
       cold.slice(-1),
     ])
-    writePair(nativeSource, jsSource, `\x1b[2;1H${cold}`)
+    writeFrame(nativeSource, `\x1b[2;1H${cold}`)
     native.renderer.notifyWrite()
-    js.renderer.notifyWrite()
     const nativeCall = insertions.mock.calls.length
     const nativeEvictions = native.renderer.metrics.atlasEvictions
     flushPendingFrames(native.clock)
     if (native.renderer.metrics.atlasEvictions > nativeEvictions)
       nativeFirstEviction = atlasInsertion(insertions, nativeCall, coldKey)
-    const jsCall = insertions.mock.calls.length
-    const jsEvictions = js.renderer.metrics.atlasEvictions
-    flushPendingFrames(js.clock)
-    if (js.renderer.metrics.atlasEvictions > jsEvictions)
-      jsFirstEviction = atlasInsertion(insertions, jsCall, coldKey)
   }
-  if (!nativeFirstEviction || !jsFirstEviction)
-    expect.fail('Both renderers must insert the first cold glyph after an eviction')
-  const finalPixels = await expectPixelParity(native.renderer, js.renderer)
+  if (!nativeFirstEviction)
+    expect.fail('The native renderer must insert the first cold glyph after an eviction')
+  const finalPixels = await expectPainted(native.renderer)
   const rowBytes = native.canvas.width * font.deviceCellHeight * 4
   expect(finalPixels.subarray(0, rowBytes)).toEqual(warmPixels.subarray(0, rowBytes))
-  expect(jsFirstEviction.glyph.layer).not.toBe(nativeM.layer)
   expect(nativeFirstEviction.glyph.layer).not.toBe(nativeM.layer)
   expect(native.renderer.metrics.atlasEvictions - warm.native.atlasEvictions).toBe(1)
   expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(3)
@@ -800,7 +705,6 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
     16 * 512 * 512,
   )
   expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0, 0, 0, 2, 2, 0])
-  expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
   expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
   expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches.mock.calls).toEqual([

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { attachNativeTestBuilder } from './native-state.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
 import { WebGpuUnavailableError, type WebGpuTerminalRendererOptions } from '../renderer.js'
 import { createCompatibleTerminalRenderer, type CompatibleTerminalRenderer } from '../selector.js'
@@ -27,6 +28,11 @@ async function fixture(
   overrides: Partial<WebGpuTerminalRendererOptions> = {},
   signal?: AbortSignal,
 ) {
+  await attachNativeTestBuilder(
+    source,
+    overrides.columns ?? source.rows[0]?.cells.length ?? 1,
+    overrides.rows ?? source.rows.length,
+  )
   const canvas = createCanvas()
   const clock = new TestClock()
   let currentCanvas = canvas

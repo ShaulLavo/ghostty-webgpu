@@ -5,7 +5,6 @@ import type { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
 import type { RowTerminalRenderer } from '../src/render/row-renderer.js'
 import type { WebGpuTerminalRenderer } from '../src/render/renderer.js'
 import type { RowInstanceUpdate } from '../src/render/instances/types.js'
-import { coalesceInstanceUpdates } from '../src/render/instances/uploads.js'
 
 type Category = 'parse' | 'snapshot' | 'damage' | 'instances' | 'upload' | 'commands' | 'js'
 interface Span {
@@ -179,17 +178,7 @@ export class ComparisonTracing {
     this.wrap(renderer, 'notifyWrite', terminal, 'js')
     this.traceGpuFrames(terminal, renderer)
     this.wrap(renderer, 'rowsToRebuild', terminal, 'damage')
-    this.wrap(renderer, 'rebuildRows', terminal, 'instances')
     this.wrap(renderer, 'drawZigFrame', terminal, 'js')
-    this.wrap(pass, 'upload', terminal, 'upload', (result, args) => {
-      this.count(terminal, 'buffersWritten', result as number)
-      const rows = args[1] as { cell: { byteLength: number }; glyph: { byteLength: number } }[]
-      this.count(
-        terminal,
-        'bufferBytes',
-        rows.reduce((sum, row) => sum + row.cell.byteLength + row.glyph.byteLength, 0),
-      )
-    })
     this.wrap(pass, 'uploadFrame', terminal, 'upload', (result, args) => {
       this.count(terminal, 'buffersWritten', result as number)
       const ranges = args[1] as { cell: { byteLength: number }; glyph: { byteLength: number } }[]
@@ -226,13 +215,11 @@ export class ComparisonTracing {
       readonly metrics: {
         readonly submittedFrames: number
         readonly zigFrames?: number
-        readonly jsFallbackFrames?: number
       }
     },
   ): void {
     let submittedFrames = 0
     let zigFrames = 0
-    let fallbackFrames = 0
     this.wrap(
       renderer,
       'drawFrame',
@@ -241,16 +228,13 @@ export class ComparisonTracing {
       () => {
         const submitted = renderer.metrics.submittedFrames - submittedFrames
         const zig = (renderer.metrics.zigFrames ?? 0) - zigFrames
-        const fallback = (renderer.metrics.jsFallbackFrames ?? 0) - fallbackFrames
         if (submitted > 0) this.count(terminal, 'frames', submitted)
         if (zig > 0) this.count(terminal, 'zigFrames', zig)
-        if (fallback > 0) this.count(terminal, 'zigFallbackFrames', fallback)
       },
       false,
       () => {
         submittedFrames = renderer.metrics.submittedFrames
         zigFrames = renderer.metrics.zigFrames ?? 0
-        fallbackFrames = renderer.metrics.jsFallbackFrames ?? 0
       },
     )
   }
@@ -268,26 +252,20 @@ export class ComparisonTracing {
       this.traceGpuFrames(terminal, renderer)
       const pass = field(field(renderer, 'state'), 'pass')
       this.wrap(renderer, 'rowsToRebuild', terminal, 'damage')
-      this.wrap(renderer, 'rebuildRows', terminal, 'instances')
       this.wrap(pass, 'syncAtlas', terminal, 'upload')
-      const nativeUpload = typeof Reflect.get(pass as object, 'uploadFrame') === 'function'
       const recordUploads = (result: unknown, args: unknown[]) => {
         if (typeof result === 'number' && result > 0) this.count(terminal, 'instanceUploadBatches')
         this.count(terminal, 'buffersWritten', result as number)
         const updates = args[1] as readonly RowInstanceUpdate[]
-        const ranges = nativeUpload ? updates : coalesceInstanceUpdates(updates)
+        const ranges = updates
         this.count(
           terminal,
           'bufferBytes',
           ranges.reduce((sum, range) => sum + range.cell.byteLength + range.glyph.byteLength, 0),
         )
       }
-      // Archived JS runtimes expose only upload; its rows are coalesced before GL writes.
-      this.wrap(pass, 'upload', terminal, 'upload', nativeUpload ? undefined : recordUploads)
-      if (nativeUpload) {
-        this.wrap(renderer, 'drawZigFrame', terminal, 'js')
-        this.wrap(pass, 'uploadFrame', terminal, 'upload', recordUploads)
-      }
+      this.wrap(renderer, 'drawZigFrame', terminal, 'js')
+      this.wrap(pass, 'uploadFrame', terminal, 'upload', recordUploads)
       this.wrap(pass, 'submit', terminal, 'commands', () => this.count(terminal, 'submissions'))
       return
     }

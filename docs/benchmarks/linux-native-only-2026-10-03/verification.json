@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "measurementRuntimeHead": "98fea782553e1fdc3488ad14acfd5281482440f4",
+  "scope": "One rolling-logs 17-terminal WebGL before/after control; four balanced native/xterm repetitions in each separate quiet window.",
+  "sessions": {
+    "baseline": {
+      "rawArtifact": "/work/reports/ghostty-native-only-2026-10-03/baseline/comparison.json",
+      "rawArtifactSha256": "c035b4473a8c1b4e72aacfa1da62e3bb35e19bd65f9e8b087c2257e9c180704f",
+      "compactSha256": "935b9d378d0bc74f90b354bc270e0b480225d198482254c562e78d381830fbb9",
+      "runtimeCommit": "b991384e02827119aaaeae46a9c7cf7392eedeca",
+      "runtimeSourceHashesVerifiedAgainstGit": 143,
+      "bundleAssetsVerified": 25,
+      "completeRuns": 8,
+      "qualifiedGpuWindows": 16,
+      "pageErrors": 0,
+      "cpuProcessChurn": false,
+      "nativeSubmissions": 81600,
+      "inputSamples": 768,
+      "writeSamples": 768,
+      "runtimePackageVersion": "0.3.3",
+      "cpuSummary": [
+        {
+          "variant": "ghostty-webgl",
+          "metric": "output/cpu/renderer",
+          "values": [
+            15.651086829814627, 15.001956780980345, 15.999100905155311, 14.800564500935328
+          ],
+          "median": 15.326521805397487,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "ghostty-webgl",
+          "metric": "output/cpu/GPU",
+          "values": [
+            24.074760951593838, 24.122747780712576, 26.366119560209214, 24.667607501558862
+          ],
+          "median": 24.395177641135717,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "ghostty-webgl",
+          "metric": "output/cpu/total",
+          "values": [40.62304384171631, 39.97199115729646, 43.31220774635502, 40.26550881062539],
+          "median": 40.44427632617085,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/renderer",
+          "values": [22.852089751847778, 22.21225815294444, 22.460825324342817, 22.801274955333678],
+          "median": 22.631050139838248,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/GPU",
+          "values": [26.038437778249204, 25.100847778215236, 25.399159457682572, 28.17799481379666],
+          "median": 25.718798617965888,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/total",
+          "values": [49.836474600434904, 48.159761510980424, 48.80622797750767, 51.97495863180867],
+          "median": 49.321351288971286,
+          "unit": "percent of one core"
+        }
+      ],
+      "rawTraceHashes": {
+        "ghostty-webgl-zig-bytes-17-0-latency.trace.json.gz": "c588bc7d323e7a670f590ab3c6b3ef0b49c75773af6cad0f986bbf2b8f9b955d",
+        "xterm-webgl-bytes-17-0-latency.trace.json.gz": "4eb08c4f2e8e6239ece84f4270c474663f1b2fad0058a6b71b272f4914eda13d",
+        "xterm-webgl-bytes-17-1-latency.trace.json.gz": "3e74335c4c8f7e462e9e60513d5c00ef5048f55d0437b699f346e5e0dd6bf9e2",
+        "ghostty-webgl-zig-bytes-17-1-latency.trace.json.gz": "243931f02c8382c2b98cb2d48b5946b77c17a93144c9bd405cc6650b793cb43b",
+        "xterm-webgl-bytes-17-2-latency.trace.json.gz": "bf8a1603345538683eceb340c1654ccd7a5155463cff08d4ef7187900b830389",
+        "ghostty-webgl-zig-bytes-17-2-latency.trace.json.gz": "f0a1cd7c9caa7924b234232a5394ee94dfa612c3cacfcf836a0e1d7d8c2ed12d",
+        "ghostty-webgl-zig-bytes-17-3-latency.trace.json.gz": "0c4d9eaef16c29f07bbe334880ab1e8a305b7d62d9a38b70ae24e1e5511fd851",
+        "xterm-webgl-bytes-17-3-latency.trace.json.gz": "eb55892ad2a9111856e70b01aab004730e15034428d3053fe2afdd619853270d"
+      }
+    },
+    "treatment": {
+      "rawArtifact": "/work/reports/ghostty-native-only-2026-10-03/treatment/comparison.json",
+      "rawArtifactSha256": "58454c063f7c6b7afbbf5aecd12b69b4168cce6d5e19dd9b44f29f8820e783f3",
+      "compactSha256": "3a2218541328364e9bbdc7716f30772888b4721e07ceef3a30218801a7590be3",
+      "runtimeCommit": "98fea782553e1fdc3488ad14acfd5281482440f4",
+      "runtimeSourceHashesVerifiedAgainstGit": 138,
+      "bundleAssetsVerified": 25,
+      "completeRuns": 8,
+      "qualifiedGpuWindows": 16,
+      "pageErrors": 0,
+      "cpuProcessChurn": false,
+      "nativeSubmissions": 81600,
+      "inputSamples": 768,
+      "writeSamples": 768,
+      "runtimePackageVersion": "0.3.4",
+      "cpuSummary": [
+        {
+          "variant": "ghostty-webgl",
+          "metric": "output/cpu/renderer",
+          "values": [15.502982635266841, 14.8473027981598, 15.390872926572465, 14.94889042307063],
+          "median": 15.169881674821546,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "ghostty-webgl",
+          "metric": "output/cpu/GPU",
+          "values": [
+            24.226525918777117, 23.865295437310547, 24.754899173160236, 24.815158102297264
+          ],
+          "median": 24.490712545968677,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "ghostty-webgl",
+          "metric": "output/cpu/total",
+          "values": [40.77633374806519, 39.6094151830102, 40.99251915394544, 40.660981950752124],
+          "median": 40.71865784940866,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/renderer",
+          "values": [22.31775406370769, 22.44755234036855, 22.853513485900585, 22.74938088912053],
+          "median": 22.598466614744538,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/GPU",
+          "values": [25.2071061523127, 25.035740193360056, 26.737117084811796, 26.184188944589483],
+          "median": 25.695647548451092,
+          "unit": "percent of one core"
+        },
+        {
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/total",
+          "values": [48.42155569179436, 48.42897655693702, 50.53663657557537, 49.87938654463625],
+          "median": 49.15418155078663,
+          "unit": "percent of one core"
+        }
+      ],
+      "rawTraceHashes": {
+        "ghostty-webgl-zig-bytes-17-0-latency.trace.json.gz": "819eab851ee0f62168464bfeddf665fda3d6be79931279e4ff2c687035cb3dd2",
+        "xterm-webgl-bytes-17-0-latency.trace.json.gz": "3beb359dd74acdecabdafef04bc63e4e882c97f9e4707e5348cfebf039ee0ef4",
+        "xterm-webgl-bytes-17-1-latency.trace.json.gz": "496b61d785bed1784622da4c4f08862fc46ddd64d173a65c90c9c8b7a426263a",
+        "ghostty-webgl-zig-bytes-17-1-latency.trace.json.gz": "0598137430cff86f8c19c760b045637a2a9cfd3a4d737295a4a152c6acc3eb01",
+        "xterm-webgl-bytes-17-2-latency.trace.json.gz": "c59e43f1b4bedd2c70d7b03ddbf0660e7a2fdb7c8a049a879dde0887680d7704",
+        "ghostty-webgl-zig-bytes-17-2-latency.trace.json.gz": "cd66d9ad95d9b365508d6bce202342715285ecf962e81b2c6b0c7e7a1adfe388",
+        "ghostty-webgl-zig-bytes-17-3-latency.trace.json.gz": "baeefd3a896bebdfcd1337813640555e0190d8ece6f4cbe825561126d9256cbf",
+        "xterm-webgl-bytes-17-3-latency.trace.json.gz": "a728a32d9acfc1768a5ec17428db40d9747dc5b8ff632ae26951063b7c27584e"
+      }
+    }
+  },
+  "matching": {
+    "settings": true,
+    "accessibility": true,
+    "browserLaunchArguments": true,
+    "bridgeWasm": true,
+    "nativeWasm": true,
+    "outputBytesAndFixturePerCase": true
+  },
+  "benchmarkInventoryDifferences": ["scripts/comparison-attribution.mjs"],
+  "benchmarkDifferenceExplanation": "Only the offline historical-artifact identity expectation loop changed after baseline freezing. It is copied into the bundle but neither the measurement runner nor report imports it. Measurement driver, browser entry, tracing wrappers, fonts, WASM and fixture assets are matched.",
+  "limitations": [
+    "Before/after occupy separate sessions; cross-condition differences are descriptive, not a paired treatment speedup or a statistically proven no-regression result.",
+    "GPU-process CPU is CPU consumption, not GPU execution time.",
+    "Headless compositor acknowledgement is on-demand, not physical-vsync or optical display latency.",
+    "GPU qualification can miss short bursts and does not establish CPU/thermal stability.",
+    "The bundle version label is taken from the driver checkout; the exact baseline runtime package version is 0.3.3 and treatment is 0.3.4.",
+    "No additional backend/window or causal performance attribution trace was requested or run."
+  ],
+  "visualEvidence": {
+    "zig-unicode-webgl2.png": "916dd34eac7378b264417491ff1093d8469e14f446526bb537bf77a58ce9c692",
+    "zig-unicode-webgpu.png": "2676bec4f157bf4fea9620e6841f298b23bbf666e2df5678c5d1c9c098af6aac"
+  },
+  "verificationCommands": [
+    "bun run build",
+    "bun run typecheck",
+    "bunx vitest run src/core",
+    "bun run bench:compare:test",
+    "bun run test:browser",
+    "bun run test:browser src/dom/tests/zig-frame.browser.test.ts",
+    "git diff --check",
+    "git grep retired producer symbols/options in ghostty-webgpu/src, bench, scripts"
+  ],
+  "verificationResults": {
+    "coreTests": 217,
+    "benchmarkContractTests": 172,
+    "browserFiles": 24,
+    "browserPassed": 325,
+    "browserSkipped": 3,
+    "strengthenedFailureTests": 9,
+    "commitHooks": "format/lint, root gates and workspace typechecks passed"
+  }
+}

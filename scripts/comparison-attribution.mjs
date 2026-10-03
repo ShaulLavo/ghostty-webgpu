@@ -6,13 +6,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { quantile } from './comparison-report.mjs'
 import { assertDisplay } from './comparison-trace.mjs'
-import {
-  analysisArguments,
-  positiveInteger,
-  frameBuilders,
-  counterparts,
-  measurementCases,
-} from './comparison-options.mjs'
+import { analysisArguments, positiveInteger, counterparts } from './comparison-options.mjs'
 import { renderedFrame, renderOperations } from './comparison-render.mjs'
 
 export function unionMilliseconds(intervals) {
@@ -321,23 +315,21 @@ export function validateArtifact(artifact) {
       variants.every((id) => known.includes(id)),
     'Incomplete or unknown variant matrix',
   )
-  const builders =
-    artifact.frameBuilders ??
-    (args.includes('--paired-frame-builders') || args.includes('--frame-builders')
-      ? frameBuilders(args)
-      : [undefined])
+  const builders = artifact.frameBuilders ?? [undefined]
   assert(
     builders.length &&
       new Set(builders).size === builders.length &&
       builders.every((builder) => builder === undefined || ['js', 'zig'].includes(builder)),
     'Incomplete or unknown frame-builder matrix',
   )
+  const identities = variants.flatMap((variant) => {
+    const labels = ['ghostty-webgpu', 'ghostty-webgl'].includes(variant) ? builders : [undefined]
+    return labels.map((builder) => ({ variant, builder }))
+  })
   const expected = new Set()
   for (let repetition = 0; repetition < artifact.repetitions; repetition++) {
-    for (const testCase of measurementCases(variants, ['bytes'], counts, builders, repetition))
-      expected.add(
-        `${testCase.variant}/${testCase.frameBuilder ?? ''}/${testCase.count}/${repetition}`,
-      )
+    for (const { variant, builder } of identities)
+      for (const count of counts) expected.add(`${variant}/${builder ?? ''}/${count}/${repetition}`)
   }
   assert(artifact.runs?.length === expected.size, 'Incomplete case matrix')
   const slots = new Set()

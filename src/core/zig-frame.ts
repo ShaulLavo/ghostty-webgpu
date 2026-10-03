@@ -175,7 +175,6 @@ export class ZigFrameBuilder {
           byteLength: view.getUint32(pointer + 12, true),
         },
         row: Math.floor(byteOffset / (this.columns * 64)),
-        invalidatedRows: [],
       })
     }
     return result

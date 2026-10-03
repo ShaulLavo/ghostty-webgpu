@@ -1,8 +1,8 @@
+import { createGhosttyError } from '../core/error.js'
 import { FrameObserver } from './frame-observer.js'
-import { rebuildFrame } from './rebuild-frame.js'
 import { RenderStateDirty } from '../core/abi.js'
 import type { ZigFrameBuilder } from '../core/zig-frame.js'
-import { buildZigFrame, zigGlyphRow } from './atlas/zig-glyphs.js'
+import { buildZigFrame } from './atlas/zig-glyphs.js'
 import type { GhosttyRenderState } from '../core/render-state.js'
 import {
   type CellStyle,
@@ -17,7 +17,6 @@ import { GlyphAtlas } from './atlas/atlas.js'
 import { CanvasGlyphRasterizer } from './atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from './atlas/gpu-textures.js'
 import { renderCursorState, type InactiveCursorStyle } from './cursor.js'
-import type { GlyphBitmap } from './atlas/types.js'
 import {
   browserRenderClock,
   canonicalRendererTheme,
@@ -28,7 +27,6 @@ import {
   normalizeRendererGrid,
   safeRendererInteger,
 } from './config.js'
-import { InstanceRows } from './instances/rows.js'
 import {
   type CanonicalRendererTheme,
   type CursorState,
@@ -79,7 +77,6 @@ export interface RendererTextFrameSnapshot {
 
 export interface RendererMetrics {
   zigFrames: number
-  jsFallbackFrames: number
   atlasCacheHits: number
   atlasCacheMisses: number
   atlasEvictions: number
@@ -95,8 +92,6 @@ export interface RendererMetrics {
 }
 
 export interface WebGpuTerminalRendererOptions {
-  /** WASM instance construction with JS fallback; defaults on for WebGL and off for WebGPU. */
-  zigFrame?: boolean
   canvas: HTMLCanvasElement | OffscreenCanvas
   columns: number
   cursorBlink?: boolean
@@ -232,8 +227,6 @@ async function destroyDeviceAfterSubmittedWork(device: GPUDevice): Promise<void>
 
 export class WebGpuTerminalRenderer {
   private zigBuilder?: ZigFrameBuilder
-  private readonly zigFrame: boolean
-  private wasZigFrame = false
   private atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
@@ -252,11 +245,12 @@ export class WebGpuTerminalRenderer {
   private font: TerminalFittedFont
   private format: GPUTextureFormat
   private grid: RendererGridSize
-  private instances: InstanceRows
+  private frameFailed = false
   private needsFullRebuild = true
   private readonly frames: FrameObserver
   private readonly overlayRows = new Set<number>()
   private rasterizer: CanvasGlyphRasterizer
+  private readonly onError?: (cause: unknown) => void
   private readonly renderState: RenderStateSource
   private restorePromise?: Promise<void>
   private deviceUnavailable = false
@@ -266,7 +260,6 @@ export class WebGpuTerminalRenderer {
   private themeInput: RendererTheme
   readonly metrics: RendererMetrics = {
     zigFrames: 0,
-    jsFallbackFrames: 0,
     atlasCacheHits: 0,
     atlasCacheMisses: 0,
     atlasEvictions: 0,
@@ -287,12 +280,12 @@ export class WebGpuTerminalRenderer {
     device: GPUDevice,
     prepared: PreparedRenderer,
   ) {
-    this.zigFrame = options.zigFrame ?? false
     this.canvas = options.canvas
     this.context = prepared.context
     this.device = device
     this.deviceFactory = options.deviceFactory ?? defaultDeviceFactory
     this.renderState = options.renderState
+    this.onError = options.onError
     this.grid = prepared.grid
     this.font = prepared.font
     this.themeInput = mergeRendererTheme(options.theme)
@@ -303,7 +296,6 @@ export class WebGpuTerminalRenderer {
     this.format = prepared.format
     this.resizeCanvas()
     this.configureContext(device)
-    this.instances = this.createInstances()
     this.rasterizer = this.createRasterizer()
     this.atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
     this.textPass = this.createTextPass()
@@ -419,13 +411,11 @@ export class WebGpuTerminalRenderer {
   resize(grid: RendererGridSize): void {
     const next = normalizeRendererGrid(grid)
     if (this.gridEquals(next)) return
-    this.releaseRemovedRows(next.rows)
     for (const row of this.overlayRows) {
       if (row >= next.rows) this.overlayRows.delete(row)
     }
     this.grid = next
     this.resizeCanvas()
-    this.instances = this.createInstances()
     this.replaceTextPass()
     this.frames.resize(this.grid.rows)
     this.repaintNow()
@@ -490,15 +480,6 @@ export class WebGpuTerminalRenderer {
     })
   }
 
-  private createInstances(): InstanceRows {
-    return new InstanceRows({
-      cellHeight: this.deviceCellHeight,
-      cellWidth: this.deviceCellWidth,
-      columns: this.grid.columns,
-      rows: this.grid.rows,
-    })
-  }
-
   private createRasterizer(): CanvasGlyphRasterizer {
     return new CanvasGlyphRasterizer({ font: this.font })
   }
@@ -526,41 +507,30 @@ export class WebGpuTerminalRenderer {
     const phaseVisible = this.scheduler.cursorVisible
     if (this.cursorPhaseVisible !== phaseVisible) this.addCursorRow(cursor)
     this.cursorPhaseVisible = phaseVisible
-    if (this.zigFrame && this.drawZigFrame(damage)) return
-    if (this.wasZigFrame) this.needsFullRebuild = true
-    this.wasZigFrame = false
-    const initialRows = this.rowsToRebuild(damage)
-    if (initialRows.length === 0) {
-      if (damage === RenderStateDirty.False && !this.needsFullRebuild)
-        this.frames.notifyCleanUpdate()
-      return
+    try {
+      this.drawZigFrame(damage)
+    } catch (cause) {
+      this.reportFrameFailure(cause)
     }
-    this.needsFullRebuild = true
-    this.zigBuilder?.clearGlyphs()
-    this.atlas.beginRow(zigGlyphRow)
-    const { rows, updates } = rebuildFrame(initialRows, this.renderState, this.atlas, (source) =>
-      this.rebuildRows(source),
-    )
-    this.atlasTextures.sync(this.atlas.consumeUploads())
-    const instanceUploadOperations = this.textPass.upload(this.instances, updates)
-    this.textPass.submit(this.context.getCurrentTexture().createView())
-    if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    this.recordFrame(updates, instanceUploadOperations)
-    if (this.zigFrame) this.metrics.jsFallbackFrames += 1
-    this.needsFullRebuild = false
-    this.overlayRows.clear()
-    this.emitFrame(rows)
   }
 
-  private drawZigFrame(damage: RenderStateDirty): boolean {
-    if (!this.renderState.createFrameBuilder) return false
+  private reportFrameFailure(cause: unknown): void {
+    this.needsFullRebuild = true
+    if (this.frameFailed) return
+    this.frameFailed = true
+    this.onError?.(cause)
+  }
+
+  private drawZigFrame(damage: RenderStateDirty): void {
+    if (!this.renderState.createFrameBuilder)
+      throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
       damage === RenderStateDirty.False &&
       this.overlayRows.size === 0
     ) {
       this.frames.notifyCleanUpdate()
-      return true
+      return
     }
     let builder = this.zigBuilder
     if (!builder || builder.columns !== this.grid.columns || builder.rows !== this.grid.rows) {
@@ -579,18 +549,26 @@ export class WebGpuTerminalRenderer {
         this.cursorPhaseVisible,
         this.focused ? undefined : this.inactiveCursorStyle,
       ),
-      full: this.needsFullRebuild || !this.wasZigFrame,
+      full: this.needsFullRebuild,
       overlayRows: this.overlayRows,
     }
     const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
-      this.needsFullRebuild = true
-      return false
+      throw createGhosttyError(
+        'frame_builder',
+        `The native frame could not be built after atlas recovery (status ${status})`,
+      )
     }
     const updates = builder.changedRanges()
     this.atlasTextures.sync(this.atlas.consumeUploads())
     const operations = this.textPass.uploadFrame(builder, updates)
-    this.textPass.submit(this.context.getCurrentTexture().createView())
+    try {
+      this.textPass.submit(this.context.getCurrentTexture().createView())
+    } catch (cause) {
+      this.reportFrameFailure(cause)
+      // Retry once in this turn; an acquired canvas texture presents empty after an abandoned submit.
+      this.textPass.submit(this.context.getCurrentTexture().createView())
+    }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
       rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
@@ -598,22 +576,13 @@ export class WebGpuTerminalRenderer {
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     this.recordFrame(updates, operations)
     this.metrics.zigFrames += 1
-    this.wasZigFrame = true
     this.needsFullRebuild = false
+    this.frameFailed = false
     this.overlayRows.clear()
     this.emitFrame(
       rows,
       updates.map((update) => update.row),
     )
-    return true
-  }
-
-  private glyphLookup() {
-    return {
-      beginRow: (row: number) => this.atlas.beginRow(row),
-      resolve: (key: string, bitmap: GlyphBitmap, row: number) =>
-        this.atlas.getOrInsert(key, bitmap, row),
-    }
   }
 
   private get deviceCellHeight(): number {
@@ -677,17 +646,6 @@ export class WebGpuTerminalRenderer {
     this.scheduler.schedule()
   }
 
-  private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {
-    const updates: RowInstanceUpdate[] = []
-    const style = this.focused ? undefined : this.inactiveCursorStyle
-    const cursor = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
-    const lookup = this.glyphLookup()
-    for (const row of rows) {
-      updates.push(this.instances.rebuildRow(row, lookup, this.rasterizer, this.theme, cursor))
-    }
-    return updates
-  }
-
   private resetCursorBlink(): void {
     this.scheduler.setCursorBlinkEnabled(false)
     this.synchronizeCursorBlink()
@@ -708,13 +666,8 @@ export class WebGpuTerminalRenderer {
   private rebuildGeometryResources(): void {
     this.resizeCanvas()
     this.configureContext(this.device)
-    this.instances = this.createInstances()
     this.replaceTextPass()
     this.frames.resize(this.grid.rows)
-  }
-
-  private releaseRemovedRows(nextRowCount: number): void {
-    for (let row = nextRowCount; row < this.grid.rows; row += 1) this.atlas.beginRow(row)
   }
 
   private recordFrame(

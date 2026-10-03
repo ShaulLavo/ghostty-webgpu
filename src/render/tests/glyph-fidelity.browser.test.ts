@@ -1,5 +1,4 @@
 import { expect, it } from 'vitest'
-import type { RenderCell, RenderRow } from '../../core/types.js'
 import { calculateTerminalFittedFont } from '../../dom/fit.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
@@ -13,7 +12,8 @@ import {
   GlyphFlag,
   GlyphOffset,
 } from '../instances/layout.js'
-import { InstanceRows } from '../instances/rows.js'
+import { createNativeTestState } from './native-state.js'
+import { buildZigFrame } from '../atlas/zig-glyphs.js'
 import { defaultRendererTheme as rawDefaultRendererTheme } from '../instances/types.js'
 
 const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)
@@ -79,14 +79,6 @@ function hasCoverage(bitmap: GlyphBitmap): boolean {
   return coveredRows(bitmap).length > 0
 }
 
-function cell(x: number, overrides: Partial<RenderCell> = {}): RenderCell {
-  return { continuation: false, selected: false, text: '', x, ...overrides }
-}
-
-function row(cells: readonly RenderCell[]): RenderRow {
-  return { cells, dirty: true, y: 0 }
-}
-
 it('keeps alphabetic glyphs and digits on a stable baseline while preserving punctuation and descenders', () => {
   const source = rasterizer()
   const baselineGlyphs = ['A', 'M', 'a', '1']
@@ -115,33 +107,29 @@ it('covers combining text, CJK, and emoji without changing their requested cell 
   expect(emoji.offsetX + emoji.width).toBeLessThanOrEqual(40)
 })
 
-it('keeps wide continuation ownership and transparent cell semantics in row instances', () => {
-  const instances = new InstanceRows({ cellHeight: 16, cellWidth: 8, columns: 2, rows: 1 })
+it('keeps native wide continuation ownership and transparent cell semantics', async () => {
+  const native = await createNativeTestState(3, 1)
+  native.terminal.write('界\x1b[48;2;10;20;30m ')
+  native.state.update()
+  const builder = native.state.createFrameBuilder(3, 1)
   const atlas = new GlyphAtlas({ pageHeight: 64, pageWidth: 64 })
-  const lookup = {
-    beginRow: (rowIndex: number) => atlas.beginRow(rowIndex),
-    resolve: (key: string, bitmap: GlyphBitmap, rowIndex: number) =>
-      atlas.getOrInsert(key, bitmap, rowIndex),
-  }
   const source = new CanvasGlyphRasterizer({ font: fittedFont(8, 16, 14) })
-  instances.rebuildRow(
-    row([
-      cell(0, { text: '界' }),
-      cell(1, { background: { b: 30, g: 20, r: 10 }, continuation: true }),
-    ]),
-    lookup,
-    source,
-    defaultRendererTheme,
-  )
-
-  expect((instances.glyphData[GlyphOffset.Meta] ?? 0) & GlyphFlag.Glyph).toBe(GlyphFlag.Glyph)
-  expect(instances.glyphData[GlyphOffset.Rect + 2]).toBeGreaterThan(0)
-  expect(instances.glyphData[GlyphOffset.Rect + 2]).toBeLessThanOrEqual(16)
   expect(
-    (instances.glyphData[GLYPH_INSTANCE_FLOATS + GlyphOffset.Meta] ?? 0) & GlyphFlag.Glyph,
+    buildZigFrame(builder, atlas, source, {
+      cellHeight: 16,
+      cellWidth: 8,
+      theme: defaultRendererTheme,
+      full: true,
+      overlayRows: new Set(),
+    }),
   ).toBe(0)
-  expect(instances.cellData[CellOffset.Background + 3]).toBe(0)
-  expect(instances.cellData[CELL_INSTANCE_FLOATS + CellOffset.Background + 3]).toBe(1)
+  expect(builder.glyphData[GlyphOffset.Meta]! & GlyphFlag.Glyph).toBe(GlyphFlag.Glyph)
+  expect(builder.glyphData[GlyphOffset.Rect + 2]).toBeGreaterThan(0)
+  expect(builder.glyphData[GlyphOffset.Rect + 2]).toBeLessThanOrEqual(16)
+  expect(builder.glyphData[GLYPH_INSTANCE_FLOATS + GlyphOffset.Meta]! & GlyphFlag.Glyph).toBe(0)
+  expect(builder.cellData[CellOffset.Background + 3]).toBe(0)
+  expect(builder.cellData[2 * CELL_INSTANCE_FLOATS + CellOffset.Background + 3]).toBe(1)
+  builder.dispose()
 })
 
 it('fits fractional DPR inputs to one drift-free character and cell grid', () => {

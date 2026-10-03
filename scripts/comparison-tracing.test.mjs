@@ -3,11 +3,10 @@ import assert from 'node:assert/strict'
 import { ComparisonTracing } from '../bench/comparison-tracing.ts'
 
 function rendererBoundary() {
-  const metrics = { submittedFrames: 0, zigFrames: 0, jsFallbackFrames: 0 }
+  const metrics = { submittedFrames: 0, zigFrames: 0 }
   const builder = { build: () => 0, clearGlyphs() {} }
   const pass = {
     resources: { cellPipeline: {}, glyphPipeline: {} },
-    upload: () => 0,
     uploadFrame: () => 0,
     submit: () => {},
   }
@@ -20,11 +19,10 @@ function rendererBoundary() {
     atlasTextures: { sync: () => {} },
     notifyWrite: () => {},
     rowsToRebuild: () => [],
-    rebuildRows: () => [],
     drawZigFrame(mode) {
       if (mode === 'clean') return true
       builder.build()
-      if (mode === 'fallback' || mode === 'fallback-clean') return false
+      if (mode === 'failed') throw new Error('Native build failed')
       pass.uploadFrame(builder, [])
       pass.submit()
       metrics.submittedFrames++
@@ -32,11 +30,7 @@ function rendererBoundary() {
       return true
     },
     drawFrame(mode) {
-      if (this.drawZigFrame(mode) || mode === 'fallback-clean') return
-      pass.upload(undefined, [])
-      pass.submit()
-      metrics.submittedFrames++
-      metrics.jsFallbackFrames++
+      this.drawZigFrame(mode)
     },
   }
 }
@@ -85,7 +79,7 @@ function total(counters, operation) {
     .reduce((sum, counter) => sum + counter.value, 0)
 }
 
-test('WebGL native uploads attribute changed bytes exactly once for both producers', () => {
+test('WebGL native uploads attribute changed bytes exactly once for native records', () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'location')
   Object.defineProperty(globalThis, 'location', {
     configurable: true,
@@ -96,77 +90,27 @@ test('WebGL native uploads attribute changed bytes exactly once for both produce
     const pass = {
       syncAtlas() {},
       uploadFrame: () => 2,
-      upload(frame, ranges) {
-        return this.uploadFrame(frame, ranges)
-      },
       submit() {},
     }
     const renderer = {
       backend: 'webgl2',
-      metrics: { submittedFrames: 0, zigFrames: 0, jsFallbackFrames: 0 },
+      metrics: { submittedFrames: 0, zigFrames: 0 },
       scheduler: {},
       state: { pass },
       notifyWrite() {},
       drawFrame() {},
       drawZigFrame() {},
       rowsToRebuild() {},
-      rebuildRows() {},
     }
     tracing.nativeRenderer(3, renderer)
     tracing.begin()
     const ranges = [{ cell: { byteLength: 64 }, glyph: { byteLength: 96 } }]
     pass.uploadFrame({}, ranges)
-    pass.upload({}, ranges)
-    renderer.drawFrame()
-    const { counters, spans } = tracing.end()
-    assert.equal(total(counters, 'buffersWritten'), 4)
-    assert.equal(total(counters, 'bufferBytes'), 320)
-    assert.equal(spans.filter(({ operation }) => operation === 'uploadFrame').length, 2)
-  } finally {
-    if (previous) Object.defineProperty(globalThis, 'location', previous)
-    else Reflect.deleteProperty(globalThis, 'location')
-  }
-})
-
-test('archived JS-only WebGL records uploads without requiring native boundaries', () => {
-  const previous = Object.getOwnPropertyDescriptor(globalThis, 'location')
-  Object.defineProperty(globalThis, 'location', {
-    configurable: true,
-    value: { search: '?trace' },
-  })
-  try {
-    const tracing = new ComparisonTracing()
-    const pass = { syncAtlas() {}, upload: () => 2, submit() {} }
-    const metrics = { submittedFrames: 0, zigFrames: 0, jsFallbackFrames: 0 }
-    const renderer = {
-      backend: 'webgl2',
-      metrics,
-      scheduler: {},
-      state: { pass },
-      notifyWrite() {},
-      rowsToRebuild() {},
-      rebuildRows() {},
-      drawFrame() {
-        pass.upload({}, [
-          { cell: { byteOffset: 0, byteLength: 64 }, glyph: { byteOffset: 0, byteLength: 96 } },
-          { cell: { byteOffset: 64, byteLength: 64 }, glyph: { byteOffset: 96, byteLength: 96 } },
-        ])
-        pass.submit()
-        metrics.submittedFrames++
-      },
-    }
-    tracing.nativeRenderer(3, renderer)
-    tracing.begin()
     renderer.drawFrame()
     const { counters, spans } = tracing.end()
     assert.equal(total(counters, 'buffersWritten'), 2)
-    assert.equal(total(counters, 'bufferBytes'), 320)
-    assert.equal(total(counters, 'submissions'), 1)
-    assert.equal(total(counters, 'frames'), 1)
-    assert.equal(total(counters, 'zigFrames'), 0)
-    assert.equal(total(counters, 'zigFallbackFrames'), 0)
-    assert.equal(spans.filter(({ operation }) => operation === 'upload').length, 1)
-    assert.equal(spans.filter(({ operation }) => operation === 'drawZigFrame').length, 0)
+    assert.equal(total(counters, 'bufferBytes'), 160)
+    assert.equal(spans.filter(({ operation }) => operation === 'uploadFrame').length, 1)
   } finally {
     if (previous) Object.defineProperty(globalThis, 'location', previous)
     else Reflect.deleteProperty(globalThis, 'location')
@@ -179,7 +123,6 @@ test('clean Zig draws count no built or submitted frames', () => {
   assert.equal(total(counters, 'submissions'), 0)
   assert.equal(total(counters, 'frames'), 0)
   assert.equal(total(counters, 'zigFrames'), 0)
-  assert.equal(total(counters, 'zigFallbackFrames'), 0)
 })
 
 test('Zig frame counts match builds and submissions across clean draws and trace windows', () => {
@@ -196,17 +139,13 @@ test('Zig frame counts match builds and submissions across clean draws and trace
   assert(counters.every((counter) => counter.terminal === 3))
 })
 
-test('Zig fallbacks count only frames submitted by the JS path', () => {
+test('failed native builds submit no frame', () => {
   const counters = recordedCounters((renderer) => {
-    renderer.drawFrame('fallback-clean')
-    renderer.drawFrame('fallback')
-    renderer.drawFrame('clean')
+    assert.throws(() => renderer.drawFrame('failed'), /Native build failed/)
   })
-  assert.equal(total(counters, 'zigBuilds'), 2)
-  assert.equal(total(counters, 'submissions'), 1)
-  assert.equal(total(counters, 'zigFallbackFrames'), 1)
-  assert.equal(total(counters, 'zigFrames'), 0)
-  assert.equal(total(counters, 'frames'), 1)
+  assert.equal(total(counters, 'zigBuilds'), 1)
+  assert.equal(total(counters, 'submissions'), 0)
+  assert.equal(total(counters, 'frames'), 0)
 })
 
 test('text extraction counters preserve lazy arrays while older runtimes remain traceable', () => {

@@ -9,9 +9,10 @@ import type {
   GlyphRasterizer,
 } from '../../render/atlas/types.js'
 import { buildZigFrame } from '../../render/atlas/zig-glyphs.js'
-import { InstanceRows } from '../../render/instances/rows.js'
+import { CellFlag, CellOffset, GlyphFlag, GlyphOffset } from '../../render/instances/layout.js'
 import { defaultRendererTheme } from '../../render/instances/types.js'
 import {
+  expectedGlyphs,
   zigFrameContents,
   zigFrameCursorStyles,
   zigGlyphCollisionFixtures,
@@ -64,8 +65,24 @@ function readyFrame(frameOptions = options): void {
   expect(status).toBe(0)
 }
 
-describe('WASM frame differential parity', () => {
-  it.each(zigFrameContents)('matches JS instance bytes for %j', async (content) => {
+function expectNativeRecords(frame: ZigFrameBuilder): void {
+  expect(frame.cellData).toHaveLength(frame.columns * frame.rows * 16)
+  expect(frame.glyphData).toHaveLength(frame.columns * frame.rows * 24)
+  expect([...frame.cellData, ...frame.glyphData].every(Number.isFinite)).toBe(true)
+  expect(frame.missingGlyphs).toEqual([])
+  for (let index = 0; index < frame.columns * frame.rows; index += 1) {
+    const cell = frame.cellData.subarray(index * 16, index * 16 + 16)
+    const painted = cell[11]! > 0 || cell[12]! !== 0 || cell[13]! > 0
+    expect([...cell.subarray(0, 4)]).toEqual(
+      painted
+        ? [(index % frame.columns) * 8, Math.floor(index / frame.columns) * 16, 8, 16]
+        : [0, 0, 0, 0],
+    )
+  }
+}
+
+describe('WASM frame records', () => {
+  it.each(zigFrameContents)('builds native records for %j', async (content) => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 32, rows: 3 })
     const state = runtime.createRenderState(terminal)
@@ -73,23 +90,57 @@ describe('WASM frame differential parity', () => {
     state.update()
     builder = state.createFrameBuilder(32, 3)
     readyFrame()
-    const js = new InstanceRows({ columns: 32, rows: 3, cellWidth: 8, cellHeight: 16 })
-    const updates = state
-      .readRows()
-      .map((row) =>
-        js.rebuildRow(
-          row,
-          { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-          { rasterize: () => bitmap },
-          options.theme,
-        ),
-      )
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
-    expect(builder.changedRanges()).toEqual(updates)
+    expectNativeRecords(builder)
+    expect(builder.changedRanges().map((range) => range.row)).toEqual([0, 1, 2])
   })
 
-  it.each(zigFrameCursorStyles)('matches the JS %s cursor', async (style) => {
+  it('encodes literal truecolor brushes, decoration bits, atlas coordinates and wide ownership', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 6, rows: 1 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25l\x1b[38;2;255;0;0m\x1b[48;2;0;255;0m\x1b[4:2;9;53mA\x1b[0m界')
+    state.update()
+    builder = state.createFrameBuilder(6, 1)
+    readyFrame()
+    expect([...builder.cellData.subarray(0, 16)]).toEqual([
+      0,
+      0,
+      8,
+      16,
+      1,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      CellFlag.Overline | CellFlag.Strikethrough,
+      2,
+      0,
+      1,
+    ])
+    expect([...builder.glyphData.subarray(0, 12)]).toEqual([
+      1,
+      2,
+      5,
+      9,
+      1,
+      0,
+      0,
+      1,
+      8 / 512,
+      12 / 512,
+      13 / 512,
+      21 / 512,
+    ])
+    expect([...builder.glyphData.subarray(20, 23)]).toEqual([0, 1, 0])
+    expect(builder.glyphData[24 + GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+    expect([...builder.glyphData.subarray(48, 72)]).toEqual(Array.from({ length: 24 }, () => 0))
+    expect([...builder.cellData.subarray(32, 36)]).toEqual([0, 0, 0, 0])
+  })
+
+  it.each(zigFrameCursorStyles)('encodes a %s cursor', async (style) => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 8, rows: 2 })
     const state = runtime.createRenderState(terminal)
@@ -98,17 +149,9 @@ describe('WASM frame differential parity', () => {
     builder = state.createFrameBuilder(8, 2)
     const cursor = { style, visible: true, x: 1, y: 0 }
     readyFrame({ ...options, cursor })
-    const js = new InstanceRows({ columns: 8, rows: 2, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(
-        row,
-        { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-        { rasterize: () => bitmap },
-        options.theme,
-        cursor,
-      )
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expect(builder.cellData[16 + CellOffset.Meta]! & CellFlag.Cursor).toBe(CellFlag.Cursor)
+    expect(builder.cellData[16 + CellOffset.Meta + 2]).toBe(zigFrameCursorStyles.indexOf(style))
+    expectNativeRecords(builder)
   })
 
   it('retains clean rows, reports changed ranges, and refreshes memory views after growth', async () => {
@@ -130,7 +173,6 @@ describe('WASM frame differential parity', () => {
     expect(builder.changedRanges()).toEqual([
       {
         row: 1,
-        invalidatedRows: [],
         cell: { byteOffset: (12 + 5) * 64, byteLength: 64 },
         glyph: { byteOffset: (12 + 5) * 96, byteLength: 96 },
       },
@@ -147,16 +189,8 @@ describe('WASM frame differential parity', () => {
         glyphStart,
       )
     }
-    const js = new InstanceRows({ columns: 12, rows: 3, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(
-        row,
-        { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-        { rasterize: () => bitmap },
-        options.theme,
-      )
-    expect(reconstructedCells).toEqual(js.cellData)
-    expect(reconstructedGlyphs).toEqual(js.glyphData)
+    expect(reconstructedCells).toEqual(builder.cellData)
+    expect(reconstructedGlyphs).toEqual(builder.glyphData)
     expect(builder.glyphData.slice(0, 12 * 24)).toEqual(before.slice(0, 12 * 24))
     state.acknowledge()
     state.update()
@@ -166,7 +200,6 @@ describe('WASM frame differential parity', () => {
     expect(builder.changedRanges()).toEqual([
       {
         row: 2,
-        invalidatedRows: [],
         cell: { byteOffset: 2 * 12 * 64, byteLength: 0 },
         glyph: { byteOffset: 2 * 12 * 96, byteLength: 0 },
       },
@@ -199,7 +232,6 @@ describe('WASM frame differential parity', () => {
       expect(builder.changedRanges()).toEqual([
         {
           row,
-          invalidatedRows: [],
           cell: { byteOffset: row * 8 * 64, byteLength: 0 },
           glyph: { byteOffset: row * 8 * 96, byteLength: 0 },
         },
@@ -226,21 +258,11 @@ describe('WASM frame differential parity', () => {
     expect(builder.changedRanges()).toEqual(
       dirtyRows.map((row) => ({
         row: row.y,
-        invalidatedRows: [],
         cell: { byteOffset: row.y * 8 * 64, byteLength: 8 * 64 },
         glyph: { byteOffset: row.y * 8 * 96, byteLength: 8 * 96 },
       })),
     )
-    const js = new InstanceRows({ columns: 8, rows: 2, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(
-        row,
-        { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-        { rasterize: () => bitmap },
-        options.theme,
-      )
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
   })
 
   it('retains clean wide Unicode while another row changes', async () => {
@@ -283,15 +305,22 @@ function inputIdentity(input: GlyphRasterizationInput): string {
   ])
 }
 
-function differentialGlyphs(kind: 'color' | 'grayscale') {
+function expectGlyphDescriptors(
+  frame: ZigFrameBuilder,
+  inputs: readonly GlyphRasterizationInput[],
+) {
+  const descriptors = frame.missingGlyphs.map((key) => inputIdentity(frame.glyphInput(key)))
+  expect([...new Set(descriptors)]).toEqual([...new Set(inputs.map(inputIdentity))])
+}
+
+function fixtureGlyphs(kind: 'color' | 'grayscale') {
   const glyphs = new Map<string, AtlasGlyph>()
-  const observed: string[] = []
-  let current = glyph
+  const identityOf = (input: GlyphRasterizationInput) =>
+    kind === 'color'
+      ? inputIdentity(input)
+      : JSON.stringify([input.text, input.cellSpan, input.weight, input.italic])
   const resolveInput = (input: GlyphRasterizationInput): AtlasGlyph => {
-    const identity =
-      kind === 'color'
-        ? inputIdentity(input)
-        : JSON.stringify([input.text, input.cellSpan, input.weight, input.italic])
+    const identity = identityOf(input)
     const existing = glyphs.get(identity)
     if (existing) return existing
     const index = glyphs.size + 1
@@ -308,26 +337,15 @@ function differentialGlyphs(kind: 'color' | 'grayscale') {
     return value
   }
   return {
-    inputs: observed,
     glyphs,
+    identityOf,
     resolveInput,
-    source: {
-      rasterize(input: GlyphRasterizationInput) {
-        observed.push(inputIdentity(input))
-        current = resolveInput(input)
-        return { ...bitmap, kind }
-      },
-    },
-    lookup: {
-      beginRow() {},
-      resolve: () => ({ glyph: current, invalidatedRows: [] }),
-    },
   }
 }
 
-describe('WASM Unicode descriptors and differential instance bytes', () => {
+describe('WASM Unicode descriptors and native records', () => {
   it.each(['color', 'grayscale'] as const)(
-    'packs cold %s brush variants in viewport order and preserves JS atlas parity',
+    'packs cold %s brush variants in viewport order',
     async (kind) => {
       runtime = await GhosttyRuntime.create()
       const terminal = runtime.createTerminal({ columns: 4, rows: 1 })
@@ -352,7 +370,6 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
       }
       const atlasOptions = { pageWidth: 4, pageHeight: 4, padding: 0, maxLayersPerKind: 1 }
       const nativeAtlas = new GlyphAtlas(atlasOptions)
-      const jsAtlas = new GlyphAtlas(atlasOptions)
       expect(builder.build(frameOptions)).toBe(2)
       expect(
         builder.missingGlyphs.map((key) => {
@@ -372,24 +389,7 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
       expect(nativeAtlas.pageCount).toBe(1)
       expect(nativeAtlas.evictionCount).toBe(0)
       expect(nativeAtlas.cacheMissCount).toBe(kind === 'color' ? 4 : 2)
-      const js = new InstanceRows({ columns: 4, rows: 1, cellWidth: 8, cellHeight: 16 })
-      const expectInstances = () => {
-        for (const row of state.readRows())
-          js.rebuildRow(
-            row,
-            {
-              beginRow: (row) => jsAtlas.beginRow(row),
-              resolve: (key, bitmap, row) => jsAtlas.getOrInsert(key, bitmap, row),
-            },
-            rasterizer,
-            frameOptions.theme,
-          )
-        expect(builder!.cellData).toEqual(js.cellData)
-        expect(builder!.glyphData).toEqual(js.glyphData)
-        expect(jsAtlas.pageCount).toBe(1)
-        expect(jsAtlas.evictionCount).toBe(0)
-      }
-      expectInstances()
+      expectNativeRecords(builder)
       state.acknowledge()
       if (kind === 'color') return
       const descriptors = builder.glyphCount
@@ -404,7 +404,7 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
         expect(builder.glyphIndexRebuilds).toBe(0)
         expect(nativeAtlas.cacheMissCount).toBe(2)
         expect(nativeAtlas.evictionCount).toBe(0)
-        expectInstances()
+        expectNativeRecords(builder)
         state.acknowledge()
       }
     },
@@ -422,37 +422,83 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
     state.update()
     builder = state.createFrameBuilder(40, 3)
     const frameOptions = { ...options, theme: { ...options.theme, minimumContrast: 4.5 } }
-    const differential = differentialGlyphs(kind)
+    const registered = fixtureGlyphs(kind)
+    const expected = expectedGlyphs(state.readRows(), frameOptions.theme)
+    expect(expected.length).toBeGreaterThan(0)
     expect(builder.build(frameOptions)).toBe(2)
-    const inputs: GlyphRasterizationInput[] = []
+    expectGlyphDescriptors(
+      builder,
+      expected.map(({ input }) => input),
+    )
     let status = 2
     for (let attempt = 0; attempt < 3 && status === 2; attempt += 1) {
       const keys = [...builder.missingGlyphs]
       expect(new Set(keys).size).toBe(keys.length)
       for (const key of keys) {
         const input = builder.glyphInput(key)
-        inputs.push(input)
-        builder.registerGlyph(key, differential.resolveInput(input))
+        builder.registerGlyph(key, registered.resolveInput(input))
       }
       status = builder.build(frameOptions)
     }
     expect(status).toBe(0)
-    const js = new InstanceRows({ columns: 40, rows: 3, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(row, differential.lookup, differential.source, frameOptions.theme)
-    const identity =
-      kind === 'color'
-        ? inputIdentity
-        : (input: GlyphRasterizationInput) =>
-            JSON.stringify([input.text, input.cellSpan, input.weight, input.italic])
-    expect(new Set(inputs.map(identity))).toEqual(new Set(differential.glyphs.keys()))
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
     expect(builder.missingGlyphs).toEqual([])
+    expect(registered.glyphs.size).toBe(
+      new Set(expected.map(({ input }) => registered.identityOf(input))).size,
+    )
+    for (const { x, y, input } of expected) {
+      const atlasGlyph = registered.glyphs.get(registered.identityOf(input))
+      expect(atlasGlyph, inputIdentity(input)).toBeDefined()
+      const offset = (y * 40 + x) * 24
+      const record = builder.glyphData.subarray(offset, offset + 24)
+      expect(record.slice(0, 4)).toEqual(
+        new Float32Array([
+          x * 8 + atlasGlyph!.offsetX,
+          y * 16 + atlasGlyph!.offsetY,
+          atlasGlyph!.width,
+          atlasGlyph!.height,
+        ]),
+      )
+      expect(record.slice(8, 12)).toEqual(
+        new Float32Array([
+          atlasGlyph!.x / atlasGlyph!.atlasWidth,
+          atlasGlyph!.y / atlasGlyph!.atlasHeight,
+          (atlasGlyph!.x + atlasGlyph!.width) / atlasGlyph!.atlasWidth,
+          (atlasGlyph!.y + atlasGlyph!.height) / atlasGlyph!.atlasHeight,
+        ]),
+      )
+      expect(record[GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+      expect(record.slice(20, 23)).toEqual(
+        new Float32Array([atlasGlyph!.layer, atlasGlyph!.generation, kind === 'color' ? 1 : 0]),
+      )
+      if (input.cellSpan === 2)
+        expect(builder.glyphData.slice(offset + 24, offset + 48)).toEqual(new Float32Array(24))
+    }
   })
 
+  it.each(['AÁŁ', 'e é è ȩ́'])(
+    'rejects aliased descriptors for %s using the independent styled reader',
+    async (content) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 12, rows: 1 })
+      const state = runtime.createRenderState(terminal)
+      terminal.write(`\x1b[?25l${content}`)
+      state.update()
+      builder = state.createFrameBuilder(12, 1)
+      expect(builder.build(options)).toBe(2)
+      const expected = expectedGlyphs(state.readRows(), options.theme).map(({ input }) => input)
+      expectGlyphDescriptors(builder, expected)
+      const glyphInput = builder.glyphInput.bind(builder)
+      vi.spyOn(builder, 'glyphInput').mockImplementation((key) => {
+        const input = glyphInput(key)
+        return { ...input, text: String.fromCodePoint(input.text.codePointAt(0)! & 0x7f) }
+      })
+      expect(() => expectGlyphDescriptors(builder!, expected)).toThrow()
+    },
+  )
+
   it.each(zigFrameCursorStyles.flatMap((style) => [0, 1].map((x) => ({ style, x }))))(
-    'matches selection and $style cursor on CJK column $x',
+    'encodes selection and $style cursor on CJK column $x',
     async ({ style, x }) => {
       runtime = await GhosttyRuntime.create()
       const terminal = runtime.createTerminal({ columns: 12, rows: 2 })
@@ -464,17 +510,13 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
       builder = state.createFrameBuilder(12, 2)
       const cursor = { style, visible: true, x, y: 0 }
       readyFrame({ ...options, cursor })
-      const js = new InstanceRows({ columns: 12, rows: 2, cellWidth: 8, cellHeight: 16 })
-      for (const row of state.readRows())
-        js.rebuildRow(
-          row,
-          { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-          { rasterize: () => bitmap },
-          options.theme,
-          cursor,
-        )
-      expect(builder.cellData).toEqual(js.cellData)
-      expect(builder.glyphData).toEqual(js.glyphData)
+      expect(builder.cellData[x * 16 + CellOffset.Meta]! & CellFlag.Cursor).toBe(CellFlag.Cursor)
+      expect(builder.cellData[x * 16 + CellOffset.Meta + 2]).toBe(
+        zigFrameCursorStyles.indexOf(style),
+      )
+      expect(builder.cellData[CellOffset.Background + 3]).toBe(1)
+      expect(builder.glyphData[24 + GlyphOffset.Meta]! & GlyphFlag.Glyph).toBe(0)
+      expectNativeRecords(builder)
     },
   )
 
@@ -502,16 +544,7 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
       if (index === 1023) warmedBytes = runtime.memory.bytes.byteLength
     }
     expect(runtime.memory.bytes.byteLength).toBe(warmedBytes)
-    const js = new InstanceRows({ columns: 4, rows: 2, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(
-        row,
-        { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-        { rasterize: () => bitmap },
-        options.theme,
-      )
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
   })
 
   it('bounds brush-sensitive color descriptors and recovers full native bytes after rebuilding the index', async () => {
@@ -521,7 +554,7 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
     terminal.write('\x1b[?25lM\x1b[2;1H_')
     state.update()
     builder = state.createFrameBuilder(2, 2)
-    const differential = differentialGlyphs('color')
+    const registered = fixtureGlyphs('color')
     for (let index = 0; index < 512; index += 1) {
       terminal.write(`\x1b[1;1H\x1b[38;2;${index & 255};${index >>> 8};91mM`)
       state.update()
@@ -530,24 +563,16 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
       let status = 2
       for (let attempt = 0; attempt < 3 && status === 2; attempt += 1) {
         for (const key of builder.missingGlyphs)
-          builder.registerGlyph(key, differential.resolveInput(builder.glyphInput(key)))
+          builder.registerGlyph(key, registered.resolveInput(builder.glyphInput(key)))
         status = builder.build(frameOptions)
       }
       expect(status).toBe(0)
-      const js = new InstanceRows({ columns: 2, rows: 2, cellWidth: 8, cellHeight: 16 })
-      for (const row of state.readRows())
-        js.rebuildRow(row, differential.lookup, differential.source, options.theme)
-      expect(builder.cellData).toEqual(js.cellData)
-      expect(builder.glyphData).toEqual(js.glyphData)
+      expectNativeRecords(builder)
       expect(builder.glyphCount).toBeLessThanOrEqual(2 * 2 * 8)
       state.acknowledge()
     }
     expect(builder.glyphIndexRebuilds).toBeGreaterThan(0)
-    const js = new InstanceRows({ columns: 2, rows: 2, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(row, differential.lookup, differential.source, options.theme)
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
   })
 
   it('deduplicates repeated misses while growing beyond 128 Unicode keys and refreshing memory views', async () => {
@@ -563,18 +588,14 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
     expect(keys).toHaveLength(180)
     expect(new Set(keys).size).toBe(180)
     expect(keys.map((key) => builder!.glyphInput(key).text).sort()).toEqual([...texts].sort())
-    const differential = differentialGlyphs('grayscale')
+    const registered = fixtureGlyphs('grayscale')
     for (const key of keys.slice(0, 90))
-      builder.registerGlyph(key, differential.resolveInput(builder.glyphInput(key)))
+      builder.registerGlyph(key, registered.resolveInput(builder.glyphInput(key)))
     runtime.exports.memory.grow(1)
     for (const key of keys.slice(90))
-      builder.registerGlyph(key, differential.resolveInput(builder.glyphInput(key)))
+      builder.registerGlyph(key, registered.resolveInput(builder.glyphInput(key)))
     expect(builder.build(options)).toBe(0)
-    const js = new InstanceRows({ columns: 40, rows: 10, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(row, differential.lookup, differential.source, options.theme)
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
     state.acknowledge()
     terminal.write('\x1b[1;1H\x1b[?2027hé👩‍💻')
     state.update()
@@ -583,12 +604,9 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
       expect.arrayContaining(['é', '👩‍💻']),
     )
     for (const key of builder.missingGlyphs)
-      builder.registerGlyph(key, differential.resolveInput(builder.glyphInput(key)))
+      builder.registerGlyph(key, registered.resolveInput(builder.glyphInput(key)))
     expect(builder.build({ ...options, full: false })).toBe(0)
-    for (const row of state.readRows())
-      js.rebuildRow(row, differential.lookup, differential.source, options.theme)
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
   })
 
   it('preserves wide and grapheme row damage through multiple missing-glyph retries', async () => {
@@ -631,16 +649,7 @@ describe('WASM Unicode descriptors and differential instance bytes', () => {
         .reduce((bytes, range) => bytes + range.cell.byteLength + range.glyph.byteLength, 0),
     ).toBe(2 * 12 * (64 + 96))
     expect(builder.glyphData.slice(12 * 24)).toEqual(before.slice(12 * 24))
-    const js = new InstanceRows({ columns: 12, rows: 3, cellWidth: 8, cellHeight: 16 })
-    for (const row of state.readRows())
-      js.rebuildRow(
-        row,
-        { beginRow() {}, resolve: () => ({ glyph, invalidatedRows: [] }) },
-        { rasterize: () => bitmap },
-        options.theme,
-      )
-    expect(builder.cellData).toEqual(js.cellData)
-    expect(builder.glyphData).toEqual(js.glyphData)
+    expectNativeRecords(builder)
   })
 })
 

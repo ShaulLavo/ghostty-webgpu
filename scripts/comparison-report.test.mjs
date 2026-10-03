@@ -717,7 +717,7 @@ test('portable compaction preserves between-repetition qualifications and bounde
   for (const run of artifact.runs) {
     run.info = { adapter: {} }
     run.gpuWindows = []
-    run.output.frameMetrics = [{ terminal: 0, delta: { zigFrames: 1192, jsFallbackFrames: 8 } }]
+    run.output.frameMetrics = [{ terminal: 0, delta: { zigFrames: 1192 } }]
     run.latency.write = run.variant === 'ghostty-webgpu' ? [1] : [0]
   }
   const compact = await compactEvidence(artifact)
@@ -731,7 +731,7 @@ test('portable compaction preserves between-repetition qualifications and bounde
     assert.deepEqual(run.output.input, input)
     assert.equal(run.output.bytes, 4096)
     assert.equal(run.output.nextChunk, 172)
-    assert.deepEqual(run.output.frameMetrics[0].delta, { zigFrames: 1192, jsFallbackFrames: 8 })
+    assert.deepEqual(run.output.frameMetrics[0].delta, { zigFrames: 1192 })
   }
   assert.deepEqual(pairedRatios(compact), compact.pairedRatios)
   const row = compact.pairedRatios.find(({ metric }) => metric === 'write/p50')

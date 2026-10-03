@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import { attachNativeTestBuilder } from '../tests/native-state.js'
 import { browserRenderClock } from '../config.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../renderer.js'
 import { WebGlTerminalRenderer } from './renderer.js'
@@ -33,6 +34,7 @@ async function fixture(
   source: TestRenderState,
   overrides: Partial<WebGpuTerminalRendererOptions> = {},
 ) {
+  await attachNativeTestBuilder(source, source.rows[0]?.cells.length ?? 1, source.rows.length)
   const canvas = document.createElement('canvas')
   document.body.append(canvas)
   canvases.add(canvas)
@@ -275,7 +277,7 @@ describe('WebGlTerminalRenderer', () => {
     expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
   })
 
-  it('limits cursor and refresh reads to affected rows and skips empty atlas state setup', async () => {
+  it('keeps cursor and refresh paints free of styled-row reads and empty atlas setup', async () => {
     const source = new TestRenderState(
       Array.from({ length: 5 }, (_, y) => row(y, [cell(0), cell(1)])),
     )
@@ -295,20 +297,20 @@ describe('WebGlTerminalRenderer', () => {
     source.replaceRow(1, [cell(0, { background: rgb(255, 0, 0) }), cell(1)])
     renderer.notifyWrite()
     clock.flushFrame()
-    expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+    expect(readRows).not.toHaveBeenCalled()
     expect(pixelStore).not.toHaveBeenCalled()
 
     readRows.mockClear()
     source.cursor = { ...source.cursor, viewport: { wideTail: false, x: 1, y: 3 } }
     renderer.schedule()
     clock.flushFrame()
-    expect(readRows.mock.results.map((result) => result.value.length)).toEqual([2])
+    expect(readRows).not.toHaveBeenCalled()
     expect(pixelStore).not.toHaveBeenCalled()
 
     readRows.mockClear()
     renderer.refreshRows(4, 4)
     clock.flushFrame()
-    expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+    expect(readRows).not.toHaveBeenCalled()
     expect(pixelStore).not.toHaveBeenCalled()
     expect(pixel(await renderer.capturePixels(), canvas.width, 8, 36)).toEqual([255, 0, 0, 255])
     expect(pixel(await renderer.capturePixels(), canvas.width, 24, 84)).toEqual([

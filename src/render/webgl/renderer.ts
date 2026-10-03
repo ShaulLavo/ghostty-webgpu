@@ -1,13 +1,12 @@
-import { rebuildFrame } from '../rebuild-frame.js'
+import { createGhosttyError } from '../../core/error.js'
 import { FrameObserver } from '../frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
-import { buildZigFrame, zigGlyphRow } from '../atlas/zig-glyphs.js'
+import { buildZigFrame } from '../atlas/zig-glyphs.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
-import type { GlyphBitmap } from '../atlas/types.js'
 import {
   browserRenderClock,
   canonicalRendererTheme,
@@ -19,7 +18,6 @@ import {
   safeRendererInteger,
 } from '../config.js'
 import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
-import { InstanceRows } from '../instances/rows.js'
 import type {
   CanonicalRendererTheme,
   RendererTheme,
@@ -80,7 +78,6 @@ export class WebGlTerminalRenderer {
   readonly backend = 'webgl2' as const
   readonly metrics: RendererMetrics = {
     zigFrames: 0,
-    jsFallbackFrames: 0,
     atlasCacheHits: 0,
     atlasCacheMisses: 0,
     atlasEvictions: 0,
@@ -95,8 +92,6 @@ export class WebGlTerminalRenderer {
     uploadedBytes: 0,
   }
   private zigBuilder?: ZigFrameBuilder
-  private readonly zigFrame: boolean
-  private wasZigFrame = false
   private readonly atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
@@ -110,7 +105,7 @@ export class WebGlTerminalRenderer {
   private font: TerminalFittedFont
   private grid: RendererGridSize
   private inactiveCursorStyle?: InactiveCursorStyle
-  private instances: InstanceRows
+  private frameFailed = false
   private needsFullRebuild = true
   private readonly onError?: (cause: unknown) => void
   private readonly onContextLost?: () => void
@@ -134,7 +129,6 @@ export class WebGlTerminalRenderer {
     this.font = font
     this.grid = grid
     this.renderState = options.renderState
-    this.zigFrame = options.zigFrame ?? true
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.frames = new FrameObserver(options)
@@ -143,7 +137,6 @@ export class WebGlTerminalRenderer {
     this.theme = canonicalRendererTheme(this.themeInput)
     this.frames.resize(this.grid.rows)
     this.resizeCanvas()
-    this.instances = this.createInstances()
     this.rasterizer = new CanvasGlyphRasterizer({ font })
     this.state = { kind: 'ready', pass: this.createTextPass() }
     this.scheduler = new RenderScheduler({
@@ -338,18 +331,8 @@ export class WebGlTerminalRenderer {
     })
   }
 
-  private createInstances(): InstanceRows {
-    return new InstanceRows({
-      cellHeight: this.font.deviceCellHeight,
-      cellWidth: this.font.deviceCellWidth,
-      columns: this.grid.columns,
-      rows: this.grid.rows,
-    })
-  }
-
   private rebuildGeometry(): void {
     this.resizeCanvas()
-    this.instances = this.createInstances()
     if (this.state.kind === 'ready') {
       this.state.pass.resize({
         height: this.canvas.height,
@@ -384,42 +367,26 @@ export class WebGlTerminalRenderer {
     const phaseVisible = this.scheduler.cursorVisible
     if (this.cursorPhaseVisible !== phaseVisible) this.addCursorRow(cursor)
     this.cursorPhaseVisible = phaseVisible
-    if (this.zigFrame && this.drawZigFrame(pass, damage)) return
-    if (this.wasZigFrame) this.needsFullRebuild = true
-    this.wasZigFrame = false
-    const initialRows = this.rowsToRebuild(damage)
-    if (initialRows.length === 0) {
-      if (damage === RenderStateDirty.False && !this.needsFullRebuild)
-        this.frames.notifyCleanUpdate()
-      return
+    try {
+      this.drawZigFrame(pass, damage)
+    } catch (cause) {
+      this.needsFullRebuild = true
+      if (this.frameFailed) return
+      this.frameFailed = true
+      this.onError?.(cause)
     }
-    this.needsFullRebuild = true
-    this.zigBuilder?.clearGlyphs()
-    this.atlas.beginRow(zigGlyphRow)
-    const { rows, updates } = rebuildFrame(initialRows, this.renderState, this.atlas, (source) =>
-      this.rebuildRows(source),
-    )
-    pass.syncAtlas(this.atlas.consumeUploads())
-    const operations = pass.upload(this.instances, updates)
-    pass.submit()
-    if (this.context.isContextLost()) return this.suspendContext()
-    if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    this.recordFrame(pass, updates, operations)
-    if (this.zigFrame) this.metrics.jsFallbackFrames += 1
-    this.needsFullRebuild = false
-    this.overlayRows.clear()
-    this.emitFrame(rows)
   }
 
-  private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): boolean {
-    if (!this.renderState.createFrameBuilder) return false
+  private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): void {
+    if (!this.renderState.createFrameBuilder)
+      throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
       damage === RenderStateDirty.False &&
       this.overlayRows.size === 0
     ) {
       this.frames.notifyCleanUpdate()
-      return true
+      return
     }
     let builder = this.zigBuilder
     if (!builder || builder.columns !== this.grid.columns || builder.rows !== this.grid.rows) {
@@ -438,13 +405,15 @@ export class WebGlTerminalRenderer {
         this.cursorPhaseVisible,
         this.focused ? undefined : this.inactiveCursorStyle,
       ),
-      full: this.needsFullRebuild || !this.wasZigFrame,
+      full: this.needsFullRebuild,
       overlayRows: this.overlayRows,
     }
     const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
-      this.needsFullRebuild = true
-      return false
+      throw createGhosttyError(
+        'frame_builder',
+        `The native frame could not be built after atlas recovery (status ${status})`,
+      )
     }
     const updates = builder.changedRanges()
     pass.syncAtlas(this.atlas.consumeUploads())
@@ -453,7 +422,7 @@ export class WebGlTerminalRenderer {
     if (operations > 0) pass.submit()
     if (this.context.isContextLost()) {
       this.suspendContext()
-      return true
+      return
     }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
@@ -464,29 +433,13 @@ export class WebGlTerminalRenderer {
       this.recordFrame(pass, updates, operations)
       this.metrics.zigFrames += 1
     }
-    this.wasZigFrame = true
     this.needsFullRebuild = false
+    this.frameFailed = false
     this.overlayRows.clear()
     this.emitFrame(
       rows,
       updates.map((update) => update.row),
     )
-    return true
-  }
-
-  private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {
-    const updates: RowInstanceUpdate[] = []
-    const style = this.focused ? undefined : this.inactiveCursorStyle
-    const cursor = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
-    const lookup = {
-      beginRow: (row: number) => this.atlas.beginRow(row),
-      resolve: (key: string, bitmap: GlyphBitmap, row: number) =>
-        this.atlas.getOrInsert(key, bitmap, row),
-    }
-    for (const row of rows) {
-      updates.push(this.instances.rebuildRow(row, lookup, this.rasterizer, this.theme, cursor))
-    }
-    return updates
   }
 
   private rowsToRebuild(damage: RenderStateDirty): readonly RenderRow[] {

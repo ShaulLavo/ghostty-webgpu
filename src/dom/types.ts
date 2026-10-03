@@ -137,8 +137,6 @@ export type GhosttyWebGpuRendererFactory = (
 ) => Promise<GhosttyWebGpuRenderer>
 
 export interface GhosttyWebGpuTerminalOptions {
-  /** WASM instance construction with whole-frame JS fallback; defaults on for WebGPU and WebGL. */
-  readonly zigFrame?: boolean
   readonly accessibility?: false | GhosttyWebGpuTerminalAccessibilityOptions
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy

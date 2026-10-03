@@ -14,7 +14,7 @@ afterEach(() => {
   for (const dispose of disposables.splice(0).reverse()) dispose()
 })
 
-async function fixture(zigFrame: boolean, tracing?: ComparisonTracing) {
+async function fixture(tracing?: ComparisonTracing) {
   const runtime = await GhosttyRuntime.create()
   disposables.push(() => runtime.dispose())
   const terminal = runtime.createTerminal({ columns: 40, rows: 12 })
@@ -36,7 +36,6 @@ async function fixture(zigFrame: boolean, tracing?: ComparisonTracing) {
     renderState: state,
     font: fittedFont(),
     schedulerClock: clock,
-    zigFrame,
     onRowsPainted: (rows) => painted.push(rows.map((row) => row.y)),
   })
   disposables.push(() => renderer.dispose())
@@ -73,9 +72,8 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
   history.replaceState(null, '', url)
   onTestFinished(() => history.replaceState(null, '', original))
   const tracing = new ComparisonTracing()
-  const native = await fixture(true, tracing)
-  const js = await fixture(false)
-  for (const canvas of [native.canvas, js.canvas]) {
+  const native = await fixture(tracing)
+  for (const canvas of [native.canvas]) {
     const bounds = canvas.getBoundingClientRect()
     expect(bounds.left).toBeGreaterThanOrEqual(0)
     expect(bounds.top).toBeGreaterThanOrEqual(0)
@@ -83,9 +81,6 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
     expect(bounds.bottom).toBeLessThanOrEqual(window.innerHeight)
     expect([bounds.width, bounds.height]).toEqual([canvas.width, canvas.height])
   }
-  expect(js.canvas.getBoundingClientRect().top).toBeGreaterThanOrEqual(
-    native.canvas.getBoundingClientRect().bottom,
-  )
   const builder = Reflect.get(native.renderer, 'zigBuilder') as ZigFrameBuilder
   const pass = Reflect.get(native.renderer, 'state').pass as WebGlTextPass
   const context = Reflect.get(native.renderer, 'context') as WebGL2RenderingContext
@@ -139,9 +134,7 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
       control.writes,
     )
     expect(native.renderer.metrics.zigFrames - before.zigFrames).toBe(control.submits)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(observed.zigFrames ?? 0).toBe(control.submits)
-    expect(observed.zigFallbackFrames ?? 0).toBe(0)
     expect(observed.zigUnsupportedBuilds ?? 0).toBe(0)
     expect(observed.zigGlyphIndexClears ?? 0).toBe(0)
     expect(observed.submissions ?? 0).toBe(control.submits)
@@ -178,7 +171,6 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
             byteOffset: row * 40 * GLYPH_INSTANCE_BYTES,
             byteLength: 40 * GLYPH_INSTANCE_BYTES,
           },
-          invalidatedRows: [],
         })),
       )
       expect(
@@ -202,15 +194,9 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
         ]).flat(),
       )
     }
-    js.terminal.write(control.content)
-    js.renderer.notifyWrite()
-    js.clock.flushFrame()
-    expect(js.clock.frames.size).toBe(0)
     const submittedFrames = native.renderer.metrics.submittedFrames
     const pixels = await displayedPixels(native.canvas)
-    expect(pixels).toEqual(await displayedPixels(js.canvas))
     expect(native.renderer.metrics.submittedFrames).toBe(submittedFrames)
-    expect(await native.renderer.capturePixels()).toEqual(await js.renderer.capturePixels())
     expect(pixels.some((value, index) => index % 4 === 3 && value > 0)).toBe(true)
     if (control.name === 'missing') expect(pixels[3]).toBe(255)
     expect(native.painted.at(-1)).toEqual(Array.from({ length: 12 }, (_, index) => index))

@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
+import { attachNativeTestBuilder } from './native-state.js'
 import { FrameObserver } from '../frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -182,6 +183,7 @@ async function waitForDeviceCleanup(): Promise<void> {
 async function createRenderer(
   options: WebGpuTerminalRendererOptions,
 ): Promise<WebGpuTerminalRenderer> {
+  await attachNativeTestBuilder(options.renderState, options.columns, options.rows)
   const renderer = await WebGpuTerminalRenderer.create({
     deviceFactory: createDevice,
     ...options,
@@ -246,8 +248,8 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
 
   expect(renderer.metrics.submittedFrames).toBe(1)
   expect(renderer.metrics.rebuiltRows).toBe(2)
-  expect(renderer.metrics.instanceUploadOperations).toBe(2)
-  expect(renderer.metrics.atlasCacheHits).toBe(1)
+  expect(renderer.metrics.instanceUploadOperations).toBe(4)
+  expect(renderer.metrics.atlasCacheHits).toBe(0)
   expect(renderer.metrics.atlasCacheMisses).toBe(1)
   expect(renderer.metrics.atlasPages).toBe(1)
   expect(renderer.metrics.atlasUploadOperations).toBe(1)
@@ -267,7 +269,7 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
   clock.flushFrame()
 
   expect(renderer.metrics.submittedFrames).toBe(2)
-  expect(renderer.metrics.rebuiltRows).toBe(3)
+  expect(renderer.metrics.rebuiltRows).toBe(2)
   expect(renderer.metrics.instanceUploadOperations).toBe(4)
   expect(source.acknowledgements).toBe(2)
   renderer.dispose()
@@ -389,7 +391,7 @@ it('renders cursor-only terminal mutations even when row damage is clean', async
   canvas.remove()
 })
 
-it('limits cursor and refresh reads to affected rows without decoding the viewport', async () => {
+it('keeps cursor and refresh paints free of styled-row reads', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 5)
   const canvas = createCanvas()
@@ -411,7 +413,7 @@ it('limits cursor and refresh reads to affected rows without decoding the viewpo
   source.dirtyRow(0)
   renderer.notifyWrite()
   clock.flushFrame()
-  expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+  expect(readRows).not.toHaveBeenCalled()
 
   readRows.mockClear()
   source.setCursor({
@@ -420,12 +422,12 @@ it('limits cursor and refresh reads to affected rows without decoding the viewpo
   })
   renderer.schedule()
   clock.flushFrame()
-  expect(readRows.mock.results.map((result) => result.value.length)).toEqual([2])
+  expect(readRows).not.toHaveBeenCalled()
 
   readRows.mockClear()
   renderer.refreshRows(4, 4)
   clock.flushFrame()
-  expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
+  expect(readRows).not.toHaveBeenCalled()
   expect(renderer.hasPendingFrame).toBe(false)
   renderer.dispose()
   canvas.remove()
@@ -847,7 +849,6 @@ it('paints WASM ASCII and Unicode frames without JS row reads', async () => {
     font: fittedFont(),
     renderState: state,
     schedulerClock: nativeClock,
-    zigFrame: true,
   })
   const js = await createRenderer({
     canvas: createCanvas(),
@@ -860,7 +861,6 @@ it('paints WASM ASCII and Unicode frames without JS row reads', async () => {
   try {
     nativeClock.flushFrame()
     expect(native.metrics.zigFrames).toBe(1)
-    expect(native.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
     jsClock.flushFrame()
     const [nativePixels, jsPixels] = await Promise.all([native.capturePixels(), js.capturePixels()])
@@ -886,14 +886,12 @@ it('paints WASM ASCII and Unicode frames without JS row reads', async () => {
     native.notifyWrite()
     nativeClock.flushFrame()
     expect(native.metrics.zigFrames).toBe(3)
-    expect(native.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
     terminal.write('\x1b[3;1H\x1b[2KASCII')
     readRows.mockClear()
     native.notifyWrite()
     nativeClock.flushFrame()
     expect(native.metrics.zigFrames).toBe(4)
-    expect(native.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
   } finally {
     native.dispose()
@@ -917,7 +915,7 @@ it('keeps native frame callbacks current for DOM text and cursor consumers', asy
     font: fittedFont(),
     renderState: state,
     schedulerClock: clock,
-    zigFrame: true,
+
     onFrame,
     onRowsPainted,
   })
@@ -932,52 +930,47 @@ it('keeps native frame callbacks current for DOM text and cursor consumers', asy
     expect(onFrame.mock.calls.at(-1)![0].rows[0].text.trimEnd()).toBe('second')
     expect(onFrame.mock.calls.at(-1)![0].cursor.viewport.x).toBe(6)
     expect(renderer.metrics.zigFrames).toBe(2)
-    expect(renderer.metrics.jsFallbackFrames).toBe(0)
   } finally {
     renderer.dispose()
     runtime.dispose()
   }
 })
 
-it.each([false, true])(
-  'delivers both paint callbacks before a nested resize repaint (zigFrame=%s)',
-  async (zigFrame) => {
-    const runtime = await GhosttyRuntime.create()
-    const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
-    const state = runtime.createRenderState(terminal)
-    const clock = new FakeClock()
-    const events: string[] = []
-    let resized = false
-    terminal.write('first\r\nsecond\r\nthird\r\nfourth')
-    const renderer = await createRenderer({
-      canvas: new OffscreenCanvas(1, 1),
-      columns: 8,
-      rows: 4,
-      font: fittedFont(),
-      renderState: state,
-      schedulerClock: clock,
-      zigFrame,
-      onFrame: (frame) => {
-        events.push(`frame:${frame.rows.map((row) => row.y).join(',')}`)
-        if (resized) return
-        resized = true
-        terminal.resize({ columns: 8, rows: 2 })
-        renderer.resize({ columns: 8, rows: 2 })
-      },
-      onRowsPainted: (rows) => events.push(`rows:${rows.map((row) => row.y).join(',')}`),
-    })
-    try {
-      clock.flushFrame()
-      expect(events).toEqual(['frame:0,1,2,3', 'rows:0,1,2,3', 'frame:0,1', 'rows:0,1'])
-      expect(renderer.metrics.submittedFrames).toBe(2)
-      expect(renderer.metrics.zigFrames).toBe(zigFrame ? 2 : 0)
-      expect(renderer.hasPendingFrame).toBe(false)
-    } finally {
-      renderer.dispose()
-      runtime.dispose()
-    }
-  },
-)
+it('delivers both paint callbacks before a nested resize repaint', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
+  const state = runtime.createRenderState(terminal)
+  const clock = new FakeClock()
+  const events: string[] = []
+  let resized = false
+  terminal.write('first\r\nsecond\r\nthird\r\nfourth')
+  const renderer = await createRenderer({
+    canvas: new OffscreenCanvas(1, 1),
+    columns: 8,
+    rows: 4,
+    font: fittedFont(),
+    renderState: state,
+    schedulerClock: clock,
+    onFrame: (frame) => {
+      events.push(`frame:${frame.rows.map((row) => row.y).join(',')}`)
+      if (resized) return
+      resized = true
+      terminal.resize({ columns: 8, rows: 2 })
+      renderer.resize({ columns: 8, rows: 2 })
+    },
+    onRowsPainted: (rows) => events.push(`rows:${rows.map((row) => row.y).join(',')}`),
+  })
+  try {
+    clock.flushFrame()
+    expect(events).toEqual(['frame:0,1,2,3', 'rows:0,1,2,3', 'frame:0,1', 'rows:0,1'])
+    expect(renderer.metrics.submittedFrames).toBe(2)
+    expect(renderer.metrics.zigFrames).toBe(2)
+    expect(renderer.hasPendingFrame).toBe(false)
+  } finally {
+    renderer.dispose()
+    runtime.dispose()
+  }
+})
 
 it('drops queued Zig overlay rows when the grid shrinks before painting', async () => {
   const runtime = await GhosttyRuntime.create()
@@ -992,7 +985,6 @@ it('drops queued Zig overlay rows when the grid shrinks before painting', async 
     font: fittedFont(),
     renderState: state,
     schedulerClock: clock,
-    zigFrame: true,
   })
   try {
     clock.flushFrame()
@@ -1037,7 +1029,7 @@ it.each(['onFrame', 'onRowsPainted'] as const)(
       font: fittedFont(),
       renderState: state,
       schedulerClock: clock,
-      zigFrame: true,
+
       [callback]: onPaint,
     })
     try {
@@ -1070,6 +1062,7 @@ it('recovers after a Zig builder replacement allocation fails', async () => {
   const state = runtime.createRenderState(terminal)
   const clock = new FakeClock()
   terminal.write('first')
+  const onError = vi.fn()
   const renderer = await createRenderer({
     canvas: new OffscreenCanvas(1, 1),
     columns: 8,
@@ -1077,7 +1070,7 @@ it('recovers after a Zig builder replacement allocation fails', async () => {
     font: fittedFont(),
     renderState: state,
     schedulerClock: clock,
-    zigFrame: true,
+    onError,
   })
   try {
     clock.flushFrame()
@@ -1090,7 +1083,8 @@ it('recovers after a Zig builder replacement allocation fails', async () => {
       if (calls === 3) throw injected
       return allocate(length)
     })
-    expect(() => renderer.resize({ columns: 9, rows: 2 })).toThrow(injected)
+    expect(() => renderer.resize({ columns: 9, rows: 2 })).not.toThrow()
+    expect(onError).toHaveBeenCalledExactlyOnceWith(injected)
     failing.mockRestore()
     expect(() => renderer.clearTextureAtlas()).not.toThrow()
     terminal.resize({ columns: 8, rows: 2 })
@@ -1134,7 +1128,7 @@ it.each(['onFrame', 'onRowsPainted'] as const)(
       font: fittedFont(),
       renderState: state,
       schedulerClock: clock,
-      zigFrame: true,
+
       [callback]: onPaint,
     })
     try {
@@ -1174,7 +1168,7 @@ it('copies no native listener rows for cursor and painted-row ID consumers, then
     font: fittedFont(),
     renderState: state,
     schedulerClock: clock,
-    zigFrame: true,
+
     onFrame,
     onRowsChanged,
     needsFrameRows: () => needsRows,
@@ -1214,7 +1208,6 @@ it('copies no native listener rows for cursor and painted-row ID consumers, then
     clock.flushFrame()
     expect(readRows).not.toHaveBeenCalled()
     expect(retained.rows.map((row) => row.text)).toEqual(text)
-    expect(renderer.metrics.jsFallbackFrames).toBe(0)
   } finally {
     renderer.dispose()
     runtime.dispose()

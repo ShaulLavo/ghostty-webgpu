@@ -36,7 +36,7 @@ async function failureArtifacts(testCase, repetition) {
     goto: async (url) => {
       const query = new URL(url).searchParams
       assert.equal(query.get('accessibility'), 'on')
-      assert.equal(query.has('zig'), testCase.frameBuilder === 'zig')
+      assert.equal(query.has('zig'), false)
       throw error
     },
     evaluate: async () => ({}),
@@ -71,11 +71,12 @@ for (const [kind, prefix] of [
   ['screenshots', 'failure'],
   ['captures', 'capture-failure'],
 ]) {
-  test(`${prefix} artifacts distinguish paired frame builders`, async () => {
+  test(`${prefix} artifacts distinguish GPU backends`, async () => {
     const names = []
-    const treatments = ['ghostty-webgpu', 'ghostty-webgl'].flatMap((variant) =>
-      ['js', 'zig'].map((frameBuilder) => ({ variant, frameBuilder })),
-    )
+    const treatments = ['ghostty-webgpu', 'ghostty-webgl'].map((variant) => ({
+      variant,
+      frameBuilder: 'zig',
+    }))
     for (const { variant, frameBuilder } of treatments) {
       const artifacts = await failureArtifacts(
         { variant, frameBuilder, path: 'bytes', count: 8 },
@@ -84,7 +85,7 @@ for (const [kind, prefix] of [
       assert.deepEqual(artifacts[kind], [`${prefix}-${variant}-${frameBuilder}-bytes-8-2.png`])
       names.push(...artifacts[kind])
     }
-    assert.equal(new Set(names).size, 4)
+    assert.equal(new Set(names).size, 2)
   })
 }
 
@@ -96,7 +97,7 @@ test('selected output fixture reaches warmup, measured writes, and the artifact'
     'context',
     `
     const {randomUUID, manifest, smoke, tracing, repetitions, latencySamples, outputFrames,
-      selectedOutputFixture, tickSeconds, counts, variantIds, phases, builders, writePaths,
+      selectedOutputFixture, tickSeconds, counts, variantIds, phases, writePaths,
       fixtures, s, tracePhases, traceFrames, accessibility, measurementCases,
       gpuCommandTimeoutMilliseconds} = context;
     ${source.slice(artifactStart, artifactEnd)}
@@ -114,7 +115,6 @@ test('selected output fixture reaches warmup, measured writes, and the artifact'
     counts: [17],
     variantIds: ['ghostty-webgl', 'xterm-webgl'],
     phases: ['output'],
-    builders: ['js', 'zig'],
     accessibility: 'on',
     measurementCases,
     writePaths: ['bytes'],
@@ -124,7 +124,7 @@ test('selected output fixture reaches warmup, measured writes, and the artifact'
   assert.equal(artifact.outputFixture, fixture.name)
   assert.equal(artifact.outputFrames, 1200)
   assert.equal(artifact.accessibility, 'on')
-  assert.equal(artifact.measurementBudgetMilliseconds, 3 * 4 * 600000)
+  assert.equal(artifact.measurementBudgetMilliseconds, 2 * 4 * 600000)
   const blockStart = source.indexOf("    if (phases.includes('output')) {")
   const blockEnd = source.indexOf('\n    assert.deepEqual(errors, [])', blockStart)
   const calls = []

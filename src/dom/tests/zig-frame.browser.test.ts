@@ -1,6 +1,9 @@
 import { afterAll, afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import { GhosttyResult } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
+import { createGhosttyError } from '../../core/error.js'
+import type { WebGpuTextPass } from '../../render/text-pass.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { CanvasGlyphRasterizer } from '../../render/atlas/canvas-rasterizer.js'
 import { defaultRendererTheme } from '../../render/instances/types.js'
@@ -34,7 +37,6 @@ async function retainGpuInstance(): Promise<void> {
 }
 
 async function hostFixture(
-  zigFrame: false | undefined,
   backend: 'webgl2' | 'webgpu' = 'webgl2',
   grid = { columns: 12, rows: 3 },
   clock?: TestClock,
@@ -64,9 +66,7 @@ async function hostFixture(
   let renderer: WebGlTerminalRenderer | WebGpuTerminalRenderer | undefined
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
-    ...(zigFrame === undefined ? {} : { zigFrame }),
     rendererFactory: async (options) => {
-      expect(options.zigFrame).toBe(zigFrame ?? true)
       if (backend === 'webgpu') {
         await retainGpuInstance()
         renderer = await WebGpuTerminalRenderer.create({ ...options, schedulerClock: clock })
@@ -86,90 +86,66 @@ async function hostFixture(
     errors,
     host,
     renderer: renderer!,
+    runtime,
     state: session.renderState,
     terminal,
   }
 }
 
-it.each([
-  { backend: 'webgl2', zigFrame: undefined },
-  { backend: 'webgl2', zigFrame: false },
-  { backend: 'webgpu', zigFrame: undefined },
-  { backend: 'webgpu', zigFrame: false },
-] as const)(
-  'resolves the real Terminal producer choice ($backend, zigFrame=$zigFrame)',
-  async ({ backend, zigFrame }) => {
-    const { canvas, terminal, renderer, errors } = await hostFixture(zigFrame, backend)
-    await expect.poll(() => terminal.hasPendingFrame).toBe(false)
-    const before = await displayedPixels(canvas)
-    terminal.write('\x1b[?25l\x1b[31;44mASCII')
-    await expect.poll(() => terminal.hasPendingFrame).toBe(false)
-    expect(terminal.diagnostics.rendererBackend).toBe(backend)
-    expect(renderer.metrics.submittedFrames).toBeGreaterThan(0)
-    expect(renderer.metrics.jsFallbackFrames).toBe(0)
-    if (zigFrame === undefined) expect(renderer.metrics.zigFrames).toBeGreaterThan(0)
-    if (zigFrame === false) expect(renderer.metrics.zigFrames).toBe(0)
-    expect(await displayedPixels(canvas)).not.toEqual(before)
-    expect(errors).toEqual([])
-    terminal.dispose()
-    expect(terminal.hasPendingFrame).toBe(false)
-    expect(terminal.hasPendingTimer).toBe(false)
-  },
-)
+it.each(['webgl2', 'webgpu'] as const)('uses the native GPU producer (%s)', async (backend) => {
+  const { canvas, terminal, renderer, errors } = await hostFixture(backend)
+  await expect.poll(() => terminal.hasPendingFrame).toBe(false)
+  const before = await displayedPixels(canvas)
+  terminal.write('\x1b[?25l\x1b[31;44mASCII')
+  await expect.poll(() => terminal.hasPendingFrame).toBe(false)
+  expect(terminal.diagnostics.rendererBackend).toBe(backend)
+  expect(renderer.metrics.zigFrames).toBe(renderer.metrics.submittedFrames)
+  expect(await displayedPixels(canvas)).not.toEqual(before)
+  expect(errors).toEqual([])
+  terminal.dispose()
+  expect(terminal.hasPendingFrame).toBe(false)
+  expect(terminal.hasPendingTimer).toBe(false)
+})
 
-async function expectHostParity(
+async function expectPainted(
   native: Awaited<ReturnType<typeof hostFixture>>,
-  js: Awaited<ReturnType<typeof hostFixture>>,
+  errorCount = 0,
 ): Promise<void> {
-  await expect
-    .poll(() => native.terminal.hasPendingFrame || js.terminal.hasPendingFrame)
-    .toBe(false)
-  const nativePixels = await displayedPixels(native.canvas)
-  const jsPixels = await displayedPixels(js.canvas)
-  expect(nativePixels.byteLength).toBe(jsPixels.byteLength)
-  const firstDifference = nativePixels.findIndex((value, index) => value !== jsPixels[index])
-  expect(firstDifference, 'Scheduled native and JS compositor pixels match').toBe(-1)
-  expect(native.errors).toEqual([])
-  expect(js.errors).toEqual([])
+  await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
+  const pixels = await displayedPixels(native.canvas)
+  expect(pixels.byteLength).toBe(native.canvas.width * native.canvas.height * 4)
+  expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
+  expect(native.errors).toHaveLength(errorCount)
 }
 
 it.each(['webgl2', 'webgpu'] as const)(
   'keeps Unicode resident in the default native producer (%s)',
   async (backend) => {
-    const native = await hostFixture(undefined, backend)
-    const js = await hostFixture(false, backend)
-    for (const host of [native, js]) host.terminal.write('\x1b[?25lASCII\r\nsecond\r\nthird')
-    await expectHostParity(native, js)
+    const native = await hostFixture(backend)
+    native.terminal.write('\x1b[?25lASCII\r\nsecond\r\nthird')
+    await expectPainted(native)
     expect(native.terminal.diagnostics.rendererBackend).toBe(backend)
-    expect(js.terminal.diagnostics.rendererBackend).toBe(backend)
     expect(native.renderer.metrics.zigFrames).toBeGreaterThan(0)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
-    expect(js.renderer.metrics.zigFrames).toBe(0)
     const nativeFrames = native.renderer.metrics.zigFrames
     const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
-    for (const host of [native, js]) host.terminal.write('\x1b[3;1H界')
-    await expectHostParity(native, js)
+    native.terminal.write('\x1b[3;1H界')
+    await expectPainted(native)
     expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
     expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 1)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     build.mockClear()
-    for (const host of [native, js]) host.terminal.write('\x1b[1;1Hchanged')
-    await expectHostParity(native, js)
+    native.terminal.write('\x1b[1;1Hchanged')
+    await expectPainted(native)
     expect(build.mock.results.at(-1)?.value).toBe(0)
     expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 2)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     build.mockClear()
-    for (const host of [native, js]) host.terminal.write('\x1b[3;1H\x1b[2KASCII')
-    await expectHostParity(native, js)
+    native.terminal.write('\x1b[3;1H\x1b[2KASCII')
+    await expectPainted(native)
     expect(build.mock.results.at(-1)?.value).toBe(0)
     expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 3)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
-    expect(js.renderer.metrics.zigFrames).toBe(0)
-    for (const host of [native, js]) {
-      host.terminal.dispose()
-      expect(host.terminal.hasPendingFrame).toBe(false)
-      expect(host.terminal.hasPendingTimer).toBe(false)
-    }
+
+    native.terminal.dispose()
+    expect(native.terminal.hasPendingFrame).toBe(false)
+    expect(native.terminal.hasPendingTimer).toBe(false)
   },
 )
 
@@ -179,9 +155,8 @@ it.each(['webgl2', 'webgpu'] as const)(
     const viewport = { width: window.innerWidth, height: window.innerHeight }
     onTestFinished(() => page.viewport(viewport.width, viewport.height))
     await page.viewport(800, 2400)
-    const clocks = [new TestClock(), new TestClock()]
-    const native = await hostFixture(undefined, backend, { columns: 1, rows: 2 }, clocks[0])
-    const js = await hostFixture(false, backend, { columns: 1, rows: 2 }, clocks[1])
+    const clocks = [new TestClock()]
+    const native = await hostFixture(backend, { columns: 1, rows: 2 }, clocks[0])
     const flush = () => {
       for (const clock of clocks) {
         for (let attempt = 0; attempt < 8 && clock.frames.size > 0; attempt += 1) clock.flushFrame()
@@ -189,14 +164,13 @@ it.each(['webgl2', 'webgpu'] as const)(
       }
     }
     const font = fittedFont(320, 512, 500)
-    for (const host of [native, js]) {
-      host.host.style.height = '1040px'
-      host.renderer.setFont(font)
-      host.terminal.write('\x1b[?25lM\x1b[2;1H_')
-    }
+
+    native.host.style.height = '1040px'
+    native.renderer.setFont(font)
+    native.terminal.write('\x1b[?25lM\x1b[2;1H_')
+
     flush()
-    await expectHostParity(native, js)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    await expectPainted(native)
     const before = await displayedPixels(native.canvas)
     const builds = vi.spyOn(ZigFrameBuilder.prototype, 'build')
     const glyphs = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].flatMap((letter) => [
@@ -204,13 +178,11 @@ it.each(['webgl2', 'webgpu'] as const)(
       `\x1b[1m${letter}`,
     ])
     for (const glyph of glyphs) {
-      for (const host of [native, js]) host.terminal.write(`\x1b[1;1H${glyph}`)
+      native.terminal.write(`\x1b[1;1H${glyph}`)
       flush()
-      expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
       expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
     }
     expect(native.renderer.metrics.atlasEvictions).toBeGreaterThan(0)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(
       builds.mock.results.some(
         (result, index, results) =>
@@ -218,20 +190,18 @@ it.each(['webgl2', 'webgpu'] as const)(
       ),
     ).toBe(true)
     flush()
-    await expectHostParity(native, js)
+    await expectPainted(native)
     const after = await displayedPixels(native.canvas)
     const rowBytes = native.canvas.width * font.deviceCellHeight * 4
     expect(after.subarray(rowBytes)).toEqual(before.subarray(rowBytes))
     const zigFrames = native.renderer.metrics.zigFrames
-    for (const host of [native, js]) {
-      host.renderer.setFont(fittedFont())
-      host.terminal.write('\x1b[1;1H\x1b[0mé')
-    }
+
+    native.renderer.setFont(fittedFont())
+    native.terminal.write('\x1b[1;1H\x1b[0mé')
+
     flush()
-    await expectHostParity(native, js)
+    await expectPainted(native)
     expect(native.renderer.metrics.zigFrames).toBeGreaterThan(zigFrames)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
-    expect(js.renderer.metrics.zigFrames).toBe(0)
   },
   30_000,
 )
@@ -240,7 +210,7 @@ it.each(['webgl2', 'webgpu'] as const)(
   'bounds genuine native atlas exhaustion and returns to exact Zig pixels after shrinking (%s)',
   async (backend) => {
     const nativeClock = new TestClock()
-    const native = await hostFixture(undefined, backend, { columns: 6, rows: 3 }, nativeClock)
+    const native = await hostFixture(backend, { columns: 6, rows: 3 }, nativeClock)
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
     const face = new FontFace(
       'AtlasExhaustionTest',
@@ -278,6 +248,9 @@ it.each(['webgl2', 'webgpu'] as const)(
     const readRows = vi.spyOn(native.state, 'readRows')
     const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
     const before = native.renderer.metrics.submittedFrames
+    const uploadOperations = native.renderer.metrics.instanceUploadOperations
+    const atlasUploads = native.renderer.metrics.atlasUploadOperations
+    const acknowledge = vi.spyOn(native.state, 'acknowledge')
     native.terminal.write(
       '\x1b[?25l' +
         glyphs
@@ -287,67 +260,289 @@ it.each(['webgl2', 'webgpu'] as const)(
           )
           .join(''),
     )
-    // Both producers share this finite atlas; exhausted fallback throws before submission.
-    expect(() => nativeClock.flushFrame()).toThrow(
+    expect(() => nativeClock.flushFrame()).not.toThrow()
+    expect(native.errors).toEqual([
       expect.objectContaining({
-        operation: 'renderer.atlas',
-        message: 'The glyph atlas cannot retain the visible viewport',
+        cause: expect.objectContaining({
+          operation: 'frame_builder',
+          message: 'The native frame could not be built after atlas recovery (status 2)',
+        }),
       }),
-    )
+    ])
     expect(build.mock.results.map((result) => result.value)).toEqual([2, 2, 2, 2])
-    expect(readRows.mock.calls.filter(([options]) => options?.packed)).toHaveLength(2)
+    expect(readRows).not.toHaveBeenCalled()
     expect(native.renderer.metrics.submittedFrames).toBe(before)
+    expect(native.renderer.metrics.instanceUploadOperations).toBe(uploadOperations)
+    expect(native.renderer.metrics.atlasUploadOperations).toBe(atlasUploads)
+    expect(acknowledge).not.toHaveBeenCalled()
+    expect(native.renderer.hasPendingTimer).toBe(false)
     expect(native.terminal.hasPendingFrame).toBe(false)
     const nativeFrames = native.renderer.metrics.zigFrames
     native.terminal.write('\x1b[0m\x1b[2J\x1b[Hrecovered')
     native.renderer.setFont(fittedFont())
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
     expect(native.renderer.metrics.zigFrames).toBeGreaterThan(nativeFrames)
-    const jsClock = new TestClock()
-    const js = await hostFixture(false, backend, { columns: 6, rows: 3 }, jsClock)
-    if (jsClock.frames.size > 0) jsClock.flushFrame()
-    js.terminal.write('\x1b[?25l\x1b[0m\x1b[2J\x1b[Hrecovered')
-    js.renderer.setFont(fittedFont())
-    if (jsClock.frames.size > 0) jsClock.flushFrame()
-    await expectHostParity(native, js)
+    await expectPainted(native, 1)
     expect(native.terminal.hasPendingTimer).toBe(false)
-    expect(js.terminal.hasPendingTimer).toBe(false)
   },
 )
 
+it.each(['webgl2', 'webgpu'] as const)(
+  'rebuilds unsubmitted persistent records after a bridge exception (%s)',
+  async (backend) => {
+    const clock = new TestClock()
+    const native = await hostFixture(backend, { columns: 6, rows: 3 }, clock)
+    const flush = () => {
+      while (clock.frames.size > 0) clock.flushFrame()
+    }
+    const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    native.terminal.write('\x1b[?25lABAB\r\nBBBB\r\nlast')
+    flush()
+    const before = await displayedPixels(native.canvas)
+    const snapshot = native.terminal.frameSnapshot()
+    const initialBuilder = build.mock.contexts.at(-1) as ZigFrameBuilder
+    const initialGlyphs = initialBuilder.glyphData.slice()
+    build.mockClear()
+    const acknowledge = vi.spyOn(native.state, 'acknowledge')
+    const submitted = native.renderer.metrics.submittedFrames
+    const uploaded = native.renderer.metrics.instanceUploadOperations
+    const atlasUploads = native.renderer.metrics.atlasUploadOperations
+    const bridgeBuild = native.runtime.bridge.buildFrame.bind(native.runtime.bridge)
+    const fault = vi
+      .spyOn(native.runtime.bridge, 'buildFrame')
+      .mockImplementationOnce((...args) => {
+        expect(bridgeBuild(...args)).toBe(GhosttyResult.Success)
+        return GhosttyResult.OutOfMemory
+      })
+    native.terminal.write('\x1b[1;1HBBBB')
+    native.renderer.refreshRows(2, 2)
+    let uncaught: unknown
+    try {
+      flush()
+    } catch (cause) {
+      uncaught = cause
+    }
+    expect(build.mock.results[0]?.type).toBe('throw')
+    expect(build.mock.calls[0]?.[0].full).toBe(false)
+    const builder = build.mock.contexts[0] as ZigFrameBuilder
+    const unsubmitted = { cells: builder.cellData.slice(), glyphs: builder.glyphData.slice() }
+    expect(unsubmitted.glyphs).not.toEqual(initialGlyphs)
+    expect(native.terminal.frameSnapshot()).toBe(snapshot)
+    expect(native.renderer.metrics.submittedFrames).toBe(submitted)
+    expect(native.renderer.metrics.instanceUploadOperations).toBe(uploaded)
+    expect(native.renderer.metrics.atlasUploadOperations).toBe(atlasUploads)
+    expect(acknowledge).not.toHaveBeenCalled()
+    expect(await displayedPixels(native.canvas)).toEqual(before)
+    fault.mockRestore()
+    build.mockClear()
+    native.renderer.schedule()
+    flush()
+    expect(build.mock.calls[0]?.[0].full).toBe(true)
+    expect(builder.cellData).toEqual(unsubmitted.cells)
+    expect(builder.glyphData).toEqual(unsubmitted.glyphs)
+    expect(builder.changedRanges()).toEqual(
+      [0, 1, 2].map((row) => ({
+        row,
+        cell: { byteOffset: row * 6 * 64, byteLength: 6 * 64 },
+        glyph: { byteOffset: row * 6 * 96, byteLength: 6 * 96 },
+      })),
+    )
+    expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
+    const recovered = await displayedPixels(native.canvas)
+    expect(recovered).not.toEqual(before)
+    const rowBytes = native.canvas.width * (native.canvas.height / 3) * 4
+    expect(recovered.subarray(0, rowBytes)).toEqual(before.subarray(rowBytes, rowBytes * 2))
+    expect(recovered.subarray(rowBytes)).toEqual(before.subarray(rowBytes))
+    expect(native.terminal.frameSnapshot()?.rows[0]?.text).toBe('BBBB  ')
+    native.renderer.clearTextureAtlas()
+    flush()
+    expect(await displayedPixels(native.canvas)).toEqual(recovered)
+    expect(uncaught).toBeUndefined()
+    expect(native.errors).toEqual([
+      expect.objectContaining({
+        cause: expect.objectContaining({ operation: 'bridge_build_frame', result: -1 }),
+      }),
+    ])
+  },
+)
+
+it.each(['webgl2', 'webgpu'] as const)(
+  'reports one scheduled frame error per failure episode and resets after recovery (%s)',
+  async (backend) => {
+    const clock = new TestClock()
+    const native = await hostFixture(backend, { columns: 6, rows: 3 }, clock)
+    const flush = () => {
+      while (clock.frames.size > 0) clock.flushFrame()
+    }
+    native.terminal.write('\x1b[?25h\x1b[?12hold')
+    native.renderer.setCursorBlinkEnabled(true)
+    native.renderer.setFocused(true)
+    flush()
+    expect(clock.timers.size).toBe(1)
+    const before = await displayedPixels(native.canvas)
+    const submitted = native.renderer.metrics.submittedFrames
+    const acknowledge = vi.spyOn(native.state, 'acknowledge')
+    const fault = vi.spyOn(ZigFrameBuilder.prototype, 'build').mockReturnValue(2)
+    native.terminal.write('\x1b[1;1Hnew')
+    expect(flush).not.toThrow()
+    expect(native.errors).toHaveLength(1)
+    expect(native.errors[0]).toMatchObject({
+      cause: { operation: 'frame_builder' },
+    })
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const [handle, blink] = clock.timers.entries().next().value!
+      clock.timers.delete(handle)
+      blink()
+      expect(flush).not.toThrow()
+    }
+    expect(native.errors).toHaveLength(1)
+    expect(acknowledge).not.toHaveBeenCalled()
+    expect(native.renderer.metrics.submittedFrames).toBe(submitted)
+    expect(await displayedPixels(native.canvas)).toEqual(before)
+    expect(clock.frames.size).toBe(0)
+    fault.mockRestore()
+    native.renderer.setCursorBlinkEnabled(false)
+    native.renderer.schedule()
+    flush()
+    expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
+    const recovered = await displayedPixels(native.canvas)
+    expect(recovered).not.toEqual(before)
+    native.renderer.clearTextureAtlas()
+    flush()
+    expect(await displayedPixels(native.canvas)).toEqual(recovered)
+    vi.spyOn(ZigFrameBuilder.prototype, 'build').mockReturnValue(2)
+    native.terminal.write('\x1b[1;1Hbad')
+    expect(flush).not.toThrow()
+    expect(native.errors).toHaveLength(2)
+  },
+)
+
+function submissionSpies(native: Awaited<ReturnType<typeof hostFixture>>) {
+  const device = Reflect.get(native.renderer, 'device') as GPUDevice
+  const pass = Reflect.get(native.renderer, 'textPass') as WebGpuTextPass
+  return {
+    texture: () => vi.spyOn(native.canvas.getContext('webgpu')!, 'getCurrentTexture'),
+    pass: () => vi.spyOn(pass, 'submit'),
+    queue: () => vi.spyOn(device.queue, 'submit'),
+  }
+}
+
+it.each(['texture', 'pass', 'queue'] as const)(
+  'recovers an idle hidden-cursor frame after a one-shot presentation failure (%s)',
+  async (location) => {
+    const clock = new TestClock()
+    const native = await hostFixture('webgpu', { columns: 6, rows: 3 }, clock)
+    native.terminal.write('\x1b[?25lABAB\r\nBBBB\r\nlast')
+    clock.flushFrame()
+    const before = await displayedPixels(native.canvas)
+    const snapshot = native.terminal.frameSnapshot()
+    const submitted = native.renderer.metrics.submittedFrames
+    const acknowledge = vi.spyOn(native.state, 'acknowledge')
+    const reports: unknown[] = []
+    native.terminal.on('error', () =>
+      reports.push({
+        acknowledged: acknowledge.mock.calls.length,
+        submitted: native.renderer.metrics.submittedFrames,
+        snapshot: native.terminal.frameSnapshot(),
+      }),
+    )
+    const injected = createGhosttyError('presentation', 'Injected presentation failure')
+    const fault = submissionSpies(native)
+      [location]()
+      .mockImplementationOnce(() => {
+        throw injected
+      })
+    native.terminal.write('\x1b[1;1HBBBB')
+    expect(() => clock.flushFrame()).not.toThrow()
+    expect(clock.frames.size).toBe(0)
+    expect(clock.timers.size).toBe(0)
+    const after = await displayedPixels(native.canvas)
+    const rowBytes = native.canvas.width * (native.canvas.height / 3) * 4
+    const expected = before.slice()
+    expected.set(before.subarray(rowBytes, rowBytes * 2), 0)
+    expect(
+      after.every((value, index) => value === expected[index]),
+      'the idle canvas presents recovered glyph ink without another request',
+    ).toBe(true)
+    expect(fault).toHaveBeenCalledTimes(2)
+    expect(native.errors).toEqual([expect.objectContaining({ cause: injected })])
+    expect(reports).toEqual([{ acknowledged: 0, submitted, snapshot }])
+    expect(acknowledge).toHaveBeenCalledOnce()
+    expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
+    expect(native.terminal.frameSnapshot()?.rows[0]?.text).toBe('BBBB  ')
+  },
+)
+
+it('bounds failed presentation retries and resets the error episode after recovery', async () => {
+  const clock = new TestClock()
+  const native = await hostFixture('webgpu', { columns: 6, rows: 3 }, clock)
+  native.terminal.write('\x1b[?25lABAB\r\nBBBB\r\nlast')
+  clock.flushFrame()
+  const before = await displayedPixels(native.canvas)
+  const snapshot = native.terminal.frameSnapshot()
+  const submitted = native.renderer.metrics.submittedFrames
+  const acknowledge = vi.spyOn(native.state, 'acknowledge')
+  const injected = createGhosttyError('presentation', 'Injected persistent presentation failure')
+  const fault = submissionSpies(native)
+    .queue()
+    .mockImplementation(() => {
+      throw injected
+    })
+  native.terminal.write('\x1b[1;1HBBBB')
+  expect(() => clock.flushFrame()).not.toThrow()
+  expect(fault).toHaveBeenCalledTimes(2)
+  native.renderer.schedule()
+  expect(() => clock.flushFrame()).not.toThrow()
+  expect(fault).toHaveBeenCalledTimes(4)
+  expect(native.errors).toEqual([expect.objectContaining({ cause: injected })])
+  expect(acknowledge).not.toHaveBeenCalled()
+  expect(native.renderer.metrics.submittedFrames).toBe(submitted)
+  expect(native.terminal.frameSnapshot()).toBe(snapshot)
+  expect(clock.frames.size).toBe(0)
+  expect(clock.timers.size).toBe(0)
+  fault.mockRestore()
+  native.renderer.schedule()
+  clock.flushFrame()
+  expect(acknowledge).toHaveBeenCalledOnce()
+  expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
+  const recovered = await displayedPixels(native.canvas)
+  const rowBytes = native.canvas.width * (native.canvas.height / 3) * 4
+  const expected = before.slice()
+  expected.set(before.subarray(rowBytes, rowBytes * 2), 0)
+  expect(recovered.every((value, index) => value === expected[index])).toBe(true)
+  submissionSpies(native)
+    .queue()
+    .mockImplementationOnce(() => {
+      throw injected
+    })
+  native.terminal.write('\x1b[1;1HABAB')
+  expect(() => clock.flushFrame()).not.toThrow()
+  expect(native.errors).toHaveLength(2)
+  expect(await displayedPixels(native.canvas)).toEqual(before)
+  expect(clock.frames.size).toBe(0)
+  expect(clock.timers.size).toBe(0)
+})
+
 it('settles rolling ASCII scroll notifications without uploading unchanged native records', async () => {
-  const native = await hostFixture(undefined)
-  const js = await hostFixture(false)
-  for (const host of [native, js]) host.terminal.write('\x1b[?25lsame\r\nsame\r\nsame')
-  await expect
-    .poll(() => native.terminal.hasPendingFrame || js.terminal.hasPendingFrame)
-    .toBe(false)
-  expect(await displayedPixels(native.canvas)).toEqual(await displayedPixels(js.canvas))
+  const native = await hostFixture()
+  native.terminal.write('\x1b[?25lsame\r\nsame\r\nsame')
+  await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
   const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
   const scroll = vi.spyOn(native.renderer, 'notifyScroll')
   const nativeDraw = vi.spyOn(native.canvas.getContext('webgl2')!, 'drawArraysInstanced')
-  const jsDraw = vi.spyOn(js.canvas.getContext('webgl2')!, 'drawArraysInstanced')
   const uploaded = native.renderer.metrics.uploadedBytes
   const operations = native.renderer.metrics.instanceUploadOperations
   const submitted = native.renderer.metrics.submittedFrames
-  const jsSubmitted = js.renderer.metrics.submittedFrames
-  for (const host of [native, js]) host.terminal.write('\r\nsame')
-  await expect
-    .poll(() => native.terminal.hasPendingFrame || js.terminal.hasPendingFrame)
-    .toBe(false)
+  native.terminal.write('\r\nsame')
+  await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
   expect(scroll).toHaveBeenCalledOnce()
   expect(nativeDraw).toHaveBeenCalledTimes(
     (native.renderer.metrics.submittedFrames - submitted) * 2,
   )
-  expect(jsDraw).toHaveBeenCalledTimes((js.renderer.metrics.submittedFrames - jsSubmitted) * 2)
-  expect(await displayedPixels(native.canvas)).toEqual(await displayedPixels(js.canvas))
-  expect(await native.renderer.capturePixels()).toEqual(await js.renderer.capturePixels())
   expect({
     full: build.mock.calls.map(([options]) => options.full),
     uploadedBytes: native.renderer.metrics.uploadedBytes - uploaded,
     uploadOperations: native.renderer.metrics.instanceUploadOperations - operations,
   }).toEqual({ full: [false], uploadedBytes: 0, uploadOperations: 0 })
-  expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
   expect(native.errors).toEqual([])
-  expect(js.errors).toEqual([])
 })

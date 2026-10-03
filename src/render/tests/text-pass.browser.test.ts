@@ -4,10 +4,11 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
-import type { GlyphBitmap, GlyphRasterizer } from '../atlas/types.js'
+import type { GlyphRasterizer } from '../atlas/types.js'
 import { canonicalRendererTheme } from '../config.js'
 import { fitTerminalFont } from '../../dom/fit.js'
-import { InstanceRows } from '../instances/rows.js'
+import { createNativeTestState } from './native-state.js'
+import { buildZigFrame } from '../atlas/zig-glyphs.js'
 import { defaultRendererTheme, type CursorState, type RendererTheme } from '../instances/types.js'
 import { WebGpuTextPass } from '../text-pass.js'
 
@@ -89,13 +90,6 @@ async function createDevice(): Promise<GPUDevice> {
   return adapter.requestDevice()
 }
 
-function glyphLookup(atlas: GlyphAtlas) {
-  return {
-    beginRow: (row: number) => atlas.beginRow(row),
-    resolve: (key: string, bitmap: GlyphBitmap, row: number) => atlas.getOrInsert(key, bitmap, row),
-  }
-}
-
 function testRows(): readonly RenderRow[] {
   return [
     renderRow(0, [
@@ -106,7 +100,7 @@ function testRows(): readonly RenderRow[] {
     ]),
     renderRow(1, [
       cell(0, { style: style({ underline: 1 }) }),
-      cell(1, { continuation: true, style: style({ underline: 2 }) }),
+      cell(1, { style: style({ underline: 2 }) }),
       cell(2, { style: style({ underline: 3 }) }),
       cell(3, { style: style({ underline: 4 }) }),
       cell(4, { style: style({ underline: 5 }) }),
@@ -137,21 +131,21 @@ async function renderGrid(
 ): Promise<RenderedGrid> {
   const atlas = fixture.atlas ?? new GlyphAtlas({ pageHeight: 256, pageWidth: 256 })
   const rasterizer = fixture.rasterizer ?? new CanvasGlyphRasterizer({ font: fittedFont() })
-  const instances = new InstanceRows({
-    cellHeight: cellSize,
-    cellWidth: cellSize,
-    columns,
-    rows,
-  })
-  const updates = (fixture.renderRows ?? testRows()).map((row) =>
-    instances.rebuildRow(
-      row,
-      glyphLookup(atlas),
-      rasterizer,
-      canonicalRendererTheme(theme),
+  const native = await createNativeTestState(columns, rows)
+  native.writeRows(fixture.renderRows ?? testRows())
+  native.state.update()
+  const builder = native.state.createFrameBuilder(columns, rows)
+  expect(
+    buildZigFrame(builder, atlas, rasterizer, {
+      cellHeight: cellSize,
+      cellWidth: cellSize,
+      theme: canonicalRendererTheme(theme),
       cursor,
-    ),
-  )
+      full: true,
+      overlayRows: new Set(),
+    }),
+  ).toBe(0)
+  const updates = builder.changedRanges()
   const atlasTextures = new AtlasGpuTextures(device, atlas.textureLayout)
   atlasTextures.sync(atlas.consumeUploads())
   const pass = new WebGpuTextPass({
@@ -162,7 +156,7 @@ async function renderGrid(
     width,
   })
   pass.syncAtlas(atlasTextures)
-  pass.upload(instances, updates)
+  pass.uploadFrame(builder, updates)
   const texture = device.createTexture({
     format: 'rgba8unorm',
     size: [width, height],
@@ -183,6 +177,7 @@ async function renderGrid(
   output.unmap()
   return {
     destroy() {
+      builder.dispose()
       output.destroy()
       texture.destroy()
       pass.destroy()
@@ -264,7 +259,7 @@ it('renders transparent defaults, opaque explicit colors, glyphs, and an outline
     draws: 2,
     submittedFrames: 1,
     uploadedBytes: columns * rows * (64 + 96),
-    uploadOperations: 2,
+    uploadOperations: rows * 2,
   })
   grid.destroy()
   device.destroy()
