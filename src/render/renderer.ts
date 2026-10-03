@@ -223,6 +223,13 @@ function releaseFailedDevice(context: GPUCanvasContext, device: GPUDevice): void
   device.destroy()
 }
 
+async function destroyDeviceAfterSubmittedWork(device: GPUDevice): Promise<void> {
+  try {
+    await device.queue.onSubmittedWorkDone()
+  } catch {}
+  device.destroy()
+}
+
 export class WebGpuTerminalRenderer {
   private zigBuilder?: ZigFrameBuilder
   private readonly zigFrame: boolean
@@ -470,7 +477,8 @@ export class WebGpuTerminalRenderer {
     this.textPass.destroy()
     this.atlasTextures.destroy()
     this.unconfigureContext()
-    this.device.destroy()
+    // Retaining the device through its fence prevents the observed locked final-queue release.
+    void destroyDeviceAfterSubmittedWork(this.device)
   }
 
   private configureContext(device: GPUDevice): void {

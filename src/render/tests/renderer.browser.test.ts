@@ -1304,3 +1304,73 @@ it('keeps reentrant frame identities intact and delivers only the newest text fr
     canvas.remove()
   }
 })
+
+it.each([
+  { paint: true, settlement: 'resolve' },
+  { paint: true, settlement: 'reject' },
+  { paint: true, settlement: 'throw' },
+  { paint: false, settlement: 'resolve' },
+])(
+  'disposes once and stops pending work ($settlement, painted=$paint)',
+  async ({ paint, settlement }) => {
+    const clock = new FakeClock()
+    const device = await createDevice()
+    const canvas = createCanvas()
+    const renderer = await createRenderer({
+      canvas,
+      columns: 2,
+      deviceFactory: async () => device,
+      font: fittedFont(),
+      renderState: new FakeRenderState(2, 2),
+      rows: 2,
+      schedulerClock: clock,
+    })
+    if (paint) {
+      renderer.setCursorBlinkEnabled(true)
+      renderer.setFocused(true)
+      clock.flushFrame()
+      renderer.schedule()
+    }
+    const submitted = device.queue.onSubmittedWorkDone()
+    const completion = Promise.withResolvers<undefined>()
+    const failure = new DOMException('Submitted work was interrupted', 'OperationError')
+    const fence = vi.spyOn(device.queue, 'onSubmittedWorkDone').mockReturnValue(completion.promise)
+    if (settlement === 'throw')
+      fence.mockImplementation(() => {
+        throw failure
+      })
+    const destroy = vi.spyOn(device, 'destroy')
+    try {
+      expect(renderer.hasPendingFrame).toBe(true)
+      expect(renderer.hasPendingTimer).toBe(paint)
+      renderer.dispose()
+      renderer.dispose()
+      renderer.schedule()
+      renderer.notifyWrite()
+      expect(renderer.hasPendingFrame).toBe(false)
+      expect(renderer.hasPendingTimer).toBe(false)
+      expect(renderer.metrics.submittedFrames).toBe(paint ? 1 : 0)
+      expect(fence).toHaveBeenCalledTimes(1)
+      if (settlement === 'throw') expect(destroy).toHaveBeenCalledTimes(1)
+      if (settlement !== 'throw') expect(destroy).not.toHaveBeenCalled()
+      await submitted.catch(() => {})
+      if (settlement !== 'throw') expect(destroy).not.toHaveBeenCalled()
+      if (settlement === 'resolve') completion.resolve(undefined)
+      if (settlement === 'reject') completion.reject(failure)
+      await expect.poll(() => destroy.mock.calls.length).toBe(1)
+      await device.lost
+      expect(destroy).toHaveBeenCalledTimes(1)
+    } finally {
+      completion.resolve(undefined)
+      try {
+        await submitted.catch(() => {})
+        device.destroy()
+        await device.lost
+      } finally {
+        fence.mockRestore()
+        destroy.mockRestore()
+        canvas.remove()
+      }
+    }
+  },
+)
