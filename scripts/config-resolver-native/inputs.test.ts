@@ -4,8 +4,10 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
+import { canonicalObjectBytes, canonicalSha256 } from './canonical'
 import type { NativeInputs } from './contract'
 import { createNativeInputs, discoverOwnedPaths, verifyOwnedFilesAtHead } from './inputs'
+import { verifyNativeRepositoryState } from './state'
 import { renderWorkspaceNativeWorkflow } from './workflow'
 
 const roots: string[] = []
@@ -51,8 +53,86 @@ test.each(['.', 'ghostty-webgpu'])('checks committed native inputs inside %s', (
       },
     ],
   }
-  expect(() => verifyOwnedFilesAtHead(family, fixtureInputs, head)).not.toThrow()
+  const loadedInputs = JSON.parse(canonicalObjectBytes(fixtureInputs).toString('utf8'))
+  expect(() => verifyOwnedFilesAtHead(family, loadedInputs, head)).not.toThrow()
 })
+
+test.each(['.', 'ghostty-webgpu'])(
+  'package version changes preserve native input identity and bootstrap state inside %s',
+  (prefix) => {
+    const family = nativeInputFixture(prefix)
+    const originalInputs = createNativeInputs(family)
+    const manifest = join(family, 'package.json')
+    const pkg = JSON.parse(readFileSync(manifest, 'utf8'))
+    const [major, minor, patch] = pkg.version.split('.').map(Number)
+    pkg.version = `${major}.${minor}.${patch + 1}`
+    writeFileSync(manifest, `${JSON.stringify(pkg, null, 2)}\n`)
+
+    expect(canonicalSha256(createNativeInputs(family))).toBe(canonicalSha256(originalInputs))
+    expect(verifyNativeRepositoryState(family, 'bootstrap')).toBe('bootstrap')
+  },
+)
+
+test.each(['.', 'ghostty-webgpu'])(
+  'family TypeScript compiler configuration invalidates native input identity and bootstrap state inside %s',
+  (prefix) => {
+    const family = nativeInputFixture(prefix)
+    const originalInputs = createNativeInputs(family)
+    expect(verifyNativeRepositoryState(family, 'bootstrap')).toBe('bootstrap')
+    const path = join(family, 'tsconfig.json')
+    const config = JSON.parse(readFileSync(path, 'utf8'))
+    config.compilerOptions.verbatimModuleSyntax = !config.compilerOptions.verbatimModuleSyntax
+    writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`)
+
+    expect(canonicalSha256(createNativeInputs(family))).not.toBe(canonicalSha256(originalInputs))
+    expect(() => verifyNativeRepositoryState(family, 'bootstrap')).toThrow(/native inputs/)
+  },
+)
+
+test.each([
+  ['main.zig', 'maximum_payload_bytes = 128 * 1024', 'maximum_payload_bytes = 64 * 1024'],
+  ['build.zig', 'config.simd = false', 'config.simd = true'],
+])(
+  'native source changes in %s invalidate input identity and bootstrap state',
+  (file, from, to) => {
+    const family = nativeInputFixture('.')
+    const originalInputs = createNativeInputs(family)
+    expect(verifyNativeRepositoryState(family, 'bootstrap')).toBe('bootstrap')
+    const path = join(family, 'scripts/config-resolver-native', file)
+    const original = readFileSync(path, 'utf8')
+    expect(original).toContain(from)
+    writeFileSync(path, original.replace(from, to))
+
+    expect(canonicalSha256(createNativeInputs(family))).not.toBe(canonicalSha256(originalInputs))
+    expect(() => verifyNativeRepositoryState(family, 'bootstrap')).toThrow(/native inputs/)
+  },
+)
+
+function nativeInputFixture(prefix: string): string {
+  const source = resolve(import.meta.dirname, '../..')
+  const checkout = mkdtempSync(join(tmpdir(), 'ghostty-native-inputs-'))
+  roots.push(checkout)
+  const family = join(checkout, prefix)
+  const files = new Set([...discoverOwnedPaths(source), 'package.json', 'tsconfig.json'])
+  for (const file of files) {
+    const destination = join(family, file)
+    mkdirSync(dirname(destination), { recursive: true })
+    copyFileSync(join(source, file), destination)
+  }
+  const inputs = createNativeInputs(family)
+  writeFileSync(
+    join(family, 'scripts/config-resolver-native/native-inputs.json'),
+    canonicalObjectBytes(inputs),
+  )
+  const bootstrapPath = 'native/config-resolver/bootstrap.json'
+  const bootstrap = JSON.parse(readFileSync(join(source, bootstrapPath), 'utf8'))
+  mkdirSync(dirname(join(family, bootstrapPath)), { recursive: true })
+  writeFileSync(
+    join(family, bootstrapPath),
+    canonicalObjectBytes({ ...bootstrap, nativeInputsTreeSha256: canonicalSha256(inputs) }),
+  )
+  return family
+}
 
 test('native inputs reject changes to the active workspace workflow', () => {
   const source = resolve(import.meta.dirname, '../..')

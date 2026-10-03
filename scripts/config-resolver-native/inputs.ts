@@ -24,7 +24,6 @@ import { verifyWorkspaceNativeWorkflow } from './workflow'
 const FIXED_OWNED_PATHS = [
   '.github/workflows/ci.yml',
   '.github/workflows/config-resolver.yml',
-  'package.json',
   'scripts/build-config-resolver.ts',
   'scripts/config-resolver-proof/proof-contract.ts',
   'scripts/config-resolver-proof/proof-recipe.json',
@@ -90,7 +89,7 @@ export function verifyOwnedFilesAtHead(
   }
   for (const expected of inputs.ownedFiles) {
     const actual = gitOwnedFile(repositoryRoot, expectedHead, expected.path)
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    if (!canonicalObjectBytes(actual).equals(canonicalObjectBytes(expected))) {
       throw new NativeContractError(`native owned input differs from ${expectedHead}`)
     }
   }

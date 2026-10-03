@@ -15,7 +15,6 @@ import {
   summaries,
 } from './comparison-report.mjs'
 import { cpuSample, verifyHash, withDeadline } from './comparison-guards.mjs'
-// Package metadata is pinned by resolver provenance; keep the tooling suites under this entry.
 import './comparison-trace.test.mjs'
 import './comparison-attribution.test.mjs'
 import './comparison-options.test.mjs'
@@ -30,8 +29,8 @@ import {
   synchronousWrite,
 } from '../bench/comparison-protocol.ts'
 
-test('benchmark package metadata matches native resolver provenance', () => {
-  const packageBytes = readFileSync(new URL('../package.json', import.meta.url))
+test('native resolver provenance excludes package metadata and matches its build source', () => {
+  const buildBytes = readFileSync(new URL('./config-resolver-native/build.zig', import.meta.url))
   const inputBytes = readFileSync(
     new URL('./config-resolver-native/native-inputs.json', import.meta.url),
   )
@@ -41,13 +40,17 @@ test('benchmark package metadata matches native resolver provenance', () => {
     ? 'bootstrap.json'
     : 'manifest.json'
   const marker = JSON.parse(readFileSync(new URL(markerName, nativeRoot)))
+  assert.equal(
+    inputs.ownedFiles.some((file) => file.path === 'package.json'),
+    false,
+  )
   assert.deepEqual(
-    inputs.ownedFiles.find((file) => file.path === 'package.json'),
+    inputs.ownedFiles.find((file) => file.path === 'scripts/config-resolver-native/build.zig'),
     {
-      path: 'package.json',
+      path: 'scripts/config-resolver-native/build.zig',
       mode: '100644',
-      bytes: packageBytes.length,
-      sha256: createHash('sha256').update(packageBytes).digest('hex'),
+      bytes: buildBytes.length,
+      sha256: createHash('sha256').update(buildBytes).digest('hex'),
     },
   )
   assert.equal(marker.nativeInputsTreeSha256, createHash('sha256').update(inputBytes).digest('hex'))
