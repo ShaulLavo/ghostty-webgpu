@@ -334,10 +334,7 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
   update(snapshot: Readonly<TerminalScrollbar>): boolean {
     if (this.disposed) return false
     const next = validateSnapshot(snapshot)
-    if (snapshotsEqual(this.snapshotValue, next)) {
-      this.renderSnapshot()
-      return false
-    }
+    if (snapshotsEqual(this.snapshotValue, next)) return false
     this.snapshotValue = next
     this.renderSnapshot()
     return true
@@ -396,19 +393,21 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
       'aria-valuetext',
       `Row ${snapshot.offset} of ${maximumOffset(snapshot)}`,
     )
-    const geometry = this.readThumbGeometry()
-    const height = `${geometry.height}px`
-    const transform = `translateY(${geometry.top}px)`
-    if (this.thumb.style.height !== height) this.thumb.style.height = height
-    if (this.thumb.style.transform !== transform) this.thumb.style.transform = transform
+    const ratio = snapshot.total === 0 ? 1 : snapshot.length / snapshot.total
+    const maximum = maximumOffset(snapshot)
+    const progress = maximum === 0 ? 0 : snapshot.offset / maximum
+    this.thumb.style.height = `min(100%, max(${ratio * 100}%, ${this.minThumbSize}px))`
+    this.thumb.style.top = `${progress * 100}%`
+    // Track-relative top minus thumb-relative translation preserves travel through resizes.
+    this.thumb.style.transform = `translateY(${-progress * 100}%)`
   }
 
   private readThumbGeometry(): ThumbGeometry {
     const trackHeight = this.element.getBoundingClientRect().height
     if (trackHeight <= 0) return { height: 0, top: 0, trackHeight: 0, travel: 0 }
     const snapshot = this.snapshotValue
-    const ratio = snapshot.total === 0 ? 1 : snapshot.length / snapshot.total
-    const height = clamp(trackHeight * ratio, Math.min(this.minThumbSize, trackHeight), trackHeight)
+    // Pointer coordinates and rendered height share client units, including root scaling.
+    const height = clamp(this.thumb.getBoundingClientRect().height, 0, trackHeight)
     const travel = trackHeight - height
     const maximum = maximumOffset(snapshot)
     const top = maximum === 0 ? 0 : (snapshot.offset / maximum) * travel

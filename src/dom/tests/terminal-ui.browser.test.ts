@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { TerminalScrollbar } from '../../core/types.js'
 import { GlyphAtlas } from '../../render/atlas/atlas.js'
@@ -829,6 +830,224 @@ describe('terminal links in Chromium', () => {
 })
 
 describe('terminal scrollbar in Chromium', () => {
+  it('renders changed snapshots and width without reading client geometry', () => {
+    const root = appendRoot(48, 200)
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    cleanups.push(() => rect.mockRestore())
+    const controller = createTerminalScrollbar({
+      actions: scrollbarActions().controller,
+      root,
+      snapshot: scrollbar(20, 100, 20),
+    })
+    cleanups.push(() => controller.dispose())
+    expect(controller.update(scrollbar(40, 100, 20))).toBe(true)
+    expect(controller.setWidth(16)).toBe(true)
+    const reads = rect.mock.contexts.filter(
+      (element) => element === controller.element || element === controller.thumb,
+    )
+    expect(reads).toHaveLength(0)
+    expect(controller.element.getAttribute('aria-valuenow')).toBe('40')
+  })
+
+  it('leaves equal snapshots entirely unchanged', () => {
+    const root = appendRoot(48, 200)
+    const controller = createTerminalScrollbar({
+      actions: scrollbarActions().controller,
+      root,
+      snapshot: scrollbar(20, 100, 20),
+    })
+    cleanups.push(() => controller.dispose())
+    const observer = new MutationObserver(() => {})
+    observer.observe(controller.element, { attributes: true, childList: true, subtree: true })
+    cleanups.push(() => observer.disconnect())
+    const rect = vi.spyOn(controller.element, 'getBoundingClientRect')
+    cleanups.push(() => rect.mockRestore())
+    expect(controller.update(scrollbar(20, 100, 20))).toBe(false)
+    expect(observer.takeRecords()).toHaveLength(0)
+    expect(rect).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { offset: 0, total: 0, length: 0 },
+    { offset: 0, total: 100, length: 20 },
+    { offset: 40, total: 100, length: 20 },
+    { offset: 80, total: 100, length: 20 },
+    { offset: 495, total: 1000, length: 10 },
+    { offset: 0, total: 20, length: 20 },
+    { offset: 0x1_0000_0000, total: 0x2_0000_0000, length: 20 },
+  ])(
+    'tracks resize, sub-row resize, hidden roots, minimum and cap for $offset/$total',
+    (snapshot) => {
+      const root = appendRoot(48, 200)
+      const controller = createTerminalScrollbar({
+        actions: scrollbarActions().controller,
+        root,
+        snapshot,
+      })
+      cleanups.push(() => controller.dispose())
+      const maximum = snapshot.total - snapshot.length
+      const progress = maximum === 0 ? 0 : snapshot.offset / maximum
+      const ratio = snapshot.total === 0 ? 1 : snapshot.length / snapshot.total
+      for (const height of [200, 199, 100, 40, 10, 200]) {
+        root.style.height = `${height}px`
+        const track = controller.element.getBoundingClientRect()
+        const thumb = controller.thumb.getBoundingClientRect()
+        const expectedHeight = Math.min(height, Math.max(20, height * ratio))
+        expect(thumb.height).toBeCloseTo(expectedHeight, 1)
+        expect(thumb.top - track.top).toBeCloseTo(progress * (height - expectedHeight), 1)
+        expect(controller.update(snapshot)).toBe(false)
+      }
+      root.style.display = 'none'
+      expect(controller.update(snapshot)).toBe(false)
+      expect(controller.thumb.getBoundingClientRect().height).toBe(0)
+      root.style.height = '123px'
+      root.style.display = ''
+      const track = controller.element.getBoundingClientRect()
+      const thumb = controller.thumb.getBoundingClientRect()
+      const expectedHeight = Math.min(123, Math.max(20, 123 * ratio))
+      expect(thumb.height).toBeCloseTo(expectedHeight, 1)
+      expect(thumb.top - track.top).toBeCloseTo(progress * (123 - expectedHeight), 1)
+      expect(controller.element.getAttribute('aria-valuemax')).toBe(String(maximum))
+      expect(controller.element.getAttribute('aria-valuenow')).toBe(String(snapshot.offset))
+    },
+  )
+
+  it.each([0.5, 2])(
+    'uses rendered client units for translated/scaled hit, page and drag at %s',
+    (scale) => {
+      const root = appendRoot(48, 200)
+      root.style.transformOrigin = 'top left'
+      root.style.transform = `translate(37px, 11px) scale(${scale})`
+      const actions = scrollbarActions()
+      const controller = createTerminalScrollbar({
+        actions: actions.controller,
+        clock: new FakeScrollbarClock(),
+        root,
+        snapshot: scrollbar(240, 1000, 10),
+      })
+      cleanups.push(() => controller.dispose())
+      const captured = installPointerCapture(controller.element)
+      const track = controller.element.getBoundingClientRect()
+      const thumb = controller.thumb.getBoundingClientRect()
+      const x = track.left + track.width / 2
+      const y = thumb.top + thumb.height / 2
+      expect(controller.hitTest({ clientX: x, clientY: y, target: root })).toBe(true)
+      expect(controller.hitTest({ clientX: track.right + 1, clientY: y, target: root })).toBe(false)
+      dispatchPointer(controller.element, 'pointerdown', x, thumb.top - 1)
+      expect(actions.calls.pop()).toBe('by:-10')
+      dispatchPointer(controller.element, 'pointerdown', x, thumb.bottom + 1)
+      expect(actions.calls.pop()).toBe('by:10')
+      dispatchPointer(controller.element, 'pointerdown', x, y)
+      expect(captured.has(7)).toBe(true)
+      dispatchPointer(controller.element, 'pointermove', x, y)
+      expect(actions.calls.pop()).toBe('row:240')
+      dispatchPointer(controller.element, 'pointermove', x, y + (track.height - thumb.height) / 4)
+      expect(actions.calls.pop()).toBe('row:488')
+      dispatchPointer(controller.element, 'pointermove', x, track.top - thumb.height)
+      expect(actions.calls.pop()).toBe('row:0')
+      dispatchPointer(controller.element, 'pointermove', x, track.bottom + thumb.height)
+      expect(actions.calls.pop()).toBe('row:990')
+      dispatchPointer(controller.element, 'pointerup', x, y)
+      expect(captured.size).toBe(0)
+      for (const [deltaMode, deltaY, rows] of [
+        [WheelEvent.DOM_DELTA_LINE, 3, 3],
+        [WheelEvent.DOM_DELTA_PAGE, 2, 20],
+        [WheelEvent.DOM_DELTA_PIXEL, track.height / 10, 1],
+      ]) {
+        controller.element.dispatchEvent(
+          new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaMode, deltaY }),
+        )
+        expect(actions.calls.pop()).toBe(`by:${rows}`)
+      }
+    },
+  )
+
+  it('keeps actual terminal geometry aligned through font, grid and parent-height changes', async () => {
+    const { host, terminal } = await createObservedRendererHarness({}, 'webgl2')
+    terminal.write(Array.from({ length: 100 }, (_, index) => `row ${index}\r\n`).join(''))
+    await settleTerminal(terminal)
+    const element = host.querySelector<HTMLDivElement>('[role="scrollbar"]')!
+    const thumb = element.firstElementChild as HTMLDivElement
+    for (const size of [14, 20, 12]) {
+      terminal.setFont({ size })
+      await animationFrames()
+      await settleTerminal(terminal)
+      const { cellHeight } = terminal.appearance.grid
+      // Keep both parent heights inside the fitted row interval across platform font metrics.
+      const height = Math.ceil(cellHeight * 8.5)
+      expect(height + 1).toBeLessThan(cellHeight * 9)
+      host.style.height = `${height}px`
+      await animationFrames()
+      await settleTerminal(terminal)
+      const { rows } = terminal.appearance.grid
+      expect(rows).toBe(8)
+      const maximum = Number(element.getAttribute('aria-valuemax'))
+      expect(maximum).toBeGreaterThan(0)
+      expect(element.getAttribute('aria-valuenow')).toBe(String(maximum))
+      const track = element.getBoundingClientRect()
+      const geometry = thumb.getBoundingClientRect()
+      const expectedHeight = Math.min(
+        track.height,
+        Math.max(20, (track.height * rows) / (maximum + rows)),
+      )
+      expect(geometry.height).toBeCloseTo(expectedHeight, 1)
+      expect(geometry.bottom).toBeCloseTo(track.bottom, 1)
+      const previousRows = rows
+      host.style.height = `${height + 1}px`
+      await animationFrames()
+      await settleTerminal(terminal)
+      expect(terminal.appearance.grid.rows).toBe(previousRows)
+      expect(thumb.getBoundingClientRect().bottom).toBeCloseTo(
+        element.getBoundingClientRect().bottom,
+        1,
+      )
+      terminal.scrollToTop()
+      await settleTerminal(terminal)
+      expect(element.getAttribute('aria-valuenow')).toBe('0')
+      expect(thumb.getBoundingClientRect().top).toBeCloseTo(element.getBoundingClientRect().top, 1)
+      terminal.scrollToBottom()
+      await settleTerminal(terminal)
+    }
+    element.focus()
+    await page.screenshot({
+      element: terminal.element!,
+      path: '../../../.artifacts/scrollbar-font-grid.png',
+      scale: 'css',
+    })
+    terminal.dispose()
+    expect(element.isConnected).toBe(false)
+    expect(terminal.hasPendingTimer).toBe(false)
+  })
+
+  it('releases a scaled drag and its fade timer when aborted, then ignores input and updates', () => {
+    const root = appendRoot(48, 200)
+    root.style.transform = 'scale(0.5)'
+    const abort = new AbortController()
+    const clock = new FakeScrollbarClock()
+    const actions = scrollbarActions()
+    const controller = createTerminalScrollbar({
+      actions: actions.controller,
+      clock,
+      root,
+      signal: abort.signal,
+      snapshot: scrollbar(20, 100, 20),
+    })
+    cleanups.push(() => controller.dispose())
+    const captured = installPointerCapture(controller.element)
+    const thumb = controller.thumb.getBoundingClientRect()
+    dispatchPointer(controller.element, 'pointerdown', thumb.left, thumb.top + thumb.height / 2)
+    expect(captured.has(7)).toBe(true)
+    abort.abort()
+    expect(captured.size).toBe(0)
+    expect(clock.timers.size).toBe(0)
+    expect(controller.element.isConnected).toBe(false)
+    expect(controller.update(scrollbar(40, 100, 20))).toBe(false)
+    expect(controller.setWidth(16)).toBe(false)
+    dispatchKey(controller.element, 'ArrowDown')
+    dispatchPointer(controller.element, 'pointermove', thumb.left, thumb.bottom)
+    expect(actions.calls).toEqual([])
+  })
+
   it('supports exact large ARIA values, keyboard, paging, dragging, wheel, and one fade timer', () => {
     const root = appendRoot(48, 200)
     const clock = new FakeScrollbarClock()
