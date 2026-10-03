@@ -174,6 +174,47 @@ describe('RenderScheduler', () => {
     expect(scheduler.hasPendingTimer).toBe(false)
   })
 
+  it.each(['ordinary', 'reentrant'] as const)(
+    'cancels queued frame work after %s disposal',
+    (disposal) => {
+      const cancellations: number[] = []
+      const callbacks: (() => void)[] = []
+      const frames: RenderFrameState[] = []
+      let scheduler: RenderScheduler
+      const clock = new (class extends FakeClock {
+        override requestFrame(callback: () => void): number {
+          if (disposal === 'reentrant') scheduler.dispose()
+          callbacks.push(callback)
+          return super.requestFrame(callback)
+        }
+
+        override cancelFrame(handle: number): void {
+          cancellations.push(handle)
+          super.cancelFrame(handle)
+        }
+      })()
+      scheduler = createScheduler(clock, frames)
+
+      scheduler.schedule()
+      if (disposal === 'ordinary') {
+        expect(clock.frames).toHaveLength(1)
+        expect(scheduler.hasPendingFrame).toBe(true)
+      }
+      scheduler.dispose()
+      scheduler.dispose()
+      scheduler.schedule()
+      scheduler.flush()
+      for (const callback of callbacks) callback()
+
+      expect(callbacks).toHaveLength(1)
+      expect(cancellations).toEqual([1])
+      expect(clock.frames).toHaveLength(0)
+      expect(frames).toHaveLength(0)
+      expect(scheduler.canPaint).toBe(false)
+      expect(scheduler.hasPendingFrame).toBe(false)
+    },
+  )
+
   it('coalesces nested flushes until the active frame callback finishes', () => {
     const clock = new FakeClock()
     const events: string[] = []

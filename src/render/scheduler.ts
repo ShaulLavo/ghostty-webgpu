@@ -65,7 +65,12 @@ export class RenderScheduler {
     if (!this.documentVisible) return
     if (this.frameHandle !== undefined) return
     const token = ++this.frameToken
-    this.frameHandle = this.clock.requestFrame(() => this.runFrame(token))
+    const handle = this.clock.requestFrame(() => this.runFrame(token))
+    if (this.disposed) {
+      this.clock.cancelFrame(handle)
+      return
+    }
+    this.frameHandle = handle
   }
 
   /** Flushes now; a flush during paint runs after the active frame callback completes. */
