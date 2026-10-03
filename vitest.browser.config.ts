@@ -1,6 +1,6 @@
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
-import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch'
+import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.ts'
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const engine = process.env.GHOSTTY_BROWSER_ENGINE ?? 'chromium'
