@@ -54,6 +54,26 @@ function runtimePlugin(root: string, extractedRoot: string): BunPlugin {
   }
 }
 
+const runtimeAssets = { 'native.wasm': 'ghostty-vt.wasm', 'bridge.wasm': 'bridge.wasm' }
+export const runtimePatterns = ['src', ...Object.values(runtimeAssets), 'package.json']
+
+async function runtimeInputs(root: string, paths: readonly string[]) {
+  const metadata: { version?: unknown } = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  )
+  assert(
+    typeof metadata.version === 'string' && metadata.version.length > 0,
+    'Runtime package metadata must contain a version',
+  )
+  return {
+    version: metadata.version,
+    assets: Object.fromEntries(
+      Object.entries(runtimeAssets).map(([name, path]) => [name, join(root, path)]),
+    ),
+    inventory: await sourceInventory(root, paths),
+  }
+}
+
 export async function runtimeSource(root: string, ref?: string) {
   root = resolve(root)
   const git = (args: readonly string[], cwd: string = root) =>
@@ -62,8 +82,8 @@ export async function runtimeSource(root: string, ref?: string) {
     return {
       mode: 'checkout' as const,
       commit: git(['rev-parse', 'HEAD']),
-      dirty: git(['status', '--porcelain', '--', 'src']),
-      inventory: await sourceInventory(root, checkoutFiles(root, ['src'])),
+      dirty: git(['status', '--porcelain', '--', ...runtimePatterns]),
+      ...(await runtimeInputs(root, checkoutFiles(root, runtimePatterns))),
       plugins: [] as BunPlugin[],
       dispose: async () => {},
     }
@@ -71,19 +91,22 @@ export async function runtimeSource(root: string, ref?: string) {
   assert(!ref.startsWith('-'), 'Runtime ref must name a Git revision')
   const commit = git(['rev-parse', '--verify', `${ref}^{commit}`])
   const prefix = git(['rev-parse', '--show-prefix'])
-  const sourcePath = `${prefix}src`
+  const inputPaths = runtimePatterns.map((path) => `${prefix}${path}`)
   const repository = git(['rev-parse', '--show-toplevel'])
-  const paths = git(['ls-tree', '-r', '--name-only', commit, '--', sourcePath], repository)
+  const paths = git(['ls-tree', '-r', '--name-only', commit, '--', ...inputPaths], repository)
     .split('\n')
     .filter(Boolean)
     .map((path) => path.slice(prefix.length))
-  assert(paths.length > 0, 'Runtime ref must contain runtime src')
+  assert(
+    paths.some((path) => path.startsWith('src/')),
+    'Runtime ref must contain runtime src',
+  )
   const scratchRoot = join(root, '.artifacts')
   await mkdir(scratchRoot, { recursive: true })
   const scratch = await mkdtemp(join(scratchRoot, 'comparison-runtime-'))
   const dispose = () => rm(scratch, { recursive: true, force: true })
   try {
-    const archive = execFileSync('git', ['archive', commit, sourcePath], {
+    const archive = execFileSync('git', ['archive', commit, ...inputPaths], {
       cwd: repository,
       maxBuffer: 32 * 1024 * 1024,
     })
@@ -94,7 +117,7 @@ export async function runtimeSource(root: string, ref?: string) {
       ref,
       commit,
       dirty: '',
-      inventory: await sourceInventory(extractedRoot, paths),
+      ...(await runtimeInputs(extractedRoot, paths)),
       plugins: [runtimePlugin(root, extractedRoot)],
       dispose,
     }
