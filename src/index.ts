@@ -170,3 +170,5 @@ export type { TerminalViewportOptions, TerminalViewportPaint } from './dom/viewp
 export { DomTerminalRenderer, renderFrameToHtml } from './render/dom/renderer.js'
 export type { RenderFrameHtmlOptions } from './render/dom/renderer.js'
 export { snapshotRenderState } from './render/frame.js'
+
+export type { TerminalSubmittedFrame, TerminalSubmittedRow } from './dom/submitted-frame.js'

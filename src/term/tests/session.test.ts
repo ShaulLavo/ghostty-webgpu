@@ -856,6 +856,47 @@ describe('TerminalSession', () => {
     expect(output).toEqual(['\u001b[?997;2n'])
   })
 
+  it('commits viewport and revision before ordered resize and appearance observations', async () => {
+    const session = await createSession({ appearance: { grid: grid() } })
+    const observations: Array<{
+      readonly event: string
+      readonly revision: number
+      readonly rows: number
+      readonly viewportRows: number
+    }> = []
+    const observe = (event: string) =>
+      observations.push({
+        event,
+        revision: session.revision,
+        rows: session.grid.rows,
+        viewportRows: session.scrollbar.length,
+      })
+    session.on('resize', () => observe('resize'))
+    session.on('scroll', () => observe('scroll'))
+    session.on('appearance', () => observe('appearance'))
+    session.on('renderRequest', () => observe('render'))
+
+    expect(session.resize({ rows: 4 })).toEqual({ revision: 1 })
+    expect(observations).toEqual(
+      ['resize', 'scroll', 'appearance', 'render'].map((event) => ({
+        event,
+        revision: 1,
+        rows: 4,
+        viewportRows: 4,
+      })),
+    )
+    observations.length = 0
+    expect(session.setFont({ boldWeight: 800 })).toEqual({ revision: 2 })
+    expect(observations).toEqual(
+      ['appearance', 'render'].map((event) => ({
+        event,
+        revision: 2,
+        rows: 4,
+        viewportRows: 4,
+      })),
+    )
+  })
+
   it('canonicalizes fractional CSS cells to their shared integer device geometry', async () => {
     const session = await createSession({
       appearance: { grid: grid({ cellWidth: 7.8, pixelRatio: 2 }) },

@@ -35,6 +35,12 @@ terminal.focus()
 
 call `terminal.dispose()` when you're done with it
 
+`TerminalApi<'sync'>` describes this main-thread entry. `TerminalApi<'async'>` describes the
+worker return convention: authoritative operations return promises with the same arguments.
+The default `TerminalApi` accepts both conventions for await-style common callers. Host DOM,
+subscriptions, focus and displayed text stay synchronous; `open()` and `focusNextLink()` already
+return promises in the main entry. The packaged worker entry follows separately.
+
 ## first frames and damage
 
 `renderFrameToHtml(snapshot, { font, columns, rows, theme })` produces the DOM backend's
@@ -48,6 +54,18 @@ all backends. It returns a subscription with `dispose()`, like `onResize`; no da
 allocated when there are no listeners.
 
 Resizing inside a frame callback repaints after that frame's callbacks finish, in the same turn.
+
+`terminal.submittedFrame` is the owned, text-only state of the last submitted frame. Its frame,
+native revision, snapshot version and layout identity accompany the grid, fitted font, padding,
+theme, cursor, selection coordinates, scrollbar and visible row text. The value appears after the
+first submission and holds together while new output or layout is pending. `rows` contains the
+whole visible text viewport; `rowPatches` contains changed row text, with every row included when
+the layout changes. Both can be structured-cloned.
+
+Each text-frame submission owns its row text. Styled cells remain an on-demand read through
+`frameSnapshot()` and `captureViewport()`. A capture is available only while the native revision,
+render snapshot and layout still match the submission. Canvas resizing and context replacement
+can invalidate the displayed pixels independently of the retained submitted state.
 
 ## GPU frame ownership
 

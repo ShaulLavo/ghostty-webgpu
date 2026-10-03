@@ -1,5 +1,3 @@
-import { copiedFrameRow } from '../render/frame-row.js'
-import { encodeTerminalViewport } from './viewport.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import type {
   ReadLinesOptions,
@@ -14,7 +12,10 @@ import { createCompatibleTerminalRenderer } from '../render/selector.js'
 import type { InactiveCursorStyle } from '../render/cursor.js'
 import { EventEmitter } from '../term/events.js'
 import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
-import { TerminalSession } from '../term/session.js'
+import type { TerminalSession } from '../term/session.js'
+import { LocalTerminalExecution } from './execution-local.js'
+import type { TerminalSubmittedFrame } from './submitted-frame.js'
+import type { TerminalApi } from './terminal-api.js'
 import type {
   TerminalAppearance,
   TerminalAppearanceOptions,
@@ -205,24 +206,6 @@ function effectivePixelRatio(
   throw new RangeError('pixelRatio must be a finite positive number')
 }
 
-function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
-  const viewport = snapshot.cursor.viewport
-  const cursor = Object.freeze({
-    ...snapshot.cursor,
-    viewport: viewport ? Object.freeze({ ...viewport }) : undefined,
-  })
-  const rows = snapshot.rows.map((row) =>
-    copiedFrameRow({ cells: row.renderCells, dirty: false, y: row.y }),
-  )
-  return Object.freeze({
-    cursor,
-    rows: Object.freeze(rows),
-    paintedCursor: snapshot.paintedCursor
-      ? Object.freeze({ ...snapshot.paintedCursor })
-      : undefined,
-  })
-}
-
 function physicalPadding(value: number, pixelRatio: number): number {
   const result = Math.round(value * pixelRatio)
   if (Number.isSafeInteger(result) && result >= 0) return result
@@ -251,7 +234,7 @@ function fittedFontSettingsEqual(
 
 const createFromSessionInternal = Symbol('createFromSessionInternal')
 
-export class Terminal {
+export class Terminal implements TerminalApi<'sync'> {
   private accessibility?: TerminalAccessibilityController
   private readonly accessibilityOptions?: false | GhosttyWebGpuTerminalAccessibilityOptions
   private readonly autoFit: boolean
@@ -269,9 +252,6 @@ export class Terminal {
   private inactiveCursorStyle?: InactiveCursorStyle
   private readonly keyboard
   private lastFrame?: RendererTextFrameSnapshot
-  private lastFrameVersion?: number
-  private lastFullFrame?: RendererFrameSnapshot
-  private lastFrameRevision?: number
   private readonly linkActivationModifier
   private links?: DomLinkController
   private layoutCommitted = false
@@ -288,7 +268,7 @@ export class Terminal {
   private stateValue: GhosttyWebGpuTerminalLifecycle = 'created'
 
   private constructor(
-    private readonly session: TerminalSession<Event>,
+    private readonly execution: LocalTerminalExecution,
     options: GhosttyWebGpuTerminalFromSessionOptions,
   ) {
     this.accessibilityOptions = options.accessibility
@@ -303,13 +283,13 @@ export class Terminal {
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
     this.scrollbarOptions = options.scrollbar
     this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
-    this.cleanup.add(() => this.session.dispose())
+    this.cleanup.add(() => this.execution.dispose())
     const elements = options.elements
     if (elements) {
       this.elementsValue = elements
       this.cleanup.add(() => elements.dispose())
     }
-    this.session.setClipboardWritePolicy(
+    this.execution.setClipboardWritePolicy(
       createDomClipboardPolicyAdapter({
         onError: (cause, operation) => this.reportError(cause, operation),
         policy: options.clipboardWrite,
@@ -318,15 +298,15 @@ export class Terminal {
   }
 
   static async create(options: GhosttyWebGpuTerminalOptions = {}): Promise<Terminal> {
-    const session = await TerminalSession.create<Event>({
+    const execution = await LocalTerminalExecution.create({
       appearance: options.appearance,
       links: options.links,
       runtime: options.runtime,
     })
     try {
-      return new Terminal(session, options)
+      return new Terminal(execution, options)
     } catch (cause) {
-      session.dispose()
+      execution.dispose()
       throw cause
     }
   }
@@ -336,7 +316,7 @@ export class Terminal {
     options: GhosttyWebGpuTerminalFromSessionOptions = {},
   ): Terminal {
     try {
-      return new Terminal(session, options)
+      return new Terminal(new LocalTerminalExecution(session), options)
     } catch (cause) {
       options.elements?.dispose()
       session.dispose()
@@ -346,7 +326,7 @@ export class Terminal {
 
   get appearance(): TerminalAppearance {
     this.ensureActive()
-    return this.session.appearance
+    return this.execution.appearance
   }
 
   get canvas(): HTMLCanvasElement | undefined {
@@ -399,7 +379,7 @@ export class Terminal {
     let renderer: GhosttyWebGpuRenderer | undefined
     try {
       const elements = this.installElements(parent)
-      const initialAppearance = this.session.appearance
+      const initialAppearance = this.execution.appearance
       renderer = await this.createRenderer(elements, initialAppearance)
       if (!this.isOpening(generation)) {
         const staleRenderer = renderer
@@ -460,65 +440,34 @@ export class Terminal {
     return this.on('frame', listener)
   }
 
+  get submittedFrame(): TerminalSubmittedFrame | undefined {
+    this.ensureActive()
+    return this.execution.submittedFrame
+  }
+
   frameSnapshot(): RendererFrameSnapshot | undefined {
     this.ensureActive()
-    if (!this.lastFrame) return undefined
-    if (!this.canReadPaintedState) return this.lastFullFrame
-    const rows = Object.freeze(
-      this.session.renderState.readRows({ packed: true }).map(copiedFrameRow),
-    )
-    this.lastFullFrame = copiedFrame(Object.freeze({ ...this.lastFrame, rows }))
-    return this.lastFullFrame
+    return this.execution.frameSnapshot()
   }
 
   captureViewport(): string | undefined {
     this.ensureActive()
-    const elements = this.elementsValue
-    const font = this.fittedFont
-    const cursor = this.lastFrame?.cursor
-    const parent = elements?.root.parentElement
-    if (
-      !parent ||
-      !elements ||
-      !font ||
-      !cursor ||
-      this.lastFrameRevision !== this.session.revision ||
-      !this.canReadPaintedState
-    )
-      return undefined
-    const painted = this.lastFrame?.paintedCursor
-    const savedCursor = painted
-      ? {
-          ...cursor,
-          visible: painted.visible,
-          style: painted.style,
-          viewport: { x: painted.x, y: painted.y, wideTail: false },
-        }
-      : cursor
-    return encodeTerminalViewport({
-      width: parent.clientWidth,
-      height: parent.clientHeight,
-      columns: this.session.grid.columns,
-      rows: this.session.renderState.readRows(),
-      cursor: savedCursor,
-      scrollbar: this.session.scrollbar,
-      font,
-      theme: this.session.appearance.rendererTheme,
-      padding: elements.padding,
-    })
+    const parent = this.elementsValue?.root.parentElement
+    if (!parent) return undefined
+    return this.execution.captureViewport(parent.clientWidth, parent.clientHeight)
   }
 
   /** Count retained scrollback and visible rows on the active screen. */
   lineCount(): number {
     this.ensureActive()
-    return this.session.lineCount()
+    return this.execution.lineCount()
   }
 
   /** Read clamped, oldest-first active-screen rows [start, end), capped at TERMINAL_READ_LINES_MAX_ROWS.
    * trimRight defaults to true. Upstream has no inactive-screen selector. */
   readLines(start: number, end: number, options: ReadLinesOptions = {}): readonly TerminalLine[] {
     this.ensureActive()
-    return this.session.readLines(start, end, options)
+    return this.execution.readLines(start, end, options)
   }
 
   visibleLines(): readonly string[] {
@@ -529,7 +478,7 @@ export class Terminal {
 
   registerLinkProvider(provider: LinkProvider<Event>): LinkProviderRegistration {
     this.ensureActive()
-    const registration = this.session.registerLinkProvider(provider)
+    const registration = this.execution.registerLinkProvider(provider)
     this.refreshLinks()
     let disposed = false
     return Object.freeze({
@@ -545,23 +494,23 @@ export class Terminal {
 
   geometry(): TerminalGeometry {
     this.ensureActive()
-    return this.session.geometry()
+    return this.execution.geometry()
   }
 
   measure(text: string): number {
     this.ensureActive()
-    return this.session.measure(text)
+    return this.execution.measure(text)
   }
 
   measureTexts(texts: readonly string[]): TerminalTextMeasurement {
     this.ensureActive()
-    return this.session.measureTexts(texts)
+    return this.execution.measureTexts(texts)
   }
 
   writeAndReadGeometry(data: TerminalInputData): TerminalGeometry {
     this.ensureOpen()
     this.invalidateLinks()
-    const geometry = this.session.writeAndReadGeometry(data)
+    const geometry = this.execution.writeAndReadGeometry(data)
     if (this.stateValue !== 'open') return geometry
     this.accessibility?.notifyOutput()
     this.updateScrollbar()
@@ -572,7 +521,7 @@ export class Terminal {
   write(data: TerminalInputData): TerminalMutationResult {
     this.ensureOpen()
     this.invalidateLinks()
-    const result = this.session.write(data)
+    const result = this.execution.write(data)
     if (this.stateValue !== 'open') return result
     this.accessibility?.notifyOutput()
     this.updateScrollbar()
@@ -583,7 +532,7 @@ export class Terminal {
   writeln(data: TerminalInputData): TerminalMutationResult {
     this.ensureOpen()
     this.invalidateLinks()
-    const result = this.session.writeln(data)
+    const result = this.execution.writeln(data)
     if (this.stateValue !== 'open') return result
     this.accessibility?.notifyOutput()
     this.updateScrollbar()
@@ -593,17 +542,17 @@ export class Terminal {
 
   sendInput(data: TerminalInputData): TerminalInputResult {
     this.ensureOpen()
-    return this.session.sendInput(data)
+    return this.execution.sendInput(data)
   }
 
   paste(data: TerminalInputData): TerminalInputResult {
     this.ensureOpen()
-    return this.session.paste(data)
+    return this.execution.paste(data)
   }
 
   key(input: TerminalKeyInput): TerminalInputResult {
     this.ensureOpen()
-    return this.session.key(input)
+    return this.execution.key(input)
   }
 
   focus(): void {
@@ -620,7 +569,7 @@ export class Terminal {
     this.ensureOpen()
     this.input?.resetTransientState()
     this.pointer?.cancel()
-    return this.session.reset()
+    return this.execution.reset()
   }
 
   refresh(startRow: number, endRow: number): void {
@@ -635,56 +584,56 @@ export class Terminal {
 
   scrollToTop(): TerminalMutationResult {
     this.ensureOpen()
-    return this.session.scrollToTop()
+    return this.execution.scrollToTop()
   }
 
   scrollToBottom(): TerminalMutationResult {
     this.ensureOpen()
-    return this.session.scrollToBottom()
+    return this.execution.scrollToBottom()
   }
 
   scrollBy(delta: number): TerminalMutationResult {
     this.ensureOpen()
-    return this.session.scrollBy(delta)
+    return this.execution.scrollBy(delta)
   }
 
   scrollToRow(row: number): TerminalMutationResult {
     this.ensureOpen()
-    return this.session.scrollToRow(row)
+    return this.execution.scrollToRow(row)
   }
 
   getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {
     this.ensureOpen()
-    return this.session.getSelection(options)
+    return this.execution.getSelection(options)
   }
 
   selectionCoordinates(): Readonly<SelectionCoordinates> | undefined {
     this.ensureOpen()
-    return this.session.selectionCoordinates()
+    return this.execution.selectionCoordinates()
   }
 
   clearSelection(): boolean {
     this.ensureOpen()
     this.pointer?.cancel()
-    return this.session.clearSelection()
+    return this.execution.clearSelection()
   }
 
   selectAll(): boolean {
     this.ensureOpen()
     this.pointer?.cancel()
-    return this.session.selectAll().selectionChanged
+    return this.execution.selectAll().selectionChanged
   }
 
   selectRange(start: SelectionPoint, end: SelectionPoint): boolean {
     this.ensureOpen()
     this.pointer?.cancel()
-    return this.session.selectRange(start, end).selectionChanged
+    return this.execution.selectRange(start, end).selectionChanged
   }
 
   selectLines(startRow: number, endRow: number): boolean {
     this.ensureOpen()
     this.pointer?.cancel()
-    return this.session.selectLines(startRow, endRow).selectionChanged
+    return this.execution.selectLines(startRow, endRow).selectionChanged
   }
 
   focusNextLink(): Promise<boolean> {
@@ -708,7 +657,8 @@ export class Terminal {
     if (!elements) return false
     this.accessibility = this.createAccessibility(elements)
     const snapshot = this.readFrame()
-    if (snapshot) this.accessibility.update(snapshot, this.session.scrollbar)
+    if (snapshot && this.execution.submittedFrame)
+      this.accessibility.update(snapshot, this.execution.submittedFrame.scrollbar)
     return true
   }
 
@@ -730,7 +680,7 @@ export class Terminal {
 
   setAppearance(options: TerminalAppearanceOptions): TerminalMutationResult {
     this.ensureOpen()
-    return this.session.setAppearance(options)
+    return this.execution.setAppearance(options)
   }
 
   dispose(): void {
@@ -745,8 +695,6 @@ export class Terminal {
     this.input = undefined
     this.inputLifecycle = undefined
     this.lastFrame = undefined
-    this.lastFullFrame = undefined
-    this.lastFrameVersion = undefined
     this.layoutCommitted = false
     this.links = undefined
     this.pointer = undefined
@@ -782,9 +730,11 @@ export class Terminal {
       effectivePixelRatio(elements.canvas, this.fitEnvironment),
     )
     this.fittedFont = font
+    this.execution.commitLayout(font, elements.padding)
     const compositionView = elements.compositionView
     if (compositionView) applyPreeditAppearance(compositionView, font, appearance.rendererTheme)
-    return this.rendererFactory(
+    return this.execution.createRenderer(
+      this.rendererFactory,
       {
         canvas: elements.canvas,
         columns: grid.columns,
@@ -793,12 +743,11 @@ export class Terminal {
         onError: (cause) => this.reportError(cause, 'renderer.restore'),
         onCleanUpdate: () => this.handleCleanUpdate(),
         onTextFrame: (snapshot) => this.handleFrame(snapshot),
-        needsFrameRows: () => this.accessibility !== undefined || (this.links?.needsFrame ?? false),
+        needsFrameRows: () => true,
         onRowsChanged: (rows) => {
           if (!this.emitters.frame.hasListeners) return
           this.emitters.frame.emit(Object.freeze({ rows: rows }))
         },
-        renderState: this.session.renderState,
         replaceCanvas: elements.replaceCanvas
           ? () => this.replaceRendererCanvas(elements)
           : undefined,
@@ -813,7 +762,7 @@ export class Terminal {
     elements: TerminalElements,
     initialAppearance: TerminalAppearance,
   ): void {
-    const appearance = this.session.appearance
+    const appearance = this.execution.appearance
     if (appearance === initialAppearance) return
     const font = fitTerminalFont(
       elements.canvas.ownerDocument,
@@ -821,6 +770,7 @@ export class Terminal {
       effectivePixelRatio(elements.canvas, this.fitEnvironment),
     )
     this.fittedFont = font
+    this.execution.commitLayout(font, elements.padding)
     const compositionView = elements.compositionView
     if (compositionView) applyPreeditAppearance(compositionView, font, appearance.rendererTheme)
     this.renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
@@ -840,21 +790,23 @@ export class Terminal {
 
   private subscribeToSession(): void {
     this.trackSubscription(
-      this.session.on('appearance', ({ appearance }) => this.handleAppearance(appearance)),
+      this.execution.on('appearance', ({ appearance }) => this.handleAppearance(appearance)),
     )
-    this.trackSubscription(this.session.on('bell', () => this.emitHostEvent('bell', undefined)))
+    this.trackSubscription(this.execution.on('bell', () => this.emitHostEvent('bell', undefined)))
     this.trackSubscription(
-      this.session.on('data', ({ bytes }) => this.emitHostEvent('data', Uint8Array.from(bytes))),
-    )
-    this.trackSubscription(this.session.on('error', (error) => this.emitHostEvent('error', error)))
-    this.trackSubscription(this.session.on('renderRequest', () => this.handleRenderRequest()))
-    this.trackSubscription(this.session.on('resize', ({ grid }) => this.handleResize(grid)))
-    this.trackSubscription(this.session.on('scroll', (scroll) => this.handleScroll(scroll)))
-    this.trackSubscription(
-      this.session.on('selection', (selection) => this.handleSelection(selection)),
+      this.execution.on('data', ({ bytes }) => this.emitHostEvent('data', Uint8Array.from(bytes))),
     )
     this.trackSubscription(
-      this.session.on('title', ({ title }) => this.emitHostEvent('title', title)),
+      this.execution.on('error', (error) => this.emitHostEvent('error', error)),
+    )
+    this.trackSubscription(this.execution.on('renderRequest', () => this.handleRenderRequest()))
+    this.trackSubscription(this.execution.on('resize', ({ grid }) => this.handleResize(grid)))
+    this.trackSubscription(this.execution.on('scroll', (scroll) => this.handleScroll(scroll)))
+    this.trackSubscription(
+      this.execution.on('selection', (selection) => this.handleSelection(selection)),
+    )
+    this.trackSubscription(
+      this.execution.on('title', ({ title }) => this.emitHostEvent('title', title)),
     )
   }
 
@@ -895,14 +847,14 @@ export class Terminal {
   private installScrollbar(elements: TerminalElements): void {
     const options = this.scrollbarOptions
     const scrollbar = createTerminalScrollbar({
-      actions: this.session,
+      actions: this.execution.scroll,
       clock: options?.clock,
       fadeDelayMs: options?.fadeDelayMs,
       minThumbSize: options?.minThumbSize,
       onError: (cause, operation) => this.reportError(cause, `scrollbar.${operation}`),
       root: elements.root,
       signal: elements.signal,
-      snapshot: this.session.scrollbar,
+      snapshot: this.execution.scrollbar,
       width: this.scrollbarWidthValue,
     })
     this.scrollbar = scrollbar
@@ -933,7 +885,7 @@ export class Terminal {
         hooks: this.inputHooks,
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
         onPreedit: (value) => this.updatePreedit(value),
-        session: this.session,
+        session: this.execution.input,
         shortcuts: this.keyboard?.shortcuts,
         signal: elements.signal,
         textarea: elements.textarea,
@@ -946,7 +898,7 @@ export class Terminal {
       onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
       onFocused: (focused) => this.handleFocused(focused),
       onResetTransientState: () => input?.resetTransientState(),
-      session: this.session,
+      session: this.execution.focus,
       signal: elements.signal,
       textarea: elements.textarea,
     })
@@ -964,7 +916,7 @@ export class Terminal {
     const fit = createTerminalFitController({
       container: elements.root,
       environment: this.fitEnvironment,
-      font: this.session.appearance.font,
+      font: this.execution.appearance.font,
       getScrollbarWidth: () => this.scrollbarWidthValue,
       onFit: (result) => this.applyFit(result),
       padding: this.padding,
@@ -978,7 +930,7 @@ export class Terminal {
   private installPointer(elements: TerminalElements): void {
     const selection = createTerminalSelectionController({
       onError: (cause, operation) => this.reportError(cause, operation),
-      session: this.session,
+      session: this.execution.selectionGesture,
       view: owningWindow(elements.canvas),
     })
     let pointer: TerminalPointerController
@@ -988,12 +940,7 @@ export class Terminal {
         getLayout: () => this.committedPointerLayout(),
         onError: (cause, operation) => this.reportError(cause, operation),
         selection,
-        session: {
-          mouse: (input) => this.session.mouse(input),
-          mouseTracking: () => this.session.mouseTracking,
-          resetMouseTracking: () => this.session.resetMouseTracking(),
-          scrollBy: (delta) => this.session.scrollBy(delta),
-        },
+        session: this.execution.pointer,
         signal: elements.signal,
       })
     } catch (cause) {
@@ -1007,13 +954,15 @@ export class Terminal {
   private installLinks(elements: TerminalElements): void {
     const links = createDomLinkController({
       getFrame: () =>
-        this.lastFrameRevision === this.session.revision ? this.readFrame() : undefined,
+        this.execution.submittedFrame?.nativeRevision === this.execution.revision
+          ? this.readFrame()
+          : undefined,
       activationModifier: this.linkActivationModifier,
       canvas: elements.canvas,
       getLayout: () => this.committedPointerLayout(),
       onError: (cause, operation) => this.reportError(cause, `link.${operation}`),
       root: elements.root,
-      session: this.session,
+      session: this.execution.links,
       signal: elements.signal,
     })
     this.links = links
@@ -1058,12 +1007,15 @@ export class Terminal {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
     const paddingChanged = this.elementsValue?.setPadding(result.padding) === true
     const scrollbarWidthChanged = this.scrollbar?.setWidth(result.scrollbarWidth) === true
+    this.execution.commitLayout(result.font, result.padding)
     this.renderer?.setFont(result.font)
     this.fittedFont = result.font
-    this.updatePreeditAppearance(result.font, this.session.appearance.rendererTheme)
     this.layoutCommitted = true
     if (paddingChanged || scrollbarWidthChanged) this.invalidateLinks()
-    this.session.resize(result.grid)
+    this.execution.resize(result.grid)
+    // Padding can change without native cells changing; submit its new layout with owned rows.
+    if (paddingChanged || scrollbarWidthChanged)
+      this.renderer?.refreshRows?.(0, result.grid.rows - 1)
     if (this.stateValue !== 'open') return
     this.replayLastFrame()
     this.updateScrollbar()
@@ -1071,12 +1023,12 @@ export class Terminal {
 
   private commitFixedFont(font: TerminalFittedFont): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
-    const grid = this.session.grid
+    const grid = this.execution.grid
+    this.execution.commitLayout(font, this.elementsValue!.padding)
     this.renderer?.setFont(font)
     this.fittedFont = font
-    this.updatePreeditAppearance(font, this.session.appearance.rendererTheme)
     this.layoutCommitted = true
-    this.session.resize({
+    this.execution.resize({
       cellHeight: font.cssCellHeight,
       cellWidth: font.cssCellWidth,
       columns: grid.columns,
@@ -1107,7 +1059,6 @@ export class Terminal {
     }
     renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     renderer?.setTheme(appearance.rendererTheme)
-    this.updatePreeditAppearance(this.fittedFont, appearance.rendererTheme)
     this.emitHostEvent('appearance', appearance)
   }
 
@@ -1140,22 +1091,8 @@ export class Terminal {
     this.renderer?.schedule()
   }
 
-  private get canReadPaintedState(): boolean {
-    return this.lastFrameVersion === this.session.renderState.snapshotVersion
-  }
-
   private readFrame(): RendererTextFrameSnapshot | undefined {
-    const snapshot = this.lastFrame
-    if (!snapshot || snapshot.rows.length > 0) return snapshot
-    if (!this.canReadPaintedState) return this.lastFullFrame
-    const rows = Object.freeze(
-      this.session.renderState.readTextRows
-        ? this.session.renderState.readTextRows()
-        : this.session.renderState.readRows({ packed: true }).map(copiedFrameRow),
-    )
-    const frame = Object.freeze({ ...snapshot, rows })
-    this.lastFrame = frame
-    return frame
+    return this.execution.textFrame()
   }
 
   private replayLastFrame(): void {
@@ -1165,27 +1102,19 @@ export class Terminal {
   }
 
   private handleCleanUpdate(): void {
-    if (
-      !this.lastFrame ||
-      !this.canReadPaintedState ||
-      this.renderer?.canPaint !== true ||
-      this.renderer.hasPendingFrame
-    )
-      return
-    this.lastFrameRevision = this.session.revision
+    this.execution.confirmCleanUpdate()
   }
 
   private handleFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
-    this.lastFrameRevision = this.session.revision
-    this.lastFrameVersion = this.session.renderState.snapshotVersion
-    this.lastFullFrame = undefined
-    this.updateFrameUi(snapshot)
+    this.updateFrameUi(this.execution.submit(snapshot))
   }
 
   private updateFrameUi(snapshot: RendererTextFrameSnapshot): void {
     this.lastFrame = snapshot
-    const scrollbar = this.session.scrollbar
+    const summary = this.execution.submittedFrame
+    const scrollbar = summary?.scrollbar ?? this.execution.scrollbar
+    if (summary) this.updatePreeditAppearance(summary.font, summary.theme)
     this.runUiOperation('frame.caret', () => this.positionTextarea(snapshot))
     this.runUiOperation('frame.links', () => {
       if (snapshot.rows.length > 0 && this.links?.needsFrame) this.updateLinkFrame(snapshot)
@@ -1219,11 +1148,12 @@ export class Terminal {
   private committedPointerLayout(): CommittedPointerLayout | undefined {
     const elements = this.elementsValue
     if (!elements || !this.layoutCommitted) return undefined
-    const grid = this.session.grid
-    const font = this.fittedFont
-    if (!font) return undefined
+    const summary = this.execution.submittedFrame
+    if (!summary) return undefined
+    const grid = summary.grid
+    const font = summary.font
     const ratio = font.pixelRatio
-    const padding = elements.padding
+    const padding = summary.padding
     const physical = Object.freeze({
       deviceCellHeight: font.deviceCellHeight,
       deviceCellWidth: font.deviceCellWidth,
@@ -1251,7 +1181,9 @@ export class Terminal {
   private updateScrollbar(snapshot?: Readonly<TerminalScrollbar>): void {
     const scrollbar = this.scrollbar
     if (!scrollbar || this.stateValue === 'disposed') return
-    scrollbar.update(snapshot ?? this.session.scrollbar)
+    scrollbar.update(
+      this.execution.submittedFrame?.scrollbar ?? snapshot ?? this.execution.scrollbar,
+    )
   }
 
   private runUiOperation(operation: string, action: () => unknown): void {
@@ -1333,10 +1265,12 @@ export class Terminal {
     const column = leadingCursorColumn(snapshot)
     const viewport = snapshot.cursor.viewport
     if (column === undefined || !viewport) return
-    const grid = this.session.grid
+    const summary = this.execution.submittedFrame
+    if (!summary) return
+    const grid = summary.grid
     elements.positionTextarea({
-      x: elements.padding.left + column * grid.cellWidth,
-      y: elements.padding.top + viewport.y * grid.cellHeight,
+      x: summary.padding.left + column * grid.cellWidth,
+      y: summary.padding.top + viewport.y * grid.cellHeight,
     })
   }
 
