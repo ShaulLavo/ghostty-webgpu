@@ -41,7 +41,12 @@ function parseProcesses(output, allowedComputePids) {
     assert.equal(fields.length, 3, 'NVIDIA process sample requires UUID, PID and memory')
     const pid = number(fields[1])
     assert(Number.isInteger(pid) && pid > 0, 'NVIDIA sample requires a positive process ID')
-    return { uuid: fields[0], pid, memoryMiB: number(fields[2]), allowed: allowed.has(pid) }
+    return {
+      uuid: fields[0],
+      pid,
+      memoryMiB: number(fields[2]),
+      allowed: allowed.has(pid),
+    }
   })
 }
 
@@ -152,7 +157,7 @@ export async function sampleNvidiaGpu({
   const started = now()
   // Hard termination avoids an exit-zero SIGTERM handler concealing a command timeout.
   const options = {
-    timeout: timeoutMilliseconds,
+    timeout: Math.max(1, Math.ceil(timeoutMilliseconds)),
     killSignal: 'SIGKILL',
     maxBuffer: 1024 * 1024,
     encoding: 'utf8',
