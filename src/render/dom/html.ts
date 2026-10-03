@@ -1,4 +1,4 @@
-import type { RenderCell, RenderRow } from '../../core/types.js'
+import type { RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { CanvasColorCache, resolveCanvasCellColors } from '../canvas/colors.js'
 import {
@@ -112,27 +112,58 @@ function cellStyle(
     const paint = colors.css(theme.cursor)
     css += `background-color:${colors.css(tail.background)};background-image:linear-gradient(${paint},${paint});background-size:var(--ghostty-cell-width, ${font.cssCellWidth}px) 100%;background-repeat:no-repeat;`
   }
-  return css + cursorDecoration(cursor, colors.foreground(resolved), font, width)
+  return css + cursorDecoration(cursor, foreground, font, width)
 }
 
-export function renderRowToHtml(
+function sameColor(left: RgbColor | undefined, right: RgbColor | undefined): boolean {
+  if (left === undefined || right === undefined) return left === right
+  return left.r === right.r && left.g === right.g && left.b === right.b
+}
+
+function sameAppearance(left: RenderCell, right: RenderCell): boolean {
+  return (
+    sameColor(left.foreground, right.foreground) &&
+    sameColor(left.background, right.background) &&
+    left.selected === right.selected &&
+    (left.style === right.style ||
+      (left.style?.blink === right.style?.blink &&
+        left.style?.bold === right.style?.bold &&
+        left.style?.faint === right.style?.faint &&
+        left.style?.invisible === right.style?.invisible &&
+        left.style?.inverse === right.style?.inverse &&
+        left.style?.italic === right.style?.italic &&
+        left.style?.overline === right.style?.overline &&
+        left.style?.strikethrough === right.style?.strikethrough &&
+        left.style?.underline === right.style?.underline))
+  )
+}
+
+export interface RowRun {
+  readonly cursor: CursorState['style'] | undefined
+  readonly style: string
+  readonly text: string
+}
+
+export function renderRowRuns(
   row: RenderRow,
   cursor: CursorState | undefined,
   font: TerminalFittedFont,
   theme: CanonicalRendererTheme,
-): string {
+): readonly RowRun[] {
   const colors = new CanvasColorCache(theme.minimumContrast)
-  const runs: string[] = []
+  const runs: RowRun[] = []
   let currentStyle = ''
   let currentText = ''
   let currentWidth = 0
-  let currentCursor: string | undefined
+  let currentCursor: CursorState['style'] | undefined
+  let previousCell: RenderCell | undefined
   function flush(): void {
     if (currentWidth === 0) return
-    const cursorAttribute = currentCursor ? ` data-cursor="${escapeHtml(currentCursor, true)}"` : ''
-    runs.push(
-      `<span${cursorAttribute} style="${escapeHtml(`${currentStyle}width:calc(${currentWidth} * var(--ghostty-cell-width, ${font.cssCellWidth}px));`, true)}">${escapeHtml(currentText)}</span>`,
-    )
+    runs.push({
+      cursor: currentCursor,
+      style: `${currentStyle}width:calc(${currentWidth} * var(--ghostty-cell-width, ${font.cssCellWidth}px));`,
+      text: currentText,
+    })
     currentText = ''
     currentWidth = 0
   }
@@ -143,7 +174,13 @@ export function renderRowToHtml(
     while (row.cells[index + width]?.continuation) width += 1
     const paintedCursor =
       cursor?.visible && cursor.y === row.y && cursor.x === cell.x ? cursor : undefined
-    const style = cellStyle(cell, paintedCursor, font, theme, colors, width)
+    // Cursor and wide-cell paint stays isolated; font, theme and contrast are fixed for this row.
+    const reusable = width === 1 && !paintedCursor
+    const style =
+      reusable && previousCell && sameAppearance(previousCell, cell)
+        ? currentStyle
+        : cellStyle(cell, paintedCursor, font, theme, colors, width)
+    previousCell = reusable ? cell : undefined
     if (style !== currentStyle || paintedCursor || currentCursor || width > 1) flush()
     currentStyle = style
     currentCursor = paintedCursor?.style
@@ -153,6 +190,19 @@ export function renderRowToHtml(
     if (width > 1 || paintedCursor) flush()
   }
   flush()
+  return runs
+}
+
+function renderRowToHtml(
+  row: RenderRow,
+  cursor: CursorState | undefined,
+  font: TerminalFittedFont,
+  theme: CanonicalRendererTheme,
+): string {
+  const runs = renderRowRuns(row, cursor, font, theme).map((run) => {
+    const cursorAttribute = run.cursor ? ` data-cursor="${escapeHtml(run.cursor, true)}"` : ''
+    return `<span${cursorAttribute} style="${escapeHtml(run.style, true)}">${escapeHtml(run.text)}</span>`
+  })
   return `<div data-row="${row.y}" style="display:flex;direction:ltr;unicode-bidi:bidi-override;height:var(--ghostty-cell-height, ${font.cssCellHeight}px);">${runs.join('')}</div>`
 }
 

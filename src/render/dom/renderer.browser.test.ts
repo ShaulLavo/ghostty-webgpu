@@ -1,6 +1,10 @@
-import { page } from 'vitest/browser'
+import { page, userEvent } from 'vitest/browser'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
+import type { RenderRow } from '../../core/types.js'
+import type { CursorState } from '../instances/types.js'
+import type { RendererFrameSnapshot } from '../renderer.js'
 import { Terminal } from '../../dom/terminal.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
 import { snapshotRenderState } from '../frame.js'
@@ -50,7 +54,12 @@ function mountedCanvas(): HTMLCanvasElement {
   return canvas
 }
 
-async function rendererProbe(backend: 'dom' | 'canvas2d', input = probeInput, font = probeFont) {
+async function rendererProbe(
+  backend: 'dom' | 'canvas2d',
+  input = probeInput,
+  font = probeFont,
+  onFrame?: (snapshot: RendererFrameSnapshot) => void,
+) {
   const runtime = await GhosttyRuntime.create()
   cleanups.push(() => runtime.dispose())
   const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
@@ -66,6 +75,7 @@ async function rendererProbe(backend: 'dom' | 'canvas2d', input = probeInput, fo
     font,
     renderState: state,
     schedulerClock: clock,
+    onFrame,
     onRowsPainted: (rows: readonly { y: number }[]) => frames.push(rows.map((row) => row.y)),
   }
   const renderer =
@@ -176,6 +186,164 @@ describe('DOM terminal renderer', () => {
     await expectWideGlyphCursorPaint(font)
   })
 
+  it('matches serialized styles through run splits, removals, selection, theme, and font changes', async () => {
+    const probe = await rendererProbe('dom')
+    const theme = {
+      background: { r: 20, g: 25, b: 30 },
+      foreground: { r: 100, g: 105, b: 110 },
+      minimumContrast: 4.5,
+    }
+    const font = { ...probeFont, settings: { ...probeFont.settings, boldWeight: 600 } }
+    probe.renderer.setTheme(theme)
+    probe.renderer.setFont(font)
+    const expectSerializedFrame = () => {
+      const expected = document.createElement('div')
+      expected.innerHTML = renderFrameToHtml(snapshotRenderState(probe.state), {
+        columns: 12,
+        rows: 3,
+        font,
+        theme,
+      })
+      const live = probe.canvas.parentElement!.querySelector('.ghostty-webgpu-frame')!
+      const saved = expected.firstElementChild!
+      const runs = (frame: Element) =>
+        Array.from(frame.querySelectorAll('span'), (span) => ({
+          cursor: span.getAttribute('data-cursor'),
+          style: span.getAttribute('style'),
+          text: span.textContent,
+        }))
+      expect(live.getAttribute('style')).toBe(saved.getAttribute('style'))
+      expect(runs(live)).toEqual(runs(saved))
+    }
+    for (const input of [
+      '\x1b[?25l\x1b[2J\x1b[H\x1b[1;3;4;9;53mA\x1b[0m界é',
+      '\r\x1b[2;7mB\x1b[8mC\x1b[0mD',
+      '\r\x1b[4:3;38;2;90;100;110mE\x1b[0mF',
+      '\x1b[2J\x1b[Hplain',
+      '\x1b[?25h\x1b[1;2H',
+    ]) {
+      probe.terminal.write(input)
+      probe.renderer.notifyWrite()
+      probe.clock.flush()
+      expectSerializedFrame()
+      probe.terminal.selectAll()
+      probe.renderer.notifySelectionChange()
+      probe.clock.flush()
+      expectSerializedFrame()
+    }
+  })
+
+  it('reports actual mutations while identical repaints still settle damage and callbacks', async () => {
+    const snapshots: RendererFrameSnapshot[] = []
+    const probe = await rendererProbe('dom', probeInput, probeFont, (snapshot) =>
+      snapshots.push(snapshot),
+    )
+    const initial = '\x1b[?25l\x1b[2J\x1b[Hfirst'
+    probe.terminal.write(initial)
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    const surface = Reflect.get(probe.renderer, 'surface') as {
+      paint(row: RenderRow, cursor: CursorState | undefined): boolean
+    }
+    const paint = vi.spyOn(surface, 'paint')
+    const frame = probe.canvas.parentElement!.querySelector('.ghostty-webgpu-frame')!
+    const observer = new MutationObserver(() => {})
+    observer.observe(frame, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    })
+    cleanups.push(() => observer.disconnect())
+    const beforeFrames = probe.frames.length
+    const beforeSnapshots = snapshots.length
+    const beforeSubmitted = probe.renderer.metrics.submittedFrames
+    probe.terminal.write(initial)
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(paint).toHaveBeenCalled()
+    expect(paint.mock.results.every((result) => result.value === false)).toBe(true)
+    expect(observer.takeRecords()).toHaveLength(0)
+    expect(probe.frames).toHaveLength(beforeFrames + 1)
+    expect(snapshots).toHaveLength(beforeSnapshots + 1)
+    expect(probe.renderer.metrics.submittedFrames).toBe(beforeSubmitted + 1)
+    expect(probe.state.update()).toBe(RenderStateDirty.False)
+    expect(surface.paint({ ...probe.state.readRows()[0]!, y: 99 }, undefined)).toBe(false)
+    expect(observer.takeRecords()).toHaveLength(0)
+    for (const input of [
+      '\rsecond',
+      '\r\x1b[31mS\x1b[0m',
+      '\x1b[?25h\x1b[1;1H',
+      '\x1b[?25l\x1b[2J\x1b[Hplain',
+    ]) {
+      paint.mockClear()
+      probe.terminal.write(input)
+      probe.renderer.notifyWrite()
+      probe.clock.flush()
+      const firstRow = paint.mock.calls.findIndex(([row]) => row.y === 0)
+      expect(firstRow).toBeGreaterThanOrEqual(0)
+      expect(paint.mock.results[firstRow]!.value).toBe(true)
+      expect(observer.takeRecords().length).toBeGreaterThan(0)
+    }
+  })
+
+  it('retains damaged row, span, and text identities while text changes', async () => {
+    const probe = await rendererProbe('dom')
+    probe.terminal.write('\x1b[?25l\x1b[2J\x1b[Hfirst')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    const host = probe.canvas.parentElement!
+    const row = host.querySelector('[data-row="0"]')!
+    const span = row.firstElementChild!
+    const text = span.firstChild!
+    probe.terminal.write('\rother')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(host.querySelector('[data-row="0"]')).toBe(row)
+    expect(row.firstElementChild).toBe(span)
+    expect(span.firstChild).toBe(text)
+    expect(text.textContent).toContain('other')
+  })
+
+  it('rebuilds the retained grid on resize and releases its rows on disposal', async () => {
+    const probe = await rendererProbe('dom')
+    const host = probe.canvas.parentElement!
+    const original = host.querySelector('[data-row="0"]')!
+    probe.terminal.resize({ columns: 8, rows: 2 })
+    probe.renderer.resize({ columns: 8, rows: 2 })
+    expect(host.querySelectorAll('[data-row]')).toHaveLength(2)
+    expect(host.querySelector('[data-row="0"]')).not.toBe(original)
+    expect(probe.canvas.width).toBe(80)
+    expect(probe.canvas.height).toBe(40)
+    probe.terminal.write('\x1b[?25l\x1b[2J\x1b[Hsmall')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    const row = host.querySelector('[data-row="0"]')!
+    const span = row.firstElementChild!
+    probe.terminal.write('\rshort')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(host.querySelector('[data-row="0"]')).toBe(row)
+    expect(row.firstElementChild).toBe(span)
+    expect(span.textContent).toBe('short   ')
+    const font = { ...probeFont, cssCellWidth: 12, deviceCellWidth: 12 }
+    probe.renderer.setFont(font)
+    probe.clock.flush()
+    const frame = host.querySelector('.ghostty-webgpu-frame')!
+    expect(frame.parentElement!.innerHTML).toBe(
+      renderFrameToHtml(snapshotRenderState(probe.state), { columns: 8, rows: 2, font }),
+    )
+    expect(frame.getBoundingClientRect().width).toBe(96)
+    const surface = Reflect.get(probe.renderer, 'surface') as {
+      paint(row: RenderRow, cursor: CursorState | undefined): boolean
+    }
+    const lastRow = probe.state.readRows()[0]!
+    probe.renderer.dispose()
+    expect(surface.paint(lastRow, undefined)).toBe(false)
+    expect(host.querySelector('.ghostty-webgpu-frame')).toBeNull()
+    expect(probe.canvas.style.opacity).toBe('')
+  })
+
   it('retains undamaged rows, repaints selection, and tears down the owned surface', async () => {
     const probe = await rendererProbe('dom')
     const host = probe.canvas.parentElement!
@@ -183,13 +351,12 @@ describe('DOM terminal renderer', () => {
     probe.terminal.write('\x1b[2;1Hchanged')
     probe.renderer.notifyWrite()
     probe.clock.flush()
-    // Moving the cursor rebuilds its previous and next rows; the untouched third row stays mounted.
     const third = host.querySelector('[data-row="2"]')
     probe.terminal.write('!')
     probe.renderer.notifyWrite()
     probe.clock.flush()
     expect(host.querySelector('[data-row="2"]')).toBe(third)
-    expect(host.querySelector('[data-row="0"]')).not.toBe(previous)
+    expect(host.querySelector('[data-row="0"]')).toBe(previous)
     probe.terminal.selectAll()
     probe.renderer.notifySelectionChange()
     probe.clock.flush()
@@ -316,6 +483,46 @@ describe('DOM terminal renderer', () => {
     terminal.write('\x1b[?1000h\x1b[?1006h')
     await locator.click({ position: { x: 2, y: 2 } })
     expect(data.join('')).toContain('\x1b[<0;1;1M')
+  })
+
+  it('preserves accessible rows and keyboard link activation through retained repaints', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
+    const host = document.createElement('div')
+    host.style.width = '300px'
+    host.style.height = '100px'
+    document.body.append(host)
+    cleanups.push(() => host.remove())
+    const activations: string[] = []
+    const terminal = await Terminal.create({
+      appearance: {
+        grid: { columns: 12, rows: 3 },
+        font: { family: 'monospace', size: 16 },
+        cursor: { blink: false },
+      },
+      links: { activateUri: (uri) => void activations.push(uri) },
+    })
+    cleanups.push(() => terminal.dispose())
+    await terminal.open(host)
+    const uri = 'https://dom-link.test'
+    for (const text of ['first', 'second']) {
+      terminal.write(`\r\x1b]8;;${uri}\x07${text}\x1b]8;;\x07`)
+      await vi.waitFor(() =>
+        expect(host.querySelector('.ghostty-webgpu-accessibility')?.textContent).toContain(text),
+      )
+      const frame = host.querySelector('.ghostty-webgpu-frame')!
+      expect(frame.getAttribute('aria-hidden')).toBe('true')
+      expect(frame.textContent).toContain(text)
+      expect(terminal.textarea!.getAttribute('aria-controls')).toContain(
+        host.querySelector('.ghostty-webgpu-accessibility')!.id,
+      )
+      expect(await terminal.focusNextLink()).toBe(true)
+      const link = host.querySelector('[role="link"]')!
+      expect(document.activeElement).toBe(link)
+      const before = activations.length
+      await userEvent.keyboard('{Enter}')
+      await vi.waitFor(() => expect(activations).toHaveLength(before + 1))
+    }
+    expect(activations).toEqual([uri, uri])
   })
 
   it('opens the public Terminal with every canvas context disabled and publishes damaged rows', async () => {

@@ -9,10 +9,21 @@ import {
 import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
 import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../renderer.js'
 import { RowTerminalRenderer, type RowRendererSurface } from '../row-renderer.js'
-import { frameStyle, renderFrameToHtml, renderRowToHtml } from './html.js'
+import { frameStyle, renderFrameToHtml, renderRowRuns, type RowRun } from './html.js'
 
 export { renderFrameToHtml } from './html.js'
 export type { RenderFrameHtmlOptions } from './html.js'
+
+interface MountedRun {
+  readonly element: HTMLSpanElement
+  readonly text: Text
+  value: RowRun
+}
+
+interface MountedRow {
+  readonly element: Element
+  readonly runs: MountedRun[]
+}
 
 class DomSurface implements RowRendererSurface {
   private readonly container: HTMLDivElement
@@ -21,6 +32,7 @@ class DomSurface implements RowRendererSurface {
   private font: TerminalFittedFont
   private grid: RendererGridSize
   private theme: CanonicalRendererTheme
+  private rows: MountedRow[] = []
 
   constructor(options: WebGpuTerminalRendererOptions) {
     if (!('ownerDocument' in options.canvas) || !options.canvas.parentElement) {
@@ -42,6 +54,7 @@ class DomSurface implements RowRendererSurface {
 
   dispose(): void {
     this.container.remove()
+    this.rows = []
     this.canvas.style.opacity = this.previousOpacity
   }
 
@@ -49,12 +62,45 @@ class DomSurface implements RowRendererSurface {
     this.position()
   }
 
-  paint(row: RenderRow, cursor: CursorState | undefined): void {
-    const previous = this.container.firstElementChild?.children[row.y]
-    if (!previous) return
-    const template = this.canvas.ownerDocument.createElement('template')
-    template.innerHTML = renderRowToHtml(row, cursor, this.font, this.theme)
-    previous.replaceWith(template.content)
+  paint(row: RenderRow, cursor: CursorState | undefined): boolean {
+    const mounted = this.rows[row.y]
+    if (!mounted) return false
+    let changed = false
+    const runs = renderRowRuns(row, cursor, this.font, this.theme)
+    for (let index = 0; index < runs.length; index += 1) {
+      const run = runs[index]!
+      const previous = mounted.runs[index]
+      if (!previous) {
+        const element = this.canvas.ownerDocument.createElement('span')
+        const text = this.canvas.ownerDocument.createTextNode(run.text)
+        if (run.cursor) element.setAttribute('data-cursor', run.cursor)
+        element.setAttribute('style', run.style)
+        element.append(text)
+        mounted.element.append(element)
+        mounted.runs.push({ element, text, value: run })
+        changed = true
+        continue
+      }
+      if (previous.value.style !== run.style) {
+        previous.element.setAttribute('style', run.style)
+        changed = true
+      }
+      if (previous.value.text !== run.text) {
+        previous.text.data = run.text
+        changed = true
+      }
+      if (previous.value.cursor !== run.cursor) {
+        if (run.cursor) previous.element.setAttribute('data-cursor', run.cursor)
+        else previous.element.removeAttribute('data-cursor')
+        changed = true
+      }
+      previous.value = run
+    }
+    while (mounted.runs.length > runs.length) {
+      mounted.runs.pop()!.element.remove()
+      changed = true
+    }
+    return changed
   }
 
   resize(font: TerminalFittedFont, grid: RendererGridSize): void {
@@ -73,6 +119,10 @@ class DomSurface implements RowRendererSurface {
     this.canvas.style.width = `${grid.columns * font.cssCellWidth}px`
     this.canvas.style.height = `${grid.rows * font.cssCellHeight}px`
     this.container.innerHTML = html
+    this.rows = Array.from(this.container.firstElementChild!.children, (element) => ({
+      element,
+      runs: [],
+    }))
     this.position()
   }
 
