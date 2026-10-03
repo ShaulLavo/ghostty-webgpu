@@ -1,0 +1,71 @@
+diff --git a/dist/chunks/index.C-uw7tH9.js b/dist/chunks/index.C-uw7tH9.js
+--- a/dist/chunks/index.C-uw7tH9.js
++++ b/dist/chunks/index.C-uw7tH9.js
+@@ -10307,7 +10307,7 @@
+ 				});
+ 			}).then(async () => {
+ 				debug$1?.("[%s] test %s finished running", sessionId, file);
+-				await maybeCollectChromiumGarbage(this.project, sessionId);
++				await collectChromiumGarbageAfterFile(this.project, sessionId, file.filepath);
+ 				this.runNextTest(method, sessionId);
+ 			}).catch((error) => {
+ 				// if user cancels the test run manually, ignore the error and exit gracefully
+@@ -10351,6 +10351,20 @@
+ const chromiumGCDiskThreshold = process.env.VITEST_CHROMIUM_GC_DISK_THRESHOLD_GB ? Number(process.env.VITEST_CHROMIUM_GC_DISK_THRESHOLD_GB) * 1024 ** 3 : 4 * 1024 ** 3;
+ const forceChromiumGC = !!process.env.VITEST_CHROMIUM_GC_FORCE;
+ const debugGC = createDebugger("vitest:browser:gc");
++async function collectChromiumGarbageAfterFile(project, sessionId, file) {
++	let timer;
++	try {
++		await Promise.race([
++			maybeCollectChromiumGarbage(project, sessionId),
++			new Promise((_, reject) => {
++				// Isolated-file collection shares the shutdown resource teardown budget.
++				timer = setTimeout(() => reject(new Error(`The post-file Chromium garbage collection exceeded teardownTimeout for ${file} (${project.config.teardownTimeout}ms).`)), project.config.teardownTimeout).unref();
++			})
++		]);
++	} finally {
++		clearTimeout(timer);
++	}
++}
+ async function maybeCollectChromiumGarbage(project, sessionId) {
+ 	// trigger only on linux/chromium/playwright
+ 	const provider = project.browser.provider;
+@@ -10377,8 +10391,8 @@
+ 		diagnostics.availableBytesBefore = available.toString();
+ 		diagnostics.thresholdBytes = chromiumGCDiskThreshold.toString();
+ 		diagnostics.tempDirectory = tempDirectory;
+-		diagnostics.triggered = available < chromiumGCDiskThreshold;
+-		if (available >= chromiumGCDiskThreshold) return;
++		// Disposed isolated files otherwise retain renderer allocations until the disk trigger.
++		diagnostics.triggered = true;
+ 		operationStart = performance.now();
+ 		// `detach` is available only internally and not on CDPSession type
+ 		const cdp = await provider.getCDPSession(sessionId);
+@@ -10402,7 +10416,7 @@
+ 		}
+ 		const availableGiB = available / 1024 ** 3;
+ 		const thresholdGiB = chromiumGCDiskThreshold / 1024 ** 3;
+-		debugGC?.("[%s] Low disk space detected in %s (%s GiB available, %s GiB threshold). Vitest triggered Chromium garbage collection to prevent browser crashes.", sessionId, tempDirectory, availableGiB.toFixed(1), thresholdGiB.toFixed(1));
++		debugGC?.("[%s] Chromium collected garbage after an isolated test file (%s GiB available in %s, %s GiB disk threshold).", sessionId, availableGiB.toFixed(1), tempDirectory, thresholdGiB.toFixed(1));
+ 	} catch (error) {
+ 		// don't surface if fs or cdp fails
+ 		debugGC?.("[%s] failed to collect Chromium garbage: %s", sessionId, error);
+@@ -14516,7 +14530,7 @@
+ 		logger.deprecate("`browser.isolate` is deprecated. Use the top-level `isolate` option instead.");
+ 		if (options.isolate === void 0) resolved.isolate = browserIsolate;
+ 	}
+-	if (process.env.VITEST_MAX_WORKERS) resolved.maxWorkers = Number.parseInt(process.env.VITEST_MAX_WORKERS);
++	if (process.env.VITEST_MAX_WORKERS) resolved.maxWorkers = Math.min(resolved.maxWorkers ?? Infinity, Number.parseInt(process.env.VITEST_MAX_WORKERS));
+ 	if (typeof resolved.diff === "string") {
+ 		resolved.diff = resolvePath(resolved.diff, resolved.root);
+ 		resolved.forceRerunTriggers.push(resolved.diff);
+@@ -21435,6 +21449,8 @@
+ 				for (const error of errors) this.logger.error("error during close", error);
+ 				this._checkUnhandledErrors(errors);
+ 			});
++			// vitest#11248: the root temp dir outlived every run; the pool is down, so nothing reads it now
++			await rm(this._tmpDir, { recursive: true, force: true }).catch(() => {});
+ 			await this._traces?.finish();
+ 		})();
+ 		return this.closingPromise;
