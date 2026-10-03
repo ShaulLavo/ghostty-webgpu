@@ -10,7 +10,7 @@ export const variants = [
 
 export type Variant = (typeof variants)[number]['id']
 export type WritePath = 'bytes' | 'string'
-export const fixtureNames = ['ascii', 'sgr', 'unicode', 'cursor', 'logs'] as const
+export const fixtureNames = ['ascii', 'sgr', 'unicode', 'cursor', 'logs', 'rolling-logs'] as const
 export type FixtureName = (typeof fixtureNames)[number]
 
 export const settings = {
@@ -68,6 +68,48 @@ export function corpus(text: string, minimumBytes: number): string {
   const bytes = new TextEncoder().encode(text).byteLength
   if (bytes === 0) throw new RangeError('Fixture must contain text')
   return text.repeat(Math.ceil(minimumBytes / bytes))
+}
+
+export interface RollingFixture {
+  bytes: Uint8Array
+  chunks: readonly Uint8Array[]
+}
+
+export function rollingFixture(
+  logs: string,
+  minimumBytes: number = settings.corpusBytes,
+  chunkBytes: number = settings.chunkBytes,
+): RollingFixture {
+  if (!Number.isInteger(chunkBytes) || chunkBytes < 4)
+    throw new RangeError('Rolling chunk size must fit a UTF-8 codepoint')
+  const bytes = new TextEncoder().encode(corpus(fixtureText('logs', logs), minimumBytes))
+  const chunks: Uint8Array[] = []
+  for (let offset = 0; offset < bytes.length;) {
+    let end = Math.min(offset + chunkBytes, bytes.length)
+    // Each frame ends between codepoints, so string and byte paths deliver identical bytes.
+    while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--
+    chunks.push(bytes.subarray(offset, end))
+    offset = end
+  }
+  return { bytes, chunks }
+}
+
+export function rollingInputs(
+  fixture: RollingFixture,
+  path: WritePath,
+): readonly (string | Uint8Array)[] {
+  if (path === 'bytes') return fixture.chunks
+  const decoder = new TextDecoder('utf-8', { fatal: true })
+  return fixture.chunks.map((chunk) => decoder.decode(chunk))
+}
+
+export function rollingByteCount(fixture: RollingFixture, frames: number): number {
+  const cycles = Math.floor(frames / fixture.chunks.length)
+  const remainder = frames % fixture.chunks.length
+  return (
+    cycles * fixture.bytes.length +
+    fixture.chunks.slice(0, remainder).reduce((total, chunk) => total + chunk.length, 0)
+  )
 }
 
 export const spotCheck =

@@ -8,6 +8,7 @@ import {
   TestRenderState,
   cell,
   cellRegion,
+  displayedPixels,
   fittedFont,
   maximumAlpha,
   pixel,
@@ -63,23 +64,6 @@ function contextLossExtension(gl: WebGL2RenderingContext): WEBGL_lose_context {
 
 function nextEvent(canvas: HTMLCanvasElement, name: string): Promise<Event> {
   return new Promise((resolve) => canvas.addEventListener(name, resolve, { once: true }))
-}
-
-async function displayedPixels(canvas: HTMLCanvasElement): Promise<Uint8Array> {
-  const screenshot = await page.screenshot({ element: canvas, save: false, scale: 'css' })
-  const image = new Image()
-  image.src = `data:image/png;base64,${screenshot}`
-  await image.decode()
-  expect([image.naturalWidth, image.naturalHeight]).toEqual([canvas.width, canvas.height])
-
-  // Decode the browser screenshot separately so reading pixels cannot redraw the WebGL canvas.
-  const decoded = document.createElement('canvas')
-  decoded.width = image.naturalWidth
-  decoded.height = image.naturalHeight
-  const context = decoded.getContext('2d')
-  if (!context) throw new Error('Screenshot decoding requires Canvas2D')
-  context.drawImage(image, 0, 0)
-  return new Uint8Array(context.getImageData(0, 0, decoded.width, decoded.height).data)
 }
 
 describe('WebGlTerminalRenderer', () => {

@@ -307,7 +307,7 @@ export function validateArtifact(artifact) {
   assert(
     phases.length &&
       new Set(phases).size === phases.length &&
-      phases.every((name) => ['latency', 'ascii', 'sgr'].includes(name)),
+      phases.every((name) => ['latency', 'ascii', 'sgr', 'rolling-logs'].includes(name)),
     'Incomplete phase matrix',
   )
   assert(Array.isArray(artifact.qualifications), 'Incomplete display evidence')

@@ -2,6 +2,396 @@
 
 Status: Phase 1 measured and review repairs completed on 2026-10-01. A corrected 17-terminal ASCII CPU rerun supplements the original attribution matrix. Phase 2 implements packed damaged-row snapshots and measures main versus treatment on the Apple M1 at 1 and 17 terminals, ASCII and SGR. The initial matrix has mixed CPU results. A single direct-packed DOM frame follow-up improves CPU in all fresh 17-terminal ASCII/SGR pairs; substantial baseline drift between matrices remains unexplained. The PR stays draft for review. Phase 1's input/echo conclusions remain separate.
 
+## Zig-fed native WebGL, Linux 2026-10-02–03
+
+WebGL now defaults to the existing Zig frame builder for supported content. Its persistent WASM
+buffers already match the 64-byte cell and 96-byte glyph layouts, so the text pass uploads nonempty
+changed ranges directly, with byte destination offsets and float-element source offsets. There is
+no record repacking, shader change, new tuning option or trailing-blank heuristic. WebGPU keeps its
+existing opt-in default; the Terminal host preserves an omitted option so each renderer chooses its
+own default.
+
+Unsupported frames use the existing whole-frame JavaScript producer. Producer changes, geometry,
+atlas/font resets and context restoration force full rebuilds. Shared grayscale-glyph registration
+pins native-index residency to synthetic row `-1`, independently of viewport row zero, and releases
+that residency when JavaScript takes over. Builder replacement/disposal keeps the existing WASM
+ownership and allocation-failure guards. Damage and internal invalidation settle before callbacks;
+unchanged successful builds settle callbacks without uploads or submission. `zigFrames` counts
+submitted native frames, matching the WebGPU metric.
+
+Correctness checks pass: 70 browser tests with two existing Linux SwiftShader replacement-device
+skips, 24 core Zig differential/ownership tests and five tracing regressions. Shared ASCII, SGR
+and cursor fixtures compare independent native/JavaScript sources; missing-glyph retry, fallback
+and return, offsets/empty ranges, reentrant invalidation, no-op settlement, shrink, allocation
+recovery, disposal, atlas eviction/reset and actual context restoration are covered. Scheduled GL
+draws and compositor screenshots are checked before the capture helper redraws. The oversized atlas
+stress canvases have explicit fully-visible viewport bounds. Package build/typecheck and root gates
+pass. This is focused verification; the full package suite and other browser engines were not run.
+
+### Initial treatment timing, before differential scroll refresh
+
+The initial treatment below still forced full native uploads on scroll. Its frozen evidence is retained
+as `after-17.json` and `after-1.json`; final-source measurements are separate. Scroll now refreshes
+every viewport row without forcing unchanged instance records. This does not assume shifted rows
+are identical: byte attribution also exercises distinct full-width and ragged lines.
+
+Before and treatment use separate frozen bundles; every native/xterm pair shares one browser
+session. ASCII/bytes, four balanced repetitions, output plus latency, 96 samples per operation:
+17 terminals use 1,200 output frames, one uses 2,700. Chromium headless-shell 153.0.8010.12 runs
+ANGLE/NVIDIA Vulkan on the RTX 3060 Ti with NVIDIA 610.57.4. All ordinary runs complete, all measured
+GPU windows and between-repetition GPU gates qualify, and every page-error array is empty. Each
+quiet benchmark starts only after an empty heavy-job list and idle GPU; long-running jobs are waited
+for outside the queue.
+
+CPU values are medians, percent of one core. GPU process means **CPU consumed by the GPU process**,
+not device GPU utilization.
+
+| Terminals | Output CPU       | Native before → after | xterm WebGL before → after |
+| --------: | ---------------- | --------------------: | -------------------------: |
+|        17 | Renderer process |       28.783 → 15.998 |            15.388 → 15.714 |
+|        17 | GPU process      |       25.381 → 25.418 |            24.806 → 24.903 |
+|        17 | Total            |       54.199 → 41.416 |            40.315 → 40.642 |
+|         1 | Renderer process |         3.950 → 3.151 |              2.807 → 2.841 |
+|         1 | GPU process      |         2.252 → 2.396 |              2.397 → 2.385 |
+|         1 | Total            |         6.202 → 5.603 |              5.204 → 5.204 |
+
+Native renderer CPU falls 44.4% at 17 terminals and 20.2% at one; total CPU falls 23.6% and 9.7%.
+The nearly flat xterm control supports a producer-related improvement. GPU-process CPU stays flat
+at 17 terminals. **The decision gate of total CPU clearly below xterm is not met.** This result does
+not approve expanding native support or deleting the unsupported-content JavaScript fallback.
+
+Latency is milliseconds to the submitting frame's on-demand compositor presentation acknowledgement,
+not physical-vsync or optical latency. These are medians of each run's quantiles.
+
+| Terminals | Latency   | Native before → after | xterm WebGL before → after |
+| --------: | --------- | --------------------: | -------------------------: |
+|        17 | Input p50 |         5.735 → 5.926 |            20.777 → 20.736 |
+|        17 | Input p95 |       24.002 → 22.119 |            28.419 → 29.833 |
+|        17 | Write p50 |       16.102 → 16.736 |            14.429 → 15.113 |
+|        17 | Write p95 |       20.534 → 20.850 |            18.840 → 19.111 |
+|         1 | Input p50 |         5.218 → 5.342 |              4.770 → 4.822 |
+|         1 | Input p95 |       22.837 → 22.574 |            22.760 → 21.337 |
+|         1 | Write p50 |        9.673 → 12.351 |            12.966 → 12.431 |
+|         1 | Write p95 |       20.341 → 20.334 |            20.115 → 20.079 |
+
+This establishes CPU improvement, not latency improvement. Native write p50 rises at both counts;
+one-terminal input p50 rises too. No new latency-only run or physical-presentation claim is made.
+
+Paired ratios are medians of individual native/xterm ratios with target ≤ 1, not ratios of the
+absolute medians above. CPU resolution is 10 ms; fewer than 100 ticks or sides within one tick make
+a pair unresolved. Two 17-terminal renderer pairs have equal ticks; one one-terminal total pair has
+246 versus 247 ticks. Those targets remain unresolved even when their numerical median is finite.
+Idle CPU was not measured; GPU-process CPU and write p95 have no formal paired target in this runner.
+
+| Target       |  17 before |         17 after |   1 before |          1 after |
+| ------------ | ---------: | ---------------: | ---------: | ---------------: |
+| Renderer CPU | 1.859 fail | 1.010 unresolved | 1.413 fail |       1.122 fail |
+| Total CPU    | 1.343 fail |       1.011 fail | 1.189 fail | 1.064 unresolved |
+| Input p50    | 0.274 pass |       0.287 pass | 1.072 fail |       1.092 fail |
+| Input p95    | 0.836 pass |       0.794 pass | 0.950 pass |       1.031 fail |
+| Write p50    | 1.125 fail |       1.105 fail | 0.718 pass |       1.017 fail |
+
+Compact records, exact paired statuses/ticks, all latency arrays, qualification, frozen manifests
+and before/after screenshots are in [the WebGL evidence](benchmarks/linux-zig-webgl-2026-10-02/).
+`results.json` reproduces these absolute tables. `provenance.json` verifies unchanged settings,
+fixtures, versions and WASM/script/font assets. The runner's `frameBuilders` field selects WebGPU
+only; WebGL uses its renderer default, so that field does not identify this treatment's producer.
+Before/after qualification PNGs are byte-identical for native and xterm at both counts; native
+treatment screenshots were read back. They include unsupported content and exercise fallback;
+the separate browser tests prove supported native-frame pixel parity.
+
+### Differential scroll refresh and fixture bias
+
+The pre-fix regressions reproduce full uploads despite byte-identical rows: a real 12×3 Terminal
+sends 5,760 bytes in six writes, and a 32×3 viewport scroll sends all 15,360 bytes. Refreshing every
+viewport row through the existing overlay mask keeps native record comparisons active. The same
+real-host case then sends zero bytes; scrolling distinct rows up and down keeps sub-full uploads
+and scheduled native/JavaScript compositor parity.
+
+The exact ASCII fixture repeats the same ending viewport after its first measured frame. Stock
+Git-history `logs` also writes the entire same corpus per frame, because its unit already exceeds
+4 KiB. These workloads flatter native differential upload and no-op submission: xterm continues
+uploading/rendering rows. They are secondary evidence, not the realistic-output go/no-go gate.
+
+The byte oracle separately checks distinct full-width history rows: all 480 glyph records change,
+all 480 cell/background records remain identical, and there are no trailing blanks. Uploads are
+46,080 glyph bytes in 12 writes versus 76,800 bytes in 24 writes before the scroll fix: 40% byte
+saving solely from unchanged cell/background records, with no repeated text benefit. Ragged lines
+measure trailing-blank and unchanged-record effects separately; missing-glyph retry still forces
+full uploads for correctness. Every measured scheduled backbuffer matches the independent full
+JavaScript oracle, followed by final displayed-pixel comparison. This byte probe carries no CPU
+or presentation-latency claim.
+
+The reproducible `rolling-logs` fixture advances through the real Git-history corpus in nominal
+4,096-byte chunks, ending at complete UTF-8 codepoints and wrapping deterministically. Byte and
+string paths carry the same stream; each burst resets its offset, keeping warmup separate from the
+measured sequence. Real-core tests require all 2,700 successive viewports to change and retain
+stock repeated logs as a positive control. The original en dash stays in the corpus; unsupported
+visible content can still select the whole-frame JavaScript fallback.
+
+The separate eight-frame rolling byte oracle sends 423,360 instance bytes in 132 writes versus
+614,400 bytes in 192 writes before the scroll fix: **31.09% fewer bytes**, including three full
+missing-glyph retry uploads. Every whole/glyph/text row changes at every step; twelve background
+rows remain identical. All 56 measured operations across seven workloads match the full JavaScript
+oracle, and all seven final displayed screenshots agree. Sampled rolling viewports contain no
+fallback, because the en dash is outside those viewports; this does not establish native support
+for that content or describe the full timing workload. `scroll-byte-attribution.json` retains its
+exact runtime, protocol, benchmark-helper and bundle hashes. Later driver metadata edits have their
+own hashes and are not retroactively assigned to this byte proof.
+
+The headline before/final CPU matrices will use this advancing fixture, with stream and runtime
+source provenance kept separate from the benchmark driver. Reproduce from `ghostty-webgpu/`:
+
+```sh
+bun scripts/build-comparison.ts <before-bundle> --runtime-ref 2c185da7831b3673ca0520ee648663f69d2483fe
+bun scripts/build-comparison.ts <final-bundle>
+node <bundle>/comparison-runner.mjs --variants ghostty-webgl --phases output \
+  --output-fixture rolling-logs --fixtures rolling-logs --paths bytes \
+  --counts 17 --repetitions 4 --output-frames 1200 --output <run-directory>
+```
+
+Repeat with `--counts 1 --output-frames 2700`. Each hardware command runs in a `--quiet` heavy
+benchmark window; finite jobs ahead can finish while the queued quiet job holds back later work.
+Long-running servers are waited for outside admission. Use the portable runner directly:
+`bench:compare` rebuilds checkout runtime and does not select the archived baseline. The builder
+archives runtime sources from the repository root and uses the same current driver, fixtures,
+fonts, WASM and settings for both bundles. Shared whitespace/comment minification removes random
+archive paths while preserving function identifiers. A second baseline build must produce
+byte-identical `browser.js` before measurements begin.
+
+The first archived-baseline attempt failed recorder setup in all four native cases because the
+JS-only runtime has neither `drawZigFrame` nor `uploadFrame`; all four xterm controls completed.
+`rolling-failed-setup.json` retains this invalid attempt separately, with no paired verdict. The
+repaired shared recorder instruments the actual JS `upload` boundary or native `uploadFrame`
+boundary, counting delegated uploads once and preserving dormant baseline Zig counters. Five
+tracing regressions pass, including archived JS-only setup, and independent source review found
+no remaining required boundary missing from the pinned runtime. Fresh bundles and provenance are
+required after this benchmark-only repair; earlier proof hashes remain historical.
+
+### Headline rolling real-history output
+
+All four output-only windows complete: 17 terminals × 1,200 frames and one terminal × 2,700 frames,
+four balanced native/xterm pairs before and after. Every one of 32 runs qualifies on the NVIDIA
+hardware adapter, with no errors, page errors or process churn; idle and output GPU windows pass.
+The 1,059,649-byte corpus has 259 complete-UTF-8 chunks. Per-terminal measured payloads are
+4,910,340 bytes at 17 terminals and 11,047,050 bytes at one. Corpus SHA-256 is
+`5b962d02c1255260d6a332719dacc083515893ed355d0aa3695f40541fc08834`; the framed-cycle hash is
+`044a938134f9d0999f3d6c46ac931dea40c0d901806e3222b1ac769fda12115f`.
+
+| Terminals | Output CPU, % of one core | Native before → final | xterm WebGL before → final |
+| --------: | ------------------------- | --------------------: | -------------------------: |
+|        17 | Renderer process          |       32.633 → 20.453 |            22.304 → 22.725 |
+|        17 | GPU process               |       28.622 → 27.005 |            27.132 → 27.462 |
+|        17 | Total                     |       61.500 → 47.707 |            49.833 → 50.328 |
+|         1 | Renderer process          |         4.915 → 3.783 |              4.326 → 4.238 |
+|         1 | GPU process               |         2.518 → 2.418 |              2.740 → 2.674 |
+|         1 | Total                     |         7.577 → 6.324 |              7.309 → 7.168 |
+
+Totals are computed per case before taking medians; component medians need not sum to the total.
+GPU-process figures are host CPU consumption, not GPU-device execution time. Native total CPU
+falls 22.4% at 17 terminals and 16.5% at one against its original JavaScript baseline.
+
+| Terminals | Paired native/xterm target |        Before |         Final |
+| --------: | -------------------------- | ------------: | ------------: |
+|        17 | Renderer CPU               | 1.464621 fail | 0.876984 pass |
+|        17 | Total CPU                  | 1.234104 fail | 0.934160 pass |
+|         1 | Renderer CPU               | 1.138095 fail | 0.916551 pass |
+|         1 | Total CPU                  | 1.057913 fail | 0.899272 pass |
+
+All four final pairs pass both CPU targets at both counts, with at least 100 ticks per side and
+resolved differences. **The realistic-output CPU criterion of beating xterm WebGL passes in this
+matrix.** The paired total advantage is 6.6% at 17 terminals and 10.1% at one: a modest hardware-
+and workload-specific margin, not the much larger repeating-ASCII result or a general platform
+claim. The stronger aspiration of a large lead, full native-content support, and WebGPU performance
+remain separate. No realistic-output input/write latency was measured; the requested 96-sample
+ASCII latency matrices and their regressions remain below.
+
+Full-window counters prove changing work: all 81,600 submitted frames across the four final
+17-terminal runs and all 10,800 across the one-terminal runs are native submissions. Baseline
+submits the same totals through JavaScript; its zero Zig/fallback counters are dormant. Final
+fallback counters are already 68 and 4 before timing and stay unchanged during timing. This is
+zero measured-window fallback, with earlier unsupported-content preparation preserved. Uploads
+fall from 6,266,880,000 to 3,435,379,584 bytes at 17 and from 829,440,000 to 453,292,800 at one.
+No device restoration occurs during the measured windows.
+
+`results-rolling.json` and `rolling-{before,after}-{17,1}.json` retain exact ratios, individual ticks,
+producer snapshots/deltas, raw hashes and qualifications. Before/after qualification PNGs are
+byte-identical per renderer/count and were read back; they show preparation oracles, not final
+rolling viewports. Scheduled rolling pixel parity is established separately by the byte oracle.
+The shared recorded driver is `475a009b9c4b55b00f4b6e126f9ae884d44fd597b6ec8dcc6afcf6829cc772a5`;
+`rolling-bundle-proof-v2.json` retains both runtime inventories, assets and repeated-baseline proof.
+
+### Rolling main-thread attribution
+
+A separate four-pair, 17-terminal rolling trace/control pass completes with all eight cases
+qualified. It attributes the final producer only; it is not another before/after CPU verdict.
+`main-attribution-rolling.json` retains the recording and eight trace hashes. Each traced native
+terminal submits 181 native frames and copies 2,172 rows / 86,880 cells. Repetitions 0/2 perform 181
+builds, 2,172 buffer writes and upload 7,554,240 bytes; repetitions 1/3 perform 185 builds, 2,220
+writes and upload 7,687,104 bytes. The extra builds/uploads occur without extra submissions; their
+cause is unconfirmed because retry/status decisions are not directly recorded. Per-terminal
+medians are 2,196 writes / 7,620,672 bytes. xterm uniformly records 181 frames, 2,172 rows, 543
+writes and 3,189,844 bytes. Native differential packing writes about 2.39× xterm's bytes and makes
+4.04× its upload calls on this stream, while retaining the existing 64/96-byte layouts.
+
+| Final rolling traced window, median across four repetitions   | Native WebGL | xterm WebGL |
+| ------------------------------------------------------------- | -----------: | ----------: |
+| Main-thread task union, ms                                    |      702.485 |   1,298.007 |
+| Terminal work per animation frame p50, ms                     |        2.075 |      0.7275 |
+| Parse operation, recorder self ms                             |       41.755 |     797.565 |
+| Native frame build, recorder self ms                          |       77.643 |           — |
+| Native listener row read, recorder self ms                    |       54.995 |           — |
+| Native uploadFrame / xterm bufferData, recorder self ms       |       32.320 |      13.635 |
+| Native submit / xterm drawElementsInstanced, recorder self ms |       17.688 |       7.985 |
+
+Operation rows total recorder self-time, subtracting nested wrapped children while retaining
+uninstrumented work such as JavaScript options and WASM inside `build`. Task-union intervals,
+recorder self totals and sampled leaves are different measures; do not add across them. Component
+medians also need not sum to a total median.
+Tracing perturbs CPU substantially, especially instrumented xterm parsing. Ordinary untraced
+windows above decide the performance result. Native's remaining frame work includes the build,
+listener snapshot copies, upload calls and UI callbacks: sampled native leaves retain median
+28.258 ms in `getBoundingClientRect`, 26.587 ms in `linkFrameSignature`, 10.237 ms in
+`copiedFrameRow`, and 17.182 ms in `bufferSubData`. This explains why removing JavaScript instance
+packing does not remove all host frame work. It identifies causes for later listener/scheduler
+work, without claiming that those changes were measured or that all remaining CPU is attributed.
+The realistic ordinary-window renderer/total target now passes; the trace does not promise a
+larger hardware-independent lead or measure GPU-device execution.
+
+The recorded shared driver remains `475a009b…`. After recording, the analysis-only phase whitelist
+was extended to accept `rolling-logs`: analyzer SHA-256
+`8b2c7e06d87f491f09e4eb34ee62c5501d37e1aec9995335e0ea5d37f0fe081d` →
+`66d0a488689f1fbf7db1cc20526089cb1b0ff2e794b803f91057978b5e816bbb`.
+Seventeen focused regressions pass, preserving unknown/duplicate/missing-control rejection.
+No runtime, recorder, bundle, asset or timing data changed, and no timing was repeated.
+
+Exact pre-format JSON bytes are retained outside Git under
+`/work/reports/ghostty-benchmarks/plan-283/webgl-2026-10-03/originals/` beside raw evidence.
+Mandatory hooks format the committed readable JSON; `provenance.json` records each original path,
+original/formatted SHA-256 and parsed semantic equality. No compressed JSON duplicates are
+committed. Historical inventories retain their measured identities, distinct from the later
+analyzer revision and package-only CI test-discovery/native-provenance refresh.
+
+### Integration boundary
+
+The measured runtime and retained evidence are tied to `078645300`. A later normal merge of main
+`46e47cb71` brings in stable checkout hashing and GPU-qualification compaction repairs. Runtime
+`src/` and both WASM assets are unchanged; the runtime inventory remains
+`a55bde72b81dec698b8e150c5cb1484b698e6d85321f6b7903e519929b161e08`.
+The builder retains split effective-runtime/driver provenance as the authoritative identity.
+Native checkout builds separately sample the NUL-framed `checkoutSourceSha256` diagnostic before
+building; archived-runtime builds omit it before enumerating or reading checkout runtime sources.
+The merged analyzer SHA-256 is
+`72914cfef78e923f5106ce9df3676a8c922012a73ce7731b7d0f1bd56dc6fcb4`, distinct from both recorded
+and first analysis revisions. No measurement is relabeled or repeated, and retained JSON stays
+unchanged. Comparison/core/WebGL integration checks are rerun after the merge. Terminal's default-
+on WebGPU change remains a separate follow-up PR; this lane does not measure that change.
+
+### Final repeating-ASCII timing: secondary, fixture-flattered
+
+The final differential-scroll source repeats the original paired ASCII/bytes matrix: four balanced
+pairs, output plus latency, 1,200 frames at 17 terminals, 2,700 at one, and 96 samples per operation.
+These runs retain their own V2 source/bundle identity. They precede the committed rolling-driver
+freeze and do not stand in for the realistic-output verdict. Each count completes all eight runs
+with no page errors or process churn; all eight idle GPU gates, sixteen measured GPU windows and
+four between-repetition gates qualify on the NVIDIA hardware adapter. Independent recomputation
+confirms all absolute medians and exact paired values/statuses/ticks.
+
+| Terminals | Output CPU, % of one core | Native before → final | xterm WebGL before → final |
+| --------: | ------------------------- | --------------------: | -------------------------: |
+|        17 | Renderer process          |       28.783 → 12.083 |            15.388 → 15.263 |
+|        17 | GPU process               |        25.381 → 0.424 |            24.806 → 24.498 |
+|        17 | Total                     |       54.199 → 12.511 |            40.315 → 39.784 |
+|         1 | Renderer process          |         3.950 → 2.053 |              2.807 → 2.818 |
+|         1 | GPU process               |         2.252 → 0.344 |              2.397 → 2.385 |
+|         1 | Total                     |         6.202 → 2.430 |              5.204 → 5.214 |
+
+The near-zero GPU-process CPU is consistent with avoiding repeated unchanged submissions, not a
+claim about cheaper rendering of changing output. Repetition flatters our differential renderer;
+xterm continues uploading and rendering rows. GPU-process figures are host CPU, not device time.
+
+| Terminals | Latency, ms | Native before → final | xterm WebGL before → final |
+| --------: | ----------- | --------------------: | -------------------------: |
+|        17 | Input p50   |         5.735 → 5.588 |            20.777 → 20.694 |
+|        17 | Input p95   |       24.002 → 22.559 |            28.419 → 31.144 |
+|        17 | Write p50   |       16.102 → 16.008 |            14.429 → 15.141 |
+|        17 | Write p95   |       20.534 → 20.466 |            18.840 → 19.415 |
+|         1 | Input p50   |         5.218 → 4.558 |              4.770 → 4.964 |
+|         1 | Input p95   |       22.837 → 19.983 |            22.760 → 20.841 |
+|         1 | Write p50   |        9.673 → 10.921 |            12.966 → 10.327 |
+|         1 | Write p95   |       20.341 → 20.103 |            20.115 → 19.875 |
+
+Final paired renderer/total CPU ratios are **0.804 pass / 0.317 pass** at 17 terminals and
+**0.748 unresolved / 0.470 pass** at one. Three one-terminal native renderer samples have only
+92–93 ticks, below the 100-tick threshold. Input p50/p95 ratios are **0.269/0.766 pass** at 17 and
+**0.968/0.968 pass** at one. Write-p50 ratios are **1.058 fail** at 17 and **0.997 pass** at one.
+Those are medians of individual pair ratios; passing the latter does not erase the absolute
+one-terminal write-p50 increase of 1.247 ms against the earlier baseline cohort.
+
+`results-v2.json` retains the absolute medians and raw-comparison hashes; `after-v2-{1,17}.json`
+retain the exact paired values, ticks, latency arrays and qualification. The endpoint remains
+on-demand compositor acknowledgement, without physical-vsync or optical-latency claims.
+
+The separate final ASCII attribution trace completes four traced and four control repetitions per
+renderer. Each traced native repetition has 3,077 state updates/builds but only 34 submissions,
+374 buffer writes and 1,364,352 uploaded bytes; 179 of 180 output steps per terminal are no-ops.
+xterm submits 3,077 frames, with 9,231 writes and 60,218,080 bytes. Native work still includes
+36,924 copied rows and 1,476,960 copied cells. `main-attribution-v2.json` demonstrates the repeated
+fixture bias; traced CPU is perturbed attribution, not the realistic-output verdict.
+
+### Final write-latency decomposition
+
+The samples defining final median-of-run-p50 latency retain the one-terminal absolute increase:
+
+| Terminals | Endpoint change | Write → parse | Parse → render | Render → submit | Submit → acknowledgement |
+| --------: | --------------: | ------------: | -------------: | --------------: | -----------------------: |
+|         1 |       +1.247 ms |     −0.024 ms |      +1.039 ms |       −0.114 ms |                +0.343 ms |
+|        17 |       −0.094 ms |     −0.013 ms |      +0.029 ms |       −0.018 ms |                −0.090 ms |
+
+Small alignment terms complete these same-cohort decompositions; maximum residual is 0.007 ms.
+All 768 final native writes contain one Zig build and one submitted frame, with no observed
+fallback, retry, producer transition, earlier draw or extra submission. Inclusive packing improves
+0.056 ms at one terminal and 0.005 ms at 17; the span includes JS options plus the WASM call.
+The one-terminal headline shift is principally parse-to-scheduled-render wait, followed by
+submit-to-acknowledgement wait, rather than more packing or additional native submissions.
+
+Pooled mean endpoint differences are −0.322 ms at one terminal and −0.684 ms at 17; these use a
+different statistic and do not replace the headline cohorts. In the approximate 14–16 ms callback
+arrival-phase bin, one-terminal samples change 96 → 77, endpoint p50 is 4.309 → 3.995 ms, and
+parse-to-render wait stays 0.180 ms. This supports scheduling-phase variation without establishing
+a causal scheduler bug. Callback phase is approximate, with no physical-vsync or optical claim.
+`write-latency-attribution-v2.json` retains 3,072 reconciled sample ledgers, 32 trace hashes, four
+comparison hashes and 32 exact-presentation-ID representatives; the initial analysis data is unchanged.
+Independent review reconciled every ledger and headline cohort, without rerunning the raw-trace
+source-measure parser. Direct status/full-rebuild/registration telemetry was not recorded, so these
+are observed build/submission routes, not native-only CPU or a new scheduling-causality proof.
+
+### Initial write-latency decomposition
+
+The initial write-p50 increase is retained as a regression observation, not hidden by CPU gains.
+Analysis of all 3,072 native/xterm writes validates exact presentation identities, 32 trace hashes
+and the actual samples defining the median-of-run-p50 statistic:
+
+| Terminals | Endpoint change | Parse → render wait | Render → submit | Submit → acknowledgement |
+| --------: | --------------: | ------------------: | --------------: | -----------------------: |
+|         1 |       +2.677 ms |           +2.750 ms |       −0.099 ms |                +0.023 ms |
+|        17 |       +0.634 ms |           +0.587 ms |       −0.018 ms |                +0.077 ms |
+
+Small parse and clock-alignment terms complete the decomposition; maximum additive residual is
+0.008 ms. All 768 initial-after native writes contain one build and one submitted frame, with no
+observed retry, fallback, earlier draw or extra submission before acknowledgement. Baseline packing
+is JavaScript `rebuildRows`; the native `build` span includes JavaScript options plus the WASM call.
+
+The dominant difference is waiting for the next scheduled frame. One-terminal baseline run p50s
+span 5.375–14.134 ms and treatment p50s span 9.687–15.810 ms. In the approximate late-arrival phase
+bin, sample count changes 96 → 62 while p50 stays 4.309 → 4.213 ms. Unchanged xterm controls move
+−0.535 ms at one terminal and +0.684 ms at 17, almost the native 17-terminal shift. These separate
+sample cohorts and sequential screenshot-driven launches support scheduling-phase variation;
+they do not establish a causal renderer scheduling bug. No confirmed fixable latency-source bug
+was found. The repeated markers contain no newline or wrap, so the rolling-scroll fix is separate.
+No direct native-only timing, scroll/full flag, physical presentation or optical latency is inferred.
+`write-latency-attribution.json` preserves the event sequences, ledger and limitations.
+
 ## Bounded-upload experiment, Linux 2026-10-02
 
 **Not merging: no CPU gain.** Coalescing native WebGPU uploads reduces API crossings but does not

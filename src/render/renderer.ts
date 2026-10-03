@@ -1,6 +1,6 @@
 import { RenderStateDirty } from '../core/abi.js'
 import type { ZigFrameBuilder } from '../core/zig-frame.js'
-import { glyphKey } from './atlas/key.js'
+import { registerZigGlyphs, zigGlyphRow } from './atlas/zig-glyphs.js'
 import type { GhosttyRenderState } from '../core/render-state.js'
 import {
   type CellStyle,
@@ -85,7 +85,7 @@ export interface RendererMetrics {
 }
 
 export interface WebGpuTerminalRendererOptions {
-  /** Experimental WASM instance construction with JS fallback for unsupported content. */
+  /** WASM instance construction with JS fallback; defaults on for WebGL and off for WebGPU. */
   zigFrame?: boolean
   canvas: HTMLCanvasElement | OffscreenCanvas
   columns: number
@@ -506,6 +506,7 @@ export class WebGpuTerminalRenderer {
     if (rows.length === 0) return
     const updates = this.rebuildRows(rows)
     this.zigBuilder?.clearGlyphs()
+    this.atlas.beginRow(zigGlyphRow)
     if (updates.some((update) => update.invalidatedRows.length > 0)) {
       this.needsFullRebuild = true
       this.scheduler.schedule()
@@ -549,7 +550,10 @@ export class WebGpuTerminalRenderer {
     }
     let status = builder.build(options)
     if (status === 2) {
-      if (!this.registerZigGlyphs(builder)) return false
+      if (!registerZigGlyphs(builder, this.atlas, this.rasterizer, this.theme)) {
+        this.needsFullRebuild = true
+        return false
+      }
       status = builder.build(options)
     }
     if (status !== 0) return false
@@ -570,32 +574,6 @@ export class WebGpuTerminalRenderer {
     if (rows) {
       this.emitFrame(rows)
       this.onRowsPainted?.(rows)
-    }
-    return true
-  }
-
-  private registerZigGlyphs(builder: ZigFrameBuilder): boolean {
-    for (const key of builder.missingGlyphs) {
-      const input = {
-        cellSpan: 1,
-        foreground: this.theme.foreground,
-        italic: (key & 256) !== 0,
-        text: String.fromCharCode(key & 127),
-        weight: (key & 128) !== 0 ? ('bold' as const) : ('normal' as const),
-      }
-      const bitmap = this.rasterizer.rasterize(input)
-      if (!bitmap) {
-        builder.registerGlyph(key, undefined)
-        continue
-      }
-      if (bitmap.kind !== 'grayscale') return false
-      const result = this.atlas.getOrInsert(glyphKey(input, bitmap.kind), bitmap, 0)
-      if (result.invalidatedRows.length > 0) {
-        builder.clearGlyphs()
-        this.needsFullRebuild = true
-        return false
-      }
-      builder.registerGlyph(key, result.glyph)
     }
     return true
   }

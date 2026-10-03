@@ -26,6 +26,37 @@ test('staging unchanged source files preserves comparison provenance', async () 
   expect(await comparisonSourceHash(root)).toBe(before)
 })
 
+test('path and content boundaries distinguish inventories with equal unframed bytes', async () => {
+  await writeFile(join(root, 'src/a.ts'), 'x;\n')
+  const before = await comparisonSourceHash(root)
+  await rm(join(root, 'src/a.ts'))
+  await writeFile(join(root, 'src/a.tsx'), ';\n')
+  execFileSync('git', ['add', '--all', 'src'], { cwd: root })
+  expect(await comparisonSourceHash(root)).not.toBe(before)
+})
+
+test('an archived runtime omits checkout provenance when tracked source is absent', async () => {
+  execFileSync(
+    'git',
+    [
+      '-c',
+      'user.name=Fixture',
+      '-c',
+      'user.email=fixture@example.invalid',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--quiet',
+      '-m',
+      'fixture',
+    ],
+    { cwd: root },
+  )
+  await rm(join(root, 'src/a.ts'))
+  execFileSync('git', ['cat-file', '-e', 'HEAD:src/a.ts'], { cwd: root })
+  expect(await comparisonSourceHash(root, 'HEAD')).toBeUndefined()
+})
+
 test('source contents and paths affect provenance while unrelated files do not', async () => {
   const before = await comparisonSourceHash(root)
   await writeFile(join(root, 'notes.txt'), 'outside the measured sources\n')

@@ -23,11 +23,15 @@ import { DomTerminalRenderer } from '../src/render/dom/renderer.js'
 import type { RowRendererMetrics } from '../src/render/row-renderer.js'
 import { ComparisonTracing } from './comparison-tracing.js'
 import { refreshSampler } from './comparison-refresh.js'
+import { frameMetricDeltas } from './comparison-metrics.js'
 import {
   corpus,
   fixtureNames,
   fixtureText,
   marker,
+  rollingByteCount,
+  rollingFixture,
+  rollingInputs,
   settings,
   spotCheck,
   type ComparisonCase,
@@ -344,7 +348,7 @@ async function parseFixture(
   const bytes = encoder.encode(text)
   const chunks = inputChunks(bytes, current.path, size)
   const expected = expectedScreen(
-    name,
+    name === 'rolling-logs' ? 'logs' : name,
     unit,
     text.length / unit.length,
     settings.columns,
@@ -560,7 +564,41 @@ async function legacyOriginalUnicode(): Promise<unknown> {
   }
 }
 
+async function rollingBurst(steps: number): Promise<unknown> {
+  const fixture = rollingFixture(logs)
+  const chunks = rollingInputs(fixture, current.path)
+  let offset = 0
+  await writeAll('\x1b[3J\x1b[2J\x1b[H')
+  await settle()
+  const before = drivers.map((driver) => driver.frameMetrics?.())
+  const started = performance.now()
+  const intervals = await pacedBurst(
+    async () => {
+      const data = chunks[offset % chunks.length]!
+      offset++
+      await Promise.all(drivers.map((driver) => driver.write(data)))
+    },
+    frame,
+    steps,
+  )
+  await settle()
+  const milliseconds = performance.now() - started
+  const after = drivers.map((driver) => driver.frameMetrics?.())
+  return {
+    intervals,
+    bytes: rollingByteCount(fixture, steps) * drivers.length,
+    milliseconds,
+    frameMetrics: frameMetricDeltas(before, after),
+    fixture: 'rolling-logs',
+    chunkCount: chunks.length,
+    reset: 'corpus-start',
+    completedCycles: Math.floor(steps / chunks.length),
+    nextChunk: steps % chunks.length,
+  }
+}
+
 async function burst(name: FixtureName, steps: number): Promise<unknown> {
+  if (name === 'rolling-logs') return rollingBurst(steps)
   const text = corpus(fixtureText(name, logs), settings.chunkBytes)
   await writeAll('\x1b[3J\x1b[2J\x1b[H')
   await settle()

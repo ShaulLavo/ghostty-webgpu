@@ -88,6 +88,29 @@ test('phase selection retains explicit narrow phases and rejects malformed value
     assert.throws(() => selectedPhases(['--phases', value]))
 })
 
+test('output fixture defaults to ASCII and accepts exactly one committed manifest fixture', async () => {
+  const { outputFixture } = await import('./comparison-options.mjs')
+  const fixtures = [{ name: 'ascii' }, { name: 'logs' }, { name: 'rolling-logs' }]
+  assert.equal(outputFixture([], fixtures), 'ascii')
+  for (const name of fixtures.map(({ name }) => name))
+    assert.equal(outputFixture(['--output-fixture', name], fixtures), name)
+  for (const value of [undefined, '', '--output', 'unknown', 'ascii,logs', 'logs,logs'])
+    assert.throws(() => outputFixture(['--output-fixture', value], fixtures))
+  assert.throws(() => outputFixture([], [{ name: 'logs' }]))
+})
+
+test('trace phases preserve defaults and accept committed output fixtures', async () => {
+  const { selectedTracePhases } = await import('./comparison-options.mjs')
+  const fixtures = ['ascii', 'sgr', 'logs', 'rolling-logs'].map((name) => ({ name }))
+  assert.deepEqual(selectedTracePhases([], fixtures), ['latency', 'ascii', 'sgr'])
+  assert.deepEqual(selectedTracePhases(['--trace-phase', 'rolling-logs,latency'], fixtures), [
+    'rolling-logs',
+    'latency',
+  ])
+  for (const value of [undefined, '', 'unknown', 'rolling-logs,rolling-logs'])
+    assert.throws(() => selectedTracePhases(['--trace-phase', value], fixtures))
+})
+
 test('even repetitions remain at least four and selected native/counterpart order is balanced', async () => {
   const { measurementRepetitions, measurementCases, counterparts } =
     await import('./comparison-options.mjs')

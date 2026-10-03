@@ -1,5 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import type { CellStyle, RenderCell, RenderRow } from '../../core/types.js'
+import { GhosttyRuntime } from '../../core/runtime.js'
+import type { ZigFrameOptions } from '../../core/zig-frame.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import type { GlyphBitmap, GlyphRasterizer } from '../atlas/types.js'
 import { canonicalRendererTheme } from '../config.js'
@@ -354,4 +356,112 @@ it('releases partial initialization resources after an allocation failure', () =
     expect(gl.isShader(shader)).toBe(false)
   }
   expect(gl.getError()).toBe(gl.NO_ERROR)
+})
+
+it('uploads native changed-range byte offsets into the matching GPU buffer regions', async () => {
+  const grid = createGrid({ columns: 4, renderRows: [], rows: 3 })
+  const runtime = await GhosttyRuntime.create()
+  disposables.push(() => runtime.dispose())
+  const terminal = runtime.createTerminal({ columns: 4, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  const builder = state.createFrameBuilder(4, 3)
+  disposables.push(() => builder.dispose())
+  const options: ZigFrameOptions = {
+    cellHeight: cellSize,
+    cellWidth: cellSize,
+    full: true,
+    overlayRows: new Set(),
+    theme: grid.theme,
+  }
+  terminal.write('\x1b[?25lA')
+  state.update()
+  expect(builder.build(options)).toBe(2)
+  const bitmap = rasterizer.rasterize({
+    cellSpan: 1,
+    foreground: grid.theme.foreground,
+    italic: false,
+    text: 'A',
+    weight: 'normal',
+  })!
+  const glyph = grid.atlas.getOrInsert('native-A', bitmap, 0).glyph
+  expect(glyph).toBeDefined()
+  builder.registerGlyph(65, glyph)
+  expect(builder.build(options)).toBe(0)
+  grid.pass.syncAtlas(grid.atlas.consumeUploads())
+  expect(grid.pass.uploadFrame(builder, builder.changedRanges())).toBeGreaterThan(0)
+  const before = grid.pass.capturePixels()
+  state.acknowledge()
+  terminal.write('\x1b[2;3H\x1b[31;44mA')
+  state.update()
+  expect(builder.build({ ...options, full: false })).toBe(0)
+  const changes = builder.changedRanges()
+  expect(changes).toEqual([
+    {
+      row: 1,
+      invalidatedRows: [],
+      cell: { byteOffset: 6 * 64, byteLength: 64 },
+      glyph: { byteOffset: 6 * 96, byteLength: 96 },
+    },
+  ])
+  const bindBuffer = vi.spyOn(grid.gl, 'bindBuffer')
+  const bufferSubData = vi.spyOn(grid.gl, 'bufferSubData')
+  expect(grid.pass.uploadFrame(builder, changes)).toBe(2)
+  expect(bufferSubData.mock.calls).toEqual([
+    [grid.gl.ARRAY_BUFFER, 6 * 64, builder.cellData, (6 * 64) / 4, 64 / 4],
+    [grid.gl.ARRAY_BUFFER, 6 * 96, builder.glyphData, (6 * 96) / 4, 96 / 4],
+  ])
+  const buffers = bindBuffer.mock.calls.map(([, buffer]) => buffer)
+  const cells = new Float32Array(4 * 3 * (64 / 4))
+  const glyphs = new Float32Array(4 * 3 * (96 / 4))
+  grid.gl.bindBuffer(grid.gl.ARRAY_BUFFER, buffers[0]!)
+  grid.gl.getBufferSubData(grid.gl.ARRAY_BUFFER, 0, cells)
+  grid.gl.bindBuffer(grid.gl.ARRAY_BUFFER, buffers[1]!)
+  grid.gl.getBufferSubData(grid.gl.ARRAY_BUFFER, 0, glyphs)
+  expect(cells).toEqual(builder.cellData)
+  expect(glyphs).toEqual(builder.glyphData)
+  const after = grid.pass.capturePixels()
+  const rowBytes = grid.width * cellSize * 4
+  expect(after.subarray(0, rowBytes)).toEqual(before.subarray(0, rowBytes))
+  expect(after.subarray(rowBytes * 2)).toEqual(before.subarray(rowBytes * 2))
+  expect(after).not.toEqual(before)
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})
+
+it('skips empty native ranges and counts cell-only and glyph-only uploads separately', () => {
+  const grid = createGrid({
+    columns: 2,
+    renderRows: [row(0, [cell(0, { text: 'X' }), cell(1, { text: 'X' })])],
+    rows: 1,
+  })
+  const frame = { cellData: grid.instances.cellData, glyphData: grid.instances.glyphData }
+  const bufferSubData = vi.spyOn(grid.gl, 'bufferSubData')
+  const bindBuffer = vi.spyOn(grid.gl, 'bindBuffer')
+  expect(grid.pass.uploadFrame(frame, [])).toBe(0)
+  expect(
+    grid.pass.uploadFrame(frame, [
+      {
+        cell: { byteOffset: 64, byteLength: 0 },
+        glyph: { byteOffset: 96, byteLength: 0 },
+      },
+    ]),
+  ).toBe(0)
+  expect(bufferSubData).not.toHaveBeenCalled()
+  expect(bindBuffer).not.toHaveBeenCalled()
+  expect(
+    grid.pass.uploadFrame(frame, [
+      {
+        cell: { byteOffset: 64, byteLength: 64 },
+        glyph: { byteOffset: 96, byteLength: 0 },
+      },
+      {
+        cell: { byteOffset: 64, byteLength: 0 },
+        glyph: { byteOffset: 96, byteLength: 96 },
+      },
+    ]),
+  ).toBe(2)
+  expect(bufferSubData.mock.calls).toEqual([
+    [grid.gl.ARRAY_BUFFER, 64, frame.cellData, 16, 16],
+    [grid.gl.ARRAY_BUFFER, 96, frame.glyphData, 24, 24],
+  ])
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
 })

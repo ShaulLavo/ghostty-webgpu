@@ -1,3 +1,4 @@
+import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../instances/layout.js'
 import type { InstanceRows } from '../instances/rows.js'
@@ -121,12 +122,26 @@ export class WebGlTextPass {
   }
 
   upload(instances: InstanceRows, updates: readonly RowInstanceUpdate[]): number {
+    return this.uploadFrame(instances, coalesceInstanceUpdates(updates))
+  }
+
+  uploadFrame(
+    frame: Pick<ZigFrameBuilder, 'cellData' | 'glyphData'>,
+    updates: readonly { readonly cell: InstanceByteRange; readonly glyph: InstanceByteRange }[],
+  ): number {
     this.ensureActive()
+    const cells = frame.cellData
+    const glyphs = frame.glyphData
     let operations = 0
-    for (const batch of coalesceInstanceUpdates(updates)) {
-      this.writeRange(this.cells.buffer, instances.cellData, batch.cell)
-      this.writeRange(this.glyphs.buffer, instances.glyphData, batch.glyph)
-      operations += 2
+    for (const update of updates) {
+      if (update.cell.byteLength > 0) {
+        this.writeRange(this.cells.buffer, cells, update.cell)
+        operations += 1
+      }
+      if (update.glyph.byteLength > 0) {
+        this.writeRange(this.glyphs.buffer, glyphs, update.glyph)
+        operations += 1
+      }
     }
     return operations
   }

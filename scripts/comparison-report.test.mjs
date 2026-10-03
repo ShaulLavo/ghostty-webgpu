@@ -688,6 +688,21 @@ test('four adjacent two-renderer pairs balance leading variants', () => {
 
 test('portable compaction preserves between-repetition qualifications and bounded ratio types', async () => {
   const artifact = pairedArtifact()
+  artifact.outputFixture = 'rolling-logs'
+  artifact.manifest.runtime = { mode: 'git-ref', commit: 'baseline', sourceSha256: 'runtime-hash' }
+  artifact.manifest.benchmark = { commit: 'driver', sourceSha256: 'benchmark-hash' }
+  const input = { name: 'rolling-logs', sha256: 'corpus-hash', stream: { sha256: 'cycle-hash' } }
+  artifact.manifest.fixtures = [input]
+  for (const run of artifact.runs)
+    Object.assign(run.output, {
+      fixture: input.name,
+      input,
+      bytes: 4096,
+      chunkCount: 257,
+      reset: 'corpus-start',
+      completedCycles: 4,
+      nextChunk: 172,
+    })
   artifact.environment.gpu = { gpu: { devices: [], featureStatus: {} } }
   artifact.qualifications = [
     {
@@ -700,10 +715,22 @@ test('portable compaction preserves between-repetition qualifications and bounde
   for (const run of artifact.runs) {
     run.info = { adapter: {} }
     run.gpuWindows = []
+    run.output.frameMetrics = [{ terminal: 0, delta: { zigFrames: 1192, jsFallbackFrames: 8 } }]
     run.latency.write = run.variant === 'ghostty-webgpu' ? [1] : [0]
   }
   const compact = await compactEvidence(artifact)
   assert.deepEqual(compact.qualifications, artifact.qualifications)
+  assert.equal(compact.outputFixture, input.name)
+  assert.deepEqual(compact.manifest.runtime, artifact.manifest.runtime)
+  assert.deepEqual(compact.manifest.benchmark, artifact.manifest.benchmark)
+  assert.deepEqual(compact.manifest.fixtures, [input])
+  for (const run of compact.runs) {
+    assert.equal(run.output.fixture, input.name)
+    assert.deepEqual(run.output.input, input)
+    assert.equal(run.output.bytes, 4096)
+    assert.equal(run.output.nextChunk, 172)
+    assert.deepEqual(run.output.frameMetrics[0].delta, { zigFrames: 1192, jsFallbackFrames: 8 })
+  }
   assert.deepEqual(pairedRatios(compact), compact.pairedRatios)
   const row = compact.pairedRatios.find(({ metric }) => metric === 'write/p50')
   assert.equal(row.median, null)

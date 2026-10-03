@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "qualification": "Invalid setup attempt; no paired performance verdict. Archived JS-only WebGL does not expose the newly required native trace boundary. Preserve independently from the repaired-driver rerun.",
+  "comparisonSha256": "7295cc0e300146be7ada11a9c9f7f1d885a6cbe4bc59c25e04c03544928b478c",
+  "benchmarkSourceSha256": "30ae8c9a6aadf1647bee0e81bf5cab1b6260f8c966bf0a40f8a9ae633520f332",
+  "runtimeSourceSha256": "cfd3c95fd695b341f80b79984b43128c5f305f79c8acb60e5884fa1c05decc17",
+  "bundleSha256": "69076524fd4b25405cc8e432013789bd1fb2a1555f81fa0ff1e990808803a593",
+  "sessionId": "3938f21d-6e7d-43f9-8351-6014f02ef208",
+  "startedAt": "2026-10-02T20:48:24.314Z",
+  "finishedAt": "2026-10-02T20:50:30.677Z",
+  "cases": [
+    {
+      "variant": "ghostty-webgl",
+      "repetition": 0,
+      "status": "failed",
+      "phase": "rendered/prepare",
+      "error": "page.evaluate: Error: Pinned trace boundary missing: drawZigFrame\n    at field (http://127.0.0.1:44677/browser.js:444:130056)\n    at ComparisonTracing.wrap (http://127.0.0.1:44677/browser.js:444:130879)\n    at ComparisonTracing.nativeRenderer (http://127.0.0.1:44677/browser.js:444:135301)\n    at Terminal.rendererFactory (http://127.0.0.1:44677/browser.js:453:2296)\n    at measureBody (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:594:16)\n    at async withDeadline (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-guards.mjs:92:12)\n    at async measure (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:444:20)\n    at async file:///work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:876:26",
+      "pageErrors": ["The render state has been disposed"]
+    },
+    {
+      "variant": "xterm-webgl",
+      "repetition": 0,
+      "status": "complete",
+      "phase": "output/rolling-logs",
+      "error": null,
+      "pageErrors": []
+    },
+    {
+      "variant": "xterm-webgl",
+      "repetition": 1,
+      "status": "complete",
+      "phase": "output/rolling-logs",
+      "error": null,
+      "pageErrors": []
+    },
+    {
+      "variant": "ghostty-webgl",
+      "repetition": 1,
+      "status": "failed",
+      "phase": "rendered/prepare",
+      "error": "page.evaluate: Error: Pinned trace boundary missing: drawZigFrame\n    at field (http://127.0.0.1:44677/browser.js:444:130056)\n    at ComparisonTracing.wrap (http://127.0.0.1:44677/browser.js:444:130879)\n    at ComparisonTracing.nativeRenderer (http://127.0.0.1:44677/browser.js:444:135301)\n    at Terminal.rendererFactory (http://127.0.0.1:44677/browser.js:453:2296)\n    at measureBody (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:594:16)\n    at async withDeadline (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-guards.mjs:92:12)\n    at async measure (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:444:20)\n    at async file:///work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:876:26",
+      "pageErrors": ["The render state has been disposed"]
+    },
+    {
+      "variant": "xterm-webgl",
+      "repetition": 2,
+      "status": "complete",
+      "phase": "output/rolling-logs",
+      "error": null,
+      "pageErrors": []
+    },
+    {
+      "variant": "ghostty-webgl",
+      "repetition": 2,
+      "status": "failed",
+      "phase": "rendered/prepare",
+      "error": "page.evaluate: Error: Pinned trace boundary missing: drawZigFrame\n    at field (http://127.0.0.1:44677/browser.js:444:130056)\n    at ComparisonTracing.wrap (http://127.0.0.1:44677/browser.js:444:130879)\n    at ComparisonTracing.nativeRenderer (http://127.0.0.1:44677/browser.js:444:135301)\n    at Terminal.rendererFactory (http://127.0.0.1:44677/browser.js:453:2296)\n    at measureBody (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:594:16)\n    at async withDeadline (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-guards.mjs:92:12)\n    at async measure (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:444:20)\n    at async file:///work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:876:26",
+      "pageErrors": ["The render state has been disposed"]
+    },
+    {
+      "variant": "ghostty-webgl",
+      "repetition": 3,
+      "status": "failed",
+      "phase": "rendered/prepare",
+      "error": "page.evaluate: Error: Pinned trace boundary missing: drawZigFrame\n    at field (http://127.0.0.1:44677/browser.js:444:130056)\n    at ComparisonTracing.wrap (http://127.0.0.1:44677/browser.js:444:130879)\n    at ComparisonTracing.nativeRenderer (http://127.0.0.1:44677/browser.js:444:135301)\n    at Terminal.rendererFactory (http://127.0.0.1:44677/browser.js:453:2296)\n    at measureBody (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:594:16)\n    at async withDeadline (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-guards.mjs:92:12)\n    at async measure (/work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:444:20)\n    at async file:///work/tmp/zig-webgl-rolling-bundle-proof/before/comparison-runner.mjs:876:26",
+      "pageErrors": ["The render state has been disposed"]
+    },
+    {
+      "variant": "xterm-webgl",
+      "repetition": 3,
+      "status": "complete",
+      "phase": "output/rolling-logs",
+      "error": null,
+      "pageErrors": []
+    }
+  ]
+}

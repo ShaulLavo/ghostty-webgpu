@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "aggregation": "Benchmark quantile function: medians across per-run CPU and latency quantiles; paired target ratios/statuses remain in individual compact files.",
+  "rows": [
+    {
+      "count": 17,
+      "stage": "before",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 28.783215090012085,
+        "GPUProcess": 25.38096674745072,
+        "total": 54.19949506875556
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.734978020191193,
+          "p95": 24.00150975584984
+        },
+        "write": {
+          "p50": 16.101820804178715,
+          "p95": 20.53406348824501
+        }
+      }
+    },
+    {
+      "count": 17,
+      "stage": "before",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 15.388338304215381,
+        "GPUProcess": 24.8063523203338,
+        "total": 40.3151849972701
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 20.77697069197893,
+          "p95": 28.41855861246586
+        },
+        "write": {
+          "p50": 14.428958490490913,
+          "p95": 18.83954393863678
+        }
+      }
+    },
+    {
+      "count": 17,
+      "stage": "after",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 15.998278466019684,
+        "GPUProcess": 25.417768326548547,
+        "total": 41.41604679256823
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.925985366106033,
+          "p95": 22.118995130062103
+        },
+        "write": {
+          "p50": 16.735553704202175,
+          "p95": 20.850024431943893
+        }
+      }
+    },
+    {
+      "count": 17,
+      "stage": "after",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 15.713733169905773,
+        "GPUProcess": 24.902906060988574,
+        "total": 40.64154202603973
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 20.735975578427315,
+          "p95": 29.832543939352036
+        },
+        "write": {
+          "p50": 15.11300976574421,
+          "p95": 19.11149998009205
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "before",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 3.9500025479167733,
+        "GPUProcess": 2.252478280932781,
+        "total": 6.2023941400723
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.2182231321930885,
+          "p95": 22.837436512112617
+        },
+        "write": {
+          "p50": 9.673482909798622,
+          "p95": 20.340543925762177
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "before",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 2.807138938833402,
+        "GPUProcess": 2.3966083225453225,
+        "total": 5.203747261378725
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 4.769568353891373,
+          "p95": 22.759902343153954
+        },
+        "write": {
+          "p50": 12.965985357761383,
+          "p95": 20.115004882216454
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "after",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 3.151071343438913,
+        "GPUProcess": 2.396435852355002,
+        "total": 5.603137031846657
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.3417109325528145,
+          "p95": 22.574460938572884
+        },
+        "write": {
+          "p50": 12.350514650344849,
+          "p95": 20.334024414420128
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "after",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 2.840812490054228,
+        "GPUProcess": 2.385205642572693,
+        "total": 5.204457669913882
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 4.822257325053215,
+          "p95": 21.33748047053814
+        },
+        "write": {
+          "p50": 12.431468278169632,
+          "p95": 20.079019531607628
+        }
+      }
+    }
+  ]
+}

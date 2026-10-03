@@ -1,0 +1,1462 @@
+{
+  "schema": 1,
+  "qualification": "Secondary fixture-flattered repeating ASCII; real rolling Git history is the separate decision gate. No physical-vsync or optical latency claim.",
+  "aggregation": "Benchmark quantile function: medians across per-run CPU and latency quantiles; paired target ratios/statuses remain in individual compact files.",
+  "evidence": [
+    {
+      "count": 17,
+      "comparisonSha256": "3404f663c86671d2372953b2c0fdb7886ab5f1a4ef63e831c0fba4d30eac2145",
+      "sourceSha256": "239d9fe130e1ea82fd8dff9662daf4dd44bdd779ca3bd43fba2ab631a6f3787d",
+      "bundleSha256": "35966a8bc3d3dcff54d68237c1aab9692587614af9dbeb107129d8f128310509"
+    },
+    {
+      "count": 1,
+      "comparisonSha256": "a453d2da5d4df2719182ab3a6b666ec4761015fbbb023a3973132b58d7c0aedd",
+      "sourceSha256": "239d9fe130e1ea82fd8dff9662daf4dd44bdd779ca3bd43fba2ab631a6f3787d",
+      "bundleSha256": "35966a8bc3d3dcff54d68237c1aab9692587614af9dbeb107129d8f128310509"
+    }
+  ],
+  "rows": [
+    {
+      "count": 17,
+      "stage": "before",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 28.783215090012085,
+        "GPUProcess": 25.38096674745072,
+        "total": 54.19949506875556
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.734978020191193,
+          "p95": 24.00150975584984
+        },
+        "write": {
+          "p50": 16.101820804178715,
+          "p95": 20.53406348824501
+        }
+      }
+    },
+    {
+      "count": 17,
+      "stage": "before",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 15.388338304215381,
+        "GPUProcess": 24.8063523203338,
+        "total": 40.3151849972701
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 20.77697069197893,
+          "p95": 28.41855861246586
+        },
+        "write": {
+          "p50": 14.428958490490913,
+          "p95": 18.83954393863678
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "before",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 3.9500025479167733,
+        "GPUProcess": 2.252478280932781,
+        "total": 6.2023941400723
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.2182231321930885,
+          "p95": 22.837436512112617
+        },
+        "write": {
+          "p50": 9.673482909798622,
+          "p95": 20.340543925762177
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "before",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 2.807138938833402,
+        "GPUProcess": 2.3966083225453225,
+        "total": 5.203747261378725
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 4.769568353891373,
+          "p95": 22.759902343153954
+        },
+        "write": {
+          "p50": 12.965985357761383,
+          "p95": 20.115004882216454
+        }
+      }
+    },
+    {
+      "count": 17,
+      "stage": "after-v2",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 12.083267471533205,
+        "GPUProcess": 0.42354961715945366,
+        "total": 12.511357235720986
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 5.588497571647167,
+          "p95": 22.559000000357628
+        },
+        "write": {
+          "p50": 16.008259773254395,
+          "p95": 20.465524435043335
+        }
+      }
+    },
+    {
+      "count": 17,
+      "stage": "after-v2",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 15.262738201608384,
+        "GPUProcess": 24.497541574351118,
+        "total": 39.783622831569275
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 20.694056160748005,
+          "p95": 31.144460931420326
+        },
+        "write": {
+          "p50": 15.140698730945587,
+          "p95": 19.415092781186104
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "after-v2",
+      "variant": "ghostty-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 2.0525695211589117,
+        "GPUProcess": 0.34391583926242353,
+        "total": 2.4298004917399805
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 4.557531721889973,
+          "p95": 19.98251463472843
+        },
+        "write": {
+          "p50": 10.92050975561142,
+          "p95": 20.102907225489616
+        }
+      }
+    },
+    {
+      "count": 1,
+      "stage": "after-v2",
+      "variant": "xterm-webgl",
+      "cpuPercentOfOneCore": {
+        "renderer": 2.817884253091698,
+        "GPUProcess": 2.385386802087165,
+        "total": 5.214267881941726
+      },
+      "latencyMilliseconds": {
+        "input": {
+          "p50": 4.964242659509182,
+          "p95": 20.840999990701675
+        },
+        "write": {
+          "p50": 10.327245101332664,
+          "p95": 19.874553725123405
+        }
+      }
+    }
+  ],
+  "pairedTargets": [
+    {
+      "stage": "before",
+      "count": 17,
+      "rows": [
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 0,
+              "native": 28.507697283838535,
+              "counterpart": 15.3839857227137,
+              "ratio": 1.8530761661945852,
+              "ticks": [572, 309],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 1,
+              "native": 29.1609162389761,
+              "counterpart": 15.392690885717057,
+              "ratio": 1.894465136439181,
+              "ticks": [585, 309],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 2,
+              "native": 29.058732896185628,
+              "counterpart": 15.640161882369899,
+              "ratio": 1.8579560182776356,
+              "ticks": [583, 314],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 3,
+              "native": 28.426292683566952,
+              "counterpart": 15.28578703780952,
+              "ratio": 1.859655156339303,
+              "ticks": [571, 307],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.8588055873084692,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 0,
+              "native": 52.13120866939705,
+              "counterpart": 39.829089249744214,
+              "ratio": 1.3088727272299312,
+              "ticks": [1046, 800],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 1,
+              "native": 54.53340575288863,
+              "counterpart": 39.95125595580933,
+              "ratio": 1.3649985325419765,
+              "ticks": [1094, 802],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 2,
+              "native": 55.52560625446102,
+              "counterpart": 40.74411598655596,
+              "ratio": 1.3627883415799817,
+              "ticks": [1114, 818],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 3,
+              "native": 53.86558438462249,
+              "counterpart": 40.67911403873087,
+              "ratio": 1.3241582482188938,
+              "ticks": [1082, 817],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.3434732948994377,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 0,
+              "native": 5.524392604827881,
+              "counterpart": 20.724465802311897,
+              "ratio": 0.2665638119469218,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 1,
+              "native": 5.670014634728432,
+              "counterpart": 20.829475581645966,
+              "ratio": 0.2722111083643701,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 2,
+              "native": 16.173558607697487,
+              "counterpart": 20.713902354240417,
+              "ratio": 0.7808069349321104,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 3,
+              "native": 5.7999414056539536,
+              "counterpart": 20.972426757216454,
+              "ratio": 0.2765508003816601,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.27438095437301513,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p95",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 0,
+              "native": 23.102921903133392,
+              "counterpart": 27.500941395759583,
+              "ratio": 0.8400774930088637,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 1,
+              "native": 23.65002927184105,
+              "counterpart": 29.37099999189377,
+              "ratio": 0.8052170262629235,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 2,
+              "native": 24.352990239858627,
+              "counterpart": 29.30403909087181,
+              "ratio": 0.8310455143859184,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 3,
+              "native": 25.483107417821884,
+              "counterpart": 27.533078134059906,
+              "ratio": 0.9255451676613631,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.8355615036973911,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "write/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 0,
+              "native": 15.067951202392578,
+              "counterpart": 13.393009752035141,
+              "ratio": 1.1250608699140923,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 1,
+              "native": 16.356607407331467,
+              "counterpart": 14.550990223884583,
+              "ratio": 1.124088955848728,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 2,
+              "native": 15.847034201025963,
+              "counterpart": 15.381024435162544,
+              "ratio": 1.030297706620768,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "7dfc8dcc-e018-4131-bd19-5fad5975b8cb",
+              "repetition": 3,
+              "native": 17.625097647309303,
+              "counterpart": 14.306926757097244,
+              "ratio": 1.2319275793151043,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.12457491288141,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        }
+      ]
+    },
+    {
+      "stage": "after-v2",
+      "count": 17,
+      "rows": [
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 0,
+              "native": 12.556988726394342,
+              "counterpart": 15.436043168940746,
+              "ratio": 0.8134849448763255,
+              "ticks": [252, 310],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 1,
+              "native": 12.057986149352294,
+              "counterpart": 15.089433234276024,
+              "ratio": 0.7991013288664996,
+              "ticks": [242, 303],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 2,
+              "native": 11.96704094963614,
+              "counterpart": 16.930535102262308,
+              "ratio": 0.7068318205747123,
+              "ticks": [240, 340],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 3,
+              "native": 12.108548793714116,
+              "counterpart": 14.986745950541247,
+              "ratio": 0.8079504939680928,
+              "ticks": [243, 301],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.8035259114172962,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 0,
+              "native": 13.005452609479855,
+              "counterpart": 39.73536273811198,
+              "ratio": 0.32730172101853594,
+              "ticks": [261, 798],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 1,
+              "native": 12.506423650774485,
+              "counterpart": 39.043285992318154,
+              "ratio": 0.3203220049981231,
+              "ticks": [251, 784],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 2,
+              "native": 12.51553032649446,
+              "counterpart": 45.51326201019927,
+              "ratio": 0.27498644952519113,
+              "ticks": [251, 914],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 3,
+              "native": 12.507184144947512,
+              "counterpart": 39.83188292502656,
+              "ratio": 0.3139993198034128,
+              "ticks": [251, 800],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.3171606624007679,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 0,
+              "native": 5.453092768788338,
+              "counterpart": 20.500941410660744,
+              "ratio": 0.26599231028252496,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 1,
+              "native": 5.713043957948685,
+              "counterpart": 20.69153906404972,
+              "ratio": 0.2761053172634581,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 2,
+              "native": 5.52607324719429,
+              "counterpart": 20.69657325744629,
+              "ratio": 0.2670042609689553,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 3,
+              "native": 5.650921896100044,
+              "counterpart": 20.886956050992012,
+              "ratio": 0.27054789038212473,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.26877607567554,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p95",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 0,
+              "native": 23.22389256954193,
+              "counterpart": 28.15794140100479,
+              "ratio": 0.8247723879670127,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 1,
+              "native": 21.48195117712021,
+              "counterpart": 33.34700000286102,
+              "ratio": 0.64419441554794,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 2,
+              "native": 25.83807811141014,
+              "counterpart": 31.352902352809906,
+              "ratio": 0.8241048251500864,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 3,
+              "native": 21.894107431173325,
+              "counterpart": 30.936019510030746,
+              "ratio": 0.7077221885017995,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.765913506825943,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 17,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "write/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 0,
+              "native": 15.458504870533943,
+              "counterpart": 15.56498047709465,
+              "ratio": 0.993159284284526,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 1,
+              "native": 16.16154882311821,
+              "counterpart": 14.56149511039257,
+              "ratio": 1.1098825155380974,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 2,
+              "native": 15.866431638598442,
+              "counterpart": 15.560892581939697,
+              "ratio": 1.0196350598174144,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "594282f7-12b4-4fc2-a732-818e68ee83b1",
+              "repetition": 3,
+              "native": 16.150087907910347,
+              "counterpart": 14.720504879951477,
+              "ratio": 1.0971150812840587,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.0583750705507367,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        }
+      ]
+    },
+    {
+      "stage": "before",
+      "count": 1,
+      "rows": [
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 0,
+              "native": 4.148696441145068,
+              "counterpart": 2.9513736184468042,
+              "ratio": 1.4056832436309332,
+              "ticks": [187, 133],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 1,
+              "native": 3.927333152913211,
+              "counterpart": 2.6185456003192815,
+              "ratio": 1.499814688136173,
+              "ticks": [177, 118],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 2,
+              "native": 3.79450585617161,
+              "counterpart": 2.8182560199749673,
+              "ratio": 1.3464021115460312,
+              "ticks": [171, 127],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 3,
+              "native": 3.9726719429203357,
+              "counterpart": 2.7960218576918363,
+              "ratio": 1.42083007398227,
+              "ticks": [179, 126],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.4132566588066016,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 0,
+              "native": 6.566920569940855,
+              "counterpart": 5.547694771516549,
+              "ratio": 1.1837205975457235,
+              "ticks": [296, 250],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 1,
+              "native": 6.146165442694686,
+              "counterpart": 4.837652041267826,
+              "ratio": 1.2704852251184093,
+              "ticks": [277, 218],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 2,
+              "native": 6.057895314238889,
+              "counterpart": 5.170501202001316,
+              "ratio": 1.1716263235552669,
+              "ticks": [273, 233],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 3,
+              "native": 6.258622837449914,
+              "counterpart": 5.236993320756133,
+              "ratio": 1.1950794003583483,
+              "ticks": [282, 236],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.1893999989520359,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 0,
+              "native": 5.17543163895607,
+              "counterpart": 4.703053712844849,
+              "ratio": 1.1004406827889455,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 1,
+              "native": 4.6159218698740005,
+              "counterpart": 4.836082994937897,
+              "ratio": 0.9544753211856896,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 2,
+              "native": 5.317509740591049,
+              "counterpart": 4.6894804537296295,
+              "ratio": 1.1339229991590938,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 3,
+              "native": 5.261014625430107,
+              "counterpart": 5.036990255117416,
+              "ratio": 1.0444758395323654,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 1.0724582611606555,
+          "repetitions": 4,
+          "status": "fail",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p95",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 0,
+              "native": 22.289970695972443,
+              "counterpart": 22.783882826566696,
+              "ratio": 0.9783218631190318,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 1,
+              "native": 20.42299023270607,
+              "counterpart": 22.73592185974121,
+              "ratio": 0.8982697230706673,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 2,
+              "native": 23.384902328252792,
+              "counterpart": 20.723912090063095,
+              "ratio": 1.1284019265583363,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 3,
+              "native": 23.419990211725235,
+              "counterpart": 25.407951205968857,
+              "ratio": 0.9217583118714189,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.9500400874952253,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "write/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 0,
+              "native": 12.440014660358429,
+              "counterpart": 12.74153907597065,
+              "ratio": 0.9763353223017722,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 1,
+              "native": 5.37458299100399,
+              "counterpart": 13.139985337853432,
+              "ratio": 0.4090250371528946,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 2,
+              "native": 6.906951159238815,
+              "counterpart": 15.057534158229828,
+              "ratio": 0.45870400071207945,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "faf763e9-013a-4604-9b01-20ed3f08a8de",
+              "repetition": 3,
+              "native": 14.133573219180107,
+              "counterpart": 12.791985377669334,
+              "ratio": 1.1048772181879407,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.7175196615069258,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        }
+      ]
+    },
+    {
+      "stage": "after-v2",
+      "count": 1,
+      "rows": [
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "idle/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [],
+          "median": null,
+          "medianReason": "ratio unavailable",
+          "repetitions": 0,
+          "status": "not measured",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/renderer",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 0,
+              "native": 2.3075623111865746,
+              "counterpart": 3.0621746561339305,
+              "ratio": 0.7535697895494726,
+              "ticks": [104, 138],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 1,
+              "native": 2.063496971568389,
+              "counterpart": 2.8842893467343136,
+              "ratio": 0.7154264789365699,
+              "ticks": [93, 130],
+              "status": "unresolved",
+              "reason": "CPU sample has fewer than 100 ticks per side",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 2,
+              "native": 2.041642070749434,
+              "counterpart": 2.6849819072164673,
+              "ratio": 0.7603932321711669,
+              "ticks": [92, 121],
+              "status": "unresolved",
+              "reason": "CPU sample has fewer than 100 ticks per side",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 3,
+              "native": 2.041079132696776,
+              "counterpart": 2.7514791594490826,
+              "ratio": 0.7418115909354926,
+              "ticks": [92, 124],
+              "status": "unresolved",
+              "reason": "CPU sample has fewer than 100 ticks per side",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.7476906902424827,
+          "repetitions": 4,
+          "status": "unresolved",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "output/cpu/total",
+          "unit": "% core",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 0,
+              "native": 2.6625718975229713,
+              "counterpart": 5.636176541000135,
+              "ratio": 0.4724074695237456,
+              "ticks": [120, 254],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 1,
+              "native": 2.4185072032360693,
+              "counterpart": 5.25828134750794,
+              "ratio": 0.4599425255900911,
+              "ticks": [109, 237],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 2,
+              "native": 2.4410937802438917,
+              "counterpart": 5.1702544163755135,
+              "ratio": 0.47214190708146303,
+              "ticks": [110, 233],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 3,
+              "native": 2.3960494166440456,
+              "counterpart": 5.125739401876921,
+              "ratio": 0.4674543960948679,
+              "ticks": [108, 231],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.46979815158816546,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 0,
+              "native": 12.46345117688179,
+              "counterpart": 5.156063497066498,
+              "ratio": 2.417241599909073,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 1,
+              "native": 4.558563455939293,
+              "counterpart": 4.8050146251916885,
+              "ratio": 0.9487095901934817,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 2,
+              "native": 4.5564999878406525,
+              "counterpart": 5.123470693826675,
+              "ratio": 0.8893385480531445,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 3,
+              "native": 4.538995116949081,
+              "counterpart": 4.593975588679314,
+              "ratio": 0.9880320496552665,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.9683708199243741,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "input/p95",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 0,
+              "native": 28.920087903738022,
+              "counterpart": 22.434029310941696,
+              "ratio": 1.2891169706029089,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 1,
+              "native": 19.561009734869003,
+              "counterpart": 20.499912083148956,
+              "ratio": 0.9541996890293136,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 2,
+              "native": 20.13804879784584,
+              "counterpart": 21.182087898254395,
+              "ratio": 0.9507112280232491,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 3,
+              "native": 19.826980471611023,
+              "counterpart": 20.178990244865417,
+              "ratio": 0.9825556299407021,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.9683776594850079,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        },
+        {
+          "path": "bytes",
+          "count": 1,
+          "nativeVariant": "ghostty-webgl",
+          "variant": "xterm-webgl",
+          "metric": "write/p50",
+          "unit": "ms",
+          "target": 1,
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 0,
+              "native": 10.841034188866615,
+              "counterpart": 13.458495140075684,
+              "ratio": 0.805516075611233,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 1,
+              "native": 10.999985322356224,
+              "counterpart": 9.719539031386375,
+              "ratio": 1.131739405216135,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 2,
+              "native": 9.422936499118805,
+              "counterpart": 10.934951171278954,
+              "ratio": 0.8617264358590361,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "484abead-195c-4186-9197-ea8809b3f4ff",
+              "repetition": 3,
+              "native": 13.28755371272564,
+              "counterpart": 7.565960943698883,
+              "ratio": 1.7562281660721284,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ],
+          "median": 0.9967329205375854,
+          "repetitions": 4,
+          "status": "pass",
+          "gpuSkipped": []
+        }
+      ]
+    }
+  ]
+}

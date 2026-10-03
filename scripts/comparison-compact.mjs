@@ -116,12 +116,19 @@ export async function compactEvidence(artifact, directory) {
     repetitions: artifact.repetitions,
     latencySamples: artifact.latencySamples,
     outputFrames: artifact.outputFrames,
+    outputFixture: artifact.outputFixture,
     cpuTickSeconds: artifact.cpuTickSeconds,
     hardware: artifact.hardware,
     manifest: {
       commit: artifact.manifest.commit,
+      builder: artifact.manifest.builder,
+      sourceInventoryHashFormat: artifact.manifest.sourceInventoryHashFormat,
       dirty: artifact.manifest.dirty,
       sourceSha256: artifact.manifest.sourceSha256,
+      sourceHashFormat: artifact.manifest.sourceHashFormat,
+      runtime: artifact.manifest.runtime,
+      benchmark: artifact.manifest.benchmark,
+      fixtures: artifact.manifest.fixtures,
       bundleSha256: artifact.manifest.bundleSha256,
       assets: artifact.manifest.assets,
       versions: artifact.manifest.versions,
@@ -164,7 +171,19 @@ export async function compactEvidence(artifact, directory) {
       adapter: run.info?.adapter,
       refreshPeriod: run.refreshPeriod,
       idle: run.idle ? { cpu: cpu(run.idle.cpu) } : undefined,
-      output: run.output ? { cpu: cpu(run.output.cpu) } : undefined,
+      output: run.output
+        ? {
+            fixture: run.output.fixture,
+            input: run.output.input,
+            bytes: run.output.bytes,
+            frameMetrics: run.output.frameMetrics,
+            chunkCount: run.output.chunkCount,
+            reset: run.output.reset,
+            completedCycles: run.output.completedCycles,
+            nextChunk: run.output.nextChunk,
+            cpu: cpu(run.output.cpu),
+          }
+        : undefined,
       latency: run.latency
         ? {
             endpoint: run.latency.endpoint,

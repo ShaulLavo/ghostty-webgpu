@@ -1,5 +1,7 @@
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
+import type { ZigFrameBuilder } from '../../core/zig-frame.js'
+import { registerZigGlyphs, zigGlyphRow } from '../atlas/zig-glyphs.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
@@ -93,6 +95,9 @@ export class WebGlTerminalRenderer {
     submittedFrames: 0,
     uploadedBytes: 0,
   }
+  private zigBuilder?: ZigFrameBuilder
+  private readonly zigFrame: boolean
+  private wasZigFrame = false
   private readonly atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
@@ -132,6 +137,7 @@ export class WebGlTerminalRenderer {
     this.font = font
     this.grid = grid
     this.renderState = options.renderState
+    this.zigFrame = options.zigFrame ?? true
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.onFrame = options.onFrame
@@ -174,6 +180,7 @@ export class WebGlTerminalRenderer {
   }
 
   clearTextureAtlas(): void {
+    this.zigBuilder?.clearGlyphs()
     this.atlas.invalidateAll()
     this.invalidateAll()
   }
@@ -183,7 +190,7 @@ export class WebGlTerminalRenderer {
   }
 
   notifyScroll(): void {
-    this.invalidateAll()
+    this.refreshRows(0, this.grid.rows - 1)
   }
 
   notifyWrite(): void {
@@ -273,6 +280,7 @@ export class WebGlTerminalRenderer {
   dispose(): void {
     if (this.state.kind === 'disposed') return
     this.scheduler.dispose()
+    this.zigBuilder?.dispose()
     this.canvas.removeEventListener('webglcontextlost', this.handleContextLost)
     this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored)
     if (this.state.kind === 'ready') this.state.pass.destroy()
@@ -373,9 +381,14 @@ export class WebGlTerminalRenderer {
     const phaseVisible = this.scheduler.cursorVisible
     if (this.cursorPhaseVisible !== phaseVisible) this.addCursorRow(cursor)
     this.cursorPhaseVisible = phaseVisible
+    if (this.zigFrame && this.drawZigFrame(pass, damage)) return
+    if (this.wasZigFrame) this.needsFullRebuild = true
+    this.wasZigFrame = false
     const rows = this.rowsToRebuild(damage)
     if (rows.length === 0) return
     const updates = this.rebuildRows(rows)
+    this.zigBuilder?.clearGlyphs()
+    this.atlas.beginRow(zigGlyphRow)
     if (updates.some((update) => update.invalidatedRows.length > 0)) {
       this.invalidateAll()
       return
@@ -386,10 +399,72 @@ export class WebGlTerminalRenderer {
     if (this.context.isContextLost()) return this.suspendContext()
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     this.recordFrame(pass, updates, operations)
+    if (this.zigFrame) this.metrics.jsFallbackFrames += 1
     this.needsFullRebuild = false
     this.overlayRows.clear()
     this.emitFrame(rows)
     this.onRowsPainted?.(rows)
+  }
+
+  private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): boolean {
+    if (!this.renderState.createFrameBuilder) return false
+    if (!this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0)
+      return true
+    let builder = this.zigBuilder
+    if (!builder || builder.columns !== this.grid.columns || builder.rows !== this.grid.rows) {
+      this.zigBuilder = undefined
+      builder?.dispose()
+      builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      this.zigBuilder = builder
+      this.needsFullRebuild = true
+    }
+    const options = {
+      cellWidth: this.font.deviceCellWidth,
+      cellHeight: this.font.deviceCellHeight,
+      theme: this.theme,
+      cursor: renderCursorState(
+        this.cursor,
+        this.cursorPhaseVisible,
+        this.focused ? undefined : this.inactiveCursorStyle,
+      ),
+      full: this.needsFullRebuild || !this.wasZigFrame,
+      overlayRows: this.overlayRows,
+    }
+    let status = builder.build(options)
+    if (status === 2) {
+      if (!registerZigGlyphs(builder, this.atlas, this.rasterizer, this.theme)) {
+        this.needsFullRebuild = true
+        return false
+      }
+      status = builder.build(options)
+    }
+    if (status !== 0) return false
+    const updates = builder.changedRanges()
+    pass.syncAtlas(this.atlas.consumeUploads())
+    const operations = pass.uploadFrame(builder, updates)
+    // Persistent records can report terminal damage without changing either GPU buffer.
+    if (operations > 0) pass.submit()
+    if (this.context.isContextLost()) {
+      this.suspendContext()
+      return true
+    }
+    let rows: readonly RenderRow[] | undefined
+    if (this.onFrame || this.onRowsPainted) {
+      rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
+    }
+    if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+    if (operations > 0) {
+      this.recordFrame(pass, updates, operations)
+      this.metrics.zigFrames += 1
+    }
+    this.wasZigFrame = true
+    this.needsFullRebuild = false
+    this.overlayRows.clear()
+    if (rows) {
+      this.emitFrame(rows)
+      this.onRowsPainted?.(rows)
+    }
+    return true
   }
 
   private rebuildRows(rows: readonly RenderRow[]): readonly RowInstanceUpdate[] {

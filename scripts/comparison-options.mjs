@@ -76,6 +76,22 @@ export function selectedVariants(args, available, fallback) {
   return selected
 }
 
+export function outputFixture(args, fixtures) {
+  const names = fixtures.map(({ name }) => name)
+  const selected = selection(args, '--output-fixture', ['ascii'], names)
+  assert(selected.length === 1 && names.includes(selected[0]), '--output-fixture needs one fixture')
+  return selected[0]
+}
+
+export function selectedTracePhases(args, fixtures) {
+  return selection(
+    args,
+    '--trace-phase',
+    ['latency', 'ascii', 'sgr'],
+    ['latency', ...fixtures.map(({ name }) => name)],
+  )
+}
+
 export function selectedPhases(args) {
   return selection(args, '--phases', measurementPhases, measurementPhases)
 }

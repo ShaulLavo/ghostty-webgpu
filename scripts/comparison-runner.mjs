@@ -23,6 +23,8 @@ import {
   selectedPhases,
   measurementCases,
   measurementRepetitions,
+  outputFixture,
+  selectedTracePhases,
 } from './comparison-options.mjs'
 import { presentationLatency } from './comparison-latency.mjs'
 import { comparisonLatencyEndpoint } from './comparison-compact.mjs'
@@ -108,18 +110,14 @@ const latencySamples = positiveInteger(
   s.latencySamples,
 )
 const outputFrames = positiveInteger(args, '--output-frames', s.outputFrames)
+const selectedOutputFixture = outputFixture(args, manifest.fixtures)
 const tickSeconds =
   platform() === 'linux'
     ? 1 / Number(execFileSync('getconf', ['CLK_TCK'], { encoding: 'utf8' }).trim())
     : null
 const cpuOptions = { tickSeconds }
 const traceFrames = positiveInteger(args, '--trace-frames', 180)
-const tracePhases = selection(
-  args,
-  '--trace-phase',
-  ['latency', 'ascii', 'sgr'],
-  ['latency', 'ascii', 'sgr'],
-)
+const tracePhases = selectedTracePhases(args, manifest.fixtures)
 await prepareOutput(output, { tracing })
 const temporary = join(root, 'tmp')
 await mkdir(temporary, { recursive: true })
@@ -197,6 +195,7 @@ const artifact = {
   repetitions: smoke ? 1 : repetitions,
   latencySamples,
   outputFrames,
+  outputFixture: selectedOutputFixture,
   cpuTickSeconds: tickSeconds,
   counts,
   variants: variantIds,
@@ -669,7 +668,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
       run.phases = []
       const configurations = [
         { name: 'latency', operation: () => latency(page, session) },
-        ...['ascii', 'sgr'].map((name) => ({
+        ...manifest.fixtures.map(({ name }) => ({
           name,
           operation: () =>
             page.evaluate(({ name, frames }) => window.__compare.burst(name, frames), {
@@ -735,18 +734,24 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
       )
     }
     if (phases.includes('output')) {
-      run.phase = 'output/ascii/warmup'
-      await page.evaluate(() => window.__compare.burst('ascii', 3))
-      run.phase = 'output/ascii'
-      const outputMeasurement = await qualifiedWindow(run, 'output/ascii', () =>
+      run.phase = `output/${selectedOutputFixture}/warmup`
+      await page.evaluate((name) => window.__compare.burst(name, 3), selectedOutputFixture)
+      run.phase = `output/${selectedOutputFixture}`
+      const outputMeasurement = await qualifiedWindow(run, run.phase, () =>
         measureCpu(
           browserSession,
-          () => page.evaluate((frames) => window.__compare.burst('ascii', frames), outputFrames),
+          () =>
+            page.evaluate(({ name, frames }) => window.__compare.burst(name, frames), {
+              name: selectedOutputFixture,
+              frames: outputFrames,
+            }),
           cpuOptions,
         ),
       )
       run.output = {
         ...outputMeasurement.sample,
+        fixture: selectedOutputFixture,
+        input: manifest.fixtures.find(({ name }) => name === selectedOutputFixture),
         cpu: outputMeasurement.cpu,
         memory: phases.includes('memory') ? await memory(page, session, browserSession) : undefined,
       }
