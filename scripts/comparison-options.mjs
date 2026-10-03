@@ -52,11 +52,12 @@ export function hardwareLaunch(host, smoke, smokeHeaded = false) {
   return { headless, arguments: arguments_ }
 }
 
+// The primary is selected automatically; secondary comparisons require explicit selection.
 export const counterparts = {
-  'ghostty-webgpu': 'xterm-webgl',
-  'ghostty-webgl': 'xterm-webgl',
-  'ghostty-canvas': 'ghostty-web',
-  'ghostty-dom': 'xterm-dom',
+  'ghostty-webgpu': ['xterm-webgl'],
+  'ghostty-webgl': ['xterm-webgl'],
+  'ghostty-canvas': ['ghostty-web', 'xterm-dom'],
+  'ghostty-dom': ['xterm-dom'],
 }
 
 export const measurementPhases = ['parser', 'memory', 'idle', 'latency', 'burst', 'output']
@@ -64,7 +65,7 @@ export const measurementPhases = ['parser', 'memory', 'idle', 'latency', 'burst'
 export function selectedVariants(args, available, fallback) {
   const selected = [...selection(args, '--variants', fallback, available)]
   for (const native of selected) {
-    const counterpart = counterparts[native]
+    const counterpart = counterparts[native]?.[0]
     if (counterpart && !selected.includes(counterpart)) selected.push(counterpart)
   }
   return selected

@@ -364,13 +364,15 @@ export function pairedRatios(artifact) {
   const treatments = artifact.variants
     .filter((id) => counterparts[id])
     .flatMap((nativeVariant) => {
-      const variant = counterparts[nativeVariant]
-      if (!artifact.variants.includes(variant)) return []
-      return frameBuilderTreatments(artifact, nativeVariant).map((frameBuilder) => ({
-        nativeVariant,
-        variant,
-        frameBuilder,
-      }))
+      return counterparts[nativeVariant]
+        .filter((variant) => artifact.variants.includes(variant))
+        .flatMap((variant) =>
+          frameBuilderTreatments(artifact, nativeVariant).map((frameBuilder) => ({
+            nativeVariant,
+            variant,
+            frameBuilder,
+          })),
+        )
     })
   for (const condition of conditions.values()) {
     for (const { nativeVariant, variant, frameBuilder } of treatments) {
@@ -415,6 +417,7 @@ function pairedMarkdown(artifact) {
     '## Paired pass rule',
     '',
     'xterm removed its canvas renderer. ghostty-web is the closest available canvas 2D counterpart for ghostty-canvas; their parsers and host adapters differ.',
+    'Selecting xterm-dom alongside ghostty-canvas adds a secondary cross-renderer comparison. Both comparisons share each native run, so their ratios are correlated and the raw CPU sample is counted once.',
     'Targets are native/counterpart ratios ≤ 1 for renderer CPU, total Chromium CPU, input p50/p95, and write p50 in every path/count condition. Each pair shares its browser session ID, pair ID, repetition, path, and terminal count. The median of the individual pair ratios determines pass or fail; absolute measurements provide context.',
     'Every configured repetition must have exactly one qualified native and counterpart run. Missing IDs, duplicate runs, failures, missing metrics, and rejected GPU-idle runs leave the condition incomplete. CPU pairs are unresolved when either side has fewer than the configured minimum ticks or sides differ by at most one tick. Zero/zero never passes. Unbounded ratios are null with a reason. Skipped GPU qualification is explicitly labeled.',
     '',

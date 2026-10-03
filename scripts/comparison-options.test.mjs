@@ -110,7 +110,9 @@ test('even repetitions remain at least four and selected native/counterpart orde
     assert.throws(() => measurementRepetitions(['--repetitions', value], 4))
   assert.equal(measurementRepetitions([], 4), 4)
   for (const repetitions of [4, 6, 8]) {
-    const variants = Object.keys(counterparts).concat([...new Set(Object.values(counterparts))])
+    const variants = Object.keys(counterparts).concat([
+      ...new Set(Object.values(counterparts).flat()),
+    ])
     const before = Object.fromEntries(Object.keys(counterparts).map((native) => [native, 0]))
     for (let repetition = 0; repetition < repetitions; repetition++) {
       const cases = measurementCases(variants, ['bytes', 'string'], [1, 17], repetition)
@@ -125,7 +127,7 @@ test('even repetitions remain at least four and selected native/counterpart orde
               .sort(),
             ['ghostty-webgl', 'ghostty-webgpu'],
           )
-          for (const [native, counterpart] of Object.entries(counterparts)) {
+          for (const [native, [counterpart]] of Object.entries(counterparts)) {
             if (
               selected.findIndex((entry) => entry.variant === native) <
               selected.findIndex((entry) => entry.variant === counterpart)

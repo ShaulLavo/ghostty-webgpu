@@ -308,7 +308,7 @@ export function validateArtifact(artifact) {
   )
   assert(Array.isArray(artifact.qualifications), 'Incomplete display evidence')
   const variants = artifact.variants ?? ['ghostty-webgpu', 'xterm-webgl']
-  const known = [...Object.keys(counterparts), ...new Set(Object.values(counterparts))]
+  const known = [...Object.keys(counterparts), ...new Set(Object.values(counterparts).flat())]
   assert(
     variants.length &&
       new Set(variants).size === variants.length &&
