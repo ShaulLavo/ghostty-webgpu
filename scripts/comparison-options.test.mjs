@@ -1,4 +1,5 @@
 import { test } from 'node:test'
+import { fixtureNames } from '../bench/comparison-fixtures.ts'
 import assert from 'node:assert/strict'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -82,7 +83,7 @@ test('phase selection retains explicit narrow phases and rejects malformed value
 
 test('output fixture defaults to ASCII and accepts exactly one committed manifest fixture', async () => {
   const { outputFixture } = await import('./comparison-options.mjs')
-  const fixtures = [{ name: 'ascii' }, { name: 'logs' }, { name: 'rolling-logs' }]
+  const fixtures = fixtureNames.map((name) => ({ name }))
   assert.equal(outputFixture([], fixtures), 'ascii')
   for (const name of fixtures.map(({ name }) => name))
     assert.equal(outputFixture(['--output-fixture', name], fixtures), name)
@@ -93,11 +94,14 @@ test('output fixture defaults to ASCII and accepts exactly one committed manifes
 
 test('trace phases preserve defaults and accept committed output fixtures', async () => {
   const { selectedTracePhases } = await import('./comparison-options.mjs')
-  const fixtures = ['ascii', 'sgr', 'logs', 'rolling-logs'].map((name) => ({ name }))
+  const fixtures = fixtureNames.map((name) => ({ name }))
   assert.deepEqual(selectedTracePhases([], fixtures), ['latency', 'ascii', 'sgr'])
   assert.deepEqual(selectedTracePhases(['--trace-phase', 'rolling-logs,latency'], fixtures), [
     'rolling-logs',
     'latency',
+  ])
+  assert.deepEqual(selectedTracePhases(['--trace-phase', 'rolling-slow'], fixtures), [
+    'rolling-slow',
   ])
   for (const value of [undefined, '', 'unknown', 'rolling-logs,rolling-logs'])
     assert.throws(() => selectedTracePhases(['--trace-phase', value], fixtures))

@@ -7,6 +7,7 @@ import {
   corpus,
   fixtureNames,
   fixtureText,
+  isRollingFixture,
   rollingFixture,
   settings,
   variants,
@@ -93,19 +94,18 @@ try {
   const logs = await readFile(assets['logs.txt'], 'utf8')
   const fixtures = fixtureNames.map((name) => {
     const text = corpus(fixtureText(name, logs), settings.corpusBytes)
-    const chunks =
-      name === 'rolling-logs' || name === 'rolling-unicode-logs'
-        ? rollingFixture(logs, settings.corpusBytes, settings.chunkBytes, name).chunks
-        : [new TextEncoder().encode(corpus(fixtureText(name, logs), settings.chunkBytes))]
+    const chunks = isRollingFixture(name)
+      ? rollingFixture(logs, settings.corpusBytes, settings.chunkBytes, name).chunks
+      : [new TextEncoder().encode(corpus(fixtureText(name, logs), settings.chunkBytes))]
+    let strategy = 'repeat-unit-v1'
+    if (isRollingFixture(name))
+      strategy = name === 'rolling-slow' ? 'rolling-complete-lines-v1' : 'rolling-utf8-chunks-v1'
     return {
       name,
       bytes: Buffer.byteLength(text),
       sha256: hash(text),
       stream: {
-        strategy:
-          name === 'rolling-logs' || name === 'rolling-unicode-logs'
-            ? 'rolling-utf8-chunks-v1'
-            : 'repeat-unit-v1',
+        strategy,
         reset: 'corpus-start',
         sha256: framedInputHash(chunks),
         hashFormat: 'sha256(decimal-byte-length + NUL + chunk-bytes, per frame in one cycle)',

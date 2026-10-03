@@ -28,6 +28,7 @@ import {
   corpus,
   fixtureNames,
   fixtureText,
+  isRollingFixture,
   marker,
   rollingByteCount,
   rollingFixture,
@@ -355,7 +356,7 @@ async function parseFixture(
   const bytes = encoder.encode(text)
   const chunks = inputChunks(bytes, current.path, size)
   const expected = expectedScreen(
-    name === 'rolling-logs' || name === 'rolling-unicode-logs' ? 'logs' : name,
+    isRollingFixture(name) ? 'logs' : name,
     unit,
     text.length / unit.length,
     settings.columns,
@@ -639,7 +640,7 @@ async function rollingBurst(name: RollingFixtureName, steps: number): Promise<un
 }
 
 async function burst(name: FixtureName, steps: number): Promise<unknown> {
-  if (name === 'rolling-logs' || name === 'rolling-unicode-logs') return rollingBurst(name, steps)
+  if (isRollingFixture(name)) return rollingBurst(name, steps)
   const text = corpus(fixtureText(name, logs), settings.chunkBytes)
   await writeAll('\x1b[3J\x1b[2J\x1b[H')
   await settle()

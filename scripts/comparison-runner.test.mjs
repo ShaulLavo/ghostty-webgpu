@@ -91,13 +91,14 @@ for (const [kind, prefix] of [
   })
 }
 
-test('selected output fixture reaches warmup, measured writes, and the artifact', async () => {
-  const fixture = { name: 'rolling-logs', sha256: 'corpus', stream: { sha256: 'framed-cycle' } }
-  const artifactStart = source.indexOf('const artifact = {')
-  const artifactEnd = source.indexOf('\nconst artifactPath', artifactStart)
-  const artifact = new Function(
-    'context',
-    `
+for (const name of ['rolling-logs', 'rolling-slow'])
+  test(`${name} reaches warmup, measured writes, and the artifact`, async () => {
+    const fixture = { name, sha256: 'corpus', stream: { sha256: 'framed-cycle' } }
+    const artifactStart = source.indexOf('const artifact = {')
+    const artifactEnd = source.indexOf('\nconst artifactPath', artifactStart)
+    const artifact = new Function(
+      'context',
+      `
     const {randomUUID, manifest, smoke, tracing, repetitions, latencySamples, outputFrames,
       selectedOutputFixture, tickSeconds, cpuTickSource, counts, variantIds, phases, writePaths,
       fixtures, s, tracePhases, traceFrames, accessibility, measurementCases,
@@ -105,80 +106,80 @@ test('selected output fixture reaches warmup, measured writes, and the artifact'
     ${source.slice(artifactStart, artifactEnd)}
     return artifact;
   `,
-  )({
-    randomUUID: () => 'session',
-    manifest: { fixtures: [fixture] },
-    smoke: false,
-    tracing: false,
-    gpuCommandTimeoutMilliseconds: 2000,
-    repetitions: 4,
-    outputFrames: 1200,
-    selectedOutputFixture: fixture.name,
-    counts: [17],
-    variantIds: ['ghostty-webgl', 'xterm-webgl'],
-    phases: ['output'],
-    accessibility: 'on',
-    measurementCases,
-    writePaths: ['bytes'],
-    fixtures: [fixture.name],
-    s: { caseDeadlineMilliseconds: 600000 },
-  })
-  assert.equal(artifact.outputFixture, fixture.name)
-  assert.equal(artifact.outputFrames, 1200)
-  assert.equal(artifact.accessibility, 'on')
-  assert.equal(artifact.measurementBudgetMilliseconds, 2 * 4 * 600000)
-  const blockStart = source.indexOf("    if (phases.includes('output')) {")
-  const blockEnd = source.indexOf('\n    assert.deepEqual(errors, [])', blockStart)
-  const calls = []
-  const window = {
-    __compare: {
-      burst: async (name, frames) => {
-        calls.push({ name, frames })
-        return { bytes: frames * 4096 * 17 }
+    )({
+      randomUUID: () => 'session',
+      manifest: { fixtures: [fixture] },
+      smoke: false,
+      tracing: false,
+      gpuCommandTimeoutMilliseconds: 2000,
+      repetitions: 4,
+      outputFrames: 1200,
+      selectedOutputFixture: fixture.name,
+      counts: [17],
+      variantIds: ['ghostty-webgl', 'xterm-webgl'],
+      phases: ['output'],
+      accessibility: 'on',
+      measurementCases,
+      writePaths: ['bytes'],
+      fixtures: [fixture.name],
+      s: { caseDeadlineMilliseconds: 600000 },
+    })
+    assert.equal(artifact.outputFixture, fixture.name)
+    assert.equal(artifact.outputFrames, 1200)
+    assert.equal(artifact.accessibility, 'on')
+    assert.equal(artifact.measurementBudgetMilliseconds, 2 * 4 * 600000)
+    const blockStart = source.indexOf("    if (phases.includes('output')) {")
+    const blockEnd = source.indexOf('\n    assert.deepEqual(errors, [])', blockStart)
+    const calls = []
+    const window = {
+      __compare: {
+        burst: async (name, frames) => {
+          calls.push({ name, frames })
+          return { bytes: frames * 4096 * 17 }
+        },
       },
-    },
-  }
-  const page = {
-    evaluate: async (callback, argument) =>
-      new Function('window', 'argument', `return (${callback.toString()})(argument)`)(
-        window,
-        argument,
-      ),
-  }
-  const run = {}
-  const execute = new Function(
-    'context',
-    `
+    }
+    const page = {
+      evaluate: async (callback, argument) =>
+        new Function('window', 'argument', `return (${callback.toString()})(argument)`)(
+          window,
+          argument,
+        ),
+    }
+    const run = {}
+    const execute = new Function(
+      'context',
+      `
     const {phases, run, page, selectedOutputFixture, qualifiedWindow, measureCpu,
       browserSession, cpuOptions, outputFrames, manifest} = context;
     return (async () => { ${source.slice(blockStart, blockEnd)} })();
   `,
-  )
-  await execute({
-    phases: ['output'],
-    run,
-    page,
-    selectedOutputFixture: fixture.name,
-    outputFrames: 1200,
-    qualifiedWindow: async (_run, label, operation) => {
-      assert.equal(label, 'output/rolling-logs')
-      return operation()
-    },
-    measureCpu: async (_browser, operation) => ({
-      sample: await operation(),
-      cpu: { milliseconds: 123 },
-    }),
-    manifest: { fixtures: [fixture] },
+    )
+    await execute({
+      phases: ['output'],
+      run,
+      page,
+      selectedOutputFixture: fixture.name,
+      outputFrames: 1200,
+      qualifiedWindow: async (_run, label, operation) => {
+        assert.equal(label, `output/${name}`)
+        return operation()
+      },
+      measureCpu: async (_browser, operation) => ({
+        sample: await operation(),
+        cpu: { milliseconds: 123 },
+      }),
+      manifest: { fixtures: [fixture] },
+    })
+    assert.deepEqual(calls, [
+      { name: fixture.name, frames: 3 },
+      { name: fixture.name, frames: 1200 },
+    ])
+    assert.equal(run.output.fixture, fixture.name)
+    assert.deepEqual(run.output.input, fixture)
+    assert.equal(run.output.bytes, 1200 * 4096 * 17)
+    assert.equal(run.output.cpu.milliseconds, 123)
   })
-  assert.deepEqual(calls, [
-    { name: fixture.name, frames: 3 },
-    { name: fixture.name, frames: 1200 },
-  ])
-  assert.equal(run.output.fixture, fixture.name)
-  assert.deepEqual(run.output.input, fixture)
-  assert.equal(run.output.bytes, 1200 * 4096 * 17)
-  assert.equal(run.output.cpu.milliseconds, 123)
-})
 
 test('failure artifacts retain control variant, write path, count, and repetition', async () => {
   const artifacts = await failureArtifacts({ variant: 'xterm-webgl', path: 'string', count: 17 }, 3)

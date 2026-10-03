@@ -10,17 +10,22 @@ export const variants = [
 
 export type Variant = (typeof variants)[number]['id']
 export type WritePath = 'bytes' | 'string'
+export const rollingFixtureNames = ['rolling-logs', 'rolling-unicode-logs', 'rolling-slow'] as const
+export type RollingFixtureName = (typeof rollingFixtureNames)[number]
+
 export const fixtureNames = [
   'ascii',
   'sgr',
   'unicode',
   'cursor',
   'logs',
-  'rolling-logs',
-  'rolling-unicode-logs',
+  ...rollingFixtureNames,
 ] as const
-export type RollingFixtureName = 'rolling-logs' | 'rolling-unicode-logs'
 export type FixtureName = (typeof fixtureNames)[number]
+
+export function isRollingFixture(name: FixtureName): name is RollingFixtureName {
+  return rollingFixtureNames.some((rolling) => rolling === name)
+}
 
 export const settings = {
   columns: 40,
@@ -72,6 +77,11 @@ export function fixtureText(name: FixtureName, logs: string): string {
   if (name === 'unicode') return '日本語 中文 é café 👩‍💻 👨‍👩‍👧‍👦 🧪\r\n'
   if (name === 'cursor')
     return '\x1b[H\x1b[2Kstatus: redraw\x1b[3;2H\x1b[32mvalue\x1b[0m\x1b[6;1H\x1b[Kprogress 42%\x1b[1;1H'
+  if (name === 'rolling-slow')
+    return Array.from(
+      { length: 1024 },
+      (_, index) => `${String(index).padStart(4, '0')} INFO rolling-slow event\r\n`,
+    ).join('')
   if (name === 'rolling-unicode-logs') return unicodePromptLogs(logs).replaceAll('\n', '\r\n')
   return logs.replaceAll('\n', '\r\n')
 }
@@ -109,6 +119,14 @@ export function rollingFixture(
     throw new RangeError('Rolling chunk size must fit a UTF-8 codepoint')
   const bytes = new TextEncoder().encode(corpus(fixtureText(name, logs), minimumBytes))
   const chunks: Uint8Array[] = []
+  if (name === 'rolling-slow') {
+    for (let offset = 0; offset < bytes.length;) {
+      const end = bytes.indexOf(0x0a, offset) + 1
+      chunks.push(bytes.subarray(offset, end))
+      offset = end
+    }
+    return { bytes, chunks }
+  }
   for (let offset = 0; offset < bytes.length;) {
     let end = Math.min(offset + chunkBytes, bytes.length)
     // Each frame ends between codepoints, so string and byte paths deliver identical bytes.

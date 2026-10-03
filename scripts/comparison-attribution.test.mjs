@@ -390,7 +390,7 @@ function completeArtifact(phaseName = 'ascii') {
 }
 
 test('qualified analysis accepts both rolling fixtures and rejects a missing control phase', () => {
-  for (const phase of ['rolling-logs', 'rolling-unicode-logs']) {
+  for (const phase of ['rolling-logs', 'rolling-unicode-logs', 'rolling-slow']) {
     const artifact = completeArtifact(phase)
     assert.doesNotThrow(() => validateArtifact(artifact))
     artifact.runs[0].phases.shift()

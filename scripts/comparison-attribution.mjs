@@ -302,7 +302,14 @@ export function validateArtifact(artifact) {
     phases.length &&
       new Set(phases).size === phases.length &&
       phases.every((name) =>
-        ['latency', 'ascii', 'sgr', 'rolling-logs', 'rolling-unicode-logs'].includes(name),
+        [
+          'latency',
+          'ascii',
+          'sgr',
+          'rolling-logs',
+          'rolling-unicode-logs',
+          'rolling-slow',
+        ].includes(name),
       ),
     'Incomplete phase matrix',
   )
