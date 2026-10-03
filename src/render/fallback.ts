@@ -1,10 +1,7 @@
 import { DomTerminalRenderer } from './dom/renderer.js'
 import type { TerminalFittedFont } from '../term/types.js'
-import {
-  CanvasUnavailableError,
-  CanvasTerminalRenderer,
-  type CanvasRendererMetrics,
-} from './canvas/renderer.js'
+import { CanvasUnavailableError, CanvasTerminalRenderer } from './canvas/renderer.js'
+import type { RowRendererMetrics } from './row-renderer.js'
 import {
   copyFittedFont,
   mergeRendererTheme,
@@ -77,7 +74,7 @@ export class FallbackTerminalRenderer {
     return this.state.renderer.backend
   }
 
-  get metrics(): CanvasRendererMetrics | RendererMetrics {
+  get metrics(): RowRendererMetrics | RendererMetrics {
     return this.state.renderer.metrics
   }
 
