@@ -57,6 +57,7 @@ function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
 
 /** The local native actor. Its synchronous operations are private to the main-thread entry. */
 export class LocalTerminalExecution {
+  readonly kind = 'sync' as const
   private disposed = false
   private layout?: SubmittedLayout
   private lastFrame?: RendererTextFrameSnapshot
