@@ -16,6 +16,7 @@ import {
 } from './comparison-guards.mjs'
 import {
   positiveInteger,
+  gpuCommandTimeout,
   selection,
   hardwareLaunch,
   frameBuilders,
@@ -94,8 +95,10 @@ const variantIds = selectedVariants(
     : ['ghostty-webgpu', 'xterm-webgl'],
 )
 const s = manifest.settings
+const gpuCommandTimeoutMilliseconds = gpuCommandTimeout(s, tracing)
+const gpuSettings = { ...s, gpuCommandTimeoutMilliseconds }
 const ownedComputePids = []
-const gpuGate = createGpuGate(s, { allowedComputePids: ownedComputePids })
+const gpuGate = createGpuGate(gpuSettings, { allowedComputePids: ownedComputePids })
 if (!smoke && platform() === 'darwin') {
   const power = execFileSync('/usr/bin/pmset', ['-g', 'batt'], { encoding: 'utf8' })
   assert(power.includes("'AC Power'"), 'waiting for AC')
@@ -192,6 +195,7 @@ const artifact = {
   manifest,
   smoke,
   tracing,
+  gpuCommandTimeoutMilliseconds,
   repetitions: smoke ? 1 : repetitions,
   latencySamples,
   outputFrames,
@@ -829,7 +833,7 @@ try {
         : null,
   }
   artifact.environment.gpuIdleSettings = Object.fromEntries(
-    Object.entries(s).filter(([key]) => key.startsWith('gpu')),
+    Object.entries(gpuSettings).filter(([key]) => key.startsWith('gpu')),
   )
   for (let repetition = 0; repetition < artifact.repetitions; repetition++) {
     if (!smoke) {
@@ -903,6 +907,7 @@ try {
       {
         environment: artifact.environment,
         qualifications: artifact.qualifications,
+        gpuCommandTimeoutMilliseconds: artifact.gpuCommandTimeoutMilliseconds,
         runs: artifact.runs.map(({ variant, count, repetition, gpuWindows }) => ({
           variant,
           count,

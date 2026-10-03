@@ -92,6 +92,42 @@ test('fractional NVIDIA budgets round up to a positive integer command timeout',
   }
 })
 
+for (const [timeoutMilliseconds, expected] of [
+  [2000, 2000],
+  [1787.023949999988, 1788],
+  [1817.9464489999991, 1818],
+  [0.125, 1],
+]) {
+  test(`failed-command receipts record the executed ${expected} ms timeout for budget ${timeoutMilliseconds}`, async () => {
+    const timeouts = []
+    await assert.rejects(
+      sampleNvidiaGpu({
+        timeoutMilliseconds,
+        command: async (_binary, args, options) => {
+          timeouts.push(options.timeout)
+          if (args[0].startsWith('--query-gpu='))
+            throw Object.assign(new GpuQualificationError('Controlled sampling timeout', null), {
+              code: 'ETIMEDOUT',
+            })
+          return { stdout: '' }
+        },
+      }),
+      (error) => {
+        assert.equal(error.code, 'ETIMEDOUT')
+        assert.deepEqual(timeouts, [expected, expected])
+        assert.deepEqual(
+          error.samplingCommands.map((command) => command.timeoutMilliseconds),
+          timeouts,
+        )
+        assert(
+          error.samplingCommands.every((command) => Number.isInteger(command.timeoutMilliseconds)),
+        )
+        return true
+      },
+    )
+  })
+}
+
 test('empty successful GPU output fails closed with exact command diagnostics', async () => {
   const gate = createGpuGate(settings, {
     platform: 'linux',

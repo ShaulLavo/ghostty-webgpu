@@ -88,7 +88,7 @@ test('selected output fixture reaches warmup, measured writes, and the artifact'
     `
     const {randomUUID, manifest, smoke, tracing, repetitions, latencySamples, outputFrames,
       selectedOutputFixture, tickSeconds, counts, variantIds, phases, builders, writePaths,
-      fixtures, s, tracePhases, traceFrames} = context;
+      fixtures, s, tracePhases, traceFrames, gpuCommandTimeoutMilliseconds} = context;
     ${source.slice(artifactStart, artifactEnd)}
     return artifact;
   `,
@@ -97,6 +97,7 @@ test('selected output fixture reaches warmup, measured writes, and the artifact'
     manifest: { fixtures: [fixture] },
     smoke: false,
     tracing: false,
+    gpuCommandTimeoutMilliseconds: 2000,
     repetitions: 4,
     outputFrames: 1200,
     selectedOutputFixture: fixture.name,

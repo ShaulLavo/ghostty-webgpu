@@ -1,5 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { analysisArguments, positiveInteger } from './comparison-options.mjs'
 
 test('sample overrides require finite positive integers and a value', () => {
@@ -148,3 +151,148 @@ test('even repetitions remain at least four and selected native/counterpart orde
   assert.deepEqual(native(0), ['js', 'zig'])
   assert.deepEqual(native(1), ['zig', 'js'])
 })
+
+test('GPU command timeout selects the named trace budget and rejects invalid settings', async () => {
+  const { settings } = await import('../bench/comparison-fixtures.ts')
+  const { gpuCommandTimeout } = await import('./comparison-options.mjs')
+  assert.equal(settings.gpuCommandTimeoutMilliseconds, 2000)
+  assert.equal(settings.gpuTraceCommandTimeoutMilliseconds, 10000)
+  assert.equal(gpuCommandTimeout(settings, false), 2000)
+  assert.equal(gpuCommandTimeout(settings, true), 10000)
+  for (const value of [undefined, 0, -1, NaN, Infinity, 1.5]) {
+    assert.throws(() =>
+      gpuCommandTimeout({ ...settings, gpuTraceCommandTimeoutMilliseconds: value }, true),
+    )
+    assert.throws(() =>
+      gpuCommandTimeout({ ...settings, gpuCommandTimeoutMilliseconds: value }, false),
+    )
+  }
+})
+
+for (const tracing of [false, true]) {
+  test(`${tracing ? 'trace' : 'ordinary'} GPU commands retain their effective timeout and fail closed`, async () => {
+    const { settings } = await import('../bench/comparison-fixtures.ts')
+    const { gpuCommandTimeout } = await import('./comparison-options.mjs')
+    const { createGpuGate, GpuQualificationError } = await import('./comparison-gpu.mjs')
+    const timeout = gpuCommandTimeout(settings, tracing)
+    let time = 0
+    let fail = false
+    const timeouts = []
+    const gate = createGpuGate(
+      { ...settings, gpuCommandTimeoutMilliseconds: timeout },
+      {
+        platform: 'linux',
+        now: () => time,
+        sleep: async (milliseconds) => {
+          time += milliseconds
+        },
+        command: async (_binary, args, options) => {
+          timeouts.push(options.timeout)
+          if (fail)
+            throw Object.assign(new GpuQualificationError('Controlled timeout', null), {
+              code: 'ETIMEDOUT',
+            })
+          return { stdout: args[0].startsWith('--query-gpu=') ? 'GPU-A, 0\n' : '', stderr: '' }
+        },
+      },
+    )
+    const idle = await gate.waitForIdle()
+    const window = await gate.monitorWindow(async () => 'measured')
+    assert.equal(idle.settings.gpuCommandTimeoutMilliseconds, timeout)
+    assert.equal(window.gpu.settings.gpuCommandTimeoutMilliseconds, timeout)
+    assert.equal(window.value, 'measured')
+    assert.equal(window.gpu.qualified, true)
+    assert(timeouts.length >= 10 && timeouts.every((value) => value === timeout))
+    fail = true
+    await assert.rejects(
+      gate.monitorWindow(async () => assert.fail('Operation must not start')),
+      (error) => {
+        assert.equal(error.evidence.settings.gpuCommandTimeoutMilliseconds, timeout)
+        assert.equal(error.evidence.qualified, false)
+        assert.equal(error.evidence.samplingError.code, 'ETIMEDOUT')
+        assert(
+          error.evidence.samplingError.commands.every(
+            (command) => command.timeoutMilliseconds === timeout,
+          ),
+        )
+        return true
+      },
+    )
+  })
+
+  test(`${tracing ? 'trace' : 'ordinary'} runner preserves the effective GPU settings through recording and compaction`, async () => {
+    const { randomUUID } = await import('node:crypto')
+    const { settings } = await import('../bench/comparison-fixtures.ts')
+    const { gpuCommandTimeout } = await import('./comparison-options.mjs')
+    const { createGpuGate } = await import('./comparison-gpu.mjs')
+    const { compactEvidence } = await import('./comparison-compact.mjs')
+    const source = await readFile(new URL('./comparison-runner.mjs', import.meta.url), 'utf8')
+    const start = source.indexOf('const s = manifest.settings')
+    const end = source.indexOf('\nif (!smoke', start)
+    const artifactStart = source.indexOf('const artifact = {')
+    const artifactEnd = source.indexOf('\nconst artifactPath', artifactStart)
+    const recordingStart = source.indexOf('artifact.environment.gpuIdleSettings =')
+    const recordingEnd = source.indexOf('\n  for (let repetition', recordingStart)
+    assert(start >= 0 && end > start)
+    assert(artifactStart >= 0 && artifactEnd > artifactStart)
+    assert(recordingStart >= 0 && recordingEnd > recordingStart)
+    const context = {
+      manifest: { settings },
+      tracing,
+      gpuCommandTimeout,
+      createGpuGate,
+      randomUUID,
+      smoke: false,
+      repetitions: settings.repetitions,
+      latencySamples: settings.latencySamples,
+      outputFrames: settings.outputFrames,
+      selectedOutputFixture: 'ascii',
+      tickSeconds: null,
+      counts: [1],
+      variantIds: [],
+      phases: [],
+      builders: ['js'],
+      writePaths: ['bytes'],
+      fixtures: [],
+      tracePhases: [],
+      traceFrames: 1,
+      gpuInfo: { gpu: { devices: [], featureStatus: {} } },
+    }
+    const initialize = new Function(
+      ...Object.keys(context),
+      `${source.slice(start, end)}\n${source.slice(artifactStart, artifactEnd)}\nartifact.environment.gpu = gpuInfo;\n${source.slice(recordingStart, recordingEnd)}\nreturn artifact`,
+    )
+    const artifact = initialize(...Object.values(context))
+    const timeout = tracing ? 10000 : 2000
+    assert.equal(artifact.gpuCommandTimeoutMilliseconds, timeout)
+    assert.equal(artifact.environment.gpuIdleSettings.gpuCommandTimeoutMilliseconds, timeout)
+    assert.deepEqual(artifact.manifest.settings, settings)
+    const finalStart = source.lastIndexOf('} finally {\n  await writeFile(artifactPath,')
+    const finalEnd = source.indexOf('  await browser?.close()', finalStart)
+    assert(finalStart >= 0 && finalEnd > finalStart)
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
+    const writer = new AsyncFunction(
+      'writeFile',
+      'join',
+      'artifactPath',
+      'output',
+      'artifact',
+      source.slice(finalStart + '} finally {'.length, finalEnd),
+    )
+    const output = await mkdtemp(join(tmpdir(), 'ghostty-trace-timeout-'))
+    try {
+      await writer(writeFile, join, join(output, 'comparison.json'), output, artifact)
+      const comparison = JSON.parse(await readFile(join(output, 'comparison.json'), 'utf8'))
+      const qualification = JSON.parse(await readFile(join(output, 'qualification.json'), 'utf8'))
+      assert.equal(comparison.gpuCommandTimeoutMilliseconds, timeout)
+      assert.equal(comparison.environment.gpuIdleSettings.gpuCommandTimeoutMilliseconds, timeout)
+      assert.equal(qualification.gpuCommandTimeoutMilliseconds, timeout)
+      assert.equal(qualification.environment.gpuIdleSettings.gpuCommandTimeoutMilliseconds, timeout)
+      const compact = JSON.parse(JSON.stringify(await compactEvidence(comparison)))
+      assert.equal(compact.gpuCommandTimeoutMilliseconds, timeout)
+      assert.equal(compact.environment.gpuIdleSettings.gpuCommandTimeoutMilliseconds, timeout)
+    } finally {
+      await rm(output, { recursive: true, force: true })
+    }
+  })
+}

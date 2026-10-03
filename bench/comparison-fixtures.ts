@@ -37,6 +37,7 @@ export const settings = {
   gpuIdleConsecutiveSamples: 3,
   gpuIdleWaitMilliseconds: 30_000,
   gpuCommandTimeoutMilliseconds: 2000,
+  gpuTraceCommandTimeoutMilliseconds: 10_000,
   adapterAttempts: 3,
   adapterRetryMilliseconds: 100,
   burstFrames: 32,

@@ -9,6 +9,13 @@ export function positiveInteger(args, flag, fallback) {
   return number
 }
 
+export function gpuCommandTimeout(settings, tracing) {
+  const key = tracing ? 'gpuTraceCommandTimeoutMilliseconds' : 'gpuCommandTimeoutMilliseconds'
+  const timeout = settings[key]
+  assert(Number.isSafeInteger(timeout) && timeout > 0, `Positive ${key} required`)
+  return timeout
+}
+
 export function analysisArguments(args) {
   const positional = args.filter((arg) => !arg.startsWith('--'))
   assert(
