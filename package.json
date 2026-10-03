@@ -28,6 +28,7 @@
     "native/config-resolver/linux-arm64",
     "native/config-resolver/linux-x64",
     "ghostty-vt.wasm",
+    "ghostty-vt.provenance.json",
     "bridge.wasm",
     "README.md",
     "LICENSE",

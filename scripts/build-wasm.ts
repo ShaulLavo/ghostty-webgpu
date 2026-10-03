@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from '../src/core/version.js'
 
 import { ArtifactBuildError, verifyCleanSource, verifyRevision } from './ghostty-source.js'
+import { recordWasmProvenance } from './wasm-provenance.js'
 
 const sourceRepository = GHOSTTY_SOURCE_REPOSITORY
 const sourceRevision = GHOSTTY_SOURCE_REVISION
@@ -107,6 +108,7 @@ async function main(): Promise<void> {
     await verifyRevision(source)
     await verifyCleanSource(source)
     await buildArtifacts(source, workspace, zig)
+    await recordWasmProvenance(source, zig)
     console.log(`Built libghostty-vt at ${sourceRevision}`)
   } finally {
     await rm(workspace, { force: true, recursive: true })

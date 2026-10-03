@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       'src/**/*.test.ts',
       'scripts/ghostty-source.test.ts',
+      'scripts/wasm-provenance.test.ts',
       'scripts/comparison-source.test.ts',
       'site/src/**/*.test.ts',
       'scripts/config-resolver-native/*.test.ts',

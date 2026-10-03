@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "source": {
+    "repository": "https://github.com/ghostty-org/ghostty.git",
+    "revision": "7b11f3dca034d8d24369ad3856afe57946d7902a",
+    "tree": "c501499f56ee03bb6c552d0887c1dbe0e917ac02",
+    "gitArchiveSha256": "8de432e3231d89cf9313ac6c858a9f04cc8187c117232954bf442977e758f66f",
+    "officialArchive": {
+      "url": "https://codeload.github.com/ghostty-org/ghostty/tar.gz/7b11f3dca034d8d24369ad3856afe57946d7902a",
+      "bytes": 39638838,
+      "sha256": "1ca3f07bbbb7a76947e7687a3814ec6206058cbbf10bc5934cd2341763e174a8"
+    },
+    "patched": false
+  },
+  "compiler": {
+    "version": "0.16.0",
+    "executableSha256": "2317bbb91798556d9d0f38aabdac23db83f0979b25f767259ae474546724087c"
+  },
+  "recipe": {
+    "terminal": [
+      "zig",
+      "build",
+      "-Demit-lib-vt=true",
+      "-Dtarget=wasm32-freestanding",
+      "-Doptimize=ReleaseSmall"
+    ],
+    "bridge": [
+      "zig",
+      "build-exe",
+      "scripts/bridge.zig",
+      "-target",
+      "wasm32-freestanding",
+      "-fno-entry",
+      "-rdynamic",
+      "--import-memory",
+      "--export=__stack_pointer",
+      "--stack",
+      "65536",
+      "-I",
+      "<official-source>/include",
+      "-O",
+      "ReleaseSmall"
+    ],
+    "inputs": {
+      "scripts/build-wasm.ts": "91442f6b080a347aed96e61a7c592576102e9a82851d93013aba30f050847302",
+      "scripts/bridge.zig": "a9b06fed5b1c7d05ee25d62f26c870793fbe007b431e5b6034144b61f65f782a",
+      "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
+      "scripts/glyph-index.zig": "34bceb4df734efe78d9c5f27ff79e4ce89b95eb198e8a87f5c702b61f501c177",
+      "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
+      "scripts/wasm-provenance.ts": "4fb1c6eb403040e8999eccf40a90006bc1acf2ab92e7997372d67695698af808",
+      "src/core/version.ts": "a9f9166ef443f4fa2b0b2d43385802bad9efe4825d996cad0b7efa5db107d6fb"
+    }
+  },
+  "artifacts": {
+    "ghostty-vt.wasm": {
+      "bytes": 821390,
+      "sha256": "de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426",
+      "nameSectionSha256": []
+    },
+    "bridge.wasm": {
+      "bytes": 7408,
+      "sha256": "f04d08996e291284fd2ca6dcf9f28d455c60e2e74f7a3c87867737890d37387a",
+      "nameSectionSha256": []
+    }
+  }
+}
