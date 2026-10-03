@@ -32,8 +32,10 @@ export class RenderScheduler {
   private disposed = false
   private documentVisible = true
   private focused = false
+  private frameActive = false
   private frameHandle?: number
   private frameToken = 0
+  private flushRequested = false
   private readonly onFrame: (state: RenderFrameState) => void
 
   constructor(options: RenderSchedulerOptions) {
@@ -62,12 +64,12 @@ export class RenderScheduler {
     this.frameHandle = this.clock.requestFrame(() => this.runFrame(token))
   }
 
-  /** Runs the frame now instead of waiting for the next animation frame. */
+  /** Flushes now; a flush during paint runs after the active frame callback completes. */
   flush(): void {
     if (this.disposed) return
     if (!this.documentVisible) return
     this.cancelFrame()
-    this.onFrame({ cursorVisible: this.cursorVisibleValue })
+    this.deliverFrames()
   }
 
   setCursorBlinkEnabled(enabled: boolean): void {
@@ -151,7 +153,24 @@ export class RenderScheduler {
     if (this.disposed) return
     if (token !== this.frameToken) return
     this.frameHandle = undefined
-    this.onFrame({ cursorVisible: this.cursorVisibleValue })
+    this.deliverFrames()
+  }
+
+  private deliverFrames(): void {
+    if (this.frameActive) {
+      this.flushRequested = true
+      return
+    }
+    this.frameActive = true
+    try {
+      do {
+        this.flushRequested = false
+        this.onFrame({ cursorVisible: this.cursorVisibleValue })
+      } while (this.flushRequested && !this.disposed && this.documentVisible)
+    } finally {
+      this.frameActive = false
+      if (this.flushRequested) this.schedule()
+    }
   }
 
   private synchronizeBlinkTimer(): void {

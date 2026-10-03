@@ -915,6 +915,46 @@ it('keeps native frame callbacks current for DOM text and cursor consumers', asy
   }
 })
 
+it.each([false, true])(
+  'delivers both paint callbacks before a nested resize repaint (zigFrame=%s)',
+  async (zigFrame) => {
+    const runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    const clock = new FakeClock()
+    const events: string[] = []
+    let resized = false
+    terminal.write('first\r\nsecond\r\nthird\r\nfourth')
+    const renderer = await createRenderer({
+      canvas: new OffscreenCanvas(1, 1),
+      columns: 8,
+      rows: 4,
+      font: fittedFont(),
+      renderState: state,
+      schedulerClock: clock,
+      zigFrame,
+      onFrame: (frame) => {
+        events.push(`frame:${frame.rows.map((row) => row.y).join(',')}`)
+        if (resized) return
+        resized = true
+        terminal.resize({ columns: 8, rows: 2 })
+        renderer.resize({ columns: 8, rows: 2 })
+      },
+      onRowsPainted: (rows) => events.push(`rows:${rows.map((row) => row.y).join(',')}`),
+    })
+    try {
+      clock.flushFrame()
+      expect(events).toEqual(['frame:0,1,2,3', 'rows:0,1,2,3', 'frame:0,1', 'rows:0,1'])
+      expect(renderer.metrics.submittedFrames).toBe(2)
+      expect(renderer.metrics.zigFrames).toBe(zigFrame ? 2 : 0)
+      expect(renderer.hasPendingFrame).toBe(false)
+    } finally {
+      renderer.dispose()
+      runtime.dispose()
+    }
+  },
+)
+
 it('drops queued Zig overlay rows when the grid shrinks before painting', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 8, rows: 128 })

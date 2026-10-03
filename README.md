@@ -47,6 +47,8 @@ immutable styled snapshot from the core. Cell geometry can be supplied through t
 all backends. It returns a subscription with `dispose()`, like `onResize`; no damage array is
 allocated when there are no listeners.
 
+Resizing inside a frame callback repaints after that frame's callbacks finish, in the same turn.
+
 ## more
 
 - [pty wiring and the native api](docs/integration.md)
