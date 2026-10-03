@@ -1,5 +1,15 @@
 # ghostty-webgpu
 
+## 0.3.9
+
+### Patch Changes
+
+- 0df200c: Reuse unchanged Canvas terminal rows through bounded scroll-by-blit, with exact row matching and cursor-safe repainting. Respect scheduled row membership when a render source returns additional rows.
+- 2093eff: Gate benchmark renderer frame callbacks during delayed-output controls, including frames queued before the hold. Add real main-terminal, native-worker and xterm hold/release correctness checks.
+- 2737859: Pin official libghostty-vt native unknown OSC callbacks and record reproducible WASM provenance.
+- fffe237: Add an inactive internal extension lifecycle scaffold with transactional setup, indexed hooks and scoped cleanup. Public activation and performance qualification remain pending.
+- 2afc489: Add a deterministic rolling-slow comparison fixture with one viewport-fitting ASCII log line per frame.
+
 ## 0.3.0
 
 ### Minor Changes
