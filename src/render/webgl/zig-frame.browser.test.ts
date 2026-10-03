@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { page } from 'vitest/browser'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -10,6 +10,7 @@ import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { RenderRow } from '../../core/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
+import type { AtlasInsertResult } from '../atlas/types.js'
 import { registerZigGlyphs, zigGlyphRow } from '../atlas/zig-glyphs.js'
 import { canonicalRendererTheme } from '../config.js'
 import { defaultRendererTheme } from '../instances/types.js'
@@ -519,7 +520,7 @@ describe('WebGL native atlas residency', () => {
     expect(replacement.invalidatedRows).toEqual([zigGlyphRow])
     expect(atlas.evictionCount).toBe(1)
     const clearGlyphs = vi.spyOn(builder, 'clearGlyphs')
-    builder.clearGlyphs()
+    expect(registerZigGlyphs(builder, atlas, rasterizer, theme)).toBe(false)
     expect(builder.build(options)).toBe(2)
     // The replacement owns row zero, so a missing native glyph must reject its eviction too.
     expect(registerZigGlyphs(builder, atlas, rasterizer, theme)).toBe(false)
@@ -607,4 +608,141 @@ describe('WebGL native atlas residency', () => {
 function flushPendingFrames(clock: TestClock): void {
   for (let frame = 0; frame < 8 && clock.frames.size > 0; frame += 1) clock.flushFrame()
   expect(clock.frames.size).toBe(0)
+}
+
+it('preserves the active native page when inserting a cold glyph into a full atlas', async ({
+  onTestFinished,
+}) => {
+  const viewport = { width: window.innerWidth, height: window.innerHeight }
+  onTestFinished(() => page.viewport(viewport.width, viewport.height))
+  await page.viewport(1000, 1500)
+  const nativeSource = await runtimeFixture(1, 2)
+  const jsSource = await runtimeFixture(1, 2)
+  const face = new FontFace(
+    'AtlasResidencyTest',
+    `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
+  )
+  await face.load()
+  document.fonts.add(face)
+  onTestFinished(() => {
+    document.fonts.delete(face)
+  })
+  const fitted = fittedFont(400, 650, 650)
+  const font = { ...fitted, settings: { ...fitted.settings, family: 'AtlasResidencyTest' } }
+  writePair(nativeSource, jsSource, '\x1b[?25lM\x1b[2;1HA')
+  const insertions = vi.spyOn(GlyphAtlas.prototype, 'getOrInsert')
+  const native = await rendererFixture(nativeSource, { font })
+  const js = await rendererFixture(jsSource, { font, zigFrame: false })
+  flushPendingFrames(native.clock)
+  const nativeM = atlasInsertion(insertions, 0, JSON.stringify([1, 'normal', false, 'M']))?.glyph
+  flushPendingFrames(js.clock)
+  if (!nativeM) expect.fail('The native renderer must register M')
+  expect(nativeM.width).toBeGreaterThan(256)
+  expect(nativeM.height).toBeGreaterThan(256)
+  const rasterizer = new CanvasGlyphRasterizer({ font })
+  const theme = canonicalRendererTheme(defaultRendererTheme)
+  const seed = [...'BCDEFGHIJKLMNOPQRSTUVWXYZ']
+    .flatMap((letter) => [`\x1b[0m${letter}`, `\x1b[1m${letter}`])
+    .filter((content) => {
+      const bitmap = rasterizer.rasterize({
+        cellSpan: 1,
+        foreground: theme.foreground,
+        italic: false,
+        text: content.slice(-1),
+        weight: content.startsWith('\x1b[1m') ? 'bold' : 'normal',
+      })
+      return (
+        bitmap &&
+        bitmap.width > 256 &&
+        bitmap.height > 256 &&
+        bitmap.width <= 510 &&
+        bitmap.height <= 510
+      )
+    })
+  let next = 0
+  while (native.renderer.metrics.atlasPages < 16 && next < seed.length) {
+    writePair(nativeSource, jsSource, `\x1b[2;1H${seed[next++]}`)
+    native.renderer.notifyWrite()
+    js.renderer.notifyWrite()
+    flushPendingFrames(native.clock)
+    flushPendingFrames(js.clock)
+  }
+  expect(native.renderer.metrics.atlasPages).toBe(16)
+  expect(js.renderer.metrics.atlasPages).toBe(16)
+  expect(native.renderer.metrics.atlasEvictions).toBe(0)
+  expect(js.renderer.metrics.atlasEvictions).toBe(0)
+  const nativeReadRows = vi.spyOn(nativeSource.state, 'readRows')
+  const builds = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+  const touches = vi.spyOn(GlyphAtlas.prototype, 'touchGlyph')
+  const before = { native: { ...native.renderer.metrics }, js: { ...js.renderer.metrics } }
+  for (const color of [31, 32, 33]) {
+    writePair(nativeSource, jsSource, `\x1b[1;1H\x1b[0;${color}mM`)
+    native.renderer.notifyWrite()
+    js.renderer.notifyWrite()
+    flushPendingFrames(native.clock)
+    flushPendingFrames(js.clock)
+  }
+  expect(native.renderer.metrics.zigFrames).toBe(before.native.zigFrames + 3)
+  expect(js.renderer.metrics.atlasCacheHits).toBeGreaterThan(before.js.atlasCacheHits)
+  expect(nativeReadRows).not.toHaveBeenCalled()
+  expect(touches).not.toHaveBeenCalled()
+  const warm = { native: { ...native.renderer.metrics }, js: { ...js.renderer.metrics } }
+  const warmPixels = await expectPixelParity(native.renderer, js.renderer)
+  let nativeFirstEviction: AtlasInsertResult | undefined
+  let jsFirstEviction: AtlasInsertResult | undefined
+  for (; next < seed.length && !nativeFirstEviction; next++) {
+    const cold = seed[next]!
+    const coldKey = JSON.stringify([
+      1,
+      cold.startsWith('\x1b[1m') ? 'bold' : 'normal',
+      false,
+      cold.slice(-1),
+    ])
+    writePair(nativeSource, jsSource, `\x1b[2;1H${cold}`)
+    native.renderer.notifyWrite()
+    js.renderer.notifyWrite()
+    const nativeCall = insertions.mock.calls.length
+    const nativeEvictions = native.renderer.metrics.atlasEvictions
+    flushPendingFrames(native.clock)
+    if (native.renderer.metrics.atlasEvictions > nativeEvictions)
+      nativeFirstEviction = atlasInsertion(insertions, nativeCall, coldKey)
+    const jsCall = insertions.mock.calls.length
+    const jsEvictions = js.renderer.metrics.atlasEvictions
+    flushPendingFrames(js.clock)
+    if (js.renderer.metrics.atlasEvictions > jsEvictions)
+      jsFirstEviction = atlasInsertion(insertions, jsCall, coldKey)
+  }
+  if (!nativeFirstEviction || !jsFirstEviction)
+    expect.fail('Both renderers must insert the first cold glyph after an eviction')
+  const finalPixels = await expectPixelParity(native.renderer, js.renderer)
+  const rowBytes = native.canvas.width * font.deviceCellHeight * 4
+  expect(finalPixels.subarray(0, rowBytes)).toEqual(warmPixels.subarray(0, rowBytes))
+  expect(jsFirstEviction.glyph.layer).not.toBe(nativeM.layer)
+  expect(nativeFirstEviction.glyph.layer).not.toBe(nativeM.layer)
+  expect(native.renderer.metrics.atlasEvictions - warm.native.atlasEvictions).toBe(1)
+  expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(1)
+  expect(native.renderer.metrics.atlasUploadOperations - warm.native.atlasUploadOperations).toBe(1)
+  expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(
+    512 * 512,
+  )
+  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2])
+  expect(
+    nativeReadRows.mock.results.map((result) =>
+      result.type === 'return' ? result.value.length : -1,
+    ),
+  ).toEqual([2])
+  expect(touches.mock.calls).toEqual([
+    [{ generation: nativeM.generation, kind: 'grayscale', layer: nativeM.layer }, zigGlyphRow],
+  ])
+}, 20_000)
+
+function atlasInsertion(
+  insertions: MockInstance<GlyphAtlas['getOrInsert']>,
+  start: number,
+  key: string,
+): AtlasInsertResult | undefined {
+  for (const result of insertions.mock.results.slice(start)) {
+    if (result.type !== 'return') continue
+    if (result.value.glyph.key === key) return result.value
+  }
 }

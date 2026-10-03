@@ -260,6 +260,15 @@ export class GlyphAtlas {
     return { glyph: allocation.glyph, invalidatedRows: allocation.invalidatedRows }
   }
 
+  touchGlyph(glyph: Pick<AtlasGlyph, 'generation' | 'kind' | 'layer'>, row: number): boolean {
+    const page = this.pages.find(
+      (candidate) => candidate.kind === glyph.kind && candidate.layer === glyph.layer,
+    )
+    if (!page || page.generation !== glyph.generation) return false
+    this.touch(page, row)
+    return true
+  }
+
   invalidateAll(): readonly number[] {
     const rows = [...this.rowReferences.keys()].sort((left, right) => left - right)
     this.cache.clear()
