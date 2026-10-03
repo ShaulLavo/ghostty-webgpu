@@ -46,6 +46,11 @@ export fn bridge_decode_png(userdata: u32, allocator: u32, data: u32, len: u32, 
     return host.decode_png(userdata, allocator, data, len, out);
 }
 
+const unknown_osc = @import("unknown-osc.zig");
+comptime {
+    @export(&unknown_osc.callback, .{ .name = "bridge_unknown_sequence" });
+}
+
 pub const snapshot = @import("snapshot.zig");
 comptime {
     @export(&snapshot.readRows, .{ .name = "bridge_read_rows" });

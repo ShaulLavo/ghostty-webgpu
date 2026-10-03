@@ -31,6 +31,7 @@ import {
 import { GhosttyTerminal } from '../core/terminal.js'
 import { normalizeCellGeometry } from '../core/types.js'
 import type {
+  CustomOscObservation,
   ClipboardWrite,
   ReadLinesOptions,
   RgbColor,
@@ -55,6 +56,7 @@ import {
   type LinkResolverOptions,
 } from './links.js'
 import type {
+  TerminalCustomOscSubscription,
   TerminalAppearance,
   TerminalAppearanceOptions,
   TerminalClipboardLocation,
@@ -96,6 +98,8 @@ import type {
 
 const encoder = new TextEncoder()
 const paletteLength = 256
+// One native write retains at most 2 MiB of custom OSC payloads before publication.
+const customOscObservationLimit = 1024
 
 type CanonicalTerminalRendererTheme = TerminalRendererTheme & {
   readonly cursorText: TerminalColor
@@ -467,6 +471,7 @@ const defaultCursor: TerminalCursorSettings = Object.freeze({
 })
 
 type PendingEffect =
+  | { readonly observation: CustomOscObservation; readonly type: 'customOSC' }
   | { readonly bytes: Uint8Array; readonly type: 'data' }
   | { readonly cause: unknown; readonly operation: string; readonly type: 'error' }
   | { readonly type: 'bell' }
@@ -851,6 +856,7 @@ function createEmitters(): SessionEmitters {
   return {
     appearance: new EventEmitter(createEventSink(error, 'event.appearance')),
     bell: new EventEmitter(createEventSink(error, 'event.bell')),
+    customOSC: new EventEmitter(createEventSink(error, 'event.customOSC')),
     data: new EventEmitter(createEventSink(error, 'event.data')),
     error,
     renderRequest: new EventEmitter(createEventSink(error, 'event.renderRequest')),
@@ -864,6 +870,7 @@ function createEmitters(): SessionEmitters {
 function disposeEmitters(emitters: SessionEmitters): void {
   emitters.appearance.dispose()
   emitters.bell.dispose()
+  emitters.customOSC.dispose()
   emitters.data.dispose()
   emitters.renderRequest.dispose()
   emitters.resize.dispose()
@@ -1001,6 +1008,10 @@ export interface TerminalSessionKeyOptions {
 
 export class TerminalSession<TEvent = unknown> {
   private activeOperations = 0
+  private customOscGeneration = 0
+  private customOscRemaining = customOscObservationLimit
+  private customOscDropped = 0
+  private readonly customOscSubscriptions = new Map<number, number>()
   private appearanceValue: TerminalAppearance
   private disposalRequested = false
   private disposed = false
@@ -1212,6 +1223,27 @@ export class TerminalSession<TEvent = unknown> {
     this.ensureActive()
     const emitter = this.emitters[type] as EventEmitter<TerminalSessionEventMap[TType]>
     return emitter.subscribe(listener)
+  }
+
+  subscribeCustomOsc(number: number): TerminalCustomOscSubscription {
+    this.ensureActive()
+    const generation = this.customOscGeneration + 1
+    const unsubscribe = this.terminal.subscribeCustomOsc(
+      number,
+      generation,
+      (observation) => this.effectState.pending.push({ observation, type: 'customOSC' }),
+      () => this.reserveCustomOscObservation(),
+    )
+    this.customOscGeneration = generation
+    this.customOscSubscriptions.set(number, generation)
+    return {
+      generation,
+      dispose: () => {
+        if (this.customOscSubscriptions.get(number) !== generation) return
+        this.customOscSubscriptions.delete(number)
+        unsubscribe()
+      },
+    }
   }
 
   write(data: TerminalInputData): TerminalMutationResult {
@@ -1491,6 +1523,7 @@ export class TerminalSession<TEvent = unknown> {
     this.disposeResource('renderState.dispose', () => this.nativeRenderState.dispose())
     this.disposeResource('terminal.dispose', () => this.terminal.dispose())
     if (this.ownsRuntime) this.disposeResource('runtime.dispose', () => this.runtimeValue.dispose())
+    this.customOscSubscriptions.clear()
     this.effectState.pending.length = 0
     this.effectState.clipboardWrite = undefined
     this.osc8RangeCache = undefined
@@ -1514,7 +1547,18 @@ export class TerminalSession<TEvent = unknown> {
     return this.emitRenderRequest()
   }
 
+  private reserveCustomOscObservation(): boolean {
+    if (this.customOscRemaining > 0) {
+      this.customOscRemaining -= 1
+      return true
+    }
+    this.customOscDropped += 1
+    return false
+  }
+
   private runVtWrite(write: () => void): void {
+    this.customOscRemaining = customOscObservationLimit
+    this.customOscDropped = 0
     this.effectState.vtWriteActive = true
     try {
       write()
@@ -1524,6 +1568,15 @@ export class TerminalSession<TEvent = unknown> {
     } finally {
       this.effectState.vtWriteActive = false
     }
+    if (this.customOscDropped === 0) return
+    this.effectState.pending.push({
+      cause: createGhosttyError('custom_osc.capture', 'Custom OSC observation limit reached', {
+        dropped: this.customOscDropped,
+        limit: customOscObservationLimit,
+      }),
+      operation: 'customOSC.capture',
+      type: 'error',
+    })
   }
 
   private setFocusedNow(focused: boolean): TerminalInputResult {
@@ -1681,6 +1734,15 @@ export class TerminalSession<TEvent = unknown> {
   }
 
   private flushEffect(effect: ReadyEffect): void {
+    if (effect.type === 'customOSC') {
+      if (this.disposed || this.disposalRequested) return
+      if (
+        this.customOscSubscriptions.get(effect.observation.number) !== effect.observation.generation
+      )
+        return
+      this.emitters.customOSC.emit(effect.observation)
+      return
+    }
     if (effect.type === 'data') {
       this.emitters.data.emit({ bytes: effect.bytes })
       return

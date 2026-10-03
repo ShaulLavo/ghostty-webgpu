@@ -34,6 +34,15 @@ export interface DeviceAttributes {
   }
 }
 
+/** Owned bytes captured from an unsupported native OSC callback. */
+export interface CustomOscObservation {
+  readonly number: number
+  readonly generation: number
+  readonly payload: Uint8Array
+  readonly terminator: 'bel' | 'st'
+  readonly truncated: boolean
+}
+
 export interface TerminalSize {
   columns: number
   rows: number

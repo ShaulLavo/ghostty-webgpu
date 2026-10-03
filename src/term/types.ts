@@ -6,6 +6,7 @@ import type {
   SelectionPressEvent,
 } from '../core/selection.js'
 import type {
+  CustomOscObservation,
   RgbColor,
   RuntimeOptions,
   TerminalCursor,
@@ -262,7 +263,12 @@ export interface TerminalAppearanceEvent {
   readonly appearance: TerminalAppearance
 }
 
+export interface TerminalCustomOscSubscription extends TerminalSessionSubscription {
+  readonly generation: number
+}
+
 export interface TerminalSessionEventMap {
+  readonly customOSC: CustomOscObservation
   readonly appearance: TerminalAppearanceEvent
   readonly bell: TerminalBellEvent
   readonly data: TerminalDataEvent

@@ -11,6 +11,7 @@ import {
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { type WasmAllocation, WasmMemory, requireLayout } from './memory.js'
 import type {
+  CustomOscObservation,
   ClipboardRepresentation,
   ClipboardWrite,
   DecodedPng,
@@ -29,6 +30,7 @@ const bridgeNames = [
   'bridge_xtversion',
   'bridge_title_changed',
   'bridge_decode_png',
+  'bridge_unknown_sequence',
 ] as const
 
 const decoder = new TextDecoder()
@@ -49,6 +51,7 @@ const defaultDeviceAttributes: DeviceAttributes = {
 }
 
 interface BridgeIndexes {
+  bridge_unknown_sequence: number
   bridge_bell: number
   bridge_clipboard_write: number
   bridge_color_scheme: number
@@ -60,7 +63,14 @@ interface BridgeIndexes {
   bridge_xtversion: number
 }
 
+interface CustomOscRegistration {
+  readonly canCapture?: () => boolean
+  readonly generation: number
+  readonly observe: (observation: CustomOscObservation) => void
+}
+
 interface TerminalTarget {
+  readonly customOsc: Map<number, CustomOscRegistration>
   effects: TerminalEffects
   size: TerminalSize
   version: WasmAllocation
@@ -117,6 +127,15 @@ export class CallbackBridge {
         bell: (...args: number[]) => this.bell(...args),
         clipboard_write: (...args: number[]) => this.clipboardWrite(...args),
         color_scheme: (...args: number[]) => this.colorScheme(...args),
+        custom_osc: (
+          terminal: number,
+          _userdata: number,
+          number: number,
+          pointer: number,
+          length: number,
+          terminator: number,
+          truncated: number,
+        ) => this.customOsc(terminal, number, pointer, length, terminator, truncated),
         decode_png: (...args: number[]) => this.decodePng(...args),
         device_attributes: (...args: number[]) => this.deviceAttributes(...args),
         size: (...args: number[]) => this.size(...args),
@@ -230,8 +249,100 @@ export class CallbackBridge {
 
   registerTerminal(terminal: number, effects: TerminalEffects, size: TerminalSize): void {
     const version = this.memory.allocateBytes(effects.xtversion ?? 'ghostty-webgpu')
-    this.targets.set(terminal, { effects, size, version })
+    this.targets.set(terminal, { customOsc: new Map(), effects, size, version })
     this.installTerminalCallbacks(terminal)
+  }
+
+  subscribeCustomOsc(
+    terminal: number,
+    number: number,
+    generation: number,
+    observe: (observation: CustomOscObservation) => void,
+    canCapture?: () => boolean,
+  ): () => void {
+    if (
+      !Number.isSafeInteger(number) ||
+      number < 0 ||
+      !Number.isSafeInteger(generation) ||
+      generation < 1
+    ) {
+      throw createGhosttyError(
+        'custom_osc.subscribe',
+        'OSC number and subscription generation must be safe integers',
+      )
+    }
+    const target = this.targets.get(terminal)
+    if (!target) throw createGhosttyError('custom_osc.subscribe', 'The terminal has been disposed')
+    if (target.customOsc.size === 0) this.configureCustomOsc(terminal, true)
+    const registration = { canCapture, generation, observe }
+    target.customOsc.set(number, registration)
+    return () => {
+      if (this.targets.get(terminal) !== target || target.customOsc.get(number) !== registration)
+        return
+      target.customOsc.delete(number)
+      if (target.customOsc.size === 0) this.configureCustomOsc(terminal, false)
+    }
+  }
+
+  private configureCustomOsc(terminal: number, enabled: boolean): void {
+    const limit = this.memory.allocate(4)
+    try {
+      // The native fixed OSC buffer is 2048 bytes, including the numeric header.
+      this.memory.view.setUint32(limit, enabled ? 2048 : 0, true)
+      assertGhosttyResult(
+        'ghostty_terminal_set(UNKNOWN_MAX_BYTES)',
+        this.exports.ghostty_terminal_set(terminal, TerminalOption.UnknownMaxBytes, limit),
+      )
+      assertGhosttyResult(
+        'ghostty_terminal_set(UNKNOWN_SEQUENCE)',
+        this.exports.ghostty_terminal_set(
+          terminal,
+          TerminalOption.UnknownSequence,
+          enabled ? this.requireIndexes().bridge_unknown_sequence : 0,
+        ),
+      )
+    } finally {
+      this.memory.free(limit, 4)
+    }
+  }
+
+  private customOsc(
+    terminal: number,
+    number: number,
+    pointer: number,
+    length: number,
+    terminator: number,
+    truncated: number,
+  ): void {
+    const registration = this.targets.get(terminal)?.customOsc.get(number)
+    if (!registration || registration.canCapture?.() === false) return
+    const observation = this.captureCustomOsc(
+      number,
+      registration.generation,
+      pointer,
+      length,
+      terminator,
+      truncated,
+    )
+    registration.observe(observation)
+  }
+
+  private captureCustomOsc(
+    number: number,
+    generation: number,
+    pointer: number,
+    length: number,
+    terminator: number,
+    truncated: number,
+  ): CustomOscObservation {
+    // The native buffer and sequence are borrowed only until this callback returns.
+    return {
+      number,
+      generation,
+      payload: this.memory.bytes.slice(pointer, pointer + length),
+      terminator: terminator === 1 ? 'bel' : 'st',
+      truncated: truncated !== 0,
+    }
   }
 
   updateTerminalSize(terminal: number, size: TerminalSize): void {
@@ -244,6 +355,7 @@ export class CallbackBridge {
     const target = this.targets.get(terminal)
     if (!target) return
     this.targets.delete(terminal)
+    target.customOsc.clear()
     this.memory.freeBytes(target.version)
   }
 

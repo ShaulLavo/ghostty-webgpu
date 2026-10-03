@@ -774,6 +774,7 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
   bridge_size: WebAssembly.ExportValue
   bridge_xtversion: WebAssembly.ExportValue
   bridge_title_changed: WebAssembly.ExportValue
+  bridge_unknown_sequence: WebAssembly.ExportValue
   bridge_decode_png: WebAssembly.ExportValue
 }
 
