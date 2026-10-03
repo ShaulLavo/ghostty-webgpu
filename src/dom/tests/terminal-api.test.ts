@@ -1,3 +1,4 @@
+import type { TerminalGeometry, TerminalTextMeasurement } from '../../core/types.js'
 import { describe, expectTypeOf, it } from 'vitest'
 import type { TerminalInputResult, TerminalMutationResult } from '../../term/types.js'
 import type { TerminalApi, TerminalResult } from '../terminal-api.js'
@@ -26,6 +27,17 @@ describe('shared terminal return convention', () => {
       string | undefined | Promise<string | undefined>
     >()
     expectTypeOf<ReturnType<TerminalApi['dispose']>>().toEqualTypeOf<void | Promise<void>>()
+    expectTypeOf<ReturnType<TerminalApi<'sync'>['geometry']>>().toEqualTypeOf<TerminalGeometry>()
+    expectTypeOf<ReturnType<TerminalApi<'async'>['geometry']>>().toEqualTypeOf<
+      Promise<TerminalGeometry>
+    >()
+    expectTypeOf<ReturnType<TerminalApi<'async'>['measureTexts']>>().toEqualTypeOf<
+      Promise<TerminalTextMeasurement>
+    >()
+    expectTypeOf<Parameters<TerminalApi['measureTexts']>[0]>().toEqualTypeOf<readonly string[]>()
+    expectTypeOf<ReturnType<TerminalApi<'async'>['writeAndReadGeometry']>>().toEqualTypeOf<
+      Promise<TerminalGeometry>
+    >()
   })
 
   it('preserves host methods and inherent asynchronous methods in both entries', () => {

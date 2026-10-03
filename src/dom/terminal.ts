@@ -3,6 +3,8 @@ import { encodeTerminalViewport } from './viewport.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import type {
   ReadLinesOptions,
+  TerminalGeometry,
+  TerminalTextMeasurement,
   TerminalLine,
   TerminalScrollbar,
   TerminalSelectionFormatOptions,
@@ -539,6 +541,32 @@ export class Terminal {
       },
       token: registration.token,
     })
+  }
+
+  geometry(): TerminalGeometry {
+    this.ensureActive()
+    return this.session.geometry()
+  }
+
+  measure(text: string): number {
+    this.ensureActive()
+    return this.session.measure(text)
+  }
+
+  measureTexts(texts: readonly string[]): TerminalTextMeasurement {
+    this.ensureActive()
+    return this.session.measureTexts(texts)
+  }
+
+  writeAndReadGeometry(data: TerminalInputData): TerminalGeometry {
+    this.ensureOpen()
+    this.invalidateLinks()
+    const geometry = this.session.writeAndReadGeometry(data)
+    if (this.stateValue !== 'open') return geometry
+    this.accessibility?.notifyOutput()
+    this.updateScrollbar()
+    this.renderer?.notifyWrite()
+    return geometry
   }
 
   write(data: TerminalInputData): TerminalMutationResult {

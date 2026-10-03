@@ -160,7 +160,12 @@ export class GhosttyTerminal {
   }
 
   get size(): TerminalSize {
-    return { ...this.sizeValue }
+    this.ensureActive()
+    return {
+      ...this.sizeValue,
+      columns: this.readUint16(TerminalData.Columns, 'COLUMNS'),
+      rows: this.readUint16(TerminalData.Rows, 'ROWS'),
+    }
   }
 
   get title(): string {

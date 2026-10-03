@@ -239,3 +239,33 @@ export interface RenderCursorSnapshot {
   viewport?: RenderCursorViewport
   visible: boolean
 }
+
+/** A live native sample; revision belongs to the execution owner, not a submitted frame. */
+export interface TerminalGeometry {
+  readonly revision: number
+  readonly columns: number
+  readonly rows: number
+  readonly cellWidth: number
+  readonly cellHeight: number
+  readonly cursor: Readonly<TerminalCursor>
+  readonly scrollbar: Readonly<TerminalScrollbar>
+  readonly graphemeClustering: boolean
+  readonly autowrap: boolean
+}
+
+/** Half-open UTF16 source range measured using the native printing mode. */
+export interface TerminalPrintingUnit {
+  readonly start: number
+  readonly end: number
+  readonly cells: number
+}
+
+export interface TerminalMeasuredText {
+  readonly cells: number
+  readonly units: readonly TerminalPrintingUnit[]
+}
+
+export interface TerminalTextMeasurement {
+  readonly geometry: TerminalGeometry
+  readonly texts: readonly TerminalMeasuredText[]
+}

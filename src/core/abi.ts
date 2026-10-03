@@ -291,6 +291,8 @@ export const enum FocusEvent {
 }
 
 export const enum TerminalMode {
+  Autowrap = 7,
+  GraphemeClustering = 2027,
   Origin = 6,
   LeftRightMargin = 69,
   FocusEvent = 1004,
@@ -556,6 +558,8 @@ export interface GhosttyWasmExports extends WebAssembly.Exports {
   ghostty_wasm_alloc(length: number): number
   ghostty_wasm_free(pointer: number, length: number): void
   ghostty_wasm_take_opaque(pointer: number): number
+  ghostty_unicode_codepoint_width(codepoint: number): number
+  ghostty_unicode_grapheme_width(codepoints: number, length: number, width: number): number
   ghostty_cell_get(cell: bigint, data: number, out: number): number
   ghostty_row_get(row: bigint, data: number, out: number): number
   ghostty_grid_ref_cell(ref: number, outCell: number): number

@@ -57,6 +57,8 @@ function validateExports(exports: WebAssembly.Exports): GhosttyWasmExports {
     '__indirect_function_table',
     'ghostty_cell_get',
     'ghostty_terminal_get',
+    'ghostty_unicode_codepoint_width',
+    'ghostty_unicode_grapheme_width',
     'ghostty_terminal_new',
     'ghostty_terminal_vt_write',
     'ghostty_render_state_update',

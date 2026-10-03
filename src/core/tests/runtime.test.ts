@@ -40,6 +40,16 @@ describe('runtime export validation', () => {
     )
   })
 
+  it.each(['ghostty_unicode_codepoint_width', 'ghostty_unicode_grapheme_width'])(
+    'rejects a wasm module without native Unicode measurement export %s',
+    async (name) => {
+      const wasm = await wasmWithRenamedExport(name)
+      await expect(GhosttyRuntime.create({ wasm })).rejects.toThrow(
+        `libghostty-vt export is missing: ${name}`,
+      )
+    },
+  )
+
   it('rejects a wasm module without terminal state queries', async () => {
     const wasm = await wasmWithRenamedExport('ghostty_terminal_get')
 

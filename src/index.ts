@@ -37,6 +37,10 @@ export type {
   RgbColor,
   RuntimeOptions,
   TerminalColors,
+  TerminalGeometry,
+  TerminalMeasuredText,
+  TerminalPrintingUnit,
+  TerminalTextMeasurement,
   TerminalCursor,
   TerminalCursorStyle,
   TerminalEffects,
@@ -60,6 +64,7 @@ export type {
   TerminalFontMeasurement,
 } from './dom/fit.js'
 export type { TerminalPointerOwner } from './dom/pointer.js'
+export type { TerminalApi, TerminalResult } from './dom/terminal-api.js'
 export type { TerminalScrollbarClock } from './dom/scrollbar.js'
 export type {
   GhosttyWebGpuFrameHandler,
