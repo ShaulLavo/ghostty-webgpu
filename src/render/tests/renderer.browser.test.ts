@@ -1,5 +1,9 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { attachNativeTestBuilder } from './native-state.js'
+import {
+  qualifyDeviceReplacement,
+  type DeviceReplacementQualification,
+} from './adapter-qualification.js'
 import { FrameObserver } from '../frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -23,14 +27,26 @@ const devices = new Set<GPUDevice>()
 const renderers = new Set<WebGpuTerminalRenderer>()
 // Keep Dawn's external instance alive while SwiftShader churns test-owned devices.
 let sentinelDevice: GPUDevice
-// Chromium's SwiftShader adapter lags configured-canvas teardown on Linux.
-// NOT-PORTABLE: Any Linux user agent skips device replacement, including hardware rendering.
-const isLinuxSwiftShader = navigator.userAgent.includes('Linux')
-// Linux SwiftShader cannot configure an independent replacement device.
-const deviceCleanupDelayMs = isLinuxSwiftShader ? 50 : 0
+let deviceReplacement: DeviceReplacementQualification
+let deviceCleanupDelayMs = 0
 
 beforeAll(async () => {
   const adapter = await requestAdapter()
+  const info = adapter.info
+  deviceReplacement = qualifyDeviceReplacement(info, navigator.userAgent)
+  // Chromium's Linux SwiftShader adapter lags configured-canvas teardown.
+  deviceCleanupDelayMs = deviceReplacement.kind === 'skip' ? 50 : 0
+  console.info(
+    'WebGPU replacement qualification',
+    JSON.stringify({
+      vendor: info?.vendor,
+      architecture: info?.architecture,
+      device: info?.device,
+      description: info?.description,
+      isFallbackAdapter: info?.isFallbackAdapter,
+      qualification: deviceReplacement,
+    }),
+  )
   sentinelDevice = await adapter.requestDevice()
 })
 
@@ -592,43 +608,42 @@ it('publishes immutable copied frame state only after submitted frames', async (
   canvas.remove()
 })
 
-it.skipIf(isLinuxSwiftShader)(
-  'recovers through a replacement device and submits a full repaint',
-  async () => {
-    const clock = new FakeClock()
-    const source = new FakeRenderState(2, 2)
-    const canvas = createCanvas()
-    let factoryCalls = 0
-    const factory = async () => {
-      factoryCalls += 1
-      return createDevice()
-    }
-    const renderer = await createRenderer({
-      canvas,
-      columns: 2,
-      deviceFactory: factory,
-      font: fittedFont(),
-      renderState: source,
-      rows: 2,
-      schedulerClock: clock,
-    })
-    clock.flushFrame()
-    const uploadedBeforeRestore = renderer.metrics.atlasUploadedBytes
-    const operationsBeforeRestore = renderer.metrics.atlasUploadOperations
-    await renderer.simulateDeviceLoss()
-    expect(factoryCalls).toBe(2)
-    expect(renderer.metrics.deviceRestores).toBe(1)
-    expect(clock.frames.size).toBe(1)
-    clock.flushFrame()
+it('recovers through a replacement device and submits a full repaint', async ({ skip }) => {
+  if (deviceReplacement.kind === 'unresolved') expect.fail(deviceReplacement.reason)
+  if (deviceReplacement.kind === 'skip') skip(deviceReplacement.reason)
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 2)
+  const canvas = createCanvas()
+  let factoryCalls = 0
+  const factory = async () => {
+    factoryCalls += 1
+    return createDevice()
+  }
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    deviceFactory: factory,
+    font: fittedFont(),
+    renderState: source,
+    rows: 2,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  const uploadedBeforeRestore = renderer.metrics.atlasUploadedBytes
+  const operationsBeforeRestore = renderer.metrics.atlasUploadOperations
+  await renderer.simulateDeviceLoss()
+  expect(factoryCalls).toBe(2)
+  expect(renderer.metrics.deviceRestores).toBe(1)
+  expect(clock.frames.size).toBe(1)
+  clock.flushFrame()
 
-    expect(renderer.metrics.submittedFrames).toBe(2)
-    expect(renderer.metrics.rebuiltRows).toBe(4)
-    expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 512 * 512)
-    expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 1)
-    renderer.dispose()
-    canvas.remove()
-  },
-)
+  expect(renderer.metrics.submittedFrames).toBe(2)
+  expect(renderer.metrics.rebuiltRows).toBe(4)
+  expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 512 * 512)
+  expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 1)
+  renderer.dispose()
+  canvas.remove()
+})
 
 it('discards a replacement device that resolves after disposal', async () => {
   const first = await createDevice()
@@ -666,42 +681,41 @@ it('discards a replacement device that resolves after disposal', async () => {
   canvas.remove()
 })
 
-it.skipIf(isLinuxSwiftShader)(
-  'keeps device replacement retryable after acquisition fails',
-  async () => {
-    const first = await createDevice()
-    let calls = 0
-    const factory = () => {
-      calls += 1
-      if (calls === 1) return Promise.resolve(first)
-      if (calls === 2) return Promise.reject(new Error('replacement unavailable'))
-      return createDevice()
-    }
-    const clock = new FakeClock()
-    const canvas = createCanvas()
-    const renderer = await createRenderer({
-      canvas,
-      columns: 2,
-      deviceFactory: factory,
-      font: fittedFont(),
-      renderState: new FakeRenderState(2, 2),
-      rows: 2,
-      schedulerClock: clock,
-    })
-    clock.flushFrame()
+it('keeps device replacement retryable after acquisition fails', async ({ skip }) => {
+  if (deviceReplacement.kind === 'unresolved') expect.fail(deviceReplacement.reason)
+  if (deviceReplacement.kind === 'skip') skip(deviceReplacement.reason)
+  const first = await createDevice()
+  let calls = 0
+  const factory = () => {
+    calls += 1
+    if (calls === 1) return Promise.resolve(first)
+    if (calls === 2) return Promise.reject(new Error('replacement unavailable'))
+    return createDevice()
+  }
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    deviceFactory: factory,
+    font: fittedFont(),
+    renderState: new FakeRenderState(2, 2),
+    rows: 2,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
 
-    await renderer.simulateDeviceLoss()
-    expect(renderer.metrics.deviceRestores).toBe(0)
-    expect(clock.frames.size).toBe(0)
-    renderer.schedule()
-    clock.flushFrame()
-    await expect.poll(() => renderer.metrics.deviceRestores).toBe(1)
-    expect(clock.frames.size).toBe(1)
+  await renderer.simulateDeviceLoss()
+  expect(renderer.metrics.deviceRestores).toBe(0)
+  expect(clock.frames.size).toBe(0)
+  renderer.schedule()
+  clock.flushFrame()
+  await expect.poll(() => renderer.metrics.deviceRestores).toBe(1)
+  expect(clock.frames.size).toBe(1)
 
-    renderer.dispose()
-    canvas.remove()
-  },
-)
+  renderer.dispose()
+  canvas.remove()
+})
 
 it('unwinds a replacement when post-acquisition setup fails', async () => {
   const first = await createDevice()
