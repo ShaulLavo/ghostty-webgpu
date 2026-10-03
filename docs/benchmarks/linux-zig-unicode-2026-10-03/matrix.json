@@ -1,0 +1,4306 @@
+{
+  "schema": 1,
+  "complete": true,
+  "expectedWindowCount": 10,
+  "completedWindowCount": 10,
+  "rows": [
+    {
+      "condition": "before",
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgl",
+      "count": 17,
+      "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgl-17/comparison.json",
+      "rawSha256": "e17d02092efacf838968cbd2ee0a3df19fdbf1fde254bfc82175fb32da152d60",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 27.506599266981894,
+          "xterm": 23.047981683909605
+        },
+        "GPU": {
+          "native": 25.90753582753674,
+          "xterm": 26.192863024001973
+        },
+        "total": {
+          "native": 54.55540648903408,
+          "xterm": 50.02863713353855
+        }
+      },
+      "pairedGpuCpuRatio": 1.0017536185312519,
+      "pairedGpuCpuRatios": [
+        1.0170403865445832, 0.9131325911740448, 1.0373835932990954, 0.9864668505179206
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [511, 503],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [503, 551],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [529, 510],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [534, 542],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 5.869568377733231,
+          "xterm": 20.725473143160343
+        },
+        "inputP95": {
+          "native": 24.591495126485825,
+          "xterm": 29.102014645934105
+        },
+        "writeP50": {
+          "native": 15.237262211740017,
+          "xterm": 14.430732920765877
+        },
+        "writeP95": {
+          "native": 20.39447557926178,
+          "xterm": 19.45348048210144
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.28400070089897433,
+        "inputP95": 0.8388924115485619,
+        "writeP50": 1.062607968706768,
+        "writeP95": 1.0420825043936333
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 1.2024033449580114,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 0,
+              "native": 27.904793390641984,
+              "counterpart": 22.84642154873653,
+              "ratio": 1.2214076209315676,
+              "ticks": [560, 459],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 1,
+              "native": 27.00480853061518,
+              "counterpart": 23.85941942725079,
+              "ratio": 1.1318300771297023,
+              "ticks": [542, 479],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 2,
+              "native": 27.447869896121144,
+              "counterpart": 22.513426729272002,
+              "ratio": 1.2191777922653315,
+              "ticks": [551, 452],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 3,
+              "native": 27.565328637842644,
+              "counterpart": 23.249541819082676,
+              "ratio": 1.1856288976506915,
+              "ticks": [553, 467],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 1.0947711902681942,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 0,
+              "native": 54.36451712355429,
+              "counterpart": 48.82862644729965,
+              "ratio": 1.1133738767407166,
+              "ticks": [1091, 981],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 1,
+              "native": 52.913480921611274,
+              "counterpart": 52.3512522297298,
+              "ratio": 1.0107395461987094,
+              "ticks": [1062, 1051],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 2,
+              "native": 54.74629585451386,
+              "counterpart": 48.762488424684285,
+              "ratio": 1.1227133319718048,
+              "ticks": [1099, 979],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 3,
+              "native": 55.13065727568531,
+              "counterpart": 51.22864781977746,
+              "ratio": 1.0761685037956719,
+              "ticks": [1106, 1029],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.28400070089897433,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 0,
+              "native": 5.669563487172127,
+              "counterpart": 20.415534183382988,
+              "ratio": 0.27770830957667564,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 1,
+              "native": 5.65805858373642,
+              "counterpart": 20.77897071838379,
+              "ratio": 0.27229734621698864,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 2,
+              "native": 6.069573268294334,
+              "counterpart": 20.908431619405746,
+              "ratio": 0.2902930922212731,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 3,
+              "native": 6.493951171636581,
+              "counterpart": 20.671975567936897,
+              "ratio": 0.3141427460715933,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 0.8388924115485619,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 0,
+              "native": 21.522009760141373,
+              "counterpart": 25.916058599948883,
+              "ratio": 0.8304507291160325,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 1,
+              "native": 25.64890232682228,
+              "counterpart": 30.270117193460464,
+              "ratio": 0.8473340939810914,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 2,
+              "native": 23.53408792614937,
+              "counterpart": 33.31899020075798,
+              "ratio": 0.7063265658517462,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 3,
+              "native": 28.363999992609024,
+              "counterpart": 27.933912098407745,
+              "ratio": 1.0153966223093325,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.062607968706768,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 0,
+              "native": 14.91907325387001,
+              "counterpart": 13.410995125770569,
+              "ratio": 1.1124508743725898,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 1,
+              "native": 15.555451169610023,
+              "counterpart": 13.914985373616219,
+              "ratio": 1.1178920244576211,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 2,
+              "native": 15.994524449110031,
+              "counterpart": 15.792926743626595,
+              "ratio": 1.0127650630409462,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+              "repetition": 3,
+              "native": 14.602465838193893,
+              "counterpart": 14.946480467915535,
+              "ratio": 0.9769835694456557,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [415, 415, 415, 415],
+            "total": 1660
+          },
+          "zigFrames": {
+            "perRun": [347, 347, 347, 347],
+            "total": 1388
+          },
+          "jsFallbackFrames": {
+            "perRun": [68, 68, 68, 68],
+            "total": 272
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [850, 850, 850, 850],
+            "total": 3400
+          },
+          "jsFallbackFrames": {
+            "perRun": [19550, 19550, 19550, 19550],
+            "total": 78200
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20815, 20815, 20815, 20815],
+            "total": 83260
+          },
+          "zigFrames": {
+            "perRun": [1197, 1197, 1197, 1197],
+            "total": 4788
+          },
+          "jsFallbackFrames": {
+            "perRun": [19618, 19618, 19618, 19618],
+            "total": 78472
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "d3d92da9d8e9fa26f2ac2150365812a19ddb9d149f071fd41313ba8d0b5feba9",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "dce4ac299555422367a8c464a348cc6fbefcc5731b03ba0b16db9ae35351e387",
+        "bridgeSha256": "72dcad976bf3122ded7c65d53ebe81c611b12d5757b816d529970a68c92439c3"
+      }
+    },
+    {
+      "condition": "before",
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgpu",
+      "count": 17,
+      "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgpu-17/comparison.json",
+      "rawSha256": "867b4ca67f2bac364e8bd7b9233f7f8bfe17f434551c3131009a25be58c4954a",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 31.895887981330894,
+          "xterm": 23.356647837772925
+        },
+        "GPU": {
+          "native": 61.948712155890924,
+          "xterm": 26.543895379815886
+        },
+        "total": {
+          "native": 94.83780457101214,
+          "xterm": 50.87166837468047
+        }
+      },
+      "pairedGpuCpuRatio": 2.319811939683534,
+      "pairedGpuCpuRatios": [
+        2.3182918440036437, 2.321332035363424, 2.43678159811492, 2.2232101682267897
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [1242, 536],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [1229, 530],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [1249, 513],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [1244, 560],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 20.283007338643074,
+          "xterm": 20.59902197122574
+        },
+        "inputP95": {
+          "native": 27.467475593090057,
+          "xterm": 28.39090721309185
+        },
+        "writeP50": {
+          "native": 15.958301283419132,
+          "xterm": 14.955737806856632
+        },
+        "writeP95": {
+          "native": 20.43505857884884,
+          "xterm": 19.398985370993614
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.9846667385875394,
+        "inputP95": 0.9506860490287048,
+        "writeP50": 1.0621613976942903,
+        "writeP95": 1.0610835546225206
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 1.3959547477206549,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 0,
+              "native": 35.22995035248048,
+              "counterpart": 23.608025079591183,
+              "ratio": 1.4922870605951826,
+              "ticks": [707, 474],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 1,
+              "native": 31.653960453225885,
+              "counterpart": 23.105270595954668,
+              "ratio": 1.3699887357635163,
+              "ticks": [635, 464],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 2,
+              "native": 32.1378155094359,
+              "counterpart": 22.6016923170306,
+              "ratio": 1.4219207596777936,
+              "ticks": [645, 454],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 3,
+              "native": 31.552463936497254,
+              "counterpart": 24.355119308097308,
+              "ratio": 1.2955167058453725,
+              "ticks": [633, 489],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 1.8852130471000168,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 0,
+              "native": 98.06583068413238,
+              "counterpart": 51.349944846115,
+              "ratio": 1.9097553264763005,
+              "ticks": [1968, 1031],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 1,
+              "native": 93.76551120081557,
+              "counterpart": 50.393391903245934,
+              "ratio": 1.860670767723733,
+              "ticks": [1881, 1012],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 2,
+              "native": 95.26744690549064,
+              "counterpart": 49.036711304570765,
+              "ratio": 1.9427780609873537,
+              "ticks": [1912, 985],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 3,
+              "native": 94.40816223653364,
+              "counterpart": 53.292387852073915,
+              "ratio": 1.77151308172917,
+              "ticks": [1894, 1070],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.9846667385875394,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 0,
+              "native": 20.356524407863617,
+              "counterpart": 20.933000028133392,
+              "ratio": 0.9724609172361818,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 1,
+              "native": 20.27649512887001,
+              "counterpart": 20.654460936784744,
+              "ratio": 0.9817005242077467,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 2,
+              "native": 20.25353905558586,
+              "counterpart": 20.49706344306469,
+              "ratio": 0.9881190596811453,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 3,
+              "native": 20.289519548416138,
+              "counterpart": 20.543583005666733,
+              "ratio": 0.9876329529673322,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 0.9506860490287048,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 0,
+              "native": 28.34400001168251,
+              "counterpart": 29.916048854589462,
+              "ratio": 0.9474513211772021,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 1,
+              "native": 27.01397070288658,
+              "counterpart": 28.318882822990417,
+              "ratio": 0.9539207768802075,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 2,
+              "native": 26.925048828125,
+              "counterpart": 28.462931603193283,
+              "ratio": 0.9459689256009122,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 3,
+              "native": 27.920980483293533,
+              "counterpart": 25.205902338027954,
+              "ratio": 1.1077159670324264,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0621613976942903,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 0,
+              "native": 18.10754883289337,
+              "counterpart": 14.970480486750603,
+              "ratio": 1.2095502778898235,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 1,
+              "native": 16.715490236878395,
+              "counterpart": 14.940995126962662,
+              "ratio": 1.1187668622362015,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 2,
+              "native": 14.840999975800514,
+              "counterpart": 14.758999958634377,
+              "ratio": 1.0055559331523791,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+              "repetition": 3,
+              "native": 15.20111232995987,
+              "counterpart": 16.98649510741234,
+              "ratio": 0.8948939868900097,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [431, 431, 431, 431],
+            "total": 1724
+          },
+          "zigFrames": {
+            "perRun": [363, 363, 363, 363],
+            "total": 1452
+          },
+          "jsFallbackFrames": {
+            "perRun": [68, 68, 68, 68],
+            "total": 272
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [850, 850, 850, 850],
+            "total": 3400
+          },
+          "jsFallbackFrames": {
+            "perRun": [19550, 19550, 19550, 19550],
+            "total": 78200
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20831, 20831, 20831, 20831],
+            "total": 83324
+          },
+          "zigFrames": {
+            "perRun": [1213, 1213, 1213, 1213],
+            "total": 4852
+          },
+          "jsFallbackFrames": {
+            "perRun": [19618, 19618, 19618, 19618],
+            "total": 78472
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "d3d92da9d8e9fa26f2ac2150365812a19ddb9d149f071fd41313ba8d0b5feba9",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "dce4ac299555422367a8c464a348cc6fbefcc5731b03ba0b16db9ae35351e387",
+        "bridgeSha256": "72dcad976bf3122ded7c65d53ebe81c611b12d5757b816d529970a68c92439c3"
+      }
+    },
+    {
+      "condition": "before",
+      "fixture": "rolling-logs",
+      "backend": "webgl",
+      "count": 17,
+      "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-logs-webgl-17/comparison.json",
+      "rawSha256": "9ebc679b346f152d79e6cc6a74c0d019bf110ad57d8a0d0fd13e9d42fe772c7d",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 14.899357160972755,
+          "xterm": 23.28581769700375
+        },
+        "GPU": {
+          "native": 25.906765960357504,
+          "xterm": 26.531619187103107
+        },
+        "total": {
+          "native": 41.882643464870064,
+          "xterm": 50.5494464549016
+        }
+      },
+      "pairedGpuCpuRatio": 0.9698299156498764,
+      "pairedGpuCpuRatios": [
+        0.9497196070214271, 1.0331036271515646, 0.9899402242783257, 0.9233003119462205
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [501, 527],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [527, 510],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [533, 539],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [513, 556],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 5.922232903540134,
+          "xterm": 20.863213375210762
+        },
+        "inputP95": {
+          "native": 23.261999994516373,
+          "xterm": 28.470029279589653
+        },
+        "writeP50": {
+          "native": 15.005235344171524,
+          "xterm": 15.023512192070484
+        },
+        "writeP95": {
+          "native": 20.584902361035347,
+          "xterm": 19.447509765625
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.28406311574025617,
+        "inputP95": 0.7796124432643108,
+        "writeP50": 1.014433674450367,
+        "writeP95": 1.0557131077151296
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.6394339599860797,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 0,
+              "native": 14.274263861317955,
+              "counterpart": 22.75200792548761,
+              "ratio": 0.6273847964569059,
+              "ticks": [287, 457],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 1,
+              "native": 15.688473409752671,
+              "counterpart": 23.313771631206016,
+              "ratio": 0.6729273005639848,
+              "ticks": [315, 468],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 2,
+              "native": 15.196424269969448,
+              "counterpart": 23.342312880126688,
+              "ratio": 0.6510247869613413,
+              "ticks": [305, 469],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 3,
+              "native": 14.60229005197606,
+              "counterpart": 23.257863762801488,
+              "ratio": 0.6278431330108181,
+              "ticks": [293, 467],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 0.8186760574097969,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 0,
+              "native": 40.087305478126375,
+              "counterpart": 49.93493205528244,
+              "ratio": 0.8027908285475615,
+              "ticks": [806, 1003],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 1,
+              "native": 42.981436674973175,
+              "counterpart": 49.716119846033344,
+              "ratio": 0.8645372327543477,
+              "ticks": [863, 998],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 2,
+              "native": 42.69946098152075,
+              "counterpart": 51.16396085452075,
+              "ratio": 0.8345612862720324,
+              "ticks": [857, 1028],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 3,
+              "native": 41.06582594821938,
+              "counterpart": 51.9442224937943,
+              "ratio": 0.7905754283476946,
+              "ticks": [824, 1043],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.28406311574025617,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 0,
+              "native": 5.787999987602234,
+              "counterpart": 20.741490215063095,
+              "ratio": 0.2790542013899664,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 1,
+              "native": 6.056465819478035,
+              "counterpart": 20.951407223939896,
+              "ratio": 0.28907203009054594,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 2,
+              "native": 6.091063484549522,
+              "counterpart": 20.92446580529213,
+              "ratio": 0.291097681595723,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 3,
+              "native": 5.639392584562302,
+              "counterpart": 20.801960945129395,
+              "ratio": 0.27109908529477933,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 0.7796124432643108,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 0,
+              "native": 21.806921869516373,
+              "counterpart": 28.12601950764656,
+              "ratio": 0.7753291169974398,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 1,
+              "native": 27.311941415071487,
+              "counterpart": 28.814039051532745,
+              "ratio": 0.9478692440940051,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 2,
+              "native": 22.03600975871086,
+              "counterpart": 28.110892564058304,
+              "ratio": 0.7838957695311818,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 3,
+              "native": 24.487990230321884,
+              "counterpart": 31.73600000143051,
+              "ratio": 0.7716155227255508,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.014433674450367,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 0,
+              "native": 14.614475578069687,
+              "counterpart": 15.301456034183502,
+              "ratio": 0.9551035891892184,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 1,
+              "native": 15.395995110273361,
+              "counterpart": 14.745568349957466,
+              "ratio": 1.0441099823946611,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 2,
+              "native": 16.430543944239616,
+              "counterpart": 15.405558571219444,
+              "ratio": 1.0665334767500767,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+              "repetition": 3,
+              "native": 14.084936529397964,
+              "counterpart": 14.30295117199421,
+              "ratio": 0.9847573665060727,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [415, 415, 415, 415],
+            "total": 1660
+          },
+          "zigFrames": {
+            "perRun": [398, 398, 398, 398],
+            "total": 1592
+          },
+          "jsFallbackFrames": {
+            "perRun": [17, 17, 17, 17],
+            "total": 68
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20815, 20815, 20815, 20815],
+            "total": 83260
+          },
+          "zigFrames": {
+            "perRun": [20798, 20798, 20798, 20798],
+            "total": 83192
+          },
+          "jsFallbackFrames": {
+            "perRun": [17, 17, 17, 17],
+            "total": 68
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "d3d92da9d8e9fa26f2ac2150365812a19ddb9d149f071fd41313ba8d0b5feba9",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "dce4ac299555422367a8c464a348cc6fbefcc5731b03ba0b16db9ae35351e387",
+        "bridgeSha256": "72dcad976bf3122ded7c65d53ebe81c611b12d5757b816d529970a68c92439c3"
+      }
+    },
+    {
+      "condition": "before",
+      "fixture": "rolling-logs",
+      "backend": "webgpu",
+      "count": 17,
+      "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-logs-webgpu-17/comparison.json",
+      "rawSha256": "e6b6d431da97ab56d16e969a553d08baa8d6e02610a94fd504d283009ccfe337",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 19.257104615332864,
+          "xterm": 23.056924047210845
+        },
+        "GPU": {
+          "native": 63.96204272043996,
+          "xterm": 25.796897849196803
+        },
+        "total": {
+          "native": 84.11206399972691,
+          "xterm": 49.9732896989926
+        }
+      },
+      "pairedGpuCpuRatio": 2.460573699589438,
+      "pairedGpuCpuRatios": [
+        2.4237194188776914, 2.5389263604926144, 2.4681522480647717, 2.452995151114105
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [1225, 506],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [1309, 516],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [1283, 520],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [1285, 524],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 20.201014645397663,
+          "xterm": 20.83942185342312
+        },
+        "inputP95": {
+          "native": 26.998960942029953,
+          "xterm": 27.192446261644363
+        },
+        "writeP50": {
+          "native": 16.439921893179417,
+          "xterm": 14.563504882156849
+        },
+        "writeP95": {
+          "native": 20.629019528627396,
+          "xterm": 19.645048812031746
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.9700357475938198,
+        "inputP95": 1.0078038145067907,
+        "writeP50": 1.1444615302501513,
+        "writeP95": 1.050102918634471
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.8362352758998552,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 0,
+              "native": 18.93770071366454,
+              "counterpart": 22.848598547980526,
+              "ratio": 0.8288342356708066,
+              "ticks": [380, 459],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 1,
+              "native": 21.18511461440959,
+              "counterpart": 23.5582414646105,
+              "ratio": 0.8992655350032873,
+              "ticks": [425, 473],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 2,
+              "native": 19.576508517001187,
+              "counterpart": 23.20491441955657,
+              "ratio": 0.8436363161289039,
+              "ticks": [393, 466],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 3,
+              "native": 18.8803961390705,
+              "counterpart": 22.908933674865125,
+              "ratio": 0.8241499323814186,
+              "ticks": [379, 460],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 1.6831450996844437,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 0,
+              "native": 80.78424436013213,
+              "counterpart": 48.88305833140932,
+              "ratio": 1.65260208991926,
+              "ticks": [1621, 982],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 1,
+              "native": 87.43221419688102,
+              "counterpart": 50.154649376031244,
+              "ratio": 1.7432524259388924,
+              "ticks": [1754, 1007],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 2,
+              "native": 84.48284591560821,
+              "counterpart": 49.945341551105685,
+              "ratio": 1.691506020219376,
+              "ticks": [1696, 1003],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 3,
+              "native": 83.74128208384562,
+              "counterpart": 50.001237846879526,
+              "ratio": 1.6747841791495115,
+              "ticks": [1681, 1004],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.9700357475938198,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 0,
+              "native": 20.228985339403152,
+              "counterpart": 20.70053417980671,
+              "ratio": 0.9772204506266533,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 1,
+              "native": 20.256029307842255,
+              "counterpart": 20.76045113801956,
+              "ratio": 0.9757027519862738,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 2,
+              "native": 19.936426788568497,
+              "counterpart": 21.147426769137383,
+              "ratio": 0.9427353505563986,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 3,
+              "native": 20.173043951392174,
+              "counterpart": 20.918392568826675,
+              "ratio": 0.9643687432013659,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 1.0078038145067907,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 0,
+              "native": 27.005951166152954,
+              "counterpart": 27.56897071003914,
+              "ratio": 0.9795777814918145,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 1,
+              "native": 28.36611720919609,
+              "counterpart": 26.950941383838654,
+              "ratio": 1.052509328160465,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 2,
+              "native": 26.838048845529556,
+              "counterpart": 26.01296094059944,
+              "ratio": 1.0317183386702575,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 3,
+              "native": 26.991970717906952,
+              "counterpart": 27.433951139450073,
+              "ratio": 0.9838892903433238,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.1444615302501513,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 0,
+              "native": 17.88955369591713,
+              "counterpart": 14.690499991178513,
+              "ratio": 1.2177634326033568,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 1,
+              "native": 16.071897476911545,
+              "counterpart": 14.290495097637177,
+              "ratio": 1.1246564494164313,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 2,
+              "native": 16.80794630944729,
+              "counterpart": 14.436509773135185,
+              "ratio": 1.1642666110838713,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+              "repetition": 3,
+              "native": 9.022985354065895,
+              "counterpart": 16.680573225021362,
+              "ratio": 0.5409277746241445,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [431, 431, 431, 431],
+            "total": 1724
+          },
+          "zigFrames": {
+            "perRun": [414, 414, 414, 414],
+            "total": 1656
+          },
+          "jsFallbackFrames": {
+            "perRun": [17, 17, 17, 17],
+            "total": 68
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20831, 20831, 20831, 20831],
+            "total": 83324
+          },
+          "zigFrames": {
+            "perRun": [20814, 20814, 20814, 20814],
+            "total": 83256
+          },
+          "jsFallbackFrames": {
+            "perRun": [17, 17, 17, 17],
+            "total": 68
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "d3d92da9d8e9fa26f2ac2150365812a19ddb9d149f071fd41313ba8d0b5feba9",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "dce4ac299555422367a8c464a348cc6fbefcc5731b03ba0b16db9ae35351e387",
+        "bridgeSha256": "72dcad976bf3122ded7c65d53ebe81c611b12d5757b816d529970a68c92439c3"
+      }
+    },
+    {
+      "condition": "before",
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgl",
+      "count": 1,
+      "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgl-1/comparison.json",
+      "rawSha256": "09ab3ba0339b9098efd673126a06234de3eb96bd11aa8a853b1e6f71cecdb414",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 4.72566996308709,
+          "xterm": 3.9941073823564412
+        },
+        "GPU": {
+          "native": 2.2962762703739608,
+          "xterm": 2.2745620855998663
+        },
+        "total": {
+          "native": 7.8317460910943275,
+          "xterm": 7.034492065387931
+        }
+      },
+      "pairedGpuCpuRatio": 1.009596048480171,
+      "pairedGpuCpuRatios": [
+        0.9996340911416463, 0.9439539507936234, 1.0790925681638939, 1.0195580058186957
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [103, 103],
+          "resolved": false
+        },
+        {
+          "repetition": 1,
+          "ticks": [101, 107],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [109, 101],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [104, 102],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 5.0484902411699295,
+          "xterm": 4.808997556567192
+        },
+        "inputP95": {
+          "native": 23.108004868030548,
+          "xterm": 21.653504878282547
+        },
+        "writeP50": {
+          "native": 12.408453606069088,
+          "xterm": 12.02545116841793
+        },
+        "writeP95": {
+          "native": 20.27099022269249,
+          "xterm": 20.407034173607826
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 1.0425537897917683,
+        "inputP95": 1.0291303340970583,
+        "writeP50": 1.0595338024250442,
+        "writeP95": 0.988419012881214
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 1.1799585912774826,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 0,
+              "native": 4.703170606088841,
+              "counterpart": 3.9503339899542187,
+              "ratio": 1.1905754343934214,
+              "ticks": [212, 178],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 1,
+              "native": 4.6370481127116685,
+              "counterpart": 4.037880774758665,
+              "ratio": 1.1483865847893477,
+              "ticks": [209, 182],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 2,
+              "native": 4.748321954977897,
+              "counterpart": 3.772434681449685,
+              "ratio": 1.2586889783213409,
+              "ticks": [214, 170],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 3,
+              "native": 4.7481693200853385,
+              "counterpart": 4.060548875083337,
+              "ratio": 1.1693417481615436,
+              "ticks": [214, 183],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 1.1133187291394535,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 0,
+              "native": 7.76466845344856,
+              "counterpart": 6.990759588963926,
+              "ratio": 1.1107045457129405,
+              "ticks": [350, 315],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 1,
+              "native": 7.610083744785174,
+              "counterpart": 7.210501383497612,
+              "ratio": 1.055416723475301,
+              "ticks": [343, 325],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 2,
+              "native": 7.965642905780681,
+              "counterpart": 6.723810049877969,
+              "ratio": 1.1846918408894151,
+              "ticks": [359, 303],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 3,
+              "native": 7.898823728740096,
+              "counterpart": 7.078224541811935,
+              "ratio": 1.1159329125659665,
+              "ticks": [356, 319],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 1.0425537897917683,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 0,
+              "native": 5.345504879951477,
+              "counterpart": 4.771892577409744,
+              "ratio": 1.1202064575504544,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 1,
+              "native": 4.810936525464058,
+              "counterpart": 5.0275732427835464,
+              "ratio": 0.9569102811917373,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 2,
+              "native": 4.676009774208069,
+              "counterpart": 4.84610253572464,
+              "ratio": 0.964901122033082,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 3,
+              "native": 5.286043956875801,
+              "counterpart": 4.607573255896568,
+              "ratio": 1.1472512021617791,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 1.0291303340970583,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 0,
+              "native": 23.575087875127792,
+              "counterpart": 24.056960940361023,
+              "ratio": 0.9799694954642097,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 1,
+              "native": 22.640921860933304,
+              "counterpart": 20.997039049863815,
+              "ratio": 1.078291172729907,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 2,
+              "native": 21.43711718916893,
+              "counterpart": 22.30997070670128,
+              "ratio": 0.9608760796234408,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 3,
+              "native": 29.83197072148323,
+              "counterpart": 19.938951164484024,
+              "ratio": 1.4961654941319587,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0595338024250442,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 0,
+              "native": 12.056441396474838,
+              "counterpart": 15.073107406497002,
+              "ratio": 0.7998643591750775,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 1,
+              "native": 12.760465815663338,
+              "counterpart": 12.392485350370407,
+              "ratio": 1.0296938390394734,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 2,
+              "native": 13.210048824548721,
+              "counterpart": 11.658416986465454,
+              "ratio": 1.1330911254833822,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+              "repetition": 3,
+              "native": 10.800495132803917,
+              "counterpart": 9.914407223463058,
+              "ratio": 1.089373765810615,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [303, 303, 303, 303],
+            "total": 1212
+          },
+          "zigFrames": {
+            "perRun": [299, 299, 299, 299],
+            "total": 1196
+          },
+          "jsFallbackFrames": {
+            "perRun": [4, 4, 4, 4],
+            "total": 16
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [2700, 2700, 2700, 2700],
+            "total": 10800
+          },
+          "zigFrames": {
+            "perRun": [113, 113, 113, 113],
+            "total": 452
+          },
+          "jsFallbackFrames": {
+            "perRun": [2587, 2587, 2587, 2587],
+            "total": 10348
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [3003, 3003, 3003, 3003],
+            "total": 12012
+          },
+          "zigFrames": {
+            "perRun": [412, 412, 412, 412],
+            "total": 1648
+          },
+          "jsFallbackFrames": {
+            "perRun": [2591, 2591, 2591, 2591],
+            "total": 10364
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "d3d92da9d8e9fa26f2ac2150365812a19ddb9d149f071fd41313ba8d0b5feba9",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "dce4ac299555422367a8c464a348cc6fbefcc5731b03ba0b16db9ae35351e387",
+        "bridgeSha256": "72dcad976bf3122ded7c65d53ebe81c611b12d5757b816d529970a68c92439c3"
+      }
+    },
+    {
+      "condition": "after",
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgl",
+      "count": 17,
+      "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgl-17/comparison.json",
+      "rawSha256": "8fce3d5eb8653da6393a4c2a278fbd33fd473d2e28a3d9799f587802f66bb841",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 14.820594323099437,
+          "xterm": 23.026287694582173
+        },
+        "GPU": {
+          "native": 25.758448003585137,
+          "xterm": 25.93876372514546
+        },
+        "total": {
+          "native": 41.50250451982076,
+          "xterm": 49.93589228271068
+        }
+      },
+      "pairedGpuCpuRatio": 0.9865500100279463,
+      "pairedGpuCpuRatios": [
+        0.9534800909567743, 0.9985326143612732, 1.071338813766565, 0.9745674056946193
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [502, 527],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [514, 515],
+          "resolved": false
+        },
+        {
+          "repetition": 2,
+          "ticks": [547, 511],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [520, 534],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 6.019740208983421,
+          "xterm": 20.796041503548622
+        },
+        "inputP95": {
+          "native": 24.132097631692886,
+          "xterm": 26.66751465201378
+        },
+        "writeP50": {
+          "native": 15.527502439916134,
+          "xterm": 14.483691409230232
+        },
+        "writeP95": {
+          "native": 20.44653905928135,
+          "xterm": 19.279004871845245
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.2882199675550443,
+        "inputP95": 0.9479705144807167,
+        "writeP50": 1.0248437208923442,
+        "writeP95": 1.06703065634743
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.6444191811117748,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 0,
+              "native": 14.599820368847867,
+              "counterpart": 22.99870275705095,
+              "ratio": 0.6348106031489906,
+              "ticks": [293, 462],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 1,
+              "native": 14.69573388204614,
+              "counterpart": 23.053872632113404,
+              "ratio": 0.6374518553371111,
+              "ticks": [295, 463],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 2,
+              "native": 14.945454764152736,
+              "counterpart": 22.39958541931411,
+              "ratio": 0.6672201509259172,
+              "ticks": [300, 450],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 3,
+              "native": 15.048571618230381,
+              "counterpart": 23.102369267919023,
+              "ratio": 0.6513865068864385,
+              "ticks": [302, 464],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 0.8269304501023567,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 0,
+              "native": 40.41110689124785,
+              "counterpart": 50.17898783356569,
+              "ratio": 0.8053392193817046,
+              "ticks": [811, 1008],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 1,
+              "native": 41.1480548697292,
+              "counterpart": 49.69279673185567,
+              "ratio": 0.8280486826242797,
+              "ticks": [826, 998],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 2,
+              "native": 43.04290972075987,
+              "counterpart": 48.73154250113004,
+              "ratio": 0.8832658994892629,
+              "ticks": [864, 979],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 3,
+              "native": 41.85695416991232,
+              "counterpart": 50.68580154039132,
+              "ratio": 0.8258122175804338,
+              "ticks": [840, 1018],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.2882199675550443,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 0,
+              "native": 5.314995124936104,
+              "counterpart": 20.651514664292336,
+              "ratio": 0.2573658741906248,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 1,
+              "native": 6.15247555077076,
+              "counterpart": 20.79904393851757,
+              "ratio": 0.29580569034603765,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 2,
+              "native": 6.870543971657753,
+              "counterpart": 20.793039068579674,
+              "ratio": 0.3304251941718236,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 3,
+              "native": 5.887004867196083,
+              "counterpart": 20.97749999165535,
+              "ratio": 0.2806342447640509,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 0.9479705144807167,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 0,
+              "native": 27.46294140815735,
+              "counterpart": 26.885019540786743,
+              "ratio": 1.0214960553215835,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 1,
+              "native": 23.129078090190887,
+              "counterpart": 26.450009763240814,
+              "ratio": 0.87444497363985,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 2,
+              "native": 22.457058608531952,
+              "counterpart": 26.956951171159744,
+              "ratio": 0.8330711609760209,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 3,
+              "native": 25.135117173194885,
+              "counterpart": 24.345990240573883,
+              "ratio": 1.0324130144152395,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0248437208923442,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 0,
+              "native": 14.465985372662544,
+              "counterpart": 14.563912123441696,
+              "ratio": 0.9932760682741603,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 1,
+              "native": 15.839014619588852,
+              "counterpart": 16.90852928161621,
+              "ratio": 0.9367470319733728,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 2,
+              "native": 15.215990260243416,
+              "counterpart": 14.403470695018768,
+              "ratio": 1.056411373510528,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+              "repetition": 3,
+              "native": 17.70756834745407,
+              "counterpart": 14.220421865582466,
+              "ratio": 1.2452210289422923,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [415, 415, 415, 415],
+            "total": 1660
+          },
+          "zigFrames": {
+            "perRun": [415, 415, 415, 415],
+            "total": 1660
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20815, 20815, 20815, 20815],
+            "total": 83260
+          },
+          "zigFrames": {
+            "perRun": [20815, 20815, 20815, 20815],
+            "total": 83260
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "c0baab8832fa1aab88f87aa4769d70030a0b7fd65389201f9e7474658585acf1",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "4445f70c78509e4d2e2074ee765e256b2a0c4877b257776cb4e574d628f3824c",
+        "bridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe"
+      }
+    },
+    {
+      "condition": "after",
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgpu",
+      "count": 17,
+      "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgpu-17/comparison.json",
+      "rawSha256": "a1fbd5c5e39c2788bcab7d03cf5da42da68203ab3ffe0c6fd9f425a63eb29cbb",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 18.480322807493863,
+          "xterm": 23.22130370905191
+        },
+        "GPU": {
+          "native": 61.435090596261546,
+          "xterm": 26.441883199851183
+        },
+        "total": {
+          "native": 80.44356989522043,
+          "xterm": 51.01575712937837
+        }
+      },
+      "pairedGpuCpuRatio": 2.3238166249114256,
+      "pairedGpuCpuRatios": [
+        2.3614211918724055, 2.3398232696556467, 2.307454111380743, 2.3078099801672045
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [1199, 508],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [1223, 523],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [1243, 539],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [1252, 543],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 19.849262207746506,
+          "xterm": 20.674046367406845
+        },
+        "inputP95": {
+          "native": 27.67888280749321,
+          "xterm": 28.56146091222763
+        },
+        "writeP50": {
+          "native": 15.491718254983425,
+          "xterm": 14.320769511163235
+        },
+        "writeP95": {
+          "native": 20.43093653023243,
+          "xterm": 19.144951164722443
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.9632402508160343,
+        "inputP95": 0.9890410398070272,
+        "writeP50": 1.0824882633044441,
+        "writeP95": 1.0682868821160334
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.7975336398957726,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 0,
+              "native": 18.482121630449296,
+              "counterpart": 22.9043388731723,
+              "ratio": 0.8069266584287784,
+              "ticks": [371, 460],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 1,
+              "native": 17.993814687011465,
+              "counterpart": 23.96088365538406,
+              "ratio": 0.7509662392174847,
+              "ticks": [361, 481],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 2,
+              "native": 18.47852398453843,
+              "counterpart": 23.44571956282038,
+              "ratio": 0.7881406213627667,
+              "ticks": [371, 471],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 3,
+              "native": 18.683313767276566,
+              "counterpart": 22.996887855283436,
+              "ratio": 0.8124279200232807,
+              "ticks": [375, 462],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 1.5918936384302387,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 0,
+              "native": 79.00982454418485,
+              "counterpart": 49.194536536291814,
+              "ratio": 1.606069090332779,
+              "ticks": [1586, 988],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 1,
+              "native": 79.75097922221147,
+              "counterpart": 51.01028038069288,
+              "ratio": 1.5634295406146559,
+              "ticks": [1600, 1024],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 2,
+              "native": 81.13616056822939,
+              "counterpart": 51.37151292745358,
+              "ratio": 1.5793998647228706,
+              "ticks": [1629, 1032],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 3,
+              "native": 81.85782538569447,
+              "counterpart": 51.02123387806387,
+              "ratio": 1.6043874121376065,
+              "ticks": [1643, 1025],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.9632402508160343,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 0,
+              "native": 19.66546581685543,
+              "counterpart": 20.417465820908546,
+              "ratio": 0.9631687883966957,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 1,
+              "native": 20.169058576226234,
+              "counterpart": 20.893563464283943,
+              "ratio": 0.9653240152501416,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 2,
+              "native": 20.03305859863758,
+              "counterpart": 20.796029284596443,
+              "ratio": 0.9633117132353727,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 3,
+              "native": 5.81404884159565,
+              "counterpart": 20.552063450217247,
+              "ratio": 0.28289367905460566,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 0.9890410398070272,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 0,
+              "native": 31.32510742545128,
+              "counterpart": 28.35091209411621,
+              "ratio": 1.1049065131118767,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 1,
+              "native": 28.504882782697678,
+              "counterpart": 27.28305858373642,
+              "ratio": 1.0447832560712087,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 2,
+              "native": 26.527029305696487,
+              "counterpart": 29.85502928495407,
+              "ratio": 0.8885279948147703,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 3,
+              "native": 26.852882832288742,
+              "counterpart": 28.77200973033905,
+              "ratio": 0.9332988235428457,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0824882633044441,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 0,
+              "native": 14.28398048877716,
+              "counterpart": 15.55295117199421,
+              "ratio": 0.9184096529858558,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 1,
+              "native": 14.94643160700798,
+              "counterpart": 13.977912098169327,
+              "ratio": 1.0692892831230136,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 2,
+              "native": 16.5730097591877,
+              "counterpart": 14.005058586597443,
+              "ratio": 1.1833588311474637,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+              "repetition": 3,
+              "native": 16.03700490295887,
+              "counterpart": 14.636480435729027,
+              "ratio": 1.0956872434858747,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [431, 431, 431, 431],
+            "total": 1724
+          },
+          "zigFrames": {
+            "perRun": [431, 431, 431, 431],
+            "total": 1724
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20831, 20831, 20831, 20831],
+            "total": 83324
+          },
+          "zigFrames": {
+            "perRun": [20831, 20831, 20831, 20831],
+            "total": 83324
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "c0baab8832fa1aab88f87aa4769d70030a0b7fd65389201f9e7474658585acf1",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "4445f70c78509e4d2e2074ee765e256b2a0c4877b257776cb4e574d628f3824c",
+        "bridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe"
+      }
+    },
+    {
+      "condition": "after",
+      "fixture": "rolling-logs",
+      "backend": "webgl",
+      "count": 17,
+      "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-logs-webgl-17/comparison.json",
+      "rawSha256": "43b943e074c28b247763541868838bd328fcef6f947a7047e46e4b93d6a936df",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 15.222171822609418,
+          "xterm": 23.205579504628197
+        },
+        "GPU": {
+          "native": 24.91211964581163,
+          "xterm": 26.01932488980109
+        },
+        "total": {
+          "native": 41.06882591114451,
+          "xterm": 50.24575423717148
+        }
+      },
+      "pairedGpuCpuRatio": 0.957444541229048,
+      "pairedGpuCpuRatios": [
+        1.0104452797622465, 0.9576662195796295, 0.9572228628784664, 0.8733024516649976
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [511, 506],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [505, 528],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [495, 517],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [485, 556],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 5.790048837661743,
+          "xterm": 20.627029292285442
+        },
+        "inputP95": {
+          "native": 23.74007324874401,
+          "xterm": 30.495485335588455
+        },
+        "writeP50": {
+          "native": 15.61174512654543,
+          "xterm": 15.273262187838554
+        },
+        "writeP95": {
+          "native": 20.59093651175499,
+          "xterm": 19.31199023127556
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.2798178328066617,
+        "inputP95": 0.7946748160603814,
+        "writeP50": 1.0274473875848464,
+        "writeP95": 1.0646577323827908
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.6525135066250053,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 0,
+              "native": 15.0414661585105,
+              "counterpart": 22.101603422314,
+              "ratio": 0.6805599517419847,
+              "ticks": [302, 444],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 1,
+              "native": 15.402877486708334,
+              "counterpart": 24.04549929641877,
+              "ratio": 0.6405721626667311,
+              "ticks": [309, 483],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 2,
+              "native": 14.691150070579855,
+              "counterpart": 22.365659712837623,
+              "ratio": 0.6568619150611198,
+              "ticks": [295, 449],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 3,
+              "native": 15.647876521937397,
+              "counterpart": 24.141806718166166,
+              "ratio": 0.6481650981888908,
+              "ticks": [314, 485],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 0.8122662060359347,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 0,
+              "native": 41.488547384235915,
+              "counterpart": 48.28503450370401,
+              "ratio": 0.8592423679650322,
+              "ticks": [833, 970],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 1,
+              "native": 41.42327246425446,
+              "counterpart": 51.376718993590416,
+              "ratio": 0.8062654306403312,
+              "ticks": [831, 1032],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 2,
+              "native": 40.18901053206085,
+              "counterpart": 49.11478948075254,
+              "ratio": 0.8182669814315382,
+              "ticks": [807, 986],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 3,
+              "native": 40.714379358034556,
+              "counterpart": 52.86309017462363,
+              "ratio": 0.7701853831007985,
+              "ticks": [817, 1062],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.2798178328066617,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 0,
+              "native": 5.7885292917490005,
+              "counterpart": 20.586499974131584,
+              "ratio": 0.28118083690878504,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 1,
+              "native": 5.56098535656929,
+              "counterpart": 20.498965814709663,
+              "ratio": 0.27128126398351443,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 2,
+              "native": 5.791568383574486,
+              "counterpart": 20.798951163887978,
+              "ratio": 0.27845482870453836,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 3,
+              "native": 20.551451161503792,
+              "counterpart": 20.6675586104393,
+              "ratio": 0.9943821400909509,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 0.7946748160603814,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 0,
+              "native": 22.92907813191414,
+              "counterpart": 30.69801950454712,
+              "ratio": 0.7469236941659311,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 1,
+              "native": 21.352087885141373,
+              "counterpart": 30.29295116662979,
+              "ratio": 0.7048533425380646,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 2,
+              "native": 26.48408791422844,
+              "counterpart": 31.43788281083107,
+              "ratio": 0.8424259379548316,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 3,
+              "native": 24.551068365573883,
+              "counterpart": 24.266892582178116,
+              "ratio": 1.0117104315038865,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0274473875848464,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 0,
+              "native": 13.14043653011322,
+              "counterpart": 15.183524385094643,
+              "ratio": 0.86544047329439,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 1,
+              "native": 16.780514642596245,
+              "counterpart": 15.507985338568687,
+              "ratio": 1.082056390707486,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 2,
+              "native": 16.169004902243614,
+              "counterpart": 15.362999990582466,
+              "ratio": 1.052464031254002,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+              "repetition": 3,
+              "native": 15.054485350847244,
+              "counterpart": 15.017980486154556,
+              "ratio": 1.0024307439156912,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [415, 415, 415, 415],
+            "total": 1660
+          },
+          "zigFrames": {
+            "perRun": [415, 415, 415, 415],
+            "total": 1660
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20815, 20815, 20815, 20815],
+            "total": 83260
+          },
+          "zigFrames": {
+            "perRun": [20815, 20815, 20815, 20815],
+            "total": 83260
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "c0baab8832fa1aab88f87aa4769d70030a0b7fd65389201f9e7474658585acf1",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "4445f70c78509e4d2e2074ee765e256b2a0c4877b257776cb4e574d628f3824c",
+        "bridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe"
+      }
+    },
+    {
+      "condition": "after",
+      "fixture": "rolling-logs",
+      "backend": "webgpu",
+      "count": 17,
+      "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-logs-webgpu-17/comparison.json",
+      "rawSha256": "6e70e79fa4ab2e309f1e60f09bccbf43501d7d03179190e7ba50865495a182c9",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 18.83245730994672,
+          "xterm": 23.05233162562589
+        },
+        "GPU": {
+          "native": 61.42028866035693,
+          "xterm": 26.413039215394924
+        },
+        "total": {
+          "native": 81.33321319655471,
+          "xterm": 50.42312910835474
+        }
+      },
+      "pairedGpuCpuRatio": 2.3344568329736965,
+      "pairedGpuCpuRatios": [
+        2.212818792840451, 2.3880829128587893, 2.305228534118171, 2.3636851318292216
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [1188, 537],
+          "resolved": true
+        },
+        {
+          "repetition": 1,
+          "ticks": [1233, 517],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [1232, 535],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [1243, 526],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 20.002742677927017,
+          "xterm": 20.705715835094452
+        },
+        "inputP95": {
+          "native": 28.142524421215057,
+          "xterm": 26.558485358953476
+        },
+        "writeP50": {
+          "native": 14.686254873871803,
+          "xterm": 14.772041492164135
+        },
+        "writeP95": {
+          "native": 20.405970737338066,
+          "xterm": 19.352009743452072
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.9664545914971421,
+        "inputP95": 1.0833623985168712,
+        "writeP50": 1.0205236137947362,
+        "writeP95": 1.0644416382094721
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.8169304426125783,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 0,
+              "native": 18.27958877431198,
+              "counterpart": 23.005868685010178,
+              "ratio": 0.7945619887077909,
+              "ticks": [367, 462],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 1,
+              "native": 19.388638015844485,
+              "counterpart": 23.245436945491207,
+              "ratio": 0.834083612250842,
+              "ticks": [389, 467],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 2,
+              "native": 19.033359077998448,
+              "counterpart": 23.094735768849187,
+              "ratio": 0.8241427513395136,
+              "ticks": [382, 464],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 3,
+              "native": 18.631555541894997,
+              "counterpart": 23.009927482402595,
+              "ratio": 0.8097181338856428,
+              "ticks": [374, 462],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 1.6126580567877498,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 0,
+              "native": 78.19878576476786,
+              "counterpart": 50.69258511112633,
+              "ratio": 1.5426079690618166,
+              "ticks": [1570, 1018],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 1,
+              "native": 81.69145940351957,
+              "counterpart": 50.074752820479986,
+              "ratio": 1.6313901677435485,
+              "ticks": [1639, 1006],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 2,
+              "native": 81.21564213910328,
+              "counterpart": 50.71882704408902,
+              "ratio": 1.6012918056741317,
+              "ticks": [1630, 1019],
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 3,
+              "native": 81.45078425400615,
+              "counterpart": 50.15367310558317,
+              "ratio": 1.6240243079013679,
+              "ticks": [1635, 1007],
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.9664545914971421,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 0,
+              "native": 20.122456088662148,
+              "counterpart": 20.662451192736626,
+              "ratio": 0.9738658739450864,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 1,
+              "native": 19.956504866480827,
+              "counterpart": 20.748980477452278,
+              "ratio": 0.9618065277071022,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 2,
+              "native": 19.79757323861122,
+              "counterpart": 20.82756832242012,
+              "ratio": 0.9505465511929135,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 3,
+              "native": 20.048980489373207,
+              "counterpart": 20.645583018660545,
+              "ratio": 0.9711026552871819,
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 1.0833623985168712,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 0,
+              "native": 27.051068395376205,
+              "counterpart": 32.24305862188339,
+              "ratio": 0.8389733961844619,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 1,
+              "native": 29.45407810807228,
+              "counterpart": 26.279892593622208,
+              "ratio": 1.120783808500816,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 2,
+              "native": 28.21504881978035,
+              "counterpart": 24.650048792362213,
+              "ratio": 1.1446244612920502,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 3,
+              "native": 28.070000022649765,
+              "counterpart": 26.837078124284744,
+              "ratio": 1.0459409885329265,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0205236137947362,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 0,
+              "native": 12.691514670848846,
+              "counterpart": 13.260607436299324,
+              "ratio": 0.9570839595256659,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 1,
+              "native": 13.745495110750198,
+              "counterpart": 15.127529308199883,
+              "ratio": 0.9086411158562058,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 2,
+              "native": 15.627014636993408,
+              "counterpart": 14.416553676128387,
+              "ratio": 1.0839632680638063,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/17",
+              "sessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+              "repetition": 3,
+              "native": 16.79946094751358,
+              "counterpart": 15.43353907763958,
+              "ratio": 1.0885034769408772,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [431, 431, 431, 431],
+            "total": 1724
+          },
+          "zigFrames": {
+            "perRun": [431, 431, 431, 431],
+            "total": 1724
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "zigFrames": {
+            "perRun": [20400, 20400, 20400, 20400],
+            "total": 81600
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [20831, 20831, 20831, 20831],
+            "total": 83324
+          },
+          "zigFrames": {
+            "perRun": [20831, 20831, 20831, 20831],
+            "total": 83324
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "c0baab8832fa1aab88f87aa4769d70030a0b7fd65389201f9e7474658585acf1",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "4445f70c78509e4d2e2074ee765e256b2a0c4877b257776cb4e574d628f3824c",
+        "bridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe"
+      }
+    },
+    {
+      "condition": "after",
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgl",
+      "count": 1,
+      "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgl-1/comparison.json",
+      "rawSha256": "aac19e8aa8fbdb04603616c15afe074c523cfe25f25c4cab64e521cce3570d49",
+      "absoluteCpuPercentOneCore": {
+        "renderer": {
+          "native": 3.6834300034806153,
+          "xterm": 4.116051937101048
+        },
+        "GPU": {
+          "native": 2.351896353105051,
+          "xterm": 2.3520295914066383
+        },
+        "total": {
+          "native": 6.878842771780449,
+          "xterm": 7.277978966872617
+        }
+      },
+      "pairedGpuCpuRatio": 1.0099465886835102,
+      "pairedGpuCpuRatios": [
+        0.9998956857785695, 1.0199974915884509, 0.9814584825513998, 1.0567234427465888
+      ],
+      "pairedGpuCpuResolution": [
+        {
+          "repetition": 0,
+          "ticks": [106, 106],
+          "resolved": false
+        },
+        {
+          "repetition": 1,
+          "ticks": [104, 102],
+          "resolved": true
+        },
+        {
+          "repetition": 2,
+          "ticks": [106, 108],
+          "resolved": true
+        },
+        {
+          "repetition": 3,
+          "ticks": [112, 106],
+          "resolved": true
+        }
+      ],
+      "absoluteLatencyMilliseconds": {
+        "inputP50": {
+          "native": 4.801039069890976,
+          "xterm": 4.869267106056213
+        },
+        "inputP95": {
+          "native": 22.955975592136383,
+          "xterm": 20.593990236520767
+        },
+        "writeP50": {
+          "native": 13.06480860710144,
+          "xterm": 12.845043942332268
+        },
+        "writeP95": {
+          "native": 20.433956041932106,
+          "xterm": 20.371495112776756
+        }
+      },
+      "pairedLatencyRatios": {
+        "inputP50": 0.9804901791709415,
+        "inputP95": 1.084679330679742,
+        "writeP50": 1.0755255971213018,
+        "writeP95": 1.003975575618822
+      },
+      "formalPairedRatios": {
+        "output/cpu/renderer": {
+          "median": 0.8901664481822997,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 0,
+              "native": 3.793968113592505,
+              "counterpart": 4.127202860036109,
+              "ratio": 0.9192589369254586,
+              "ticks": [171, 186],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 1,
+              "native": 3.6170111362854316,
+              "counterpart": 4.103628465416977,
+              "ratio": 0.8814177908081893,
+              "ticks": [163, 185],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 2,
+              "native": 3.749848870675799,
+              "counterpart": 4.171527263806206,
+              "ratio": 0.8989151055564102,
+              "ticks": [169, 188],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 3,
+              "native": 3.594969083188818,
+              "counterpart": 4.104901014165987,
+              "ratio": 0.8757748532260833,
+              "ticks": [162, 185],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "output/cpu/total": {
+          "median": 0.9381460459688798,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 0,
+              "native": 6.944514734236574,
+              "counterpart": 7.322456687160837,
+              "ratio": 0.9483859080263396,
+              "ticks": [313, 330],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 1,
+              "native": 6.634885458584931,
+              "counterpart": 7.164713482863152,
+              "ratio": 0.9260503542053028,
+              "ticks": [299, 323],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 2,
+              "native": 6.856232550525575,
+              "counterpart": 7.388928610890781,
+              "ratio": 0.9279061839114201,
+              "ticks": [309, 333],
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 3,
+              "native": 6.901452993035323,
+              "counterpart": 7.233501246584397,
+              "ratio": 0.9540957771029812,
+              "ticks": [311, 326],
+              "status": "pass",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p50": {
+          "median": 0.9804901791709415,
+          "status": "pass",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 0,
+              "native": 4.7525488287210464,
+              "counterpart": 5.009931638836861,
+              "ratio": 0.9486254846033049,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 1,
+              "native": 4.885019525885582,
+              "counterpart": 4.928573250770569,
+              "ratio": 0.9911630156094002,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 2,
+              "native": 4.6575146317481995,
+              "counterpart": 4.802465811371803,
+              "ratio": 0.9698173427324829,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 3,
+              "native": 4.8495293110609055,
+              "counterpart": 4.809960961341858,
+              "ratio": 1.0082263348989862,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "input/p95": {
+          "median": 1.084679330679742,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 0,
+              "native": 21.35206836462021,
+              "counterpart": 20.510009765625,
+              "ratio": 1.0410559823528953,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 1,
+              "native": 23.734902322292328,
+              "counterpart": 27.937019526958466,
+              "ratio": 0.8495860590779483,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 2,
+              "native": 23.33100974559784,
+              "counterpart": 20.677970707416534,
+              "ratio": 1.1283026790065886,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 3,
+              "native": 22.580941438674927,
+              "counterpart": 19.936068385839462,
+              "ratio": 1.132667735766502,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        },
+        "write/p50": {
+          "median": 1.0755255971213018,
+          "status": "fail",
+          "pairs": [
+            {
+              "pairId": "0/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 0,
+              "native": 12.821592777967453,
+              "counterpart": 12.248043939471245,
+              "ratio": 1.0468277907338213,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "1/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 1,
+              "native": 14.843019515275955,
+              "counterpart": 13.44204394519329,
+              "ratio": 1.1042234035087823,
+              "status": "fail",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "2/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 2,
+              "native": 11.283534154295921,
+              "counterpart": 13.587470695376396,
+              "ratio": 0.8304366873913871,
+              "status": "pass",
+              "gpuSkipped": []
+            },
+            {
+              "pairId": "3/bytes/1",
+              "sessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+              "repetition": 3,
+              "native": 13.308024436235428,
+              "counterpart": 11.600034207105637,
+              "ratio": 1.1472401027993138,
+              "status": "fail",
+              "gpuSkipped": []
+            }
+          ]
+        }
+      },
+      "frameCounters": {
+        "before": {
+          "submittedFrames": {
+            "perRun": [303, 303, 303, 303],
+            "total": 1212
+          },
+          "zigFrames": {
+            "perRun": [303, 303, 303, 303],
+            "total": 1212
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "delta": {
+          "submittedFrames": {
+            "perRun": [2700, 2700, 2700, 2700],
+            "total": 10800
+          },
+          "zigFrames": {
+            "perRun": [2700, 2700, 2700, 2700],
+            "total": 10800
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        },
+        "after": {
+          "submittedFrames": {
+            "perRun": [3003, 3003, 3003, 3003],
+            "total": 12012
+          },
+          "zigFrames": {
+            "perRun": [3003, 3003, 3003, 3003],
+            "total": 12012
+          },
+          "jsFallbackFrames": {
+            "perRun": [0, 0, 0, 0],
+            "total": 0
+          }
+        }
+      },
+      "source": {
+        "runtimeCommit": "4a0adeb1c43b1fb29a9105d1adc17c2e3db01886",
+        "runtimeSourceSha256": "c0baab8832fa1aab88f87aa4769d70030a0b7fd65389201f9e7474658585acf1",
+        "benchmarkSourceSha256": "ad5646c874d1b88da44dc8ba2fbe2e663b369d06e386fad512a976e8cc5215ca",
+        "browserSha256": "4445f70c78509e4d2e2074ee765e256b2a0c4877b257776cb4e574d628f3824c",
+        "bridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe"
+      }
+    }
+  ],
+  "audits": [
+    {
+      "name": "before-rolling-unicode-logs-webgl-17",
+      "cpuAcquisitionUncertaintyMaxMs": 0.6149570000015956,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83357613,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgl-17/prequeue-gpu-idle.json",
+        "sha256": "457613088c26c2e484a816c1a7f48ad2a2ab484f9a8490bcba48e8d0bf01cc84",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "before-rolling-unicode-logs-webgpu-17",
+      "cpuAcquisitionUncertaintyMaxMs": 0.8673904999741353,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83357613,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgpu-17/prequeue-gpu-idle.json",
+        "sha256": "e9c07855998e413c5ff8f1e61dd25f2d966e64c03403498c625611a71e98336f",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        }
+      ],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "before-rolling-logs-webgl-17",
+      "cpuAcquisitionUncertaintyMaxMs": 0.6121790000033798,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83475780,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-logs-webgl-17/prequeue-gpu-idle.json",
+        "sha256": "62cf59a5d2e8e4ca6452f59d4b1c8a09ba5d3872877623212a11fd41445060aa",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "before-rolling-logs-webgpu-17",
+      "cpuAcquisitionUncertaintyMaxMs": 1.0004865000009886,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83475780,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-logs-webgpu-17/prequeue-gpu-idle.json",
+        "sha256": "f92feeb23540a67b5cdbe79fa1d76ff9f949a075c05f8cdfec2f67f60d44f538",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        }
+      ],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "before-rolling-unicode-logs-webgl-1",
+      "cpuAcquisitionUncertaintyMaxMs": 0.9324064999818802,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 11029678,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgl-1/prequeue-gpu-idle.json",
+        "sha256": "7914dd9cefe975107eef0ae11387c59079e38e3576ed836bf2cbcf8dd9085873",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "after-rolling-unicode-logs-webgl-17",
+      "cpuAcquisitionUncertaintyMaxMs": 0.6121585000073537,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83357613,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgl-17/prequeue-gpu-idle.json",
+        "sha256": "620fd7c9c42cfd9a14f30a8aaba7a7e8f6c1ef9b612dc00cf39f3b15e727fd32",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "after-rolling-unicode-logs-webgpu-17",
+      "cpuAcquisitionUncertaintyMaxMs": 1.0572025000001304,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83357613,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgpu-17/prequeue-gpu-idle.json",
+        "sha256": "556ce4b1136f631cdfdd40333d1ac33dbafc3d54d24f10e77e5eafc479e2e19c",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        }
+      ],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "after-rolling-logs-webgl-17",
+      "cpuAcquisitionUncertaintyMaxMs": 0.6058724999893457,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83475780,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-logs-webgl-17/prequeue-gpu-idle.json",
+        "sha256": "d1c24659f90c3f4307681de2c18aa28312c22c387a7006ebd24de7f54622bf80",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "after-rolling-logs-webgpu-17",
+      "cpuAcquisitionUncertaintyMaxMs": 1.0180719999989378,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 83475780,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-logs-webgpu-17/prequeue-gpu-idle.json",
+        "sha256": "1d8c741cc75c59a288ff3e55dbfd5c9278887fda309a039027f993a267a82073",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        },
+        {
+          "vendor": "nvidia",
+          "architecture": "ampere",
+          "description": "",
+          "fallback": false
+        }
+      ],
+      "dpr": 2,
+      "font": "Bench Mono"
+    },
+    {
+      "name": "after-rolling-unicode-logs-webgl-1",
+      "cpuAcquisitionUncertaintyMaxMs": 0.9467659999500029,
+      "allPageErrorsEmpty": true,
+      "stableCpuProcesses": true,
+      "identicalTimedNativeControlInputBytes": 11029678,
+      "allGpuWindowsQualified": true,
+      "allLatencySampleCounts96": true,
+      "hardware": true,
+      "environment": {
+        "browser": "153.0.8010.12",
+        "browserChannel": "chromium-headless-shell",
+        "os": "linux 7.2.5-3-omarchy x64",
+        "cpu": "Intel(R) Core(TM) i7-14700K",
+        "renderer": "ANGLE (NVIDIA, Vulkan 1.4.341 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-610.57.4.0)",
+        "headed": false,
+        "headless": true,
+        "displayAwake": null,
+        "power": null,
+        "launchArguments": [
+          "--force-device-scale-factor=2",
+          "--enable-unsafe-webgpu",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--max-active-webgl-contexts=32",
+          "--enable-features=Vulkan",
+          "--use-angle=vulkan",
+          "--ignore-gpu-blocklist"
+        ]
+      },
+      "latencyEndpoint": "keydown/write to compositor presentation ack (headless-shell, on-demand, not vsync)",
+      "outsideQueueGpuGate": {
+        "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgl-1/prequeue-gpu-idle.json",
+        "sha256": "06a801a7c3a613dffcdae7c0f608a09ad8946f5b601374e861ec8d217734e25d",
+        "qualified": true
+      },
+      "nativeWebGpuAdapters": [],
+      "dpr": 2,
+      "font": "Bench Mono"
+    }
+  ],
+  "limitations": [
+    "Before/after conditions occupy separate browser sessions; only native/xterm ratios inside each condition are paired.",
+    "Ghostty WebGL uses xterm WebGL as a like-for-like backend control; Ghostty WebGPU also uses xterm WebGL because xterm has no WebGPU backend.",
+    "CPU values are percentages of one core. Formal output CPU decisions require 100 ticks per side at 10 ms resolution and a difference exceeding one tick; GPU-process ratios have only a descriptive tick-resolution audit.",
+    "GPU-process CPU means CPU consumption, not hardware GPU execution time. GPU paired ratio is descriptive and has no formal runner target.",
+    "Headless-shell compositor presentation acknowledgement is on-demand, not physical vsync or optical latency.",
+    "Latency probes are existing colored-marker writes and # keydown through the local echo socket; output fixture labels do not make those probes Unicode input measurements. This harness does not measure Platform UI or remote-network latency.",
+    "No additional attribution-trace window was run; this is the ten-window CPU/latency/frame-counter matrix.",
+    "GPU foreign-activity qualification uses resident compute memory as a conservative proxy; utilization includes the benchmark and sampling can miss shorter bursts.",
+    "Rolling-unicode-logs is synthetic real-Git-history plus a shell prompt every four source lines and box/CJK text every sixteen; it is not a captured production session.",
+    "Frame counters before and after output are cumulative renderer counters; delta isolates timed output. Total after-output counters include correctness, latency, warmup and timed output.",
+    "Unicode1 WebGPU and all rolling1 windows skipped by coordinator.",
+    "Treatment timings apply to the frozen 7405-byte bridge, SHA-256 ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe. Commit cd8be0c6b06b8c106ca86a9253ed6efec7fa116b has a later colored-atlas pressure guard, a separate 7408-byte bridge, and is untimed; lead reports byte-identical browser.js, and the sole production TypeScript delta is independently verified erased type annotations."
+  ],
+  "calculationDefinitions": {
+    "componentCpuPercentOfOneCore": "100000 * secondsByType[component] / cpu.milliseconds",
+    "totalCpuPercentOfOneCore": "100000 * sum(secondsByType.values()) / cpu.milliseconds",
+    "runInputAndWriteP50": "Median of 96 raw sample milliseconds",
+    "runInputAndWriteP95": "Nearest rank: sorted96[ceil(0.95 * 96) - 1]",
+    "absoluteWindowValues": "Median of four per-run CPU values or per-run latency quantiles; latency samples are not pooled",
+    "pairedRatios": "Median of four native / xterm values matched by repetition inside a condition",
+    "beforeAfterChangesPercent": "100 * (after condition median / before condition median - 1); descriptive across separate sessions",
+    "timedFrameCounts": "Sum of each terminal renderer counter delta across all terminals; cumulative before/after counters also retained"
+  },
+  "beforeAfterDescriptiveChanges": [
+    {
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgl",
+      "count": 17,
+      "beforeSessionId": "d83a3ff3-ccdc-46f9-8eda-724d283b7bde",
+      "afterSessionId": "3820244c-3c63-4920-8de1-a4f62f4876d7",
+      "cpuNativePercentChanges": {
+        "renderer": -46.11985953171013,
+        "GPU": -0.5754612285169158,
+        "total": -23.925954931409077
+      },
+      "cpuControlPercentChanges": {
+        "renderer": -0.09412533220892749,
+        "GPU": -0.9701089133466123,
+        "total": -0.18538352460074625
+      },
+      "latencyNativePercentChanges": {
+        "inputP50": 2.558481673369406,
+        "inputP95": -1.8681153481316937,
+        "writeP50": 1.9048056280904113,
+        "writeP95": 0.2552822690499168
+      },
+      "rendererPairedRatioChangePercent": -46.405739487170315
+    },
+    {
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgpu",
+      "count": 17,
+      "beforeSessionId": "9226d6b8-c2b6-40e1-8e4a-44089e5a8f4e",
+      "afterSessionId": "40ea5fab-42b6-4e8b-86b2-37e91bcbf686",
+      "cpuNativePercentChanges": {
+        "renderer": -42.0604849806638,
+        "GPU": -0.8291077275938807,
+        "total": -15.177739236902799
+      },
+      "cpuControlPercentChanges": {
+        "renderer": -0.5794672662835398,
+        "GPU": -0.3843150317804245,
+        "total": 0.2832396878291066
+      },
+      "latencyNativePercentChanges": {
+        "inputP50": -2.138465581828186,
+        "inputP95": 0.769663792679709,
+        "writeP50": -2.923763752477171,
+        "writeP95": -0.020171454857853544
+      },
+      "rendererPairedRatioChangePercent": -42.86823113729131
+    },
+    {
+      "fixture": "rolling-logs",
+      "backend": "webgl",
+      "count": 17,
+      "beforeSessionId": "41bc66fa-76a2-4614-a617-861d2ace5f3f",
+      "afterSessionId": "08511051-73cb-456c-948e-5b1b5ffc4aa7",
+      "cpuNativePercentChanges": {
+        "renderer": 2.166634829603531,
+        "GPU": -3.839330297219967,
+        "total": -1.943090231179323
+      },
+      "cpuControlPercentChanges": {
+        "renderer": -0.3445796639809595,
+        "GPU": -1.9308821436387902,
+        "total": -0.6007824793908711
+      },
+      "latencyNativePercentChanges": {
+        "inputP50": -2.231997086763937,
+        "inputP95": 2.05516831889061,
+        "writeP50": 4.041987802673752,
+        "writeP95": 0.029313477488557282
+      },
+      "rendererPairedRatioChangePercent": 2.045488268907447
+    },
+    {
+      "fixture": "rolling-logs",
+      "backend": "webgpu",
+      "count": 17,
+      "beforeSessionId": "94cbac53-884d-4685-85c1-7810f0c43a07",
+      "afterSessionId": "d0dba035-4620-4f55-a8c7-246206ef2cc4",
+      "cpuNativePercentChanges": {
+        "renderer": -2.2051461726392274,
+        "GPU": -3.973847538285036,
+        "total": -3.3037482033269616
+      },
+      "cpuControlPercentChanges": {
+        "renderer": -0.019917754751463956,
+        "GPU": 2.388432011476538,
+        "total": 0.9001596894494757
+      },
+      "latencyNativePercentChanges": {
+        "inputP50": -0.9814950929497912,
+        "inputP95": 4.23558329389222,
+        "writeP50": -10.667125006446499,
+        "writeP95": -1.0812379666411132
+      },
+      "rendererPairedRatioChangePercent": -2.3085408907802196
+    },
+    {
+      "fixture": "rolling-unicode-logs",
+      "backend": "webgl",
+      "count": 1,
+      "beforeSessionId": "3604db38-70e5-4a30-85ae-20ee46012e2e",
+      "afterSessionId": "6ed76c34-abc6-4339-8e13-713ac817877c",
+      "cpuNativePercentChanges": {
+        "renderer": -22.0548613793931,
+        "GPU": 2.42218601693045,
+        "total": -12.167188622182845
+      },
+      "cpuControlPercentChanges": {
+        "renderer": 3.05311157339645,
+        "GPU": 3.405820676305771,
+        "total": 3.461328824048615
+      },
+      "latencyNativePercentChanges": {
+        "inputP50": -4.901488553172073,
+        "inputP95": -0.6579074081142111,
+        "writeP50": 5.2895793615356235,
+        "writeP95": 0.8039361543235479
+      },
+      "rendererPairedRatioChangePercent": -24.5595180404966
+    }
+  ]
+}

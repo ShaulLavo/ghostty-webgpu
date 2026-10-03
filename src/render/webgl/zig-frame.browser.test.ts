@@ -11,8 +11,9 @@ import type { RenderRow } from '../../core/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import type { AtlasInsertResult } from '../atlas/types.js'
-import { registerZigGlyphs, zigGlyphRow } from '../atlas/zig-glyphs.js'
+import { buildZigFrame, registerZigGlyphs, zigGlyphRow } from '../atlas/zig-glyphs.js'
 import { canonicalRendererTheme } from '../config.js'
+import { InstanceRows } from '../instances/rows.js'
 import { defaultRendererTheme } from '../instances/types.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../renderer.js'
 import { WebGlTerminalRenderer } from './renderer.js'
@@ -204,7 +205,7 @@ describe('WebGL WASM frame pixel parity', () => {
     }
   })
 
-  it('falls back for Unicode, retains that fallback on a clean Unicode row, and returns to Zig', async () => {
+  it('keeps Unicode and clean wide rows resident in Zig across ASCII writes', async () => {
     const { native, js, nativeSource, jsSource, readRows } = await parityFixture('\x1b[?25lASCII')
     native.clock.flushFrame()
     js.clock.flushFrame()
@@ -214,16 +215,18 @@ describe('WebGL WASM frame pixel parity', () => {
     js.renderer.notifyWrite()
     native.clock.flushFrame()
     js.clock.flushFrame()
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(1)
-    expect(readRows).toHaveBeenCalled()
+    expect(native.renderer.metrics.zigFrames).toBe(2)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    expect(readRows).not.toHaveBeenCalled()
     await expectPixelParity(native.renderer, js.renderer)
     writePair(nativeSource, jsSource, '\x1b[2;1Hchanged')
     native.renderer.notifyWrite()
     js.renderer.notifyWrite()
     native.clock.flushFrame()
     js.clock.flushFrame()
-    expect(native.renderer.metrics.zigFrames).toBe(1)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(2)
+    expect(native.renderer.metrics.zigFrames).toBe(3)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    expect(readRows).not.toHaveBeenCalled()
     await expectPixelParity(native.renderer, js.renderer)
     readRows.mockClear()
     writePair(nativeSource, jsSource, '\x1b[3;1H\x1b[2KASCII')
@@ -231,8 +234,8 @@ describe('WebGL WASM frame pixel parity', () => {
     js.renderer.notifyWrite()
     native.clock.flushFrame()
     js.clock.flushFrame()
-    expect(native.renderer.metrics.zigFrames).toBe(2)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(2)
+    expect(native.renderer.metrics.zigFrames).toBe(4)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
     await expectPixelParity(native.renderer, js.renderer)
     native.renderer.schedule()
@@ -459,7 +462,7 @@ describe('WebGL WASM frame lifecycle', () => {
         allocate.mock.results[index]!.value as number,
         length,
       ])
-      expect(expectedFrees).toHaveLength(8)
+      expect(expectedFrees).toHaveLength(7)
       const free = vi.spyOn(source.runtime.memory, 'free')
       renderer.refreshRows(0, 1)
       expect(clock.frames.size).toBe(1)
@@ -482,6 +485,76 @@ describe('WebGL WASM frame lifecycle', () => {
 })
 
 describe('WebGL native atlas residency', () => {
+  it('rebuilds fragmented [AB][CD] pages for ABC to ABCE with intact clean-row bytes', async () => {
+    const source = await runtimeFixture(2, 2)
+    const font = fittedFont()
+    const theme = canonicalRendererTheme(defaultRendererTheme)
+    const rasterizer = new CanvasGlyphRasterizer({ font })
+    const bitmaps = [...'ABCDE'].map((text) =>
+      rasterizer.rasterize({
+        cellSpan: 1,
+        foreground: theme.foreground,
+        italic: false,
+        text,
+        weight: 'normal',
+      })!,
+    )
+    expect(bitmaps.every((bitmap) => bitmap.kind === 'grayscale')).toBe(true)
+    const pageWidth = 2 * Math.max(...bitmaps.map((bitmap) => bitmap.width))
+    const pageHeight = Math.max(...bitmaps.map((bitmap) => bitmap.height))
+    expect(3 * Math.min(...bitmaps.map((bitmap) => bitmap.width))).toBeGreaterThan(pageWidth)
+    expect(2 * Math.min(...bitmaps.map((bitmap) => bitmap.height))).toBeGreaterThan(pageHeight)
+    const atlas = new GlyphAtlas({ pageWidth, pageHeight, padding: 0, maxLayersPerKind: 2 })
+    source.terminal.write('\x1b[?25lAB\x1b[2;1HCD')
+    source.state.update()
+    const builder = source.state.createFrameBuilder(2, 2)
+    disposables.push(() => builder.dispose())
+    const options = {
+      cellHeight: font.deviceCellHeight,
+      cellWidth: font.deviceCellWidth,
+      full: true,
+      overlayRows: new Set<number>(),
+      theme,
+    }
+    expect(buildZigFrame(builder, atlas, rasterizer, options)).toBe(0)
+    expect(atlas.pageCount).toBe(2)
+    expect(atlas.evictionCount).toBe(0)
+    source.state.acknowledge()
+    source.terminal.write('\x1b[2;2H ')
+    source.state.update()
+    expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
+    source.state.acknowledge()
+    const clean = builder.glyphData.slice(0, 2 * 24)
+    const builds = vi.spyOn(builder, 'build')
+    source.terminal.write('\x1b[2;2HE')
+    source.state.update()
+    expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
+    expect(builds.mock.results.map((result) => result.value)).toEqual([2, 2, 0])
+    expect(atlas.evictionCount).toBe(1)
+    // Atlas repacking changes UVs; reconstruct all instances through the same live atlas.
+    const js = new InstanceRows({
+      columns: 2,
+      rows: 2,
+      cellWidth: font.deviceCellWidth,
+      cellHeight: font.deviceCellHeight,
+    })
+    for (const row of source.state.readRows())
+      js.rebuildRow(
+        row,
+        {
+          beginRow: (row) => atlas.beginRow(row),
+          resolve: (key, bitmap, row) => atlas.getOrInsert(key, bitmap, row),
+        },
+        rasterizer,
+        theme,
+      )
+    expect(builder.cellData).toEqual(js.cellData)
+    expect(builder.glyphData).toEqual(js.glyphData)
+    expect(builder.glyphData.slice(0, 2 * 24)).not.toEqual(new Float32Array(clean.length))
+    expect(builder.changedRanges().map((range) => range.row)).toEqual([0, 1])
+    expect(builder.missingGlyphs).toEqual([])
+  })
+
   it('keeps native glyph references independent of row zero during real page recycling', async () => {
     const source = await runtimeFixture(8, 2)
     source.terminal.write('\x1b[?25l\x1b[2;1HM')
@@ -513,20 +586,20 @@ describe('WebGL native atlas residency', () => {
       theme,
     }
     expect(builder.build(options)).toBe(2)
-    expect(registerZigGlyphs(builder, atlas, rasterizer, theme)).toBe(true)
+    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(true)
     expect(builder.build(options)).toBe(0)
     atlas.beginRow(0)
     const replacement = atlas.getOrInsert('replacement', bitmap, 0)
     expect(replacement.invalidatedRows).toEqual([zigGlyphRow])
     expect(atlas.evictionCount).toBe(1)
     const clearGlyphs = vi.spyOn(builder, 'clearGlyphs')
-    expect(registerZigGlyphs(builder, atlas, rasterizer, theme)).toBe(false)
+    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(false)
     expect(builder.build(options)).toBe(2)
     // The replacement owns row zero, so a missing native glyph must reject its eviction too.
-    expect(registerZigGlyphs(builder, atlas, rasterizer, theme)).toBe(false)
+    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(false)
     expect(clearGlyphs).toHaveBeenCalledTimes(2)
     expect(builder.build(options)).toBe(2)
-    expect(builder.missingGlyphs).toContain('M'.charCodeAt(0))
+    expect(builder.missingGlyphs.map((key) => builder.glyphInput(key).text)).toContain('M')
   })
 
   it('rebuilds native pixels after clearing the atlas and changing the fitted font', async () => {
@@ -555,7 +628,7 @@ describe('WebGL native atlas residency', () => {
     expect(readRows).not.toHaveBeenCalled()
   })
 
-  it('falls back fully after native atlas eviction and returns to Zig with clean-row pixels intact', async ({
+  it('recovers native atlas eviction with zero fallback and clean-row pixels intact', async ({
     onTestFinished,
   }) => {
     const viewport = { width: window.innerWidth, height: window.innerHeight }
@@ -590,8 +663,9 @@ describe('WebGL native atlas residency', () => {
       flushPendingFrames(js.clock)
     }
     expect(native.renderer.metrics.atlasEvictions).toBeGreaterThan(0)
-    expect(native.renderer.metrics.jsFallbackFrames).toBeGreaterThan(0)
-    expect(readRows.mock.results.some((result) => result.value.length === 2)).toBe(true)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
+    expect(readRows).not.toHaveBeenCalled()
     const frames = native.renderer.metrics.zigFrames
     writePair(nativeSource, jsSource, '\x1b[1;1H\x1b[0mZ')
     native.renderer.notifyWrite()
@@ -610,7 +684,7 @@ function flushPendingFrames(clock: TestClock): void {
   expect(clock.frames.size).toBe(0)
 }
 
-it('preserves the active native page when inserting a cold glyph into a full atlas', async ({
+it('preserves active native pixels across a full-atlas recycle and bounded empty-atlas rebuild', async ({
   onTestFinished,
 }) => {
   const viewport = { width: window.innerWidth, height: window.innerHeight }
@@ -720,17 +794,15 @@ it('preserves the active native page when inserting a cold glyph into a full atl
   expect(jsFirstEviction.glyph.layer).not.toBe(nativeM.layer)
   expect(nativeFirstEviction.glyph.layer).not.toBe(nativeM.layer)
   expect(native.renderer.metrics.atlasEvictions - warm.native.atlasEvictions).toBe(1)
-  expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(1)
-  expect(native.renderer.metrics.atlasUploadOperations - warm.native.atlasUploadOperations).toBe(1)
+  expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(3)
+  expect(native.renderer.metrics.atlasUploadOperations - warm.native.atlasUploadOperations).toBe(16)
   expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(
-    512 * 512,
+    16 * 512 * 512,
   )
-  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2])
-  expect(
-    nativeReadRows.mock.results.map((result) =>
-      result.type === 'return' ? result.value.length : -1,
-    ),
-  ).toEqual([2])
+  expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0, 0, 0, 2, 2, 0])
+  expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+  expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
+  expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches.mock.calls).toEqual([
     [{ generation: nativeM.generation, kind: 'grayscale', layer: nativeM.layer }, zigGlyphRow],
   ])

@@ -758,7 +758,9 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     dirtyOnly: number,
     frame: number,
   ): number
-  bridge_register_glyph(index: number, key: number, entry: number): void
+  bridge_create_glyph_index(): number
+  bridge_destroy_glyph_index(index: number): void
+  bridge_register_glyph(key: number, entry: number): void
   bridge_clear_glyphs(index: number): void
   bridge_bell: WebAssembly.ExportValue
   bridge_clipboard_write: WebAssembly.ExportValue

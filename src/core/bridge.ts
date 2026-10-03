@@ -198,8 +198,16 @@ export class CallbackBridge {
     )
   }
 
-  registerGlyph(index: number, key: number, entry: number): void {
-    this.bridgeExports!.bridge_register_glyph(index, key, entry)
+  createGlyphIndex(): number {
+    return this.bridgeExports!.bridge_create_glyph_index()
+  }
+
+  destroyGlyphIndex(index: number): void {
+    this.bridgeExports!.bridge_destroy_glyph_index(index)
+  }
+
+  registerGlyph(key: number, entry: number): void {
+    this.bridgeExports!.bridge_register_glyph(key, entry)
   }
 
   clearGlyphs(index: number): void {

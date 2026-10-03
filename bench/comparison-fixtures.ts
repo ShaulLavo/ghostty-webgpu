@@ -10,7 +10,16 @@ export const variants = [
 
 export type Variant = (typeof variants)[number]['id']
 export type WritePath = 'bytes' | 'string'
-export const fixtureNames = ['ascii', 'sgr', 'unicode', 'cursor', 'logs', 'rolling-logs'] as const
+export const fixtureNames = [
+  'ascii',
+  'sgr',
+  'unicode',
+  'cursor',
+  'logs',
+  'rolling-logs',
+  'rolling-unicode-logs',
+] as const
+export type RollingFixtureName = 'rolling-logs' | 'rolling-unicode-logs'
 export type FixtureName = (typeof fixtureNames)[number]
 
 export const settings = {
@@ -62,7 +71,20 @@ export function fixtureText(name: FixtureName, logs: string): string {
   if (name === 'unicode') return '日本語 中文 é café 👩‍💻 👨‍👩‍👧‍👦 🧪\r\n'
   if (name === 'cursor')
     return '\x1b[H\x1b[2Kstatus: redraw\x1b[3;2H\x1b[32mvalue\x1b[0m\x1b[6;1H\x1b[Kprogress 42%\x1b[1;1H'
+  if (name === 'rolling-unicode-logs') return unicodePromptLogs(logs).replaceAll('\n', '\r\n')
   return logs.replaceAll('\n', '\r\n')
+}
+
+export function unicodePromptLogs(logs: string): string {
+  return logs
+    .split('\n')
+    .map((line, index) => {
+      const lines = [line]
+      if ((index + 1) % 4 === 0) lines.push('❯ git log --oneline')
+      if ((index + 1) % 16 === 0) lines.push('┌─ 状態: 日本語 中文 ─┐')
+      return lines.join('\n')
+    })
+    .join('\n')
 }
 
 export function corpus(text: string, minimumBytes: number): string {
@@ -80,10 +102,11 @@ export function rollingFixture(
   logs: string,
   minimumBytes: number = settings.corpusBytes,
   chunkBytes: number = settings.chunkBytes,
+  name: RollingFixtureName = 'rolling-logs',
 ): RollingFixture {
   if (!Number.isInteger(chunkBytes) || chunkBytes < 4)
     throw new RangeError('Rolling chunk size must fit a UTF-8 codepoint')
-  const bytes = new TextEncoder().encode(corpus(fixtureText('logs', logs), minimumBytes))
+  const bytes = new TextEncoder().encode(corpus(fixtureText(name, logs), minimumBytes))
   const chunks: Uint8Array[] = []
   for (let offset = 0; offset < bytes.length;) {
     let end = Math.min(offset + chunkBytes, bytes.length)

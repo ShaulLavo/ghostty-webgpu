@@ -1,18 +1,22 @@
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { RgbColor } from './types.js'
-import type { AtlasGlyph } from '../render/atlas/types.js'
+import type { AtlasGlyph, GlyphRasterizationInput } from '../render/atlas/types.js'
+import { contrastAdjustedColor } from '../render/contrast.js'
 import type {
   CanonicalRendererTheme,
   CursorState,
   RowInstanceUpdate,
 } from '../render/instances/types.js'
 
-const frameBytes = 92
-const glyphIndexBytes = 512 * 48
+const frameBytes = 112
 
 function packedColor(color: RgbColor): number {
   return color.r | (color.g << 8) | (color.b << 16)
+}
+
+function unpackedColor(color: number): RgbColor {
+  return { r: color & 255, g: (color >>> 8) & 255, b: (color >>> 16) & 255 }
 }
 
 export interface ZigFrameOptions {
@@ -30,7 +34,7 @@ export class ZigFrameBuilder {
   private readonly frame: number
   private readonly cellPointer: number
   private readonly glyphPointer: number
-  private readonly index: number
+  private index = 0
   private readonly ranges: number
   private readonly missing: number
   private readonly mask: number
@@ -50,9 +54,11 @@ export class ZigFrameBuilder {
       this.frame = this.allocate(frameBytes)
       this.cellPointer = this.allocate(columns * rows * 64)
       this.glyphPointer = this.allocate(columns * rows * 96)
-      this.index = this.allocate(glyphIndexBytes)
+      this.index = this.runtime.bridge.createGlyphIndex()
+      if (!this.index)
+        throw createGhosttyError('frame_builder', 'Unable to allocate the glyph index')
       this.ranges = this.allocate(rows * 16)
-      this.missing = this.allocate(512 * 4)
+      this.missing = this.allocate(columns * rows * 4)
       this.mask = this.allocate(rows)
       this.entry = this.allocate(48)
       const values = [
@@ -65,11 +71,12 @@ export class ZigFrameBuilder {
         rows,
         0,
         this.missing,
-        512,
+        columns * rows,
         0,
         0,
       ]
       for (const [offset, value] of values.entries()) this.setUint(offset * 4, value)
+      this.setUint(100, 0)
     } catch (cause) {
       this.dispose()
       throw cause
@@ -94,6 +101,16 @@ export class ZigFrameBuilder {
     )
   }
 
+  get glyphCount(): number {
+    this.ensureActive()
+    return this.runtime.memory.view.getUint32(this.index + 8, true)
+  }
+
+  get glyphIndexRebuilds(): number {
+    this.ensureActive()
+    return this.runtime.memory.view.getUint32(this.frame + 100, true)
+  }
+
   get missingGlyphs(): readonly number[] {
     this.ensureActive()
     const count = this.runtime.memory.view.getUint32(this.frame + 40, true)
@@ -112,6 +129,7 @@ export class ZigFrameBuilder {
     view.setFloat32(this.frame + 48, options.cellWidth, true)
     view.setFloat32(this.frame + 52, options.cellHeight, true)
     view.setFloat32(this.frame + 56, options.theme.minimumContrast, true)
+    view.setFloat64(this.frame + 104, options.theme.minimumContrast, true)
     const colors = [
       options.theme.foreground,
       options.theme.background,
@@ -125,6 +143,8 @@ export class ZigFrameBuilder {
     this.setUint(84, cursor?.visible ? 1 : 0)
     const styles = ['block', 'bar', 'underline', 'outline']
     this.setUint(88, cursor ? styles.indexOf(cursor.style) : 0)
+    this.setUint(92, packedColor(options.theme.selectionForeground))
+    this.setUint(96, packedColor(options.theme.selectionBackground))
     assertGhosttyResult(
       'bridge_build_frame',
       this.runtime.bridge.buildFrame(
@@ -161,6 +181,26 @@ export class ZigFrameBuilder {
     return result
   }
 
+  glyphInput(key: number): GlyphRasterizationInput {
+    this.ensureActive()
+    const view = this.runtime.memory.view
+    const pointer = view.getUint32(key, true)
+    const length = view.getUint32(key + 4, true)
+    let text = ''
+    for (let index = 0; index < length; index += 1)
+      text += String.fromCodePoint(view.getUint32(pointer + index * 4, true))
+    const style = view.getUint32(key + 12, true)
+    const foreground = unpackedColor(view.getUint32(key + 16, true))
+    const background = unpackedColor(view.getUint32(key + 20, true))
+    return {
+      text,
+      cellSpan: view.getUint32(key + 8, true),
+      italic: (style & 2) !== 0,
+      weight: (style & 1) !== 0 ? 'bold' : 'normal',
+      foreground: contrastAdjustedColor(foreground, background, view.getFloat64(key + 24, true)),
+    }
+  }
+
   registerGlyph(key: number, glyph: AtlasGlyph | undefined): void {
     this.ensureActive()
     const data = new Float32Array(this.runtime.memory.bytes.buffer, this.entry, 12)
@@ -181,7 +221,7 @@ export class ZigFrameBuilder {
         1,
       ])
     if (!glyph) data[11] = 1
-    this.runtime.bridge.registerGlyph(this.index, key, this.entry)
+    this.runtime.bridge.registerGlyph(key, this.entry)
   }
 
   clearGlyphs(): void {
@@ -192,6 +232,8 @@ export class ZigFrameBuilder {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    if (this.index) this.runtime.bridge.destroyGlyphIndex(this.index)
+    this.index = 0
     for (const allocation of this.allocations)
       this.runtime.memory.free(allocation.pointer, allocation.length)
     this.allocations.length = 0

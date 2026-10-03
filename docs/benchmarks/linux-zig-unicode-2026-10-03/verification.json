@@ -1,0 +1,127 @@
+{
+  "schema": 1,
+  "complete": true,
+  "windows": 10,
+  "cases": 80,
+  "nativeCases": 40,
+  "xtermCases": 40,
+  "focusedOwnedTests": {
+    "rollingFixtures": 6,
+    "buildOptionsRunner": 22,
+    "attribution": 19,
+    "failed": 0
+  },
+  "nativeMeasuredSubmissions": 674400,
+  "allMeasuredInputsMatchFrozenByteStreams": true,
+  "allSettingsFixturesDriverAndRuntimeAssetsMatchFrozenManifests": true,
+  "allGpuAdmissionsAndMeasuredWindowsQualified": true,
+  "allCpuProcessSetsStable": true,
+  "allPageErrorsEmpty": true,
+  "allInputAndWriteSampleCounts96": true,
+  "rawEvidenceRoot": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode",
+  "compactArtifacts": [
+    {
+      "name": "before-rolling-unicode-logs-webgl-17.json",
+      "sha256": "fd828a3a3224fff392db36fe2af3dedec54394c885aecf30e4349bf5e1eb98c2",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgl-17/comparison.json",
+      "rawSha256": "e17d02092efacf838968cbd2ee0a3df19fdbf1fde254bfc82175fb32da152d60"
+    },
+    {
+      "name": "before-rolling-unicode-logs-webgpu-17.json",
+      "sha256": "bc60635e9555aab91d032e6869d15becc2edf1eedc52e9047d20030ed68b0572",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgpu-17/comparison.json",
+      "rawSha256": "867b4ca67f2bac364e8bd7b9233f7f8bfe17f434551c3131009a25be58c4954a"
+    },
+    {
+      "name": "before-rolling-logs-webgl-17.json",
+      "sha256": "9daa500a23e1d9c0393d055100301fe2276f0a0c3fb37c1f9846fed1b4c120b7",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-logs-webgl-17/comparison.json",
+      "rawSha256": "9ebc679b346f152d79e6cc6a74c0d019bf110ad57d8a0d0fd13e9d42fe772c7d"
+    },
+    {
+      "name": "before-rolling-logs-webgpu-17.json",
+      "sha256": "03840144a9a7c7469985ad259d7c86118d932d6cb51fdd088422d75571ce9d02",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-logs-webgpu-17/comparison.json",
+      "rawSha256": "e6b6d431da97ab56d16e969a553d08baa8d6e02610a94fd504d283009ccfe337"
+    },
+    {
+      "name": "before-rolling-unicode-logs-webgl-1.json",
+      "sha256": "cfb3ebce753cfa9be1740e4f750d4334e82965fe4bf9f6d0bf6e8e6f832deb41",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/before-rolling-unicode-logs-webgl-1/comparison.json",
+      "rawSha256": "09ab3ba0339b9098efd673126a06234de3eb96bd11aa8a853b1e6f71cecdb414"
+    },
+    {
+      "name": "after-rolling-unicode-logs-webgl-17.json",
+      "sha256": "fb732472c3bf140c18a3a15ac3c61e6604280cd160db11bb428e7c2b1a297f8a",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgl-17/comparison.json",
+      "rawSha256": "8fce3d5eb8653da6393a4c2a278fbd33fd473d2e28a3d9799f587802f66bb841"
+    },
+    {
+      "name": "after-rolling-unicode-logs-webgpu-17.json",
+      "sha256": "acb30c42ed50cf1ec1ed92573419b2bdc6eb3d099ec399b34569f367dfef26fb",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgpu-17/comparison.json",
+      "rawSha256": "a1fbd5c5e39c2788bcab7d03cf5da42da68203ab3ffe0c6fd9f425a63eb29cbb"
+    },
+    {
+      "name": "after-rolling-logs-webgl-17.json",
+      "sha256": "f9e8dd278811c9c0a821927381a8988225ffc3fc7b747b02d9472ee032f6c62f",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-logs-webgl-17/comparison.json",
+      "rawSha256": "43b943e074c28b247763541868838bd328fcef6f947a7047e46e4b93d6a936df"
+    },
+    {
+      "name": "after-rolling-logs-webgpu-17.json",
+      "sha256": "28f538c57ae1e9a7a583aae8895953a36c5a4aaa7dee20fa3d352bc45f52d4dd",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-logs-webgpu-17/comparison.json",
+      "rawSha256": "6e70e79fa4ab2e309f1e60f09bccbf43501d7d03179190e7ba50865495a182c9"
+    },
+    {
+      "name": "after-rolling-unicode-logs-webgl-1.json",
+      "sha256": "fc0e350a513746c2e2f47df91c456f9ea2c00c778b7817a0b41ed4ac06e1fd1c",
+      "rawPath": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/after-rolling-unicode-logs-webgl-1/comparison.json",
+      "rawSha256": "aac19e8aa8fbdb04603616c15afe074c523cfe25f25c4cab64e521cce3570d49"
+    }
+  ],
+  "visualSpecimens": [
+    {
+      "name": "zig-unicode-webgpu.png",
+      "sha256": "ff9b1c865aaf7a49a921bfac07161b7effa1a044741460d6ea89f83c0dc3c34b",
+      "readBackByBenchmarkLane": true,
+      "qualification": "Lead-generated matching native/JavaScript Unicode specimen; separate from rolling-fixture timing."
+    },
+    {
+      "name": "zig-unicode-webgl2.png",
+      "sha256": "6c1f16234c7ec65e6ec1dc5ab070e45051a128eaea59d0c1c37546fa40479308",
+      "readBackByBenchmarkLane": true,
+      "qualification": "Lead-generated matching native/JavaScript Unicode specimen; separate from rolling-fixture timing."
+    }
+  ],
+  "frozenMeasuredTreatmentSourcesVerified": 143,
+  "allCurrentFrozenBundleAssetsRehashed": true,
+  "allNativeXtermRunOrdersBalanced": true,
+  "allNativeFrameCounterSnapshotsPresentAndReconciled": true,
+  "allDprAndFontFactsVerified": {
+    "dpr": 2,
+    "font": "Bench Mono"
+  },
+  "inputLatencySamples": 7680,
+  "writeLatencySamples": 7680,
+  "timedNativeUnicodeFallbackFramesBefore": 166748,
+  "timedNativeFallbackFramesAfter": 0,
+  "finalGuardedCommit": "cd8be0c6b06b8c106ca86a9253ed6efec7fa116b",
+  "finalGuardedCommitTimed": false,
+  "metadataOnlyCorrectedHead": "97a9127bf7b5b92584ab6ceca21b43b4d35a1800",
+  "focusedTestLogs": [
+    {
+      "path": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/fixture-tests.log",
+      "sha256": "1374d7a15aff515351dbe616e536f3f894e95f0a22a393ebf96eb1a0ea6dab07"
+    },
+    {
+      "path": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/driver-tests.log",
+      "sha256": "db486cd9bd360b5213339314e3789512edffffca9a4859b0ee21afdc22bef080"
+    },
+    {
+      "path": "/work/reports/ghostty-benchmarks/plan-283/zig-unicode/attribution-tests.log",
+      "sha256": "4ec9e9eb768b39ae0591c221ee1ba86e1799a72d39eb8caff82f6ea7b2a23160"
+    }
+  ]
+}

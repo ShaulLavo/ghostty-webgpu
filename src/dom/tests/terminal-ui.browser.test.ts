@@ -1305,9 +1305,14 @@ describe('terminal frame consumer demand in Chromium', () => {
       reference.write(styled)
       reference.renderState.update()
       const expectedCells = reference.renderState.readRows().map((row) => row.cells)
+      const zigFrames = harness.renderer.metrics.zigFrames
       harness.terminal.write(styled)
       await settleTerminal(harness.terminal)
-      expect(harness.renderer.metrics.jsFallbackFrames).toBe(1)
+      expect(harness.renderer.metrics.zigFrames).toBe(zigFrames + 1)
+      expect(harness.renderer.metrics.jsFallbackFrames).toBe(0)
+      expect(harness.readRowsCalls()).toBe(0)
+      expect(harness.readTextRowsCalls()).toBe(0)
+      expect(harness.snapshots.at(-1)?.rows).toEqual([])
       const renderingReads = harness.readRowsCalls()
       const updates = harness.updateCalls()
 

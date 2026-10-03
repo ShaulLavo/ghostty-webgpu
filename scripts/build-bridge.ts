@@ -46,6 +46,8 @@ async function validateWasm(path: string): Promise<void> {
     'bridge_read_text_rows',
     'bridge_build_frame',
     'bridge_register_glyph',
+    'bridge_create_glyph_index',
+    'bridge_destroy_glyph_index',
     'bridge_clear_glyphs',
   ]) {
     if (exports.has(name)) continue

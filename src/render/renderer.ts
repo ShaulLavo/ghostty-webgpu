@@ -2,7 +2,7 @@ import { FrameObserver } from './frame-observer.js'
 import { rebuildFrame } from './rebuild-frame.js'
 import { RenderStateDirty } from '../core/abi.js'
 import type { ZigFrameBuilder } from '../core/zig-frame.js'
-import { registerZigGlyphs, zigGlyphRow } from './atlas/zig-glyphs.js'
+import { buildZigFrame, zigGlyphRow } from './atlas/zig-glyphs.js'
 import type { GhosttyRenderState } from '../core/render-state.js'
 import {
   type CellStyle,
@@ -582,15 +582,11 @@ export class WebGpuTerminalRenderer {
       full: this.needsFullRebuild || !this.wasZigFrame,
       overlayRows: this.overlayRows,
     }
-    let status = builder.build(options)
-    if (status === 2) {
-      if (!registerZigGlyphs(builder, this.atlas, this.rasterizer, this.theme)) {
-        this.needsFullRebuild = true
-        return false
-      }
-      status = builder.build(options)
+    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    if (status !== 0) {
+      this.needsFullRebuild = true
+      return false
     }
-    if (status !== 0) return false
     const updates = builder.changedRanges()
     this.atlasTextures.sync(this.atlas.consumeUploads())
     const operations = this.textPass.uploadFrame(builder, updates)

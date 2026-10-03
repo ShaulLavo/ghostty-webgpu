@@ -1,9 +1,12 @@
-import { afterAll, afterEach, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, expect, it, onTestFinished, vi } from 'vitest'
+import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
+import { CanvasGlyphRasterizer } from '../../render/atlas/canvas-rasterizer.js'
+import { defaultRendererTheme } from '../../render/instances/types.js'
 import { WebGpuTerminalRenderer } from '../../render/renderer.js'
 import { WebGlTerminalRenderer } from '../../render/webgl/renderer.js'
-import { displayedPixels } from '../../render/webgl/tests/fixture.js'
+import { displayedPixels, fittedFont, TestClock } from '../../render/webgl/tests/fixture.js'
 import { TerminalSession } from '../../term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../terminal.js'
 
@@ -30,7 +33,12 @@ async function retainGpuInstance(): Promise<void> {
   sentinelDevice = await adapter!.requestDevice()
 }
 
-async function hostFixture(zigFrame: false | undefined, backend: 'webgl2' | 'webgpu' = 'webgl2') {
+async function hostFixture(
+  zigFrame: false | undefined,
+  backend: 'webgl2' | 'webgpu' = 'webgl2',
+  grid = { columns: 12, rows: 3 },
+  clock?: TestClock,
+) {
   const runtime = await GhosttyRuntime.create()
   disposables.push(() => runtime.dispose())
   const host = document.createElement('div')
@@ -49,7 +57,7 @@ async function hostFixture(zigFrame: false | undefined, backend: 'webgl2' | 'web
     appearance: {
       cursor: { blink: false },
       font: { family: 'monospace', size: 16 },
-      grid: { columns: 12, pixelRatio: 1, rows: 3 },
+      grid: { ...grid, pixelRatio: 1 },
     },
     runtime: { kind: 'borrowed', runtime },
   })
@@ -61,10 +69,10 @@ async function hostFixture(zigFrame: false | undefined, backend: 'webgl2' | 'web
       expect(options.zigFrame).toBe(zigFrame ?? true)
       if (backend === 'webgpu') {
         await retainGpuInstance()
-        renderer = await WebGpuTerminalRenderer.create(options)
+        renderer = await WebGpuTerminalRenderer.create({ ...options, schedulerClock: clock })
         return renderer
       }
-      renderer = await WebGlTerminalRenderer.create(options)
+      renderer = await WebGlTerminalRenderer.create({ ...options, schedulerClock: clock })
       return renderer
     },
   })
@@ -73,7 +81,14 @@ async function hostFixture(zigFrame: false | undefined, backend: 'webgl2' | 'web
   terminal.on('error', (error) => errors.push(error))
   await terminal.open(host)
   expect(renderer).toBeDefined()
-  return { canvas: host.querySelector('canvas')!, errors, renderer: renderer!, terminal }
+  return {
+    canvas: host.querySelector('canvas')!,
+    errors,
+    host,
+    renderer: renderer!,
+    state: session.renderState,
+    terminal,
+  }
 }
 
 it.each([
@@ -119,7 +134,7 @@ async function expectHostParity(
 }
 
 it.each(['webgl2', 'webgpu'] as const)(
-  'uses whole-frame Unicode fallback and returns to the default native producer (%s)',
+  'keeps Unicode resident in the default native producer (%s)',
   async (backend) => {
     const native = await hostFixture(undefined, backend)
     const js = await hostFixture(false, backend)
@@ -134,27 +149,169 @@ it.each(['webgl2', 'webgpu'] as const)(
     const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
     for (const host of [native, js]) host.terminal.write('\x1b[3;1H界')
     await expectHostParity(native, js)
-    expect(build.mock.results.map((result) => result.value)).toEqual([1])
-    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(1)
+    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 1)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     build.mockClear()
     for (const host of [native, js]) host.terminal.write('\x1b[1;1Hchanged')
     await expectHostParity(native, js)
-    expect(build.mock.results.map((result) => result.value)).toEqual([1])
-    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(2)
+    expect(build.mock.results.at(-1)?.value).toBe(0)
+    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 2)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     build.mockClear()
     for (const host of [native, js]) host.terminal.write('\x1b[3;1H\x1b[2KASCII')
     await expectHostParity(native, js)
     expect(build.mock.results.at(-1)?.value).toBe(0)
-    expect(native.renderer.metrics.zigFrames).toBeGreaterThan(nativeFrames)
-    expect(native.renderer.metrics.jsFallbackFrames).toBe(2)
+    expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 3)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
     expect(js.renderer.metrics.zigFrames).toBe(0)
     for (const host of [native, js]) {
       host.terminal.dispose()
       expect(host.terminal.hasPendingFrame).toBe(false)
       expect(host.terminal.hasPendingTimer).toBe(false)
     }
+  },
+)
+
+it.each(['webgl2', 'webgpu'] as const)(
+  'recovers real atlas pressure entirely through Zig and retains clean-row pixels (%s)',
+  async (backend) => {
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    onTestFinished(() => page.viewport(viewport.width, viewport.height))
+    await page.viewport(800, 2400)
+    const clocks = [new TestClock(), new TestClock()]
+    const native = await hostFixture(undefined, backend, { columns: 1, rows: 2 }, clocks[0])
+    const js = await hostFixture(false, backend, { columns: 1, rows: 2 }, clocks[1])
+    const flush = () => {
+      for (const clock of clocks) {
+        for (let attempt = 0; attempt < 8 && clock.frames.size > 0; attempt += 1) clock.flushFrame()
+        expect(clock.frames.size).toBe(0)
+      }
+    }
+    const font = fittedFont(320, 512, 500)
+    for (const host of [native, js]) {
+      host.host.style.height = '1040px'
+      host.renderer.setFont(font)
+      host.terminal.write('\x1b[?25lM\x1b[2;1H_')
+    }
+    flush()
+    await expectHostParity(native, js)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    const before = await displayedPixels(native.canvas)
+    const builds = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    const glyphs = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].flatMap((letter) => [
+      `\x1b[0m${letter}`,
+      `\x1b[1m${letter}`,
+    ])
+    for (const glyph of glyphs) {
+      for (const host of [native, js]) host.terminal.write(`\x1b[1;1H${glyph}`)
+      flush()
+      expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+      expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
+    }
+    expect(native.renderer.metrics.atlasEvictions).toBeGreaterThan(0)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    expect(
+      builds.mock.results.some(
+        (result, index, results) =>
+          result.value === 2 && results[index + 1]?.value === 2 && results[index + 2]?.value === 0,
+      ),
+    ).toBe(true)
+    flush()
+    await expectHostParity(native, js)
+    const after = await displayedPixels(native.canvas)
+    const rowBytes = native.canvas.width * font.deviceCellHeight * 4
+    expect(after.subarray(rowBytes)).toEqual(before.subarray(rowBytes))
+    const zigFrames = native.renderer.metrics.zigFrames
+    for (const host of [native, js]) {
+      host.renderer.setFont(fittedFont())
+      host.terminal.write('\x1b[1;1H\x1b[0mé')
+    }
+    flush()
+    await expectHostParity(native, js)
+    expect(native.renderer.metrics.zigFrames).toBeGreaterThan(zigFrames)
+    expect(native.renderer.metrics.jsFallbackFrames).toBe(0)
+    expect(js.renderer.metrics.zigFrames).toBe(0)
+  },
+  30_000,
+)
+
+it.each(['webgl2', 'webgpu'] as const)(
+  'bounds genuine native atlas exhaustion and returns to exact Zig pixels after shrinking (%s)',
+  async (backend) => {
+    const nativeClock = new TestClock()
+    const native = await hostFixture(undefined, backend, { columns: 6, rows: 3 }, nativeClock)
+    if (nativeClock.frames.size > 0) nativeClock.flushFrame()
+    const face = new FontFace(
+      'AtlasExhaustionTest',
+      `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
+    )
+    document.fonts.add(await face.load())
+    onTestFinished(() => {
+      document.fonts.delete(face)
+    })
+    const fitted = fittedFont(400, 650, 650)
+    const font = { ...fitted, settings: { ...fitted.settings, family: 'AtlasExhaustionTest' } }
+    const rasterizer = new CanvasGlyphRasterizer({ font })
+    const glyphs = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
+      .flatMap((text) => (['normal', 'bold'] as const).map((weight) => ({ text, weight })))
+      .filter((input) => {
+        const bitmap = rasterizer.rasterize({
+          ...input,
+          italic: false,
+          cellSpan: 1,
+          foreground: defaultRendererTheme.foreground,
+        })
+        return (
+          bitmap &&
+          bitmap.kind === 'grayscale' &&
+          bitmap.width > 256 &&
+          bitmap.height > 256 &&
+          bitmap.width <= 510 &&
+          bitmap.height <= 510
+        )
+      })
+      .slice(0, 18)
+    expect(glyphs).toHaveLength(18)
+    native.renderer.setFont(font)
+    if (nativeClock.frames.size > 0) nativeClock.flushFrame()
+    const readRows = vi.spyOn(native.state, 'readRows')
+    const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    const before = native.renderer.metrics.submittedFrames
+    native.terminal.write(
+      '\x1b[?25l' +
+        glyphs
+          .map(
+            (glyph, index) =>
+              `\x1b[${Math.floor(index / 6) + 1};${(index % 6) + 1}H\x1b[${glyph.weight === 'bold' ? 1 : 0}m${glyph.text}`,
+          )
+          .join(''),
+    )
+    // Both producers share this finite atlas; exhausted fallback throws before submission.
+    expect(() => nativeClock.flushFrame()).toThrow(
+      expect.objectContaining({
+        operation: 'renderer.atlas',
+        message: 'The glyph atlas cannot retain the visible viewport',
+      }),
+    )
+    expect(build.mock.results.map((result) => result.value)).toEqual([2, 2, 2, 2])
+    expect(readRows.mock.calls.filter(([options]) => options?.packed)).toHaveLength(2)
+    expect(native.renderer.metrics.submittedFrames).toBe(before)
+    expect(native.terminal.hasPendingFrame).toBe(false)
+    const nativeFrames = native.renderer.metrics.zigFrames
+    native.terminal.write('\x1b[0m\x1b[2J\x1b[Hrecovered')
+    native.renderer.setFont(fittedFont())
+    if (nativeClock.frames.size > 0) nativeClock.flushFrame()
+    expect(native.renderer.metrics.zigFrames).toBeGreaterThan(nativeFrames)
+    const jsClock = new TestClock()
+    const js = await hostFixture(false, backend, { columns: 6, rows: 3 }, jsClock)
+    if (jsClock.frames.size > 0) jsClock.flushFrame()
+    js.terminal.write('\x1b[?25l\x1b[0m\x1b[2J\x1b[Hrecovered')
+    js.renderer.setFont(fittedFont())
+    if (jsClock.frames.size > 0) jsClock.flushFrame()
+    await expectHostParity(native, js)
+    expect(native.terminal.hasPendingTimer).toBe(false)
+    expect(js.terminal.hasPendingTimer).toBe(false)
   },
 )
 

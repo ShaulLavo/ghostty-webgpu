@@ -830,7 +830,7 @@ it('consumes the real libghostty-vt damage contract in a browser', async () => {
   canvas.remove()
 })
 
-it('paints experimental WASM ASCII frames without JS row reads and falls back for Unicode', async () => {
+it('paints WASM ASCII and Unicode frames without JS row reads', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
   const state = runtime.createRenderState(terminal)
@@ -881,17 +881,19 @@ it('paints experimental WASM ASCII frames without JS row reads and falls back fo
       js.capturePixels(),
     ])
     expect(changedNativePixels).toEqual(changedJsPixels)
+    readRows.mockClear()
     terminal.write('\x1b[3;1H界')
     native.notifyWrite()
     nativeClock.flushFrame()
-    expect(native.metrics.jsFallbackFrames).toBe(1)
-    expect(readRows).toHaveBeenCalled()
+    expect(native.metrics.zigFrames).toBe(3)
+    expect(native.metrics.jsFallbackFrames).toBe(0)
+    expect(readRows).not.toHaveBeenCalled()
     terminal.write('\x1b[3;1H\x1b[2KASCII')
     readRows.mockClear()
     native.notifyWrite()
     nativeClock.flushFrame()
-    expect(native.metrics.zigFrames).toBe(3)
-    expect(native.metrics.jsFallbackFrames).toBe(1)
+    expect(native.metrics.zigFrames).toBe(4)
+    expect(native.metrics.jsFallbackFrames).toBe(0)
     expect(readRows).not.toHaveBeenCalled()
   } finally {
     native.dispose()

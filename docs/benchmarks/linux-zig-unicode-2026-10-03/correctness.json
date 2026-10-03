@@ -1,0 +1,156 @@
+{
+  "date": "2026-10-03",
+  "timedBridge": {
+    "bytes": 7405,
+    "sha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe",
+    "coldBrushOrderGuardAddedAfterTimingFreeze": true,
+    "benchmarkFixturesExerciseColorAtlasPressure": false
+  },
+  "browserBundle": {
+    "sha256": "4445f70c78509e4d2e2074ee765e256b2a0c4877b257776cb4e574d628f3824c",
+    "timedAndGuardedBuildsByteIdentical": true
+  },
+  "bridge": {
+    "bytes": 7408,
+    "sha256": "f04d08996e291284fd2ca6dcf9f28d455c60e2e74f7a3c87867737890d37387a",
+    "initializedDataSections": 0,
+    "upstreamRevision": "c8554f28e0efe2f5595f32020371c34b25ec628f"
+  },
+  "checks": {
+    "bridgeBuild": "passed",
+    "packageBuild": "passed",
+    "typecheck": "passed",
+    "implementationLint": "passed",
+    "repositoryGates": "passed",
+    "verifyFregatLook": {
+      "backend": "webgl2",
+      "urlQuery": "?zig",
+      "renderer": "HeadlessChrome 153 / ANGLE SwiftShader",
+      "health": "ok",
+      "pageErrors": 0,
+      "requiredLoadFailures": 0,
+      "zigFrames": 2,
+      "jsFallbackFrames": 0,
+      "screenshotReadBack": true,
+      "captureWarning": "ReadPixels GPU stall",
+      "performanceClaimed": false,
+      "screenshot": "zig-unicode-look.png"
+    },
+    "coreAndBulk": { "passed": 81 },
+    "finalSixBrowserFiles": { "passed": 137, "skipped": 2 },
+    "crossBackendSuite": { "passed": 52, "includedInSixFileRun": true },
+    "coldBrushOrder": {
+      "bitmapKinds": ["color", "grayscale"],
+      "atlasWidth": 4,
+      "atlasHeight": 4,
+      "padding": 0,
+      "layers": 1,
+      "firstShapeSize": [2, 3],
+      "secondShapeSize": [2, 1],
+      "visibleOrder": ["A-red", "A-green", "B-red", "B-green"],
+      "timedColorArtifactNativeStatus": 2,
+      "timedColorArtifactEvictions": 1,
+      "javascriptFitsWithZeroEvictions": true,
+      "guardedNativeStatuses": [2, 0],
+      "guardedNativeEvictions": 0,
+      "guardedOutstandingMisses": 0,
+      "exactJavaScriptInstanceParity": true,
+      "grayscaleWarmBrushUpdates": 64,
+      "grayscaleWarmAdditionalDescriptors": 0,
+      "grayscaleWarmIndexRebuilds": 0
+    },
+    "skipReason": "Existing Linux-SwiftShader device-replacement recovery cases"
+  },
+  "descriptorProbeBridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe",
+  "descriptorProbes": [
+    {
+      "kind": "grayscale",
+      "columns": 4,
+      "rows": 2,
+      "paints": 2048,
+      "rotatingBrushes": true,
+      "visibleGlyph": "A",
+      "peakDescriptors": 1,
+      "finalDescriptors": 1,
+      "nativeCapRebuilds": 0,
+      "rebuildsPerPaint": 0,
+      "wasmBytesAfter1024": 1703936,
+      "wasmBytesAfter2048": 1703936
+    },
+    {
+      "kind": "synthetic-color-records",
+      "columns": 2,
+      "rows": 2,
+      "paints": 512,
+      "rotatingBrushes": true,
+      "peakDescriptors": 32,
+      "finalDescriptors": 17,
+      "nativeCapRebuilds": 16,
+      "rebuildsPerPaint": 0.03125,
+      "finalWasmBytes": 1703936,
+      "allRowRecordParityEveryPaint": true
+    }
+  ],
+  "independentReviewProbeBridgeSha256": "ee018ec74ab05f8d0a90732400f6245a994215867dba6b9040558d0ed648a7fe",
+  "independentReviewProbes": {
+    "grayscaleWithCleanWideCell": {
+      "viewportCells": 8,
+      "paints": 2048,
+      "descriptors": 2,
+      "nativeCapRebuilds": 0,
+      "warmedAndFinalWasmBytes": 1703936,
+      "allRowRecordParityEveryPaint": true
+    },
+    "syntheticColorWithCleanWideCell": {
+      "viewportCells": 8,
+      "paints": 256,
+      "peakDescriptors": 64,
+      "nativeCapRebuilds": 4,
+      "rebuildsPerPaint": 0.015625,
+      "allRowRecordParityEveryPaint": true
+    },
+    "fragmentedAtlas": {
+      "initialPages": ["AB", "CD"],
+      "initialVisible": "ABC",
+      "finalVisible": "ABCE",
+      "capacity": 4,
+      "evictions": 1,
+      "finalNativeStatus": 0,
+      "missingGlyphs": 0
+    }
+  },
+  "capacityExhaustion": {
+    "backends": ["webgpu", "webgl2"],
+    "residentOnePageGlyphs": 18,
+    "nativeStatuses": [2, 2, 2, 2],
+    "packedJavaScriptRowReadAttempts": 2,
+    "errorCode": "renderer.atlas",
+    "submittedBeforeError": false,
+    "recovery": "Clear working set and shrink font",
+    "nativeRecoveryWithExactJavaScriptPixels": true,
+    "successfulFallbackSubmissionClaimed": false,
+    "oversubscribedPixelCorrectnessClaimed": false
+  },
+  "specimens": ["zig-unicode-webgpu.png", "zig-unicode-webgl2.png"],
+  "guardedIndependentRuntimeProbes": {
+    "bridgeSha256": "f04d08996e291284fd2ca6dcf9f28d455c60e2e74f7a3c87867737890d37387a",
+    "coldPacking": {
+      "bitmapKinds": ["color", "grayscale"],
+      "nativeStatus": 0,
+      "nativeEvictions": 0,
+      "javascriptEvictions": 0,
+      "insertionOrderMatchesJavaScript": true,
+      "allInstanceBytesMatch": true,
+      "coldDescriptors": 4
+    },
+    "warmGrayscaleWithCleanWideCell": {
+      "paints": 2048,
+      "maxDescriptors": 2,
+      "indexRebuilds": 0,
+      "warmedAndFinalWasmBytes": 1703936,
+      "allRowsByteParityEveryPaint": true
+    }
+  },
+  "independentSourceAndArtifactReview": "passed",
+  "independentGuardedRuntimeReview": "passed"
+}

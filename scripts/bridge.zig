@@ -139,20 +139,7 @@ export fn bridge_read_text_rows(state: c.GhosttyRenderState, iterator: c.Ghostty
     return c.GHOSTTY_SUCCESS;
 }
 
-const GlyphEntry = extern struct {
-    offset_x: f32,
-    offset_y: f32,
-    width: f32,
-    height: f32,
-    u0: f32,
-    v0: f32,
-    u1: f32,
-    v1: f32,
-    layer: f32,
-    generation: f32,
-    kind: f32,
-    valid: f32,
-};
+const glyph_index = @import("glyph-index.zig");
 const FrameRange = extern struct {
     cell_offset: u32,
     cell_length: u32,
@@ -165,7 +152,7 @@ const Frame = extern struct {
     rows: u32,
     cell_data: [*][16]f32,
     glyph_data: [*][24]f32,
-    glyph_index: [*]GlyphEntry,
+    glyph_index: *glyph_index.Index,
     ranges: [*]FrameRange,
     ranges_cap: u32,
     ranges_len: u32,
@@ -184,16 +171,26 @@ const Frame = extern struct {
     cursor_y: u32,
     cursor_visible: u32,
     cursor_style: u32,
+    selection_foreground: u32,
+    selection_background: u32,
+    index_rebuilds: u32,
+    glyph_minimum_contrast: f64,
 };
 
-export fn bridge_register_glyph(index: [*]GlyphEntry, key: u32, entry: *const GlyphEntry) u32 {
-    if (key >= 512) return 1;
-    index[key] = entry.*;
-    return 0;
+export fn bridge_create_glyph_index() ?*glyph_index.Index {
+    return glyph_index.create();
 }
 
-export fn bridge_clear_glyphs(index: [*]GlyphEntry) void {
-    @memset(index[0..512], .{ .offset_x = 0, .offset_y = 0, .width = 0, .height = 0, .u0 = 0, .v0 = 0, .u1 = 0, .v1 = 0, .layer = 0, .generation = 0, .kind = 0, .valid = 0 });
+export fn bridge_destroy_glyph_index(index: *glyph_index.Index) void {
+    glyph_index.destroy(index);
+}
+
+export fn bridge_register_glyph(key: *glyph_index.Entry, entry: *const glyph_index.Glyph) void {
+    key.glyph = entry.*;
+}
+
+export fn bridge_clear_glyphs(index: *glyph_index.Index) void {
+    glyph_index.clear(index);
 }
 
 fn frameColor(cells: c.GhosttyRenderStateRowCells, field: c.GhosttyRenderStateRowCellsData, out: *u32) c.GhosttyResult {
@@ -215,18 +212,24 @@ fn writeColor(out: []f32, rgb: u32, alpha: f32) void {
     out[3] = alpha;
 }
 
-fn missingGlyph(frame: *Frame, key: u32) c.GhosttyResult {
-    for (frame.missing[0..frame.missing_len]) |previous| {
-        if (previous == key) return c.GHOSTTY_SUCCESS;
-    }
+fn missingGlyph(frame: *Frame, key: *glyph_index.Entry) c.GhosttyResult {
+    if (key.queued_generation == frame.glyph_index.build_generation) return c.GHOSTTY_SUCCESS;
     if (frame.missing_len == frame.missing_cap) return c.GHOSTTY_OUT_OF_SPACE;
-    frame.missing[frame.missing_len] = key;
+    key.queued_generation = frame.glyph_index.build_generation;
+    frame.missing[frame.missing_len] = @intFromPtr(key);
     frame.missing_len += 1;
     frame.status = 2;
     return c.GHOSTTY_SUCCESS;
 }
 
-fn writeInstances(frame: *Frame, x: u32, y: u32, codepoint: u32, style: c.GhosttyStyle, fg: u32, bg: u32) c.GhosttyResult {
+const CellContent = struct {
+    codepoint: u32,
+    continuation: bool,
+    span: u32,
+    tag: c.GhosttyCellContentTag,
+};
+
+fn writeInstances(frame: *Frame, cells: c.GhosttyRenderStateRowCells, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, fg: u32, bg: u32, selected: bool) c.GhosttyResult {
     const slot = y * frame.columns + x;
     const cell = &frame.cell_data[slot];
     const glyph = &frame.glyph_data[slot];
@@ -239,6 +242,11 @@ fn writeInstances(frame: *Frame, x: u32, y: u32, codepoint: u32, style: c.Ghostt
         const previous = foreground;
         foreground = background;
         background = previous;
+        draw_background = true;
+    }
+    if (selected) {
+        foreground = frame.selection_foreground;
+        background = frame.selection_background;
         draw_background = true;
     }
     const cursor = frame.cursor_visible != 0 and frame.cursor_x == x and frame.cursor_y == y;
@@ -260,14 +268,29 @@ fn writeInstances(frame: *Frame, x: u32, y: u32, codepoint: u32, style: c.Ghostt
     cell[13] = @floatFromInt(style.underline);
     cell[14] = if (cursor) @floatFromInt(frame.cursor_style) else 0;
     cell[15] = frame.minimum_contrast;
-    if (codepoint == 0 or style.invisible) return c.GHOSTTY_SUCCESS;
-    const key = codepoint + @as(u32, @intFromBool(style.bold)) * 128 + @as(u32, @intFromBool(style.italic)) * 256;
-    const entry = frame.glyph_index[key];
-    if (entry.valid == 0) return missingGlyph(frame, key);
-    if (entry.kind != 0) {
-        frame.status = 1;
-        return c.GHOSTTY_SUCCESS;
+    if (content.continuation or content.codepoint == 0 or style.invisible) return c.GHOSTTY_SUCCESS;
+    var scalar = content.codepoint;
+    var text: []const u32 = @as(*const [1]u32, &scalar);
+    if (content.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
+        var length: u32 = 0;
+        var result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        const scratch = glyph_index.scratch(frame.glyph_index, length) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+        result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, scratch.ptr);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        text = scratch;
     }
+    const key = glyph_index.resolve(frame.glyph_index, .{
+        .text = text.ptr,
+        .text_len = @intCast(text.len),
+        .span = content.span,
+        .style = @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1),
+        .foreground = foreground,
+        .background = background,
+        .minimum_contrast = frame.glyph_minimum_contrast,
+    }) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+    const entry = key.glyph;
+    if (entry.valid == 0) return missingGlyph(frame, key);
     if (entry.width == 0 or entry.height == 0) return c.GHOSTTY_SUCCESS;
     glyph[0..4].* = .{ left + entry.offset_x, top + entry.offset_y, entry.width, entry.height };
     writeColor(glyph[4..8], foreground, if (style.faint) 0.5 else 1);
@@ -277,10 +300,12 @@ fn writeInstances(frame: *Frame, x: u32, y: u32, codepoint: u32, style: c.Ghostt
     glyph[18] = frame.minimum_contrast;
     glyph[20] = entry.layer;
     glyph[21] = entry.generation;
+    glyph[22] = entry.kind;
     return c.GHOSTTY_SUCCESS;
 }
 
-fn buildCell(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, y: u32, write: bool) c.GhosttyResult {
+fn buildCell(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, y: u32, selected: bool) c.GhosttyResult {
+    const raw = raws[x];
     var codepoint: u32 = 0;
     var wide: c.GhosttyCellWide = 0;
     var tag: c.GhosttyCellContentTag = 0;
@@ -290,11 +315,6 @@ fn buildCell(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCe
     if (result != c.GHOSTTY_SUCCESS) return result;
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &tag);
     if (result != c.GHOSTTY_SUCCESS) return result;
-    if (codepoint > 127 or wide != c.GHOSTTY_CELL_WIDE_NARROW or tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
-        frame.status = 1;
-        return c.GHOSTTY_SUCCESS;
-    }
-    if (!write) return c.GHOSTTY_SUCCESS;
     result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
     if (result != c.GHOSTTY_SUCCESS) return result;
     var style: c.GhosttyStyle = undefined;
@@ -312,10 +332,22 @@ fn buildCell(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCe
     var bg: u32 = 0xffffffff;
     result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &bg);
     if (result != c.GHOSTTY_SUCCESS) return result;
-    return writeInstances(frame, x, y, codepoint, style, fg, bg);
+    var span: u32 = 1;
+    while (x + span < raws.len) : (span += 1) {
+        var next_wide: c.GhosttyCellWide = 0;
+        result = c.ghostty_cell_get(raws[x + span], c.GHOSTTY_CELL_DATA_WIDE, &next_wide);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (next_wide != c.GHOSTTY_CELL_WIDE_SPACER_TAIL) break;
+    }
+    return writeInstances(frame, cells, x, y, .{
+        .codepoint = codepoint,
+        .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL,
+        .span = span,
+        .tag = tag,
+    }, style, fg, bg, selected);
 }
 
-fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, write: bool, force: bool) c.GhosttyResult {
+fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, force: bool) c.GhosttyResult {
     var raw: c.GhosttyCellsView = undefined;
     var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raw);
     if (result != c.GHOSTTY_SUCCESS) return result;
@@ -323,15 +355,10 @@ fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.
     var selection: c.GhosttyRenderStateRowSelection = undefined;
     selection.size = @sizeOf(c.GhosttyRenderStateRowSelection);
     result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_SELECTION, &selection);
-    if (result == c.GHOSTTY_SUCCESS) {
-        frame.status = 1;
-        return c.GHOSTTY_SUCCESS;
-    }
-    if (result != c.GHOSTTY_NO_VALUE) return result;
-    if (write) {
-        result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, @ptrCast(cells));
-        if (result != c.GHOSTTY_SUCCESS) return result;
-    }
+    const has_selection = result == c.GHOSTTY_SUCCESS;
+    if (!has_selection and result != c.GHOSTTY_NO_VALUE) return result;
+    result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, @ptrCast(cells));
+    if (result != c.GHOSTTY_SUCCESS) return result;
     var cell_first = frame.columns;
     var cell_end: u32 = 0;
     var glyph_first = frame.columns;
@@ -340,9 +367,9 @@ fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.
         const slot = y * frame.columns + x;
         const previous_cell = frame.cell_data[slot];
         const previous_glyph = frame.glyph_data[slot];
-        result = buildCell(frame, raw.ptr[x], cells.*, @intCast(x), y, write);
-        if (result != c.GHOSTTY_SUCCESS or frame.status == 1) return result;
-        if (!write) continue;
+        const selected = has_selection and x >= selection.start_x and x <= selection.end_x;
+        result = buildCell(frame, raw.ptr[0..raw.len], cells.*, @intCast(x), y, selected);
+        if (result != c.GHOSTTY_SUCCESS) return result;
         if (force or !std.mem.eql(u8, std.mem.asBytes(&previous_cell), std.mem.asBytes(&frame.cell_data[slot]))) {
             cell_first = @min(cell_first, @as(u32, @intCast(x)));
             cell_end = @intCast(x + 1);
@@ -353,7 +380,6 @@ fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.
         }
     }
     // Logical row changes can leave GPU bytes identical, such as concealed text.
-    if (!write) return c.GHOSTTY_SUCCESS;
     if (frame.ranges_len == frame.ranges_cap) return c.GHOSTTY_OUT_OF_SPACE;
     frame.ranges[frame.ranges_len] = .{
         .cell_offset = (y * frame.columns + if (cell_end == 0) @as(u32, 0) else cell_first) * 64,
@@ -366,8 +392,16 @@ fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.
 }
 
 export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {
+    // Grayscale brushes share entries; color histories get eight viewports of headroom.
+    const recycle = frame.status != 2 and frame.glyph_index.count >= frame.columns * frame.rows * 8;
+    if (recycle) {
+        glyph_index.clear(frame.glyph_index);
+        frame.index_rebuilds += 1;
+    }
+    const rebuild_all = frame.glyph_index.rebuild_all != 0;
     // A missing-glyph retry must upload cell changes written before registration.
-    const force = !dirty_only or frame.status == 2;
+    const force = !dirty_only or frame.status == 2 or rebuild_all;
+    glyph_index.beginBuild(frame.glyph_index);
     frame.ranges_len = 0;
     frame.missing_len = 0;
     frame.status = 0;
@@ -380,11 +414,12 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         var dirty = false;
         result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
         if (result != c.GHOSTTY_SUCCESS) return result;
-        var write = !dirty_only or dirty;
+        var write = !dirty_only or dirty or rebuild_all;
         if (mask) |m| write = write or (y < mask_len and m[y] != 0);
-        // Even unchanged rows must reject unsupported content for whole-frame fallback.
-        result = buildRow(frame, it, &row_cells, y, write, force);
-        if (result != c.GHOSTTY_SUCCESS or frame.status == 1) return result;
+        if (!write) continue;
+        result = buildRow(frame, it, &row_cells, y, force);
+        if (result != c.GHOSTTY_SUCCESS) return result;
     }
+    if (frame.status == 0) frame.glyph_index.rebuild_all = 0;
     return c.GHOSTTY_SUCCESS;
 }

@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-03",
+  "runtimeArtifactChanged": false,
+  "bridgeSha256": "f04d08996e291284fd2ca6dcf9f28d455c60e2e74f7a3c87867737890d37387a",
+  "repairs": {
+    "styledSnapshotDemand": {
+      "nativeSubmissionsAdded": 1,
+      "fallbackFrames": 0,
+      "styledAndTextRowReadsBeforePublicDemand": 0,
+      "originalSnapshotOwnershipAndContinuationAssertionsRetained": true
+    },
+    "nativeUnicodeAttribution": {
+      "nativeBuildStatuses": [2, 0],
+      "uploadBatches": 1,
+      "submissions": 1,
+      "fallbackEvents": 0,
+      "unsupportedBuildEvents": 0,
+      "glyphIndexClearEvents": 0,
+      "coldChangedRows": 12,
+      "instanceBuffersPerRow": 2,
+      "coldBufferWrites": 24,
+      "coldBufferBytes": 76800,
+      "warmBufferWrites": 12,
+      "warmBufferBytes": 46080,
+      "unchangedBufferWrites": 0,
+      "unchangedBufferBytes": 0,
+      "exactOriginalByteBoundsRetained": true,
+      "actualGlOffsetsLengthsAndNativeUploadRangesVerified": true,
+      "rawAndScheduledCompositorParity": true
+    },
+    "cleanRowInvariant": {
+      "baselineOffsets": [0, -1],
+      "backends": ["webgpu", "webgl2"],
+      "checks": "Exact clean logical-row cell and glyph bytes before and after missing-glyph retry and continuation erasure",
+      "fullNativeJavaScriptCompositorParityRetained": true,
+      "missingGlyphStatuses": [2, 0],
+      "missingGlyphUploadedBytes": 12800,
+      "changedAndErasedFramesMustDiffer": true,
+      "pixelTolerancesAdded": false,
+      "fontAvailabilitySkipsAdded": false,
+      "productionClippingAdded": false
+    }
+  },
+  "independentControlledOverhangProof": {
+    "passed": 4,
+    "localBrowserFonts": {
+      "asciiAndCombining": "JetBrainsMono NF",
+      "cjk": "Noto Sans CJK JP",
+      "emoji": "Noto Color Emoji"
+    },
+    "localEmojiFontVersion": "2.051",
+    "ciInstalledEmojiFontVersion": "2.047",
+    "localBaseline18EmojiOffsetY": 0,
+    "localBaseline17EmojiOffsetY": -1,
+    "firstChangedCleanScreenPixel": { "x": 61, "y": 23, "zeroBasedByte": 59124 },
+    "matchesCiFailureLocation": true,
+    "nativeJavaScriptPixelsAndAllInstanceArraysRemainEqual": true,
+    "cleanLogicalRowsZeroAndTwoRemainUnchanged": true,
+    "ciActualGlyphFontAndBitmapMeasured": false,
+    "qualification": "Matching-location controlled reproduction, not an exact CI-font run. The CI stack passed full native/JavaScript compositor equality before failing physical screen-row isolation."
+  },
+  "correctedSourceAndTestCi": {
+    "head": "623eb68a73105d20a023c9fd4d05b29e0e50f20d",
+    "url": "https://github.com/ShaulLavo/fregat/actions/runs/37103792332",
+    "conclusion": "success",
+    "runtimeUnitPassed": 482,
+    "scriptTestsPassed": 174,
+    "browserPassed": 327,
+    "existingBrowserSkips": 2,
+    "runtimeLog": "/tmp/claude-1000/-work-projects-platform/b0f3ae80-afb6-4ad0-8a1d-c6db81c6feb5/zig-unicode-ci-final-runtime.log"
+  },
+  "focusedVerification": {
+    "browserPassed": 7,
+    "excludedByNameFilter": 112,
+    "fullSuiteClaimed": false,
+    "heavyClass": "browser",
+    "log": "/work/tmp/fregat-evidence/20261003-plan283-zig-unicode/ci-portability-focused.log"
+  }
+}

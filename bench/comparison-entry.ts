@@ -36,6 +36,7 @@ import {
   spotCheck,
   type ComparisonCase,
   type FixtureName,
+  type RollingFixtureName,
 } from './comparison-fixtures.js'
 
 interface Driver {
@@ -356,7 +357,7 @@ async function parseFixture(
   const bytes = encoder.encode(text)
   const chunks = inputChunks(bytes, current.path, size)
   const expected = expectedScreen(
-    name === 'rolling-logs' ? 'logs' : name,
+    name === 'rolling-logs' || name === 'rolling-unicode-logs' ? 'logs' : name,
     unit,
     text.length / unit.length,
     settings.columns,
@@ -606,8 +607,8 @@ async function legacyOriginalUnicode(): Promise<unknown> {
   }
 }
 
-async function rollingBurst(steps: number): Promise<unknown> {
-  const fixture = rollingFixture(logs)
+async function rollingBurst(name: RollingFixtureName, steps: number): Promise<unknown> {
+  const fixture = rollingFixture(logs, settings.corpusBytes, settings.chunkBytes, name)
   const chunks = rollingInputs(fixture, current.path)
   let offset = 0
   await writeAll('\x1b[3J\x1b[2J\x1b[H')
@@ -631,7 +632,7 @@ async function rollingBurst(steps: number): Promise<unknown> {
     bytes: rollingByteCount(fixture, steps) * drivers.length,
     milliseconds,
     frameMetrics: frameMetricDeltas(before, after),
-    fixture: 'rolling-logs',
+    fixture: name,
     chunkCount: chunks.length,
     reset: 'corpus-start',
     completedCycles: Math.floor(steps / chunks.length),
@@ -640,7 +641,7 @@ async function rollingBurst(steps: number): Promise<unknown> {
 }
 
 async function burst(name: FixtureName, steps: number): Promise<unknown> {
-  if (name === 'rolling-logs') return rollingBurst(steps)
+  if (name === 'rolling-logs' || name === 'rolling-unicode-logs') return rollingBurst(name, steps)
   const text = corpus(fixtureText(name, logs), settings.chunkBytes)
   await writeAll('\x1b[3J\x1b[2J\x1b[H')
   await settle()

@@ -10,6 +10,7 @@ import {
   rollingFixture,
   rollingInputs,
   settings,
+  unicodePromptLogs,
 } from './comparison-fixtures.ts'
 import { framedInputHash } from './comparison-build.ts'
 import { frameMetricDeltas } from './comparison-metrics.ts'
@@ -51,6 +52,34 @@ test('rolling input resets deterministically and counts exact bytes through corp
   assert.notEqual(framedInputHash(fixture.chunks), framedInputHash([fixture.bytes]))
 })
 
+test('synthetic Unicode rolling logs preserve history and periodically add shell and CJK lines', () => {
+  const source = Array.from({ length: 32 }, (_, index) => `commit ${index}`).join('\n') + '\n'
+  const decorated = unicodePromptLogs(source)
+  const original = decorated
+    .split('\n')
+    .filter((line) => !line.startsWith('❯') && !line.startsWith('┌'))
+  assert.equal(original.join('\n'), source)
+  assert.equal(decorated.split('❯ git log --oneline').length - 1, 8)
+  assert.equal(decorated.split('┌─ 状態: 日本語 中文 ─┐').length - 1, 2)
+  const synthetic = rollingFixture(
+    logs,
+    settings.corpusBytes,
+    settings.chunkBytes,
+    'rolling-unicode-logs',
+  )
+  assert.deepEqual(
+    synthetic.bytes,
+    encoder.encode(corpus(fixtureText('rolling-unicode-logs', logs), settings.corpusBytes)),
+  )
+  assert.deepEqual(Buffer.concat(synthetic.chunks), Buffer.from(synthetic.bytes))
+  assert.notEqual(framedInputHash(synthetic.chunks), framedInputHash(fixture.chunks))
+  for (const chunk of synthetic.chunks) {
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(chunk)
+    assert.deepEqual(encoder.encode(text), chunk)
+    assert(text.includes('❯'), 'Each output chunk must exercise a Unicode prompt')
+  }
+})
+
 test('burst metric deltas preserve missing baseline counters and unavailable control metrics', () => {
   const before = [
     undefined,
@@ -78,6 +107,32 @@ test('burst metric deltas preserve missing baseline counters and unavailable con
   })
   assert.equal(metrics[2].before, before[2])
   assert.equal(metrics[2].after, after[2])
+})
+
+test('synthetic Unicode rolling bytes advance real-core viewports and expose prompt glyphs', async () => {
+  const synthetic = rollingFixture(
+    logs,
+    settings.corpusBytes,
+    settings.chunkBytes,
+    'rolling-unicode-logs',
+  )
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: settings.columns, rows: settings.rows })
+  const state = runtime.createRenderState(terminal)
+  try {
+    let previous
+    let promptViewports = 0
+    for (let frame = 0; frame < 2700; frame++) {
+      terminal.write(synthetic.chunks[frame % synthetic.chunks.length])
+      const current = viewport(state)
+      assert.notEqual(current, previous, `Synthetic viewport repeats at frame ${frame + 1}`)
+      if (current.includes('❯')) promptViewports++
+      previous = current
+    }
+    assert(promptViewports > 1350, 'Unicode prompt must remain visible in most output frames')
+  } finally {
+    runtime.dispose()
+  }
 })
 
 function viewport(state) {

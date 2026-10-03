@@ -389,11 +389,13 @@ function completeArtifact(phaseName = 'ascii') {
   }
 }
 
-test('qualified analysis accepts complete rolling logs and rejects a missing control phase', () => {
-  const artifact = completeArtifact('rolling-logs')
-  assert.doesNotThrow(() => validateArtifact(artifact))
-  artifact.runs[0].phases.shift()
-  assert.throws(() => validateArtifact(artifact), /Incomplete phase pairs/)
+test('qualified analysis accepts both rolling fixtures and rejects a missing control phase', () => {
+  for (const phase of ['rolling-logs', 'rolling-unicode-logs']) {
+    const artifact = completeArtifact(phase)
+    assert.doesNotThrow(() => validateArtifact(artifact))
+    artifact.runs[0].phases.shift()
+    assert.throws(() => validateArtifact(artifact), /Incomplete phase pairs/)
+  }
 })
 
 test('qualified analysis rejects unknown and duplicate rolling phase selections', () => {
