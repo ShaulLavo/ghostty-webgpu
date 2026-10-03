@@ -87,6 +87,7 @@ for (const name of [
   'comparison-latency.mjs',
   'comparison-render.mjs',
   'comparison-gpu.mjs',
+  'comparison-diagnostics.mjs',
 ]) {
   await copyFile(join(root, 'scripts', name), join(output, name))
   hashes[name] = hash(await readFile(join(output, name)))

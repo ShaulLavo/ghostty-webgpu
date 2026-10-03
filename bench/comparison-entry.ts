@@ -516,6 +516,19 @@ async function legacyEmptyWrite(): Promise<unknown> {
   }
 }
 
+async function legacyWriteControl(): Promise<unknown> {
+  const text = corpus('ASCII control\r\n', settings.chunkBytes)
+  const data = input(text)
+  await drivers[0]!.write('\x1b[3J\x1b[2J\x1b[H')
+  for (let call = 0; call < 35; call++) {
+    await drivers[0]!.write(data)
+    await settle()
+  }
+  return {
+    documentedTerminalApi: { accepted: true, calls: 35, bytesPerCall: encoder.encode(text).length },
+  }
+}
+
 async function legacyOriginalUnicode(): Promise<unknown> {
   if (current.variant !== 'ghostty-web') return undefined
   const unit = '日本語 中文 é café 👩‍💻 👨‍👩‍👧‍👦 🧪\r\n'
@@ -687,6 +700,7 @@ window.__compare = {
   initialize,
   legacyEmptyWrite,
   legacyOriginalUnicode,
+  legacyWriteControl,
   prepare,
   correctness,
   parse,
@@ -729,6 +743,7 @@ declare global {
       initialize: typeof initialize
       legacyEmptyWrite: typeof legacyEmptyWrite
       legacyOriginalUnicode: typeof legacyOriginalUnicode
+      legacyWriteControl: typeof legacyWriteControl
       prepare: typeof prepare
       correctness: typeof correctness
       parse: typeof parse
