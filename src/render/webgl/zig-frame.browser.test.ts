@@ -17,6 +17,7 @@ import { defaultRendererTheme } from '../instances/types.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../renderer.js'
 import { WebGlTerminalRenderer } from './renderer.js'
 import { TestClock, displayedPixels, fittedFont } from './tests/fixture.js'
+import { expectPixelsEqual } from './tests/pixels.js'
 
 const disposables: (() => void)[] = []
 const paintObservers = new Map<
@@ -598,7 +599,7 @@ describe('WebGL native atlas residency', () => {
     expect(native.renderer.metrics.zigFrames).toBe(frames + 1)
     const after = await expectPainted(native.renderer)
     const rowBytes = native.canvas.width * font.deviceCellHeight * 4
-    expect(after.subarray(rowBytes)).toEqual(before.subarray(rowBytes))
+    expectPixelsEqual(after.subarray(rowBytes), before.subarray(rowBytes))
   }, 20_000)
 })
 
@@ -696,7 +697,7 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
     expect.fail('The native renderer must insert the first cold glyph after an eviction')
   const finalPixels = await expectPainted(native.renderer)
   const rowBytes = native.canvas.width * font.deviceCellHeight * 4
-  expect(finalPixels.subarray(0, rowBytes)).toEqual(warmPixels.subarray(0, rowBytes))
+  expectPixelsEqual(finalPixels.subarray(0, rowBytes), warmPixels.subarray(0, rowBytes))
   expect(nativeFirstEviction.glyph.layer).not.toBe(nativeM.layer)
   expect(native.renderer.metrics.atlasEvictions - warm.native.atlasEvictions).toBe(1)
   expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(3)
