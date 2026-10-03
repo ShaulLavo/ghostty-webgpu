@@ -7,7 +7,7 @@ import type {
   TerminalScrollbar,
   TerminalSelectionFormatOptions,
 } from '../core/types.js'
-import type { RendererFrameSnapshot } from '../render/renderer.js'
+import type { RendererFrameSnapshot, RendererTextFrameSnapshot } from '../render/renderer.js'
 import { createCompatibleTerminalRenderer } from '../render/selector.js'
 import type { InactiveCursorStyle } from '../render/cursor.js'
 import { EventEmitter } from '../term/events.js'
@@ -160,7 +160,7 @@ function openAbortError(parent: HTMLElement): Error {
   return error
 }
 
-function leadingCursorColumn(snapshot: RendererFrameSnapshot): number | undefined {
+function leadingCursorColumn(snapshot: RendererTextFrameSnapshot): number | undefined {
   const viewport = snapshot.cursor.viewport
   if (!viewport) return undefined
   if (!viewport.wideTail) return viewport.x
@@ -227,17 +227,6 @@ function physicalPadding(value: number, pixelRatio: number): number {
   throw new RangeError('Terminal padding must map to a non-negative safe device-pixel value')
 }
 
-function linkFrameSignature(
-  snapshot: RendererFrameSnapshot,
-  layout: CommittedPointerLayout,
-): string {
-  return JSON.stringify([
-    layout.grid,
-    layout.physical,
-    snapshot.rows.map((row) => [row.y, row.cells, row.continuations]),
-  ])
-}
-
 function subscriptionCleanup(subscription: TerminalSessionSubscription): Cleanup {
   return () => subscription.dispose()
 }
@@ -278,9 +267,10 @@ export class Terminal {
   private inputLifecycle?: DomInputLifecycleController
   private inactiveCursorStyle?: InactiveCursorStyle
   private readonly keyboard
-  private lastFrame?: RendererFrameSnapshot
+  private lastFrame?: RendererTextFrameSnapshot
+  private lastFrameVersion?: number
+  private lastFullFrame?: RendererFrameSnapshot
   private lastFrameRevision?: number
-  private lastLinkFrameSignature?: string
   private readonly linkActivationModifier
   private links?: DomLinkController
   private layoutCommitted = false
@@ -473,7 +463,12 @@ export class Terminal {
   frameSnapshot(): RendererFrameSnapshot | undefined {
     this.ensureActive()
     if (!this.lastFrame) return undefined
-    return copiedFrame(this.lastFrame)
+    if (!this.canReadPaintedState) return this.lastFullFrame
+    const rows = Object.freeze(
+      this.session.renderState.readRows({ packed: true }).map(copiedFrameRow),
+    )
+    this.lastFullFrame = copiedFrame(Object.freeze({ ...this.lastFrame, rows }))
+    return this.lastFullFrame
   }
 
   captureViewport(): string | undefined {
@@ -487,7 +482,8 @@ export class Terminal {
       !elements ||
       !font ||
       !cursor ||
-      this.lastFrameRevision !== this.session.revision
+      this.lastFrameRevision !== this.session.revision ||
+      !this.canReadPaintedState
     )
       return undefined
     const painted = this.lastFrame?.paintedCursor
@@ -527,7 +523,7 @@ export class Terminal {
 
   visibleLines(): readonly string[] {
     this.ensureActive()
-    const rows = this.lastFrame?.rows ?? []
+    const rows = this.readFrame()?.rows ?? []
     return Object.freeze(rows.map((row) => row.text.slice()))
   }
 
@@ -685,7 +681,7 @@ export class Terminal {
     const elements = this.elementsValue
     if (!elements) return false
     this.accessibility = this.createAccessibility(elements)
-    const snapshot = this.lastFrame
+    const snapshot = this.readFrame()
     if (snapshot) this.accessibility.update(snapshot, this.session.scrollbar)
     return true
   }
@@ -723,7 +719,8 @@ export class Terminal {
     this.input = undefined
     this.inputLifecycle = undefined
     this.lastFrame = undefined
-    this.lastLinkFrameSignature = undefined
+    this.lastFullFrame = undefined
+    this.lastFrameVersion = undefined
     this.layoutCommitted = false
     this.links = undefined
     this.pointer = undefined
@@ -769,10 +766,12 @@ export class Terminal {
         cursorBlink: appearance.cursor.blink,
         font,
         onError: (cause) => this.reportError(cause, 'renderer.restore'),
-        onFrame: (snapshot) => this.handleFrame(snapshot),
-        onRowsPainted: (rows) => {
+        onCleanUpdate: () => this.handleCleanUpdate(),
+        onTextFrame: (snapshot) => this.handleFrame(snapshot),
+        needsFrameRows: () => this.accessibility !== undefined || (this.links?.needsFrame ?? false),
+        onRowsChanged: (rows) => {
           if (!this.emitters.frame.hasListeners) return
-          this.emitters.frame.emit(Object.freeze({ rows: Object.freeze(rows.map((row) => row.y)) }))
+          this.emitters.frame.emit(Object.freeze({ rows: rows }))
         },
         renderState: this.session.renderState,
         replaceCanvas: elements.replaceCanvas
@@ -982,6 +981,8 @@ export class Terminal {
 
   private installLinks(elements: TerminalElements): void {
     const links = createDomLinkController({
+      getFrame: () =>
+        this.lastFrameRevision === this.session.revision ? this.readFrame() : undefined,
       activationModifier: this.linkActivationModifier,
       canvas: elements.canvas,
       getLayout: () => this.committedPointerLayout(),
@@ -999,7 +1000,6 @@ export class Terminal {
     this.links = undefined
     this.pointer = undefined
     this.selection = undefined
-    this.lastLinkFrameSignature = undefined
     invokeCleanup(
       () => links?.dispose(),
       (cause) => this.reportError(cause, 'link.dispose'),
@@ -1115,23 +1115,57 @@ export class Terminal {
     this.renderer?.schedule()
   }
 
+  private get canReadPaintedState(): boolean {
+    return this.lastFrameVersion === this.session.renderState.snapshotVersion
+  }
+
+  private readFrame(): RendererTextFrameSnapshot | undefined {
+    const snapshot = this.lastFrame
+    if (!snapshot || snapshot.rows.length > 0) return snapshot
+    if (!this.canReadPaintedState) return this.lastFullFrame
+    const rows = Object.freeze(
+      this.session.renderState.readTextRows
+        ? this.session.renderState.readTextRows()
+        : this.session.renderState.readRows({ packed: true }).map(copiedFrameRow),
+    )
+    const frame = Object.freeze({ ...snapshot, rows })
+    this.lastFrame = frame
+    return frame
+  }
+
   private replayLastFrame(): void {
     const snapshot = this.lastFrame
     if (!snapshot) return
     this.updateFrameUi(snapshot)
   }
 
-  private handleFrame(snapshot: RendererFrameSnapshot): void {
+  private handleCleanUpdate(): void {
+    if (
+      !this.lastFrame ||
+      !this.canReadPaintedState ||
+      this.renderer?.canPaint !== true ||
+      this.renderer.hasPendingFrame
+    )
+      return
+    this.lastFrameRevision = this.session.revision
+  }
+
+  private handleFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
     this.lastFrameRevision = this.session.revision
+    this.lastFrameVersion = this.session.renderState.snapshotVersion
+    this.lastFullFrame = undefined
     this.updateFrameUi(snapshot)
   }
 
-  private updateFrameUi(snapshot: RendererFrameSnapshot): void {
+  private updateFrameUi(snapshot: RendererTextFrameSnapshot): void {
     this.lastFrame = snapshot
     const scrollbar = this.session.scrollbar
     this.runUiOperation('frame.caret', () => this.positionTextarea(snapshot))
-    this.runUiOperation('frame.links', () => this.updateLinkFrame(snapshot))
+    this.runUiOperation('frame.links', () => {
+      if (snapshot.rows.length > 0 && this.links?.needsFrame) this.updateLinkFrame(snapshot)
+      else this.invalidateLinks()
+    })
     this.runUiOperation('frame.accessibility', () =>
       this.accessibility?.update(snapshot, scrollbar),
     )
@@ -1139,25 +1173,22 @@ export class Terminal {
   }
 
   private invalidateLinks(): void {
-    this.lastLinkFrameSignature = undefined
     this.links?.invalidate()
   }
 
   private refreshLinks(): void {
     this.invalidateLinks()
-    const snapshot = this.lastFrame
+    if (!(this.links?.needsFrame ?? false)) return
+    const snapshot = this.readFrame()
     if (!snapshot) return
     this.updateLinkFrame(snapshot)
   }
 
-  private updateLinkFrame(snapshot: RendererFrameSnapshot): void {
+  private updateLinkFrame(snapshot: RendererTextFrameSnapshot): void {
     const links = this.links
     const layout = this.committedPointerLayout()
     if (!links || !layout) return
-    const signature = linkFrameSignature(snapshot, layout)
-    if (signature === this.lastLinkFrameSignature) return
     links.updateFrame(snapshot)
-    this.lastLinkFrameSignature = signature
   }
 
   private committedPointerLayout(): CommittedPointerLayout | undefined {
@@ -1269,7 +1300,7 @@ export class Terminal {
     }
   }
 
-  private positionTextarea(snapshot: RendererFrameSnapshot): void {
+  private positionTextarea(snapshot: RendererTextFrameSnapshot): void {
     const elements = this.elementsValue
     if (!elements) return
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return

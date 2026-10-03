@@ -342,7 +342,7 @@ export function validateArtifact(artifact) {
   for (const run of artifact.runs) {
     assert(
       variants.includes(run.variant) &&
-        (run.variant === 'ghostty-webgpu'
+        (['ghostty-webgpu', 'ghostty-webgl'].includes(run.variant)
           ? builders.includes(run.frameBuilder)
           : run.frameBuilder === undefined) &&
         counts.includes(run.count) &&

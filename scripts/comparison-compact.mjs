@@ -112,6 +112,7 @@ export async function compactEvidence(artifact, directory) {
     variants: artifact.variants,
     phases: artifact.phases,
     frameBuilders: artifact.frameBuilders,
+    accessibility: artifact.accessibility,
     fixtures: artifact.fixtures,
     repetitions: artifact.repetitions,
     latencySamples: artifact.latencySamples,

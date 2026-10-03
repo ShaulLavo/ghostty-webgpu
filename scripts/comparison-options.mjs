@@ -110,7 +110,7 @@ export function measurementCases(variants, paths, counts, builders, repetition) 
     return repetition % 2 ? rotated.reverse() : rotated
   }
   const treatments = ordered(variants).flatMap((variant) => {
-    if (variant !== 'ghostty-webgpu') return [{ variant }]
+    if (variant !== 'ghostty-webgpu' && variant !== 'ghostty-webgl') return [{ variant }]
     return ordered(builders).map((frameBuilder) => ({ variant, frameBuilder }))
   })
   return (repetition % 2 ? paths.toReversed() : paths).flatMap((path) =>
@@ -125,4 +125,10 @@ export function measurementRepetitions(args, fallback) {
     'Measurements require an even number of at least four repetitions',
   )
   return repetitions
+}
+
+export function accessibilityMode(args) {
+  const modes = selection(args, '--accessibility', ['off'], ['on', 'off'])
+  assert.equal(modes.length, 1, '--accessibility needs one mode')
+  return modes[0]
 }

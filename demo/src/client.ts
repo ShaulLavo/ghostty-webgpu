@@ -5,7 +5,7 @@ import type {
 } from '../../dist/dom/types.js'
 import {
   WebGpuUnavailableError,
-  type RendererFrameSnapshot,
+  type RendererTextFrameSnapshot,
   type RendererMetrics,
 } from '../../dist/render/renderer.js'
 import type { RenderSchedulerClock } from '../../dist/render/scheduler.js'
@@ -525,10 +525,10 @@ function connect(token: string): void {
 }
 
 const createInstrumentedRenderer: GhosttyWebGpuRendererFactory = async (options, signal) => {
-  const originalOnFrame = options.onFrame
+  const originalOnFrame = options.onTextFrame
   let created: CompatibleTerminalRenderer | undefined
   let observedSubmissions = 0
-  const onFrame = (snapshot: RendererFrameSnapshot): void => {
+  const onFrame = (snapshot: RendererTextFrameSnapshot): void => {
     observedSubmissions += 1
     appendSchedulerTrace({
       submittedFrames: observedSubmissions,
@@ -540,7 +540,7 @@ const createInstrumentedRenderer: GhosttyWebGpuRendererFactory = async (options,
     {
       ...options,
       deviceFactory: createRendererDevice,
-      onFrame,
+      onTextFrame: onFrame,
       schedulerClock: tracingSchedulerClock(),
     },
     signal,

@@ -201,6 +201,19 @@ export interface RenderRow {
   y: number
 }
 
+/** Owned immutable text; per-cell arrays decode lazily on access. */
+export interface RenderTextRow {
+  readonly y: number
+  readonly text: string
+  readonly cells: readonly string[]
+  readonly continuations: readonly boolean[]
+}
+
+export interface ReadTextRowsOptions {
+  dirtyOnly?: boolean
+  rows?: ReadonlySet<number>
+}
+
 export interface ReadRowsOptions {
   /** Keep packed records for direct renderer consumption. Cells materialize on access. */
   packed?: boolean

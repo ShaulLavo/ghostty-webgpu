@@ -81,6 +81,10 @@ export class FallbackTerminalRenderer {
     return this.state.renderer.metrics
   }
 
+  get canPaint(): boolean {
+    return this.activeRenderer?.canPaint ?? false
+  }
+
   get hasPendingFrame(): boolean {
     return this.activeRenderer?.hasPendingFrame ?? false
   }

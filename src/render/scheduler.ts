@@ -48,8 +48,12 @@ export class RenderScheduler {
     return this.cursorVisibleValue
   }
 
+  get canPaint(): boolean {
+    return !this.disposed && this.documentVisible
+  }
+
   get hasPendingFrame(): boolean {
-    return this.frameHandle !== undefined
+    return this.canPaint && (this.frameHandle !== undefined || this.flushRequested)
   }
 
   get hasPendingTimer(): boolean {

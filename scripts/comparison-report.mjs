@@ -326,6 +326,19 @@ function hasPairConfiguration(artifact) {
   )
 }
 
+function frameBuilderTreatments(artifact, variant) {
+  if (!['ghostty-webgpu', 'ghostty-webgl'].includes(variant)) return [undefined]
+  const observed = [
+    ...new Set(
+      artifact.runs.filter((run) => run.variant === variant).map((run) => run.frameBuilder),
+    ),
+  ]
+  // Historical unlabeled evidence stays separate from explicitly selected treatments.
+  if (observed.includes(undefined)) return observed
+  const builders = artifact.frameBuilders ?? observed
+  return builders.length ? builders : [undefined]
+}
+
 export function pairedRatios(artifact) {
   if (!hasPairConfiguration(artifact)) return []
   const groups = new Map()
@@ -353,15 +366,7 @@ export function pairedRatios(artifact) {
     .flatMap((nativeVariant) => {
       const variant = counterparts[nativeVariant]
       if (!artifact.variants.includes(variant)) return []
-      if (nativeVariant !== 'ghostty-webgpu') return [{ nativeVariant, variant }]
-      const builders = artifact.frameBuilders ?? [
-        ...new Set(
-          artifact.runs
-            .filter((run) => run.variant === nativeVariant)
-            .map((run) => run.frameBuilder),
-        ),
-      ]
-      return (builders.length ? builders : [undefined]).map((frameBuilder) => ({
+      return frameBuilderTreatments(artifact, nativeVariant).map((frameBuilder) => ({
         nativeVariant,
         variant,
         frameBuilder,
@@ -443,6 +448,13 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     'Correctness smoke cannot generate performance claims',
   )
   const rows = summaries(artifact).filter((row) => row.repetitions === artifact.repetitions)
+  const builders = artifact.frameBuilders ?? [
+    ...new Set(
+      artifact.runs
+        .filter((run) => ['ghostty-webgpu', 'ghostty-webgl'].includes(run.variant))
+        .map((run) => run.frameBuilder ?? 'unlabeled'),
+    ),
+  ]
   const lines = [
     '# Terminal comparison benchmarks',
     '',
@@ -477,7 +489,7 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     `- Font size: ${artifact.manifest.settings.fontSize}px. DPR: ${artifact.manifest.settings.dpr}. Grid: ${artifact.manifest.settings.columns} × ${artifact.manifest.settings.rows}.`,
     `- Libraries: ghostty-webgpu ${artifact.manifest.versions['ghostty-webgpu']}; xterm ${artifact.manifest.versions['@xterm/xterm']} with WebGL addon ${artifact.manifest.versions['@xterm/addon-webgl']}; ghostty-web ${artifact.manifest.versions['ghostty-web']}.`,
     `- Selected phases: ${(artifact.phases ?? ['parser', 'memory', 'idle', 'latency', 'burst', 'output']).join(', ')}. Omitted-phase metrics are not measured.`,
-    `- Selected variants: ${(artifact.variants ?? []).join(', ')}. WebGPU frame builders: ${(artifact.frameBuilders ?? ['js']).join(', ')}.`,
+    `- Selected variants: ${(artifact.variants ?? []).join(', ')}. GPU frame builders: ${builders.join(', ')}.`,
     `- Repetitions: ${artifact.repetitions}. Each table cell is the median of the per-run result, including per-run p50/p95.`,
     `- Artifact: [comparison.json](${link('comparison.json')}).`,
     '',
@@ -540,11 +552,8 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     '',
   ]
   const selectedVariants = artifact.variants ?? artifact.manifest.variants.map(({ id }) => id)
-  const builders = [...new Set(artifact.runs.map((run) => run.frameBuilder).filter(Boolean))]
   const variants = selectedVariants.flatMap((id) =>
-    id === 'ghostty-webgpu' && builders.length
-      ? builders.map((builder) => `${id}-${builder}`)
-      : [id],
+    frameBuilderTreatments(artifact, id).map((builder) => (builder ? `${id}-${builder}` : id)),
   )
   const cases = (artifact.counts ?? artifact.manifest.settings.counts).flatMap((count) =>
     (artifact.paths ?? ['bytes', 'string']).map((path) => ({ count, path })),

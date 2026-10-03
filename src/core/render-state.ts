@@ -10,9 +10,17 @@ import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
 import { ZigFrameBuilder } from './zig-frame.js'
 import { RowReader } from './row-reader.js'
+import { TextRowReader } from './text-row-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { GhosttyTerminal } from './terminal.js'
-import type { DamageSnapshot, ReadRowsOptions, RenderCursorSnapshot, RenderRow } from './types.js'
+import type {
+  DamageSnapshot,
+  ReadRowsOptions,
+  ReadTextRowsOptions,
+  RenderCursorSnapshot,
+  RenderRow,
+  RenderTextRow,
+} from './types.js'
 
 interface OwnedHandle {
   handle: number
@@ -139,8 +147,10 @@ function createOwnedHandle(
 export class GhosttyRenderState {
   private readonly cells: OwnedHandle
   private readonly rowReader: RowReader
+  private readonly textRowReader: TextRowReader
   private readonly cursorReader: CursorReader
   private cursorSnapshot?: RenderCursorSnapshot
+  private snapshotRevision = 0
   private disposed = false
   private readonly dirtyPointer: number
   private readonly iterator: OwnedHandle
@@ -174,11 +184,17 @@ export class GhosttyRenderState {
       throw cause
     }
     this.rowReader = rowReader
+    this.textRowReader = new TextRowReader(runtime)
     this.cursorReader = cursorReader
     this.scalarPointer = scalarPointer
     this.dirtyPointer = scalarPointer
     this.zeroBooleanPointer = scalarPointer + 4
     this.zeroDirtyPointer = scalarPointer + 8
+  }
+
+  /** Advances on damaged updates, independently of whether the renderer paints them. */
+  get snapshotVersion(): number {
+    return this.snapshotRevision
   }
 
   get dirty(): RenderStateDirty {
@@ -202,6 +218,7 @@ export class GhosttyRenderState {
     )
     const snapshot = this.cursorReader.read(this.state.handle)
     this.cursorSnapshot = snapshot.cursor
+    if (snapshot.dirty !== RenderStateDirty.False) this.snapshotRevision += 1
     return snapshot.dirty
   }
 
@@ -225,29 +242,23 @@ export class GhosttyRenderState {
 
   readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
     this.ensureActive()
-    assertGhosttyResult(
-      'ghostty_render_state_get(COLUMNS)',
-      this.runtime.exports.ghostty_render_state_get(
-        this.state.handle,
-        RenderStateData.Columns,
-        this.dirtyPointer,
-      ),
-    )
-    const columns = this.runtime.memory.view.getUint16(this.dirtyPointer, true)
-    assertGhosttyResult(
-      'ghostty_render_state_get(ROWS)',
-      this.runtime.exports.ghostty_render_state_get(
-        this.state.handle,
-        RenderStateData.Rows,
-        this.dirtyPointer,
-      ),
-    )
-    const rows = this.runtime.memory.view.getUint16(this.dirtyPointer, true)
     return this.rowReader.read(
       this.state.handle,
       this.iterator.handle,
       this.cells.handle,
-      { columns, rows },
+      this.readGrid(),
+      options,
+    )
+  }
+
+  /** Reads the last updated state without updating or acknowledging damage. */
+  readTextRows(options: ReadTextRowsOptions = {}): readonly RenderTextRow[] {
+    this.ensureActive()
+    return this.textRowReader.read(
+      this.state.handle,
+      this.iterator.handle,
+      this.cells.handle,
+      this.readGrid(),
       options,
     )
   }
@@ -289,6 +300,7 @@ export class GhosttyRenderState {
     if (this.disposed) return
     this.cursorReader.dispose()
     this.rowReader.dispose()
+    this.textRowReader.dispose()
     this.runtime.memory.free(this.scalarPointer, 12)
     this.freeNativeHandles()
     this.runtime.releaseRenderState(this)
@@ -331,6 +343,27 @@ export class GhosttyRenderState {
     this.runtime.memory.freeOpaque(this.cells.out)
     this.runtime.memory.freeOpaque(this.iterator.out)
     this.runtime.memory.freeOpaque(this.state.out)
+  }
+
+  private readGrid(): { columns: number; rows: number } {
+    assertGhosttyResult(
+      'ghostty_render_state_get(COLUMNS)',
+      this.runtime.exports.ghostty_render_state_get(
+        this.state.handle,
+        RenderStateData.Columns,
+        this.dirtyPointer,
+      ),
+    )
+    const columns = this.runtime.memory.view.getUint16(this.dirtyPointer, true)
+    assertGhosttyResult(
+      'ghostty_render_state_get(ROWS)',
+      this.runtime.exports.ghostty_render_state_get(
+        this.state.handle,
+        RenderStateData.Rows,
+        this.dirtyPointer,
+      ),
+    )
+    return { columns, rows: this.runtime.memory.view.getUint16(this.dirtyPointer, true) }
   }
 
   private resetIterator(): void {

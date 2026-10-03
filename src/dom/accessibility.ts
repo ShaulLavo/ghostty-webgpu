@@ -1,5 +1,5 @@
 import type { TerminalScrollbar } from '../core/types.js'
-import type { RendererFrameRow, RendererFrameSnapshot } from '../render/renderer.js'
+import type { RendererTextFrameRow, RendererTextFrameSnapshot } from '../render/renderer.js'
 
 export interface TerminalAccessibilityOptions {
   readonly label?: string
@@ -24,7 +24,7 @@ export interface TerminalAccessibilityController {
   dispose(): void
   notifyOutput(): void
   update(
-    snapshot: RendererFrameSnapshot,
+    snapshot: RendererTextFrameSnapshot,
     scrollbar: Readonly<TerminalScrollbar>,
   ): TerminalAccessibilityUpdate
 }
@@ -113,7 +113,7 @@ function restoreAttribute(element: Element, name: string, value: string | null):
   element.setAttribute(name, value)
 }
 
-function normalizedRowText(row: RendererFrameRow): string {
+function normalizedRowText(row: RendererTextFrameRow): string {
   return row.text.trimEnd()
 }
 
@@ -126,7 +126,7 @@ function ariaPosition(offset: number, y: number): string {
 }
 
 function normalizeRows(
-  rows: readonly RendererFrameRow[],
+  rows: readonly RendererTextFrameRow[],
   scrollbar: Readonly<TerminalScrollbar>,
 ): readonly AccessibilityRow[] {
   const normalized = rows.map((row) => {
@@ -193,7 +193,7 @@ function changedOutput(previous: PreviousFrame, rows: readonly AccessibilityRow[
 }
 
 function cursorCoordinates(
-  snapshot: RendererFrameSnapshot,
+  snapshot: RendererTextFrameSnapshot,
   scrollbar: Readonly<TerminalScrollbar>,
 ): { readonly column: string; readonly row: string; readonly viewportRow: number } | undefined {
   const viewport = snapshot.cursor.viewport
@@ -257,7 +257,7 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
   }
 
   update(
-    snapshot: RendererFrameSnapshot,
+    snapshot: RendererTextFrameSnapshot,
     scrollbar: Readonly<TerminalScrollbar>,
   ): TerminalAccessibilityUpdate {
     if (this.disposed) return { announced: false, full: false, updatedRows: 0 }
@@ -319,7 +319,7 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
   }
 
   private updateCursor(
-    snapshot: RendererFrameSnapshot,
+    snapshot: RendererTextFrameSnapshot,
     scrollbar: Readonly<TerminalScrollbar>,
     rows: readonly AccessibilityRow[],
   ): void {

@@ -158,6 +158,26 @@ export class CallbackBridge {
     )
   }
 
+  readTextRows(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    snapshot: number,
+  ): number {
+    return this.bridgeExports!.bridge_read_text_rows(
+      state,
+      iterator,
+      cells,
+      mask,
+      maskLength,
+      dirtyOnly,
+      snapshot,
+    )
+  }
+
   buildFrame(
     state: number,
     iterator: number,

@@ -59,6 +59,86 @@ const c = @cImport({
     @cInclude("ghostty/vt/style.h");
 });
 
+const TextRow = extern struct { y: u32, start: u32, len: u32 };
+// Unicode scalar values leave bit 31 available for the wide-tail continuation flag.
+const TextCell = extern struct { codepoint: u32, grapheme_start: u32, grapheme_len: u32 };
+const TextSnapshot = extern struct {
+    rows: [*]TextRow,
+    rows_cap: u32,
+    rows_len: u32,
+    cells: [*]TextCell,
+    cells_cap: u32,
+    cells_len: u32,
+    graphemes: [*]u32,
+    graphemes_cap: u32,
+    graphemes_len: u32,
+};
+
+fn readTextCell(raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, out: *TextCell, text: *TextSnapshot) c.GhosttyResult {
+    out.* = .{ .codepoint = 0, .grapheme_start = 0, .grapheme_len = 0 };
+    var wide: c.GhosttyCellWide = 0;
+    var result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CODEPOINT, &out.codepoint);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_WIDE, &wide);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL) out.codepoint |= 0x80000000;
+    var tag: c.GhosttyCellContentTag = 0;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &tag);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) return c.GHOSTTY_SUCCESS;
+    result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &out.grapheme_len);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    out.grapheme_start = text.graphemes_len;
+    text.graphemes_len += out.grapheme_len;
+    if (text.graphemes_len > text.graphemes_cap) return c.GHOSTTY_SUCCESS;
+    return c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, text.graphemes + out.grapheme_start);
+}
+
+fn readTextRow(iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, text: *TextSnapshot) c.GhosttyResult {
+    var raws: c.GhosttyCellsView = undefined;
+    var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raws);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (text.rows_len >= text.rows_cap or text.cells_len + raws.len > text.cells_cap) return c.GHOSTTY_OUT_OF_SPACE;
+    text.rows[text.rows_len] = .{ .y = y, .start = text.cells_len, .len = raws.len };
+    text.rows_len += 1;
+    result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, @ptrCast(cells));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    for (0..raws.len) |x| {
+        result = readTextCell(raws.ptr[x], cells.*, @intCast(x), &text.cells[text.cells_len], text);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        text.cells_len += 1;
+    }
+    return c.GHOSTTY_SUCCESS;
+}
+
+export fn bridge_read_text_rows(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, text: *TextSnapshot) c.GhosttyResult {
+    text.rows_len = 0;
+    text.cells_len = 0;
+    text.graphemes_len = 0;
+    var it = iterator;
+    var row_cells = cells;
+    var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    var y: u32 = 0;
+    while (c.ghostty_render_state_row_iterator_next(it)) : (y += 1) {
+        if (mask) |m| {
+            if (y >= mask_len or m[y] == 0) continue;
+        }
+        if (dirty_only) {
+            var dirty = false;
+            result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+            if (!dirty) continue;
+        }
+        result = readTextRow(it, &row_cells, y, text);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+    }
+    if (text.graphemes_len > text.graphemes_cap) return c.GHOSTTY_OUT_OF_SPACE;
+    return c.GHOSTTY_SUCCESS;
+}
+
 const GlyphEntry = extern struct {
     offset_x: f32,
     offset_y: f32,
@@ -272,7 +352,8 @@ fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.
             glyph_end = @intCast(x + 1);
         }
     }
-    if (cell_end == 0 and glyph_end == 0) return c.GHOSTTY_SUCCESS;
+    // Logical row changes can leave GPU bytes identical, such as concealed text.
+    if (!write) return c.GHOSTTY_SUCCESS;
     if (frame.ranges_len == frame.ranges_cap) return c.GHOSTTY_OUT_OF_SPACE;
     frame.ranges[frame.ranges_len] = .{
         .cell_offset = (y * frame.columns + if (cell_end == 0) @as(u32, 0) else cell_first) * 64,

@@ -20,6 +20,7 @@ import {
   selection,
   hardwareLaunch,
   frameBuilders,
+  accessibilityMode,
   selectedVariants,
   selectedPhases,
   measurementCases,
@@ -49,6 +50,7 @@ const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
 const args = process.argv.slice(2)
 const smoke = args.includes('--smoke')
 const tracing = args.includes('--trace')
+const accessibility = accessibilityMode(args)
 const builders = frameBuilders(args)
 const phases = selectedPhases(args)
 assert(!(tracing && args.includes('--phases')), '--trace uses --trace-phase')
@@ -206,13 +208,14 @@ const artifact = {
   variants: variantIds,
   phases,
   frameBuilders: builders,
+  accessibility,
   paths: tracing ? ['bytes'] : writePaths,
   fixtures,
   hardware: false,
   measurementBudgetMilliseconds:
     counts.length *
     (tracing ? 1 : writePaths.length) *
-    (variantIds.length + (variantIds.includes('ghostty-webgpu') ? builders.length - 1 : 0)) *
+    measurementCases(variantIds, ['bytes'], [1], builders, 0).length *
     (smoke ? 1 : repetitions) *
     s.caseDeadlineMilliseconds,
   startedAt: new Date().toISOString(),
@@ -407,7 +410,7 @@ async function parserOnly(testCase, run, contexts) {
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(
-      `${origin}/?${new URLSearchParams({ ...(!smoke || args.includes('--smoke-instrumentation') ? { trace: '' } : {}), ...(testCase.frameBuilder === 'zig' ? { zig: '' } : {}) })}`,
+      `${origin}/?${new URLSearchParams({ accessibility, ...(!smoke || args.includes('--smoke-instrumentation') ? { trace: '' } : {}), ...(testCase.frameBuilder === 'zig' ? { zig: '' } : {}) })}`,
     )
     await page.waitForFunction(() => Boolean(window.__compare))
     await page.evaluate((testCase) => window.__compare.initialize(testCase), testCase)
@@ -580,7 +583,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
   })
   try {
     await page.goto(
-      `${origin}/?${new URLSearchParams({ ...(!smoke || args.includes('--smoke-instrumentation') ? { trace: '' } : {}), ...(testCase.frameBuilder === 'zig' ? { zig: '' } : {}) })}`,
+      `${origin}/?${new URLSearchParams({ accessibility, ...(!smoke || args.includes('--smoke-instrumentation') ? { trace: '' } : {}), ...(testCase.frameBuilder === 'zig' ? { zig: '' } : {}) })}`,
     )
     await page.waitForFunction(() => Boolean(window.__compare))
     await page.bringToFront()

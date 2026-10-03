@@ -41,7 +41,7 @@ function rendererBoundary() {
   }
 }
 
-function recordedCounters(draw) {
+function recordedCounters(draw, readTextRows) {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'location')
   Object.defineProperty(globalThis, 'location', {
     configurable: true,
@@ -53,19 +53,25 @@ function recordedCounters(draw) {
     const state = {
       update() {},
       readRows: () => [],
+      ...(readTextRows ? { readTextRows } : {}),
       acknowledge() {},
       createFrameBuilder: () => renderer.builder,
     }
     tracing.native(
       3,
-      { handle: 1, runtime: { exports: { ghostty_terminal_vt_write: () => {} } }, write() {} },
+      {
+        handle: 1,
+        size: { columns: 10 },
+        runtime: { exports: { ghostty_terminal_vt_write: () => {} } },
+        write() {},
+      },
       state,
     )
     tracing.renderer(3, renderer)
     state.createFrameBuilder()
     renderer.drawFrame('zig')
     tracing.begin()
-    draw(renderer)
+    draw(renderer, state)
     return tracing.end().counters
   } finally {
     if (previous) Object.defineProperty(globalThis, 'location', previous)
@@ -201,4 +207,23 @@ test('Zig fallbacks count only frames submitted by the JS path', () => {
   assert.equal(total(counters, 'zigFallbackFrames'), 1)
   assert.equal(total(counters, 'zigFrames'), 0)
   assert.equal(total(counters, 'frames'), 1)
+})
+
+test('text extraction counters preserve lazy arrays while older runtimes remain traceable', () => {
+  const row = {
+    y: 0,
+    text: 'owned text',
+    get cells() {
+      assert.fail('Tracing must preserve lazy cell strings')
+    },
+    get continuations() {
+      assert.fail('Tracing must preserve lazy continuation flags')
+    },
+  }
+  const counters = recordedCounters(
+    (_, state) => state.readTextRows(),
+    () => [row, row],
+  )
+  assert.equal(total(counters, 'textRowsCopied'), 2)
+  assert.equal(total(counters, 'textCellsCopied'), 20)
 })

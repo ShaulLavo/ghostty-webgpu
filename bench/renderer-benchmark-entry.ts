@@ -80,6 +80,7 @@ async function createNativeDriver(): Promise<Driver> {
     rows,
     font,
     onFrame: () => {},
+    needsFrameRows: () => false,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
     renderState: {
       update: () => state.update(),

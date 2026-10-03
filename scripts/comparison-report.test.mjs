@@ -154,6 +154,7 @@ test('builders created before recording acquire their own measured boundary', ()
 test('paired frame-builder report exposes both native absolute measurements', () => {
   const artifact = pairedArtifact()
   const baselineRows = pairedRatios(artifact)
+  assert(markdown(artifact).includes('GPU frame builders: unlabeled.'))
   artifact.runs = artifact.runs.flatMap((run) =>
     run.variant === 'ghostty-webgpu'
       ? ['js', 'zig'].map((frameBuilder) => ({ ...run, frameBuilder }))
@@ -161,6 +162,7 @@ test('paired frame-builder report exposes both native absolute measurements', ()
   )
   const report = markdown(artifact)
   assert(report.includes('| Measure | ghostty-webgpu-js | ghostty-webgpu-zig | xterm-webgl |'))
+  assert(report.includes('GPU frame builders: js, zig.'))
   const nativeRows = pairedRatios(artifact)
   assert.equal(nativeRows.length, baselineRows.length * 2)
   for (const builder of ['js', 'zig'])
@@ -992,4 +994,74 @@ test('xterm DOM tracing follows replacement row instances and rejects non-commit
     if (original) Object.defineProperty(globalThis, 'location', original)
     else delete globalThis.location
   }
+})
+
+test('both GPU reports separate explicit builders beside the shared WebGL control', () => {
+  const artifact = pairedArtifact()
+  const nativeRuns = artifact.runs.filter((run) => run.variant === 'ghostty-webgpu')
+  artifact.variants = ['ghostty-webgpu', 'ghostty-webgl', 'xterm-webgl']
+  artifact.frameBuilders = ['js', 'zig']
+  artifact.runs = artifact.runs
+    .filter((run) => run.variant === 'xterm-webgl')
+    .concat(
+      ['ghostty-webgpu', 'ghostty-webgl'].flatMap((variant) =>
+        ['js', 'zig'].flatMap((frameBuilder) =>
+          nativeRuns.map((run) => ({
+            ...run,
+            variant,
+            frameBuilder,
+            latency: {
+              ...run.latency,
+              write: run.latency.write.map((value) => value * (frameBuilder === 'zig' ? 2 : 1)),
+            },
+          })),
+        ),
+      ),
+    )
+  const rows = pairedRatios(artifact)
+  assert.equal(rows.length, 28)
+  for (const variant of ['ghostty-webgpu', 'ghostty-webgl']) {
+    const selected = rows.filter(
+      (row) => row.nativeVariant === variant && row.metric === 'write/p50',
+    )
+    assert.deepEqual(
+      selected.map((row) => row.frameBuilder),
+      ['js', 'zig'],
+    )
+    assert.deepEqual(
+      selected.map((row) => row.median),
+      [0.5, 1],
+    )
+    assert(selected.every((row) => row.status === 'pass' && row.repetitions === 3))
+  }
+  const report = markdown(artifact)
+  assert(
+    report.includes(
+      '| Measure | ghostty-webgpu-js | ghostty-webgpu-zig | ghostty-webgl-js | ghostty-webgl-zig | xterm-webgl |',
+    ),
+  )
+  assert(report.includes('| write/p50 | 10.00 ms | 20.00 ms | 10.00 ms | 20.00 ms | 100.00 ms |'))
+  assert(report.includes('ghostty-webgl-js ↔ xterm-webgl'))
+  assert(report.includes('ghostty-webgl-zig ↔ xterm-webgl'))
+})
+
+test('historical WebGL measurements keep their unlabeled identity beside labeled WebGPU', () => {
+  const artifact = pairedArtifact()
+  const nativeRuns = artifact.runs.filter((run) => run.variant === 'ghostty-webgpu')
+  artifact.variants = ['ghostty-webgpu', 'ghostty-webgl', 'xterm-webgl']
+  artifact.frameBuilders = ['zig']
+  artifact.runs = artifact.runs
+    .map((run) => (run.variant === 'ghostty-webgpu' ? { ...run, frameBuilder: 'zig' } : run))
+    .concat(nativeRuns.map((run) => ({ ...run, variant: 'ghostty-webgl' })))
+  const rows = pairedRatios(artifact)
+  assert.equal(rows.length, 14)
+  assert(
+    rows
+      .filter((row) => row.nativeVariant === 'ghostty-webgl')
+      .every((row) => row.frameBuilder === undefined && row.status === 'pass'),
+  )
+  const report = markdown(artifact)
+  assert(report.includes('| Measure | ghostty-webgpu-zig | ghostty-webgl | xterm-webgl |'))
+  assert(report.includes('ghostty-webgl ↔ xterm-webgl'))
+  assert(!report.includes('ghostty-webgl-zig'))
 })

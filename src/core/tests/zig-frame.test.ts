@@ -153,8 +153,49 @@ describe('WASM frame differential parity', () => {
     expect(builder.build({ ...options, full: false })).toBe(0)
     expect(builder.changedRanges()).toEqual([])
     readyFrame({ ...options, full: false, overlayRows: new Set([2]) })
-    expect(builder.changedRanges()).toEqual([])
+    expect(builder.changedRanges()).toEqual([
+      {
+        row: 2,
+        invalidatedRows: [],
+        cell: { byteOffset: 2 * 12 * 64, byteLength: 0 },
+        glyph: { byteOffset: 2 * 12 * 96, byteLength: 0 },
+      },
+    ])
   })
+
+  it.each([0, 1])(
+    'reports concealed text changes in logical row %s without GPU uploads',
+    async (row) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 8, rows: 2 })
+      const state = runtime.createRenderState(terminal)
+      const position = `\x1b[${row + 1};1H`
+      terminal.write(`\x1b[?25l${position}\x1b[8mA${position}`)
+      state.update()
+      builder = state.createFrameBuilder(8, 2)
+      readyFrame()
+      expect(state.readTextRows({ rows: new Set([row]) })[0]!.cells[0]).toBe('A')
+      const previousCells = builder.cellData.slice()
+      const previousGlyphs = builder.glyphData.slice()
+      state.acknowledge()
+
+      terminal.write(`B${position}`)
+      state.update()
+      expect(state.readRows({ dirtyOnly: true }).map((value) => value.y)).toEqual([row])
+      expect(state.readTextRows({ rows: new Set([row]) })[0]!.cells[0]).toBe('B')
+      readyFrame({ ...options, full: false })
+      expect(builder.cellData).toEqual(previousCells)
+      expect(builder.glyphData).toEqual(previousGlyphs)
+      expect(builder.changedRanges()).toEqual([
+        {
+          row,
+          invalidatedRows: [],
+          cell: { byteOffset: row * 8 * 64, byteLength: 0 },
+          glyph: { byteOffset: row * 8 * 96, byteLength: 0 },
+        },
+      ])
+    },
+  )
 
   it('preserves changed cell bytes through a new-glyph retry', async () => {
     runtime = await GhosttyRuntime.create()

@@ -107,6 +107,7 @@ describe('managed renderer fallback', () => {
       visible: true,
     }
     const { canvas, clock, currentCanvas, renderer } = await fixture(source)
+    expect(renderer.canPaint).toBe(true)
     renderer.setFocused(true)
     clock.flushFrame()
     const createCanvasRenderer = CanvasTerminalRenderer.create.bind(CanvasTerminalRenderer)
@@ -127,7 +128,9 @@ describe('managed renderer fallback', () => {
 
     expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
     expect(source.acknowledgements).toBe(1)
+    expect(renderer.canPaint).toBe(false)
     renderer.setDocumentVisible(true)
+    expect(renderer.canPaint).toBe(true)
     clock.flushFrame()
     const replacement = currentCanvas()
     expect([replacement.width, replacement.height]).toEqual([40, 60])
@@ -161,6 +164,7 @@ describe('managed renderer fallback', () => {
 
       expect(source.acknowledgements).toBe(1)
       expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
+      expect(renderer.canPaint).toBe(false)
       renderer.notifyWrite()
       expect(clock.frames.size).toBe(0)
     },

@@ -186,7 +186,9 @@ describe('RenderScheduler', () => {
         events.push(`start:${frame}`)
         if (frame === 1) {
           scheduler.flush()
+          expect(scheduler.hasPendingFrame).toBe(true)
           scheduler.flush()
+          expect(scheduler.hasPendingFrame).toBe(true)
           events.push('requested')
         }
         events.push(`end:${frame}`)
@@ -244,8 +246,10 @@ describe('RenderScheduler', () => {
       scheduler.flush()
       expect(frames).toBe(1)
       expect(scheduler.hasPendingFrame).toBe(false)
+      expect(scheduler.canPaint).toBe(false)
       if (action === 'dispose') return
       scheduler.setDocumentVisible(true)
+      expect(scheduler.canPaint).toBe(true)
       clock.takeFrame()()
       expect(frames).toBe(2)
     },

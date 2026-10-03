@@ -512,25 +512,36 @@ test('attribution and latency choose the same painted frame after a deferred no-
   }
 })
 
-function selectedArtifact(variants) {
+function selectedArtifact(variants, builders = ['zig']) {
   const artifact = completeArtifact()
   const templates = structuredClone(artifact.runs.filter((run) => run.variant === 'ghostty-webgpu'))
   const probes = structuredClone(
     artifact.qualifications.filter((probe) => probe.variant === 'ghostty-webgpu'),
   )
   artifact.variants = variants
-  artifact.runs = variants.flatMap((variant) =>
+  artifact.frameBuilders = builders
+  const treatments = variants.flatMap((variant) =>
+    ['ghostty-webgpu', 'ghostty-webgl'].includes(variant)
+      ? builders.map((frameBuilder) => ({ variant, frameBuilder }))
+      : [{ variant }],
+  )
+  artifact.runs = treatments.flatMap((treatment) =>
     templates.map((run) => ({
       ...run,
-      variant,
+      ...treatment,
       phases: run.phases.map((phase) => ({
         ...phase,
-        label: phase.label.replace(run.variant, variant),
+        label: phase.label.replace(
+          run.variant,
+          treatment.frameBuilder
+            ? `${treatment.variant}-${treatment.frameBuilder}`
+            : treatment.variant,
+        ),
       })),
     })),
   )
-  artifact.qualifications = variants.flatMap((variant) =>
-    probes.map((probe) => ({ ...probe, variant })),
+  artifact.qualifications = treatments.flatMap((treatment) =>
+    probes.map((probe) => ({ ...probe, ...treatment })),
   )
   return artifact
 }
@@ -564,4 +575,18 @@ test('single selected WebGPU builder requires its own labelled treatment and qua
   assert.doesNotThrow(() => validateArtifact(artifact))
   artifact.qualifications[0].frameBuilder = 'js'
   assert.throws(() => validateArtifact(artifact), /Incomplete display evidence/)
+})
+
+test('trace validation qualifies both GPU builders with exact treatment labels', () => {
+  const artifact = selectedArtifact(
+    ['ghostty-webgpu', 'ghostty-webgl', 'xterm-webgl'],
+    ['js', 'zig'],
+  )
+  assert.doesNotThrow(() => validateArtifact(artifact))
+  const mismatched = structuredClone(artifact)
+  mismatched.qualifications.find((probe) => probe.variant === 'ghostty-webgl').frameBuilder = 'zig'
+  assert.throws(() => validateArtifact(mismatched), /Incomplete display evidence/)
+  const unlabeled = structuredClone(artifact)
+  delete unlabeled.runs.find((run) => run.variant === 'ghostty-webgl').frameBuilder
+  assert.throws(() => validateArtifact(unlabeled), /unexpected case/)
 })

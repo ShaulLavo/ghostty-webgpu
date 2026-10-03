@@ -55,9 +55,9 @@ async function fixture() {
           ...options,
           deviceFactory: () =>
             Promise.reject(new WebGpuUnavailableError('adapter', 'No supported adapter')),
-          onFrame: (snapshot) => {
+          onTextFrame: (snapshot) => {
             observations.frames += 1
-            options.onFrame?.(snapshot)
+            options.onTextFrame?.(snapshot)
           },
         },
         signal,

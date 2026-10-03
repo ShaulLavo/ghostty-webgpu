@@ -1,4 +1,4 @@
-import type { RendererFrameSnapshot, RendererFrameRow } from '../render/renderer.js'
+import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/renderer.js'
 import type { LinkCell, LinkHit, LinkResolution } from '../term/links.js'
 import type { TerminalLinkRequest } from '../term/types.js'
 import {
@@ -16,6 +16,7 @@ interface DomLinkSession {
 export interface DomLinkControllerOptions {
   readonly activationModifier?: (event: MouseEvent) => boolean
   readonly canvas: HTMLCanvasElement
+  readonly getFrame?: () => RendererTextFrameSnapshot | undefined
   readonly getLayout: () => CommittedPointerLayout | undefined
   readonly onError?: (cause: unknown, operation: string) => void
   readonly onHitChange?: (hit: LinkHit<Event> | undefined) => void
@@ -25,12 +26,13 @@ export interface DomLinkControllerOptions {
 }
 
 export interface DomLinkController {
+  readonly needsFrame: boolean
   readonly currentHit: LinkHit<Event> | undefined
   readonly hasPendingResolution: boolean
   dispose(): void
   focusNextLink(): Promise<boolean>
   invalidate(): void
-  updateFrame(snapshot: RendererFrameSnapshot): void
+  updateFrame(snapshot: RendererTextFrameSnapshot): void
 }
 
 interface PointerPoint {
@@ -50,7 +52,7 @@ interface ResolvedCell {
 }
 
 interface FrameCell extends ResolvedCell {
-  readonly frameRow: RendererFrameRow
+  readonly frameRow: RendererTextFrameRow
 }
 
 function isApplePlatform(view: Window): boolean {
@@ -82,24 +84,29 @@ function physicalPointInsideGrid(
   return point.y >= physical.paddingTop && point.y < bottom
 }
 
-function frameRow(snapshot: RendererFrameSnapshot, row: number): RendererFrameRow | undefined {
+function frameRow(
+  snapshot: RendererTextFrameSnapshot,
+  row: number,
+): RendererTextFrameRow | undefined {
   return snapshot.rows.find((candidate) => candidate.y === row)
 }
 
-function linkCells(row: RendererFrameRow): readonly LinkCell[] {
+function linkCells(row: RendererTextFrameRow): readonly LinkCell[] {
   return row.cells.map((text, column) =>
     Object.freeze({ continuation: row.continuations[column] === true, text: text.slice() }),
   )
 }
 
 function frameContentEquals(
-  left: RendererFrameSnapshot | undefined,
-  right: RendererFrameSnapshot,
+  left: RendererTextFrameSnapshot | undefined,
+  right: RendererTextFrameSnapshot,
 ): boolean {
   if (!left || left.rows.length !== right.rows.length) return false
   for (let rowIndex = 0; rowIndex < left.rows.length; rowIndex += 1) {
     const leftRow = left.rows[rowIndex]!
     const rightRow = right.rows[rowIndex]!
+    if (leftRow === rightRow) continue
+    if (leftRow.text !== rightRow.text) return false
     if (leftRow.y !== rightRow.y || leftRow.cells.length !== rightRow.cells.length) return false
     for (let column = 0; column < leftRow.cells.length; column += 1) {
       if (leftRow.cells[column] !== rightRow.cells[column]) return false
@@ -109,7 +116,7 @@ function frameContentEquals(
   return true
 }
 
-function frameCells(snapshot: RendererFrameSnapshot): readonly FrameCell[] {
+function frameCells(snapshot: RendererTextFrameSnapshot): readonly FrameCell[] {
   const result: FrameCell[] = []
   const rows = [...snapshot.rows].sort((left, right) => left.y - right.y)
   for (const row of rows) {
@@ -131,7 +138,7 @@ function discoveryStart(cells: readonly FrameCell[], hit: LinkHit<Event> | undef
 }
 
 function orderedDiscoveryCells(
-  snapshot: RendererFrameSnapshot,
+  snapshot: RendererTextFrameSnapshot,
   currentHit: LinkHit<Event> | undefined,
 ): readonly FrameCell[] {
   const cells = frameCells(snapshot)
@@ -165,7 +172,7 @@ class BrowserLinkController implements DomLinkController {
   private currentResolution?: LinkResolution<Event>
   private disposed = false
   private frameRevision = 0
-  private frameSnapshot?: RendererFrameSnapshot
+  private frameSnapshot?: RendererTextFrameSnapshot
   private generation = 0
   private readonly initialCursor: string
   private lastPoint?: PointerPoint
@@ -188,6 +195,14 @@ class BrowserLinkController implements DomLinkController {
     this.overlay.tabIndex = 0
     applyOverlayStyles(this.overlay)
     this.attach()
+  }
+
+  get needsFrame(): boolean {
+    return (
+      this.lastPoint !== undefined ||
+      this.pendingGeneration !== undefined ||
+      this.options.canvas.ownerDocument.activeElement === this.overlay
+    )
   }
 
   get currentHit(): LinkHit<Event> | undefined {
@@ -221,7 +236,7 @@ class BrowserLinkController implements DomLinkController {
     this.clearVisibleHit()
   }
 
-  updateFrame(snapshot: RendererFrameSnapshot): void {
+  updateFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.disposed) return
     if (this.preserveEquivalentFrame(snapshot)) return
     this.frameRevision += 1
@@ -234,7 +249,7 @@ class BrowserLinkController implements DomLinkController {
   }
 
   async focusNextLink(): Promise<boolean> {
-    const snapshot = this.frameSnapshot
+    const snapshot = this.readFrame()
     if (this.disposed || !snapshot) return false
     const cells = orderedDiscoveryCells(snapshot, this.currentHit)
     if (cells.length === 0) return false
@@ -432,8 +447,14 @@ class BrowserLinkController implements DomLinkController {
     if (changed) this.options.onHitChange?.(undefined)
   }
 
+  private readFrame(): RendererTextFrameSnapshot | undefined {
+    if (this.disposed) return undefined
+    if (!this.frameSnapshot) this.frameSnapshot = this.options.getFrame?.()
+    return this.frameSnapshot
+  }
+
   private requestResolution(point: PointerPoint): void {
-    const snapshot = this.frameSnapshot
+    const snapshot = this.readFrame()
     const cell = this.cellAt(point)
     if (!snapshot || !cell) {
       this.lastQuery = undefined
@@ -453,7 +474,7 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private async resolveCell(
-    snapshot: RendererFrameSnapshot,
+    snapshot: RendererTextFrameSnapshot,
     cell: ResolvedCell,
     generation: number,
   ): Promise<void> {
@@ -479,7 +500,7 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private async resolveForCell(
-    row: RendererFrameRow,
+    row: RendererTextFrameRow,
     cell: ResolvedCell,
     generation: number,
   ): Promise<LinkResolution<Event> | undefined> {
@@ -500,7 +521,7 @@ class BrowserLinkController implements DomLinkController {
     }
   }
 
-  private preserveEquivalentFrame(snapshot: RendererFrameSnapshot): boolean {
+  private preserveEquivalentFrame(snapshot: RendererTextFrameSnapshot): boolean {
     if (!frameContentEquals(this.frameSnapshot, snapshot)) return false
     this.frameSnapshot = snapshot
     const resolution = this.currentResolution
@@ -537,7 +558,7 @@ class BrowserLinkController implements DomLinkController {
     this.overlay.style.top = `${top}px`
     this.overlay.style.width = `${cells * layout.grid.cellWidth}px`
     this.overlay.setAttribute('aria-label', accessibleHitLabel(hit))
-    this.options.root.append(this.overlay)
+    if (this.overlay.parentElement !== this.options.root) this.options.root.append(this.overlay)
   }
 }
 

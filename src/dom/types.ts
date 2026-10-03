@@ -110,6 +110,8 @@ export type GhosttyWebGpuTerminalScrollbarOptions = Omit<
 >
 
 export interface GhosttyWebGpuRenderer {
+  /** Required to settle clean updates through onCleanUpdate. */
+  readonly canPaint?: boolean
   readonly backend?: 'dom' | 'canvas2d' | 'webgl2' | 'webgpu'
   readonly hasPendingFrame?: boolean
   readonly hasPendingTimer?: boolean

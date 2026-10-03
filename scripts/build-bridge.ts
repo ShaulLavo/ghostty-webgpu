@@ -43,6 +43,7 @@ async function validateWasm(path: string): Promise<void> {
   const exports = new Set(WebAssembly.Module.exports(module).map((entry) => entry.name))
   for (const name of [
     'bridge_read_rows',
+    'bridge_read_text_rows',
     'bridge_build_frame',
     'bridge_register_glyph',
     'bridge_clear_glyphs',

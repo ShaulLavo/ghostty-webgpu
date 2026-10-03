@@ -1,4 +1,4 @@
-import { copiedFrameRow } from './frame-row.js'
+import { FrameObserver } from './frame-observer.js'
 import { RenderStateDirty } from '../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../core/types.js'
 import type { TerminalFittedFont } from '../term/types.js'
@@ -14,8 +14,6 @@ import {
 import { renderCursorState, type InactiveCursorStyle } from './cursor.js'
 import type { CanonicalRendererTheme, CursorState, RendererTheme } from './instances/types.js'
 import type {
-  RendererFrameRow,
-  RendererFrameSnapshot,
   RendererGridSize,
   RenderStateSource,
   WebGpuTerminalRendererOptions,
@@ -48,11 +46,6 @@ function cursorSnapshotsEqual(left: RenderCursorSnapshot, right: RenderCursorSna
   )
 }
 
-function copiedCursor(cursor: RenderCursorSnapshot): Readonly<RenderCursorSnapshot> {
-  const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
-  return Object.freeze({ ...cursor, viewport })
-}
-
 export class RowTerminalRenderer {
   private cursor?: RenderCursorSnapshot
   private cursorBlinkPreference: boolean
@@ -68,14 +61,12 @@ export class RowTerminalRenderer {
     submittedFrames: 0,
   }
   private needsFullRebuild = true
-  private readonly onFrame?: (snapshot: RendererFrameSnapshot) => void
-  private readonly onRowsPainted?: (rows: readonly RenderRow[]) => void
+  private readonly frames: FrameObserver
   private readonly overlayRows = new Set<number>()
   private readonly renderState: RenderStateSource
   private readonly scheduler: RenderScheduler
   private theme: CanonicalRendererTheme
   private themeInput: RendererTheme
-  private visibleRows: (RendererFrameRow | undefined)[]
 
   constructor(
     options: WebGpuTerminalRendererOptions,
@@ -83,20 +74,26 @@ export class RowTerminalRenderer {
   ) {
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.font = copyFittedFont(options.font)
-    this.grid = normalizeRendererGrid({ columns: options.columns, rows: options.rows })
-    this.onFrame = options.onFrame
-    this.onRowsPainted = options.onRowsPainted
+    this.grid = normalizeRendererGrid({
+      columns: options.columns,
+      rows: options.rows,
+    })
+    this.frames = new FrameObserver(options)
     this.renderState = options.renderState
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
     this.surface.setTheme(this.theme)
-    this.visibleRows = Array.from({ length: this.grid.rows })
+    this.frames.resize(this.grid.rows)
     this.resizeCanvas()
     this.scheduler = new RenderScheduler({
       clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
     })
     this.scheduler.schedule()
+  }
+
+  get canPaint(): boolean {
+    return this.scheduler.canPaint
   }
 
   get hasPendingFrame(): boolean {
@@ -168,7 +165,7 @@ export class RowTerminalRenderer {
     if (fittedFontsEqual(this.font, next)) return
     this.surface.resize(next, this.grid)
     this.font = next
-    this.visibleRows = Array.from({ length: this.grid.rows })
+    this.frames.resize(this.grid.rows)
     this.invalidateAll()
   }
 
@@ -184,7 +181,7 @@ export class RowTerminalRenderer {
     if (this.gridEquals(next)) return
     this.grid = next
     this.resizeCanvas()
-    this.visibleRows = Array.from({ length: this.grid.rows })
+    this.frames.resize(this.grid.rows)
     this.overlayRows.clear()
     this.repaintNow()
   }
@@ -214,36 +211,38 @@ export class RowTerminalRenderer {
     if (this.cursorPhaseVisible !== phaseVisible) this.addCursorRow(cursor)
     this.cursorPhaseVisible = phaseVisible
     const rows = this.rowsToPaint(damage)
-    if (rows.length === 0) return
+    if (rows.length === 0) {
+      if (damage === RenderStateDirty.False && !this.needsFullRebuild)
+        this.frames.notifyCleanUpdate()
+      return
+    }
     const style = this.focused ? undefined : this.inactiveCursorStyle
     const cursorState = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
     this.surface.beginFrame?.()
     for (const row of rows) this.paintRow(row, cursorState)
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    if (this.onFrame) {
-      for (const row of rows) this.visibleRows[row.y] = copiedFrameRow(row)
-    }
     this.metrics.paintedRows += rows.length
     this.metrics.submittedFrames += 1
     this.needsFullRebuild = false
     this.overlayRows.clear()
-    this.emitFrame()
-    this.onRowsPainted?.(rows)
+    this.emitFrame(rows)
   }
 
-  private emitFrame(): void {
-    if (!this.onFrame || !this.cursor) return
-    const rows = this.visibleRows.filter((row): row is RendererFrameRow => row !== undefined)
-    this.onFrame(
-      Object.freeze({
-        cursor: copiedCursor(this.cursor),
-        paintedCursor: renderCursorState(
-          this.cursor,
-          this.cursorPhaseVisible,
-          this.focused ? undefined : this.inactiveCursorStyle,
-        ),
-        rows: Object.freeze([...rows]),
-      }),
+  private emitFrame(
+    rows: readonly RenderRow[] | undefined,
+    changed = rows?.map((row) => row.y) ?? [],
+  ): void {
+    if (!this.cursor) return
+    this.frames.emit(
+      this.renderState,
+      this.cursor,
+      renderCursorState(
+        this.cursor,
+        this.cursorPhaseVisible,
+        this.focused ? undefined : this.inactiveCursorStyle,
+      ),
+      changed,
+      rows,
     )
   }
 

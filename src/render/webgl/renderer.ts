@@ -1,3 +1,5 @@
+import { rebuildFrame } from '../rebuild-frame.js'
+import { FrameObserver } from '../frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
@@ -17,7 +19,6 @@ import {
   safeRendererInteger,
 } from '../config.js'
 import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
-import { copiedFrameRow } from '../frame-row.js'
 import { InstanceRows } from '../instances/rows.js'
 import type {
   CanonicalRendererTheme,
@@ -25,8 +26,6 @@ import type {
   RowInstanceUpdate,
 } from '../instances/types.js'
 import type {
-  RendererFrameRow,
-  RendererFrameSnapshot,
   RendererGridSize,
   RendererMetrics,
   RenderStateSource,
@@ -115,8 +114,7 @@ export class WebGlTerminalRenderer {
   private needsFullRebuild = true
   private readonly onError?: (cause: unknown) => void
   private readonly onContextLost?: () => void
-  private readonly onFrame?: (snapshot: RendererFrameSnapshot) => void
-  private readonly onRowsPainted?: (rows: readonly RenderRow[]) => void
+  private readonly frames: FrameObserver
   private readonly overlayRows = new Set<number>()
   private rasterizer: CanvasGlyphRasterizer
   private readonly renderState: RenderStateSource
@@ -124,7 +122,6 @@ export class WebGlTerminalRenderer {
   private state: ContextState
   private theme: CanonicalRendererTheme
   private themeInput: RendererTheme
-  private visibleRows: (RendererFrameRow | undefined)[]
 
   private constructor(
     options: WebGlTerminalRendererOptions,
@@ -140,12 +137,11 @@ export class WebGlTerminalRenderer {
     this.zigFrame = options.zigFrame ?? true
     this.onError = options.onError
     this.onContextLost = options.onContextLost
-    this.onFrame = options.onFrame
-    this.onRowsPainted = options.onRowsPainted
+    this.frames = new FrameObserver(options)
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
-    this.visibleRows = Array.from({ length: grid.rows })
+    this.frames.resize(this.grid.rows)
     this.resizeCanvas()
     this.instances = this.createInstances()
     this.rasterizer = new CanvasGlyphRasterizer({ font })
@@ -161,7 +157,10 @@ export class WebGlTerminalRenderer {
 
   static async create(options: WebGlTerminalRendererOptions): Promise<WebGlTerminalRenderer> {
     const font = copyFittedFont(options.font)
-    const grid = normalizeRendererGrid({ columns: options.columns, rows: options.rows })
+    const grid = normalizeRendererGrid({
+      columns: options.columns,
+      rows: options.rows,
+    })
     const context = requireContext(options.canvas)
     try {
       return new WebGlTerminalRenderer(options, font, grid, context)
@@ -169,6 +168,10 @@ export class WebGlTerminalRenderer {
       context.getExtension('WEBGL_lose_context')?.loseContext()
       throw cause
     }
+  }
+
+  get canPaint(): boolean {
+    return this.scheduler.canPaint
   }
 
   get hasPendingFrame(): boolean {
@@ -354,7 +357,7 @@ export class WebGlTerminalRenderer {
         width: this.canvas.width,
       })
     }
-    this.visibleRows = Array.from({ length: this.grid.rows })
+    this.frames.resize(this.grid.rows)
     this.overlayRows.clear()
   }
 
@@ -384,15 +387,18 @@ export class WebGlTerminalRenderer {
     if (this.zigFrame && this.drawZigFrame(pass, damage)) return
     if (this.wasZigFrame) this.needsFullRebuild = true
     this.wasZigFrame = false
-    const rows = this.rowsToRebuild(damage)
-    if (rows.length === 0) return
-    const updates = this.rebuildRows(rows)
-    this.zigBuilder?.clearGlyphs()
-    this.atlas.beginRow(zigGlyphRow)
-    if (updates.some((update) => update.invalidatedRows.length > 0)) {
-      this.invalidateAll()
+    const initialRows = this.rowsToRebuild(damage)
+    if (initialRows.length === 0) {
+      if (damage === RenderStateDirty.False && !this.needsFullRebuild)
+        this.frames.notifyCleanUpdate()
       return
     }
+    this.needsFullRebuild = true
+    this.zigBuilder?.clearGlyphs()
+    this.atlas.beginRow(zigGlyphRow)
+    const { rows, updates } = rebuildFrame(initialRows, this.renderState, this.atlas, (source) =>
+      this.rebuildRows(source),
+    )
     pass.syncAtlas(this.atlas.consumeUploads())
     const operations = pass.upload(this.instances, updates)
     pass.submit()
@@ -403,13 +409,18 @@ export class WebGlTerminalRenderer {
     this.needsFullRebuild = false
     this.overlayRows.clear()
     this.emitFrame(rows)
-    this.onRowsPainted?.(rows)
   }
 
   private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): boolean {
     if (!this.renderState.createFrameBuilder) return false
-    if (!this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0)
+    if (
+      !this.needsFullRebuild &&
+      damage === RenderStateDirty.False &&
+      this.overlayRows.size === 0
+    ) {
+      this.frames.notifyCleanUpdate()
       return true
+    }
     let builder = this.zigBuilder
     if (!builder || builder.columns !== this.grid.columns || builder.rows !== this.grid.rows) {
       this.zigBuilder = undefined
@@ -449,7 +460,7 @@ export class WebGlTerminalRenderer {
       return true
     }
     let rows: readonly RenderRow[] | undefined
-    if (this.onFrame || this.onRowsPainted) {
+    if (this.frames.requiresFullRows) {
       rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
     }
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
@@ -460,10 +471,10 @@ export class WebGlTerminalRenderer {
     this.wasZigFrame = true
     this.needsFullRebuild = false
     this.overlayRows.clear()
-    if (rows) {
-      this.emitFrame(rows)
-      this.onRowsPainted?.(rows)
-    }
+    this.emitFrame(
+      rows,
+      updates.map((update) => update.row),
+    )
     return true
   }
 
@@ -486,7 +497,10 @@ export class WebGlTerminalRenderer {
     if (this.needsFullRebuild) return this.renderState.readRows({ packed: true })
     const rows = new Map<number, RenderRow>()
     if (damage !== RenderStateDirty.False) {
-      for (const row of this.renderState.readRows({ packed: true, dirtyOnly: true }))
+      for (const row of this.renderState.readRows({
+        packed: true,
+        dirtyOnly: true,
+      }))
         rows.set(row.y, row)
     }
     if (this.overlayRows.size === 0) return [...rows.values()]
@@ -495,7 +509,10 @@ export class WebGlTerminalRenderer {
       if (!rows.has(row)) missingRows.add(row)
     }
     if (missingRows.size === 0) return [...rows.values()]
-    for (const row of this.renderState.readRows({ packed: true, rows: missingRows })) {
+    for (const row of this.renderState.readRows({
+      packed: true,
+      rows: missingRows,
+    })) {
       if (missingRows.has(row.y)) rows.set(row.y, row)
     }
     return [...rows.values()].sort((left, right) => left.y - right.y)
@@ -560,22 +577,21 @@ export class WebGlTerminalRenderer {
     }
   }
 
-  private emitFrame(updatedRows: readonly RenderRow[]): void {
-    if (!this.onFrame || !this.cursor) return
-    for (const row of updatedRows) this.visibleRows[row.y] = copiedFrameRow(row)
-    const viewport = this.cursor.viewport ? Object.freeze({ ...this.cursor.viewport }) : undefined
-    const cursor = Object.freeze({ ...this.cursor, viewport })
-    const rows = this.visibleRows.filter((row): row is RendererFrameRow => row !== undefined)
-    this.onFrame(
-      Object.freeze({
-        cursor,
-        rows: Object.freeze(rows),
-        paintedCursor: renderCursorState(
-          this.cursor,
-          this.cursorPhaseVisible,
-          this.focused ? undefined : this.inactiveCursorStyle,
-        ),
-      }),
+  private emitFrame(
+    rows: readonly RenderRow[] | undefined,
+    changed = rows?.map((row) => row.y) ?? [],
+  ): void {
+    if (!this.cursor) return
+    this.frames.emit(
+      this.renderState,
+      this.cursor,
+      renderCursorState(
+        this.cursor,
+        this.cursorPhaseVisible,
+        this.focused ? undefined : this.inactiveCursorStyle,
+      ),
+      changed,
+      rows,
     )
   }
 }

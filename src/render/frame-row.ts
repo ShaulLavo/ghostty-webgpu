@@ -17,14 +17,12 @@ function copiedCells(cells: readonly RenderCell[]): readonly RendererFrameCell[]
 export function copiedFrameRow(row: RenderRow): RendererFrameRow {
   const packed = row.packed
   const length = packed?.length ?? row.cells.length
-  const cells: string[] = []
-  const continuations: boolean[] = []
+  let cells: readonly string[] | undefined
+  let continuations: readonly boolean[] | undefined
   let text = ''
   for (let index = 0; index < length; index += 1) {
     const cell = packed ? packed.text(index) : row.cells[index]!.text
     const continuation = packed ? packed.continuation(index) : row.cells[index]!.continuation
-    cells.push(cell)
-    continuations.push(continuation)
     text += continuation ? '' : cell || ' '
   }
   // Packed records own detached storage; styled cells decode only for snapshot consumers.
@@ -33,8 +31,20 @@ export function copiedFrameRow(row: RenderRow): RendererFrameRow {
     get renderCells(): readonly RendererFrameCell[] {
       return (renderCells ??= copiedCells(packed!.materialize()))
     },
-    cells: Object.freeze(cells),
-    continuations: Object.freeze(continuations),
+    get cells(): readonly string[] {
+      return (cells ??= Object.freeze(
+        Array.from({ length }, (_, index) =>
+          packed ? packed.text(index) : renderCells![index]!.text,
+        ),
+      ))
+    },
+    get continuations(): readonly boolean[] {
+      return (continuations ??= Object.freeze(
+        Array.from({ length }, (_, index) =>
+          packed ? packed.continuation(index) : renderCells![index]!.continuation,
+        ),
+      ))
+    },
     text,
     y: row.y,
   })

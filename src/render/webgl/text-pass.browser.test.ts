@@ -397,6 +397,12 @@ it('uploads native changed-range byte offsets into the matching GPU buffer regio
   const changes = builder.changedRanges()
   expect(changes).toEqual([
     {
+      row: 0,
+      invalidatedRows: [],
+      cell: { byteOffset: 0, byteLength: 0 },
+      glyph: { byteOffset: 0, byteLength: 0 },
+    },
+    {
       row: 1,
       invalidatedRows: [],
       cell: { byteOffset: 6 * 64, byteLength: 64 },

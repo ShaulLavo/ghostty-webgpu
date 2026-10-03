@@ -907,7 +907,7 @@ describe('Terminal DOM host', () => {
 
     const grid = terminal.appearance.grid
     const font = recording.renderer!.fonts.at(-1) ?? recording.options!.font
-    recording.options!.onFrame?.(cursorFrame(3, 2))
+    recording.options!.onTextFrame?.(cursorFrame(3, 2))
     expect(preedit.style.left).toBe(`${grid.cellWidth * 3}px`)
     expect(preedit.style.top).toBe(`${grid.cellHeight * 2}px`)
     expect(preedit.style.left).toBe(textarea.style.left)

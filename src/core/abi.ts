@@ -740,6 +740,15 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     dirtyOnly: number,
     snapshot: number,
   ): number
+  bridge_read_text_rows(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    snapshot: number,
+  ): number
   bridge_build_frame(
     state: number,
     iterator: number,

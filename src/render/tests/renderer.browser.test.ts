@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
+import { FrameObserver } from '../frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -150,7 +151,13 @@ class FakeRenderState implements RenderStateSource {
 
 function fakeCell(x: number, y: number): RenderCell {
   const background = x === 0 && y === 0 ? { b: 30, g: 20, r: 10 } : undefined
-  return { background, continuation: false, selected: false, text: x === 1 ? 'A' : '', x }
+  return {
+    background,
+    continuation: false,
+    selected: false,
+    text: x === 1 ? 'A' : '',
+    x,
+  }
 }
 
 async function createDevice(): Promise<GPUDevice> {
@@ -161,7 +168,9 @@ async function createDevice(): Promise<GPUDevice> {
 }
 
 async function requestAdapter(): Promise<GPUAdapter> {
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
+  const adapter = await navigator.gpu.requestAdapter({
+    powerPreference: 'high-performance',
+  })
   if (!adapter) throw new Error('WebGPU requestAdapter returned null')
   return adapter
 }
@@ -173,7 +182,10 @@ async function waitForDeviceCleanup(): Promise<void> {
 async function createRenderer(
   options: WebGpuTerminalRendererOptions,
 ): Promise<WebGpuTerminalRenderer> {
-  const renderer = await WebGpuTerminalRenderer.create({ deviceFactory: createDevice, ...options })
+  const renderer = await WebGpuTerminalRenderer.create({
+    deviceFactory: createDevice,
+    ...options,
+  })
   renderers.add(renderer)
   return renderer
 }
@@ -392,14 +404,20 @@ it('limits cursor and refresh reads to affected rows without decoding the viewpo
   clock.flushFrame()
   const readRows = vi.spyOn(source, 'readRows')
 
-  source.setCursor({ ...source.readCursor(), viewport: { wideTail: false, x: 1, y: 0 } })
+  source.setCursor({
+    ...source.readCursor(),
+    viewport: { wideTail: false, x: 1, y: 0 },
+  })
   source.dirtyRow(0)
   renderer.notifyWrite()
   clock.flushFrame()
   expect(readRows.mock.results.map((result) => result.value.length)).toEqual([1])
 
   readRows.mockClear()
-  source.setCursor({ ...source.readCursor(), viewport: { wideTail: false, x: 1, y: 3 } })
+  source.setCursor({
+    ...source.readCursor(),
+    viewport: { wideTail: false, x: 1, y: 3 },
+  })
   renderer.schedule()
   clock.flushFrame()
   expect(readRows.mock.results.map((result) => result.value.length)).toEqual([2])
@@ -557,6 +575,7 @@ it('publishes immutable copied frame state only after submitted frames', async (
   expect(Object.isFrozen(frames[0]?.rows[0]?.cells)).toBe(true)
   expect(Object.isFrozen(frames[0]?.rows[0]?.continuations)).toBe(true)
   expect(Object.isFrozen(frames[0]?.cursor.viewport)).toBe(true)
+  expect(Object.isFrozen(frames[0]?.paintedCursor)).toBe(true)
 
   renderer.schedule()
   clock.flushFrame()
@@ -794,7 +813,10 @@ it('consumes the real libghostty-vt damage contract in a browser', async () => {
   renderer.notifyWrite()
   clock.flushFrame()
   expect(renderer.metrics.submittedFrames).toBe(3)
-  expect(frames.at(-1)?.cursor).toMatchObject({ blinking: true, style: 'underline' })
+  expect(frames.at(-1)?.cursor).toMatchObject({
+    blinking: true,
+    style: 'underline',
+  })
 
   terminal.write('\u001b[?25l')
   renderer.notifyWrite()
@@ -1132,3 +1154,153 @@ it.each(['onFrame', 'onRowsPainted'] as const)(
     }
   },
 )
+
+it('copies no native listener rows for cursor and painted-row ID consumers, then resumes full snapshots', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 16, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  const clock = new FakeClock()
+  const onFrame = vi.fn()
+  const onRowsChanged = vi.fn()
+  const readRows = vi.spyOn(state, 'readRows')
+  let needsRows = false
+  terminal.write('first\r\nsecond\r\nthird')
+  const renderer = await createRenderer({
+    canvas: createCanvas(),
+    columns: 16,
+    rows: 3,
+    font: fittedFont(),
+    renderState: state,
+    schedulerClock: clock,
+    zigFrame: true,
+    onFrame,
+    onRowsChanged,
+    needsFrameRows: () => needsRows,
+  })
+  try {
+    clock.flushFrame()
+    expect(readRows).not.toHaveBeenCalled()
+    expect(onFrame.mock.calls.at(-1)![0].rows).toEqual([])
+    expect(onFrame.mock.calls.at(-1)![0].cursor.viewport).toMatchObject({
+      x: 5,
+      y: 2,
+    })
+    expect(onRowsChanged.mock.calls.at(-1)![0]).toEqual([0, 1, 2])
+    expect(Object.isFrozen(onRowsChanged.mock.calls.at(-1)![0])).toBe(true)
+    terminal.write('\rthird changed')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(readRows).not.toHaveBeenCalled()
+    needsRows = true
+    terminal.write('\rthird again')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    const retained = onFrame.mock.calls.at(-1)![0] as RendererFrameSnapshot
+    expect(retained.rows.map((row) => row.text.trimEnd())).toEqual([
+      'first',
+      'second',
+      'third agained',
+    ])
+    expect(readRows.mock.calls.some(([options]) => !options?.dirtyOnly && !options?.rows)).toBe(
+      true,
+    )
+    const text = retained.rows.map((row) => row.text)
+    needsRows = false
+    readRows.mockClear()
+    terminal.write('\rnew\x1b[K')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(readRows).not.toHaveBeenCalled()
+    expect(retained.rows.map((row) => row.text)).toEqual(text)
+    expect(renderer.metrics.jsFallbackFrames).toBe(0)
+  } finally {
+    renderer.dispose()
+    runtime.dispose()
+  }
+})
+
+it('restores the whole resized viewport after cursor-only callback demand', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  const canvas = createCanvas()
+  let demand = false
+  const frames: RendererFrameSnapshot[] = []
+  const observer = new FrameObserver({
+    canvas,
+    columns: 12,
+    rows: 3,
+    font: fittedFont(),
+    renderState: state,
+    needsFrameRows: () => demand,
+    onFrame: (snapshot) => frames.push(snapshot),
+  })
+  try {
+    terminal.write('one\r\ntwo\r\nthree')
+    state.update()
+    observer.emit(state, state.readCursor(), undefined, [0, 1, 2])
+    terminal.resize({ columns: 12, rows: 5 })
+    state.update()
+    observer.resize(5)
+    observer.emit(state, state.readCursor(), undefined, [0, 1, 2, 3, 4])
+    demand = true
+    const partial = state.readRows({ rows: new Set([0, 1, 2]), packed: true })
+    observer.emit(state, state.readCursor(), undefined, [0, 1, 2], partial)
+    expect(frames.at(-1)?.rows.map((row) => row.y)).toEqual([0, 1, 2, 3, 4])
+    expect(frames.at(-1)?.rows.map((row) => row.text)).toEqual(
+      state.readTextRows().map((row) => row.text),
+    )
+  } finally {
+    state.dispose()
+    terminal.dispose()
+    runtime.dispose()
+    canvas.remove()
+  }
+})
+
+it('keeps reentrant frame identities intact and delivers only the newest text frame', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 12, rows: 1 })
+  const state = runtime.createRenderState(terminal)
+  const canvas = createCanvas()
+  const fullFrames: RendererFrameSnapshot[] = []
+  const textFrames: { x: number | undefined; text: string | undefined }[] = []
+  let nested = false
+  const observer = new FrameObserver({
+    canvas,
+    columns: 12,
+    rows: 1,
+    font: fittedFont(),
+    renderState: state,
+    onFrame: (snapshot) => {
+      fullFrames.push(snapshot)
+      if (nested) return
+      nested = true
+      terminal.write('\r\x1b[2Kinner')
+      state.update()
+      observer.resize(1)
+      observer.emit(state, state.readCursor(), undefined, [0])
+    },
+    onTextFrame: (snapshot) =>
+      textFrames.push({
+        x: snapshot.cursor.viewport?.x,
+        text: snapshot.rows[0]?.text.trimEnd(),
+      }),
+  })
+  try {
+    terminal.write('outer')
+    state.update()
+    observer.emit(state, state.readCursor(), undefined, [0])
+    expect(fullFrames.map((snapshot) => snapshot.rows[0]?.text.trimEnd())).toEqual([
+      'outer',
+      'inner',
+    ])
+    expect(textFrames).toEqual([{ x: 5, text: 'inner' }])
+    expect(fullFrames[0]?.rows[0]?.text.trimEnd()).toBe('outer')
+  } finally {
+    state.dispose()
+    terminal.dispose()
+    runtime.dispose()
+    canvas.remove()
+  }
+})

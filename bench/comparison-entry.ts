@@ -51,6 +51,7 @@ interface Driver {
     | undefined
 }
 
+const accessibility = new URLSearchParams(location.search).get('accessibility') === 'on'
 const tracing = new ComparisonTracing()
 const mount = document.querySelector('main')!
 let drivers: Driver[] = []
@@ -101,7 +102,10 @@ function configureNativeHistory(terminal: GhosttyTerminal): void {
 }
 
 async function createNative(host: HTMLElement): Promise<Driver> {
-  native ??= await GhosttyRuntime.create({ wasm: '/native.wasm', bridge: '/bridge.wasm' })
+  native ??= await GhosttyRuntime.create({
+    wasm: '/native.wasm',
+    bridge: '/bridge.wasm',
+  })
   const session = await TerminalSession.create<Event>({
     runtime: { kind: 'borrowed', runtime: native },
     appearance: {
@@ -137,7 +141,7 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     | undefined
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
-    accessibility: false,
+    accessibility: accessibility ? {} : false,
     rendererFactory: async (options) => {
       if (current.variant !== 'ghostty-webgpu') {
         const factories = {
@@ -147,7 +151,10 @@ async function createNative(host: HTMLElement): Promise<Driver> {
         }
         const factory = factories[current.variant as keyof typeof factories]
         if (!factory) throw new Error('Explicit native renderer required')
-        const renderer = await factory.create(options)
+        const renderer = await factory.create({
+          ...options,
+          zigFrame: new URLSearchParams(location.search).has('zig'),
+        })
         tracing.nativeRenderer(drivers.length, renderer)
         mountedRenderer = renderer
         return renderer
@@ -240,6 +247,7 @@ function createXterm(host: HTMLElement): Driver {
     lineHeight: settings.lineHeight,
     scrollback: settings.scrollback,
     cursorBlink: false,
+    screenReaderMode: accessibility,
     theme: { foreground: '#ffffff', background: '#000000' },
   })
   terminal.open(host)
@@ -364,10 +372,17 @@ async function parseFixture(
     try {
       screen = driver.screen()
     } catch (cause) {
-      throw new Error(`${name} parser snapshot failed: ${String(cause)}`, { cause })
+      throw new Error(`${name} parser snapshot failed: ${String(cause)}`, {
+        cause,
+      })
     }
     const validation = qualifyScreen(screen, expected)
-    return { bytes: bytes.length, milliseconds, chunkCount: chunks.length, validation }
+    return {
+      bytes: bytes.length,
+      milliseconds,
+      chunkCount: chunks.length,
+      validation,
+    }
   } finally {
     driver.dispose()
   }
@@ -375,7 +390,11 @@ async function parseFixture(
 
 async function parser(): Promise<ParserDriver> {
   if (current.variant.startsWith('xterm-')) {
-    const terminal = new Xterm({ cols: settings.columns, rows: settings.rows, scrollback: 0 })
+    const terminal = new Xterm({
+      cols: settings.columns,
+      rows: settings.rows,
+      scrollback: 0,
+    })
     // Pinned 6.0.0 boundary includes decoding, VT parsing and buffer writes; excludes WriteBuffer timers.
     const handler = Reflect.get(Reflect.get(terminal, '_core'), '_inputHandler') as {
       parse(data: InputChunk): unknown
@@ -455,8 +474,14 @@ async function parser(): Promise<ParserDriver> {
       dispose: () => terminal.free(),
     }
   }
-  const runtime = await GhosttyRuntime.create({ wasm: '/native.wasm', bridge: '/bridge.wasm' })
-  const terminal = runtime.createTerminal({ columns: settings.columns, rows: settings.rows })
+  const runtime = await GhosttyRuntime.create({
+    wasm: '/native.wasm',
+    bridge: '/bridge.wasm',
+  })
+  const terminal = runtime.createTerminal({
+    columns: settings.columns,
+    rows: settings.rows,
+  })
   terminal.setScrollbackLimit(settings.scrollback)
   configureNativeHistory(terminal)
   const render = runtime.createRenderState(terminal)
@@ -556,7 +581,11 @@ async function legacyOriginalUnicode(): Promise<unknown> {
           JSON.stringify({ api, call: calls + 1, phase: 'after-frame' }),
         )
       }
-      return { accepted: true, calls, bytesPerCall: encoder.encode(text).length }
+      return {
+        accepted: true,
+        calls,
+        bytesPerCall: encoder.encode(text).length,
+      }
     } catch (cause) {
       return {
         accepted: false,
