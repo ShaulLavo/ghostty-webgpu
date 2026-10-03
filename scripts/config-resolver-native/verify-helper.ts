@@ -563,20 +563,59 @@ function isSystemDarwinDependency(path: string): boolean {
   return path.startsWith('/System/Library/PrivateFrameworks/')
 }
 
-function verifyCompatibilityAcrossRuntimes(
-  args: Arguments,
+export function verifyCompatibilityAcrossRuntimes(
+  args: Pick<Arguments, 'node' | 'bun' | 'target'>,
   helper: string,
   binary: BinaryCompatibility,
 ): CompatibilityDetail {
-  const node = runCompatibilityProbe(args.node, 'node', args.target, helper)
-  const bun = runCompatibilityProbe(args.bun, 'bun', args.target, helper)
-  if (node.minimumOsVersion !== binary.minimumOsVersion) {
-    throw new NativeVerifyFailure('Node minimum compatibility mismatch')
+  const workRoot = mkdtempSync(join(tmpdir(), 'config-resolver-compatibility-'))
+  try {
+    const nodeScript = bundleNodeCompatibilityProbe(args.bun, workRoot)
+    const node = runCompatibilityProbe(args.node, 'node', args.target, helper, nodeScript)
+    const bun = runCompatibilityProbe(
+      args.bun,
+      'bun',
+      args.target,
+      helper,
+      fileURLToPath(import.meta.url),
+    )
+    if (node.minimumOsVersion !== binary.minimumOsVersion) {
+      throw new NativeVerifyFailure('Node minimum compatibility mismatch')
+    }
+    if (bun.minimumOsVersion !== binary.minimumOsVersion) {
+      throw new NativeVerifyFailure('Bun minimum compatibility mismatch')
+    }
+    return { minimumOsVersion: binary.minimumOsVersion, node, bun }
+  } finally {
+    rmSync(workRoot, { recursive: true, force: true })
   }
-  if (bun.minimumOsVersion !== binary.minimumOsVersion) {
-    throw new NativeVerifyFailure('Bun minimum compatibility mismatch')
+}
+
+function bundleNodeCompatibilityProbe(bun: string, workRoot: string): string {
+  const script = join(workRoot, 'compatibility-probe.mjs')
+  const result = spawnSync(
+    bun,
+    [
+      'build',
+      fileURLToPath(import.meta.url),
+      '--target=node',
+      '--format=esm',
+      '--packages=bundle',
+      '--reject-unresolved',
+      `--outfile=${script}`,
+    ],
+    {
+      encoding: 'buffer',
+      env: { LANG: 'C', LC_ALL: 'C', PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+      maxBuffer: OUTPUT_LIMIT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+    },
+  )
+  if (result.status !== 0 || result.stderr.length !== 0) {
+    throw new NativeVerifyFailure('Node compatibility bundle failed')
   }
-  return { minimumOsVersion: binary.minimumOsVersion, node, bun }
+  return script
 }
 
 function runCompatibilityProbe(
@@ -584,17 +623,11 @@ function runCompatibilityProbe(
   expectedRuntime: RuntimeProbe['runtime'],
   target: Target,
   helper: string,
+  script: string,
 ): RuntimeProbe {
   const result = spawnSync(
     runtime,
-    [
-      fileURLToPath(import.meta.url),
-      '--compatibility-probe',
-      '--helper',
-      helper,
-      '--target',
-      target,
-    ],
+    [script, '--compatibility-probe', '--helper', helper, '--target', target],
     {
       encoding: 'buffer',
       env: { LANG: 'C', LC_ALL: 'C', PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
@@ -1689,10 +1722,12 @@ async function dispatch(): Promise<void> {
   await main()
 }
 
-try {
-  await dispatch()
-} catch (error) {
-  const reason = error instanceof NativeVerifyFailure ? error.message : 'unexpected proof failure'
-  process.stdout.write(`${JSON.stringify({ result: 'fail', reason })}\n`)
-  process.exitCode = 1
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    await dispatch()
+  } catch (error) {
+    const reason = error instanceof NativeVerifyFailure ? error.message : 'unexpected proof failure'
+    process.stdout.write(`${JSON.stringify({ result: 'fail', reason })}\n`)
+    process.exitCode = 1
+  }
 }
