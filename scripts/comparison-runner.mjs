@@ -513,9 +513,9 @@ async function qualifiedWindow(run, label, operation) {
     await refreshGpuOwnership()
     const idle = await gpuGate.waitForIdle()
     run.gpuWindows.push({ label, idle })
-    const sampleMilliseconds = ['idle', 'output/ascii', 'latency', 'delayed-write'].includes(label)
-      ? s.gpuMeasuredSampleMilliseconds
-      : s.gpuSampleMilliseconds
+    const measured =
+      ['idle', 'latency', 'delayed-write'].includes(label) || label.startsWith('output/')
+    const sampleMilliseconds = measured ? s.gpuMeasuredSampleMilliseconds : s.gpuSampleMilliseconds
     const { value, gpu } = await gpuGate.monitorWindow(operation, { sampleMilliseconds })
     run.gpuWindows.at(-1).window = gpu
     const skipped = idle.skipReason ?? gpu.skipReason ?? run.gpuIdle?.skipped
