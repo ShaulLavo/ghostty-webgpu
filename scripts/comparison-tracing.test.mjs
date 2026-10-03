@@ -4,7 +4,7 @@ import { ComparisonTracing } from '../bench/comparison-tracing.ts'
 
 function rendererBoundary() {
   const metrics = { submittedFrames: 0, zigFrames: 0, jsFallbackFrames: 0 }
-  const builder = { build: () => 0 }
+  const builder = { build: () => 0, clearGlyphs() {} }
   const pass = {
     resources: { cellPipeline: {}, glyphPipeline: {} },
     upload: () => 0,
