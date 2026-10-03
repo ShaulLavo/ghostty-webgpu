@@ -338,30 +338,33 @@ export class ExtensionManager {
       osc: oscHooks,
       commands: commandHooks,
     } = contributions
-    const osc = oscHooks ? Object.entries(oscHooks) : []
-    const commands = commandHooks ? Object.entries(commandHooks) : []
-    const events = eventHooks ? Object.entries(eventHooks) : []
-    for (const [, handler] of events) validateFunction(handler, 'Event')
+    const osc = oscHooks && Object.entries(oscHooks)
+    const commands = commandHooks && Object.entries(commandHooks)
+    const events = eventHooks && Object.entries(eventHooks)
+    if (events) for (const [, handler] of events) validateFunction(handler, 'Event')
     if (input) validateFunction(input, 'Input')
     if (links) validateFunction(links.provideLinks, 'Links')
     // Contribution getters can attach another owner; check conflicts after all property reads.
-    this.validateOsc(osc)
-    this.validateCommands(commands)
+    if (osc) this.validateOsc(osc)
+    if (commands) this.validateCommands(commands)
     this.ensureActive()
     if (attachment.disposed)
       throw createGhosttyError('extension.use', 'Extension was disposed during setup')
     if (input) attachment.register(this.input.append(input))
-    for (const [type, handler] of events)
-      this.registerEvent(attachment, type as EventType, handler as EventHandler)
-    for (const [key, handler] of osc) {
-      const number = Number(key)
-      this.osc.set(number, handler)
-      attachment.register(() => this.osc.delete(number))
-    }
-    for (const [name, command] of commands) {
-      this.commands.set(name, command)
-      attachment.register(() => this.commands.delete(name))
-    }
+    if (events)
+      for (const [type, handler] of events)
+        this.registerEvent(attachment, type as EventType, handler as EventHandler)
+    if (osc)
+      for (const [key, handler] of osc) {
+        const number = Number(key)
+        this.osc.set(number, handler)
+        attachment.register(() => this.osc.delete(number))
+      }
+    if (commands)
+      for (const [name, command] of commands) {
+        this.commands.set(name, command)
+        attachment.register(() => this.commands.delete(name))
+      }
     if (links) attachment.register(this.links.append(links))
     attachment.complete(api)
   }
