@@ -2,7 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { Terminal } from '../../index.js'
 import { createLinkLineSnapshot } from '../../term/links.js'
 import type { LinkProvider } from '../../term/links.js'
-import { ExtensionManager } from '../manager.js'
+import { createExtensionDispatch, ExtensionManager } from '../manager.js'
+import type { ExtensionDispatch } from '../manager.js'
 import type {
   Extension,
   ExtensionHandle,
@@ -13,6 +14,7 @@ import type {
 
 let terminal: Terminal
 let manager: ExtensionManager
+let published: ExtensionDispatch
 let errors: { cause: unknown; operation: string }[]
 
 beforeAll(async () => {
@@ -23,7 +25,9 @@ afterAll(() => terminal.dispose())
 
 beforeEach(() => {
   errors = []
+  published = createExtensionDispatch()
   manager = new ExtensionManager({
+    dispatch: published,
     terminal,
     reservedOsc: new Set([0, 2, 8, 52, 133]),
     onError: (cause, operation) => errors.push({ cause, operation }),
@@ -40,6 +44,125 @@ const textInput: TerminalInputEvent = { type: 'text', data: 'a' }
 function inert(name: string): Extension {
   return { name, setup: () => ({}) }
 }
+
+describe('published interested dispatch', () => {
+  it('publishes one callout per interested list and clears only the final owner', () => {
+    manager.install(Array.from({ length: 100 }, (_, index) => inert(String(index))))
+    expect(published.input).toBeUndefined()
+    expect(Object.keys(published.events)).toEqual([])
+    expect(Object.getPrototypeOf(published.events)).toBeNull()
+    const first = manager.use({
+      name: 'first',
+      setup: () => ({ input: () => 'pass', events: { bell: () => undefined } }),
+    })
+    const input = published.input
+    const bell = published.events.bell
+    const second = manager.use({
+      name: 'second',
+      setup: () => ({ input: () => 'claim', events: { bell: () => undefined } }),
+    })
+    expect(published.input).toBe(input)
+    expect(published.events.bell).toBe(bell)
+    expect(input?.(textInput)).toBe(true)
+    first.dispose()
+    expect(published.input).toBe(input)
+    expect(published.events.bell).toBe(bell)
+    second.dispose()
+    expect(published.input).toBeUndefined()
+    expect(Object.keys(published.events)).toEqual([])
+  })
+
+  it('keeps reentrant replacement outside current input and event dispatches', () => {
+    const calls: string[] = []
+    const input = manager.use({
+      name: 'input',
+      setup: () => ({
+        input: () => {
+          calls.push('old-input')
+          input.dispose()
+          manager.use({ name: 'new-input', setup: () => ({ input: () => 'claim' }) })
+          return 'pass'
+        },
+      }),
+    })
+    expect(published.input?.(textInput)).toBe(false)
+    expect(published.input?.(textInput)).toBe(true)
+    const bell = manager.use({
+      name: 'bell',
+      setup: () => ({
+        events: {
+          bell: () => {
+            calls.push('old-bell')
+            bell.dispose()
+            manager.use({
+              name: 'new-bell',
+              setup: () => ({ events: { bell: () => calls.push('new-bell') } }),
+            })
+          },
+        },
+      }),
+    })
+    const oldBell = published.events.bell
+    oldBell?.(undefined)
+    expect(calls).toEqual(['old-input', 'old-bell'])
+    expect(published.events.bell).not.toBe(oldBell)
+    oldBell?.(undefined)
+    expect(calls).toEqual(['old-input', 'old-bell'])
+    published.events.bell?.(undefined)
+    expect(calls).toEqual(['old-input', 'old-bell', 'new-bell'])
+  })
+
+  it('rolls back published interests when host link registration fails', () => {
+    const dispatch = createExtensionDispatch()
+    const failure = new TypeError('host registration failure')
+    const local = new ExtensionManager({
+      dispatch,
+      terminal,
+      registerLinkProvider: () => {
+        throw failure
+      },
+      onError: (cause, operation) => errors.push({ cause, operation }),
+    })
+    const cleanup = vi.fn()
+    try {
+      expect(() =>
+        local.use({
+          name: 'rollback',
+          setup: (scope) => {
+            scope.own(cleanup)
+            return {
+              input: () => 'claim',
+              events: { data: () => undefined },
+              links: { provideLinks: () => undefined },
+            }
+          },
+        }),
+      ).toThrow(failure)
+      expect(dispatch.input).toBeUndefined()
+      expect(Object.keys(dispatch.events)).toEqual([])
+      expect(cleanup).toHaveBeenCalledOnce()
+    } finally {
+      local.dispose()
+    }
+  })
+
+  it('clears published interests before the final attachment owned cleanup', () => {
+    manager.use({
+      name: 'teardown',
+      setup: (scope) => {
+        scope.own(() => {
+          expect(published.input).toBeUndefined()
+          expect(Object.keys(published.events)).toEqual([])
+        })
+        return { input: () => 'claim', events: { data: () => undefined, frame: () => undefined } }
+      },
+    })
+    manager.dispose()
+    expect(published.input).toBeUndefined()
+    expect(Object.keys(published.events)).toEqual([])
+    expect(errors).toEqual([])
+  })
+})
 
 describe('extension attachment', () => {
   it('returns the required typed API and gives setup the public terminal', () => {

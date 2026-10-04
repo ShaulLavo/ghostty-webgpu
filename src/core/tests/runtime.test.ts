@@ -32,6 +32,61 @@ async function wasmWithRenamedExport(name: string): Promise<Uint8Array> {
 }
 
 describe('runtime export validation', () => {
+  it('publishes a frozen plain native-export record shared by runtime and memory', async () => {
+    runtime = await GhosttyRuntime.create()
+    expect(Object.getPrototypeOf(runtime.exports)).toBe(Object.prototype)
+    expect(Object.isFrozen(runtime.exports)).toBe(true)
+    expect(runtime.memory.exports).toBe(runtime.exports)
+    expect(runtime.exports.memory).toBeInstanceOf(WebAssembly.Memory)
+    expect(runtime.exports.__indirect_function_table).toBeInstanceOf(WebAssembly.Table)
+    expect(typeof runtime.exports.ghostty_wasm_alloc).toBe('function')
+  })
+
+  it('keeps native callouts, memory and callbacks isolated across wrapped runtime instances', async () => {
+    runtime = await GhosttyRuntime.create()
+    const second = await GhosttyRuntime.create()
+    try {
+      expect(second.exports).not.toBe(runtime.exports)
+      expect(second.exports.memory).not.toBe(runtime.exports.memory)
+      expect(second.exports.ghostty_wasm_alloc).not.toBe(runtime.exports.ghostty_wasm_alloc)
+      const firstBytes = runtime.memory.allocateBytes('first')
+      const secondBytes = second.memory.allocateBytes('second')
+      expect(runtime.memory.decode(firstBytes.pointer, firstBytes.length)).toBe('first')
+      expect(second.memory.decode(secondBytes.pointer, secondBytes.length)).toBe('second')
+      runtime.memory.freeBytes(firstBytes)
+      second.memory.freeBytes(secondBytes)
+      let firstTitleChanges = 0
+      let secondTitleChanges = 0
+      const firstTerminal = runtime.createTerminal({
+        effects: {
+          titleChanged: () => {
+            firstTitleChanges++
+          },
+        },
+      })
+      const secondTerminal = second.createTerminal({
+        effects: {
+          titleChanged: () => {
+            secondTitleChanges++
+          },
+        },
+      })
+      firstTerminal.write('\u001b]0;first\u0007')
+      secondTerminal.write('\u001b]0;second\u0007')
+      expect(firstTitleChanges).toBe(1)
+      expect(secondTitleChanges).toBe(1)
+      expect(firstTerminal.title).toBe('first')
+      expect(secondTerminal.title).toBe('second')
+      runtime.dispose()
+      secondTerminal.write('\u001b]0;still-active\u0007')
+      expect(firstTitleChanges).toBe(1)
+      expect(secondTitleChanges).toBe(2)
+      expect(secondTerminal.title).toBe('still-active')
+    } finally {
+      second.dispose()
+    }
+  })
+
   it('rejects a wasm module without the required cell accessor', async () => {
     const wasm = await wasmWithRenamedExport('ghostty_cell_get')
 

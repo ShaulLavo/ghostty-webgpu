@@ -4,6 +4,7 @@ import { DomTerminalRenderer, Terminal } from '../../index.js'
 import type { GhosttyWebGpuTerminalOptions, LinkProvider, ProvidedLink } from '../../index.js'
 import type { Extension, ExtensionInput, ExtensionScope, TerminalInputEvent } from '../../index.js'
 import { Terminal as WorkerTerminal } from '../../worker/index.js'
+import { ExtensionManager } from '../../extensions/manager.js'
 
 const terminals: Terminal[] = []
 const workerTerminals: WorkerTerminal[] = []
@@ -81,6 +82,77 @@ function compose(
     )
   }
 }
+
+describe('public extension interest costs', () => {
+  it.each([0, 1, 100, 1_000])(
+    'executes no manager interest queries or traversal for keys beside %i inert extensions',
+    async (count) => {
+      const terminal = await openTerminal({
+        extensions: Array.from({ length: count }, (_, index) => ({
+          name: `inert-${index}`,
+          setup: () => ({}),
+        })),
+      })
+      terminal.use({ name: 'seed', setup: () => ({}) }).dispose()
+      const data: string[] = []
+      terminal.onData((bytes) => data.push(decoder.decode(bytes)))
+      const inputInterest = vi.spyOn(ExtensionManager.prototype, 'hasInput', 'get')
+      const eventInterest = vi.spyOn(ExtensionManager.prototype, 'hasEvent')
+      const inputDispatch = vi.spyOn(ExtensionManager.prototype, 'dispatchInput')
+      const eventDispatch = vi.spyOn(ExtensionManager.prototype, 'emit')
+      const mapLookup = vi.spyOn(Map.prototype, 'has')
+      try {
+        for (let index = 0; index < 16; index++) {
+          terminal.key({ action: 'press', code: 'KeyA', text: 'a', composing: false })
+          press(terminal)
+        }
+        expect(data).toEqual(Array.from({ length: 32 }, () => 'a'))
+        expect({
+          inputInterest: inputInterest.mock.calls.length,
+          eventInterest: eventInterest.mock.calls.length,
+          inputDispatch: inputDispatch.mock.calls.length,
+          eventDispatch: eventDispatch.mock.calls.length,
+        }).toEqual({ inputInterest: 0, eventInterest: 0, inputDispatch: 0, eventDispatch: 0 })
+        expect(mapLookup.mock.calls.filter(([key]) => key === 'data')).toHaveLength(0)
+      } finally {
+        inputInterest.mockRestore()
+        eventInterest.mockRestore()
+        inputDispatch.mockRestore()
+        eventDispatch.mockRestore()
+        mapLookup.mockRestore()
+      }
+    },
+  )
+
+  it('keeps host data listeners before published extension events across detach and reattach', async () => {
+    const terminal = await openTerminal()
+    const calls: string[] = []
+    const extension: Extension = {
+      name: 'interested',
+      setup: () => ({
+        input: () => {
+          calls.push('input')
+          return 'pass'
+        },
+        events: { data: () => calls.push('extension-data') },
+      }),
+    }
+    const handle = terminal.use(extension)
+    terminal.onData(() => calls.push('host-data'))
+    terminal.key({ action: 'press', code: 'KeyA', text: 'a', composing: false })
+    expect(calls).toEqual(['input', 'host-data', 'extension-data'])
+    handle.dispose()
+    calls.length = 0
+    press(terminal)
+    expect(calls).toEqual(['host-data'])
+    const replacement = terminal.use(extension)
+    handle.dispose()
+    calls.length = 0
+    press(terminal)
+    expect(calls).toEqual(['input', 'host-data', 'extension-data'])
+    replacement.dispose()
+  })
+})
 
 describe('public extension links', () => {
   it('resolves one contributed provider on the classic public link surface', async () => {

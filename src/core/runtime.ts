@@ -68,7 +68,8 @@ function validateExports(exports: WebAssembly.Exports): GhosttyWasmExports {
     if (name in exports) continue
     throw createGhosttyError('wasm.instantiate', `libghostty-vt export is missing: ${name}`)
   }
-  return exports as GhosttyWasmExports
+  // V8 gives raw exports instance-specific shapes; a plain record shares the callout shape.
+  return Object.freeze({ ...exports }) as GhosttyWasmExports
 }
 
 export class GhosttyRuntime {

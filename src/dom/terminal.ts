@@ -1,5 +1,5 @@
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
-import { ExtensionManager } from '../extensions/manager.js'
+import { createExtensionDispatch, ExtensionManager } from '../extensions/manager.js'
 import type { Extension, ExtensionHandle, TerminalInputEvent } from '../extensions/types.js'
 import type {
   ReadLinesOptions,
@@ -248,6 +248,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private elementsValue?: TerminalElements
   private readonly emitters = createHostEmitters()
   private extensions?: ExtensionManager
+  private readonly extensionDispatch = createExtensionDispatch()
   private fit?: TerminalFitController
   private fittedFont?: TerminalFittedFont
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
@@ -325,6 +326,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private extensionManager(): ExtensionManager {
     this.extensions ??= new ExtensionManager({
+      dispatch: this.extensionDispatch,
       terminal: this,
       registerLinkProvider:
         this.execution.kind === 'sync'
@@ -337,8 +339,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   }
 
   private readonly claimDomKey = (event: KeyboardEvent): boolean => {
-    const manager = this.extensions
-    if (!manager?.hasInput) return false
+    if (!this.extensionDispatch.input) return false
     return this.claimInput({ type: 'key', event })
   }
 
@@ -346,14 +347,13 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     type: 'paste' | 'text' | 'composition',
     data: TerminalInputData,
   ): boolean => {
-    const manager = this.extensions
-    if (!manager?.hasInput) return false
+    if (!this.extensionDispatch.input) return false
     if (type === 'composition') return this.claimInput({ type, text: data as string })
     return this.claimInput({ type, data })
   }
 
   private claimInput(input: TerminalInputEvent): boolean {
-    const claimed = this.extensions!.dispatchInput(input)
+    const claimed = this.extensionDispatch.input!(input)
     return claimed || this.stateValue !== 'open'
   }
 
@@ -642,7 +642,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   key(input: TerminalKeyInput): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
-    if (this.extensions?.hasInput && this.claimInput({ type: 'key', input })) {
+    if (this.extensionDispatch.input && this.claimInput({ type: 'key', input })) {
       return this.emptyInput()
     }
     return this.result(this.execution.key(input))
@@ -895,7 +895,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         onTextFrame: (snapshot) => this.handleFrame(snapshot),
         needsFrameRows: () => true,
         onRowsChanged: (rows) => {
-          if (!this.emitters.frame.hasListeners && !this.extensions?.hasEvent('frame')) return
+          if (!this.emitters.frame.hasListeners && !this.extensionDispatch.events.frame) return
           this.emitHostEvent('frame', Object.freeze({ rows }))
         },
         replaceCanvas: elements.replaceCanvas
@@ -1308,7 +1308,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.updateFrameUi(this.execution.kind === 'sync' ? this.execution.submit(snapshot) : snapshot)
     if (
       this.execution.kind === 'async' &&
-      (this.emitters.frame.hasListeners || this.extensions?.hasEvent('frame'))
+      (this.emitters.frame.hasListeners || this.extensionDispatch.events.frame)
     )
       this.emitHostEvent('frame', {
         rows: this.execution.submittedFrame?.rowPatches.map((row) => row.y) ?? [],
@@ -1512,9 +1512,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     const emitter = this.emitters[type] as EventEmitter<GhosttyWebGpuTerminalEventMap[TType]>
     if (this.stateValue === 'open') {
       emitter.emit(event)
-      if (this.stateValue === 'open' && this.extensions?.hasEvent(type)) {
-        this.extensions.emit(type, () => event)
-      }
+      if (this.stateValue === 'open') this.extensionDispatch.events[type]?.(event)
       return
     }
     if (this.stateValue !== 'opening') return

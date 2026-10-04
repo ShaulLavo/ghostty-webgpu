@@ -174,7 +174,17 @@ class Attachment implements ExtensionScope, ExtensionHandle<unknown> {
   }
 }
 
+export interface ExtensionDispatch {
+  input?: (event: TerminalInputEvent) => boolean
+  readonly events: Partial<Record<EventType, (event: unknown) => void>>
+}
+
+export function createExtensionDispatch(): ExtensionDispatch {
+  return { input: undefined, events: Object.create(null) as ExtensionDispatch['events'] }
+}
+
 export interface ExtensionManagerOptions {
+  readonly dispatch?: ExtensionDispatch
   readonly terminal: TerminalApi
   readonly reservedOsc?: ReadonlySet<number>
   readonly registerLinkProvider?: (provider: LinkProvider<Event>) => LinkProviderRegistration
@@ -192,9 +202,11 @@ export class ExtensionManager {
   private readonly links = new HookList<LinkProvider<Event>>()
   private last?: Attachment
   private disposed = false
+  private readonly dispatch: ExtensionDispatch
 
   constructor(private readonly options: ExtensionManagerOptions) {
     this.terminal = options.terminal
+    this.dispatch = options.dispatch ?? createExtensionDispatch()
   }
 
   get hasInput(): boolean {
@@ -355,7 +367,7 @@ export class ExtensionManager {
     this.ensureActive()
     if (attachment.disposed)
       throw createGhosttyError('extension.use', 'Extension was disposed during setup')
-    if (input) attachment.register(this.input.append(input))
+    if (input) this.registerInput(attachment, input)
     if (events)
       for (const [type, handler] of events)
         this.registerEvent(attachment, type as EventType, handler as EventHandler)
@@ -407,16 +419,30 @@ export class ExtensionManager {
     }
   }
 
+  private registerInput(attachment: Attachment, handler: TerminalInputHandler): void {
+    const remove = this.input.append(handler)
+    this.dispatch.input ??= (event) => this.dispatchInput(event)
+    attachment.register(() => {
+      remove()
+      if (!this.input.first) this.dispatch.input = undefined
+    })
+  }
+
   private registerEvent(attachment: Attachment, type: EventType, handler: EventHandler): void {
     let list = this.events.get(type)
     if (!list) {
       list = new HookList<EventHandler>()
       this.events.set(type, list)
+      const interested = list
+      this.dispatch.events[type] = (event) =>
+        dispatch(interested, event, invokeHandler, this.reportError, 'extension.event')
     }
     const remove = list.append(handler)
     attachment.register(() => {
       remove()
-      if (!list.first) this.events.delete(type)
+      if (list.first) return
+      this.events.delete(type)
+      delete this.dispatch.events[type]
     })
   }
 }
