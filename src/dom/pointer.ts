@@ -44,9 +44,9 @@ export interface TerminalPointerProjection {
 }
 
 export interface TerminalPointerSession {
-  mouse(input: TerminalMouseInput): Uint8Array
+  mouse(input: TerminalMouseInput): Uint8Array | PromiseLike<Uint8Array>
   mouseTracking(): boolean
-  resetMouseTracking(): void
+  resetMouseTracking(): void | PromiseLike<void>
   scrollBy(delta: number): unknown
 }
 
@@ -166,6 +166,7 @@ export function projectPointerPosition(
     mouse: { geometry: mouseGeometry(layout), x: raw.x, y: raw.y },
     raw,
     selection: {
+      client: { x: point.clientX, y: point.clientY },
       geometry: {
         cellWidth: physical.deviceCellWidth,
         columns: layout.grid.columns,
@@ -515,13 +516,13 @@ class PointerRoutingController implements TerminalPointerController {
     modifiers: TerminalModifiers | undefined,
   ): void {
     this.synthesizeMouseReleases(projection, modifiers)
-    this.session.resetMouseTracking()
+    this.observe(this.session.resetMouseTracking(), 'pointer.mouseReset')
     this.ownerValue = 'none'
   }
 
   private endSelectionForOwnerChange(): void {
     this.selection.cancel()
-    this.session.resetMouseTracking()
+    this.observe(this.session.resetMouseTracking(), 'pointer.mouseReset')
     this.ownerValue = 'none'
   }
 
@@ -604,7 +605,7 @@ class PointerRoutingController implements TerminalPointerController {
       this.reportError(cause, `${operation}.selectionReset`)
     }
     try {
-      this.session.resetMouseTracking()
+      this.observe(this.session.resetMouseTracking(), 'pointer.mouseReset')
     } catch (cause) {
       this.reportError(cause, `${operation}.mouseReset`)
     }
@@ -627,6 +628,11 @@ class PointerRoutingController implements TerminalPointerController {
     }
   }
 
+  private observe(result: unknown, operation: string): void {
+    if (!result || typeof result !== 'object' || !('then' in result)) return
+    void Promise.resolve(result).catch((cause: unknown) => this.reportError(cause, operation))
+  }
+
   private emitMouse(
     action: TerminalMouseAction,
     button: TerminalMouseButton | null,
@@ -634,16 +640,19 @@ class PointerRoutingController implements TerminalPointerController {
     modifiers: TerminalModifiers | undefined,
     anyButtonPressed = this.pressedButtons.size > 0,
   ): void {
-    this.session.mouse({
-      event: {
-        action,
-        button,
-        modifiers,
-        x: projection.mouse.x,
-        y: projection.mouse.y,
-      },
-      state: { anyButtonPressed, geometry: projection.mouse.geometry },
-    })
+    this.observe(
+      this.session.mouse({
+        event: {
+          action,
+          button,
+          modifiers,
+          x: projection.mouse.x,
+          y: projection.mouse.y,
+        },
+        state: { anyButtonPressed, geometry: projection.mouse.geometry },
+      }),
+      'pointer.mouse',
+    )
   }
 
   private prepareWheelOwner(owner: WheelOwner, layout: CommittedPointerLayout): void {
@@ -653,7 +662,8 @@ class PointerRoutingController implements TerminalPointerController {
       this.wheelResidualValue = 0
     }
     if (this.wheelOwner === owner) return
-    if (this.wheelOwner !== undefined) this.session.resetMouseTracking()
+    if (this.wheelOwner !== undefined)
+      this.observe(this.session.resetMouseTracking(), 'pointer.mouseReset')
     this.wheelOwner = owner
     this.wheelResidualValue = 0
   }
@@ -670,7 +680,7 @@ class PointerRoutingController implements TerminalPointerController {
     modifiers: TerminalModifiers | undefined,
   ): void {
     if (owner === 'viewport') {
-      this.session.scrollBy(lines)
+      this.observe(this.session.scrollBy(lines), 'pointer.scroll')
       return
     }
     const button: TerminalMouseButton = lines < 0 ? 'four' : 'five'

@@ -166,6 +166,56 @@ describe('local terminal execution owner', () => {
     expect(() => execution.writeAndReadGeometry('late')).toThrow('disposed')
   })
 
+  it('keeps atomic selection and projected gesture identity with the native owner', async () => {
+    const session = await TerminalSession.create<Event>()
+    const execution = new LocalTerminalExecution(session, 7)
+    cleanups.push(() => execution.dispose())
+    const font = calculateTerminalFittedFont(
+      session.appearance.font,
+      { advanceWidth: 10, fontAscent: 16, fontDescent: 4 },
+      1,
+    )
+    execution.commitLayout(font, { bottom: 0, left: 0, right: 0, top: 0 })
+    execution.write('owned selection')
+    session.renderState.update()
+    execution.submit({ cursor: session.renderState.readCursor(), rows: [] })
+    execution.selectRange({ x: 0, y: 0 }, { x: 4, y: 0 })
+    const snapshot = execution.selectionSnapshot()
+    expect(snapshot instanceof Promise).toBe(false)
+    expect(snapshot.generation).toBe(7)
+    expect(snapshot.selection?.text).toBe('owned')
+    expect(Object.isFrozen(snapshot.selection?.coordinates.start)).toBe(true)
+    expect(() => execution.selectionSnapshot(undefined, { ...snapshot, generation: 6 })).toThrow(
+      'identity changed',
+    )
+    expect(() =>
+      execution.selectionSnapshot(undefined, { ...snapshot, layout: snapshot.layout + 1 }),
+    ).toThrow('identity changed')
+    const press = {
+      position: { x: 0, y: 0 },
+      viewport: { x: 0, y: 0 },
+      repeatDistance: 10,
+      repeatIntervalNanoseconds: 500_000_000n,
+      timeNanoseconds: 1n,
+    }
+    execution.selectionPress(press, snapshot)
+    execution.write('new revision')
+    expect(() => execution.selectionRelease(press.viewport, snapshot)).toThrow('identity changed')
+    execution.resetSelectionGesture()
+    expect(
+      execution.selectionDrag({
+        geometry: {
+          cellWidth: 10,
+          columns: session.grid.columns,
+          paddingLeft: 0,
+          screenHeight: 100,
+        },
+        position: { x: 20, y: 10 },
+        viewport: { x: 2, y: 0 },
+      }).selectionInstalled,
+    ).toBe(false)
+  })
+
   it('invalidates native actions synchronously and disposes idempotently', async () => {
     const execution = await LocalTerminalExecution.create({})
     execution.dispose()

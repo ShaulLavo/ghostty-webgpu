@@ -9,6 +9,11 @@ import type {
 } from '../render/renderer.js'
 import type { LinkProvider, LinkResolution } from '../term/links.js'
 import { TerminalSession } from '../term/session.js'
+import {
+  NativeSelectionHistory,
+  assertSelectionIdentity,
+  type SelectionIdentity,
+} from '../term/selection-history.js'
 import type { TerminalSessionKeyOptions } from '../term/session.js'
 import type {
   TerminalAppearanceOptions,
@@ -66,7 +71,16 @@ export class LocalTerminalExecution {
   private rendererValue?: GhosttyWebGpuRenderer
   private summaryValue?: TerminalSubmittedFrame
 
-  constructor(private readonly session: TerminalSession<Event>) {
+  private readonly selectionHistory: NativeSelectionHistory
+
+  constructor(
+    private readonly session: TerminalSession<Event>,
+    private readonly generation = 1,
+  ) {
+    this.selectionHistory = new NativeSelectionHistory(session, () => ({
+      generation: this.generation,
+      layout: this.layout?.identity ?? 0,
+    }))
     // Capability getters run with the intent object as their receiver.
     // oxlint-disable-next-line typescript/no-this-alias
     const execution = this
@@ -100,8 +114,60 @@ export class LocalTerminalExecution {
     }
   }
 
-  static async create(options: TerminalSessionOptions<Event>): Promise<LocalTerminalExecution> {
-    return new LocalTerminalExecution(await TerminalSession.create<Event>(options))
+  static async create(
+    options: TerminalSessionOptions<Event>,
+    generation = 1,
+  ): Promise<LocalTerminalExecution> {
+    return new LocalTerminalExecution(await TerminalSession.create<Event>(options), generation)
+  }
+
+  get selectionIdentity(): SelectionIdentity | undefined {
+    const summary = this.summaryValue
+    if (!summary) return undefined
+    return { generation: this.generation, layout: summary.layout, revision: summary.nativeRevision }
+  }
+
+  get mouseTracking(): boolean {
+    return this.session.mouseTracking
+  }
+
+  mouse(input: TerminalMouseInput, expected?: Omit<SelectionIdentity, 'revision'>) {
+    if (
+      expected &&
+      (expected.generation !== this.generation || expected.layout !== (this.layout?.identity ?? 0))
+    )
+      throw createGhosttyError('mouse.identity', 'Mouse layout identity changed')
+    return this.session.mouse(input)
+  }
+
+  resetMouseTracking(): void {
+    this.session.resetMouseTracking()
+  }
+
+  selectionSnapshot(options?: TerminalSelectionFormatOptions, expected?: SelectionIdentity) {
+    const snapshot = this.selectionHistory.selectionSnapshot(options)
+    if (expected) assertSelectionIdentity(expected, snapshot)
+    return snapshot
+  }
+
+  selectionPress(input: TerminalSelectionPressInput, expected?: SelectionIdentity) {
+    return this.selectionHistory.selectionPress(input, expected)
+  }
+
+  selectionDrag(input: TerminalSelectionDragInput, expected?: SelectionIdentity) {
+    return this.selectionHistory.selectionDrag(input, expected)
+  }
+
+  selectionAutoscrollTick(input: TerminalSelectionDragInput, expected?: SelectionIdentity) {
+    return this.selectionHistory.selectionAutoscrollTick(input, expected)
+  }
+
+  selectionRelease(input?: TerminalSelectionReleaseInput, expected?: SelectionIdentity) {
+    return this.selectionHistory.selectionRelease(input, expected)
+  }
+
+  resetSelectionGesture(): void {
+    this.selectionHistory.resetSelectionGesture()
   }
 
   get appearance() {
@@ -137,13 +203,15 @@ export class LocalTerminalExecution {
     scrollBy: (delta: number) => this.session.scrollBy(delta),
   }
   readonly selectionGesture = {
-    resetSelectionGesture: () => this.session.resetSelectionGesture(),
-    selectionAutoscrollTick: (input: TerminalSelectionDragInput) =>
-      this.session.selectionAutoscrollTick(input),
-    selectionDrag: (input: TerminalSelectionDragInput) => this.session.selectionDrag(input),
-    selectionPress: (input: TerminalSelectionPressInput) => this.session.selectionPress(input),
-    selectionRelease: (input?: TerminalSelectionReleaseInput) =>
-      this.session.selectionRelease(input),
+    resetSelectionGesture: () => this.resetSelectionGesture(),
+    selectionAutoscrollTick: (input: TerminalSelectionDragInput, expected?: SelectionIdentity) =>
+      this.selectionAutoscrollTick(input, expected),
+    selectionDrag: (input: TerminalSelectionDragInput, expected?: SelectionIdentity) =>
+      this.selectionDrag(input, expected),
+    selectionPress: (input: TerminalSelectionPressInput, expected?: SelectionIdentity) =>
+      this.selectionPress(input, expected),
+    selectionRelease: (input?: TerminalSelectionReleaseInput, expected?: SelectionIdentity) =>
+      this.selectionRelease(input, expected),
   }
   readonly scroll = {
     scrollBy: (delta: number) => this.session.scrollBy(delta),

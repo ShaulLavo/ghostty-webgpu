@@ -1,3 +1,4 @@
+import { createGhosttyError } from '../core/error.js'
 import type {
   TerminalClipboardWrite,
   TerminalClipboardWritePolicy,
@@ -78,10 +79,53 @@ export function createDomClipboardPolicyAdapter(
   return (write) => normalizeDecision(policy(write), options.onError)
 }
 
-export function writeUserSelectionToClipboard(view: Window, text: string): Promise<void> {
+export interface UserSelectionClipboardOptions {
+  readonly signal?: AbortSignal
+}
+
+function selectionBlob(
+  text: PromiseLike<string | undefined>,
+  signal: AbortSignal | undefined,
+): Promise<Blob> {
+  const selection = Promise.resolve(text).then((value) => {
+    if (value === undefined) {
+      throw createGhosttyError('clipboard.selection', 'The selected text is unavailable')
+    }
+    return new Blob([value], { type: 'text/plain' })
+  })
+  if (!signal) return selection
+  const abort = () => rejectAbort(signal.reason)
+  let rejectAbort: (reason: unknown) => void = () => {}
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    rejectAbort = reject
+  })
+  signal.addEventListener('abort', abort, { once: true })
+  if (signal.aborted) abort()
+  return Promise.race([selection, cancelled]).finally(() => {
+    signal.removeEventListener('abort', abort)
+  })
+}
+
+export async function writeUserSelectionToClipboard(
+  view: Window,
+  text: string | PromiseLike<string | undefined>,
+  options: UserSelectionClipboardOptions = {},
+): Promise<void> {
   const clipboard = view.navigator.clipboard
-  if (!clipboard || typeof clipboard.writeText !== 'function') {
-    return Promise.reject(new TypeError('The Clipboard API is unavailable'))
+  if (typeof text !== 'string') void Promise.resolve(text).catch(() => {})
+  options.signal?.throwIfAborted()
+  if (!clipboard) throw createGhosttyError('clipboard.write', 'The Clipboard API is unavailable')
+  if (typeof text === 'string') {
+    if (typeof clipboard.writeText !== 'function') {
+      throw createGhosttyError('clipboard.write', 'Text clipboard writes are unavailable')
+    }
+    return clipboard.writeText(text)
   }
-  return clipboard.writeText(text)
+  if (typeof clipboard.write !== 'function' || typeof ClipboardItem !== 'function') {
+    throw createGhosttyError('clipboard.write', 'Delayed clipboard writes are unavailable')
+  }
+  // Calling write before readback settles retains the trusted event's browser activation.
+  const blob = selectionBlob(text, options.signal)
+  void blob.catch(() => {})
+  return clipboard.write([new ClipboardItem({ 'text/plain': blob })])
 }

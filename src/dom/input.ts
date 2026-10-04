@@ -36,6 +36,10 @@ interface DomInputControllerBaseOptions {
   readonly claimKey?: (event: KeyboardEvent) => boolean
   readonly claimText?: (type: 'paste' | 'text' | 'composition', data: TerminalInputData) => boolean
   readonly copySelection?: GhosttyWebGpuTerminalCopy
+  readonly selectionReadback?: {
+    readonly hasSelection: () => boolean
+    readonly copy: () => PromiseLike<void> | void
+  }
   readonly hooks?: GhosttyWebGpuTerminalInputHooks
   readonly onError: (cause: unknown, operation: string) => void
   readonly onPreedit?: (value: string) => void
@@ -334,6 +338,7 @@ class BrowserInputController implements DomInputController {
   private readonly forwardedMacCommandPresses = new Set<string>()
   private readonly hotkeys: CompiledTerminalHotkeyBindings
   private readonly pasteShortcut: CompiledDomHotkey
+  private readonly copyShortcut: CompiledDomHotkey
   private readonly platform: DomHotkeyPlatform
   private readonly forwardedKeyPresses = new Map<string, KeyboardEvent>()
   private readonly pressedModifierCodes = new Set<string>()
@@ -342,6 +347,7 @@ class BrowserInputController implements DomInputController {
   constructor(private readonly options: DomInputControllerOptions) {
     this.platform = options.platform ?? hotkeyPlatformForWindow(inputWindow(options.textarea))
     this.pasteShortcut = compileHotkey('Mod+V', this.platform)
+    this.copyShortcut = compileHotkey('Mod+C', this.platform)
     this.hotkeys = compileTerminalHotkeyBindings(defaultShortcutBindings(options, this.platform), {
       onError: options.onError,
       platform: this.platform,
@@ -632,6 +638,16 @@ class BrowserInputController implements DomInputController {
     if (event.getModifierState('AltGraph')) return false
     if (this.pasteShortcut.matches(event)) {
       this.claimShortcut(event, pastePressPolicy, pasteRepeatPolicy)
+      return true
+    }
+    const readback = this.options.selectionReadback
+    if (this.platform === 'mac' && this.copyShortcut.matches(event) && readback?.hasSelection()) {
+      reportPromiseRejection(readback.copy(), this.options.onError)
+      this.claimShortcut(
+        event,
+        { preventDefault: true, stopPropagation: false },
+        { preventDefault: true, stopPropagation: false },
+      )
       return true
     }
     const session = this.options.session

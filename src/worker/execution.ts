@@ -139,6 +139,11 @@ export class WorkerTerminalExecution {
   get submittedFrame(): TerminalSubmittedFrame | undefined {
     return this.summary
   }
+  get selectionIdentity(): LocalTerminalExecution['selectionIdentity'] {
+    const summary = this.summary
+    if (!summary) return undefined
+    return { generation: this.generation, layout: summary.layout, revision: summary.nativeRevision }
+  }
   get submittedOutput(): boolean {
     return this.submittedOutputValue
   }
@@ -224,6 +229,8 @@ export class WorkerTerminalExecution {
         this.submittedOutputValue = true
         this.outputControls.delete(control)
       }
+      if (this.state)
+        this.state = freezeWorkerValue({ ...this.state, mouseTracking: message.mouseTracking })
       this.summary = freezeWorkerValue(message.summary)
       this.projection = freezeWorkerValue(message.snapshot)
       this.frameListener?.(this.textFrame()!)
@@ -363,6 +370,30 @@ export class WorkerTerminalExecution {
   }
   captureViewport(...args: Parameters<LocalTerminalExecution['captureViewport']>) {
     return this.request('captureViewport', args)
+  }
+
+  selectionSnapshot(...args: Parameters<LocalTerminalExecution['selectionSnapshot']>) {
+    return this.request('selectionSnapshot', args)
+  }
+
+  readonly selectionGesture = {
+    resetSelectionGesture: () => this.request('resetSelectionGesture', []),
+    selectionPress: (...args: Parameters<LocalTerminalExecution['selectionPress']>) =>
+      this.request('selectionPress', args),
+    selectionDrag: (...args: Parameters<LocalTerminalExecution['selectionDrag']>) =>
+      this.request('selectionDrag', args),
+    selectionAutoscrollTick: (
+      ...args: Parameters<LocalTerminalExecution['selectionAutoscrollTick']>
+    ) => this.request('selectionAutoscrollTick', args),
+    selectionRelease: (...args: Parameters<LocalTerminalExecution['selectionRelease']>) =>
+      this.request('selectionRelease', args),
+  }
+  readonly pointer = {
+    mouse: (input: Parameters<LocalTerminalExecution['mouse']>[0]) =>
+      this.request('mouse', [input, this.selectionIdentity]),
+    mouseTracking: () => this.confirmed().mouseTracking,
+    resetMouseTracking: () => this.request('resetMouseTracking', []),
+    scrollBy: (delta: number) => this.scrollBy(delta),
   }
 
   readonly focus = {

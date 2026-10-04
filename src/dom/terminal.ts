@@ -63,11 +63,16 @@ import {
 import { createDomLinkController, type DomLinkController } from './links.js'
 import {
   createTerminalPointerController,
+  projectPointerPosition,
   type CommittedPointerLayout,
   type TerminalPointerController,
 } from './pointer.js'
 import { createTerminalScrollbar, type TerminalScrollbarController } from './scrollbar.js'
-import { createTerminalSelectionController, type TerminalSelectionController } from './selection.js'
+import {
+  createTerminalSelectionController,
+  type TerminalSelectionController,
+  type TerminalSelectionProjection,
+} from './selection.js'
 import type {
   GhosttyWebGpuRenderer,
   GhosttyWebGpuRendererFactory,
@@ -482,10 +487,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.inputHooks?.inputReady?.()
       this.installFit(elements)
       this.cleanup.add(() => this.disposeCanvasControllers())
-      if (this.execution.kind === 'sync') {
-        this.installPointer(elements)
-        this.installLinks(elements)
-      }
+      this.installPointer(elements)
+      if (this.execution.kind === 'sync') this.installLinks(elements)
       this.replayLastFrame()
       this.stateValue = 'open'
       this.flushPendingEvents()
@@ -1066,7 +1069,17 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
               session: this.execution.input,
               shortcuts: this.keyboard?.shortcuts,
             }
-          : { encoding: this.execution, shortcuts: false as const }),
+          : {
+              encoding: this.execution,
+              shortcuts: false as const,
+              selectionReadback:
+                this.keyboard?.shortcuts === undefined
+                  ? {
+                      hasSelection: () => this.execution.submittedFrame?.selection !== undefined,
+                      copy: () => this.copyWorkerSelection(view, elements.signal),
+                    }
+                  : undefined,
+            }),
         signal: elements.signal,
         textarea: elements.textarea,
       })
@@ -1117,9 +1130,33 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.cleanup.add(() => fit.dispose())
   }
 
+  private copyWorkerSelection(view: Window, signal: AbortSignal): Promise<void> {
+    if (this.execution.kind !== 'async') return Promise.resolve()
+    const text = this.execution.selectionSnapshot().then((snapshot) => snapshot.selection?.text)
+    const copy = this.copySelection
+    if (!copy) return writeUserSelectionToClipboard(view, text, { signal })
+    return text.then((value) => {
+      signal.throwIfAborted()
+      if (value !== undefined) return copy(value)
+    })
+  }
+
+  private refreshSelectionProjection(
+    previous: TerminalSelectionProjection,
+  ): TerminalSelectionProjection | undefined {
+    const layout = this.committedPointerLayout()
+    if (!layout || !previous.client) return undefined
+    return projectPointerPosition(
+      { clientX: previous.client.x, clientY: previous.client.y },
+      layout,
+    ).selection
+  }
+
   private installPointer(elements: TerminalElements): void {
-    if (this.execution.kind === 'async') return
     const selection = createTerminalSelectionController({
+      getIdentity:
+        this.execution.kind === 'async' ? () => this.execution.selectionIdentity : undefined,
+      getProjection: (previous) => this.refreshSelectionProjection(previous),
       onError: (cause, operation) => this.reportError(cause, operation),
       session: this.execution.selectionGesture,
       view: owningWindow(elements.canvas),

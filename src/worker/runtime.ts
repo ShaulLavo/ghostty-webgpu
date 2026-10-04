@@ -81,10 +81,13 @@ export class TerminalWorkerRuntime {
     try {
       await this.loadFonts()
       if (this.disposed) return
-      this.execution = await LocalTerminalExecution.create({
-        appearance: this.initialize.appearance,
-        runtime: { kind: 'owned', options: this.initialize.assets },
-      })
+      this.execution = await LocalTerminalExecution.create(
+        {
+          appearance: this.initialize.appearance,
+          runtime: { kind: 'owned', options: this.initialize.assets },
+        },
+        this.initialize.generation,
+      )
       if (this.disposed) {
         this.execution.dispose()
         return
@@ -205,20 +208,15 @@ export class TerminalWorkerRuntime {
       cursorBlink: execution.appearance.cursor.blink,
       theme: execution.appearance.rendererTheme,
       needsFrameRows: () => true,
-      onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) => {
-        execution.submit(snapshot)
-        const summary = execution.submittedFrame
-        if (!summary || this.disposed) return
-        this.post({
-          ...this.watermarks(),
-          type: 'frame',
-          base: summary.frame - 1,
-          summary,
-          snapshot: execution.textFrame()!,
-        })
-      },
+      onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>
+        this.submitFrame(snapshot),
       onRowsChanged: () => {},
-      onCleanUpdate: () => execution.confirmCleanUpdate(),
+      onCleanUpdate: () => {
+        const before = execution.submittedFrame?.nativeRevision
+        execution.confirmCleanUpdate()
+        if (before !== execution.submittedFrame?.nativeRevision)
+          this.submitFrame(execution.textFrame()!)
+      },
       onError: (cause: unknown) => this.fail(cause),
     }
     const renderer = await execution.createRenderer(
@@ -244,6 +242,21 @@ export class TerminalWorkerRuntime {
     this.renderer = renderer
     this.renderer.setInactiveCursorStyle?.(this.inactiveCursorStyle)
     this.renderer.schedule()
+  }
+
+  private submitFrame(snapshot: Parameters<LocalTerminalExecution['submit']>[0]): void {
+    const execution = this.native()
+    execution.submit(snapshot)
+    const summary = execution.submittedFrame
+    if (!summary || this.disposed) return
+    this.post({
+      ...this.watermarks(),
+      type: 'frame',
+      base: summary.frame - 1,
+      mouseTracking: execution.mouseTracking,
+      summary,
+      snapshot: execution.textFrame()!,
+    })
   }
 
   private subscribe(): void {
@@ -389,6 +402,22 @@ export class TerminalWorkerRuntime {
         return native.scrollToRow(...request.args)
       case 'getSelection':
         return native.getSelection(...request.args)
+      case 'selectionSnapshot':
+        return native.selectionSnapshot(...request.args)
+      case 'selectionPress':
+        return native.selectionPress(...request.args)
+      case 'selectionDrag':
+        return native.selectionDrag(...request.args)
+      case 'selectionAutoscrollTick':
+        return native.selectionAutoscrollTick(...request.args)
+      case 'selectionRelease':
+        return native.selectionRelease(...request.args)
+      case 'resetSelectionGesture':
+        return native.resetSelectionGesture(...request.args)
+      case 'mouse':
+        return native.mouse(...request.args)
+      case 'resetMouseTracking':
+        return native.resetMouseTracking(...request.args)
       case 'selectionCoordinates':
         return native.selectionCoordinates()
       case 'clearSelection':
@@ -488,6 +517,7 @@ export class TerminalWorkerRuntime {
       appearance: execution.appearance,
       scrollbar: execution.scrollbar,
       revision: execution.revision,
+      mouseTracking: execution.mouseTracking,
       backend: backend === 'webgpu' || backend === 'webgl2' ? backend : undefined,
     }
   }

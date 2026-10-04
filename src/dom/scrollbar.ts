@@ -358,7 +358,15 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
 
   private runAction(operation: string, action: () => unknown): boolean {
     try {
-      action()
+      const result = action()
+      if (
+        result &&
+        (typeof result === 'object' || typeof result === 'function') &&
+        'then' in result &&
+        typeof result.then === 'function'
+      ) {
+        void Promise.resolve(result).catch((cause: unknown) => this.reportError(cause, operation))
+      }
       return true
     } catch (cause) {
       this.reportError(cause, operation)
