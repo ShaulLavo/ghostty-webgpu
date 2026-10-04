@@ -37,12 +37,7 @@ async function openTerminal(
 }
 
 function press(terminal: Terminal, key = 'a', code = 'KeyA'): KeyboardEvent {
-  const event = new KeyboardEvent('keydown', {
-    key,
-    code,
-    bubbles: true,
-    cancelable: true,
-  })
+  const event = new KeyboardEvent('keydown', { key, code, bubbles: true, cancelable: true })
   terminal.textarea!.dispatchEvent(event)
   return event
 }
@@ -179,7 +174,7 @@ describe('public extension links', () => {
     expect(document.activeElement).toBe(terminal.element?.querySelector('[role="link"]'))
     await page.screenshot({
       element: terminal.element!,
-      path: '../../../../.artifacts/review-public-extension-link.png',
+      path: '../../../.artifacts/review-public-extension-link.png',
       scale: 'css',
     })
   })
@@ -399,6 +394,25 @@ describe('public extension links', () => {
 })
 
 describe('public extension activation', () => {
+  it('rejects unavailable OSC ownership and rolls back setup resources', async () => {
+    const terminal = await openTerminal()
+    let cleaned = 0
+    expect(() =>
+      terminal.use({
+        name: 'osc',
+        setup: (scope) => {
+          scope.own(() => (cleaned += 1))
+          return { osc: { 777: () => {} } }
+        },
+      }),
+    ).toThrow('Custom OSC observation is unavailable')
+    expect(cleaned).toBe(1)
+    const output: string[] = []
+    terminal.onData((data) => output.push(decoder.decode(data)))
+    press(terminal)
+    expect(output).toEqual(['a'])
+  })
+
   it.each(['input-first', 'end-first'] as const)(
     'publishes an unclaimed composition commit exactly once for %s order',
     async (order) => {
@@ -463,6 +477,38 @@ describe('public extension activation', () => {
     expect(modified.defaultPrevented).toBe(true)
     expect(output).toEqual([])
   })
+
+  it.each([
+    { name: 'isComposing', init: { key: 'n', code: 'KeyN', isComposing: true } },
+    { name: 'Dead', init: { key: 'Dead', code: 'KeyD' } },
+    { name: 'Process', init: { key: 'Process', code: 'KeyP' } },
+    { name: 'keyCode229', init: { key: 'n', code: 'KeyN', keyCode: 229 } },
+    { name: 'active composition', init: { key: 'n', code: 'KeyN' }, active: true },
+  ])(
+    'offers original $name keys before native composition suppression',
+    async ({ init, active }) => {
+      const seen: KeyboardEvent[] = []
+      let claim = false
+      const terminal = await openTerminal()
+      terminal.connectInput((input) => {
+        if (input.type !== 'key' || !('event' in input)) return 'pass'
+        seen.push(input.event)
+        return claim ? 'claim' : 'pass'
+      })
+      const output: string[] = []
+      terminal.onData((data) => output.push(decoder.decode(data)))
+      if (active) terminal.textarea!.dispatchEvent(new CompositionEvent('compositionstart'))
+      for (const ownership of [false, true]) {
+        claim = ownership
+        const event = new KeyboardEvent('keydown', { ...init, bubbles: true, cancelable: true })
+        terminal.textarea!.dispatchEvent(event)
+        expect(seen.at(-1)).toBe(event)
+        expect(event.defaultPrevented).toBe(ownership)
+      }
+      expect(seen).toHaveLength(2)
+      expect(output).toEqual([])
+    },
+  )
 
   it('returns a typed synchronous API with per-terminal identity and reverse cleanup', async () => {
     const order: string[] = []
@@ -612,25 +658,6 @@ describe('public extension activation', () => {
     expect(scopeValue?.terminal.lifecycle).toBe('disposed')
   })
 
-  it('rejects unavailable OSC ownership and rolls back setup resources', async () => {
-    const terminal = await openTerminal()
-    let cleaned = 0
-    expect(() =>
-      terminal.use({
-        name: 'osc',
-        setup: (scope) => {
-          scope.own(() => (cleaned += 1))
-          return { osc: { 777: () => {} } }
-        },
-      }),
-    ).toThrow('Custom OSC observation is unavailable')
-    expect(cleaned).toBe(1)
-    const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
-    press(terminal)
-    expect(output).toEqual(['a'])
-  })
-
   it('claims original DOM paste, committed composition, text and programmatic input', async () => {
     const inputs: TerminalInputEvent[] = []
     const terminal = await openTerminal({
@@ -650,10 +677,8 @@ describe('public extension activation', () => {
     terminal.onData((data) => output.push(decoder.decode(data)))
     const clipboardData = new DataTransfer()
     clipboardData.setData('text/plain', 'paste\ntext')
-    const paste = new ClipboardEvent('paste', {
-      clipboardData,
-      cancelable: true,
-    })
+    const paste = new ClipboardEvent('paste', { clipboardData, cancelable: true })
+    Object.defineProperty(paste, 'clipboardData', { value: clipboardData })
     terminal.textarea!.dispatchEvent(paste)
     compose(terminal, '中', 'end-first')
     terminal.textarea!.dispatchEvent(
@@ -666,12 +691,7 @@ describe('public extension activation', () => {
     expect(terminal.sendInput('programmatic text')).toHaveLength(0)
     const bytes = new Uint8Array([0xc3, 0xa9])
     expect(terminal.sendInput(bytes)).toHaveLength(0)
-    const input = {
-      action: 'press',
-      code: 'KeyA',
-      text: 'a',
-      composing: false,
-    } as const
+    const input = { action: 'press', code: 'KeyA', text: 'a', composing: false } as const
     expect(terminal.key(input)).toHaveLength(0)
     expect(inputs).toEqual([
       { type: 'paste', data: 'paste\ntext' },
@@ -863,10 +883,7 @@ describe('public extension activation', () => {
     terminal.onData((data) => output.push(decoder.decode(data)))
     compose(terminal, '中', 'end-only')
     const textarea = terminal.textarea!
-    const tail = new InputEvent('input', {
-      data: '中',
-      inputType: 'insertCompositionText',
-    })
+    const tail = new InputEvent('input', { data: '中', inputType: 'insertCompositionText' })
     expect(tail.inputType).toBe('insertCompositionText')
     textarea.dispatchEvent(tail)
     expect(output).toEqual(['中'])
@@ -906,10 +923,7 @@ describe('public extension activation', () => {
     terminal.paste('a\nb')
     expect(output).toEqual(['\x1b[200~a\nb\x1b[201~'])
     expect(calls).toBe(1)
-    terminal.use({
-      name: 'always claim',
-      setup: () => ({ input: () => 'claim' }),
-    })
+    terminal.use({ name: 'always claim', setup: () => ({ input: () => 'claim' }) })
     terminal.write('abc\x1b[6n')
     expect(output.at(-1)).toBe('\x1b[1;4R')
     expect(calls).toBe(1)
@@ -1053,7 +1067,9 @@ describe('public extension activation', () => {
     expect(publicErrors[0]).toBe(clipboardFailure)
     expect(publicErrors.at(-1)).toBe('extension error handler failure')
   })
+})
 
+describe('interested frame delivery', () => {
   it.each([0, 100, 1000])(
     'keeps %i inert attachments out of hot-path contribution reads',
     async (count) => {
@@ -1095,6 +1111,25 @@ describe('public extension activation', () => {
       expect(reads).toBe(0)
     },
   )
+})
+
+it('delivers an extension-only frame queued during opening through the host boundary', async () => {
+  const observed: (readonly number[])[] = []
+  const terminal = await openTerminal({
+    extensions: [
+      {
+        name: 'opening-frame',
+        setup: () => ({ events: { frame: (event) => observed.push(event.rows) } }),
+      },
+    ],
+    rendererFactory: async (options) => {
+      const renderer = await DomTerminalRenderer.create(options)
+      options.onRowsChanged?.([0])
+      return renderer
+    },
+  })
+  expect(terminal.lifecycle).toBe('open')
+  expect(observed).toContainEqual([0])
 })
 
 async function createWorkerTerminal(): Promise<WorkerTerminal> {
@@ -1297,5 +1332,115 @@ describe('public worker extension integration', () => {
     expect(
       received.filter((input) => input.type === 'text' && input.data === 'native pass'),
     ).toHaveLength(1)
+  })
+})
+
+describe('finite original input ownership', () => {
+  it('offers finite ownership first, then interested general input, then native once', async () => {
+    const terminal = await openTerminal()
+    const order: string[] = []
+    const output: string[] = []
+    terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+    terminal.use({
+      name: 'general input',
+      setup: () => ({
+        input: (input) => {
+          order.push('general')
+          return input.type === 'key' && 'event' in input && input.event.key === 'b'
+            ? 'claim'
+            : 'pass'
+        },
+      }),
+    })
+    terminal.connectInput((input) => {
+      order.push('finite')
+      return input.type === 'key' && 'event' in input && input.event.key === 'a' ? 'claim' : 'pass'
+    })
+    const claimed = press(terminal, 'a', 'KeyA')
+    expect(claimed.defaultPrevented).toBe(true)
+    expect(order).toEqual(['finite'])
+    const general = press(terminal, 'b', 'KeyB')
+    expect(general.defaultPrevented).toBe(true)
+    expect(order).toEqual(['finite', 'finite', 'general'])
+    press(terminal, 'c', 'KeyC')
+    expect(order).toEqual(['finite', 'finite', 'general', 'finite', 'general'])
+    expect(output).toEqual(['c'])
+  })
+
+  it('rejects a second finite owner and keeps old disposal from clearing a replacement', async () => {
+    const terminal = await openTerminal()
+    const output: string[] = []
+    terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+    const first = terminal.connectInput(() => 'claim')
+    expect(() => terminal.connectInput(() => 'pass')).toThrow('already has an owner')
+    press(terminal)
+    expect(output).toEqual([])
+    first.dispose()
+    expect(first.signal.aborted).toBe(true)
+    const replacement = terminal.connectInput(() => 'claim')
+    first.dispose()
+    press(terminal)
+    expect(output).toEqual([])
+    replacement.dispose()
+    press(terminal)
+    expect(output).toEqual(['a'])
+    const last = terminal.connectInput(() => 'pass')
+    terminal.dispose()
+    expect(last.signal.aborted).toBe(true)
+    expect(() => terminal.connectInput(() => 'pass')).toThrow('disposed')
+  })
+
+  it.each(['owner', 'terminal'] as const)(
+    'stops forwarding when the finite handler disposes its %s',
+    async (target) => {
+      const terminal = await openTerminal()
+      const output: string[] = []
+      const general = vi.fn(() => 'pass' as const)
+      terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+      terminal.use({ name: 'general after finite', setup: () => ({ input: general }) })
+      const connection = terminal.connectInput(() => {
+        if (target === 'terminal') terminal.dispose()
+        else connection.dispose()
+        return 'pass'
+      })
+      const event = press(terminal)
+      expect(event.defaultPrevented).toBe(true)
+      expect(connection.signal.aborted).toBe(true)
+      expect(general).not.toHaveBeenCalled()
+      expect(output).toEqual([])
+      if (target === 'owner') {
+        press(terminal)
+        expect(general).toHaveBeenCalledTimes(1)
+        expect(output).toEqual(['a'])
+      }
+    },
+  )
+
+  it('claims original text, paste and composition while generated input and native replies bypass ownership', async () => {
+    const terminal = await openTerminal()
+    const seen: TerminalInputEvent[] = []
+    const output: string[] = []
+    terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+    terminal.connectInput((input) => {
+      seen.push(input)
+      return 'claim'
+    })
+    const key = { action: 'press', code: 'KeyQ', text: 'q', composing: false } as const
+    expect(terminal.sendInput('original')).toHaveLength(0)
+    expect(terminal.paste('original paste')).toHaveLength(0)
+    expect(terminal.key(key)).toHaveLength(0)
+    compose(terminal, '中', 'end-only')
+    expect(seen).toEqual([
+      { type: 'text', data: 'original' },
+      { type: 'paste', data: 'original paste' },
+      { type: 'key', input: key },
+      { type: 'composition', text: '中' },
+    ])
+    expect(seen[2]?.type === 'key' && 'input' in seen[2] && seen[2].input).toBe(key)
+    terminal.sendGeneratedInput({ type: 'text', data: 'generated' })
+    terminal.sendGeneratedInput({ type: 'key', input: key })
+    terminal.write('\x1b[5n')
+    expect(output).toEqual(['generated', 'q', '\x1b[0n'])
+    expect(seen).toHaveLength(4)
   })
 })

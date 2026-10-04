@@ -1,20 +1,12 @@
 import assert from 'node:assert/strict'
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { chromium, type Page } from 'playwright'
 import { displayedInk } from './displayed-ink'
 import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch'
+import { rendererSmokeHotkeys } from './renderer-smoke-dependency'
 
 const root = process.env.GHOSTTY_PACKAGE_ROOT ?? join(import.meta.dirname, '..')
-const require = createRequire(join(root, 'package.json'))
-const hotkeys = require.resolve('@tanstack/hotkeys')
-const dependencies = [
-  { prefix: '/node_modules/@tanstack/hotkeys/dist/', directory: dirname(hotkeys) },
-  {
-    prefix: '/node_modules/@tanstack/store/dist/',
-    directory: dirname(createRequire(hotkeys).resolve('@tanstack/store')),
-  },
-]
+const hotkeys = await rendererSmokeHotkeys(root)
 const origin = 'http://127.0.0.1:41799'
 const backends = ['webgpu', 'webgl2', 'canvas2d'] as const
 const requested = process.argv.slice(2)
@@ -26,8 +18,7 @@ for (const backend of requested) {
 }
 const selected = backends.filter((backend) => requested.length === 0 || requested.includes(backend))
 const imports = {
-  '@tanstack/hotkeys': '/node_modules/@tanstack/hotkeys/dist/index.js',
-  '@tanstack/store': '/node_modules/@tanstack/store/dist/index.js',
+  '@fregat/hotkeys': '/smoke-hotkeys.js',
 }
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const args = ['--enable-unsafe-webgpu']
@@ -91,16 +82,14 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
       })
       return
     }
-    const dependency = dependencies.find((entry) => path.startsWith(entry.prefix))
+    if (path === imports['@fregat/hotkeys']) {
+      await route.fulfill({ body: hotkeys, contentType: 'text/javascript' })
+      return
+    }
     const allowed =
-      path.startsWith('/dist/') ||
-      dependency ||
-      path === '/ghostty-vt.wasm' ||
-      path === '/bridge.wasm'
+      path.startsWith('/dist/') || path === '/ghostty-vt.wasm' || path === '/bridge.wasm'
     if (!allowed) return route.abort()
-    const file = dependency
-      ? Bun.file(join(dependency.directory, path.slice(dependency.prefix.length)))
-      : Bun.file(join(root, path))
+    const file = Bun.file(join(root, path))
     await route.fulfill({
       body: Buffer.from(await file.arrayBuffer()),
       contentType: path.endsWith('.wasm') ? 'application/wasm' : 'text/javascript',

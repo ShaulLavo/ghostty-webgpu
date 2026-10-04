@@ -1,4 +1,4 @@
-import { Terminal } from '../../dist/dom/terminal.js'
+import { Terminal, attachTerminalHotkeys } from '../../dist/index.js'
 import type {
   GhosttyWebGpuRendererFactory,
   GhosttyWebGpuTerminalDiagnostics,
@@ -637,6 +637,7 @@ async function start(): Promise<void> {
     },
     scrollbar: { width: 11 },
   })
+  attachTerminalHotkeys(current)
   terminal = current
   if (disposed) {
     current.dispose()

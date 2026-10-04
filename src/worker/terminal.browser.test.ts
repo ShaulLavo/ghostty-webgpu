@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
-import { Terminal as MainTerminal } from '../../dist/index.js'
+import { Terminal as MainTerminal, attachTerminalHotkeys } from '../../dist/index.js'
 import { Terminal as WorkerTerminal, TerminalWorkerError } from '../../dist/worker/index.js'
 import type { TerminalApi } from '../../dist/dom/terminal-api.js'
 import { WebGlTerminalRenderer } from '../../dist/render/webgl/renderer.js'
@@ -126,7 +126,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s shared await-style termi
     expect(fitted.grid.cellHeight).toBe(fitted.font.cssCellHeight)
     await page.screenshot({
       element: terminal.element!,
-      path: `../../../.artifacts/packaged-worker-${mode}.png`,
+      path: `../../.artifacts/packaged-worker-${mode}.png`,
       scale: 'css',
     })
     await terminal.reset()
@@ -418,7 +418,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s review correction parity
     await eventually(() => terminal.submittedFrame?.paintedCursor?.visible === true)
     await page.screenshot({
       element: terminal.element!,
-      path: `../../../.artifacts/review-cursor-${mode}.png`,
+      path: `../../.artifacts/review-cursor-${mode}.png`,
       scale: 'css',
     })
   })
@@ -584,7 +584,6 @@ it.each(['older-empty', 'current-empty', 'released', 'reset', 'dispose'] as cons
     const controller = createDomInputController({
       textarea,
       platform: 'linux',
-      shortcuts: false,
       signal: new AbortController().signal,
       hooks: { inputDisabled: () => disabled },
       onError: (cause) => errors.push(cause),
@@ -724,7 +723,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s review atomic host', (mo
     expect(live.children[1]?.textContent).toBe(' atomic prompt')
     await page.screenshot({
       element: terminal.element!,
-      path: `../../../.artifacts/review-atomic-host-${mode}.png`,
+      path: `../../.artifacts/review-atomic-host-${mode}.png`,
       scale: 'css',
     })
   })
@@ -757,6 +756,103 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s review atomic host', (mo
     expect(() => terminal.geometry()).toThrow('disposed')
     expect(() => terminal.writeAndReadGeometry('late')).toThrow('disposed')
   })
+})
+
+it('preserves default worker browser paste keys and native clipboard encoding', async () => {
+  const terminal = await create('webgl')
+  await terminal.open(container())
+  await terminal.write('\x1b[?2004h')
+  const output: string[] = []
+  terminal.onData((bytes) => output.push(new TextDecoder().decode(bytes)))
+  const textarea = terminal.textarea!
+  const modifier = /Mac/.test(navigator.platform) ? { metaKey: true } : { ctrlKey: true }
+  const send = (type: 'keydown' | 'keyup', repeat = false) => {
+    const event = new KeyboardEvent(type, {
+      code: 'KeyV',
+      key: 'v',
+      repeat,
+      ...modifier,
+      bubbles: true,
+      cancelable: true,
+    })
+    textarea.dispatchEvent(event)
+    return event
+  }
+  expect(send('keydown').defaultPrevented).toBe(false)
+  expect(send('keydown', true).defaultPrevented).toBe(true)
+  expect(send('keyup').defaultPrevented).toBe(false)
+  await terminal.readLines(0, 1)
+  expect(output).toEqual([])
+  const clipboardData = new DataTransfer()
+  clipboardData.setData('text/plain', 'worker clip')
+  const event = new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true })
+  textarea.dispatchEvent(event)
+  expect(event.defaultPrevented).toBe(true)
+  await eventually(() => output.length === 1)
+  expect(output).toEqual(['\x1b[200~worker clip\x1b[201~'])
+})
+
+it('rejects JavaScript worker hotkeys attachment before starting an asynchronous lease', async () => {
+  const terminal = await create('webgl')
+  let failure: unknown
+  try {
+    Reflect.apply(attachTerminalHotkeys, undefined, [terminal])
+  } catch (cause) {
+    failure = cause
+  }
+  expect(failure).toMatchObject({ code: 'capability', operation: 'inputModes' })
+  let callbacks = 0
+  const connection = terminal.connectInput(() => {
+    callbacks++
+    return 'pass'
+  })
+  expect(connection instanceof Promise).toBe(true)
+  await expect(connection).rejects.toMatchObject({ code: 'capability', operation: 'connectInput' })
+  expect(callbacks).toBe(0)
+  let setup = 0
+  const general = terminal.use({
+    name: 'worker general API observation control',
+    setup: () => {
+      setup++
+      return {}
+    },
+  })
+  expect(general instanceof Promise).toBe(true)
+  const handle = await general
+  expect(setup).toBe(1)
+  handle.dispose()
+})
+
+it('keeps finite input ownership and immediate native mode access on the synchronous host', async () => {
+  const terminal = await create('webgl')
+  let setup = 0
+  const registration = terminal.connectInput(() => {
+    setup++
+    return 'pass'
+  })
+  expect(registration instanceof Promise).toBe(true)
+  await expect(registration).rejects.toMatchObject({
+    code: 'capability',
+    operation: 'connectInput',
+  })
+  expect(setup).toBe(0)
+  try {
+    terminal.inputModes
+    expect.fail('Worker modes require native authority')
+  } catch (cause) {
+    expect(cause).toMatchObject({ code: 'capability', operation: 'inputModes' })
+  }
+  await terminal.open(container())
+  await terminal.write('worker authority retained')
+  expect((await terminal.readLines(0, 1))[0]?.text).toContain('worker authority retained')
+  await terminal.dispose()
+  const disposed = terminal.connectInput(() => {
+    setup++
+    return 'pass'
+  })
+  expect(disposed instanceof Promise).toBe(true)
+  await expect(disposed).rejects.toThrow('disposed')
+  expect(setup).toBe(0)
 })
 
 it('rejects an unsupported Canvas worker backend with a structured capability failure', async () => {
@@ -913,7 +1009,7 @@ describe.each(['webgl', 'webgpu'] as const)('%s producer output accessibility', 
         if (ordering === 'mixed')
           await page.screenshot({
             element: terminal.element!,
-            path: `../../../.artifacts/review-producer-output-${backend}.png`,
+            path: `../../.artifacts/review-producer-output-${backend}.png`,
             scale: 'css',
           })
       } finally {

@@ -2,6 +2,7 @@ import type { TerminalGeometry, TerminalTextMeasurement } from '../../core/types
 import { describe, expectTypeOf, it } from 'vitest'
 import type { TerminalInputResult, TerminalMutationResult } from '../../term/types.js'
 import type { TerminalApi, TerminalResult } from '../terminal-api.js'
+import type { TerminalInputConnection } from '../types.js'
 import type { Terminal } from '../terminal.js'
 import type { Extension, ExtensionHandle } from '../../extensions/types.js'
 
@@ -11,6 +12,12 @@ describe('shared terminal return convention', () => {
     expectTypeOf<Terminal>().toExtend<TerminalApi<'sync'>>()
     expectTypeOf<ReturnType<TerminalApi<'sync'>['write']>>().toEqualTypeOf<TerminalMutationResult>()
     expectTypeOf<ReturnType<TerminalApi<'sync'>['key']>>().toEqualTypeOf<TerminalInputResult>()
+    expectTypeOf<
+      ReturnType<TerminalApi<'sync'>['connectInput']>
+    >().toEqualTypeOf<TerminalInputConnection>()
+    expectTypeOf<ReturnType<TerminalApi<'async'>['connectInput']>>().toEqualTypeOf<
+      Promise<TerminalInputConnection>
+    >()
     expectTypeOf<ReturnType<TerminalApi<'sync'>['dispose']>>().toEqualTypeOf<void>()
   })
 

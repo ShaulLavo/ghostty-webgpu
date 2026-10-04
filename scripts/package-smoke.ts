@@ -10,6 +10,7 @@ import {
 } from 'node:fs'
 import {
   access,
+  cp,
   lstat,
   mkdir,
   mkdtemp,
@@ -887,12 +888,78 @@ async function suppliedTarball(argv: readonly string[]): Promise<string | undefi
   return argv[1]
 }
 
-async function createTarball(workspace: string): Promise<string> {
+function manifestRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new PackageSmokeError('package manifest fields must be objects')
+  }
+  return Object.fromEntries(Object.entries(value))
+}
+
+function catalogRange(manifest: Record<string, unknown>, name: string, range: unknown): unknown {
+  if (typeof range !== 'string' || !range.startsWith('catalog:')) return range
+  const workspaces = manifestRecord(manifest.workspaces)
+  const alias = range.slice('catalog:'.length)
+  const catalog = manifestRecord(
+    alias ? manifestRecord(workspaces.catalogs)[alias] : workspaces.catalog,
+  )
+  const resolved = catalog[name]
+  if (typeof resolved !== 'string') {
+    throw new PackageSmokeError(`family catalog dependency is missing: ${name}`)
+  }
+  return resolved
+}
+
+function packedManifest(value: unknown): Record<string, unknown> {
+  const manifest = manifestRecord(value)
+  for (const section of [
+    'dependencies',
+    'optionalDependencies',
+    'peerDependencies',
+    'devDependencies',
+  ]) {
+    if (!(section in manifest)) continue
+    manifest[section] = Object.fromEntries(
+      Object.entries(manifestRecord(manifest[section])).map(([name, range]) => [
+        name,
+        catalogRange(manifest, name, range),
+      ]),
+    )
+  }
+  return manifest
+}
+
+export async function createTarball(workspace: string, sourceRoot: string): Promise<string> {
+  await run(['bun', 'run', 'prepack'], sourceRoot)
+  const manifest = packedManifest(
+    JSON.parse(await readFile(join(sourceRoot, 'package.json'), 'utf8')),
+  )
+  const files = manifest.files
+  if (!Array.isArray(files))
+    throw new PackageSmokeError('package manifest must declare its published files')
+  const stage = join(workspace, 'package')
   const packRoot = join(workspace, 'pack')
+  await mkdir(stage)
   await mkdir(packRoot)
+  for (const file of files) {
+    if (typeof file !== 'string' || isAbsolute(file) || file.split('/').includes('..')) {
+      throw new PackageSmokeError('published file must name a path inside the package')
+    }
+    const source = join(sourceRoot, file)
+    if (!existsSync(source)) continue
+    await cp(source, join(stage, file), { recursive: true, preserveTimestamps: true })
+  }
+  await writeFile(join(stage, 'package.json'), JSON.stringify(manifest, null, 2) + '\n')
   const packOutput = await run(
-    ['npm', 'pack', '--silent', '--dry-run=false', '--pack-destination', packRoot],
-    projectRoot,
+    [
+      'npm',
+      'pack',
+      '--silent',
+      '--dry-run=false',
+      '--ignore-scripts',
+      '--pack-destination',
+      packRoot,
+    ],
+    stage,
   )
   return join(packRoot, readPackFilename(packOutput))
 }
@@ -909,7 +976,7 @@ async function main(): Promise<void> {
     const consumerRoot = join(workspace, 'consumer')
     await mkdir(consumerRoot)
     await writeConsumerFiles(consumerRoot, browserOnly)
-    const tarball = input ?? (await createTarball(workspace))
+    const tarball = input ?? (await createTarball(workspace, projectRoot))
     await run(
       ['npm', 'install', '--dry-run=false', '--ignore-scripts', '--no-audit', '--no-fund', tarball],
       consumerRoot,
@@ -935,4 +1002,4 @@ async function main(): Promise<void> {
   console.log(`Verified packed consumer ${verified}`)
 }
 
-await main()
+if (import.meta.main) await main()

@@ -8,20 +8,12 @@ import type {
   TerminalModifiers,
 } from '../term/types.js'
 import {
-  compileHotkey,
-  compileTerminalHotkeyBindings,
-  hotkeyPlatformForWindow,
-  type CompiledDomHotkey,
-  type CompiledTerminalHotkeyBindings,
-  type DomHotkeyPlatform,
-} from './hotkeys.js'
-import type {
-  GhosttyWebGpuTerminalCopy,
-  GhosttyWebGpuTerminalInputHooks,
-  TerminalHotkeyBinding,
-  TerminalHotkeyContext,
-  TerminalHotkeyDecision,
-} from './types.js'
+  detectPlatform,
+  normalizeHotkey,
+  normalizeHotkeyFromEvent,
+  type KeymapPlatform,
+} from '@fregat/hotkeys'
+import type { GhosttyWebGpuTerminalInputHooks } from './types.js'
 
 type InputSession = Pick<
   TerminalSession<unknown>,
@@ -35,7 +27,6 @@ interface LifecycleSession {
 interface DomInputControllerBaseOptions {
   readonly claimKey?: (event: KeyboardEvent) => boolean
   readonly claimText?: (type: 'paste' | 'text' | 'composition', data: TerminalInputData) => boolean
-  readonly copySelection?: GhosttyWebGpuTerminalCopy
   readonly selectionReadback?: {
     readonly hasSelection: () => boolean
     readonly copy: () => PromiseLike<void> | void
@@ -43,8 +34,7 @@ interface DomInputControllerBaseOptions {
   readonly hooks?: GhosttyWebGpuTerminalInputHooks
   readonly onError: (cause: unknown, operation: string) => void
   readonly onPreedit?: (value: string) => void
-  readonly platform?: DomHotkeyPlatform
-  readonly shortcuts?: false | readonly TerminalHotkeyBinding[]
+  readonly platform?: KeymapPlatform
   readonly signal: AbortSignal
   readonly textarea: HTMLTextAreaElement
 }
@@ -59,7 +49,6 @@ export type DomInputControllerOptions = DomInputControllerBaseOptions &
           paste(data: TerminalInputData): Promise<TerminalInputResult>
           sendInput(data: TerminalInputData): Promise<TerminalInputResult>
         }
-        readonly shortcuts: false
       }
   )
 
@@ -99,12 +88,7 @@ interface SuppressedShortcutPolicy {
 
 const modifierDefinitions: readonly ModifierDefinition[] = Object.freeze([
   { left: 'AltLeft', name: 'alt', right: 'AltRight', state: 'Alt' },
-  {
-    left: 'ControlLeft',
-    name: 'control',
-    right: 'ControlRight',
-    state: 'Control',
-  },
+  { left: 'ControlLeft', name: 'control', right: 'ControlRight', state: 'Control' },
   { left: 'ShiftLeft', name: 'shift', right: 'ShiftRight', state: 'Shift' },
   { left: 'MetaLeft', name: 'super', right: 'MetaRight', state: 'Meta' },
 ])
@@ -252,48 +236,10 @@ function isPasteInput(inputType: string): boolean {
   return inputType === 'insertFromPaste' || inputType === 'insertFromDrop'
 }
 
-function reportPromiseRejection(
-  result: PromiseLike<void> | void,
-  onError: (cause: unknown, operation: string) => void,
-): void {
-  if (!result || typeof result.then !== 'function') return
-  void Promise.resolve(result).catch((cause: unknown) => onError(cause, 'copy'))
-}
-
 function inputWindow(textarea: HTMLTextAreaElement): Window {
   const view = textarea.ownerDocument.defaultView
   if (view) return view
   throw new TypeError('Terminal input requires a textarea owned by a window')
-}
-
-function defaultCopyDecision(
-  context: TerminalHotkeyContext,
-  copy: GhosttyWebGpuTerminalCopy | undefined,
-  onError: DomInputControllerOptions['onError'],
-): TerminalHotkeyDecision {
-  if (!copy || !context.hasSelection()) return 'passthrough'
-  const text = context.getSelection()
-  if (text === undefined) return 'passthrough'
-  reportPromiseRejection(copy(text), onError)
-  return 'claim'
-}
-
-function defaultShortcutBindings(
-  options: DomInputControllerOptions,
-  platform: DomHotkeyPlatform,
-): readonly TerminalHotkeyBinding[] {
-  if (options.shortcuts === false) return []
-  if (options.shortcuts) return options.shortcuts
-  if (platform !== 'mac') return []
-  return Object.freeze([
-    Object.freeze({
-      hotkey: 'Mod+C',
-      id: 'copy-selection',
-      onTrigger: (context: TerminalHotkeyContext) =>
-        defaultCopyDecision(context, options.copySelection, options.onError),
-      stopPropagation: false,
-    }),
-  ])
 }
 
 function applyShortcutPolicy(event: KeyboardEvent, policy: SuppressedShortcutPolicy): void {
@@ -301,57 +247,35 @@ function applyShortcutPolicy(event: KeyboardEvent, policy: SuppressedShortcutPol
   if (policy.stopPropagation) event.stopPropagation()
 }
 
-const pastePressPolicy = Object.freeze({
-  preventDefault: false,
-  stopPropagation: false,
-})
-const pasteRepeatPolicy = Object.freeze({
-  preventDefault: true,
-  stopPropagation: false,
-})
-const refusedKeyPolicy = Object.freeze({
-  preventDefault: false,
-  stopPropagation: false,
-})
+const pastePressPolicy = Object.freeze({ preventDefault: false, stopPropagation: false })
+const pasteRepeatPolicy = Object.freeze({ preventDefault: true, stopPropagation: false })
+const refusedKeyPolicy = Object.freeze({ preventDefault: false, stopPropagation: false })
 
 type CompositionState =
   | { readonly phase: 'idle' }
   | { readonly phase: 'cancelled' }
-  | {
-      readonly phase: 'active'
-      readonly value: string
-      readonly committed: boolean
-    }
+  | { readonly phase: 'active'; readonly value: string; readonly committed: boolean }
   | { readonly phase: 'awaiting' | 'ended'; readonly value: string }
 
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
-  private encodingGeneration = 0
   private composition: CompositionState = { phase: 'idle' }
 
   private get composing(): boolean {
     return this.composition.phase === 'active'
   }
+  private encodingGeneration = 0
   private readonly composingKeyPresses = new Set<string>()
   private readonly deferredMacCommandPresses = new Map<string, KeyboardEvent>()
   private disposed = false
   private readonly forwardedMacCommandPresses = new Set<string>()
-  private readonly hotkeys: CompiledTerminalHotkeyBindings
-  private readonly pasteShortcut: CompiledDomHotkey
-  private readonly copyShortcut: CompiledDomHotkey
-  private readonly platform: DomHotkeyPlatform
+  private readonly platform: KeymapPlatform
   private readonly forwardedKeyPresses = new Map<string, KeyboardEvent>()
   private readonly pressedModifierCodes = new Set<string>()
   private readonly suppressedShortcuts = new Map<string, SuppressedShortcutPolicy>()
 
   constructor(private readonly options: DomInputControllerOptions) {
-    this.platform = options.platform ?? hotkeyPlatformForWindow(inputWindow(options.textarea))
-    this.pasteShortcut = compileHotkey('Mod+V', this.platform)
-    this.copyShortcut = compileHotkey('Mod+C', this.platform)
-    this.hotkeys = compileTerminalHotkeyBindings(defaultShortcutBindings(options, this.platform), {
-      onError: options.onError,
-      platform: this.platform,
-    })
+    this.platform = options.platform ?? detectPlatform()
     try {
       this.installListeners()
     } catch (cause) {
@@ -478,13 +402,7 @@ class BrowserInputController implements DomInputController {
       event.preventDefault()
       return
     }
-    const suppressedBeforeCustomHandler = this.suppressedShortcuts.has(event.code)
-    const customAllowed = this.allowCustomKey(event)
-    if (suppressedBeforeCustomHandler && this.consumeSuppressedShortcut(event)) {
-      this.deferredMacCommandPresses.clear()
-      return
-    }
-    if (!customAllowed) {
+    if (this.consumeSuppressedShortcut(event)) {
       this.deferredMacCommandPresses.clear()
       return
     }
@@ -506,6 +424,8 @@ class BrowserInputController implements DomInputController {
       return
     }
     if (this.deferMacCommandPress(event)) return
+    // Releases belong to physical presses this native input owner previously forwarded.
+    if (event.type === 'keyup' && !this.forwardedKeyPresses.has(event.code)) return
     this.forwardDeferredMacCommandPresses(event)
     this.encodeKey(event)
   }
@@ -552,27 +472,6 @@ class BrowserInputController implements DomInputController {
       this.options.onError(cause, operation)
       return new Uint8Array()
     }
-  }
-
-  private allowCustomKey(event: KeyboardEvent): boolean {
-    const handler = this.options.hooks?.customKeyEvent
-    if (!handler) return true
-    try {
-      if (handler(event)) return true
-      this.suppressInitialKey(event)
-      return false
-    } catch (cause) {
-      this.clearFailedKeyLifecycle(event)
-      throw cause
-    }
-  }
-
-  private clearFailedKeyLifecycle(event: KeyboardEvent): void {
-    this.composingKeyPresses.delete(event.code)
-    this.deferredMacCommandPresses.clear()
-    this.pressedModifierCodes.delete(event.code)
-    this.forwardedKeyPresses.delete(event.code)
-    this.suppressedShortcuts.delete(event.code)
   }
 
   private blockDisabledKey(event: KeyboardEvent): boolean {
@@ -636,25 +535,28 @@ class BrowserInputController implements DomInputController {
     if (event.type !== 'keydown') return false
     if (isComposingKey(event, this.composing)) return false
     if (event.getModifierState('AltGraph')) return false
-    if (this.pasteShortcut.matches(event)) {
+    // ClipboardEvent/input carries browser paste; its physical key must not also encode.
+    const modifier = this.platform === 'mac' ? event.metaKey : event.ctrlKey
+    if (modifier && !event.altKey && !event.shiftKey && event.code === 'KeyV') {
       this.claimShortcut(event, pastePressPolicy, pasteRepeatPolicy)
       return true
     }
     const readback = this.options.selectionReadback
-    if (this.platform === 'mac' && this.copyShortcut.matches(event) && readback?.hasSelection()) {
-      reportPromiseRejection(readback.copy(), this.options.onError)
-      this.claimShortcut(
-        event,
-        { preventDefault: true, stopPropagation: false },
-        { preventDefault: true, stopPropagation: false },
-      )
-      return true
-    }
-    const session = this.options.session
-    if (!session) return false
-    const claim = this.hotkeys.arbitrate(this.hotkeyContext(event, session))
-    if (!claim) return false
-    this.claimShortcut(event, claim, claim)
+    if (
+      !readback ||
+      this.platform !== 'mac' ||
+      normalizeHotkeyFromEvent(event, this.platform) !== normalizeHotkey('Mod+C', this.platform) ||
+      !readback.hasSelection()
+    )
+      return false
+    const result = readback.copy()
+    if (result)
+      void Promise.resolve(result).catch((cause: unknown) => this.options.onError(cause, 'copy'))
+    this.claimShortcut(
+      event,
+      { preventDefault: true, stopPropagation: false },
+      { preventDefault: true, stopPropagation: false },
+    )
     return true
   }
 
@@ -665,16 +567,6 @@ class BrowserInputController implements DomInputController {
   ): void {
     this.suppressedShortcuts.set(event.code, repeatPolicy)
     applyShortcutPolicy(event, pressPolicy)
-  }
-
-  private hotkeyContext(event: KeyboardEvent, session: InputSession): TerminalHotkeyContext {
-    return Object.freeze({
-      event,
-      getSelection: () => session.getSelection(),
-      hasSelection: () => session.selectionCoordinates() !== undefined,
-      paste: (data: TerminalInputData) => this.invokeSession('paste', data),
-      sendInput: (data: TerminalInputData) => this.invokeSession('text', data),
-    })
   }
 
   private deferMacCommandPress(event: KeyboardEvent): boolean {
@@ -725,7 +617,10 @@ class BrowserInputController implements DomInputController {
       )
       if (event.type === 'keydown' && !event.repeat) {
         if (input.composing) this.composingKeyPresses.add(event.code)
-        if (!input.composing) this.composingKeyPresses.delete(event.code)
+        if (!input.composing) {
+          this.composingKeyPresses.delete(event.code)
+          this.forwardedKeyPresses.set(event.code, event)
+        }
       }
       const encoding = this.options.encoding
       if (encoding) {

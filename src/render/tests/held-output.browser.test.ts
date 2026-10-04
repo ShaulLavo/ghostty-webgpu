@@ -58,7 +58,6 @@ async function mainActor(host: HTMLDivElement): Promise<HoldActor> {
     appearance: { grid: { columns: 24, rows: 4 }, font, cursor: { blink: false } },
     autoFit: false,
     accessibility: false,
-    keyboard: { shortcuts: false },
     rendererFactory: async (options) => {
       canvas = options.canvas as HTMLCanvasElement
       centre = {

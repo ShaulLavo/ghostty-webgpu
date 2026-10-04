@@ -1,5 +1,7 @@
 import { playwright } from '@vitest/browser-playwright'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
+import { browserFileRoots } from './scripts/browser-file-roots'
 import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.ts'
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
@@ -21,6 +23,9 @@ if (
   launchArgs.push('--ozone-platform=wayland')
 
 export default defineConfig({
+  server: {
+    fs: { allow: browserFileRoots(fileURLToPath(new URL('.', import.meta.url))) },
+  },
   test: {
     browser: {
       enabled: true,

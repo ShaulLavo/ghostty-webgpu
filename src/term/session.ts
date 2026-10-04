@@ -8,6 +8,7 @@ import {
   MouseButton,
   PhysicalKey,
   TerminalMode,
+  TerminalScreen,
 } from '../core/abi.js'
 import { createGhosttyError } from '../core/error.js'
 import {
@@ -1133,6 +1134,11 @@ export class TerminalSession<TEvent = unknown> {
   get grid(): TerminalGrid {
     this.ensureActive()
     return this.appearanceValue.grid
+  }
+
+  get alternateScreen(): boolean {
+    this.ensureActive()
+    return this.terminal.activeScreen === TerminalScreen.Alternate
   }
 
   get mouseTracking(): boolean {

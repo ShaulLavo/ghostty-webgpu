@@ -1,6 +1,12 @@
+import { createGhosttyError } from '../core/error.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import { createExtensionDispatch, ExtensionManager } from '../extensions/manager.js'
-import type { Extension, ExtensionHandle, TerminalInputEvent } from '../extensions/types.js'
+import type {
+  Extension,
+  ExtensionHandle,
+  TerminalInputEvent,
+  TerminalInputHandler,
+} from '../extensions/types.js'
 import type {
   ReadLinesOptions,
   TerminalGeometry,
@@ -88,6 +94,9 @@ import type {
   GhosttyWebGpuTerminalPointerHooks,
   GhosttyWebGpuTerminalScrollbarOptions,
   GhosttyWebGpuTerminalSubscription,
+  TerminalInputModes,
+  TerminalInputConnection,
+  TerminalGeneratedInput,
 } from './types.js'
 
 type HostEmitters = {
@@ -102,6 +111,7 @@ function createHostEmitters(): HostEmitters {
   const error = new EventEmitter<GhosttyWebGpuTerminalEventMap['error']>()
   const sink = (operation: string) => (cause: unknown) => error.emit({ cause, operation })
   return {
+    open: new EventEmitter(sink('event.open')),
     appearance: new EventEmitter(sink('event.appearance')),
     bell: new EventEmitter(sink('event.bell')),
     data: new EventEmitter(sink('event.data')),
@@ -115,6 +125,7 @@ function createHostEmitters(): HostEmitters {
 }
 
 function disposeHostEmitters(emitters: HostEmitters): void {
+  emitters.open.dispose()
   emitters.appearance.dispose()
   emitters.bell.dispose()
   emitters.data.dispose()
@@ -252,12 +263,13 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly copySelection
   private elementsValue?: TerminalElements
   private readonly emitters = createHostEmitters()
-  private extensions?: ExtensionManager
-  private readonly extensionDispatch = createExtensionDispatch()
   private fit?: TerminalFitController
   private fittedFont?: TerminalFittedFont
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
+  private extensions?: ExtensionManager
+  private readonly extensionDispatch = createExtensionDispatch()
   private generation = 0
+  private inputOwner?: TerminalInputConnection & { readonly handler: TerminalInputHandler }
   private input?: DomInputController
   private readonly inputHooks?: GhosttyWebGpuTerminalInputHooks
   private inputLifecycle?: DomInputLifecycleController
@@ -331,19 +343,69 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     return this.result(this.extensionManager().use(extension))
   }
 
+  connectInput(handler: TerminalInputHandler): TerminalResult<Mode, TerminalInputConnection> {
+    if (this.execution.kind === 'async') {
+      return this.result(
+        Promise.resolve().then(() => {
+          this.ensureActive()
+          throw workerError('capability', 'connectInput', { actor: 'worker' })
+        }),
+      )
+    }
+    this.ensureActive()
+    if (typeof handler !== 'function')
+      throw createGhosttyError('input.connect', 'Input owner must be a function')
+    if (this.inputOwner)
+      throw createGhosttyError('input.connect', 'Terminal original input already has an owner')
+    const controller = new AbortController()
+    const connection = {
+      handler,
+      signal: controller.signal,
+      dispose: () => {
+        if (this.inputOwner === connection) this.inputOwner = undefined
+        controller.abort()
+      },
+    }
+    this.inputOwner = connection
+    return this.result(connection)
+  }
+
   private extensionManager(): ExtensionManager {
     this.extensions ??= new ExtensionManager({
       dispatch: this.extensionDispatch,
       terminal: this,
       registerLinkProvider: (provider) => this.registerLinkProvider(provider),
-      // Handler failures reach host diagnostics without redispatching a failing extension event.
       onError: (cause, operation) => this.emitters.error.emit({ cause, operation }),
     })
     return this.extensions
   }
 
+  private claimInput(input: TerminalInputEvent): boolean {
+    const owner = this.inputOwner
+    if (owner) {
+      let claimed = false
+      try {
+        const decision: unknown = owner.handler(input)
+        if (decision !== 'claim' && decision !== 'pass') {
+          void Promise.resolve(decision).catch((cause: unknown) =>
+            this.reportError(cause, 'input.owner'),
+          )
+          throw createGhosttyError(
+            'input.owner',
+            'Input owner must return claim or pass synchronously',
+          )
+        }
+        claimed = decision === 'claim'
+      } catch (cause) {
+        this.reportError(cause, 'input.owner')
+      }
+      if (claimed || owner.signal.aborted || this.stateValue !== 'open') return true
+    }
+    return (this.extensionDispatch.input?.(input) ?? false) || this.stateValue !== 'open'
+  }
+
   private readonly claimDomKey = (event: KeyboardEvent): boolean => {
-    if (!this.extensionDispatch.input) return false
+    if (!this.inputOwner && !this.extensionDispatch.input) return false
     return this.claimInput({ type: 'key', event })
   }
 
@@ -351,14 +413,19 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     type: 'paste' | 'text' | 'composition',
     data: TerminalInputData,
   ): boolean => {
-    if (!this.extensionDispatch.input) return false
+    if (!this.inputOwner && !this.extensionDispatch.input) return false
     if (type === 'composition') return this.claimInput({ type, text: data as string })
     return this.claimInput({ type, data })
   }
 
-  private claimInput(input: TerminalInputEvent): boolean {
-    const claimed = this.extensionDispatch.input!(input)
-    return claimed || this.stateValue !== 'open'
+  get inputModes(): TerminalInputModes {
+    this.ensureActive()
+    if (this.execution.kind !== 'sync')
+      throw workerError('capability', 'inputModes', { actor: 'worker' })
+    return {
+      alternateScreen: this.execution.alternateScreen,
+      mouseReporting: this.execution.pointer.mouseTracking(),
+    }
   }
 
   static fromWorker(
@@ -368,7 +435,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     return new Terminal<'async'>(execution, options)
   }
 
-  private emptyInput(): TerminalResult<Mode, TerminalInputResult> {
+  private emptyInputResult(): TerminalResult<Mode, TerminalInputResult> {
     const empty = new Uint8Array()
     return this.result(this.execution.kind === 'async' ? Promise.resolve(empty) : empty)
   }
@@ -480,7 +547,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       if (this.execution.kind === 'sync') this.subscribeToSession()
       this.installAccessibility(elements)
       this.installScrollbar(elements)
-      this.installInput(elements, parent)
+      this.installInput(elements)
       this.inputHooks?.inputReady?.()
       this.installFit(elements)
       this.cleanup.add(() => this.disposeCanvasControllers())
@@ -488,6 +555,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.installLinks(elements)
       this.replayLastFrame()
       this.stateValue = 'open'
+      this.emitHostEvent('open', elements.root)
       this.flushPendingEvents()
     } catch (cause) {
       if (renderer)
@@ -630,22 +698,33 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   sendInput(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
-    if (this.claimText('text', data)) return this.emptyInput()
+    if (this.claimText('text', data)) return this.emptyInputResult()
     return this.result(this.execution.sendInput(data))
   }
 
   paste(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
-    if (this.claimText('paste', data)) return this.emptyInput()
+    if (this.claimText('paste', data)) return this.emptyInputResult()
     return this.result(this.execution.paste(data))
   }
 
   key(input: TerminalKeyInput): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
-    if (this.extensionDispatch.input && this.claimInput({ type: 'key', input })) {
-      return this.emptyInput()
-    }
+    if (
+      (this.inputOwner || this.extensionDispatch.input) &&
+      this.claimInput({ type: 'key', input })
+    )
+      return this.emptyInputResult()
     return this.result(this.execution.key(input))
+  }
+
+  sendGeneratedInput(input: TerminalGeneratedInput): TerminalResult<Mode, TerminalInputResult> {
+    this.ensureOpen()
+    if (input.type === 'key') return this.result(this.execution.key(input.input))
+    if (input.type === 'paste') return this.result(this.execution.paste(input.data))
+    return this.result(
+      this.execution.sendInput(input.type === 'composition' ? input.text : input.data),
+    )
   }
 
   focus(): void {
@@ -811,6 +890,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.stateValue = 'disposing'
     this.nextGeneration()
     this.pendingEvents.length = 0
+    this.inputOwner?.dispose()
     this.extensions?.dispose()
     this.cleanup.dispose((cause) => this.emitters.error.emit({ cause, operation: 'dispose' }))
     this.accessibility = undefined
@@ -1044,34 +1124,25 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     })
   }
 
-  private installInput(elements: TerminalElements, parent: HTMLElement): void {
+  private installInput(elements: TerminalElements): void {
     let input: DomInputController | undefined
     if (this.keyboard !== false) {
-      const view = owningWindow(parent)
-      const copySelection =
-        this.copySelection ?? ((text: string) => writeUserSelectionToClipboard(view, text))
+      const view = elements.root.ownerDocument.defaultView
+      if (!view) throw createGhosttyError('input.install', 'Terminal input requires a window')
       input = createDomInputController({
         claimKey: this.claimDomKey,
         claimText: this.claimText,
-        copySelection,
         hooks: this.inputHooks,
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
         onPreedit: (value) => this.updatePreedit(value),
         ...(this.execution.kind === 'sync'
-          ? {
-              session: this.execution.input,
-              shortcuts: this.keyboard?.shortcuts,
-            }
+          ? { session: this.execution.input }
           : {
               encoding: this.execution,
-              shortcuts: false as const,
-              selectionReadback:
-                this.keyboard?.shortcuts === undefined
-                  ? {
-                      hasSelection: () => this.execution.submittedFrame?.selection !== undefined,
-                      copy: () => this.copyWorkerSelection(view, elements.signal),
-                    }
-                  : undefined,
+              selectionReadback: {
+                hasSelection: () => this.execution.submittedFrame?.selection !== undefined,
+                copy: () => this.copyWorkerSelection(view, elements.signal),
+              },
             }),
         signal: elements.signal,
         textarea: elements.textarea,

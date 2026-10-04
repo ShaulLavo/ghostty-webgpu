@@ -1,5 +1,5 @@
+import type { Extension, ExtensionHandle, TerminalInputHandler } from '../extensions/types.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
-import type { Extension, ExtensionHandle } from '../extensions/types.js'
 import type {
   ReadLinesOptions,
   TerminalGeometry,
@@ -29,6 +29,9 @@ import type {
   GhosttyWebGpuTerminalLifecycle,
   GhosttyWebGpuTerminalListener,
   GhosttyWebGpuTerminalSubscription,
+  TerminalInputModes,
+  TerminalInputConnection,
+  TerminalGeneratedInput,
 } from './types.js'
 
 /** Native authority is synchronous locally and acknowledged asynchronously by a worker. */
@@ -38,6 +41,7 @@ export type TerminalResult<Mode extends 'sync' | 'async', Value> = Mode extends 
 
 /** Host operations keep their return convention across execution actors. */
 export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
+  readonly inputModes: TerminalInputModes
   readonly appearance: TerminalAppearance
   readonly canvas: HTMLCanvasElement | undefined
   readonly diagnostics: GhosttyWebGpuTerminalDiagnostics
@@ -49,7 +53,9 @@ export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
   readonly submittedFrame: TerminalSubmittedFrame | undefined
   readonly textarea: HTMLTextAreaElement | undefined
 
+  sendGeneratedInput(input: TerminalGeneratedInput): TerminalResult<Mode, TerminalInputResult>
   open(parent: HTMLElement): Promise<void>
+  connectInput(handler: TerminalInputHandler): TerminalResult<Mode, TerminalInputConnection>
   use<Api = void>(extension: Extension<Api>): TerminalResult<Mode, ExtensionHandle<Api>>
   on<Type extends GhosttyWebGpuTerminalEventType>(
     type: Type,

@@ -243,3 +243,8 @@ synchronous-main and Promise-worker return conventions. Setup closures stay on t
 - [font geometry and Canvas comparison](docs/font-geometry.md)
 - [live demo](https://shaullavo.github.io/ghostty-webgpu/), built from [site/](site/) with `bun run site:dev`
 - [optional native ghostty config](docs/config-resolver.md)
+
+Terminal bindings and hosted focus setup use the [hotkeys input connection](docs/hotkeys.md).
+`attachTerminalHotkeys` owns one synchronous main-host input lease and constructs no general
+manager. Its claim stops forwarding; its pass reaches explicitly installed general input
+contributions, then native once. The public extension APIs above retain their separate ownership.
