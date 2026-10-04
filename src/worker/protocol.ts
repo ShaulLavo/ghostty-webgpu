@@ -85,6 +85,8 @@ type NativeCommands = Pick<
   | 'selectRange'
   | 'selectLines'
   | 'frameSnapshot'
+  | 'resolveLinkSnapshot'
+  | 'resolveLinkDiscovery'
   | 'captureViewport'
   | 'setAppearance'
 >
@@ -187,6 +189,8 @@ export const workerCommandNames: ReadonlySet<string> = new Set([
   'selectRange',
   'selectLines',
   'frameSnapshot',
+  'resolveLinkSnapshot',
+  'resolveLinkDiscovery',
   'captureViewport',
   'setAppearance',
   'open',

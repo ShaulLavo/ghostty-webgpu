@@ -2,15 +2,23 @@ import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/
 import type { LinkCell, LinkHit, LinkResolution } from '../term/links.js'
 import type { TerminalLinkRequest } from '../term/types.js'
 import {
+  linkProjectionEquals,
+  type LinkDiscoveryCell,
+  type LinkDiscoveryHit,
+  type LinkProjection,
+} from '../term/link-snapshot.js'
+import {
   projectPointerPosition,
   type CommittedPointerLayout,
   type RawPhysicalPointerPosition,
 } from './pointer.js'
 
-interface DomLinkSession {
-  activateLink(resolution: LinkResolution<Event>, event: Event): Promise<boolean>
-  isLinkCurrent(resolution: LinkResolution<Event>): boolean
-  resolveLink(request: TerminalLinkRequest): Promise<LinkResolution<Event>>
+export interface DomLinkSession {
+  activateLink(resolution: LinkResolution<Event>, event: Event): boolean | Promise<boolean>
+  cancelLinkResolution?(): void
+  findNextLink?(cells: readonly LinkDiscoveryCell[]): Promise<LinkDiscoveryHit<Event> | undefined>
+  isLinkCurrent(resolution: LinkResolution<Event>): boolean | Promise<boolean>
+  resolveLink(request: TerminalLinkRequest): LinkResolution<Event> | Promise<LinkResolution<Event>>
 }
 
 export interface DomLinkControllerOptions {
@@ -18,6 +26,7 @@ export interface DomLinkControllerOptions {
   readonly canvas: HTMLCanvasElement
   readonly getFrame?: () => RendererTextFrameSnapshot | undefined
   readonly getLayout: () => CommittedPointerLayout | undefined
+  readonly getProjection?: () => LinkProjection | undefined
   readonly onError?: (cause: unknown, operation: string) => void
   readonly onHitChange?: (hit: LinkHit<Event> | undefined) => void
   readonly root: HTMLElement
@@ -40,9 +49,15 @@ interface PointerPoint {
   readonly clientY: number
 }
 
+interface LinkScope {
+  readonly generation: number
+  readonly projection: LinkProjection | undefined
+}
+
 interface LinkQuery {
   readonly column: number
   readonly frameRevision: number
+  readonly projection: LinkProjection | undefined
   readonly row: number
 }
 
@@ -69,7 +84,9 @@ function queryEquals(left: LinkQuery | undefined, right: LinkQuery): boolean {
   return (
     left.column === right.column &&
     left.frameRevision === right.frameRevision &&
-    left.row === right.row
+    left.row === right.row &&
+    (left.projection === right.projection ||
+      linkProjectionEquals(left.projection, right.projection))
   )
 }
 
@@ -170,9 +187,11 @@ class BrowserLinkController implements DomLinkController {
   private claimedClick = false
   private readonly abortController = new AbortController()
   private currentResolution?: LinkResolution<Event>
+  private currentScope?: LinkScope
   private disposed = false
   private frameRevision = 0
   private frameSnapshot?: RendererTextFrameSnapshot
+  private frameProjection?: LinkProjection
   private generation = 0
   private readonly initialCursor: string
   private lastPoint?: PointerPoint
@@ -216,7 +235,7 @@ class BrowserLinkController implements DomLinkController {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
-    this.generation += 1
+    this.advanceGeneration()
     this.pendingGeneration = undefined
     this.finishActivationGesture()
     this.abortController.abort()
@@ -228,7 +247,7 @@ class BrowserLinkController implements DomLinkController {
   invalidate(): void {
     if (this.disposed) return
     this.frameRevision += 1
-    this.generation += 1
+    this.advanceGeneration()
     this.pendingGeneration = undefined
     this.finishActivationGesture()
     this.lastQuery = undefined
@@ -240,10 +259,11 @@ class BrowserLinkController implements DomLinkController {
     if (this.disposed) return
     if (this.preserveEquivalentFrame(snapshot)) return
     this.frameRevision += 1
-    this.generation += 1
+    this.advanceGeneration()
     this.pendingGeneration = undefined
     this.lastQuery = undefined
     this.frameSnapshot = snapshot
+    this.frameProjection = this.readProjection()
     this.clearVisibleHit()
     if (this.lastPoint) this.requestResolution(this.lastPoint)
   }
@@ -253,23 +273,58 @@ class BrowserLinkController implements DomLinkController {
     if (this.disposed || !snapshot) return false
     const cells = orderedDiscoveryCells(snapshot, this.currentHit)
     if (cells.length === 0) return false
-    const generation = this.generation + 1
-    this.generation = generation
-    this.pendingGeneration = generation
+    const scope = this.beginResolution()
     this.lastPoint = undefined
     this.lastQuery = undefined
     this.clearVisibleHit()
+    if (this.options.session.findNextLink) return this.discoverBatch(cells, scope)
     for (const cell of cells) {
-      const resolution = await this.resolveForCell(cell.frameRow, cell, generation)
-      if (!resolution) return false
+      const resolution = await this.resolveForCell(cell.frameRow, cell, scope)
+      if (!resolution || !this.isScopeCurrent(scope)) {
+        this.finishResolution(scope)
+        return false
+      }
       if (!resolution.hit || !cellInsideHit(cell, resolution.hit)) continue
       this.pendingGeneration = undefined
-      this.commitHit(cell, resolution)
-      this.overlay.focus({ preventScroll: true })
-      return true
+      return this.focusHit(cell, resolution, scope)
     }
-    this.finishResolution(generation)
+    this.finishResolution(scope)
     return false
+  }
+
+  private async discoverBatch(
+    cells: readonly LinkDiscoveryCell[],
+    scope: LinkScope,
+  ): Promise<boolean> {
+    if (!this.isScopeCurrent(scope)) {
+      this.finishResolution(scope)
+      return false
+    }
+    try {
+      const found = await this.options.session.findNextLink?.(cells)
+      if (!this.isScopeCurrent(scope) || !found) {
+        this.finishResolution(scope)
+        return false
+      }
+      const current = await this.options.session.isLinkCurrent(found.resolution)
+      if (!this.finishResolution(scope) || !current) return false
+      return this.focusHit(found.cell, found.resolution, scope)
+    } catch (cause) {
+      if (!this.finishResolution(scope)) return false
+      this.options.onError?.(cause, 'resolve')
+      return false
+    }
+  }
+
+  private focusHit(
+    cell: ResolvedCell,
+    resolution: LinkResolution<Event>,
+    scope: LinkScope,
+  ): boolean {
+    this.commitHit(cell, resolution, scope)
+    if (!this.isScopeCurrent(scope) || this.currentResolution !== resolution) return false
+    this.overlay.focus({ preventScroll: true })
+    return true
   }
 
   private attach(): void {
@@ -359,7 +414,7 @@ class BrowserLinkController implements DomLinkController {
   private readonly handleOverlayKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== 'Enter' && event.key !== ' ') return
     const resolution = this.currentResolution
-    if (!resolution?.hit || !this.options.session.isLinkCurrent(resolution)) return
+    if (!resolution?.hit || !this.currentScope || !this.isScopeCurrent(this.currentScope)) return
     event.preventDefault()
     this.activate(resolution, event)
   }
@@ -369,7 +424,7 @@ class BrowserLinkController implements DomLinkController {
     if (this.options.canvas.ownerDocument.activeElement === this.overlay) return
     this.lastPoint = undefined
     this.lastQuery = undefined
-    this.generation += 1
+    this.advanceGeneration()
     this.pendingGeneration = undefined
     this.clearVisibleHit()
   }
@@ -381,9 +436,25 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private activate(resolution: LinkResolution<Event>, event: Event): void {
-    void this.options.session.activateLink(resolution, event).catch((cause: unknown) => {
+    const scope = this.currentScope
+    if (!scope) return
+    void this.activateCurrent(resolution, event, scope)
+  }
+
+  private async activateCurrent(
+    resolution: LinkResolution<Event>,
+    event: Event,
+    scope: LinkScope,
+  ): Promise<void> {
+    try {
+      const currency = this.options.session.isLinkCurrent(resolution)
+      const current = currency instanceof Promise ? await currency : currency
+      if (!current || !this.isScopeCurrent(scope) || this.currentResolution !== resolution) return
+      await this.options.session.activateLink(resolution, event)
+    } catch (cause) {
+      if (!this.isScopeCurrent(scope)) return
       this.options.onError?.(cause, 'activate')
-    })
+    }
   }
 
   private captureActivationPointer(pointerId: number): boolean {
@@ -405,7 +476,7 @@ class BrowserLinkController implements DomLinkController {
     const resolution = this.currentResolution
     const hit = resolution?.hit
     if (!cell || !resolution || !hit || !cellInsideHit(cell, hit)) return undefined
-    if (!this.options.session.isLinkCurrent(resolution)) return undefined
+    if (!this.currentScope || !this.isScopeCurrent(this.currentScope)) return undefined
     return resolution
   }
 
@@ -442,6 +513,7 @@ class BrowserLinkController implements DomLinkController {
   private clearVisibleHit(): void {
     const changed = this.currentResolution?.hit !== undefined
     this.currentResolution = undefined
+    this.currentScope = undefined
     this.overlay.remove()
     this.options.canvas.style.cursor = this.initialCursor
     if (changed) this.options.onHitChange?.(undefined)
@@ -449,7 +521,10 @@ class BrowserLinkController implements DomLinkController {
 
   private readFrame(): RendererTextFrameSnapshot | undefined {
     if (this.disposed) return undefined
-    if (!this.frameSnapshot) this.frameSnapshot = this.options.getFrame?.()
+    if (!this.frameSnapshot) {
+      this.frameSnapshot = this.options.getFrame?.()
+      this.frameProjection = this.readProjection()
+    }
     return this.frameSnapshot
   }
 
@@ -458,64 +533,59 @@ class BrowserLinkController implements DomLinkController {
     const cell = this.cellAt(point)
     if (!snapshot || !cell) {
       this.lastQuery = undefined
-      this.generation += 1
+      this.advanceGeneration()
       this.pendingGeneration = undefined
       this.clearVisibleHit()
       return
     }
-    const query = { ...cell, frameRevision: this.frameRevision }
+    const query = { ...cell, frameRevision: this.frameRevision, projection: this.readProjection() }
     if (queryEquals(this.lastQuery, query)) return
     this.lastQuery = query
-    const generation = this.generation + 1
-    this.generation = generation
-    this.pendingGeneration = generation
+    const scope = this.beginResolution()
     this.clearVisibleHit()
-    void this.resolveCell(snapshot, cell, generation)
+    void this.resolveCell(snapshot, cell, scope)
   }
 
   private async resolveCell(
     snapshot: RendererTextFrameSnapshot,
     cell: ResolvedCell,
-    generation: number,
+    scope: LinkScope,
   ): Promise<void> {
     const row = frameRow(snapshot, cell.row)
     if (!row) {
-      this.finishResolution(generation)
+      this.finishResolution(scope)
       return
     }
-    try {
-      const resolution = await this.options.session.resolveLink({
-        column: cell.column,
-        line: linkCells(row),
-        row: cell.row,
-      })
-      if (!this.finishResolution(generation)) return
-      if (!this.options.session.isLinkCurrent(resolution)) return
-      if (!resolution.hit) return
-      this.commitHit(cell, resolution)
-    } catch (cause) {
-      if (!this.finishResolution(generation)) return
-      this.options.onError?.(cause, 'resolve')
-    }
+    const resolution = await this.resolveForCell(row, cell, scope)
+    if (!this.finishResolution(scope) || !resolution?.hit) return
+    this.commitHit(cell, resolution, scope)
   }
 
   private async resolveForCell(
     row: RendererTextFrameRow,
     cell: ResolvedCell,
-    generation: number,
+    scope: LinkScope,
   ): Promise<LinkResolution<Event> | undefined> {
+    if (!this.isScopeCurrent(scope)) {
+      this.finishResolution(scope)
+      return undefined
+    }
     try {
       const resolution = await this.options.session.resolveLink({
         column: cell.column,
         line: linkCells(row),
         row: cell.row,
       })
-      if (this.disposed || generation !== this.generation) return undefined
-      if (this.options.session.isLinkCurrent(resolution)) return resolution
-      this.finishResolution(generation)
+      if (!this.isScopeCurrent(scope)) {
+        this.finishResolution(scope)
+        return undefined
+      }
+      const current = await this.options.session.isLinkCurrent(resolution)
+      if (current && this.isScopeCurrent(scope)) return resolution
+      this.finishResolution(scope)
       return undefined
     } catch (cause) {
-      if (!this.finishResolution(generation)) return undefined
+      if (!this.finishResolution(scope)) return undefined
       this.options.onError?.(cause, 'resolve')
       return undefined
     }
@@ -523,26 +593,83 @@ class BrowserLinkController implements DomLinkController {
 
   private preserveEquivalentFrame(snapshot: RendererTextFrameSnapshot): boolean {
     if (!frameContentEquals(this.frameSnapshot, snapshot)) return false
+    if (
+      this.options.getProjection &&
+      !linkProjectionEquals(this.frameProjection, this.readProjection())
+    )
+      return false
     this.frameSnapshot = snapshot
     const resolution = this.currentResolution
-    if (resolution && !this.options.session.isLinkCurrent(resolution)) return false
+    if (resolution) {
+      const current = this.options.session.isLinkCurrent(resolution)
+      if (current === false) return false
+      if (typeof current !== 'boolean') {
+        void this.validatePreservedHit(resolution, current)
+        return true
+      }
+    }
     const hit = resolution?.hit
     const layout = this.options.getLayout()
     if (hit && layout) this.positionOverlay(hit, layout)
     return true
   }
 
-  private finishResolution(generation: number): boolean {
-    if (this.disposed || generation !== this.generation) return false
-    this.pendingGeneration = undefined
-    return true
+  private async validatePreservedHit(
+    resolution: LinkResolution<Event>,
+    current: Promise<boolean>,
+  ): Promise<void> {
+    const scope = this.currentScope
+    try {
+      const valid = await current
+      if (!scope || !this.isScopeCurrent(scope) || this.currentResolution !== resolution) return
+      if (valid) {
+        const layout = this.options.getLayout()
+        if (resolution.hit && layout) this.positionOverlay(resolution.hit, layout)
+        return
+      }
+      this.lastQuery = undefined
+      this.clearVisibleHit()
+    } catch (cause) {
+      if (!scope || !this.isScopeCurrent(scope) || this.currentResolution !== resolution) return
+      this.lastQuery = undefined
+      this.clearVisibleHit()
+      this.options.onError?.(cause, 'resolve')
+    }
   }
 
-  private commitHit(cell: ResolvedCell, resolution: LinkResolution<Event>): void {
+  private readProjection(): LinkProjection | undefined {
+    const projection = this.options.getProjection?.()
+    return projection ? Object.freeze({ ...projection }) : undefined
+  }
+
+  private advanceGeneration(): void {
+    this.generation += 1
+    this.options.session.cancelLinkResolution?.()
+  }
+
+  private beginResolution(): LinkScope {
+    this.advanceGeneration()
+    this.pendingGeneration = this.generation
+    return { generation: this.generation, projection: this.readProjection() }
+  }
+
+  private isScopeCurrent(scope: LinkScope): boolean {
+    if (this.disposed || scope.generation !== this.generation) return false
+    if (!this.options.getProjection) return true
+    return linkProjectionEquals(scope.projection, this.options.getProjection())
+  }
+
+  private finishResolution(scope: LinkScope): boolean {
+    if (scope.generation === this.generation) this.pendingGeneration = undefined
+    return this.isScopeCurrent(scope)
+  }
+
+  private commitHit(cell: ResolvedCell, resolution: LinkResolution<Event>, scope: LinkScope): void {
     const hit = resolution.hit
     const layout = this.options.getLayout()
-    if (!hit || !layout || !cellInsideHit(cell, hit)) return
+    if (!hit || !layout || !cellInsideHit(cell, hit) || !this.isScopeCurrent(scope)) return
     this.currentResolution = resolution
+    this.currentScope = scope
     this.positionOverlay(hit, layout)
     this.options.canvas.style.cursor = 'pointer'
     this.options.onHitChange?.(hit)

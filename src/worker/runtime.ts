@@ -428,6 +428,10 @@ export class TerminalWorkerRuntime {
         return native.selectRange(...request.args)
       case 'selectLines':
         return native.selectLines(...request.args)
+      case 'resolveLinkSnapshot':
+        return native.resolveLinkSnapshot(...request.args)
+      case 'resolveLinkDiscovery':
+        return native.resolveLinkDiscovery(...request.args)
       case 'frameSnapshot':
         return native.frameSnapshot()
       case 'captureViewport':

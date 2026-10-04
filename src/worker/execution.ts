@@ -3,6 +3,12 @@ import type { TerminalElements } from '../dom/elements.js'
 import type { TerminalSubmittedFrame } from '../dom/submitted-frame.js'
 import type { RendererTextFrameSnapshot } from '../render/renderer.js'
 import { EventEmitter } from '../term/events.js'
+import {
+  createProjectedLinkSession,
+  type ProjectedLinkSession,
+  type LinkProjection,
+} from '../term/link-snapshot.js'
+import type { LinkProvider, LinkResolverOptions } from '../term/links.js'
 import type { TerminalSessionEventType, TerminalSessionListener } from '../term/types.js'
 import type {
   WorkerInitialize,
@@ -28,11 +34,13 @@ export type WorkerExecutionOptions = Omit<
   'type' | 'port' | 'terminal' | 'generation'
 > & {
   readonly workerUrl?: string | URL
+  readonly links?: LinkResolverOptions<Event>
 }
 
 /** Host mirror contains acknowledged metadata and owned submitted text, never a native session. */
 export class WorkerTerminalExecution {
   readonly kind = 'async' as const
+  readonly links: ProjectedLinkSession<Event>
   private readonly worker: Worker
   private readonly port: MessagePort
   private readonly pending = new Map<number, Pending>()
@@ -72,6 +80,21 @@ export class WorkerTerminalExecution {
         worker: typeof Worker,
         offscreen: typeof OffscreenCanvas,
       })
+    this.links = createProjectedLinkSession({
+      activateUri: options.links?.activateUri,
+      onError: (error) => {
+        this.emitters
+          .get('error')
+          ?.emit({ cause: error.cause, operation: `link.${error.operation}` })
+        this.observe(
+          Promise.resolve().then(() => options.links?.onError?.(error)),
+          'link.onError',
+        )
+      },
+      getProjection: () => this.linkProjection,
+      resolveLinkSnapshot: (request) => this.request('resolveLinkSnapshot', [request]),
+      resolveLinkDiscovery: (request) => this.request('resolveLinkDiscovery', [request]),
+    })
     this.terminal = crypto.randomUUID()
     try {
       this.worker = new Worker(options.workerUrl ?? new URL('./entry.js', import.meta.url), {
@@ -139,6 +162,17 @@ export class WorkerTerminalExecution {
   get submittedFrame(): TerminalSubmittedFrame | undefined {
     return this.summary
   }
+  get linkProjection(): LinkProjection | undefined {
+    const summary = this.summary
+    if (this.disposed || this.failure || !summary) return undefined
+    if (this.state && this.state.revision > summary.nativeRevision) return undefined
+    return { generation: this.generation, layout: summary.layout, revision: summary.nativeRevision }
+  }
+
+  registerLinkProvider(provider: LinkProvider<Event>) {
+    return this.links.registerLinkProvider(provider)
+  }
+
   get selectionIdentity(): LocalTerminalExecution['selectionIdentity'] {
     const summary = this.summary
     if (!summary) return undefined
@@ -412,6 +446,7 @@ export class WorkerTerminalExecution {
   dispose(): Promise<void> {
     if (this.disposePromise) return this.disposePromise
     this.disposed = true
+    this.links.dispose()
     this.rejectPending(workerError('disposed', 'dispose', { control: this.control }))
     this.disposePromise = this.failure
       ? Promise.resolve()
@@ -433,6 +468,7 @@ export class WorkerTerminalExecution {
     this.stop()
   }
   private stop(): void {
+    this.links.dispose()
     this.worker.terminate()
     this.port.close()
     for (const emitter of this.emitters.values()) emitter.dispose()

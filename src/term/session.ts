@@ -47,6 +47,13 @@ import { defaultRendererTheme } from '../render/instances/types.js'
 import type { RenderStateSource } from '../render/renderer.js'
 import { EventEmitter } from './events.js'
 import {
+  captureNativeLinkSnapshot,
+  captureNativeLinkDiscovery,
+  type LinkProjection,
+  type NativeLinkRequest,
+  type NativeLinkDiscoveryRequest,
+} from './link-snapshot.js'
+import {
   LinkResolver,
   type LinkProvider,
   type LinkProviderRegistration,
@@ -1454,11 +1461,36 @@ export class TerminalSession<TEvent = unknown> {
     return this.links.registerProvider(provider)
   }
 
-  resolveLink(request: TerminalLinkRequest): Promise<LinkResolution<TEvent>> {
+  resolveLinkSnapshot(request: NativeLinkRequest, getProjection: () => LinkProjection | undefined) {
+    this.ensureActive()
+    return captureNativeLinkSnapshot(this.nativeLinkSource(), request, getProjection)
+  }
+
+  resolveLinkDiscovery(
+    request: NativeLinkDiscoveryRequest,
+    getProjection: () => LinkProjection | undefined,
+  ) {
+    this.ensureActive()
+    return captureNativeLinkDiscovery(this.nativeLinkSource(), request, getProjection)
+  }
+
+  private nativeLinkSource() {
+    return {
+      revision: this.revision,
+      grid: this.grid,
+      renderState: this.nativeRenderState,
+      linkAt: (column: number, row: number) => this.selection.linkAt({ x: column, y: row }),
+    }
+  }
+
+  resolveLink(
+    request: TerminalLinkRequest,
+    isRequestCurrent?: () => boolean,
+  ): Promise<LinkResolution<TEvent>> {
     return this.runOperation(() => {
       const osc8Uri = this.selection.linkAt({ x: request.column, y: request.row })
       const osc8Range = osc8Uri ? this.osc8Range(request, osc8Uri) : undefined
-      return this.links.resolve({ ...request, osc8Range, osc8Uri })
+      return this.links.resolve({ ...request, osc8Range, osc8Uri }, isRequestCurrent)
     })
   }
 

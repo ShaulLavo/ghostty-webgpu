@@ -5,7 +5,7 @@ import type { WorkerAssets, WorkerBackend, WorkerFontFace } from './protocol.js'
 
 export interface WorkerTerminalOptions extends Omit<
   GhosttyWebGpuTerminalFromSessionOptions,
-  'elements' | 'fitEnvironment' | 'links' | 'rendererFactory' | 'runtime'
+  'elements' | 'fitEnvironment' | 'rendererFactory' | 'runtime'
 > {
   readonly assets?: WorkerAssets
   readonly backend?: WorkerBackend
@@ -32,6 +32,7 @@ export const Terminal = Object.freeze({
       backend: options.backend ?? 'auto',
       faces: options.fonts,
       appearance,
+      links: options.links,
       workerUrl: options.workerUrl,
     })
     try {

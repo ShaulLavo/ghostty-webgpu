@@ -8,6 +8,12 @@ import type {
   WebGpuTerminalRendererOptions,
 } from '../render/renderer.js'
 import type { LinkProvider, LinkResolution } from '../term/links.js'
+import {
+  linkProjectionEquals,
+  type LinkProjection,
+  type NativeLinkRequest,
+  type NativeLinkDiscoveryRequest,
+} from '../term/link-snapshot.js'
 import { TerminalSession } from '../term/session.js'
 import {
   NativeSelectionHistory,
@@ -70,6 +76,7 @@ export class LocalTerminalExecution {
   private lastFrameVersion?: number
   private rendererValue?: GhosttyWebGpuRenderer
   private summaryValue?: TerminalSubmittedFrame
+  private linkEpoch = 0
 
   private readonly selectionHistory: NativeSelectionHistory
 
@@ -125,6 +132,27 @@ export class LocalTerminalExecution {
     const summary = this.summaryValue
     if (!summary) return undefined
     return { generation: this.generation, layout: summary.layout, revision: summary.nativeRevision }
+  }
+
+  get linkProjection(): LinkProjection | undefined {
+    const summary = this.summaryValue
+    if (
+      this.disposed ||
+      !summary ||
+      !this.canReadSubmittedState ||
+      summary.layout !== this.layout?.identity ||
+      summary.nativeRevision !== this.session.revision
+    )
+      return undefined
+    return { generation: this.generation, layout: summary.layout, revision: summary.nativeRevision }
+  }
+
+  resolveLinkSnapshot(request: NativeLinkRequest) {
+    return this.session.resolveLinkSnapshot(request, () => this.linkProjection)
+  }
+
+  resolveLinkDiscovery(request: NativeLinkDiscoveryRequest) {
+    return this.session.resolveLinkDiscovery(request, () => this.linkProjection)
   }
 
   get mouseTracking(): boolean {
@@ -222,8 +250,18 @@ export class LocalTerminalExecution {
   readonly links = {
     activateLink: (resolution: LinkResolution<Event>, event: Event) =>
       this.session.activateLink(resolution, event),
+    cancelLinkResolution: () => {
+      this.linkEpoch += 1
+    },
     isLinkCurrent: (resolution: LinkResolution<Event>) => this.session.isLinkCurrent(resolution),
-    resolveLink: (request: TerminalLinkRequest) => this.session.resolveLink(request),
+    resolveLink: (request: TerminalLinkRequest) => {
+      const projection = this.linkProjection
+      const epoch = ++this.linkEpoch
+      return this.session.resolveLink(
+        request,
+        () => epoch === this.linkEpoch && linkProjectionEquals(projection, this.linkProjection),
+      )
+    },
   }
 
   on<TType extends TerminalSessionEventType>(

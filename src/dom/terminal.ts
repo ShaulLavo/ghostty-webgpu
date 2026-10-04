@@ -335,10 +335,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.extensions ??= new ExtensionManager({
       dispatch: this.extensionDispatch,
       terminal: this,
-      registerLinkProvider:
-        this.execution.kind === 'sync'
-          ? (provider) => this.registerLinkProvider(provider)
-          : undefined,
+      registerLinkProvider: (provider) => this.registerLinkProvider(provider),
       // Handler failures reach host diagnostics without redispatching a failing extension event.
       onError: (cause, operation) => this.emitters.error.emit({ cause, operation }),
     })
@@ -488,7 +485,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.installFit(elements)
       this.cleanup.add(() => this.disposeCanvasControllers())
       this.installPointer(elements)
-      if (this.execution.kind === 'sync') this.installLinks(elements)
+      this.installLinks(elements)
       this.replayLastFrame()
       this.stateValue = 'open'
       this.flushPendingEvents()
@@ -595,8 +592,6 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   registerLinkProvider(provider: LinkProvider<Event>): LinkProviderRegistration {
     this.ensureActive()
-    if (this.execution.kind === 'async')
-      throw workerError('capability', 'registerLinkProvider', { phase: 2 })
     const registration = this.execution.registerLinkProvider(provider)
     this.refreshLinks()
     let disposed = false
@@ -759,8 +754,6 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   focusNextLink(): Promise<boolean> {
     this.ensureOpen()
-    if (this.execution.kind === 'async')
-      return Promise.reject(workerError('capability', 'focusNextLink', { phase: 2 }))
     return this.links?.focusNextLink() ?? Promise.resolve(false)
   }
 
@@ -1180,12 +1173,9 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   }
 
   private installLinks(elements: TerminalElements): void {
-    if (this.execution.kind === 'async') return
     const links = createDomLinkController({
-      getFrame: () =>
-        this.execution.submittedFrame?.nativeRevision === this.execution.revision
-          ? this.readFrame()
-          : undefined,
+      getFrame: () => (this.execution.linkProjection ? this.readFrame() : undefined),
+      getProjection: () => this.execution.linkProjection,
       activationModifier: this.linkActivationModifier,
       canvas: elements.canvas,
       getLayout: () => this.committedPointerLayout(),
