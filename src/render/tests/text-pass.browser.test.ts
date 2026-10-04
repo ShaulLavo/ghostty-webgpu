@@ -259,7 +259,7 @@ it('renders transparent defaults, opaque explicit colors, glyphs, and an outline
     draws: 2,
     submittedFrames: 1,
     uploadedBytes: columns * rows * (64 + 96),
-    uploadOperations: rows * 2,
+    uploadOperations: 2,
   })
   grid.destroy()
   device.destroy()

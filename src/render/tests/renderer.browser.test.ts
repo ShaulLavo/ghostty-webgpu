@@ -265,7 +265,7 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
 
   expect(renderer.metrics.submittedFrames).toBe(1)
   expect(renderer.metrics.rebuiltRows).toBe(2)
-  expect(renderer.metrics.instanceUploadOperations).toBe(4)
+  expect(renderer.metrics.instanceUploadOperations).toBe(2)
   expect(renderer.metrics.atlasCacheHits).toBe(0)
   expect(renderer.metrics.atlasCacheMisses).toBe(1)
   expect(renderer.metrics.atlasPages).toBe(1)
@@ -287,7 +287,7 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
 
   expect(renderer.metrics.submittedFrames).toBe(2)
   expect(renderer.metrics.rebuiltRows).toBe(2)
-  expect(renderer.metrics.instanceUploadOperations).toBe(4)
+  expect(renderer.metrics.instanceUploadOperations).toBe(2)
   expect(source.acknowledgements).toBe(2)
   renderer.dispose()
   canvas.remove()
