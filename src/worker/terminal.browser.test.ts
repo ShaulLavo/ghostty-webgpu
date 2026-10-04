@@ -6,6 +6,7 @@ import type { TerminalApi } from '../../dist/dom/terminal-api.js'
 import { WebGlTerminalRenderer } from '../../dist/render/webgl/renderer.js'
 import { createDomInputController } from '../../dist/dom/input.js'
 import type { TerminalOutputReady, TerminalOutputMessage, TerminalOutputAck } from './protocol.js'
+import type { DeviceObservation } from './tests/device-loss.worker.js'
 
 const family = 'PackagedWorkerTest'
 const fontUrl = new URL(
@@ -58,6 +59,69 @@ async function create(mode: 'main' | 'webgpu' | 'webgl') {
   active.push(terminal)
   return terminal
 }
+
+it('reacquires a live device and repaints after public worker device loss', async () => {
+  const channel = new BroadcastChannel('packaged-worker-device-loss')
+  const observations: DeviceObservation[] = []
+  channel.onmessage = ({ data }: MessageEvent<DeviceObservation>) => observations.push(data)
+  try {
+    const terminal = await WorkerTerminal.create({
+      assets,
+      appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+      backend: 'webgpu',
+      workerUrl: new URL('./tests/device-loss.worker.ts', import.meta.url),
+      fonts: [{ family, source: { url: fontUrl } }],
+    })
+    active.push(terminal)
+    await terminal.open(container())
+    await eventually(() => observations.some((value) => value.type === 'acquired'))
+    await terminal.write('\x1b[?25l\x1b[41m known-good worker \x1b[0m')
+    await eventually(() => terminal.visibleLines()[0]?.includes('known-good worker') === true)
+    channel.postMessage('capture')
+    await eventually(() => observations.some((value) => value.type === 'armed'))
+    await terminal.refresh(0, terminal.submittedFrame!.grid.rows - 1)
+    await eventually(() => observations.some((value) => value.type === 'pixels'))
+    const before = observations.find((value) => value.type === 'pixels')!
+    expect(before.type).toBe('pixels')
+    if (before.type !== 'pixels') return
+    expect(before.pixels.some((value, index) => index % 4 !== 3 && value > 0)).toBe(true)
+    expect(new Set(before.pixels.slice(0, 3)).size).toBeGreaterThan(1)
+    const frame = terminal.submittedFrame!.frame
+    channel.postMessage('destroy')
+    await eventually(() => observations.some((value) => value.type === 'lost'))
+    await eventually(() =>
+      observations.some((value) => value.type === 'acquired' && value.device === 1),
+    )
+    await eventually(() =>
+      observations.some((value) => value.type === 'pixels' && value.device === 1),
+    )
+    const after = observations.find((value) => value.type === 'pixels' && value.device === 1)!
+    if (after.type !== 'pixels') return
+    expect(after.pixels).toEqual(before.pixels)
+    await eventually(() => terminal.submittedFrame!.frame > frame)
+    await terminal.write('\r recovered worker')
+    await eventually(() => terminal.visibleLines()[0]?.includes('recovered worker') === true)
+    expect(observations.filter((value) => value.type === 'acquired')).toHaveLength(2)
+    await page.screenshot({
+      element: terminal.element!,
+      path: '../../.artifacts/packaged-worker-device-recovered.png',
+      scale: 'css',
+    })
+  } finally {
+    console.info(
+      'Packaged worker device recovery',
+      JSON.stringify({
+        browser: navigator.userAgent,
+        observations: observations.map((value) =>
+          value.type === 'pixels'
+            ? { type: value.type, device: value.device, pixelBytes: value.pixels.length }
+            : value,
+        ),
+      }),
+    )
+    channel.close()
+  }
+}, 15_000)
 
 describe.each(['main', 'webgl', 'webgpu'] as const)('%s shared await-style terminal', (mode) => {
   it('runs real native output, fitted layout, input, reset and captures through the packaged entry', async () => {

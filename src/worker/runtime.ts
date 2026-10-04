@@ -186,8 +186,7 @@ export class TerminalWorkerRuntime {
     let device: GPUDevice | undefined
     if (this.initialize.backend !== 'webgl') {
       try {
-        const adapter = await navigator.gpu?.requestAdapter()
-        if (adapter) device = await adapter.requestDevice()
+        device = await this.requestDevice()
       } catch (cause) {
         if (this.initialize.backend === 'webgpu')
           throw workerError('capability', 'renderer.webgpu', {
@@ -225,7 +224,7 @@ export class TerminalWorkerRuntime {
           if (device)
             return await WebGpuTerminalRenderer.create({
               ...input,
-              deviceFactory: async () => device!,
+              deviceFactory: this.deviceFactory(device),
             })
           return await WebGlTerminalRenderer.create(input)
         } catch (cause) {
@@ -242,6 +241,28 @@ export class TerminalWorkerRuntime {
     this.renderer = renderer
     this.renderer.setInactiveCursorStyle?.(this.inactiveCursorStyle)
     this.renderer.schedule()
+  }
+
+  private async requestDevice(): Promise<GPUDevice> {
+    const adapter = await navigator.gpu?.requestAdapter()
+    if (!adapter) throw workerError('capability', 'renderer.webgpu', { adapter: false })
+    const device = await adapter.requestDevice()
+    if (this.disposed) {
+      device.destroy()
+      throw workerError('disposed', 'renderer.webgpu', { disposed: true })
+    }
+    this.device = device
+    return device
+  }
+
+  private deviceFactory(initialDevice: GPUDevice): () => Promise<GPUDevice> {
+    let initial: GPUDevice | undefined = initialDevice
+    return async () => {
+      if (!initial) return this.requestDevice()
+      const device = initial
+      initial = undefined
+      return device
+    }
   }
 
   private submitFrame(snapshot: Parameters<LocalTerminalExecution['submit']>[0]): void {
