@@ -358,6 +358,7 @@ export class LinkResolver<TEvent = unknown> {
     if (typeof provider.provideLinks !== 'function') {
       throw new TypeError('provider.provideLinks must be a function')
     }
+    this.ensureActive('registerProvider')
     const token = Symbol('link-provider')
     this.providers.push({ provider, token })
     this.invalidate()

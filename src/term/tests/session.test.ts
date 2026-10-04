@@ -5,7 +5,12 @@ import type { SelectionDragEvent, SelectionPressEvent } from '../../core/selecti
 import { defaultRendererTheme } from '../../render/instances/types.js'
 import { EventEmitter } from '../events.js'
 import { createLinkLineSnapshot, LinkResolver } from '../links.js'
-import type { LinkCell, LinkResolverError, ProvidedLink } from '../links.js'
+import type {
+  LinkCell,
+  LinkProviderRegistration,
+  LinkResolverError,
+  ProvidedLink,
+} from '../links.js'
 import {
   isSupportedTerminalKeyCode,
   normalizeTerminalKeyInput,
@@ -373,6 +378,83 @@ describe('LinkResolver precedence and ranges', () => {
       row: 0,
     })
     expect(builtIn.hit).toMatchObject({ source: 'url', uri: 'https://example.test' })
+  })
+})
+
+describe('LinkResolver registration lifecycle', () => {
+  it('retains an ordinary provider only until registration or resolver disposal', async () => {
+    const resolver = new LinkResolver()
+    let providerCalls = 0
+    let activations = 0
+    const provider = {
+      provideLinks: () => {
+        providerCalls += 1
+        return [
+          {
+            activate: () => {
+              activations += 1
+            },
+            range: { end: 2, start: 0 },
+          },
+        ]
+      },
+    }
+    const registration = resolver.registerProvider(provider)
+    expect(Reflect.get(resolver, 'providers')).toEqual([{ provider, token: registration.token }])
+    expect(providerCalls).toBe(0)
+
+    const request = { column: 1, line: cells('hit'), row: 0 }
+    const resolution = await resolver.resolve(request)
+    expect(resolution.hit).toMatchObject({ providerToken: registration.token, source: 'provider' })
+    await expect(resolver.activate(resolution, undefined)).resolves.toBe(true)
+    expect(providerCalls).toBe(1)
+    expect(activations).toBe(1)
+
+    registration.dispose()
+    registration.dispose()
+    expect(Reflect.get(resolver, 'providers')).toEqual([])
+    expect((await resolver.resolve(request)).hit).toBeUndefined()
+    expect(providerCalls).toBe(1)
+
+    const second = resolver.registerProvider(provider)
+    expect(Reflect.get(resolver, 'providers')).toEqual([{ provider, token: second.token }])
+    resolver.dispose()
+    second.dispose()
+    expect(Reflect.get(resolver, 'providers')).toEqual([])
+  })
+
+  it('rejects and releases a provider when its validation getter disposes the resolver', async () => {
+    const resolver = new LinkResolver()
+    let getterReads = 0
+    let providerCalls = 0
+    const provider = {
+      get provideLinks() {
+        getterReads += 1
+        resolver.dispose()
+        return () => {
+          providerCalls += 1
+          return undefined
+        }
+      },
+    }
+    let registration: LinkProviderRegistration | undefined
+
+    expect
+      .soft(() => {
+        registration = resolver.registerProvider(provider)
+      })
+      .toThrow('LinkResolver.registerProvider called after disposal')
+    expect(getterReads).toBe(1)
+    expect.soft(Reflect.get(resolver, 'providers')).toHaveLength(0)
+    expect.soft(resolver.generation).toBe(1)
+
+    registration?.dispose()
+    resolver.dispose()
+    expect.soft(Reflect.get(resolver, 'providers')).toHaveLength(0)
+    await expect(resolver.resolve({ column: 0, line: cells('x'), row: 0 })).rejects.toThrow(
+      'LinkResolver.resolve called after disposal',
+    )
+    expect(providerCalls).toBe(0)
   })
 })
 

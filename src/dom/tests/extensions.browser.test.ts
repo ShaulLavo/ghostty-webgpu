@@ -292,7 +292,7 @@ describe('public extension links', () => {
           }
         },
       }),
-    ).toThrow('disposed')
+    ).toThrow('LinkResolver.registerProvider called after disposal')
     expect(reads).toBe(2)
     expect(terminal.lifecycle).toBe('disposed')
     expect(scope.signal.aborted).toBe(true)
