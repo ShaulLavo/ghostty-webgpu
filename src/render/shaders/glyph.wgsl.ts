@@ -6,8 +6,7 @@ struct Instance {
   color: vec4f,
   uv: vec4f,
   background: vec4f,
-  attributes: vec4f,
-  atlas: vec4f,
+  metadata: vec4f,
 }
 
 struct Viewport {
@@ -20,8 +19,7 @@ struct VertexOutput {
   @location(0) color: vec4f,
   @location(1) uv: vec2f,
   @location(2) background: vec4f,
-  @location(3) attributes: vec4f,
-  @location(4) atlas: vec4f,
+  @location(3) metadata: vec4f,
 }
 
 @group(0) @binding(0) var<storage, read> instances: array<Instance>;
@@ -52,8 +50,7 @@ fn vertexMain(
   output.color = instance.color;
   output.uv = mix(instance.uv.xy, instance.uv.zw, corner);
   output.background = instance.background;
-  output.attributes = instance.attributes;
-  output.atlas = instance.atlas;
+  output.metadata = instance.metadata;
   return output;
 }
 
@@ -97,13 +94,13 @@ fn hasFlag(flags: u32, flag: u32) -> bool {
 
 @fragment
 fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-  let flags = u32(input.attributes.x);
-  let minimumContrast = input.attributes.z;
+  let flags = u32(input.metadata.x);
+  let minimumContrast = input.metadata.y;
   let hasGlyph = hasFlag(flags, FLAG_GLYPH);
-  let layer = i32(input.atlas.x);
+  let layer = i32(input.metadata.z);
   let grayscale = textureSample(grayscaleAtlas, atlasSampler, input.uv, layer).r;
   let colorSample = textureSample(colorAtlas, atlasSampler, input.uv, layer);
-  let colorGlyph = input.atlas.z >= 0.5;
+  let colorGlyph = input.metadata.w >= 0.5;
   let coverage = select(0.0, select(grayscale, colorSample.a, colorGlyph), hasGlyph);
   let adjusted = contrastColor(input.color.rgb, input.background.rgb, minimumContrast);
   let rgb = select(adjusted, colorSample.rgb, colorGlyph && hasGlyph);

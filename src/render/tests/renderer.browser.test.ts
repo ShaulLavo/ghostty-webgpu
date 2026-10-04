@@ -887,7 +887,7 @@ it('paints WASM ASCII and Unicode frames without JS row reads', async () => {
     nativeClock.flushFrame()
     expect(native.metrics.zigFrames).toBe(2)
     expect(native.metrics.uploadedBytes - uploaded).toBeGreaterThan(0)
-    expect(native.metrics.uploadedBytes - uploaded).toBeLessThanOrEqual(24 * (64 + 96))
+    expect(native.metrics.uploadedBytes - uploaded).toBeLessThanOrEqual(24 * (64 + 80))
     expect(readRows).not.toHaveBeenCalled()
     js.refreshRows(0, 2)
     jsClock.flushFrame()
@@ -1424,7 +1424,7 @@ it('retains identical GPU records when output scrolls the viewport', async () =>
     const changedPixels = await renderer.capturePixels()
     expect(changedPixels).not.toEqual(beforePixels)
     expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeGreaterThan(0)
-    expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeLessThan(24 * 3 * (64 + 96))
+    expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeLessThan(24 * 3 * (64 + 80))
     expect(renderer.hasPendingFrame).toBe(false)
     await page.screenshot({
       element: canvas,

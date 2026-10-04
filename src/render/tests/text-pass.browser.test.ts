@@ -258,7 +258,7 @@ it('renders transparent defaults, opaque explicit colors, glyphs, and an outline
   expect(grid.pass.metrics).toEqual({
     draws: 2,
     submittedFrames: 1,
-    uploadedBytes: columns * rows * (64 + 96),
+    uploadedBytes: columns * rows * (64 + 80),
     uploadOperations: 2,
   })
   grid.destroy()

@@ -259,6 +259,7 @@ function cleanRowRecords(builder: ZigFrameBuilder) {
 }
 
 for (const backend of ['webgpu', 'webgl2'] as const) {
+  const glyphInstanceBytes = backend === 'webgpu' ? 80 : 96
   describe(`${backend} Zig Unicode compositor`, () => {
     it.each([...zigUnicodeFixtures, ...zigGlyphCollisionFixtures])(
       'submits $name entirely through Zig',
@@ -349,7 +350,9 @@ for (const backend of ['webgpu', 'webgl2'] as const) {
         const uploaded = pair.native.renderer.metrics.uploadedBytes
         writeFrame(pair, '\x1b[2;1H\x1b[31;44m界é👩‍💻\x1b[0m')
         expect(pair.builds.mock.results.map((result) => result.value)).toEqual([2, 0])
-        expect(pair.native.renderer.metrics.uploadedBytes - uploaded).toBe(2 * 40 * (64 + 96))
+        expect(pair.native.renderer.metrics.uploadedBytes - uploaded).toBe(
+          2 * 40 * (64 + glyphInstanceBytes),
+        )
         const changed = await expectPainted(pair, 2)
         expect(changed).not.toEqual(before)
         // Glyph ink can cross screen-row edges; clean logical rows retain their exact records.
