@@ -1,0 +1,42 @@
+{
+  "purpose": "Setup qualification of an owned headed full Chrome window and advancing submitted WebGL2 content at CDP compositor-surface readback",
+  "measurement": false,
+  "terminalMarkers": 0,
+  "opticalDisplayLatency": false,
+  "fixedBackend": "Linux native Wayland, hardware ANGLE Vulkan, DPR 1",
+  "api": {
+    "launch": "launchOwnedHeadedBrowser({ executablePath, taskRoot, observeWindow }) -> { page, session, evidence, ownership, actualBackend, close }",
+    "smoke": "runHeadedPresentationSmoke({ executablePath, taskRoot, observeWindow }) -> evidence; owns launch and cleanup",
+    "presentation": "proveHeadedPresentation({ page, session, ownership: { targetId, windowId, url, viewport: { width, height } }, smokeId, frameTimeoutMilliseconds?, commandTimeoutMilliseconds? })",
+    "actualBackend": "{ display, angleBackend, vulkanVersion, vendor, vendorId, deviceId, deviceDescription, driver, rawRendererStrings }; observed facts, qualify setup only with PASS_SETUP_ONLY and complete cleanup",
+    "observeWindow": "({ browserPid, browserIdentity: { pid, startTimeTicks }, smokeId, windowId }) -> { browserPid, backend: 'wayland', mapped: true, hidden: false, xwayland: false, size: { width, height }, ...rawOwnedWindowEvidence }; verify the owned process lifetime before and after querying the compositor",
+    "windowReadiness": "waitForOwnedNonceWindow filters exact PID before inspecting titles, observes only owned windows, and polls for mapping within 1800 ms with bounded client reads"
+  },
+  "standalone": {
+    "from": "repository root",
+    "command": "node ghostty-webgpu/scripts/headed-presentation-smoke.mjs --executable <full-Chrome-ELF-binary> --output <new-evidence-directory> --window-system hyprland",
+    "prerequisites": [
+      "Install the repository dependencies using its documented Bun workflow",
+      "Provide an existing full Chrome/Chromium ELF binary; package shell wrappers and headless-shell binaries do not qualify",
+      "Provide a new writable evidence directory on a workload volume and an active Wayland session",
+      "The explicitly selected Hyprland adapter requires hyprctl; other compositors provide observeWindow through the library API"
+    ],
+    "absentDisplayOrAdapter": "Emits a SKIP result with the reason and starts no browser",
+    "unknownOrConflictingEvidence": "Emits UNKNOWN_FAILED_SETUP, exits nonzero and preserves failure evidence; do not try another backend",
+    "resourceAccounting": "Run through the host's configured browser job queue with a bounded outer deadline",
+    "output": "result.json includes actual OS process provenance, executable/profile custody, hardware renderer, compositor window facts, page geometry, submitted challenges, raw PNG frames, compositor timestamps and cleanup"
+  },
+  "focusedTests": "node --test ghostty-webgpu/scripts/comparison-headed.test.mjs ghostty-webgpu/scripts/comparison-presentation.test.mjs ghostty-webgpu/scripts/comparison-provenance.test.mjs",
+  "constraints": [
+    "Raw observed command line and requested argv are independent evidence; original execve argument boundaries remain null",
+    "No whitespace in executable, task root or requested flag arguments because rewritten Linux command lines cannot recover argument boundaries",
+    "Call close in finally when using the launch API; never share its process, profile or page with another task",
+    "All comparison actors and counts retain one qualified display/GPU backend; actual actor custody remains the comparison runner's obligation",
+    "Three discrete nonce challenges, no RAF loop, no readPixels, no getImageData and no benchmark acquisition",
+    "PNG pixels establish compositor content identity; strictly increasing actual CDP timestamps establish advancement",
+    "This proof does not qualify Canvas2D, WebGPU rendering, terminal correctness, throughput or optical latency",
+    "Observed native-Wayland/Vulkan incompatibility rejects hardware qualification even when the adapter and Vulkan renderer are physical",
+    "CDP screencast content establishes browser compositor-surface readback; native output presentation additionally requires an independently validated native capture"
+  ],
+  "qualificationStatus": "The Linux native-Wayland Vulkan recipe is unqualified on Chrome builds reporting incompatible surface transport. The helper rejects that diagnostic; absence of the diagnostic alone does not prove native presentation."
+}
