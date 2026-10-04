@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
+import { page } from 'vitest/browser'
 import { attachNativeTestBuilder } from './native-state.js'
 import {
   qualifyDeviceReplacement,
@@ -1383,3 +1384,58 @@ it.each([
     }
   },
 )
+
+it('retains identical GPU records when output scrolls the viewport', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  terminal.write('\x1b[?25lsteady\r\nsteady\r\nsteady')
+  const renderer = await createRenderer({
+    canvas,
+    columns: 24,
+    rows: 3,
+    font: fittedFont(),
+    renderState: state,
+    schedulerClock: clock,
+  })
+  try {
+    clock.flushFrame()
+    const beforePixels = await renderer.capturePixels()
+    const uploadedBytes = renderer.metrics.uploadedBytes
+    const uploadOperations = renderer.metrics.instanceUploadOperations
+    const rebuiltRows = renderer.metrics.rebuiltRows
+    const scrollback = terminal.scrollbackLength
+    terminal.write('\r\nsteady')
+    expect(terminal.scrollbackLength).toBeGreaterThan(scrollback)
+    renderer.notifyScroll()
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(renderer.metrics.rebuiltRows).toBe(rebuiltRows + 3)
+    expect(renderer.metrics.uploadedBytes).toBe(uploadedBytes)
+    expect(renderer.metrics.instanceUploadOperations).toBe(uploadOperations)
+    expect(await renderer.capturePixels()).toEqual(beforePixels)
+    expect(renderer.hasPendingFrame).toBe(false)
+    terminal.write('\r\nstayed')
+    renderer.notifyScroll()
+    renderer.notifyWrite()
+    clock.flushFrame()
+    const changedPixels = await renderer.capturePixels()
+    expect(changedPixels).not.toEqual(beforePixels)
+    expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeGreaterThan(0)
+    expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeLessThan(24 * 3 * (64 + 96))
+    expect(renderer.hasPendingFrame).toBe(false)
+    await page.screenshot({
+      element: canvas,
+      path: '../../../.artifacts/webgpu-scroll-refresh.png',
+      scale: 'css',
+    })
+  } finally {
+    renderer.dispose()
+    state.dispose()
+    terminal.dispose()
+    runtime.dispose()
+    canvas.remove()
+  }
+})

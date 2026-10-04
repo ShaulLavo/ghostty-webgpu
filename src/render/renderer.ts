@@ -349,7 +349,7 @@ export class WebGpuTerminalRenderer {
   }
 
   notifyScroll(): void {
-    this.invalidateAll()
+    this.refreshRows(0, this.grid.rows - 1)
   }
 
   notifyWrite(): void {
