@@ -14,6 +14,7 @@ import {
   headedLaunchArguments,
   finishOwnedLaunchCleanup,
   matchingGlRendererIdentity,
+  observedNativeContentInsets,
   ownedProcessAlive,
   ownedProcessStates,
   settleOwnedWindowGeometry,
@@ -363,7 +364,7 @@ test('multi-process cleanup state batches preserve the OS reader, independent of
   assert(vanished.every((entry) => !entry.alive))
 })
 
-test('setup waits for actual native resize agreement twice before capturing ownership viewport', async () => {
+test('setup waits for exact inner and native content geometry twice before capturing ownership viewport', async () => {
   let count = 0
   const page = {
     evaluate: async () =>
@@ -411,6 +412,9 @@ test('setup waits for actual native resize agreement twice before capturing owne
     windowId: 7,
     targetId: 'owned-page',
     smokeId: 'owned-smoke',
+    viewport: { width: 922, height: 943 },
+    deviceScaleFactor: 1,
+    nativeContentInsets: { width: 0, height: 87 },
   })
   assert.equal(ready.snapshots.length, 3)
   assert.deepEqual(
@@ -420,7 +424,7 @@ test('setup waits for actual native resize agreement twice before capturing owne
   assert.equal(ready.snapshots[0].page.width, 500)
 })
 
-test('setup refuses contradictory page/CDP/compositor sizes without guessing a transform', async () => {
+test('setup refuses native content sizes that contradict the registered inner viewport', async () => {
   const page = {
     evaluate: async () => ({
       width: 500,
@@ -454,10 +458,80 @@ test('setup refuses contradictory page/CDP/compositor sizes without guessing a t
       windowId: 7,
       targetId: 'owned-page',
       smokeId: 'owned-smoke',
+      viewport: { width: 500, height: 431 },
+      deviceScaleFactor: 1,
+      nativeContentInsets: { width: 32, height: 129 },
     }),
     /geometry did not settle/,
   )
 })
+
+function workerGeometryBoundaries(overrides = {}) {
+  let observations = 0
+  return {
+    page: {
+      evaluate: async () => ({
+        width: 480,
+        height: 240,
+        outerWidth: ++observations === 1 ? 500 : 520,
+        outerHeight: 383,
+        dpr: 2,
+        visibility: 'visible',
+        ...overrides.page,
+      }),
+    },
+    session: {
+      send: async () => ({
+        windowId: 7,
+        bounds: { width: observations === 1 ? 480 : 490, height: 383, windowState: 'normal' },
+      }),
+    },
+    observeWindow: async () => ({
+      browserPid: 101,
+      backend: 'wayland',
+      mapped: true,
+      hidden: false,
+      xwayland: false,
+      size: { width: 960, height: 766, ...overrides.native },
+    }),
+    browserPid: 101,
+    windowId: 7,
+    targetId: 'owned-page',
+    smokeId: 'owned-smoke',
+    viewport: { width: 480, height: 240 },
+    deviceScaleFactor: 2,
+    nativeContentInsets: observedNativeContentInsets(
+      { width: 1920, height: 1457, dpr: 2 },
+      { width: 3840, height: 3200 },
+    ),
+  }
+}
+
+test('observed 480 CSS inner / 500 outer floor qualifies exact DPR2 native content', async () => {
+  const ready = await settleOwnedWindowGeometry(workerGeometryBoundaries())
+  assert.equal(ready.snapshots.length, 2)
+  assert.equal(ready.snapshots[0].page.outerWidth, 500)
+  assert.equal(ready.snapshots[0].window.bounds.width, 480)
+  assert.equal(ready.page.outerWidth, 520)
+  assert.equal(ready.window.bounds.width, 490)
+  assert.deepEqual(ready.nativeContentSize, { width: 960, height: 480 })
+  assert.deepEqual(ready.nativeContentInsets, { width: 0, height: 286 })
+})
+
+for (const [name, overrides] of [
+  ['inner width', { page: { width: 481 } }],
+  ['inner height', { page: { height: 241 } }],
+  ['DPR', { page: { dpr: 1 } }],
+  ['native content width', { native: { width: 961 } }],
+  ['native content height', { native: { height: 767 } }],
+]) {
+  test(`outer metadata never admits a mismatched ${name}`, async () => {
+    await assert.rejects(
+      settleOwnedWindowGeometry(workerGeometryBoundaries(overrides)),
+      /geometry did not settle/,
+    )
+  })
+}
 
 const nativeClient = {
   pid: 101,
@@ -803,6 +877,10 @@ for (const scenario of [
   'profile-init',
   'late-transport',
   'truncated-transport',
+  'launch-native-contradiction',
+  'launch-no-resize',
+  'launch-calibration-target',
+  'healthy-delayed-calibration',
 ]) {
   test(
     `actual launch and cleanup respect external ${scenario} boundaries`,

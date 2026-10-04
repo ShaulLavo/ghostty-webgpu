@@ -43,6 +43,7 @@ if (skipReason) {
       executablePath: resolve(args[1]),
       taskRoot,
       observeWindow: observeHyprlandWindow,
+      viewport: { width: 320, height: 440 },
     })
   } catch (error) {
     evidence = {
