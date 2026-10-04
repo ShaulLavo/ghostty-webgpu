@@ -1,4 +1,5 @@
 import type { RegisterableHotkey } from '@tanstack/hotkeys'
+import type { ExtensionInput } from '../extensions/types.js'
 import type { EventSubscription } from '../term/events.js'
 import type { LinkResolverOptions } from '../term/links.js'
 import type {
@@ -141,6 +142,7 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy
   readonly copySelection?: GhosttyWebGpuTerminalCopy
+  readonly extensions?: readonly ExtensionInput[]
   readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   readonly keyboard?: false | GhosttyWebGpuTerminalKeyboardOptions
   readonly linkActivationModifier?: (event: MouseEvent) => boolean

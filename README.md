@@ -158,6 +158,56 @@ resulting cursor and geometry before publishing output observers. A colored prom
 its edit origin with this single operation. Observers may subsequently write more output; the
 returned sample retains the prompt write's revision and cursor.
 
+## extensions and original input
+
+Extensions are host-side values with synchronous `setup(scope)`. `Terminal.create({ extensions })`
+installs readonly recursive presets in encounter order before opening. `terminal.use(extension)`
+returns a synchronous typed `{ api, dispose }` handle from the main entry and a Promise of that handle
+from the worker entry. Worker setup and validation failures reject that Promise. Setup and handle
+disposal remain synchronous host transactions.
+
+```ts
+import { Terminal, type Extension } from 'ghostty-webgpu'
+
+const inputGate: Extension<{ setBlocked(value: boolean): void }> = {
+  name: 'input-gate',
+  setup: () => {
+    let blocked = false
+    return {
+      api: {
+        setBlocked: (value) => {
+          blocked = value
+        },
+      },
+      input: () => (blocked ? 'claim' : 'pass'),
+    }
+  },
+}
+
+const terminal = await Terminal.create()
+const gate = terminal.use(inputGate)
+gate.api.setBlocked(true)
+```
+
+Each attachment receives its own scope, lazy abort signal and owned cleanup stack. One value can
+attach to several terminals; duplicate identity on the same terminal is rejected. Detaching permits
+a fresh attachment. Setup and preset failures roll back acquired resources. Terminal disposal removes
+attachments and owned cleanup in reverse order. Owned cleanup runs once; handle and terminal disposal
+are idempotent.
+
+`input` receives the original DOM key event, programmatic key input, paste/text data or committed
+composition text before native normalization and encoding. The first `claim` stops dispatch and PTY
+emission. Passing input uses the existing native encoder, including keyboard and bracketed-paste modes.
+DOM claims and default prevention are synchronous. Native protocol replies remain observable through
+`data` and bypass input claims. Contributions under `events` receive the public host event payloads;
+only interested handlers are indexed and frame payloads are constructed when observed.
+
+Public custom OSC observation requires numeric reservation metadata and a host subscription adapter.
+This checkpoint rejects nonempty OSC contributions and rolls back their setup. Native Session OSC
+observation is available separately. Named-command and contributed-link registries remain internal;
+explicit `registerLinkProvider` continues to work. Native width and geometry methods keep their
+synchronous-main and Promise-worker return conventions. Setup closures stay on the host.
+
 ## more
 
 - [pty wiring and the native api](docs/integration.md)

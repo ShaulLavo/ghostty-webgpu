@@ -3,6 +3,7 @@ import { describe, expectTypeOf, it } from 'vitest'
 import type { TerminalInputResult, TerminalMutationResult } from '../../term/types.js'
 import type { TerminalApi, TerminalResult } from '../terminal-api.js'
 import type { Terminal } from '../terminal.js'
+import type { Extension, ExtensionHandle } from '../../extensions/types.js'
 
 // These assertions are checked by tsc; no worker or native session is created.
 describe('shared terminal return convention', () => {
@@ -43,6 +44,13 @@ describe('shared terminal return convention', () => {
   it('preserves host methods and inherent asynchronous methods in both entries', () => {
     expectTypeOf<ReturnType<TerminalApi['on']>>().toEqualTypeOf<ReturnType<Terminal['on']>>()
     expectTypeOf<ReturnType<TerminalApi['focus']>>().toEqualTypeOf<void>()
+    expectTypeOf<Terminal<'async'>>().toExtend<TerminalApi<'async'>>()
+    expectTypeOf<TerminalApi<'sync'>['use']>().toEqualTypeOf<
+      <Api = void>(extension: Extension<Api>) => ExtensionHandle<Api>
+    >()
+    expectTypeOf<TerminalApi<'async'>['use']>().toEqualTypeOf<
+      <Api = void>(extension: Extension<Api>) => Promise<ExtensionHandle<Api>>
+    >()
     expectTypeOf<TerminalApi['element']>().toEqualTypeOf<Terminal['element']>()
     expectTypeOf<ReturnType<TerminalApi['visibleLines']>>().toEqualTypeOf<readonly string[]>()
     expectTypeOf<ReturnType<TerminalApi['open']>>().toEqualTypeOf<Promise<void>>()

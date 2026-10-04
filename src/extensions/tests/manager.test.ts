@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Terminal } from '../../index.js'
+import { createLinkLineSnapshot } from '../../term/links.js'
+import type { LinkProvider } from '../../term/links.js'
 import { ExtensionManager } from '../manager.js'
 import type {
   Extension,
@@ -191,6 +193,64 @@ describe('extension attachment', () => {
     expect(manager.hasInput).toBe(false)
     expect(cleanup).toHaveBeenCalledTimes(2)
     expect(manager.use(extension).api).toBe(3)
+  })
+
+  it('allows inert, input-only and empty OSC values without native OSC capability', () => {
+    manager.dispose()
+    manager = new ExtensionManager({
+      terminal,
+      onError: (cause, operation) => errors.push({ cause, operation }),
+    })
+    manager.install([
+      inert('inert'),
+      { name: 'input', setup: () => ({ input: () => 'claim' }) },
+      { name: 'empty-osc', setup: () => ({ osc: {} }) },
+    ])
+    expect(manager.dispatchInput(textInput)).toBe(true)
+    expect(errors).toEqual([])
+  })
+
+  it('rejects unavailable OSC before publishing any contribution and permits same-value retry', () => {
+    manager.dispose()
+    manager = new ExtensionManager({
+      terminal,
+      onError: (cause, operation) => errors.push({ cause, operation }),
+    })
+    const cleanup = vi.fn()
+    const aborted = vi.fn()
+    const callback = vi.fn()
+    let unavailable = true
+    const extension: Extension = {
+      name: 'capability',
+      setup: (scope) => {
+        scope.own(cleanup)
+        scope.signal.addEventListener('abort', aborted, { once: true })
+        return {
+          input: () => 'claim',
+          events: { bell: callback },
+          commands: { run: callback },
+          links: { provideLinks: callback },
+          osc: unavailable ? { 777: callback } : undefined,
+        }
+      },
+    }
+    expect(() => manager.use(extension)).toThrow('Custom OSC observation is unavailable')
+    expect(cleanup).toHaveBeenCalledOnce()
+    expect(aborted).toHaveBeenCalledOnce()
+    expect(manager.hasInput).toBe(false)
+    expect(manager.hasEvent('bell')).toBe(false)
+    expect(manager.hasOsc(777)).toBe(false)
+    expect(manager.command('run')).toBeUndefined()
+    manager.visitLinks((provider) => provider.provideLinks(createLinkLineSnapshot([]), 0))
+    manager.emit('bell', () => undefined)
+    expect(callback).not.toHaveBeenCalled()
+    unavailable = false
+    const handle = manager.use(extension)
+    expect(manager.dispatchInput(textInput)).toBe(true)
+    handle.dispose()
+    handle.dispose()
+    expect(cleanup).toHaveBeenCalledTimes(2)
+    expect(aborted).toHaveBeenCalledTimes(2)
   })
 
   it('rolls back throwing setup and permits another attachment of the same value', () => {
@@ -517,6 +577,51 @@ describe('interested-only hook indexes', () => {
     handle.dispose()
     manager.visitLinks((provider) => providers.push(provider))
     expect(providers).toEqual([second])
+  })
+
+  it('disposes a late host registration once without resurrecting any contribution', () => {
+    const provider = { provideLinks: () => undefined }
+    const dispose = vi.fn()
+    const cleanup = vi.fn()
+    const hostErrors = vi.fn()
+    let local!: ExtensionManager
+    const registerLinkProvider = vi.fn((actual: LinkProvider<Event>) => {
+      expect(actual).toBe(provider)
+      local.dispose()
+      return { token: Symbol('host-link'), dispose }
+    })
+    local = new ExtensionManager({ terminal, registerLinkProvider, onError: hostErrors })
+    let signal!: AbortSignal
+    expect(() =>
+      local.use({
+        name: 'late-host-links',
+        setup: (scope) => {
+          signal = scope.signal
+          scope.own(cleanup)
+          return {
+            links: provider,
+            input: () => 'claim',
+            events: { title: vi.fn() },
+            commands: { linked: vi.fn() },
+          }
+        },
+      }),
+    ).toThrow('disposed')
+    expect(registerLinkProvider).toHaveBeenCalledTimes(1)
+    expect(dispose).toHaveBeenCalledTimes(1)
+    expect(cleanup).toHaveBeenCalledTimes(1)
+    expect(signal.aborted).toBe(true)
+    const visit = vi.fn()
+    local.visitLinks(visit)
+    expect(visit).not.toHaveBeenCalled()
+    expect(local.hasInput).toBe(false)
+    expect(local.hasEvent('title')).toBe(false)
+    expect(local.command('linked')).toBeUndefined()
+    local.dispose()
+    local.dispose()
+    expect(dispose).toHaveBeenCalledTimes(1)
+    expect(cleanup).toHaveBeenCalledTimes(1)
+    expect(hostErrors).toHaveBeenCalledTimes(1)
   })
 
   it('reports handler errors and continues broadcast or input arbitration', async () => {

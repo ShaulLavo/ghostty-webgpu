@@ -65,6 +65,16 @@ export type {
 } from './dom/fit.js'
 export type { TerminalPointerOwner } from './dom/pointer.js'
 export type { TerminalApi, TerminalResult } from './dom/terminal-api.js'
+export type {
+  Contributions,
+  Extension,
+  ExtensionHandle,
+  ExtensionInput,
+  ExtensionScope,
+  ExtensionValue,
+  TerminalInputEvent,
+  TerminalInputHandler,
+} from './extensions/types.js'
 export type { TerminalScrollbarClock } from './dom/scrollbar.js'
 export type {
   GhosttyWebGpuFrameHandler,

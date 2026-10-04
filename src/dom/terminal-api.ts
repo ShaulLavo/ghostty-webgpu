@@ -1,4 +1,5 @@
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
+import type { Extension, ExtensionHandle } from '../extensions/types.js'
 import type {
   ReadLinesOptions,
   TerminalGeometry,
@@ -49,6 +50,7 @@ export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
   readonly textarea: HTMLTextAreaElement | undefined
 
   open(parent: HTMLElement): Promise<void>
+  use<Api = void>(extension: Extension<Api>): TerminalResult<Mode, ExtensionHandle<Api>>
   on<Type extends GhosttyWebGpuTerminalEventType>(
     type: Type,
     listener: GhosttyWebGpuTerminalListener<Type>,

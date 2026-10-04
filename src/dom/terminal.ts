@@ -1,4 +1,6 @@
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
+import { ExtensionManager } from '../extensions/manager.js'
+import type { Extension, ExtensionHandle, TerminalInputEvent } from '../extensions/types.js'
 import type {
   ReadLinesOptions,
   TerminalGeometry,
@@ -245,6 +247,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly copySelection
   private elementsValue?: TerminalElements
   private readonly emitters = createHostEmitters()
+  private extensions?: ExtensionManager
   private fit?: TerminalFitController
   private fittedFont?: TerminalFittedFont
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
@@ -292,13 +295,66 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.elementsValue = elements
       this.cleanup.add(() => elements.dispose())
     }
-    if (this.execution.kind === 'sync')
-      this.execution.setClipboardWritePolicy(
-        createDomClipboardPolicyAdapter({
-          onError: (cause, operation) => this.reportError(cause, operation),
-          policy: options.clipboardWrite,
+    try {
+      if (this.execution.kind === 'sync')
+        this.execution.setClipboardWritePolicy(
+          createDomClipboardPolicyAdapter({
+            onError: (cause, operation) => this.reportError(cause, operation),
+            policy: options.clipboardWrite,
+          }),
+        )
+      if (options.extensions?.length) this.extensionManager().install(options.extensions)
+    } catch (cause) {
+      this.dispose()
+      throw cause
+    }
+  }
+
+  use<Api = void>(extension: Extension<Api>): TerminalResult<Mode, ExtensionHandle<Api>> {
+    if (this.execution.kind === 'async') {
+      return this.result(
+        Promise.resolve().then(() => {
+          this.ensureActive()
+          return this.extensionManager().use(extension)
         }),
       )
+    }
+    this.ensureActive()
+    return this.result(this.extensionManager().use(extension))
+  }
+
+  private extensionManager(): ExtensionManager {
+    this.extensions ??= new ExtensionManager({
+      terminal: this,
+      registerLinkProvider:
+        this.execution.kind === 'sync'
+          ? (provider) => this.registerLinkProvider(provider)
+          : undefined,
+      // Handler failures reach host diagnostics without redispatching a failing extension event.
+      onError: (cause, operation) => this.emitters.error.emit({ cause, operation }),
+    })
+    return this.extensions
+  }
+
+  private readonly claimDomKey = (event: KeyboardEvent): boolean => {
+    const manager = this.extensions
+    if (!manager?.hasInput) return false
+    return this.claimInput({ type: 'key', event })
+  }
+
+  private readonly claimText = (
+    type: 'paste' | 'text' | 'composition',
+    data: TerminalInputData,
+  ): boolean => {
+    const manager = this.extensions
+    if (!manager?.hasInput) return false
+    if (type === 'composition') return this.claimInput({ type, text: data as string })
+    return this.claimInput({ type, data })
+  }
+
+  private claimInput(input: TerminalInputEvent): boolean {
+    const claimed = this.extensions!.dispatchInput(input)
+    return claimed || this.stateValue !== 'open'
   }
 
   static fromWorker(
@@ -306,6 +362,11 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     options: GhosttyWebGpuTerminalFromSessionOptions,
   ): Terminal<'async'> {
     return new Terminal<'async'>(execution, options)
+  }
+
+  private emptyInput(): TerminalResult<Mode, TerminalInputResult> {
+    const empty = new Uint8Array()
+    return this.result(this.execution.kind === 'async' ? Promise.resolve(empty) : empty)
   }
 
   private result<Value>(value: Value | Promise<Value>): TerminalResult<Mode, Value> {
@@ -569,16 +630,21 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   sendInput(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    if (this.claimText('text', data)) return this.emptyInput()
     return this.result(this.execution.sendInput(data))
   }
 
   paste(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    if (this.claimText('paste', data)) return this.emptyInput()
     return this.result(this.execution.paste(data))
   }
 
   key(input: TerminalKeyInput): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    if (this.extensions?.hasInput && this.claimInput({ type: 'key', input })) {
+      return this.emptyInput()
+    }
     return this.result(this.execution.key(input))
   }
 
@@ -747,6 +813,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.stateValue = 'disposing'
     this.nextGeneration()
     this.pendingEvents.length = 0
+    this.extensions?.dispose()
     this.cleanup.dispose((cause) => this.emitters.error.emit({ cause, operation: 'dispose' }))
     this.accessibility = undefined
     this.fit = undefined
@@ -828,8 +895,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         onTextFrame: (snapshot) => this.handleFrame(snapshot),
         needsFrameRows: () => true,
         onRowsChanged: (rows) => {
-          if (!this.emitters.frame.hasListeners) return
-          this.emitters.frame.emit(Object.freeze({ rows: rows }))
+          if (!this.emitters.frame.hasListeners && !this.extensions?.hasEvent('frame')) return
+          this.emitHostEvent('frame', Object.freeze({ rows }))
         },
         replaceCanvas: elements.replaceCanvas
           ? () => this.replaceRendererCanvas(elements)
@@ -976,12 +1043,17 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       const copySelection =
         this.copySelection ?? ((text: string) => writeUserSelectionToClipboard(view, text))
       input = createDomInputController({
+        claimKey: this.claimDomKey,
+        claimText: this.claimText,
         copySelection,
         hooks: this.inputHooks,
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
         onPreedit: (value) => this.updatePreedit(value),
         ...(this.execution.kind === 'sync'
-          ? { session: this.execution.input, shortcuts: this.keyboard?.shortcuts }
+          ? {
+              session: this.execution.input,
+              shortcuts: this.keyboard?.shortcuts,
+            }
           : { encoding: this.execution, shortcuts: false as const }),
         signal: elements.signal,
         textarea: elements.textarea,
@@ -1234,7 +1306,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private handleFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
     this.updateFrameUi(this.execution.kind === 'sync' ? this.execution.submit(snapshot) : snapshot)
-    if (this.execution.kind === 'async' && this.emitters.frame.hasListeners)
+    if (
+      this.execution.kind === 'async' &&
+      (this.emitters.frame.hasListeners || this.extensions?.hasEvent('frame'))
+    )
       this.emitHostEvent('frame', {
         rows: this.execution.submittedFrame?.rowPatches.map((row) => row.y) ?? [],
       })
@@ -1437,10 +1512,13 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     const emitter = this.emitters[type] as EventEmitter<GhosttyWebGpuTerminalEventMap[TType]>
     if (this.stateValue === 'open') {
       emitter.emit(event)
+      if (this.stateValue === 'open' && this.extensions?.hasEvent(type)) {
+        this.extensions.emit(type, () => event)
+      }
       return
     }
     if (this.stateValue !== 'opening') return
-    this.pendingEvents.push(() => emitter.emit(event))
+    this.pendingEvents.push(() => this.emitHostEvent(type, event))
   }
 
   private flushPendingEvents(): void {
