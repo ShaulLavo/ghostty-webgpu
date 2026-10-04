@@ -181,7 +181,7 @@ it('renders transparent defaults, explicit backgrounds, inverse and selected cel
   expect(grid.pixel(8, 24)).toEqual([0, 255, 0, 255])
   expect(grid.pixel(24, 24)).toEqual([0, 0, 255, 255])
   expect(grid.pixel(40, 24)).toEqual([0, 0, 0, 0])
-  expect(grid.uploadOperations).toBe(4)
+  expect(grid.uploadOperations).toBe(2)
 })
 
 it('samples grayscale and color texture arrays with premultiplied faint coverage', async () => {
@@ -456,4 +456,67 @@ it('skips empty native ranges and counts cell-only and glyph-only uploads separa
     [grid.gl.ARRAY_BUFFER, 96, frame.glyphData, 24, 24],
   ])
   expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})
+
+it('bounding uploads preserve bit patterns, erasures and authoritative gaps after WASM memory growth', async () => {
+  const grid = await createGrid({ columns: 4, renderRows: [], rows: 3 })
+  const memory = new WebAssembly.Memory({ initial: 1, maximum: 2 })
+  const frame = {
+    get cellData() {
+      return new Float32Array(memory.buffer, 0, 4 * 3 * 16)
+    },
+    get glyphData() {
+      return new Float32Array(memory.buffer, 2048, 4 * 3 * 24)
+    },
+  }
+  new Uint32Array(memory.buffer, 0, frame.cellData.length).fill(0x3f800000)
+  new Uint32Array(memory.buffer, 2048, frame.glyphData.length).fill(0x3f800000)
+  expect(
+    grid.pass.uploadFrame(frame, [
+      {
+        cell: { byteOffset: 0, byteLength: frame.cellData.byteLength },
+        glyph: { byteOffset: 0, byteLength: frame.glyphData.byteLength },
+      },
+    ]),
+  ).toBe(2)
+  memory.grow(1)
+  const cellBits = new Uint32Array(memory.buffer, 0, frame.cellData.length)
+  const glyphBits = new Uint32Array(memory.buffer, 2048, frame.glyphData.length)
+  cellBits.fill(0x80000000, 16, 48)
+  cellBits.fill(0x7fc00003, 48, 64)
+  cellBits.fill(0x7fc00001, 64, 96)
+  glyphBits.fill(0, 48, 72)
+  glyphBits.fill(0x80000000, 72, 240)
+  glyphBits.fill(0x7fc00002, 240, 264)
+  const writes = vi.spyOn(grid.gl, 'bufferSubData')
+  const binds = vi.spyOn(grid.gl, 'bindBuffer')
+  const operations = grid.pass.uploadFrame(frame, [
+    {
+      cell: { byteOffset: 64, byteLength: 128 },
+      glyph: { byteOffset: 192, byteLength: 96 },
+    },
+    {
+      cell: { byteOffset: 256, byteLength: 128 },
+      glyph: { byteOffset: 960, byteLength: 96 },
+    },
+  ])
+  const expected = { bytes: 1184, operations: 2 }
+  expect(operations).toBe(expected.operations)
+  expect(writes).toHaveBeenCalledTimes(expected.operations)
+  expect(binds).toHaveBeenCalledTimes(2)
+  expect(binds.mock.calls[0]![1]).not.toBe(binds.mock.calls[1]![1])
+  expect(grid.pass.frameUploadedBytes).toBe(expected.bytes)
+  expect(writes.mock.calls.reduce((sum, args) => sum + Number(args[4]) * 4, 0)).toBe(expected.bytes)
+  const buffers = binds.mock.calls.map(([, buffer]) => buffer)
+  writes.mockRestore()
+  binds.mockRestore()
+  for (const [index, expectedBits] of [cellBits, glyphBits].entries()) {
+    const actual = new Uint32Array(expectedBits.length)
+    grid.gl.bindBuffer(grid.gl.ARRAY_BUFFER, buffers[index]!)
+    grid.gl.getBufferSubData(grid.gl.ARRAY_BUFFER, 0, actual)
+    expect(actual).toEqual(expectedBits)
+  }
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+  expect(grid.pass.uploadFrame(frame, [])).toBe(0)
+  expect(grid.pass.frameUploadedBytes).toBe(0)
 })

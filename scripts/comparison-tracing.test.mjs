@@ -79,7 +79,7 @@ function total(counters, operation) {
     .reduce((sum, counter) => sum + counter.value, 0)
 }
 
-test('WebGL native uploads attribute changed bytes exactly once for native records', () => {
+test('WebGL native uploads attribute requested bytes including gaps and reset empty frames', () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'location')
   Object.defineProperty(globalThis, 'location', {
     configurable: true,
@@ -88,8 +88,12 @@ test('WebGL native uploads attribute changed bytes exactly once for native recor
   try {
     const tracing = new ComparisonTracing()
     const pass = {
+      frameUploadedBytes: 0,
       syncAtlas() {},
-      uploadFrame: () => 2,
+      uploadFrame(_frame, updates) {
+        this.frameUploadedBytes = updates.length > 0 ? 1504 : 0
+        return updates.length > 0 ? 2 : 0
+      },
       submit() {},
     }
     const renderer = {
@@ -104,13 +108,24 @@ test('WebGL native uploads attribute changed bytes exactly once for native recor
     }
     tracing.nativeRenderer(3, renderer)
     tracing.begin()
-    const ranges = [{ cell: { byteLength: 64 }, glyph: { byteLength: 96 } }]
+    const ranges = [
+      { cell: { byteOffset: 64, byteLength: 64 }, glyph: { byteOffset: 192, byteLength: 96 } },
+      { cell: { byteOffset: 640, byteLength: 64 }, glyph: { byteOffset: 960, byteLength: 96 } },
+    ]
     pass.uploadFrame({}, ranges)
     renderer.drawFrame()
     const { counters, spans } = tracing.end()
     assert.equal(total(counters, 'buffersWritten'), 2)
-    assert.equal(total(counters, 'bufferBytes'), 160)
+    assert.equal(total(counters, 'bufferBytes'), 1504)
+    assert.equal(total(counters, 'instanceUploadBatches'), 1)
     assert.equal(spans.filter(({ operation }) => operation === 'uploadFrame').length, 1)
+    tracing.begin()
+    pass.uploadFrame({}, [])
+    const emptyFrame = tracing.end()
+    assert.equal(total(emptyFrame.counters, 'buffersWritten'), 0)
+    assert.equal(total(emptyFrame.counters, 'bufferBytes'), 0)
+    assert.equal(total(emptyFrame.counters, 'instanceUploadBatches'), 0)
+    assert.equal(emptyFrame.spans.filter(({ operation }) => operation === 'uploadFrame').length, 1)
   } finally {
     if (previous) Object.defineProperty(globalThis, 'location', previous)
     else Reflect.deleteProperty(globalThis, 'location')

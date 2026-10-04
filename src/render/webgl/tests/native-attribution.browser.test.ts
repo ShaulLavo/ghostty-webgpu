@@ -93,20 +93,20 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
     bufferWrites.mockRestore()
   })
   for (const control of [
-    { name: 'warm', content: viewport('NM'.repeat(20)), writes: 12, bytes: 46_080, submits: 1 },
+    { name: 'warm', content: viewport('NM'.repeat(20)), writes: 1, bytes: 46_080, submits: 1 },
     { name: 'unchanged', content: viewport('NM'.repeat(20)), writes: 0, bytes: 0, submits: 0 },
     {
       name: 'missing',
       content: `\x1b[31;44m${viewport('Z'.repeat(40))}`,
-      writes: 24,
+      writes: 2,
       bytes: 76_800,
       submits: 1,
     },
     {
       name: 'unicode',
       content: viewport('界'.repeat(20)),
-      // A cold native retry uploads both instance buffers for each changed viewport row.
-      writes: 12 * 2,
+      // A cold native retry uploads the full extents of both instance buffers.
+      writes: 2,
       bytes: 76_800,
       submits: 1,
     },
@@ -179,20 +179,18 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
           sourceOffset: args[3],
           byteLength: Number(args[4]) * 4,
         })),
-      ).toEqual(
-        Array.from({ length: 12 }, (_, row) => [
-          {
-            byteOffset: row * 40 * CELL_INSTANCE_BYTES,
-            sourceOffset: (row * 40 * CELL_INSTANCE_BYTES) / 4,
-            byteLength: 40 * CELL_INSTANCE_BYTES,
-          },
-          {
-            byteOffset: row * 40 * GLYPH_INSTANCE_BYTES,
-            sourceOffset: (row * 40 * GLYPH_INSTANCE_BYTES) / 4,
-            byteLength: 40 * GLYPH_INSTANCE_BYTES,
-          },
-        ]).flat(),
-      )
+      ).toEqual([
+        {
+          byteOffset: 0,
+          sourceOffset: 0,
+          byteLength: 12 * 40 * CELL_INSTANCE_BYTES,
+        },
+        {
+          byteOffset: 0,
+          sourceOffset: 0,
+          byteLength: 12 * 40 * GLYPH_INSTANCE_BYTES,
+        },
+      ])
     }
     const submittedFrames = native.renderer.metrics.submittedFrames
     const pixels = await displayedPixels(native.canvas)

@@ -4,7 +4,6 @@ import type { GhosttyTerminal } from '../src/core/terminal.js'
 import type { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
 import type { RowTerminalRenderer } from '../src/render/row-renderer.js'
 import type { WebGpuTerminalRenderer } from '../src/render/renderer.js'
-import type { RowInstanceUpdate } from '../src/render/instances/types.js'
 
 type Category = 'parse' | 'snapshot' | 'damage' | 'instances' | 'upload' | 'commands' | 'js'
 interface Span {
@@ -253,16 +252,10 @@ export class ComparisonTracing {
       const pass = field(field(renderer, 'state'), 'pass')
       this.wrap(renderer, 'rowsToRebuild', terminal, 'damage')
       this.wrap(pass, 'syncAtlas', terminal, 'upload')
-      const recordUploads = (result: unknown, args: unknown[]) => {
+      const recordUploads = (result: unknown) => {
         if (typeof result === 'number' && result > 0) this.count(terminal, 'instanceUploadBatches')
         this.count(terminal, 'buffersWritten', result as number)
-        const updates = args[1] as readonly RowInstanceUpdate[]
-        const ranges = updates
-        this.count(
-          terminal,
-          'bufferBytes',
-          ranges.reduce((sum, range) => sum + range.cell.byteLength + range.glyph.byteLength, 0),
-        )
+        this.count(terminal, 'bufferBytes', field(pass, 'frameUploadedBytes') as number)
       }
       this.wrap(renderer, 'drawZigFrame', terminal, 'js')
       this.wrap(pass, 'uploadFrame', terminal, 'upload', recordUploads)

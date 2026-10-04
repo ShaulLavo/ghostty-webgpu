@@ -521,9 +521,7 @@ export class WebGlTerminalRenderer {
     this.metrics.instanceUploadOperations += operations
     this.metrics.rebuiltRows += updates.length
     this.metrics.submittedFrames += 1
-    for (const update of updates) {
-      this.metrics.uploadedBytes += update.cell.byteLength + update.glyph.byteLength
-    }
+    this.metrics.uploadedBytes += pass.frameUploadedBytes
   }
 
   private emitFrame(

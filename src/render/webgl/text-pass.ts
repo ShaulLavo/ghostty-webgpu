@@ -2,6 +2,8 @@ import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../instances/layout.js'
 import type { InstanceByteRange } from '../instances/types.js'
+import { planUploadRanges } from '../instances/upload-ranges.js'
+
 import {
   cellFragmentShader,
   cellVertexShader,
@@ -67,6 +69,7 @@ export class WebGlTextPass {
   private readonly textures: Readonly<Record<AtlasKind, WebGLTexture>>
   private atlasUploadedBytesValue = 0
   private atlasUploadOperationsValue = 0
+  private frameUploadedBytesValue = 0
   private disposed = false
 
   constructor(options: WebGlTextPassOptions) {
@@ -103,6 +106,10 @@ export class WebGlTextPass {
     return this.atlasUploadOperationsValue
   }
 
+  get frameUploadedBytes(): number {
+    return this.frameUploadedBytesValue
+  }
+
   syncAtlas(uploads: readonly AtlasPageUpload[]): void {
     this.ensureActive()
     if (uploads.length === 0) return
@@ -124,20 +131,11 @@ export class WebGlTextPass {
     updates: readonly { readonly cell: InstanceByteRange; readonly glyph: InstanceByteRange }[],
   ): number {
     this.ensureActive()
-    const cells = frame.cellData
-    const glyphs = frame.glyphData
-    let operations = 0
-    for (const update of updates) {
-      if (update.cell.byteLength > 0) {
-        this.writeRange(this.cells.buffer, cells, update.cell)
-        operations += 1
-      }
-      if (update.glyph.byteLength > 0) {
-        this.writeRange(this.glyphs.buffer, glyphs, update.glyph)
-        operations += 1
-      }
-    }
-    return operations
+    this.frameUploadedBytesValue = 0
+    const plan = planUploadRanges(updates)
+    this.writeRanges(this.cells.buffer, frame.cellData, plan.cell)
+    this.writeRanges(this.glyphs.buffer, frame.glyphData, plan.glyph)
+    return plan.cell.length + plan.glyph.length
   }
 
   resize(options: { width: number; height: number; instanceCount: number }): void {
@@ -335,16 +333,24 @@ export class WebGlTextPass {
     throw new RangeError('Atlas upload extent is outside the target layer')
   }
 
-  private writeRange(buffer: WebGLBuffer, data: Float32Array, range: InstanceByteRange): void {
+  private writeRanges(
+    buffer: WebGLBuffer,
+    data: Float32Array,
+    ranges: readonly InstanceByteRange[],
+  ): void {
+    if (ranges.length === 0) return
     const gl = this.context
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferSubData(
-      gl.ARRAY_BUFFER,
-      range.byteOffset,
-      data,
-      range.byteOffset / 4,
-      range.byteLength / 4,
-    )
+    for (const range of ranges) {
+      gl.bufferSubData(
+        gl.ARRAY_BUFFER,
+        range.byteOffset,
+        data,
+        range.byteOffset / 4,
+        range.byteLength / 4,
+      )
+      this.frameUploadedBytesValue += range.byteLength
+    }
   }
 
   private draw(pipeline: Pipeline): void {
