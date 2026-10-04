@@ -11,6 +11,7 @@ import type { CursorStyle, RendererTheme } from '../instances/types.js'
 import type { RenderSchedulerClock } from '../scheduler.js'
 import { CanvasRowPainter } from './painter.js'
 import { CanvasTerminalRenderer } from './renderer.js'
+import { ReferenceRenderer } from './tests/reference-renderer.js'
 
 class FrameClock implements RenderSchedulerClock {
   private handle = 0
@@ -81,7 +82,7 @@ beforeAll(async () => {
   document.fonts.add(await face.load())
 })
 
-async function fixture(initial: string, rowCount = 6) {
+async function fixture(initial: string, rowCount = 6, pixels = false) {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 32, rows: rowCount })
   const state = runtime.createRenderState(terminal)
@@ -95,7 +96,8 @@ async function fixture(initial: string, rowCount = 6) {
   let phase = true
   let inactive: CursorStyle | undefined
   terminal.write(initial)
-  const renderer = await CanvasTerminalRenderer.create({
+  const create = pixels ? ReferenceRenderer.create : CanvasTerminalRenderer.create
+  const renderer = await create({
     canvas,
     columns: 32,
     rows: rowCount,
@@ -104,6 +106,7 @@ async function fixture(initial: string, rowCount = 6) {
     schedulerClock: clock,
     theme,
     cursorBlink: true,
+    rendererMode: pixels ? 'canvas2d-pixels' : 'canvas2d-fill-text',
   })
   renderer.setFocused(true)
   cleanups.push(() => {
@@ -420,47 +423,59 @@ it('keeps partial damage reads, native revision, and acknowledgement semantics',
   f.parity('explicit refresh forces painting')
 })
 
-it('reuses native rows on an OffscreenCanvas without a DOM surface', async () => {
-  const runtime = await GhosttyRuntime.create()
-  const terminal = runtime.createTerminal({ columns: 32, rows: 6 })
-  const state = runtime.createRenderState(terminal)
-  const canvas = new OffscreenCanvas(1, 1)
-  const control = new OffscreenCanvas(1, 1)
-  const clock = new FrameClock()
-  terminal.write(lines())
-  const renderer = await CanvasTerminalRenderer.create({
-    canvas,
-    columns: 32,
-    rows: 6,
-    font: font(),
-    renderState: state,
-    schedulerClock: clock,
-  })
-  cleanups.push(() => {
-    renderer.dispose()
-    state.dispose()
-    terminal.dispose()
-    runtime.dispose()
-  })
-  clock.flush()
-  terminal.write('\r\nOffscreen next')
-  renderer.notifyWrite()
-  clock.flush()
-  expect(renderer.reuseMetrics).toMatchObject({ copiedRows: 5, repaintedRows: 7, selfCopies: 1 })
-  control.width = canvas.width
-  control.height = canvas.height
-  const context = control.getContext('2d', { alpha: true, willReadFrequently: false })!
-  const painter = new CanvasRowPainter(
-    context,
-    font(),
-    canonicalRendererTheme(mergeRendererTheme({})),
-  )
-  painter.resetContext(font())
-  for (const row of state.readRows()) painter.paint(row, undefined, control.width)
-  const actual = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
-  const expected = context.getImageData(0, 0, control.width, control.height).data
-  expect(actual).toEqual(expected)
-})
+it.each(['fill-text', 'pixels'] as const)(
+  'reuses native rows on an OffscreenCanvas (%s)',
+  async (mode) => {
+    const runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 32, rows: 6 })
+    const state = runtime.createRenderState(terminal)
+    const canvas = new OffscreenCanvas(1, 1)
+    const control = new OffscreenCanvas(1, 1)
+    const clock = new FrameClock()
+    terminal.write(lines())
+    const create = mode === 'pixels' ? ReferenceRenderer.create : CanvasTerminalRenderer.create
+    const renderer = await create({
+      canvas,
+      columns: 32,
+      rows: 6,
+      font: font(),
+      renderState: state,
+      schedulerClock: clock,
+      rendererMode: mode === 'pixels' ? 'canvas2d-pixels' : 'canvas2d-fill-text',
+    })
+    cleanups.push(() => {
+      renderer.dispose()
+      state.dispose()
+      terminal.dispose()
+      runtime.dispose()
+    })
+    clock.flush()
+    terminal.write('\r\nOffscreen next')
+    renderer.notifyWrite()
+    clock.flush()
+    expect(renderer.canvasPaintMode).toBe(mode)
+    expect(renderer.metrics.repaintedRows).toBe(7)
+    if (mode === 'pixels') {
+      expect(renderer.pixelMetrics).toMatchObject({ bufferMoves: 1, movedRows: 5 })
+      expect(renderer.reuseMetrics.selfCopies).toBe(0)
+    } else {
+      expect(renderer.reuseMetrics).toMatchObject({ copiedRows: 5, selfCopies: 1 })
+    }
+    control.width = canvas.width
+    control.height = canvas.height
+    const context = control.getContext('2d', { alpha: true, willReadFrequently: false })!
+    const painter = new CanvasRowPainter(
+      context,
+      font(),
+      canonicalRendererTheme(mergeRendererTheme({})),
+    )
+    painter.resetContext(font())
+    for (const row of state.readRows()) painter.paint(row, undefined, control.width)
+    const actual = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
+    const expected = context.getImageData(0, 0, control.width, control.height).data
+    expect(actual).toEqual(expected)
+  },
+)
 
 it('verifies equal-looking rows across alternate buffers and repeated clear/reset transitions', async () => {
   const repeated = '\x1b[?25l' + Array.from({ length: 6 }, () => 'same row 界 e\u0301').join('\r\n')
@@ -478,4 +493,122 @@ it('verifies equal-looking rows across alternate buffers and repeated clear/rese
     f.write('\x1bc')
     f.parity(`terminal reset ${repeat}`)
   }
+})
+
+describe('Canvas pixel presentation on current native snapshots', () => {
+  it('presents every styled/grapheme/primitive frame with exact transparent pixels', async () => {
+    const f = await fixture('\x1b[?25l', 6, true)
+    const upload = vi.spyOn(f.canvas.getContext('2d')!, 'putImageData')
+    const streams = [
+      'Ag black \x1b[38;2;255;0;0mAg red\x1b[0m',
+      '\r\n\x1b[1;3mBold italic\x1b[0m \x1b[2mfaint\x1b[0m',
+      '\r\n\x1b[4:1mone\x1b[4:2mtwo\x1b[4:3mwave\x1b[4:4mdot\x1b[4:5mdash\x1b[0m',
+      '\r\n\x1b[53;9mover strike\x1b[0m \x1b[7minverse\x1b[0m \x1b[8mhidden\x1b[0m',
+      '\r\n界 é 😀 👩‍💻 👨‍👩‍👧',
+      '\x1b[2;1H\x1b[48;2;17;35;63m\x1b[4:3mbackground wave\x1b[0m',
+      '\x1b[?25h\x1b[1 q\x1b[3;4H',
+      '\x1b[3 q\x1b[4;6H',
+      '\x1b[5 q\x1b[5;8H',
+      '\x1b[2J\x1b[Hclear to transparent',
+    ]
+    expect(f.renderer.canvasPaintMode).toBe('pixels')
+    f.parity('pixels initial transparent frame')
+    for (const [index, value] of streams.entries()) {
+      f.write(value)
+      f.parity(`pixels streamed native frame ${index}`)
+      if (index === 5)
+        await page.screenshot({
+          element: f.canvas,
+          path: '../../../.artifacts/canvas-pixels-styled-zwj-parity0.png',
+        })
+    }
+    f.blink()
+    f.parity('pixels cursor blink hidden')
+    f.blink()
+    f.parity('pixels cursor blink visible')
+    f.setInactive('outline')
+    f.parity('pixels inactive outline')
+    const selection = new GhosttySelectionGesture(f.terminal)
+    cleanups.push(() => selection.dispose())
+    selection.selectLines(0, 2)
+    f.renderer.notifySelectionChange()
+    f.clock.flush()
+    f.parity('pixels native selection')
+    selection.clear()
+    f.renderer.notifySelectionChange()
+    f.clock.flush()
+    f.parity('pixels native selection erased')
+    expect(upload).toHaveBeenCalled()
+    expect(f.text).not.toHaveBeenCalled()
+    await page.screenshot({
+      element: f.canvas,
+      path: '../../../.artifacts/canvas-pixels-native-parity0.png',
+    })
+  })
+
+  it('transports retained pixels and keeps font/DPR/theme/resize/reset coverage exact', async () => {
+    const f = await fixture(lines(true), 6, true)
+    const upload = vi.spyOn(f.canvas.getContext('2d')!, 'putImageData')
+    const reads = vi.spyOn(f.state, 'readRows')
+    const acknowledge = vi.spyOn(f.state, 'acknowledge')
+    const before = { ...f.renderer.metrics }
+    f.write('\r\nnext 界 👩‍💻')
+    expect(reads).toHaveBeenCalledExactlyOnceWith({ dirtyOnly: true })
+    expect(acknowledge).toHaveBeenCalledOnce()
+    expect(f.renderer.pixelMetrics.bufferMoves - before.bufferMoves).toBe(1)
+    expect(f.renderer.pixelMetrics.movedRows - before.movedRows).toBe(5)
+    expect(f.renderer.metrics.repaintedRows - before.repaintedRows).toBe(1)
+    expect(f.renderer.pixelMetrics.rasterReadbackBytes - before.rasterReadbackBytes).toBe(
+      320 * 20 * 4,
+    )
+    expect(f.renderer.pixelMetrics.uploadedPixelBytes - before.uploadedPixelBytes).toBe(
+      320 * 120 * 4,
+    )
+    f.parity('pixels shifted full native snapshot')
+    f.write('\x1b[2T\x1b[1;1Hreverse')
+    f.parity('pixels reverse memmove')
+    f.write('\x1b[?25h\x1b[3;4H\x1b[1S')
+    f.parity('pixels transported cursor')
+    f.setTheme({ foreground: { r: 151, g: 77, b: 33 }, minimumContrast: 7 })
+    f.parity('pixels brush/contrast changed')
+    f.setFont({ ...font(), deviceCellWidth: 11, deviceCharWidth: 10 })
+    f.parity('pixels half-pixel center phase')
+    f.setFont({ ...font(), settings: { ...font().settings, size: 40 } })
+    f.parity('pixels tall glyph row clip')
+    f.setFont(font(2))
+    f.parity('pixels DPR two')
+    f.terminal.resize({ columns: 32, rows: 8 })
+    f.renderer.resize({ columns: 32, rows: 8 })
+    f.parity('pixels viewport resize')
+    f.write('\x1b[?1049h\x1b[2J\x1b[Halternate')
+    f.parity('pixels alternate buffer')
+    f.write('\x1b[?1049l\x1bc')
+    f.parity('pixels reset primary')
+    f.renderer.clearTextureAtlas()
+    f.clock.flush()
+    f.parity('pixels explicit cache clear')
+    expect(upload).toHaveBeenCalled()
+    expect(f.copy).not.toHaveBeenCalled()
+  })
+})
+
+it('refills moved pixel rows after a raster readback failure without acknowledging damage', async () => {
+  const f = await fixture(lines(true), 6, true)
+  f.parity('pixels before failed raster')
+  const acknowledged = vi.spyOn(f.state, 'acknowledge')
+  const before = { ...f.renderer.metrics }
+  const readback = vi.spyOn(CanvasRenderingContext2D.prototype, 'getImageData')
+  readback.mockImplementationOnce(() => {
+    throw new TypeError('Injected pixel readback failure')
+  })
+  expect(() => f.write('\r\nfailed raster 界')).toThrow('Injected pixel readback failure')
+  expect(acknowledged).not.toHaveBeenCalled()
+  expect(f.renderer.metrics.submittedFrames).toBe(before.submittedFrames)
+  expect(f.renderer.pixelMetrics.bufferMoves - before.bufferMoves).toBe(1)
+  readback.mockRestore()
+  f.renderer.notifyWrite()
+  f.clock.flush()
+  expect(acknowledged).toHaveBeenCalledOnce()
+  expect(f.renderer.metrics.repaintedRows - before.repaintedRows).toBe(6)
+  f.parity('pixels complete refill after failed raster')
 })

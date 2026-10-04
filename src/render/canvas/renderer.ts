@@ -1,8 +1,10 @@
+import { createGhosttyError } from '../../core/error.js'
 import type { RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { canonicalRendererTheme, mergeRendererTheme } from '../config.js'
 import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
 import type {
+  CanvasPaintMode,
   RendererGridSize,
   RenderStateSource,
   WebGpuTerminalRendererOptions,
@@ -13,9 +15,11 @@ import {
   type RowRendererSurface,
 } from '../row-renderer.js'
 import { CanvasRowPainter, type Canvas2dContext } from './painter.js'
+import type { PixelTarget, PixelMetrics, PixelTargetFactory } from './pixel-target.js'
 import { canvasScrollPlan, type CanvasScrollPlan } from './scroll.js'
 
-export interface CanvasRendererMetrics extends RowRendererMetrics, CanvasReuseMetrics {}
+export interface CanvasRendererMetrics
+  extends RowRendererMetrics, CanvasReuseMetrics, PixelMetrics {}
 
 /** Completed physical work accumulates for the renderer lifetime, including across invalidations. */
 export interface CanvasReuseMetrics {
@@ -57,6 +61,7 @@ function cursorKey(cursor: CursorState | undefined, y: number): string {
 class CanvasSurface implements RowRendererSurface {
   private readonly context: Canvas2dContext
   private readonly painter: CanvasRowPainter
+  private readonly pixelTarget?: PixelTarget
   private image?: PaintedImage
   private capturing = false
   private pending = new Map<number, string>()
@@ -65,18 +70,38 @@ class CanvasSurface implements RowRendererSurface {
   private remaining = 0
   private rowHeight = 0
   private rowCount = 0
-  reuseMetrics: CanvasReuseMetrics = { copiedRows: 0, repaintedRows: 0, selfCopies: 0 }
+  private font: TerminalFittedFont
+  contextLost = false
+  reuseMetrics: CanvasReuseMetrics & PixelMetrics = {
+    copiedRows: 0,
+    repaintedRows: 0,
+    selfCopies: 0,
+    bufferMoves: 0,
+    movedRows: 0,
+    rasterReadbackBytes: 0,
+    rowCopyBytes: 0,
+    uploadedRegions: 0,
+    uploadedPixelBytes: 0,
+  }
 
   constructor(
     private readonly canvas: HTMLCanvasElement | OffscreenCanvas,
     options: WebGpuTerminalRendererOptions,
+    targetFactory?: PixelTargetFactory,
   ) {
+    this.font = options.font
     this.context = requireContext(canvas)
+    this.pixelTarget = targetFactory?.(canvas, this.context)
     this.painter = new CanvasRowPainter(
-      this.context,
+      this.pixelTarget?.context ?? this.context,
       options.font,
       canonicalRendererTheme(mergeRendererTheme(options.theme)),
     )
+  }
+
+  useMetrics(metrics: CanvasRendererMetrics): void {
+    this.reuseMetrics = Object.assign(metrics, this.reuseMetrics)
+    if (this.pixelTarget) this.pixelTarget.metrics = this.reuseMetrics
   }
 
   source(source: RenderStateSource): RenderStateSource {
@@ -116,6 +141,7 @@ class CanvasSurface implements RowRendererSurface {
   dispose(): void {
     this.invalidate()
     this.pending.clear()
+    this.pixelTarget?.dispose()
   }
 
   invalidate(): void {
@@ -125,14 +151,21 @@ class CanvasSurface implements RowRendererSurface {
   }
 
   paint(row: RenderRow, cursor: CursorState | undefined): void {
+    if (this.contextLost)
+      throw createGhosttyError('canvas.context', 'Canvas 2D context is awaiting restoration')
     try {
       if (!this.plan) this.prepare(cursor)
       if (!this.canReuse(row.y, cursor)) {
+        this.pixelTarget?.beginRow(row.y)
         this.painter.paint(row, cursor, this.canvas.width)
+        this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1
       }
       this.remaining -= 1
-      if (this.remaining === 0) this.image = this.nextImage
+      if (this.remaining === 0) {
+        this.pixelTarget?.present()
+        this.image = this.nextImage
+      }
     } catch (cause) {
       // A partial copy/paint no longer corresponds to either complete snapshot.
       this.invalidate()
@@ -142,18 +175,33 @@ class CanvasSurface implements RowRendererSurface {
 
   resize(font: TerminalFittedFont, grid: RendererGridSize): void {
     this.invalidate()
+    this.font = font
     this.rowHeight = font.deviceCellHeight
     this.rowCount = grid.rows
     this.canvas.width = grid.columns * font.deviceCellWidth
     this.canvas.height = grid.rows * font.deviceCellHeight
+    this.pixelTarget?.resize(this.canvas.width, this.canvas.height, this.rowHeight)
+    this.pixelTarget?.setFont?.(font)
     this.painter.resetContext(font)
     if (!('style' in this.canvas)) return
     this.canvas.style.width = `${grid.columns * font.cssCellWidth}px`
     this.canvas.style.height = `${grid.rows * font.cssCellHeight}px`
   }
 
+  restoreContext(): void {
+    this.contextLost = false
+    this.painter.resetContext(this.font)
+    this.clearPixelCache()
+    this.invalidate()
+  }
+
+  clearPixelCache(): void {
+    this.pixelTarget?.invalidate?.()
+  }
+
   setTheme(theme: CanonicalRendererTheme): void {
     this.invalidate()
+    this.clearPixelCache()
     this.painter.setTheme(theme)
   }
 
@@ -178,6 +226,10 @@ class CanvasSurface implements RowRendererSurface {
   }
 
   private copyRows(offset: number): void {
+    if (this.pixelTarget) {
+      this.pixelTarget.copyRows(offset)
+      return
+    }
     const sourceY = Math.max(0, -offset) * this.rowHeight
     const targetY = Math.max(0, offset) * this.rowHeight
     const height = (this.rowCount - Math.abs(offset)) * this.rowHeight
@@ -214,18 +266,52 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
   readonly backend = 'canvas2d' as const
   declare readonly metrics: CanvasRendererMetrics
   readonly reuseMetrics: Readonly<CanvasReuseMetrics>
+  readonly pixelMetrics: Readonly<PixelMetrics>
+  readonly canvasPaintMode: CanvasPaintMode
   private readonly canvasSurface: CanvasSurface
+  private readonly canvas: HTMLCanvasElement | OffscreenCanvas
+  private readonly onContextLost = (event: Event): void => {
+    event.preventDefault()
+    this.canvasSurface.contextLost = true
+    this.canvasSurface.invalidate()
+  }
+  private readonly onContextRestored = (): void => {
+    this.canvasSurface.restoreContext()
+    this.clearTextureAtlas()
+  }
 
-  private constructor(options: WebGpuTerminalRendererOptions) {
-    const surface = new CanvasSurface(options.canvas, options)
+  protected constructor(
+    options: WebGpuTerminalRendererOptions,
+    targetFactory?: PixelTargetFactory,
+  ) {
+    const mode = options.rendererMode === 'canvas2d-pixels' ? 'pixels' : 'fill-text'
+    if (mode === 'pixels' && !targetFactory)
+      throw createGhosttyError('canvas.pixels', 'Canvas pixel composition is unavailable')
+    const surface = new CanvasSurface(
+      options.canvas,
+      options,
+      mode === 'pixels' ? targetFactory : undefined,
+    )
     super({ ...options, renderState: surface.source(options.renderState) }, surface)
+    this.canvas = options.canvas
     this.canvasSurface = surface
-    surface.reuseMetrics = Object.assign(this.metrics, surface.reuseMetrics)
+    this.canvas.addEventListener('contextlost', this.onContextLost)
+    this.canvas.addEventListener('contextrestored', this.onContextRestored)
+    this.canvasPaintMode = mode
+    surface.useMetrics(this.metrics)
     this.reuseMetrics = surface.reuseMetrics
+    this.pixelMetrics = surface.reuseMetrics
+  }
+
+  override dispose(): void {
+    this.canvas.removeEventListener('contextlost', this.onContextLost)
+    this.canvas.removeEventListener('contextrestored', this.onContextRestored)
+    super.dispose()
   }
 
   override clearTextureAtlas(): void {
     this.canvasSurface.invalidate()
+    this.canvasSurface.clearPixelCache()
     super.clearTextureAtlas()
   }
 
@@ -244,7 +330,13 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
     super.refreshRows(startRow, endRow)
   }
 
-  static create(options: WebGpuTerminalRendererOptions): Promise<CanvasTerminalRenderer> {
-    return Promise.resolve(new CanvasTerminalRenderer(options))
+  static async create(options: WebGpuTerminalRendererOptions): Promise<CanvasTerminalRenderer> {
+    if (options.rendererMode !== 'canvas2d-pixels') return new CanvasTerminalRenderer(options)
+    const [{ ComposeKernel }, { StampTarget }] = await Promise.all([
+      import('./kernel.js'),
+      import('./stamp-target.js'),
+    ])
+    const kernel = await ComposeKernel.create()
+    return new CanvasTerminalRenderer(options, (_canvas, output) => new StampTarget(kernel, output))
   }
 }

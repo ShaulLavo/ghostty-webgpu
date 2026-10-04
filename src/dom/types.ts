@@ -149,6 +149,7 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly links?: LinkResolverOptions<Event>
   readonly padding?: TerminalElementPaddingInput
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
+  readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
   readonly runtime?: TerminalSessionRuntime
   readonly scrollbar?: GhosttyWebGpuTerminalScrollbarOptions
 }

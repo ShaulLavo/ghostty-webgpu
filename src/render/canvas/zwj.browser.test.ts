@@ -94,7 +94,13 @@ function oracle(text: string, legacySpan: number): HTMLCanvasElement {
     [1, 2],
   ] as const) {
     drawText(context, 'A', 0, row)
-    drawText(context, text, 1, row, span)
+    if (row === 1) drawText(context, text, 1, row, span)
+    if (row === 0) {
+      const owners = text.split('‍')
+      owners.forEach((owner, index) =>
+        drawText(context, owner + (index < owners.length - 1 ? '‍' : ''), 1 + index * 2, row, 2),
+      )
+    }
     drawText(context, 'B', 1 + span, row)
   }
   drawText(context, 'X', 0, 2)
@@ -156,7 +162,7 @@ async function fixture(content: string) {
 }
 
 it.each(specimens)(
-  'shapes joined $name over legacy cells and mode-2027 cells',
+  'preserves native $name owners in legacy and mode-2027 cells',
   async (specimen) => {
     const { name, text, legacySpan } = specimen
     const controls = 'X界é😀\x1b[38;2;255;0;0mR\x1b[38;2;0;255;0mG\x1b[0mZ'
@@ -165,8 +171,7 @@ it.each(specimens)(
     const nativeLabel = document.createElement('p')
     nativeLabel.textContent = `${name}: native Canvas. Legacy occupancy, mode 2027, mixed controls.`
     const referenceLabel = document.createElement('p')
-    referenceLabel.textContent =
-      'Whole-cluster Canvas shaping control with the same cell positions.'
+    referenceLabel.textContent = 'Native-owner Canvas shaping control with the same cell positions.'
     native.container.prepend(nativeLabel)
     native.container.append(referenceLabel, reference)
     await page.screenshot({
@@ -199,7 +204,7 @@ it.each(specimens)(
     ).toBe(0)
     expect(
       differences(pixels(native.canvas, 0), pixels(reference, 0)),
-      'legacy cells shape as one joined glyph without moving subsequent text',
+      'legacy owners paint separately without moving subsequent text',
     ).toBe(0)
   },
 )
@@ -243,11 +248,12 @@ function background(canvas: HTMLCanvasElement, column: number, span: number, col
   context.restore()
 }
 
-it('keeps one bold italic faint glyph over a uniform native brush', async () => {
+it('keeps bold italic faint native owners over a uniform brush', async () => {
   const native = await fixture('\x1b[?25l\x1b[1;3;2mA👩‍💻B')
   const reference = glyphOracle([
     { text: 'A', column: 0, font: 'italic 700', alpha: 0.5 },
-    { text: '👩‍💻', column: 1, span: 4, font: 'italic 700', alpha: 0.5 },
+    { text: '👩‍', column: 1, span: 2, font: 'italic 700', alpha: 0.5 },
+    { text: '💻', column: 3, span: 2, font: 'italic 700', alpha: 0.5 },
     { text: 'B', column: 5, font: 'italic 700', alpha: 0.5 },
   ])
   expect(differences(pixels(native.canvas, 0), pixels(reference, 0))).toBe(0)
@@ -298,7 +304,8 @@ it('retains whole and partial selections, cursor overlays and row damage', async
   cleanups.push(() => selection.dispose())
   const joined = glyphOracle([
     { text: 'A', column: 0 },
-    { text: '👩‍💻', column: 1, span: 4 },
+    { text: '👩‍', column: 1, span: 2 },
+    { text: '💻', column: 3, span: 2 },
     { text: 'B', column: 5 },
   ])
   const initialRows = native.renderer.metrics.paintedRows

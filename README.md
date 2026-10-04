@@ -130,6 +130,35 @@ context replacement still invalidate prior pixels.
 Canvas 2D, DOM, accessibility, selection/copy and frame callbacks retain their shared row readers.
 Styled snapshots and text-only rows describe those consumers; GPU rendering reads native records.
 
+## Canvas paint modes
+
+`Terminal.create({ rendererMode })` and `WebGpuTerminalRendererOptions.rendererMode`
+select `auto`, `canvas2d-fill-text`, or `canvas2d-pixels`. The worker entry accepts `auto`
+and reports a capability error for explicit Canvas modes. The two Canvas modes share native cell ownership, row damage, cursor
+painting and scroll history. Text shaping stays inside each native owner, including the
+terminal's mode-2027 grapheme spans.
+
+The explicit pixel mode is experimental with correctness coverage. Headed visual calibration
+and performance qualification are pending. It lazily loads
+`canvas-compose.wasm` into independent ordinary WASM memory. Browser rasterization runs on
+stamp-cache misses: the existing glyph model supplies A8 coverage or intrinsic-color RGBA,
+and paths supply A8 coverage. The viewport-bounded cache retains offsets, and one straight
+RGBA8 framebuffer aliases the `ImageData` submitted for coalesced dirty rows. The default
+fillText mode performs no compositor download, compilation or framebuffer allocation.
+
+Composition quantizes after each operation. Effective alpha is nearest-integer
+`sourceAlpha * opacity / 65535`; A8 additionally includes `coverage / 255` in that same
+rounding operation. For effective alpha `a`, destination alpha `d`, and source/destination
+straight color channels `s` and `c`, the denominator is `a * 255 + d * (255 - a)`.
+Output color is nearest-integer `(s * a * 255 + c * d * (255 - a)) / denominator`, and
+output alpha is nearest-integer `denominator / 255`. Half ties round upward, zero effective
+alpha preserves all destination bytes, and clear writes RGBA zero. Scalar and SIMD tests
+compare this contract exactly; retained-f32 comparisons report quantization error separately.
+
+Rebuild the checked-in compositor with `bun run build:canvas-compose`, using Bun and Zig
+0.16.0 or newer. `--scalar --output <file>` builds the independent scalar test arm. This
+Canvas-local asset changes neither the pinned native Ghostty build nor its ABI.
+
 ## comparisons
 
 From this package, use `bun run bench:compare -- --headed --bundle /path/to/bundle`

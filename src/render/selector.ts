@@ -32,6 +32,8 @@ async function createRenderer(
   options: WebGpuTerminalRendererOptions,
   signal?: AbortSignal,
 ): Promise<CompatibleTerminalRenderer> {
+  if (options.rendererMode && options.rendererMode !== 'auto')
+    return CanvasTerminalRenderer.create(options)
   try {
     return await WebGpuTerminalRenderer.create(options)
   } catch (cause) {

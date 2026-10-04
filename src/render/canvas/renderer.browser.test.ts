@@ -13,6 +13,8 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import { canonicalRendererTheme, mergeRendererTheme } from '../config.js'
 import { renderCursorState } from '../cursor.js'
 import { CanvasRowPainter } from './painter.js'
+import { ReferenceTarget } from './tests/reference-target.js'
+import { ReferenceRenderer } from './tests/reference-renderer.js'
 import type { RenderStateSource, WebGpuTerminalRendererOptions } from '../renderer.js'
 import { WebGpuUnavailableError } from '../renderer.js'
 import type { RenderSchedulerClock } from '../scheduler.js'
@@ -181,6 +183,7 @@ function expectFullRepaint(canvas: HTMLCanvasElement, source: RenderStateSource)
     fittedFont(),
     canonicalRendererTheme(mergeRendererTheme({})),
   )
+  painter.resetContext(fittedFont())
   const cursor = renderCursorState(source.readCursor(), true)
   for (const row of source.readRows()) painter.paint(row, cursor, control.width)
   const actual = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
@@ -207,8 +210,13 @@ function options(
 
 async function createRenderer(
   rendererOptions: WebGpuTerminalRendererOptions,
+  mode: 'fill-text' | 'pixels' = 'fill-text',
 ): Promise<CanvasTerminalRenderer> {
-  const renderer = await CanvasTerminalRenderer.create(rendererOptions)
+  const create = mode === 'pixels' ? ReferenceRenderer.create : CanvasTerminalRenderer.create
+  const renderer = await create({
+    ...rendererOptions,
+    rendererMode: mode === 'pixels' ? 'canvas2d-pixels' : 'canvas2d-fill-text',
+  })
   renderers.add(renderer)
   return renderer
 }
@@ -307,100 +315,110 @@ describe('CanvasTerminalRenderer', () => {
     expect(renderer.hasPendingFrame).toBe(false)
   })
 
-  it('keeps unscheduled clean rows intact when a legacy source returns the full viewport', async () => {
-    const clock = new FakeClock()
-    const canvas = createCanvas()
-    const source = new FakeRenderState(
-      Array.from({ length: 10 }, (_, y) =>
-        row(y, [cell(0, { background: { r: y + 1, g: 0, b: 0 } })]),
-      ),
-    )
-    source.cursor.viewport = { x: 0, y: 9, wideTail: false }
-    const legacySource: RenderStateSource = {
-      update: () => source.update(),
-      readCursor: () => source.readCursor(),
-      readRows: (options) => source.readRows({ dirtyOnly: options?.dirtyOnly }),
-      acknowledge: () => source.acknowledge(),
-    }
-    const reads = vi.spyOn(legacySource, 'readRows')
-    const updates = vi.spyOn(legacySource, 'update')
-    const renderer = await createRenderer(
-      options(canvas, legacySource, clock, { columns: 1, rows: 10 }),
-    )
-    renderer.setFocused(true)
-    clock.flushFrame()
-    expect(pixel(canvas, 2, 142), 'known-good initial clean row').toEqual([8, 0, 0, 255])
-    expectFullRepaint(canvas, source)
-    const copy = vi.spyOn(canvas.getContext('2d')!, 'drawImage')
-    reads.mockClear()
-    updates.mockClear()
-    const before = { ...renderer.metrics }
-    for (let y = 0; y < 6; y++) {
-      source.rows[y]!.cells = source.rows[y + 1]!.cells
-      source.dirtyRow(y)
-    }
-    source.rows[6]!.cells = [cell(0, { background: { r: 99, g: 0, b: 0 } })]
-    source.dirtyRow(6)
-    source.cursor.style = 'underline'
-    renderer.notifyWrite()
-    clock.flushFrame()
-    expect(pixel(canvas, 2, 142), 'clean row 7 keeps its unshifted background').toEqual([
-      8, 0, 0, 255,
-    ])
-    expect(pixel(canvas, 2, 162)).toEqual([9, 0, 0, 255])
-    expectFullRepaint(canvas, source)
-    expect(copy).not.toHaveBeenCalled()
-    expect(updates).toHaveBeenCalledOnce()
-    expect(reads.mock.calls).toEqual([[{ dirtyOnly: true }], [{ rows: new Set([9]) }]])
-    expect(reads.mock.results[1]?.value).toEqual(source.rows)
-    expect(renderer.metrics.repaintedRows - before.repaintedRows).toBe(8)
-    expect(renderer.metrics.paintedRows - before.paintedRows).toBe(8)
-    expect(source.acknowledgements).toBe(2)
-    expect(renderer.hasPendingFrame).toBe(false)
-  })
-
-  it('commits each consecutive cursor-only frame when a legacy source ignores row membership', async () => {
-    const clock = new FakeClock()
-    const canvas = createCanvas()
-    const source = new FakeRenderState(
-      Array.from({ length: 10 }, (_, y) =>
-        row(y, [cell(0, { background: { r: y + 1, g: 0, b: 0 } })]),
-      ),
-    )
-    source.cursor.viewport = { x: 0, y: 9, wideTail: false }
-    const legacySource: RenderStateSource = {
-      update: () => source.update(),
-      readCursor: () => source.readCursor(),
-      readRows: (options) => source.readRows({ dirtyOnly: options?.dirtyOnly }),
-      acknowledge: () => source.acknowledge(),
-    }
-    const reads = vi.spyOn(legacySource, 'readRows')
-    const updates = vi.spyOn(legacySource, 'update')
-    const renderer = await createRenderer(
-      options(canvas, legacySource, clock, { columns: 1, rows: 10 }),
-    )
-    renderer.setFocused(true)
-    clock.flushFrame()
-    expectFullRepaint(canvas, source)
-    for (const y of [8, 9, 8, 9]) {
+  it.each(['fill-text', 'pixels'] as const)(
+    'keeps unscheduled clean rows intact for legacy viewport reads (%s)',
+    async (mode) => {
+      const clock = new FakeClock()
+      const canvas = createCanvas()
+      const source = new FakeRenderState(
+        Array.from({ length: 10 }, (_, y) =>
+          row(y, [cell(0, { background: { r: y + 1, g: 0, b: 0 } })]),
+        ),
+      )
+      source.cursor.viewport = { x: 0, y: 9, wideTail: false }
+      const legacySource: RenderStateSource = {
+        update: () => source.update(),
+        readCursor: () => source.readCursor(),
+        readRows: (options) => source.readRows({ dirtyOnly: options?.dirtyOnly }),
+        acknowledge: () => source.acknowledge(),
+      }
+      const reads = vi.spyOn(legacySource, 'readRows')
+      const updates = vi.spyOn(legacySource, 'update')
+      const renderer = await createRenderer(
+        options(canvas, legacySource, clock, { columns: 1, rows: 10 }),
+        mode,
+      )
+      expect(renderer.canvasPaintMode).toBe(mode)
+      renderer.setFocused(true)
+      clock.flushFrame()
+      expect(pixel(canvas, 2, 142), 'known-good initial clean row').toEqual([8, 0, 0, 255])
+      expectFullRepaint(canvas, source)
+      const copy = vi.spyOn(canvas.getContext('2d')!, 'drawImage')
       reads.mockClear()
       updates.mockClear()
-      source.cursor.viewport = { x: 0, y, wideTail: false }
+      const before = { ...renderer.metrics }
+      for (let y = 0; y < 6; y++) {
+        source.rows[y]!.cells = source.rows[y + 1]!.cells
+        source.dirtyRow(y)
+      }
+      source.rows[6]!.cells = [cell(0, { background: { r: 99, g: 0, b: 0 } })]
+      source.dirtyRow(6)
+      source.cursor.style = 'underline'
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expect(pixel(canvas, 2, 142), 'clean row 7 keeps its unshifted background').toEqual([
+        8, 0, 0, 255,
+      ])
+      expect(pixel(canvas, 2, 162)).toEqual([9, 0, 0, 255])
+      expectFullRepaint(canvas, source)
+      expect(copy).not.toHaveBeenCalled()
+      expect(updates).toHaveBeenCalledOnce()
+      expect(reads.mock.calls).toEqual([[{ dirtyOnly: true }], [{ rows: new Set([9]) }]])
+      expect(reads.mock.results[1]?.value).toEqual(source.rows)
+      expect(renderer.metrics.repaintedRows - before.repaintedRows).toBe(8)
+      expect(renderer.metrics.paintedRows - before.paintedRows).toBe(8)
+      expect(source.acknowledgements).toBe(2)
+      expect(renderer.hasPendingFrame).toBe(false)
+    },
+  )
+
+  it.each(['fill-text', 'pixels'] as const)(
+    'commits consecutive cursor-only frames for legacy membership (%s)',
+    async (mode) => {
+      const clock = new FakeClock()
+      const canvas = createCanvas()
+      const source = new FakeRenderState(
+        Array.from({ length: 10 }, (_, y) =>
+          row(y, [cell(0, { background: { r: y + 1, g: 0, b: 0 } })]),
+        ),
+      )
+      source.cursor.viewport = { x: 0, y: 9, wideTail: false }
+      const legacySource: RenderStateSource = {
+        update: () => source.update(),
+        readCursor: () => source.readCursor(),
+        readRows: (options) => source.readRows({ dirtyOnly: options?.dirtyOnly }),
+        acknowledge: () => source.acknowledge(),
+      }
+      const reads = vi.spyOn(legacySource, 'readRows')
+      const updates = vi.spyOn(legacySource, 'update')
+      const renderer = await createRenderer(
+        options(canvas, legacySource, clock, { columns: 1, rows: 10 }),
+        mode,
+      )
+      expect(renderer.canvasPaintMode).toBe(mode)
+      renderer.setFocused(true)
+      clock.flushFrame()
+      expectFullRepaint(canvas, source)
+      for (const y of [8, 9, 8, 9]) {
+        reads.mockClear()
+        updates.mockClear()
+        source.cursor.viewport = { x: 0, y, wideTail: false }
+        renderer.notifyWrite()
+        clock.flushFrame()
+        expectFullRepaint(canvas, source)
+        expect(updates).toHaveBeenCalledOnce()
+        expect(reads).toHaveBeenCalledExactlyOnceWith({ rows: new Set([8, 9]) })
+        expect(reads.mock.results[0]?.value).toEqual(source.rows)
+      }
+      source.cursor.visible = false
       renderer.notifyWrite()
       clock.flushFrame()
       expectFullRepaint(canvas, source)
-      expect(updates).toHaveBeenCalledOnce()
-      expect(reads).toHaveBeenCalledExactlyOnceWith({ rows: new Set([8, 9]) })
-      expect(reads.mock.results[0]?.value).toEqual(source.rows)
-    }
-    source.cursor.visible = false
-    renderer.notifyWrite()
-    clock.flushFrame()
-    expectFullRepaint(canvas, source)
-    expect(pixel(canvas, 2, 182)).toEqual([10, 0, 0, 255])
-    expect(source.acknowledgements).toBe(1)
-    expect(renderer.hasPendingFrame).toBe(false)
-  })
+      expect(pixel(canvas, 2, 182)).toEqual([10, 0, 0, 255])
+      expect(source.acknowledgements).toBe(1)
+      expect(renderer.hasPendingFrame).toBe(false)
+    },
+  )
 
   it('preserves faint, italic, wide and invisible glyphs while reusing text state', async () => {
     const clock = new FakeClock()
@@ -620,18 +638,17 @@ describe('CanvasTerminalRenderer', () => {
 
 describe('compatible renderer selection', () => {
   it('releases an acquired device and falls back when the WebGPU context is unavailable', async () => {
-    const backingCanvas = createCanvas()
-    const fakeCanvas = {
-      getContext: (type: string) => (type === '2d' ? backingCanvas.getContext('2d') : null),
-      height: 1,
-      style: backingCanvas.style,
-      width: 1,
-    } as unknown as HTMLCanvasElement
+    const canvas = createCanvas()
+    const getContext = canvas.getContext.bind(canvas)
+    Object.defineProperty(canvas, 'getContext', {
+      configurable: true,
+      value: (type: string) => (type === '2d' ? getContext('2d') : null),
+    })
     const clock = new FakeClock()
     const source = new FakeRenderState([row(0, [cell(0), cell(1)]), row(1, [cell(0), cell(1)])])
     const destroy = vi.fn()
     const renderer = await createCompatibleTerminalRenderer({
-      ...options(fakeCanvas, source, clock),
+      ...options(canvas, source, clock),
       deviceFactory: () => Promise.resolve({ destroy } as unknown as GPUDevice),
     })
 
@@ -673,5 +690,197 @@ describe('compatible renderer selection', () => {
         deviceFactory: () => Promise.reject(failure),
       }),
     ).rejects.toBe(failure)
+  })
+})
+
+describe('Canvas alpha reference witnesses', () => {
+  it('distinguishes actual transparent source-over from the sealed opaque scalar rule', () => {
+    const canvas = createCanvas()
+    canvas.width = 1
+    canvas.height = 1
+    const context = canvas.getContext('2d', { alpha: true, willReadFrequently: false })!
+    context.fillStyle = 'red'
+    context.globalAlpha = 0.5
+    context.fillRect(0, 0, 1, 1)
+    expect(pixel(canvas, 0, 0)).toEqual([255, 0, 0, 128])
+    expect(pixel(canvas, 0, 0)).not.toEqual([128, 0, 127, 255])
+    context.globalAlpha = 1
+    context.fillStyle = 'rgba(0, 0, 255, 0.5)'
+    context.fillRect(0, 0, 1, 1)
+    const composed = context.getImageData(0, 0, 1, 1)
+    const destination = createCanvas()
+    destination.width = 1
+    destination.height = 1
+    destination
+      .getContext('2d', { alpha: true, willReadFrequently: false })!
+      .putImageData(composed, 0, 0)
+    expect(pixel(destination, 0, 0)).toEqual(pixel(canvas, 0, 0))
+    console.info(
+      JSON.stringify({
+        proof: 'transparent ordered source-over witness',
+        rgba: pixel(canvas, 0, 0),
+      }),
+    )
+  })
+
+  it('does not assume glyph coverage is brush independent or separately rounded terms commute', () => {
+    const canvas = createCanvas()
+    canvas.width = 80
+    canvas.height = 30
+    const context = canvas.getContext('2d', { alpha: true, willReadFrequently: false })!
+    context.font = '20px monospace'
+    const raster = (brush: string) => {
+      context.clearRect(0, 0, 80, 30)
+      context.fillStyle = brush
+      context.fillText('Ag', 1.5, 22)
+      return context.getImageData(0, 0, 80, 30).data
+    }
+    const white = raster('white')
+    const red = raster('red')
+    let alphaDifference = 0
+    for (let index = 3; index < white.length; index += 4)
+      alphaDifference += Number(white[index] !== red[index])
+    const output = createCanvas()
+    output.width = 80
+    output.height = 30
+    const target = new ReferenceTarget(
+      output,
+      output.getContext('2d', { alpha: true, willReadFrequently: false })!,
+    )
+    resourceCleanups.add(() => target.dispose())
+    target.resize(80, 30, 30)
+    target.context.font = '20px monospace'
+    for (const brush of ['white', 'red']) {
+      target.beginRow(0)
+      target.context.clearRect(0, 0, 80, 30)
+      target.context.fillStyle = brush
+      target.context.fillText('Ag', 1.5, 22)
+      target.finishRow(0)
+      target.present()
+      const actual = output.getContext('2d')!.getImageData(0, 0, 80, 30).data
+      expect(actual).toEqual(brush === 'white' ? white : red)
+    }
+    const combined = Math.floor((1 * 1 + 128 * 254 + 127) / 255)
+    const split = Math.floor((1 * 1 + 127) / 255) + Math.floor((128 * 254 + 127) / 255)
+    expect(combined).toBe(128)
+    expect(split).toBe(127)
+    console.info(
+      JSON.stringify({
+        proof: 'brush-specific coverage and rounding witness',
+        alphaDifference,
+        combined,
+        split,
+      }),
+    )
+  })
+})
+
+describe('Canvas pixel storage and failed presentation', () => {
+  it('retains native transparent source-over rounding and bounds hostile output state', () => {
+    const canvas = createCanvas()
+    canvas.width = 2
+    canvas.height = 2
+    const output = canvas.getContext('2d', { alpha: true, willReadFrequently: false })!
+    const target = new ReferenceTarget(canvas, output)
+    resourceCleanups.add(() => target.dispose())
+    target.resize(2, 2, 1)
+    target.beginRow(0)
+    target.context.fillStyle = 'rgba(255, 0, 0, 0.5)'
+    target.context.fillRect(0, 0, 1, 1)
+    target.context.fillStyle = 'rgba(0, 0, 255, 0.5)'
+    target.context.fillRect(0, 0, 1, 1)
+    target.finishRow(0)
+    const raw = [...target.context.getImageData(0, 0, 1, 1).data]
+    output.globalAlpha = 0
+    output.setTransform(3, 0, 0, 3, 100, 100)
+    output.beginPath()
+    output.rect(0, 0, 0, 0)
+    output.clip()
+    target.present()
+    expect(pixel(canvas, 0, 0)).toEqual(raw)
+    expect(pixel(canvas, 1, 0)).toEqual([0, 0, 0, 0])
+    expect(pixel(canvas, 0, 1)).toEqual([0, 0, 0, 0])
+    expect(raw[3]).toBeLessThan(255)
+    expect(target.metrics).toMatchObject({
+      uploadedRegions: 1,
+      uploadedPixelBytes: 8,
+      rowCopyBytes: 8,
+    })
+  })
+
+  it('reuses one ImageData view until resize and keeps cumulative work after disposal', () => {
+    const canvas = createCanvas()
+    const source = new FakeRenderState([row(0, [cell(0)])])
+    source.cursor.visible = false
+    const clock = new FakeClock()
+    return createRenderer(options(canvas, source, clock, { columns: 1, rows: 1 }), 'pixels').then(
+      (renderer) => {
+        const upload = vi.spyOn(canvas.getContext('2d')!, 'putImageData')
+        clock.flushFrame()
+        const initial = upload.mock.calls[0]![0]
+        source.rows[0]!.cells = [cell(0, { text: 'Ag' })]
+        source.dirtyRow(0)
+        renderer.notifyWrite()
+        clock.flushFrame()
+        expect(upload.mock.calls[1]![0]).toBe(initial)
+        renderer.setFont({ ...fittedFont(), deviceCellWidth: 11 })
+        clock.flushFrame()
+        const resized = upload.mock.calls[2]![0]
+        expect(resized).not.toBe(initial)
+        expect(resized.width).toBe(11)
+        expect(initial.width).toBe(10)
+        const before = { ...renderer.metrics }
+        renderer.dispose()
+        renderer.schedule()
+        expect(clock.frames.size).toBe(0)
+        expect(renderer.metrics).toEqual(before)
+      },
+    )
+  })
+
+  it('retains sparse pending uploads after failure and acknowledges only the repaired frame', async () => {
+    const canvas = createCanvas()
+    const source = new FakeRenderState(
+      Array.from({ length: 3 }, (_, y) =>
+        row(y, [cell(0, { background: { r: 10 + y, g: 0, b: 0 } })]),
+      ),
+    )
+    source.cursor.visible = false
+    const clock = new FakeClock()
+    const renderer = await createRenderer(
+      options(canvas, source, clock, { columns: 1, rows: 3 }),
+      'pixels',
+    )
+    clock.flushFrame()
+    const before = { ...renderer.metrics }
+    const context = canvas.getContext('2d')!
+    const original = context.putImageData.bind(context)
+    const upload = vi.spyOn(context, 'putImageData')
+    upload.mockImplementationOnce((...args) => original(...args))
+    upload.mockImplementationOnce(() => {
+      throw new TypeError('Injected pixel upload failure')
+    })
+    for (const y of [0, 2]) {
+      source.rows[y]!.cells = [cell(0, { background: { r: 30 + y, g: 0, b: 0 } })]
+      source.dirtyRow(y)
+    }
+    renderer.notifyWrite()
+    expect(() => clock.flushFrame()).toThrow('Injected pixel upload failure')
+    expect(source.acknowledgements).toBe(1)
+    expect(renderer.metrics.submittedFrames).toBe(before.submittedFrames)
+    expect(renderer.metrics.uploadedRegions - before.uploadedRegions).toBe(1)
+    expect(pixel(canvas, 2, 42)).toEqual([12, 0, 0, 255])
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(source.acknowledgements).toBe(2)
+    expect(renderer.metrics.submittedFrames).toBe(before.submittedFrames + 1)
+    expect(renderer.metrics.uploadedRegions - before.uploadedRegions).toBe(3)
+    expectFullRepaint(canvas, source)
+    expect(upload.mock.calls.map((call) => call.slice(3))).toEqual([
+      [0, 0, 10, 20],
+      [0, 40, 10, 20],
+      [0, 0, 10, 20],
+      [0, 40, 10, 20],
+    ])
   })
 })

@@ -30,6 +30,7 @@
     "ghostty-vt.wasm",
     "ghostty-vt.provenance.json",
     "bridge.wasm",
+    "canvas-compose.wasm",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
@@ -78,6 +79,7 @@
     },
     "./ghostty-vt.wasm": "./ghostty-vt.wasm",
     "./bridge.wasm": "./bridge.wasm",
+    "./canvas-compose.wasm": "./canvas-compose.wasm",
     "./worker": {
       "types@>=7.0": "./dist/worker/index.d.ts",
       "types": "./types/legacy/worker.d.ts",
@@ -90,6 +92,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
+    "build:canvas-compose": "bun scripts/build-canvas-compose.ts",
     "build": "bun run clean && tsc -p tsconfig.build.json && bun run build:worker",
     "build:worker": "bun run scripts/build-worker.ts",
     "build:bridge": "bun scripts/build-bridge.ts",

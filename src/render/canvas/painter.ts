@@ -1,4 +1,6 @@
-import type { CellStyle, RenderCell, RenderRow } from '../../core/types.js'
+import { contrastAdjustedColor } from '../contrast.js'
+import type { PaintTarget } from './paint-target.js'
+import type { RenderCell, RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
 import { CanvasColorCache, resolveCanvasCellColors, type CanvasCellColors } from './colors.js'
@@ -15,22 +17,6 @@ function cellSpan(cells: readonly RenderCell[], index: number): number {
   let span = 1
   while (cells[index + span]?.continuation) span += 1
   return span
-}
-
-const glyphStyleKeys = [
-  'bold',
-  'italic',
-  'faint',
-  'invisible',
-  'blink',
-  'inverse',
-  'underline',
-  'overline',
-  'strikethrough',
-] as const satisfies readonly (keyof CellStyle)[]
-
-function sameGlyphStyle(left: CellStyle | undefined, right: CellStyle | undefined): boolean {
-  return glyphStyleKeys.every((key) => (left?.[key] || 0) === (right?.[key] || 0))
 }
 
 function cursorForCell(
@@ -53,10 +39,9 @@ export class CanvasRowPainter {
   private currentFill?: string
   private currentFont?: string
   private fonts: readonly string[] = []
-  private segmenter?: Intl.Segmenter
 
   constructor(
-    private readonly context: Canvas2dContext,
+    private readonly context: PaintTarget,
     private font: TerminalFittedFont,
     private theme: CanonicalRendererTheme,
   ) {
@@ -176,15 +161,8 @@ export class CanvasRowPainter {
   private paintGlyph(row: RenderRow, index: number): number {
     const cell = row.cells[index]!
     if (cell.continuation || !cell.text || cell.style?.invisible) return 1
-    let span = cellSpan(row.cells, index)
-    let text = cell.text
-    if (text.charCodeAt(text.length - 1) === 0x200d) {
-      const joined = this.joinGlyph(row, index, span)
-      if (joined) {
-        span = joined.span
-        text = joined.text
-      }
-    }
+    const span = cellSpan(row.cells, index)
+    const text = cell.text
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
     const characterWidth = this.font.deviceCellWidth * span - deviceSpacing
     const x = cell.x * this.font.deviceCellWidth + this.font.charLeft + characterWidth / 2
@@ -193,57 +171,27 @@ export class CanvasRowPainter {
     this.setFont(this.fonts[style]!)
     this.setFill(this.colors.foreground(this.cellColors[index]!))
     this.setAlpha(cell.style?.faint ? 0.5 : 1)
-    this.context.fillText(text, x, y)
+    if (this.context.glyph) {
+      const colors = this.cellColors[index]!
+      const foreground =
+        this.theme.minimumContrast > 1
+          ? contrastAdjustedColor(colors.foreground, colors.background, this.theme.minimumContrast)
+          : colors.foreground
+      this.context.glyph(
+        {
+          cellSpan: span,
+          foreground,
+          italic: cell.style?.italic ?? false,
+          text,
+          weight: cell.style?.bold ? 'bold' : 'normal',
+        },
+        cell.x * this.font.deviceCellWidth,
+        row.y * this.font.deviceCellHeight,
+      )
+    } else {
+      this.context.fillText(text, x, y)
+    }
     return span
-  }
-
-  private joinGlyph(
-    row: RenderRow,
-    index: number,
-    initialSpan: number,
-  ): { span: number; text: string } | undefined {
-    const first = row.cells[index]!
-    let span = initialSpan
-    let text = first.text
-    const segmenter = (this.segmenter ??= new Intl.Segmenter(undefined, {
-      granularity: 'grapheme',
-    }))
-    for (let offset = 1; offset < span; offset += 1) {
-      if (!this.sameBrush(row, index, index + offset)) return undefined
-    }
-    while (text.charCodeAt(text.length - 1) === 0x200d) {
-      const next = row.cells[index + span]
-      if (!next?.text || next.continuation || next.x !== first.x + span) break
-      const candidate = text + next.text
-      const segments = segmenter.segment(candidate)[Symbol.iterator]()
-      segments.next()
-      if (!segments.next().done) break
-      const nextSpan = cellSpan(row.cells, index + span)
-      for (let offset = span; offset < span + nextSpan; offset += 1) {
-        if (!this.sameBrush(row, index, index + offset)) return undefined
-      }
-      span += nextSpan
-      text = candidate
-    }
-    if (span === initialSpan) return undefined
-    // Shaping joins the glyph, while the native terminal still owns every occupied column.
-    return { span, text }
-  }
-
-  private sameBrush(row: RenderRow, firstIndex: number, nextIndex: number): boolean {
-    const first = row.cells[firstIndex]!
-    const next = row.cells[nextIndex]!
-    if (first.selected !== next.selected || !sameGlyphStyle(first.style, next.style)) return false
-    const left = this.cellColors[firstIndex]!
-    const right = this.cellColors[nextIndex]!
-    return (
-      left.foreground.r === right.foreground.r &&
-      left.foreground.g === right.foreground.g &&
-      left.foreground.b === right.foreground.b &&
-      left.background.r === right.background.r &&
-      left.background.g === right.background.g &&
-      left.background.b === right.background.b
-    )
   }
 
   private setAlpha(value: number): void {
@@ -266,7 +214,7 @@ export class CanvasRowPainter {
 }
 
 function drawUnderline(
-  context: Canvas2dContext,
+  context: PaintTarget,
   style: number,
   x: number,
   y: number,
@@ -290,7 +238,7 @@ function drawUnderline(
   drawPatternUnderline(context, x, lower, font.deviceCellWidth, style === 4)
 }
 
-function drawWavyUnderline(context: Canvas2dContext, x: number, y: number, width: number): void {
+function drawWavyUnderline(context: PaintTarget, x: number, y: number, width: number): void {
   context.beginPath()
   for (let offset = 0; offset < width; offset += 1) {
     const targetY = y - 1 + Math.sin(offset * (Math.PI / 2))
@@ -303,7 +251,7 @@ function drawWavyUnderline(context: Canvas2dContext, x: number, y: number, width
 }
 
 function drawPatternUnderline(
-  context: Canvas2dContext,
+  context: PaintTarget,
   x: number,
   y: number,
   width: number,
@@ -321,7 +269,7 @@ function drawPatternUnderline(
 }
 
 function drawOutlineCursor(
-  context: Canvas2dContext,
+  context: PaintTarget,
   x: number,
   y: number,
   font: TerminalFittedFont,

@@ -91,6 +91,9 @@ export interface RendererMetrics {
   uploadedBytes: number
 }
 
+type TerminalRendererMode = 'auto' | 'canvas2d-fill-text' | 'canvas2d-pixels'
+export type CanvasPaintMode = 'fill-text' | 'pixels'
+
 export interface WebGpuTerminalRendererOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas
   columns: number
@@ -110,6 +113,7 @@ export interface WebGpuTerminalRendererOptions {
   onRowsPainted?: (rows: readonly RenderRow[]) => void
   replaceCanvas?: () => HTMLCanvasElement | OffscreenCanvas
   renderState: GhosttyRenderState | RenderStateSource
+  rendererMode?: TerminalRendererMode
   rows: number
   schedulerClock?: RenderSchedulerClock
   theme?: Partial<RendererTheme>

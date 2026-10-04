@@ -20,7 +20,7 @@ import type { TerminalSubmittedFrame } from './submitted-frame.js'
 import type { TerminalApi, TerminalResult } from './terminal-api.js'
 import { WorkerTerminalExecution } from '../worker/execution.js'
 import { observeWorkerLayout, workerLayout } from '../worker/layout.js'
-import { workerError } from '../worker/structured-errors.js'
+import { TerminalWorkerError, workerError } from '../worker/structured-errors.js'
 import type {
   TerminalAppearance,
   TerminalAppearanceOptions,
@@ -268,6 +268,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
+  private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
   private scrollbar?: TerminalScrollbarController
   private readonly scrollbarOptions?: GhosttyWebGpuTerminalScrollbarOptions
   private readonly scrollbarWidthValue: number
@@ -288,6 +289,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
+    this.rendererMode = options.rendererMode
     this.scrollbarOptions = options.scrollbar
     this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
 
@@ -865,6 +867,15 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     appearance: TerminalAppearance,
   ): Promise<GhosttyWebGpuRenderer | undefined> {
     if (this.execution.kind === 'async') {
+      if (this.rendererMode && this.rendererMode !== 'auto')
+        throw new TerminalWorkerError({
+          code: 'capability',
+          operation: 'renderer.create',
+          status: 501,
+          why: 'Canvas paint modes run in the main-thread terminal.',
+          fix: 'Use the main terminal entry or automatic worker rendering.',
+          internal: { actor: 'worker', capability: 'canvas2d' },
+        })
       this.execution.setFrameListener((snapshot) => this.handleFrame(snapshot))
       await this.execution.open(
         elements,
@@ -902,6 +913,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           ? () => this.replaceRendererCanvas(elements)
           : undefined,
         rows: grid.rows,
+        rendererMode: this.rendererMode,
         theme: appearance.rendererTheme,
       },
       elements.signal,
