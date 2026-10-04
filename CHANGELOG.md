@@ -1,5 +1,18 @@
 # ghostty-webgpu
 
+## 0.3.11
+
+### Patch Changes
+
+- 7bf879b: Remove trailing whitespace from the ZWJ emoji font license so staged diff checks pass.
+- fad6890: Extract local native execution ownership and publish an owned submitted-frame summary for coherent text, cursor and layout observations. Preserve synchronous main-entry authority and commit viewport state before resize observers paint.
+- b055a27: Add bounded, generation-tagged custom OSC observation transport from the official native parser through terminal sessions.
+- b8ae7a0: Add shared benchmark browser provenance and headed-acceptance guards without changing browser launch flags.
+- 74bf7d5: Add the packaged worker terminal source entry and preserve asynchronous key ownership, initial fitted resize events, retained inactive cursor settings and native grids while auto-fit hosts are unmeasurable. Keep atomic output open-only, announce it through accessibility and retain captured geometry when observers reenter. Preserve structured worker opening failures through host cleanup.
+- b830dee: Activate public extension presets and typed handles, claim original input before native encoding, and preserve separate keyless text actions after composition commits and cancellation.
+- 857159e: Cancel the returned frame handle when a supplied clock disposes the render scheduler during its frame request, releasing queued frame work after teardown.
+- de0bf61: Keep worker output announcements pending until a submitted frame includes the posted write. Preserve ordinary, newline and atomic output notifications across queued pre-output frames, and announce newly submitted direct-producer output alongside host writes.
+
 ## 0.3.10
 
 ### Patch Changes
