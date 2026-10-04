@@ -1,5 +1,23 @@
 # ghostty-webgpu
 
+## 0.3.13
+
+### Patch Changes
+
+- 332cf31: Refresh WebGPU viewport rows after scrolling while retaining unchanged cell and glyph records.
+- 833e553: Add an explicit experimental Canvas pixel paint mode with a lazily loaded packed WASM compositor, and preserve native cell ownership in both Canvas paint modes. The main terminal entry accepts the renderer mode; the worker entry reports an explicit capability error for Canvas modes.
+- 8d4694a: Use the shared hotkeys dispatcher for terminal focus, named commands and exported default/shell binding packs. Original input claims stay synchronous; generated input reaches the existing main native owner once.
+- cddda9a: Pack WebGPU glyph uploads into 80-byte records while retaining native glyph data and atlas generation tracking.
+- bd6975b: Reject classic link-provider registration when its validation getter disposes the resolver, keeping the disposed registry empty.
+- aba7b9b: Preserve pending accessibility announcements while replaying the displayed frame, and verify submitted accessibility controls across packaged main and worker terminals.
+- 8d4694a: Connect terminal hotkeys directly to one owned original-input boundary. Preserve synchronous main-host claims, native modes and independent dispatcher lifetime while keeping general extension registration separate.
+- 771dbbe: Upload one bounding changed span per WebGL instance buffer and count the actual requested bytes, preserving native row notifications and full-grid rendering.
+- 74ce1a5: Upload one bounding span per changed WebGPU instance buffer and count the actual bytes requested.
+- 0cbad9f: Commit the worker canvas CSS dimensions from its fitted frame geometry so high pixel ratios retain the intended display size.
+- c2383f2: Connect packaged worker link hover, keyboard discovery and activation to owned native OSC8 and cell snapshots. Keep providers, extension contributions and activation callbacks on the host, reject stale completions after each provider await, and preserve synchronous main-terminal activation.
+- 4872bf9: Connect native-owned selection gestures and atomic copy readback to the packaged worker terminal, with synchronous pointer ownership and activation-preserving default clipboard writes.
+- e78192e: Publish extension input and event dispatch only for interested handlers, and keep native runtime exports on a shared immutable receiver shape across instances.
+
 ## 0.3.11
 
 ### Patch Changes
