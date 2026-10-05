@@ -312,8 +312,11 @@ describe.each(['main', 'worker'] as const)('packaged links lifecycle %s', (mode)
       },
     })
     await writeLabel(terminal)
+    const layout = terminal.submittedFrame!.layout
+    if (mode === 'worker') window.dispatchEvent(new Event('resize'))
     const obsolete = terminal.focusNextLink()
     await expect.poll(() => callsA).toBe(1)
+    expect(terminal.submittedFrame!.layout).toBe(layout)
     await writeLabel(terminal, 'Next label')
     await expect(terminal.focusNextLink()).resolves.toBe(true)
     expect(callsB).toBe(1)
@@ -325,6 +328,60 @@ describe.each(['main', 'worker'] as const)('packaged links lifecycle %s', (mode)
 })
 
 describe('packaged worker link authority transport', () => {
+  it('rejects discovery from the old viewport when host dimensions change', async () => {
+    const { root, terminal } = await open('worker', () => {})
+    let calls = 0
+    const errors: string[] = []
+    terminal.on('error', ({ operation }) => errors.push(operation))
+    terminal.registerLinkProvider({
+      provideLinks: (_line, row) => {
+        calls += 1
+        return row === 0 ? [{ range: { start: 0, end: 9 }, activate: () => {} }] : []
+      },
+    })
+    await writeLabel(terminal)
+    const before = terminal.submittedFrame!
+    root.style.width = '560px'
+    const reply = deferred<Extract<WorkerMessage, { type: 'reply' }>>()
+    const original = MessagePort.prototype.postMessage
+    const transport = vi.spyOn(MessagePort.prototype, 'postMessage').mockImplementation(function (
+      this: MessagePort,
+      message: unknown,
+      options?: StructuredSerializeOptions,
+    ) {
+      const request = message as WorkerRequest
+      if (request.type === 'request' && request.command === 'resolveLinkDiscovery') {
+        const observe = ({ data }: MessageEvent<WorkerMessage>) => {
+          if (data.type !== 'reply' || data.id !== request.id) return
+          this.removeEventListener('message', observe)
+          reply.resolve(data)
+        }
+        this.addEventListener('message', observe)
+      }
+      original.call(this, message, options)
+    })
+    window.dispatchEvent(new Event('resize'))
+    await expect(terminal.focusNextLink()).resolves.toBe(false)
+    expect(calls).toBe(0)
+    expect(errors).toEqual([])
+    const native = await reply.promise
+    expect(native.failure).toBeUndefined()
+    expect(native.result).toBeUndefined()
+    expect(native.state.revision).toBeGreaterThan(before.nativeRevision)
+    const requests = linkRequests(transport.mock.calls)
+    expect(requests).toHaveLength(1)
+    const request = requests.find((request) => request.command === 'resolveLinkDiscovery')
+    expect(request?.args[0].projection.layout).toBe(before.layout)
+    await expect.poll(() => terminal.submittedFrame?.layout).not.toBe(before.layout)
+    expect(terminal.submittedFrame!.grid.columns).toBeGreaterThan(before.grid.columns)
+    expect(terminal.submittedFrame!.nativeRevision).toBeGreaterThan(before.nativeRevision)
+    expect(root.querySelector('[role="link"]')).toBeNull()
+    transport.mockRestore()
+    await expect(terminal.focusNextLink()).resolves.toBe(true)
+    expect(calls).toBe(1)
+    expect(root.querySelector('[role="link"]')?.getAttribute('aria-label')).toBe('Host label')
+  }, 20_000)
+
   it('sends one discovery batch and excludes host callbacks from initialization', async () => {
     const initialize = vi.spyOn(Worker.prototype, 'postMessage')
     const transport = vi.spyOn(MessagePort.prototype, 'postMessage')
