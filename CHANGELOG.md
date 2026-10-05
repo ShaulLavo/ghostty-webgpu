@@ -1,5 +1,13 @@
 # ghostty-webgpu
 
+## 0.3.15
+
+### Patch Changes
+
+- 367e5a7: Reject regressing or nonfinite benchmark CPU counters before aggregation and retain the rejected process ID and counter values in the failure message.
+- fda88dc: Retain packed Canvas glyph stamps when terminal appearance forwarding updates the theme.
+- 0bd8659: Preserve native selection identities across repeated unchanged worker layouts. Keep native operation and result codes in worker failure diagnostics.
+
 ## 0.3.14
 
 ### Patch Changes
