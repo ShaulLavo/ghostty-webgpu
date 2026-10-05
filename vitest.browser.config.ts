@@ -1,7 +1,7 @@
 import { playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
-import { browserFileRoots } from './scripts/browser-file-roots'
+import { browserFileRoots } from './scripts/browser-file-roots.ts'
 import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.ts'
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
