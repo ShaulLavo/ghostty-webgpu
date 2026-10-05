@@ -74,6 +74,12 @@ export function workerError(
 export function serializeWorkerFailure(cause: unknown, operation: string): WorkerFailure {
   if (cause instanceof TerminalWorkerError)
     return workerFailure(cause.code, cause.operation, cause.internal)
+  if (cause instanceof GhosttyError)
+    return workerFailure('execution', operation, {
+      causeType: cause.name,
+      causeOperation: cause.operation,
+      causeResult: cause.result,
+    })
   return workerFailure('execution', operation, {
     causeType: cause instanceof Error ? cause.name : typeof cause,
   })

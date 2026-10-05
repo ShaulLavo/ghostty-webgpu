@@ -72,6 +72,8 @@ it.each(['cancel', 'dispose', 'new press'] as const)(
     await controller.press(projection)
     await terminal.write(' changed')
     const current = await execution.selectionSnapshot()
+    window.dispatchEvent(new Event('resize'))
+    const afterResize = await execution.selectionSnapshot()
     const pending = controller.release(projection)
     const rejection = expect(pending).rejects.toMatchObject({
       code: 'execution',
@@ -85,6 +87,7 @@ it.each(['cancel', 'dispose', 'new press'] as const)(
     const newer = interruption === 'dispose' ? undefined : controller.press(projection)
     await rejection
     await newer
+    expect(afterResize).toEqual(current)
     identity = await execution.selectionSnapshot()
     const drag = { ...projection, position: { x: 60, y: 0 }, viewport: { x: 6, y: 0 } }
     if (interruption === 'dispose') {
@@ -99,6 +102,11 @@ it.each(['cancel', 'dispose', 'new press'] as const)(
     await expect(
       execution.selectionSnapshot(undefined, { ...identity, generation: 0 }),
     ).rejects.toMatchObject({ code: 'execution' })
+    root.style.width = '440px'
+    window.dispatchEvent(new Event('resize'))
+    const changed = await execution.selectionSnapshot()
+    expect(changed.layout).toBeGreaterThan(identity.layout)
+    expect(changed.revision).toBeGreaterThan(identity.revision)
     await expect(
       execution.selectionGesture.selectionPress(
         {
@@ -108,7 +116,7 @@ it.each(['cancel', 'dispose', 'new press'] as const)(
           repeatIntervalNanoseconds: 500_000_000n,
           timeNanoseconds: 1n,
         },
-        { ...identity, layout: identity.layout + 1 },
+        identity,
       ),
     ).rejects.toMatchObject({ code: 'execution' })
   },

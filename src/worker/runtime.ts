@@ -1,5 +1,10 @@
 import { LocalTerminalExecution } from '../dom/execution-local.js'
-import { calculateTerminalFittedFont } from '../dom/fit.js'
+import {
+  calculateTerminalFittedFont,
+  fittedFontEquals,
+  gridEquals,
+  paddingEquals,
+} from '../dom/fit.js'
 import type { GhosttyWebGpuRenderer } from '../dom/types.js'
 import type { InactiveCursorStyle } from '../render/cursor.js'
 import type { RenderSchedulerClock } from '../render/scheduler.js'
@@ -38,6 +43,17 @@ const workerClock: RenderSchedulerClock = {
   clearTimer: (handle) => scope.clearTimeout(handle),
 }
 
+function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
+  return (
+    left.width === right.width &&
+    left.height === right.height &&
+    left.pixelRatio === right.pixelRatio &&
+    left.scrollbarWidth === right.scrollbarWidth &&
+    left.autoFit === right.autoFit &&
+    paddingEquals(left.padding, right.padding)
+  )
+}
+
 export class TerminalWorkerRuntime {
   private execution?: LocalTerminalExecution
   private renderer?: GhosttyWebGpuRenderer
@@ -51,6 +67,7 @@ export class TerminalWorkerRuntime {
   private acceptedControl = 0
   private device?: GPUDevice
   private layout?: WorkerLayout
+  private layoutFont?: TerminalFittedFont
   private disposed = false
   private chain = Promise.resolve()
   private outputWaiter?: {
@@ -147,7 +164,8 @@ export class TerminalWorkerRuntime {
   private applyLayout(layout: WorkerLayout): void {
     if (this.layout && layout.identity < this.layout.identity) return
     const execution = this.native()
-    const initial = this.layout === undefined
+    const previous = this.layout
+    const initial = previous === undefined
     this.layout = layout
     const padding = layout.padding
     const width = layout.width - padding.left - padding.right - layout.scrollbarWidth
@@ -164,7 +182,22 @@ export class TerminalWorkerRuntime {
     const rows = layout.autoFit
       ? Math.max(1, Math.floor(height / font.cssCellHeight))
       : execution.grid.rows
+    if (
+      previous &&
+      this.layoutFont &&
+      layoutEquals(previous, layout) &&
+      fittedFontEquals(this.layoutFont, font) &&
+      gridEquals(execution.grid, {
+        columns,
+        rows,
+        cellWidth: font.cssCellWidth,
+        cellHeight: font.cssCellHeight,
+        pixelRatio: font.pixelRatio,
+      })
+    )
+      return
     // No await splits the font, native grid and renderer commit.
+    this.layoutFont = font
     execution.commitLayout(font, padding)
     this.renderer?.setFont(font)
     execution.resize({

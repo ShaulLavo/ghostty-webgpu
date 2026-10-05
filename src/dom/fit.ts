@@ -285,11 +285,13 @@ function fontEquals(left: TerminalFitFont, right: TerminalFitFont): boolean {
   )
 }
 
-function fittedFontEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
+export function fittedFontEquals(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
   if (!fontEquals(left.settings, right.settings)) return false
   return (
     left.charLeft === right.charLeft &&
     left.charTop === right.charTop &&
+    left.cssCellHeight === right.cssCellHeight &&
+    left.cssCellWidth === right.cssCellWidth &&
     left.deviceBaseline === right.deviceBaseline &&
     left.deviceCellHeight === right.deviceCellHeight &&
     left.deviceCellWidth === right.deviceCellWidth &&
@@ -299,7 +301,10 @@ function fittedFontEquals(left: TerminalFittedFont, right: TerminalFittedFont): 
   )
 }
 
-function paddingEquals(left: TerminalElementPadding, right: TerminalElementPadding): boolean {
+export function paddingEquals(
+  left: TerminalElementPadding,
+  right: TerminalElementPadding,
+): boolean {
   return (
     left.bottom === right.bottom &&
     left.left === right.left &&
@@ -308,7 +313,7 @@ function paddingEquals(left: TerminalElementPadding, right: TerminalElementPaddi
   )
 }
 
-function gridEquals(left: TerminalFitGrid, right: TerminalFitGrid): boolean {
+export function gridEquals(left: TerminalFitGrid, right: TerminalFitGrid): boolean {
   return (
     left.cellHeight === right.cellHeight &&
     left.cellWidth === right.cellWidth &&

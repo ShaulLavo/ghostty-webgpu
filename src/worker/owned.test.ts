@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest'
+import { GhosttyError } from '../core/error.js'
 import { freezeWorkerValue } from './owned.js'
 import { serializeWorkerFailure, workerError } from './structured-errors.js'
 
@@ -34,4 +35,22 @@ it('carries structured runtime facts without serializing arbitrary exception tex
   const unknown = serializeWorkerFailure(new TypeError('private payload'), 'startup')
   expect(unknown.internal).toEqual({ causeType: 'TypeError' })
   expect(JSON.stringify(unknown)).not.toContain('private payload')
+})
+
+it('keeps native operation and result receipts without exception text', () => {
+  const cause = new GhosttyError('private payload', {
+    operation: 'ghostty_selection_gesture_event(PRESS)',
+    result: -2,
+  })
+  const failure = serializeWorkerFailure(cause, 'selectionPress')
+  expect(failure).toMatchObject({
+    code: 'execution',
+    operation: 'selectionPress',
+    internal: {
+      causeType: 'GhosttyError',
+      causeOperation: 'ghostty_selection_gesture_event(PRESS)',
+      causeResult: -2,
+    },
+  })
+  expect(JSON.stringify(failure)).not.toContain('private payload')
 })
