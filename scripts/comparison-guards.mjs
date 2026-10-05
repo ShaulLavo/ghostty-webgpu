@@ -18,7 +18,12 @@ export function cpuSample(before, after, milliseconds) {
   )
   const secondsByType = {}
   for (const entry of after) {
-    const delta = Math.max(0, entry.cpuTime - prior.get(entry.id).cpuTime)
+    const previous = prior.get(entry.id).cpuTime
+    const delta = entry.cpuTime - previous
+    assert(
+      Number.isFinite(delta) && delta >= 0,
+      `CPU counter delta invalid for process ${entry.id}: before=${previous} after=${entry.cpuTime}`,
+    )
     secondsByType[entry.type] = (secondsByType[entry.type] ?? 0) + delta
   }
   return {

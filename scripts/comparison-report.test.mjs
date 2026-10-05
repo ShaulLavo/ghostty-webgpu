@@ -394,6 +394,36 @@ test('CPU sampling rejects both newly born and exited processes', () => {
   )
 })
 
+test('CPU sampling rejects counter regression with an unchanged process set', () => {
+  const before = [
+    { id: 1, type: 'renderer', cpuTime: 100 },
+    { id: 2, type: 'GPU', cpuTime: 100 },
+  ]
+  const flat = [
+    { id: 1, type: 'renderer', cpuTime: 102 },
+    { id: 2, type: 'GPU', cpuTime: 100 },
+  ]
+  const valid = cpuSample(before, flat, 10000)
+  assert.deepEqual(valid.secondsByType, { renderer: 2, GPU: 0 })
+  assert.equal(valid.percentOfOneCore, 20)
+  assert.equal(valid.before, before)
+  assert.equal(valid.after, flat)
+  assert.throws(
+    () => cpuSample(before, [flat[0], { id: 2, type: 'GPU', cpuTime: 99 }], 10000),
+    /CPU counter delta invalid for process 2: before=100 after=99/,
+  )
+})
+
+test('CPU sampling rejects nonfinite counter deltas', () => {
+  const before = [{ id: 1, type: 'renderer', cpuTime: 100 }]
+  for (const cpuTime of [NaN, Infinity, -Infinity]) {
+    assert.throws(
+      () => cpuSample(before, [{ id: 1, type: 'renderer', cpuTime }], 10000),
+      /CPU counter delta invalid for process 1/,
+    )
+  }
+})
+
 test('asset verification rejects modified bytes before serving', () => {
   const bytes = Buffer.from('asset')
   const hash = createHash('sha256').update(bytes).digest('hex')
