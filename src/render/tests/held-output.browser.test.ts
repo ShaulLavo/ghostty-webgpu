@@ -209,6 +209,7 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
       reject(createGhosttyError('held xterm fixture', 'The stylesheet failed to load', cause))
   })
   const terminal = new Xterm({
+    allowProposedApi: true,
     cols: 24,
     rows: 4,
     fontFamily: font.family,
@@ -224,6 +225,14 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
   terminal.onRender(() => {
     frames += 1
   })
+  let refreshBeforeHold = false
+  terminal.parser.registerCsiHandler({ prefix: '?', final: 'h' }, (params) => {
+    if (!refreshBeforeHold || !params.includes(2026)) return false
+    // Queue beside DEC 2026 so asynchronous parsing precedes the queued animation frame.
+    terminal.refresh(0, 3)
+    refreshBeforeHold = false
+    return false
+  })
   const write = (value: string) => new Promise<void>((resolve) => terminal.write(value, resolve))
   await write('\x1b[?25l\x1b[2J\x1b[H')
   const screen = host.querySelector('.xterm-screen') as HTMLDivElement
@@ -233,7 +242,7 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
       await write(`${held ? '\x1b[?2026h' : ''}${output(color)}`)
     },
     async queue() {
-      terminal.refresh(0, 3)
+      refreshBeforeHold = true
     },
     async stimulate() {
       terminal.refresh(0, 3)
