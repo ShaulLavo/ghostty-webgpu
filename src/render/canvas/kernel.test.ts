@@ -13,21 +13,70 @@ let directory = ''
 beforeAll(async () => {
   if (!compilerAvailable) return
   directory = mkdtempSync(join(tmpdir(), 'canvas-compose-'))
-  for (const scalar of [true, false]) {
-    const output = join(directory, scalar ? 'scalar.wasm' : 'simd.wasm')
-    execFileSync('bun', [
-      resolve(root, 'scripts/build-canvas-compose.ts'),
-      '--output',
-      output,
-      ...(scalar ? ['--scalar'] : []),
-    ])
-    const { instance } = await WebAssembly.instantiate(readFileSync(output))
-    arms.push(new ComposeKernel(instance.exports as unknown as ComposeExports))
+  for (const language of ['c', 'zig']) {
+    for (const scalar of [true, false]) {
+      const output = join(directory, `${language}-${scalar ? 'scalar' : 'simd'}.wasm`)
+      if (language === 'zig') buildZig(output, scalar)
+      if (language === 'c') buildOracle(output, scalar)
+      const { instance, module } = await WebAssembly.instantiate(readFileSync(output))
+      expect(WebAssembly.Module.imports(module)).toEqual([])
+      expect(
+        WebAssembly.Module.exports(module)
+          .map((entry) => `${entry.name}:${entry.kind}`)
+          .sort(),
+      ).toEqual(
+        [
+          'memory:memory',
+          'compose_alloc:function',
+          'compose_free:function',
+          'compose_clear:function',
+          'compose_fill:function',
+          'compose_stamp:function',
+          'compose_move:function',
+        ].sort(),
+      )
+      arms.push(new ComposeKernel(instance.exports as unknown as ComposeExports))
+    }
   }
 })
 afterAll(() => {
   if (directory) rmSync(directory, { recursive: true, force: true })
 })
+
+function buildZig(output: string, scalar: boolean): void {
+  execFileSync('bun', [
+    resolve(root, 'scripts/build-canvas-compose.ts'),
+    '--output',
+    output,
+    ...(scalar ? ['--scalar'] : []),
+  ])
+}
+
+function buildOracle(output: string, scalar: boolean): void {
+  execFileSync('zig', [
+    'cc',
+    '--target=wasm32-freestanding',
+    '-O3',
+    '-nostdlib',
+    '-fno-builtin',
+    '-ffp-contract=off',
+    '-fno-fast-math',
+    scalar ? '-mno-simd128' : '-msimd128',
+    ...(scalar ? [] : ['-DCOMPOSE_SIMD=1']),
+    '-Wl,--no-entry',
+    '-Wl,--export-memory',
+    '-Wl,-z,stack-size=65536',
+    '-Wl,--initial-memory=131072',
+    '-Wl,--max-memory=268435456',
+    '-Wl,--strip-all',
+    ...['alloc', 'free', 'clear', 'fill', 'stamp', 'move'].map(
+      (name) => `-Wl,--export=compose_${name}`,
+    ),
+    resolve(root, 'src/render/canvas/tests/compose-oracle.c'),
+    '-o',
+    output,
+  ])
+}
 
 function packed(r: number, g: number, b: number, a: number): number {
   return (r | (g << 8) | (b << 16) | (a << 24)) >>> 0
@@ -81,8 +130,77 @@ function fill(
 }
 
 describe.skipIf(!compilerAvailable)(
-  'packed scalar and SIMD composition (requires Zig bundled Clang and WASM linker)',
+  'C and Zig scalar/SIMD composition (requires Zig compiler and bundled Clang)',
   () => {
+    it('keeps ordinary unshared memory and the original initial size and growth ceiling', () => {
+      for (const arm of arms) {
+        expect(arm.memory.buffer).toBeInstanceOf(ArrayBuffer)
+        expect(arm.memory.buffer.byteLength).toBe(131072)
+        expect(() => arm.memory.grow(4096)).toThrow(RangeError)
+      }
+    })
+
+    it('rejects wide source extents and preserves signed offscreen clipping before writes', () => {
+      for (const arm of arms) {
+        const ptr = arm.allocate(64)
+        const source = arm.allocate(4)
+        view(arm, ptr, 64).fill(71)
+        for (const [sw, sh, stride, kind] of [
+          [0xffffffff, 0xffffffff, 0xffffffff, 4],
+          [1, 0xffffffff, 0xffffffff, 1],
+          [0xffffffff, 1, 0xffffffff, 1],
+        ])
+          expect(
+            arm.exports.compose_stamp(
+              ptr,
+              4,
+              4,
+              source,
+              sw!,
+              sh!,
+              stride!,
+              kind!,
+              -0x80000000,
+              0x7fffffff,
+              0,
+              0,
+              4,
+              4,
+              0xffffffff,
+              65535,
+            ),
+          ).toBe(0)
+        for (const [x, y] of [
+          [-0x80000000, 0],
+          [0, -0x80000000],
+          [0x7fffffff, 0x7fffffff],
+        ])
+          expect(
+            arm.exports.compose_stamp(
+              ptr,
+              4,
+              4,
+              source,
+              1,
+              1,
+              4,
+              4,
+              x!,
+              y!,
+              0,
+              0,
+              4,
+              4,
+              0xffffffff,
+              65535,
+            ),
+          ).toBe(1)
+        expect([...view(arm, ptr, 64)]).toEqual(Array(64).fill(71))
+        arm.release(source)
+        arm.release(ptr)
+      }
+    })
+
     it('preserves transparency, ordered overlap, alpha-zero bytes and faint', () => {
       for (const kernel of arms) {
         const ptr = kernel.allocate(4)
@@ -182,7 +300,7 @@ describe.skipIf(!compilerAvailable)(
       }
     })
 
-    it('matches scalar for random repeated overlaps, unaligned bytes and nonvector tails', () => {
+    it('matches the C oracle for random repeated overlaps, unaligned bytes and nonvector tails', () => {
       let seed = 0x51cafe
       const random = () => {
         seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
@@ -204,9 +322,10 @@ describe.skipIf(!compilerAvailable)(
       arms.forEach((arm, index) => {
         arm.check(arm.exports.compose_clear(pointers[index]! + 1, 7, 9, 1, 2, 5, 3))
       })
-      expect(view(arms[0]!, pointers[0]! + 1, expected.length)).toEqual(
-        view(arms[1]!, pointers[1]! + 1, expected.length),
-      )
+      for (let index = 1; index < arms.length; index++)
+        expect(view(arms[index]!, pointers[index]! + 1, expected.length)).toEqual(
+          view(arms[0]!, pointers[0]! + 1, expected.length),
+        )
       arms.forEach((arm, index) => arm.release(pointers[index]!))
     })
 
@@ -323,7 +442,7 @@ describe.skipIf(!compilerAvailable)(
     })
 
     it('records packed quantization error versus retained f32 oracle without claiming a tolerance', () => {
-      const kernel = arms[1]!
+      const kernel = arms[3]!
       const ptr = kernel.allocate(4)
       const f = Math.fround
       const reports = []
