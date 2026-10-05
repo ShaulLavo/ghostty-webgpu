@@ -1,5 +1,12 @@
 # ghostty-webgpu
 
+## 0.3.14
+
+### Patch Changes
+
+- f45f31d: Share the default WebGPU device across terminals and submit their separate canvas command buffers together in one render turn. Retain independent terminal resources, device leases, and frame snapshots before delivering callbacks.
+- 518168b: Acquire a fresh WebGPU device when a terminal worker recovers from device loss.
+
 ## 0.3.13
 
 ### Patch Changes
