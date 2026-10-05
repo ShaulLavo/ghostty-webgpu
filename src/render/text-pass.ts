@@ -48,6 +48,7 @@ function blendState(): GPUBlendState {
 }
 
 export class WebGpuTextPass {
+  private readonly ownedBuffers: GPUBuffer[] = []
   private readonly cellBuffer: GPUBuffer
   private readonly device: GPUDevice
   private readonly glyphBuffer: GPUBuffer
@@ -69,20 +70,26 @@ export class WebGpuTextPass {
   constructor(options: WebGpuTextPassOptions) {
     this.device = options.device
     this.instanceCount = options.instanceCount
-    this.cellBuffer = this.createStorageBuffer(options.instanceCount * CELL_INSTANCE_BYTES)
-    this.glyphBuffer = this.createStorageBuffer(options.instanceCount * GPU_GLYPH_INSTANCE_BYTES)
-    this.glyphUploadWords = new Uint32Array(options.instanceCount * GPU_GLYPH_INSTANCE_FLOATS)
-    this.viewportBuffer = options.device.createBuffer({
-      size: 16,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
-    })
-    this.sampler = options.device.createSampler({ magFilter: 'linear', minFilter: 'linear' })
-    options.device.queue.writeBuffer(
-      this.viewportBuffer,
-      0,
-      new Float32Array([options.width, options.height, 0, 0]),
-    )
-    this.resources = this.createPipelines(options.format)
+    try {
+      this.cellBuffer = this.createStorageBuffer(options.instanceCount * CELL_INSTANCE_BYTES)
+      this.glyphBuffer = this.createStorageBuffer(options.instanceCount * GPU_GLYPH_INSTANCE_BYTES)
+      this.glyphUploadWords = new Uint32Array(options.instanceCount * GPU_GLYPH_INSTANCE_FLOATS)
+      this.viewportBuffer = options.device.createBuffer({
+        size: 16,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+      })
+      this.ownedBuffers.push(this.viewportBuffer)
+      this.sampler = options.device.createSampler({ magFilter: 'linear', minFilter: 'linear' })
+      options.device.queue.writeBuffer(
+        this.viewportBuffer,
+        0,
+        new Float32Array([options.width, options.height, 0, 0]),
+      )
+      this.resources = this.createPipelines(options.format)
+    } catch (cause) {
+      this.destroy()
+      throw cause
+    }
   }
 
   syncAtlas(textures: AtlasGpuTextures): void {
@@ -128,6 +135,16 @@ export class WebGpuTextPass {
   }
 
   submit(view: GPUTextureView, copy?: TextPassCopy): void {
+    this.device.queue.submit([this.encode(view, copy)])
+    this.acceptFrame()
+  }
+
+  acceptFrame(): void {
+    this.metrics.draws += 2
+    this.metrics.submittedFrames += 1
+  }
+
+  encode(view: GPUTextureView, copy?: TextPassCopy): GPUCommandBuffer {
     if (!this.glyphBindGroup) throw new Error('Atlas textures must be synchronized before drawing')
     const encoder = this.device.createCommandEncoder()
     const pass = encoder.beginRenderPass({
@@ -154,15 +171,11 @@ export class WebGpuTextPass {
         copy.size,
       )
     }
-    this.device.queue.submit([encoder.finish()])
-    this.metrics.draws += 2
-    this.metrics.submittedFrames += 1
+    return encoder.finish()
   }
 
   destroy(): void {
-    this.cellBuffer.destroy()
-    this.glyphBuffer.destroy()
-    this.viewportBuffer.destroy()
+    for (const buffer of this.ownedBuffers) buffer.destroy()
   }
 
   private createPipelines(format: GPUTextureFormat): PipelineResources {
@@ -203,10 +216,12 @@ export class WebGpuTextPass {
   }
 
   private createStorageBuffer(size: number): GPUBuffer {
-    return this.device.createBuffer({
+    const buffer = this.device.createBuffer({
       size,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     })
+    this.ownedBuffers.push(buffer)
+    return buffer
   }
 
   private packGlyphRange(

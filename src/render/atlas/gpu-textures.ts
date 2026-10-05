@@ -38,12 +38,17 @@ function createTexture(
     },
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC | GPUTextureUsage.TEXTURE_BINDING,
   })
-  const view = texture.createView({
-    arrayLayerCount: layout.layerCount,
-    baseArrayLayer: 0,
-    dimension: '2d-array',
-  })
-  return { texture, view }
+  try {
+    const view = texture.createView({
+      arrayLayerCount: layout.layerCount,
+      baseArrayLayer: 0,
+      dimension: '2d-array',
+    })
+    return { texture, view }
+  } catch (cause) {
+    texture.destroy()
+    throw cause
+  }
 }
 
 export class AtlasGpuTextures {
@@ -57,9 +62,12 @@ export class AtlasGpuTextures {
     validateLayout(device, layout)
     this.device = device
     this.layout = layout
-    this.textures = {
-      color: createTexture(device, 'color', layout),
-      grayscale: createTexture(device, 'grayscale', layout),
+    const color = createTexture(device, 'color', layout)
+    try {
+      this.textures = { color, grayscale: createTexture(device, 'grayscale', layout) }
+    } catch (cause) {
+      color.texture.destroy()
+      throw cause
     }
   }
 

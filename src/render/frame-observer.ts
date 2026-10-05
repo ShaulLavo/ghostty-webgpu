@@ -46,14 +46,20 @@ export class FrameObserver {
     changed: readonly number[],
     rows?: readonly RenderRow[],
   ): void {
+    this.capture(state, cursor, paintedCursor, changed, rows)()
+  }
+
+  capture(
+    state: RenderStateSource,
+    cursor: RenderCursorSnapshot,
+    paintedCursor: Readonly<CursorState> | undefined,
+    changed: readonly number[],
+    rows?: readonly RenderRow[],
+  ): () => void {
     const generation = ++this.generation
     const { onFrame, onTextFrame, onRowsChanged, onRowsPainted } = this.options
-    if (!onFrame && !onTextFrame) {
-      if (rows) onRowsPainted?.(rows)
-      if (generation !== this.generation) return
-      onRowsChanged?.(Object.freeze([...changed]))
-      return
-    }
+    const changedRows = Object.freeze([...changed])
+    if (!onFrame && !onTextFrame) return this.rowDelivery(generation, changedRows, rows)
     if (this.rowsNeeded) this.updateRows(state, changed, rows)
     else this.resize()
     const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
@@ -73,13 +79,30 @@ export class FrameObserver {
           rows: Object.freeze(this.textRows.filter(defined)),
         })
       : undefined
-    if (fullFrame) onFrame?.(fullFrame)
-    if (generation !== this.generation) return
-    if (textFrame) onTextFrame?.(textFrame)
-    if (generation !== this.generation) return
-    if (rows) onRowsPainted?.(rows)
-    if (generation !== this.generation) return
-    onRowsChanged?.(Object.freeze([...changed]))
+    return () => {
+      if (generation !== this.generation) return
+      if (fullFrame) onFrame?.(fullFrame)
+      if (generation !== this.generation) return
+      if (textFrame) onTextFrame?.(textFrame)
+      if (generation !== this.generation) return
+      if (rows) onRowsPainted?.(rows)
+      if (generation !== this.generation) return
+      onRowsChanged?.(changedRows)
+    }
+  }
+
+  private rowDelivery(
+    generation: number,
+    changed: readonly number[],
+    rows: readonly RenderRow[] | undefined,
+  ): () => void {
+    const { onRowsChanged, onRowsPainted } = this.options
+    return () => {
+      if (generation !== this.generation) return
+      if (rows) onRowsPainted?.(rows)
+      if (generation !== this.generation) return
+      onRowsChanged?.(changed)
+    }
   }
 
   private updateRows(

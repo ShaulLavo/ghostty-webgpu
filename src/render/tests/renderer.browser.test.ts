@@ -197,6 +197,58 @@ async function waitForDeviceCleanup(): Promise<void> {
   await new Promise<void>((resolve) => window.setTimeout(resolve, deviceCleanupDelayMs))
 }
 
+it('shares the default device across canvases while disposal, failure and reopening remain isolated', async () => {
+  const requests = vi.spyOn(GPUAdapter.prototype, 'requestDevice')
+  const clocks = [new FakeClock(), new FakeClock(), new FakeClock()]
+  const canvases = [createCanvas(), createCanvas(), createCanvas()]
+  const create = (index: number) =>
+    createRenderer({
+      canvas: canvases[index]!,
+      columns: 2,
+      rows: 2,
+      deviceFactory: undefined,
+      font: fittedFont(),
+      renderState: new FakeRenderState(2, 2),
+      schedulerClock: clocks[index]!,
+    })
+  const [first, second] = await Promise.all([create(0), create(1)])
+  expect(requests).toHaveBeenCalledOnce()
+  const shared = await requests.mock.results[0]!.value
+  devices.add(shared)
+  const destroy = vi.spyOn(shared, 'destroy')
+  clocks[0]!.flushFrame()
+  clocks[1]!.flushFrame()
+  const before = await second.capturePixels()
+  expect(before.some((value) => value !== 0)).toBe(true)
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  second.refreshRows(0, 1)
+  clocks[1]!.flushFrame()
+  expect(await second.capturePixels()).toEqual(before)
+  first.dispose()
+  expect(destroy).not.toHaveBeenCalled()
+  const context = canvases[2]!.getContext('webgpu')!
+  const configure = vi.spyOn(context, 'configure').mockImplementationOnce(() => {
+    throw new TypeError('peer configure failed')
+  })
+  await expect(create(2)).rejects.toThrow('peer configure failed')
+  configure.mockRestore()
+  expect(destroy).not.toHaveBeenCalled()
+  second.refreshRows(0, 1)
+  clocks[1]!.flushFrame()
+  expect(await second.capturePixels()).toEqual(before)
+  const reopened = await create(2)
+  clocks[2]!.flushFrame()
+  expect(requests).toHaveBeenCalledOnce()
+  expect(await reopened.capturePixels()).toEqual(before)
+  second.dispose()
+  expect(destroy).not.toHaveBeenCalled()
+  reopened.dispose()
+  await shared.lost
+  expect(destroy).toHaveBeenCalledOnce()
+  requests.mockRestore()
+  for (const canvas of canvases) canvas.remove()
+})
+
 async function createRenderer(
   options: WebGpuTerminalRendererOptions,
 ): Promise<WebGpuTerminalRenderer> {
@@ -1437,5 +1489,467 @@ it('retains identical GPU records when output scrolls the viewport', async () =>
     terminal.dispose()
     runtime.dispose()
     canvas.remove()
+  }
+})
+
+it('submits both default surfaces before callbacks can reenter a peer terminal', async () => {
+  const sources = [new FakeRenderState(2, 2), new FakeRenderState(2, 2)]
+  const canvases = [createCanvas(), createCanvas()]
+  let armed = false
+  let peer: WebGpuTerminalRenderer | undefined
+  let acknowledgedAtCallback = 0
+  const pair = await Promise.all(
+    sources.map((source, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 2,
+        rows: 2,
+        deviceFactory: undefined,
+        font: fittedFont(),
+        renderState: source,
+        onFrame:
+          index === 0
+            ? () => {
+                if (!armed || !peer) return
+                armed = false
+                acknowledgedAtCallback = sources[1]!.acknowledgements
+                sources[1]!.dirtyRow(1)
+                peer.notifyWrite()
+              }
+            : undefined,
+      }),
+    ),
+  )
+  peer = pair[1]!
+  await expect
+    .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+    .toBe(true)
+  const before = pair.map((renderer) => renderer.metrics.submittedFrames)
+  const acknowledgedBefore = sources[1]!.acknowledgements
+  const submissions = vi.spyOn(GPUQueue.prototype, 'submit')
+  armed = true
+  sources[0]!.dirtyRow(0)
+  sources[1]!.dirtyRow(0)
+  pair[0]!.notifyWrite()
+  pair[1]!.notifyWrite()
+  await expect.poll(() => pair[1]!.metrics.submittedFrames).toBe(before[1]! + 2)
+  expect(pair[0]!.metrics.submittedFrames).toBe(before[0]! + 1)
+  expect(acknowledgedAtCallback).toBe(acknowledgedBefore + 1)
+  expect(submissions.mock.calls.map((call) => Array.from(call[0]).length)).toEqual([2, 1])
+  submissions.mockRestore()
+  for (const renderer of pair) renderer.dispose()
+  for (const canvas of canvases) canvas.remove()
+})
+
+it('repaints default surfaces after one combined queue failure without acknowledging the failed frame', async () => {
+  const sources = [new FakeRenderState(2, 2), new FakeRenderState(2, 2)]
+  const canvases = [createCanvas(), createCanvas()]
+  const failures: number[][] = []
+  const frames = [vi.fn(), vi.fn()]
+  const pair = await Promise.all(
+    sources.map((source, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 2,
+        rows: 2,
+        deviceFactory: undefined,
+        font: fittedFont(),
+        renderState: source,
+        onFrame: frames[index]!,
+        onError: () => {
+          failures.push(sources.map((state) => state.acknowledgements))
+        },
+      }),
+    ),
+  )
+  await expect
+    .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+    .toBe(true)
+  const before = pair.map((renderer) => renderer.metrics.submittedFrames)
+  const acknowledgedBefore = sources.map((source) => source.acknowledgements)
+  const callbacksBefore = frames.map((frame) => frame.mock.calls.length)
+  const submissions = vi.spyOn(GPUQueue.prototype, 'submit').mockImplementationOnce(() => {
+    throw new TypeError('injected combined queue failure')
+  })
+  sources[0]!.dirtyRow(0)
+  sources[1]!.dirtyRow(0)
+  pair[0]!.notifyWrite()
+  pair[1]!.notifyWrite()
+  await expect
+    .poll(() =>
+      pair.every((renderer, index) => renderer.metrics.submittedFrames === before[index]! + 1),
+    )
+    .toBe(true)
+  expect(failures).toEqual([acknowledgedBefore, acknowledgedBefore])
+  expect(sources.map((source) => source.acknowledgements)).toEqual(
+    acknowledgedBefore.map((value) => value + 1),
+  )
+  expect(frames.map((frame) => frame.mock.calls.length)).toEqual(
+    callbacksBefore.map((value) => value + 1),
+  )
+  expect(submissions.mock.calls.map((call) => Array.from(call[0]).length)).toEqual([2, 2])
+  submissions.mockRestore()
+  for (const renderer of pair) renderer.dispose()
+  for (const canvas of canvases) canvas.remove()
+})
+
+it('captures peer text snapshots before a callback updates that peers native state', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminals = [
+    runtime.createTerminal({ columns: 8, rows: 1 }),
+    runtime.createTerminal({ columns: 8, rows: 1 }),
+  ]
+  const states = terminals.map((terminal) => runtime.createRenderState(terminal))
+  const canvases = [createCanvas(), createCanvas()]
+  const text: string[] = []
+  let armed = false
+  let peer: WebGpuTerminalRenderer | undefined
+  terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
+  const pair = await Promise.all(
+    states.map((state, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 8,
+        rows: 1,
+        font: fittedFont(),
+        renderState: state,
+        deviceFactory: undefined,
+        onFrame:
+          index === 0
+            ? () => {
+                if (!armed || !peer) return
+                armed = false
+                terminals[1]!.write('\r\x1b[2Kinner')
+                states[1]!.update()
+                peer.notifyWrite()
+              }
+            : undefined,
+        onTextFrame:
+          index === 1
+            ? (snapshot) => {
+                text.push(snapshot.rows[0]!.text.trimEnd())
+              }
+            : undefined,
+      }),
+    ),
+  )
+  peer = pair[1]!
+  try {
+    await expect
+      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+      .toBe(true)
+    text.length = 0
+    armed = true
+    terminals[0]!.write('\r\x1b[2Ktrigger')
+    terminals[1]!.write('\r\x1b[2Kouter')
+    pair.forEach((renderer) => renderer.notifyWrite())
+    await expect.poll(() => text.length).toBe(2)
+    expect(text).toEqual(['outer', 'inner'])
+  } finally {
+    pair.forEach((renderer) => renderer.dispose())
+    states.forEach((state) => state.dispose())
+    terminals.forEach((terminal) => terminal.dispose())
+    runtime.dispose()
+    canvases.forEach((canvas) => canvas.remove())
+  }
+})
+
+it('a submitted callback can dispose its peer without notifying that peer or retiring the shared device', async () => {
+  const requests = vi.spyOn(GPUAdapter.prototype, 'requestDevice')
+  const sources = [new FakeRenderState(2, 2), new FakeRenderState(2, 2)]
+  const canvases = [createCanvas(), createCanvas(), createCanvas()]
+  const peerFrame = vi.fn()
+  let armed = false
+  let peer: WebGpuTerminalRenderer | undefined
+  const pair = await Promise.all(
+    sources.map((source, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 2,
+        rows: 2,
+        font: fittedFont(),
+        renderState: source,
+        deviceFactory: undefined,
+        onFrame:
+          index === 0
+            ? () => {
+                if (armed) {
+                  armed = false
+                  peer?.dispose()
+                }
+              }
+            : peerFrame,
+      }),
+    ),
+  )
+  peer = pair[1]!
+  await expect
+    .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+    .toBe(true)
+  const device = await requests.mock.results[0]!.value
+  devices.add(device)
+  const destroy = vi.spyOn(device, 'destroy')
+  const acknowledgements = sources[1]!.acknowledgements
+  peerFrame.mockClear()
+  sources.forEach((source) => source.dirtyRow(0))
+  armed = true
+  pair.forEach((renderer) => renderer.notifyWrite())
+  await expect.poll(() => sources[1]!.acknowledgements).toBe(acknowledgements + 1)
+  expect(peerFrame).not.toHaveBeenCalled()
+  expect(destroy).not.toHaveBeenCalled()
+  const reopened = await createRenderer({
+    canvas: canvases[2]!,
+    columns: 2,
+    rows: 2,
+    font: fittedFont(),
+    renderState: new FakeRenderState(2, 2),
+    deviceFactory: undefined,
+  })
+  await expect.poll(() => reopened.metrics.submittedFrames).toBe(1)
+  expect(requests).toHaveBeenCalledOnce()
+  expect(destroy).not.toHaveBeenCalled()
+  pair[0]!.dispose()
+  expect(destroy).not.toHaveBeenCalled()
+  reopened.dispose()
+  await device.lost
+  expect(destroy).toHaveBeenCalledOnce()
+  requests.mockRestore()
+  canvases.forEach((canvas) => canvas.remove())
+})
+
+it('flushes accepted peer work before a clean callback mutates its native state', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminals = [
+    runtime.createTerminal({ columns: 8, rows: 1 }),
+    runtime.createTerminal({ columns: 8, rows: 1 }),
+  ]
+  const states = terminals.map((terminal) => runtime.createRenderState(terminal))
+  const canvases = [createCanvas(), createCanvas()]
+  const text: string[] = []
+  let armed = false
+  let painted: WebGpuTerminalRenderer | undefined
+  terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
+  const pair = await Promise.all(
+    states.map((state, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 8,
+        rows: 1,
+        font: fittedFont(),
+        renderState: state,
+        deviceFactory: undefined,
+        onTextFrame:
+          index === 0
+            ? (snapshot) => {
+                text.push(snapshot.rows[0]!.text.trimEnd())
+              }
+            : undefined,
+        onCleanUpdate:
+          index === 1
+            ? () => {
+                if (!armed || !painted) return
+                armed = false
+                terminals[0]!.write('\r\x1b[2Kinner')
+                states[0]!.update()
+                painted.notifyWrite()
+              }
+            : undefined,
+      }),
+    ),
+  )
+  painted = pair[0]!
+  try {
+    await expect
+      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+      .toBe(true)
+    text.length = 0
+    armed = true
+    terminals[0]!.write('\r\x1b[2Kouter')
+    pair[0]!.notifyWrite()
+    pair[1]!.schedule()
+    await expect.poll(() => text.length).toBe(2)
+    expect(text).toEqual(['outer', 'inner'])
+  } finally {
+    pair.forEach((renderer) => renderer.dispose())
+    states.forEach((state) => state.dispose())
+    terminals.forEach((terminal) => terminal.dispose())
+    runtime.dispose()
+    canvases.forEach((canvas) => canvas.remove())
+  }
+})
+
+it('flushes accepted peer work before an error callback mutates its native state', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminals = [
+    runtime.createTerminal({ columns: 8, rows: 1 }),
+    runtime.createTerminal({ columns: 8, rows: 1 }),
+  ]
+  const states = terminals.map((terminal) => runtime.createRenderState(terminal))
+  const canvases = [createCanvas(), createCanvas()]
+  const text: string[] = []
+  let armed = false
+  let painted: WebGpuTerminalRenderer | undefined
+  terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
+  const pair = await Promise.all(
+    states.map((state, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 8,
+        rows: 1,
+        font: fittedFont(),
+        renderState: state,
+        deviceFactory: undefined,
+        onTextFrame:
+          index === 0
+            ? (snapshot) => {
+                text.push(snapshot.rows[0]!.text.trimEnd())
+              }
+            : undefined,
+        onError:
+          index === 1
+            ? () => {
+                if (!armed || !painted) return
+                armed = false
+                terminals[0]!.write('\r\x1b[2Kinner')
+                states[0]!.update()
+                painted.notifyWrite()
+              }
+            : undefined,
+      }),
+    ),
+  )
+  painted = pair[0]!
+  const context = canvases[1]!.getContext('webgpu')!
+  try {
+    await expect
+      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+      .toBe(true)
+    text.length = 0
+    const acquire = vi.spyOn(context, 'getCurrentTexture').mockImplementationOnce(() => {
+      throw new TypeError('injected peer acquisition failure')
+    })
+    armed = true
+    terminals[0]!.write('\r\x1b[2Kouter')
+    terminals[1]!.write('\r\x1b[2Kerror')
+    pair.forEach((renderer) => renderer.notifyWrite())
+    await expect.poll(() => text.length).toBe(2)
+    expect(text).toEqual(['outer', 'inner'])
+    acquire.mockRestore()
+  } finally {
+    pair.forEach((renderer) => renderer.dispose())
+    states.forEach((state) => state.dispose())
+    terminals.forEach((terminal) => terminal.dispose())
+    runtime.dispose()
+    canvases.forEach((canvas) => canvas.remove())
+  }
+})
+
+it('submits an encoded surface before a reentrant font change resizes and configures its canvas', async () => {
+  const sources = [new FakeRenderState(2, 2), new FakeRenderState(2, 2)]
+  const canvases = [createCanvas(), createCanvas()]
+  let armed = false
+  let target: WebGpuTerminalRenderer | undefined
+  const readCursor = sources[1]!.readCursor.bind(sources[1]!)
+  sources[1]!.readCursor = () => {
+    if (armed && target) {
+      armed = false
+      target.setFont(fittedFont(9, 16))
+    }
+    return readCursor()
+  }
+  const pair = await Promise.all(
+    sources.map((source, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 2,
+        rows: 2,
+        font: fittedFont(),
+        renderState: source,
+        deviceFactory: undefined,
+      }),
+    ),
+  )
+  target = pair[0]!
+  const events: string[] = []
+  const widthSetter = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'width')?.set
+  if (!widthSetter) throw new TypeError('Canvas width setter unavailable')
+  const width = vi.spyOn(canvases[0]!, 'width', 'set').mockImplementation((value) => {
+    events.push('resize')
+    widthSetter.call(canvases[0], value)
+  })
+  const submit = GPUQueue.prototype.submit
+  const submissions = vi.spyOn(GPUQueue.prototype, 'submit').mockImplementation(function (
+    this: GPUQueue,
+    commands,
+  ) {
+    events.push('submit')
+    submit.call(this, commands)
+  })
+  try {
+    await expect
+      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+      .toBe(true)
+    events.length = 0
+    sources.forEach((source) => source.dirtyRow(0))
+    armed = true
+    pair.forEach((renderer) => renderer.notifyWrite())
+    await expect.poll(() => events.includes('resize')).toBe(true)
+    expect(events.indexOf('submit')).toBeLessThan(events.indexOf('resize'))
+  } finally {
+    width.mockRestore()
+    submissions.mockRestore()
+    pair.forEach((renderer) => renderer.dispose())
+    canvases.forEach((canvas) => canvas.remove())
+  }
+})
+
+it('stops an acquisition retry when flushing a peer callback disposes the failing surface', async () => {
+  const sources = [new FakeRenderState(2, 2), new FakeRenderState(2, 2)]
+  const canvases = [createCanvas(), createCanvas()]
+  let armed = false
+  let disposedByPeer = false
+  let failing: WebGpuTerminalRenderer | undefined
+  const errors = vi.fn()
+  const pair = await Promise.all(
+    sources.map((source, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 2,
+        rows: 2,
+        font: fittedFont(),
+        renderState: source,
+        deviceFactory: undefined,
+        onFrame:
+          index === 0
+            ? () => {
+                if (!armed || !failing) return
+                armed = false
+                failing.dispose()
+                disposedByPeer = true
+              }
+            : undefined,
+        onError: index === 1 ? errors : undefined,
+      }),
+    ),
+  )
+  failing = pair[1]!
+  const context = canvases[1]!.getContext('webgpu')!
+  try {
+    await expect
+      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+      .toBe(true)
+    const acquire = vi.spyOn(context, 'getCurrentTexture').mockImplementationOnce(() => {
+      throw new TypeError('injected disposal-triggering acquisition failure')
+    })
+    armed = true
+    sources.forEach((source) => source.dirtyRow(0))
+    pair.forEach((renderer) => renderer.notifyWrite())
+    await expect.poll(() => disposedByPeer).toBe(true)
+    expect(acquire).toHaveBeenCalledOnce()
+    expect(errors).not.toHaveBeenCalled()
+    acquire.mockRestore()
+  } finally {
+    pair.forEach((renderer) => renderer.dispose())
+    canvases.forEach((canvas) => canvas.remove())
   }
 })

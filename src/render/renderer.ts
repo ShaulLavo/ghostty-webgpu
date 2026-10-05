@@ -1,3 +1,5 @@
+import { FrameCoordinator } from './frame-coordinator.js'
+import { DeviceOwner, type DeviceLease } from './device-owner.js'
 import { createGhosttyError } from '../core/error.js'
 import { FrameObserver } from './frame-observer.js'
 import { RenderStateDirty } from '../core/abi.js'
@@ -215,18 +217,10 @@ function prepareRenderer(
   return { ...validated, context: requireContext(options.canvas), format }
 }
 
-function releaseFailedDevice(context: GPUCanvasContext, device: GPUDevice): void {
-  try {
-    context.unconfigure()
-  } catch {}
-  device.destroy()
-}
-
-async function destroyDeviceAfterSubmittedWork(device: GPUDevice): Promise<void> {
-  try {
-    await device.queue.onSubmittedWorkDone()
-  } catch {}
-  device.destroy()
+const defaultDeviceOwner = new DeviceOwner(defaultDeviceFactory)
+let defaultFrameCoordinator: FrameCoordinator | undefined
+function sharedFrameCoordinator(): FrameCoordinator {
+  return (defaultFrameCoordinator ??= new FrameCoordinator(browserRenderClock()))
 }
 
 export class WebGpuTerminalRenderer {
@@ -243,7 +237,9 @@ export class WebGpuTerminalRenderer {
   private device: GPUDevice
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
-  private readonly deviceFactory: () => Promise<GPUDevice>
+  private readonly deviceOwner: DeviceOwner
+  private deviceLease: DeviceLease
+  private readonly coordinator?: FrameCoordinator
   private deviceGeneration = 1
   private disposed = false
   private font: TerminalFittedFont
@@ -281,13 +277,18 @@ export class WebGpuTerminalRenderer {
 
   private constructor(
     options: WebGpuTerminalRendererOptions,
-    device: GPUDevice,
+    lease: DeviceLease,
+    deviceOwner: DeviceOwner,
     prepared: PreparedRenderer,
   ) {
     this.canvas = options.canvas
     this.context = prepared.context
+    const device = lease.device
     this.device = device
-    this.deviceFactory = options.deviceFactory ?? defaultDeviceFactory
+    this.deviceLease = lease
+    this.deviceOwner = deviceOwner
+    if (!options.deviceFactory && !options.schedulerClock)
+      this.coordinator = sharedFrameCoordinator()
     this.renderState = options.renderState
     this.onError = options.onError
     this.grid = prepared.grid
@@ -299,30 +300,47 @@ export class WebGpuTerminalRenderer {
     this.frames.resize(this.grid.rows)
     this.format = prepared.format
     this.resizeCanvas()
-    this.configureContext(device)
     this.rasterizer = this.createRasterizer()
-    this.atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
-    this.textPass = this.createTextPass()
-    this.textPass.syncAtlas(this.atlasTextures)
-    this.scheduler = new RenderScheduler({
-      clock: options.schedulerClock ?? browserRenderClock(),
-      onFrame: () => this.drawFrame(),
-    })
-    this.watchDeviceLoss(device, this.deviceGeneration)
-    this.scheduler.schedule()
+    let atlasTextures: AtlasGpuTextures | undefined
+    let textPass: WebGpuTextPass | undefined
+    let scheduler: RenderScheduler | undefined
+    try {
+      this.configureContext(device)
+      atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
+      this.atlasTextures = atlasTextures
+      textPass = this.createTextPass()
+      this.textPass = textPass
+      this.textPass.syncAtlas(this.atlasTextures)
+      scheduler = new RenderScheduler({
+        clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
+        onFrame: () => this.drawFrame(),
+      })
+      this.scheduler = scheduler
+      this.scheduler.schedule()
+      this.watchDeviceLoss(device, this.deviceGeneration)
+    } catch (cause) {
+      scheduler?.dispose()
+      textPass?.destroy()
+      atlasTextures?.destroy()
+      throw cause
+    }
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
     const validated = validateRenderer(options)
-    const factory = options.deviceFactory ?? defaultDeviceFactory
-    const device = await factory()
+    const owner = options.deviceFactory
+      ? new DeviceOwner(options.deviceFactory)
+      : defaultDeviceOwner
+    const lease = await owner.acquire()
     let prepared: PreparedRenderer | undefined
     try {
       prepared = prepareRenderer(options, validated)
-      return new WebGpuTerminalRenderer(options, device, prepared)
+      return new WebGpuTerminalRenderer(options, lease, owner, prepared)
     } catch (cause) {
-      if (prepared) releaseFailedDevice(prepared.context, device)
-      if (!prepared) device.destroy()
+      try {
+        prepared?.context.unconfigure()
+      } catch {}
+      await lease.release()
       throw cause
     }
   }
@@ -399,6 +417,8 @@ export class WebGpuTerminalRenderer {
     const next = copyFittedFont(font)
     if (fittedFontsEqual(this.font, next)) return
     const geometryChanged = !fittedFontGeometryEquals(this.font, next)
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
     this.font = next
     if (geometryChanged) this.rebuildGeometryResources()
     this.rasterizer = this.createRasterizer()
@@ -413,6 +433,8 @@ export class WebGpuTerminalRenderer {
   }
 
   resize(grid: RendererGridSize): void {
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
     const next = normalizeRendererGrid(grid)
     if (this.gridEquals(next)) return
     for (const row of this.overlayRows) {
@@ -426,6 +448,7 @@ export class WebGpuTerminalRenderer {
   }
 
   async capturePixels(): Promise<Uint8Array> {
+    this.coordinator?.flushOwner(this)
     const width = this.canvas.width
     const height = this.canvas.height
     const bytesPerRow = alignedBytesPerRow(width)
@@ -465,14 +488,14 @@ export class WebGpuTerminalRenderer {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    this.coordinator?.flushOwner(this)
     this.deviceGeneration += 1
     this.scheduler.dispose()
     this.zigBuilder?.dispose()
     this.textPass.destroy()
     this.atlasTextures.destroy()
     this.unconfigureContext()
-    // Retaining the device through its fence prevents the observed locked final-queue release.
-    void destroyDeviceAfterSubmittedWork(this.device)
+    void this.deviceLease.release()
   }
 
   private configureContext(device: GPUDevice): void {
@@ -500,6 +523,8 @@ export class WebGpuTerminalRenderer {
 
   private drawFrame(): void {
     if (this.disposed) return
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
     if (this.deviceUnavailable) {
       void this.restoreDevice(this.deviceGeneration).catch(() => {})
       return
@@ -522,7 +547,8 @@ export class WebGpuTerminalRenderer {
     this.needsFullRebuild = true
     if (this.frameFailed) return
     this.frameFailed = true
-    this.onError?.(cause)
+    this.coordinator?.flushPending()
+    if (!this.disposed) this.onError?.(cause)
   }
 
   private drawZigFrame(damage: RenderStateDirty): void {
@@ -533,7 +559,8 @@ export class WebGpuTerminalRenderer {
       damage === RenderStateDirty.False &&
       this.overlayRows.size === 0
     ) {
-      this.frames.notifyCleanUpdate()
+      this.coordinator?.flushPending()
+      if (!this.disposed) this.frames.notifyCleanUpdate()
       return
     }
     let builder = this.zigBuilder
@@ -566,27 +593,81 @@ export class WebGpuTerminalRenderer {
     const updates = builder.changedRanges()
     this.atlasTextures.sync(this.atlas.consumeUploads())
     const operations = this.textPass.uploadFrame(builder, updates)
+    if (!this.coordinator) {
+      try {
+        this.textPass.submit(this.context.getCurrentTexture().createView())
+      } catch (cause) {
+        this.reportFrameFailure(cause)
+        if (this.disposed) return
+        // Retry once in this turn; an acquired canvas texture presents empty after an abandoned submit.
+        this.textPass.submit(this.context.getCurrentTexture().createView())
+      }
+      let rows: readonly RenderRow[] | undefined
+      if (this.frames.requiresFullRows) {
+        rows = options.full
+          ? this.renderState.readRows({ packed: true })
+          : this.rowsToRebuild(damage)
+      }
+      if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+      this.recordFrame(updates, operations)
+      this.metrics.zigFrames += 1
+      this.needsFullRebuild = false
+      this.frameFailed = false
+      this.overlayRows.clear()
+      this.emitFrame(
+        rows,
+        updates.map((update) => update.row),
+      )
+      return
+    }
+    let command: GPUCommandBuffer
     try {
-      this.textPass.submit(this.context.getCurrentTexture().createView())
+      command = this.textPass.encode(this.context.getCurrentTexture().createView())
     } catch (cause) {
       this.reportFrameFailure(cause)
-      // Retry once in this turn; an acquired canvas texture presents empty after an abandoned submit.
-      this.textPass.submit(this.context.getCurrentTexture().createView())
+      if (this.disposed) return
+      command = this.textPass.encode(this.context.getCurrentTexture().createView())
     }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
       rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
     }
-    if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    this.recordFrame(updates, operations)
-    this.metrics.zigFrames += 1
-    this.needsFullRebuild = false
-    this.frameFailed = false
-    this.overlayRows.clear()
-    this.emitFrame(
-      rows,
-      updates.map((update) => update.row),
-    )
+    const textPass = this.textPass
+    let notifyFrame: (() => void) | undefined
+    this.coordinator.submit({
+      owner: this,
+      device: this.device,
+      command,
+      commit: () => {
+        if (this.disposed) return
+        textPass.acceptFrame()
+        if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+        this.recordFrame(updates, operations)
+        this.metrics.zigFrames += 1
+        this.needsFullRebuild = false
+        this.frameFailed = false
+        this.overlayRows.clear()
+        if (this.cursor)
+          notifyFrame = this.frames.capture(
+            this.renderState,
+            this.cursor,
+            renderCursorState(
+              this.cursor,
+              this.cursorPhaseVisible,
+              this.focused ? undefined : this.inactiveCursorStyle,
+            ),
+            updates.map((update) => update.row),
+            rows,
+          )
+      },
+      notify: () => {
+        if (!this.disposed) notifyFrame?.()
+      },
+      failed: (cause) => {
+        this.reportFrameFailure(cause)
+        this.scheduler.schedule()
+      },
+    })
   }
 
   private get deviceCellHeight(): number {
@@ -663,11 +744,15 @@ export class WebGpuTerminalRenderer {
   }
 
   private resetAtlasResources(): void {
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
     this.zigBuilder?.clearGlyphs()
     this.atlas.invalidateAll()
   }
 
   private rebuildGeometryResources(): void {
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
     this.resizeCanvas()
     this.configureContext(this.device)
     this.replaceTextPass()
@@ -693,6 +778,8 @@ export class WebGpuTerminalRenderer {
   }
 
   private replaceTextPass(): void {
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
     const replacement = this.createTextPass()
     replacement.syncAtlas(this.atlasTextures)
     this.textPass.destroy()
@@ -752,32 +839,37 @@ export class WebGpuTerminalRenderer {
     const replacement = await this.requestReplacement()
     if (!replacement) return
     if (this.disposed || expectedGeneration !== this.deviceGeneration) {
-      replacement.destroy()
+      await replacement.release()
       return
     }
-    const resources = this.prepareReplacement(replacement)
-    if (!resources) return
+    const resources = this.prepareReplacement(replacement.device)
+    if (!resources) {
+      await replacement.release()
+      return
+    }
     if (this.disposed || expectedGeneration !== this.deviceGeneration) {
       resources.textPass.destroy()
       resources.atlasTextures.destroy()
-      releaseFailedDevice(this.context, replacement)
+      this.unconfigureContext()
+      await replacement.release()
       return
     }
-    const previous = this.device
+    const previous = this.deviceLease
     this.atlasUploadedBytesOffset += this.atlasTextures.uploadBytes
     this.atlasUploadOperationsOffset += this.atlasTextures.uploadOperationCount
     this.textPass.destroy()
     this.atlasTextures.destroy()
     this.atlas.markAllForUpload()
-    this.device = replacement
+    this.device = replacement.device
+    this.deviceLease = replacement
     this.textPass = resources.textPass
     this.atlasTextures = resources.atlasTextures
     this.deviceGeneration += 1
     this.deviceUnavailable = false
-    previous.destroy()
+    void previous.release()
     this.needsFullRebuild = true
     this.metrics.deviceRestores += 1
-    this.watchDeviceLoss(replacement, this.deviceGeneration)
+    this.watchDeviceLoss(replacement.device, this.deviceGeneration)
     this.scheduler.schedule()
   }
 
@@ -793,14 +885,15 @@ export class WebGpuTerminalRenderer {
     } catch {
       textPass?.destroy()
       atlasTextures?.destroy()
-      releaseFailedDevice(this.context, device)
+      this.unconfigureContext()
       return undefined
     }
   }
 
-  private async requestReplacement(): Promise<GPUDevice | undefined> {
+  private async requestReplacement(): Promise<DeviceLease | undefined> {
     try {
-      return await this.deviceFactory()
+      this.deviceLease.retire()
+      return await this.deviceOwner.acquire()
     } catch {
       return undefined
     }

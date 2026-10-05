@@ -646,14 +646,18 @@ describe('compatible renderer selection', () => {
     })
     const clock = new FakeClock()
     const source = new FakeRenderState([row(0, [cell(0), cell(1)]), row(1, [cell(0), cell(1)])])
-    const destroy = vi.fn()
+    const adapter = await navigator.gpu.requestAdapter()
+    if (!adapter) throw new TypeError('WebGPU adapter unavailable')
+    const device = await adapter.requestDevice()
+    const destroy = vi.spyOn(device, 'destroy')
     const renderer = await createCompatibleTerminalRenderer({
       ...options(canvas, source, clock),
-      deviceFactory: () => Promise.resolve({ destroy } as unknown as GPUDevice),
+      deviceFactory: () => Promise.resolve(device),
     })
 
     expect(renderer.backend).toBe('canvas2d')
     expect(destroy).toHaveBeenCalledOnce()
+    await device.lost
     renderer.dispose()
   })
 
