@@ -160,25 +160,16 @@ async function createNative(host: HTMLElement): Promise<Driver> {
         mountedRenderer = renderer
         return renderer
       }
-      let adapter: GPUAdapter | null | undefined
-      for (let attempt = 0; attempt < settings.adapterAttempts; attempt++) {
-        adapter = await navigator.gpu?.requestAdapter()
-        if (adapter) break
-        if (attempt + 1 < settings.adapterAttempts)
-          await new Promise((resolve) => setTimeout(resolve, settings.adapterRetryMilliseconds))
-      }
-      if (!adapter) throw new Error('Hardware WebGPU adapter required')
+      const renderer = await WebGpuTerminalRenderer.create(options)
+      const device: unknown = Reflect.get(renderer, 'device')
+      if (!(device instanceof GPUDevice)) throw new Error('Renderer WebGPU device required')
+      const adapter = device.adapterInfo
       adapterInfo = {
-        vendor: adapter.info.vendor,
-        architecture: adapter.info.architecture,
-        description: adapter.info.description,
-        fallback: adapter.info.isFallbackAdapter,
+        vendor: adapter.vendor,
+        architecture: adapter.architecture,
+        description: adapter.description,
+        fallback: adapter.isFallbackAdapter,
       }
-      const device = await adapter.requestDevice()
-      const renderer = await WebGpuTerminalRenderer.create({
-        ...options,
-        deviceFactory: async () => device,
-      })
       tracing.renderer(drivers.length, renderer)
       mountedRenderer = renderer
       return renderer

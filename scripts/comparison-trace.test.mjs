@@ -15,6 +15,54 @@ import {
 } from './comparison-trace.mjs'
 import { EventEmitter } from 'node:events'
 
+test('default coordinated frame work joins its own accepted commit without borrowing later counters', () => {
+  const records = {
+    spans: [
+      { terminal: 0, operation: 'drawFrame', category: 'js', start: 10, end: 20, self: 2 },
+      {
+        terminal: 0,
+        operation: 'encode',
+        category: 'commands',
+        start: 12,
+        end: 18,
+        self: 6,
+        commands: [0],
+      },
+      {
+        terminal: 0,
+        operation: 'commit',
+        category: 'js',
+        start: 25,
+        end: 26,
+        self: 1,
+        commands: [0],
+      },
+      {
+        terminal: 0,
+        operation: 'commit',
+        category: 'js',
+        start: 30,
+        end: 31,
+        self: 1,
+        commands: [1],
+      },
+    ],
+    counters: [
+      { terminal: 0, operation: 'bufferBytes', time: 11, value: 256 },
+      { terminal: 0, operation: 'frames', time: 25.5, value: 1 },
+      { terminal: 0, operation: 'zigFrames', time: 25.5, value: 1 },
+      { terminal: 0, operation: 'frames', time: 30.5, value: 1 },
+    ],
+    ownership: [{ terminal: 0, deviceOwner: 10, coordinator: 11 }],
+  }
+  const summary = summarizeRecords(records)
+  assert.deepEqual(summary.frames[0].counts, { bufferBytes: 256, frames: 1, zigFrames: 1 })
+  assert.equal(summary.byTerminal[0].frames, 2)
+  assert.deepEqual(summary.ownership, { deviceOwner: 1, coordinator: 1 })
+  records.spans[2].commands = [2]
+  assert.deepEqual(summarizeRecords(records).frames[0].counts, { bufferBytes: 256 })
+})
+
 test('display qualification accepts skipped frames and requires a visible 60 Hz median', () => {
   const probe = displaySummary([...Array(110).fill(16.67), ...Array(9).fill(33.33), 150], {
     visibility: 'visible',

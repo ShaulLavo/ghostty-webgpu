@@ -47,6 +47,42 @@ test('recorded render identity selects presentation feedback, independently of P
   assert.deepEqual(presentationLatency(changed, recorded.events).write, result.write)
 })
 
+function coordinatedRecordedFrame() {
+  const fixture = structuredClone(recorded)
+  fixture.phase.records.ownership = [{ terminal: 0, backend: 'webgpu' }]
+  const frame = fixture.phase.records.spans.find((span) => span.operation === 'drawFrame')
+  const encoding = fixture.phase.records.spans.find((span) => span.operation === 'submit')
+  const end = frame.end
+  encoding.operation = 'encode'
+  encoding.commands = [123]
+  frame.end = encoding.end
+  const submission = {
+    terminal: -1,
+    category: 'commands',
+    operation: 'submitGroup',
+    start: encoding.end,
+    end,
+    commands: [123, 124],
+  }
+  fixture.phase.records.spans.push(submission)
+  return { fixture, submission }
+}
+
+test('an encoded command and same-turn grouped submission retain the exact presentation identity', () => {
+  const { fixture } = coordinatedRecordedFrame()
+  const result = presentationLatency(fixture.phase, fixture.events)
+  assert.ok(Math.abs(result.write[0] - recorded.expected) < 0.001)
+  assert.equal(result.presentations[0].renderBoundary, 'submitGroup')
+})
+
+test('a later grouped submission cannot use the earlier encoding animation turn', () => {
+  const { fixture, submission } = coordinatedRecordedFrame()
+  submission.start += 100
+  submission.end += 100
+  fixture.phase.sample.captures[0].timestamp += 200
+  assert.throws(() => presentationLatency(fixture.phase, fixture.events), /animation turn/)
+})
+
 test('unrelated presentations and absent terminal render frames fail closed', () => {
   const events = structuredClone(recorded.events)
   events.find((event) => event.name === 'AnimationFrame::Presentation').args.id = 'another-frame'

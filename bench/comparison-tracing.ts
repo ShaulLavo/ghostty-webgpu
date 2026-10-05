@@ -13,7 +13,9 @@ interface Span {
   start: number
   end: number
   self: number
+  commands?: readonly number[]
 }
+type SpanDetails = Pick<Span, 'commands'>
 interface Counter {
   terminal: number
   time: number
@@ -40,6 +42,20 @@ export class ComparisonTracing {
   private runtimes = new Set<GhosttyRuntime>()
   private handles = new Map<number, number>()
   private objects = new Map<unknown, number>()
+  private coordinators = new Set<unknown>()
+  private gpuOwners = new WeakMap<object, { renderer: WebGpuTerminalRenderer; terminal: number }>()
+  private commands = new WeakMap<GPUCommandBuffer, number>()
+  private nextCommand = 0
+
+  private commandIdentity(command: unknown): number {
+    if (!(command instanceof GPUCommandBuffer))
+      throw new Error('Coordinated trace requires its actual GPU command buffer')
+    const existing = this.commands.get(command)
+    if (existing !== undefined) return existing
+    const id = this.nextCommand++
+    this.commands.set(command, id)
+    return id
+  }
 
   private identity(object: unknown): number {
     const existing = this.objects.get(object)
@@ -65,7 +81,7 @@ export class ComparisonTracing {
     name: string,
     terminal: number | ((args: unknown[]) => number),
     category: Category,
-    after?: (result: unknown, args: unknown[]) => void,
+    after?: (result: unknown, args: unknown[]) => SpanDetails | void,
     observeInactive = false,
     before?: (args: unknown[]) => void,
   ): void {
@@ -83,10 +99,11 @@ export class ComparisonTracing {
       before?.(args)
       const start = performance.now()
       const context = { children: 0 }
+      let details: SpanDetails | void = undefined
       recorder.stack.push(context)
       try {
         const result = (original as Method).apply(this, args)
-        after?.(result, args)
+        details = after?.(result, args)
         return result
       } finally {
         const end = performance.now()
@@ -100,6 +117,7 @@ export class ComparisonTracing {
           start,
           end,
           self: end - start - context.children,
+          ...details,
         })
       }
     })
@@ -164,18 +182,29 @@ export class ComparisonTracing {
     const pass = field(renderer, 'textPass')
     const device = field(renderer, 'device')
     const resources = field(pass, 'resources')
+    const coordinator: unknown = Reflect.get(renderer, 'coordinator')
+    const deviceOwner: unknown = Reflect.get(renderer, 'deviceOwner')
+    this.gpuOwners.set(renderer, { renderer, terminal })
     this.ownership.push({
       terminal,
       backend: 'webgpu',
       scheduler: this.identity(field(renderer, 'scheduler')),
       device: this.identity(device),
       queue: this.identity(field(device, 'queue')),
+      deviceOwner: deviceOwner ? this.identity(deviceOwner) : undefined,
+      coordinator: coordinator ? this.identity(coordinator) : undefined,
       pipelines: ['cellPipeline', 'glyphPipeline'].map((name) =>
         this.identity(field(resources, name)),
       ),
     })
     this.wrap(renderer, 'notifyWrite', terminal, 'js')
-    this.traceGpuFrames(terminal, renderer)
+    if (coordinator) {
+      this.wrap(renderer, 'drawFrame', terminal, 'js')
+      this.traceCoordinator(coordinator)
+      this.wrap(pass, 'encode', terminal, 'commands', (command) => ({
+        commands: [this.commandIdentity(command)],
+      }))
+    } else this.traceGpuFrames(terminal, renderer)
     this.wrap(renderer, 'rowsToRebuild', terminal, 'damage')
     this.wrap(renderer, 'drawZigFrame', terminal, 'js')
     this.wrap(pass, 'uploadFrame', terminal, 'upload', (result, args) => {
@@ -205,6 +234,36 @@ export class ComparisonTracing {
     this.wrap(pass, 'submit', terminal, 'commands', () => {
       this.count(terminal, 'draws', 2)
       this.count(terminal, 'submissions')
+    })
+  }
+
+  private traceCoordinator(coordinator: unknown): void {
+    if (this.coordinators.has(coordinator)) return
+    this.coordinators.add(coordinator)
+    this.wrap(coordinator, 'submit', -1, 'js', undefined, false, (args) => {
+      const frame = args[0]
+      const identity = field(frame, 'owner')
+      if (!identity || typeof identity !== 'object') throw new Error('GPU frame owner required')
+      const owner = this.gpuOwners.get(identity)
+      if (!owner) throw new Error('Coordinated trace requires its actual renderer owner')
+      const submitted = owner.renderer.metrics.submittedFrames
+      const zig = owner.renderer.metrics.zigFrames
+      const command = this.commandIdentity(field(frame, 'command'))
+      this.wrap(frame, 'commit', owner.terminal, 'js', () => {
+        const frames = owner.renderer.metrics.submittedFrames - submitted
+        this.count(owner.terminal, 'frames', frames)
+        this.count(owner.terminal, 'draws', frames * 2)
+        this.count(owner.terminal, 'zigFrames', owner.renderer.metrics.zigFrames - zig)
+        return { commands: [command] }
+      })
+      this.wrap(frame, 'notify', owner.terminal, 'js')
+    })
+    this.wrap(coordinator, 'submitGroup', -1, 'commands', (result, args) => {
+      if (field(result, 'kind') !== 'submitted') return
+      if (!Array.isArray(args[1])) throw new Error('Coordinated trace requires submitted frames')
+      this.count(-1, 'submissions')
+      this.count(-1, 'commandBuffers', args[1].length)
+      return { commands: args[1].map((frame) => this.commandIdentity(field(frame, 'command'))) }
     })
   }
 

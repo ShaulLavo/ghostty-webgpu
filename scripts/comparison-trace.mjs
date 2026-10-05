@@ -179,19 +179,41 @@ export function summarizeRecords(records) {
     .filter((span) => renderOperations.includes(span.operation))
     .map((span) => {
       const counts = {}
-      for (const counter of records.counters) {
-        if (
-          counter.terminal !== span.terminal ||
-          counter.time < span.start ||
-          counter.time > span.end
+      const encoding = records.spans.find(
+        (candidate) =>
+          candidate.terminal === span.terminal &&
+          candidate.operation === 'encode' &&
+          candidate.start >= span.start &&
+          candidate.end <= span.end,
+      )
+      const command = encoding?.commands?.length === 1 ? encoding.commands[0] : undefined
+      const commit =
+        command !== undefined &&
+        records.spans.find(
+          (candidate) =>
+            candidate.terminal === span.terminal &&
+            candidate.operation === 'commit' &&
+            candidate.commands?.includes(command),
         )
-          continue
+      for (const counter of records.counters) {
+        const duringFrame = counter.time >= span.start && counter.time <= span.end
+        const duringCommit = commit && counter.time >= commit.start && counter.time <= commit.end
+        if (counter.terminal !== span.terminal || (!duringFrame && !duringCommit)) continue
         counts[counter.operation] = (counts[counter.operation] ?? 0) + counter.value
       }
       return { terminal: span.terminal, start: span.start, end: span.end, counts }
     })
   const ownership = {}
-  for (const name of ['scheduler', 'device', 'queue', 'pipelines', 'context', 'programs']) {
+  for (const name of [
+    'scheduler',
+    'device',
+    'queue',
+    'deviceOwner',
+    'coordinator',
+    'pipelines',
+    'context',
+    'programs',
+  ]) {
     const identities = (records.ownership ?? []).flatMap((owner) => owner[name] ?? [])
     if (identities.length) ownership[name] = new Set(identities).size
   }

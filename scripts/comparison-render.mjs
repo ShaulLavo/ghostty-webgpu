@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 
 export const renderOperations = ['drawFrame', 'renderRows', 'render']
 const boundaries = {
-  webgpu: ['submit'],
+  webgpu: ['submit', 'encode'],
   webgl2: ['submit'],
   'xterm-webgl': ['drawElementsInstanced'],
   canvas2d: ['paint'],
@@ -56,7 +56,24 @@ export function renderedFrame(records, capture) {
       )
       .toSorted((a, b) => a.end - b.end)
       .at(-1)
-    if (boundary) return { started, captured, parse, frame, boundary, echo, backend }
+    if (!boundary) continue
+    if (boundary.operation !== 'encode')
+      return { started, captured, parse, frame, boundary, echo, backend }
+    const submission = submittedEncoding(records.spans, boundary, captured)
+    if (submission) return { started, captured, parse, frame, boundary: submission, echo, backend }
   }
   assert.fail('Terminal render requires a submitted glyph frame or committed row paint')
+}
+
+function submittedEncoding(spans, encoding, captured) {
+  if (encoding.commands?.length !== 1) return undefined
+  const command = encoding.commands[0]
+  return spans.find(
+    (span) =>
+      span.category === 'commands' &&
+      span.operation === 'submitGroup' &&
+      span.start >= encoding.end &&
+      span.end <= captured &&
+      span.commands?.includes(command),
+  )
 }

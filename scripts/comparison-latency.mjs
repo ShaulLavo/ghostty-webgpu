@@ -25,6 +25,10 @@ export function presentationLatency(phase, events) {
       (frame) => frame.start <= selected.frame.start && frame.end >= selected.frame.end,
     )
     assert(animation?.id !== undefined, 'Terminal render requires a containing animation frame')
+    assert(
+      animation.start <= selected.boundary.start && animation.end >= selected.boundary.end,
+      'Terminal submission must belong to the encoded frame animation turn',
+    )
     const presented = feedback.find((event) => event.args?.id === animation.id)
     const presentationTime = presented ? presented.ts / 1000 - clock.offset : null
     const milliseconds = presentationTime === null ? null : presentationTime - selected.started
