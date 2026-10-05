@@ -176,6 +176,7 @@ export class WebGlTerminalRenderer {
   }
 
   clearTextureAtlas(): void {
+    this.rasterizer = new CanvasGlyphRasterizer({ font: this.font })
     this.zigBuilder?.clearGlyphs()
     this.atlas.invalidateAll()
     this.invalidateAll()
@@ -247,7 +248,6 @@ export class WebGlTerminalRenderer {
     const geometryChanged = !fittedFontGeometryEquals(this.font, next)
     this.font = next
     if (geometryChanged) this.rebuildGeometry()
-    this.rasterizer = new CanvasGlyphRasterizer({ font: next })
     this.clearTextureAtlas()
   }
 

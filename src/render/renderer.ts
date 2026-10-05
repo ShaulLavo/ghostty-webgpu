@@ -359,6 +359,8 @@ export class WebGpuTerminalRenderer {
 
   clearTextureAtlas(): void {
     this.resetAtlasResources()
+    if (this.disposed) return
+    this.rasterizer = this.createRasterizer()
     this.invalidateAll()
   }
 
