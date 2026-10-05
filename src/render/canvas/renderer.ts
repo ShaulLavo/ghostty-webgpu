@@ -13,6 +13,7 @@ import {
   RowTerminalRenderer,
   type RowRendererMetrics,
   type RowRendererSurface,
+  type RowThemeInvalidation,
 } from '../row-renderer.js'
 import { CanvasRowPainter, type Canvas2dContext } from './painter.js'
 import type { PixelTarget, PixelMetrics, PixelTargetFactory } from './pixel-target.js'
@@ -199,9 +200,10 @@ class CanvasSurface implements RowRendererSurface {
     this.pixelTarget?.invalidate?.()
   }
 
-  setTheme(theme: CanonicalRendererTheme): void {
+  setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation {
     this.invalidate()
     this.painter.setTheme(theme)
+    return 'all'
   }
 
   private prepare(cursor: CursorState | undefined): void {

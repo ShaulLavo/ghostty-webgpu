@@ -25,12 +25,14 @@ export interface RowRendererMetrics {
   submittedFrames: number
 }
 
+export type RowThemeInvalidation = 'all' | 'cursor'
+
 export interface RowRendererSurface {
   beginFrame?(): void
   dispose(): void
   paint(row: RenderRow, cursor: CursorState | undefined): void
   resize(font: TerminalFittedFont, grid: RendererGridSize): void
-  setTheme(theme: CanonicalRendererTheme): void
+  setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation
 }
 
 function cursorSnapshotsEqual(left: RenderCursorSnapshot, right: RenderCursorSnapshot): boolean {
@@ -172,7 +174,11 @@ export class RowTerminalRenderer {
   setTheme(theme: Partial<RendererTheme>): void {
     this.themeInput = mergeRendererTheme({ ...this.themeInput, ...theme })
     this.theme = canonicalRendererTheme(this.themeInput)
-    this.surface.setTheme(this.theme)
+    if (this.surface.setTheme(this.theme) === 'cursor') {
+      const y = Math.max(0, Math.min(this.grid.rows - 1, this.cursor?.viewport?.y ?? 0))
+      this.refreshRows(y, y)
+      return
+    }
     this.invalidateAll()
   }
 

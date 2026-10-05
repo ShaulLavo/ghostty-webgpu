@@ -8,11 +8,32 @@ import {
 } from '../config.js'
 import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
 import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../renderer.js'
-import { RowTerminalRenderer, type RowRendererSurface } from '../row-renderer.js'
+import {
+  RowTerminalRenderer,
+  type RowRendererSurface,
+  type RowThemeInvalidation,
+} from '../row-renderer.js'
 import { frameStyle, renderFrameToHtml, renderRowRuns, type RowRun } from './html.js'
 
 export { renderFrameToHtml } from './html.js'
 export type { RenderFrameHtmlOptions } from './html.js'
+
+function themesEqual(first: CanonicalRendererTheme, second: CanonicalRendererTheme): boolean {
+  if (first.minimumContrast !== second.minimumContrast) return false
+  const colors = [
+    'background',
+    'cursor',
+    'cursorText',
+    'foreground',
+    'selectionBackground',
+    'selectionForeground',
+  ] as const
+  return colors.every((key) => {
+    const left = first[key]
+    const right = second[key]
+    return left.r === right.r && left.g === right.g && left.b === right.b
+  })
+}
 
 interface MountedRun {
   readonly element: HTMLSpanElement
@@ -126,9 +147,11 @@ class DomSurface implements RowRendererSurface {
     this.position()
   }
 
-  setTheme(theme: CanonicalRendererTheme): void {
+  setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation {
+    if (themesEqual(this.theme, theme)) return 'cursor'
     this.theme = theme
     this.container.firstElementChild?.setAttribute('style', frameStyle(this.font, this.grid, theme))
+    return 'all'
   }
 
   private position(): void {
