@@ -201,7 +201,6 @@ class CanvasSurface implements RowRendererSurface {
 
   setTheme(theme: CanonicalRendererTheme): void {
     this.invalidate()
-    this.clearPixelCache()
     this.painter.setTheme(theme)
   }
 
