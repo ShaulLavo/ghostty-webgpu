@@ -337,6 +337,83 @@ it.each([
   },
 )
 
+it('keeps brush colors independent of alpha and restored drawing state', async () => {
+  const canvas = document.createElement('canvas')
+  canvas.width = 40
+  canvas.height = 20
+  const output = canvas.getContext('2d')!
+  const kernel = await ComposeKernel.create()
+  const target = new StampTarget(kernel, output)
+  cleanups.push(() => target.dispose())
+  target.resize(40, 20, 20)
+  target.fillStyle = 'rgb(18.4, 100.5, 230.6)'
+  target.fillRect(0, 0, 1, 1)
+  target.globalAlpha = 0.5
+  target.fillRect(1, 0, 1, 1)
+  target.globalAlpha = 1
+  target.save()
+  target.fillStyle = 'rgb(200, 19, 80)'
+  target.fillRect(2, 0, 1, 1)
+  target.restore()
+  target.fillRect(3, 0, 1, 1)
+  expect(target.frame.getImage().data.slice(0, 16)).toEqual(
+    new Uint8ClampedArray([
+      18, 101, 231, 255, 18, 101, 231, 128, 200, 19, 80, 255, 18, 101, 231, 255,
+    ]),
+  )
+  const paint = () => {
+    target.clearRect(0, 0, 40, 20)
+    target.fillStyle = 'rgb(18.4, 100.5, 230.6)'
+    target.fillRect(1.5, 1.5, 5, 5)
+    target.strokeStyle = 'rgb(200, 19, 80)'
+    target.strokeRect(10.5, 2.5, 5, 5)
+    target.fillRect(20.5, 1.5, 5, 5)
+  }
+  paint()
+  const cold = target.frame.getImage().data.slice()
+  paint()
+  expect(target.frame.getImage().data).toEqual(cold)
+  target.invalidate()
+  target.setFont(fittedFont())
+  paint()
+  expect(target.frame.getImage().data).toEqual(cold)
+})
+
+it('defers invalid brush errors until a draw and retries every failed draw', async () => {
+  const canvas = document.createElement('canvas')
+  const output = canvas.getContext('2d')!
+  const kernel = await ComposeKernel.create()
+  const target = new StampTarget(kernel, output)
+  cleanups.push(() => target.dispose())
+  target.resize(40, 20, 20)
+  target.setFont(fittedFont())
+  const pattern = output.createPattern(canvas, 'repeat')!
+  const glyph = {
+    cellSpan: 1,
+    foreground: { r: 220, g: 220, b: 220 },
+    italic: false,
+    weight: 'normal',
+    text: '',
+  } as const
+  for (const brush of ['red', 'rgb(1,2,3)', output.createLinearGradient(0, 0, 1, 1), pattern]) {
+    expect(() => {
+      target.fillStyle = brush
+    }).not.toThrow()
+    expect(() => target.fillRect(0, 0, 1, 1)).toThrow('Canvas pixel')
+    expect(() => target.fillRect(0, 0, 1, 1)).toThrow('Canvas pixel')
+    expect(() => target.glyph(glyph, 0, 0)).not.toThrow()
+    expect(() => target.glyph({ ...glyph, text: 'A' }, 0, 0)).toThrow('Canvas pixel')
+    expect(() => {
+      target.strokeStyle = brush
+    }).not.toThrow()
+    expect(() => target.strokeRect(1, 1, 4, 4)).toThrow('Canvas pixel')
+    expect(() => target.strokeRect(1, 1, 4, 4)).toThrow('Canvas pixel')
+  }
+  target.fillStyle = 'rgb(1, 2, 3)'
+  target.fillRect(0, 0, 1, 1)
+  expect(target.frame.getImage().data.slice(0, 4)).toEqual(new Uint8ClampedArray([1, 2, 3, 255]))
+})
+
 it('keeps packed glyph variants distinct and clears font-scoped stamps across memory growth', async () => {
   const canvas = document.createElement('canvas')
   canvas.width = 240

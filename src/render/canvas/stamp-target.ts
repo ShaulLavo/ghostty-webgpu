@@ -75,6 +75,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
   private rowHeight = 0
   private generation = 0
   private fitted?: TerminalFittedFont
+  private parsedBrush?: { readonly brush: Brush; readonly color: number }
   private presenting = false
   private disposed = false
 
@@ -252,7 +253,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
         this.width,
         this.height,
         ...bounds,
-        packed(this.fillStyle),
+        this.color(this.fillStyle),
         this.opacity(),
       ),
     )
@@ -273,7 +274,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
       () => new CanvasGlyphRasterizer({ font }).rasterize(input),
       this.stampClip(x, y),
     )
-    if (stamp) this.compose(stamp, x, y, packed(this.fillStyle))
+    if (stamp) this.compose(stamp, x, y, this.color(this.fillStyle))
   }
 
   stroke(): void {
@@ -321,7 +322,12 @@ export class StampTarget implements PixelTarget, PaintTarget {
       this.stampClip(left, top),
     )
     if (stamp)
-      this.compose(stamp, left, top, packed(kind === 'fill' ? this.fillStyle : this.strokeStyle))
+      this.compose(
+        stamp,
+        left,
+        top,
+        this.color(kind === 'fill' ? this.fillStyle : this.strokeStyle),
+      )
   }
 
   private rasterPrimitive(
@@ -380,6 +386,14 @@ export class StampTarget implements PixelTarget, PaintTarget {
         this.opacity(),
       ),
     )
+  }
+
+  private color(brush: Brush): number {
+    const cached = this.parsedBrush
+    if (cached && cached.brush === brush) return cached.color
+    const color = packed(brush)
+    this.parsedBrush = { brush, color }
+    return color
   }
 
   private opacity(): number {
