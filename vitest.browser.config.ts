@@ -1,7 +1,7 @@
 import { playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
-import { browserFileRoots } from './scripts/browser-file-roots.ts'
+import { browserFileRoots, counterpartWasmServing } from './scripts/browser-file-roots.ts'
 import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.ts'
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
@@ -23,6 +23,7 @@ if (
   launchArgs.push('--ozone-platform=wayland')
 
 export default defineConfig({
+  plugins: [counterpartWasmServing()],
   server: {
     fs: { allow: browserFileRoots(fileURLToPath(new URL('.', import.meta.url))) },
   },
@@ -47,7 +48,7 @@ export default defineConfig({
     },
     // SwiftShader can lose adapters when browser files churn WebGPU devices concurrently.
     fileParallelism: false,
-    include: ['src/**/*.browser.test.ts'],
+    include: ['src/**/*.browser.test.ts', 'bench/**/*.browser.test.ts'],
     name: 'browser',
   },
 })

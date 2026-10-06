@@ -24,6 +24,7 @@ import type { RowRendererMetrics } from '../src/render/row-renderer.js'
 import { ComparisonTracing } from './comparison-tracing.js'
 import { refreshSampler } from './comparison-refresh.js'
 import { frameMetricDeltas } from './comparison-metrics.js'
+import { legacyText } from './comparison-legacy-text.js'
 import {
   corpus,
   fixtureNames,
@@ -212,14 +213,7 @@ async function createLegacy(host: HTMLElement): Promise<Driver> {
   tracing.wrap(terminal, 'write', drivers.length, 'js')
   return {
     write: synchronousWrite((data) => terminal.write(data)),
-    text: () =>
-      Array.from(
-        { length: settings.rows },
-        (_, y) =>
-          terminal.buffer.active
-            .getLine(y + terminal.getScrollbackLength())
-            ?.translateToString(true) ?? '',
-      ),
+    text: () => legacyText(terminal),
     history: () => terminal.getScrollbackLength(),
     focus: () => terminal.focus(),
     onData: (listener) => {
@@ -306,6 +300,8 @@ async function correctness(): Promise<unknown> {
       throw new Error('ASCII / SGR spot check failed')
     if (!lines[2]?.includes('日本語') || !lines[6]?.includes('overwrite new'))
       throw new Error('Wide text / cursor spot check failed')
+    if (!lines[2]?.includes('é') || !lines[3]?.includes('👩‍💻') || !lines[3]?.includes('👨‍👩‍👧‍👦'))
+      throw new TypeError('Combining text / ZWJ spot check failed')
   }
   return output
 }

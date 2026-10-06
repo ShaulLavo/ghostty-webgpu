@@ -169,6 +169,11 @@ for headed hardware Chromium measurements. A built bundle accepts
 correctness checks. Defaults remain headless on Linux and headed on macOS for
 hardware measurements; smoke runs default to headless on both.
 
+Ghostty Web correctness observation reads the native render buffer's grapheme strings,
+including combining marks and ZWJ emoji. Correctness checks and final text snapshots run
+outside the timed output interval. Archived bundles retain their recorded observation
+and CPU endpoints.
+
 ## live geometry and text width
 
 `terminal.geometry()` samples the current native columns, rows, cursor, pending wrap,
