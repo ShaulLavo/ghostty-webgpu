@@ -336,3 +336,54 @@ it.each([
     })
   },
 )
+
+it('keeps packed glyph variants distinct and clears font-scoped stamps across memory growth', async () => {
+  const canvas = document.createElement('canvas')
+  canvas.width = 240
+  canvas.height = 40
+  const kernel = await ComposeKernel.create()
+  const target = new StampTarget(kernel, canvas.getContext('2d')!)
+  cleanups.push(() => target.dispose())
+  target.resize(canvas.width, canvas.height, 20)
+  target.setFont(fittedFont())
+  target.fillStyle = 'rgb(220, 220, 220)'
+  const common = {
+    cellSpan: 1,
+    foreground: { r: 220, g: 220, b: 220 },
+    italic: false,
+    text: 'W',
+    weight: 'normal',
+  } as const
+  const variants = [
+    common,
+    { ...common, cellSpan: 2 },
+    { ...common, italic: true },
+    { ...common, weight: 'bold' as const },
+    { ...common, text: 'M' },
+    { ...common, foreground: { r: 19, g: 70, b: 200 } },
+    { ...common, text: '👩‍💻' },
+    { ...common, text: 'é' },
+    { ...common, text: '["W",1]' },
+  ]
+  for (const input of variants) target.glyph(input, 0, 0)
+  const cold = { ...target.cache.metrics }
+  expect(cold.rasterCalls).toBe(variants.length)
+  expect(cold.residentEntries).toBe(variants.length)
+  const first = target.frame.getImage()
+  const owned = first.data.slice()
+  const memory = first.data.buffer
+  kernel.memory.grow(1)
+  expect(memory.byteLength).toBe(0)
+  expect(owned.some((channel) => channel !== 0)).toBe(true)
+  for (const input of variants) target.glyph(input, 0, 0)
+  expect(target.cache.metrics.rasterCalls).toBe(cold.rasterCalls)
+  expect(target.cache.metrics.stampCopies).toBe(cold.stampCopies)
+  expect(target.cache.metrics.hits - cold.hits).toBe(variants.length)
+  expect(target.frame.getImage().data.buffer).toBe(kernel.memory.buffer)
+  const nextFont = { ...fittedFont(), settings: { ...fittedFont().settings, size: 18 } }
+  target.setFont(nextFont)
+  expect(target.cache.metrics.residentEntries).toBe(0)
+  for (const input of variants) target.glyph(input, 0, 0)
+  expect(target.cache.metrics.rasterCalls - cold.rasterCalls).toBe(variants.length)
+  expect(target.cache.metrics.residentEntries).toBe(variants.length)
+})

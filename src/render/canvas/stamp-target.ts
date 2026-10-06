@@ -1,6 +1,7 @@
 import { createGhosttyError } from '../../core/error.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
+import { glyphKey } from '../atlas/key.js'
 import type { GlyphBitmap, GlyphRasterizationInput } from '../atlas/types.js'
 import { ComposeKernel } from './kernel.js'
 import type { Canvas2dContext } from './painter.js'
@@ -74,7 +75,6 @@ export class StampTarget implements PixelTarget, PaintTarget {
   private rowHeight = 0
   private generation = 0
   private fitted?: TerminalFittedFont
-  private fontIdentity = ''
   private presenting = false
   private disposed = false
 
@@ -114,7 +114,6 @@ export class StampTarget implements PixelTarget, PaintTarget {
   setFont(font: TerminalFittedFont): void {
     this.requireWritable()
     this.fitted = font
-    this.fontIdentity = JSON.stringify(font)
     this.cache.clear()
   }
 
@@ -267,7 +266,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
     this.requireWritable()
     const font = this.fitted
     if (!font) throw createGhosttyError('canvas.glyph', 'Canvas glyph font is unavailable')
-    const key = JSON.stringify(['glyph', this.fontIdentity, input])
+    const key = `glyph:${glyphKey(input, 'color')}`
     // The shared rasterizer's own JS cache dies with the miss, leaving viewport-bounded resident stamps.
     const stamp = this.cache.get(
       key,
