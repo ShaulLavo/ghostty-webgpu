@@ -1,5 +1,11 @@
 # ghostty-webgpu
 
+## 0.3.17
+
+### Patch Changes
+
+- f78b378: Measure WebGPU through production default device ownership and coordinated submission. Read adapter provenance from the renderer's actual device, and join encoded commands to their submitted group before qualifying presentation feedback.
+
 ## 0.3.16
 
 ### Patch Changes
