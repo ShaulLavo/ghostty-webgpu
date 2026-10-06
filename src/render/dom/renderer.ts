@@ -1,4 +1,4 @@
-import type { RenderRow } from '../../core/types.js'
+import type { ReadRowsOptions, RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import {
   canonicalRendererTheme,
@@ -166,6 +166,10 @@ export class DomTerminalRenderer extends RowTerminalRenderer {
 
   private constructor(options: WebGpuTerminalRendererOptions) {
     super(options, new DomSurface(options))
+  }
+
+  protected override readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
+    return super.readRows({ ...options, packed: true })
   }
 
   static create(options: WebGpuTerminalRendererOptions): Promise<DomTerminalRenderer> {

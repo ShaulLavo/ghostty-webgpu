@@ -1,3 +1,4 @@
+import { emptyRenderCell } from '../../core/packed-cells.js'
 import type { RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { CanvasColorCache, resolveCanvasCellColors } from '../canvas/colors.js'
@@ -151,6 +152,10 @@ export function renderRowRuns(
   theme: CanonicalRendererTheme,
 ): readonly RowRun[] {
   const colors = new CanvasColorCache(theme.minimumContrast)
+  const packed = row.packed
+  const scratchA = emptyRenderCell()
+  const scratchB = emptyRenderCell()
+  const length = packed?.length ?? row.cells.length
   const runs: RowRun[] = []
   let currentStyle = ''
   let currentText = ''
@@ -167,11 +172,12 @@ export function renderRowRuns(
     currentText = ''
     currentWidth = 0
   }
-  for (let index = 0; index < row.cells.length; index += 1) {
-    const cell = row.cells[index]!
+  for (let index = 0; index < length; index += 1) {
+    const target = previousCell === scratchA ? scratchB : scratchA
+    const cell = packed ? packed.read(index, target) : row.cells[index]!
     if (cell.continuation) continue
-    let width = 1
-    while (row.cells[index + width]?.continuation) width += 1
+    let width = packed?.span(index) ?? 1
+    while (!packed && row.cells[index + width]?.continuation) width += 1
     const paintedCursor =
       cursor?.visible && cursor.y === row.y && cursor.x === cell.x ? cursor : undefined
     // Cursor and wide-cell paint stays isolated; font, theme and contrast are fixed for this row.

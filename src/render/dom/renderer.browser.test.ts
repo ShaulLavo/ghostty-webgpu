@@ -59,6 +59,7 @@ async function rendererProbe(
   input = probeInput,
   font = probeFont,
   onFrame?: (snapshot: RendererFrameSnapshot) => void,
+  onRowsPainted?: (rows: readonly RenderRow[]) => void,
 ) {
   const runtime = await GhosttyRuntime.create()
   cleanups.push(() => runtime.dispose())
@@ -76,7 +77,10 @@ async function rendererProbe(
     renderState: state,
     schedulerClock: clock,
     onFrame,
-    onRowsPainted: (rows: readonly { y: number }[]) => frames.push(rows.map((row) => row.y)),
+    onRowsPainted: (rows: readonly RenderRow[]) => {
+      frames.push(rows.map((row) => row.y))
+      onRowsPainted?.(rows)
+    },
   }
   const renderer =
     backend === 'dom'
@@ -558,4 +562,73 @@ describe('DOM terminal renderer', () => {
     )
     expect(frames).toHaveLength(count)
   })
+})
+
+it('observes peer canvas CSS changes between participating native callbacks', async () => {
+  const runtime = await GhosttyRuntime.create()
+  cleanups.push(() => runtime.dispose())
+  const events: string[] = []
+  const make = async (name: string) => {
+    const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write(probeInput)
+    const canvas = mountedCanvas()
+    const renderer = await DomTerminalRenderer.create({
+      canvas,
+      columns: 12,
+      rows: 3,
+      font: probeFont,
+      renderState: state,
+      onRowsPainted: () => events.push(`paint-${name}`),
+    })
+    cleanups.push(() => renderer.dispose())
+    return { canvas, renderer }
+  }
+  await make('a')
+  let peer: HTMLCanvasElement | undefined
+  requestAnimationFrame(() => {
+    events.push('peer-css-change')
+    peer!.style.marginLeft = '30px'
+    peer!.style.paddingLeft = '11px'
+    peer!.parentElement!.style.paddingLeft = '10px'
+  })
+  const b = await make('b')
+  peer = b.canvas
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  expect(events).toEqual(['paint-a', 'peer-css-change', 'paint-b'])
+  const expected = `${b.canvas.offsetLeft + parseFloat(getComputedStyle(b.canvas).paddingLeft)}px`
+  expect(b.canvas.nextElementSibling!.getAttribute('style')).toContain(`left: ${expected}`)
+})
+
+it('packed DOM rows keep styled callbacks and lazy snapshots owned across writes and memory growth', async () => {
+  const snapshots: RendererFrameSnapshot[] = []
+  const retained: (readonly RenderRow[])[] = []
+  const probe = await rendererProbe(
+    'dom',
+    probeInput,
+    probeFont,
+    (snapshot) => snapshots.push(snapshot),
+    (rows) => retained.push(rows),
+  )
+  const original = retained[0]!
+  const expected = probe.state.readRows().map((row) => row.cells)
+  const frame = snapshots[0]!
+  expect(original.every((row) => row.packed !== undefined)).toBe(true)
+  expect(probe.renderer.metrics.paintedRows).toBe(3)
+  expect(probe.renderer.metrics.paintedCells).toBe(36)
+  probe.runtime.exports.memory.grow(1)
+  probe.terminal.write('\x1b[2J\x1b[H\x1b[31mdifferent 日本語')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(original.map((row) => row.cells)).toEqual(expected)
+  expect(frame.rows.map((row) => row.renderCells)).toEqual(expected)
+  expect(frame.rows.every((row) => Object.isFrozen(row.renderCells))).toBe(true)
+  expect(frame.rows[0]!.renderCells).not.toBe(original[0]!.cells)
+  const count = retained.reduce((sum, rows) => sum + rows.length, 0)
+  const cells = retained.reduce(
+    (sum, rows) => sum + rows.reduce((total, row) => total + row.cells.length, 0),
+    0,
+  )
+  expect(probe.renderer.metrics.paintedRows).toBe(count)
+  expect(probe.renderer.metrics.paintedCells).toBe(cells)
 })

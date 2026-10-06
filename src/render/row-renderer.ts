@@ -1,6 +1,6 @@
 import { FrameObserver } from './frame-observer.js'
 import { RenderStateDirty } from '../core/abi.js'
-import type { RenderCursorSnapshot, RenderRow } from '../core/types.js'
+import type { ReadRowsOptions, RenderCursorSnapshot, RenderRow } from '../core/types.js'
 import type { TerminalFittedFont } from '../term/types.js'
 import {
   browserRenderClock,
@@ -271,7 +271,7 @@ export class RowTerminalRenderer {
   private paintRow(row: RenderRow, cursor: CursorState | undefined): void {
     if (row.y < 0 || row.y >= this.grid.rows) return
     this.surface.paint(row, cursor)
-    this.metrics.paintedCells += row.cells.length
+    this.metrics.paintedCells += row.packed?.length ?? row.cells.length
   }
 
   private resetCursorBlink(): void {
@@ -283,16 +283,20 @@ export class RowTerminalRenderer {
     this.surface.resize(this.font, this.grid)
   }
 
+  protected readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
+    return this.renderState.readRows(options)
+  }
+
   private rowsToPaint(damage: RenderStateDirty): readonly RenderRow[] {
-    if (this.needsFullRebuild) return this.renderState.readRows()
+    if (this.needsFullRebuild) return this.readRows()
     const rows = new Map<number, RenderRow>()
     if (damage !== RenderStateDirty.False) {
-      for (const row of this.renderState.readRows({ dirtyOnly: true })) rows.set(row.y, row)
+      for (const row of this.readRows({ dirtyOnly: true })) rows.set(row.y, row)
     }
     if (this.overlayRows.size === 0) return [...rows.values()]
     const missing = new Set([...this.overlayRows].filter((row) => !rows.has(row)))
     if (missing.size === 0) return [...rows.values()]
-    for (const row of this.renderState.readRows({ rows: missing })) {
+    for (const row of this.readRows({ rows: missing })) {
       if (missing.has(row.y)) rows.set(row.y, row)
     }
     return [...rows.values()].sort((left, right) => left.y - right.y)
