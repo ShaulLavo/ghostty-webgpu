@@ -75,6 +75,7 @@ try {
   }
   for (const name of [
     'comparison-runner.mjs',
+    'comparison-browser-temp.mjs',
     'comparison-report.mjs',
     'comparison-compact.mjs',
     'comparison-pixels.mjs',

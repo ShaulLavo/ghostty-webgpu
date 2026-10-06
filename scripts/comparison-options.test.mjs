@@ -281,8 +281,9 @@ for (const tracing of [false, true]) {
     assert.equal(artifact.gpuCommandTimeoutMilliseconds, timeout)
     assert.equal(artifact.environment.gpuIdleSettings.gpuCommandTimeoutMilliseconds, timeout)
     assert.deepEqual(artifact.manifest.settings, settings)
-    const finalStart = source.lastIndexOf('} finally {\n  await writeFile(artifactPath,')
-    const finalEnd = source.indexOf('  await browser?.close()', finalStart)
+    const writerStart = '} finally {\n  try {'
+    const finalStart = source.lastIndexOf(`${writerStart}\n    await writeFile(artifactPath,`)
+    const finalEnd = source.indexOf('\n  } finally {', finalStart)
     assert(finalStart >= 0 && finalEnd > finalStart)
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor
     const writer = new AsyncFunction(
@@ -291,7 +292,7 @@ for (const tracing of [false, true]) {
       'artifactPath',
       'output',
       'artifact',
-      source.slice(finalStart + '} finally {'.length, finalEnd),
+      source.slice(finalStart + writerStart.length, finalEnd),
     )
     const output = await mkdtemp(join(tmpdir(), 'ghostty-trace-timeout-'))
     try {

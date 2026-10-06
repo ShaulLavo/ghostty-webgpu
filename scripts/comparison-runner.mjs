@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { gunzipSync } from 'node:zlib'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { platform, release, arch, cpus } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -45,6 +45,7 @@ import {
 import { WebSocketServer } from 'ws'
 import { markdown, summaries } from './comparison-report.mjs'
 import { diagnosticFailed, legacyDiagnostic } from './comparison-diagnostics.mjs'
+import { prepareComparisonBrowserTemp } from './comparison-browser-temp.mjs'
 
 const root = dirname(fileURLToPath(import.meta.url))
 const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
@@ -141,9 +142,6 @@ const cpuOptions = { tickSeconds }
 const traceFrames = positiveInteger(args, '--trace-frames', 180)
 const tracePhases = selectedTracePhases(args, manifest.fixtures)
 await prepareOutput(output, { tracing })
-const temporary = join(root, 'tmp')
-await mkdir(temporary, { recursive: true })
-process.env.TMPDIR = temporary
 const contentTypes = {
   '.wasm': 'application/wasm',
   '.js': 'text/javascript',
@@ -217,6 +215,8 @@ const browserLaunchOptions = {
   env: launchEnv,
 }
 let browser
+let browserTemp
+const previousTmpdir = process.env.TMPDIR
 let browserSession
 const artifact = {
   schema: 1,
@@ -861,6 +861,9 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
 }
 
 try {
+  browserTemp = await prepareComparisonBrowserTemp(join(root, 'tmp'))
+  process.env.TMPDIR = browserTemp.temporary
+  browserLaunchOptions.env = { ...launchEnv, TMPDIR: browserTemp.temporary }
   browser = await chromium.launch(browserLaunchOptions)
   browserSession = await browser.newBrowserCDPSession()
   const gpu = await browserSession.send('SystemInfo.getInfo')
@@ -947,28 +950,36 @@ try {
   }
   throw error
 } finally {
-  await writeFile(artifactPath, JSON.stringify(artifact, null, 2) + '\n')
-  await writeFile(
-    join(output, 'qualification.json'),
-    JSON.stringify(
-      {
-        environment: artifact.environment,
-        qualifications: artifact.qualifications,
-        gpuCommandTimeoutMilliseconds: artifact.gpuCommandTimeoutMilliseconds,
-        runs: artifact.runs.map(({ variant, count, repetition, gpuWindows }) => ({
-          variant,
-          count,
-          repetition,
-          gpuWindows,
-        })),
-      },
-      null,
-      2,
-    ) + '\n',
-  )
-  await browser?.close()
-  echo.close()
-  await new Promise((resolve) => server.close(resolve))
+  try {
+    await writeFile(artifactPath, JSON.stringify(artifact, null, 2) + '\n')
+    await writeFile(
+      join(output, 'qualification.json'),
+      JSON.stringify(
+        {
+          environment: artifact.environment,
+          qualifications: artifact.qualifications,
+          gpuCommandTimeoutMilliseconds: artifact.gpuCommandTimeoutMilliseconds,
+          runs: artifact.runs.map(({ variant, count, repetition, gpuWindows }) => ({
+            variant,
+            count,
+            repetition,
+            gpuWindows,
+          })),
+        },
+        null,
+        2,
+      ) + '\n',
+    )
+  } finally {
+    try {
+      await browser?.close()
+    } finally {
+      if (previousTmpdir === undefined) delete process.env.TMPDIR
+      else process.env.TMPDIR = previousTmpdir
+      echo.close()
+      await Promise.all([browserTemp?.remove(), new Promise((resolve) => server.close(resolve))])
+    }
+  }
 }
 console.log(`Artifact: ${artifactPath}`)
 if (

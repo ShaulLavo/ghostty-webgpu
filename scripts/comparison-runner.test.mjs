@@ -7,7 +7,7 @@ import { measurementCases } from './comparison-options.mjs'
 
 const source = await readFile(new URL('./comparison-runner.mjs', import.meta.url), 'utf8')
 const start = source.indexOf('async function measureBody(')
-const end = source.indexOf('\ntry {\n  browser =', start)
+const end = source.indexOf('\ntry {', start)
 assert(start >= 0 && end > start, 'Runner measurement boundary must exist')
 // Execute the real failure handler without the runner's top-level browser and hardware setup.
 const createMeasureBody = new Function(
