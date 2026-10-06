@@ -1,5 +1,14 @@
 # ghostty-webgpu
 
+## 0.3.20
+
+### Patch Changes
+
+- 2de9687: Reuse the last successfully parsed RGB brush during packed Canvas drawing while preserving draw-time errors and alpha.
+- 32b822e: Reduce glyph cache key construction in the packed Canvas renderer.
+- 039d66a: Project DOM rows directly from owned packed cells and retain lazy immutable styled frame snapshots.
+- cb6efff: Reuse unchanged Canvas rows during output and viewport scrolling while preserving full native row reads and appearance invalidation.
+
 ## 0.3.17
 
 ### Patch Changes

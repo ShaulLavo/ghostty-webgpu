@@ -1,6 +1,6 @@
 {
   "name": "ghostty-webgpu",
-  "version": "0.3.19",
+  "version": "0.3.20",
   "description": "Ghostty for the web with a damage-aware WebGPU renderer and native API",
   "keywords": [
     "browser",
