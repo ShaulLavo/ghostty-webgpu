@@ -37,6 +37,8 @@
 
 ## Build And Tests
 
+- Autonomous performance research follows [program.md](program.md), using the current local research checkpoint and existing benchmark qualification.
+
 - Consumers execute `dist`; run `bun run build` after source changes.
 - Core tests run in plain Vitest under Node and must not require DOM globals.
 - Renderer GPU tests use the separate `vitest.browser.config.ts` project and real Chromium. Do not
