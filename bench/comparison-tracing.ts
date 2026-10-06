@@ -209,10 +209,11 @@ export class ComparisonTracing {
     this.wrap(renderer, 'drawZigFrame', terminal, 'js')
     this.wrap(pass, 'uploadFrame', terminal, 'upload', (result, args) => {
       this.count(terminal, 'buffersWritten', result as number)
+      this.count(terminal, 'bufferBytes', field(pass, 'frameUploadedBytes') as number)
       const ranges = args[1] as { cell: { byteLength: number }; glyph: { byteLength: number } }[]
       this.count(
         terminal,
-        'bufferBytes',
+        'canonicalRangeBytes',
         ranges.reduce((sum, range) => sum + range.cell.byteLength + range.glyph.byteLength, 0),
       )
     })

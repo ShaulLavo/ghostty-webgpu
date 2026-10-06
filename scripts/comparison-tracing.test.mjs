@@ -7,6 +7,7 @@ function rendererBoundary() {
   const builder = { build: () => 0, clearGlyphs() {} }
   const pass = {
     resources: { cellPipeline: {}, glyphPipeline: {} },
+    frameUploadedBytes: 0,
     uploadFrame: () => 0,
     submit: () => {},
   }
