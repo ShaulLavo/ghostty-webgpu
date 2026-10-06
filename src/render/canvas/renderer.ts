@@ -316,11 +316,6 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
     super.clearTextureAtlas()
   }
 
-  override notifyScroll(): void {
-    this.canvasSurface.invalidate()
-    super.notifyScroll()
-  }
-
   override notifySelectionChange(): void {
     this.canvasSurface.invalidate()
     super.notifySelectionChange()

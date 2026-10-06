@@ -321,14 +321,14 @@ describe('Canvas scroll reuse on native snapshots', () => {
     f.parity('selection cleared')
   })
 
-  it('resets reuse for viewport, resize, font/DPR, theme, atlas, clear, and alternate buffer', async () => {
+  it('reuses viewport shifts and resets for resize, font/DPR, theme, atlas, clear, and alternate buffer', async () => {
     const f = await fixture(lines() + '\r\nextra history\r\nmore history')
     f.parity('initial with scrollback')
     f.terminal.scrollBy(-1)
     f.renderer.notifyScroll()
     f.clock.flush()
-    expect(f.copy).not.toHaveBeenCalled()
-    expect(f.clear).toHaveBeenCalledTimes(6)
+    expect(f.copy).toHaveBeenCalledOnce()
+    expect(f.clear).toHaveBeenCalledOnce()
     f.parity('scrollback viewport up')
     f.terminal.scrollToBottom()
     f.renderer.notifyScroll()
