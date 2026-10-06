@@ -2,6 +2,8 @@
 
 Install with `npm install ghostty-webgpu`.
 
+See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
+
 The terminal mount needs a real size.
 
 ```html

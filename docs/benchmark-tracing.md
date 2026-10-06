@@ -11,3 +11,18 @@ The real-WebGPU regression check compares both counters with captured queue writ
 ```sh
 bun run test:browser src/render/tests/comparison-tracing.browser.test.ts
 ```
+
+## comparisons
+
+From this package, use `bun run bench:compare -- --headed --bundle /path/to/bundle`
+for headed hardware Chromium measurements. A built bundle accepts
+`node comparison-runner.mjs --headed --output results`.
+
+`--headed` selects the browser window independently of `--smoke`, which selects
+correctness checks. Defaults remain headless on Linux and headed on macOS for
+hardware measurements; smoke runs default to headless on both.
+
+Ghostty Web correctness observation reads the native render buffer's grapheme strings,
+including combining marks and ZWJ emoji. Correctness checks and final text snapshots run
+outside the timed output interval. Archived bundles retain their recorded observation
+and CPU endpoints.
