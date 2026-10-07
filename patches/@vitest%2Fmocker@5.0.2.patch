@@ -1,0 +1,16 @@
+diff --git a/dist/node.js b/dist/node.js
+index 9c866d089af8c7120aca354c332863a049b71c2c..63cd06c13478947ed3cebae2b2565434698eab75 100644
+--- a/dist/node.js
++++ b/dist/node.js
+@@ -202,10 +202,7 @@ function interceptorPlugin(options = {}) {
+ 				}
+ 			}
+ 		},
+-		configureServer(server) {
+-			if (options.registerWebSocketEvents === false) {
+-				return;
+-			}
++		configureServer: options.registerWebSocketEvents === false ? undefined : function(server) {
+ 			server.ws.on("vitest:interceptor:register", (event) => {
+ 				if (event.type === "manual") {
+ 					const module = ManualMockedModule.fromJSON(event, async () => {
