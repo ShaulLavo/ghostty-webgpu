@@ -46,6 +46,7 @@ import { WebSocketServer } from 'ws'
 import { markdown, summaries } from './comparison-report.mjs'
 import { diagnosticFailed, legacyDiagnostic } from './comparison-diagnostics.mjs'
 import { prepareComparisonBrowserTemp } from './comparison-browser-temp.mjs'
+import { writeComparisonArtifact } from './comparison-artifact.mjs'
 
 const root = dirname(fileURLToPath(import.meta.url))
 const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'))
@@ -928,7 +929,7 @@ try {
         `${smoke ? 'Correctness' : 'Measure'} ${repetition + 1}/${artifact.repetitions} ${testCase.variant}/${testCase.path}/${testCase.count}`,
       )
       artifact.runs.push(await measure(testCase, repetition, browserSession))
-      await writeFile(artifactPath, JSON.stringify(artifact, null, 2) + '\n')
+      await writeComparisonArtifact(artifactPath, artifact)
       if (artifact.runs.at(-1).status === 'failed')
         console.error(
           `Failed case retained: ${testCase.variant}/${testCase.path}/${testCase.count}`,
@@ -951,7 +952,7 @@ try {
   throw error
 } finally {
   try {
-    await writeFile(artifactPath, JSON.stringify(artifact, null, 2) + '\n')
+    await writeComparisonArtifact(artifactPath, artifact)
     await writeFile(
       join(output, 'qualification.json'),
       JSON.stringify(

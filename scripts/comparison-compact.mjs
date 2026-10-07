@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import { gunzipSync } from 'node:zlib'
+import { writeFile, mkdir } from 'node:fs/promises'
 import { join, dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { pairedRatios, qualificationNotes, quantile } from './comparison-report.mjs'
+import { readComparisonArtifact } from './comparison-artifact.mjs'
 
 export function comparisonLatencyEndpoint({ tracing, headless, platform }) {
   if (tracing) return 'keydown/write to first screencast PNG containing the intended colored glyph'
@@ -70,9 +70,7 @@ async function timeline(run, directory) {
   const selected = presentations.toSorted(
     (a, b) => Math.abs(a.milliseconds - p50) - Math.abs(b.milliseconds - p50),
   )[0]
-  const trace = JSON.parse(
-    gunzipSync(await readFile(join(directory, run.latency.trace))).toString(),
-  )
+  const trace = await readComparisonArtifact(join(directory, run.latency.trace), { gzip: true })
   const ack = trace.traceEvents.find(
     (event) =>
       event.name === 'AnimationFrame::Presentation' && event.args?.id === selected.animationId,
@@ -241,7 +239,7 @@ export async function compactEvidence(artifact, directory) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const [input, output] = process.argv.slice(2)
   assert(input && output, 'Usage: node comparison-compact.mjs <comparison.json> <compact.json>')
-  const artifact = JSON.parse(await readFile(input, 'utf8'))
+  const artifact = await readComparisonArtifact(input)
   assert(artifact.finishedAt && !artifact.error, 'A finished benchmark artifact is required')
   const compact = await compactEvidence(artifact, dirname(input))
   await mkdir(dirname(output), { recursive: true })

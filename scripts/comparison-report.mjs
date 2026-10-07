@@ -3,6 +3,7 @@ import { counterparts } from './comparison-options.mjs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { dirname, relative, resolve } from 'node:path'
+import { readComparisonArtifact } from './comparison-artifact.mjs'
 
 export function quantile(values, percentile) {
   assert(values.length > 0 && values.every(Number.isFinite), 'Finite samples required')
@@ -665,7 +666,7 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const artifact = JSON.parse(await readFile(process.argv[2], 'utf8'))
+  const artifact = await readComparisonArtifact(process.argv[2])
   const review = process.argv[4] ? JSON.parse(await readFile(process.argv[4], 'utf8')) : {}
   const directory =
     relative(dirname(resolve(process.argv[3])), dirname(resolve(process.argv[2]))).replaceAll(
