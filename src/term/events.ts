@@ -38,10 +38,15 @@ export class EventEmitter<T> {
     return !this.disposed && this.listeners.size > 0
   }
 
-  readonly emit = (event: T): void => {
+  readonly emit = (event: T, readCurrent?: () => T): void => {
     if (this.disposed) return
     const listeners = Array.from(this.listeners.values())
-    for (const listener of listeners) this.invoke(listener, event)
+    let first = true
+    for (const listener of listeners) {
+      const current = first || !readCurrent ? event : readCurrent()
+      first = false
+      this.invoke(listener, current)
+    }
   }
 
   subscribe(listener: EventListener<T>): EventSubscription {

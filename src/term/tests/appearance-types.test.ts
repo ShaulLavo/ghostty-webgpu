@@ -37,6 +37,7 @@ const appearance: TerminalAppearance = {
   },
   grid: { cellHeight: 20, cellWidth: 10, columns: 80, pixelRatio: 1, rows: 24 },
   rendererTheme: terminalRendererTheme,
+  scrollbackByteLimit: undefined,
   scrollbackLimit: undefined,
   theme: terminalTheme,
 }

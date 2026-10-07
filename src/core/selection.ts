@@ -13,6 +13,7 @@ import {
 import type { AbiLayout } from './abi.js'
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
+import { readSelectionText } from './native-text.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { GhosttyTerminal } from './terminal.js'
 import type { TerminalSelectionFormatOptions } from './types.js'
@@ -169,6 +170,8 @@ export class GhosttySelectionGesture {
   private dragEventHandle = 0
   private geometryPointer = 0
   private gestureHandle = 0
+  private historyBoundaryHandle = 0
+  private historyBoundaryRow = 0
   private readonly layouts: SelectionLayouts
   private orderedSelectionPointer = 0
   private pointPointer = 0
@@ -368,6 +371,70 @@ export class GhosttySelectionGesture {
   getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {
     this.ensureActive()
     return this.terminal.getSelection(options)
+  }
+
+  trackHistoryBoundary(row: number): void {
+    this.ensureActive()
+    this.writePoint({ x: 0, y: row }, PointTag.Screen)
+    if (this.historyBoundaryHandle !== 0) {
+      assertGhosttyResult(
+        'ghostty_tracked_grid_ref_set',
+        this.runtime.exports.ghostty_tracked_grid_ref_set(
+          this.historyBoundaryHandle,
+          this.terminal.handle,
+          this.pointPointer,
+        ),
+      )
+      this.historyBoundaryRow = row
+      return
+    }
+    this.historyBoundaryHandle = createHandle(
+      this.runtime,
+      'ghostty_terminal_grid_ref_track',
+      (out) =>
+        this.runtime.exports.ghostty_terminal_grid_ref_track(
+          this.terminal.handle,
+          this.pointPointer,
+          out,
+        ),
+    )
+    this.historyBoundaryRow = row
+  }
+
+  get historyWasPruned(): boolean {
+    this.ensureActive()
+    if (this.historyBoundaryHandle === 0) return false
+    const result = this.runtime.exports.ghostty_tracked_grid_ref_point(
+      this.historyBoundaryHandle,
+      PointTag.Screen,
+      this.coordinatePointer,
+    )
+    if (result === GhosttyResult.NoValue) return true
+    assertGhosttyResult('ghostty_tracked_grid_ref_point(SCREEN)', result)
+    // Prefix removal moves the old active top even when deleted pins retain a clipped value.
+    const row = this.runtime.memory.view.getUint32(
+      this.coordinatePointer + fieldOffset(this.layouts.coordinate, 'y'),
+      true,
+    )
+    return row < this.historyBoundaryRow
+  }
+
+  readRangeText(coordinates: SelectionCoordinates): string | undefined {
+    this.ensureActive()
+    this.initializeSized(this.currentSelectionPointer, this.layouts.selection)
+    this.writeScreenRef(
+      this.currentSelectionPointer + fieldOffset(this.layouts.selection, 'start'),
+      coordinates.start,
+    )
+    this.writeScreenRef(
+      this.currentSelectionPointer + fieldOffset(this.layouts.selection, 'end'),
+      coordinates.end,
+    )
+    this.runtime.memory.view.setUint8(
+      this.currentSelectionPointer + fieldOffset(this.layouts.selection, 'rectangle'),
+      Number(coordinates.rectangle),
+    )
+    return readSelectionText(this.terminal, {}, this.currentSelectionPointer)
   }
 
   coordinates(): SelectionCoordinates | undefined {
@@ -741,6 +808,10 @@ export class GhosttySelectionGesture {
 
   private releaseCreatedResources(): void {
     const exports = this.runtime.exports
+    if (this.historyBoundaryHandle !== 0) {
+      exports.ghostty_tracked_grid_ref_free(this.historyBoundaryHandle)
+      this.historyBoundaryHandle = 0
+    }
     if (this.pressEventHandle !== 0) {
       exports.ghostty_selection_gesture_event_free(this.pressEventHandle)
     }

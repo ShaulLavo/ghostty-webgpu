@@ -344,9 +344,46 @@ describe('native selection gesture', () => {
     })
   })
 
+  it('formats a borrowed range without replacing the installed selection', async () => {
+    const terminal = await createSelectionTerminal(8, 3)
+    terminal.write('alpha\r\nbeta\r\ngamma')
+    gesture!.selectRange({ x: 0, y: 0 }, { x: 4, y: 0 })
+    const coordinates = gesture!.coordinates()
+    const range = {
+      start: { x: 0, y: 1 },
+      end: { x: 3, y: 1 },
+      rectangle: false,
+    }
+    expect(gesture!.readRangeText(range)).toBe('beta')
+    terminal.write('\u001b[2;1Hnext')
+    expect(gesture!.readRangeText(range)).toBe('next')
+    expect(gesture!.coordinates()).toEqual(coordinates)
+    expect(gesture!.getSelection()).toBe('alpha')
+  })
+
+  it('reuses a tracked history boundary after history discard and screen changes', async () => {
+    const terminal = await createSelectionTerminal(8, 3)
+    terminal.write('first\r\nsecond\r\nthird\r\nfourth')
+    gesture!.trackHistoryBoundary(terminal.scrollbackLength)
+    expect(gesture!.historyWasPruned).toBe(false)
+    terminal.write('\r\nfifth')
+    expect(gesture!.historyWasPruned).toBe(false)
+    terminal.setScrollbackByteLimit(0)
+    expect(gesture!.historyWasPruned).toBe(true)
+    gesture!.trackHistoryBoundary(terminal.scrollbackLength)
+    expect(gesture!.historyWasPruned).toBe(false)
+    terminal.write('\u001b[?1049h')
+    gesture!.trackHistoryBoundary(terminal.scrollbackLength)
+    expect(gesture!.historyWasPruned).toBe(false)
+    terminal.write('\u001b[?1049l')
+    gesture!.trackHistoryBoundary(terminal.scrollbackLength)
+    expect(gesture!.historyWasPruned).toBe(false)
+  })
+
   it('disposes idempotently, rejects later use, and tolerates terminal-first cleanup', async () => {
     const terminal = await createSelectionTerminal(8, 3)
     const activeGesture = gesture!
+    activeGesture.trackHistoryBoundary(terminal.scrollbackLength)
 
     activeGesture.dispose()
     expect(() => activeGesture.dispose()).not.toThrow()
@@ -355,6 +392,7 @@ describe('native selection gesture', () => {
     const terminalFirst = new GhosttySelectionGesture(terminal)
     terminal.write('tracked anchor')
     terminalFirst.press(pressEvent(0, 0, 1_000_000_000n))
+    terminalFirst.trackHistoryBoundary(terminal.scrollbackLength)
     terminal.dispose()
     expect(() => terminalFirst.dispose()).not.toThrow()
     expect(() => terminalFirst.dispose()).not.toThrow()

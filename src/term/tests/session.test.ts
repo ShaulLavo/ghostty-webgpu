@@ -1,7 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { KeyAction, KeyModifier, MouseAction, MouseButton, PhysicalKey } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import type { SelectionDragEvent, SelectionPressEvent } from '../../core/selection.js'
+import {
+  GhosttySelectionGesture,
+  type SelectionDragEvent,
+  type SelectionPressEvent,
+} from '../../core/selection.js'
 import { defaultRendererTheme } from '../../render/instances/types.js'
 import { EventEmitter } from '../events.js'
 import { createLinkLineSnapshot, LinkResolver } from '../links.js'
@@ -23,6 +27,7 @@ import type {
   TerminalMouseEvent,
   TerminalMouseState,
   TerminalScrollEvent,
+  TerminalSelectionEvent,
   TerminalSessionOptions,
   TerminalTheme,
 } from '../types.js'
@@ -37,6 +42,7 @@ const runtimes: GhosttyRuntime[] = []
 afterEach(() => {
   for (const session of sessions.splice(0).reverse()) session.dispose()
   for (const runtime of runtimes.splice(0).reverse()) runtime.dispose()
+  vi.restoreAllMocks()
 })
 
 async function createSession<TEvent = unknown>(
@@ -990,6 +996,385 @@ describe('TerminalSession', () => {
     expect(session.grid.pixelRatio).toBe(2)
     session.write('\u001b[16t')
     expect(output).toEqual(['\u001b[6;40;16t'])
+  })
+
+  it('publishes actual history after changing either native retention budget', async () => {
+    const session = await createSession({
+      appearance: {
+        grid: grid({ columns: 40, rows: 12 }),
+        scrollbackByteLimit: 64 * 1024 * 1024,
+        scrollbackLimit: 10000,
+      },
+    })
+    expect(session.appearance.scrollbackByteLimit).toBe(64 * 1024 * 1024)
+    const written = Array.from({ length: 20000 }, (_, index) => `row-${index}`)
+    session.write(written.join('\r\n'))
+    expect(session.scrollbackLength).toBeLessThan(10000)
+    expect(session.scrollbackLength).toBeGreaterThan(0)
+    expect(session.lineCount()).toBe(session.scrollbackLength + session.grid.rows)
+    const retained = written.slice(-session.lineCount())
+    expect(session.readLines(0, 1)).toEqual([{ text: retained[0], wrapped: false }])
+    session.selectLines(0, 1)
+    expect(session.getSelection()).toBe(retained.slice(0, 2).join('\n'))
+    const events: TerminalScrollEvent[] = []
+    const selections: TerminalSelectionEvent[] = []
+    session.on('scroll', (event) => events.push(event))
+    session.on('selection', (event) => selections.push(event))
+    session.setAppearance({ scrollbackLimit: 4 })
+    expect(session.scrollbackLength).toBeGreaterThan(4)
+    expect(events.at(-1)?.scrollbackLength).toBe(session.scrollbackLength)
+    session.setAppearance({ scrollbackByteLimit: 0 })
+    expect(session.appearance.scrollbackByteLimit).toBe(0)
+    expect(session.scrollbackLength).toBe(0)
+    expect(session.lineCount()).toBe(session.grid.rows)
+    expect(session.getSelection()).toBe(session.readLines(0, 1)[0]!.text.slice(0, 1))
+    expect(session.selectionCoordinates()).toEqual({
+      end: { x: 0, y: 0 },
+      rectangle: false,
+      start: { x: 0, y: 0 },
+    })
+    expect(selections.at(-1)).toEqual({
+      coordinates: session.selectionCoordinates(),
+      hasSelection: true,
+    })
+    expect(events.at(-1)?.scrollbar).toEqual({ length: 12, offset: 0, total: 12 })
+    session.setAppearance({ scrollbackLimit: 10000 })
+    session.write('\r\nwhile disabled')
+    expect(session.appearance.scrollbackByteLimit).toBe(0)
+    expect(session.scrollbackLength).toBe(0)
+    session.setScrollbackByteLimit(undefined)
+    expect(session.appearance.scrollbackByteLimit).toBeUndefined()
+    session.write('\r\nmore')
+    expect(session.scrollbackLength).toBe(1)
+  })
+
+  it.each([
+    { scrollbackLimit: 4, scrollbackByteLimit: -1 },
+    { scrollbackByteLimit: 0, grid: { columns: 65536 } },
+    { scrollbackByteLimit: 0, grid: { rows: 65536 } },
+    { scrollbackByteLimit: 0, grid: { cellWidth: 0x100000000 } },
+    { scrollbackByteLimit: 0, grid: { cellHeight: 0x100000000 } },
+  ])('rejects compound appearance updates without changing native history: %j', async (update) => {
+    const session = await createSession({
+      appearance: {
+        grid: grid({ columns: 40, rows: 12 }),
+        scrollbackByteLimit: 64 * 1024 * 1024,
+        scrollbackLimit: 10000,
+      },
+    })
+    session.write(Array.from({ length: 20000 }, (_, index) => `row-${index}`).join('\r\n'))
+    session.selectLines(0, 1)
+    const before = {
+      appearance: session.appearance,
+      count: session.lineCount(),
+      coordinates: session.selectionCoordinates(),
+      history: session.readLines(0, Infinity),
+      revision: session.revision,
+      scrollback: session.scrollbackLength,
+      scrollbar: session.scrollbar,
+      selection: session.getSelection(),
+      viewportActive: session.viewportActive,
+    }
+    const events: string[] = []
+    for (const type of ['appearance', 'resize', 'scroll', 'selection', 'renderRequest'] as const) {
+      session.on(type, () => events.push(type))
+    }
+    expect(() => session.setAppearance(update)).toThrow()
+    expect({
+      appearance: session.appearance,
+      count: session.lineCount(),
+      coordinates: session.selectionCoordinates(),
+      history: session.readLines(0, Infinity),
+      revision: session.revision,
+      scrollback: session.scrollbackLength,
+      scrollbar: session.scrollbar,
+      selection: session.getSelection(),
+      viewportActive: session.viewportActive,
+    }).toEqual(before)
+    expect(session.appearance).toBe(before.appearance)
+    expect(events).toEqual([])
+    session.write('\r\nstill retained')
+    expect(session.lineCount()).toBe(before.count + 1)
+  })
+
+  it('canonicalizes native unlimited sentinels in creation and both appearance setters', async () => {
+    const session = await createSession({
+      appearance: { scrollbackByteLimit: 0xffffffff, scrollbackLimit: 0xffffffff },
+    })
+    expect(session.appearance.scrollbackByteLimit).toBeUndefined()
+    expect(session.appearance.scrollbackLimit).toBeUndefined()
+    session.setAppearance({ scrollbackByteLimit: 0, scrollbackLimit: 10 })
+    session.setAppearance({ scrollbackByteLimit: 0xffffffff, scrollbackLimit: 0xffffffff })
+    expect(session.appearance.scrollbackByteLimit).toBeUndefined()
+    expect(session.appearance.scrollbackLimit).toBeUndefined()
+    session.setAppearance({ scrollbackByteLimit: 0, scrollbackLimit: 10 })
+    session.setScrollbackByteLimit(0xffffffff)
+    session.setScrollbackLimit(0xffffffff)
+    expect(session.appearance.scrollbackByteLimit).toBeUndefined()
+    expect(session.appearance.scrollbackLimit).toBeUndefined()
+  })
+
+  it.each(['selection', 'scroll', 'appearance'] as const)(
+    'keeps final snapshots current after reentrant %s observers mutate retention',
+    async (type) => {
+      const session = await createSession({
+        appearance: {
+          grid: grid({ columns: 40, rows: 12 }),
+          scrollbackByteLimit: 64 * 1024 * 1024,
+          scrollbackLimit: 10000,
+        },
+      })
+      session.write(Array.from({ length: 20000 }, (_, index) => `row-${index}`).join('\r\n'))
+      session.selectLines(0, 1)
+      let reentered = false
+      session.on(type, () => {
+        if (reentered) return
+        reentered = true
+        session.setScrollbackByteLimit(undefined)
+        session.write('\r\nnested')
+      })
+      const appearances: Array<number | undefined> = []
+      const scrolls: TerminalScrollEvent[] = []
+      const revisions: number[] = []
+      const errors: unknown[] = []
+      session.on('appearance', ({ appearance }) => appearances.push(appearance.scrollbackByteLimit))
+      session.on('scroll', (event) => scrolls.push(event))
+      session.on('renderRequest', ({ revision }) => revisions.push(revision))
+      session.on('error', (event) => errors.push(event))
+      session.setScrollbackByteLimit(0)
+      expect(reentered).toBe(true)
+      expect(errors).toEqual([])
+      expect(session.appearance.scrollbackByteLimit).toBeUndefined()
+      expect(session.scrollbackLength).toBe(1)
+      expect(appearances.length).toBeGreaterThan(0)
+      expect(appearances.at(-1)).toBe(session.appearance.scrollbackByteLimit)
+      expect(scrolls.at(-1)?.scrollbackLength).toBe(session.scrollbackLength)
+      expect(scrolls.at(-1)?.scrollbar).toEqual(session.scrollbar)
+      expect(revisions.at(-1)).toBe(session.revision)
+    },
+  )
+
+  it.each(['write', 'writeAndReadGeometry'] as const)(
+    'skips full selection extraction during non-evicting %s output',
+    async (write) => {
+      const session = await createSession({
+        appearance: {
+          grid: grid({ columns: 40, rows: 12 }),
+          scrollbackByteLimit: 256 * 1024 * 1024,
+          scrollbackLimit: 200000,
+        },
+      })
+      session.write(Array.from({ length: 100000 }, (_, index) => `row-${index}`).join('\r\n'))
+      session.selectAll()
+      session.on('selection', () => {})
+      const count = session.lineCount()
+      const extraction = vi.spyOn(GhosttySelectionGesture.prototype, 'getSelection')
+      const activeText = vi.spyOn(GhosttySelectionGesture.prototype, 'readRangeText')
+      for (let index = 0; index < 50; index += 1) session[write](`\r\nextra-${index}`)
+      expect(session.lineCount()).toBe(count + 50)
+      expect(extraction).not.toHaveBeenCalled()
+      for (const result of activeText.mock.results) {
+        expect(result.type).toBe('return')
+        expect(result.value?.length ?? 0).toBeLessThanOrEqual(
+          session.grid.rows * (session.grid.columns + 1),
+        )
+      }
+    },
+  )
+
+  it.each(['write', 'writeAndReadGeometry'] as const)(
+    'publishes selection after %s evicts selected history',
+    async (write) => {
+      const session = await createSession({
+        appearance: {
+          grid: grid({ columns: 40, rows: 12 }),
+          scrollbackByteLimit: 64 * 1024 * 1024,
+          scrollbackLimit: 10000,
+        },
+      })
+      session.write(Array.from({ length: 20000 }, (_, index) => `row-${index}`).join('\r\n'))
+      session.selectRange({ x: 0, y: 10 }, { x: 3, y: 11 })
+      const before = session.selectionCoordinates()
+      const selections: Array<{ event: TerminalSelectionEvent; text: string | undefined }> = []
+      session.on('selection', (event) => selections.push({ event, text: session.getSelection() }))
+      let pruned = false
+      for (let index = 0; index < 1400; index += 1) {
+        const count = session.lineCount()
+        session[write](`\r\nrow-${20000 + index}`)
+        if (session.lineCount() >= count) continue
+        pruned = true
+        break
+      }
+      expect(pruned).toBe(true)
+      expect(session.selectionCoordinates()).not.toEqual(before)
+      expect(session.selectionCoordinates()).toEqual({
+        end: { x: 0, y: 0 },
+        rectangle: false,
+        start: { x: 0, y: 0 },
+      })
+      expect(session.getSelection()).toBe('r')
+      expect(selections.at(-1)).toEqual({
+        event: { coordinates: session.selectionCoordinates(), hasSelection: true },
+        text: session.getSelection(),
+      })
+    },
+  )
+
+  it('publishes eviction changes to copied text when selection coordinates stay the same', async () => {
+    const session = await createSession({
+      appearance: {
+        grid: grid({ columns: 40, rows: 12 }),
+        scrollbackByteLimit: 64 * 1024 * 1024,
+        scrollbackLimit: 10000,
+      },
+    })
+    session.write(
+      Array.from(
+        { length: 20000 },
+        (_, index) => `${String.fromCharCode(65 + (index % 26))}-${index}`,
+      ).join('\r\n'),
+    )
+    session.selectRange({ x: 0, y: 0 }, { x: 0, y: 0 })
+    const coordinates = session.selectionCoordinates()
+    const text = session.getSelection()
+    const selections: Array<{ event: TerminalSelectionEvent; text: string | undefined }> = []
+    session.on('selection', (event) => selections.push({ event, text: session.getSelection() }))
+    let pruned = false
+    for (let index = 0; index < 1400; index += 1) {
+      const count = session.lineCount()
+      session.write(`\r\nrow-${20000 + index}`)
+      if (session.lineCount() >= count) continue
+      pruned = true
+      break
+    }
+    expect(pruned).toBe(true)
+    expect(session.selectionCoordinates()).toEqual(coordinates)
+    expect(session.getSelection()).not.toBe(text)
+    expect(selections.at(-1)).toEqual({
+      event: { coordinates, hasSelection: true },
+      text: session.getSelection(),
+    })
+  })
+
+  it.each(['write', 'writeAndReadGeometry'] as const)(
+    'publishes same-coordinate eviction during net-growing %s batched output',
+    async (write) => {
+      const session = await createSession({
+        appearance: {
+          grid: grid({ columns: 40, rows: 12 }),
+          scrollbackByteLimit: 64 * 1024 * 1024,
+          scrollbackLimit: 10000,
+        },
+      })
+      session.write(
+        Array.from(
+          { length: 20000 },
+          (_, index) => `${String.fromCharCode(65 + (index % 26))}-${index}`,
+        ).join('\r\n'),
+      )
+      session.selectRange({ x: 0, y: 0 }, { x: 0, y: 0 })
+      const coordinates = session.selectionCoordinates()
+      const text = session.getSelection()
+      const count = session.lineCount()
+      const selections: Array<{ event: TerminalSelectionEvent; text: string | undefined }> = []
+      session.on('selection', (event) => selections.push({ event, text: session.getSelection() }))
+      session[write](
+        Array.from({ length: 1800 }, (_, index) => `\r\nrow-${20000 + index}`).join(''),
+      )
+      expect(session.lineCount()).toBeGreaterThan(count)
+      expect(session.selectionCoordinates()).toEqual(coordinates)
+      expect(session.getSelection()).not.toBe(text)
+      expect(selections).toEqual([
+        { event: { coordinates, hasSelection: true }, text: session.getSelection() },
+      ])
+    },
+  )
+
+  it.each(['write', 'writeAndReadGeometry'] as const)(
+    'publishes same-coordinate history erasure during net-growing %s output',
+    async (write) => {
+      const session = await createSession({ appearance: { grid: grid({ columns: 40, rows: 12 }) } })
+      session.write(
+        Array.from({ length: 14 }, (_, index) => `${String.fromCharCode(65 + index)}-row`).join(
+          '\r\n',
+        ),
+      )
+      session.selectRange({ x: 0, y: 0 }, { x: 0, y: 0 })
+      const coordinates = session.selectionCoordinates()
+      const text = session.getSelection()
+      const count = session.lineCount()
+      const selections: Array<{ event: TerminalSelectionEvent; text: string | undefined }> = []
+      session.on('selection', (event) => selections.push({ event, text: session.getSelection() }))
+      session[write]('\u001b[3J\r\nnew-0\r\nnew-1\r\nnew-2')
+      expect(session.lineCount()).toBeGreaterThan(count)
+      expect(session.selectionCoordinates()).toEqual(coordinates)
+      expect(session.getSelection()).not.toBe(text)
+      expect(selections).toEqual([
+        { event: { coordinates, hasSelection: true }, text: session.getSelection() },
+      ])
+    },
+  )
+
+  it('keeps historical selection notifications quiet during active row edits', async () => {
+    const session = await createSession({ appearance: { grid: grid({ columns: 40, rows: 12 }) } })
+    session.write(Array.from({ length: 14 }, (_, index) => `row-${index}`).join('\r\n'))
+    session.selectRange({ x: 0, y: 0 }, { x: 3, y: 0 })
+    const selections: TerminalSelectionEvent[] = []
+    session.on('selection', (event) => selections.push(event))
+    const history = session.scrollbackLength
+    const text = session.getSelection()
+    const coordinates = session.selectionCoordinates()
+    session.write('\u001b[1;1H\u001b[M')
+    session.write('\u001b[L')
+    session.write('\u001b[1;1H\u001bM')
+    session.write('\u001b[2J')
+    expect(session.scrollbackLength).toBe(history)
+    expect(session.selectionCoordinates()).toEqual(coordinates)
+    expect(session.getSelection()).toBe(text)
+    expect(selections).toEqual([])
+  })
+
+  it('notifies changed copied text and keeps unchanged selection notifications quiet', async () => {
+    const session = await createSession({ appearance: { grid: grid() } })
+    session.write('abc')
+    session.selectRange({ x: 0, y: 0 }, { x: 2, y: 0 })
+    const coordinates = session.selectionCoordinates()
+    const selections: Array<{ event: TerminalSelectionEvent; text: string | undefined }> = []
+    session.on('selection', (event) => selections.push({ event, text: session.getSelection() }))
+    session.write('\u001b[31m')
+    expect(selections).toEqual([])
+    session.write('\rXYZ')
+    expect(selections).toEqual([{ event: { coordinates, hasSelection: true }, text: 'XYZ' }])
+    session.write('tail')
+    expect(selections).toHaveLength(1)
+  })
+
+  it('publishes reflowed selection coordinates while the history count stays zero', async () => {
+    const session = await createSession({ appearance: { grid: grid({ columns: 80 }) } })
+    session.write('x'.repeat(60))
+    session.selectRange({ x: 45, y: 0 }, { x: 50, y: 0 })
+    expect(session.scrollbackLength).toBe(0)
+    const selections: Array<{ event: TerminalSelectionEvent; text: string | undefined }> = []
+    session.on('selection', (event) => selections.push({ event, text: session.getSelection() }))
+    session.setAppearance({ grid: { columns: 40 } })
+    expect(session.scrollbackLength).toBe(0)
+    expect(session.selectionCoordinates()).toEqual({
+      end: { x: 10, y: 1 },
+      rectangle: false,
+      start: { x: 5, y: 1 },
+    })
+    expect(session.getSelection()).toBe('xxxxxx')
+    expect(selections.at(-1)).toEqual({
+      event: { coordinates: session.selectionCoordinates(), hasSelection: true },
+      text: session.getSelection(),
+    })
+  })
+
+  it('preserves the native default byte budget when appearance omits it', async () => {
+    const session = await createSession()
+    expect(session.appearance.scrollbackByteLimit).toBeGreaterThan(0)
+    session.setAppearance({ scrollbackLimit: 10000 })
+    expect(session.appearance.scrollbackByteLimit).toBeGreaterThan(0)
   })
 
   it('diffs scroll snapshots and preserves a scrolled viewport across writes', async () => {

@@ -11,6 +11,72 @@ afterEach(() => {
 })
 
 describe('terminal history', () => {
+  it.each(['row', '界é👩‍💻'])('prunes complete historical pages for %s', async (prefix) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 40, rows: 12 })
+    terminal.setScrollbackLimit(10000)
+    terminal.setScrollbackByteLimit(64 * 1024 * 1024)
+    const written = Array.from({ length: 20000 }, (_, index) => `${prefix}-${index}`)
+    terminal.write(written.slice(0, 10012).join('\r\n'))
+    expect(terminal.scrollbackLength).toBe(10000)
+    const drops = []
+    for (const text of written.slice(10012)) {
+      const before = terminal.scrollbackLength
+      terminal.write(`\r\n${text}`)
+      const after = terminal.scrollbackLength
+      if (after < before) drops.push(before + 1 - after)
+      expect(after).toBeLessThanOrEqual(10000)
+    }
+    expect(drops.length).toBeGreaterThan(0)
+    expect(drops.every((count) => count > 1)).toBe(true)
+    expect(terminal.scrollbackLength).toBeLessThan(10000)
+    expect(terminal.lineCount()).toBe(terminal.scrollbackLength + terminal.size.rows)
+    expect(terminal.scrollbar.total).toBe(terminal.lineCount())
+    const retained = written.slice(-terminal.lineCount())
+    const lines = []
+    for (let start = 0; start < terminal.lineCount(); start += TERMINAL_READ_LINES_MAX_ROWS) {
+      lines.push(...terminal.readLines(start, terminal.lineCount()))
+    }
+    expect(lines).toEqual(retained.map((text) => ({ text, wrapped: false })))
+    terminal.selectAll()
+    expect(terminal.getSelection()).toBe(retained.join('\n'))
+    terminal.scrollToTop()
+    const state = runtime.createRenderState(terminal)
+    state.update()
+    expect(state.readRows().map((row) => row.cells.map((cell) => cell.text).join(''))).toEqual(
+      retained.slice(0, terminal.size.rows),
+    )
+    console.log(
+      `40x12 ${prefix}: limit=10000 bytes=67108864 retained=${terminal.scrollbackLength} pageDrops=${drops.join(',')}`,
+    )
+  })
+
+  it('exposes the native byte budget and its zero-history switch', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 40, rows: 12 })
+    expect(terminal.scrollbackByteLimit).toBeGreaterThan(0)
+    terminal.setScrollbackByteLimit(64 * 1024 * 1024)
+    expect(terminal.scrollbackByteLimit).toBe(64 * 1024 * 1024)
+    terminal.setScrollbackLimit(0)
+    terminal.write('row\r\n'.repeat(100))
+    expect(terminal.scrollbackLength).toBeGreaterThan(0)
+    terminal.setScrollbackByteLimit(0)
+    expect(terminal.scrollbackByteLimit).toBe(0)
+    expect(terminal.scrollbackLength).toBe(0)
+    terminal.write('row\r\n'.repeat(100))
+    expect(terminal.scrollbackLength).toBe(0)
+    terminal.setScrollbackByteLimit(undefined)
+    expect(terminal.scrollbackByteLimit).toBeUndefined()
+    terminal.write('row\r\n'.repeat(100))
+    expect(terminal.scrollbackLength).toBeGreaterThan(0)
+    expect(() => terminal.setScrollbackByteLimit(-1)).toThrow('safe integer between 0 and')
+    expect(() => terminal.setScrollbackByteLimit(0x100000000)).toThrow('safe integer between 0 and')
+    expect(() => terminal.setScrollbackByteLimit(1.5)).toThrow('safe integer between 0 and')
+    terminal.dispose()
+    expect(() => terminal.scrollbackByteLimit).toThrow('disposed')
+    expect(() => terminal.setScrollbackByteLimit(0)).toThrow('disposed')
+  })
+
   it('reads retained rows oldest-first after scrollback overflow', async () => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 12, rows: 3 })

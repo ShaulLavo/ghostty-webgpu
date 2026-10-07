@@ -58,6 +58,58 @@ Publication, full interaction parity and presentation acceptance wait for their 
 Packaged-entry Chromium software-GPU checks qualify correctness only.
 OSC 52 remains denied by default.
 
+## scrollback retention
+
+`appearance.scrollbackLimit` sets a page-granular budget for physical history rows, excluding the
+active screen. Soft-wrapped rows each count as one physical row. Native Ghostty removes complete
+historical pages when the budget is exceeded. The retained count can fall below the configured
+value after a page is removed. The effective budget permits at least one standard page of rows,
+so small values, including zero, can retain more rows than configured. Pages that overlap the
+active screen stay whole. Page capacity depends on terminal width, styles, and graphemes.
+
+`appearance.scrollbackByteLimit` sets a logical page-allocation budget that includes the active
+area. A positive budget is raised to Ghostty's minimum: enough standard pages for the active
+area plus one extra page. Both budgets apply independently, and the first reached triggers
+pruning. Creation preserves Ghostty's native byte budget when this option is omitted. Zero
+erases retained history and disables further scrollback. The alternate screen always contains
+only its active rows.
+
+```ts
+const terminal = await Terminal.create({
+  appearance: { scrollbackLimit: 10000, scrollbackByteLimit: 64 * 1024 * 1024 },
+})
+const retainedRows = await terminal.lineCount()
+const firstPage = await terminal.readLines(0, retainedRows)
+await terminal.setAppearance({ scrollbackByteLimit: 0 })
+```
+
+`lineCount()` reports the actual retained history plus active rows. `readLines(start, end)` reads
+that same native range oldest-first and caps each call at `TERMINAL_READ_LINES_MAX_ROWS`.
+Callers that search history page through these actual rows. Selection, scrolling, rendered text,
+and accessibility use the same retained native data. Eviction clips native selection pins to the
+remaining rows. `visibleLines()` and accessibility describe
+the last submitted viewport while a new frame is pending. `setAppearance()` preserves omitted
+budgets, including a zero byte budget.
+
+The browser-independent `GhosttyTerminal` exposes `scrollbackLength` for actual history rows and
+`scrollbackLimit` and `scrollbackByteLimit` for the configured budgets. Its
+`setScrollbackLimit(undefined)` and `setScrollbackByteLimit(undefined)` remove the corresponding
+budget. `TerminalSession` exposes the same setters and publishes native selection changes after
+output, grid reflow, and budget pruning. Output observation uses native coordinates and a tracked
+history-boundary reference to detect eviction. Text comparisons cover only the previously active
+selected rows, so their work is bounded by the active grid. Appearance updates validate native
+budget and grid bounds before applying changes. State events deliver the latest committed snapshot
+to each synchronous observer. An observer's nested mutation becomes visible to later observers.
+Unlimited lines still obey the byte budget; unlimited bytes still obey the line budget. The
+wasm32 unlimited sentinel `0xffffffff` is accepted for either budget and canonicalized to
+`undefined` in core readback and main/worker appearance.
+
+The shipped native artifact uses the pinned official Ghostty source without patches. Its
+[page limit enforcement](https://github.com/ghostty-org/ghostty/blob/7b11f3dca034d8d24369ad3856afe57946d7902a/src/terminal/PageList.zig#L6991-L7041)
+and [undershoot test](https://github.com/ghostty-org/ghostty/blob/7b11f3dca034d8d24369ad3856afe57946d7902a/src/terminal/PageList.zig#L11258-L11303)
+define this retention behavior. A line budget describes that native policy; `lineCount()` supplies
+the available row count.
+
 ## first frames and damage
 
 `renderFrameToHtml(snapshot, { font, columns, rows, theme })` produces the DOM backend's

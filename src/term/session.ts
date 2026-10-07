@@ -29,7 +29,11 @@ import {
   type SelectionGestureUpdate,
   type SelectionPoint,
 } from '../core/selection.js'
-import { GhosttyTerminal } from '../core/terminal.js'
+import {
+  GhosttyTerminal,
+  normalizeScrollbackLimit,
+  normalizeTerminalSize,
+} from '../core/terminal.js'
 import { normalizeCellGeometry } from '../core/types.js'
 import type {
   CustomOscObservation,
@@ -689,13 +693,25 @@ function createAppearance(
     font: normalizeFont(defaultFont, options.font),
     grid,
     rendererTheme: copyRendererTheme(theme),
+    scrollbackByteLimit: options.scrollbackByteLimit ?? terminal.scrollbackByteLimit,
     scrollbackLimit: options.scrollbackLimit,
     theme,
   })
 }
 
 function freezeAppearance(appearance: TerminalAppearance): TerminalAppearance {
-  return Object.freeze(appearance)
+  normalizeTerminalSize(nativeGrid(appearance.grid))
+  return Object.freeze({
+    ...appearance,
+    scrollbackByteLimit: normalizeScrollbackLimit(
+      appearance.scrollbackByteLimit,
+      'ghostty_terminal_set(SCROLLBACK_MAX_BYTES)',
+    ),
+    scrollbackLimit: normalizeScrollbackLimit(
+      appearance.scrollbackLimit,
+      'ghostty_terminal_set(SCROLLBACK_MAX_LINES)',
+    ),
+  })
 }
 
 function mergeAppearance(
@@ -709,6 +725,7 @@ function mergeAppearance(
     font: normalizeFont(current.font, options.font),
     grid: normalizeGrid(current.grid, options.grid),
     rendererTheme: copyRendererTheme(theme),
+    scrollbackByteLimit: options.scrollbackByteLimit ?? current.scrollbackByteLimit,
     scrollbackLimit: options.scrollbackLimit ?? current.scrollbackLimit,
     theme,
   })
@@ -782,6 +799,7 @@ function cursorsEqual(first: TerminalCursorSettings, second: TerminalCursorSetti
 function appearancesEqual(first: TerminalAppearance, second: TerminalAppearance): boolean {
   return (
     first.colorScheme === second.colorScheme &&
+    first.scrollbackByteLimit === second.scrollbackByteLimit &&
     first.scrollbackLimit === second.scrollbackLimit &&
     gridsEqual(first.grid, second.grid) &&
     fontsEqual(first.font, second.font) &&
@@ -933,6 +951,7 @@ function applyInitialAppearance(terminal: GhosttyTerminal, appearance: TerminalA
   terminal.setDefaultCursorStyle(appearance.cursor.style)
   terminal.setDefaultCursorBlink(appearance.cursor.blink)
   terminal.setScrollbackLimit(appearance.scrollbackLimit)
+  terminal.setScrollbackByteLimit(appearance.scrollbackByteLimit)
 }
 
 function readScrollSnapshot(terminal: GhosttyTerminal): TerminalScrollEvent {
@@ -951,6 +970,48 @@ function scrollSnapshotsEqual(first: TerminalScrollEvent, second: TerminalScroll
     first.scrollbar.offset === second.scrollbar.offset &&
     first.scrollbar.total === second.scrollbar.total
   )
+}
+
+interface ObservedSelection {
+  readonly coordinates: SelectionCoordinates | undefined
+  readonly text: string | undefined
+}
+
+interface ObservedOutputSelection extends ObservedSelection {
+  readonly activeRange: SelectionCoordinates | undefined
+}
+
+function selectionCoordinatesEqual(
+  first: SelectionCoordinates | undefined,
+  second: SelectionCoordinates | undefined,
+): boolean {
+  if (first === second) return true
+  if (!first || !second) return false
+  return (
+    first.rectangle === second.rectangle &&
+    first.start.x === second.start.x &&
+    first.start.y === second.start.y &&
+    first.end.x === second.end.x &&
+    first.end.y === second.end.y
+  )
+}
+
+function selectionsEqual(first: ObservedSelection, second: ObservedSelection): boolean {
+  return (
+    first.text === second.text && selectionCoordinatesEqual(first.coordinates, second.coordinates)
+  )
+}
+
+function activeSelectionRange(
+  coordinates: SelectionCoordinates,
+  scrollbackLength: number,
+): SelectionCoordinates | undefined {
+  if (coordinates.end.y < scrollbackLength) return undefined
+  if (coordinates.start.y >= scrollbackLength) return coordinates
+  return {
+    ...coordinates,
+    start: { x: coordinates.rectangle ? coordinates.start.x : 0, y: scrollbackLength },
+  }
 }
 
 function copyInput(data: TerminalInputData): Uint8Array {
@@ -1210,15 +1271,18 @@ export class TerminalSession<TEvent = unknown> {
 
   writeAndReadGeometry(data: TerminalInputData): TerminalGeometry {
     return this.runOperation(() => {
+      const selectionBefore = this.readObservedOutputSelection()
       this.runVtWrite(() => this.terminal.write(data))
       this.mouseEncoder.syncFromTerminal()
       this.invalidateLinks()
       this.revisionValue += 1
       // Effects can reenter the owner; capture this write before publishing any of them.
       const scroll = this.commitScrollChange()
+      const selectionChanged = this.outputSelectionChanged(selectionBefore)
       const geometry = this.geometry()
       this.flushEffects()
-      if (scroll) this.emitters.scroll.emit(scroll)
+      if (selectionChanged) this.emitSelection()
+      if (scroll) this.emitState(this.emitters.scroll, () => this.scrollValue)
       this.emitRenderRequest()
       return geometry
     })
@@ -1354,9 +1418,17 @@ export class TerminalSession<TEvent = unknown> {
     return this.setAppearance({ theme })
   }
 
+  /** Sets the native page-granular row budget. Read scrollbackLength for actual retention. */
   setScrollbackLimit(scrollbackLimit?: number): TerminalMutationResult {
     return this.runOperation(() =>
       this.commitAppearance(withScrollbackLimit(this.appearanceValue, scrollbackLimit)),
+    )
+  }
+
+  /** Undefined removes the byte budget. Zero erases history and disables further scrollback. */
+  setScrollbackByteLimit(scrollbackByteLimit?: number): TerminalMutationResult {
+    return this.runOperation(() =>
+      this.commitAppearance(freezeAppearance({ ...this.appearanceValue, scrollbackByteLimit })),
     )
   }
 
@@ -1574,14 +1646,17 @@ export class TerminalSession<TEvent = unknown> {
   }
 
   private writeNow(data: TerminalInputData): TerminalMutationResult {
+    const selectionBefore = this.readObservedOutputSelection()
     this.runVtWrite(() => this.terminal.write(data))
     this.mouseEncoder.syncFromTerminal()
     this.invalidateLinks()
     // Observers can read geometry or reenter; publish the committed native revision first.
     this.revisionValue += 1
     const scroll = this.commitScrollChange()
+    const selectionChanged = this.outputSelectionChanged(selectionBefore)
     this.flushEffects()
-    if (scroll) this.emitters.scroll.emit(scroll)
+    if (selectionChanged) this.emitSelection()
+    if (scroll) this.emitState(this.emitters.scroll, () => this.scrollValue)
     return this.emitRenderRequest()
   }
 
@@ -1635,7 +1710,7 @@ export class TerminalSession<TEvent = unknown> {
     const scroll = this.commitScrollChange(forceScroll)
     this.flushEffects()
     if (hadSelection) this.emitSelection()
-    if (scroll) this.emitters.scroll.emit(scroll)
+    if (scroll) this.emitState(this.emitters.scroll, () => this.scrollValue)
     return this.emitRenderRequest()
   }
 
@@ -1651,7 +1726,7 @@ export class TerminalSession<TEvent = unknown> {
     const scroll = this.commitScrollChange()
     this.flushEffects()
     if (hadSelection) this.emitSelection()
-    if (scroll) this.emitters.scroll.emit(scroll)
+    if (scroll) this.emitState(this.emitters.scroll, () => this.scrollValue)
     return this.emitRenderRequest()
   }
 
@@ -1661,7 +1736,7 @@ export class TerminalSession<TEvent = unknown> {
     const scroll = this.commitScrollChange()
     if (!update.selectionChanged && !scroll) return update
     this.revisionValue += 1
-    if (scroll) this.emitters.scroll.emit(scroll)
+    if (scroll) this.emitState(this.emitters.scroll, () => this.scrollValue)
     if (update.selectionChanged) this.emitSelection()
     this.emitRenderRequest()
     return update
@@ -1681,12 +1756,17 @@ export class TerminalSession<TEvent = unknown> {
     const gridChanged = !gridsEqual(current.grid, next.grid)
     const cursorChanged = !cursorsEqual(current.cursor, next.cursor)
     const themeChanged = !themesEqual(current.theme, next.theme)
-    const scrollbackChanged = current.scrollbackLimit !== next.scrollbackLimit
+    const linesChanged = current.scrollbackLimit !== next.scrollbackLimit
+    const bytesChanged = current.scrollbackByteLimit !== next.scrollbackByteLimit
+    const scrollbackChanged = linesChanged || bytesChanged
+    const selectionBefore =
+      gridChanged || scrollbackChanged ? this.readObservedSelection() : undefined
     const colorSchemeChanged = current.colorScheme !== next.colorScheme
 
     if (themeChanged) applyTheme(this.terminal, next.theme)
     if (cursorChanged) this.applyCursor(next.cursor)
-    if (scrollbackChanged) this.terminal.setScrollbackLimit(next.scrollbackLimit)
+    if (linesChanged) this.terminal.setScrollbackLimit(next.scrollbackLimit)
+    if (bytesChanged) this.terminal.setScrollbackByteLimit(next.scrollbackByteLimit)
     if (gridChanged) this.terminal.resize(nativeGrid(next.grid))
     if (colorSchemeChanged)
       this.effectState.effects.colorScheme = nativeColorScheme(next.colorScheme)
@@ -1696,12 +1776,15 @@ export class TerminalSession<TEvent = unknown> {
     const nextScroll =
       gridChanged || scrollbackChanged ? readScrollSnapshot(this.terminal) : this.scrollValue
     const scrollChanged = !scrollSnapshotsEqual(this.scrollValue, nextScroll)
+    const selectionChanged = this.selectionChanged(selectionBefore)
     // Resize listeners can paint synchronously; commit viewport and revision before notifying.
     if (scrollChanged) this.scrollValue = nextScroll
     this.revisionValue += 1
-    if (gridChanged) this.emitters.resize.emit({ grid: next.grid })
-    if (scrollChanged) this.emitters.scroll.emit(nextScroll)
-    this.emitters.appearance.emit({ appearance: next })
+    if (gridChanged)
+      this.emitState(this.emitters.resize, () => ({ grid: this.appearanceValue.grid }))
+    if (selectionChanged) this.emitSelection()
+    if (scrollChanged) this.emitState(this.emitters.scroll, () => this.scrollValue)
+    this.emitState(this.emitters.appearance, () => ({ appearance: this.appearanceValue }))
     return this.emitRenderRequest()
   }
 
@@ -1716,7 +1799,7 @@ export class TerminalSession<TEvent = unknown> {
     const scroll = this.commitScrollChange()
     if (!scroll) return this.mutationResult()
     this.revisionValue += 1
-    this.emitters.scroll.emit(scroll)
+    this.emitState(this.emitters.scroll, () => this.scrollValue)
     return this.emitRenderRequest()
   }
 
@@ -1739,13 +1822,52 @@ export class TerminalSession<TEvent = unknown> {
     this.requestRender()
   }
 
-  private emitSelection(): void {
-    const hasSelection = this.selection.hasSelection
+  private readObservedOutputSelection(): ObservedOutputSelection | undefined {
+    if (!this.emitters.selection.hasListeners) return undefined
     const coordinates = this.selection.coordinates()
-    this.emitters.selection.emit({
+    if (!coordinates) return { coordinates, activeRange: undefined, text: undefined }
+    // A tracked active top detects pruning even when a large write grows the retained count.
+    this.selection.trackHistoryBoundary(this.scrollValue.scrollbackLength)
+    const activeRange = activeSelectionRange(coordinates, this.scrollValue.scrollbackLength)
+    return {
       coordinates,
-      hasSelection,
-    })
+      activeRange,
+      text: activeRange ? this.selection.readRangeText(activeRange) : undefined,
+    }
+  }
+
+  private outputSelectionChanged(before: ObservedOutputSelection | undefined): boolean {
+    if (!before || !this.emitters.selection.hasListeners) return false
+    if (before.coordinates && this.selection.historyWasPruned) return true
+    if (!selectionCoordinatesEqual(before.coordinates, this.selection.coordinates())) return true
+    if (!before.activeRange) return false
+    // Only the previously active selected rows can change text while their pins survive.
+    return before.text !== this.selection.readRangeText(before.activeRange)
+  }
+
+  private readObservedSelection(): ObservedSelection | undefined {
+    if (!this.emitters.selection.hasListeners) return undefined
+    const coordinates = this.selection.coordinates()
+    return { coordinates, text: coordinates ? this.selection.getSelection() : undefined }
+  }
+
+  private selectionChanged(before: ObservedSelection | undefined): boolean {
+    if (!before) return false
+    const next = this.readObservedSelection()
+    return next !== undefined && !selectionsEqual(before, next)
+  }
+
+  private emitSelection(): void {
+    this.emitState(this.emitters.selection, () => ({
+      coordinates: this.selection.coordinates(),
+      hasSelection: this.selection.hasSelection,
+    }))
+  }
+
+  private emitState<T>(emitter: EventEmitter<T>, readCurrent: () => T): void {
+    if (!emitter.hasListeners) return
+    // Reentrant observers can commit new state before the next listener receives it.
+    emitter.emit(readCurrent(), readCurrent)
   }
 
   private commitScrollChange(force = false): TerminalScrollEvent | undefined {
@@ -1803,7 +1925,10 @@ export class TerminalSession<TEvent = unknown> {
 
   private emitRenderRequest(): TerminalMutationResult {
     const result = this.mutationResult()
-    this.emitters.renderRequest.emit({ ...result, state: this.nativeRenderState })
+    this.emitState(this.emitters.renderRequest, () => ({
+      ...this.mutationResult(),
+      state: this.nativeRenderState,
+    }))
     return result
   }
 

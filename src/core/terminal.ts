@@ -56,6 +56,15 @@ function validateUnsigned(name: string, value: number, maximum: number, operatio
   throw createGhosttyError(operation, `${name} must be a safe integer between 0 and ${maximum}`)
 }
 
+export function normalizeScrollbackLimit(
+  limit: number | undefined,
+  operation: string,
+): number | undefined {
+  if (limit === undefined) return undefined
+  const value = validateUnsigned('limit', limit, uint32Max, operation)
+  return value === uint32Max ? undefined : value
+}
+
 function validateDelta(value: number): number {
   if (Number.isInteger(value) && value >= int32Min && value <= int32Max) return value
   throw createGhosttyError(
@@ -80,7 +89,7 @@ function validateColor(color: RgbColor): RgbColor {
   }
 }
 
-function normalizeSize(options: TerminalOptions): TerminalSize {
+export function normalizeTerminalSize(options: TerminalOptions): TerminalSize {
   return {
     cellHeight: validateDimension(
       'cellHeight',
@@ -143,7 +152,7 @@ export class GhosttyTerminal {
   constructor(runtime: GhosttyRuntime, options: TerminalOptions) {
     this.runtime = runtime
     this.effects = options.effects ?? {}
-    this.sizeValue = normalizeSize(options)
+    this.sizeValue = normalizeTerminalSize(options)
     this.handleValue = this.createHandle()
     try {
       this.runtime.bridge.registerTerminal(this.handleValue, this.effects, this.sizeValue)
@@ -249,15 +258,27 @@ export class GhosttyTerminal {
     return readTerminalLines(this, start, end, options)
   }
 
+  /** Actual retained physical rows, excluding the active screen. */
   get scrollbackLength(): number {
     return this.readUint32(TerminalData.ScrollbackRows, 'SCROLLBACK_ROWS')
   }
 
+  /** Configured page-granular line budget. Read scrollbackLength for the retained count. */
   get scrollbackLimit(): number | undefined {
     return this.readOptionalData(
       TerminalData.ScrollbackMaxLines,
       4,
       'SCROLLBACK_MAX_LINES',
+      (pointer) => this.runtime.memory.view.getUint32(pointer, true),
+    )
+  }
+
+  /** Configured page-granular byte budget. Undefined means unlimited; zero disables history. */
+  get scrollbackByteLimit(): number | undefined {
+    return this.readOptionalData(
+      TerminalData.ScrollbackMaxBytes,
+      4,
+      'SCROLLBACK_MAX_BYTES',
       (pointer) => this.runtime.memory.view.getUint32(pointer, true),
     )
   }
@@ -370,22 +391,37 @@ export class GhosttyTerminal {
     })
   }
 
+  /** Native pruning removes whole historical pages and permits at least one page of rows.
+   * The retained count can fall below or exceed this budget. Undefined removes the line limit. */
   setScrollbackLimit(limit?: number): void {
     this.ensureActive()
-    if (limit === undefined) {
+    const value = normalizeScrollbackLimit(limit, 'ghostty_terminal_set(SCROLLBACK_MAX_LINES)')
+    if (value === undefined) {
       this.setNullOption(TerminalOption.ScrollbackMaxLines, 'SCROLLBACK_MAX_LINES')
       return
     }
-    const value = validateUnsigned(
-      'limit',
-      limit,
-      uint32Max,
-      'ghostty_terminal_set(SCROLLBACK_MAX_LINES)',
-    )
     this.setAllocatedOption(
       TerminalOption.ScrollbackMaxLines,
       4,
       'SCROLLBACK_MAX_LINES',
+      (pointer) => {
+        this.runtime.memory.view.setUint32(pointer, value, true)
+      },
+    )
+  }
+
+  /** Both budgets apply independently. Zero erases history and disables further scrollback. */
+  setScrollbackByteLimit(limit?: number): void {
+    this.ensureActive()
+    const value = normalizeScrollbackLimit(limit, 'ghostty_terminal_set(SCROLLBACK_MAX_BYTES)')
+    if (value === undefined) {
+      this.setNullOption(TerminalOption.ScrollbackMaxBytes, 'SCROLLBACK_MAX_BYTES')
+      return
+    }
+    this.setAllocatedOption(
+      TerminalOption.ScrollbackMaxBytes,
+      4,
+      'SCROLLBACK_MAX_BYTES',
       (pointer) => {
         this.runtime.memory.view.setUint32(pointer, value, true)
       },
@@ -558,7 +594,7 @@ export class GhosttyTerminal {
 
   resize(size: Partial<TerminalSize>): void {
     this.ensureActive()
-    const next = normalizeSize({ ...this.sizeValue, ...size })
+    const next = normalizeTerminalSize({ ...this.sizeValue, ...size })
     assertGhosttyResult(
       'ghostty_terminal_resize',
       this.runtime.exports.ghostty_terminal_resize(

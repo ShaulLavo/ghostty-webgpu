@@ -85,6 +85,9 @@ export interface TerminalAppearance {
   readonly font: TerminalFontSettings
   readonly grid: TerminalGrid
   readonly rendererTheme: TerminalRendererTheme
+  /** Page-granular byte budget. Zero disables history; undefined removes the byte limit. */
+  readonly scrollbackByteLimit: number | undefined
+  /** Page-granular physical row budget. Retention varies above or below this value. */
   readonly scrollbackLimit: number | undefined
   readonly theme: TerminalTheme
 }
@@ -94,6 +97,9 @@ export interface TerminalAppearanceOptions {
   readonly cursor?: Partial<TerminalCursorSettings>
   readonly font?: Partial<TerminalFontSettings>
   readonly grid?: Partial<TerminalGrid>
+  /** Page-granular byte budget. Creation preserves the native default when omitted. Zero disables history. */
+  readonly scrollbackByteLimit?: number
+  /** Native whole-page pruning can undershoot this row budget; the minimum is one page of rows. */
   readonly scrollbackLimit?: number
   readonly theme?: TerminalTheme
 }

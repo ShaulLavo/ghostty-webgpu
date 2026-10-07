@@ -36,6 +36,8 @@ call `terminal.dispose()` when you're done. [connect a websocket pty](docs/integ
 - byte-based pty traffic, automatic fitting, and live themes
 - selection, scrollback, links, and unicode text
 
+scrollback uses native page-granular line and byte budgets. [retention and actual row counts](docs/api.md#scrollback-retention)
+
 ## benchmarks
 
 recorded october 1, 2026 on an apple m1 in chromium, one terminal receiving bytes. parser throughput; higher is better

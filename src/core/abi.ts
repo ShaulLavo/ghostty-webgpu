@@ -597,6 +597,10 @@ export interface GhosttyWasmExports extends WebAssembly.Exports {
   ghostty_terminal_vt_write(terminal: number, data: number, length: number): void
   ghostty_terminal_scroll_viewport(terminal: number, viewport: number): void
   ghostty_terminal_grid_ref(terminal: number, point: number, outRef: number): number
+  ghostty_terminal_grid_ref_track(terminal: number, point: number, outRef: number): number
+  ghostty_tracked_grid_ref_free(ref: number): void
+  ghostty_tracked_grid_ref_point(ref: number, tag: number, outPoint: number): number
+  ghostty_tracked_grid_ref_set(ref: number, terminal: number, point: number): number
   ghostty_terminal_point_from_grid_ref(
     terminal: number,
     ref: number,
