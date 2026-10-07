@@ -30,14 +30,21 @@ function validateCheckpoint(next) {
     'Authority references required',
   )
   assert(next.budget && typeof next.budget === 'object', 'Research budget required')
-  assert(Number.isSafeInteger(next.budget.maxExperiments) && next.budget.maxExperiments > 0)
+  assert(
+    next.budget.maxExperiments === null ||
+      (Number.isSafeInteger(next.budget.maxExperiments) && next.budget.maxExperiments > 0),
+  )
   assert(
     Number.isSafeInteger(next.budget.completedExperiments) && next.budget.completedExperiments >= 0,
   )
-  assert(Number.isFinite(next.budget.maxMinutes) && next.budget.maxMinutes > 0)
+  assert(
+    next.budget.maxMinutes === null ||
+      (Number.isFinite(next.budget.maxMinutes) && next.budget.maxMinutes > 0),
+  )
   assert(Number.isFinite(Date.parse(next.budget.startedAt)), 'Budget start time required')
   assert(
-    next.budget.completedExperiments <= next.budget.maxExperiments,
+    next.budget.maxExperiments === null ||
+      next.budget.completedExperiments <= next.budget.maxExperiments,
     'Experiment budget exceeded',
   )
   if (['keep', 'reject'].includes(next.phase)) {

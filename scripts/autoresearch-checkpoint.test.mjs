@@ -146,3 +146,57 @@ test('interruption before promotion leaves intent uncommitted; promoted decision
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('explicit null limits persist without imposing a cap or changing bounded runs', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ghostty-autoresearch-'))
+  const path = join(root, 'checkpoint.json')
+  const initial = {
+    mode: 'research',
+    phase: 'select',
+    nextAction: 'Continue the authorized uncapped run',
+    references: ['research authority'],
+    budget: {
+      maxExperiments: null,
+      completedExperiments: 0,
+      maxMinutes: null,
+      startedAt: new Date().toISOString(),
+    },
+    experiment: null,
+  }
+  try {
+    const first = await writeCheckpoint(path, 'new', initial)
+    const next = { ...initial, budget: { ...initial.budget, completedExperiments: 1000 } }
+    const second = await writeCheckpoint(path, first.sha256, next)
+    assert.deepEqual((await readCheckpoint(path)).checkpoint, next)
+    await assert.rejects(
+      writeCheckpoint(path, second.sha256, {
+        ...next,
+        budget: { ...next.budget, maxMinutes: 60 },
+      }),
+      /Run budget is fixed/,
+    )
+    await assert.rejects(
+      writeCheckpoint(path, second.sha256, {
+        ...next,
+        budget: { ...next.budget, completedExperiments: 999 },
+      }),
+      /Budget count decreased/,
+    )
+    const bounded = { ...initial, budget: { ...initial.budget, maxExperiments: 1, maxMinutes: 10 } }
+    await assert.rejects(
+      writeCheckpoint(join(root, 'bounded.json'), 'new', {
+        ...bounded,
+        budget: { ...bounded.budget, completedExperiments: 2 },
+      }),
+      /Experiment budget exceeded/,
+    )
+    await assert.rejects(
+      writeCheckpoint(join(root, 'invalid.json'), 'new', {
+        ...initial,
+        budget: { ...initial.budget, maxMinutes: undefined },
+      }),
+    )
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})

@@ -118,6 +118,8 @@ For an active experiment, include ID, objective, hypothesis, allowed source path
 
 Update before each irreversible external step and immediately after each measured result and decision. Keep budget start and totals across resumes. Count completed experiments across the run, including rejection and crash. The helper freezes the run mode and budget, prevents decreasing totals, and prevents changing or restarting a completed experiment identity. After a decision, carry the next experiment under a new ID, or set `experiment` to null in `select`. Establish a KEEP's baseline in the top-level `baseline` field while its decision record stays frozen.
 
+For an explicit request to run without an overall cap, set `budget.maxExperiments` and `budget.maxMinutes` to `null` in a new checkpoint. Keep per-measurement deadlines, resource admission, correctness and acceptance guards.
+
 A new instruction can explicitly start a fresh budget in a new checkpoint file. Preserve the old checkpoint and history, and update the run-owned host binding to the new file. Never convert `dry-run` evidence into research evidence.
 
 On resume, recover the current experiment first. Verify outputs and process state directly. If a stopped measurement's completion is uncertain, retain it as interrupted/unqualified under its original identity and follow the existing replacement rule. Never guess that nothing was acquired and launch it again.
