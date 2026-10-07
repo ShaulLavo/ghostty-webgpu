@@ -251,6 +251,7 @@ for (const tracing of [false, true]) {
       manifest: { settings },
       tracing,
       gpuCommandTimeout,
+      cpuOptions: { processCounters: false },
       createGpuGate,
       platform: () => 'linux',
       randomUUID,

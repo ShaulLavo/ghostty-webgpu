@@ -1,0 +1,428 @@
+{
+  "base": "902687697db8a58a211495d07f4938d331feef92",
+  "cpu": {
+    "sample": "complete",
+    "milliseconds": 100,
+    "cpu": {
+      "before": [
+        {
+          "id": 1,
+          "type": "renderer",
+          "cpuTime": 1
+        }
+      ],
+      "after": [
+        {
+          "id": 1,
+          "type": "renderer",
+          "cpuTime": 1.1
+        }
+      ],
+      "secondsByType": {
+        "renderer": 0.10000000000000009
+      },
+      "percentOfOneCore": 100.00000000000009,
+      "processChurn": false,
+      "tickSeconds": 0.01,
+      "milliseconds": 100,
+      "interval": {
+        "before": {
+          "requested": 0,
+          "completed": 0
+        },
+        "after": {
+          "requested": 100,
+          "completed": 100
+        }
+      },
+      "acquisitionUncertaintyMilliseconds": 0
+    }
+  },
+  "context": {
+    "manifest": {
+      "commit": "base",
+      "sourceSha256": "source",
+      "variants": [
+        {
+          "id": "ghostty-webgpu"
+        }
+      ],
+      "fixtures": [],
+      "versions": {},
+      "settings": {
+        "counts": [1],
+        "columns": 80,
+        "rows": 24,
+        "fontSize": 14,
+        "dpr": 2,
+        "outputFrames": 120,
+        "caseDeadlineMilliseconds": 600000
+      }
+    },
+    "smoke": false,
+    "gpuCommandTimeoutMilliseconds": 2000,
+    "repetitions": 1,
+    "latencySamples": 3,
+    "outputFrames": 120,
+    "selectedOutputFixture": "ascii",
+    "tickSeconds": 0.01,
+    "cpuTickSource": null,
+    "counts": [1],
+    "variantIds": ["ghostty-webgpu"],
+    "phases": ["output"],
+    "accessibility": "off",
+    "writePaths": ["bytes"],
+    "fixtures": [],
+    "s": {
+      "caseDeadlineMilliseconds": 600000
+    },
+    "tracePhases": ["ascii"],
+    "traceFrames": 180
+  },
+  "artifacts": [
+    {
+      "tracing": false,
+      "runner": "{\"schema\":1,\"sessionId\":\"fixed-session\",\"manifest\":{\"commit\":\"base\",\"sourceSha256\":\"source\",\"variants\":[{\"id\":\"ghostty-webgpu\"}],\"fixtures\":[],\"versions\":{},\"settings\":{\"counts\":[1],\"columns\":80,\"rows\":24,\"fontSize\":14,\"dpr\":2,\"outputFrames\":120,\"caseDeadlineMilliseconds\":600000}},\"smoke\":false,\"tracing\":false,\"gpuCommandTimeoutMilliseconds\":2000,\"repetitions\":1,\"latencySamples\":3,\"outputFrames\":120,\"outputFixture\":\"ascii\",\"cpuTickSeconds\":0.01,\"cpuTickSource\":null,\"counts\":[1],\"variants\":[\"ghostty-webgpu\"],\"phases\":[\"output\"],\"frameBuilders\":[\"zig\"],\"accessibility\":\"off\",\"paths\":[\"bytes\"],\"fixtures\":[],\"hardware\":false,\"measurementBudgetMilliseconds\":600000,\"startedAt\":\"2026-10-08T00:00:00.000Z\",\"environment\":{},\"runs\":[],\"qualifications\":[]}",
+      "artifact": {
+        "schema": 1,
+        "sessionId": "fixed-session",
+        "manifest": {
+          "commit": "base",
+          "sourceSha256": "source",
+          "variants": [
+            {
+              "id": "ghostty-webgpu"
+            }
+          ],
+          "fixtures": [],
+          "versions": {},
+          "settings": {
+            "counts": [1],
+            "columns": 80,
+            "rows": 24,
+            "fontSize": 14,
+            "dpr": 2,
+            "outputFrames": 120,
+            "caseDeadlineMilliseconds": 600000
+          }
+        },
+        "smoke": false,
+        "tracing": false,
+        "gpuCommandTimeoutMilliseconds": 2000,
+        "repetitions": 1,
+        "latencySamples": 3,
+        "outputFrames": 120,
+        "outputFixture": "ascii",
+        "cpuTickSeconds": 0.01,
+        "cpuTickSource": null,
+        "counts": [1],
+        "variants": ["ghostty-webgpu"],
+        "phases": ["output"],
+        "frameBuilders": ["zig"],
+        "accessibility": "off",
+        "paths": ["bytes"],
+        "fixtures": [],
+        "hardware": true,
+        "measurementBudgetMilliseconds": 600000,
+        "startedAt": "2026-10-08T00:00:00.000Z",
+        "environment": {
+          "gpu": {
+            "gpu": {
+              "devices": [],
+              "featureStatus": {}
+            }
+          },
+          "browser": "fixture",
+          "os": "fixture",
+          "renderer": "hardware",
+          "headless": true,
+          "latencyEndpoint": "fixture"
+        },
+        "runs": [
+          {
+            "variant": "ghostty-webgpu",
+            "path": "bytes",
+            "count": 1,
+            "repetition": 0,
+            "pairId": "fixed-pair",
+            "sessionId": "fixed-session",
+            "output": {
+              "cpu": {
+                "before": [
+                  {
+                    "id": 1,
+                    "type": "renderer",
+                    "cpuTime": 1
+                  }
+                ],
+                "after": [
+                  {
+                    "id": 1,
+                    "type": "renderer",
+                    "cpuTime": 1.1
+                  }
+                ],
+                "secondsByType": {
+                  "renderer": 0.10000000000000009
+                },
+                "percentOfOneCore": 100.00000000000009,
+                "processChurn": false,
+                "tickSeconds": 0.01,
+                "milliseconds": 100,
+                "interval": {
+                  "before": {
+                    "requested": 0,
+                    "completed": 0
+                  },
+                  "after": {
+                    "requested": 100,
+                    "completed": 100
+                  }
+                },
+                "acquisitionUncertaintyMilliseconds": 0
+              }
+            }
+          }
+        ],
+        "qualifications": []
+      },
+      "summaries": [
+        {
+          "variant": "ghostty-webgpu",
+          "path": "bytes",
+          "count": 1,
+          "metric": "output/cpu",
+          "unit": "% core",
+          "values": [100.00000000000009],
+          "median": 100.00000000000009,
+          "repetitions": 1
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "path": "bytes",
+          "count": 1,
+          "metric": "output/cpu/renderer",
+          "unit": "% core",
+          "values": [100.00000000000009],
+          "median": 100.00000000000009,
+          "repetitions": 1
+        }
+      ],
+      "compact": "{\"schema\":1,\"sessionId\":\"fixed-session\",\"startedAt\":\"2026-10-08T00:00:00.000Z\",\"counts\":[1],\"paths\":[\"bytes\"],\"variants\":[\"ghostty-webgpu\"],\"phases\":[\"output\"],\"frameBuilders\":[\"zig\"],\"accessibility\":\"off\",\"fixtures\":[],\"repetitions\":1,\"latencySamples\":3,\"outputFrames\":120,\"outputFixture\":\"ascii\",\"cpuTickSeconds\":0.01,\"cpuTickSource\":null,\"gpuCommandTimeoutMilliseconds\":2000,\"hardware\":true,\"manifest\":{\"commit\":\"base\",\"sourceSha256\":\"source\",\"fixtures\":[],\"versions\":{},\"settings\":{\"counts\":[1],\"columns\":80,\"rows\":24,\"fontSize\":14,\"dpr\":2,\"outputFrames\":120,\"caseDeadlineMilliseconds\":600000}},\"environment\":{\"browser\":\"fixture\",\"os\":\"fixture\",\"renderer\":\"hardware\",\"headless\":true,\"latencyEndpoint\":\"fixture\",\"gpuDevices\":[],\"gpuFeatureStatus\":{}},\"limitations\":[\"Compositor acknowledgement is on-demand; physical-vsync and optical display latency are unmeasured.\",\"GPU-process CPU is CPU consumption, not GPU hardware execution time.\",\"GPU activity qualification metric is unrecorded.\",\"CPU verdicts require at least the configured minimum ticks per side and a difference exceeding one tick; idle and zero/zero can remain unresolved.\",\"Tracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrapper call counts differ by renderer.\"],\"qualifications\":[],\"runs\":[{\"variant\":\"ghostty-webgpu\",\"path\":\"bytes\",\"count\":1,\"repetition\":0,\"pairId\":\"fixed-pair\",\"sessionId\":\"fixed-session\",\"output\":{\"cpu\":{\"milliseconds\":100,\"secondsByType\":{\"renderer\":0.10000000000000009},\"percentOfOneCore\":100.00000000000009,\"acquisitionUncertaintyMilliseconds\":0,\"tickSeconds\":0.01}},\"gpuWindows\":[]}],\"pairedRatios\":[]}",
+      "markdown": "# Terminal comparison benchmarks\n\nGenerated from the checked-in JSON artifact. Lower is better except parse throughput.\nTracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrappers differ by renderer. These measurements are distinct from historical uninstrumented runs.\n\n## Run it\n\nFrom `ghostty-webgpu`, run `bun run bench:compare -- --bundle /path/to/bundle` to build and measure.\nUse `bun run bench:compare -- --smoke --bundle /path/to/bundle` for correctness only.\nUse `bun run bench:compare -- --build-only --bundle /path/to/bundle` for a portable Node bundle.\nOn the target machine, enter that bundle and run `npm install --ignore-scripts`,\n`npx playwright install chromium`, then `node comparison-runner.mjs --smoke`.\nRun `node comparison-runner.mjs --headed --output results` on AC power for headed hardware measurements.\n`--headed` selects the browser window independently of `--smoke`, which selects correctness checks.\nHardware runs default to Vulkan Chromium headless-shell on Linux and headed Chromium on macOS; smoke runs default to headless on both. Select one count and path per quiet window; the configured matrix has a bounded budget of ten minutes per case.\nRegenerate the checked-in report with `node scripts/comparison-report.mjs docs/benchmarks/mac-m1/comparison.json docs/benchmarks.md docs/benchmarks/mac-m1/review.json`.\n\n## Environment\n\n- Benchmark checkout commit: `base`. Combined source SHA-256: `source`.\n- Output fixture: ascii. Frames: 120.\n- Browser: fixture. OS: fixture.\n- Latency endpoint: fixture. Samples per operation/repetition: 3.\n- GPU: hardware. Hardware adapter: true. Headless: true.\n- Font: JetBrains Mono undefined, bundled regular/bold Latin faces. Emoji and CJK use the same OS fallback fonts.\n- Font size: 14px. DPR: 2. Grid: 80 × 24.\n- Libraries: ghostty-webgpu undefined; xterm undefined with WebGL addon undefined; ghostty-web undefined.\n- Selected phases: output. Omitted-phase metrics are not measured.\n- Selected variants: ghostty-webgpu. GPU frame builders: zig.\n- Repetitions: 1. Each table cell is the median of the per-run result, including per-run p50/p95.\n- Artifact: [comparison.json](comparison.json).\n\n## Method\n\nEach case opens a fresh browser context. All 1, 8, or 17 terminals remain visible in a fixed grid.\nLibrary order alternates forward/reverse between repetitions and rotates on the third repetition.\nByte/string paths alternate too. A warmup precedes each timed operation.\nChromium launches with a device scale of 2 so resize-observer backing pixels agree with DPR.\nIts WebGL context limit is 32 for every case, allowing all 17 xterm WebGL terminals to remain live.\nParse throughput uses unopened parsers and complete UTF-8 corpora in 4 KiB chunks.\nParser-only contexts run before any rendered terminal is created. Timing covers synchronous input decoding/encoding, VT parsing, and buffer writes.\nxterm uses its pinned 6.0.0 input-handler parse boundary, bypassing WriteBuffer timers; both Ghostty libraries use synchronous core writes.\nA parser returning asynchronous work is rejected. No callback, microtask, or timer wait is included in isolated-parser timing.\nAfter timing, the same instance must match independent expected viewport text, cursor, and SGR color/style probes. Unqualified samples are excluded.\nQualification covers the final viewport and cursor; the alternate screen keeps no offscreen history. Separate one-byte smoke diagnostics are retained even when 4 KiB results qualify.\nText comparison permits NFC composition and trailing blank cells only; ZWJ characters must be retained. Smoke checks exercise both 4 KiB and one-byte chunks.\nEmpty decoded chunks and an empty final decoder flush are omitted; a nonempty final flush remains part of the input.\nEach parse-only fixture owns a fresh WASM runtime. Runtime construction is outside timing for both Ghostty libraries.\nEvery parse-only terminal enters the alternate screen before timing, so history allocation does not affect parser throughput.\nThe string chunks are decoded before timing. String-to-WASM encoding remains inside the timed library call.\nMB means 1,000,000 bytes. The real-log fixture is an archived 256-entry public Git history log, repeated to at least 1 MiB.\nxterm DOM and WebGL share a parser; their parse results are independent repetitions of that same parser.\n\nWrite latency starts at the browser write call. Input latency starts at the captured keydown event and crosses a loopback WebSocket byte echo.\nThe endpoint recorded in each run identifies its presentation measurement. AnimationFrame::Presentation is correlated to the animation frame containing that terminal’s render span.\nPNG glyph captures qualify correctness. In headless-shell, presentation acknowledgement is on-demand and follows submission independently of physical vsync. Renderer rAF pacing still determines when a terminal can draw.\nGPU variants require a submitted glyph draw. Canvas and DOM variants require a real terminal row paint within the selected animation frame; deferred no-op frames are excluded.\nPhysical-vsync and optical display latency are unmeasured. The optional --validate-presentation phase inserts one renderer rAF before write, and retains the delayed samples beside the ordinary samples.\nGPU activity qualification metric is unrecorded.\nScreencasting is stopped for burst, CPU, and memory measurements.\n\nRepeating fixtures write the same complete unit of at least 4 KiB per terminal per animation frame.\nrolling-logs advances through the real Git-history corpus in chunks of at most 4 KiB, ending between UTF-8 codepoints. The corpus tail is a shorter frame, then the stream wraps.\nEvery burst resets to the corpus start, including the separate warmup. The fixture records corpus and length-framed cycle hashes; output records exact bytes and the final chunk offset.\nEvery library uses exactly one shared animation-frame pacing wait per iteration. The synchronous ghostty-web public write receives no presentation callback.\nFrame intervals come from requestAnimationFrame timestamps. Dropped frames are inferred from the measured idle refresh period,\nrounded to the nearest number of display intervals. They are missed animation-frame opportunities, not GPU presentation counters.\nCPU sums Chromium process CPU time, including browser, renderer, and GPU, as a percentage of one core. Samples reject any process birth or exit.\nEvery case has a 10-minute deadline capped by the remaining configured matrix budget; the heavy wrapper quiet hold is the outer limit. Timeout closes its contexts and retains the failure.\nBundle and asset hashes are verified before serving; both font weights are loaded and checked before rendered phases.\nSuccessful latency phases retain metadata and colored-glyph classification for every screencast frame, including frames that did not qualify a sample.\nFailed latency phases retain the last capture image/metadata and a direct screenshot; their partial capture stream is not serialized.\n\nMemory per terminal and per 10k rows is the post-GC CDP used JS heap plus backing storage delta, divided by terminal count.\nOutput memory is sampled after the selected output fixture and frame count, outside CPU timing. Initial memory is the idle baseline.\nThis is retained JS/backing storage, not total terminal memory. WASM linear-memory capacity is reported separately.\nRenderer/GPU RSS deltas cover all Chromium processes and include browser allocation noise and shared resources.\nGPU allocation is not available per terminal. Negative deltas are retained as measurement noise.\nEach Ghostty library shares one WASM runtime per context, matching its supported multi-terminal use.\nThe 10k fixture contains exactly 10,000 retained 40-column ASCII history rows per terminal.\nThe native adapter sets upstream SCROLLBACK_MAX_BYTES to 64 MiB through the runtime ABI, in addition to the 10k line limit.\nThe session API exposes the line limit only; the adapter checks its pinned internal terminal before applying the byte option.\nThe default byte budget retained only 2,014 rows in the initial attempt. The final run asserts all 10k rows.\nghostty-web also receives a 64 MiB budget: its 0.4.0 scrollback option is passed to the upstream max_scrollback byte field.\nAt scrollback: 10000, it retained only 1,852 rows. Its pinned [patch](https://github.com/coder/ghostty-web/blob/9e4e126d/patches/ghostty-wasm-api.patch) documents that option as lines.\nxterm has a 10k row limit. Burst phases clear history first; legacy retention is byte-budget-only.\n\n## Results\n\n### 1 terminal, bytes\n\n| Measure | ghostty-webgpu |\n| --- | ---: |\n| output/cpu | 100.00 % core |\n| output/cpu/renderer | 100.00 % core |\n| write/p50 | not measured |\n| write/p95 | not measured |\n| input/p50 | not measured |\n| input/p95 | not measured |\n| idle/cpu | not measured |\n| idle/cpu/renderer | not measured |\n| memory/terminal | not measured |\n| memory/10k | not measured |\n| memory/output/terminal | not measured |\n| memory/initial/wasm | not measured |\n| memory/initial/rss-delta | not measured |\n| memory/history/wasm | not measured |\n| memory/history/rss-delta | not measured |\n| memory/output/wasm | not measured |\n| memory/output/rss-delta | not measured |\n\n## Paired pass rule\n\nxterm removed its canvas renderer. ghostty-web is the closest available canvas 2D counterpart for ghostty-canvas; their parsers and host adapters differ.\nSelecting xterm-dom alongside ghostty-canvas adds a secondary cross-renderer comparison. Both comparisons share each native run, so their ratios are correlated and the raw CPU sample is counted once.\nTargets are native/counterpart ratios ≤ 1 for renderer CPU, total Chromium CPU, input p50/p95, and write p50 in every path/count condition. Each pair shares its browser session ID, pair ID, repetition, path, and terminal count. The median of the individual pair ratios determines pass or fail; absolute measurements provide context.\nEvery configured repetition must have exactly one qualified native and counterpart run. Missing IDs, duplicate runs, failures, missing metrics, and rejected GPU-idle runs leave the condition incomplete. CPU pairs are unresolved when either side has fewer than the configured minimum ticks or sides differ by at most one tick. Zero/zero never passes. Unbounded ratios are null with a reason. Skipped GPU qualification is explicitly labeled.\n\n| Terminals | Path | Native ↔ counterpart | Measure | Median ratio | Target | Pairs | Status |\n| ---: | --- | --- | --- | ---: | ---: | ---: | --- |\n\n### Individual pairs\n\n| Terminals | Path | Native ↔ counterpart | Measure | Pair ID | Repetition | Native | Counterpart | Ratio | Resolution |\n| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |\n\n## Correctness and limits\n\nThe runner asserts ASCII, SGR, wide text, cursor overwrite, byte echo, glyph presentation, and exact history length.\nSuccessful first-repetition correctness checks retain Unicode/ZWJ text and a screenshot.\nReview those screenshots for glyph layout differences; parser acceptance alone cannot prove Unicode shaping parity.\nFirefox and Safari were not measured. This run qualifies Chromium on the recorded hardware only.\nThe corpus and font hashes, raw latency samples, raw frame intervals, process CPU snapshots, memory buckets,\nactual execution order, and failed cases are retained in JSON.\nGPU-idle rejected runs are excluded from all summaries and paired comparisons. Each validated isolated-parser corpus remains eligible independently of other parser or rendered failures. Other metrics from failed rendered cases are excluded. Absolute summary cells require all configured repetitions.\n"
+    },
+    {
+      "tracing": true,
+      "runner": "{\"schema\":1,\"sessionId\":\"fixed-session\",\"manifest\":{\"commit\":\"base\",\"sourceSha256\":\"source\",\"variants\":[{\"id\":\"ghostty-webgpu\"}],\"fixtures\":[],\"versions\":{},\"settings\":{\"counts\":[1],\"columns\":80,\"rows\":24,\"fontSize\":14,\"dpr\":2,\"outputFrames\":120,\"caseDeadlineMilliseconds\":600000}},\"smoke\":false,\"tracing\":true,\"gpuCommandTimeoutMilliseconds\":2000,\"repetitions\":1,\"latencySamples\":3,\"outputFrames\":120,\"outputFixture\":\"ascii\",\"cpuTickSeconds\":0.01,\"cpuTickSource\":null,\"counts\":[1],\"variants\":[\"ghostty-webgpu\"],\"phases\":[\"output\"],\"frameBuilders\":[\"zig\"],\"accessibility\":\"off\",\"paths\":[\"bytes\"],\"fixtures\":[],\"hardware\":false,\"measurementBudgetMilliseconds\":600000,\"startedAt\":\"2026-10-08T00:00:00.000Z\",\"environment\":{},\"runs\":[],\"qualifications\":[],\"tracePhases\":[\"ascii\"],\"traceCounts\":[1],\"traceLatencySamples\":3,\"traceFrames\":180}",
+      "artifact": {
+        "schema": 1,
+        "sessionId": "fixed-session",
+        "manifest": {
+          "commit": "base",
+          "sourceSha256": "source",
+          "variants": [
+            {
+              "id": "ghostty-webgpu"
+            }
+          ],
+          "fixtures": [],
+          "versions": {},
+          "settings": {
+            "counts": [1],
+            "columns": 80,
+            "rows": 24,
+            "fontSize": 14,
+            "dpr": 2,
+            "outputFrames": 120,
+            "caseDeadlineMilliseconds": 600000
+          }
+        },
+        "smoke": false,
+        "tracing": true,
+        "gpuCommandTimeoutMilliseconds": 2000,
+        "repetitions": 1,
+        "latencySamples": 3,
+        "outputFrames": 120,
+        "outputFixture": "ascii",
+        "cpuTickSeconds": 0.01,
+        "cpuTickSource": null,
+        "counts": [1],
+        "variants": ["ghostty-webgpu"],
+        "phases": ["output"],
+        "frameBuilders": ["zig"],
+        "accessibility": "off",
+        "paths": ["bytes"],
+        "fixtures": [],
+        "hardware": true,
+        "measurementBudgetMilliseconds": 600000,
+        "startedAt": "2026-10-08T00:00:00.000Z",
+        "environment": {
+          "gpu": {
+            "gpu": {
+              "devices": [],
+              "featureStatus": {}
+            }
+          },
+          "browser": "fixture",
+          "os": "fixture",
+          "renderer": "hardware",
+          "headless": true,
+          "latencyEndpoint": "fixture"
+        },
+        "runs": [
+          {
+            "variant": "ghostty-webgpu",
+            "path": "bytes",
+            "count": 1,
+            "repetition": 0,
+            "pairId": "fixed-pair",
+            "sessionId": "fixed-session",
+            "output": {
+              "cpu": {
+                "before": [
+                  {
+                    "id": 1,
+                    "type": "renderer",
+                    "cpuTime": 1
+                  }
+                ],
+                "after": [
+                  {
+                    "id": 1,
+                    "type": "renderer",
+                    "cpuTime": 1.1
+                  }
+                ],
+                "secondsByType": {
+                  "renderer": 0.10000000000000009
+                },
+                "percentOfOneCore": 100.00000000000009,
+                "processChurn": false,
+                "tickSeconds": 0.01,
+                "milliseconds": 100,
+                "interval": {
+                  "before": {
+                    "requested": 0,
+                    "completed": 0
+                  },
+                  "after": {
+                    "requested": 100,
+                    "completed": 100
+                  }
+                },
+                "acquisitionUncertaintyMilliseconds": 0
+              }
+            },
+            "phases": [
+              {
+                "label": "ascii-control",
+                "traced": false,
+                "cpu": {
+                  "before": [
+                    {
+                      "id": 1,
+                      "type": "renderer",
+                      "cpuTime": 1
+                    }
+                  ],
+                  "after": [
+                    {
+                      "id": 1,
+                      "type": "renderer",
+                      "cpuTime": 1.1
+                    }
+                  ],
+                  "secondsByType": {
+                    "renderer": 0.10000000000000009
+                  },
+                  "percentOfOneCore": 100.00000000000009,
+                  "processChurn": false,
+                  "tickSeconds": 0.01,
+                  "milliseconds": 100,
+                  "interval": {
+                    "before": {
+                      "requested": 0,
+                      "completed": 0
+                    },
+                    "after": {
+                      "requested": 100,
+                      "completed": 100
+                    }
+                  },
+                  "acquisitionUncertaintyMilliseconds": 0
+                }
+              },
+              {
+                "label": "ascii-trace",
+                "traced": true,
+                "cpu": {
+                  "before": [
+                    {
+                      "id": 1,
+                      "type": "renderer",
+                      "cpuTime": 1
+                    }
+                  ],
+                  "after": [
+                    {
+                      "id": 1,
+                      "type": "renderer",
+                      "cpuTime": 1.1
+                    }
+                  ],
+                  "secondsByType": {
+                    "renderer": 0.10000000000000009
+                  },
+                  "percentOfOneCore": 100.00000000000009,
+                  "processChurn": false,
+                  "tickSeconds": 0.01,
+                  "milliseconds": 100,
+                  "interval": {
+                    "before": {
+                      "requested": 0,
+                      "completed": 0
+                    },
+                    "after": {
+                      "requested": 100,
+                      "completed": 100
+                    }
+                  },
+                  "acquisitionUncertaintyMilliseconds": 0
+                }
+              }
+            ]
+          }
+        ],
+        "qualifications": [],
+        "tracePhases": ["ascii"],
+        "traceCounts": [1],
+        "traceLatencySamples": 3,
+        "traceFrames": 180
+      },
+      "summaries": [
+        {
+          "variant": "ghostty-webgpu",
+          "path": "bytes",
+          "count": 1,
+          "metric": "output/cpu",
+          "unit": "% core",
+          "values": [100.00000000000009],
+          "median": 100.00000000000009,
+          "repetitions": 1
+        },
+        {
+          "variant": "ghostty-webgpu",
+          "path": "bytes",
+          "count": 1,
+          "metric": "output/cpu/renderer",
+          "unit": "% core",
+          "values": [100.00000000000009],
+          "median": 100.00000000000009,
+          "repetitions": 1
+        }
+      ],
+      "compact": "{\"schema\":1,\"sessionId\":\"fixed-session\",\"startedAt\":\"2026-10-08T00:00:00.000Z\",\"counts\":[1],\"paths\":[\"bytes\"],\"variants\":[\"ghostty-webgpu\"],\"phases\":[\"output\"],\"frameBuilders\":[\"zig\"],\"accessibility\":\"off\",\"fixtures\":[],\"repetitions\":1,\"latencySamples\":3,\"outputFrames\":120,\"outputFixture\":\"ascii\",\"cpuTickSeconds\":0.01,\"cpuTickSource\":null,\"gpuCommandTimeoutMilliseconds\":2000,\"hardware\":true,\"manifest\":{\"commit\":\"base\",\"sourceSha256\":\"source\",\"fixtures\":[],\"versions\":{},\"settings\":{\"counts\":[1],\"columns\":80,\"rows\":24,\"fontSize\":14,\"dpr\":2,\"outputFrames\":120,\"caseDeadlineMilliseconds\":600000}},\"environment\":{\"browser\":\"fixture\",\"os\":\"fixture\",\"renderer\":\"hardware\",\"headless\":true,\"latencyEndpoint\":\"fixture\",\"gpuDevices\":[],\"gpuFeatureStatus\":{}},\"limitations\":[\"Compositor acknowledgement is on-demand; physical-vsync and optical display latency are unmeasured.\",\"GPU-process CPU is CPU consumption, not GPU hardware execution time.\",\"GPU activity qualification metric is unrecorded.\",\"CPU verdicts require at least the configured minimum ticks per side and a difference exceeding one tick; idle and zero/zero can remain unresolved.\",\"Tracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrapper call counts differ by renderer.\"],\"qualifications\":[],\"runs\":[{\"variant\":\"ghostty-webgpu\",\"path\":\"bytes\",\"count\":1,\"repetition\":0,\"pairId\":\"fixed-pair\",\"sessionId\":\"fixed-session\",\"output\":{\"cpu\":{\"milliseconds\":100,\"secondsByType\":{\"renderer\":0.10000000000000009},\"percentOfOneCore\":100.00000000000009,\"acquisitionUncertaintyMilliseconds\":0,\"tickSeconds\":0.01}},\"gpuWindows\":[]}],\"pairedRatios\":[]}",
+      "markdown": "# Terminal comparison benchmarks\n\nGenerated from the checked-in JSON artifact. Lower is better except parse throughput.\nTracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrappers differ by renderer. These measurements are distinct from historical uninstrumented runs.\n\n## Run it\n\nFrom `ghostty-webgpu`, run `bun run bench:compare -- --bundle /path/to/bundle` to build and measure.\nUse `bun run bench:compare -- --smoke --bundle /path/to/bundle` for correctness only.\nUse `bun run bench:compare -- --build-only --bundle /path/to/bundle` for a portable Node bundle.\nOn the target machine, enter that bundle and run `npm install --ignore-scripts`,\n`npx playwright install chromium`, then `node comparison-runner.mjs --smoke`.\nRun `node comparison-runner.mjs --headed --output results` on AC power for headed hardware measurements.\n`--headed` selects the browser window independently of `--smoke`, which selects correctness checks.\nHardware runs default to Vulkan Chromium headless-shell on Linux and headed Chromium on macOS; smoke runs default to headless on both. Select one count and path per quiet window; the configured matrix has a bounded budget of ten minutes per case.\nRegenerate the checked-in report with `node scripts/comparison-report.mjs docs/benchmarks/mac-m1/comparison.json docs/benchmarks.md docs/benchmarks/mac-m1/review.json`.\n\n## Environment\n\n- Benchmark checkout commit: `base`. Combined source SHA-256: `source`.\n- Output fixture: ascii. Frames: 120.\n- Browser: fixture. OS: fixture.\n- Latency endpoint: fixture. Samples per operation/repetition: 3.\n- GPU: hardware. Hardware adapter: true. Headless: true.\n- Font: JetBrains Mono undefined, bundled regular/bold Latin faces. Emoji and CJK use the same OS fallback fonts.\n- Font size: 14px. DPR: 2. Grid: 80 × 24.\n- Libraries: ghostty-webgpu undefined; xterm undefined with WebGL addon undefined; ghostty-web undefined.\n- Selected phases: output. Omitted-phase metrics are not measured.\n- Selected variants: ghostty-webgpu. GPU frame builders: zig.\n- Repetitions: 1. Each table cell is the median of the per-run result, including per-run p50/p95.\n- Artifact: [comparison.json](comparison.json).\n\n## Method\n\nEach case opens a fresh browser context. All 1, 8, or 17 terminals remain visible in a fixed grid.\nLibrary order alternates forward/reverse between repetitions and rotates on the third repetition.\nByte/string paths alternate too. A warmup precedes each timed operation.\nChromium launches with a device scale of 2 so resize-observer backing pixels agree with DPR.\nIts WebGL context limit is 32 for every case, allowing all 17 xterm WebGL terminals to remain live.\nParse throughput uses unopened parsers and complete UTF-8 corpora in 4 KiB chunks.\nParser-only contexts run before any rendered terminal is created. Timing covers synchronous input decoding/encoding, VT parsing, and buffer writes.\nxterm uses its pinned 6.0.0 input-handler parse boundary, bypassing WriteBuffer timers; both Ghostty libraries use synchronous core writes.\nA parser returning asynchronous work is rejected. No callback, microtask, or timer wait is included in isolated-parser timing.\nAfter timing, the same instance must match independent expected viewport text, cursor, and SGR color/style probes. Unqualified samples are excluded.\nQualification covers the final viewport and cursor; the alternate screen keeps no offscreen history. Separate one-byte smoke diagnostics are retained even when 4 KiB results qualify.\nText comparison permits NFC composition and trailing blank cells only; ZWJ characters must be retained. Smoke checks exercise both 4 KiB and one-byte chunks.\nEmpty decoded chunks and an empty final decoder flush are omitted; a nonempty final flush remains part of the input.\nEach parse-only fixture owns a fresh WASM runtime. Runtime construction is outside timing for both Ghostty libraries.\nEvery parse-only terminal enters the alternate screen before timing, so history allocation does not affect parser throughput.\nThe string chunks are decoded before timing. String-to-WASM encoding remains inside the timed library call.\nMB means 1,000,000 bytes. The real-log fixture is an archived 256-entry public Git history log, repeated to at least 1 MiB.\nxterm DOM and WebGL share a parser; their parse results are independent repetitions of that same parser.\n\nWrite latency starts at the browser write call. Input latency starts at the captured keydown event and crosses a loopback WebSocket byte echo.\nThe endpoint recorded in each run identifies its presentation measurement. AnimationFrame::Presentation is correlated to the animation frame containing that terminal’s render span.\nPNG glyph captures qualify correctness. In headless-shell, presentation acknowledgement is on-demand and follows submission independently of physical vsync. Renderer rAF pacing still determines when a terminal can draw.\nGPU variants require a submitted glyph draw. Canvas and DOM variants require a real terminal row paint within the selected animation frame; deferred no-op frames are excluded.\nPhysical-vsync and optical display latency are unmeasured. The optional --validate-presentation phase inserts one renderer rAF before write, and retains the delayed samples beside the ordinary samples.\nGPU activity qualification metric is unrecorded.\nScreencasting is stopped for burst, CPU, and memory measurements.\n\nRepeating fixtures write the same complete unit of at least 4 KiB per terminal per animation frame.\nrolling-logs advances through the real Git-history corpus in chunks of at most 4 KiB, ending between UTF-8 codepoints. The corpus tail is a shorter frame, then the stream wraps.\nEvery burst resets to the corpus start, including the separate warmup. The fixture records corpus and length-framed cycle hashes; output records exact bytes and the final chunk offset.\nEvery library uses exactly one shared animation-frame pacing wait per iteration. The synchronous ghostty-web public write receives no presentation callback.\nFrame intervals come from requestAnimationFrame timestamps. Dropped frames are inferred from the measured idle refresh period,\nrounded to the nearest number of display intervals. They are missed animation-frame opportunities, not GPU presentation counters.\nCPU sums Chromium process CPU time, including browser, renderer, and GPU, as a percentage of one core. Samples reject any process birth or exit.\nEvery case has a 10-minute deadline capped by the remaining configured matrix budget; the heavy wrapper quiet hold is the outer limit. Timeout closes its contexts and retains the failure.\nBundle and asset hashes are verified before serving; both font weights are loaded and checked before rendered phases.\nSuccessful latency phases retain metadata and colored-glyph classification for every screencast frame, including frames that did not qualify a sample.\nFailed latency phases retain the last capture image/metadata and a direct screenshot; their partial capture stream is not serialized.\n\nMemory per terminal and per 10k rows is the post-GC CDP used JS heap plus backing storage delta, divided by terminal count.\nOutput memory is sampled after the selected output fixture and frame count, outside CPU timing. Initial memory is the idle baseline.\nThis is retained JS/backing storage, not total terminal memory. WASM linear-memory capacity is reported separately.\nRenderer/GPU RSS deltas cover all Chromium processes and include browser allocation noise and shared resources.\nGPU allocation is not available per terminal. Negative deltas are retained as measurement noise.\nEach Ghostty library shares one WASM runtime per context, matching its supported multi-terminal use.\nThe 10k fixture contains exactly 10,000 retained 40-column ASCII history rows per terminal.\nThe native adapter sets upstream SCROLLBACK_MAX_BYTES to 64 MiB through the runtime ABI, in addition to the 10k line limit.\nThe session API exposes the line limit only; the adapter checks its pinned internal terminal before applying the byte option.\nThe default byte budget retained only 2,014 rows in the initial attempt. The final run asserts all 10k rows.\nghostty-web also receives a 64 MiB budget: its 0.4.0 scrollback option is passed to the upstream max_scrollback byte field.\nAt scrollback: 10000, it retained only 1,852 rows. Its pinned [patch](https://github.com/coder/ghostty-web/blob/9e4e126d/patches/ghostty-wasm-api.patch) documents that option as lines.\nxterm has a 10k row limit. Burst phases clear history first; legacy retention is byte-budget-only.\n\n## Results\n\n### 1 terminal, bytes\n\n| Measure | ghostty-webgpu |\n| --- | ---: |\n| output/cpu | 100.00 % core |\n| output/cpu/renderer | 100.00 % core |\n| write/p50 | not measured |\n| write/p95 | not measured |\n| input/p50 | not measured |\n| input/p95 | not measured |\n| idle/cpu | not measured |\n| idle/cpu/renderer | not measured |\n| memory/terminal | not measured |\n| memory/10k | not measured |\n| memory/output/terminal | not measured |\n| memory/initial/wasm | not measured |\n| memory/initial/rss-delta | not measured |\n| memory/history/wasm | not measured |\n| memory/history/rss-delta | not measured |\n| memory/output/wasm | not measured |\n| memory/output/rss-delta | not measured |\n\n## Paired pass rule\n\nxterm removed its canvas renderer. ghostty-web is the closest available canvas 2D counterpart for ghostty-canvas; their parsers and host adapters differ.\nSelecting xterm-dom alongside ghostty-canvas adds a secondary cross-renderer comparison. Both comparisons share each native run, so their ratios are correlated and the raw CPU sample is counted once.\nTargets are native/counterpart ratios ≤ 1 for renderer CPU, total Chromium CPU, input p50/p95, and write p50 in every path/count condition. Each pair shares its browser session ID, pair ID, repetition, path, and terminal count. The median of the individual pair ratios determines pass or fail; absolute measurements provide context.\nEvery configured repetition must have exactly one qualified native and counterpart run. Missing IDs, duplicate runs, failures, missing metrics, and rejected GPU-idle runs leave the condition incomplete. CPU pairs are unresolved when either side has fewer than the configured minimum ticks or sides differ by at most one tick. Zero/zero never passes. Unbounded ratios are null with a reason. Skipped GPU qualification is explicitly labeled.\n\n| Terminals | Path | Native ↔ counterpart | Measure | Median ratio | Target | Pairs | Status |\n| ---: | --- | --- | --- | ---: | ---: | ---: | --- |\n\n### Individual pairs\n\n| Terminals | Path | Native ↔ counterpart | Measure | Pair ID | Repetition | Native | Counterpart | Ratio | Resolution |\n| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |\n\n## Correctness and limits\n\nThe runner asserts ASCII, SGR, wide text, cursor overwrite, byte echo, glyph presentation, and exact history length.\nSuccessful first-repetition correctness checks retain Unicode/ZWJ text and a screenshot.\nReview those screenshots for glyph layout differences; parser acceptance alone cannot prove Unicode shaping parity.\nFirefox and Safari were not measured. This run qualifies Chromium on the recorded hardware only.\nThe corpus and font hashes, raw latency samples, raw frame intervals, process CPU snapshots, memory buckets,\nactual execution order, and failed cases are retained in JSON.\nGPU-idle rejected runs are excluded from all summaries and paired comparisons. Each validated isolated-parser corpus remains eligible independently of other parser or rendered failures. Other metrics from failed rendered cases are excluded. Absolute summary cells require all configured repetitions.\n"
+    }
+  ]
+}

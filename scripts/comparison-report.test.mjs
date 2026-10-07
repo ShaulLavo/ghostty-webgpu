@@ -1269,3 +1269,61 @@ test('historical WebGL measurements keep their unlabeled identity beside labeled
   assert(report.includes('ghostty-webgl ↔ xterm-webgl'))
   assert(!report.includes('ghostty-webgl-zig'))
 })
+
+test('native work summaries are descriptive and leave paired CPU verdicts unchanged', () => {
+  const artifact = pairedArtifact()
+  artifact.processCounters = true
+  const baseline = pairedRatios(artifact)
+  for (const run of artifact.runs)
+    run.output.cpu.workCounters = {
+      status: 'measured',
+      channels: {
+        renderer: {
+          instructions: 100,
+          cycles: 200,
+          cpuSeconds: 1,
+          pCoreShare: 0.75,
+          effectiveClockGHz: 2,
+          energyJ: null,
+        },
+      },
+      limitations: ['User-space counters'],
+    }
+  assert.deepEqual(pairedRatios(artifact), baseline)
+  const rows = summaries(artifact)
+  assert.equal(rows.find((row) => row.metric === 'output/work/renderer/instructions').median, 100)
+  assert.equal(rows.find((row) => row.metric === 'output/cpu-seconds/renderer').median, 10)
+  assert(!rows.some((row) => row.metric.endsWith('/energyJ')))
+  assert.match(markdown(artifact), /Process work counters/)
+  assert.match(markdown(artifact), /User-space counters/)
+  for (const run of artifact.runs)
+    run.output.cpu.workCounters = {
+      status: 'skipped',
+      reason: 'Hardware permission denied',
+    }
+  assert(!summaries(artifact).some((row) => row.metric.includes('/work/')))
+  assert.match(markdown(artifact), /Hardware permission denied/)
+  assert.deepEqual(pairedRatios(artifact), baseline)
+})
+
+test('compact evidence retains native coverage and boundaries without copying raw snapshots', async () => {
+  const artifact = pairedArtifact()
+  artifact.processCounters = true
+  artifact.environment.gpu = { gpu: { devices: [], featureStatus: {} } }
+  const evidence = {
+    status: 'measured',
+    channels: { renderer: { instructions: 100, cycles: 200 } },
+    metadata: { source: 'perf_event_open' },
+    coverage: { matched: [1], errors: [] },
+    processes: [{ pid: 1, identity: '42' }],
+    boundary: { before: { native: { requested: 1, completed: 2 } } },
+    snapshots: { before: { large: 'raw' }, after: { large: 'raw' } },
+  }
+  for (const run of artifact.runs) run.output.cpu.workCounters = evidence
+  const compact = await compactEvidence(artifact)
+  assert.equal(compact.processCounters, true)
+  const { snapshots, ...retained } = evidence
+  for (const run of compact.runs) assert.deepEqual(run.output.cpu.workCounters, retained)
+  assert.deepEqual(evidence.snapshots, snapshots)
+  assert.deepEqual(pairedRatios(compact), pairedRatios(artifact))
+})

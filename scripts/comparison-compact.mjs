@@ -21,13 +21,20 @@ function cpu(value) {
     acquisitionUncertaintyMilliseconds,
     tickSeconds,
   } = value
+  const workCounters = value.workCounters ? { ...value.workCounters } : undefined
+  if (workCounters) delete workCounters.snapshots
   return {
     milliseconds,
     secondsByType,
     percentOfOneCore,
     acquisitionUncertaintyMilliseconds,
     tickSeconds,
+    ...(value.workCounters ? { workCounters } : {}),
   }
+}
+function compactPhase(phase) {
+  const { label, traced, error, milliseconds, trace, traceBytes } = phase
+  return { label, traced, error, milliseconds, trace, traceBytes, cpu: cpu(phase.cpu) }
 }
 function gpu(value) {
   if (!value) return undefined
@@ -123,6 +130,7 @@ export async function compactEvidence(artifact, directory) {
     outputFixture: artifact.outputFixture,
     cpuTickSeconds: artifact.cpuTickSeconds,
     cpuTickSource: artifact.cpuTickSource,
+    ...(artifact.processCounters ? { processCounters: true } : {}),
     gpuCommandTimeoutMilliseconds: artifact.gpuCommandTimeoutMilliseconds,
     hardware: artifact.hardware,
     manifest: {
@@ -173,7 +181,12 @@ export async function compactEvidence(artifact, directory) {
       status: run.status,
       error: run.error,
       pageErrors: run.pageErrors,
-      latencyFailure: run.latencyFailure,
+      latencyFailure: run.latencyFailure?.cpu?.workCounters
+        ? compactPhase(run.latencyFailure)
+        : run.latencyFailure,
+      ...(run.cpuFailure ? { cpuFailure: cpu(run.cpuFailure) } : {}),
+      ...(run.phaseFailure ? { phaseFailure: compactPhase(run.phaseFailure) } : {}),
+      ...(artifact.processCounters && run.phases ? { phases: run.phases.map(compactPhase) } : {}),
       gpuIdle: run.gpuIdle,
       adapter: run.info?.adapter,
       refreshPeriod: run.refreshPeriod,
@@ -197,6 +210,7 @@ export async function compactEvidence(artifact, directory) {
             trace: run.latency.trace,
             input: run.latency.input,
             write: run.latency.write,
+            ...(run.latency.cpu?.workCounters ? { cpu: cpu(run.latency.cpu) } : {}),
           }
         : undefined,
       presentationValidation: run.presentationValidation

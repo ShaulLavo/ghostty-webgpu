@@ -30,6 +30,8 @@ export function droppedFrames(intervals, period) {
 }
 
 function phaseMeasured(artifact, metric) {
+  if (artifact.processCounters && (metric.includes('/work/') || metric.includes('/cpu-seconds/')))
+    return true
   if (!artifact.phases) return true
   const prefix = metric.split('/')[0]
   const phase = { parse: 'parser', write: 'latency', input: 'latency' }[prefix] ?? prefix
@@ -110,6 +112,7 @@ export function summaries(artifact) {
       add(run, `${state}/cpu`, run[state].cpu.percentOfOneCore, '% core')
       add(run, `${state}/cpu/renderer`, rendererCpu(run[state].cpu), '% core')
     }
+    if (artifact.processCounters) addCounterSummaries(run, add)
     const memory = run.memory
     if (!memory) continue
     const retained = (snapshot) => snapshot.heap.usedSize + (snapshot.heap.backingStorageSize ?? 0)
@@ -151,6 +154,75 @@ export function summaries(artifact) {
     median: quantile(group.values, 0.5),
     repetitions: group.values.length,
   }))
+}
+
+const workFields = [
+  ['instructions', 'instructions'],
+  ['cycles', 'cycles'],
+  ['cpuSeconds', 'native CPU s'],
+  ['pCoreShare', 'fraction'],
+  ['effectiveClockGHz', 'GHz'],
+  ['effectivePClockGHz', 'GHz'],
+  ['energyJ', 'J estimate'],
+  ['pEnergyJ', 'J estimate'],
+]
+
+function counterWindows(run) {
+  return [
+    ...['idle', 'output', 'latency'].map((name) => [name, run[name]?.cpu]),
+    ...(run.phases ?? []).map((phase) => [`trace/${phase.label}`, phase.cpu]),
+    ['failure', run.cpuFailure],
+    ['phase failure', run.phaseFailure?.cpu],
+    ['latency failure', run.latencyFailure?.cpu],
+  ].filter(([, cpu]) => cpu?.workCounters)
+}
+
+function addWorkSummaries(run, add, state, counters) {
+  if (counters.status !== 'measured') return
+  for (const [name, sample] of Object.entries(counters.channels)) {
+    for (const [field, unit] of workFields)
+      add(run, `${state}/work/${name}/${field}`, sample[field], unit)
+  }
+}
+
+function addCounterSummaries(run, add) {
+  for (const [state, cpu] of counterWindows(run)) {
+    const seconds = cpu.secondsByType ?? {}
+    const renderer = seconds.renderer ?? 0
+    const gpu = seconds.GPU ?? 0
+    const channels = {
+      renderer,
+      GPU: gpu,
+      rendererPlusGPU: renderer + gpu,
+      allChrome: Object.values(seconds).reduce((sum, amount) => sum + amount, 0),
+    }
+    const entries = Object.keys(seconds).length ? Object.entries(channels) : []
+    for (const [name, amount] of entries) add(run, `${state}/cpu-seconds/${name}`, amount, 's')
+    addWorkSummaries(run, add, state, cpu.workCounters)
+  }
+}
+
+function counterWindowNotes(state, counters) {
+  const notes = []
+  if (counters.status === 'skipped') notes.push(`${state} counters skipped. ${counters.reason}`)
+  if (counters.status === 'incomplete')
+    notes.push(
+      `${state} counters have incomplete coverage. ${counters.coverage.errors.map((row) => `PID ${row.pid}, ${row.reason}`).join('; ')}`,
+    )
+  for (const [name, reason] of Object.entries(counters.unavailable ?? {}))
+    notes.push(`${state} ${name} unavailable. ${reason}`)
+  for (const sample of Object.values(counters.channels ?? {})) {
+    if (sample.clockReason)
+      notes.push(`${state} effective clock unavailable. ${sample.clockReason}`)
+  }
+  return [...notes, ...(counters.limitations ?? [])]
+}
+
+function counterNotes(artifact) {
+  const notes = artifact.runs.flatMap((run) =>
+    counterWindows(run).flatMap(([state, cpu]) => counterWindowNotes(state, cpu.workCounters)),
+  )
+  return [...new Set(notes)].map((note) => `- ${note}`)
 }
 
 function rendererCpu(cpu) {
@@ -494,7 +566,9 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
   const lines = [
     '# Terminal comparison benchmarks',
     '',
-    'Generated from the checked-in JSON artifact. Lower is better except parse throughput.',
+    artifact.processCounters
+      ? 'Generated from the checked-in JSON artifact. Lower is better for cost and latency; higher is better for parse throughput. Effective clock and P-core share describe placement and operating state.'
+      : 'Generated from the checked-in JSON artifact. Lower is better except parse throughput.',
     'Tracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrappers differ by renderer. These measurements are distinct from historical uninstrumented runs.',
     '',
     '## Run it',
@@ -590,6 +664,20 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     'At scrollback: 10000, it retained only 1,852 rows. Its pinned [patch](https://github.com/coder/ghostty-web/blob/9e4e126d/patches/ghostty-wasm-api.patch) documents that option as lines.',
     'xterm has a 10k row limit. Burst phases clear history first; legacy retention is byte-budget-only.',
     '',
+    ...(artifact.processCounters
+      ? [
+          '## Process work counters',
+          '',
+          'Register --process-counters in a new protocol to add native process work channels to idle, output, and trace CPU windows. Existing CPU arithmetic and acceptance rules are unchanged.',
+          'macOS uses Python 3 and proc_pid_rusage RUSAGE_INFO_V6. Owned-helper calibration establishes each work and energy channel before measurement. Channels with unestablished support are unavailable. Mach time is converted to nanoseconds with the native timebase; energy is a kernel CPU-energy estimate in nanojoules.',
+          'Linux uses Python 3 and perf_event_open for user-space instructions and cycles across every existing thread, with later thread inheritance. Hybrid PMUs are reported separately and summed without scaling.',
+          'The native CPU denominator is user plus system time on macOS and tick-quantized user time on Linux. CDP CPU seconds remain separate. Linux P-core time and per-process energy are unavailable.',
+          'The raw artifact records setup and calibration cost, start identities, errors, PMU coverage, and per-PID acquisition timestamps. Native reads bracket the unchanged CDP CPU window from outside; all request/completion times are retained. Helper startup and attachment precede browser trace activation.',
+          'Incomplete native coverage omits aggregate work channels. Individual stable-process values remain in the artifact. Supplementary work channels have no automatic pass/fail verdict.',
+          ...counterNotes(artifact),
+          '',
+        ]
+      : []),
     '## Results',
     '',
   ]
@@ -613,7 +701,9 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
       const cells = variants.map((id) => {
         const row = subset.find((entry) => entry.variant === id && entry.metric === metric)
         if (!phaseMeasured(artifact, metric)) return 'not measured'
-        return row ? `${number(row.median)} ${row.unit}` : 'unmeasured'
+        return row
+          ? `${row.metric.includes('/work/') ? Number(row.median.toPrecision(6)).toString() : number(row.median)} ${row.unit}`
+          : 'unmeasured'
       })
       lines.push(`| ${metric} | ${cells.join(' | ')} |`)
     }

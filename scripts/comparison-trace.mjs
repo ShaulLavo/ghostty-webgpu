@@ -3,6 +3,7 @@ import { gzipSync } from 'node:zlib'
 import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { measureCpu, withDeadline } from './comparison-guards.mjs'
+import { createCounterReader } from './comparison-counters.mjs'
 import { quantile } from './comparison-report.mjs'
 import { renderOperations } from './comparison-render.mjs'
 
@@ -235,7 +236,61 @@ async function collectTrace(browserSession, completed) {
   return Buffer.concat(chunks)
 }
 
-export async function tracePhase({
+export async function tracePhase(options) {
+  if (!options.cpuOptions?.processCounters || options.cpuOptions.counterReader)
+    return runTracePhase(options)
+  const requested = performance.now()
+  const reader = await createCounterReader(options.browserSession, {
+    timeoutMilliseconds: options.cpuOptions.counterTimeoutMilliseconds,
+  })
+  reader.setup ??= { requested, completed: performance.now() }
+  try {
+    return await runTracePhase({
+      ...options,
+      cpuOptions: { ...options.cpuOptions, counterReader: { ...reader, close: undefined } },
+    })
+  } finally {
+    await reader.close?.()
+  }
+}
+
+async function capturedOperation(operation, state) {
+  try {
+    return await operation()
+  } catch (error) {
+    state.failure = String(error.stack ?? error)
+    return error.partialLatency
+  }
+}
+
+async function measurePhase(browserSession, operation, options) {
+  const state = {}
+  try {
+    const measurement = await measureCpu(
+      browserSession,
+      () => capturedOperation(operation, state),
+      options,
+    )
+    return { measurement, failure: state.failure }
+  } catch (error) {
+    if (!error.cpuFailure) throw error
+    return {
+      measurement: { cpu: error.cpuFailure },
+      failure: String(error.stack ?? error),
+      cpuError: error,
+    }
+  }
+}
+
+function beginRecords(page) {
+  return page.evaluate(() => window.__compare.traceBegin())
+}
+
+function endRecords(page) {
+  return page.evaluate(() => window.__compare.traceEnd())
+}
+
+async function runTracePhase({
   page,
   browserSession,
   output,
@@ -244,6 +299,7 @@ export async function tracePhase({
   traced,
   now,
   categories,
+  cpuOptions,
 }) {
   if (traced)
     await browserSession.send('Tracing.start', {
@@ -256,43 +312,38 @@ export async function tracePhase({
     ? new Promise((resolve) => browserSession.once('Tracing.tracingComplete', resolve))
     : undefined
   let result
+  let cpuError
   let trace
   let recording = false
   try {
     if (traced) {
-      await page.evaluate(() => window.__compare.traceBegin())
+      await beginRecords(page)
       recording = true
     }
-    let failure
-    const measurement = await measureCpu(
-      browserSession,
-      async () => {
-        try {
-          return await operation()
-        } catch (error) {
-          failure = String(error.stack ?? error)
-          return error.partialLatency
-        }
-      },
-      { now },
-    )
-    const records = traced ? await page.evaluate(() => window.__compare.traceEnd()) : undefined
+    const measured = await measurePhase(browserSession, operation, { ...cpuOptions, now })
+    cpuError = measured.cpuError
+    const records = traced ? await endRecords(page) : undefined
     recording = false
-    result = { label, traced, ...measurement, error: failure }
+    result = { label, traced, ...measured.measurement, error: measured.failure }
     if (records) {
       result.records = records
       result.summary = summarizeRecords(records)
     }
   } finally {
-    if (recording) await page.evaluate(() => window.__compare.traceEnd()).catch(() => {})
+    if (recording) await endRecords(page).catch(() => {})
     if (traced) {
       await browserSession.send('Tracing.end')
       trace = await collectTrace(browserSession, completed)
     }
   }
-  if (!traced) return result
-  result.trace = `${label}.trace.json.gz`
-  result.traceBytes = trace.length
-  await writeFile(join(output, result.trace), gzipSync(trace))
+  if (traced) {
+    result.trace = `${label}.trace.json.gz`
+    result.traceBytes = trace.length
+    await writeFile(join(output, result.trace), gzipSync(trace))
+  }
+  if (cpuError) {
+    cpuError.phaseFailure = result
+    throw cpuError
+  }
   return result
 }

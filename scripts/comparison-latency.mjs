@@ -7,7 +7,11 @@ export const latencyEndpoint = 'AnimationFrame::Presentation (terminal rendered 
 export function presentationResult(run, phase, events) {
   try {
     assert(!phase.error, phase.error)
-    return { ...presentationLatency(phase, events), trace: phase.trace }
+    return {
+      ...presentationLatency(phase, events),
+      trace: phase.trace,
+      ...(phase.cpu?.workCounters ? { cpu: phase.cpu } : {}),
+    }
   } catch (error) {
     run.latencyFailure = phase
     throw error
