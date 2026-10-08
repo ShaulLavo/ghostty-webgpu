@@ -38,12 +38,11 @@ const references = [
   }
 })
 
-// Deployed to GitHub Pages under the repository path.
 export default defineConfig({
   base: '/ghostty-webgpu',
   // Keep the authored markup verbatim so inline whitespace renders unchanged.
   compressHTML: false,
-  site: 'https://shaullavo.github.io',
+  site: process.env.SITE_ORIGIN ?? 'https://shaullavo.github.io',
   integrations: [
     docsLinks(),
     starlight({
