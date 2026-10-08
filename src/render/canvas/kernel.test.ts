@@ -129,6 +129,28 @@ function fill(
   )
 }
 
+function verifyMoveBoundaries(kernel: ComposeKernel, width: number): void {
+  const bytes = width * 5 * 4
+  const ptr = kernel.allocate(bytes)
+  const initial = Uint8Array.from({ length: bytes }, (_, index) => (index * 73 + 19) & 255)
+  for (const [from, to, rows] of [
+    [0, 1, 4],
+    [1, 0, 4],
+    [0, 0, 5],
+    [0, 4, 1],
+    [4, 0, 1],
+    [0, 5, 0],
+    [5, 0, 0],
+  ]) {
+    view(kernel, ptr, bytes).set(initial)
+    const expected = initial.slice()
+    expected.copyWithin(to! * width * 4, from! * width * 4, (from! + rows!) * width * 4)
+    kernel.check(kernel.exports.compose_move(ptr, width, 5, from!, to!, rows!))
+    expect(view(kernel, ptr, bytes)).toEqual(expected)
+  }
+  kernel.release(ptr)
+}
+
 describe.skipIf(!compilerAvailable)(
   'C and Zig scalar/SIMD composition (requires Zig compiler and bundled Clang)',
   () => {
@@ -384,6 +406,11 @@ describe.skipIf(!compilerAvailable)(
         }
         kernel.release(ptr)
       }
+    })
+
+    it('preserves vector overlap, unaligned rows, short tails, and empty moves', () => {
+      for (let width = 1; width <= 17; width++)
+        for (const kernel of arms) verifyMoveBoundaries(kernel, width)
     })
 
     it('rejects overflow, OOB, invalid stride/opacity and frame-source alias before writes', () => {

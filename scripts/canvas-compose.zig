@@ -220,21 +220,38 @@ export fn compose_stamp(ptr: u32, width: u32, height: u32, source: u32, sw: u32,
     return 1;
 }
 
+fn moveForward(target: [*]u8, source: [*]const u8, bytes: u32) void {
+    var i: u32 = 0;
+    if (comptime simd) {
+        while (bytes - i >= 16) : (i += 16) {
+            const value: @Vector(16, u8) = @as(*align(1) const @Vector(16, u8), @ptrCast(source + i)).*;
+            @as(*align(1) @Vector(16, u8), @ptrCast(target + i)).* = value;
+        }
+    }
+    while (i < bytes) : (i += 1) target[i] = source[i];
+}
+
+fn moveBackward(target: [*]u8, source: [*]const u8, bytes: u32) void {
+    var i = bytes;
+    if (comptime simd) {
+        while (i >= 16) {
+            i -= 16;
+            const value: @Vector(16, u8) = @as(*align(1) const @Vector(16, u8), @ptrCast(source + i)).*;
+            @as(*align(1) @Vector(16, u8), @ptrCast(target + i)).* = value;
+        }
+    }
+    while (i > 0) {
+        i -= 1;
+        target[i] = source[i];
+    }
+}
+
 export fn compose_move(ptr: u32, width: u32, height: u32, source_y: u32, target_y: u32, rows: u32) i32 {
     if (!validFrame(ptr, width, height) or source_y > height or target_y > height or rows > height - source_y or rows > height - target_y) return 0;
     const bytes = rows * width * 4;
     const source: [*]const u8 = @ptrFromInt(ptr + source_y * width * 4);
     const target: [*]u8 = @ptrFromInt(ptr + target_y * width * 4);
-    if (@intFromPtr(target) < @intFromPtr(source)) {
-        var i: u32 = 0;
-        while (i < bytes) : (i += 1) target[i] = source[i];
-    }
-    if (@intFromPtr(target) > @intFromPtr(source)) {
-        var i = bytes;
-        while (i > 0) {
-            i -= 1;
-            target[i] = source[i];
-        }
-    }
+    if (@intFromPtr(target) < @intFromPtr(source)) moveForward(target, source, bytes);
+    if (@intFromPtr(target) > @intFromPtr(source)) moveBackward(target, source, bytes);
     return 1;
 }
