@@ -1,0 +1,2464 @@
+{
+  "schema": 1,
+  "candidate": 3,
+  "decision": "KEEP",
+  "scope": "Historical original C3 evidence remains in the existing sections. reviewCorrection alone describes corrected source and fresh target/guard measurements. Research efficiency binaries remain distinct from the product binary.",
+  "source": {
+    "runtimeCommit": "59ea26764e7c3fca93bb11134bf7bab09d7dff76",
+    "candidateResearchHead": "b1b6ca0c0fbdd8e7bbc24df22eac5940a83d7bf8",
+    "officialNativeRevision": "7b11f3dca034d8d24369ad3856afe57946d7902a",
+    "candidateBridgeSha256": "5bfb68585c507fa9d3483cc2653ab3fb9fcf0fe9d7be8c3672591c9f53358ed5",
+    "sealedArchiveSha256": "9c12237a4de81c0b23ffd8b10f42bd640d9148ca9f0e19197d27b9ae55ed2483"
+  },
+  "mechanism": {
+    "C1": "Reuse unchanged unstyled scalar records in dirty display rows.",
+    "C2": "Read live forward-safe source rows; preserve snapshots for backward or mixed movement.",
+    "C3": "Keep identical display-slot scalar records in matched moved rows, bypassing record reads, writes, y correction and full-record comparisons.",
+    "unchanged": "Logical row matching, copied-text publication, shader/draw order, GPU upload extents and upload operations.",
+    "registrationCorrection": "Stable-key descriptor registration increments a per-key revision. Logical-row and display-slot caches retain and validate it before reusing records."
+  },
+  "operationCounts": {
+    "baseline": {
+      "scope": "Linux operation extents only; no efficiency verdict",
+      "sourceSha256": "549b95e24001564edcf4c7121b22955a3e8f77e1e22c18279923dfe955b4fee2",
+      "rows": [
+        {
+          "workload": "line-scroll",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 9216000,
+            "movedRecordExtentBytes": 7680000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 30000,
+            "movedRecordComparisonExtentBytes": 7680000,
+            "constructedCells": 9600,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 1536000
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 76800,
+            "movedRecordExtentBytes": 64000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 250,
+            "movedRecordComparisonExtentBytes": 64000,
+            "constructedCells": 80,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 12800
+          },
+          "uploadedBytesPerFrame": 42347.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        },
+        {
+          "workload": "unicode-emoji",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 9216000,
+            "movedRecordExtentBytes": 7680000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 20400,
+            "movedRecordComparisonExtentBytes": 7680000,
+            "constructedCells": 9600,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 1536000
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 76800,
+            "movedRecordExtentBytes": 64000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 170,
+            "movedRecordComparisonExtentBytes": 64000,
+            "constructedCells": 80,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 12800
+          },
+          "uploadedBytesPerFrame": 38507.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        }
+      ]
+    },
+    "candidate01": {
+      "scope": "Linux operation extents only; no efficiency verdict",
+      "sourceSha256": "cd162a4382c8cb00f79b47222ebb2f56c2a597a3a98b245a7a3e14c9b43da438",
+      "rows": [
+        {
+          "workload": "line-scroll",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 9216000,
+            "movedRecordExtentBytes": 7680000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 30000,
+            "movedRecordComparisonExtentBytes": 7680000,
+            "constructedCells": 268,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 42880
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 76800,
+            "movedRecordExtentBytes": 64000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 250,
+            "movedRecordComparisonExtentBytes": 64000,
+            "constructedCells": 2.2333333333333334,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 357.3333333333333
+          },
+          "uploadedBytesPerFrame": 42347.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        },
+        {
+          "workload": "unicode-emoji",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 9216000,
+            "movedRecordExtentBytes": 7680000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 20400,
+            "movedRecordComparisonExtentBytes": 7680000,
+            "constructedCells": 1214,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 194240
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 76800,
+            "movedRecordExtentBytes": 64000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 170,
+            "movedRecordComparisonExtentBytes": 64000,
+            "constructedCells": 10.116666666666667,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 1618.6666666666667
+          },
+          "uploadedBytesPerFrame": 38507.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        }
+      ]
+    },
+    "candidate02": {
+      "scope": "Linux operation extents only; no efficiency verdict",
+      "sourceSha256": "0429cae289831a5492a0c33d6d4a5ca95d1c0f50988d887a3637544577ffdbe2",
+      "rows": [
+        {
+          "workload": "line-scroll",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 7680000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 30000,
+            "movedRecordComparisonExtentBytes": 7680000,
+            "constructedCells": 268,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 42880
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 64000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 250,
+            "movedRecordComparisonExtentBytes": 64000,
+            "constructedCells": 2.2333333333333334,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 357.3333333333333
+          },
+          "uploadedBytesPerFrame": 42347.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        },
+        {
+          "workload": "unicode-emoji",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 7680000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 20400,
+            "movedRecordComparisonExtentBytes": 7680000,
+            "constructedCells": 1214,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 194240
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 64000,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 170,
+            "movedRecordComparisonExtentBytes": 64000,
+            "constructedCells": 10.116666666666667,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 1618.6666666666667
+          },
+          "uploadedBytesPerFrame": 38507.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        }
+      ]
+    },
+    "candidate03": {
+      "scope": "Linux operation extents only; no efficiency verdict",
+      "sourceSha256": "f487fd3a0ecd31727dda149858f1576ce3d0e5180d4821adf9fe434627750b62",
+      "rows": [
+        {
+          "workload": "line-scroll",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 214400,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 1340,
+            "movedRecordComparisonExtentBytes": 214400,
+            "constructedCells": 268,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 42880
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 1786.6666666666667,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 11.166666666666666,
+            "movedRecordComparisonExtentBytes": 1786.6666666666667,
+            "constructedCells": 2.2333333333333334,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 357.3333333333333
+          },
+          "uploadedBytesPerFrame": 42347.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        },
+        {
+          "workload": "unicode-emoji",
+          "frames": 120,
+          "totals": {
+            "buildCalls": 120,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 1942400,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 12140,
+            "movedRecordComparisonExtentBytes": 1942400,
+            "constructedCells": 1214,
+            "logicalRawComparedCells": 48000,
+            "rowIdComparisons": 10680,
+            "constructionComparisonExtentBytes": 194240
+          },
+          "perFrame": {
+            "buildCalls": 1,
+            "scratchCopyBytes": 0,
+            "movedRecordExtentBytes": 16186.666666666666,
+            "cellYRewrites": 0,
+            "glyphYRewrites": 101.16666666666667,
+            "movedRecordComparisonExtentBytes": 16186.666666666666,
+            "constructedCells": 10.116666666666667,
+            "logicalRawComparedCells": 400,
+            "rowIdComparisons": 89,
+            "constructionComparisonExtentBytes": 1618.6666666666667
+          },
+          "uploadedBytesPerFrame": 38507.2,
+          "instanceUploadOperationsPerFrame": 1.0
+        }
+      ]
+    }
+  },
+  "hardware": {
+    "device": "Apple M1",
+    "browser": "Chrome 154.0.8037.93",
+    "headed": true,
+    "counterSource": "proc_pid_rusage/RUSAGE_INFO_V6",
+    "schedule": "A/B/B/A then B/A/A/B; four pairs; 17 terminals; 120 warmup and 900 measured ticks"
+  },
+  "ownControlScreens": {
+    "webgl-line-scroll": {
+      "protocol": "tw-frame-r4-candidate03-webgl-line-scroll-r01",
+      "protocolSha256": "a770d9bdede961472848fddad333d2dba580e580d3320e5826e5e584c45825a7",
+      "summarySha256": "86deb97296860e2fa0e213c4a5481980754c3e28fa8e17736491c35be492f6b1",
+      "status": "SCREEN_PASS",
+      "channels": {
+        "renderer": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9490838728916571,
+            "instructions": 0.8409280218916559,
+            "cycles": 0.8912425706388997,
+            "energyJ": 0.8331062274605657
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9450021780542569,
+              "instructions": 0.8431775110690869,
+              "cycles": 0.9007811111886762,
+              "energyJ": 0.8424441183755349
+            },
+            {
+              "cpuSeconds": 1.275283785732301,
+              "instructions": 0.8440448832294042,
+              "cycles": 0.8671356407276245,
+              "energyJ": 0.7153597282256642
+            },
+            {
+              "cpuSeconds": 0.9531655677290574,
+              "instructions": 0.8386785327142249,
+              "cycles": 0.8886171589172777,
+              "energyJ": 0.8308750570972472
+            },
+            {
+              "cpuSeconds": 0.9418272952870919,
+              "instructions": 0.8368255356871513,
+              "cycles": 0.8938679823605217,
+              "energyJ": 0.8353373978238843
+            }
+          ]
+        },
+        "GPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0677104013825933,
+            "instructions": 1.0129564757834104,
+            "cycles": 0.996331164006732,
+            "energyJ": 0.9718857052515495
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0732189460270607,
+              "instructions": 1.0297955463991884,
+              "cycles": 1.0256170724844351,
+              "energyJ": 0.9950628418882447
+            },
+            {
+              "cpuSeconds": 1.3732671164755725,
+              "instructions": 0.9598399522733857,
+              "cycles": 0.8977330119479734,
+              "energyJ": 0.7830489523536851
+            },
+            {
+              "cpuSeconds": 1.0522005702038746,
+              "instructions": 1.004266912762362,
+              "cycles": 0.9835632761591178,
+              "energyJ": 0.9591468319032416
+            },
+            {
+              "cpuSeconds": 1.0622018567381257,
+              "instructions": 1.021646038804459,
+              "cycles": 1.0090990518543463,
+              "energyJ": 0.9846245785998575
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0225594324548521,
+            "instructions": 0.9180798227293148,
+            "cycles": 0.9585565859000879,
+            "energyJ": 0.907338654983407
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0267365325752305,
+              "instructions": 0.9288285836427816,
+              "cycles": 0.9805424140465473,
+              "energyJ": 0.9237677944052438
+            },
+            {
+              "cpuSeconds": 1.3383882941570477,
+              "instructions": 0.8977299862309467,
+              "cycles": 0.8869349438053579,
+              "energyJ": 0.751938230699501
+            },
+            {
+              "cpuSeconds": 1.0165946797273522,
+              "instructions": 0.9149170012134306,
+              "cycles": 0.9496849076769042,
+              "energyJ": 0.89978149690279
+            },
+            {
+              "cpuSeconds": 1.0183823323344738,
+              "instructions": 0.921242644245199,
+              "cycles": 0.9674282641232715,
+              "energyJ": 0.914895813064024
+            }
+          ]
+        },
+        "allChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0219647900323756,
+            "instructions": 0.9197020866055468,
+            "cycles": 0.9603467443339371,
+            "energyJ": 0.9094099708395708
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.024654824674111,
+              "instructions": 0.9246584709324919,
+              "cycles": 0.97774111722458,
+              "energyJ": 0.9191000323538387
+            },
+            {
+              "cpuSeconds": 1.3380638912413945,
+              "instructions": 0.8976063674670685,
+              "cycles": 0.8871896935084207,
+              "energyJ": 0.7517140926213846
+            },
+            {
+              "cpuSeconds": 1.0192747553906403,
+              "instructions": 0.9178669550660171,
+              "cycles": 0.9527301748180449,
+              "energyJ": 0.9036145883963909
+            },
+            {
+              "cpuSeconds": 1.0190607917424155,
+              "instructions": 0.9215372181450765,
+              "cycles": 0.9679633138498293,
+              "energyJ": 0.9152053532827507
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.2020969634434044,
+            "instructions": 0.9351769362374636,
+            "cycles": 0.9731573966715976,
+            "energyJ": 0.8464512378471818
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.8606641095495166,
+              "instructions": 0.48655483766235225,
+              "cycles": 0.7678462851056613,
+              "energyJ": 0.509732485759099
+            },
+            {
+              "cpuSeconds": 1.3044068224573138,
+              "instructions": 0.8705180652521364,
+              "cycles": 0.9135134382576341,
+              "energyJ": 0.7140883379737056
+            },
+            {
+              "cpuSeconds": 1.3312000653230966,
+              "instructions": 1.676556295048393,
+              "cycles": 1.3148416613152996,
+              "energyJ": 1.674870563188171
+            },
+            {
+              "cpuSeconds": 1.0997871044294951,
+              "instructions": 0.9998358072227909,
+              "cycles": 1.0328013550855613,
+              "energyJ": 0.978814137720658
+            }
+          ]
+        }
+      },
+      "workAndOutputChecks": {
+        "exactCompletePngAcrossBothArms": true,
+        "sameVisibleAndFullRetainedText": true,
+        "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+        "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+        "allRebuiltRowCountersAlsoEqual": true,
+        "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+        "stableEndpointPidTypeStart": true,
+        "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+        "cleanOwnedProcessCustody": true
+      },
+      "allChromeEnergyInstructionsLowerEveryPair": true,
+      "oldCpuRuleDiagnostic": {
+        "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+        "passes": false
+      }
+    },
+    "webgl-unicode-emoji": {
+      "protocol": "tw-frame-r4-candidate03-webgl-unicode-emoji-r01",
+      "protocolSha256": "92a765e4c1b1f58337be3ccadb1bcfba4a207ed26f792c71bd9596e26f64782a",
+      "summarySha256": "f3abb3830082afc6dbf2db5e7af544728a8dd5f2f5f4aca995863ebabb93922c",
+      "status": "SCREEN_PASS",
+      "channels": {
+        "renderer": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9576923402025455,
+            "instructions": 0.8965522670354678,
+            "cycles": 0.9301565945539688,
+            "energyJ": 0.8916804859082916
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.971510284942489,
+              "instructions": 0.9008009480061282,
+              "cycles": 0.9423469722747569,
+              "energyJ": 0.8967811904478132
+            },
+            {
+              "cpuSeconds": 0.986996636490262,
+              "instructions": 0.9058094151250307,
+              "cycles": 0.940318399125499,
+              "energyJ": 0.8833871946785954
+            },
+            {
+              "cpuSeconds": 0.9396544847320533,
+              "instructions": 0.8876640857742571,
+              "cycles": 0.9134795213457853,
+              "energyJ": 0.8974713057976083
+            },
+            {
+              "cpuSeconds": 0.943874395462602,
+              "instructions": 0.8923035860648074,
+              "cycles": 0.9199947899824387,
+              "energyJ": 0.8865797813687701
+            }
+          ]
+        },
+        "GPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0416064590014038,
+            "instructions": 0.993375752504126,
+            "cycles": 1.0057156535099077,
+            "energyJ": 0.9832515600909736
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.064054060747626,
+              "instructions": 0.9936311109905327,
+              "cycles": 1.0223334976764271,
+              "energyJ": 0.9802565442706939
+            },
+            {
+              "cpuSeconds": 1.0378507513727053,
+              "instructions": 0.9910559207518073,
+              "cycles": 0.983736737648553,
+              "energyJ": 0.9562461573360458
+            },
+            {
+              "cpuSeconds": 1.0286290863265715,
+              "instructions": 0.9931203940177192,
+              "cycles": 0.992241454641373,
+              "energyJ": 0.9862465759112533
+            },
+            {
+              "cpuSeconds": 1.045362166630102,
+              "instructions": 1.0198766492048235,
+              "cycles": 1.0191898523784424,
+              "energyJ": 0.9998424510722485
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0118216878197264,
+            "instructions": 0.9413752439174394,
+            "cycles": 0.9737474828102108,
+            "energyJ": 0.9401275816651111
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0274301146253906,
+              "instructions": 0.9402999964494217,
+              "cycles": 0.9909708552456841,
+              "energyJ": 0.9382449352846721
+            },
+            {
+              "cpuSeconds": 1.0184029704884063,
+              "instructions": 0.942450491385457,
+              "cycles": 0.9672433773005953,
+              "energyJ": 0.9199725262172884
+            },
+            {
+              "cpuSeconds": 0.9943403371648986,
+              "instructions": 0.9327918810655068,
+              "cycles": 0.962121357775529,
+              "energyJ": 0.9420102280455502
+            },
+            {
+              "cpuSeconds": 1.0052404051510462,
+              "instructions": 0.9458387958778296,
+              "cycles": 0.9802515883198264,
+              "energyJ": 0.9424778833957735
+            }
+          ]
+        },
+        "allChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0123707108771016,
+            "instructions": 0.9397791123769696,
+            "cycles": 0.9742326194939196,
+            "energyJ": 0.9390418303667086
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.025847396250266,
+              "instructions": 0.9366413398748894,
+              "cycles": 0.989688864030491,
+              "energyJ": 0.9352583937527335
+            },
+            {
+              "cpuSeconds": 1.0191021064797186,
+              "instructions": 0.94291688487905,
+              "cycles": 0.9679298125205821,
+              "energyJ": 0.9205209663836788
+            },
+            {
+              "cpuSeconds": 0.9974521302999121,
+              "instructions": 0.9357806991703266,
+              "cycles": 0.9658998420387265,
+              "energyJ": 0.9461916776930787
+            },
+            {
+              "cpuSeconds": 1.0056393152744847,
+              "instructions": 0.9462314234535972,
+              "cycles": 0.9805354264672571,
+              "energyJ": 0.9428252669806838
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.081073682502137,
+            "instructions": 1.065271141672239,
+            "cycles": 1.0363273370940518,
+            "energyJ": 1.029233262868705
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.8966746573703663,
+              "instructions": 0.5199822328398954,
+              "cycles": 0.883044684148816,
+              "energyJ": 0.6230461697400612
+            },
+            {
+              "cpuSeconds": 1.1069344077645966,
+              "instructions": 1.0743839164160753,
+              "cycles": 1.0563634866407854,
+              "energyJ": 1.0410457763412715
+            },
+            {
+              "cpuSeconds": 1.3875878030445976,
+              "instructions": 1.7742368298361673,
+              "cycles": 1.4549956485131281,
+              "energyJ": 1.8611175872332617
+            },
+            {
+              "cpuSeconds": 1.0552129572396773,
+              "instructions": 1.0561583669284025,
+              "cycles": 1.0162911875473184,
+              "energyJ": 1.017420749396139
+            }
+          ]
+        }
+      },
+      "workAndOutputChecks": {
+        "exactCompletePngAcrossBothArms": true,
+        "sameVisibleAndFullRetainedText": true,
+        "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+        "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+        "allRebuiltRowCountersAlsoEqual": true,
+        "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+        "stableEndpointPidTypeStart": true,
+        "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+        "cleanOwnedProcessCustody": true
+      },
+      "allChromeEnergyInstructionsLowerEveryPair": true,
+      "oldCpuRuleDiagnostic": {
+        "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+        "passes": false
+      }
+    },
+    "webgl-rolling-logs": {
+      "protocol": "tw-frame-r4-candidate03-webgl-rolling-logs-r01",
+      "protocolSha256": "49d37d3bf2ae8ae8c6a6708220e38d5fa39ef24be22b04493fde6da874b2376a",
+      "summarySha256": "e333ad9e14b864995e56dccb3687bf5af7adbb886d695dc6c348db88e05378c9",
+      "status": "SCREEN_PASS",
+      "channels": {
+        "renderer": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9999223031149242,
+            "instructions": 1.002639989537335,
+            "cycles": 1.0016712716290763,
+            "energyJ": 1.006997919408197
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9999998017785998,
+              "instructions": 1.0029170357736807,
+              "cycles": 1.0044469819900796,
+              "energyJ": 1.0188395849239051
+            },
+            {
+              "cpuSeconds": 1.0121087943399358,
+              "instructions": 1.0063211168786743,
+              "cycles": 1.003787630465218,
+              "energyJ": 1.0012502005888615
+            },
+            {
+              "cpuSeconds": 0.9963991232609613,
+              "instructions": 1.0002698458555617,
+              "cycles": 0.9995549127929347,
+              "energyJ": 1.0083436445665224
+            },
+            {
+              "cpuSeconds": 0.9998448044512486,
+              "instructions": 1.002362943300989,
+              "cycles": 0.9970633941174255,
+              "energyJ": 1.0056521942498717
+            }
+          ]
+        },
+        "GPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9902013195636052,
+            "instructions": 0.9964984972672696,
+            "cycles": 0.9909505816882462,
+            "energyJ": 0.9954014068937774
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.013404130018194,
+              "instructions": 1.001008409710614,
+              "cycles": 1.0174110876451445,
+              "energyJ": 1.0186201251209905
+            },
+            {
+              "cpuSeconds": 0.9861641053920212,
+              "instructions": 0.9882409231672646,
+              "cycles": 0.9775045054804122,
+              "energyJ": 0.9740004123024385
+            },
+            {
+              "cpuSeconds": 0.9916616629803898,
+              "instructions": 1.0026874035427211,
+              "cycles": 0.9959299125570054,
+              "energyJ": 1.0024703207316947
+            },
+            {
+              "cpuSeconds": 0.9887409761468207,
+              "instructions": 0.9919885848239252,
+              "cycles": 0.985971250819487,
+              "energyJ": 0.9883324930558601
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9952458806551999,
+            "instructions": 1.00057209602479,
+            "cycles": 0.9939800547272749,
+            "energyJ": 1.0018941052765897
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0077382234610133,
+              "instructions": 1.0022644785395147,
+              "cycles": 1.0119658172529569,
+              "energyJ": 1.0187447090843953
+            },
+            {
+              "cpuSeconds": 0.9968580342054445,
+              "instructions": 1.0000418263686681,
+              "cycles": 0.9882561085808231,
+              "energyJ": 0.9892275753882966
+            },
+            {
+              "cpuSeconds": 0.9936337271049553,
+              "instructions": 1.0011023656809115,
+              "cycles": 0.9974273832189512,
+              "energyJ": 1.0057689004350543
+            },
+            {
+              "cpuSeconds": 0.9933453921175877,
+              "instructions": 0.9987745512609325,
+              "cycles": 0.9905327262355986,
+              "energyJ": 0.9980193101181251
+            }
+          ]
+        },
+        "allChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9950211206419095,
+            "instructions": 0.9991280785629072,
+            "cycles": 0.9934632620744203,
+            "energyJ": 1.001459544954984
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0047733296497923,
+              "instructions": 0.9985159674456939,
+              "cycles": 1.009302358958987,
+              "energyJ": 1.015608524268313
+            },
+            {
+              "cpuSeconds": 0.9964263462382573,
+              "instructions": 0.9997401896801205,
+              "cycles": 0.9882223803284409,
+              "energyJ": 0.9894790750407073
+            },
+            {
+              "cpuSeconds": 0.9936158950455618,
+              "instructions": 1.0009944072156283,
+              "cycles": 0.9974102164142256,
+              "energyJ": 1.0056970730161692
+            },
+            {
+              "cpuSeconds": 0.9923680378623485,
+              "instructions": 0.9983080769838707,
+              "cycles": 0.989516307734615,
+              "energyJ": 0.9972220168937989
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9110290801383512,
+            "instructions": 0.8891336927227309,
+            "cycles": 0.9262885940291462,
+            "energyJ": 0.9120777762193173
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.7477405852681381,
+              "instructions": 0.47141523868650853,
+              "cycles": 0.7697942519615544,
+              "energyJ": 0.6115735816625298
+            },
+            {
+              "cpuSeconds": 0.9457830998083213,
+              "instructions": 0.9126612555345317,
+              "cycles": 0.9840242624172868,
+              "energyJ": 1.0504910978821564
+            },
+            {
+              "cpuSeconds": 0.9912448411850493,
+              "instructions": 0.965336689018601,
+              "cycles": 0.9951051320132658,
+              "energyJ": 0.9883568170668057
+            },
+            {
+              "cpuSeconds": 0.8762750604683809,
+              "instructions": 0.8656061299109301,
+              "cycles": 0.8685529256410056,
+              "energyJ": 0.8357987353718289
+            }
+          ]
+        }
+      },
+      "workAndOutputChecks": {
+        "exactCompletePngAcrossBothArms": true,
+        "sameVisibleAndFullRetainedText": true,
+        "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+        "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+        "allRebuiltRowCountersAlsoEqual": true,
+        "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+        "stableEndpointPidTypeStart": true,
+        "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+        "cleanOwnedProcessCustody": true
+      },
+      "allChromeEnergyInstructionsLowerEveryPair": false,
+      "oldCpuRuleDiagnostic": {
+        "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+        "passes": false
+      }
+    },
+    "webgl-interactive-edits": {
+      "protocol": "tw-frame-r4-candidate03-webgl-interactive-edits-r01",
+      "protocolSha256": "9bd08dd16728c75a2c71ba1e7fb891081f015d1484cab876af49122f9a199f2b",
+      "summarySha256": "5522226af426dcc388c0e0f31bad4620429a27d5751f730abecfb425cdd666ea",
+      "status": "SCREEN_PASS",
+      "channels": {
+        "renderer": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9646070597775354,
+            "instructions": 0.9222308534265645,
+            "cycles": 0.958487836286793,
+            "energyJ": 0.9463125211365405
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9436312166544243,
+              "instructions": 0.9207485784681217,
+              "cycles": 0.9614917533243859,
+              "energyJ": 0.9544104695689557
+            },
+            {
+              "cpuSeconds": 0.9717975447509336,
+              "instructions": 0.922570447878003,
+              "cycles": 0.9543419284565265,
+              "energyJ": 0.9382145727041253
+            },
+            {
+              "cpuSeconds": 0.9780849639931049,
+              "instructions": 0.921891258975126,
+              "cycles": 0.9554839192492003,
+              "energyJ": 0.9370409453837484
+            },
+            {
+              "cpuSeconds": 0.9574165748041372,
+              "instructions": 0.9232147604297569,
+              "cycles": 0.9714515550673974,
+              "energyJ": 0.9641111511725703
+            }
+          ]
+        },
+        "GPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.0040996150879957,
+            "instructions": 1.0016831552305285,
+            "cycles": 1.0021664807270763,
+            "energyJ": 0.9976049595339851
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0042702606133544,
+              "instructions": 1.0101631904888293,
+              "cycles": 1.0373480825495998,
+              "energyJ": 1.0334422502639478
+            },
+            {
+              "cpuSeconds": 1.0049362949566782,
+              "instructions": 0.9932031199722279,
+              "cycles": 0.9857957122365392,
+              "energyJ": 0.975288458522749
+            },
+            {
+              "cpuSeconds": 0.9977558562078932,
+              "instructions": 0.9788382215627991,
+              "cycles": 0.964204094647036,
+              "energyJ": 0.9609942068297552
+            },
+            {
+              "cpuSeconds": 1.003928969562637,
+              "instructions": 1.0148255574866059,
+              "cycles": 1.0185372492176132,
+              "energyJ": 1.0199214605452211
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9929447455243897,
+            "instructions": 0.9753579669144777,
+            "cycles": 0.9923256038986966,
+            "energyJ": 0.9829179099058902
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9894819736439613,
+              "instructions": 0.9806771851415979,
+              "cycles": 1.017810780313001,
+              "energyJ": 1.0080062236252596
+            },
+            {
+              "cpuSeconds": 0.9969995208908776,
+              "instructions": 0.9700387486873576,
+              "cycles": 0.9778964562107006,
+              "energyJ": 0.963568773070218
+            },
+            {
+              "cpuSeconds": 0.9930977041240638,
+              "instructions": 0.9603576873287608,
+              "cycles": 0.9620590595863002,
+              "energyJ": 0.9535132364693847
+            },
+            {
+              "cpuSeconds": 0.9927917869247156,
+              "instructions": 0.9846749582685498,
+              "cycles": 1.0067547515866926,
+              "energyJ": 1.0022670467415624
+            }
+          ]
+        },
+        "allChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.994047753989846,
+            "instructions": 0.9722556160164106,
+            "cycles": 0.9918437483439375,
+            "energyJ": 0.9825340381773404
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.98757777596961,
+              "instructions": 0.9749050068241586,
+              "cycles": 1.01564426877263,
+              "energyJ": 1.0036217970724346
+            },
+            {
+              "cpuSeconds": 0.9963478220313569,
+              "instructions": 0.9696062252086628,
+              "cycles": 0.9772721977577772,
+              "energyJ": 0.9630705873403212
+            },
+            {
+              "cpuSeconds": 0.9955927424054791,
+              "instructions": 0.9644432295441866,
+              "cycles": 0.9654616717180937,
+              "energyJ": 0.9581638114775499
+            },
+            {
+              "cpuSeconds": 0.9925027655742128,
+              "instructions": 0.9843819196351441,
+              "cycles": 1.0064152989300978,
+              "energyJ": 1.0019974890143597
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.7837802715127716,
+            "instructions": 0.7839383786161318,
+            "cycles": 0.7755080847732477,
+            "energyJ": 0.7809502689251985
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.6906404862061968,
+              "instructions": 0.3650595173324409,
+              "cycles": 0.6993398512882386,
+              "energyJ": 0.4642547550673411
+            },
+            {
+              "cpuSeconds": 0.7236547764250358,
+              "instructions": 0.7462615885283765,
+              "cycles": 0.7169390302101971,
+              "energyJ": 0.7146126011515853
+            },
+            {
+              "cpuSeconds": 2.3132801128383234,
+              "instructions": 3.546489028057569,
+              "cycles": 2.6895527188285557,
+              "energyJ": 3.7935162051545706
+            },
+            {
+              "cpuSeconds": 0.8439057666005074,
+              "instructions": 0.8216151687038871,
+              "cycles": 0.8340771393362983,
+              "energyJ": 0.8472879366988116
+            }
+          ]
+        }
+      },
+      "workAndOutputChecks": {
+        "exactCompletePngAcrossBothArms": true,
+        "sameVisibleAndFullRetainedText": true,
+        "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+        "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+        "allRebuiltRowCountersAlsoEqual": true,
+        "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+        "stableEndpointPidTypeStart": true,
+        "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+        "cleanOwnedProcessCustody": true
+      },
+      "allChromeEnergyInstructionsLowerEveryPair": false,
+      "oldCpuRuleDiagnostic": {
+        "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+        "passes": false
+      }
+    },
+    "webgpu-line-scroll": {
+      "protocol": "tw-frame-r4-candidate03-webgpu-line-scroll-r01",
+      "protocolSha256": "7749a298eee960847aeb0a6784df05f50cde1094658cbbafe98a3103e7630f78",
+      "summarySha256": "ce945918cf686da4ab653558d4d35a6132c81a2b404230f5676225c133e05b38",
+      "status": "SCREEN_PASS",
+      "channels": {
+        "renderer": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9494674226756268,
+            "instructions": 0.8845603542996843,
+            "cycles": 0.9077719074416299,
+            "energyJ": 0.8534140743799844
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9534878293563849,
+              "instructions": 0.8568268130735089,
+              "cycles": 0.9206956275314091,
+              "energyJ": 0.8481991095964895
+            },
+            {
+              "cpuSeconds": 0.9488420984808279,
+              "instructions": 0.9122938955258596,
+              "cycles": 0.8886648559956928,
+              "energyJ": 0.8422964968867497
+            },
+            {
+              "cpuSeconds": 0.93495620256244,
+              "instructions": 0.9286226380338649,
+              "cycles": 0.9041567150744337,
+              "energyJ": 0.8830418792109704
+            },
+            {
+              "cpuSeconds": 0.9500927468704258,
+              "instructions": 0.8173575037198891,
+              "cycles": 0.911387099808826,
+              "energyJ": 0.8586290391634793
+            }
+          ]
+        },
+        "GPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9957047477353493,
+            "instructions": 0.9597226814167473,
+            "cycles": 0.9416836238316633,
+            "energyJ": 0.9425445630283812
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 1.0373271430948756,
+              "instructions": 0.983478090602779,
+              "cycles": 0.993711279698559,
+              "energyJ": 0.9644641505648033
+            },
+            {
+              "cpuSeconds": 0.9960730554641238,
+              "instructions": 0.9502185560335651,
+              "cycles": 0.929641630722145,
+              "energyJ": 0.920304997436886
+            },
+            {
+              "cpuSeconds": 0.995336440006575,
+              "instructions": 0.9692268067999296,
+              "cycles": 0.9537256169411814,
+              "energyJ": 0.9556863960038333
+            },
+            {
+              "cpuSeconds": 0.9767165159937258,
+              "instructions": 0.9466297189232318,
+              "cycles": 0.9263272195837444,
+              "energyJ": 0.9294027300529291
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.965082984698524,
+            "instructions": 0.9082778602529533,
+            "cycles": 0.9212804676061408,
+            "energyJ": 0.8843535106544176
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9885387009564953,
+              "instructions": 0.8932070902707561,
+              "cycles": 0.9509242764791628,
+              "energyJ": 0.8866915568310282
+            },
+            {
+              "cpuSeconds": 0.9688709789582762,
+              "instructions": 0.9233486302351507,
+              "cycles": 0.9059709199424536,
+              "energyJ": 0.8685927073015022
+            },
+            {
+              "cpuSeconds": 0.9603735135597433,
+              "instructions": 0.9403632871599004,
+              "cycles": 0.9249352480571174,
+              "energyJ": 0.9074472949516816
+            },
+            {
+              "cpuSeconds": 0.9612949904387719,
+              "instructions": 0.8529649540358809,
+              "cycles": 0.9176256871551642,
+              "energyJ": 0.8820154644778071
+            }
+          ]
+        },
+        "allChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 0.9663913114821028,
+            "instructions": 0.9061080289661478,
+            "cycles": 0.9237390571503041,
+            "energyJ": 0.8826612258529034
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.9846581010475707,
+              "instructions": 0.8888934824003297,
+              "cycles": 0.9470259880617639,
+              "energyJ": 0.8827099699542533
+            },
+            {
+              "cpuSeconds": 0.9693883923491988,
+              "instructions": 0.9233225755319658,
+              "cycles": 0.906318178359074,
+              "energyJ": 0.8686832810572924
+            },
+            {
+              "cpuSeconds": 0.9633942306150066,
+              "instructions": 0.9433435552431032,
+              "cycles": 0.9288112908626074,
+              "energyJ": 0.9118156552950376
+            },
+            {
+              "cpuSeconds": 0.9624117169151721,
+              "instructions": 0.8536416122928723,
+              "cycles": 0.9186668234380008,
+              "energyJ": 0.8826124817515535
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianCandidateOverStock": {
+            "cpuSeconds": 1.034558116101675,
+            "instructions": 0.9688312405047668,
+            "cycles": 0.9724960791144629,
+            "energyJ": 0.9310901744609861
+          },
+          "pairedCandidateOverStock": [
+            {
+              "cpuSeconds": 0.7734787575512063,
+              "instructions": 0.48050985127342705,
+              "cycles": 0.7369567950886055,
+              "energyJ": 0.5663040679529651
+            },
+            {
+              "cpuSeconds": 1.0122009531565213,
+              "instructions": 0.9176331616230643,
+              "cycles": 0.9357757097656563,
+              "energyJ": 0.8824561895894313
+            },
+            {
+              "cpuSeconds": 1.2001718895198505,
+              "instructions": 1.5555108405160105,
+              "cycles": 1.2368080935186938,
+              "energyJ": 1.5454419095881677
+            },
+            {
+              "cpuSeconds": 1.0569152790468286,
+              "instructions": 1.0200293193864691,
+              "cycles": 1.0092164484632695,
+              "energyJ": 0.9797241593325409
+            }
+          ]
+        }
+      },
+      "workAndOutputChecks": {
+        "exactCompletePngAcrossBothArms": true,
+        "sameVisibleAndFullRetainedText": true,
+        "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+        "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+        "allRebuiltRowCountersAlsoEqual": true,
+        "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+        "stableEndpointPidTypeStart": true,
+        "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+        "cleanOwnedProcessCustody": true
+      },
+      "allChromeEnergyInstructionsLowerEveryPair": true,
+      "oldCpuRuleDiagnostic": {
+        "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+        "passes": false
+      }
+    }
+  },
+  "correctness": {
+    "exactReplayCases": 52,
+    "nativeUnitTests": 114,
+    "webglBrowserTests": 39,
+    "webgpuTests": {
+      "passed": 111,
+      "skipped": 2,
+      "skipReason": "Linux SwiftShader cannot configure an independent replacement device."
+    },
+    "sealedLocalExactPngStates": 24,
+    "hardwareWebGpuRecovery": {
+      "status": "pass",
+      "verificationSha256": "45244003564943d981566ccadab062f73ef0bdb54a8f6bdc5d9fe40fb8b54689",
+      "checks": [
+        "Hardware backend, no SwiftShader, non-fallback adapter",
+        "Exact stock/candidate content and initial PNG",
+        "DPR 1 to 2; exact stock/candidate DPR2 PNG",
+        "Actual captured GPUDevice.destroy and lost promise; replacement restores and submits full repaint",
+        "Retained content unchanged and restored PNG exactly equals DPR2 PNG",
+        "One external requestDevice rejection; restore count unchanged until fresh scheduling",
+        "Next canonical workload tick retries replacement; exact stock/candidate retry content, PNG, metrics",
+        "No page errors; clean owned processes; controller wall below 600 seconds"
+      ],
+      "pngHashes": {
+        "initial": "1e46df9cce96797bb6df24af629f9b7ed9abad62baf202fd49141c19bd34afe6",
+        "dpr2": "1e46df9cce96797bb6df24af629f9b7ed9abad62baf202fd49141c19bd34afe6",
+        "restored": "1e46df9cce96797bb6df24af629f9b7ed9abad62baf202fd49141c19bd34afe6",
+        "retry": "0d3fd2c9f054fe3f04210924d580d7ce63c3a44a50a2724b593ddeacfa591758"
+      },
+      "controlledLossesPerArm": 2,
+      "injectedAcquisitionFailuresPerArm": 1
+    }
+  },
+  "failingFirst": {
+    "C1": "Baseline constructs 80 cells/frame; threshold requires fewer than 60.",
+    "C2": "Fresh C1 copies 9216000 snapshot bytes over 120 frames; threshold requires zero.",
+    "C3": "Fresh C2 handles 7680000 moved-record bytes over 120 frames; threshold requires fewer than 2400000."
+  },
+  "limits": [
+    "Operation comparison extents are not exact loads or exclusive retired instructions.",
+    "Logical raw-cell comparison counters exclude added display-slot checks.",
+    "Kernel process CPU energy excludes physical GPU, display and whole-device energy.",
+    "Endpoint acquisition is sequential and cannot see processes wholly between endpoints.",
+    "Logical/two-RAF settlement is not a GPU fence or presentation acknowledgement.",
+    "Hidden-history styling is outside the retained-text digest.",
+    "At a lower clock, memory stalls cost fewer cycles, which slightly favours the lower-clocked arm. A cycles win that comes with an instructions loss needs a stall analysis before it is claimed."
+  ],
+  "productComposition": {
+    "baseCommit": "cf4ed5107a4d78c6837eb841873bf81df988ca70",
+    "scope": "Frame-only source patch composed with current main; product correctness verified separately from the frozen efficiency packet.",
+    "copiedTextPrefixPreserved": true,
+    "copiedTextPrefixSha256": "43a1512751f8f001841ca9f827f0d5093f86613e5470680fe86ec67683fe600e",
+    "frameSourceSha256": "6617d4fde1b4bf960936a85e0d29ccdd772674f8973421d616e45d6769d9005a",
+    "bridgeSha256": "32c8e2848fe20864eb4614dd83c3768b2499ffe6b16d909b9387eee13e527d8d",
+    "baselineBridgeSha256": "f17c2351e33228fb49e00e5597f12f824eb260786555d748da779b09f35d8b62",
+    "nativeProvenanceSha256": "6a3a305980a1f269bf3811b3d55f7a5e4f0d7b83ae30376ef523cac67d59e709",
+    "officialNativeSourceUnpatched": true,
+    "diagnosticExportAbsent": true,
+    "build": [
+      "Frozen workspace install",
+      "Full official native build and provenance",
+      "27 workspace builds passed"
+    ],
+    "nativeTests": {
+      "files": [
+        "src/core/tests/zig-frame.test.ts",
+        "src/core/tests/text-rows.test.ts",
+        "src/render/webgl/tests/frame-incremental.test.ts"
+      ],
+      "passed": 127
+    },
+    "exactReplay": {
+      "cases": 52,
+      "status": "pass",
+      "sha256": "ee893b14df6cc0e6e03a7ef0d0018516986cb271befcbfa30e276c16e6d03f5e",
+      "compares": ["Cell and glyph bytes", "Dirty upload ranges", "Row rebuild and reuse counters"]
+    },
+    "browserTests": {
+      "files": 6,
+      "passed": 159,
+      "skipped": 2,
+      "skipReason": "Linux SwiftShader cannot configure an independent replacement device."
+    },
+    "lint": "Package lint and Zig formatting check passed; existing unrelated lint warnings retained."
+  },
+  "candidateDecisions": {
+    "1": {
+      "decision": "REJECT",
+      "screenStatus": "SCREEN_REJECT",
+      "screen": "WebGL line-scroll",
+      "protocolSha256": "429399f90d6e5d8ed50917c321c5bb79c3d4bdc2ce81ce7d65013c0b938a3007",
+      "summarySha256": "f2e6e07260f23275d85120968a5952d990d7f093c4c44297a2f59b6bb795e27f",
+      "allChromeMedianCandidateOverStock": {
+        "cpuSeconds": 0.9994096466983209,
+        "instructions": 0.9925559028912601,
+        "cycles": 0.9969230112748063,
+        "energyJ": 0.9934169987335777
+      },
+      "energyInstructionsLowerEveryPair": false,
+      "remainingScreens": "Canceled after valid rejection; no fourth candidate."
+    },
+    "2": {
+      "decision": "REJECT",
+      "screenStatus": "SCREEN_REJECT",
+      "screen": "WebGL line-scroll",
+      "protocolSha256": "84720923f895fd31e4065741ce51edbcdd215048653d507d51363e3fe0c00418",
+      "summarySha256": "a0e28ae4447f34b5b9692f7cdbebaa74d50c203fffbb0004d7ef0007ac224fcf",
+      "allChromeMedianCandidateOverStock": {
+        "cpuSeconds": 1.0066394428282908,
+        "instructions": 0.9982328384941416,
+        "cycles": 0.9836398203311433,
+        "energyJ": 0.9739792064938646
+      },
+      "energyInstructionsLowerEveryPair": false,
+      "remainingScreens": "Canceled after valid rejection; no fourth candidate."
+    },
+    "3": {
+      "decision": "KEEP",
+      "criteria": "Both targets lower energy and instructions in every pair with median energy <0.95; all three guards median energy and instructions <=1.02."
+    }
+  },
+  "freshXtermCounterparts": {
+    "line-scroll": {
+      "protocol": "tw-frame-r4-candidate03-vs-xterm-webgl-line-scroll-r01",
+      "protocolSha256": "cb0ea6c23374f503989396788813a26b742632cc52eec7198a701688ddacf7ce",
+      "verificationSha256": "4b1539e59a7d4c473214f434bfce96122293b7e2126db1dae5bfa1d3dac04945",
+      "status": "pass, descriptive only",
+      "condition": "xterm Unicode 11 widths (R07-u11)",
+      "scope": "Frozen C3 packet against xterm 6 WebGL; no inference about the subsequently rebuilt product binary.",
+      "review": "Pending independent review; no superiority claim.",
+      "channels": {
+        "renderer": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 1.2418291812399833,
+            "instructions": 1.3631264990902061,
+            "cycles": 1.2906316413606251,
+            "energyJ": 1.3475082782911147
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 1.2765471497429148,
+              "instructions": 1.3804275136432134,
+              "cycles": 1.302825799199894,
+              "energyJ": 1.343243948072027
+            },
+            {
+              "cpuSeconds": 1.173085146360051,
+              "instructions": 1.3397031022188357,
+              "cycles": 1.2784374835213563,
+              "energyJ": 1.3517726085102024
+            },
+            {
+              "cpuSeconds": 1.2594939266247875,
+              "instructions": 1.3802786544262426,
+              "cycles": 1.313337223585665,
+              "energyJ": 1.352992232350427
+            },
+            {
+              "cpuSeconds": 1.224164435855179,
+              "instructions": 1.3459743437541696,
+              "cycles": 1.251969250592608,
+              "energyJ": 1.3207743008472912
+            }
+          ]
+        },
+        "GPU": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 0.8732369403321063,
+            "instructions": 0.8924807729263959,
+            "cycles": 0.9180821648734834,
+            "energyJ": 0.9110629439617752
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 0.8569145483156149,
+              "instructions": 0.8816827276145802,
+              "cycles": 0.8887876472656766,
+              "energyJ": 0.8864509031222972
+            },
+            {
+              "cpuSeconds": 0.8730519858500436,
+              "instructions": 0.9268631256113701,
+              "cycles": 0.962677636613864,
+              "energyJ": 0.9625710829864337
+            },
+            {
+              "cpuSeconds": 0.8834309975471035,
+              "instructions": 0.9026974126115254,
+              "cycles": 0.9320285348240142,
+              "energyJ": 0.9219932950828907
+            },
+            {
+              "cpuSeconds": 0.8734218948141689,
+              "instructions": 0.8822641332412664,
+              "cycles": 0.9041357949229526,
+              "energyJ": 0.9001325928406596
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 0.9678729186365319,
+            "instructions": 1.085392677336633,
+            "cycles": 1.0159753668804803,
+            "energyJ": 1.0553980737035762
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 0.968382428277741,
+              "instructions": 1.0805196255770289,
+              "cycles": 0.9992892561596942,
+              "energyJ": 1.0423769845551125
+            },
+            {
+              "cpuSeconds": 0.9550090819399424,
+              "instructions": 1.0947896180052503,
+              "cycles": 1.0494715055699408,
+              "energyJ": 1.0982270939112795
+            },
+            {
+              "cpuSeconds": 0.9825237879622145,
+              "instructions": 1.090265729096237,
+              "cycles": 1.0326614776012664,
+              "energyJ": 1.067530979770689
+            },
+            {
+              "cpuSeconds": 0.9673634089953228,
+              "instructions": 1.0657333947619827,
+              "cycles": 0.9974382393007705,
+              "energyJ": 1.0432651676364635
+            }
+          ]
+        },
+        "allChrome": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 0.9760588774311454,
+            "instructions": 1.0896851545546584,
+            "cycles": 1.022650721697031,
+            "energyJ": 1.0589882046368895
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 0.978149032287209,
+              "instructions": 1.0896668432992118,
+              "cycles": 1.0092382537385134,
+              "energyJ": 1.0513602316080601
+            },
+            {
+              "cpuSeconds": 0.9619748236570735,
+              "instructions": 1.0984141020658342,
+              "cycles": 1.0567543377156774,
+              "energyJ": 1.1027605954992137
+            },
+            {
+              "cpuSeconds": 0.9871116883952515,
+              "instructions": 1.089703465810105,
+              "cycles": 1.0360631896555486,
+              "energyJ": 1.0666161776657186
+            },
+            {
+              "cpuSeconds": 0.9739687225750819,
+              "instructions": 1.067132579292461,
+              "cycles": 1.0035204784109437,
+              "energyJ": 1.0455268151530785
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 3.179968013114997,
+            "instructions": 2.8876028564943867,
+            "cycles": 2.9984850808451107,
+            "energyJ": 2.8165110114369134
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 3.696950815711853,
+              "instructions": 5.427710176344149,
+              "cycles": 3.568825081245633,
+              "energyJ": 4.391698882241459
+            },
+            {
+              "cpuSeconds": 4.610041934334961,
+              "instructions": 4.351293164397628,
+              "cycles": 4.4441860218440565,
+              "energyJ": 4.0724302216192365
+            },
+            {
+              "cpuSeconds": 1.990774584024023,
+              "instructions": 0.9716594770148991,
+              "cycles": 1.630478656635265,
+              "energyJ": 0.9211150560350723
+            },
+            {
+              "cpuSeconds": 2.6629852105181415,
+              "instructions": 1.4239125485911457,
+              "cycles": 2.428145080444588,
+              "energyJ": 1.56059180125459
+            }
+          ]
+        }
+      },
+      "checks": [
+        "Stable per-renderer PNGs",
+        "Matched retained and visible text and cell ownership",
+        "Matched corresponding rendering-canvas geometry",
+        "Stable internal work within each renderer",
+        "Calibrated reader and reconstructed native arithmetic",
+        "Clean owned processes and wall below 600 seconds"
+      ],
+      "allChromeEnergyInstructionsCyclesLowerEveryPair": false,
+      "limits": [
+        "Four fresh balanced pairs are descriptive until independently reviewed; no old datasets are rescored.",
+        "STANDING24 metrics are energy, instructions and cycles; raw CPU seconds and effective clock are context.",
+        "At lower clocks memory stalls cost fewer cycles, slightly favouring the lower-clocked arm; cycles wins with an instructions loss need stall analysis.",
+        "Kernel process CPU energy excludes physical GPU, display and whole-device energy.",
+        "Sequential endpoint acquisition cannot see short-lived processes entirely between endpoints.",
+        "Observer overhead is uncalibrated on Unicode; no overhead subtraction.",
+        "Both 900-tick targets stay below the registered native 200000-row and xterm 8841-row caps; final complete history is matched. Native page-granular retention policy remains unchanged.",
+        "Cell oracle is outside counters; twoRAF endpoint is logical settlement."
+      ]
+    },
+    "unicode-emoji": {
+      "protocol": "tw-frame-r4-candidate03-vs-xterm-webgl-unicode-emoji-r01",
+      "protocolSha256": "567368cc3bad0758d966c475c517daa7c25c31132a06c582935b08c3304330ba",
+      "verificationSha256": "92a7a5ff50c4eddd646f8ff4bd43614e47434012cbcf231a12ceacd76e2f8477",
+      "status": "pass, descriptive only",
+      "condition": "xterm Unicode 11 widths (R07-u11)",
+      "scope": "Frozen C3 packet against xterm 6 WebGL; no inference about the subsequently rebuilt product binary.",
+      "review": "Pending independent review; no superiority claim.",
+      "channels": {
+        "renderer": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 1.2280465994615113,
+            "instructions": 1.4409584622373781,
+            "cycles": 1.360461553556706,
+            "energyJ": 1.4899833890962937
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 1.2605726788915292,
+              "instructions": 1.4411757177749065,
+              "cycles": 1.3648824014088388,
+              "energyJ": 1.4672703072152717
+            },
+            {
+              "cpuSeconds": 1.2255865693649584,
+              "instructions": 1.4384719940887312,
+              "cycles": 1.3711282740698152,
+              "energyJ": 1.4972796221224816
+            },
+            {
+              "cpuSeconds": 1.2118136964275756,
+              "instructions": 1.4422341393631335,
+              "cycles": 1.3540348084950002,
+              "energyJ": 1.5011389455782165
+            },
+            {
+              "cpuSeconds": 1.2305066295580642,
+              "instructions": 1.4407412066998497,
+              "cycles": 1.3560407057045731,
+              "energyJ": 1.4826871560701058
+            }
+          ]
+        },
+        "GPU": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 0.8318835730797246,
+            "instructions": 0.8854808679632461,
+            "cycles": 0.9308342857287604,
+            "energyJ": 0.9527977460093108
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 0.8240166546941441,
+              "instructions": 0.867079841929546,
+              "cycles": 0.8957607979285984,
+              "energyJ": 0.9108389220850877
+            },
+            {
+              "cpuSeconds": 0.8372858227414806,
+              "instructions": 0.893752194760598,
+              "cycles": 0.9429507850757102,
+              "energyJ": 0.9644942723356448
+            },
+            {
+              "cpuSeconds": 0.8361207411703797,
+              "instructions": 0.8991859893021457,
+              "cycles": 0.9395524923677949,
+              "energyJ": 0.9636935485384689
+            },
+            {
+              "cpuSeconds": 0.8276464049890695,
+              "instructions": 0.8772095411658942,
+              "cycles": 0.9221160790897259,
+              "energyJ": 0.9419019434801527
+            }
+          ]
+        },
+        "rendererPlusGPU": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 0.9453770019714682,
+            "instructions": 1.1227092283005415,
+            "cycles": 1.051405038326642,
+            "energyJ": 1.1500974396131014
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 0.9479711605223916,
+              "instructions": 1.1114919800541778,
+              "cycles": 1.0286665746574133,
+              "energyJ": 1.1140902676305486
+            },
+            {
+              "cpuSeconds": 0.9481240830567574,
+              "instructions": 1.1274583342540667,
+              "cycles": 1.0649044178911042,
+              "energyJ": 1.1602359369047197
+            },
+            {
+              "cpuSeconds": 0.9427828434205449,
+              "instructions": 1.1314987950585134,
+              "cycles": 1.0572153246943221,
+              "energyJ": 1.1603095064836726
+            },
+            {
+              "cpuSeconds": 0.9423085734974527,
+              "instructions": 1.1179601223470166,
+              "cycles": 1.045594751958962,
+              "energyJ": 1.139958942321483
+            }
+          ]
+        },
+        "allChrome": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 0.950810428258979,
+            "instructions": 1.1255094768736162,
+            "cycles": 1.055774971288228,
+            "energyJ": 1.151560362848076
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 0.9570429825503166,
+              "instructions": 1.1196113420702325,
+              "cycles": 1.037668207866005,
+              "energyJ": 1.1220497980558828
+            },
+            {
+              "cpuSeconds": 0.9542753007654216,
+              "instructions": 1.1307392527521827,
+              "cycles": 1.071523013261364,
+              "energyJ": 1.1645096681859985
+            },
+            {
+              "cpuSeconds": 0.9466669611732272,
+              "instructions": 1.1310737280003194,
+              "cycles": 1.0607382088373682,
+              "energyJ": 1.1601462638810829
+            },
+            {
+              "cpuSeconds": 0.9473455557525364,
+              "instructions": 1.12027970099505,
+              "cycles": 1.0508117337390879,
+              "energyJ": 1.142974461815069
+            }
+          ]
+        },
+        "otherChrome": {
+          "medianNativeOverXterm": {
+            "cpuSeconds": 3.0743923025380187,
+            "instructions": 3.3852442617719216,
+            "cycles": 3.0880901578060365,
+            "energyJ": 3.3434098512871713
+          },
+          "pairedNativeOverXterm": [
+            {
+              "cpuSeconds": 3.3740064201183437,
+              "instructions": 4.952409760655137,
+              "cycles": 3.3453545947517633,
+              "energyJ": 4.134652796988221
+            },
+            {
+              "cpuSeconds": 4.25056862143347,
+              "instructions": 4.244823326343652,
+              "cycles": 4.303899259186879,
+              "energyJ": 4.1691519861764545
+            },
+            {
+              "cpuSeconds": 1.8363639340268763,
+              "instructions": 1.0312839514846663,
+              "cycles": 1.7688263649427476,
+              "energyJ": 1.1282579432810955
+            },
+            {
+              "cpuSeconds": 2.7747781849576936,
+              "instructions": 2.5256651972001913,
+              "cycles": 2.8308257208603096,
+              "energyJ": 2.5521669055861214
+            }
+          ]
+        }
+      },
+      "checks": [
+        "Stable per-renderer PNGs",
+        "Matched retained and visible text and cell ownership",
+        "Matched corresponding rendering-canvas geometry",
+        "Stable internal work within each renderer",
+        "Calibrated reader and reconstructed native arithmetic",
+        "Clean owned processes and wall below 600 seconds"
+      ],
+      "allChromeEnergyInstructionsCyclesLowerEveryPair": false,
+      "limits": [
+        "Four fresh balanced pairs are descriptive until independently reviewed; no old datasets are rescored.",
+        "STANDING24 metrics are energy, instructions and cycles; raw CPU seconds and effective clock are context.",
+        "At lower clocks memory stalls cost fewer cycles, slightly favouring the lower-clocked arm; cycles wins with an instructions loss need stall analysis.",
+        "Kernel process CPU energy excludes physical GPU, display and whole-device energy.",
+        "Sequential endpoint acquisition cannot see short-lived processes entirely between endpoints.",
+        "Observer overhead is uncalibrated on Unicode; no overhead subtraction.",
+        "Both 900-tick targets stay below the registered native 200000-row and xterm 8841-row caps; final complete history is matched. Native page-granular retention policy remains unchanged.",
+        "Cell oracle is outside counters; twoRAF endpoint is logical settlement."
+      ]
+    }
+  },
+  "reviewCorrection": {
+    "revision": 2,
+    "recordedAt": "2026-10-08T20:46:15.478125+00:00",
+    "reviewedProductHead": "710f3a8cac464e46d88acd929b330e6d32a05762",
+    "researchHead": "ef880763dcde831e26826a7ccf4d2e3559d35d0b",
+    "decision": "KEEP",
+    "findings": {
+      "P2-1": "Stable-key descriptor registration increments a per-key revision. Logical-row and display-slot caches retain and validate it before reusing records.",
+      "P2-2": "Shared fixtures distinguish scalar and grapheme identity, span, weight and italic style. Color fixtures also distinguish foreground.",
+      "P2-3": "Unicode owners, tails, combining replacements and alternate-screen entry and exit each build and acknowledge their intermediate state. Each update replays uploads and compares with a forced rebuild.",
+      "P3-4": "Patch changeset begins Improved."
+    },
+    "failingFirst": {
+      "status": "EXPECTED_RED",
+      "head": "710f3a8cac464e46d88acd929b330e6d32a05762",
+      "bridgeSha256": "32c8e2848fe20864eb4614dd83c3768b2499ffe6b16d909b9387eee13e527d8d",
+      "failures": [
+        "uniform descriptors distinguish only 1 of 7 identities",
+        "stable-key descriptor mutation leaves stale stationary records",
+        "stable-key descriptor mutation leaves stale forward-moved records",
+        "stable-key descriptor mutation leaves stale backward-moved records"
+      ],
+      "testsPassed": 15,
+      "testsFailed": 4,
+      "logSha256": "5b37a5bdcbb3144764f4da8e9f4ac7b673f02e925919170d4fe0f3894e193417"
+    },
+    "sourceEquivalence": {
+      "status": "pass",
+      "frameRegionByteIdentical": true,
+      "glyphIndexByteIdentical": true,
+      "frameRegionSha256": "a5f5af0bfe64f9cab82a6eacc4bc39e31d775495cecc83185e5be7475641a55f",
+      "product": {
+        "bridgeSha256": "59b016c9d7a7da6ea96b92282fdd58903266c6af3743c7763eea6c67f59c1da8",
+        "frameSourceSha256": "ed1826268e4171cb05acb5c38e7804a54469ba3ca2b6cd32d6fecc5faab5ff37",
+        "glyphIndexSha256": "f34cf29a9cb11923b35d027b2f93fac017485d6abd43352cc27ef0fc89d524b3",
+        "copiedTextPrefixUnchanged": true,
+        "copiedTextPrefixSha256": "43a1512751f8f001841ca9f827f0d5093f86613e5470680fe86ec67683fe600e"
+      },
+      "research": {
+        "bridgeSha256": "34278748105f8f0f1440b4d5e5009d7a8429abd9c0f5dbe076af7acb13716c6d",
+        "frameSourceSha256": "1164d5b9571743f2f6fa609ceddb0fed3f410200c5821b1106d0a86ea98ff80b",
+        "glyphIndexSha256": "f34cf29a9cb11923b35d027b2f93fac017485d6abd43352cc27ef0fc89d524b3",
+        "copiedTextPrefixUnchanged": true,
+        "copiedTextPrefixSha256": "ecad22b86abe820b12c884a6c36e269af1f06a793203733b3d7cd2500908fdad"
+      }
+    },
+    "sealedPacket": {
+      "archiveSha256": "40da08e4af3f6233304e5fc113ffc6239b337d142333cf794387076b3c86b574",
+      "bridgeSha256": "34278748105f8f0f1440b4d5e5009d7a8429abd9c0f5dbe076af7acb13716c6d",
+      "controlBridgeSha256": "98b73bddb3039ed7592f9a713763d34798c9f09a6cdddf7dc4549069b577df29",
+      "sourceSha256": "1164d5b9571743f2f6fa609ceddb0fed3f410200c5821b1106d0a86ea98ff80b",
+      "glyphIndexSha256": "f34cf29a9cb11923b35d027b2f93fac017485d6abd43352cc27ef0fc89d524b3",
+      "changedPacketFiles": ["bridge.wasm", "manifest.json"],
+      "runtimeCommit": "59ea26764e7c3fca93bb11134bf7bab09d7dff76",
+      "candidate": 3,
+      "scope": "Corrected C3 research binary with frozen original runtime and unchanged R07 streams. Product and research frame regions and glyph-index source are byte-identical. Copied-text prefixes remain separate and unchanged."
+    },
+    "correctness": {
+      "nativeTestsPassed": 131,
+      "provenanceTestsPassed": 1,
+      "finalNativeAndProvenanceTestsPassed": 132,
+      "finalNativeAndProvenanceFilesPassed": 4,
+      "finalNativeCommand": "bun x vitest run src/core/tests/zig-frame.test.ts src/core/tests/text-rows.test.ts src/render/webgl/tests/frame-incremental.test.ts scripts/wasm-provenance.test.ts",
+      "bufferReplayCasesPassed": 52,
+      "differentialFramesPassed": 2413,
+      "descriptorRegistration": [
+        {
+          "name": "stock",
+          "oldGlyph": [
+            1, 2, 5, 6, 0.8666666746139526, 0.8666666746139526, 0.8666666746139526, 1, 0.6513671875,
+            0.80029296875, 0.65380859375, 0.80322265625, 0.06666667014360428, 0.06666667014360428,
+            0.06666667014360428, 1, 1, 0, 1, 0, 1, 1, 0, 0
+          ],
+          "partialGlyph": [
+            2, 3, 6, 7, 0.8666666746139526, 0.8666666746139526, 0.8666666746139526, 1,
+            0.65185546875, 0.80078125, 0.65478515625, 0.80419921875, 0.06666667014360428,
+            0.06666667014360428, 0.06666667014360428, 1, 1, 0, 1, 0, 1, 2, 0, 0
+          ],
+          "freshGlyph": [
+            2, 3, 6, 7, 0.8666666746139526, 0.8666666746139526, 0.8666666746139526, 1,
+            0.65185546875, 0.80078125, 0.65478515625, 0.80419921875, 0.06666667014360428,
+            0.06666667014360428, 0.06666667014360428, 1, 1, 0, 1, 0, 1, 2, 0, 0
+          ],
+          "partialRanges": [
+            {
+              "cell": {
+                "byteOffset": 0,
+                "byteLength": 0
+              },
+              "glyph": {
+                "byteOffset": 0,
+                "byteLength": 96
+              },
+              "row": 0
+            }
+          ],
+          "partialMatchesFresh": true
+        },
+        {
+          "name": "candidate",
+          "oldGlyph": [
+            1, 2, 5, 6, 0.8666666746139526, 0.8666666746139526, 0.8666666746139526, 1, 0.6513671875,
+            0.80029296875, 0.65380859375, 0.80322265625, 0.06666667014360428, 0.06666667014360428,
+            0.06666667014360428, 1, 1, 0, 1, 0, 1, 1, 0, 0
+          ],
+          "partialGlyph": [
+            2, 3, 6, 7, 0.8666666746139526, 0.8666666746139526, 0.8666666746139526, 1,
+            0.65185546875, 0.80078125, 0.65478515625, 0.80419921875, 0.06666667014360428,
+            0.06666667014360428, 0.06666667014360428, 1, 1, 0, 1, 0, 1, 2, 0, 0
+          ],
+          "freshGlyph": [
+            2, 3, 6, 7, 0.8666666746139526, 0.8666666746139526, 0.8666666746139526, 1,
+            0.65185546875, 0.80078125, 0.65478515625, 0.80419921875, 0.06666667014360428,
+            0.06666667014360428, 0.06666667014360428, 1, 1, 0, 1, 0, 1, 2, 0, 0
+          ],
+          "partialRanges": [
+            {
+              "cell": {
+                "byteOffset": 0,
+                "byteLength": 0
+              },
+              "glyph": {
+                "byteOffset": 0,
+                "byteLength": 96
+              },
+              "row": 0
+            }
+          ],
+          "partialMatchesFresh": true
+        }
+      ],
+      "browserTestsPassed": 159,
+      "browserTestsSkipped": 2,
+      "browserSkipReason": "Linux SwiftShader lacks independent replacement-device coverage.",
+      "sealedPacketPngs": 24,
+      "sealedPacketPngChecks": "All four workloads have exact stock/candidate initial, DPR2 and restored PNG equality, retained-text equality and equal logical work. Representative corrected PNGs read back.",
+      "newHardwareWebGpuRecovery": "Not rerun for this correction. The earlier hardware recovery proof belongs to the original frozen revision."
+    },
+    "receipts": {
+      "review-fix-r01/red.log": "5b37a5bdcbb3144764f4da8e9f4ac7b673f02e925919170d4fe0f3894e193417",
+      "review-fix-r01/red-specific.log": "9630d54dd29f474e32e6afacb85961ab424cae9cf6ef49dbaa5811ad45cff453",
+      "review-fix-r01/red-receipt.json": "786e8f28d8afba687ac88768d0379a88dd6d4c4a24c31a0018f56ba65e28951a",
+      "review-fix-r01/build.log": "6187a30a6ceb64f0bcbe91bcd3f7d141856853e2dfb5ed628fb3194d70f2dbd2",
+      "review-fix-r01/native.log": "68292325168e860e8e151f61dd999f095ce571401054bdea2ec1ba527265975a",
+      "review-fix-r01/final-proof.log": "10cf23eb0bc3bc712179b37c78db96c306be84e702eddce0363f6234805619a7",
+      "review-fix-r01/native-proof.mjs": "b763f6b3fa5d77d7cec6ff7209632d7ef88dfb6871341f380d31f372067fca95",
+      "review-fix-r01/native-proof.json": "ca24e013c8667154ed1bb59a80c83207ddf31f988b43c6bf4b0e3d49c5428276",
+      "review-fix-r01/browser.log": "e8a967d4d61275ca0442680418549ced9e0cf50093c6b8549efd33f10381c0d3",
+      "review-fix-r01/source-equivalence.json": "74898677a3283cad7282d5dbfeffa96a40f64c30ca5e30d1509369ec63320b8d",
+      "review-fix-r01/packet.json": "29ddaf78d4489750d4021f62f63ccf34e56e21ac7100df4434ef6a296f28b538",
+      "review-fix-r01/registration.json": "97716f1cea332a77b0271a83ba0fd7c9f39125fdc3f74aad39a9a844b80baf4f",
+      "review-fix-r01/quarantine.log": "b74cae6e9a3782172dfdaac7030d5279b690ea82d27bd74d14f444c18519ccf9",
+      "candidate03-corrected-local-proof-r01/index.json": "e668f40b3a58acaa8d0d86e1b898dceeb833d5fb793c82f6db19bc51184ae0d8"
+    },
+    "ownControlScreens": {
+      "line-scroll": {
+        "protocol": "tw-frame-r4-candidate03-corrected-webgl-line-scroll-r01",
+        "protocolSha256": "68e1e8f2e940a49e77e2e864e716ef65e928d60c8f86475d0257fe109fffab3e",
+        "summarySha256": "96e23d118e6c9b2c1896118414a73be543f62235a7cb118482e36a00d80aa187",
+        "rawIndexSha256": "9f8ef912ee6f32d4f1bf543b773ddc3aeb25762c38446a1d70679f4b4d40811a",
+        "status": "SCREEN_PASS",
+        "role": "target",
+        "channels": {
+          "renderer": {
+            "medianRatios": {
+              "cpuSeconds": 0.9497535821494143,
+              "instructions": 0.8445567861970025,
+              "cycles": 0.8785015439324161,
+              "energyJ": 0.8233156662176682
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 0.9633047440769129,
+                "instructions": 0.850074009743641,
+                "cycles": 0.9127077338525864,
+                "energyJ": 0.8529184111510876
+              },
+              {
+                "cpuSeconds": 0.9591028251640555,
+                "instructions": 0.8449750944216304,
+                "cycles": 0.8820165009132507,
+                "energyJ": 0.8186048434612849
+              },
+              {
+                "cpuSeconds": 0.940404339134773,
+                "instructions": 0.8441384779723745,
+                "cycles": 0.8700622338947409,
+                "energyJ": 0.8209125284024645
+              },
+              {
+                "cpuSeconds": 0.9263040142167562,
+                "instructions": 0.8358916211253407,
+                "cycles": 0.8749865869515815,
+                "energyJ": 0.8257188040328718
+              }
+            ]
+          },
+          "GPU": {
+            "medianRatios": {
+              "cpuSeconds": 1.0496952887275983,
+              "instructions": 1.0139494784294314,
+              "cycles": 0.976199338704387,
+              "energyJ": 0.9449596815930674
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 1.0643505247083207,
+                "instructions": 1.0100881685869307,
+                "cycles": 1.009919688003964,
+                "energyJ": 0.9794083985256145
+              },
+              {
+                "cpuSeconds": 1.0508329967687087,
+                "instructions": 1.0145627395970847,
+                "cycles": 0.9607436212376629,
+                "energyJ": 0.9317312365475129
+              },
+              {
+                "cpuSeconds": 1.0391421276028099,
+                "instructions": 1.016229009468574,
+                "cycles": 0.9542666180440572,
+                "energyJ": 0.9255791351068087
+              },
+              {
+                "cpuSeconds": 1.048557580686488,
+                "instructions": 1.0133362172617784,
+                "cycles": 0.991655056171111,
+                "energyJ": 0.958188126638622
+              }
+            ]
+          },
+          "rendererPlusGPU": {
+            "medianRatios": {
+              "cpuSeconds": 1.0110272235788766,
+              "instructions": 0.9218560994290357,
+              "cycles": 0.9411040914063376,
+              "energyJ": 0.8876471481380905
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 1.0278793507278627,
+                "instructions": 0.9233201140537824,
+                "cycles": 0.9750381297539642,
+                "energyJ": 0.920424808797476
+              },
+              {
+                "cpuSeconds": 1.0179005310450178,
+                "instructions": 0.922046939557567,
+                "cycles": 0.9326725191410692,
+                "energyJ": 0.8789538106837944
+              },
+              {
+                "cpuSeconds": 1.0029322472812847,
+                "instructions": 0.9216652593005045,
+                "cycles": 0.9237629405053507,
+                "energyJ": 0.8767223558427555
+              },
+              {
+                "cpuSeconds": 1.0041539161127357,
+                "instructions": 0.9164628188993673,
+                "cycles": 0.949535663671606,
+                "energyJ": 0.8963404855923867
+              }
+            ]
+          },
+          "allChrome": {
+            "medianRatios": {
+              "cpuSeconds": 1.0117530733453348,
+              "instructions": 0.9208975399874593,
+              "cycles": 0.941463759833512,
+              "energyJ": 0.8886333273515724
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 1.0257175790785702,
+                "instructions": 0.9195617826069638,
+                "cycles": 0.972836978951309,
+                "energyJ": 0.9172169922497334
+              },
+              {
+                "cpuSeconds": 1.0181636741825004,
+                "instructions": 0.9222332973679547,
+                "cycles": 0.9328002806763588,
+                "energyJ": 0.8790091834766239
+              },
+              {
+                "cpuSeconds": 1.0053424725081692,
+                "instructions": 0.9244992989212525,
+                "cycles": 0.9267494887766491,
+                "energyJ": 0.8805657024952758
+              },
+              {
+                "cpuSeconds": 1.0049335169877427,
+                "instructions": 0.9168970677181034,
+                "cycles": 0.9501272389906652,
+                "energyJ": 0.896700952207869
+              }
+            ]
+          },
+          "otherChrome": {
+            "medianRatios": {
+              "cpuSeconds": 1.0732395572295546,
+              "instructions": 0.9992921159558699,
+              "cycles": 0.9846787494257505,
+              "energyJ": 0.9288489632288074
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 0.8522845909238707,
+                "instructions": 0.5108700324142622,
+                "cycles": 0.7969280378046422,
+                "energyJ": 0.5945768434572561
+              },
+              {
+                "cpuSeconds": 1.047954634846391,
+                "instructions": 0.9667404357044445,
+                "cycles": 0.9474888048752452,
+                "energyJ": 0.8891921258928615
+              },
+              {
+                "cpuSeconds": 1.2741942264897486,
+                "instructions": 1.6025139290221815,
+                "cycles": 1.266972720449699,
+                "energyJ": 1.599099164851733
+              },
+              {
+                "cpuSeconds": 1.0985244796127178,
+                "instructions": 1.0318437962072953,
+                "cycles": 1.0218686939762558,
+                "energyJ": 0.9685058005647533
+              }
+            ]
+          }
+        },
+        "allChromeEnergyInstructionsLowerEveryPair": true,
+        "oldCpuRuleDiagnostic": {
+          "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+          "passes": false
+        },
+        "workAndOutputChecks": {
+          "exactCompletePngAcrossBothArms": true,
+          "sameVisibleAndFullRetainedText": true,
+          "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+          "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+          "allRebuiltRowCountersAlsoEqual": true,
+          "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+          "stableEndpointPidTypeStart": true,
+          "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+          "cleanOwnedProcessCustody": true
+        },
+        "wallSeconds": 207.55910800403217,
+        "screenshotsReadBack": {
+          "00-GL-line-scroll.png": "9216d1323089c67832c319566a19c100f526d59609a1591285d72e4c2a1ebce0",
+          "01-CGL-line-scroll.png": "9216d1323089c67832c319566a19c100f526d59609a1591285d72e4c2a1ebce0"
+        }
+      },
+      "interactive-edits": {
+        "protocol": "tw-frame-r4-candidate03-corrected-webgl-interactive-edits-r02",
+        "protocolSha256": "c13e28a7be0c2bdb58ae781b0af166d8ceb075463f42a3882ef549eb5e73a1fe",
+        "summarySha256": "c76d083672bb9df6756ac675145aa82f83149d34e2fae35313ac4f8f13414d1f",
+        "rawIndexSha256": "f5b0f44bec4d2f8fca809a2d61a36037e86eaca3ecda200e6707564ee9740101",
+        "status": "SCREEN_PASS",
+        "role": "guard",
+        "channels": {
+          "renderer": {
+            "medianRatios": {
+              "cpuSeconds": 0.9762450848994724,
+              "instructions": 0.926843970246634,
+              "cycles": 0.9878247904893203,
+              "energyJ": 0.9620109990365309
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 0.9511387132721576,
+                "instructions": 0.9473329760967426,
+                "cycles": 0.9968968771838539,
+                "energyJ": 1.0366224485078412
+              },
+              {
+                "cpuSeconds": 0.9888860440486218,
+                "instructions": 0.925170304223333,
+                "cycles": 0.986637970620252,
+                "energyJ": 0.9599760573833794
+              },
+              {
+                "cpuSeconds": 0.963604125750323,
+                "instructions": 0.9240453443026665,
+                "cycles": 0.9806901501418405,
+                "energyJ": 0.9640459406896824
+              },
+              {
+                "cpuSeconds": 1.0020646563396507,
+                "instructions": 0.9285176362699349,
+                "cycles": 0.9890116103583884,
+                "energyJ": 0.9521833024052201
+              }
+            ]
+          },
+          "GPU": {
+            "medianRatios": {
+              "cpuSeconds": 1.0111708554825656,
+              "instructions": 1.0067082038382718,
+              "cycles": 1.0083045595990041,
+              "energyJ": 1.0082084012178325
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 1.0154546567038638,
+                "instructions": 1.0088155939724297,
+                "cycles": 1.0461074379165498,
+                "energyJ": 1.0334318865390943
+              },
+              {
+                "cpuSeconds": 1.0069833682786695,
+                "instructions": 1.004600813704114,
+                "cycles": 0.9989303549460994,
+                "energyJ": 0.9958801169184911
+              },
+              {
+                "cpuSeconds": 1.0011104334408027,
+                "instructions": 1.011260726694636,
+                "cycles": 1.017678764251909,
+                "energyJ": 1.020536685517174
+              },
+              {
+                "cpuSeconds": 1.0153583426864616,
+                "instructions": 0.9894904854503221,
+                "cycles": 0.9859620628729182,
+                "energyJ": 0.9803571262150661
+              }
+            ]
+          },
+          "rendererPlusGPU": {
+            "medianRatios": {
+              "cpuSeconds": 1.0011834657053962,
+              "instructions": 0.9802950128858254,
+              "cycles": 1.002070621761447,
+              "energyJ": 0.9933484098210759
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 0.9996619502747086,
+                "instructions": 0.9887685933095733,
+                "cycles": 1.0335964476054893,
+                "energyJ": 1.0344208841934353
+              },
+              {
+                "cpuSeconds": 1.0027049811360838,
+                "instructions": 0.9784217701594745,
+                "cycles": 0.9958757133831166,
+                "energyJ": 0.9844154731380838
+              },
+              {
+                "cpuSeconds": 0.9920634246325079,
+                "instructions": 0.9821682556121764,
+                "cycles": 1.0082655301397776,
+                "energyJ": 1.0022813465040679
+              },
+              {
+                "cpuSeconds": 1.0122291033717865,
+                "instructions": 0.9693971829624374,
+                "cycles": 0.9867111538251118,
+                "energyJ": 0.9713504116917543
+              }
+            ]
+          },
+          "allChrome": {
+            "medianRatios": {
+              "cpuSeconds": 0.9998219383504577,
+              "instructions": 0.9801664416479888,
+              "cycles": 1.0035149315929406,
+              "energyJ": 0.9957854404851341
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 0.9973408797820911,
+                "instructions": 0.9820793131824693,
+                "cycles": 1.030212135591041,
+                "energyJ": 1.0285886056163493
+              },
+              {
+                "cpuSeconds": 1.0023029969188244,
+                "instructions": 0.9782535701135083,
+                "cycles": 0.9955932552891777,
+                "energyJ": 0.9842502711527502
+              },
+              {
+                "cpuSeconds": 0.9940204230474762,
+                "instructions": 0.986166507932779,
+                "cycles": 1.0114366078967032,
+                "energyJ": 1.007320609817518
+              },
+              {
+                "cpuSeconds": 1.0132443723490376,
+                "instructions": 0.9704941882113713,
+                "cycles": 0.9880327128321412,
+                "energyJ": 0.9727043343657682
+              }
+            ]
+          },
+          "otherChrome": {
+            "medianRatios": {
+              "cpuSeconds": 1.2348834885215638,
+              "instructions": 1.328562913728863,
+              "cycles": 1.3324783378136362,
+              "energyJ": 1.4268472174072147
+            },
+            "pairedRatios": [
+              {
+                "cpuSeconds": 0.6296996018676301,
+                "instructions": 0.2857913459957626,
+                "cycles": 0.5690968659461749,
+                "energyJ": 0.35540397569451343
+              },
+              {
+                "cpuSeconds": 0.8322639806526126,
+                "instructions": 0.8922374295846489,
+                "cycles": 0.8713137406536354,
+                "energyJ": 0.8995216043210829
+              },
+              {
+                "cpuSeconds": 1.9002089608364028,
+                "instructions": 3.293538804219937,
+                "cycles": 2.385952411902595,
+                "energyJ": 3.7609287300580423
+              },
+              {
+                "cpuSeconds": 1.637502996390515,
+                "instructions": 1.7648883978730772,
+                "cycles": 1.7936429349736371,
+                "energyJ": 1.9541728304933463
+              }
+            ]
+          }
+        },
+        "allChromeEnergyInstructionsLowerEveryPair": false,
+        "oldCpuRuleDiagnostic": {
+          "definition": "All-Chrome CPU seconds lower in every pair and median ratio <0.95; not an efficiency gate.",
+          "passes": false
+        },
+        "workAndOutputChecks": {
+          "exactCompletePngAcrossBothArms": true,
+          "sameVisibleAndFullRetainedText": true,
+          "sameRenderingCanvasBackingAttributesAndCssGeometry": true,
+          "equalPublicCoreRendererPublicationAtlasUploadCounters": true,
+          "allRebuiltRowCountersAlsoEqual": true,
+          "nativeArithmeticReconstructedFromRawDecimalEndpoints": true,
+          "stableEndpointPidTypeStart": true,
+          "positiveReaderCapabilityCalibrationBeforeEveryWindow": true,
+          "cleanOwnedProcessCustody": true
+        },
+        "wallSeconds": 206.06715953699313,
+        "screenshotsReadBack": {
+          "00-GL-interactive-edits.png": "671d9cc2737ff069dc2ff8e490afb352a3fbc60a248f07c8f4423249c89bc8d5",
+          "01-CGL-interactive-edits.png": "671d9cc2737ff069dc2ff8e490afb352a3fbc60a248f07c8f4423249c89bc8d5"
+        }
+      }
+    },
+    "acceptance": "Unmodified wave rule 5",
+    "freshXtermForCorrection": false,
+    "rejectedAcquisition": {
+      "protocol": "tw-frame-r4-candidate03-corrected-webgl-interactive-edits-r01",
+      "status": "INCOMPLETE_SCREEN_MACHINE_NOT_QUIET",
+      "confirmedOverlap": true,
+      "efficiencyScored": false,
+      "reason": "Peer orphan overlap confirmed. Quarantine every overlapping window, retain later valid raw windows. The partial first session cannot meet its registered eight-window same-session screen. A full r02 replacement was registered and acquired before this historical overlap confirmation, for missing quiet coverage, without reducing r01 efficiency.",
+      "quarantineInterval": {
+        "from": "2026-10-08T20:20:43+00:00",
+        "to": "2026-10-08T20:23:00+00:00"
+      },
+      "invalidWindows": [0, 1, 2, 3, 4],
+      "validWindowsRetained": [5, 6, 7],
+      "windows": [
+        {
+          "index": 0,
+          "actor": "GL",
+          "from": "2026-10-08T20:21:04.751000+00:00",
+          "to": "2026-10-08T20:21:30.186000+00:00",
+          "status": "INVALID_MACHINE_NOT_QUIET",
+          "overlap": true
+        },
+        {
+          "index": 1,
+          "actor": "CGL",
+          "from": "2026-10-08T20:21:30.213000+00:00",
+          "to": "2026-10-08T20:21:53.057000+00:00",
+          "status": "INVALID_MACHINE_NOT_QUIET",
+          "overlap": true
+        },
+        {
+          "index": 2,
+          "actor": "CGL",
+          "from": "2026-10-08T20:21:53.091000+00:00",
+          "to": "2026-10-08T20:22:15.882000+00:00",
+          "status": "INVALID_MACHINE_NOT_QUIET",
+          "overlap": true
+        },
+        {
+          "index": 3,
+          "actor": "GL",
+          "from": "2026-10-08T20:22:15.927000+00:00",
+          "to": "2026-10-08T20:22:38.707000+00:00",
+          "status": "INVALID_MACHINE_NOT_QUIET",
+          "overlap": true
+        },
+        {
+          "index": 4,
+          "actor": "CGL",
+          "from": "2026-10-08T20:22:38.752000+00:00",
+          "to": "2026-10-08T20:23:01.553000+00:00",
+          "status": "INVALID_MACHINE_NOT_QUIET",
+          "overlap": true
+        },
+        {
+          "index": 5,
+          "actor": "GL",
+          "from": "2026-10-08T20:23:01.596000+00:00",
+          "to": "2026-10-08T20:23:24.320000+00:00",
+          "status": "VALID_RETAINED_PARTIAL_SCREEN",
+          "overlap": false
+        },
+        {
+          "index": 6,
+          "actor": "GL",
+          "from": "2026-10-08T20:23:24.372000+00:00",
+          "to": "2026-10-08T20:23:47.119000+00:00",
+          "status": "VALID_RETAINED_PARTIAL_SCREEN",
+          "overlap": false
+        },
+        {
+          "index": 7,
+          "actor": "CGL",
+          "from": "2026-10-08T20:23:47.172000+00:00",
+          "to": "2026-10-08T20:24:09.887000+00:00",
+          "status": "VALID_RETAINED_PARTIAL_SCREEN",
+          "overlap": false
+        }
+      ],
+      "registrationTimeInvalidReceiptSha256": "de654b979ae37699fa5e9408d8215cdaa188fc143c7dd70ba353d562ca1f5366",
+      "receiptSha256": "17add6f0634473345df22ed7e9f9583e6190e186d28700ae6adbadef08969813",
+      "rawArchiveSha256": "2ed542dd6a61ad28d66608f2b8cc663abee12a0a2af4deed8614784af0435e00",
+      "recoveryHistoryReceiptSha256": "ee192b996edd7f7bf0899be7d0a5ef8b905250b756d4b455c83c38131a343dbe",
+      "replacementRegisteredAt": "2026-10-08T20:27:51.060144+00:00",
+      "chronology": "r01 was rejected for unknown foreign-process coverage before its efficiency was reduced. r02 was separately registered and acquired before the confirmed historical-overlap instruction arrived. r01 windows 5, 6 and 7 remain retained as valid partial-session data. They are excluded from screen scoring and are not pooled into r02."
+    },
+    "replacementQuietCoverage": {
+      "global-census-before.json": {
+        "sampledAt": "2026-10-08T20:27:51.478012+00:00",
+        "source": "Global ps full-argument census, same-user prefix roots and descendant closure",
+        "foreignPrefix": "/Users/shaul/tmp/ghostty-bench/m2-segments-a36ba3b05514",
+        "foreignProcesses": [],
+        "ownedProcesses": [],
+        "loadAverage": "{ 2.60 2.40 2.47 }",
+        "parserPositiveAndNegativeControl": true,
+        "redaction": "Only PID, parent PID and Chrome/helper type retained; command arguments omitted.",
+        "at": "2026-10-08T20:27:51.684864+00:00"
+      },
+      "global-census-after.json": {
+        "sampledAt": "2026-10-08T20:31:16.954659+00:00",
+        "source": "Global ps full-argument census, same-user prefix roots and descendant closure",
+        "foreignPrefix": "/Users/shaul/tmp/ghostty-bench/m2-segments-a36ba3b05514",
+        "foreignProcesses": [],
+        "ownedProcesses": [],
+        "loadAverage": "{ 2.37 2.50 2.50 }",
+        "parserPositiveAndNegativeControl": true,
+        "redaction": "Only PID, parent PID and Chrome/helper type retained; command arguments omitted.",
+        "at": "2026-10-08T20:31:17.162513+00:00"
+      }
+    },
+    "limits": [
+      "Original operation counts, five-screen results, xterm counterparts and hardware recovery are preserved as historical evidence for the pre-review revision. They are not rescored or relabeled as measurements of corrected source.",
+      "The correction adds registered-key revision checks. The old operation table does not count those extra checks.",
+      "Fresh correction screens cover WebGL line-scroll and interactive-edits only, as required by review. No xterm superiority claim.",
+      "Fresh independent re-review is required before merging this corrected product."
+    ]
+  }
+}

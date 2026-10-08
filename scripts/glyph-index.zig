@@ -28,7 +28,7 @@ pub const Key = extern struct {
     background: u32,
     minimum_contrast: f64,
 };
-pub const Entry = extern struct { key: Key, glyph: Glyph, queued_generation: u32, variant: u32 };
+pub const Entry = extern struct { key: Key, glyph: Glyph, queued_generation: u32, variant: u32, registration: u64 };
 pub const Index = extern struct {
     entries: [*]?*Entry,
     capacity: u32,
@@ -165,6 +165,7 @@ pub fn resolve(index: *Index, key: Key) ?*Entry {
     entry.glyph = std.mem.zeroes(Glyph);
     entry.queued_generation = 0;
     entry.variant = @intFromBool(variant);
+    entry.registration = 0;
     index.entries[position] = entry;
     index.count += 1;
     return entry;

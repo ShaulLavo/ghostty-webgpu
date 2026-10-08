@@ -13,6 +13,8 @@ import { CellFlag, CellOffset, GlyphFlag, GlyphOffset } from '../../render/insta
 import { defaultRendererTheme } from '../../render/instances/types.js'
 import {
   expectedGlyphs,
+  fixtureGlyphs,
+  inputIdentity,
   zigFrameContents,
   zigFrameCursorStyles,
   zigGlyphCollisionFixtures,
@@ -498,54 +500,12 @@ describe('WASM frame records', () => {
   })
 })
 
-function inputIdentity(input: GlyphRasterizationInput): string {
-  return JSON.stringify([
-    input.text,
-    input.cellSpan,
-    input.weight,
-    input.italic,
-    input.foreground.r,
-    input.foreground.g,
-    input.foreground.b,
-  ])
-}
-
 function expectGlyphDescriptors(
   frame: ZigFrameBuilder,
   inputs: readonly GlyphRasterizationInput[],
 ) {
   const descriptors = frame.missingGlyphs.map((key) => inputIdentity(frame.glyphInput(key)))
   expect([...new Set(descriptors)]).toEqual([...new Set(inputs.map(inputIdentity))])
-}
-
-function fixtureGlyphs(kind: 'color' | 'grayscale') {
-  const glyphs = new Map<string, AtlasGlyph>()
-  const identityOf = (input: GlyphRasterizationInput) =>
-    kind === 'color'
-      ? inputIdentity(input)
-      : JSON.stringify([input.text, input.cellSpan, input.weight, input.italic])
-  const resolveInput = (input: GlyphRasterizationInput): AtlasGlyph => {
-    const identity = identityOf(input)
-    const existing = glyphs.get(identity)
-    if (existing) return existing
-    const index = glyphs.size + 1
-    const value: AtlasGlyph = {
-      ...glyph,
-      kind,
-      key: identity,
-      x: index * 7,
-      y: index * 11,
-      width: 3 + index,
-      height: 5 + index,
-    }
-    glyphs.set(identity, value)
-    return value
-  }
-  return {
-    glyphs,
-    identityOf,
-    resolveInput,
-  }
 }
 
 describe('WASM Unicode descriptors and native records', () => {
