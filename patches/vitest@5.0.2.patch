@@ -69,3 +69,15 @@ diff --git a/dist/chunks/index.C-uw7tH9.js b/dist/chunks/index.C-uw7tH9.js
  			await this._traces?.finish();
  		})();
  		return this.closingPromise;
+diff --git a/dist/chunks/index.DGdajAO2.js b/dist/chunks/index.DGdajAO2.js
+--- a/dist/chunks/index.DGdajAO2.js
++++ b/dist/chunks/index.DGdajAO2.js
+@@ -7555,6 +7555,8 @@
+ 			// extracting inline snapshot location to validate and update new snapshots.
+ 			return function __VITEST_POLL_CHAIN__(...args) {
+ 				const STACK_TRACE_ERROR = /* @__PURE__ */ new Error("STACK_TRACE_ERROR");
++				// Bun can bypass prepareStackTrace when a captured stack outlives an async delay.
++				if (typeof Bun !== "undefined") void STACK_TRACE_ERROR.stack;
+ 				const promise = async () => {
+ 					chai.util.flag(assertion, "_name", key);
+ 					chai.util.flag(assertion, "error", STACK_TRACE_ERROR);
