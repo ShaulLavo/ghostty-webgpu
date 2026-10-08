@@ -1,0 +1,5689 @@
+{
+  "date": "2026-10-08T07:38:11.429Z",
+  "upstreamCommit": "2798f12149a19c3295e9b4853ab2da4b2eff1b2b",
+  "commit": "09d54d7184af560982603b19419b9fcc964098a3",
+  "versions": {
+    "ghostty-webgpu": "0.3.20",
+    "xterm.js": "6.0.0",
+    "ghostty-web": "0.4.0",
+    "playwright": "1.63.0",
+    "chromium": "153.0.8010.12"
+  },
+  "machine": {
+    "platform": "linux",
+    "release": "7.2.8-arch1-2",
+    "cpu": "Intel(R) Core(TM) i7-14700K"
+  },
+  "assets": {
+    "ghostty-vt.wasm": "de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426",
+    "bridge.wasm": "51fc46e46b69f4f76bf33b075c11c0dd681bb64f8c17e0f0bb9de072df31d7f5",
+    "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+    "browser.js": "9b1a78e23d57fb7643ffd5d495e1f5265b71b9e7472edcd93b92b4d824237e68",
+    "correctness-esctest.py": "223963345635455bb8f6b05904d2af95557605feded9e567b4c5d9ef33be14e2"
+  },
+  "calibration": "ASCII text and cursor passed; deliberately wrong text and cursor rejected on every terminal",
+  "setupControls": "Navigation failure, missing adapter and broken reset abort without results; upstream broken reset aborts without results",
+  "results": [
+    {
+      "suite": "cuu",
+      "name": "test_CUU_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b31481b5b32411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopLineWhenBegunAboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b34721b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b31481b5b32421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b31481b5b3234421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b363b31481b5b3234421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b34721b5b333b31481b5b3939421b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b31481b5b32431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightEdgeWhenBegunRightOfScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b3132481b5b366e1b5b3830431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b37481b5b3830431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightSide",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b31481b5b3830431b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_ColumnOnly",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b366e1b5b3b32481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_DefaultParams",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b366e1b5b481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_OutOfBoundsParams",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b33343b3930481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_RespectsOriginMode",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b363b3131721b5b3f3639681b5b353b3130731b5b393b37481b5b366e1b5b3f36681b5b313b31481b5b366e581b5b3f366c1b5b721b5b3f36396c"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_RowOnly",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b366e1b5b32481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_ZeroIsTreatedAsOne",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b303b30481b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b3130471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b35481b5b31471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_OutOfBoundsLarge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b39393939471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_RespectsOriginMode",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['X']' but got '[' ']'",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b363b3131721b5b3f3639681b5b353b3130731b5b393b37481b5b366e1b5b3f36681b5b313b32481b5b31471b5b366e581b5b3f366c1b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "    X",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": "\u001b[9;7R\u001b[6;1R"
+      }
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_ZeroParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b30471b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b32451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b3234451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b3f3639681b5b353b3130731b5b363b37481b5b3234451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b34721b5b3f3639681b5b353b3130731b5b333b37481b5b3939451b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35481b5b461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b353b36481b5b32461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b36481b5b3234461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopLineWhenBegunAboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b3f3639681b5b353b3130731b5b333b37481b5b3234461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b34721b5b3f3639681b5b353b3130731b5b333b37481b5b3939461b5b366e"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b304a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_0_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b304a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_1",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b314a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_1_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b314a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_2",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b324a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_2_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b324a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_3",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b334a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b4a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_doesNotRespectDECProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b304a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_respectsISOProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61621b56631b571b5b313b31481b5b304a"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b304b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_1",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b314b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_2",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b324b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b4b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b3f3639681b5b323b34731b5b313b35481b5b324b1b5b3f36396c"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_doesNotRespectDECProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b324b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_respectsISOProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61621b56631b571b5b313b31481b5b324b"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "6162631b5b313b31481b5b58"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "6162631b5b313b31481b5b3258"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "616263646566671b5b3f3639681b5b323b34731b5b313b33481b5b34581b5b3f36396c"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_OutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "616263646566671b5b3f3639681b5b323b34731b5b313b31481b5b34581b5b3f36396c"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_doesNotRespectDECPRotection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b3358"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_respectsISOProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61621b56631b571b5b313b31481b5b3358"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31481b5b366e616263646566671b5b313b32481b5b366e1b5b40"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b31481b5b366e616263646566671b5b313b32481b5b366e1b5b3240"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_IsNoOpWhenCursorBeginsOutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148616263646566671b5b3f3639681b5b323b35731b5b313b31481b5b3130401b5b3f36396c"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollEntirelyOffRightEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878781b5b313b31481b5b383040"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollOffRightEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b373448616263646566671b5b313b3735481b5b40"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollOffRightMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148616263646566671b5b3f3639681b5b323b35731b5b313b33481b5b401b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "616263641b5b313b32481b5b50"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DeleteAllWithMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b33481b5b3939501b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DoesNothingOutsideLeftRightMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b31481b5b3939501b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "616263641b5b313b32481b5b3250"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_RespectsMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b33481b5b501b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_WorksOutsideTopBottomMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "61626364651b5b323b33721b5b313b31481b5b3939501b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_AboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b313b31481b5b4c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b4c"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b324c"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_RespectsScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b4c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_RespectsScrollRegion_Over",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b39394c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_ScrollsOffBottom",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b4c"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_ClearOutLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b39394d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b4d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_DeleteMoreThanVisible",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b34384d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b324d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b4d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b4d1b5b3f36396c"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b4d1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b313b31481b5b4d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b4d1b5b3f36396c"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b33481b5b4d1b5b72"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "091b5b366e1b5b30671b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_3",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b33671b5b313b3330481b481b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_Default",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '17' but got '9'",
+      "variant": "ghostty-webgpu",
+      "inputHex": "091b5b366e1b5b671b5b313b3148091b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 8,
+          "y": 0
+        },
+        "replies": "\u001b[1;9R\u001b[1;9R"
+      }
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_NoOp",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3130481b5b30671b5b313b3148091b5b366e091b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_ExplicitParameter",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b32491b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_IgnoresScrollingRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3330731b5b393b37481b5b32491b5b366e1b5b32491b5b366e1b5b393b31481b5b39491b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_OneTabStopByDefault",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b491b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_ExplicitParameter",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3235481b5b325a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_IgnoresRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3330731b5b393b37481b5b325a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_OneTabStopByDefault",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3137481b5b5a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_StopsAtLeftEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b3235481b5b355a1b5b366e"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_BigScrollLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b3939531b5b721b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_CanClearScreen",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323453"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b53"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3253"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_LeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b32531b5b721b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_OutsideLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b32531b5b721b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_OutsideTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b31481b5b32531b5b72"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_RespectsLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b32531b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_RespectsTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b32531b5b72"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_BigScrollLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b3939541b5b721b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_CanClearScreen",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323454"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b54"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3254"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_LeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b32541b5b721b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_OutsideLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b32541b5b721b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_OutsideTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b31481b5b32541b5b72"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_RespectsLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b32541b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_RespectsTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b32541b5b72"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "611b5b62"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "611b5b3262"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_RespectsLeftRightMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b323b34731b5b313b3248611b5b33621b5b3f36396c"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_RespectsTopBottomMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b34721b5b343b373848611b5b3362"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_Basic",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b33480d1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftMarginWhenLeftOfLeftMarginInOriginMode",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b3f36681b5b313b34480d1b5b3f36396c781b5b3f366c"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftMarginWhenRightOfLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b36480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftOfScreenWhenLeftOfLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b34480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_StaysPutWhenAtLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b35480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_Basic",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b333b35480a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_MovesDoesNotScrollOutsideLeftRight",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b323b35721b5b3f3639681b5b323b35731b5b353b3348781b5b353b36480a1b5b366e1b5b343b36480a1b5b366e1b5b32343b36480a1b5b366e1b5b353b31480a1b5b366e1b5b32343b31480a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_Scrolls",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b32333b3248611b5b32343b3248621b5b32333b32480a1b5b366e0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_ScrollsInTopBottomRegionStartingAbove",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b353b3248781b5b333b32480a0a0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_ScrollsInTopBottomRegionStartingWithin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b353b3248781b5b343b32480a0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-webgpu",
+      "inputHex": "1b5b343b35721b5b363b3148780a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1b5b366e"
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "CJK whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "CJK whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "CJK one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "CJK one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "combining whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "combining whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "combining one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "combining one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "emoji whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "emoji whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "emoji one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "emoji one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "skin tone whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "skin tone whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "skin tone one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "skin tone one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "ZWJ whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "ZWJ whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "ZWJ one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "ZWJ one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "family whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "family whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "family one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "family one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "flag whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "flag whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "flag one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "flag one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "VS16 whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "VS16 whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-text",
+      "name": "VS16 one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "grapheme-width",
+      "name": "VS16 one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "delivery",
+      "name": "CSI one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "delivery",
+      "name": "empty byte write",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "reports",
+      "name": "DSR status",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "reports",
+      "name": "DSR position",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-webgpu",
+      "suite": "unicode-burst",
+      "name": "benchmark 4 KiB x 32 frames",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b31481b5b32411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopLineWhenBegunAboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b34721b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b31481b5b32421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b31481b5b3234421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b363b31481b5b3234421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b34721b5b333b31481b5b3939421b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b31481b5b32431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightEdgeWhenBegunRightOfScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b3132481b5b366e1b5b3830431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightMarginInScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '10' but got '80'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b37481b5b3830431b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 79,
+          "y": 2
+        },
+        "replies": "\u001b[3;80R"
+      }
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightSide",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b31481b5b3830431b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_ColumnOnly",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b366e1b5b3b32481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_DefaultParams",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b366e1b5b481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_OutOfBoundsParams",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b33343b3930481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_RespectsOriginMode",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '1' but got '6'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b363b3131721b5b3f3639681b5b353b3130731b5b393b37481b5b366e1b5b3f36681b5b313b31481b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 5
+        },
+        "replies": "\u001b[9;7R\u001b[6;1R"
+      }
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_RowOnly",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b366e1b5b32481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_ZeroIsTreatedAsOne",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b303b30481b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b3130471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b35481b5b31471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_OutOfBoundsLarge",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b39393939471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_RespectsOriginMode",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['X']' but got '[' ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b363b3131721b5b3f3639681b5b353b3130731b5b393b37481b5b366e1b5b3f36681b5b313b32481b5b31471b5b366e581b5b3f366c1b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "X",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": "\u001b[9;7R\u001b[11;1R"
+      }
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_ZeroParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b30471b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b32451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b3234451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '5' but got '1'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b3f3639681b5b353b3130731b5b363b37481b5b3234451b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 23
+        },
+        "replies": "\u001b[24;1R"
+      }
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomMarginInScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '5' but got '1'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b34721b5b3f3639681b5b353b3130731b5b333b37481b5b3939451b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 3
+        },
+        "replies": "\u001b[4;1R"
+      }
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35481b5b461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b353b36481b5b32461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b36481b5b3234461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopLineWhenBegunAboveScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '5' but got '1'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b3f3639681b5b353b3130731b5b333b37481b5b3234461b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": "\u001b[1;1R"
+      }
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopMarginInScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '5' but got '1'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b34721b5b3f3639681b5b353b3130731b5b333b37481b5b3939461b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 1
+        },
+        "replies": "\u001b[2;1R"
+      }
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b304a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_0_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b304a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_1",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b314a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_1_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b314a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_2",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b324a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_2_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b324a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_3",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b334a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b4a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_doesNotRespectDECProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b304a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_respectsISOProtection",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['  c']' but got '['   ']'",
+      "variant": "xterm.js",
+      "inputHex": "61621b56631b571b5b313b31481b5b304a",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b304b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_1",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b314b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_2",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b324b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b4b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b3f3639681b5b323b34731b5b313b35481b5b324b1b5b3f36396c"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_doesNotRespectDECProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b324b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_respectsISOProtection",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['  c']' but got '['   ']'",
+      "variant": "xterm.js",
+      "inputHex": "61621b56631b571b5b313b31481b5b324b",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "6162631b5b313b31481b5b58"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "6162631b5b313b31481b5b3258"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "616263646566671b5b3f3639681b5b323b34731b5b313b33481b5b34581b5b3f36396c"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_OutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "616263646566671b5b3f3639681b5b323b34731b5b313b31481b5b34581b5b3f36396c"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_doesNotRespectDECPRotection",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b3358"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_respectsISOProtection",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['  c']' but got '['   ']'",
+      "variant": "xterm.js",
+      "inputHex": "61621b56631b571b5b313b31481b5b3358",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31481b5b366e616263646566671b5b313b32481b5b366e1b5b40"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b31481b5b366e616263646566671b5b313b32481b5b366e1b5b3240"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_IsNoOpWhenCursorBeginsOutsideScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcdefg']' but got '['       ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148616263646566671b5b3f3639681b5b323b35731b5b313b31481b5b3130401b5b3f36396c",
+      "observed": {
+        "lines": [
+          "          abcdefg",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollEntirelyOffRightEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878781b5b313b31481b5b383040"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollOffRightEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b373448616263646566671b5b313b3735481b5b40"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollOffRightMarginInScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['ab cdfg']' but got '['ab cdef']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148616263646566671b5b3f3639681b5b323b35731b5b313b33481b5b401b5b3f36396c",
+      "observed": {
+        "lines": [
+          "ab cdefg",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "616263641b5b313b32481b5b50"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DeleteAllWithMargins",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['ab  e']' but got '['ab   ']'",
+      "variant": "xterm.js",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b33481b5b3939501b5b3f36396c",
+      "observed": {
+        "lines": [
+          "ab",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DoesNothingOutsideLeftRightMargin",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde']' but got '['     ']'",
+      "variant": "xterm.js",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b31481b5b3939501b5b3f36396c",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "616263641b5b313b32481b5b3250"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_RespectsMargins",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abd e']' but got '['abde ']'",
+      "variant": "xterm.js",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b33481b5b501b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abde",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_WorksOutsideTopBottomMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "61626364651b5b323b33721b5b313b31481b5b3939501b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_AboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b313b31481b5b4c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b4c"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b324c"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_RespectsScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'f   j', 'kGHIo', 'pLMNt', 'uvwxy']' but got '['abcde', '     ', 'fGHIj', 'kLMNo', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b4c1b5b3f36396c1b5b72",
+      "observed": {
+        "lines": [
+          "abcde",
+          "",
+          "fGHIj",
+          "kLMNo",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_RespectsScrollRegion_Over",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'f   j', 'k   o', 'p   t', 'uvwxy']' but got '['abcde', '     ', '     ', '     ', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b39394c1b5b3f36396c1b5b72",
+      "observed": {
+        "lines": [
+          "abcde",
+          "",
+          "",
+          "",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_ScrollsOffBottom",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b4c"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_ClearOutLeftRightAndTopBottomScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'f   j', 'k   o', 'p   t', 'uvwxy']' but got '['abcde', '     ', '     ', '     ', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b39394d1b5b3f36396c1b5b72",
+      "observed": {
+        "lines": [
+          "abcde",
+          "",
+          "",
+          "",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b4d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_DeleteMoreThanVisible",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b34384d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b324d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InLeftRightAndTopBottomScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'flmnj', 'kqrso', 'p   t', 'uvwxy']' but got '['abcde', 'klmno', 'pqrst', '     ', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b4d1b5b3f36396c1b5b72",
+      "observed": {
+        "lines": [
+          "abcde",
+          "klmno",
+          "pqrst",
+          "",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'flmnj', 'kqrso', 'pvwxt', 'u   y']' but got '['abcde', 'klmno', 'pqrst', 'uvwxy', '     ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b4d1b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "klmno",
+          "pqrst",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 1
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b4d1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b313b31481b5b4d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'fghij', 'klmno', 'pqrst', 'uvwxy']' but got '['abcde', 'klmno', 'pqrst', 'uvwxy', '     ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b4d1b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "klmno",
+          "pqrst",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 1
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b33481b5b4d1b5b72"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "091b5b366e1b5b30671b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_3",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b33671b5b313b3330481b481b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "091b5b366e1b5b671b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_NoOp",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3130481b5b30671b5b313b3148091b5b366e091b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_ExplicitParameter",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b32491b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_IgnoresScrollingRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '30' but got '33'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3330731b5b393b37481b5b32491b5b366e1b5b32491b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 32,
+          "y": 8
+        },
+        "replies": "\u001b[9;17R\u001b[9;33R"
+      }
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_OneTabStopByDefault",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b491b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_ExplicitParameter",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3235481b5b325a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_IgnoresRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3330731b5b393b37481b5b325a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_OneTabStopByDefault",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3137481b5b5a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_StopsAtLeftEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b3235481b5b355a1b5b366e"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_BigScrollLeftRightAndTopBottomScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'f   j', 'k   o', 'p   t', 'uvwxy']' but got '['abcde', '     ', '     ', '     ', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b3939531b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "",
+          "",
+          "",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_CanClearScreen",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323453"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b53"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3253"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_LeftRightAndTopBottomScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'fqrsj', 'k   o', 'p   t', 'uvwxy']' but got '['abcde', 'pqrst', '     ', '     ', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b32531b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "pqrst",
+          "",
+          "",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_OutsideLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['almne', 'fqrsj', 'kvwxo', 'p   t', 'u   y']' but got '['klmno', 'pqrst', 'uvwxy', '     ', '     ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b32531b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "klmno",
+          "pqrst",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_OutsideTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b31481b5b32531b5b72"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_RespectsLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['almne', 'fqrsj', 'kvwxo', 'p   t', 'u   y']' but got '['klmno', 'pqrst', 'uvwxy', '     ', '     ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b32531b5b3f36396c",
+      "observed": {
+        "lines": [
+          "klmno",
+          "pqrst",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 1
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_RespectsTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b32531b5b72"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_BigScrollLeftRightAndTopBottomScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'f   j', 'k   o', 'p   t', 'uvwxy']' but got '['abcde', '     ', '     ', '     ', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b3939541b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "",
+          "",
+          "",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_CanClearScreen",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323454"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b54"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3254"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_LeftRightAndTopBottomScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'f   j', 'k   o', 'pghit', 'uvwxy']' but got '['abcde', '     ', '     ', 'fghij', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b32541b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "",
+          "",
+          "fghij",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_OutsideLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['a   e', 'f   j', 'kbcdo', 'pghit', 'ulmny', ' qrs ', ' vwx ']' but got '['     ', '     ', 'abcde', 'fghij', 'klmno', 'pqrst', 'uvwxy']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b32541b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "abcde",
+          "fghij",
+          "klmno",
+          "pqrst",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_OutsideTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b31481b5b32541b5b72"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_RespectsLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['a   e', 'f   j', 'kbcdo', 'pghit', 'ulmny']' but got '['     ', '     ', 'abcde', 'fghij', 'klmno']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b32541b5b3f36396c",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "abcde",
+          "fghij",
+          "klmno",
+          "pqrst",
+          "uvwxy",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 1
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_RespectsTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b32541b5b72"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "611b5b62"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "611b5b3262"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_RespectsLeftRightMargins",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '[' aaa ', ' a   ']' but got '[' aaaa', '     ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b323b34731b5b313b3248611b5b33621b5b3f36396c",
+      "observed": {
+        "lines": [
+          " aaaa",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 5,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_RespectsTopBottomMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b34721b5b343b373848611b5b3362"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_Basic",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b33480d1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftMarginWhenLeftOfLeftMarginInOriginMode",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['x']' but got '[' ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b3f36681b5b313b34480d1b5b3f36396c781b5b3f366c",
+      "observed": {
+        "lines": [
+          "x",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftMarginWhenRightOfLeftMargin",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected 'Point(x=5, y=1)' but got 'Point(x=1, y=1)'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b36480d1b5b3f36396c1b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": "\u001b[1;1R"
+      }
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftOfScreenWhenLeftOfLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b34480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_StaysPutWhenAtLeftMargin",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected 'Point(x=5, y=1)' but got 'Point(x=1, y=1)'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b35480d1b5b3f36396c1b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": "\u001b[1;1R"
+      }
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_Basic",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b333b35480a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_MovesDoesNotScrollOutsideLeftRight",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['x']' but got '[' ']'",
+      "variant": "xterm.js",
+      "inputHex": "1b5b323b35721b5b3f3639681b5b323b35731b5b353b3348781b5b353b36480a1b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "  x",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 5,
+          "y": 4
+        },
+        "replies": "\u001b[5;6R"
+      }
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_Scrolls",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b32333b3248611b5b32343b3248621b5b32333b32480a1b5b366e0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_ScrollsInTopBottomRegionStartingAbove",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b353b3248781b5b333b32480a0a0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_ScrollsInTopBottomRegionStartingWithin",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b353b3248781b5b343b32480a0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "xterm.js",
+      "inputHex": "1b5b343b35721b5b363b3148780a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1b5b366e"
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "CJK whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "CJK whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "CJK one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "CJK one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "combining whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "combining whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "combining one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "combining one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "emoji whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "emoji whole",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   x: 1,\n-   x: 2,\n    y: 0\n  }\n",
+      "observed": {
+        "lines": [
+          "🧪",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 1,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "emoji one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "emoji one byte",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   x: 1,\n-   x: 2,\n    y: 0\n  }\n",
+      "observed": {
+        "lines": [
+          "🧪",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 1,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "skin tone whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "skin tone whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "skin tone one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "skin tone one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "ZWJ whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "ZWJ whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "ZWJ one byte",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n'👩💻' !== '👩‍💻'\n",
+      "observed": {
+        "lines": [
+          "👩💻",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "ZWJ one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "family whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "family whole",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   x: 4,\n-   x: 2,\n    y: 0\n  }\n",
+      "observed": {
+        "lines": [
+          "👨‍👩‍👧‍👦",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 4,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "family one byte",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ '👨👩👧👦'\n- '👨‍👩‍👧‍👦'\n     ^\n",
+      "observed": {
+        "lines": [
+          "👨👩👧👦",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 4,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "family one byte",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   x: 4,\n-   x: 2,\n    y: 0\n  }\n",
+      "observed": {
+        "lines": [
+          "👨👩👧👦",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 4,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "flag whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "flag whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "flag one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "flag one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "VS16 whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "VS16 whole",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   x: 1,\n-   x: 2,\n    y: 0\n  }\n",
+      "observed": {
+        "lines": [
+          "❤️",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 1,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-text",
+      "name": "VS16 one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "grapheme-width",
+      "name": "VS16 one byte",
+      "status": "fail",
+      "detail": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   x: 1,\n-   x: 2,\n    y: 0\n  }\n",
+      "observed": {
+        "lines": [
+          "❤️",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 1,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "delivery",
+      "name": "CSI one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "delivery",
+      "name": "empty byte write",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "reports",
+      "name": "DSR status",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "reports",
+      "name": "DSR position",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "xterm.js",
+      "suite": "unicode-burst",
+      "name": "benchmark 4 KiB x 32 frames",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b31481b5b32411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopLineWhenBegunAboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cuu",
+      "name": "test_CUU_StopsAtTopMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b34721b5b333b31481b5b3939411b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b31481b5b32421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b31481b5b3234421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b363b31481b5b3234421b5b366e"
+    },
+    {
+      "suite": "cud",
+      "name": "test_CUD_StopsAtBottomMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b34721b5b333b31481b5b3939421b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b31481b5b32431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightEdgeWhenBegunRightOfScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b3132481b5b366e1b5b3830431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b37481b5b3830431b5b366e"
+    },
+    {
+      "suite": "cuf",
+      "name": "test_CUF_StopsAtRightSide",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b31481b5b3830431b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_ColumnOnly",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b366e1b5b3b32481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_DefaultParams",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b366e1b5b481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_OutOfBoundsParams",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b33343b3930481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_RespectsOriginMode",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b363b3131721b5b3f3639681b5b353b3130731b5b393b37481b5b366e1b5b3f36681b5b313b31481b5b366e581b5b3f366c1b5b721b5b3f36396c"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_RowOnly",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b366e1b5b32481b5b366e"
+    },
+    {
+      "suite": "cup",
+      "name": "test_CUP_ZeroIsTreatedAsOne",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b303b30481b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b3130471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b333b35481b5b31471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_OutOfBoundsLarge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b39393939471b5b366e"
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_RespectsOriginMode",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['X']' but got '[' ']'",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b363b3131721b5b3f3639681b5b353b3130731b5b393b37481b5b366e1b5b3f36681b5b313b32481b5b31471b5b366e581b5b3f366c1b5b721b5b3f36396c",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "    X",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": "\u001b[9;7R\u001b[6;1R"
+      }
+    },
+    {
+      "suite": "cha",
+      "name": "test_CHA_ZeroParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b30471b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b32451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b3234451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b3f3639681b5b353b3130731b5b363b37481b5b3234451b5b366e"
+    },
+    {
+      "suite": "cnl",
+      "name": "test_CNL_StopsAtBottomMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b34721b5b3f3639681b5b353b3130731b5b333b37481b5b3939451b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35481b5b461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b353b36481b5b32461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopLine",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b36481b5b3234461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopLineWhenBegunAboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b3f3639681b5b353b3130731b5b333b37481b5b3234461b5b366e"
+    },
+    {
+      "suite": "cpl",
+      "name": "test_CPL_StopsAtTopMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b34721b5b3f3639681b5b353b3130731b5b333b37481b5b3939461b5b366e"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b304a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_0_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b304a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_1",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b314a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_1_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b314a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_2",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b324a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_2_WithScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b3f3639681b5b323b34731b5b323b33721b5b323b33481b5b324a1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_3",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b334a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148611b5b333b31486263641b5b353b3148651b5b333b32481b5b4a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_doesNotRespectDECProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b304a"
+    },
+    {
+      "suite": "ed",
+      "name": "test_ED_respectsISOProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61621b56631b571b5b313b31481b5b304a"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b304b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_1",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b314b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_2",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b324b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_Default",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b4b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31486162636465666768696a1b5b313b35481b5b3f3639681b5b323b34731b5b313b35481b5b324b1b5b3f36396c"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_doesNotRespectDECProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b324b"
+    },
+    {
+      "suite": "el",
+      "name": "test_EL_respectsISOProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61621b56631b571b5b313b31481b5b324b"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "6162631b5b313b31481b5b58"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "6162631b5b313b31481b5b3258"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_IgnoresScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "616263646566671b5b3f3639681b5b323b34731b5b313b33481b5b34581b5b3f36396c"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_OutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "616263646566671b5b3f3639681b5b323b34731b5b313b31481b5b34581b5b3f36396c"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_doesNotRespectDECPRotection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61621b5b312271631b5b3022711b5b313b31481b5b3358"
+    },
+    {
+      "suite": "ech",
+      "name": "test_ECH_respectsISOProtection",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61621b56631b571b5b313b31481b5b3358"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31481b5b366e616263646566671b5b313b32481b5b366e1b5b40"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b31481b5b366e616263646566671b5b313b32481b5b366e1b5b3240"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_IsNoOpWhenCursorBeginsOutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148616263646566671b5b3f3639681b5b323b35731b5b313b31481b5b3130401b5b3f36396c"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollEntirelyOffRightEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878787878781b5b313b31481b5b383040"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollOffRightEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b373448616263646566671b5b313b3735481b5b40"
+    },
+    {
+      "suite": "ich",
+      "name": "test_ICH_ScrollOffRightMarginInScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148616263646566671b5b3f3639681b5b323b35731b5b313b33481b5b401b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "616263641b5b313b32481b5b50"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DeleteAllWithMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b33481b5b3939501b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_DoesNothingOutsideLeftRightMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b31481b5b3939501b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_ExplicitParam",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['ad  ']' but got '['ade ']'",
+      "variant": "ghostty-web",
+      "inputHex": "616263641b5b313b32481b5b3250",
+      "observed": {
+        "lines": [
+          "ade",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 1,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_RespectsMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61626364651b5b3f3639681b5b323b34731b5b313b33481b5b501b5b3f36396c"
+    },
+    {
+      "suite": "dch",
+      "name": "test_DCH_WorksOutsideTopBottomMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "61626364651b5b323b33721b5b313b31481b5b3939501b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_AboveScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b313b31481b5b4c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b4c"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b333b32481b5b324c"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_RespectsScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b4c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_RespectsScrollRegion_Over",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148664748496a1b5b333b31486b4c4d4e6f1b5b343b314870515253741b5b353b314875767778791b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b39394c1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "il",
+      "name": "test_IL_ScrollsOffBottom",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b4c"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_ClearOutLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b39394d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b4d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_DeleteMoreThanVisible",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b34384d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323b31481b5b324d"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b33481b5b4d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InLeftRightScrollRegion",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '['abcde', 'flmnj', 'kqrso', 'pvwxt', 'u   y']' but got '['abcde', 'flmnj', 'kqrso', 'pvwxt', 'u006y']'",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b4d1b5b3f36396c",
+      "observed": {
+        "lines": [
+          "abcde",
+          "flmnj",
+          "kqrso",
+          "pvwxt",
+          "u006y",
+          "0007",
+          "0008",
+          "0009",
+          "0010",
+          "0011",
+          "0012",
+          "0013",
+          "0014",
+          "0015",
+          "0016",
+          "0017",
+          "0018",
+          "0019",
+          "0020",
+          "0021",
+          "0022",
+          "0023",
+          "0024",
+          "0"
+        ],
+        "cursor": {
+          "x": 1,
+          "y": 1
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_InScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b4d1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b313b31481b5b4d1b5b3f36396c1b5b72"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b4d1b5b3f36396c"
+    },
+    {
+      "suite": "dl",
+      "name": "test_DL_OutsideScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b33481b5b4d1b5b72"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_0",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "091b5b366e1b5b30671b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_3",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b33671b5b313b3330481b481b5b313b3148091b5b366e"
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_Default",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '17' but got '9'",
+      "variant": "ghostty-web",
+      "inputHex": "091b5b366e1b5b671b5b313b3148091b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 8,
+          "y": 0
+        },
+        "replies": "\u001b[1;9R\u001b[1;9R"
+      }
+    },
+    {
+      "suite": "tbc",
+      "name": "test_TBC_NoOp",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '17' but got '10'",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3130481b5b30671b5b313b3148091b5b366e091b5b366e",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 9,
+          "y": 0
+        },
+        "replies": "\u001b[1;9R\u001b[1;10R"
+      }
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_ExplicitParameter",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b32491b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_IgnoresScrollingRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3330731b5b393b37481b5b32491b5b366e1b5b32491b5b366e1b5b393b31481b5b39491b5b366e"
+    },
+    {
+      "suite": "cht",
+      "name": "test_CHT_OneTabStopByDefault",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b491b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_ExplicitParameter",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3235481b5b325a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_IgnoresRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3330731b5b393b37481b5b325a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_OneTabStopByDefault",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3137481b5b5a1b5b366e"
+    },
+    {
+      "suite": "cbt",
+      "name": "test_CBT_StopsAtLeftEdge",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b3235481b5b355a1b5b366e"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_BigScrollLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b3939531b5b721b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_CanClearScreen",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323453"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b53"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3253"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_LeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b32531b5b721b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_OutsideLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b32531b5b721b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_OutsideTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b31481b5b32531b5b72"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_RespectsLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b32531b5b3f36396c"
+    },
+    {
+      "suite": "su",
+      "name": "test_SU_RespectsTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b32531b5b72"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_BigScrollLeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b3939541b5b721b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_CanClearScreen",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b3148303030311b5b323b3148303030321b5b333b3148303030331b5b343b3148303030341b5b353b3148303030351b5b363b3148303030361b5b373b3148303030371b5b383b3148303030381b5b393b3148303030391b5b31303b3148303031301b5b31313b3148303031311b5b31323b3148303031321b5b31333b3148303031331b5b31343b3148303031341b5b31353b3148303031351b5b31363b3148303031361b5b31373b3148303031371b5b31383b3148303031381b5b31393b3148303031391b5b32303b3148303032301b5b32313b3148303032311b5b32323b3148303032321b5b32333b3148303032331b5b32343b3148303032341b5b323454"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b54"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3254"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_LeftRightAndTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b34721b5b323b31481b5b32541b5b721b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_OutsideLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b31481b5b32541b5b721b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_OutsideTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b313b31481b5b32541b5b72"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_RespectsLeftRightScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b3f3639681b5b323b34731b5b323b33481b5b32541b5b3f36396c"
+    },
+    {
+      "suite": "sd",
+      "name": "test_SD_RespectsTopBottomScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b313b314861626364651b5b323b3148666768696a1b5b333b31486b6c6d6e6f1b5b343b314870717273741b5b353b314875767778791b5b323b33481b5b323b34721b5b323b33481b5b32541b5b72"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_DefaultParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "611b5b62"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_ExplicitParam",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "611b5b3262"
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_RespectsLeftRightMargins",
+      "status": "fail",
+      "detail": "TestFailure: Test failed: expected '[' aaa ', ' a   ']' but got '['aaaa ', ' a   ']'",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b323b34731b5b313b3248611b5b33621b5b3f36396c",
+      "observed": {
+        "lines": [
+          "aaaa",
+          " a",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 2,
+          "y": 1
+        },
+        "replies": ""
+      }
+    },
+    {
+      "suite": "rep",
+      "name": "test_REP_RespectsTopBottomMargins",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b34721b5b343b373848611b5b3362"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_Basic",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b33480d1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftMarginWhenLeftOfLeftMarginInOriginMode",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b3f36681b5b313b34480d1b5b3f36396c781b5b3f366c"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftMarginWhenRightOfLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b36480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_MovesToLeftOfScreenWhenLeftOfLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b34480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "cr",
+      "name": "test_CR_StaysPutWhenAtLeftMargin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b3f3639681b5b353b3130731b5b313b35480d1b5b3f36396c1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_Basic",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b333b35480a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_MovesDoesNotScrollOutsideLeftRight",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b323b35721b5b3f3639681b5b323b35731b5b353b3348781b5b353b36480a1b5b366e1b5b343b36480a1b5b366e1b5b32343b36480a1b5b366e1b5b353b31480a1b5b366e1b5b32343b31480a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_Scrolls",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b32333b3248611b5b32343b3248621b5b32333b32480a1b5b366e0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_ScrollsInTopBottomRegionStartingAbove",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b353b3248781b5b333b32480a0a0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_ScrollsInTopBottomRegionStartingWithin",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b353b3248781b5b343b32480a0a1b5b366e"
+    },
+    {
+      "suite": "lf",
+      "name": "test_LF_StopsAtBottomLineWhenBegunBelowScrollRegion",
+      "status": "pass",
+      "detail": "",
+      "variant": "ghostty-web",
+      "inputHex": "1b5b343b35721b5b363b3148780a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a1b5b366e"
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "CJK whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "CJK whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "CJK one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "CJK one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "combining whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "combining whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "combining one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "combining one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "emoji whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "emoji whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "emoji one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "emoji one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "skin tone whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "skin tone whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "skin tone one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "skin tone one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "ZWJ whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "ZWJ whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "ZWJ one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "ZWJ one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "family whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "family whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "family one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "family one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "flag whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "flag whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "flag one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "flag one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "VS16 whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "VS16 whole",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-text",
+      "name": "VS16 one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "grapheme-width",
+      "name": "VS16 one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "delivery",
+      "name": "CSI one byte",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "delivery",
+      "name": "empty byte write",
+      "status": "fail",
+      "detail": "Error: evaluate: RangeError: offset is out of bounds\n    at Uint8Array.set (<anonymous>)\n    at K.write (http://127.0.0.1:37307/browser.js:9853:40)\n    at IA.writeInternal (http://127.0.0.1:37307/browser.js:11600:19)\n    at IA.write (http://127.0.0.1:37307/browser.js:11596:11)\n    at http://127.0.0.1:37307/browser.js:14145:56\n    at new Promise (<anonymous>)\n    at Object.write (http://127.0.0.1:37307/browser.js:14145:22)\n    at request (http://127.0.0.1:37307/browser.js:14178:18)\n    at eval (eval at evaluate (:311:30), <anonymous>:2:23)\n    at UtilityScript.evaluate (<anonymous>:313:16)",
+      "observed": {
+        "lines": [
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "cursor": {
+          "x": 0,
+          "y": 0
+        },
+        "replies": ""
+      }
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "reports",
+      "name": "DSR status",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "reports",
+      "name": "DSR position",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "variant": "ghostty-web",
+      "suite": "unicode-burst",
+      "name": "benchmark 4 KiB x 32 frames",
+      "status": "fail",
+      "detail": "Error: evaluate: Target crashed "
+    }
+  ]
+}
