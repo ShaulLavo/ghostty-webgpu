@@ -121,6 +121,7 @@ export class CanvasRowPainter {
   }
 
   invalidate(): void {
+    this.backgroundColor = undefined
     this.plainRows.clear()
   }
 
@@ -135,7 +136,7 @@ export class CanvasRowPainter {
     cursor: CursorState | undefined,
     width: number,
     allowCellDamage = true,
-    capturedPlainText?: string,
+    capturedPlainText?: string | null,
   ): void {
     const damage = allowCellDamage
       ? this.plainDamage(row, cursor, width, capturedPlainText)
@@ -161,29 +162,35 @@ export class CanvasRowPainter {
     this.currentAlpha = 1
     if (!plain) this.cellColors.length = row.cells.length
     this.context.save()
-    this.context.beginPath()
-    this.context.rect(x, y, paintWidth, this.font.deviceCellHeight)
-    this.context.clip()
-    this.context.clearRect(x, y, paintWidth, this.font.deviceCellHeight)
-    if (plain) {
-      this.paintPlain(damage.text, cursor, row.y, damage.first, damage.end)
+    try {
+      this.context.beginPath()
+      this.context.rect(x, y, paintWidth, this.font.deviceCellHeight)
+      this.context.clip()
+      this.context.clearRect(x, y, paintWidth, this.font.deviceCellHeight)
+      if (plain) {
+        this.paintPlain(damage.text, cursor, row.y, damage.first, damage.end)
+        return
+      }
+      this.paintBackgrounds(row, cursor, y)
+      for (let index = 0; index < row.cells.length;) index += this.paintGlyph(row, index)
+    } catch (cause) {
+      this.invalidate()
+      throw cause
+    } finally {
       this.context.restore()
-      return
     }
-    this.paintBackgrounds(row, cursor, y)
-    for (let index = 0; index < row.cells.length;) index += this.paintGlyph(row, index)
-    this.context.restore()
   }
 
   private plainDamage(
     row: RenderRow,
     cursor: CursorState | undefined,
     width: number,
-    capturedPlainText?: string,
+    capturedPlainText?: string | null,
   ): { x: number; width: number; first: number; end: number; text: string } | undefined {
     if (!this.context.measureText || !Number.isInteger(this.font.deviceCellWidth)) return undefined
-    const text = capturedPlainText ?? plainRowText(row)
-    if (text === undefined) {
+    // null records a rejected capture; undefined leaves direct painter callers unchecked.
+    const text = capturedPlainText === undefined ? plainRowText(row) : capturedPlainText
+    if (text === undefined || text === null) {
       this.plainRows.delete(row.y)
       return undefined
     }
@@ -426,14 +433,17 @@ function drawPatternUnderline(
   dotted: boolean,
 ): void {
   context.save()
-  context.beginPath()
-  context.setLineDash(dotted ? [2, 2] : [5, 3])
-  context.moveTo(x, y + 0.5)
-  context.lineTo(x + width, y + 0.5)
-  context.lineWidth = 1
-  context.strokeStyle = context.fillStyle
-  context.stroke()
-  context.restore()
+  try {
+    context.beginPath()
+    context.setLineDash(dotted ? [2, 2] : [5, 3])
+    context.moveTo(x, y + 0.5)
+    context.lineTo(x + width, y + 0.5)
+    context.lineWidth = 1
+    context.strokeStyle = context.fillStyle
+    context.stroke()
+  } finally {
+    context.restore()
+  }
 }
 
 function drawOutlineCursor(

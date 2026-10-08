@@ -162,7 +162,7 @@ class CanvasSurface implements RowRendererSurface {
         this.pixelTarget?.beginRow(row.y)
         // Pixel targets publish the whole scratch row.
         const key = this.pending.get(row.y)
-        const text = key?.startsWith('plain:') ? key.slice(6) : undefined
+        const text = key?.startsWith('plain:') ? key.slice(6) : null
         this.painter.paint(
           row,
           cursor,
