@@ -209,8 +209,10 @@ function perfDelta(before, after, cpuSeconds) {
 function processDelta(before, after, metadata) {
   assert(before.identity === after.identity, 'PID start identity changed')
   assert(!after.exit, 'Process exited during the window')
-  const userSeconds = difference(before.userTimeNs, after.userTimeNs, 'userTimeNs') / 1e9
-  const systemSeconds = difference(before.systemTimeNs, after.systemTimeNs, 'systemTimeNs') / 1e9
+  const userNs = difference(before.userTimeNs, after.userTimeNs, 'userTimeNs')
+  const systemNs = difference(before.systemTimeNs, after.systemTimeNs, 'systemTimeNs')
+  const userSeconds = userNs / 1e9
+  const systemSeconds = systemNs / 1e9
   const linux = metadata.source === 'perf_event_open'
   const result = {
     cpuSeconds: linux ? userSeconds : userSeconds + systemSeconds,
@@ -229,13 +231,15 @@ function processDelta(before, after, metadata) {
     result[field] = available(metadata, field)
       ? difference(before[field], after[field], field)
       : null
-  result.pCoreSeconds = available(metadata, 'pUserTimeNs')
-    ? (difference(before.pUserTimeNs, after.pUserTimeNs, 'pUserTimeNs') +
-        difference(before.pSystemTimeNs, after.pSystemTimeNs, 'pSystemTimeNs')) /
-      1e9
+  const pCoreNs = available(metadata, 'pUserTimeNs')
+    ? difference(before.pUserTimeNs, after.pUserTimeNs, 'pUserTimeNs') +
+      difference(before.pSystemTimeNs, after.pSystemTimeNs, 'pSystemTimeNs')
     : null
+  result.pCoreSeconds = pCoreNs === null ? null : pCoreNs / 1e9
+  // The reader floors each cumulative time from Mach ticks separately, so the two-field
+  // P-core and total deltas can each be off by under 2 ns.
   assert(
-    result.pCoreSeconds === null || result.pCoreSeconds <= result.cpuSeconds + 1e-9,
+    pCoreNs === null || pCoreNs - (userNs + systemNs) < 4,
     'P-core time exceeds total CPU time',
   )
   return result

@@ -110,6 +110,20 @@ test('counter regression, absent fields and invalid decimal input are explicit f
   assert.throws(() => parseCounterSnapshot(macSnapshot({ ri_cycles: '1.5' }), metadata), /integer/)
 })
 
+test('P-core time may exceed total time only by nanosecond tick rounding', () => {
+  const rounded = delta(
+    macSnapshot(),
+    macSnapshot({ ri_user_time: '1000366624', ri_user_ptime: '1000366627' }),
+  )
+  assert.notEqual(rounded.status, 'incomplete')
+  assert.equal(rounded.channels.allChrome.pCoreSeconds, 0.000366627)
+  const excess = delta(
+    macSnapshot(),
+    macSnapshot({ ri_user_time: '1000366624', ri_user_ptime: '1000366628' }),
+  )
+  assert.equal(excess.status, 'incomplete')
+})
+
 test('zero time has no inferred clock or P-core share', () => {
   const sample = delta(macSnapshot(), macSnapshot())
   assert.equal(sample.channels.allChrome.effectiveClockGHz, null)
