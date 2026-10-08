@@ -123,6 +123,13 @@ the frame's dimensions also change that clipping boundary; update the terminal g
 when changing its viewport. An explicit `height: auto` override derives height from the rendered
 rows. Layout and paint containment preserve this row-derived height.
 
+## canvas and link cursors
+
+The canvas exposed as `terminal.canvas` uses `cursor: pointer !important` while a link is hovered,
+overriding author cursor rules, including important ones. On leave, the terminal restores the
+pre-hover inline cursor value and priority unless the host's current cursor declaration differs
+from `pointer !important`.
+
 ## first frames and damage
 
 `renderFrameToHtml(snapshot, { font, columns, rows, theme })` produces the DOM backend's
