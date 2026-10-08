@@ -1,0 +1,43 @@
+---
+title: Connect to a PTY
+description: Send terminal input and output as binary WebSocket messages.
+sidebar:
+  order: 1
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/websocket.ts?raw'
+
+You will connect the browser terminal to a PTY endpoint and keep its size in sync. Start with a sized host element and a WebSocket server that accepts binary input, emits binary output and accepts the resize message shown below.
+
+## 1. Open the terminal and socket
+
+<Code code={sample} lang='ts' title='websocket.ts' />
+
+Call `connectShell(host, socketUrl)`. Keep its disposer. Closing the page's terminal should release both the terminal and its transport. The [real shell tutorial](https://shaullavo.github.io/ghostty-webgpu/docs/start/real-shell/) supplies a local Bun server for this protocol.
+
+## 2. Preserve the bytes
+
+Set `binaryType` to `arraybuffer`. Pass received frames to `write` as a `Uint8Array` and send `onData` bytes directly. Ghostty parses UTF-8 across writes, including code points split between WebSocket frames.
+
+Send the initial grid on the socket's `open` event. Later `onResize` events update the PTY. Resize messages have `type: 'resize'`, `columns` and `rows`.
+
+## 3. Bound queued output
+
+The example is for an interactive local shell. For bulk output, monitor `bufferedAmount` on the producer and pause PTY reads at your chosen queue limit. Resume after the queue drains. Define a byte acknowledgement protocol if you need receiver-driven flow control.
+
+A successful `write` updates emulator state. It does not acknowledge a presented frame. Use `onFrame` to observe submitted frames. Keep transport acknowledgements separate from renderer notifications.
+
+Worker integrations can transfer a producer's `MessagePort` with `attachOutputPort`. Its sequence acknowledgements and `fenceOutput` belong to the worker output protocol. See the generated worker types for the message shapes.
+
+## If it doesn't work
+
+### Output stops after reconnecting
+
+A new WebSocket needs an explicit server session policy. Reattach to the existing PTY and replay retained bytes, or start a new PTY and clear the old client state. A saved viewport is a visual snapshot; replay restores emulator state.
+
+### Text arrives as a string
+
+Configure the server to emit binary frames. The sample ignores text frames because text is reserved for control messages in this protocol.
+
+Next, [move the terminal into a worker](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) or [read its history](https://shaullavo.github.io/ghostty-webgpu/docs/guides/scrollback/).

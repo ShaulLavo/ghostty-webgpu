@@ -1,0 +1,39 @@
+---
+title: Renderers and fallbacks
+description: Understand automatic renderer selection and force Canvas 2D when needed.
+sidebar:
+  order: 2
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/renderers.ts?raw'
+
+You will know which renderer opened and how to choose a fallback. Start with the main entry and a sized host.
+
+## 1. Let the terminal choose
+
+<Code code={sample} lang='ts' title='renderers.ts' />
+
+The main entry tries WebGPU, WebGL2, Canvas 2D, then DOM. A capability failure advances to the next backend. `diagnostics.rendererBackend` reports the selected backend after `open`.
+
+## 2. Choose Canvas 2D explicitly
+
+Set `rendererMode` to `canvas2d-fill-text` when creating the main-thread terminal. The public mode option accepts `auto`, `canvas2d-fill-text` and `canvas2d-pixels`. The pixel compositor is experimental. Use fill-text for a Canvas integration.
+
+For a GPU-specific integration, `rendererFactory` lets the host supply a renderer. `rendererMode: 'webgpu'` and `rendererMode: 'webgl2'` are outside this option's type. The [worker entry](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) has a separate `backend` option with `auto`, `webgpu` and `webgl`.
+
+## 3. Check the result
+
+All four backends read Ghostty's terminal state. Font availability and browser capabilities can change appearance. Measure the workload on the backend your users will run. The [benchmark report](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/) keeps renderer comparisons and limitations together.
+
+## If it doesn't work
+
+### WebGPU is unavailable
+
+Use a secure context and a current browser with a usable GPU adapter. The default main entry falls back automatically. A forced backend or worker operation may return a capability error. Keep its `code`, `why` and `fix` when displaying it to the user.
+
+### Many terminals lose WebGL contexts
+
+Browsers impose context limits. Dispose terminals you remove and bound the number of simultaneously live terminals. Test your intended count on your target browser.
+
+Next, [load your fonts](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/) before comparing cell geometry.

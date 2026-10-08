@@ -3,16 +3,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun scripts/sync-assets.ts && astro build",
+    "build": "bun run typecheck && bun run docs:check && bun scripts/sync-assets.ts && astro build",
     "dev": "bun scripts/sync-assets.ts && astro dev",
     "preview": "astro preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "../../node_modules/.bin/tsc --noEmit -p tsconfig.json && ../../node_modules/.bin/tsc --noEmit -p tsconfig.tests.json",
+    "docs:check": "bun scripts/check-docs.ts && bun test scripts/pty.test.ts"
+  },
+  "dependencies": {
+    "ghostty-webgpu": "workspace:*"
   },
   "devDependencies": {
+    "@astrojs/markdown-remark": "7.3.0",
+    "@astrojs/starlight": "0.42.5",
     "@types/bun": "1.4.2",
     "@webgpu/types": "0.1.74",
     "astro": "7.3.5",
     "just-bash": "3.6.0",
-    "typescript": "7.0.2"
+    "playwright": "1.63.0",
+    "starlight-links-validator": "0.26.0",
+    "starlight-typedoc": "0.23.1",
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.12.0",
+    "typescript": "npm:typescript@6.0.3"
   }
 }

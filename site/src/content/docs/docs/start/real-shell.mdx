@@ -1,0 +1,49 @@
+---
+title: A real shell in the browser
+description: Connect the terminal to a Bun PTY over WebSocket.
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/pty-server.ts?raw'
+
+You will run Bash in a browser tab. This local tutorial uses Bun 1.4.2 or newer on Linux or macOS, Bash, and the client from [the first terminal](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/).
+
+## 1. Start a PTY server
+
+Save this file as `pty-server.ts` in an empty directory. Bun's terminal option creates the PTY. Each WebSocket gets its own shell.
+
+<Code code={sample} lang='ts' title='pty-server.ts' />
+
+```sh
+bun pty-server.ts
+```
+
+The server prints `Shell WebSocket listening at ws://127.0.0.1:8080/pty`.
+
+## 2. Connect the browser
+
+Replace the echo client with the complete client in [Connect to a PTY](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/). Call `connectShell(host, 'ws://127.0.0.1:8080/pty')` on your sized host element.
+
+The client sends keyboard bytes as binary messages and sends grid changes as JSON. The server writes the bytes into Bash and changes the PTY size. Bash's output returns as binary messages.
+
+## 3. Try a command
+
+Type `printf 'Hello from Bash\n'` and press Enter. The terminal prints `Hello from Bash`. Resize the page, then run `stty size`. Its rows and columns should match the fitted terminal grid.
+
+You built a browser client, a WebSocket transport and a real shell backed by a PTY.
+
+## If it doesn't work
+
+### Bun cannot create a terminal
+
+Use a Bun release with the PTY API on Linux or macOS. This tutorial requires Bash on the server's PATH.
+
+### The browser blocks the connection
+
+An HTTPS page needs a `wss://` endpoint. Run this local tutorial from a loopback HTTP origin. In production, put the PTY server behind an authenticated HTTPS endpoint.
+
+## Before deploying
+
+This server starts a shell with your account's permissions. Keep it on loopback for the tutorial. It accepts HTTP browser origins on `localhost` or `127.0.0.1`, validates resize dimensions and closes malformed JSON connections. A deployed service also needs authentication, an explicit Origin allowlist, per-user isolation, rate limits and bounded output queues.
+
+[The PTY guide](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/) covers flow control and reconnecting.

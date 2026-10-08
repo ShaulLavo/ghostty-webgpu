@@ -1,0 +1,47 @@
+---
+title: Terminal hotkeys
+description: Attach standalone copy, paste, clear and font-size bindings.
+sidebar:
+  order: 6
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/hotkeys.ts?raw'
+
+You will add standalone terminal commands and a custom clear shortcut. Start with the synchronous main entry.
+
+## 1. Attach before opening
+
+<Code code={sample} lang='ts' title='hotkeys.ts' />
+
+The connection attaches when the terminal opens. Its disposer removes the registration. Terminal disposal also aborts the connection and pending clipboard work. One finite original-input connection owns a terminal at a time.
+
+## 2. Use the default bindings
+
+| Action             | macOS | Linux and Windows |
+| ------------------ | ----- | ----------------- |
+| Copy               | Cmd+C | Ctrl+Shift+C      |
+| Paste              | Cmd+V | Ctrl+Shift+V      |
+| Select all         | Cmd+A | Ctrl+Shift+A      |
+| Clear              | Cmd+K | Ctrl+Shift+K      |
+| Increase font size | Cmd+= | Ctrl+=            |
+| Decrease font size | Cmd+- | Ctrl+-            |
+| Reset font size    | Cmd+0 | Ctrl+0            |
+
+Clear erases the display and scrollback while keeping protocol modes. Copy declines an empty selection. Paste uses the owning window's Clipboard API.
+
+## 3. Share a host keymap
+
+A host with `@fregat/hotkeys` can pass `mode: 'hosted'`, its dispatcher, the parent focus node and platform. The host owns the bindings and matcher. `terminalDefaultPack` and `terminalShellKeysPack` export binding data. The [hotkeys integration note](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/hotkeys.md) covers the focus adapter.
+
+## If it doesn't work
+
+### Clipboard access fails
+
+Use a secure context and a user gesture. Provide `clipboard: { readText, writeText }` and `onError` when your host has a different clipboard policy.
+
+### Worker attachment reports a capability error
+
+This adapter needs immediate native input-mode authority. Use the main entry for finite synchronous hotkeys ownership.
+
+Next, [read scrollback](https://shaullavo.github.io/ghostty-webgpu/docs/guides/scrollback/).

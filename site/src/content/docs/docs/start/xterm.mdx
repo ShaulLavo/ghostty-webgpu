@@ -1,0 +1,70 @@
+---
+title: Coming from xterm.js
+description: Map xterm.js APIs and addons to the native Ghostty API.
+---
+
+Creation is asynchronous, input events carry bytes, and the main entry writes synchronously. Begin with [the quick start](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/), then replace your transport and appearance wiring.
+
+## API mapping
+
+This table imports a checked registry. Every instance member below must exist on the built `Terminal` declaration.
+
+import { migration } from '../../../../examples/migration.js'
+
+<table>
+  <thead>
+    <tr>
+      <th>xterm.js</th>
+      <th>ghostty-webgpu</th>
+      <th>Behavior</th>
+    </tr>
+  </thead>
+  <tbody>
+    {migration.map(([before, after, behavior]) => (
+      <tr>
+        <td>
+          <code>{before}</code>
+        </td>
+        <td>
+          <code>{after}</code>
+        </td>
+        <td>{behavior}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+Use `sendInput` for generated input, `paste` for bracketed paste and `key` for a synthesized key. Named events include `title`, `bell`, `selection` and `scroll`. The generated reference has their payload types.
+
+## Addon mapping
+
+| xterm.js addon                 | Current integration                                                                           | Status                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Fit                            | The host fits automatically                                                                   | Built in                                        |
+| WebGL                          | Automatic WebGL2/WebGPU selection                                                             | Built in                                        |
+| Unicode 11 / Unicode graphemes | Native widths and mode 2027                                                                   | Built in                                        |
+| Web links                      | URL detection, OSC 8 and link providers                                                       | Built in on main entry                          |
+| Clipboard                      | Host `clipboardWrite` policy for OSC 52 writes; defaults to deny                              | Write-only policy                               |
+| Attach                         | [WebSocket recipe](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/)               | Guide                                           |
+| Web fonts                      | [Load browser or worker faces](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/) | Guide                                           |
+| Serialize                      | History reads, selection formats and visual viewport capture                                  | Partial; full emulator serialization is planned |
+| Search                         | Retained-cell search                                                                          | Planned                                         |
+| Image                          | Image protocols                                                                               | Planned                                         |
+| Ligatures                      | Run shaping                                                                                   | Planned                                         |
+| Progress                       | Native progress events exposed to the host                                                    | Planned                                         |
+
+The [extension plan](https://github.com/ShaulLavo/fregat/blob/main/plans/286-ghostty-extensions.md) tracks the extension model. The [terminal roadmap](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md) tracks delivery. Worker link providers and keyboard link discovery currently report capability errors.
+
+`registerMarker`, `registerDecoration` and the general xterm parser-handler API have no public equivalent today. Custom OSC observation is a session-level capability. Clipboard reads through OSC 52 receive no reply.
+
+## Appearance and history
+
+Use `appearance.scrollbackLimit` and `appearance.scrollbackByteLimit`. Retention is page-granular. Read `lineCount()` for the actual retained count. Colors use RGB values, and `minimumContrast` belongs to the theme. Load the font before opening so the grid uses its measured geometry.
+
+## Compare performance on your workload
+
+The [benchmark report](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/) records the environments, methods, renderer-specific results and losses. Compare WebGL with WebGL and DOM with DOM. Input latency, Unicode output and scrolling are separate workloads.
+
+## Next steps
+
+[Connect your PTY](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/), [apply a theme](https://shaullavo.github.io/ghostty-webgpu/docs/guides/themes/) and [check the worker boundaries](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) before moving your host off the main thread.

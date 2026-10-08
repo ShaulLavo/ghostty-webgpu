@@ -9,6 +9,7 @@ import { measurements, measurementEnvironment } from '../measurements'
 
 const version = __SITE_VERSION__
 const base = import.meta.env.BASE_URL
+const fontStyles = fontCss.replaceAll('/ghostty-webgpu/', `${base.replace(/\/$/, '')}/`)
 ---
 
 <!doctype html>
@@ -17,7 +18,7 @@ const base = import.meta.env.BASE_URL
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ghostty-webgpu</title>
-    <style is:inline set:html={pageCss + fontCss + firstFrameCss}></style>
+    <style is:inline set:html={pageCss + fontStyles + firstFrameCss}></style>
     <meta
       name="description"
       content="An unofficial Ghostty for the web: libghostty-vt in WebAssembly with a damage-aware WebGPU renderer and a native API. Try it live."
@@ -42,7 +43,7 @@ const base = import.meta.env.BASE_URL
       <nav class="links" aria-label="Project links">
         <a href="https://github.com/ShaulLavo/ghostty-webgpu">GitHub</a>
         <a href="https://www.npmjs.com/package/ghostty-webgpu">npm</a>
-        <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/integration.md">Docs</a>
+        <a href={`${base.replace(/\/$/, '')}/docs/`}>Docs</a>
       </nav>
     </header>
 
@@ -93,7 +94,7 @@ socket.binaryType <span class="tk-p">=</span> <span class="tk-s">'arraybuffer'</
 
 terminal.<span class="tk-f">onData</span><span class="tk-p">((</span>bytes<span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
   <span class="tk-k">if</span> <span class="tk-p">(</span>socket.readyState <span class="tk-p">!==</span> <span class="tk-t">WebSocket</span>.OPEN<span class="tk-p">)</span> <span class="tk-k">return</span>
-  socket.<span class="tk-f">send</span><span class="tk-p">(</span>bytes<span class="tk-p">)</span>
+  socket.<span class="tk-f">send</span><span class="tk-p">(</span><span class="tk-k">new</span> <span class="tk-t">Uint8Array</span><span class="tk-p">(</span>bytes<span class="tk-p">))</span>
 <span class="tk-p">{'}'})</span>
 
 socket.<span class="tk-f">addEventListener</span><span class="tk-p">(</span><span class="tk-s">'message'</span><span class="tk-p">,</span> <span class="tk-p">(</span><span class="tk-p">{'{'}</span> data <span class="tk-p">{'}'}</span><span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>

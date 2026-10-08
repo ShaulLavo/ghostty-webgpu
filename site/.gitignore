@@ -1,2 +1,6 @@
 public/*.wasm
 .astro/
+
+/src/content/docs/docs/reference/api/
+/src/content/docs/docs/reference/worker-api/
+/src/content/docs/docs/reference/config-api/

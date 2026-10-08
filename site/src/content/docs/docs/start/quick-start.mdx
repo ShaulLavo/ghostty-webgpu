@@ -1,0 +1,55 @@
+---
+title: First terminal in a minute
+description: Install, open a terminal, echo input and dispose it.
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/quick-start.ts?raw'
+
+You will have a terminal that prints a greeting and echoes your keyboard input. Start with a browser TypeScript project, such as Vite's vanilla TypeScript template.
+
+## 1. Install
+
+```sh
+npm install ghostty-webgpu
+```
+
+These docs follow the repository API. npm's current release predates it; use the current source checkout until the publishing update lands. In Fregat, build `hotkeys/packages/hotkeys` and `ghostty-webgpu` first, then import the workspace package.
+
+## 2. Give the terminal a size
+
+Put this element in your page. The terminal measures it and fits the grid automatically.
+
+```html title="index.html"
+<div id="terminal" style="height: 20rem; width: 100%"></div>
+```
+
+## 3. Mount and echo
+
+Save the example as `terminal.ts`. Call `mountEcho` with your terminal element from your app's entry point. Keep the returned function and call it when removing the terminal.
+
+<Code code={sample} lang='ts' title='terminal.ts' />
+
+The example sets the host background to the terminal theme's color so text stays readable on a light page.
+
+`create` loads the wasm core. `open` mounts the host. `onData` emits bytes ready for a PTY; this example writes them back to show input immediately.
+
+import EchoTerminal from '../../../../components/EchoTerminal.astro'
+
+<EchoTerminal />
+
+You built a fitted terminal with a greeting, input and a cleanup function. [Connect a real shell](https://shaullavo.github.io/ghostty-webgpu/docs/start/real-shell/) to send those bytes to a PTY.
+
+## If it doesn't work
+
+### The terminal has no rows
+
+Give the host a nonzero height before calling `open`. A flex child may also need `min-height: 0` so its parent controls the size.
+
+### The browser cannot load wasm
+
+Keep the package's asset files in your bundler output. Serve them over HTTP with `application/wasm`; check the network panel for failed requests. [Workers and assets](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) lists the packaged files.
+
+### Typed keys do nothing
+
+Focus the terminal after opening it. This example installs `attachTerminalHotkeys` for standalone copy, paste and clear commands. The `onData` handler provides the echo.

@@ -1,0 +1,39 @@
+---
+title: Themes and Ghostty config
+description: Apply a native terminal theme and resolve host Ghostty configuration.
+sidebar:
+  order: 5
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/theme.ts?raw'
+
+You will change terminal colors while preserving the current palette. Start with an open main-thread terminal.
+
+## 1. Apply colors
+
+<Code code={sample} lang='ts' title='theme.ts' />
+
+`TerminalTheme` uses RGB objects. Its `palette` has exactly 256 entries. This example keeps the existing palette and changes the named colors. `minimumContrast` belongs to the theme and controls foreground contrast adjustment.
+
+## 2. Keep appearance changes together
+
+Use `setAppearance` when a theme, font and cursor should change in one update. Use `setTheme`, `setFont` or `setCursor` for individual changes. Worker appearance operations return promises.
+
+## 3. Resolve a Ghostty config on the host
+
+The `ghostty-webgpu/config-resolver` entry runs in Node or Bun. It resolves appearance through a native helper on supported macOS and Linux architectures. Keep it on the server, and return only the resolved appearance your client needs.
+
+The checkout needs the native helper build before this path can run. Verify those binaries in your deployed package. The [config resolver guide](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/config-resolver.md) documents host setup and light/dark profiles.
+
+## If it doesn't work
+
+### The palette is rejected
+
+Supply exactly 256 RGB entries. Start with `terminal.appearance.theme` when making a small color change.
+
+### The resolver helper is missing
+
+Check the helper manifest and the matching platform binary. The browser renderer works independently of this optional host integration.
+
+Next, [add hotkeys](https://shaullavo.github.io/ghostty-webgpu/docs/guides/hotkeys/).

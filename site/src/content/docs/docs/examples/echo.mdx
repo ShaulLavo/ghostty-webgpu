@@ -1,0 +1,16 @@
+---
+title: Echo terminal
+description: Try the same source module used in the quick start.
+---
+
+The terminal below prints a greeting and echoes its input. Click it and type. Its source is the checked `mountEcho` module from [the quick start](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/).
+
+import EchoTerminal from '../../../../components/EchoTerminal.astro'
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/quick-start.ts?raw'
+
+<EchoTerminal />
+
+<Code code={sample} lang='ts' title='quick-start.ts' />
+
+[Connect a PTY](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/) to replace the echo with shell output. The [landing page shell](https://shaullavo.github.io/ghostty-webgpu/) runs entirely in the browser.

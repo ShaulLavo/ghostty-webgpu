@@ -1,0 +1,41 @@
+---
+title: Run in a worker
+description: Load worker fonts and assets, then await native operations.
+sidebar:
+  order: 3
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/worker.ts?raw'
+
+You will open a terminal whose emulator, frame building and GPU rendering run in a dedicated worker. Start with a bundler that supports worker URLs, OffscreenCanvas and a supported GPU backend.
+
+## 1. Import the worker entry
+
+<Code code={sample} lang='ts' title='worker.ts' />
+
+Call `mountWorker(host, fontUrl)` with an absolute font URL reachable by the worker. Fonts loaded through the page's `document.fonts` belong to the page. Supply the worker's font faces through `fonts`, using a URL or `Uint8Array` bytes.
+
+## 2. Serve the assets
+
+Keep `ghostty-vt.wasm`, `bridge.wasm` and the built worker alongside the package output. Defaults resolve them relative to the package module. For a custom deployment, set `assets: { wasm, bridge }` and `workerUrl` to the hosted URLs.
+
+Your CSP must allow the worker URL in `worker-src`, WebAssembly compilation, and asset/font requests. Keep cross-origin assets under your CORS policy. This worker uses messages; shared memory and cross-origin isolation are unnecessary for this path.
+
+## 3. Await native operations
+
+The main entry updates native state synchronously. Worker writes, reads, appearance changes and disposal return promises. Await a write before a read that depends on it. Host operations such as `focus` keep their synchronous shape.
+
+The worker's `backend` accepts `auto`, `webgpu` and `webgl`. Its current API has capability limits for Canvas modes, link providers, keyboard link discovery and finite synchronous input connections. `attachTerminalHotkeys` belongs to the main entry. Keep those boundaries in mind when migrating an interactive host.
+
+## If it doesn't work
+
+### The font or worker request returns 404
+
+Inspect the deployed asset URLs. A nested site base path changes document-relative URLs. Prefer URLs resolved by the bundler or absolute URLs you supply explicitly.
+
+### A call returns a capability error
+
+Read the error's `why` and `fix`. Use the main entry when your integration needs a synchronous original-input handler or a currently unsupported worker capability.
+
+Next, [connect a producer](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/) or inspect the worker reference under API.

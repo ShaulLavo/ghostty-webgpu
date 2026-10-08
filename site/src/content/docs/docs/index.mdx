@@ -1,0 +1,29 @@
+---
+title: Ghostty in the browser
+description: Start building a browser terminal with Ghostty’s WebAssembly core.
+---
+
+ghostty-webgpu combines Ghostty's terminal core, compiled to WebAssembly, with a browser host and four renderers. Use it to display shell sessions, build output, or an interactive command line inside your app.
+
+[Build your first terminal](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/) or [connect a real shell](https://shaullavo.github.io/ghostty-webgpu/docs/start/real-shell/). The [site demo](https://shaullavo.github.io/ghostty-webgpu/) has an in-browser shell you can try before installing.
+
+## What you get
+
+The main entry has automatic fitting, selection, scrollback, URL detection and OSC 8 links. It chooses WebGPU, WebGL2, Canvas 2D, then DOM according to the browser's capabilities. The [worker entry](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) runs the emulator and GPU renderer off the main thread.
+
+Ghostty owns parsing, screen state and cell widths. The browser owns font drawing and input events. The [wasm core](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/how-it-works/) explains that boundary.
+
+## Choose a path
+
+- [Coming from xterm.js](https://shaullavo.github.io/ghostty-webgpu/docs/start/xterm/) maps the APIs and addons.
+- [Coming from ghostty-web](https://shaullavo.github.io/ghostty-webgpu/docs/start/ghostty-web/) covers creation, bytes and appearance.
+- [Renderers and fallbacks](https://shaullavo.github.io/ghostty-webgpu/docs/guides/renderers/) explains backend selection.
+- [Benchmarks](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/) links the methods and recorded results.
+
+## Browser and package support
+
+Start with a current browser and a bundler that can serve WebAssembly assets. WebGPU needs a secure context and a usable adapter. WebGL2 and Canvas 2D widen the fallback path. Worker mode needs dedicated workers, OffscreenCanvas and a supported GPU backend. Performance results are specific to the environments in the benchmark report.
+
+These docs describe the source checkout. npm's latest release is currently older than this API. Check the [package releases](https://github.com/ShaulLavo/fregat/releases) when choosing a version.
+
+Search, image protocols and ligatures remain planned work. The [root roadmap](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md) tracks delivery. Accessibility has a text mirror and live region; a screen-reader audit is still needed.

@@ -1,0 +1,32 @@
+---
+title: The wasm core
+description: Follow bytes through Ghostty state, frames and the browser renderer.
+---
+
+Ghostty's libghostty-vt owns terminal state. WebAssembly runs that core inside the browser or a headless host. The JavaScript host connects input, layout and a renderer to that native state.
+
+```text
+PTY bytes → libghostty-vt → native screen and history
+                                ↓
+                         render-state damage
+                                ↓
+                          frame building
+                                ↓
+                   WebGPU / WebGL2 / Canvas / DOM
+```
+
+## One terminal state
+
+Parsing changes the active screen, cursor, modes and retained history. Selection, text reads and rendered output read that same native state. `GhosttyRuntime` loads the core. `GhosttyTerminal` exposes headless operations. `TerminalSession` adds the native session model, and `Terminal` supplies the DOM host.
+
+The wasm build uses the official upstream revision recorded in [the provenance file](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/ghostty-vt.provenance.json). That file records the compiler, source hashes and unpatched build recipe. Browser font drawing and protocol integrations remain host responsibilities.
+
+## The host and the worker
+
+The main entry calls native operations synchronously after asynchronous creation and opening. The worker entry puts native execution and GPU rendering in a dedicated actor. Its operations return promises when the caller needs the worker's acknowledgement. The DOM host stays on the page to own focus, pointer input and layout.
+
+## Frames and reads
+
+`write` updates emulator state. Rendering follows the scheduler. `onFrame` observes submitted rows and `submittedFrame` gives observers a coherent frame. `readLines` reads live native state; `visibleLines` reads the last submitted viewport. Choose the read that matches the question you are asking.
+
+The generated API documents [GhosttyRuntime](https://shaullavo.github.io/ghostty-webgpu/docs/reference/api/classes/ghosttyruntime/), [GhosttyTerminal](https://shaullavo.github.io/ghostty-webgpu/docs/reference/api/classes/ghosttyterminal/), [TerminalSession](https://shaullavo.github.io/ghostty-webgpu/docs/reference/api/classes/terminalsession/) and [Terminal](https://shaullavo.github.io/ghostty-webgpu/docs/reference/api/classes/terminal/). Continue with [damage tracking](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/damage-tracking/) or [worker execution](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/).

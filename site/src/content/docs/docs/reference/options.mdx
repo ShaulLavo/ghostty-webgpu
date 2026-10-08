@@ -1,0 +1,38 @@
+---
+title: Terminal options
+description: Find the main and worker creation options.
+---
+
+Create a terminal with `Terminal.create(options)`. The main entry takes `GhosttyWebGpuTerminalOptions`; `/worker` takes `WorkerTerminalOptions`. The generated API below this page is built from the current declarations.
+
+## Main entry
+
+| Option            | Purpose                                         | When omitted                    |
+| ----------------- | ----------------------------------------------- | ------------------------------- |
+| `appearance`      | Font, theme, cursor, grid and history budgets   | Native appearance defaults      |
+| `rendererMode`    | `auto`, `canvas2d-fill-text`, `canvas2d-pixels` | Automatic fallback selection    |
+| `rendererFactory` | Host-owned renderer construction                | Built-in selection              |
+| `keyboard`        | Enable keyboard input                           | Enabled                         |
+| `accessibility`   | Text mirror and live-region options, or `false` | Host defaults                   |
+| `clipboardWrite`  | Policy for OSC 52 writes                        | Denied                          |
+| `extensions`      | Native extension registrations                  | Empty                           |
+| `links`           | Link resolution policy                          | Built-in URL and OSC 8 handling |
+| `padding`         | Insets around the terminal grid                 | Host defaults                   |
+| `scrollbar`       | Scrollbar presentation                          | Host defaults                   |
+| `runtime`         | Reuse a session runtime                         | Create the terminal runtime     |
+
+## Worker entry
+
+| Option       | Purpose                           | When omitted                                |
+| ------------ | --------------------------------- | ------------------------------------------- |
+| `fonts`      | Worker font faces by URL or bytes | Required array                              |
+| `backend`    | `auto`, `webgpu`, `webgl`         | `auto`                                      |
+| `assets`     | Hosted wasm and bridge URLs       | Package-relative files                      |
+| `workerUrl`  | Hosted worker module              | Package worker                              |
+| `appearance` | Same appearance model             | Native defaults, first supplied font family |
+
+## Appearance
+
+`font` has `family`, `size`, `lineHeight`, `letterSpacing`, `weight` and `boldWeight`. `cursor` has `style` and `blink`. `theme` carries named RGB colors and the palette. `scrollbackLimit` and `scrollbackByteLimit` bound retained history. `grid` carries cell dimensions, columns, rows and pixel ratio.
+
+For working setups, read [fonts](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/), [themes](https://shaullavo.github.io/ghostty-webgpu/docs/guides/themes/), [scrollback](https://shaullavo.github.io/ghostty-webgpu/docs/guides/scrollback/) and [workers](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/).

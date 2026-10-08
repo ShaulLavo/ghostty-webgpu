@@ -1,0 +1,39 @@
+---
+title: Load fonts and fit the grid
+description: Load a font before mounting and understand native cell widths.
+sidebar:
+  order: 4
+---
+
+import { Code } from '@astrojs/starlight/components'
+import sample from '../../../../examples/fonts.ts?raw'
+
+You will size the grid using your chosen font. Start with a font URL your page is allowed to fetch and a sized host.
+
+## 1. Load before opening
+
+<Code code={sample} lang='ts' title='fonts.ts' />
+
+The example registers a `FontFace`, waits for it to load, then creates the terminal with that family. CSS `@font-face` works too; await `document.fonts.load` before opening. [Worker terminals](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) load their own faces.
+
+## 2. Change appearance
+
+Call `setFont` with a partial font object to change `family`, `size`, `lineHeight`, `weight`, `boldWeight` or `letterSpacing`. `lineHeight` multiplies the measured font box and must be at least 1. Font size describes the em size; the measured row can be taller.
+
+The fitter measures the font in CSS pixels, rounds its device-pixel geometry, then fits the host. Let the terminal perform this calculation so the session and renderer agree.
+
+## 3. Check emoji and CJK
+
+libghostty-vt determines cell widths. The browser's fallback fonts determine glyph appearance. Applications enable grapheme clustering with mode 2027. With that mode enabled, a ZWJ sequence such as 👩‍💻 occupies two cells. With it off, native default widths apply. The renderers use the same native cell ownership.
+
+## If it doesn't work
+
+### The first frame uses a different font
+
+Wait for the face before opening, and use the exact registered family. Check CORS and network responses for the font URL.
+
+### Rows are taller than the font size
+
+Font box metrics include ascent and descent. Check `lineHeight` and the actual loaded face. The repository's [font geometry note](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/font-geometry.md) explains the rounding formulas.
+
+Next, [apply a theme](https://shaullavo.github.io/ghostty-webgpu/docs/guides/themes/).

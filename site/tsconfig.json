@@ -6,5 +6,6 @@
     "rootDir": "..",
     "types": ["bun", "@webgpu/types", "astro/client"]
   },
-  "include": ["src/**/*.ts", "astro.config.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts", "astro.config.ts", "scripts/**/*.ts"],
+  "exclude": ["scripts/*.test.ts"]
 }

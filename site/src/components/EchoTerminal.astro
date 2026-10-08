@@ -1,0 +1,19 @@
+<div class="docs-terminal" data-docs-terminal aria-label="Echo terminal">
+  <pre>Hello from Ghostty. Type here to echo your keys.</pre>
+</div>
+<script>
+  import { mountEcho } from '../examples/quick-start.js'
+  const host = document.querySelector<HTMLElement>('[data-docs-terminal]')
+  if (host) {
+    const observer = new IntersectionObserver(async (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      observer.disconnect()
+      const placeholder = host.querySelector('pre')
+      const dispose = await mountEcho(host)
+      placeholder?.remove()
+      window.addEventListener('pagehide', dispose, { once: true })
+    })
+    observer.observe(host)
+    window.addEventListener('pagehide', () => observer.disconnect(), { once: true })
+  }
+</script>

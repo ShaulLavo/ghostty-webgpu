@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "ghostty-webgpu": ["../dist/index.d.ts"],
+      "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"]
+    }
+  },
+  "include": [
+    "src/examples/**/*.ts",
+    ".astro/docs-snippets/**/*.ts",
+    ".astro/docs-snippets/**/*.tsx"
+  ]
+}
