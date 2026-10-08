@@ -12,6 +12,7 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
 import { defaultRendererTheme, type CanonicalRendererTheme } from '../instances/types.js'
+import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../instances/layout.js'
 import { WebGpuTerminalRenderer, type WebGpuTerminalRendererOptions } from '../renderer.js'
 import { WebGlTerminalRenderer } from '../webgl/renderer.js'
 import { displayedPixels, fittedFont, TestClock } from '../webgl/tests/fixture.js'
@@ -259,7 +260,6 @@ function cleanRowRecords(builder: ZigFrameBuilder) {
 }
 
 for (const backend of ['webgpu', 'webgl2'] as const) {
-  const glyphInstanceBytes = backend === 'webgpu' ? 80 : 96
   describe(`${backend} Zig Unicode compositor`, () => {
     it.each([...zigUnicodeFixtures, ...zigGlyphCollisionFixtures])(
       'submits $name entirely through Zig',
@@ -351,7 +351,7 @@ for (const backend of ['webgpu', 'webgl2'] as const) {
         writeFrame(pair, '\x1b[2;1H\x1b[31;44m界é👩‍💻\x1b[0m')
         expect(pair.builds.mock.results.map((result) => result.value)).toEqual([2, 0])
         expect(pair.native.renderer.metrics.uploadedBytes - uploaded).toBe(
-          2 * 40 * (64 + glyphInstanceBytes),
+          2 * 40 * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES),
         )
         const changed = await expectPainted(pair, 2)
         expect(changed).not.toEqual(before)

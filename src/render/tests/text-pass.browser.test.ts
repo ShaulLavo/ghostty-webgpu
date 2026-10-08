@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { expect, it, onTestFinished } from 'vitest'
 import type { CellStyle, RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../atlas/atlas.js'
@@ -8,6 +8,7 @@ import type { GlyphRasterizer } from '../atlas/types.js'
 import { canonicalRendererTheme } from '../config.js'
 import { fitTerminalFont } from '../../dom/fit.js'
 import { createNativeTestState } from './native-state.js'
+import { limitDeviceBuffers } from './device-limits.js'
 import { buildZigFrame } from '../atlas/zig-glyphs.js'
 import { defaultRendererTheme, type CursorState, type RendererTheme } from '../instances/types.js'
 import { WebGpuTextPass } from '../text-pass.js'
@@ -22,6 +23,7 @@ const bytesPerRow = 512
 interface RenderedGrid {
   destroy(): void
   pass: WebGpuTextPass
+  pixels: Uint8Array
   pixel(x: number, y: number): readonly number[]
 }
 
@@ -87,8 +89,32 @@ function fittedFont(): TerminalFittedFont {
 async function createDevice(): Promise<GPUDevice> {
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
   if (!adapter) throw new Error('WebGPU requestAdapter returned null')
-  return adapter.requestDevice()
+  const device = await adapter.requestDevice()
+  onTestFinished(() => device.destroy())
+  return device
 }
+
+it.each([
+  { name: 'small grid', instanceCount: 24 },
+  { name: 'largest grid in the packed binding budget', instanceCount: Math.floor(134217728 / 80) },
+])('binds the $name on default device limits', async ({ instanceCount }) => {
+  const device = await createDevice()
+  expect(device.limits.maxStorageBufferBindingSize).toBe(134217728)
+  device.pushErrorScope('validation')
+  const atlas = new GlyphAtlas({ pageHeight: 8, pageWidth: 8 })
+  const textures = new AtlasGpuTextures(device, atlas.textureLayout)
+  onTestFinished(() => textures.destroy())
+  const pass = new WebGpuTextPass({
+    device,
+    format: 'rgba8unorm',
+    height: 1,
+    instanceCount,
+    width: 1,
+  })
+  onTestFinished(() => pass.destroy())
+  pass.syncAtlas(textures)
+  expect(await device.popErrorScope()).toBeNull()
+})
 
 function testRows(): readonly RenderRow[] {
   return [
@@ -135,6 +161,7 @@ async function renderGrid(
   native.writeRows(fixture.renderRows ?? testRows())
   native.state.update()
   const builder = native.state.createFrameBuilder(columns, rows)
+  onTestFinished(() => builder.dispose())
   expect(
     buildZigFrame(builder, atlas, rasterizer, {
       cellHeight: cellSize,
@@ -147,6 +174,7 @@ async function renderGrid(
   ).toBe(0)
   const updates = builder.changedRanges()
   const atlasTextures = new AtlasGpuTextures(device, atlas.textureLayout)
+  onTestFinished(() => atlasTextures.destroy())
   atlasTextures.sync(atlas.consumeUploads())
   const pass = new WebGpuTextPass({
     device,
@@ -155,6 +183,7 @@ async function renderGrid(
     instanceCount: columns * rows,
     width,
   })
+  onTestFinished(() => pass.destroy())
   pass.syncAtlas(atlasTextures)
   pass.uploadFrame(builder, updates)
   const texture = device.createTexture({
@@ -162,10 +191,12 @@ async function renderGrid(
     size: [width, height],
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
   })
+  onTestFinished(() => texture.destroy())
   const output = device.createBuffer({
     size: bytesPerRow * height,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
   })
+  onTestFinished(() => output.destroy())
   pass.submit(texture.createView(), {
     buffer: output,
     bytesPerRow,
@@ -184,6 +215,7 @@ async function renderGrid(
       atlasTextures.destroy()
     },
     pass,
+    pixels,
     pixel(x: number, y: number) {
       const offset = y * bytesPerRow + x * 4
       return [...pixels.subarray(offset, offset + 4)]
@@ -258,11 +290,26 @@ it('renders transparent defaults, opaque explicit colors, glyphs, and an outline
   expect(grid.pass.metrics).toEqual({
     draws: 2,
     submittedFrames: 1,
-    uploadedBytes: columns * rows * (64 + 80),
+    uploadedBytes: columns * rows * (64 + 96),
     uploadOperations: 2,
   })
   grid.destroy()
   device.destroy()
+})
+
+it('renders identical native glyph pixels across bounded storage batches', async () => {
+  const device = await createDevice()
+  const cursor: CursorState = { style: 'outline', visible: false, x: 0, y: 0 }
+  const control = await renderGrid(device, defaultRendererTheme, cursor)
+  expect(control.pass.metrics.draws).toBe(2)
+  limitDeviceBuffers(device, { maxStorageBufferBindingSize: columns * rows * 64 })
+  device.pushErrorScope('validation')
+  const bounded = await renderGrid(device, defaultRendererTheme, cursor)
+  expect(await device.popErrorScope()).toBeNull()
+  expect(bounded.pass.metrics.draws).toBe(3)
+  expect(bounded.pass.metrics.uploadOperations).toBe(3)
+  expect(bounded.pass.metrics.uploadedBytes).toBe(control.pass.metrics.uploadedBytes)
+  expect(bounded.pixels).toEqual(control.pixels)
 })
 
 it('renders explicit cursor text over a WebGPU block cursor', async () => {
@@ -336,6 +383,39 @@ it('renders decorations, inverse, selection, invisibility, and minimum contrast 
   expect(maximumRegionAlpha(grid, 96, 32, cellSize)).toBeLessThan(
     maximumRegionAlpha(grid, 32, 0, cellSize),
   )
+  grid.destroy()
+  device.destroy()
+})
+
+it('selects the native color-atlas kind alongside grayscale glyphs', async () => {
+  const device = await createDevice()
+  const colorPixels = new Uint8Array(cellSize * cellSize * 4)
+  for (let index = 0; index < colorPixels.length; index += 4) {
+    colorPixels.set([255, 0, 255, 255], index)
+  }
+  const rasterizer: GlyphRasterizer = {
+    rasterize(input) {
+      const color = input.text === 'B'
+      return {
+        height: cellSize,
+        kind: color ? 'color' : 'grayscale',
+        offsetX: 0,
+        offsetY: 0,
+        pixels: color ? colorPixels : new Uint8Array(cellSize * cellSize).fill(255),
+        width: cellSize,
+      }
+    },
+  }
+  device.pushErrorScope('validation')
+  const grid = await renderGrid(
+    device,
+    defaultRendererTheme,
+    { style: 'outline', visible: false, x: 0, y: 0 },
+    { rasterizer, renderRows: [renderRow(0, [cell(0, { text: 'A' }), cell(1, { text: 'B' })])] },
+  )
+  expect(await device.popErrorScope()).toBeNull()
+  expect(grid.pixel(8, 8)[3]).toBe(255)
+  expect(grid.pixel(24, 8)).toEqual([255, 0, 255, 255])
   grid.destroy()
   device.destroy()
 })

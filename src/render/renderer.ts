@@ -36,7 +36,7 @@ import {
   type RowInstanceUpdate,
 } from './instances/types.js'
 import { RenderScheduler, type RenderSchedulerClock } from './scheduler.js'
-import { WebGpuTextPass } from './text-pass.js'
+import { textPassGlyphCapacity, WebGpuTextPass } from './text-pass.js'
 
 export interface RenderStateSource {
   readonly snapshotVersion?: number
@@ -335,6 +335,7 @@ export class WebGpuTerminalRenderer {
     const lease = await owner.acquire()
     let prepared: PreparedRenderer | undefined
     try {
+      textPassGlyphCapacity(lease.device, validated.grid.columns * validated.grid.rows)
       prepared = prepareRenderer(options, validated)
       return new WebGpuTerminalRenderer(options, lease, owner, prepared)
     } catch (cause) {
@@ -440,6 +441,7 @@ export class WebGpuTerminalRenderer {
     if (this.disposed) return
     const next = normalizeRendererGrid(grid)
     if (this.gridEquals(next)) return
+    textPassGlyphCapacity(this.device, next.columns * next.rows)
     for (const row of this.overlayRows) {
       if (row >= next.rows) this.overlayRows.delete(row)
     }
@@ -776,7 +778,7 @@ export class WebGpuTerminalRenderer {
     this.metrics.atlasUploadedBytes = this.atlasUploadedBytesOffset + this.atlasTextures.uploadBytes
     this.metrics.atlasUploadOperations =
       this.atlasUploadOperationsOffset + this.atlasTextures.uploadOperationCount
-    this.metrics.draws += 2
+    this.metrics.draws += this.textPass.drawCount
     this.metrics.instanceUploadOperations += instanceUploadOperations
     this.metrics.rebuiltRows += updates.length
     this.metrics.submittedFrames += 1
@@ -848,9 +850,12 @@ export class WebGpuTerminalRenderer {
       await replacement.release()
       return
     }
-    const resources = this.prepareReplacement(replacement.device)
-    if (!resources) {
+    let resources: ReplacementResources
+    try {
+      resources = this.prepareReplacement(replacement.device)
+    } catch (cause) {
       await replacement.release()
+      this.reportFrameFailure(cause)
       return
     }
     if (this.disposed || expectedGeneration !== this.deviceGeneration) {
@@ -882,20 +887,21 @@ export class WebGpuTerminalRenderer {
     this.scheduler.schedule()
   }
 
-  private prepareReplacement(device: GPUDevice): ReplacementResources | undefined {
+  private prepareReplacement(device: GPUDevice): ReplacementResources {
     let textPass: WebGpuTextPass | undefined
     let atlasTextures: AtlasGpuTextures | undefined
     try {
+      textPassGlyphCapacity(device, this.grid.columns * this.grid.rows)
       atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
       textPass = this.createTextPass(device)
       textPass.syncAtlas(atlasTextures)
       this.configureContext(device)
       return { atlasTextures, textPass }
-    } catch {
+    } catch (cause) {
       textPass?.destroy()
       atlasTextures?.destroy()
       this.unconfigureContext()
-      return undefined
+      throw cause
     }
   }
 

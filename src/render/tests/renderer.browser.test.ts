@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { attachNativeTestBuilder } from './native-state.js'
+import { limitDeviceBuffers } from './device-limits.js'
 import {
   qualifyDeviceReplacement,
   type DeviceReplacementQualification,
@@ -823,6 +824,104 @@ it('unwinds a replacement when post-acquisition setup fails', async () => {
   canvas.remove()
 })
 
+it('rejects an unsupported supplied device before configuring or allocating', async () => {
+  const device = await createDevice()
+  limitDeviceBuffers(device, { maxBufferSize: 255 })
+  const canvas = createCanvas()
+  const context = canvas.getContext('webgpu')!
+  const configure = vi.spyOn(context, 'configure')
+  const allocate = vi.spyOn(device, 'createBuffer')
+  await expect(
+    createRenderer({
+      canvas,
+      columns: 2,
+      rows: 2,
+      font: fittedFont(),
+      renderState: new FakeRenderState(2, 2),
+      deviceFactory: async () => device,
+    }),
+  ).rejects.toThrow('The grid needs 256 cell-storage bytes')
+  expect(configure).not.toHaveBeenCalled()
+  expect(allocate).not.toHaveBeenCalled()
+})
+
+it('keeps the current grid and paint when a resize exceeds the device binding limit', async () => {
+  const device = await createDevice()
+  limitDeviceBuffers(device, { maxStorageBufferBindingSize: 256 })
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 2)
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    rows: 2,
+    font: fittedFont(),
+    renderState: source,
+    schedulerClock: clock,
+    deviceFactory: async () => device,
+  })
+  clock.flushFrame()
+  expect(renderer.metrics.draws).toBe(3)
+  const pixels = await renderer.capturePixels()
+  const size = [canvas.width, canvas.height]
+  expect(() => renderer.resize({ columns: 3, rows: 2 })).toThrow(
+    'The grid needs 384 cell-storage bytes',
+  )
+  expect([canvas.width, canvas.height]).toEqual(size)
+  source.dirtyRow(1)
+  renderer.notifyWrite()
+  clock.flushFrame()
+  expect(await renderer.capturePixels()).toEqual(pixels)
+  expect(renderer.metrics.draws).toBe(6)
+})
+
+it.each([false, true])(
+  'reports an unsupported replacement and keeps recovery retryable when its error callback throws: %s',
+  async (throwOnError) => {
+    const first = await createDevice()
+    const limited = await createDevice()
+    limitDeviceBuffers(limited, { maxStorageBufferBindingSize: 255 })
+    const factory = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockResolvedValueOnce(limited)
+      .mockImplementation(createDevice)
+    const allocate = vi.spyOn(limited, 'createBuffer')
+    const destroy = vi.spyOn(limited, 'destroy')
+    const clock = new FakeClock()
+    const onError = vi.fn((cause: unknown) => {
+      expect(cause).toMatchObject({ operation: 'webgpu_capacity' })
+      if (throwOnError) throw new TypeError('capacity reporter failed')
+    })
+    const renderer = await createRenderer({
+      canvas: createCanvas(),
+      columns: 2,
+      rows: 2,
+      font: fittedFont(),
+      renderState: new FakeRenderState(2, 2),
+      schedulerClock: clock,
+      deviceFactory: factory,
+      onError,
+    })
+    clock.flushFrame()
+    const restoring = renderer.simulateDeviceLoss()
+    if (throwOnError) await expect(restoring).rejects.toThrow('capacity reporter failed')
+    if (!throwOnError) await restoring
+    expect(destroy).toHaveBeenCalledOnce()
+    expect(renderer.metrics.deviceRestores).toBe(0)
+    expect(onError).toHaveBeenCalledOnce()
+    expect(onError.mock.calls[0]![0]).toMatchObject({ operation: 'webgpu_capacity' })
+    expect(allocate).not.toHaveBeenCalled()
+    await limited.lost
+    await waitForDeviceCleanup()
+    renderer.schedule()
+    clock.flushFrame()
+    await expect.poll(() => renderer.metrics.deviceRestores).toBe(1)
+    clock.flushFrame()
+    expect(renderer.metrics.submittedFrames).toBe(2)
+  },
+)
+
 it('validates before acquisition and destroys a device after constructor failure', async () => {
   const canvas = createCanvas()
   let calls = 0
@@ -949,7 +1048,7 @@ it('paints WASM ASCII and Unicode frames without JS row reads', async () => {
     nativeClock.flushFrame()
     expect(native.metrics.zigFrames).toBe(2)
     expect(native.metrics.uploadedBytes - uploaded).toBeGreaterThan(0)
-    expect(native.metrics.uploadedBytes - uploaded).toBeLessThanOrEqual(24 * (64 + 80))
+    expect(native.metrics.uploadedBytes - uploaded).toBeLessThanOrEqual(24 * (64 + 96))
     expect(readRows).not.toHaveBeenCalled()
     js.refreshRows(0, 2)
     jsClock.flushFrame()
@@ -1486,7 +1585,7 @@ it('retains identical GPU records when output scrolls the viewport', async () =>
     const changedPixels = await renderer.capturePixels()
     expect(changedPixels).not.toEqual(beforePixels)
     expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeGreaterThan(0)
-    expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeLessThan(24 * 3 * (64 + 80))
+    expect(renderer.metrics.uploadedBytes - uploadedBytes).toBeLessThan(24 * 3 * (64 + 96))
     expect(renderer.hasPendingFrame).toBe(false)
     await page.screenshot({
       element: canvas,

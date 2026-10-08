@@ -7,6 +7,7 @@ struct Instance {
   uv: vec4f,
   background: vec4f,
   metadata: vec4f,
+  atlas: vec4f,
 }
 
 struct Viewport {
@@ -50,7 +51,7 @@ fn vertexMain(
   output.color = instance.color;
   output.uv = mix(instance.uv.xy, instance.uv.zw, corner);
   output.background = instance.background;
-  output.metadata = instance.metadata;
+  output.metadata = vec4f(instance.metadata.x, instance.metadata.z, instance.atlas.x, instance.atlas.z);
   return output;
 }
 

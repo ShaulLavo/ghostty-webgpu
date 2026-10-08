@@ -18,7 +18,7 @@ function counterTotal(
 
 const uploadCases = [
   {
-    name: 'full packed frame',
+    name: 'full native frame',
     updates: [
       {
         row: 0,
@@ -26,7 +26,7 @@ const uploadCases = [
         glyph: { byteOffset: 0, byteLength: 2304 },
       },
     ],
-    actualBytes: 3456,
+    actualBytes: 3840,
     canonicalBytes: 3840,
   },
   {
@@ -43,7 +43,7 @@ const uploadCases = [
         glyph: { byteOffset: 192, byteLength: 96 },
       },
     ],
-    actualBytes: 576,
+    actualBytes: 640,
     canonicalBytes: 320,
   },
 ]
