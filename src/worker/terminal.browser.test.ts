@@ -67,6 +67,31 @@ async function create(mode: 'main' | 'webgpu' | 'webgl') {
   return terminal
 }
 
+it('rejects an opening reply without font metrics before inputReady', async () => {
+  const inputReady = vi.fn()
+  const terminal = await WorkerTerminal.create({
+    assets,
+    appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+    backend: 'webgl',
+    workerUrl: new URL('./tests/opening-reply.worker.ts', import.meta.url),
+    fonts: [{ family, source: { url: fontUrl } }],
+    inputHooks: { inputReady },
+  })
+  active.push(terminal)
+  const root = container()
+  await expect(terminal.open(root)).rejects.toMatchObject({
+    name: 'TerminalWorkerError',
+    code: 'protocol',
+    operation: 'open.font',
+    status: 500,
+    why: 'The terminal worker received an invalid message.',
+    fix: 'Create a new terminal with matching package assets.',
+  })
+  expect(inputReady).not.toHaveBeenCalled()
+  expect(terminal.lifecycle).toBe('disposed')
+  expect(root.childElementCount).toBe(0)
+})
+
 it('waits and destroys each public Window device once', async () => {
   const devices: DeviceLifecycleCounts[] = []
   const request = GPUAdapter.prototype.requestDevice

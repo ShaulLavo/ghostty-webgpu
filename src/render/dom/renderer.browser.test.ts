@@ -632,3 +632,118 @@ it('packed DOM rows keep styled callbacks and lazy snapshots owned across writes
   expect(probe.renderer.metrics.paintedRows).toBe(count)
   expect(probe.renderer.metrics.paintedCells).toBe(cells)
 })
+
+it('keeps live flow offsets through fractional CSS, sibling flow and stylesheet rules', async () => {
+  const probe = await rendererProbe('dom')
+  const canvas = probe.canvas
+  const host = canvas.parentElement!
+  const container = canvas.nextElementSibling as HTMLElement
+  const oracle = document.createElement('div')
+  oracle.style.position = 'absolute'
+  host.append(oracle)
+  const expectFlowOffsets = () => {
+    probe.terminal.write('\rnext')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    const style = getComputedStyle(canvas)
+    oracle.style.left = `${canvas.offsetLeft + parseFloat(style.paddingLeft)}px`
+    oracle.style.top = `${canvas.offsetTop + parseFloat(style.paddingTop)}px`
+    const expected = oracle.getBoundingClientRect()
+    const actual = container.getBoundingClientRect()
+    expect(actual.left).toBeCloseTo(expected.left, 5)
+    expect(actual.top).toBeCloseTo(expected.top, 5)
+  }
+  expectFlowOffsets()
+  host.style.border = '2.25px solid transparent'
+  host.style.padding = '3.25px 4.5px'
+  canvas.style.margin = '2.5px 5.5px'
+  expectFlowOffsets()
+  const sibling = document.createElement('div')
+  sibling.style.height = '17.25px'
+  host.prepend(sibling)
+  expectFlowOffsets()
+  canvas.setAttribute('data-dom-position-probe', '')
+  const sheet = document.createElement('style')
+  document.head.append(sheet)
+  cleanups.push(() => sheet.remove())
+  sheet.sheet!.insertRule(
+    'canvas[data-dom-position-probe] { anchor-name: --embedder !important; margin-top: 23.25px !important; padding-left: 19px !important }',
+  )
+  expectFlowOffsets()
+  sheet.remove()
+  canvas.style.padding = '5% 7%'
+  host.style.width = '400px'
+  expectFlowOffsets()
+  host.style.width = '350px'
+  expectFlowOffsets()
+})
+
+it('isolates fixed-grid layout through theme and font changes', async () => {
+  const probe = await rendererProbe('dom')
+  const frame = () =>
+    probe.canvas.parentElement!.querySelector<HTMLElement>('.ghostty-webgpu-frame')!
+  expect(frame().style.contain).toBe('layout paint')
+  probe.renderer.setTheme({ background: { r: 1, g: 2, b: 3 } })
+  probe.clock.flush()
+  expect(frame().style.contain).toBe('layout paint')
+  probe.renderer.setFont({ ...probeFont, cssCellWidth: 12, deviceCellWidth: 12 })
+  probe.clock.flush()
+  expect(frame().style.contain).toBe('layout paint')
+  expect(frame().getBoundingClientRect().width).toBe(144)
+})
+
+it('preserves row-derived frame height when the host overrides height to auto', async () => {
+  const probe = await rendererProbe('dom')
+  const frame = probe.canvas.parentElement!.querySelector<HTMLElement>('.ghostty-webgpu-frame')!
+  const height = 3 * probeFont.cssCellHeight
+  expect(frame.getBoundingClientRect().height).toBe(height)
+  frame.style.height = 'auto'
+  expect(frame.getBoundingClientRect().height).toBe(height)
+})
+
+it('restores priority-only changes to owned overlay positions', async () => {
+  const probe = await rendererProbe('dom')
+  const container = probe.canvas.nextElementSibling as HTMLElement
+  for (const property of ['left', 'top']) {
+    container.style.setProperty(property, container.style.getPropertyValue(property), 'important')
+  }
+  probe.terminal.write('\rnext')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(container.style.getPropertyPriority('left')).toBe('')
+  expect(container.style.getPropertyPriority('top')).toBe('')
+})
+
+it('restores overlay declarations after exposed inline styles change', async () => {
+  const probe = await rendererProbe('dom')
+  const container = probe.canvas.nextElementSibling as HTMLElement
+  const left = container.style.left
+  const top = container.style.top
+  expect(left).not.toBe('')
+  container.style.removeProperty('left')
+  container.style.top = '0px'
+  probe.terminal.write('\rnext')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(container.style.left).toBe(left)
+  expect(container.style.top).toBe(top)
+})
+
+it('reads live canvas geometry without repeating unchanged overlay declarations', async () => {
+  const probe = await rendererProbe('dom')
+  const container = probe.canvas.nextElementSibling as HTMLElement
+  const styles = new MutationObserver(() => {})
+  styles.observe(container, { attributes: true, attributeFilter: ['style'] })
+  cleanups.push(() => styles.disconnect())
+  probe.terminal.write('\rnext')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(styles.takeRecords()).toEqual([])
+  probe.canvas.style.marginLeft = '23px'
+  probe.canvas.style.paddingTop = '11px'
+  probe.terminal.write('\ranother')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(container.style.left).toBe('30px')
+  expect(container.style.top).toBe('11px')
+})

@@ -15,6 +15,10 @@ return promises in the main entry.
 The `ghostty-webgpu/worker` entry creates the same DOM host around a dedicated worker.
 The worker owns its native session, WASM, fitted font, Zig frame builder and WebGPU or WebGL
 renderer. Supply each font as an explicit URL or byte array with optional `FontFaceDescriptors`.
+The opening acknowledgment supplies the worker-fitted cell metrics before `inputReady` runs.
+First composed text uses these metrics even before a submitted frame reaches the host.
+An opening reply with incomplete font metrics fails with structured protocol guidance before
+`inputReady`. Host the worker and host entry from the same package build.
 
 ```ts
 import { Terminal } from 'ghostty-webgpu/worker'
@@ -109,6 +113,15 @@ The shipped native artifact uses the pinned official Ghostty source without patc
 and [undershoot test](https://github.com/ghostty-org/ghostty/blob/7b11f3dca034d8d24369ad3856afe57946d7902a/src/terminal/PageList.zig#L11258-L11303)
 define this retention behavior. A line budget describes that native policy; `lineCount()` supplies
 the available row count.
+
+## DOM frame sizing
+
+The DOM renderer owns the frame's inline width and height, calculated from the terminal grid
+and fitted cell dimensions. Host layout and canvas padding determine the overlay's live position.
+The frame uses `contain: layout paint` and clips painting to its bounds. Host styles that override
+the frame's dimensions also change that clipping boundary; update the terminal grid or fitted font
+when changing its viewport. An explicit `height: auto` override derives height from the rendered
+rows. Layout and paint containment preserve this row-derived height.
 
 ## first frames and damage
 

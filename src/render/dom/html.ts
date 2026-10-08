@@ -51,7 +51,7 @@ export function frameStyle(
   theme: CanonicalRendererTheme,
 ): string {
   const colors = new CanvasColorCache(theme.minimumContrast)
-  return `width:calc(${grid.columns} * var(--ghostty-cell-width, ${font.cssCellWidth}px));height:calc(${grid.rows} * var(--ghostty-cell-height, ${font.cssCellHeight}px));overflow:hidden;white-space:pre;direction:ltr;unicode-bidi:bidi-override;text-align:left;font-variant-ligatures:none;font-family:${cssFontFamily(font.settings.family)};font-size:var(--ghostty-font-size, ${font.settings.size}px);font-weight:${font.settings.weight};line-height:var(--ghostty-cell-height, ${font.cssCellHeight}px);color:${colors.css(theme.foreground)};background-color:${colors.css(theme.background)}`
+  return `width:calc(${grid.columns} * var(--ghostty-cell-width, ${font.cssCellWidth}px));height:calc(${grid.rows} * var(--ghostty-cell-height, ${font.cssCellHeight}px));contain:layout paint;overflow:hidden;white-space:pre;direction:ltr;unicode-bidi:bidi-override;text-align:left;font-variant-ligatures:none;font-family:${cssFontFamily(font.settings.family)};font-size:var(--ghostty-font-size, ${font.settings.size}px);font-weight:${font.settings.weight};line-height:var(--ghostty-cell-height, ${font.cssCellHeight}px);color:${colors.css(theme.foreground)};background-color:${colors.css(theme.background)}`
 }
 
 function cursorDecoration(

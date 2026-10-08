@@ -6,6 +6,7 @@ import type { InactiveCursorStyle } from '../render/cursor.js'
 import type {
   TerminalAppearance,
   TerminalAppearanceOptions,
+  TerminalFittedFont,
   TerminalSessionEventMap,
 } from '../term/types.js'
 import type { WorkerFailure } from './structured-errors.js'
@@ -93,7 +94,7 @@ type NativeCommands = Pick<
   | 'setAppearance'
 >
 export interface WorkerCommands extends NativeCommands {
-  open(canvas: OffscreenCanvas, layout: WorkerLayout): void
+  open(canvas: OffscreenCanvas, layout: WorkerLayout): TerminalFittedFont
   layout(layout: WorkerLayout): void
   focused(focused: boolean): void
   visible(visible: boolean): void

@@ -216,7 +216,7 @@ export class TerminalWorkerRuntime {
     this.renderer?.refreshRows?.(0, rows - 1)
   }
 
-  private async open(canvas: OffscreenCanvas, layout: WorkerLayout): Promise<void> {
+  private async open(canvas: OffscreenCanvas, layout: WorkerLayout): Promise<TerminalFittedFont> {
     if (this.renderer) throw workerError('protocol', 'open', { opened: true })
     this.applyLayout(layout)
     const execution = this.native()
@@ -284,6 +284,7 @@ export class TerminalWorkerRuntime {
     this.renderer = renderer
     this.renderer.setInactiveCursorStyle?.(this.inactiveCursorStyle)
     this.renderer.schedule()
+    return font
   }
 
   private async requestDevice(): Promise<GPUDevice> {

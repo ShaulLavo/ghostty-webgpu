@@ -266,6 +266,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly emitters = createHostEmitters()
   private fit?: TerminalFitController
   private fittedFont?: TerminalFittedFont
+  private preeditActive = false
   private workerCanvasSize?: {
     readonly canvas: HTMLCanvasElement
     readonly width: number
@@ -902,6 +903,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.accessibility = undefined
     this.fit = undefined
     this.fittedFont = undefined
+    this.preeditActive = false
     this.input = undefined
     this.inputLifecycle = undefined
     this.lastFrame = undefined
@@ -960,7 +962,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           internal: { actor: 'worker', capability: 'canvas2d' },
         })
       this.execution.setFrameListener((snapshot) => this.handleFrame(snapshot))
-      await this.execution.open(
+      this.fittedFont = await this.execution.open(
         elements,
         workerLayout(elements, 1, this.scrollbarWidthValue, this.autoFit),
       )
@@ -975,8 +977,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
-    const compositionView = elements.compositionView
-    if (compositionView) applyPreeditAppearance(compositionView, font, appearance.rendererTheme)
+    this.updatePreeditAppearance(font, appearance.rendererTheme)
     return this.execution.createRenderer(
       this.rendererFactory,
       {
@@ -1017,8 +1018,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
-    const compositionView = elements.compositionView
-    if (compositionView) applyPreeditAppearance(compositionView, font, appearance.rendererTheme)
+    this.updatePreeditAppearance(font, appearance.rendererTheme)
     this.renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     this.renderer?.setFont(font)
     this.renderer?.setTheme(appearance.rendererTheme)
@@ -1628,19 +1628,27 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   }
 
   private updatePreedit(value: string): void {
+    this.preeditActive = value.length > 0
     const compositionView = this.elementsValue?.compositionView
     if (!compositionView) return
+    if (this.preeditActive) {
+      const summary = this.execution.submittedFrame
+      const appearance = this.execution.appearance
+      const font = summary?.font ?? this.fittedFont
+      this.updatePreeditAppearance(font, summary?.theme ?? appearance.rendererTheme)
+    }
     compositionView.textContent = value
-    compositionView.classList.toggle('active', value.length > 0)
-    compositionView.hidden = value.length === 0
+    compositionView.classList.toggle('active', this.preeditActive)
+    compositionView.hidden = !this.preeditActive
   }
 
   private updatePreeditAppearance(
     font: TerminalFittedFont | undefined,
     theme: TerminalRendererTheme,
   ): void {
+    if (!this.preeditActive || !font) return
     const compositionView = this.elementsValue?.compositionView
-    if (!compositionView || !font) return
+    if (!compositionView) return
     applyPreeditAppearance(compositionView, font, theme)
   }
 

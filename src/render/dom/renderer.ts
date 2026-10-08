@@ -156,8 +156,15 @@ class DomSurface implements RowRendererSurface {
 
   private position(): void {
     const style = this.canvas.ownerDocument.defaultView!.getComputedStyle(this.canvas)
-    this.container.style.left = `${this.canvas.offsetLeft + (parseFloat(style.paddingLeft) || 0)}px`
-    this.container.style.top = `${this.canvas.offsetTop + (parseFloat(style.paddingTop) || 0)}px`
+    const left = this.canvas.offsetLeft + (parseFloat(style.paddingLeft) || 0)
+    const top = this.canvas.offsetTop + (parseFloat(style.paddingTop) || 0)
+    const declarations = this.container.style
+    const leftDeclaration = `${left}px`
+    const topDeclaration = `${top}px`
+    if (declarations.left !== leftDeclaration || declarations.getPropertyPriority('left') !== '')
+      declarations.left = leftDeclaration
+    if (declarations.top !== topDeclaration || declarations.getPropertyPriority('top') !== '')
+      declarations.top = topDeclaration
   }
 }
 

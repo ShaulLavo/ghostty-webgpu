@@ -9,7 +9,11 @@ import {
   type LinkProjection,
 } from '../term/link-snapshot.js'
 import type { LinkProvider, LinkResolverOptions } from '../term/links.js'
-import type { TerminalSessionEventType, TerminalSessionListener } from '../term/types.js'
+import type {
+  TerminalFittedFont,
+  TerminalSessionEventType,
+  TerminalSessionListener,
+} from '../term/types.js'
 import type {
   WorkerInitialize,
   WorkerCommands,
@@ -21,6 +25,7 @@ import type {
 } from './protocol.js'
 import { TerminalWorkerError, workerError } from './structured-errors.js'
 import { freezeWorkerValue } from './owned.js'
+import { readOpeningFont } from './opening-font.js'
 import { workerOperationTimeout } from './protocol.js'
 
 interface Pending {
@@ -311,9 +316,9 @@ export class WorkerTerminalExecution {
     this.frameListener = listener
   }
 
-  open(elements: TerminalElements, layout: WorkerLayout): Promise<void> {
+  open(elements: TerminalElements, layout: WorkerLayout): Promise<TerminalFittedFont> {
     const canvas = elements.canvas.transferControlToOffscreen()
-    return this.request('open', [canvas, layout], [canvas])
+    return this.request('open', [canvas, layout], [canvas]).then(readOpeningFont)
   }
   layout(layout: WorkerLayout): Promise<void> {
     return this.request('layout', [layout])
