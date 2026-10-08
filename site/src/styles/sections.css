@@ -377,8 +377,9 @@
 }
 
 .map {
+  display: block;
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
   border-collapse: collapse;
   border-radius: 12px;
   background: var(--ink);
