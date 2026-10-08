@@ -1,23 +1,25 @@
 {
   "name": "ghostty-webgpu",
   "version": "0.3.20",
-  "description": "Ghostty for the web with a damage-aware WebGPU renderer and native API",
+  "description": "Ghostty terminal emulation for the browser with WebGPU, WebGL, canvas, and DOM renderers.",
   "keywords": [
     "browser",
     "ghostty",
     "terminal",
     "terminal-emulator",
     "wasm",
+    "webgl",
     "webgpu"
   ],
-  "homepage": "https://github.com/ShaulLavo/ghostty-webgpu#readme",
+  "homepage": "https://shaulavo.dev/ghostty-webgpu/",
   "bugs": {
-    "url": "https://github.com/ShaulLavo/ghostty-webgpu/issues"
+    "url": "https://github.com/ShaulLavo/fregat/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ShaulLavo/ghostty-webgpu.git"
+    "url": "git+https://github.com/ShaulLavo/fregat.git",
+    "directory": "ghostty-webgpu"
   },
   "workspaces": {
     "packages": [],
