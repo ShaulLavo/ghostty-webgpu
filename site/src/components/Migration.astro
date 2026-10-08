@@ -1,0 +1,23 @@
+---
+import { docsHref } from '../site-links'
+
+const rows = [
+  ['new Terminal(opts)', 'await Terminal.create(opts)'],
+  ['term.onData(str => …)', 'terminal.onData(bytes => …)'],
+  ['loadAddon(new FitAddon())', 'built in'],
+  ['loadAddon(new WebglAddon())', 'built in, plus WebGPU'],
+  ['@xterm/headless', 'GhosttyRuntime.create()'],
+] as const
+---
+
+<section class="callout" aria-labelledby="xterm-heading">
+  <div>
+    <h2 id="xterm-heading">Coming from xterm.js</h2>
+    <p>Fit, WebGL and Unicode graphemes are built in. Creation is async, and data stays as bytes from the PTY to the screen.</p>
+    <a href={docsHref('start/xterm')}>Read the migration guide</a>
+  </div>
+  <table class="map" aria-label="xterm.js to ghostty-webgpu">
+    <thead><tr><th scope="col">xterm.js</th><th scope="col">ghostty-webgpu</th></tr></thead>
+    <tbody>{rows.map(([from, to]) => <tr><td>{from}</td><td>{to}</td></tr>)}</tbody>
+  </table>
+</section>

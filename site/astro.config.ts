@@ -6,6 +6,7 @@ import starlight from '@astrojs/starlight'
 import { createStarlightTypeDocPlugin } from 'starlight-typedoc'
 import starlightLinksValidator from 'starlight-links-validator'
 import { docsLinks } from './scripts/docs-links.js'
+import { docsTheme } from './src/docs-theme.js'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
 const references = [
@@ -48,7 +49,8 @@ export default defineConfig({
     starlight({
       title: 'ghostty-webgpu',
       description: 'Ghostty’s terminal core in the browser. Guides and API reference.',
-      customCss: ['./src/styles/docs.css'],
+      ...docsTheme,
+      customCss: [...docsTheme.customCss, './src/styles/docs.css'],
       editLink: { baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/ghostty-webgpu/site/' },
       lastUpdated: true,
       social: [

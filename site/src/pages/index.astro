@@ -2,14 +2,19 @@
 import pageCss from '../styles/styles.css?inline'
 import fontCss from '../styles/fonts.css?inline'
 import firstFrameCss from '../styles/first-frame.css?inline'
+import sectionsCss from '../styles/sections.css?inline'
 import { firstGhostFrame } from '../first-frame.js'
+import Benchmark from '../components/Benchmark.astro'
+import Correctness from '../components/Correctness.astro'
+import Migration from '../components/Migration.astro'
+import { docsHref, docsIndex, roadmap } from '../site-links'
 
 const firstFrame = await firstGhostFrame()
-import { measurements, measurementEnvironment } from '../measurements'
 
 const version = __SITE_VERSION__
 const base = import.meta.env.BASE_URL
 const fontStyles = fontCss.replaceAll('/ghostty-webgpu/', `${base.replace(/\/$/, '')}/`)
+const roadmapLabels = { done: 'Done', progress: 'In progress' } as const
 ---
 
 <!doctype html>
@@ -17,11 +22,11 @@ const fontStyles = fontCss.replaceAll('/ghostty-webgpu/', `${base.replace(/\/$/,
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ghostty-webgpu</title>
-    <style is:inline set:html={pageCss + fontStyles + firstFrameCss}></style>
+    <title>ghostty-webgpu: Ghostty's terminal, in the browser</title>
+    <style is:inline set:html={pageCss + fontStyles + firstFrameCss + sectionsCss}></style>
     <meta
       name="description"
-      content="An unofficial Ghostty for the web: libghostty-vt in WebAssembly with a damage-aware WebGPU renderer and a native API. Try it live."
+      content="The real libghostty-vt core, unpatched, compiled to WebAssembly, with four renderers that draw only what changed. Try it live."
     />
     <script is:inline>
       document.documentElement.style.setProperty('--ghost-device-pixel', `${1 / devicePixelRatio}px`)
@@ -38,25 +43,30 @@ const fontStyles = fontCss.replaceAll('/ghostty-webgpu/', `${base.replace(/\/$/,
     <header class="masthead">
       <div class="identity">
         <a class="wordmark" href={base}>ghostty-webgpu</a>
-        <a class="version" href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md">v{version}</a>
+        <a class="version" href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md" title="Changelog">v{version}</a>
       </div>
       <nav class="links" aria-label="Project links">
+        <a href={docsHref()}>Docs</a>
+        <a href="#measured">Benchmarks</a>
         <a href="https://github.com/ShaulLavo/ghostty-webgpu">GitHub</a>
         <a href="https://www.npmjs.com/package/ghostty-webgpu">npm</a>
-        <a href={`${base.replace(/\/$/, '')}/docs/`}>Docs</a>
       </nav>
     </header>
 
     <main class="page">
       <section class="intro">
-        <h1>An unofficial Ghostty for the web.</h1>
+        <h1>Ghostty's terminal, in the browser.</h1>
         <p class="lede">
-          libghostty-vt compiled to WebAssembly and drawn by a damage-aware WebGPU renderer. Its own API: bytes in, bytes out.
+          The real libghostty-vt core, unpatched, compiled to WebAssembly. Four renderers that draw only what changed, built to run dozens of terminals on one page.
         </p>
         <div class="install">
           <code>npm install ghostty-webgpu</code>
           <button id="copy-install" type="button">Copy</button>
         </div>
+        <p class="used-in">
+          <img src="fregat.svg" alt="" width="22" height="22" />
+          <span>Runs every terminal in <a href="https://github.com/ShaulLavo/fregat">Fregat</a>, an IDE in your browser.</span>
+        </p>
       </section>
 
       <section class="window" id="window" data-ready="true" aria-label="Live terminal">
@@ -79,6 +89,7 @@ const fontStyles = fontCss.replaceAll('/ghostty-webgpu/', `${base.replace(/\/$/,
       </section>
       <p class="caption" id="caption"></p>
       <p class="stat" id="stat" aria-live="polite"></p>
+      <Benchmark />
       <section class="usage" aria-label="Usage">
         <pre class="example" aria-label="Create a terminal"><code><span class="tk-k">import</span> <span class="tk-p">{'{'}</span> <span class="tk-t">Terminal</span> <span class="tk-p">{'}'}</span> <span class="tk-k">from</span> <span class="tk-s">'ghostty-webgpu'</span>
 
@@ -114,38 +125,39 @@ socket.<span class="tk-f">addEventListener</span><span class="tk-p">(</span><spa
           <strong>Runs anywhere.</strong> WebGPU where the browser has it, then WebGL2, then Canvas2D, then plain DOM. Each draws the same cells. This page is drawing with <span id="backend-fact">html</span>.
         </p>
         <p>
-          <strong>PTY traffic stays as bytes.</strong> The native API takes
-          <code>Uint8Array</code> input and emits bytes for your PTY connection.
+          <strong>Off the main thread.</strong> Import <code>ghostty-webgpu/worker</code> and the emulator,
+          frame builder and renderer run in a worker on an OffscreenCanvas.
         </p>
       </section>
-      <section class="measured" aria-labelledby="measured-heading">
-        <h2 id="measured-heading">Measured</h2>
-        <p>{measurementEnvironment}</p>
-        <div class="measurement-table">
-          <table>
-            <caption>Matching renderer pairs, ghostty / xterm.js. Below 1 means ghostty uses less.</caption>
-            <thead><tr><th scope="col">Renderer pair</th><th scope="col">Workload</th><th scope="col">CPU energy ratio</th><th scope="col">Instruction ratio</th></tr></thead>
-            <tbody>{measurements.map((row) => (
-              <tr><th scope="row">{row.renderer} / {row.renderer}</th><td>{row.workload}</td><td>{row.energy}</td><td>{row.instructions}</td></tr>
-            ))}</tbody>
-          </table>
-        </div>
-        <p>Seventeen 40 × 12 terminals, DPR 2, 120 warm-up ticks and 900 measured ticks at 60 Hz. Medians of balanced pairs. CPU energy covers the Chrome process family, including GPU-process CPU work. GPU-device and display energy are outside its scope.</p>
-        <p>WebGL heavy output finishes at 8,841 matching history rows; intermediate history differs. DOM heavy logs retain the full stream. DOM rolling and Unicode surfaces differ; scrolling and edits use normalized grids. Reviews qualify local whole-terminal observations with limits. WebGL loses on line-by-line output, and DOM loses on typing-like edits.</p>
-        <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md">Benchmark method and results</a>
+      <Correctness />
+      <Migration />
+      <section class="sect" aria-labelledby="docs-heading">
+        <h2 id="docs-heading">Docs</h2>
+        <div class="docs-grid">{docsIndex.map((column) => (
+          <div class="docs-col">
+            <h3><a href={column.links[0]!.href}>{column.title}</a></h3>
+            <ul>{column.links.map((link) => (
+              <li><a href={link.href}>{link.code ? <code>{link.label}</code> : link.label}</a></li>
+            ))}</ul>
+          </div>
+        ))}</div>
       </section>
     </main>
 
     <footer class="colophon">
       <section class="preview" aria-labelledby="preview-heading">
-        <h2 id="preview-heading">In progress</h2>
-        <ul>
-          <li>Lower CPU while many terminals stream output.</li>
-          <li>Faster keystroke-to-screen latency.</li>
-          <li>Keybindings shared with the host app.</li>
-        </ul>
-        <a href="https://github.com/ShaulLavo/fregat/blob/main/PLAN.md">Development roadmap</a>
+        <h2 id="preview-heading">Roadmap</h2>
+        <table class="roadmap">
+          <tbody>{roadmap.map((item) => (
+            <tr><td class={`st-${item.state}`}>{roadmapLabels[item.state]}</td><td><a class="roadmap-link" href={item.plan}>{item.text}</a></td></tr>
+          ))}</tbody>
+        </table>
       </section>
+      <nav class="footer-links" aria-label="Related">
+        <a href="https://github.com/ShaulLavo/fregat">Fregat</a>
+        <a href="https://github.com/ShaulLavo/singapore">Singapore editor</a>
+        <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md">Changelog</a>
+      </nav>
       <p>
         MIT licensed. Built on libghostty-vt. Not affiliated with the Ghostty project. The ghost
         animation is from <a href="https://github.com/ghostty-org/website">ghostty.org</a>, used

@@ -1,0 +1,38 @@
+---
+import { core, correctness } from '../correctness'
+
+const [ours, ...others] = correctness.scores
+const total = correctness.upstreamCases + correctness.localCases
+const date = new Date(`${correctness.date}T00:00:00Z`).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+---
+
+<section class="sect" aria-labelledby="correct-heading">
+  <h2 id="correct-heading">Correct because it is Ghostty</h2>
+  <p class="sub">
+    Parsing, modes, wrapping, reflow, selection text and Unicode widths come from Ghostty's own core. The renderer and input path are ours, and tested in real browsers.
+  </p>
+  <div class="corr">
+    <p>
+      <strong>Unpatched and reproducible.</strong> libghostty-vt at revision <a href={core.revisionUrl}><code>{core.revision}</code></a>, built with Zig {core.zig}, recorded with <code>"patched": {String(core.patched)}</code>. Anyone can rebuild the same wasm byte for byte.
+    </p>
+    <p>
+      <strong>Modern protocols, built in.</strong> Kitty keyboard with press, repeat and release. Grapheme clusters (mode 2027). OSC 8 links. Focus, bracketed paste and color-scheme reports. Programs in the terminal turn them on as they need them, with no addons to install.
+    </p>
+    <p>
+      <strong>Clipboard behind a policy.</strong> OSC 52 writes are denied until your app allows them, and clipboard reads are never answered.
+    </p>
+    <p>
+      <strong>Checked against the others.</strong> In {total} cases ({correctness.upstreamCases} from esctest2, {correctness.localCases} Unicode and delivery cases), ghostty-webgpu {ours!.version} passed {ours!.pass}, {others.map((score) => `${score.terminal} ${score.version} passed ${score.pass}`).join(' and ')}. Headless Chromium {correctness.chromium.split('.')[0]}, {date}. <a href={correctness.doc}>Every case and failure</a>.
+    </p>
+  </div>
+  <p class="notyet">
+    <b>Not there yet:</b> images (Sixel, Kitty graphics), ligatures, search, synchronized output. Still failing in esctest2, inherited from Ghostty's core: {correctness.ourFailures.map((name, index) => (
+      <Fragment>{index > 0 && ' and '}<code>{name}</code></Fragment>
+    ))}.
+  </p>
+</section>

@@ -1,0 +1,597 @@
+.masthead .links {
+  align-items: baseline;
+}
+
+.used-in {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: 15px;
+  color: var(--dusk);
+}
+
+.used-in img {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.used-in a {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Benchmark block, directly under the terminal */
+.bench {
+  margin-top: 36px;
+  scroll-margin-top: 24px;
+}
+
+.bench-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.bench-head h2,
+.sect h2,
+.callout h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.bench-head p {
+  margin: 4px 0 0;
+  max-width: 46ch;
+  font-size: 15px;
+  color: var(--dusk);
+}
+
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--fog);
+}
+
+.seg button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dusk);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.seg button[aria-selected='true'] {
+  background: var(--mist);
+  color: var(--ink);
+  box-shadow: 0 1px 2px var(--shade);
+}
+
+.bench-card {
+  margin-top: 18px;
+  padding: 22px 24px 18px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--fog) 55%, var(--mist));
+}
+
+.bench-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+
+.bench-title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.better {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dusk);
+}
+
+.status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--fog);
+  font-size: 13px;
+  color: var(--dusk);
+}
+
+.status[data-kind='measured'] {
+  background: color-mix(in oklab, #f2cf87 35%, var(--fog));
+  color: #6b4f12;
+}
+
+.rows {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  align-items: start;
+  gap: 6px 18px;
+}
+
+.row-label {
+  padding-top: 1px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.row-note {
+  grid-column: 2;
+  font-size: 13px;
+  color: var(--dusk);
+}
+
+.bars {
+  display: grid;
+  gap: 4px;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 170px 1fr 56px;
+  align-items: center;
+  gap: 12px;
+}
+
+.bname {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dusk);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bar[data-ours] .bname {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.track {
+  position: relative;
+  height: 14px;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  background: var(--fog-deep);
+  transform-origin: left;
+}
+
+.bar[data-ours] .fill {
+  background: var(--ink);
+}
+
+.bar[data-ours][data-loss] .fill {
+  background: #b7791f;
+}
+
+.val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}
+
+.ref-line {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  z-index: 1;
+  width: 1px;
+  background: var(--dusk);
+  opacity: 0.5;
+}
+
+.pending-slot {
+  margin-top: 18px;
+  padding: 28px;
+  border: 1px dashed var(--fog-deep);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--dusk);
+}
+
+.bench-card[data-view='chart'] .bench-table,
+.bench-card[data-view='table'] .rows {
+  display: none;
+}
+
+.bench-table {
+  overflow-x: auto;
+}
+
+.bench-table table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.bench-table caption {
+  text-align: left;
+  color: var(--dusk);
+}
+
+.bench-table th,
+.bench-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--fog-deep);
+  text-align: left;
+  color: var(--ink);
+}
+
+.bench-table th {
+  font-weight: 500;
+}
+
+.bench-table td {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.bench-table td.history {
+  font-family: inherit;
+}
+
+.bench-foot {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fog-deep);
+  font-size: 13px;
+  color: var(--dusk);
+}
+
+.bench-foot .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.bench-foot a,
+.bench-foot button {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.bench-foot code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+.bench-foot button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+/* Sections after the benchmark */
+.sect {
+  margin-top: clamp(56px, 9vh, 96px);
+}
+
+.sect > p.sub {
+  max-width: 56ch;
+  margin: 6px 0 0;
+  color: var(--dusk);
+}
+
+.corr {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 40px;
+  margin-top: 24px;
+}
+
+.corr p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--dusk);
+}
+
+.corr strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.corr a {
+  color: inherit;
+}
+
+.corr code,
+.notyet code,
+.callout code,
+.docs-col code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+.notyet {
+  margin: 24px 0 0;
+  font-size: 15px;
+  color: var(--dusk);
+  overflow-wrap: anywhere;
+}
+
+.notyet b {
+  font-weight: 600;
+}
+
+.callout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 32px;
+  margin-top: clamp(56px, 9vh, 96px);
+}
+
+.callout p {
+  margin: 8px 0 14px;
+  color: var(--dusk);
+}
+
+.callout a {
+  color: var(--ink);
+}
+
+.map {
+  width: 100%;
+  overflow: hidden;
+  border-collapse: collapse;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--pale);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.map th {
+  padding: 12px 16px 8px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  color: #a8a3c6;
+}
+
+.map td {
+  padding: 7px 16px;
+  vertical-align: top;
+}
+
+.map td:first-child {
+  color: #a8a3c6;
+}
+
+.map tr:last-child td {
+  padding-bottom: 14px;
+}
+
+.docs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 24px;
+}
+
+.docs-col h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.docs-col h3 a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.docs-col ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+
+.docs-col li a {
+  color: var(--dusk);
+  text-decoration: none;
+}
+
+.docs-col li a:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.roadmap {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.roadmap td {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--fog-deep);
+  vertical-align: top;
+}
+
+.roadmap td:first-child {
+  width: 110px;
+  padding-top: 9px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.roadmap-link {
+  text-decoration-color: var(--fog-deep);
+}
+
+.roadmap-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.st-done {
+  color: #24684b;
+}
+
+.st-progress {
+  color: #7f560c;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 18px 0 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Low specificity keeps the terminal tabs' own focus color. */
+  :where(:root:not([data-theme='light'])) :focus-visible {
+    outline-color: var(--pale);
+  }
+
+  :root:not([data-theme='light']) .used-in a,
+  :root:not([data-theme='light']) .bench-head h2,
+  :root:not([data-theme='light']) .bench-title h3,
+  :root:not([data-theme='light']) .row-label,
+  :root:not([data-theme='light']) .val,
+  :root:not([data-theme='light']) .bar[data-ours] .bname,
+  :root:not([data-theme='light']) .bench-foot a,
+  :root:not([data-theme='light']) .bench-foot button,
+  :root:not([data-theme='light']) .bench-table th,
+  :root:not([data-theme='light']) .bench-table td,
+  :root:not([data-theme='light']) .sect h2,
+  :root:not([data-theme='light']) .corr strong,
+  :root:not([data-theme='light']) .callout h2,
+  :root:not([data-theme='light']) .callout a,
+  :root:not([data-theme='light']) .docs-col h3 a {
+    color: var(--pale);
+  }
+
+  :root:not([data-theme='light']) .seg button[aria-selected='true'] {
+    background: var(--fog-deep);
+    color: var(--pale);
+  }
+
+  :root:not([data-theme='light']) .bar[data-ours] .fill {
+    background: var(--spectre);
+  }
+
+  :root:not([data-theme='light']) .bar[data-ours][data-loss] .fill {
+    background: #e0a85a;
+  }
+
+  :root:not([data-theme='light']) .status[data-kind='measured'] {
+    background: #3b3220;
+    color: #f2cf87;
+  }
+
+  :root:not([data-theme='light']) .map {
+    background: #12101b;
+  }
+
+  :root:not([data-theme='light']) .st-done {
+    color: var(--spectre);
+  }
+
+  :root:not([data-theme='light']) .st-progress {
+    color: #f2cf87;
+  }
+}
+
+@media (max-width: 760px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .row-note {
+    grid-column: 1;
+  }
+
+  .bar {
+    grid-template-columns: 140px 1fr 44px;
+    gap: 8px;
+  }
+
+  .bname {
+    font-size: 10.5px;
+  }
+
+  .bench-card {
+    margin-inline: -4px;
+    padding: 18px 16px 14px;
+  }
+
+  .corr,
+  .callout {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .map {
+    font-size: 11px;
+  }
+
+  .map td,
+  .map th {
+    padding-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fill {
+    transition: transform 700ms var(--ease-out);
+  }
+
+  .bench-card[data-enter] .fill {
+    transform: scaleX(0);
+  }
+}

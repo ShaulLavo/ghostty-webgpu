@@ -1,0 +1,122 @@
+/* Starlight theme for the docs: the landing page's Mist palette, fonts and code blocks. */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/bricolage-grotesque-latin-variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin-600-normal.woff2') format('woff2');
+}
+
+:root {
+  --sl-font: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sl-color-accent-low: #1f3a35;
+  --sl-color-accent: #7ee6ce;
+  --sl-color-accent-high: #c9f5ea;
+  --sl-color-white: #e6e2f7;
+  --sl-color-gray-1: #d6d3e4;
+  --sl-color-gray-2: #bbb7d0;
+  --sl-color-gray-3: #a8a3c6;
+  --sl-color-gray-4: #6f6a8c;
+  --sl-color-gray-5: #3d3951;
+  --sl-color-gray-6: #2b2839;
+  --sl-color-black: #1b1926;
+  --sl-color-bg-nav: color-mix(in oklab, #1b1926 88%, transparent);
+  --sl-color-bg-sidebar: #1b1926;
+  --sl-color-hairline: #2b2839;
+  --sl-color-hairline-light: #2b2839;
+  --sl-color-hairline-shade: #3d3951;
+  --sl-text-h1: clamp(2rem, 4vw, 2.625rem);
+  --sl-content-width: 46rem;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #cfeee4;
+  --sl-color-accent: #2f7d5b;
+  --sl-color-accent-high: #14503b;
+  --sl-color-white: #15131f;
+  --sl-color-gray-1: #2a2738;
+  --sl-color-gray-2: #45415c;
+  --sl-color-gray-3: #5f5b7a;
+  --sl-color-gray-4: #8f8aae;
+  --sl-color-gray-5: #bbb7d0;
+  --sl-color-gray-6: #d6d3e4;
+  --sl-color-gray-7: #e2dfec;
+  --sl-color-black: #eceaf3;
+  --sl-color-bg-nav: color-mix(in oklab, #eceaf3 88%, transparent);
+  --sl-color-bg-sidebar: #eceaf3;
+  --sl-color-hairline: #d6d3e4;
+  --sl-color-hairline-light: #d6d3e4;
+  --sl-color-hairline-shade: #bbb7d0;
+}
+
+.site-title {
+  font-family: var(--sl-font-mono);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.sl-markdown-content h1,
+.content-panel h1 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.sl-markdown-content h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Sidebar entries read like the mock: dusk links, fog pill for the current page. */
+.sidebar-content a {
+  border-radius: 7px;
+  color: var(--sl-color-gray-3);
+}
+
+.sidebar-content a:hover {
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+}
+
+.sidebar-content a[aria-current='page'] {
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+  font-weight: 500;
+}
+
+site-search button[data-open-modal] {
+  border-radius: 10px;
+}
+
+.site-title,
+.site-title:hover {
+  color: var(--sl-color-white);
+}
+
+.sidebar-content .group-label .large {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sl-color-white);
+}
+
+.sl-markdown-content :not(pre) > code {
+  border: 0;
+  background: color-mix(in oklab, var(--sl-color-gray-6) 70%, transparent);
+  border-radius: 5px;
+}

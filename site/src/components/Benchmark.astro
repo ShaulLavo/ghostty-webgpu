@@ -1,0 +1,146 @@
+---
+import { benchLinks, benchTabs, rowNote } from '../measurements'
+
+const ratio = (value: number) => value.toFixed(3)
+const scaleMax = (rows: readonly { energy: number }[]) => Math.max(1.4, ...rows.map((row) => row.energy))
+---
+
+<section class="bench" id="measured" aria-labelledby="measured-heading">
+  <div class="bench-head">
+    <div>
+      <h2 id="measured-heading">Measured</h2>
+      <p>Like for like: each renderer against the same renderer in xterm.js. Losses stay on the chart.</p>
+    </div>
+    <div class="seg" role="tablist" aria-label="Benchmark" id="bench-tabs">
+      {benchTabs.map((tab, index) => (
+        <button
+          type="button"
+          role="tab"
+          id={`bench-tab-${tab.id}`}
+          aria-controls={`bench-panel-${tab.id}`}
+          aria-selected={index === 0 ? 'true' : 'false'}
+          tabindex={index === 0 ? 0 : -1}
+        >{tab.label}</button>
+      ))}
+    </div>
+  </div>
+  <div class="bench-card" id="bench-card" data-view="chart">
+    {benchTabs.map((tab, index) => (
+      <div
+        class="bench-panel"
+        role="tabpanel"
+        id={`bench-panel-${tab.id}`}
+        aria-labelledby={`bench-tab-${tab.id}`}
+        hidden={index !== 0}
+      >
+        <div class="bench-title">
+          <h3>{tab.title}</h3>
+          {tab.kind === 'measured' && <span class="better">× CPU energy, lower is better</span>}
+        </div>
+        <span class="status" data-kind={tab.kind}>{tab.status}</span>
+        {tab.kind === 'pending' ? (
+          <div class="pending-slot">The chart returns here when the new run is reviewed.</div>
+        ) : (
+          <Fragment>
+            <ul class="rows" aria-label={`${tab.title}, chart`}>
+              {tab.rows.map((row) => {
+                const max = scaleMax(tab.rows)
+                const note = rowNote(row)
+                return (
+                  <li class="row">
+                    <span class="row-label">{row.workload}</span>
+                    <div class="bars">
+                      {[row.energy, 1].map((value, at) => (
+                        <div class="bar" data-ours={at === 0 ? '' : undefined} data-loss={at === 0 && row.verdict === 'loss' ? '' : undefined}>
+                          <span class="bname">{tab.series[at]!.name} {tab.series[at]!.version}</span>
+                          <div class="track">
+                            <i class="ref-line" style={`left:${100 / max}%`}></i>
+                            <div class="fill" style={`width:${(value / max) * 100}%`}></div>
+                          </div>
+                          <span class="val">{ratio(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {note && <span class="row-note">{note}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+            <div class="bench-table">
+              <table>
+                <caption>ghostty-webgpu / xterm.js. Below 1 means ghostty-webgpu uses less.</caption>
+                <thead>
+                  <tr><th scope="col">Workload</th><th scope="col">History</th><th scope="col">CPU energy</th><th scope="col">Instructions</th></tr>
+                </thead>
+                <tbody>
+                  {tab.rows.map((row) => (
+                    <tr><th scope="row">{row.workload}</th><td class="history">{row.history}</td><td>{ratio(row.energy)}</td><td>{ratio(row.instructions)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Fragment>
+        )}
+        <div class="bench-foot">
+          <span>{tab.method}</span>
+          <div class="actions">
+            {tab.kind === 'measured' && (
+              <Fragment>
+                <a href={benchLinks.recompute}>Recompute: <code>{benchLinks.recomputeCommand}</code></a>
+                <button type="button" data-toggle-view>Show as table</button>
+              </Fragment>
+            )}
+            <a href={benchLinks.results}>All results and method</a>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+  <script is:inline>
+    ;(() => {
+      const card = document.getElementById('bench-card')
+      if (!card || !('IntersectionObserver' in window)) return
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      card.dataset.enter = ''
+      new IntersectionObserver((entries, observer) => {
+        if (!entries[0].isIntersecting) return
+        requestAnimationFrame(() => delete card.dataset.enter)
+        observer.disconnect()
+      }, { threshold: 0.3 }).observe(card)
+    })()
+  </script>
+</section>
+
+<script>
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('#bench-tabs [role="tab"]')]
+  const card = document.getElementById('bench-card')!
+  const arrowSteps: Partial<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1 }
+
+  function select(next: HTMLButtonElement) {
+    for (const tab of tabs) {
+      const selected = tab === next
+      tab.setAttribute('aria-selected', String(selected))
+      tab.tabIndex = selected ? 0 : -1
+      document.getElementById(tab.getAttribute('aria-controls')!)!.hidden = !selected
+    }
+  }
+
+  for (const [index, tab] of tabs.entries()) {
+    tab.addEventListener('click', () => select(tab))
+    tab.addEventListener('keydown', (event) => {
+      const step = arrowSteps[event.key]
+      if (step === undefined) return
+      const next = tabs[(index + step + tabs.length) % tabs.length]!
+      select(next)
+      next.focus()
+    })
+  }
+
+  for (const toggle of card.querySelectorAll<HTMLButtonElement>('[data-toggle-view]')) {
+    toggle.addEventListener('click', () => {
+      card.dataset.view = card.dataset.view === 'table' ? 'chart' : 'table'
+      const label = card.dataset.view === 'table' ? 'Show as chart' : 'Show as table'
+      for (const button of card.querySelectorAll('[data-toggle-view]')) button.textContent = label
+    })
+  }
+</script>
