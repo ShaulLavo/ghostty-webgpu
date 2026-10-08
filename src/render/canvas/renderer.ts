@@ -15,7 +15,7 @@ import {
   type RowRendererSurface,
   type RowThemeInvalidation,
 } from '../row-renderer.js'
-import { CanvasRowPainter, type Canvas2dContext } from './painter.js'
+import { CanvasRowPainter, plainRowText, type Canvas2dContext } from './painter.js'
 import type { PixelTarget, PixelMetrics, PixelTargetFactory } from './pixel-target.js'
 import { canvasScrollPlan, type CanvasScrollPlan } from './scroll.js'
 
@@ -120,12 +120,13 @@ class CanvasSurface implements RowRendererSurface {
         return source.update()
       },
       readRows: (options) => {
-        const rows = source.readRows(options)
+        const rows = source.readRows(this.pixelTarget ? options : { ...options, packed: true })
         if (!this.capturing) return rows
         for (const row of rows) {
           if (row.y < 0 || row.y >= this.rowCount) continue
           if (options?.rows && !options.rows.has(row.y)) continue
-          this.pending.set(row.y, JSON.stringify(row.cells))
+          const text = this.pixelTarget ? undefined : plainRowText(row)
+          this.pending.set(row.y, text === undefined ? JSON.stringify(row.cells) : `plain:${text}`)
         }
         return rows
       },
@@ -160,11 +161,14 @@ class CanvasSurface implements RowRendererSurface {
       if (!this.canReuse(row.y, cursor)) {
         this.pixelTarget?.beginRow(row.y)
         // Pixel targets publish the whole scratch row.
+        const key = this.pending.get(row.y)
+        const text = key?.startsWith('plain:') ? key.slice(6) : undefined
         this.painter.paint(
           row,
           cursor,
           this.canvas.width,
           !this.pixelTarget && this.pending.size === 1 && this.plan!.offset === 0,
+          text,
         )
         this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1

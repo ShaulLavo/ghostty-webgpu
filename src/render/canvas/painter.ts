@@ -1,6 +1,7 @@
 import { contrastAdjustedColor } from '../contrast.js'
 import type { PaintTarget } from './paint-target.js'
 import type { RenderCell, RenderRow } from '../../core/types.js'
+import { emptyRenderCell } from '../../core/packed-cells.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
 import { CanvasColorCache, resolveCanvasCellColors, type CanvasCellColors } from './colors.js'
@@ -34,10 +35,14 @@ interface PlainRowImage {
   readonly cursor: string
 }
 
-function plainRowText(row: RenderRow): string | undefined {
+export function plainRowText(row: RenderRow): string | undefined {
+  const packed = row.packed
+  const cells = packed ? undefined : row.cells
+  const length = packed?.length ?? cells!.length
+  const scratch = packed ? emptyRenderCell() : undefined
   let text = ''
-  for (let index = 0; index < row.cells.length; index += 1) {
-    const cell = row.cells[index]!
+  for (let index = 0; index < length; index += 1) {
+    const cell = packed ? packed.read(index, scratch!) : cells![index]!
     if (
       cell.x !== index ||
       cell.continuation ||
@@ -130,23 +135,41 @@ export class CanvasRowPainter {
     cursor: CursorState | undefined,
     width: number,
     allowCellDamage = true,
+    capturedPlainText?: string,
   ): void {
-    const damage = allowCellDamage ? this.plainDamage(row, cursor, width) : undefined
+    const damage = allowCellDamage
+      ? this.plainDamage(row, cursor, width, capturedPlainText)
+      : undefined
+    const plain = damage !== undefined && !this.context.glyph
     if (!allowCellDamage) this.plainRows.delete(row.y)
     if (damage && damage.width === 0) return
     const x = damage?.x ?? 0
     const paintWidth = damage?.width ?? width
-    if (damage) row = { ...row, cells: row.cells.slice(damage.first, damage.end) }
+    if (damage && !plain) {
+      const packed = row.packed
+      const cells = packed
+        ? Array.from({ length: damage.end - damage.first }, (_, index) =>
+            packed.read(damage.first + index, emptyRenderCell()),
+          )
+        : row.cells.slice(damage.first, damage.end)
+      // Spreading the source row would invoke its complete-cell getter.
+      row = { y: row.y, dirty: row.dirty, cells }
+    }
     const y = row.y * this.font.deviceCellHeight
     this.currentFill = undefined
     this.currentFont = this.fonts[0]
     this.currentAlpha = 1
-    this.cellColors.length = row.cells.length
+    if (!plain) this.cellColors.length = row.cells.length
     this.context.save()
     this.context.beginPath()
     this.context.rect(x, y, paintWidth, this.font.deviceCellHeight)
     this.context.clip()
     this.context.clearRect(x, y, paintWidth, this.font.deviceCellHeight)
+    if (plain) {
+      this.paintPlain(damage.text, cursor, row.y, damage.first, damage.end)
+      this.context.restore()
+      return
+    }
     this.paintBackgrounds(row, cursor, y)
     for (let index = 0; index < row.cells.length;) index += this.paintGlyph(row, index)
     this.context.restore()
@@ -156,9 +179,10 @@ export class CanvasRowPainter {
     row: RenderRow,
     cursor: CursorState | undefined,
     width: number,
-  ): { x: number; width: number; first: number; end: number } | undefined {
+    capturedPlainText?: string,
+  ): { x: number; width: number; first: number; end: number; text: string } | undefined {
     if (!this.context.measureText || !Number.isInteger(this.font.deviceCellWidth)) return undefined
-    const text = plainRowText(row)
+    const text = capturedPlainText ?? plainRowText(row)
     if (text === undefined) {
       this.plainRows.delete(row.y)
       return undefined
@@ -181,13 +205,49 @@ export class CanvasRowPainter {
         end = Math.max(end, column + 1)
       }
     }
-    if (end <= first) return { x: 0, width: 0, first: 0, end: 0 }
+    if (end <= first) return { x: 0, width: 0, first: 0, end: 0, text }
     const left = Math.max(0, first * cellWidth - this.overhangLeft)
     const right = Math.min(width, end * cellWidth + this.overhangRight)
     // Unchanged neighboring ink can cross the clear region and must be restored too.
     const glyphFirst = Math.max(0, Math.floor((left - this.overhangRight) / cellWidth))
     const glyphEnd = Math.min(text.length, Math.ceil((right + this.overhangLeft) / cellWidth))
-    return { x: left, width: right - left, first: glyphFirst, end: glyphEnd }
+    return { x: left, width: right - left, first: glyphFirst, end: glyphEnd, text }
+  }
+
+  private paintPlain(
+    text: string,
+    cursor: CursorState | undefined,
+    row: number,
+    first: number,
+    end: number,
+  ): void {
+    const cell = emptyRenderCell()
+    const colors = resolveCanvasCellColors(cell, this.theme, false)
+    const activeCursor =
+      cursor?.visible && cursor.y === row && cursor.x >= first && cursor.x < end
+        ? cursor
+        : undefined
+    const cursorColors = activeCursor
+      ? resolveCanvasCellColors(cell, this.theme, activeCursor.style === 'block')
+      : colors
+    const y = row * this.font.deviceCellHeight
+    if (activeCursor) {
+      const x = activeCursor.x * this.font.deviceCellWidth
+      this.appendBackground(cursorColors, x, y)
+      this.paintCursor(activeCursor, cursorColors, x, y)
+    }
+    this.flushBackground(y)
+    const foreground = this.colors.foreground(colors)
+    const cursorForeground = this.colors.foreground(cursorColors)
+    const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
+    const characterWidth = this.font.deviceCellWidth - deviceSpacing
+    for (let column = first; column < end; column += 1) {
+      const glyph = text[column]!
+      if (glyph === '\u0000') continue
+      this.setFill(column === activeCursor?.x ? cursorForeground : foreground)
+      const x = column * this.font.deviceCellWidth + this.font.charLeft + characterWidth / 2
+      this.context.fillText(glyph, x, y + this.font.deviceBaseline)
+    }
   }
 
   private paintBackgrounds(row: RenderRow, cursor: CursorState | undefined, y: number): void {

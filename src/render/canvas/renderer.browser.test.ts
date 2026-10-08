@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
+import { PACKED_CELL_WORDS, PackedCells } from '../../core/packed-cells.js'
 import type {
   CellStyle,
   ReadRowsOptions,
@@ -177,16 +178,13 @@ function expectFullRepaint(
   canvas: HTMLCanvasElement,
   source: RenderStateSource,
   font = fittedFont(),
+  theme = canonicalRendererTheme(mergeRendererTheme({})),
 ): void {
   const control = createCanvas()
   control.width = canvas.width
   control.height = canvas.height
   const context = control.getContext('2d', { alpha: true, willReadFrequently: false })!
-  const painter = new CanvasRowPainter(
-    context,
-    font,
-    canonicalRendererTheme(mergeRendererTheme({})),
-  )
+  const painter = new CanvasRowPainter(context, font, theme)
   painter.resetContext(font)
   const cursor = renderCursorState(source.readCursor(), true)
   for (const row of source.readRows()) painter.paint(row, cursor, control.width, false)
@@ -272,6 +270,91 @@ describe('CanvasTerminalRenderer', () => {
     source.dirtyRow(0)
     renderer.notifyWrite()
     clock.flushFrame()
+    expectFullRepaint(canvas, source)
+  })
+
+  it('captures plain row keys without serializing cells and preserves styled transitions', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState([
+      row(
+        0,
+        Array.from({ length: 40 }, (_, x) => cell(x, { text: '0' })),
+      ),
+    ])
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 40, rows: 1 }))
+    const stringify = vi.spyOn(JSON, 'stringify')
+    const rowSerializations = () =>
+      stringify.mock.calls.filter(
+        ([value]) => Array.isArray(value) && typeof value[0]?.x === 'number',
+      ).length
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    expect(rowSerializations()).toBe(0)
+
+    source.rows[0]!.cells[8]!.text = '1'
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    expect(rowSerializations()).toBe(0)
+
+    source.rows[0]!.cells[8]!.style = styled({ italic: true, overline: true })
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    expect(rowSerializations()).toBeGreaterThan(0)
+
+    source.rows[0]!.cells[8]!.style = undefined
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+  })
+
+  it('paints packed plain edits with one scan and no complete-row materialization', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState([
+      row(
+        0,
+        Array.from({ length: 40 }, (_, x) => cell(x, { text: '0' })),
+      ),
+    ])
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 40, rows: 1 }))
+    clock.flushFrame()
+
+    const words = new Uint32Array(40 * PACKED_CELL_WORDS)
+    for (let x = 0; x < 40; x += 1) {
+      words[x * PACKED_CELL_WORDS] = x === 8 ? 49 : 48
+      words[x * PACKED_CELL_WORDS + 1] = 0xffffffff
+      words[x * PACKED_CELL_WORDS + 2] = 0xffffffff
+      words[x * PACKED_CELL_WORDS + 3] = 1
+    }
+    const packed = new PackedCells(words, new Uint32Array())
+    const decode = vi.spyOn(packed, 'read')
+    let materializations = 0
+    let cells: readonly RenderCell[] | undefined
+    source.rows[0] = {
+      y: 0,
+      dirty: true,
+      packed,
+      get cells() {
+        if (!cells) {
+          materializations += 1
+          cells = packed.materialize()
+        }
+        return cells
+      },
+    }
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(materializations).toBe(0)
+    expect(decode).toHaveBeenCalledTimes(40)
     expectFullRepaint(canvas, source)
   })
 
@@ -415,6 +498,7 @@ describe('CanvasTerminalRenderer', () => {
       { visible: true, style: 'block' },
       { visible: true, style: 'bar' },
       { visible: true, style: 'underline' },
+      { visible: true, style: 'outline' },
     ] as const) {
       clear.mockClear()
       fill.mockClear()
@@ -426,6 +510,43 @@ describe('CanvasTerminalRenderer', () => {
       expectFullRepaint(canvas, source)
       expect(Math.max(...clear.mock.calls.map((call) => call[2]))).toBeLessThan(60)
       expect(fill.mock.calls.length).toBeLessThan(6)
+    }
+  })
+
+  it('keeps plain damage pixels for contrast, empty cells and every cursor shape', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState([
+      row(
+        0,
+        Array.from({ length: 40 }, (_, x) => cell(x, { text: '0' })),
+      ),
+    ])
+    const themeValues = {
+      background: { r: 0, g: 0, b: 0 },
+      foreground: { r: 100, g: 100, b: 100 },
+      cursor: { r: 20, g: 20, b: 20 },
+      cursorText: { r: 60, g: 60, b: 60 },
+      minimumContrast: 21,
+    }
+    const theme = canonicalRendererTheme(mergeRendererTheme(themeValues))
+    source.cursor.viewport = { wideTail: false, x: 8, y: 0 }
+    const renderer = await createRenderer(
+      options(canvas, source, clock, { columns: 40, rows: 1, theme: themeValues }),
+    )
+    clock.flushFrame()
+    for (const [style, text] of [
+      ['block', ''],
+      ['bar', ' '],
+      ['underline', 'B'],
+      ['outline', '0'],
+    ] as const) {
+      source.cursor.style = style
+      source.rows[0]!.cells[8]!.text = text
+      source.dirtyRow(0)
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expectFullRepaint(canvas, source, fittedFont(), theme)
     }
   })
 
@@ -479,7 +600,7 @@ describe('CanvasTerminalRenderer', () => {
     renderer.schedule()
     clock.flushFrame()
 
-    expect(readRows).toHaveBeenCalledExactlyOnceWith({ rows: new Set([0, 1]) })
+    expect(readRows).toHaveBeenCalledExactlyOnceWith({ rows: new Set([0, 1]), packed: true })
     expect(pixel(canvas, 12, 2)).toEqual([0, 0, 0, 0])
     expect(pixel(canvas, 2, 22)[3]).toBe(255)
   })
@@ -570,7 +691,11 @@ describe('CanvasTerminalRenderer', () => {
       expectFullRepaint(canvas, source)
       expect(copy).not.toHaveBeenCalled()
       expect(updates).toHaveBeenCalledOnce()
-      expect(reads.mock.calls).toEqual([[{ dirtyOnly: true }], [{ rows: new Set([9]) }]])
+      const packing = mode === 'fill-text' ? { packed: true } : {}
+      expect(reads.mock.calls).toEqual([
+        [{ dirtyOnly: true, ...packing }],
+        [{ rows: new Set([9]), ...packing }],
+      ])
       expect(reads.mock.results[1]?.value).toEqual(source.rows)
       expect(renderer.metrics.repaintedRows - before.repaintedRows).toBe(8)
       expect(renderer.metrics.paintedRows - before.paintedRows).toBe(8)
@@ -614,7 +739,10 @@ describe('CanvasTerminalRenderer', () => {
         clock.flushFrame()
         expectFullRepaint(canvas, source)
         expect(updates).toHaveBeenCalledOnce()
-        expect(reads).toHaveBeenCalledExactlyOnceWith({ rows: new Set([8, 9]) })
+        expect(reads).toHaveBeenCalledExactlyOnceWith({
+          rows: new Set([8, 9]),
+          ...(mode === 'fill-text' ? { packed: true } : {}),
+        })
         expect(reads.mock.results[0]?.value).toEqual(source.rows)
       }
       source.cursor.visible = false

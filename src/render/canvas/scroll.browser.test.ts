@@ -411,7 +411,7 @@ it('keeps partial damage reads, native revision, and acknowledgement semantics',
   const version = f.state.snapshotVersion
   f.write('\bX')
   expect(update).toHaveBeenCalledOnce()
-  expect(read).toHaveBeenCalledExactlyOnceWith({ dirtyOnly: true })
+  expect(read).toHaveBeenCalledExactlyOnceWith({ dirtyOnly: true, packed: true })
   expect(acknowledged).toHaveBeenCalledOnce()
   expect(f.state.snapshotVersion).toBe(version + 1)
   expect(f.copy).not.toHaveBeenCalled()
