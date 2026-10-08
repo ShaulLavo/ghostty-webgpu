@@ -131,16 +131,48 @@ function fill(
 
 function verifyMoveBoundaries(kernel: ComposeKernel, width: number): void {
   const bytes = width * 5 * 4
-  const ptr = kernel.allocate(bytes)
-  const initial = Uint8Array.from({ length: bytes }, (_, index) => (index * 73 + 19) & 255)
+  const allocationBytes = Math.ceil(bytes / 16) * 16 + 32
+  const allocation = kernel.allocate(allocationBytes)
+  const ptr = allocation + 16
+  const initial = new Uint8Array(allocationBytes).fill(0xa5)
+  initial.set(
+    Uint8Array.from({ length: bytes }, (_, index) => (index * 73 + 19) & 255),
+    16,
+  )
   for (const [from, to, rows] of [
     [0, 1, 4],
     [1, 0, 4],
+    [0, 1, 3],
+    [1, 0, 3],
     [0, 0, 5],
     [0, 4, 1],
     [4, 0, 1],
     [0, 5, 0],
     [5, 0, 0],
+  ]) {
+    view(kernel, allocation, allocationBytes).set(initial)
+    const expected = initial.slice()
+    expected.copyWithin(
+      16 + to! * width * 4,
+      16 + from! * width * 4,
+      16 + (from! + rows!) * width * 4,
+    )
+    kernel.check(kernel.exports.compose_move(ptr, width, 5, from!, to!, rows!))
+    expect(view(kernel, allocation, allocationBytes)).toEqual(expected)
+  }
+  kernel.release(allocation)
+}
+
+function verifyMemoryEndMoves(kernel: ComposeKernel, width: number): void {
+  const bytes = width * 5 * 4
+  const ptr = kernel.memory.buffer.byteLength - bytes
+  expect(ptr + bytes).toBe(kernel.memory.buffer.byteLength)
+  const initial = Uint8Array.from({ length: bytes }, (_, index) => (index * 73 + 19) & 255)
+  for (const [from, to, rows] of [
+    [0, 4, 1],
+    [1, 2, 3],
+    [4, 0, 1],
+    [2, 1, 3],
   ]) {
     view(kernel, ptr, bytes).set(initial)
     const expected = initial.slice()
@@ -148,7 +180,6 @@ function verifyMoveBoundaries(kernel: ComposeKernel, width: number): void {
     kernel.check(kernel.exports.compose_move(ptr, width, 5, from!, to!, rows!))
     expect(view(kernel, ptr, bytes)).toEqual(expected)
   }
-  kernel.release(ptr)
 }
 
 describe.skipIf(!compilerAvailable)(
@@ -408,9 +439,14 @@ describe.skipIf(!compilerAvailable)(
       }
     })
 
-    it('preserves vector overlap, unaligned rows, short tails, and empty moves', () => {
+    it('preserves overlapping scalar tails, frame canaries, unaligned rows, and empty moves', () => {
       for (let width = 1; width <= 17; width++)
         for (const kernel of arms) verifyMoveBoundaries(kernel, width)
+    })
+
+    it('moves rows in a frame ending exactly at the WASM memory boundary', () => {
+      for (let width = 1; width <= 17; width++)
+        for (const kernel of arms) verifyMemoryEndMoves(kernel, width)
     })
 
     it('rejects overflow, OOB, invalid stride/opacity and frame-source alias before writes', () => {
