@@ -1,0 +1,22 @@
+name: Redirect mirror pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    if: github.repository == 'ShaulLavo/ghostty-webgpu'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Point contributors to Fregat
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --comment \
+            'Thanks for your contribution! This repository is a read-only mirror of Fregat. Please open your pull request in https://github.com/ShaulLavo/fregat with changes to the ghostty-webgpu/ folder: https://github.com/ShaulLavo/fregat/tree/main/ghostty-webgpu.'
