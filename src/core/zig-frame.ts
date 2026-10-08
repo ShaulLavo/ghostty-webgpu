@@ -9,7 +9,7 @@ import type {
   RowInstanceUpdate,
 } from '../render/instances/types.js'
 
-const frameBytes = 112
+const frameBytes = 128
 
 function packedColor(color: RgbColor): number {
   return color.r | (color.g << 8) | (color.b << 16)
@@ -52,6 +52,7 @@ export class ZigFrameBuilder {
   ) {
     try {
       this.frame = this.allocate(frameBytes)
+      this.setUint(112, 0)
       this.cellPointer = this.allocate(columns * rows * 64)
       this.glyphPointer = this.allocate(columns * rows * 96)
       this.index = this.runtime.bridge.createGlyphIndex()
@@ -99,6 +100,16 @@ export class ZigFrameBuilder {
       this.glyphPointer,
       this.columns * this.rows * 24,
     )
+  }
+
+  get rowRebuilds(): number {
+    this.ensureActive()
+    return this.runtime.memory.view.getUint32(this.frame + 116, true)
+  }
+
+  get rowReuses(): number {
+    this.ensureActive()
+    return this.runtime.memory.view.getUint32(this.frame + 120, true)
   }
 
   get glyphCount(): number {
@@ -231,6 +242,10 @@ export class ZigFrameBuilder {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    if (this.frame) {
+      const cache = this.runtime.memory.view.getUint32(this.frame + 112, true)
+      if (cache) this.runtime.bridge.destroyFrameCache(cache)
+    }
     if (this.index) this.runtime.bridge.destroyGlyphIndex(this.index)
     this.index = 0
     for (const allocation of this.allocations)

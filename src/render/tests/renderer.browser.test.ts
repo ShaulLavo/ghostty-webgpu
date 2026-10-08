@@ -1573,7 +1573,7 @@ it('retains identical GPU records when output scrolls the viewport', async () =>
     renderer.notifyScroll()
     renderer.notifyWrite()
     clock.flushFrame()
-    expect(renderer.metrics.rebuiltRows).toBe(rebuiltRows + 3)
+    expect(renderer.metrics.rebuiltRows).toBe(rebuiltRows + 1)
     expect(renderer.metrics.uploadedBytes).toBe(uploadedBytes)
     expect(renderer.metrics.instanceUploadOperations).toBe(uploadOperations)
     expect(await renderer.capturePixels()).toEqual(beforePixels)

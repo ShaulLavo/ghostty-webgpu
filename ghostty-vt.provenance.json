@@ -43,7 +43,7 @@
     ],
     "inputs": {
       "scripts/build-wasm.ts": "91442f6b080a347aed96e61a7c592576102e9a82851d93013aba30f050847302",
-      "scripts/bridge.zig": "3d98de69d51c3141cea7c08f27bdfa62c6105b9ff286d6935791523f7e6e145b",
+      "scripts/bridge.zig": "af3880cf01e48e19ac317e680600d59ce087851af15048ed3fefae022b5b2aa4",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
       "scripts/glyph-index.zig": "34bceb4df734efe78d9c5f27ff79e4ce89b95eb198e8a87f5c702b61f501c177",
       "scripts/unknown-osc.zig": "99b6aa177a66bb6df934a8c16d17ebcb5488f15946600e1df52bf6d10a77b5d7",
@@ -59,8 +59,8 @@
       "nameSectionSha256": []
     },
     "bridge.wasm": {
-      "bytes": 7717,
-      "sha256": "51fc46e46b69f4f76bf33b075c11c0dd681bb64f8c17e0f0bb9de072df31d7f5",
+      "bytes": 11686,
+      "sha256": "98b73bddb3039ed7592f9a713763d34798c9f09a6cdddf7dc4549069b577df29",
       "nameSectionSha256": []
     }
   }

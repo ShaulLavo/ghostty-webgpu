@@ -180,7 +180,253 @@ const Frame = extern struct {
     selection_background: u32,
     index_rebuilds: u32,
     glyph_minimum_contrast: f64,
+    row_cache: ?*FrameCache,
+    rows_built: u32,
+    rows_reused: u32,
 };
+
+extern "env" fn ghostty_wasm_alloc(len: usize) ?[*]u8;
+extern "env" fn ghostty_wasm_free(ptr: ?[*]u8, len: usize) void;
+
+const CachedCell = struct {
+    raw: c.GhosttyCell,
+    foreground: u32,
+    background: u32,
+    style: u32,
+    styled: bool,
+    tag: c.GhosttyCellContentTag,
+    key: ?*glyph_index.Entry,
+};
+const CachedRow = struct {
+    id: c.GhosttyRenderStateRowId,
+    cells: [*]CachedCell,
+    selected: bool = false,
+    selection_start: u32 = 0,
+    selection_end: u32 = 0,
+    cursor: bool = false,
+    appearance: [11]u32 = [_]u32{0} ** 11,
+};
+const FrameCache = struct {
+    columns: u32,
+    rows: u32,
+    previous: [*]CachedRow,
+    next: [*]CachedRow,
+    incoming: [*]c.GhosttyRenderStateRowId,
+    sources: [*]u32,
+    used: [*]bool,
+    inputs: [*]CachedCell,
+    cells: [*][16]f32,
+    glyphs: [*][24]f32,
+    moved: bool = false,
+    appearance: [11]u32 = [_]u32{0} ** 11,
+    default_style: c.GhosttyStyle,
+};
+
+fn frameAllocate(comptime T: type, count: usize) ?[*]T {
+    const bytes = ghostty_wasm_alloc(count * @sizeOf(T)) orelse return null;
+    return @ptrCast(@alignCast(bytes));
+}
+
+fn frameFree(comptime T: type, pointer: [*]T, count: usize) void {
+    ghostty_wasm_free(@ptrCast(pointer), count * @sizeOf(T));
+}
+
+fn createFrameCacheFallible(columns: u32, rows: u32) error{OutOfMemory}!*FrameCache {
+    const memory = frameAllocate(FrameCache, 1) orelse return error.OutOfMemory;
+    errdefer frameFree(FrameCache, memory, 1);
+    const previous = frameAllocate(CachedRow, rows) orelse return error.OutOfMemory;
+    errdefer frameFree(CachedRow, previous, rows);
+    const next = frameAllocate(CachedRow, rows) orelse return error.OutOfMemory;
+    errdefer frameFree(CachedRow, next, rows);
+    const incoming = frameAllocate(c.GhosttyRenderStateRowId, rows) orelse return error.OutOfMemory;
+    errdefer frameFree(c.GhosttyRenderStateRowId, incoming, rows);
+    const sources = frameAllocate(u32, rows) orelse return error.OutOfMemory;
+    errdefer frameFree(u32, sources, rows);
+    const used = frameAllocate(bool, rows) orelse return error.OutOfMemory;
+    errdefer frameFree(bool, used, rows);
+    const inputs = frameAllocate(CachedCell, columns * rows) orelse return error.OutOfMemory;
+    errdefer frameFree(CachedCell, inputs, columns * rows);
+    const cells = frameAllocate([16]f32, columns * rows) orelse return error.OutOfMemory;
+    errdefer frameFree([16]f32, cells, columns * rows);
+    const glyphs = frameAllocate([24]f32, columns * rows) orelse return error.OutOfMemory;
+    for (0..rows) |y| previous[y] = .{ .id = std.mem.zeroes(c.GhosttyRenderStateRowId), .cells = inputs + y * columns };
+    var default_style: c.GhosttyStyle = undefined;
+    c.ghostty_style_default(&default_style);
+    memory[0] = .{ .columns = columns, .rows = rows, .previous = previous, .next = next, .incoming = incoming, .sources = sources, .used = used, .inputs = inputs, .cells = cells, .glyphs = glyphs, .default_style = default_style };
+    return &memory[0];
+}
+
+fn createFrameCache(columns: u32, rows: u32) ?*FrameCache {
+    return createFrameCacheFallible(columns, rows) catch null;
+}
+
+export fn bridge_destroy_frame_cache(cache: *FrameCache) void {
+    frameFree(CachedRow, cache.previous, cache.rows);
+    frameFree(CachedRow, cache.next, cache.rows);
+    frameFree(c.GhosttyRenderStateRowId, cache.incoming, cache.rows);
+    frameFree(u32, cache.sources, cache.rows);
+    frameFree(bool, cache.used, cache.rows);
+    frameFree(CachedCell, cache.inputs, cache.columns * cache.rows);
+    frameFree([16]f32, cache.cells, cache.columns * cache.rows);
+    frameFree([24]f32, cache.glyphs, cache.columns * cache.rows);
+    ghostty_wasm_free(@ptrCast(cache), @sizeOf(FrameCache));
+}
+
+fn sameRowId(a: c.GhosttyRenderStateRowId, b: c.GhosttyRenderStateRowId) bool {
+    return a.bits[0] == b.bits[0] and a.bits[1] == b.bits[1];
+}
+
+fn planFrameRows(frame: *Frame, state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator) c.GhosttyResult {
+    const cache = frame.row_cache.?;
+    @memset(cache.used[0..cache.rows], false);
+    cache.moved = false;
+    const contrast: u64 = @bitCast(frame.glyph_minimum_contrast);
+    const appearance = [11]u32{
+        @bitCast(frame.cell_width), @bitCast(frame.cell_height), @bitCast(frame.minimum_contrast),
+        frame.foreground,           frame.background,            frame.cursor,
+        frame.cursor_text,          frame.selection_foreground,  frame.selection_background,
+        @truncate(contrast),        @truncate(contrast >> 32),
+    };
+    cache.appearance = appearance;
+    var it = iterator;
+    var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    var y: u32 = 0;
+    while (c.ghostty_render_state_row_iterator_next(it)) : (y += 1) {
+        if (y >= cache.rows) return c.GHOSTTY_OUT_OF_SPACE;
+        result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_ID, &cache.incoming[y]);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        cache.sources[y] = cache.rows;
+        for (0..cache.rows) |source| {
+            if (!sameRowId(cache.previous[source].id, cache.incoming[y])) continue;
+            cache.sources[y] = @intCast(source);
+            cache.used[source] = true;
+            break;
+        }
+    }
+    if (y != cache.rows) return c.GHOSTTY_OUT_OF_SPACE;
+    for (0..cache.rows) |destination| {
+        if (cache.sources[destination] == cache.rows) {
+            const source = std.mem.indexOfScalar(bool, cache.used[0..cache.rows], false) orelse return c.GHOSTTY_OUT_OF_SPACE;
+            cache.sources[destination] = @intCast(source);
+            cache.used[source] = true;
+        }
+        const source = cache.sources[destination];
+        cache.next[destination] = cache.previous[source];
+        cache.next[destination].id = cache.incoming[destination];
+        cache.moved = cache.moved or source != destination;
+    }
+    if (!cache.moved) return c.GHOSTTY_SUCCESS;
+    @memcpy(cache.cells[0 .. cache.columns * cache.rows], frame.cell_data[0 .. cache.columns * cache.rows]);
+    @memcpy(cache.glyphs[0 .. cache.columns * cache.rows], frame.glyph_data[0 .. cache.columns * cache.rows]);
+    return c.GHOSTTY_SUCCESS;
+}
+
+fn visualStyle(style: c.GhosttyStyle) u32 {
+    return @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1) |
+        (@as(u32, @intFromBool(style.faint)) << 2) | (@as(u32, @intFromBool(style.inverse)) << 3) |
+        (@as(u32, @intFromBool(style.invisible)) << 4) | (@as(u32, @intFromBool(style.strikethrough)) << 5) |
+        (@as(u32, @intFromBool(style.overline)) << 6) | (@as(u32, @intCast(style.underline)) << 8);
+}
+
+fn matchingFrameRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, matches: *bool) c.GhosttyResult {
+    matches.* = false;
+    const cache = frame.row_cache.?;
+    const source = cache.sources[y];
+    const row = cache.previous[source];
+    if (source == y or row.cursor or cache.next[y].cursor or !sameRowId(row.id, cache.incoming[y])) return c.GHOSTTY_SUCCESS;
+    if (!std.mem.eql(u32, &row.appearance, &cache.appearance)) return c.GHOSTTY_SUCCESS;
+    var raw: c.GhosttyCellsView = undefined;
+    var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raw);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (raw.len != frame.columns) return c.GHOSTTY_OUT_OF_SPACE;
+    for (0..raw.len) |x| if (raw.ptr[x] != row.cells[x].raw) return c.GHOSTTY_SUCCESS;
+    var selection: c.GhosttyRenderStateRowSelection = undefined;
+    selection.size = @sizeOf(c.GhosttyRenderStateRowSelection);
+    result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_SELECTION, &selection);
+    const selected = result == c.GHOSTTY_SUCCESS;
+    if (!selected and result != c.GHOSTTY_NO_VALUE) return result;
+    if (selected != row.selected) return c.GHOSTTY_SUCCESS;
+    if (selected and (selection.start_x != row.selection_start or selection.end_x != row.selection_end)) return c.GHOSTTY_SUCCESS;
+    result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, @ptrCast(cells));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    for (0..raw.len) |x| {
+        const input = row.cells[x];
+        const grapheme = input.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME and input.key != null;
+        // Unstyled codepoint cells have no explicit background; raw equality proves that remains true.
+        const default_colors = !input.styled and (input.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT or input.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME);
+        if (default_colors and !grapheme) continue;
+        result = c.ghostty_render_state_row_cells_select(cells.*, @intCast(x));
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (!default_colors) {
+            var background: u32 = 0xffffffff;
+            result = frameColor(cells.*, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &background);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+            if (background != input.background) return c.GHOSTTY_SUCCESS;
+        }
+        if (input.styled) {
+            var style: c.GhosttyStyle = undefined;
+            style.size = @sizeOf(c.GhosttyStyle);
+            result = c.ghostty_render_state_row_cells_get(cells.*, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_STYLE, &style);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+            if (visualStyle(style) != input.style) return c.GHOSTTY_SUCCESS;
+            var foreground: u32 = 0xffffffff;
+            result = frameColor(cells.*, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_FG_COLOR, &foreground);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+            if (foreground != input.foreground) return c.GHOSTTY_SUCCESS;
+        }
+        if (!grapheme) continue;
+        var length: u32 = 0;
+        result = c.ghostty_render_state_row_cells_get(cells.*, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        const key = input.key.?.key;
+        if (length != key.text_len) return c.GHOSTTY_SUCCESS;
+        const text = glyph_index.scratch(frame.glyph_index, length) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+        result = c.ghostty_render_state_row_cells_get(cells.*, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, text.ptr);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (!std.mem.eql(u32, text, key.text[0..key.text_len])) return c.GHOSTTY_SUCCESS;
+    }
+    matches.* = true;
+    return c.GHOSTTY_SUCCESS;
+}
+
+fn reuseFrameRow(frame: *Frame, y: u32) c.GhosttyResult {
+    const cache = frame.row_cache.?;
+    const source = cache.sources[y];
+    const start = y * frame.columns;
+    const source_start = source * frame.columns;
+    @memcpy(frame.cell_data[start .. start + frame.columns], cache.cells[source_start .. source_start + frame.columns]);
+    @memcpy(frame.glyph_data[start .. start + frame.columns], cache.glyphs[source_start .. source_start + frame.columns]);
+    var cell_first = frame.columns;
+    var cell_end: u32 = 0;
+    var glyph_first = frame.columns;
+    var glyph_end: u32 = 0;
+    const top = @as(f32, @floatFromInt(y)) * frame.cell_height;
+    for (0..frame.columns) |x| {
+        const cell = &frame.cell_data[start + x];
+        const glyph = &frame.glyph_data[start + x];
+        if (cell[3] != 0) cell[1] = top;
+        if (glyph[16] != 0) glyph[1] = top + cache.next[y].cells[x].key.?.glyph.offset_y;
+        if (!std.mem.eql(u8, std.mem.asBytes(cell), std.mem.asBytes(&cache.cells[start + x]))) {
+            cell_first = @min(cell_first, @as(u32, @intCast(x)));
+            cell_end = @intCast(x + 1);
+        }
+        if (!std.mem.eql(u8, std.mem.asBytes(glyph), std.mem.asBytes(&cache.glyphs[start + x]))) {
+            glyph_first = @min(glyph_first, @as(u32, @intCast(x)));
+            glyph_end = @intCast(x + 1);
+        }
+    }
+    if (frame.ranges_len == frame.ranges_cap) return c.GHOSTTY_OUT_OF_SPACE;
+    frame.ranges[frame.ranges_len] = .{
+        .cell_offset = (start + if (cell_end == 0) @as(u32, 0) else cell_first) * 64,
+        .cell_length = if (cell_end == 0) 0 else (cell_end - cell_first) * 64,
+        .glyph_offset = (start + if (glyph_end == 0) @as(u32, 0) else glyph_first) * 96,
+        .glyph_length = if (glyph_end == 0) 0 else (glyph_end - glyph_first) * 96,
+    };
+    frame.ranges_len += 1;
+    frame.rows_reused += 1;
+    return c.GHOSTTY_SUCCESS;
+}
 
 export fn bridge_create_glyph_index() ?*glyph_index.Index {
     return glyph_index.create();
@@ -294,6 +540,7 @@ fn writeInstances(frame: *Frame, cells: c.GhosttyRenderStateRowCells, x: u32, y:
         .background = background,
         .minimum_contrast = frame.glyph_minimum_contrast,
     }) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+    frame.row_cache.?.next[y].cells[x].key = key;
     const entry = key.glyph;
     if (entry.valid == 0) return missingGlyph(frame, key);
     if (entry.width == 0 or entry.height == 0) return c.GHOSTTY_SUCCESS;
@@ -320,13 +567,16 @@ fn buildCell(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderS
     if (result != c.GHOSTTY_SUCCESS) return result;
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &tag);
     if (result != c.GHOSTTY_SUCCESS) return result;
-    result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
-    if (result != c.GHOSTTY_SUCCESS) return result;
-    var style: c.GhosttyStyle = undefined;
-    c.ghostty_style_default(&style);
+    var style = frame.row_cache.?.default_style;
     var styled = false;
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_HAS_STYLING, &styled);
     if (result != c.GHOSTTY_SUCCESS) return result;
+    // Unstyled text has no explicit background; graphemes still need native text selection.
+    const default_colors = !styled and (tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT or tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME);
+    if (!default_colors or tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
+        result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
+        if (result != c.GHOSTTY_SUCCESS) return result;
+    }
     var fg: u32 = 0xffffffff;
     if (styled) {
         result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_STYLE, &style);
@@ -335,8 +585,10 @@ fn buildCell(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderS
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     var bg: u32 = 0xffffffff;
-    result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &bg);
-    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (!default_colors) {
+        result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &bg);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+    }
     var span: u32 = 1;
     while (x + span < raws.len) : (span += 1) {
         var next_wide: c.GhosttyCellWide = 0;
@@ -344,6 +596,15 @@ fn buildCell(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderS
         if (result != c.GHOSTTY_SUCCESS) return result;
         if (next_wide != c.GHOSTTY_CELL_WIDE_SPACER_TAIL) break;
     }
+    frame.row_cache.?.next[y].cells[x] = .{
+        .raw = raw,
+        .foreground = fg,
+        .background = bg,
+        .style = visualStyle(style),
+        .styled = styled,
+        .tag = tag,
+        .key = null,
+    };
     return writeInstances(frame, cells, x, y, .{
         .codepoint = codepoint,
         .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL,
@@ -362,8 +623,14 @@ fn buildRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.
     result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_SELECTION, &selection);
     const has_selection = result == c.GHOSTTY_SUCCESS;
     if (!has_selection and result != c.GHOSTTY_NO_VALUE) return result;
+    const cached = &frame.row_cache.?.next[y];
+    cached.appearance = frame.row_cache.?.appearance;
+    cached.selected = has_selection;
+    cached.selection_start = if (has_selection) selection.start_x else 0;
+    cached.selection_end = if (has_selection) selection.end_x else 0;
     result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, @ptrCast(cells));
     if (result != c.GHOSTTY_SUCCESS) return result;
+    frame.rows_built += 1;
     var cell_first = frame.columns;
     var cell_end: u32 = 0;
     var glyph_first = frame.columns;
@@ -406,13 +673,24 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
     const rebuild_all = frame.glyph_index.rebuild_all != 0;
     // A missing-glyph retry must upload cell changes written before registration.
     const force = !dirty_only or frame.status == 2 or rebuild_all;
+    if (frame.row_cache == null) frame.row_cache = createFrameCache(frame.columns, frame.rows) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+    frame.rows_built = 0;
+    frame.rows_reused = 0;
+    var result = planFrameRows(frame, state, iterator);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    const cache = frame.row_cache.?;
+    defer {
+        if (result != c.GHOSTTY_SUCCESS) {
+            for (0..cache.rows) |row| cache.previous[row].id = std.mem.zeroes(c.GhosttyRenderStateRowId);
+        }
+    }
     glyph_index.beginBuild(frame.glyph_index);
     frame.ranges_len = 0;
     frame.missing_len = 0;
     frame.status = 0;
     var it = iterator;
     var row_cells = cells;
-    var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
+    result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
     if (result != c.GHOSTTY_SUCCESS) return result;
     var y: u32 = 0;
     while (c.ghostty_render_state_row_iterator_next(it)) : (y += 1) {
@@ -421,10 +699,18 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         if (result != c.GHOSTTY_SUCCESS) return result;
         var write = !dirty_only or dirty or rebuild_all;
         if (mask) |m| write = write or (y < mask_len and m[y] != 0);
+        write = write or cache.sources[y] != y;
+        cache.next[y].cursor = frame.cursor_visible != 0 and frame.cursor_y == y;
         if (!write) continue;
-        result = buildRow(frame, it, &row_cells, y, force);
+        var matches = false;
+        if (!force) {
+            result = matchingFrameRow(frame, it, &row_cells, y, &matches);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+        }
+        result = if (matches) reuseFrameRow(frame, y) else buildRow(frame, it, &row_cells, y, force);
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
+    std.mem.swap([*]CachedRow, &cache.previous, &cache.next);
     if (frame.status == 0) frame.glyph_index.rebuild_all = 0;
     return c.GHOSTTY_SUCCESS;
 }

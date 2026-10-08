@@ -82,6 +82,211 @@ function expectNativeRecords(frame: ZigFrameBuilder): void {
 }
 
 describe('WASM frame records', () => {
+  it('retains each cached row’s appearance across an unchanged partial build', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25laa\r\naa\r\naa\r\naa')
+    state.update()
+    builder = state.createFrameBuilder(24, 4)
+    readyFrame()
+    state.acknowledge()
+    const changed = {
+      ...options,
+      full: false,
+      theme: { ...options.theme, foreground: { r: 200, g: 80, b: 40 } },
+    }
+    readyFrame(changed)
+    expect(builder.rowRebuilds).toBe(0)
+    terminal.write('\r\n')
+    state.update()
+    readyFrame({ ...changed, overlayRows: new Set([0, 1, 2, 3]) })
+    const cells = builder.cellData.slice()
+    const glyphs = builder.glyphData.slice()
+    readyFrame({ ...changed, full: true })
+    expect(builder.cellData).toEqual(cells)
+    expect(builder.glyphData).toEqual(glyphs)
+  })
+
+  it.each(['foreground', 'geometry', 'contrast'] as const)(
+    'rebuilds moved rows when %s changes during scrolling',
+    async (change) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+      const state = runtime.createRenderState(terminal)
+      terminal.write('\x1b[?25laa\r\naa\r\naa\r\naa')
+      state.update()
+      builder = state.createFrameBuilder(24, 4)
+      readyFrame()
+      state.acknowledge()
+      terminal.write('\r\n')
+      state.update()
+      const changed = { ...options, full: false, overlayRows: new Set([0, 1, 2, 3]) }
+      if (change === 'foreground')
+        changed.theme = { ...options.theme, foreground: { r: 200, g: 80, b: 40 } }
+      if (change === 'geometry') changed.cellWidth = 7.3
+      if (change === 'contrast') changed.theme = { ...options.theme, minimumContrast: 4.5 }
+      readyFrame(changed)
+      const cells = builder.cellData.slice()
+      const glyphs = builder.glyphData.slice()
+      readyFrame({ ...changed, full: true })
+      expect(builder.cellData).toEqual(cells)
+      expect(builder.glyphData).toEqual(glyphs)
+    },
+  )
+
+  it.each(['plain', '界é👩‍💻', '\x1b[31;44;1;3;4mstyled\x1b[0m'])(
+    'rebuilds only the incoming row after scrolling %s',
+    async (text) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+      const state = runtime.createRenderState(terminal)
+      terminal.write(`\x1b[?25l${text}0\r\n${text}1\r\n${text}2\r\n${text}3`)
+      state.update()
+      builder = state.createFrameBuilder(24, 4)
+      readyFrame()
+      state.acknowledge()
+      terminal.write(`\r\n${text}0`)
+      state.update()
+      readyFrame({ ...options, full: false, overlayRows: new Set([0, 1, 2, 3]) })
+      expect(builder.rowRebuilds).toBe(1)
+      const retainedCells = builder.cellData.slice()
+      const retainedGlyphs = builder.glyphData.slice()
+      readyFrame({ ...options, full: true })
+      expect(builder.cellData).toEqual(retainedCells)
+      expect(builder.glyphData).toEqual(retainedGlyphs)
+    },
+  )
+
+  it.each([
+    ['forward', '\r\nrow0'],
+    ['reverse', '\x1b[H\x1bMrow0'],
+    ['region', '\x1b[2;4r\x1b[4;1H\nrow0'],
+    ['delete', '\x1b[2;1H\x1b[M'],
+    ['insert', '\x1b[2;1H\x1b[L'],
+    ['edited retained row', '\r\nrow0\x1b[1;1Hrow3'],
+    ['changed grapheme', '\r\nrow0\x1b[1;6Hè'],
+    ['changed color', '\r\nrow0\x1b[1;1H\x1b[32mrow1\x1b[0m'],
+    ['palette update', '\r\nrow0\x1b]4;1;rgb:00/ff/00\x1b\\'],
+    ['link update', '\r\nrow0\x1b[1;1H\x1b]8;;https://example.org/other\x1b\\row1\x1b]8;;\x1b\\'],
+  ])('keeps exact native records through %s scrolling', async (_name, input) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25l\x1b[31mrow0 é界👩‍💻\r\nrow1 é界👩‍💻\r\nrow2 é界👩‍💻\r\nrow3 é界👩‍💻\x1b[0m')
+    state.update()
+    builder = state.createFrameBuilder(24, 4)
+    const fractional = { ...options, cellWidth: 7.3, cellHeight: 15.7 }
+    readyFrame(fractional)
+    state.acknowledge()
+    const cells = builder.cellData.slice()
+    const glyphs = builder.glyphData.slice()
+    terminal.write(input!)
+    state.update()
+    readyFrame({ ...fractional, full: false })
+    for (const range of builder.changedRanges()) {
+      const cellStart = range.cell.byteOffset / 4
+      const glyphStart = range.glyph.byteOffset / 4
+      cells.set(
+        builder.cellData.subarray(cellStart, cellStart + range.cell.byteLength / 4),
+        cellStart,
+      )
+      glyphs.set(
+        builder.glyphData.subarray(glyphStart, glyphStart + range.glyph.byteLength / 4),
+        glyphStart,
+      )
+    }
+    expect(cells).toEqual(builder.cellData)
+    expect(glyphs).toEqual(builder.glyphData)
+    readyFrame(fractional)
+    expect(builder.cellData).toEqual(cells)
+    expect(builder.glyphData).toEqual(glyphs)
+  })
+
+  it.each(zigFrameCursorStyles)(
+    'rebuilds old and new %s cursor rows during scrolling',
+    async (style) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+      const state = runtime.createRenderState(terminal)
+      terminal.write('row0\r\nrow1\r\nrow2\r\nrow3')
+      state.update()
+      builder = state.createFrameBuilder(24, 4)
+      readyFrame({ ...options, cursor: { style, visible: true, x: 2, y: 1 } })
+      state.acknowledge()
+      terminal.write('\r\nrow0')
+      state.update()
+      const current = {
+        ...options,
+        cursor: { style, visible: true, x: 3, y: 2 },
+        overlayRows: new Set([1, 2]),
+      }
+      readyFrame({ ...current, full: false })
+      expect(builder.rowReuses).toBe(1)
+      const cells = builder.cellData.slice()
+      const glyphs = builder.glyphData.slice()
+      readyFrame(current)
+      expect(builder.cellData).toEqual(cells)
+      expect(builder.glyphData).toEqual(glyphs)
+    },
+  )
+
+  it('compares moved selection and history rows against full records', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25lrow0\r\nrow1\r\nrow2\r\nrow3\r\nrow0\r\nrow1')
+    terminal.selectAll()
+    state.update()
+    builder = state.createFrameBuilder(24, 4)
+    readyFrame()
+    for (const delta of [-1, -1, 1, 1]) {
+      state.acknowledge()
+      terminal.scrollBy(delta)
+      state.update()
+      readyFrame({ ...options, full: false })
+      const cells = builder.cellData.slice()
+      const glyphs = builder.glyphData.slice()
+      readyFrame()
+      expect(builder.cellData).toEqual(cells)
+      expect(builder.glyphData).toEqual(glyphs)
+    }
+    state.acknowledge()
+    terminal.clearSelection()
+    terminal.write('\r\nrow0')
+    state.update()
+    readyFrame({ ...options, full: false })
+    const cells = builder.cellData.slice()
+    const glyphs = builder.glyphData.slice()
+    readyFrame()
+    expect(builder.cellData).toEqual(cells)
+    expect(builder.glyphData).toEqual(glyphs)
+  })
+
+  it('replaces row cache after resize and bypasses cleared glyph entries', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25lrow0\r\nrow1\r\nrow2\r\nrow3')
+    state.update()
+    builder = state.createFrameBuilder(24, 4)
+    readyFrame()
+    state.acknowledge()
+    builder.clearGlyphs()
+    terminal.write('\r\nrow0')
+    state.update()
+    readyFrame({ ...options, full: false })
+    expect(builder.rowReuses).toBe(0)
+    expect(builder.rowRebuilds).toBe(4)
+    builder.dispose()
+    terminal.resize({ columns: 20, rows: 5 })
+    state.update()
+    builder = state.createFrameBuilder(20, 5)
+    readyFrame()
+    expect(builder.rowRebuilds).toBe(5)
+    expectNativeRecords(builder)
+  })
+
   it.each(zigFrameContents)('builds native records for %j', async (content) => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 32, rows: 3 })

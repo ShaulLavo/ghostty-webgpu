@@ -18,11 +18,7 @@ import {
   safeRendererInteger,
 } from '../config.js'
 import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
-import type {
-  CanonicalRendererTheme,
-  RendererTheme,
-  RowInstanceUpdate,
-} from '../instances/types.js'
+import type { CanonicalRendererTheme, RendererTheme } from '../instances/types.js'
 import type {
   RendererGridSize,
   RendererMetrics,
@@ -430,7 +426,7 @@ export class WebGlTerminalRenderer {
     }
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     if (operations > 0) {
-      this.recordFrame(pass, updates, operations)
+      this.recordFrame(pass, builder.rowRebuilds, operations)
       this.metrics.zigFrames += 1
     }
     this.needsFullRebuild = false
@@ -505,11 +501,7 @@ export class WebGlTerminalRenderer {
     this.scheduler.flush()
   }
 
-  private recordFrame(
-    pass: WebGlTextPass,
-    updates: readonly RowInstanceUpdate[],
-    operations: number,
-  ): void {
+  private recordFrame(pass: WebGlTextPass, rebuiltRows: number, operations: number): void {
     this.metrics.atlasCacheHits = this.atlas.cacheHitCount
     this.metrics.atlasCacheMisses = this.atlas.cacheMissCount
     this.metrics.atlasEvictions = this.atlas.evictionCount
@@ -519,7 +511,7 @@ export class WebGlTerminalRenderer {
       this.atlasUploadOperationsOffset + pass.atlasUploadOperations
     this.metrics.draws += 2
     this.metrics.instanceUploadOperations += operations
-    this.metrics.rebuiltRows += updates.length
+    this.metrics.rebuiltRows += rebuiltRows
     this.metrics.submittedFrames += 1
     this.metrics.uploadedBytes += pass.frameUploadedBytes
   }

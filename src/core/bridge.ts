@@ -217,6 +217,10 @@ export class CallbackBridge {
     )
   }
 
+  destroyFrameCache(cache: number): void {
+    this.bridgeExports!.bridge_destroy_frame_cache(cache)
+  }
+
   createGlyphIndex(): number {
     return this.bridgeExports!.bridge_create_glyph_index()
   }

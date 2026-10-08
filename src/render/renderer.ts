@@ -33,7 +33,6 @@ import {
   type CanonicalRendererTheme,
   type CursorState,
   type RendererTheme,
-  type RowInstanceUpdate,
 } from './instances/types.js'
 import { RenderScheduler, type RenderSchedulerClock } from './scheduler.js'
 import { textPassGlyphCapacity, WebGpuTextPass } from './text-pass.js'
@@ -599,6 +598,7 @@ export class WebGpuTerminalRenderer {
       )
     }
     const updates = builder.changedRanges()
+    const rebuiltRows = builder.rowRebuilds
     this.atlasTextures.sync(this.atlas.consumeUploads())
     const operations = this.textPass.uploadFrame(builder, updates)
     if (!this.coordinator) {
@@ -617,7 +617,7 @@ export class WebGpuTerminalRenderer {
           : this.rowsToRebuild(damage)
       }
       if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-      this.recordFrame(updates, operations)
+      this.recordFrame(rebuiltRows, operations)
       this.metrics.zigFrames += 1
       this.needsFullRebuild = false
       this.frameFailed = false
@@ -650,7 +650,7 @@ export class WebGpuTerminalRenderer {
         if (this.disposed) return
         textPass.acceptFrame()
         if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-        this.recordFrame(updates, operations)
+        this.recordFrame(rebuiltRows, operations)
         this.metrics.zigFrames += 1
         this.needsFullRebuild = false
         this.frameFailed = false
@@ -767,10 +767,7 @@ export class WebGpuTerminalRenderer {
     this.frames.resize(this.grid.rows)
   }
 
-  private recordFrame(
-    updates: readonly RowInstanceUpdate[],
-    instanceUploadOperations: number,
-  ): void {
+  private recordFrame(rebuiltRows: number, instanceUploadOperations: number): void {
     this.metrics.atlasCacheHits = this.atlas.cacheHitCount
     this.metrics.atlasCacheMisses = this.atlas.cacheMissCount
     this.metrics.atlasEvictions = this.atlas.evictionCount
@@ -780,7 +777,7 @@ export class WebGpuTerminalRenderer {
       this.atlasUploadOperationsOffset + this.atlasTextures.uploadOperationCount
     this.metrics.draws += this.textPass.drawCount
     this.metrics.instanceUploadOperations += instanceUploadOperations
-    this.metrics.rebuiltRows += updates.length
+    this.metrics.rebuiltRows += rebuiltRows
     this.metrics.submittedFrames += 1
     this.metrics.uploadedBytes += this.textPass.frameUploadedBytes
   }
