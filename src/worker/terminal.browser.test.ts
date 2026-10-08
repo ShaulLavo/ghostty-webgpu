@@ -266,6 +266,13 @@ it.each(['normal', 'held', 'retired-held', 'replacement-held'] as const)(
           await terminal.write('\r recovered idle lifecycle')
         }
       }
+      channel.postMessage('hold-layout')
+      await eventually(() => observations.some((value) => value.type === 'layout-armed'))
+      window.dispatchEvent(new Event('resize'))
+      await eventually(() => observations.some((value) => value.type === 'layout-held'))
+      expect(terminal.hasPendingFrame).toBe(true)
+      channel.postMessage('release-layout')
+      await eventually(() => !terminal.hasPendingFrame)
       expect(terminal.hasPendingFrame).toBe(false)
       expect(errors).toEqual([])
       terminate.mockClear()
@@ -347,6 +354,7 @@ it.each(['normal', 'held', 'retired-held', 'replacement-held'] as const)(
     } finally {
       channel.postMessage('acquire')
       channel.postMessage('release')
+      channel.postMessage('release-layout')
       await terminal.dispose().catch(() => {})
       producer.port1.close()
       producer.port2.close()

@@ -6,7 +6,7 @@ export type DeviceLifecycleObservation =
   | { readonly type: 'acquired'; readonly device: number }
   | { readonly type: 'waiting'; readonly device: number }
   | { readonly type: 'destroyed'; readonly device: number }
-  | { readonly type: 'interrupted' | 'closed' }
+  | { readonly type: 'interrupted' | 'closed' | 'layout-armed' | 'layout-held' }
   | { readonly type: 'deadline-armed' | 'deadline-cleared'; readonly delay: number }
   | { readonly type: 'warning'; readonly value: unknown }
   | {
@@ -22,6 +22,8 @@ const losses: (() => void)[] = []
 const fence = Promise.withResolvers<void>()
 const acquisition = Promise.withResolvers<void>()
 const timers = new Map<number, () => void>()
+const heldLayouts: (() => void)[] = []
+let holdLayout = false
 const requestDevice = GPUAdapter.prototype.requestDevice
 GPUAdapter.prototype.requestDevice = async function (descriptor) {
   const device = await requestDevice.call(this, descriptor)
@@ -58,7 +60,17 @@ if (mode === 'setup-failed')
 
 channel.onmessage = ({
   data,
-}: MessageEvent<'release' | 'lose' | 'inspect' | 'acquire' | 'deadline'>) => {
+}: MessageEvent<
+  'release' | 'lose' | 'inspect' | 'acquire' | 'deadline' | 'hold-layout' | 'release-layout'
+>) => {
+  if (data === 'hold-layout') {
+    holdLayout = true
+    channel.postMessage({ type: 'layout-armed' })
+  }
+  if (data === 'release-layout') {
+    holdLayout = false
+    for (const release of heldLayouts.splice(0)) release()
+  }
   if (data === 'acquire') acquisition.resolve()
   if (data === 'release') fence.resolve()
   if (data === 'lose') losses.at(-1)?.()
@@ -109,7 +121,9 @@ scope.onmessage = (event) => {
   const port = event.data.port
   let opening: number | undefined
   let disposing: number | undefined
+  const layouts = new Set<number>()
   port.addEventListener('message', ({ data }: MessageEvent<WorkerRequest>) => {
+    if (data.command === 'layout') layouts.add(data.id)
     if (data.command === 'open') opening = data.id
     if (data.command === 'dispose') disposing = data.id
     if (mode === 'initial-held' && data.generation !== event.data.generation)
@@ -117,6 +131,11 @@ scope.onmessage = (event) => {
   })
   const send = port.postMessage.bind(port)
   port.postMessage = (message: WorkerMessage) => {
+    if (message.type === 'reply' && layouts.delete(message.id) && holdLayout) {
+      heldLayouts.push(() => send(message))
+      channel.postMessage({ type: 'layout-held' })
+      return
+    }
     if (
       (message.type === 'fatal' || message.type === 'reply') &&
       message.failure?.operation === 'cleanup'
