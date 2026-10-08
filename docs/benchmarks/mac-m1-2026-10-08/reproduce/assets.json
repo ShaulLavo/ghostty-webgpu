@@ -1,0 +1,66 @@
+{
+  "common": {
+    "native.wasm": "de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426",
+    "bridge.wasm": "51fc46e46b69f4f76bf33b075c11c0dd681bb64f8c17e0f0bb9de072df31d7f5",
+    "legacy.wasm": "d6f0326f1874ad2ce9f289e3a4a0c5f3507d4cb38d8747e4b287def470a0c60a",
+    "font.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+    "font-bold.woff2": "d0d4e818808f2a0ba39b2b09d1989366f63494e295f003c7ef436697378507e8",
+    "font-license.txt": "403581b69dac5cff4079205e01c6b467e56af449ecbd7247693ddb1baafa005b",
+    "xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+    "xterm.mjs": "b336ec65a086c056d4804b3d4c2347da5663d3f23c3f25be866467bd8857ad59",
+    "addon-webgl.mjs": "5ac2cbbb8a861ba99176eda0ee91f10c08de32d091e3488edf699ad111131ebb",
+    "ghostty-web.mjs": "078b3fe37e4ef469d3f3d7772ee263070f8613e5a6f5ff305c85778907f45e72",
+    "__vite-browser-external-2447137e.js": "f8c456031e5001c0cda4837cd9ee3a33d79beeba120ec633ec9d990632fb2aa6",
+    "logs.txt": "e68fb38e0d2f4063fbfc3a308cbaecf69bc4d85071bfd69edde4b6b8b5e6ded8",
+    "canvas-compose.wasm": "ed97fd451e644f0ff8ba77a56626553f7b69c793a4834e28c7a0889b00ac37a5",
+    "index.html": "d7e10b046dd00fe45feffd5e36ed1cc7d5d2eb1dcdeb411f1bf8608e6dc702dd"
+  },
+  "capsules": {
+    "webgl-default": {
+      "browserArchive": "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714.tgz",
+      "browserSha256": "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714",
+      "runtimeCommit": "902687697db8a58a211495d07f4938d331feef92",
+      "originalManifestSha256": "3e4a33e3d12e63d41918b157d8b418db5616c30370d380314505a5f19450fafc",
+      "originalSealSha256": "c01c0a850d7a97066545a9dcce56bb59476698cd396506b3c446b0f1dfda63e6",
+      "driverOriginalSha256": "1f658a0e5f7f2284fb458f26387a4e022467159988426b3dc263b0ede3484b6c"
+    },
+    "webgl-capped": {
+      "browserArchive": "f3d74da9e1441b69f8138c273af1fd30e8c17bc46daac30593941513c52a2515.tgz",
+      "browserSha256": "f3d74da9e1441b69f8138c273af1fd30e8c17bc46daac30593941513c52a2515",
+      "runtimeCommit": "902687697db8a58a211495d07f4938d331feef92",
+      "originalManifestSha256": "9c28208475717425dc31568aec60c1c4d65d7ca15b8c36a74f4e00e390189cb2",
+      "originalSealSha256": "4c467752456aa245944023cc89e086092b192f75fb79f2028b1465bc5a50f595",
+      "driverOriginalSha256": "aceea2b801cb45b491f40dcbfddd7685159f0da93dd38bf5453f6f069ef66fff"
+    },
+    "dom-full": {
+      "browserArchive": "b39c389b340675db5db716c7eadc4823bb9b79fcee2d5ef96b62f9166ffa8063.tgz",
+      "browserSha256": "b39c389b340675db5db716c7eadc4823bb9b79fcee2d5ef96b62f9166ffa8063",
+      "runtimeCommit": "902687697db8a58a211495d07f4938d331feef92",
+      "originalManifestSha256": "dccba82e2304b870fa86bc63baa89c6648f1bd4e0110be055f3f00036169bc69",
+      "originalSealSha256": "7be634b8b43158f55f1e4af860514ca60cdb242eb0acd9c37bc89c23a82c9b06",
+      "driverOriginalSha256": "6fd69795851b7b85db08f0a62eda731115e449cc3fd91e58dd3d721712651624"
+    },
+    "dom-default": {
+      "browserArchive": "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714.tgz",
+      "browserSha256": "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714",
+      "runtimeCommit": "902687697db8a58a211495d07f4938d331feef92",
+      "originalManifestSha256": "3e4a33e3d12e63d41918b157d8b418db5616c30370d380314505a5f19450fafc",
+      "originalSealSha256": "6c0fca9899690ec6b7838740631249b2b71c95b5f68b4b1c38f2a66a04c70f61",
+      "driverOriginalSha256": "6fd69795851b7b85db08f0a62eda731115e449cc3fd91e58dd3d721712651624"
+    },
+    "dom-grid": {
+      "browserArchive": "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714.tgz",
+      "browserSha256": "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714",
+      "runtimeCommit": "902687697db8a58a211495d07f4938d331feef92",
+      "originalManifestSha256": "3e4a33e3d12e63d41918b157d8b418db5616c30370d380314505a5f19450fafc",
+      "originalSealSha256": "d61395d2750b17aecbcfc0df3192e0d3b43dbd04d1645651f8f12f32c4ae2834",
+      "driverOriginalSha256": "bbab61252ed1853ab78f2eb21f4c86a54c1280b09bb27fce22f4934991c6bdb1"
+    }
+  },
+  "archives": {
+    "common.tgz": "3bfd17e336fbabe97cd86170036513597ca0832b073590f3bdfa0fe4d944a26e",
+    "4056cf9f6a4aaee95e019b14f84c2e82aaec9fc8692d5304259b4328fe6cf714.tgz": "ca3fa69f0e990358a40c5b8d1e255e044b017c3f005a1d51fb7a91f007f162b3",
+    "f3d74da9e1441b69f8138c273af1fd30e8c17bc46daac30593941513c52a2515.tgz": "be86e5f8c1c26e3edc457882222bde55353e90ea2539f59492c71bc0622a7fbe",
+    "b39c389b340675db5db716c7eadc4823bb9b79fcee2d5ef96b62f9166ffa8063.tgz": "3d1d24f8d3bfd7ee425a3d53786b42f73c6542f4e60f2d26a02ec0070c693b13"
+  }
+}

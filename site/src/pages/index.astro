@@ -5,7 +5,7 @@ import firstFrameCss from '../styles/first-frame.css?inline'
 import { firstGhostFrame } from '../first-frame.js'
 
 const firstFrame = await firstGhostFrame()
-import { measurements, measurementEnvironment, SHOW_MEASUREMENTS } from '../measurements'
+import { measurements, measurementEnvironment } from '../measurements'
 
 const version = __SITE_VERSION__
 const base = import.meta.env.BASE_URL
@@ -119,20 +119,18 @@ socket.<span class="tk-f">addEventListener</span><span class="tk-p">(</span><spa
       </section>
       <section class="measured" aria-labelledby="measured-heading">
         <h2 id="measured-heading">Measured</h2>
-        {SHOW_MEASUREMENTS ? (
-          <>
-            <p>{measurementEnvironment}</p>
-            <div class="measurement-table">
-              <table>
-                <caption>One terminal, byte input. Median of three runs; latency ends at the captured frame.</caption>
-                <thead><tr><th scope="col">Measure</th><th scope="col">ghostty-webgpu</th><th scope="col">xterm.js WebGL</th></tr></thead>
-                <tbody>{measurements.map((row) => (
-                  <tr><th scope="row">{row.label}</th><td>{row.ghostty}</td><td>{row.xterm}</td></tr>
-                ))}</tbody>
-              </table>
-            </div>
-          </>
-        ) : <p>Measurements in progress.</p>}
+        <p>{measurementEnvironment}</p>
+        <div class="measurement-table">
+          <table>
+            <caption>Matching renderer pairs, ghostty / xterm.js. Below 1 means ghostty uses less.</caption>
+            <thead><tr><th scope="col">Renderer pair</th><th scope="col">Workload</th><th scope="col">CPU energy ratio</th><th scope="col">Instruction ratio</th></tr></thead>
+            <tbody>{measurements.map((row) => (
+              <tr><th scope="row">{row.renderer} / {row.renderer}</th><td>{row.workload}</td><td>{row.energy}</td><td>{row.instructions}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <p>Seventeen 40 × 12 terminals, DPR 2, 120 warm-up ticks and 900 measured ticks at 60 Hz. Medians of balanced pairs. CPU energy covers the Chrome process family, including GPU-process CPU work. GPU-device and display energy are outside its scope.</p>
+        <p>WebGL heavy output finishes at 8,841 matching history rows; intermediate history differs. DOM heavy logs retain the full stream. DOM rolling and Unicode surfaces differ; scrolling and edits use normalized grids. Reviews qualify local whole-terminal observations with limits. WebGL loses on line-by-line output, and DOM loses on typing-like edits.</p>
         <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md">Benchmark method and results</a>
       </section>
     </main>

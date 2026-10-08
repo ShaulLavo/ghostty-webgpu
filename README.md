@@ -40,14 +40,23 @@ scrollback uses native page-granular line and byte budgets. [retention and actua
 
 ## benchmarks
 
-recorded october 1, 2026 on an apple m1 in chromium, one terminal receiving bytes. parser throughput; higher is better
+Reviewed 2026-10-08 on an Apple M1 MacBook with AC power and headed Chrome 154.0.8037.93. Frozen ghostty-webgpu 0.3.20 vs xterm.js 6.0.0, WebGL addon 0.19.0. Seventeen visible 40 × 12 terminals, DPR 2, 120 warm-up ticks and 900 measured ticks at 60 Hz. Medians of balanced paired runs. Each ratio is ghostty divided by xterm.js; below 1 means ghostty uses less.
 
-| input    | ghostty-webgpu | xterm.js webgl | ghostty-web |
-| -------- | -------------: | -------------: | ----------: |
-| ascii    |    164.36 MB/s |     63.55 MB/s |  65.58 MB/s |
-| git logs |    360.42 MB/s |     69.67 MB/s |  65.71 MB/s |
+| Renderer pair           | Workload                  | CPU energy ratio | Instruction ratio |
+| ----------------------- | ------------------------- | ---------------: | ----------------: |
+| WebGL vs xterm.js WebGL | Heavy log output          |            0.751 |             0.690 |
+| WebGL vs xterm.js WebGL | Heavy Unicode output      |            0.730 |             0.689 |
+| WebGL vs xterm.js WebGL | One Unicode line per tick |            1.320 |             1.348 |
+| WebGL vs xterm.js WebGL | One ASCII line per tick   |            1.361 |             1.417 |
+| WebGL vs xterm.js WebGL | Typing-like edits         |            1.010 |             1.048 |
+| DOM vs xterm.js DOM     | Heavy log output          |            0.375 |             0.445 |
+| DOM vs xterm.js DOM     | One Unicode line per tick |            0.392 |             0.497 |
+| DOM vs xterm.js DOM     | One ASCII line per tick   |            0.735 |             0.839 |
+| DOM vs xterm.js DOM     | Typing-like edits         |            1.147 |             1.151 |
 
-[method and full results](docs/benchmarks.md), including latency, cpu, and memory
+CPU energy is macOS's estimate for the Chrome process family, including GPU-process CPU work. GPU-device and display energy are outside its scope. WebGL heavy output finishes at 8,841 matching history rows; intermediate history differs. DOM heavy logs retain the full stream; default rolling and Unicode surfaces differ. DOM scrolling and edits use normalized grids. These are reviewed whole-terminal observations with limits. WebGL loses on line-by-line output, and DOM loses on typing-like edits.
+
+[Method, review limits, raw counters and reproduction commands](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md). Canvas, WebGPU, current parser throughput, whole-browser memory and presentation latency await fresh reviewed results.
 
 ## more
 

@@ -544,7 +544,6 @@ h1 {
 .measurement-table td {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 .preview {

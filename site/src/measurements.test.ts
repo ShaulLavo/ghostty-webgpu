@@ -1,39 +1,49 @@
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { measurementRows, measurements, SHOW_MEASUREMENTS } from './measurements'
+import snapshot from '../../docs/benchmarks/mac-m1-2026-10-08/scores.json'
+import { measurementRows, measurements } from './measurements'
 
-const metrics = ['parse/ascii', 'parse/logs', 'idle/cpu', 'memory/10k', 'write/p50', 'input/p95']
-const sample = metrics.flatMap((metric) =>
-  ['ghostty-webgpu', 'xterm-webgl'].map((variant) => ({
-    variant,
-    path: 'bytes',
-    count: 1,
-    metric,
-    unit: 'ms',
-    median: variant === 'ghostty-webgpu' ? 9 : 3,
-  })),
-)
-
-test('publishes a placeholder while all six comparison rows remain available', () => {
-  expect(SHOW_MEASUREMENTS).toBe(false)
-  expect(measurements).toHaveLength(6)
-  expect(measurements.map((row) => row.label)).toEqual(
-    measurementRows(sample).map((row) => row.label),
-  )
+test('uses all nine reviewed scores, including the losing workloads', () => {
+  expect(measurements).toHaveLength(9)
+  expect(measurements).toEqual(measurementRows(snapshot.scores))
+  expect(measurements).toContainEqual({
+    renderer: 'WebGL',
+    workload: 'One Unicode line per tick',
+    energy: '1.320',
+    instructions: '1.348',
+  })
+  expect(measurements).toContainEqual({
+    renderer: 'DOM',
+    workload: 'Typing-like edits',
+    energy: '1.147',
+    instructions: '1.151',
+  })
 })
 
-test('selects one-terminal byte measurements and keeps losing rows', () => {
-  const distractor = { ...sample[0]!, path: 'string', median: 100 }
-  const manyTerminals = { ...sample[0]!, count: 17, median: 200 }
-  const rows = measurementRows([distractor, manyTerminals, ...sample])
-  expect(rows).toHaveLength(6)
-  expect(rows[0]).toMatchObject({ ghostty: '9.00 ms', xterm: '3.00 ms' })
-  expect(rows[4]).toMatchObject({ ghostty: '9.00 ms', xterm: '3.00 ms' })
-  expect(rows[5]).toMatchObject({ ghostty: '9.00 ms', xterm: '3.00 ms' })
+test('recomputes the evidence and checks the generated public tables', () => {
+  const root = new URL('../../docs/benchmarks/mac-m1-2026-10-08/', import.meta.url)
+  const verify = execFileSync(process.execPath, [fileURLToPath(new URL('verify.mjs', root))], {
+    encoding: 'utf8',
+  })
+  const report = execFileSync(
+    process.execPath,
+    [fileURLToPath(new URL('report.mjs', root)), '--check'],
+    { encoding: 'utf8' },
+  )
+  expect(verify).toContain('9 reviewed rows reproduce')
+  expect(report).toContain('README match reviewed data')
 })
 
-test('requires complete, finite measurements before publishing', () => {
-  expect(() => measurementRows([])).toThrow('Missing measurement')
-  expect(() => measurementRows([{ ...sample[0]!, median: NaN }, ...sample.slice(1)])).toThrow(
-    'Missing measurement',
-  )
+test('omits experimental rows and preserves reviewed losses', () => {
+  const reviewed = { ...snapshot.scores[0]!, energy: 2, instructions: 3 }
+  const experiment = { ...reviewed, renderer: 'ghostty Canvas', status: 'descriptive only' }
+  expect(measurementRows([experiment, reviewed])).toEqual([
+    {
+      renderer: 'WebGL',
+      workload: 'Heavy log output',
+      energy: '2.000',
+      instructions: '3.000',
+    },
+  ])
 })
