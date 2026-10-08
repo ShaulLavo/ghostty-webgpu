@@ -21,8 +21,8 @@ import type {
 } from './protocol.js'
 import { TerminalWorkerError, workerError } from './structured-errors.js'
 import { freezeWorkerValue } from './owned.js'
+import { workerOperationTimeout } from './protocol.js'
 
-const operationTimeout = 15_000
 interface Pending {
   readonly operation: string
   readonly resolve: (value: unknown) => void
@@ -202,7 +202,7 @@ export class WorkerTerminalExecution {
           this.fail(
             workerError('timeout', operation, { id, control: this.control, output: this.output }),
           ),
-        operationTimeout,
+        workerOperationTimeout,
       )
       this.pending.set(id, { operation, resolve, reject, timer })
     })

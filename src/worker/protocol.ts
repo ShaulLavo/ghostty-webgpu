@@ -10,6 +10,8 @@ import type {
 } from '../term/types.js'
 import type { WorkerFailure } from './structured-errors.js'
 
+export const workerOperationTimeout = 15_000
+
 export type WorkerBackend = 'auto' | 'webgpu' | 'webgl'
 export interface WorkerFontFace {
   readonly family: string

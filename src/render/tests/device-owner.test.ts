@@ -24,6 +24,7 @@ it('deduplicates pending acquisition and releases only after the last lease fenc
   await first.release()
   expect(fixture.destroy).not.toHaveBeenCalled()
   const closed = second.release()
+  expect(second.release()).toBe(closed)
   expect(fixture.destroy).not.toHaveBeenCalled()
   fixture.fence.resolve()
   await closed

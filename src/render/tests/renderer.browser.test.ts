@@ -722,13 +722,23 @@ it('discards a replacement device that resolves after disposal', async () => {
   })
   clock.flushFrame()
   const restoring = renderer.simulateDeviceLoss()
-  renderer.dispose()
+  const disposal = renderer.dispose()
+  let disposed = false
+  void disposal.then(() => {
+    disposed = true
+  })
   await first.lost
   await waitForDeviceCleanup()
+  expect(disposed).toBe(false)
   const second = await createDevice()
+  const secondDestroy = vi.spyOn(second, 'destroy')
+  const secondWait = vi.spyOn(second.queue, 'onSubmittedWorkDone')
   resolveReplacement?.(second)
-  await restoring
+  await Promise.all([restoring, disposal])
 
+  expect(disposed).toBe(true)
+  expect(secondDestroy).toHaveBeenCalledOnce()
+  expect(secondWait).toHaveBeenCalledOnce()
   expect(renderer.metrics.deviceRestores).toBe(0)
   expect(clock.frames.size).toBe(0)
   canvas.remove()

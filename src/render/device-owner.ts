@@ -24,22 +24,22 @@ export class DeviceOwner {
       entry.reservations -= 1
       throw cause
     }
-    let released = false
+    let released: Promise<void> | undefined
     return {
       device,
       retire: () => this.retireEntry(entry),
-      release: async () => {
-        if (released) return
-        released = true
-        entry.reservations -= 1
-        if (entry.reservations !== 0) return
-        this.retireEntry(entry)
-        try {
-          await device.queue.onSubmittedWorkDone()
-        } catch {}
-        device.destroy()
-      },
+      release: () => (released ??= this.releaseEntry(entry, device)),
     }
+  }
+
+  private async releaseEntry(entry: DeviceEntry, device: GPUDevice): Promise<void> {
+    entry.reservations -= 1
+    if (entry.reservations !== 0) return
+    this.retireEntry(entry)
+    try {
+      await device.queue.onSubmittedWorkDone()
+    } catch {}
+    device.destroy()
   }
 
   private retireEntry(entry: DeviceEntry): void {
