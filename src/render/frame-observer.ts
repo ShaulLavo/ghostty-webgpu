@@ -129,11 +129,34 @@ export class FrameObserver {
     rows: readonly RenderRow[] | undefined,
   ): readonly RendererTextFrameRow[] {
     if (this.options.onFrame) return this.fullRows.filter(defined)
-    if (rows && (this.current || rows.length === this.rowCount)) return rows.map(copiedFrameRow)
+    if (rows && (this.current || rows.length === this.rowCount)) return rows.map(copiedPaintTextRow)
     if (state.readTextRows) return state.readTextRows(options)
     const source = this.current && rows ? rows : state.readRows(options)
-    return source.map(copiedFrameRow)
+    return source.map(copiedPaintTextRow)
   }
+}
+
+function copiedPaintTextRow(row: RenderRow): RendererTextFrameRow {
+  if (row.packed) return copiedFrameRow(row)
+  const texts = row.cells.map((cell) => cell.text)
+  const flags = row.cells.map((cell) => cell.continuation)
+  let text = ''
+  for (let index = 0; index < texts.length; index += 1) {
+    if (flags[index]) continue
+    text += texts[index] || ' '
+  }
+  let cells: readonly string[] | undefined
+  let continuations: readonly boolean[] | undefined
+  return Object.freeze({
+    y: row.y,
+    text,
+    get cells() {
+      return (cells ??= Object.freeze(texts))
+    },
+    get continuations() {
+      return (continuations ??= Object.freeze(flags))
+    },
+  })
 }
 
 function defined<T>(value: T | undefined): value is T {

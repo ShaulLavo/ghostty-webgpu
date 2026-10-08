@@ -123,6 +123,64 @@ describe('text-only render rows', () => {
     expect(materialize(state.readTextRows())).toEqual(equivalentTextRows(state.readRows()))
   })
 
+  it('batches ASCII row text while preserving lazy cells across later native updates', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 80, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('first plain row\r\nsecond plain row\r\nthird plain row')
+    state.update()
+    const expected = equivalentTextRows(state.readRows())
+    const decode = vi.spyOn(String, 'fromCodePoint')
+    const batch = vi.spyOn(TextDecoder.prototype, 'decode')
+    const rows = state.readTextRows()
+    const calls = decode.mock.calls.length
+    const batches = batch.mock.calls.length
+    decode.mockRestore()
+    batch.mockRestore()
+    expect(calls).toBeLessThanOrEqual(rows.length)
+    expect(batches).toBeLessThanOrEqual(1)
+    expect(rows.map((row) => row.text)).toEqual(expected.map((row) => row.text))
+    terminal.write('\x1b[H\x1b[2Jchanged')
+    state.update()
+    state.readTextRows()
+    runtime.exports.memory.grow(1)
+    expect(materialize(rows)).toEqual(expected)
+    expect(structuredClone(rows)).toEqual(expected)
+  })
+
+  it('uses native grapheme records without allocating an ASCII bitmap', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 40, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('日本語 👩‍💻 é\r\n界 👨‍👩‍👧‍👦')
+    state.update()
+    const expected = equivalentTextRows(state.readRows())
+    state.readTextRows()
+    let allocations = 0
+    vi.stubGlobal(
+      'Uint32Array',
+      new Proxy(Uint32Array, {
+        construct(target, args, newTarget) {
+          if (typeof args[0] === 'number') allocations += 1
+          return Reflect.construct(target, args, newTarget)
+        },
+      }),
+    )
+    let rows: readonly RenderTextRow[]
+    try {
+      rows = state.readTextRows()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    expect(allocations).toBe(0)
+    expect(materialize(rows)).toEqual(expected)
+    terminal.write('\x1b[H\x1b[2Jchanged')
+    state.update()
+    state.readTextRows()
+    runtime.exports.memory.grow(1)
+    expect(structuredClone(rows)).toEqual(expected)
+  })
+
   it('filters requested and dirty rows without updating or acknowledging the state', async () => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 10, rows: 4 })

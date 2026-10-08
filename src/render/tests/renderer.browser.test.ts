@@ -1390,6 +1390,63 @@ it('copies no native listener rows for cursor and painted-row ID consumers, then
   }
 })
 
+it('copies paint-row text without visiting styles for text-only frame consumers', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 16, rows: 2 })
+  const state = runtime.createRenderState(terminal)
+  const canvas = createCanvas()
+  const frames: {
+    rows: readonly { text: string; cells: readonly string[]; continuations: readonly boolean[] }[]
+  }[] = []
+  const observer = new FrameObserver({
+    canvas,
+    columns: 16,
+    rows: 2,
+    font: fittedFont(),
+    renderState: state,
+    onTextFrame: (frame) => frames.push(frame),
+  })
+  try {
+    terminal.write('\x1b[?2027h\x1b[1;38;2;10;20;30m👩‍💻界é')
+    state.update()
+    const rows = state.readRows()
+    const expected = state
+      .readTextRows()
+      .map(({ text, cells, continuations }) => ({ text, cells, continuations }))
+    const cell = rows[0]!.cells[0]!
+    const style = cell.style
+    let styleReads = 0
+    Object.defineProperty(cell, 'style', {
+      get: () => {
+        styleReads += 1
+        return style
+      },
+    })
+    observer.emit(state, state.readCursor(), undefined, [0, 1], rows)
+    expect(styleReads).toBe(0)
+    const retained = frames[0]!.rows
+    cell.text = 'changed'
+    cell.continuation = true
+    terminal.write('\x1b[H\x1b[2Jlater')
+    state.update()
+    observer.emit(state, state.readCursor(), undefined, [0, 1], state.readRows())
+    runtime.exports.memory.grow(1)
+    expect(
+      retained.map(({ text, cells, continuations }) => ({ text, cells, continuations })),
+    ).toEqual(expected)
+    for (const row of retained) {
+      expect(Object.isFrozen(row)).toBe(true)
+      expect(Object.isFrozen(row.cells)).toBe(true)
+      expect(Object.isFrozen(row.continuations)).toBe(true)
+    }
+  } finally {
+    state.dispose()
+    terminal.dispose()
+    runtime.dispose()
+    canvas.remove()
+  }
+})
+
 it('restores the whole resized viewport after cursor-only callback demand', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
