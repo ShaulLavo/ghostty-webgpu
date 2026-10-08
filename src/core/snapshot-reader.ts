@@ -3,7 +3,8 @@ import { assertGhosttyResult } from './error.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { ReadTextRowsOptions, TerminalSize } from './types.js'
 
-const headerBytes = 36
+// Text packets append a codepoint mask; paint packets leave the last word unused.
+const headerBytes = 40
 
 type ExtractSnapshot = (
   state: number,
@@ -34,6 +35,10 @@ export class SnapshotReader {
     private readonly runtime: GhosttyRuntime,
     private readonly format: SnapshotFormat,
   ) {}
+
+  get codepointMask(): number {
+    return this.runtime.memory.view.getUint32(this.pointer + 36, true)
+  }
 
   // Views are borrowed until the next wasm call; consumers copy or decode before returning.
   read(

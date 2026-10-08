@@ -26,6 +26,42 @@ function materialize(rows: readonly RenderTextRow[]): readonly RenderTextRow[] {
   return rows.map(({ y, text, cells, continuations }) => ({ y, text, cells, continuations }))
 }
 
+function countNumericAllocations<T extends Uint8ArrayConstructor | Uint32ArrayConstructor>(
+  constructor: T,
+  onAllocation: () => void,
+): T {
+  return new Proxy(constructor, {
+    construct(target, args, newTarget) {
+      if (typeof args[0] === 'number') onAllocation()
+      return Reflect.construct(target, args, newTarget)
+    },
+  })
+}
+
+function observedWords(words: Uint32Array, onRead: () => void): Uint32Array {
+  return new Proxy(words, {
+    get(target, property) {
+      if (typeof property === 'string' && /^\d+$/.test(property)) onRead()
+      const value = Reflect.get(target, property, target)
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  })
+}
+
+function countedWordViews(
+  length: number,
+  onAllocation: () => void,
+  onRead: () => void,
+): Uint32ArrayConstructor {
+  return new Proxy(Uint32Array, {
+    construct(target, args, newTarget) {
+      if (typeof args[0] === 'number') onAllocation()
+      const words = Reflect.construct(target, args, newTarget)
+      return args[2] === length ? observedWords(words, onRead) : words
+    },
+  })
+}
+
 describe('text-only render rows', () => {
   it('advances snapshotVersion on damaged updates and preserves it across reads and clean updates', async () => {
     runtime = await GhosttyRuntime.create()
@@ -148,6 +184,61 @@ describe('text-only render rows', () => {
     expect(structuredClone(rows)).toEqual(expected)
   })
 
+  it.each([
+    { text: 'plain prefix then ASCII', allocations: 1 },
+    { text: 'plain prefix then é', allocations: 0 },
+    { text: 'plain prefix then 日本語', allocations: 0 },
+  ])('allocates ASCII storage only for ASCII packets ($text)', async ({ text, allocations }) => {
+    runtime = await GhosttyRuntime.create()
+    const grid = { columns: 80, rows: 3 }
+    const cellCount = grid.columns * grid.rows
+    const terminal = runtime.createTerminal(grid)
+    const state = runtime.createRenderState(terminal)
+    terminal.write('é界')
+    state.update()
+    state.readTextRows()
+    terminal.write(`\x1b[H\x1b[2J${text}`)
+    state.update()
+    const expected = equivalentTextRows(state.readRows())
+    const extract = vi.spyOn(runtime.bridge, 'readTextRows')
+    let scratchAllocations = 0
+    let bitmapAllocations = 0
+    let wordReads = 0
+    vi.stubGlobal(
+      'Uint8Array',
+      countNumericAllocations(Uint8Array, () => (scratchAllocations += 1)),
+    )
+    vi.stubGlobal(
+      'Uint32Array',
+      countedWordViews(
+        cellCount * 3,
+        () => (bitmapAllocations += 1),
+        () => (wordReads += 1),
+      ),
+    )
+    let rows: readonly RenderTextRow[]
+    try {
+      rows = state.readTextRows()
+      state.readTextRows()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+    expect(runtime.memory.view.getUint32(extract.mock.calls[0]![6] + 32, true)).toBe(0)
+    expect({ scratchAllocations, bitmapAllocations }).toEqual({
+      scratchAllocations: allocations,
+      bitmapAllocations: allocations * 2,
+    })
+    expect(wordReads).toBe(allocations * cellCount * 2)
+    const codepointMask = runtime.memory.view.getUint32(extract.mock.calls[0]![6] + 36, true)
+    expect((codepointMask & ~0x7f) === 0).toBe(allocations === 1)
+    expect(materialize(rows)).toEqual(expected)
+    terminal.write('\x1b[H\x1b[2Jchanged')
+    state.update()
+    state.readTextRows()
+    runtime.exports.memory.grow(1)
+    expect(structuredClone(rows)).toEqual(expected)
+  })
+
   it('uses native grapheme records without allocating an ASCII bitmap', async () => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 40, rows: 3 })
@@ -159,12 +250,7 @@ describe('text-only render rows', () => {
     let allocations = 0
     vi.stubGlobal(
       'Uint32Array',
-      new Proxy(Uint32Array, {
-        construct(target, args, newTarget) {
-          if (typeof args[0] === 'number') allocations += 1
-          return Reflect.construct(target, args, newTarget)
-        },
-      }),
+      countNumericAllocations(Uint32Array, () => (allocations += 1)),
     )
     let rows: readonly RenderTextRow[]
     try {

@@ -19,18 +19,46 @@ function cellText(words: Uint32Array, offset: number, graphemes: Uint32Array): s
   return text
 }
 
+function copiedAsciiCells(text: string, start: number, blanks: Uint32Array): readonly string[] {
+  return Object.freeze(
+    Array.from({ length: text.length }, (_, column) => {
+      const index = start + column
+      return (blanks[index >>> 5]! & (1 << (index & 31))) !== 0 ? '' : text[column]!
+    }),
+  )
+}
+
+function copiedAsciiRow(
+  y: number,
+  text: string,
+  start: number,
+  blanks: Uint32Array,
+): RenderTextRow {
+  let cells: readonly string[] | undefined
+  let continuations: readonly boolean[] | undefined
+  return Object.freeze({
+    y,
+    text,
+    get cells() {
+      return (cells ??= copiedAsciiCells(text, start, blanks))
+    },
+    get continuations() {
+      return (continuations ??= Object.freeze(Array.from({ length: text.length }, () => false)))
+    },
+  })
+}
+
 function copiedAsciiRows(
   metadata: Uint32Array,
   words: Uint32Array,
   bytes: Uint8Array,
   decoder: TextDecoder,
-): readonly RenderTextRow[] | undefined {
+): readonly RenderTextRow[] {
   const length = words.length / cellWords
   const blanks = new Uint32Array(Math.ceil(length / 32))
   let index = 0
   for (let offset = 0; offset < words.length; offset += cellWords) {
     const codepoint = words[offset]!
-    if (codepoint > 0x7f || words[offset + 2] !== 0) return undefined
     bytes[index] = codepoint || 0x20
     if (codepoint === 0) blanks[index >>> 5]! |= 1 << (index & 31)
     index += 1
@@ -42,26 +70,7 @@ function copiedAsciiRows(
     const y = metadata[offset]!
     const start = metadata[offset + 1]!
     const length = metadata[offset + 2]!
-    const text = packet.slice(start, start + length)
-    let cells: readonly string[] | undefined
-    let continuations: readonly boolean[] | undefined
-    rows.push(
-      Object.freeze({
-        y,
-        text,
-        get cells() {
-          return (cells ??= Object.freeze(
-            Array.from({ length }, (_, column) => {
-              const index = start + column
-              return (blanks[index >>> 5]! & (1 << (index & 31))) !== 0 ? '' : text[column]!
-            }),
-          ))
-        },
-        get continuations() {
-          return (continuations ??= Object.freeze(Array.from({ length }, () => false)))
-        },
-      }),
-    )
+    rows.push(copiedAsciiRow(y, packet.slice(start, start + length), start, blanks))
   }
   return Object.freeze(rows)
 }
@@ -118,11 +127,10 @@ export class TextRowReader {
   ): readonly RenderTextRow[] {
     if (grid.rows === 0) return Object.freeze([])
     const snapshot = this.snapshots.read(state, iterator, cells, grid, options)
-    if (snapshot.graphemes.length === 0) {
+    if (snapshot.graphemes.length === 0 && (this.snapshots.codepointMask & ~0x7f) === 0) {
       const length = snapshot.cells.length / cellWords
       if (this.asciiBytes.length < length) this.asciiBytes = new Uint8Array(length)
-      const ascii = copiedAsciiRows(snapshot.rows, snapshot.cells, this.asciiBytes, this.decoder)
-      if (ascii) return ascii
+      return copiedAsciiRows(snapshot.rows, snapshot.cells, this.asciiBytes, this.decoder)
     }
     const records = snapshot.cells.slice()
     const graphemes = snapshot.graphemes.slice()

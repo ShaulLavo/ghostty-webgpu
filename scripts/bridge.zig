@@ -77,6 +77,7 @@ const TextSnapshot = extern struct {
     graphemes: [*]u32,
     graphemes_cap: u32,
     graphemes_len: u32,
+    codepoint_mask: u32,
 };
 
 fn readTextCell(raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, out: *TextCell, text: *TextSnapshot) c.GhosttyResult {
@@ -87,6 +88,7 @@ fn readTextCell(raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32,
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_WIDE, &wide);
     if (result != c.GHOSTTY_SUCCESS) return result;
     if (wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL) out.codepoint |= 0x80000000;
+    text.codepoint_mask |= out.codepoint;
     var tag: c.GhosttyCellContentTag = 0;
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &tag);
     if (result != c.GHOSTTY_SUCCESS) return result;
@@ -122,6 +124,7 @@ export fn bridge_read_text_rows(state: c.GhosttyRenderState, iterator: c.Ghostty
     text.rows_len = 0;
     text.cells_len = 0;
     text.graphemes_len = 0;
+    text.codepoint_mask = 0;
     var it = iterator;
     var row_cells = cells;
     var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
