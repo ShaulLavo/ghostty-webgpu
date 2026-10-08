@@ -1,5 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { expect, test } from 'vitest'
 import snapshot from '../../docs/benchmarks/mac-m1-2026-10-08/scores.json'
 import { benchTabs, measurementRows, measurements, rowNote } from './measurements'
@@ -78,4 +81,37 @@ test('omits experimental rows and preserves reviewed losses', () => {
       verdict: 'loss',
     },
   ])
+})
+
+test('refreshes the README WebGL table without replacing product copy', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'ghostty-report-'))
+  const reportDirectory = path.join(directory, 'docs/benchmarks/mac-m1-2026-10-08')
+  const source = new URL('../../docs/benchmarks/mac-m1-2026-10-08/', import.meta.url)
+  const before =
+    '# Ghostty browser terminal\n\n## Measured wins and losses\n\nKeep the reviewed method and limits.\n\n'
+  const after =
+    '\nKeep the workload qualifications.\n\n### Correctness\n\nKeep the correctness results.\n\n## Quick start\n\nKeep the source setup.\n'
+  try {
+    mkdirSync(reportDirectory, { recursive: true })
+    for (const file of ['report.mjs', 'scores.json'])
+      copyFileSync(fileURLToPath(new URL(file, source)), path.join(reportDirectory, file))
+    writeFileSync(
+      path.join(directory, 'README.md'),
+      `${before}| WebGL vs xterm.js WebGL | CPU energy ratio | Instruction ratio |\n| --- | ---: | ---: |\n| Stale workload | 999 | 999 |\n${after}`,
+    )
+    const script = path.join(reportDirectory, 'report.mjs')
+    execFileSync(process.execPath, [script])
+    const updated = readFileSync(path.join(directory, 'README.md'), 'utf8')
+    expect(updated.startsWith(before)).toBe(true)
+    expect(updated.endsWith(after)).toBe(true)
+    expect(updated).toContain('| Heavy log output | 0.751 | 0.690 |')
+    expect(updated).toContain('| One ASCII line per tick | 1.361 | 1.417 |')
+    expect(updated).not.toContain('Stale workload')
+    expect(updated.split('\n').filter((line) => line.startsWith('|'))).toHaveLength(7)
+    expect(execFileSync(process.execPath, [script, '--check'], { encoding: 'utf8' })).toContain(
+      'README match reviewed data',
+    )
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
 })

@@ -12,7 +12,6 @@ const labels = {
   'line-scroll': 'One ASCII line per tick',
   'interactive-edits': 'Typing-like edits',
 }
-const name = (row) => row.renderer.replace('ghostty ', '')
 const history = (row) => {
   if (row.history === 'equal ~9k') return '8,841 final rows'
   if (row.history === 'full-stream') return 'Full stream'
@@ -22,11 +21,10 @@ const history = (row) => {
 const number = (value) => value.toFixed(3)
 const compact = (rows) =>
   [
-    '| Renderer pair | Workload | CPU energy ratio | Instruction ratio |',
-    '| --- | --- | ---: | ---: |',
+    '| WebGL vs xterm.js WebGL | CPU energy ratio | Instruction ratio |',
+    '| --- | ---: | ---: |',
     ...rows.map(
-      (row) =>
-        `| ${name(row)} vs xterm.js ${name(row)} | ${labels[row.workload]} | ${number(row.energy)} | ${number(row.instructions)} |`,
+      (row) => `| ${labels[row.workload]} | ${number(row.energy)} | ${number(row.instructions)} |`,
     ),
   ].join('\n')
 const table = (rows) =>
@@ -105,18 +103,16 @@ Raspberry Pi capacity observations used unequal pages and history settings. They
 `
 const readmeUrl = new URL('../../../README.md', root)
 const oldReadme = await readFile(readmeUrl, 'utf8')
-assert(oldReadme.includes('## benchmarks\n') && oldReadme.includes('\n## more\n'))
-const readmeBlock = `## benchmarks
-
-Reviewed 2026-10-08 on an Apple M1 MacBook with AC power and headed Chrome 154.0.8037.93. Frozen ghostty-webgpu 0.3.20 vs xterm.js 6.0.0, WebGL addon 0.19.0. Seventeen visible 40 × 12 terminals, DPR 2, 120 warm-up ticks and 900 measured ticks at 60 Hz. Medians of balanced paired runs. Each ratio is ghostty divided by xterm.js; below 1 means ghostty uses less.
-
-${compact(data.scores)}
-
-CPU energy is macOS's estimate for the Chrome process family, including GPU-process CPU work. GPU-device and display energy are outside its scope. WebGL heavy output finishes at 8,841 matching history rows; intermediate history differs. DOM heavy logs retain the full stream; default rolling and Unicode surfaces differ. DOM scrolling and edits use normalized grids. These are reviewed whole-terminal observations with limits. WebGL loses on line-by-line output, and DOM loses on typing-like edits.
-
-[Method, review limits, raw counters and reproduction commands](${base}docs/benchmarks.md). Canvas, WebGPU, current parser throughput, whole-browser memory and presentation latency await fresh reviewed results.
-`
-const nextReadme = oldReadme.replace(/## benchmarks\n[\s\S]*?(?=\n## more\n)/, readmeBlock)
+const sectionStart = oldReadme.indexOf('## Measured wins and losses\n')
+const sectionEnd = oldReadme.indexOf('\n### Correctness\n', sectionStart)
+assert(sectionStart >= 0 && sectionEnd > sectionStart, 'README benchmark section is missing')
+const section = oldReadme.slice(sectionStart, sectionEnd)
+const readmeTable = /^\| WebGL vs xterm\.js WebGL[^\n]*\n(?:\|[^\n]*\n)+/m
+assert(readmeTable.test(section), 'README WebGL table is missing')
+const nextReadme =
+  oldReadme.slice(0, sectionStart) +
+  section.replace(readmeTable, `${compact(gl)}\n`) +
+  oldReadme.slice(sectionEnd)
 const normalize = (text) =>
   text
     .split('\n')
