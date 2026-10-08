@@ -146,6 +146,7 @@ class CanvasSurface implements RowRendererSurface {
   }
 
   invalidate(): void {
+    this.painter.invalidate()
     this.image = undefined
     this.nextImage = undefined
     this.plan = undefined
@@ -158,7 +159,13 @@ class CanvasSurface implements RowRendererSurface {
       if (!this.plan) this.prepare(cursor)
       if (!this.canReuse(row.y, cursor)) {
         this.pixelTarget?.beginRow(row.y)
-        this.painter.paint(row, cursor, this.canvas.width)
+        // Pixel targets publish the whole scratch row.
+        this.painter.paint(
+          row,
+          cursor,
+          this.canvas.width,
+          !this.pixelTarget && this.pending.size === 1 && this.plan!.offset === 0,
+        )
         this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1
       }
@@ -189,14 +196,8 @@ class CanvasSurface implements RowRendererSurface {
     this.canvas.style.height = `${grid.rows * font.cssCellHeight}px`
   }
 
-  restoreContext(): void {
-    this.contextLost = false
+  refreshFontResources(): void {
     this.painter.resetContext(this.font)
-    this.clearPixelCache()
-    this.invalidate()
-  }
-
-  clearPixelCache(): void {
     this.pixelTarget?.invalidate?.()
   }
 
@@ -213,7 +214,10 @@ class CanvasSurface implements RowRendererSurface {
     const keys = new Map(previous)
     for (const [y, key] of this.pending) keys.set(y, key)
     this.nextImage = { keys, cursor: cursor ? { ...cursor } : undefined }
-    if (this.plan.offset !== 0) this.copyRows(this.plan.offset)
+    if (this.plan.offset !== 0) {
+      this.painter.invalidate()
+      this.copyRows(this.plan.offset)
+    }
   }
 
   private canReuse(y: number, cursor: CursorState | undefined): boolean {
@@ -277,7 +281,7 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
     this.canvasSurface.invalidate()
   }
   private readonly onContextRestored = (): void => {
-    this.canvasSurface.restoreContext()
+    this.canvasSurface.contextLost = false
     this.clearTextureAtlas()
   }
 
@@ -312,7 +316,7 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
 
   override clearTextureAtlas(): void {
     this.canvasSurface.invalidate()
-    this.canvasSurface.clearPixelCache()
+    this.canvasSurface.refreshFontResources()
     super.clearTextureAtlas()
   }
 

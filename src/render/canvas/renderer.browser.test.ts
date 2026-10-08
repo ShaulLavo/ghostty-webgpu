@@ -173,19 +173,23 @@ function pixel(canvas: HTMLCanvasElement, x: number, y: number): readonly number
   return [...context.getImageData(x, y, 1, 1).data]
 }
 
-function expectFullRepaint(canvas: HTMLCanvasElement, source: RenderStateSource): void {
+function expectFullRepaint(
+  canvas: HTMLCanvasElement,
+  source: RenderStateSource,
+  font = fittedFont(),
+): void {
   const control = createCanvas()
   control.width = canvas.width
   control.height = canvas.height
   const context = control.getContext('2d', { alpha: true, willReadFrequently: false })!
   const painter = new CanvasRowPainter(
     context,
-    fittedFont(),
+    font,
     canonicalRendererTheme(mergeRendererTheme({})),
   )
-  painter.resetContext(fittedFont())
+  painter.resetContext(font)
   const cursor = renderCursorState(source.readCursor(), true)
-  for (const row of source.readRows()) painter.paint(row, cursor, control.width)
+  for (const row of source.readRows()) painter.paint(row, cursor, control.width, false)
   const actual = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
   const expected = context.getImageData(0, 0, control.width, control.height).data
   expect([...actual]).toEqual([...expected])
@@ -222,6 +226,209 @@ async function createRenderer(
 }
 
 describe('CanvasTerminalRenderer', () => {
+  it('repaints only changed plain-text cells while keeping full-row pixels', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const text = 'edit 0000'.padEnd(40)
+    const source = new FakeRenderState([
+      row(
+        0,
+        [...text].map((text, x) => cell(x, { text })),
+      ),
+    ])
+    source.cursor.viewport = { wideTail: false, x: 9, y: 0 }
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 40, rows: 1 }))
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    const fillText = vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText')
+    const clear = vi.spyOn(CanvasRenderingContext2D.prototype, 'clearRect')
+
+    source.rows[0]!.cells[8]!.text = '1'
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    const glyphs = fillText.mock.calls.length
+    const cleared = clear.mock.calls.reduce((sum, call) => sum + call[2] * call[3], 0)
+    expectFullRepaint(canvas, source)
+    expect(glyphs).toBeLessThan(10)
+    expect(cleared).toBeLessThan(canvas.width * 20)
+
+    for (const x of [10, 11, 9]) {
+      source.cursor.viewport = { wideTail: false, x, y: 0 }
+      source.rows[0]!.cells[9]!.text = x === 9 ? ' ' : 'a'
+      source.dirtyRow(0)
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expectFullRepaint(canvas, source)
+    }
+    source.rows[0]!.cells[5]!.style = styled({ italic: true, overline: true })
+    source.rows[0]!.cells[5]!.text = 'j'
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    source.rows[0]!.cells[5]!.style = undefined
+    source.rows[0]!.cells[5]!.text = '0'
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+  })
+
+  it('keeps bulk plain-text updates on the full-row painter', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState(
+      Array.from({ length: 2 }, (_, y) =>
+        row(
+          y,
+          Array.from({ length: 40 }, (_, x) => cell(x, { text: '0' })),
+        ),
+      ),
+    )
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 40 }))
+    clock.flushFrame()
+    const fillText = vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText')
+    for (const target of source.rows) {
+      target.cells[39]!.text = '1'
+      source.dirtyRow(target.y)
+    }
+    renderer.notifyWrite()
+    clock.flushFrame()
+    const glyphs = fillText.mock.calls.length
+    expectFullRepaint(canvas, source)
+    expect(glyphs).toBe(80)
+  })
+
+  it('remeasures late font ink after resource invalidation with unchanged geometry', async () => {
+    const base = fittedFont()
+    const font: TerminalFittedFont = {
+      ...base,
+      deviceBaseline: 24,
+      deviceCellHeight: 30,
+      deviceCellWidth: 15,
+      deviceCharHeight: 24,
+      deviceCharWidth: 15,
+      pixelRatio: 1.5,
+      settings: { ...base.settings, family: 'CanvasLateWide, monospace' },
+    }
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState(
+      Array.from({ length: 2 }, (_, y) =>
+        row(
+          y,
+          Array.from({ length: 20 }, (_, x) => cell(x, { text: x === 10 ? 'W' : ' ' })),
+        ),
+      ),
+    )
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 20, font }))
+    clock.flushFrame()
+    expectFullRepaint(canvas, source, font)
+    const context = canvas.getContext('2d')!
+    const beforeM = context.measureText('M').width
+    const beforeMg = context.measureText('Mg')
+    const beforeW = context.measureText('W')
+    const url = new URL('./tests/fixtures/late-wide.ttf', import.meta.url).href
+    const face = new FontFace('CanvasLateWide', `url(${url})`, { unicodeRange: 'U+0057' })
+    document.fonts.add(await face.load())
+    resourceCleanups.add(() => document.fonts.delete(face))
+    expect(context.measureText('M').width).toBe(beforeM)
+    const afterMg = context.measureText('Mg')
+    for (const key of [
+      'fontBoundingBoxAscent',
+      'fontBoundingBoxDescent',
+      'actualBoundingBoxAscent',
+      'actualBoundingBoxDescent',
+    ] as const)
+      expect(afterMg[key]).toBe(beforeMg[key])
+    const afterW = context.measureText('W')
+    expect(afterW.actualBoundingBoxLeft + afterW.actualBoundingBoxRight).toBeGreaterThan(
+      beforeW.actualBoundingBoxLeft + beforeW.actualBoundingBoxRight,
+    )
+    renderer.setFont({ ...font, settings: { ...font.settings } })
+    renderer.clearTextureAtlas()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source, font)
+    source.rows[0]!.cells[1]!.text = 'a'
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source, font)
+    source.rows[0]!.cells[10]!.text = ''
+    source.dirtyRow(0)
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expectFullRepaint(canvas, source, font)
+  })
+
+  it('keeps alternating single-row edits intact on row-scratch pixel targets', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState(
+      Array.from({ length: 2 }, (_, y) =>
+        row(
+          y,
+          Array.from({ length: 20 }, (_, x) => cell(x, { text: y === 0 ? 'A' : 'B' })),
+        ),
+      ),
+    )
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 20 }), 'pixels')
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    for (const [y, x, text] of [
+      [0, 1, 'C'],
+      [1, 18, 'D'],
+      [0, 2, 'E'],
+    ] as const) {
+      source.rows[y]!.cells[x]!.text = text
+      source.dirtyRow(y)
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expectFullRepaint(canvas, source)
+    }
+  })
+
+  it('bounds cursor-only movement, style and visibility damage to cursor cells', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState([
+      row(
+        0,
+        Array.from({ length: 80 }, (_, x) => cell(x, { text: 'A' })),
+      ),
+    ])
+    source.cursor.viewport = { wideTail: false, x: 3, y: 0 }
+    const renderer = await createRenderer(options(canvas, source, clock, { columns: 80, rows: 1 }))
+    clock.flushFrame()
+    expectFullRepaint(canvas, source)
+    const context = canvas.getContext('2d')!
+    const clear = vi.spyOn(context, 'clearRect')
+    const fill = vi.spyOn(context, 'fillText')
+    source.cursor.viewport = { wideTail: false, x: 4, y: 0 }
+    for (const cursor of [
+      { visible: true, style: 'block' },
+      { visible: false, style: 'block' },
+      { visible: true, style: 'block' },
+      { visible: true, style: 'bar' },
+      { visible: true, style: 'underline' },
+    ] as const) {
+      clear.mockClear()
+      fill.mockClear()
+      source.cursor.visible = cursor.visible
+      source.cursor.style = cursor.style
+      source.dirtyRow(0)
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expectFullRepaint(canvas, source)
+      expect(Math.max(...clear.mock.calls.map((call) => call[2]))).toBeLessThan(60)
+      expect(fill.mock.calls.length).toBeLessThan(6)
+    }
+  })
+
   it('batches adjacent backgrounds and reuses text drawing state', async () => {
     const clock = new FakeClock()
     const canvas = createCanvas()
