@@ -39,9 +39,21 @@ terminal.focus()
 await terminal.dispose()
 ```
 
-`backend` accepts `webgpu`, `webgl` or `auto`. Automatic selection checks worker GPU support
-before choosing a context. Capability failures carry `code`, `operation`, `why`, `fix` and
-runtime facts. `assets` and `workerUrl` can point at explicitly hosted native files and the
+`backend` accepts `webgpu`, `webgl` or `auto`. Automatic selection chooses hardware WebGPU
+when available and falls through to WebGL for software adapters. An explicit `webgpu` backend
+uses any available WebGPU adapter, including software adapters. The main-thread terminal's
+automatic renderer follows the same hardware preference.
+
+`WebGpuTerminalRenderer.create` can be passed directly as `rendererFactory`. Its
+`adapterPolicy` option defaults to `any`; `hardware` requires an eligible hardware adapter
+for initial acquisition. After device loss, built-in acquisition accepts any available
+replacement, including software adapters, so automatic and explicit WebGPU terminals can
+keep painting on their existing canvas. A supplied `deviceFactory` controls its own initial
+and replacement acquisition policy. Replacement acquisition failures reach the renderer's
+`onError` callback and the terminal's `error` event. Main-thread errors identify the operation
+as `renderer.restore`; worker errors close the worker and release its resources.
+
+Capability failures carry `code`, `operation`, `why`, `fix` and runtime facts. `assets` and `workerUrl` can point at explicitly hosted native files and the
 built standalone `dist/worker/entry.js`; the defaults resolve beside the package output.
 
 Writes copy caller-owned bytes and keep their buffers attached. `attachOutputPort(port)`

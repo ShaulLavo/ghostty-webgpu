@@ -257,6 +257,8 @@ async function writeConsumerFiles(root: string, browserOnly = false): Promise<vo
     join(root, 'index.ts'),
     `import {
   Terminal,
+  WebGpuTerminalRenderer,
+  type GhosttyWebGpuRendererFactory,
   type GhosttyWebGpuTerminalAppearanceApi,
   type RendererTheme,
   type TerminalAppearance,
@@ -270,6 +272,9 @@ ${browserOnly ? '' : "import { resolveGhosttyConfigAppearance } from 'ghostty-we
 import type * as RemovedFacade from 'ghostty-webgpu/xterm'
 // @ts-expect-error The package has no stylesheet entry point.
 import type * as RemovedStylesheet from 'ghostty-webgpu/xterm.css'
+
+const rendererFactory: GhosttyWebGpuRendererFactory = WebGpuTerminalRenderer.create
+void Terminal.create({ rendererFactory })
 
 const color = { b: 3, g: 2, r: 1 }
 const rendererTheme: RendererTheme = {

@@ -35,7 +35,7 @@ async function createRenderer(
   if (options.rendererMode && options.rendererMode !== 'auto')
     return CanvasTerminalRenderer.create(options)
   try {
-    return await WebGpuTerminalRenderer.create(options)
+    return await WebGpuTerminalRenderer.create({ ...options, adapterPolicy: 'hardware' })
   } catch (cause) {
     if (!(cause instanceof WebGpuUnavailableError)) throw cause
   }

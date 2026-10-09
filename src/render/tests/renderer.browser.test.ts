@@ -756,12 +756,14 @@ it('keeps device replacement retryable after acquisition fails', async ({ skip }
     if (calls === 2) return Promise.reject(new Error('replacement unavailable'))
     return createDevice()
   }
+  const errors: unknown[] = []
   const clock = new FakeClock()
   const canvas = createCanvas()
   const renderer = await createRenderer({
     canvas,
     columns: 2,
     deviceFactory: factory,
+    onError: (cause) => errors.push(cause),
     font: fittedFont(),
     renderState: new FakeRenderState(2, 2),
     rows: 2,
@@ -770,12 +772,15 @@ it('keeps device replacement retryable after acquisition fails', async ({ skip }
   clock.flushFrame()
 
   await renderer.simulateDeviceLoss()
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toMatchObject({ message: 'replacement unavailable' })
   expect(renderer.metrics.deviceRestores).toBe(0)
   expect(clock.frames.size).toBe(0)
   renderer.schedule()
   clock.flushFrame()
   await expect.poll(() => renderer.metrics.deviceRestores).toBe(1)
   expect(clock.frames.size).toBe(1)
+  expect(errors).toHaveLength(1)
 
   renderer.dispose()
   canvas.remove()

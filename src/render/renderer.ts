@@ -1,3 +1,4 @@
+import { isSoftwareWebGpuAdapter } from './adapter.js'
 import { FrameCoordinator } from './frame-coordinator.js'
 import { DeviceOwner, type DeviceLease } from './device-owner.js'
 import { createGhosttyError } from '../core/error.js'
@@ -96,6 +97,8 @@ type TerminalRendererMode = 'auto' | 'canvas2d-fill-text' | 'canvas2d-pixels'
 export type CanvasPaintMode = 'fill-text' | 'pixels'
 
 export interface WebGpuTerminalRendererOptions {
+  /** Eligibility for initial built-in acquisition; custom device factories own their policy. */
+  adapterPolicy?: 'hardware' | 'any'
   canvas: HTMLCanvasElement | OffscreenCanvas
   columns: number
   cursorBlink?: boolean
@@ -155,7 +158,7 @@ export class WebGpuUnavailableError extends Error {
   }
 }
 
-async function defaultDeviceFactory(): Promise<GPUDevice> {
+async function defaultDeviceFactory(adapterPolicy: 'hardware' | 'any'): Promise<GPUDevice> {
   if (!navigator.gpu) throw new WebGpuUnavailableError('api', 'WebGPU is unavailable')
   let adapter: GPUAdapter | null
   try {
@@ -167,6 +170,12 @@ async function defaultDeviceFactory(): Promise<GPUDevice> {
   }
   if (!adapter) {
     throw new WebGpuUnavailableError('adapter', 'WebGPU requestAdapter returned null')
+  }
+  if (adapterPolicy === 'hardware' && isSoftwareWebGpuAdapter(adapter)) {
+    throw new WebGpuUnavailableError(
+      'adapter',
+      'Automatic WebGPU selection requires a hardware adapter',
+    )
   }
   try {
     return await adapter.requestDevice()
@@ -217,7 +226,9 @@ function prepareRenderer(
   return { ...validated, context: requireContext(options.canvas), format }
 }
 
-const defaultDeviceOwner = new DeviceOwner(defaultDeviceFactory)
+const defaultDeviceOwner = new DeviceOwner(() => defaultDeviceFactory('any'))
+// Automatic selection cannot borrow an explicit software device.
+const hardwareDeviceOwner = new DeviceOwner(() => defaultDeviceFactory('hardware'))
 let defaultFrameCoordinator: FrameCoordinator | undefined
 function sharedFrameCoordinator(): FrameCoordinator {
   return (defaultFrameCoordinator ??= new FrameCoordinator(browserRenderClock()))
@@ -237,7 +248,7 @@ export class WebGpuTerminalRenderer {
   private device: GPUDevice
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
-  private readonly deviceOwner: DeviceOwner
+  private readonly replacementDeviceOwner: DeviceOwner
   private deviceLease: DeviceLease
   private readonly coordinator?: FrameCoordinator
   private deviceGeneration = 1
@@ -279,7 +290,7 @@ export class WebGpuTerminalRenderer {
   private constructor(
     options: WebGpuTerminalRendererOptions,
     lease: DeviceLease,
-    deviceOwner: DeviceOwner,
+    replacementDeviceOwner: DeviceOwner,
     prepared: PreparedRenderer,
   ) {
     this.canvas = options.canvas
@@ -287,7 +298,7 @@ export class WebGpuTerminalRenderer {
     const device = lease.device
     this.device = device
     this.deviceLease = lease
-    this.deviceOwner = deviceOwner
+    this.replacementDeviceOwner = replacementDeviceOwner
     if (!options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
     this.renderState = options.renderState
@@ -329,15 +340,15 @@ export class WebGpuTerminalRenderer {
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
     const validated = validateRenderer(options)
-    const owner = options.deviceFactory
-      ? new DeviceOwner(options.deviceFactory)
-      : defaultDeviceOwner
+    let owner = options.adapterPolicy === 'hardware' ? hardwareDeviceOwner : defaultDeviceOwner
+    if (options.deviceFactory) owner = new DeviceOwner(options.deviceFactory)
+    const replacementOwner = options.deviceFactory ? owner : defaultDeviceOwner
     const lease = await owner.acquire()
     let prepared: PreparedRenderer | undefined
     try {
       textPassGlyphCapacity(lease.device, validated.grid.columns * validated.grid.rows)
       prepared = prepareRenderer(options, validated)
-      return new WebGpuTerminalRenderer(options, lease, owner, prepared)
+      return new WebGpuTerminalRenderer(options, lease, replacementOwner, prepared)
     } catch (cause) {
       try {
         prepared?.context.unconfigure()
@@ -911,8 +922,9 @@ export class WebGpuTerminalRenderer {
   private async requestReplacement(): Promise<DeviceLease | undefined> {
     try {
       this.deviceLease.retire()
-      return await this.deviceOwner.acquire()
-    } catch {
+      return await this.replacementDeviceOwner.acquire()
+    } catch (cause) {
+      this.reportFrameFailure(cause)
       return undefined
     }
   }

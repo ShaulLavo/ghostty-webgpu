@@ -139,6 +139,60 @@ function replaceGetContext(
 }
 
 describe('compatible renderer selection', () => {
+  it.each([
+    { isFallbackAdapter: true, info: {} },
+    { isFallbackAdapter: false, info: { isFallbackAdapter: true } },
+    { isFallbackAdapter: false, info: { description: 'Google SwiftShader' } },
+    { isFallbackAdapter: false, info: { architecture: 'llvmpipe' } },
+  ])('selects WebGL for a software adapter in auto (%j)', async (identity) => {
+    const { canvas, options } = fixture()
+    const device = await requestDevice()
+    const acquire = vi.fn().mockResolvedValue(device)
+    vi.spyOn(navigator.gpu, 'requestAdapter').mockResolvedValue({
+      ...identity,
+      requestDevice: acquire,
+    } as unknown as GPUAdapter)
+    const getContext = vi.spyOn(canvas, 'getContext')
+
+    const renderer = await select({ ...options, deviceFactory: undefined })
+
+    expect(renderer.backend).toBe('webgl2')
+    expect(acquire).not.toHaveBeenCalled()
+    expect(getContext.mock.calls.map(([type]) => type)).toEqual(['webgl2'])
+  })
+
+  it('allows a software adapter with explicit WebGPU while auto selects WebGL', async () => {
+    const { options } = fixture()
+    const device = await requestDevice()
+    const acquire = vi.fn().mockResolvedValue(device)
+    vi.spyOn(navigator.gpu, 'requestAdapter').mockResolvedValue({
+      isFallbackAdapter: true,
+      info: { description: 'SwiftShader' },
+      requestDevice: acquire,
+    } as unknown as GPUAdapter)
+    const explicit = await WebGpuTerminalRenderer.create({ ...options, deviceFactory: undefined })
+    renderers.add(explicit)
+    const automatic = await select({ ...fixture().options, deviceFactory: undefined })
+
+    expect(explicit.backend).toBe('webgpu')
+    expect(automatic.backend).toBe('webgl2')
+    expect(acquire).toHaveBeenCalledOnce()
+  })
+
+  it('keeps a hardware adapter eligible for auto', async () => {
+    const { options } = fixture()
+    const device = await requestDevice()
+    vi.spyOn(navigator.gpu, 'requestAdapter').mockResolvedValue({
+      isFallbackAdapter: false,
+      info: { vendor: 'apple', architecture: 'metal', description: 'Apple M1' },
+      requestDevice: vi.fn().mockResolvedValue(device),
+    } as unknown as GPUAdapter)
+
+    const renderer = await select({ ...options, deviceFactory: undefined })
+
+    expect(renderer.backend).toBe('webgpu')
+  })
+
   it('selects real WebGPU without acquiring a fallback context', async () => {
     const { canvas, options } = fixture()
     const getContext = vi.spyOn(canvas, 'getContext')

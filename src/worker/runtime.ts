@@ -1,3 +1,4 @@
+import { isSoftwareWebGpuAdapter } from '../render/adapter.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
 import {
   calculateTerminalFittedFont,
@@ -223,7 +224,9 @@ export class TerminalWorkerRuntime {
     const font = this.fit(layout)
     let device: GPUDevice | undefined
     if (this.initialize.backend !== 'webgl') {
-      this.prefetchedAcquisition = this.requestDevice().then((acquired) => {
+      this.prefetchedAcquisition = this.requestDevice(
+        this.initialize.backend === 'auto' ? 'hardware' : 'any',
+      ).then((acquired) => {
         this.prefetchedDevice = acquired
         return acquired
       })
@@ -287,11 +290,13 @@ export class TerminalWorkerRuntime {
     return font
   }
 
-  private async requestDevice(): Promise<GPUDevice> {
+  private async requestDevice(adapterPolicy: 'hardware' | 'any'): Promise<GPUDevice> {
     this.pendingAcquisitions += 1
     try {
-      const adapter = await navigator.gpu?.requestAdapter()
+      const adapter = await navigator.gpu?.requestAdapter({ powerPreference: 'high-performance' })
       if (!adapter) throw workerError('capability', 'renderer.webgpu', { adapter: false })
+      if (adapterPolicy === 'hardware' && isSoftwareWebGpuAdapter(adapter))
+        throw workerError('capability', 'renderer.webgpu', { softwareAdapter: true })
       const device = await adapter.requestDevice()
       this.acquiredDevices += 1
       return device
@@ -303,7 +308,7 @@ export class TerminalWorkerRuntime {
   private deviceFactory(initialDevice: GPUDevice): () => Promise<GPUDevice> {
     let initial: GPUDevice | undefined = initialDevice
     return async () => {
-      if (!initial) return this.requestDevice()
+      if (!initial) return this.requestDevice('any')
       const device = initial
       initial = undefined
       this.prefetchedDevice = undefined

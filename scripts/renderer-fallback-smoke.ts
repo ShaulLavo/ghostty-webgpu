@@ -27,16 +27,19 @@ if (swiftShader) args.push(...swiftShaderArgs)
 if (hardware && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
   args.push('--ozone-platform=wayland')
 
-const openScenario = `(async () => {
-  const { Terminal } = await import('/dist/index.js');
-  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } } });
+const openScenario = `(async (backend) => {
+  const { Terminal, WebGpuTerminalRenderer } = await import('/dist/index.js');
+  const rendererFactory = backend === 'webgpu'
+    ? (options) => WebGpuTerminalRenderer.create(options)
+    : undefined;
+  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererFactory });
   globalThis.rendererSmokeTerminal = terminal;
   await terminal.open(document.querySelector('main'));
   terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 255, g: 0, b: 0 } });
   terminal.write('\\x1b[?25lbuilt-fallback-ok');
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   return { backend: terminal.diagnostics.rendererBackend, text: terminal.visibleLines().join('\\n') };
-})()`
+})`
 
 const themeScenario = `(async () => {
   const terminal = globalThis.rendererSmokeTerminal;
@@ -111,7 +114,7 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
   try {
     await page.goto(origin)
     const result: unknown = await page.evaluate(
-      `Promise.race([${openScenario}, new Promise((_, reject) => setTimeout(() => reject(new Error('Terminal smoke timed out')), 15000))])`,
+      `Promise.race([${openScenario}(${JSON.stringify(backend)}), new Promise((_, reject) => setTimeout(() => reject(new Error('Terminal smoke timed out')), 15000))])`,
     )
     assert(result && typeof result === 'object')
     assert('backend' in result && 'text' in result)
