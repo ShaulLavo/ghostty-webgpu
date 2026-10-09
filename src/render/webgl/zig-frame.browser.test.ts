@@ -22,7 +22,7 @@ import { expectPixelsEqual } from './tests/pixels.js'
 const disposables: (() => void)[] = []
 const paintObservers = new Map<
   WebGlTerminalRenderer,
-  { canvas: HTMLCanvasElement; count: () => number; reset: () => void; submitted: number }
+  { canvas: HTMLCanvasElement; count: () => number; reset: () => void; draws: number }
 >()
 
 afterEach(() => {
@@ -65,7 +65,7 @@ async function rendererFixture(
     canvas,
     count: () => draw.mock.calls.length,
     reset: () => draw.mockClear(),
-    submitted: 0,
+    draws: 0,
   })
   return { canvas, clock, renderer }
 }
@@ -81,8 +81,8 @@ async function nativeFixture(content: string) {
 
 async function expectPainted(native: WebGlTerminalRenderer): Promise<Uint8Array> {
   const observer = paintObservers.get(native)!
-  expect(observer.count()).toBe((native.metrics.submittedFrames - observer.submitted) * 2)
-  observer.submitted = native.metrics.submittedFrames
+  expect(observer.count()).toBe(native.metrics.draws - observer.draws)
+  observer.draws = native.metrics.draws
   const displayed = await displayedPixels(observer.canvas)
   expect(displayed.byteLength).toBe(observer.canvas.width * observer.canvas.height * 4)
   const pixels = await native.capturePixels()
@@ -210,7 +210,7 @@ describe('WebGL WASM frame lifecycle', () => {
     const { canvas, clock, renderer } = await rendererFixture(source, { onFrame })
     clock.flushFrame()
     const observer = paintObservers.get(renderer)!
-    expect(observer.count()).toBe(2)
+    expect(observer.count()).toBe(1)
     const before = await displayedPixels(canvas)
     const submitted = renderer.metrics.submittedFrames
     const uploaded = renderer.metrics.uploadedBytes
@@ -232,7 +232,7 @@ describe('WebGL WASM frame lifecycle', () => {
     expect(renderer.metrics.submittedFrames).toBe(submitted)
     expect(renderer.metrics.uploadedBytes).toBe(uploaded)
     expect(renderer.metrics.instanceUploadOperations).toBe(operations)
-    expect(observer.count()).toBe(2)
+    expect(observer.count()).toBe(1)
     expect(await displayedPixels(canvas)).toEqual(before)
     expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
   })

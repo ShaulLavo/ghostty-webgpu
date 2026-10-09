@@ -297,6 +297,70 @@ it('renders explicit cursor text and updates one row without replacing the atlas
   expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
 })
 
+it('bounds cell and glyph draws through incremental growth, erasure and empty frames', async () => {
+  const grid = await createGrid({
+    columns: 4,
+    renderRows: [row(0, [cell(0, { text: 'X' })])],
+    rows: 2,
+  })
+  const draw = vi.spyOn(grid.gl, 'drawArraysInstanced')
+  grid.pass.capturePixels()
+  expect(draw.mock.calls.map((args) => args[3])).toEqual([1])
+  grid.native.state.acknowledge()
+  grid.native.terminal.write('\x1b[2;4H\x1b[48;2;255;0;0mY')
+  grid.native.state.update()
+  expect(
+    buildZigFrame(grid.builder, grid.atlas, rasterizer, { ...grid.frameOptions, full: false }),
+  ).toBe(0)
+  grid.pass.syncAtlas(grid.atlas.consumeUploads())
+  grid.pass.uploadFrame(grid.builder, grid.builder.changedRanges())
+  draw.mockClear()
+  const grown = grid.pass.capturePixels()
+  expect(draw.mock.calls.map((args) => args[3])).toEqual([8, 8])
+  expect(coveredPixels(grown, grid.width, 3, 1)).toBe(cellSize * cellSize)
+  grid.native.state.acknowledge()
+  grid.native.terminal.write('\x1b[2;1H\x1b[0m\x1b[2K')
+  grid.native.state.update()
+  expect(
+    buildZigFrame(grid.builder, grid.atlas, rasterizer, { ...grid.frameOptions, full: false }),
+  ).toBe(0)
+  grid.pass.uploadFrame(grid.builder, grid.builder.changedRanges())
+  draw.mockClear()
+  const shrunk = grid.pass.capturePixels()
+  expect(draw.mock.calls.map((args) => args[3])).toEqual([1])
+  expect(shrunk).toEqual(grid.pixels)
+  grid.native.state.acknowledge()
+  grid.native.terminal.write('\x1b[1;1H\x1b[2K')
+  grid.native.state.update()
+  expect(
+    buildZigFrame(grid.builder, grid.atlas, rasterizer, { ...grid.frameOptions, full: false }),
+  ).toBe(0)
+  grid.pass.uploadFrame(grid.builder, grid.builder.changedRanges())
+  draw.mockClear()
+  expect(grid.pass.capturePixels().every((byte) => byte === 0)).toBe(true)
+  expect(draw).not.toHaveBeenCalled()
+})
+
+it('resets draw extents when resizing discards the instance buffers', async () => {
+  const grid = await createGrid({
+    columns: 4,
+    renderRows: [row(1, [cell(3, { background: { r: 255, g: 0, b: 0 }, text: 'X' })])],
+    rows: 2,
+  })
+  const draw = vi.spyOn(grid.gl, 'drawArraysInstanced')
+  grid.pass.resize({ width: grid.width, height: cellSize * 2, instanceCount: 8 })
+  expect(grid.pass.capturePixels().every((byte) => byte === 0)).toBe(true)
+  expect(draw).not.toHaveBeenCalled()
+  grid.pass.uploadFrame(grid.builder, [
+    {
+      cell: { byteOffset: 7 * 64, byteLength: 64 },
+      glyph: { byteOffset: 7 * 96, byteLength: 96 },
+    },
+  ])
+  expect(grid.pass.capturePixels()).toEqual(grid.pixels)
+  expect(draw.mock.calls.map((args) => args[3])).toEqual([8, 8])
+})
+
 it('leaves pixel upload state untouched when the atlas has no pending changes', async () => {
   const grid = await createGrid({
     columns: 1,

@@ -415,7 +415,7 @@ export class WebGlTerminalRenderer {
     pass.syncAtlas(this.atlas.consumeUploads())
     const operations = pass.uploadFrame(builder, updates)
     // Persistent records can report terminal damage without changing either GPU buffer.
-    if (operations > 0) pass.submit()
+    const draws = operations > 0 ? pass.submit() : 0
     if (this.context.isContextLost()) {
       this.suspendContext()
       return
@@ -431,7 +431,7 @@ export class WebGlTerminalRenderer {
     try {
       if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
       if (operations > 0) {
-        this.recordFrame(pass, builder.rowRebuilds, operations)
+        this.recordFrame(pass, builder.rowRebuilds, operations, draws)
         this.metrics.zigFrames += 1
       }
       this.needsFullRebuild = false
@@ -507,7 +507,12 @@ export class WebGlTerminalRenderer {
     this.scheduler.flush()
   }
 
-  private recordFrame(pass: WebGlTextPass, rebuiltRows: number, operations: number): void {
+  private recordFrame(
+    pass: WebGlTextPass,
+    rebuiltRows: number,
+    operations: number,
+    draws: number,
+  ): void {
     this.metrics.atlasCacheHits = this.atlas.cacheHitCount
     this.metrics.atlasCacheMisses = this.atlas.cacheMissCount
     this.metrics.atlasEvictions = this.atlas.evictionCount
@@ -515,7 +520,7 @@ export class WebGlTerminalRenderer {
     this.metrics.atlasUploadedBytes = this.atlasUploadedBytesOffset + pass.atlasUploadedBytes
     this.metrics.atlasUploadOperations =
       this.atlasUploadOperationsOffset + pass.atlasUploadOperations
-    this.metrics.draws += 2
+    this.metrics.draws += draws
     this.metrics.instanceUploadOperations += operations
     this.metrics.rebuiltRows += rebuiltRows
     this.metrics.submittedFrames += 1
