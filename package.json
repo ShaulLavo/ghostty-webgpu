@@ -1,6 +1,6 @@
 {
   "name": "ghostty-webgpu",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "description": "Ghostty terminal emulation for the browser with WebGPU, WebGL, canvas, and DOM renderers.",
   "keywords": [
     "browser",

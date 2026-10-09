@@ -1,5 +1,49 @@
 # ghostty-webgpu
 
+## 0.3.21
+
+### Patch Changes
+
+- [#972](https://github.com/ShaulLavo/fregat/pull/972) [`74d4c92`](https://github.com/ShaulLavo/fregat/commit/74d4c92073d7b28961eb1f663e5f926ddf621e78) - Improved CPU efficiency during DOM terminal updates while keeping input and text positioning aligned with page layout and restoring terminal styles after host changes.
+
+- [#1066](https://github.com/ShaulLavo/fregat/pull/1066) [`5d50acd`](https://github.com/ShaulLavo/fregat/commit/5d50acdbaaad9b3a9a23080632c2cf2dea2c538d) - Improved Canvas rendering efficiency when editing plain text while preserving glyph and cursor appearance.
+
+- [#1073](https://github.com/ShaulLavo/fregat/pull/1073) [`5b0f541`](https://github.com/ShaulLavo/fregat/commit/5b0f541b666ab21e440c846f0d6af7fcead618df) - Fixed Canvas repainting after a drawing failure so retried updates refresh every affected row and preserve transparent backgrounds.
+
+- [#1055](https://github.com/ShaulLavo/fregat/pull/1055) [`71a187b`](https://github.com/ShaulLavo/fregat/commit/71a187b52d2acd0ea53cf18bd4accb1b533de1a8) - Improved scrolling CPU efficiency in experimental Canvas pixel mode.
+
+- [#1030](https://github.com/ShaulLavo/fregat/pull/1030) [`6baf9d0`](https://github.com/ShaulLavo/fregat/commit/6baf9d0fe0008e91190e0d61870984017cb26571) - Improved Canvas repainting for single-row plain-text edits and cursor changes. Font loading refreshes glyph bounds, and bulk writes, styled rows and pixel targets keep full-row painting.
+
+- [#887](https://github.com/ShaulLavo/fregat/pull/887) [`6b1a415`](https://github.com/ShaulLavo/fregat/commit/6b1a4157c7818f24f9518829378c07259f2385de) - Fixed terminal comparison benchmarks failing to start Chromium when the output directory has a long path.
+
+- [#888](https://github.com/ShaulLavo/fregat/pull/888) [`f0b3dff`](https://github.com/ShaulLavo/fregat/commit/f0b3dff6e5832b9589312d7e5618056aabf0cfa4) - Fixed terminal comparison benchmarks failing to read or write large JSON results. An interrupted or failed write preserves the last complete checkpoint.
+
+- [#970](https://github.com/ShaulLavo/fregat/pull/970) [`d19fc4e`](https://github.com/ShaulLavo/fregat/commit/d19fc4e4904cd9888c32f3dc4c7b419ea6e7c1fb) - Terminal comparisons on macOS no longer discard a measurement when a process's fast-core time comes out a few nanoseconds above its total CPU time because of unit-conversion rounding.
+
+- [#929](https://github.com/ShaulLavo/fregat/pull/929) [`d494dd4`](https://github.com/ShaulLavo/fregat/commit/d494dd45fb43eb0ecbd1f001af7c906a0fda4b58) - Added optional instruction counts, CPU cycles, core placement, effective-clock ratios, and CPU energy estimates to terminal comparison reports on supported systems. Existing CPU measurements and pass criteria stay unchanged.
+
+- [#889](https://github.com/ShaulLavo/fregat/pull/889) [`51c639c`](https://github.com/ShaulLavo/fregat/commit/51c639c5f819856692fdce3f303942e6e82985b3) - Fixed browser tests registering an unused WebSocket server hook when standalone mock interception is disabled.
+
+- [#880](https://github.com/ShaulLavo/fregat/pull/880) [`126492a`](https://github.com/ShaulLavo/fregat/commit/126492af5551a4d0c7ef1701ac38baa8a0693f11) - Added a guide for running resumable terminal performance investigations with `bun run autoresearch:checkpoint`. Saved checkpoints let a later run continue the investigation.
+
+- [#977](https://github.com/ShaulLavo/fregat/pull/977) [`09d3cb0`](https://github.com/ShaulLavo/fregat/commit/09d3cb0a85c5a2ebd809bb3b5d2269fe7fcf59f5) - Reuse unchanged terminal rows during scrolling in the WebGL and WebGPU frame builders. Preserve exact glyph placement, colors, selection, cursor, history, and upload ranges while rebuilding incoming or changed rows.
+
+- [#931](https://github.com/ShaulLavo/fregat/pull/931) [`c5a6fb2`](https://github.com/ShaulLavo/fregat/commit/c5a6fb2232cfe2732d0c3fe6c71cdf56ba8ccdf6) - Added `scrollbackByteLimit` to limit terminal scrollback by allocated page bytes, including the active screen. `0` clears history and disables further scrollback. Limits apply to whole pages, and positive byte limits have a minimum based on screen size.
+
+- [#1065](https://github.com/ShaulLavo/fregat/pull/1065) [`48f8cd7`](https://github.com/ShaulLavo/fregat/commit/48f8cd7211cf4e4833e2bf1cf6398cebe1a1ef0b) - Fixed terminal link hovering to save and restore the pre-hover canvas cursor value and CSS priority, while preserving host declarations that differ from `pointer !important` on exit. Terminal output leaves host cursor styles untouched while no link is visible.
+
+- [#1061](https://github.com/ShaulLavo/fregat/pull/1061) [`945fba5`](https://github.com/ShaulLavo/fregat/commit/945fba5f400428e2990de96d3181eb7b9f043c57) - Improved terminal scrolling by reusing unchanged native frame records while preserving cursor, selection, colour, and screen updates in WebGL and WebGPU.
+
+- [#964](https://github.com/ShaulLavo/fregat/pull/964) [`76e4ef7`](https://github.com/ShaulLavo/fregat/commit/76e4ef778442b0b7bcdf048ec4f35229f3a6394b) - Add a headless terminal correctness comparison and dated results.
+
+- [#1025](https://github.com/ShaulLavo/fregat/pull/1025) [`f171549`](https://github.com/ShaulLavo/fregat/commit/f171549d50b71ac58a95249fb9f1b1983fd5d538) - Improved `readTextRows` allocation behavior for accented and CJK terminal text. Text snapshots keep the same text and immutable cell values.
+
+- [#1009](https://github.com/ShaulLavo/fregat/pull/1009) [`b4e5264`](https://github.com/ShaulLavo/fregat/commit/b4e526490217841d304a83b22b4fe987afd44a98) - Reduce copied terminal text snapshot work while preserving accepted-frame text and immutable cell data.
+
+- [#933](https://github.com/ShaulLavo/fregat/pull/933) [`24d5bba`](https://github.com/ShaulLavo/fregat/commit/24d5bba2995db064bf15f1cb311c86bd57b5826b) - Improved WebGPU glyph uploads by removing an intermediate copy of glyph data.
+
+- [#932](https://github.com/ShaulLavo/fregat/pull/932) [`0acaa1a`](https://github.com/ShaulLavo/fregat/commit/0acaa1a46f699d3bf5b6f14a788a2691f9a8c356) - Fixed worker terminal shutdown confirming disposal before GPU cleanup finished. Shutdown now waits for pending device acquisition and recovery, and reports a timeout if cleanup cannot finish, including while the worker is idle.
+
 ## 0.3.20
 
 ### Patch Changes
