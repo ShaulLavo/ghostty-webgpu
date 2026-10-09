@@ -163,6 +163,7 @@
   "packageManager": "bun@1.4.2",
   "patchedDependencies": {
     "vitest@5.0.2": "patches/vitest@5.0.2.patch",
-    "@vitest/mocker@5.0.2": "patches/@vitest%2Fmocker@5.0.2.patch"
+    "@vitest/mocker@5.0.2": "patches/@vitest%2Fmocker@5.0.2.patch",
+    "@vitest/browser-playwright@5.0.2": "patches/@vitest%2Fbrowser-playwright@5.0.2.patch"
   }
 }

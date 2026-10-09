@@ -1,0 +1,35 @@
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -943,6 +943,10 @@
+ 	}
+ 	return launchOptions;
+ }
++const sigtermProviders = new Set();
++const stopPendingTraces = () => Promise.allSettled(
++	Array.from(sigtermProviders, (provider) => provider.onSIGTERM())
++);
+ class PlaywrightBrowserProvider {
+ 	project;
+ 	options;
+@@ -967,8 +971,9 @@
+ 		for (const [name, command] of Object.entries(commands)) {
+ 			project.browser.registerCommand(name, command);
+ 		}
+-		// make sure the traces are finished if the test hangs
+-		process.on("SIGTERM", this.onSIGTERM);
++		// All browser projects share one signal handler while providers are active.
++		if (!sigtermProviders.size) process.on("SIGTERM", stopPendingTraces);
++		sigtermProviders.add(this);
+ 	}
+ 	onSIGTERM = () => {
+ 		if (!this.browser) {
+@@ -1310,7 +1315,8 @@
+ 		};
+ 	}
+ 	async close() {
+-		process.off("SIGTERM", this.onSIGTERM);
++		sigtermProviders.delete(this);
++		if (!sigtermProviders.size) process.off("SIGTERM", stopPendingTraces);
+ 		debug?.("[%s] closing provider", this.browserName);
+ 		this.closing = true;
+ 		// a prewarmed browser that was never adopted must not outlive the provider
