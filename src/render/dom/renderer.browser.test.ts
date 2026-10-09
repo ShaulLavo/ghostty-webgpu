@@ -291,6 +291,59 @@ describe('DOM terminal renderer', () => {
     }
   })
 
+  it('omits default empty tails while preserving full snapshots and visible cell paint', async () => {
+    const snapshots: RendererFrameSnapshot[] = []
+    const probe = await rendererProbe('dom', '\x1b[?25lshort', probeFont, (frame) =>
+      snapshots.push(frame),
+    )
+    const row = probe.canvas.parentElement!.querySelector<HTMLElement>('[data-row="0"]')!
+    const empty = probe.canvas.parentElement!.querySelector('[data-row="2"]')!
+    expect(row.textContent).toBe('short')
+    expect(empty.children).toHaveLength(0)
+    expect(row.getBoundingClientRect().height).toBe(probeFont.cssCellHeight)
+    expect(snapshots[0]!.rows[0]!.renderCells).toHaveLength(12)
+    const span = row.firstElementChild!
+    const style = span.getAttribute('style')
+    expect(span.getBoundingClientRect().width).toBe(12 * probeFont.cssCellWidth)
+    probe.terminal.write('\rshorter')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(row.firstElementChild).toBe(span)
+    expect(span.getAttribute('style')).toBe(style)
+    expect(row.textContent).toBe('shorter')
+    probe.terminal.write('\rshort\x1b[K')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+
+    probe.terminal.write('\x1b[?25h\x1b[1;12H')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(row.textContent).toBe('short       ')
+    const cursor = row.querySelector<HTMLElement>('[data-cursor]')!
+    expect(cursor.getBoundingClientRect().left - row.getBoundingClientRect().left).toBe(
+      11 * probeFont.cssCellWidth,
+    )
+
+    probe.terminal.write('\x1b[?25l\x1b[2J\x1b[H界')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(row.textContent).toBe('界          ')
+    expect(row.firstElementChild!.getBoundingClientRect().width).toBe(2 * probeFont.cssCellWidth)
+
+    probe.terminal.write('\x1b[48;2;40;50;60m\x1b[K\x1b[0m')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(row.textContent).toBe('界          ')
+    expect(getComputedStyle(row.lastElementChild!).backgroundColor).toBe('rgb(40, 50, 60)')
+
+    probe.terminal.write('\x1b[2J\x1b[Hshort\r\nnext')
+    probe.terminal.selectAll()
+    probe.renderer.notifySelectionChange()
+    probe.clock.flush()
+    expect(row.textContent).toBe('short       ')
+    expect(getComputedStyle(row.lastElementChild!).backgroundColor).toBe('rgb(51, 68, 85)')
+  })
+
   it('retains damaged row, span, and text identities while text changes', async () => {
     const probe = await rendererProbe('dom')
     probe.terminal.write('\x1b[?25l\x1b[2J\x1b[Hfirst')
@@ -329,7 +382,7 @@ describe('DOM terminal renderer', () => {
     probe.clock.flush()
     expect(host.querySelector('[data-row="0"]')).toBe(row)
     expect(row.firstElementChild).toBe(span)
-    expect(span.textContent).toBe('short   ')
+    expect(span.textContent).toBe('short')
     const font = { ...probeFont, cssCellWidth: 12, deviceCellWidth: 12 }
     probe.renderer.setFont(font)
     probe.clock.flush()
