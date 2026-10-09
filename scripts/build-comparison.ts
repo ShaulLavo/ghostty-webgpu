@@ -49,29 +49,30 @@ try {
   })
   assert(build.success, JSON.stringify(build.logs))
   const logsPath = join(root, 'bench/fixtures/git-history.txt')
-  const assets = assetMap([
-    ...Object.entries(runtime.assets),
-    ...Object.entries({
-      'legacy.wasm': join(dirname(require.resolve('ghostty-web')), 'ghostty-vt.wasm'),
-      'font.woff2':
-        require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2'),
-      'font-bold.woff2':
-        require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2'),
-      'font-license.txt': join(
-        dirname(require.resolve('@fontsource/jetbrains-mono/package.json')),
-        'LICENSE',
-      ),
-      'xterm.css': require.resolve('@xterm/xterm/css/xterm.css'),
-      'xterm.mjs': join(dirname(require.resolve('@xterm/xterm')), 'xterm.mjs'),
-      'addon-webgl.mjs': join(dirname(require.resolve('@xterm/addon-webgl')), 'addon-webgl.mjs'),
-      'ghostty-web.mjs': join(dirname(require.resolve('ghostty-web')), 'ghostty-web.js'),
-      '__vite-browser-external-2447137e.js': join(
-        dirname(require.resolve('ghostty-web')),
-        '__vite-browser-external-2447137e.js',
-      ),
-      'logs.txt': logsPath,
-    }),
-  ])
+  const assets = assetMap(
+    Object.entries(runtime.assets).concat(
+      Object.entries({
+        'legacy.wasm': join(dirname(require.resolve('ghostty-web')), 'ghostty-vt.wasm'),
+        'font.woff2':
+          require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2'),
+        'font-bold.woff2':
+          require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2'),
+        'font-license.txt': join(
+          dirname(require.resolve('@fontsource/jetbrains-mono/package.json')),
+          'LICENSE',
+        ),
+        'xterm.css': require.resolve('@xterm/xterm/css/xterm.css'),
+        'xterm.mjs': join(dirname(require.resolve('@xterm/xterm')), 'xterm.mjs'),
+        'addon-webgl.mjs': join(dirname(require.resolve('@xterm/addon-webgl')), 'addon-webgl.mjs'),
+        'ghostty-web.mjs': join(dirname(require.resolve('ghostty-web')), 'ghostty-web.js'),
+        '__vite-browser-external-2447137e.js': join(
+          dirname(require.resolve('ghostty-web')),
+          '__vite-browser-external-2447137e.js',
+        ),
+        'logs.txt': logsPath,
+      }),
+    ),
+  )
   const hashes: Record<string, string> = {}
   for (const [name, path] of Object.entries(assets)) {
     await mkdir(dirname(join(output, name)), { recursive: true })

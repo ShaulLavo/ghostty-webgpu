@@ -7,7 +7,7 @@ import { readComparisonArtifact } from './comparison-artifact.mjs'
 
 export function quantile(values, percentile) {
   assert(values.length > 0 && values.every(Number.isFinite), 'Finite samples required')
-  const sorted = [...values].sort((a, b) => a - b)
+  const sorted = values.toSorted((a, b) => a - b)
   if (percentile === 0.5) {
     const middle = Math.floor(sorted.length / 2)
     return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
@@ -17,7 +17,7 @@ export function quantile(values, percentile) {
 
 export function order(variants, repetition) {
   const offset = Math.floor(repetition / 2) % variants.length
-  const rotated = [...variants.slice(offset), ...variants.slice(0, offset)]
+  const rotated = variants.slice(offset).concat(variants.slice(0, offset))
   return repetition % 2 ? rotated.reverse() : rotated
 }
 
@@ -41,31 +41,32 @@ function phaseMeasured(artifact, metric) {
 
 function omittedMetrics(artifact) {
   if (!artifact.phases) return []
-  const metrics = [
-    ...(artifact.fixtures ?? artifact.manifest.fixtures?.map(({ name }) => name) ?? []).flatMap(
-      (name) => [
-        `parse/${name}`,
-        `burst/${name}/p50`,
-        `burst/${name}/p95`,
-        `burst/${name}/dropped`,
+  const metrics = (artifact.fixtures ?? artifact.manifest.fixtures?.map(({ name }) => name) ?? [])
+    .flatMap((name) => [
+      `parse/${name}`,
+      `burst/${name}/p50`,
+      `burst/${name}/p95`,
+      `burst/${name}/dropped`,
+    ])
+    .concat(
+      [
+        'write/p50',
+        'write/p95',
+        'input/p50',
+        'input/p95',
+        'idle/cpu',
+        'idle/cpu/renderer',
+        'output/cpu',
+        'output/cpu/renderer',
+        'memory/terminal',
+        'memory/10k',
+        'memory/output/terminal',
       ],
-    ),
-    'write/p50',
-    'write/p95',
-    'input/p50',
-    'input/p95',
-    'idle/cpu',
-    'idle/cpu/renderer',
-    'output/cpu',
-    'output/cpu/renderer',
-    'memory/terminal',
-    'memory/10k',
-    'memory/output/terminal',
-    ...['initial', 'history', 'output'].flatMap((state) => [
-      `memory/${state}/wasm`,
-      `memory/${state}/rss-delta`,
-    ]),
-  ]
+      ['initial', 'history', 'output'].flatMap((state) => [
+        `memory/${state}/wasm`,
+        `memory/${state}/rss-delta`,
+      ]),
+    )
   return metrics.filter((metric) => !phaseMeasured(artifact, metric))
 }
 
@@ -168,13 +169,17 @@ const workFields = [
 ]
 
 function counterWindows(run) {
-  return [
-    ...['idle', 'output', 'latency'].map((name) => [name, run[name]?.cpu]),
-    ...(run.phases ?? []).map((phase) => [`trace/${phase.label}`, phase.cpu]),
-    ['failure', run.cpuFailure],
-    ['phase failure', run.phaseFailure?.cpu],
-    ['latency failure', run.latencyFailure?.cpu],
-  ].filter(([, cpu]) => cpu?.workCounters)
+  return ['idle', 'output', 'latency']
+    .map((name) => [name, run[name]?.cpu])
+    .concat(
+      (run.phases ?? []).map((phase) => [`trace/${phase.label}`, phase.cpu]),
+      [
+        ['failure', run.cpuFailure],
+        ['phase failure', run.phaseFailure?.cpu],
+        ['latency failure', run.latencyFailure?.cpu],
+      ],
+    )
+    .filter(([, cpu]) => cpu?.workCounters)
 }
 
 function addWorkSummaries(run, add, state, counters) {
@@ -215,14 +220,14 @@ function counterWindowNotes(state, counters) {
     if (sample.clockReason)
       notes.push(`${state} effective clock unavailable. ${sample.clockReason}`)
   }
-  return [...notes, ...(counters.limitations ?? [])]
+  return notes.concat(counters.limitations ?? [])
 }
 
 function counterNotes(artifact) {
   const notes = artifact.runs.flatMap((run) =>
     counterWindows(run).flatMap(([state, cpu]) => counterWindowNotes(state, cpu.workCounters)),
   )
-  return [...new Set(notes)].map((note) => `- ${note}`)
+  return Array.from(new Set(notes), (note) => `- ${note}`)
 }
 
 function rendererCpu(cpu) {
@@ -231,8 +236,8 @@ function rendererCpu(cpu) {
   return Number.isFinite(seconds) ? (seconds / cpu.milliseconds) * 100_000 : undefined
 }
 
-const pairedMetrics = [
-  ...['idle', 'output'].flatMap((state) => [
+const pairedMetrics = ['idle', 'output']
+  .flatMap((state) => [
     {
       metric: `${state}/cpu/renderer`,
       unit: '% core',
@@ -254,18 +259,19 @@ const pairedMetrics = [
         ),
       }),
     },
-  ]),
-  ...[
-    ['input', 0.5],
-    ['input', 0.95],
-    ['write', 0.5],
-  ].map(([name, percentile]) => ({
-    metric: `${name}/p${percentile * 100}`,
-    unit: 'ms',
-    read: (run) =>
-      run.latency?.[name]?.length ? quantile(run.latency[name], percentile) : undefined,
-  })),
-]
+  ])
+  .concat(
+    [
+      ['input', 0.5],
+      ['input', 0.95],
+      ['write', 0.5],
+    ].map(([name, percentile]) => ({
+      metric: `${name}/p${percentile * 100}`,
+      unit: 'ms',
+      read: (run) =>
+        run.latency?.[name]?.length ? quantile(run.latency[name], percentile) : undefined,
+    })),
+  )
 
 function pairKey(run) {
   if (
@@ -518,13 +524,15 @@ function pairedMarkdown(artifact) {
 }
 
 export function qualificationNotes(artifact) {
-  const evidence = [
-    ...(artifact.qualifications ?? []),
-    ...artifact.runs.flatMap((run) => [
-      run.gpuIdle,
-      ...(run.gpuWindows ?? []).flatMap(({ idle, window, failure }) => [idle, window, failure]),
-    ]),
-  ].filter(Boolean)
+  const evidence = (artifact.qualifications ?? [])
+    .concat(
+      artifact.runs.flatMap((run) =>
+        [run.gpuIdle].concat(
+          (run.gpuWindows ?? []).flatMap(({ idle, window, failure }) => [idle, window, failure]),
+        ),
+      ),
+    )
+    .filter(Boolean)
   const notes = []
   if (evidence.some((value) => value.foreignActivityMetric === 'resident-compute-memory-mib'))
     notes.push(
@@ -586,86 +594,93 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
     '## Environment',
     '',
     `- Benchmark checkout commit: \`${artifact.manifest.commit}\`. Combined source SHA-256: \`${artifact.manifest.sourceSha256}\`.`,
-    ...(artifact.manifest.runtime
+  ].concat(
+    artifact.manifest.runtime
       ? [
           `- Runtime: ${artifact.manifest.runtime.mode} at \`${artifact.manifest.runtime.commit}\`. Runtime source SHA-256: \`${artifact.manifest.runtime.sourceSha256}\`.`,
           `- Benchmark source SHA-256: \`${artifact.manifest.benchmark.sourceSha256}\`. Bundle SHA-256: \`${artifact.manifest.bundleSha256}\`.`,
         ]
-      : []),
-    `- Output fixture: ${artifact.outputFixture ?? 'ascii'}. Frames: ${artifact.outputFrames ?? artifact.manifest.settings.outputFrames}.`,
-    `- Browser: ${artifact.environment.browser}. OS: ${artifact.environment.os}.`,
-    ...(artifact.cpuTickSource
+      : [],
+    [
+      `- Output fixture: ${artifact.outputFixture ?? 'ascii'}. Frames: ${artifact.outputFrames ?? artifact.manifest.settings.outputFrames}.`,
+      `- Browser: ${artifact.environment.browser}. OS: ${artifact.environment.os}.`,
+    ],
+    artifact.cpuTickSource
       ? [
           `- CPU comparison accounting bound: ${artifact.cpuTickSeconds}s from \`${artifact.cpuTickSource.command}\`. ${artifact.cpuTickSource.scope}`,
         ]
-      : []),
-    `- Latency endpoint: ${artifact.environment.latencyEndpoint}. Samples per operation/repetition: ${artifact.latencySamples}.`,
-    `- GPU: ${artifact.environment.renderer}. Hardware adapter: ${artifact.hardware}. Headless: ${artifact.environment.headless ?? false}.`,
-    `- Font: JetBrains Mono ${artifact.manifest.versions['@fontsource/jetbrains-mono']}, bundled regular/bold Latin faces. Emoji and CJK use the same OS fallback fonts.`,
-    `- Font size: ${artifact.manifest.settings.fontSize}px. DPR: ${artifact.manifest.settings.dpr}. Grid: ${artifact.manifest.settings.columns} × ${artifact.manifest.settings.rows}.`,
-    `- Libraries: ghostty-webgpu ${artifact.manifest.versions['ghostty-webgpu']}; xterm ${artifact.manifest.versions['@xterm/xterm']} with WebGL addon ${artifact.manifest.versions['@xterm/addon-webgl']}; ghostty-web ${artifact.manifest.versions['ghostty-web']}.`,
-    `- Selected phases: ${(artifact.phases ?? ['parser', 'memory', 'idle', 'latency', 'burst', 'output']).join(', ')}. Omitted-phase metrics are not measured.`,
-    `- Selected variants: ${(artifact.variants ?? []).join(', ')}. GPU frame builders: ${builders.join(', ')}.`,
-    `- Repetitions: ${artifact.repetitions}. Each table cell is the median of the per-run result, including per-run p50/p95.`,
-    `- Artifact: [comparison.json](${link('comparison.json')}).`,
-    '',
-    '## Method',
-    '',
-    'Each case opens a fresh browser context. All 1, 8, or 17 terminals remain visible in a fixed grid.',
-    'Library order alternates forward/reverse between repetitions and rotates on the third repetition.',
-    'Byte/string paths alternate too. A warmup precedes each timed operation.',
-    'Chromium launches with a device scale of 2 so resize-observer backing pixels agree with DPR.',
-    'Its WebGL context limit is 32 for every case, allowing all 17 xterm WebGL terminals to remain live.',
-    'Parse throughput uses unopened parsers and complete UTF-8 corpora in 4 KiB chunks.',
-    'Parser-only contexts run before any rendered terminal is created. Timing covers synchronous input decoding/encoding, VT parsing, and buffer writes.',
-    'xterm uses its pinned 6.0.0 input-handler parse boundary, bypassing WriteBuffer timers; both Ghostty libraries use synchronous core writes.',
-    'A parser returning asynchronous work is rejected. No callback, microtask, or timer wait is included in isolated-parser timing.',
-    'After timing, the same instance must match independent expected viewport text, cursor, and SGR color/style probes. Unqualified samples are excluded.',
-    'Qualification covers the final viewport and cursor; the alternate screen keeps no offscreen history. Separate one-byte smoke diagnostics are retained even when 4 KiB results qualify.',
-    'Text comparison permits NFC composition and trailing blank cells only; ZWJ characters must be retained. Smoke checks exercise both 4 KiB and one-byte chunks.',
-    'Empty decoded chunks and an empty final decoder flush are omitted; a nonempty final flush remains part of the input.',
-    'Each parse-only fixture owns a fresh WASM runtime. Runtime construction is outside timing for both Ghostty libraries.',
-    'Every parse-only terminal enters the alternate screen before timing, so history allocation does not affect parser throughput.',
-    'The string chunks are decoded before timing. String-to-WASM encoding remains inside the timed library call.',
-    'MB means 1,000,000 bytes. The real-log fixture is an archived 256-entry public Git history log, repeated to at least 1 MiB.',
-    'xterm DOM and WebGL share a parser; their parse results are independent repetitions of that same parser.',
-    '',
-    'Write latency starts at the browser write call. Input latency starts at the captured keydown event and crosses a loopback WebSocket byte echo.',
-    'The endpoint recorded in each run identifies its presentation measurement. AnimationFrame::Presentation is correlated to the animation frame containing that terminal’s render span.',
-    'PNG glyph captures qualify correctness. In headless-shell, presentation acknowledgement is on-demand and follows submission independently of physical vsync. Renderer rAF pacing still determines when a terminal can draw.',
-    'GPU variants require a submitted glyph draw. Canvas and DOM variants require a real terminal row paint within the selected animation frame; deferred no-op frames are excluded.',
-    'Physical-vsync and optical display latency are unmeasured. The optional --validate-presentation phase inserts one renderer rAF before write, and retains the delayed samples beside the ordinary samples.',
-    ...qualificationNotes(artifact),
-    'Screencasting is stopped for burst, CPU, and memory measurements.',
-    '',
-    'Repeating fixtures write the same complete unit of at least 4 KiB per terminal per animation frame.',
-    'rolling-logs advances through the real Git-history corpus in chunks of at most 4 KiB, ending between UTF-8 codepoints. The corpus tail is a shorter frame, then the stream wraps.',
-    'Every burst resets to the corpus start, including the separate warmup. The fixture records corpus and length-framed cycle hashes; output records exact bytes and the final chunk offset.',
-    'Every library uses exactly one shared animation-frame pacing wait per iteration. The synchronous ghostty-web public write receives no presentation callback.',
-    'Frame intervals come from requestAnimationFrame timestamps. Dropped frames are inferred from the measured idle refresh period,',
-    'rounded to the nearest number of display intervals. They are missed animation-frame opportunities, not GPU presentation counters.',
-    'CPU sums Chromium process CPU time, including browser, renderer, and GPU, as a percentage of one core. Samples reject any process birth or exit.',
-    'Every case has a 10-minute deadline capped by the remaining configured matrix budget; the heavy wrapper quiet hold is the outer limit. Timeout closes its contexts and retains the failure.',
-    'Bundle and asset hashes are verified before serving; both font weights are loaded and checked before rendered phases.',
-    'Successful latency phases retain metadata and colored-glyph classification for every screencast frame, including frames that did not qualify a sample.',
-    'Failed latency phases retain the last capture image/metadata and a direct screenshot; their partial capture stream is not serialized.',
-    '',
-    'Memory per terminal and per 10k rows is the post-GC CDP used JS heap plus backing storage delta, divided by terminal count.',
-    'Memory deltas use the post-preparation, pre-terminal baseline. Prepared inputs stay live in every sample.',
-    'Output memory is sampled after the selected output fixture and frame count, outside CPU timing. Initial memory is sampled after terminal creation.',
-    'This is retained JS/backing storage, not total terminal memory. WASM linear-memory capacity is reported separately.',
-    'Renderer/GPU RSS deltas cover all Chromium processes and include browser allocation noise and shared resources.',
-    'GPU allocation is not available per terminal. Negative deltas are retained as measurement noise.',
-    'Each Ghostty library shares one WASM runtime per context, matching its supported multi-terminal use.',
-    'The 10k fixture contains exactly 10,000 retained 40-column ASCII history rows per terminal.',
-    'The native adapter sets upstream SCROLLBACK_MAX_BYTES to 64 MiB through the runtime ABI, in addition to the 10k line limit.',
-    'The session API exposes the line limit only; the adapter checks its pinned internal terminal before applying the byte option.',
-    'The default byte budget retained only 2,014 rows in the initial attempt. The final run asserts all 10k rows.',
-    'ghostty-web also receives a 64 MiB budget: its 0.4.0 scrollback option is passed to the upstream max_scrollback byte field.',
-    'At scrollback: 10000, it retained only 1,852 rows. Its pinned [patch](https://github.com/coder/ghostty-web/blob/9e4e126d/patches/ghostty-wasm-api.patch) documents that option as lines.',
-    'xterm has a 10k row limit. Burst phases clear history first; legacy retention is byte-budget-only.',
-    '',
-    ...(artifact.processCounters
+      : [],
+    [
+      `- Latency endpoint: ${artifact.environment.latencyEndpoint}. Samples per operation/repetition: ${artifact.latencySamples}.`,
+      `- GPU: ${artifact.environment.renderer}. Hardware adapter: ${artifact.hardware}. Headless: ${artifact.environment.headless ?? false}.`,
+      `- Font: JetBrains Mono ${artifact.manifest.versions['@fontsource/jetbrains-mono']}, bundled regular/bold Latin faces. Emoji and CJK use the same OS fallback fonts.`,
+      `- Font size: ${artifact.manifest.settings.fontSize}px. DPR: ${artifact.manifest.settings.dpr}. Grid: ${artifact.manifest.settings.columns} × ${artifact.manifest.settings.rows}.`,
+      `- Libraries: ghostty-webgpu ${artifact.manifest.versions['ghostty-webgpu']}; xterm ${artifact.manifest.versions['@xterm/xterm']} with WebGL addon ${artifact.manifest.versions['@xterm/addon-webgl']}; ghostty-web ${artifact.manifest.versions['ghostty-web']}.`,
+      `- Selected phases: ${(artifact.phases ?? ['parser', 'memory', 'idle', 'latency', 'burst', 'output']).join(', ')}. Omitted-phase metrics are not measured.`,
+      `- Selected variants: ${(artifact.variants ?? []).join(', ')}. GPU frame builders: ${builders.join(', ')}.`,
+      `- Repetitions: ${artifact.repetitions}. Each table cell is the median of the per-run result, including per-run p50/p95.`,
+      `- Artifact: [comparison.json](${link('comparison.json')}).`,
+      '',
+      '## Method',
+      '',
+      'Each case opens a fresh browser context. All 1, 8, or 17 terminals remain visible in a fixed grid.',
+      'Library order alternates forward/reverse between repetitions and rotates on the third repetition.',
+      'Byte/string paths alternate too. A warmup precedes each timed operation.',
+      'Chromium launches with a device scale of 2 so resize-observer backing pixels agree with DPR.',
+      'Its WebGL context limit is 32 for every case, allowing all 17 xterm WebGL terminals to remain live.',
+      'Parse throughput uses unopened parsers and complete UTF-8 corpora in 4 KiB chunks.',
+      'Parser-only contexts run before any rendered terminal is created. Timing covers synchronous input decoding/encoding, VT parsing, and buffer writes.',
+      'xterm uses its pinned 6.0.0 input-handler parse boundary, bypassing WriteBuffer timers; both Ghostty libraries use synchronous core writes.',
+      'A parser returning asynchronous work is rejected. No callback, microtask, or timer wait is included in isolated-parser timing.',
+      'After timing, the same instance must match independent expected viewport text, cursor, and SGR color/style probes. Unqualified samples are excluded.',
+      'Qualification covers the final viewport and cursor; the alternate screen keeps no offscreen history. Separate one-byte smoke diagnostics are retained even when 4 KiB results qualify.',
+      'Text comparison permits NFC composition and trailing blank cells only; ZWJ characters must be retained. Smoke checks exercise both 4 KiB and one-byte chunks.',
+      'Empty decoded chunks and an empty final decoder flush are omitted; a nonempty final flush remains part of the input.',
+      'Each parse-only fixture owns a fresh WASM runtime. Runtime construction is outside timing for both Ghostty libraries.',
+      'Every parse-only terminal enters the alternate screen before timing, so history allocation does not affect parser throughput.',
+      'The string chunks are decoded before timing. String-to-WASM encoding remains inside the timed library call.',
+      'MB means 1,000,000 bytes. The real-log fixture is an archived 256-entry public Git history log, repeated to at least 1 MiB.',
+      'xterm DOM and WebGL share a parser; their parse results are independent repetitions of that same parser.',
+      '',
+      'Write latency starts at the browser write call. Input latency starts at the captured keydown event and crosses a loopback WebSocket byte echo.',
+      'The endpoint recorded in each run identifies its presentation measurement. AnimationFrame::Presentation is correlated to the animation frame containing that terminal’s render span.',
+      'PNG glyph captures qualify correctness. In headless-shell, presentation acknowledgement is on-demand and follows submission independently of physical vsync. Renderer rAF pacing still determines when a terminal can draw.',
+      'GPU variants require a submitted glyph draw. Canvas and DOM variants require a real terminal row paint within the selected animation frame; deferred no-op frames are excluded.',
+      'Physical-vsync and optical display latency are unmeasured. The optional --validate-presentation phase inserts one renderer rAF before write, and retains the delayed samples beside the ordinary samples.',
+    ],
+    qualificationNotes(artifact),
+    [
+      'Screencasting is stopped for burst, CPU, and memory measurements.',
+      '',
+      'Repeating fixtures write the same complete unit of at least 4 KiB per terminal per animation frame.',
+      'rolling-logs advances through the real Git-history corpus in chunks of at most 4 KiB, ending between UTF-8 codepoints. The corpus tail is a shorter frame, then the stream wraps.',
+      'Every burst resets to the corpus start, including the separate warmup. The fixture records corpus and length-framed cycle hashes; output records exact bytes and the final chunk offset.',
+      'Every library uses exactly one shared animation-frame pacing wait per iteration. The synchronous ghostty-web public write receives no presentation callback.',
+      'Frame intervals come from requestAnimationFrame timestamps. Dropped frames are inferred from the measured idle refresh period,',
+      'rounded to the nearest number of display intervals. They are missed animation-frame opportunities, not GPU presentation counters.',
+      'CPU sums Chromium process CPU time, including browser, renderer, and GPU, as a percentage of one core. Samples reject any process birth or exit.',
+      'Every case has a 10-minute deadline capped by the remaining configured matrix budget; the heavy wrapper quiet hold is the outer limit. Timeout closes its contexts and retains the failure.',
+      'Bundle and asset hashes are verified before serving; both font weights are loaded and checked before rendered phases.',
+      'Successful latency phases retain metadata and colored-glyph classification for every screencast frame, including frames that did not qualify a sample.',
+      'Failed latency phases retain the last capture image/metadata and a direct screenshot; their partial capture stream is not serialized.',
+      '',
+      'Memory per terminal and per 10k rows is the post-GC CDP used JS heap plus backing storage delta, divided by terminal count.',
+      'Memory deltas use the post-preparation, pre-terminal baseline. Prepared inputs stay live in every sample.',
+      'Output memory is sampled after the selected output fixture and frame count, outside CPU timing. Initial memory is sampled after terminal creation.',
+      'This is retained JS/backing storage, not total terminal memory. WASM linear-memory capacity is reported separately.',
+      'Renderer/GPU RSS deltas cover all Chromium processes and include browser allocation noise and shared resources.',
+      'GPU allocation is not available per terminal. Negative deltas are retained as measurement noise.',
+      'Each Ghostty library shares one WASM runtime per context, matching its supported multi-terminal use.',
+      'The 10k fixture contains exactly 10,000 retained 40-column ASCII history rows per terminal.',
+      'The native adapter sets upstream SCROLLBACK_MAX_BYTES to 64 MiB through the runtime ABI, in addition to the 10k line limit.',
+      'The session API exposes the line limit only; the adapter checks its pinned internal terminal before applying the byte option.',
+      'The default byte budget retained only 2,014 rows in the initial attempt. The final run asserts all 10k rows.',
+      'ghostty-web also receives a 64 MiB budget: its 0.4.0 scrollback option is passed to the upstream max_scrollback byte field.',
+      'At scrollback: 10000, it retained only 1,852 rows. Its pinned [patch](https://github.com/coder/ghostty-web/blob/9e4e126d/patches/ghostty-wasm-api.patch) documents that option as lines.',
+      'xterm has a 10k row limit. Burst phases clear history first; legacy retention is byte-budget-only.',
+      '',
+    ],
+    artifact.processCounters
       ? [
           '## Process work counters',
           '',
@@ -675,13 +690,10 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
           'The native CPU denominator is user plus system time on macOS and tick-quantized user time on Linux. CDP CPU seconds remain separate. Linux P-core time and per-process energy are unavailable.',
           'The raw artifact records setup and calibration cost, start identities, errors, PMU coverage, and per-PID acquisition timestamps. Native reads bracket the unchanged CDP CPU window from outside; all request/completion times are retained. Helper startup and attachment precede browser trace activation.',
           'Incomplete native coverage omits aggregate work channels. Individual stable-process values remain in the artifact. Supplementary work channels have no automatic pass/fail verdict.',
-          ...counterNotes(artifact),
-          '',
-        ]
-      : []),
-    '## Results',
-    '',
-  ]
+        ].concat(counterNotes(artifact), [''])
+      : [],
+    ['## Results', ''],
+  )
   const selectedVariants = artifact.variants ?? artifact.manifest.variants.map(({ id }) => id)
   const variants = selectedVariants.flatMap((id) =>
     frameBuilderTreatments(artifact, id).map((builder) => (builder ? `${id}-${builder}` : id)),
@@ -697,7 +709,7 @@ export function markdown(artifact, review = {}, artifactDirectory = '.') {
       `| --- | ${variants.map(() => '---:').join(' | ')} |`,
     )
     const subset = rows.filter((row) => row.count === count && row.path === path)
-    const metrics = [...new Set([...subset.map((row) => row.metric), ...omittedMetrics(artifact)])]
+    const metrics = [...new Set(subset.map((row) => row.metric).concat(omittedMetrics(artifact)))]
     for (const metric of metrics) {
       const cells = variants.map((id) => {
         const row = subset.find((entry) => entry.variant === id && entry.metric === metric)

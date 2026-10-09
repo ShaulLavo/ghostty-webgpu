@@ -374,12 +374,13 @@ function createOverlay(upstream: string, overlay: string): void {
 }
 
 function assertOverlayBindings(upstream: string, overlay: string): void {
-  const bindings = [
-    ...['dist', 'images', 'pkg', 'src', 'vendor'].map((name) => [name, join(upstream, name)]),
-    ['build.zig.zon', join(upstream, 'build.zig.zon')],
-    ['build.zig', join(scriptDir, 'build.zig')],
-    ['main.zig', join(scriptDir, 'main.zig')],
-  ] as const
+  const bindings = ['dist', 'images', 'pkg', 'src', 'vendor']
+    .map<[string, string]>((name) => [name, join(upstream, name)])
+    .concat([
+      ['build.zig.zon', join(upstream, 'build.zig.zon')],
+      ['build.zig', join(scriptDir, 'build.zig')],
+      ['main.zig', join(scriptDir, 'main.zig')],
+    ])
   for (const [name, target] of bindings) {
     const path = join(overlay, name)
     if (!lstatExists(path) || !lstatSync(path).isSymbolicLink()) {
@@ -976,7 +977,7 @@ function buildWithVerifiedInputs(
   const before = packageCacheSnapshot(globalCache)
   verifyExpectedTreeGeneration(
     args,
-    [zig, ...dependencyFetchArgv(zigTarget, cache, globalCache)],
+    [zig].concat(dependencyFetchArgv(zigTarget, cache, globalCache)),
     inputs,
   )
   assertDarwinSdkTool(args, zig, sdkOrSysroot)
@@ -987,7 +988,7 @@ function buildWithVerifiedInputs(
     throw new ProofFailure('package cache changed during graph materialization')
   }
   const treeInputs = packageTreeInputs(zig, zigTarget, overlay, cache, globalCache, inputs)
-  const generationInputs = [...inputs, ...treeInputs].sort(recordOrder)
+  const generationInputs = inputs.concat(treeInputs).sort(recordOrder)
   verifyExpectedGenerationInputs(args, generationInputs)
   const generatedInputs = materializeGeneratedModules(
     args,
@@ -1003,7 +1004,7 @@ function buildWithVerifiedInputs(
     sdkOrSysroot,
     zigLibIdentity,
   )
-  const completeInputs = [...inputs, ...treeInputs, ...generatedInputs].sort(recordOrder)
+  const completeInputs = inputs.concat(treeInputs, generatedInputs).sort(recordOrder)
   assertGeneratedModules(zigTarget, generatedInputs)
   assertPreFinalBoundary(
     args,
@@ -1092,7 +1093,7 @@ function packageTreeInputs(
   const names = readdirSync(root).sort()
   if (names.length !== expected.length)
     throw new ProofFailure('materialized package count mismatch')
-  const argv = [zig, ...dependencyFetchArgv(zigTarget, cache, globalCache)]
+  const argv = [zig].concat(dependencyFetchArgv(zigTarget, cache, globalCache))
   return names.map((name) => packageTreeInput(root, name, expected, argv)).sort(recordOrder)
 }
 
@@ -1296,7 +1297,7 @@ function build(
     '-Dproof-preverified-generated=true',
     '--verbose',
   ]
-  verifyExpectedBuildInvocation(args, [zig, ...argv], context.recordedEnvironment)
+  verifyExpectedBuildInvocation(args, [zig].concat(argv), context.recordedEnvironment)
   if (lstatExists(finalCache)) throw new ProofFailure('final build cache already exists')
   mkdirSync(finalCache)
   assertOverlayBindings(join(BUILD_ROOT, 'upstream'), overlay)
@@ -1314,7 +1315,7 @@ function build(
   const output = Buffer.concat([result.stdout, result.stderr]).toString('utf8')
   assertNoGeneratedProducerCommands(output)
   return {
-    buildArgv: [zig, ...argv],
+    buildArgv: [zig].concat(argv),
     buildEnvironment: context.recordedEnvironment,
     linkArgv: parseLinkDriverArgv(output, zig, zigTarget),
   }
@@ -1477,7 +1478,7 @@ function assembleBundle(
   chmodSync(helper, 0o755)
 
   const stripArgv = process.platform === 'darwin' ? ['-x', helper] : ['--strip-all', helper]
-  const fullStripArgv = ['/usr/bin/strip', ...stripArgv]
+  const fullStripArgv = ['/usr/bin/strip'].concat(stripArgv)
   verifyExpectedStripArgv(args, fullStripArgv)
   const actualStrip = fileIdentity('/usr/bin/strip')
   assertIdentity(actualStrip, expectedStrip.bytes, expectedStrip.sha256, 'strip tool')

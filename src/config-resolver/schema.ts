@@ -274,7 +274,7 @@ function objectValue(value: unknown, label: string): JsonObject {
 
 function exactKeys(value: JsonObject, expected: readonly string[], label: string): void {
   const actual = Object.keys(value).sort()
-  const sortedExpected = [...expected].sort()
+  const sortedExpected = expected.toSorted()
   if (actual.length !== sortedExpected.length) fail(`${label} keys do not match`)
   for (let index = 0; index < actual.length; index += 1) {
     if (actual[index] !== sortedExpected[index]) fail(`${label} keys do not match`)

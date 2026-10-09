@@ -188,7 +188,7 @@ describe('native resolver manifest schema', () => {
       canonicalObjectSha256(mixedProvenance)
     expect(() => validateNativeResolverManifest(mixedRun)).toThrow(ResolverManifestError)
 
-    const reversed = structuredClone(manifest([...files].reverse()))
+    const reversed = structuredClone(manifest(files.reverse()))
     expect(() => validateNativeResolverManifest(reversed)).toThrow(ResolverManifestError)
   })
 })

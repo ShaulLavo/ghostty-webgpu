@@ -46,7 +46,7 @@ const hashes = Object.fromEntries(
   ),
 )
 const git = (...args: string[]) =>
-  execFileSync('git', ['-C', checkout, ...args], { encoding: 'utf8' }).trim()
+  execFileSync('git', ['-C', checkout].concat(args), { encoding: 'utf8' }).trim()
 await writeFile(
   join(directory, 'source-diff.patch'),
   execFileSync('git', ['-C', checkout, 'diff', 'HEAD', '--binary']),

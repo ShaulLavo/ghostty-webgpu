@@ -1563,7 +1563,7 @@ function asObject(value: unknown, label: string): JsonObject {
 
 function assertKeys(value: JsonObject, expected: readonly string[], label: string): void {
   const actual = Object.keys(value).sort()
-  const sortedExpected = [...expected].sort()
+  const sortedExpected = expected.toSorted()
   if (JSON.stringify(actual) !== JSON.stringify(sortedExpected)) {
     throw new ProofFailure(`${label} keys mismatch`)
   }

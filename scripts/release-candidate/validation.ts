@@ -366,7 +366,7 @@ function validateHashRecord(value: unknown, label: string): void {
 
 function targetRecord(value: unknown, label: string): Record<NativeTarget, unknown> {
   const record = strictRecordValue(value, label)
-  exactKeys(record, [...NATIVE_TARGETS], label)
+  exactKeys(record, NATIVE_TARGETS, label)
   return record as Record<NativeTarget, unknown>
 }
 
@@ -394,7 +394,7 @@ function exactKeys(
   label: string,
 ): void {
   const actual = Object.keys(record).sort()
-  const expected = [...keys].sort()
+  const expected = keys.toSorted()
   if (actual.length !== expected.length) fail(`${label} has unknown or missing keys`)
   for (let index = 0; index < actual.length; index += 1) {
     if (actual[index] !== expected[index]) fail(`${label} has unknown or missing keys`)

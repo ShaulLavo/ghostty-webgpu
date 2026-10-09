@@ -28,7 +28,7 @@ export async function sourceInventory(root: string, paths: readonly string[]) {
 
 export function checkoutFiles(root: string, patterns: readonly string[]): string[] {
   const list = (options: readonly string[]) =>
-    execFileSync('git', ['ls-files', '-z', ...options, '--', ...patterns], {
+    execFileSync('git', ['ls-files', '-z'].concat(options, ['--'], patterns), {
       cwd: root,
       encoding: 'utf8',
     })
@@ -92,7 +92,10 @@ function isRuntimeSource(path: string): boolean {
 }
 
 function runtimePatterns(assets: RuntimeAssets): string[] {
-  return ['src', ...assets.map(([, path]) => `:(literal)${path}`), 'package.json']
+  return ['src'].concat(
+    assets.map(([, path]) => `:(literal)${path}`),
+    ['package.json'],
+  )
 }
 
 function runtimeFiles(root: string, assets: RuntimeAssets): string[] {
@@ -144,7 +147,7 @@ export async function runtimeSource(root: string, ref?: string) {
     return {
       mode: 'checkout' as const,
       commit: git(['rev-parse', 'HEAD']),
-      dirty: git(['status', '--porcelain', '--', ...runtimePatterns(assets)]),
+      dirty: git(['status', '--porcelain', '--'].concat(runtimePatterns(assets))),
       ...(await runtimeInputs(root, runtimeFiles(root, assets), assets)),
       plugins: [] as BunPlugin[],
       dispose: async () => {},
@@ -156,7 +159,7 @@ export async function runtimeSource(root: string, ref?: string) {
   const repository = git(['rev-parse', '--show-toplevel'])
   const treePaths = execFileSync(
     'git',
-    ['ls-tree', '-r', '-z', '--name-only', commit, '--', ...(prefix ? [prefix] : [])],
+    ['ls-tree', '-r', '-z', '--name-only', commit, '--'].concat(prefix ? [prefix] : []),
     { cwd: repository, encoding: 'utf8' },
   )
     .split('\0')
@@ -174,7 +177,7 @@ export async function runtimeSource(root: string, ref?: string) {
     const extract = (paths: readonly string[]) => {
       const archive = execFileSync(
         'git',
-        ['--literal-pathspecs', 'archive', commit, '--', ...paths],
+        ['--literal-pathspecs', 'archive', commit, '--'].concat(paths),
         {
           cwd: repository,
           maxBuffer: 32 * 1024 * 1024,
@@ -192,7 +195,7 @@ export async function runtimeSource(root: string, ref?: string) {
       'Runtime inputs must contain the declared WASM assets',
     )
     extract(assetPaths)
-    const paths = [...sourcePaths, ...assetPaths].map((path) => path.slice(prefix.length))
+    const paths = sourcePaths.concat(assetPaths).map((path) => path.slice(prefix.length))
     return {
       mode: 'git-ref' as const,
       ref,

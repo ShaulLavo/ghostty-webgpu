@@ -261,7 +261,7 @@ function cleanRowRecords(builder: ZigFrameBuilder) {
 
 for (const backend of ['webgpu', 'webgl2'] as const) {
   describe(`${backend} Zig Unicode compositor`, () => {
-    it.each([...zigUnicodeFixtures, ...zigGlyphCollisionFixtures])(
+    it.each(zigUnicodeFixtures.concat(zigGlyphCollisionFixtures))(
       'submits $name entirely through Zig',
       async ({ content }) => {
         const pair = await nativeFixture(backend, content)

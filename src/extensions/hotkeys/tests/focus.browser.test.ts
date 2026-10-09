@@ -261,14 +261,14 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
   it('sends deeper shell pack press, repeat and release once with no original-input re-entry', async () => {
     const f = await fixture(entry)
     let calls = 0
-    const h = await f.hosted(
-      [{ keys: 'Ctrl+B', command: 'sidebar', context: 'Workspace' }, ...terminalShellKeysPack],
-      {
-        sidebar: () => {
-          calls += 1
-        },
+    const bindings: readonly KeymapEntry[] = [
+      { keys: 'Ctrl+B', command: 'sidebar', context: 'Workspace' },
+    ]
+    const h = await f.hosted(bindings.concat(terminalShellKeysPack), {
+      sidebar: () => {
+        calls += 1
       },
-    )
+    })
     const observed = new Map<KeyboardEvent, number>()
     h.dispatcher.observeKeys({
       beforeKey: (event) => observed.set(event, (observed.get(event) ?? 0) + 1),

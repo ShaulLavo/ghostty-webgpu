@@ -231,7 +231,7 @@ describe('CanvasTerminalRenderer', () => {
     const source = new FakeRenderState([
       row(
         0,
-        [...text].map((text, x) => cell(x, { text })),
+        Array.from(text, (text, x) => cell(x, { text })),
       ),
     ])
     source.cursor.viewport = { wideTail: false, x: 9, y: 0 }

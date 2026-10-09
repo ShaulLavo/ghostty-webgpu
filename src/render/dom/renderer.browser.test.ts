@@ -125,7 +125,8 @@ async function expectWideGlyphCursorPaint(font = probeFont) {
       [31, 19],
     ]) {
       const expected = reference.getImageData(x!, y!, 1, 1).data
-      const background = expected[3] === 0 ? [17, 17, 17] : [...expected].slice(0, 3)
+      const background: number[] =
+        expected[3] === 0 ? [17, 17, 17] : Array.from(expected.subarray(0, 3))
       expect(
         [...pixels.getImageData(x!, y!, 1, 1).data].slice(0, 3),
         `${style} cursor pixel (${x}, ${y})`,

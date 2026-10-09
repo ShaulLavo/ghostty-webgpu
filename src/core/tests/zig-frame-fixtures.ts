@@ -11,7 +11,7 @@ export const zigFrameContents = [
   '\x1b[1;3;2;4;7;9;53mstyled\x1b[0m\x1b[8mhidden',
 ] as const
 
-export const zigUnicodeFixtures = [
+export const zigUnicodeFixtures: readonly Readonly<{ name: string; content: string }>[] = [
   { name: 'ASCII', content: 'ASCII abc XYZ 0123 !@#' },
   { name: 'accented Latin', content: 'café naïve Ångström ç ÿ' },
   { name: 'box drawing', content: '┌─┬─┐│╬│└─┴─┘ ╭╮╰╯' },
@@ -23,9 +23,9 @@ export const zigUnicodeFixtures = [
   { name: 'emoji modifiers and flags', content: '👍🏽 🇯🇵 🧑🏿‍🚀' },
   { name: 'styled Unicode', content: '\x1b[1;3m界éé👩‍💻\x1b[0m' },
   { name: 'colored Unicode', content: '\x1b[38;2;19;91;173;48;2;31;42;53m界é👩‍💻\x1b[0m' },
-] as const
+]
 
-export const zigGlyphCollisionFixtures = [
+export const zigGlyphCollisionFixtures: readonly Readonly<{ name: string; content: string }>[] = [
   { name: 'full codepoints with equal low seven bits', content: 'AÁŁ' },
   { name: 'supplementary codepoints with equal low sixteen bits', content: '\u{1f600}\u{2f600}' },
   { name: 'combining sequences sharing a base', content: 'e é è ȩ́' },
@@ -35,7 +35,7 @@ export const zigGlyphCollisionFixtures = [
     name: 'same grapheme with different brushes',
     content: '\x1b[31;44mé\x1b[32;45mé\x1b[7mé\x1b[0m',
   },
-] as const
+]
 
 export const zigFrameCursorStyles = ['block', 'bar', 'underline', 'outline'] as const
 

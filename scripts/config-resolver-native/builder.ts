@@ -339,7 +339,7 @@ function runMaintainedScript(
   environment: NodeJS.ProcessEnv,
 ): void {
   const script = join(repositoryRoot, 'scripts/config-resolver-native', filename)
-  const result = spawnSync(process.execPath, [script, ...argv], {
+  const result = spawnSync(process.execPath, [script].concat(argv), {
     cwd: repositoryRoot,
     encoding: 'buffer',
     env: environment,

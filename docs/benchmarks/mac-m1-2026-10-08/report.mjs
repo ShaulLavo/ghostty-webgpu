@@ -20,22 +20,26 @@ const history = (row) => {
 }
 const number = (value) => value.toFixed(3)
 const compact = (rows) =>
-  [
-    '| WebGL vs xterm.js WebGL | CPU energy ratio | Instruction ratio |',
-    '| --- | ---: | ---: |',
-    ...rows.map(
-      (row) => `| ${labels[row.workload]} | ${number(row.energy)} | ${number(row.instructions)} |`,
-    ),
-  ].join('\n')
+  ['| WebGL vs xterm.js WebGL | CPU energy ratio | Instruction ratio |', '| --- | ---: | ---: |']
+    .concat(
+      rows.map(
+        (row) =>
+          `| ${labels[row.workload]} | ${number(row.energy)} | ${number(row.instructions)} |`,
+      ),
+    )
+    .join('\n')
 const table = (rows) =>
   [
     '| Workload | History | CPU energy ratio | Instruction ratio | CPU seconds ratio | Evidence |',
     '| --- | --- | ---: | ---: | ---: | --- |',
-    ...rows.map(
-      (row) =>
-        `| ${labels[row.workload]} | ${history(row)} | ${number(row.energy)} | ${number(row.instructions)} | ${number(row.cpuSeconds)} | [Counters](${evidence}${row.source}) · [Review](${evidence}${row.review}) |`,
-    ),
-  ].join('\n')
+  ]
+    .concat(
+      rows.map(
+        (row) =>
+          `| ${labels[row.workload]} | ${history(row)} | ${number(row.energy)} | ${number(row.instructions)} | ${number(row.cpuSeconds)} | [Counters](${evidence}${row.source}) · [Review](${evidence}${row.review}) |`,
+      ),
+    )
+    .join('\n')
 const gl = data.scores.filter((row) => row.renderer === 'ghostty WebGL')
 const dom = data.scores.filter((row) => row.renderer === 'ghostty DOM')
 const report = `# Terminal comparison benchmarks

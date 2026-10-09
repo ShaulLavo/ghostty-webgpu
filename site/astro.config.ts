@@ -9,6 +9,9 @@ import { docsLinks } from './scripts/docs-links.js'
 import { docsTheme } from './src/docs-theme.js'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
+const referenceItems: NonNullable<Parameters<typeof starlight>[0]['sidebar']> = [
+  { label: 'Options', slug: 'docs/reference/options' },
+]
 const references = [
   { entry: '../dist/index.d.ts', output: 'docs/reference/api', label: 'Main API' },
   { entry: '../dist/worker/index.d.ts', output: 'docs/reference/worker-api', label: 'Worker API' },
@@ -49,7 +52,7 @@ export default defineConfig({
       title: 'ghostty-webgpu',
       description: 'Ghostty’s terminal core in the browser. Guides and API reference.',
       ...docsTheme,
-      customCss: [...docsTheme.customCss, './src/styles/docs.css'],
+      customCss: docsTheme.customCss.concat(['./src/styles/docs.css']),
       editLink: { baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/ghostty-webgpu/site/' },
       lastUpdated: true,
       social: [
@@ -74,21 +77,19 @@ export default defineConfig({
         { label: 'Examples', items: [{ autogenerate: { directory: 'docs/examples' } }] },
         {
           label: 'Reference',
-          items: [
-            { label: 'Options', slug: 'docs/reference/options' },
-            ...references.map(({ sidebar }) => sidebar),
-          ],
+          items: referenceItems.concat(references.map(({ sidebar }) => sidebar)),
         },
         { label: 'Concepts', items: [{ autogenerate: { directory: 'docs/concepts' } }] },
       ],
-      plugins: [
-        ...references.map(({ plugin }) => plugin),
-        starlightLinksValidator({
-          sameSitePolicy: 'validate',
-          // Starlight cannot inspect the custom landing page; verify-docs checks it in a browser.
-          exclude: ['https://shaullavo.github.io/ghostty-webgpu/'],
-        }),
-      ],
+      plugins: references
+        .map(({ plugin }) => plugin)
+        .concat([
+          starlightLinksValidator({
+            sameSitePolicy: 'validate',
+            // Starlight cannot inspect the custom landing page; verify-docs checks it in a browser.
+            exclude: ['https://shaullavo.github.io/ghostty-webgpu/'],
+          }),
+        ]),
     }),
   ],
   vite: {

@@ -49,7 +49,7 @@ it.each([
   })!
   expect(bitmap.kind).toBe('color')
   const center = Math.floor((bitmap.width * bitmap.height) / 2) * 4
-  expect(Array.from(bitmap.pixels.slice(center, center + 4))).toEqual([
+  expect(Array.from(bitmap.pixels.subarray(center, center + 4))).toEqual([
     channel,
     channel,
     channel,
@@ -211,7 +211,7 @@ it('caches mixed COLR glyphs by foreground while retaining their fixed gray laye
     const bitmap = rasterizer.rasterize(input)!
     expect(bitmap.kind).toBe('color')
     const middle = Math.floor(bitmap.height / 2) * bitmap.width
-    expect(Array.from(bitmap.pixels.slice((middle + 4) * 4, (middle + 4) * 4 + 4))).toEqual([
+    expect(Array.from(bitmap.pixels.subarray((middle + 4) * 4, (middle + 4) * 4 + 4))).toEqual([
       color.r,
       color.g,
       color.b,
@@ -219,7 +219,10 @@ it('caches mixed COLR glyphs by foreground while retaining their fixed gray laye
     ])
     expect(
       Array.from(
-        bitmap.pixels.slice((middle + bitmap.width - 5) * 4, (middle + bitmap.width - 5) * 4 + 4),
+        bitmap.pixels.subarray(
+          (middle + bitmap.width - 5) * 4,
+          (middle + bitmap.width - 5) * 4 + 4,
+        ),
       ),
     ).toEqual([128, 128, 128, 255])
     expect(rasterizer.rasterize(input)).toBe(bitmap)

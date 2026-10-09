@@ -174,10 +174,11 @@ describe('release candidate strict schemas', () => {
       ),
     ).toThrow(/smoke tarball differs/)
 
-    const changedTarball = createTar([
-      ...fixture.entries,
-      { path: 'package/extra.txt', bytes: Buffer.from('extra'), mode: 0o644 },
-    ])
+    const changedTarball = createTar(
+      fixture.entries.concat([
+        { path: 'package/extra.txt', bytes: Buffer.from('extra'), mode: 0o644 },
+      ]),
+    )
     const changedPacked = verifyPackedPackage(changedTarball)
     expect(() =>
       constructReleaseCandidate(
@@ -316,19 +317,21 @@ describe('read-only npm tar inspection', () => {
 
     expect(() =>
       verifyPackedPackage(
-        createTar([
-          ...fixture.entries,
-          { path: 'package/native/unexpected', bytes: Buffer.from('x'), mode: 0o644 },
-        ]),
+        createTar(
+          fixture.entries.concat([
+            { path: 'package/native/unexpected', bytes: Buffer.from('x'), mode: 0o644 },
+          ]),
+        ),
       ),
     ).toThrow(/unexpected native file/)
 
     expect(() =>
       verifyPackedPackage(
-        createTar([
-          ...fixture.entries,
-          { path: 'package/native', bytes: Buffer.from('conflict'), mode: 0o644 },
-        ]),
+        createTar(
+          fixture.entries.concat([
+            { path: 'package/native', bytes: Buffer.from('conflict'), mode: 0o644 },
+          ]),
+        ),
       ),
     ).toThrow()
   })
@@ -630,9 +633,10 @@ describe('release candidate CLI contract', () => {
           '/tmp/a.tgz',
           '--provisional',
           '/tmp/p.json',
-          ...NATIVE_TARGETS.flatMap((target) => ['--rebuild-provenance', `/tmp/r-${target}`]),
-          ...NATIVE_TARGETS.flatMap((target) => ['--smoke-provenance', `/tmp/s-${target}`]),
-        ],
+        ].concat(
+          NATIVE_TARGETS.flatMap((target) => ['--rebuild-provenance', `/tmp/r-${target}`]),
+          NATIVE_TARGETS.flatMap((target) => ['--smoke-provenance', `/tmp/s-${target}`]),
+        ),
         root,
       ).mode,
     ).toBe('finalize')
@@ -853,15 +857,13 @@ describe('release workflow provenance producers', () => {
     ]
     expect(
       parseReleaseProvenanceArguments(
-        ['--rebuild', ...common, '--archive', '/tmp/a.tar', '--provenance', '/tmp/p.json'],
+        ['--rebuild'].concat(common, ['--archive', '/tmp/a.tar', '--provenance', '/tmp/p.json']),
         '/tmp/repository',
       ).mode,
     ).toBe('rebuild')
     expect(
       parseReleaseProvenanceArguments(
-        [
-          '--smoke',
-          ...common,
+        ['--smoke'].concat(common, [
           '--tarball',
           '/tmp/a.tgz',
           '--provisional',
@@ -870,15 +872,13 @@ describe('release workflow provenance producers', () => {
           '/tmp/r.json',
           '--output',
           '/tmp/s.json',
-        ],
+        ]),
         '/tmp/repository',
       ).mode,
     ).toBe('smoke')
     expect(() =>
       parseReleaseProvenanceArguments(
-        [
-          '--smoke',
-          ...common,
+        ['--smoke'].concat(common, [
           '--tarball',
           '/tmp/a.tgz',
           '--provisional',
@@ -889,7 +889,7 @@ describe('release workflow provenance producers', () => {
           '/tmp/s.json',
           '--unknown',
           'x',
-        ],
+        ]),
         '/tmp/repository',
       ),
     ).toThrow(/unknown/)

@@ -138,10 +138,9 @@ describe('native resolver schema', () => {
       (value) =>
         void ((value.profiles.light.palette as unknown[]) = value.profiles.light.palette.slice(1)),
       (value) =>
-        void ((value.profiles.light.palette as unknown[]) = [
-          ...value.profiles.light.palette,
+        void ((value.profiles.light.palette as unknown[]) = value.profiles.light.palette.concat([
           rgb(0, 0, 0),
-        ]),
+        ])),
     ]
     for (const mutate of cases) {
       const payload = clone(

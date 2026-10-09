@@ -776,7 +776,7 @@ function objectValue(value: unknown, label: string): JsonObject {
 
 function exactKeys(value: JsonObject, expected: readonly string[], label: string): void {
   const actual = Object.keys(value).sort()
-  const sortedExpected = [...expected].sort()
+  const sortedExpected = expected.toSorted()
   if (!isDeepStrictEqual(actual, sortedExpected)) fail(`${label} keys do not match`)
 }
 

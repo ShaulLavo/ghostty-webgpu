@@ -426,7 +426,7 @@ test('CPU sampling rejects both newly born and exited processes', () => {
   )
   assert.throws(() => cpuSample(prior, [], 1000), /process set changed/)
   assert.throws(
-    () => cpuSample(prior, [...prior, { id: 2, type: 'gpu', cpuTime: 0 }], 1000),
+    () => cpuSample(prior, prior.concat([{ id: 2, type: 'gpu', cpuTime: 0 }]), 1000),
     /process set changed/,
   )
 })
@@ -1080,10 +1080,11 @@ test('native renderer pairs retain generic counterpart values and per-session id
     'ghostty-dom': 'xterm-dom',
   }
   artifact.variants = Object.keys(counterparts).concat(Object.values(counterparts))
-  artifact.runs = Object.entries(counterparts).flatMap(([native, counterpart]) => [
-    ...nativeRuns.map((run) => ({ ...run, variant: native })),
-    ...otherRuns.map((run) => ({ ...run, variant: counterpart })),
-  ])
+  artifact.runs = Object.entries(counterparts).flatMap(([native, counterpart]) =>
+    nativeRuns
+      .map((run) => ({ ...run, variant: native }))
+      .concat(otherRuns.map((run) => ({ ...run, variant: counterpart }))),
+  )
   artifact.frameBuilders = ['zig']
   const rows = pairedRatios(artifact)
   assert.equal(rows.length, 28)

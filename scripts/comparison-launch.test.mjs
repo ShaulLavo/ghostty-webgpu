@@ -26,7 +26,7 @@ const configure = new Function(
 
 function options(host, args) {
   return configure(
-    { argv: ['node', 'comparison-runner.mjs', ...args] },
+    { argv: ['node', 'comparison-runner.mjs'].concat(args) },
     () => host,
     assert,
     accessibilityMode,

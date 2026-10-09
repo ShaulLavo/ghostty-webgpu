@@ -48,6 +48,7 @@ export function registerTerminalHotkeys(
   options: TerminalHotkeyRegistrationOptions,
 ): TerminalHotkeyRegistration {
   const platform = options.platform ?? detectPlatform()
+  const defaults: readonly KeymapEntry[] = terminalDefaultPack[platform]
   const lifetime = new AbortController()
   let disposed = false
   const nativePresses = new Map<
@@ -61,7 +62,7 @@ export function registerTerminalHotkeys(
       : createBrowserDispatcher({
           root: options.element,
           platform,
-          keymap: [...terminalDefaultPack[platform], ...(options.bindings ?? [])],
+          keymap: defaults.concat(options.bindings ?? []),
           replay: (_input, event) =>
             send(() =>
               options.terminal.sendGeneratedInput({

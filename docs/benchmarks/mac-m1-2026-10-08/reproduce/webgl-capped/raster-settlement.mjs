@@ -15,16 +15,14 @@ export async function settleScreenshot(page) {
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
   )
   const controls = await page.evaluate(() =>
-    Array.from(document.querySelectorAll('.xterm-scrollable-element > .scrollbar')).map(
-      (element) => {
-        const rect = element.getBoundingClientRect()
-        return {
-          className: element.className,
-          opacity: getComputedStyle(element).opacity,
-          rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-        }
-      },
-    ),
+    Array.from(document.querySelectorAll('.xterm-scrollable-element > .scrollbar'), (element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        className: element.className,
+        opacity: getComputedStyle(element).opacity,
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      }
+    }),
   )
   assert(
     controls.every((control) => ['0', '1'].includes(control.opacity)),

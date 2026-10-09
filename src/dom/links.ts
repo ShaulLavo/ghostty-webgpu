@@ -140,7 +140,7 @@ function frameContentEquals(
 
 function frameCells(snapshot: RendererTextFrameSnapshot): readonly FrameCell[] {
   const result: FrameCell[] = []
-  const rows = [...snapshot.rows].sort((left, right) => left.y - right.y)
+  const rows = snapshot.rows.toSorted((left, right) => left.y - right.y)
   for (const row of rows) {
     for (let column = 0; column < row.cells.length; column += 1) {
       if (row.continuations[column]) continue
@@ -165,7 +165,7 @@ function orderedDiscoveryCells(
 ): readonly FrameCell[] {
   const cells = frameCells(snapshot)
   const start = discoveryStart(cells, currentHit)
-  return Object.freeze([...cells.slice(start), ...cells.slice(0, start)])
+  return Object.freeze(cells.slice(start).concat(cells.slice(0, start)))
 }
 
 function cellInsideHit(cell: ResolvedCell, hit: LinkHit<Event>): boolean {

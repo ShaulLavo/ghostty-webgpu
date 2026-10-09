@@ -32,9 +32,10 @@ const command = [
   '--initial-memory=131072',
   '--max-memory=268435456',
   '-fstrip',
-  ...['alloc', 'free', 'clear', 'fill', 'stamp', 'move'].map((name) => `--export=compose_${name}`),
-  `-femit-bin=${output}`,
-]
+].concat(
+  ['alloc', 'free', 'clear', 'fill', 'stamp', 'move'].map((name) => `--export=compose_${name}`),
+  [`-femit-bin=${output}`],
+)
 const child = Bun.spawn(command, { stdout: 'inherit', stderr: 'inherit' })
 const code = await child.exited
 if (code !== 0) process.exit(code)

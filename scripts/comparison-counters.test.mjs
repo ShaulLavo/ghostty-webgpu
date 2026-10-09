@@ -307,7 +307,7 @@ test('Linux perf counters omit Mac-only ratios for full and asymmetric event cov
     assert.equal(sample.channels.allChrome.instructions, 1e9 * instructionShare)
     assert.equal(sample.channels.allChrome.cycles, 2e9 * cycleShare)
     assert.equal(sample.processes[0].clockAvailable, cycleShare === 1)
-    for (const row of [...sample.processes, ...Object.values(sample.channels)]) {
+    for (const row of sample.processes.concat(Object.values(sample.channels))) {
       assert.deepEqual(
         Object.keys(row).filter((field) => fields.includes(field)),
         [],
@@ -396,7 +396,7 @@ test('aggregate counter overflow is rejected before emitting rounded values', ()
   const last = macSnapshot({ ri_instructions: String(Number.MAX_SAFE_INTEGER) })
   first.processes[2] = first.processes[1]
   last.processes[2] = last.processes[1]
-  const processInfo = [...cpuBefore, { id: 2, type: 'renderer' }]
+  const processInfo = cpuBefore.concat([{ id: 2, type: 'renderer' }])
   assert.throws(
     () =>
       counterDelta(

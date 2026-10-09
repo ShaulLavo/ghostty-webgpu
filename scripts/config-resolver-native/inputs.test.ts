@@ -113,7 +113,7 @@ function nativeInputFixture(prefix: string): string {
   const checkout = mkdtempSync(join(tmpdir(), 'ghostty-native-inputs-'))
   roots.push(checkout)
   const family = join(checkout, prefix)
-  const files = new Set([...discoverOwnedPaths(source), 'package.json', 'tsconfig.json'])
+  const files = new Set(discoverOwnedPaths(source).concat(['package.json', 'tsconfig.json']))
   for (const file of files) {
     const destination = join(family, file)
     mkdirSync(dirname(destination), { recursive: true })

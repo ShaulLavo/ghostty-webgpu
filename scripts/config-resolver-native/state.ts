@@ -33,7 +33,7 @@ export function verifyNativeRepositoryState(
 
 function classifyEntries(entries: readonly string[]): NativeRepositoryState {
   if (JSON.stringify(entries) === JSON.stringify(['bootstrap.json'])) return 'bootstrap'
-  const assembled = ['manifest.json', ...NATIVE_TARGETS].sort()
+  const assembled = ['manifest.json'].concat(NATIVE_TARGETS).sort()
   if (JSON.stringify(entries) === JSON.stringify(assembled)) return 'assembled'
   throw new NativeContractError('native resolver state is mixed, empty, or has unexpected entries')
 }

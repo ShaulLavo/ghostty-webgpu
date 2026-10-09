@@ -24,7 +24,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   for (const renderer of renderers) renderer.dispose()
-  const losses = [...devices].map((device) => device.lost)
+  const losses = Array.from(devices, (device) => device.lost)
   for (const device of devices) device.destroy()
   await Promise.all(losses)
   for (const canvas of canvases) canvas.remove()

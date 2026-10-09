@@ -156,7 +156,7 @@ const contentTypes = {
   '.html': 'text/html',
 }
 const files = new Map()
-for (const name of ['index.html', 'browser.js', ...Object.keys(manifest.assets)]) {
+for (const name of ['index.html', 'browser.js'].concat(Object.keys(manifest.assets))) {
   const bytes = await readFile(join(root, name))
   verifyHash(bytes, name === 'browser.js' ? manifest.bundleSha256 : manifest.assets[name], name)
   files.set(`/${name}`, bytes)
@@ -197,8 +197,7 @@ const browserArgs = [
   '--disable-backgrounding-occluded-windows',
   '--disable-renderer-backgrounding',
   '--max-active-webgl-contexts=32',
-  ...launch.arguments,
-]
+].concat(launch.arguments)
 let launchEnv = process.env
 if (smoke && platform() === 'linux') {
   browserArgs.push(
@@ -485,7 +484,7 @@ async function measure(testCase, repetition, browserSession) {
     const result = await withDeadline(
       () => measureBody(testCase, repetition, browserSession, run, contexts),
       Math.min(s.caseDeadlineMilliseconds, remaining),
-      () => Promise.all([...contexts].map((context) => context.close().catch(() => {}))),
+      () => Promise.all(Array.from(contexts).map((context) => context.close().catch(() => {}))),
       { drain: true },
     )
     result.status =
@@ -737,9 +736,8 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
       )
     if (tracing) {
       run.phases = []
-      const configurations = [
-        { name: 'latency', operation: () => latency(page, session) },
-        ...manifest.fixtures.map(({ name }) => ({
+      const configurations = [{ name: 'latency', operation: () => latency(page, session) }].concat(
+        manifest.fixtures.map(({ name }) => ({
           name,
           operation: () =>
             page.evaluate(({ name, frames }) => window.__compare.burst(name, frames), {
@@ -747,7 +745,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
               frames: traceFrames,
             }),
         })),
-      ]
+      )
       for (const { name, operation } of configurations) {
         if (!tracePhases.includes(name)) continue
         run.phase = `trace/${name}`

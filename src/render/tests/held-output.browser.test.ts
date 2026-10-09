@@ -97,7 +97,7 @@ async function mainActor(host: HTMLDivElement): Promise<HoldActor> {
       const pixels = await renderer.capturePixels()
       const offset = (centre.y * canvas.width + centre.x) * 4
       return {
-        color: Array.from(pixels.slice(offset, offset + 4)),
+        color: Array.from(pixels.subarray(offset, offset + 4)),
         frames: renderer.metrics.submittedFrames,
       }
     },
@@ -255,7 +255,7 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
       const x = Math.floor((screen.clientWidth / 24) * 2.5)
       const y = Math.floor((screen.clientHeight / 4) * 1.5)
       const offset = (y * canvas.width + x) * 4
-      return { color: Array.from(pixels.slice(offset, offset + 4)), frames }
+      return { color: Array.from(pixels.subarray(offset, offset + 4)), frames }
     },
     async dispose() {
       terminal.dispose()

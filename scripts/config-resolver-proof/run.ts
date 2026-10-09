@@ -401,7 +401,7 @@ function boundedInteger(value: string, minimum: number, maximum: number, label: 
 }
 
 function runBun(script: string, argv: readonly string[]): void {
-  const result = spawnSync(process.execPath, [join(scriptDir, script), ...argv], {
+  const result = spawnSync(process.execPath, [join(scriptDir, script)].concat(argv), {
     encoding: 'buffer',
     env: process.env,
     maxBuffer: OUTPUT_LIMIT,

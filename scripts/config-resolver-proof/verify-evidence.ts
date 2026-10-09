@@ -561,7 +561,7 @@ function asObject(value: unknown, label: string): JsonObject {
 
 function assertKeys(value: JsonObject, expected: readonly string[], label: string): void {
   const actual = Object.keys(value).sort(compareUtf16)
-  const sortedExpected = [...expected].sort(compareUtf16)
+  const sortedExpected = expected.toSorted(compareUtf16)
   if (!sameStrings(actual, sortedExpected)) fail(`${label} keys do not match`)
 }
 

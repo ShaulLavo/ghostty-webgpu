@@ -115,7 +115,7 @@ scope.onmessage = async ({ data }) => {
       const pixels = await renderer.capturePixels()
       const offset = (centre.y * canvas.width + centre.x) * 4
       snapshot = {
-        color: Array.from(pixels.slice(offset, offset + 4)),
+        color: Array.from(pixels.subarray(offset, offset + 4)),
         frames: renderer.metrics.submittedFrames,
       }
     }

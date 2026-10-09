@@ -858,7 +858,7 @@ function dependencies(value: unknown, label: string): readonly string[] {
 
 function targetRecord(value: unknown, label: string): Record<NativeTarget, unknown> {
   const record = strictRecordValue(value, label)
-  assertExactKeys(record, [...NATIVE_TARGETS], label)
+  assertExactKeys(record, NATIVE_TARGETS, label)
   return record as Record<NativeTarget, unknown>
 }
 
@@ -1036,7 +1036,7 @@ function assertExactKeys(
   label: string,
 ): void {
   const actual = Object.keys(record).sort()
-  const expected = [...keys].sort()
+  const expected = keys.toSorted()
   if (JSON.stringify(actual) !== JSON.stringify(expected))
     fail(`${label} has unknown or missing keys`)
 }

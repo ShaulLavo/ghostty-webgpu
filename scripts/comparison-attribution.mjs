@@ -12,7 +12,7 @@ import { renderedFrame, renderOperations } from './comparison-render.mjs'
 export function unionMilliseconds(intervals) {
   const sorted = intervals
     .filter(([start, end]) => Number.isFinite(start) && Number.isFinite(end) && end > start)
-    .toSorted((a, b) => a[0] - b[0])
+    .sort((a, b) => a[0] - b[0])
   let total = 0
   let right = -Infinity
   for (const [start, end] of sorted) {
@@ -31,7 +31,7 @@ export function mainThread(events, records) {
   assert(Number.isFinite(offset) && end > start, 'Finite trace clock and positive window required')
   const main = events
     .filter((event) => event.pid === begin.pid && event.tid === begin.tid)
-    .toSorted((a, b) => a.ts - b.ts)
+    .sort((a, b) => a.ts - b.ts)
   const tasks = main.filter((event) => event.name === 'RunTask' && event.ph === 'X')
   assert(tasks.length, 'Renderer main task events required')
   const taskMilliseconds = unionMilliseconds(
@@ -113,7 +113,7 @@ export function sampledProfile(events, clock, records) {
       (event) =>
         event.name === 'ProfileChunk' && event.pid === begin.pid && event.id === profile.id,
     )
-    .toSorted((a, b) => a.ts - b.ts)
+    .sort((a, b) => a.ts - b.ts)
   const nodes = new Map()
   const samples = []
   const milliseconds = Object.create(null)
@@ -142,7 +142,7 @@ export function sampledProfile(events, clock, records) {
       Math.min(end, (event.ts + event.dur) / 1000),
     ])
     .filter(([left, right]) => right > left)
-    .toSorted((a, b) => a[0] - b[0])
+    .sort((a, b) => a[0] - b[0])
   for (const range of ranges) {
     const previous = tasks.at(-1)
     if (previous && range[0] <= previous[1]) {
@@ -168,7 +168,7 @@ export function sampledProfile(events, clock, records) {
   const covered = Object.values(milliseconds).reduce((sum, value) => sum + value, 0)
   const unsampled = Math.max(0, unionMilliseconds(tasks) - covered)
   if (unsampled) milliseconds['(unsampled)'] = (milliseconds['(unsampled)'] ?? 0) + unsampled
-  return Object.fromEntries(Object.entries(milliseconds).toSorted((a, b) => b[1] - a[1]))
+  return Object.fromEntries(Object.entries(milliseconds).sort((a, b) => b[1] - a[1]))
 }
 
 export function frameCadence(records, clock) {
@@ -315,7 +315,9 @@ export function validateArtifact(artifact) {
   )
   assert(Array.isArray(artifact.qualifications), 'Incomplete display evidence')
   const variants = artifact.variants ?? ['ghostty-webgpu', 'xterm-webgl']
-  const known = [...Object.keys(counterparts), ...new Set(Object.values(counterparts).flat())]
+  const known = Object.keys(counterparts).concat(
+    Array.from(new Set(Object.values(counterparts).flat())),
+  )
   assert(
     variants.length &&
       new Set(variants).size === variants.length &&

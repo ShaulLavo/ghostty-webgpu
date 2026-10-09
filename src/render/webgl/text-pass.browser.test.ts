@@ -220,12 +220,16 @@ it('renders every underline style, other decorations, contrast and an outline cu
     columns: 8,
     cursor: { style: 'outline', visible: true, x: 7, y: 0 },
     renderRows: [
-      row(0, [
-        ...[1, 2, 3, 4, 5].map((underline, x) => cell(x, { style: style({ underline }) })),
-        cell(5, { style: style({ strikethrough: true }) }),
-        cell(6, { style: style({ overline: true }) }),
-        cell(7),
-      ]),
+      row(
+        0,
+        [1, 2, 3, 4, 5]
+          .map((underline, x) => cell(x, { style: style({ underline }) }))
+          .concat([
+            cell(5, { style: style({ strikethrough: true }) }),
+            cell(6, { style: style({ overline: true }) }),
+            cell(7),
+          ]),
+      ),
       row(1, [
         cell(0, {
           background: { r: 128, g: 128, b: 128 },

@@ -70,7 +70,7 @@ const DEFAULT_DEPENDENCIES: ResolverProcessDependencies = {
   clearTimer: clearTimeout,
   setTimer: setTimeout,
   spawn: (executable, argv, options) =>
-    spawn(executable, [...argv], {
+    spawn(executable, argv, {
       cwd: options.cwd,
       env: options.env,
       shell: options.shell,

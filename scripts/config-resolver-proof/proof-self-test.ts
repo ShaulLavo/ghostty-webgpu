@@ -80,8 +80,8 @@ class SelfTestFailure extends Error {}
 
 const GITLINK_ONE = '1'.repeat(40)
 const GITLINK_TWO = '2'.repeat(40)
-const LINUX_TARGET = ['targets', 'linux-x64'] as const
-const DARWIN_TARGET = ['targets', 'darwin-arm64'] as const
+const LINUX_TARGET: JsonPath = ['targets', 'linux-x64']
+const DARWIN_TARGET: JsonPath = ['targets', 'darwin-arm64']
 const OBSERVED_LINK_TARGET_COUNTS: Readonly<Record<ProofTarget, number>> = {
   'darwin-arm64': 18,
   'darwin-x64': 18,
@@ -806,7 +806,7 @@ function targetRecipe(target: ProofTarget): JsonObject {
     buildArgv: buildArgv(target),
     environment: targetEnvironment(target),
     inputs: targetInputs(target),
-    linkPlan: [...projectObservedLinkArgv(observedLinkArgv(target), target)],
+    linkPlan: projectObservedLinkArgv(observedLinkArgv(target), target),
     optimizationMode: 'ReleaseSafe',
     runner: {
       arch: identity.arch,
@@ -1392,7 +1392,7 @@ function recipeMutations(): readonly MutationCase[] {
     swapMutation(
       'build-argv-order',
       'target.buildArgv',
-      [...LINUX_TARGET, 'buildArgv'],
+      LINUX_TARGET.concat(['buildArgv']),
       0,
       1,
       'reject',
@@ -1400,16 +1400,16 @@ function recipeMutations(): readonly MutationCase[] {
     swapMutation(
       'environment-order',
       'target.environment',
-      [...LINUX_TARGET, 'environment'],
+      LINUX_TARGET.concat(['environment']),
       0,
       1,
       'reject',
     ),
-    swapMutation('input-order', 'target.inputs', [...LINUX_TARGET, 'inputs'], 0, 1, 'reject'),
+    swapMutation('input-order', 'target.inputs', LINUX_TARGET.concat(['inputs']), 0, 1, 'reject'),
     swapMutation(
       'link-plan-order',
       'target.linkPlan',
-      [...LINUX_TARGET, 'linkPlan'],
+      LINUX_TARGET.concat(['linkPlan']),
       0,
       1,
       'reject',
@@ -1417,15 +1417,15 @@ function recipeMutations(): readonly MutationCase[] {
     setMutation(
       'optimization-mode',
       'target.optimizationMode',
-      [...LINUX_TARGET, 'optimizationMode'],
+      LINUX_TARGET.concat(['optimizationMode']),
       'Debug',
       'reject',
     ),
-    deleteMutation('runner-property', 'target.runner', [...LINUX_TARGET, 'runner'], 'reject'),
+    deleteMutation('runner-property', 'target.runner', LINUX_TARGET.concat(['runner']), 'reject'),
     swapMutation(
       'strip-argv-order',
       'target.stripArgv',
-      [...LINUX_TARGET, 'stripArgv'],
+      LINUX_TARGET.concat(['stripArgv']),
       0,
       1,
       'reject',
@@ -1433,44 +1433,50 @@ function recipeMutations(): readonly MutationCase[] {
     setMutation(
       'target-triple',
       'target.targetTriple',
-      [...LINUX_TARGET, 'targetTriple'],
+      LINUX_TARGET.concat(['targetTriple']),
       'x86_64-linux-gnu',
       'reject',
     ),
-    swapMutation('tool-order', 'target.tools', [...LINUX_TARGET, 'tools'], 0, 1, 'reject'),
+    swapMutation('tool-order', 'target.tools', LINUX_TARGET.concat(['tools']), 0, 1, 'reject'),
     setMutation(
       'runner-arch',
       'runner.arch',
-      [...LINUX_TARGET, 'runner', 'arch'],
+      LINUX_TARGET.concat(['runner', 'arch']),
       'arm64',
       'reject',
     ),
     setMutation(
       'runner-image',
       'runner.image',
-      [...LINUX_TARGET, 'runner', 'image'],
+      LINUX_TARGET.concat(['runner', 'image']),
       'changed-image',
       'reject',
     ),
     setMutation(
       'runner-image-version',
       'runner.imageVersion',
-      [...LINUX_TARGET, 'runner', 'imageVersion'],
+      LINUX_TARGET.concat(['runner', 'imageVersion']),
       'changed-version',
       'reject',
     ),
-    setMutation('runner-os', 'runner.os', [...LINUX_TARGET, 'runner', 'os'], 'darwin', 'reject'),
+    setMutation(
+      'runner-os',
+      'runner.os',
+      LINUX_TARGET.concat(['runner', 'os']),
+      'darwin',
+      'reject',
+    ),
     setMutation(
       'environment-name',
       'environment.name',
-      [...LINUX_TARGET, 'environment', 0, 'name'],
+      LINUX_TARGET.concat(['environment', 0, 'name']),
       'LC_ALL',
       'reject',
     ),
     setMutation(
       'environment-value',
       'environment.value',
-      [...LINUX_TARGET, 'environment', 0, 'value'],
+      LINUX_TARGET.concat(['environment', 0, 'value']),
       'C',
       'reject',
     ),
@@ -1645,10 +1651,10 @@ function strictUnknownKeyMutations(): readonly MutationCase[] {
       targetAt(recipe, 'linux-x64').unknownField = true
     }),
     customMutation('unknown-key-runner', [], 'reject', (recipe) => {
-      objectAt(recipe, [...LINUX_TARGET, 'runner']).unknownField = true
+      objectAt(recipe, LINUX_TARGET.concat(['runner'])).unknownField = true
     }),
     customMutation('unknown-key-environment', [], 'reject', (recipe) => {
-      objectAt(recipe, [...LINUX_TARGET, 'environment', 0]).unknownField = true
+      objectAt(recipe, LINUX_TARGET.concat(['environment', 0])).unknownField = true
     }),
     customMutation('unknown-key-tool', [], 'reject', (recipe) => {
       toolByRole(recipe, 'linux-x64', 'linker').unknownField = true
@@ -1693,15 +1699,14 @@ function acquisitionVariantMutations(): readonly MutationCase[] {
 }
 
 function semanticContractMutations(): readonly MutationCase[] {
-  return [
-    ...targetSetMutations(),
-    ...rootBoundaryMutations(),
-    ...commandMutations(),
-    ...linkContractMutations(),
-    ...linkPlanTokenMutations(),
-    ...generatedInputMutations(),
-    ...toolContractMutations(),
-  ]
+  return targetSetMutations().concat(
+    rootBoundaryMutations(),
+    commandMutations(),
+    linkContractMutations(),
+    linkPlanTokenMutations(),
+    generatedInputMutations(),
+    toolContractMutations(),
+  )
 }
 
 function targetSetMutations(): readonly MutationCase[] {
@@ -1761,46 +1766,46 @@ function commandMutations(): readonly MutationCase[] {
   const darwinRoot = TARGET_FIXTURES['darwin-arm64'].root
   return [
     customMutation('build-fixed-child', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'buildArgv'])
+      const argv = arrayAt(recipe, LINUX_TARGET.concat(['buildArgv']))
       argv[0] = '/usr/bin/zig'
     }),
     customMutation('build-final-cache', [], 'reject', (recipe) => {
       mutateArrayValue(
-        arrayAt(recipe, [...LINUX_TARGET, 'buildArgv']),
+        arrayAt(recipe, LINUX_TARGET.concat(['buildArgv'])),
         `${linuxRoot}/final-cache`,
         `${linuxRoot}/cache`,
       )
     }),
     customMutation('build-proof-generation-mode', [], 'reject', (recipe) => {
       mutateArrayValue(
-        arrayAt(recipe, [...LINUX_TARGET, 'buildArgv']),
+        arrayAt(recipe, LINUX_TARGET.concat(['buildArgv'])),
         '-Dproof-preverified-generated=true',
         '-Dproof-preverified-generated=false',
       )
     }),
     customMutation('environment-missing-entry', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'environment']).splice(0, 1)
+      arrayAt(recipe, LINUX_TARGET.concat(['environment'])).splice(0, 1)
     }),
     customMutation('environment-extra-entry', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'environment']).push({
+      arrayAt(recipe, LINUX_TARGET.concat(['environment'])).push({
         name: 'TZ',
         value: 'UTC',
       })
     }),
     customMutation('environment-final-cache-boundary', [], 'reject', (recipe) => {
-      objectAt(recipe, [...LINUX_TARGET, 'environment', 7]).value = `${linuxRoot}/cache`
+      objectAt(recipe, LINUX_TARGET.concat(['environment', 7])).value = `${linuxRoot}/cache`
     }),
     customMutation('strip-linux-option', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'stripArgv'])[1] = '-x'
+      arrayAt(recipe, LINUX_TARGET.concat(['stripArgv']))[1] = '-x'
     }),
     customMutation('strip-linux-output', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'stripArgv'])[2] = `${linuxRoot}/bundle/bin/other`
+      arrayAt(recipe, LINUX_TARGET.concat(['stripArgv']))[2] = `${linuxRoot}/bundle/bin/other`
     }),
     customMutation('strip-darwin-option', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...DARWIN_TARGET, 'stripArgv'])[1] = '--strip-all'
+      arrayAt(recipe, DARWIN_TARGET.concat(['stripArgv']))[1] = '--strip-all'
     }),
     customMutation('strip-darwin-output', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...DARWIN_TARGET, 'stripArgv'])[2] = `${darwinRoot}/bundle/bin/other`
+      arrayAt(recipe, DARWIN_TARGET.concat(['stripArgv']))[2] = `${darwinRoot}/bundle/bin/other`
     }),
   ]
 }
@@ -1812,10 +1817,10 @@ function linkContractMutations(): readonly MutationCase[] {
   const darwinRoot = TARGET_FIXTURES['darwin-arm64'].root
   return [
     customMutation('link-fixed-zig-child', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])[0] = '/usr/bin/zig'
+      arrayAt(recipe, LINUX_TARGET.concat(['linkPlan']))[0] = '/usr/bin/zig'
     }),
     customMutation('link-fixed-build-exe-child', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])[1] = 'build-obj'
+      arrayAt(recipe, LINUX_TARGET.concat(['linkPlan']))[1] = 'build-obj'
     }),
     customMutation('link-target-value', [], 'reject', (recipe) => {
       mutateOptionValue(recipe, target, '-target', 'aarch64-linux-musl')
@@ -1824,7 +1829,7 @@ function linkContractMutations(): readonly MutationCase[] {
       mutateLinkArgument(recipe, target, '-target', `-target=${triple}`)
     }),
     customMutation('link-target-count', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
+      const argv = arrayAt(recipe, LINUX_TARGET.concat(['linkPlan']))
       const option = argv.indexOf('-target')
       if (option < 0 || option + 1 >= argv.length) fail('fixture target pair was not found')
       argv[option] = `${LINK_FILLER_PREFIX}removed-target-option`
@@ -1837,7 +1842,7 @@ function linkContractMutations(): readonly MutationCase[] {
       mutateOptionValue(recipe, target, '--name', 'other-proof')
     }),
     customMutation('link-name-form', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
+      const argv = arrayAt(recipe, LINUX_TARGET.concat(['linkPlan']))
       const option = argv.indexOf('--name')
       if (option < 0 || option + 1 >= argv.length) fail('fixture name pair was not found')
       argv[option] = '--name=ghostty-config-resolver-proof'
@@ -1850,7 +1855,7 @@ function linkContractMutations(): readonly MutationCase[] {
       mutateOptionValue(recipe, target, '--cache-dir', `${root}/cache`)
     }),
     customMutation('link-option-value-adjacency', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
+      const argv = arrayAt(recipe, LINUX_TARGET.concat(['linkPlan']))
       const option = argv.indexOf('--cache-dir')
       if (option < 0 || option + 2 >= argv.length) fail('fixture cache option was not found')
       ;[argv[option + 1], argv[option + 2]] = [argv[option + 2] ?? null, argv[option + 1] ?? null]
@@ -1905,7 +1910,7 @@ function linkContractMutations(): readonly MutationCase[] {
       replaceLinkFiller(recipe, target, '--listen=-')
     }),
     customMutation('link-listen-not-terminal', [], 'reject', (recipe) => {
-      const argv = arrayAt(recipe, [...LINUX_TARGET, 'linkPlan'])
+      const argv = arrayAt(recipe, LINUX_TARGET.concat(['linkPlan']))
       const listen = argv.length - 1
       const previous = listen - 1
       ;[argv[previous], argv[listen]] = [argv[listen] ?? null, argv[previous] ?? null]
@@ -2005,14 +2010,14 @@ function generatedInputMutations(): readonly MutationCase[] {
       removeInputById(recipe, 'linux-x64', 'proof-generated-hb-c')
     }),
     customMutation('generated-linux-id-extra', [], 'reject', (recipe) => {
-      const inputs = arrayAt(recipe, [...LINUX_TARGET, 'inputs'])
+      const inputs = arrayAt(recipe, LINUX_TARGET.concat(['inputs']))
       const extra = cloneJson(inputById(recipe, 'linux-x64', 'proof-generated-hb-c'))
       extra.id = 'proof-generated-extra'
       inputs.push(extra)
       sortRecords(inputs)
     }),
     customMutation('generated-darwin-inactive-hb', [], 'reject', (recipe) => {
-      const inputs = arrayAt(recipe, [...DARWIN_TARGET, 'inputs'])
+      const inputs = arrayAt(recipe, DARWIN_TARGET.concat(['inputs']))
       const extra = cloneJson(inputById(recipe, 'darwin-arm64', 'proof-generated-help-strings'))
       extra.id = 'proof-generated-hb-c'
       inputs.push(extra)
@@ -2075,7 +2080,7 @@ function generatedInputMutations(): readonly MutationCase[] {
       removeInputById(recipe, 'darwin-arm64', 'zig-bundled-lib-tree')
     }),
     customMutation('darwin-zig-lib-duplicate', [], 'reject', (recipe) => {
-      const inputs = arrayAt(recipe, [...DARWIN_TARGET, 'inputs'])
+      const inputs = arrayAt(recipe, DARWIN_TARGET.concat(['inputs']))
       inputs.push(cloneJson(inputById(recipe, 'darwin-arm64', 'zig-bundled-lib-tree')))
       sortRecords(inputs)
     }),
@@ -2093,7 +2098,7 @@ function generatedInputMutations(): readonly MutationCase[] {
         officialDownload('wrong-zig-lib')
     }),
     customMutation('linux-zig-lib-separate-input', [], 'reject', (recipe) => {
-      const inputs = arrayAt(recipe, [...LINUX_TARGET, 'inputs'])
+      const inputs = arrayAt(recipe, LINUX_TARGET.concat(['inputs']))
       inputs.push({
         acquisition: zigAcquisition('linux-x64'),
         bytes: 1,
@@ -2109,10 +2114,10 @@ function generatedInputMutations(): readonly MutationCase[] {
 function toolContractMutations(): readonly MutationCase[] {
   return [
     customMutation('tools-count-missing', [], 'reject', (recipe) => {
-      arrayAt(recipe, [...LINUX_TARGET, 'tools']).splice(0, 1)
+      arrayAt(recipe, LINUX_TARGET.concat(['tools'])).splice(0, 1)
     }),
     customMutation('tools-count-extra', [], 'reject', (recipe) => {
-      const tools = arrayAt(recipe, [...LINUX_TARGET, 'tools'])
+      const tools = arrayAt(recipe, LINUX_TARGET.concat(['tools']))
       tools.push(cloneJson(toolByRole(recipe, 'linux-x64', 'zig')))
     }),
     customMutation('linker-bytes-equal-zig', [], 'reject', (recipe) => {

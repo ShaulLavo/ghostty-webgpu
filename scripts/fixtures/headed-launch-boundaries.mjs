@@ -77,7 +77,7 @@ function spawn(command, args) {
     parent: parentPid,
     group: browserPid,
     birth: '100',
-    argv: [command, ...args],
+    argv: [command].concat(args),
   })
   if (
     scenario === 'orphan-descendant' ||
@@ -246,7 +246,7 @@ const gl = {
     for (let y = 320 - bottom - height; y < 320 - bottom; y++)
       for (let x = left; x < left + width; x++) {
         const offset = (y * 320 + x) * 4
-        image.data.set([...color, 255], offset)
+        image.data.set(color.concat([255]), offset)
       }
   },
   flush() {

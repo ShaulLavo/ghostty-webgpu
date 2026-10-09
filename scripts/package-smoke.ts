@@ -72,7 +72,7 @@ async function run(
   cwd: string,
   options: RunOptions = {},
 ): Promise<string> {
-  const child = Bun.spawn([...command], {
+  const child = Bun.spawn(Array.from(command), {
     cwd,
     env: options.env,
     stderr: 'pipe',
@@ -682,7 +682,7 @@ console.log('ready-pass')`
     'DIAGNOSTIC',
     `background = #102030\nfont-size = ${configSentinel}\ntheme = ${themeSentinel}\n`,
   )
-  const diagnosticSentinels = [...diagnostic.sentinels, configSentinel, themeSentinel]
+  const diagnosticSentinels = diagnostic.sentinels.concat([configSentinel, themeSentinel])
   const diagnosticProgram = `import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'
 const result = await resolveGhosttyConfigAppearance()
 if (result.status !== 'ready') throw new Error('diagnostic fixture was not resolved')
@@ -763,7 +763,7 @@ async function runResolverCommand(
   cwd: string,
   environment: NodeJS.ProcessEnv,
 ): Promise<string> {
-  const child = Bun.spawn([...command], {
+  const child = Bun.spawn(Array.from(command), {
     cwd,
     env: environment,
     stderr: 'pipe',

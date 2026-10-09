@@ -135,7 +135,7 @@ test('conflicting observed backend switches and software or automation switches 
     '--force-device-scale-factor=2',
   ]) {
     const facts = observedFacts()
-    facts.provenance.observedFlagTokens = [...facts.provenance.observedFlagTokens, flag]
+    facts.provenance.observedFlagTokens = facts.provenance.observedFlagTokens.concat([flag])
     assert.throws(() => assertHeadedHardware(facts), undefined, flag)
   }
 })
@@ -263,12 +263,12 @@ test('approved real provenance rejects profile-last startup URL and accepts the 
         if (path.endsWith('/stat'))
           return `101 (chrome) S 100 ${Array(17).fill('0').join(' ')} 123456 0\n`
         assert.equal(path, '/proc/101/cmdline')
-        return Buffer.from(['/fixture/chrome', ...arguments_, 'about:blank'].join(' ') + '\0')
+        return Buffer.from(['/fixture/chrome'].concat(arguments_, ['about:blank']).join(' ') + '\0')
       },
       readLink: async () => '/fixture/chrome',
     })
   await assert.rejects(
-    observe([...flags.slice(1), flags[0]]),
+    observe(flags.slice(1).concat([flags[0]])),
     /Rendered profile boundary is ambiguous/,
   )
   const actual = await observe(flags)
@@ -562,7 +562,7 @@ test('owned lookup waits for delayed title and mapping without inspecting foreig
   const result = await waitForOwnedNonceWindow({
     browserPid: 101,
     smokeId: 'owned-smoke',
-    readClients: async () => [...frames[calls++], foreign],
+    readClients: async () => frames[calls++].concat([foreign]),
     onObservation: (observation) => observations.push(observation),
     now: () => clock,
     sleep: async (milliseconds) => {

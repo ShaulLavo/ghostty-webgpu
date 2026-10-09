@@ -443,7 +443,7 @@ describe('WebGL native atlas residency', () => {
     const font = fittedFont()
     const theme = canonicalRendererTheme(defaultRendererTheme)
     const rasterizer = new CanvasGlyphRasterizer({ font })
-    const bitmaps = [...'ABCDE'].map((text) =>
+    const bitmaps = Array.from('ABCDE', (text) =>
       rasterizer.rasterize({
         cellSpan: 1,
         foreground: theme.foreground,

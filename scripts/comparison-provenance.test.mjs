@@ -27,8 +27,7 @@ function boundary({
   argv = [
     'browser executable',
     '--user-data-dir=' + join(root, 'tmp', 'playwright_profile'),
-    ...requested,
-  ],
+  ].concat(requested),
   raw = Buffer.from(argv.join('\0') + '\0'),
   rawMac = argv.join(' ') + '\n',
   executable = join(tmpdir(), 'actual-browser-executable'),
@@ -130,14 +129,13 @@ for (const platform of ['linux', 'darwin']) {
   test(`${platform} observes one directly owned browser without the unavailable CDP method`, async () => {
     const external = boundary({ platform })
     const result = await external.observe()
-    assert.deepEqual(external.calls, [
-      'Browser.getVersion',
-      'SystemInfo.getProcessInfo',
-      'identity',
-      'argv',
-      ...(platform === 'linux' ? ['executable'] : []),
-      'identity',
-    ])
+    assert.deepEqual(
+      external.calls,
+      ['Browser.getVersion', 'SystemInfo.getProcessInfo', 'identity', 'argv'].concat(
+        platform === 'linux' ? ['executable'] : [],
+        ['identity'],
+      ),
+    )
     assert.equal(result.status, 'observed-owned-process')
     assert.equal(result.browserPid, 101)
     assert.equal(result.ownerPid, 100)
@@ -185,17 +183,17 @@ for (const platform of ['linux', 'darwin']) {
   for (const [name, argv, reason] of [
     [
       'foreign profile',
-      ['browser', '--user-data-dir=' + join(tmpdir(), 'foreign'), ...requested],
+      ['browser', '--user-data-dir=' + join(tmpdir(), 'foreign')].concat(requested),
       /task-owned/,
     ],
     [
       'profile traversal',
-      ['browser', '--user-data-dir=' + taskRoot + '/tmp/../foreign', ...requested],
+      ['browser', '--user-data-dir=' + taskRoot + '/tmp/../foreign'].concat(requested),
       /task-owned/,
     ],
     [
       'profile dot segment',
-      ['browser', '--user-data-dir=' + taskRoot + '/tmp/./profile', ...requested],
+      ['browser', '--user-data-dir=' + taskRoot + '/tmp/./profile'].concat(requested),
       /task-owned/,
     ],
     [
@@ -204,16 +202,15 @@ for (const platform of ['linux', 'darwin']) {
         'browser',
         '--user-data-dir=' + taskRoot + '/tmp/one',
         '--user-data-dir=' + taskRoot + '/tmp/two',
-        ...requested,
-      ],
+      ].concat(requested),
       /Exactly one observed/,
     ],
     [
       'split profile token',
-      ['browser', '--user-data-dir', taskRoot + '/tmp/one', ...requested],
+      ['browser', '--user-data-dir', taskRoot + '/tmp/one'].concat(requested),
       /--user-data-dir= token/,
     ],
-    ['missing profile', ['browser', ...requested], /Exactly one observed/],
+    ['missing profile', ['browser'].concat(requested), /Exactly one observed/],
     [
       'requested flag prefix mismatch',
       [
@@ -235,8 +232,7 @@ for (const platform of ['linux', 'darwin']) {
     'SystemInfo.getProcessInfo',
     'identity',
     'argv',
-    ...(platform === 'linux' ? ['executable'] : []),
-  ]) {
+  ].concat(platform === 'linux' ? ['executable'] : [])) {
     test(`${platform} propagates ${operation} errors without empty successful provenance`, async () => {
       const error = Object.assign(new TypeError('synthetic external boundary failure'), {
         code: 'EXTERNAL_FAILURE',
@@ -331,9 +327,7 @@ test('Linux preserves exact NUL-delimited tokens, whitespace and empty argv entr
   const argv = [
     'browser executable',
     '--user-data-dir=' + root + '/tmp/profile with spaces',
-    ...flags,
-    '',
-  ]
+  ].concat(flags, [''])
   const result = await boundary({ root, argv }).observe({ requestedArguments: flags })
   assert.deepEqual(result.observedArguments, argv)
   assert.equal(result.observedProfile, root + '/tmp/profile with spaces')
@@ -348,18 +342,15 @@ test('Linux preserves exact NUL-delimited tokens, whitespace and empty argv entr
 test('launch mode follows actual product and exact OS tokens', async () => {
   for (const platform of ['linux', 'darwin']) {
     for (const flag of ['--headless', '--headless=new', '--ozone-platform=headless']) {
-      const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p', ...requested, flag]
+      const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p'].concat(requested, [flag])
       assert.equal(
         (await boundary({ platform, argv }).observe()).environment.launchMode,
         'headless',
       )
     }
-    const argv = [
-      'browser',
-      '--user-data-dir=' + taskRoot + '/tmp/p',
-      ...requested,
+    const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p'].concat(requested, [
       '--headlessness',
-    ]
+    ])
     assert.equal((await boundary({ platform, argv }).observe()).environment.launchMode, 'headed')
     const headlessProduct = 'HeadlessChrome/154.0.8037.93'
     assert.equal(
@@ -410,7 +401,7 @@ for (const platform of ['linux', 'darwin']) {
       external.observe({
         acceptance: true,
         requestedHeadless: false,
-        requestedArguments: [...requested, '--headless'],
+        requestedArguments: requested.concat(['--headless']),
       }),
       /explicitly headed launch request/,
     )
@@ -433,12 +424,9 @@ for (const platform of ['linux', 'darwin']) {
   })
 
   test(`${platform} contradictory actual mode rejects acceptance while retaining owned argv evidence`, async () => {
-    const argv = [
-      'browser',
-      '--user-data-dir=' + taskRoot + '/tmp/p',
-      ...requested,
+    const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p'].concat(requested, [
       '--headless=new',
-    ]
+    ])
     const diagnostic = await boundary({ platform, argv }).observe({ requestedHeadless: false })
     assert.deepEqual(diagnostic.environment, {
       headless: true,
@@ -467,12 +455,9 @@ for (const platform of ['linux', 'darwin']) {
   })
 
   test(`${platform} unknown observed headless switch value never qualifies acceptance`, async () => {
-    const argv = [
-      'browser',
-      '--user-data-dir=' + taskRoot + '/tmp/p',
-      ...requested,
+    const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p'].concat(requested, [
       '--headless=unexpected',
-    ]
+    ])
     const diagnostic = await boundary({ platform, argv }).observe()
     assert.equal(diagnostic.environment.headless, null)
     assert.equal(diagnostic.environment.launchMode, 'unknown')
@@ -492,7 +477,7 @@ test('profile containment rejects filesystem-root shortcuts and empty descendant
   const external = boundary()
   await assert.rejects(external.observe({ taskRoot: '/' }), /task-owned root/)
   assert.deepEqual(external.calls, [])
-  const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/', ...requested]
+  const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/'].concat(requested)
   await assert.rejects(boundary({ argv }).observe(), /task-owned Chrome profile/)
 })
 
@@ -549,7 +534,7 @@ test('shared acceptance-request guard is usable before any browser factory is in
       assertBrowserAcceptanceRequest({
         acceptance: true,
         requestedHeadless: false,
-        requestedArguments: [...requested, '--headless=new'],
+        requestedArguments: requested.concat(['--headless=new']),
       }),
     /explicitly headed launch request/,
   )
@@ -557,7 +542,7 @@ test('shared acceptance-request guard is usable before any browser factory is in
     assertBrowserAcceptanceRequest({
       acceptance: false,
       requestedHeadless: true,
-      requestedArguments: [...requested, '--headless=new'],
+      requestedArguments: requested.concat(['--headless=new']),
     }),
   )
 })
@@ -619,7 +604,7 @@ test('rendered profile whitespace ambiguity fails closed without returning a tru
 
 test('observed flag tokens come from OS evidence with explicit representation qualification', async () => {
   const extra = '--use-angle=gl'
-  const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p', ...requested, extra]
+  const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p'].concat(requested, [extra])
   for (const options of [
     { argv },
     { argv, raw: Buffer.from(argv.join(' ') + '\0') },
@@ -705,7 +690,7 @@ for (const flag of [
   })
 
   test(`Linux multiline observed headless value ${JSON.stringify(flag)} remains unknown`, async () => {
-    const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p', ...requested, flag]
+    const argv = ['browser', '--user-data-dir=' + taskRoot + '/tmp/p'].concat(requested, [flag])
     const raw = Buffer.from(argv.join('\0') + '\0')
     const diagnostic = await boundary({ argv, raw }).observe({ requestedHeadless: false })
     assert.equal(diagnostic.environment.headless, null)

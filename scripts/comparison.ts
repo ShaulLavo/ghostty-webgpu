@@ -16,7 +16,7 @@ if (!args.includes('--build-only')) {
   const forwarded = args.filter(
     (argument, index) => bundleIndex < 0 || (index !== bundleIndex && index !== bundleIndex + 1),
   )
-  const run = Bun.spawn(['node', join(bundle, 'comparison-runner.mjs'), ...forwarded], {
+  const run = Bun.spawn(['node', join(bundle, 'comparison-runner.mjs')].concat(forwarded), {
     stdout: 'inherit',
     stderr: 'inherit',
   })

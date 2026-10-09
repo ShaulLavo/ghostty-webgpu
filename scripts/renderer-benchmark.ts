@@ -96,7 +96,7 @@ function cpuDelta(
 }
 
 function distribution(samples: readonly number[]) {
-  const sorted = [...samples].sort((left, right) => left - right)
+  const sorted = samples.toSorted((left, right) => left - right)
   return {
     count: samples.length,
     median: sorted[Math.floor(sorted.length / 2)] ?? 0,
@@ -280,7 +280,7 @@ try {
     })
   }
   for (let repetition = 0; repetition < repetitions; repetition += 1) {
-    const ordered = repetition % 2 === 0 ? candidates : [...candidates].reverse()
+    const ordered = repetition % 2 === 0 ? candidates : candidates.toReversed()
     for (const scenario of scenarios) await measureScenario(ordered, scenario, repetition, bundles)
   }
   completed = true
@@ -328,7 +328,7 @@ async function measureScenario(
   repetition: number,
   bundles: ReadonlyMap<string, string>,
 ): Promise<void> {
-  const orderedBackends = repetition % 2 === 0 ? backends : [...backends].reverse()
+  const orderedBackends = repetition % 2 === 0 ? backends : backends.toReversed()
   for (const backend of orderedBackends) {
     for (const source of ordered)
       await measureSource(source, backend, scenario, repetition, bundles)

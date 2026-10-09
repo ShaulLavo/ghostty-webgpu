@@ -416,7 +416,7 @@ function requireOnlyStagingFile(directory: string, filename: string): void {
 export function requireExactDirectoryFiles(directory: string, filenames: readonly string[]): void {
   const entries = readdirSync(directory, { withFileTypes: true })
   const actual = entries.map((entry) => entry.name).sort()
-  const expected = [...filenames].sort()
+  const expected = filenames.toSorted()
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new ReleaseCandidateError('release staging directory has unexpected output')
   }

@@ -44,7 +44,7 @@ function residentBytes(storage: StampStorageFixture, entry: ResidentStamp): Uint
 function rgba(storage: StampStorageFixture, entry: ResidentStamp): number[] {
   const bytes = residentBytes(storage, entry)
   if (entry.encoding === 'rgba') return [...bytes]
-  return [...bytes].flatMap((alpha) => (alpha ? [...entry.rgb, alpha] : [0, 0, 0, 0]))
+  return [...bytes].flatMap((alpha) => (alpha ? entry.rgb.concat([alpha]) : [0, 0, 0, 0]))
 }
 
 describe('Canvas resident stamp cache', () => {

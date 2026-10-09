@@ -60,11 +60,12 @@ it('encodes seventeen surfaces in one callback and submits before all acknowledg
   f.run()
   expect(f.submit).toHaveBeenCalledOnce()
   expect(f.submit.mock.calls[0]![0]).toHaveLength(17)
-  expect(f.events).toEqual([
-    'submit:17',
-    ...Array.from({ length: 17 }, (_, index) => `commit:${index}`),
-    ...Array.from({ length: 17 }, (_, index) => `notify:${index}`),
-  ])
+  expect(f.events).toEqual(
+    ['submit:17'].concat(
+      Array.from({ length: 17 }, (_, index) => `commit:${index}`),
+      Array.from({ length: 17 }, (_, index) => `notify:${index}`),
+    ),
+  )
 })
 
 it('submits a synchronous interactive frame immediately outside the grouped callback', () => {

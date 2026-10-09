@@ -271,7 +271,7 @@ function verifyArchiveFileProjection(
 
 function splitUstarPath(path: string): { readonly name: string; readonly prefix: string } {
   if (Buffer.byteLength(path) <= 100) return { name: path, prefix: '' }
-  const slashes = [...path.matchAll(/\//g)].map((match) => match.index)
+  const slashes = Array.from(path.matchAll(/\//g), (match) => match.index)
   for (let index = slashes.length - 1; index >= 0; index -= 1) {
     const slash = slashes[index]
     if (slash === undefined) continue

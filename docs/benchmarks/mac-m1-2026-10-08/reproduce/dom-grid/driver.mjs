@@ -356,7 +356,7 @@ try {
     clearTimeout(hard)
     result.finishedAt = new Date().toISOString()
     result.ownedPids = [...owned]
-    result.custody = [...owned].map((pid) => {
+    result.custody = Array.from(owned, (pid) => {
       try {
         process.kill(pid, 0)
         return { pid, alive: true }

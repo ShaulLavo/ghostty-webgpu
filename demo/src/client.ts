@@ -261,7 +261,7 @@ function tracingSchedulerClock(): RenderSchedulerClock {
 }
 
 function availableAdapterInfoKeys(info: GPUAdapterInfo): readonly string[] {
-  const keys = new Set([...standardAdapterInfoKeys, ...Object.keys(info)])
+  const keys = new Set(standardAdapterInfoKeys.concat(Object.keys(info)))
   const prototype = Object.getPrototypeOf(info) as object | null
   if (!prototype) return [...keys].sort()
   for (const key of Object.getOwnPropertyNames(prototype)) keys.add(key)

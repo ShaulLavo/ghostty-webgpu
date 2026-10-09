@@ -198,8 +198,7 @@ async function sourceGuards(): Promise<void> {
         'user.email=proof@example.invalid',
         '-c',
         'commit.gpgsign=false',
-        ...args,
-      ],
+      ].concat(args),
       repo,
     )
   const commit = async () => {

@@ -75,15 +75,14 @@ it.each(['mac', 'linux', 'windows'] as const)('defaults are overridable on %s', 
   const calls: string[] = []
   const dispatcher = createDispatcher<null>({
     platform,
-    keymap: [
-      ...terminalDefaultPack[platform],
+    keymap: terminalDefaultPack[platform].concat([
       {
         keys: platform === 'mac' ? 'Meta+C' : 'Ctrl+Shift+C',
         command: 'terminal.clear',
         context: 'Terminal',
         source: 'user',
       },
-    ],
+    ]),
   })
   const node = dispatcher.createNode({
     context: terminalKeyContext({

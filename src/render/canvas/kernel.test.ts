@@ -44,38 +44,42 @@ afterAll(() => {
 })
 
 function buildZig(output: string, scalar: boolean): void {
-  execFileSync('bun', [
-    resolve(root, 'scripts/build-canvas-compose.ts'),
-    '--output',
-    output,
-    ...(scalar ? ['--scalar'] : []),
-  ])
+  execFileSync(
+    'bun',
+    [resolve(root, 'scripts/build-canvas-compose.ts'), '--output', output].concat(
+      scalar ? ['--scalar'] : [],
+    ),
+  )
 }
 
 function buildOracle(output: string, scalar: boolean): void {
-  execFileSync('zig', [
-    'cc',
-    '--target=wasm32-freestanding',
-    '-O3',
-    '-nostdlib',
-    '-fno-builtin',
-    '-ffp-contract=off',
-    '-fno-fast-math',
-    scalar ? '-mno-simd128' : '-msimd128',
-    ...(scalar ? [] : ['-DCOMPOSE_SIMD=1']),
-    '-Wl,--no-entry',
-    '-Wl,--export-memory',
-    '-Wl,-z,stack-size=65536',
-    '-Wl,--initial-memory=131072',
-    '-Wl,--max-memory=268435456',
-    '-Wl,--strip-all',
-    ...['alloc', 'free', 'clear', 'fill', 'stamp', 'move'].map(
-      (name) => `-Wl,--export=compose_${name}`,
+  execFileSync(
+    'zig',
+    [
+      'cc',
+      '--target=wasm32-freestanding',
+      '-O3',
+      '-nostdlib',
+      '-fno-builtin',
+      '-ffp-contract=off',
+      '-fno-fast-math',
+      scalar ? '-mno-simd128' : '-msimd128',
+    ].concat(
+      scalar ? [] : ['-DCOMPOSE_SIMD=1'],
+      [
+        '-Wl,--no-entry',
+        '-Wl,--export-memory',
+        '-Wl,-z,stack-size=65536',
+        '-Wl,--initial-memory=131072',
+        '-Wl,--max-memory=268435456',
+        '-Wl,--strip-all',
+      ],
+      ['alloc', 'free', 'clear', 'fill', 'stamp', 'move'].map(
+        (name) => `-Wl,--export=compose_${name}`,
+      ),
+      [resolve(root, 'src/render/canvas/tests/compose-oracle.c'), '-o', output],
     ),
-    resolve(root, 'src/render/canvas/tests/compose-oracle.c'),
-    '-o',
-    output,
-  ])
+  )
 }
 
 function packed(r: number, g: number, b: number, a: number): number {
@@ -99,7 +103,7 @@ function reference(
           denominator,
       ),
     )
-  return [...rgb, Math.round(denominator / 255)]
+  return rgb.concat([Math.round(denominator / 255)])
 }
 
 function view(kernel: ComposeKernel, ptr: number, bytes: number): Uint8Array {

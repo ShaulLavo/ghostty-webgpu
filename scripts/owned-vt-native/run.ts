@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -27,7 +27,7 @@ function argument(name: string): string | undefined {
 }
 
 function git(cwd: string, args: readonly string[]): Promise<string> {
-  return output(['git', ...args], cwd)
+  return output(['git'].concat(args), cwd)
 }
 
 const sourceArgument = argument('--source')

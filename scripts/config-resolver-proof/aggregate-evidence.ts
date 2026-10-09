@@ -1081,7 +1081,7 @@ function asObject(value: unknown, label: string): JsonObject {
 
 function assertKeys(value: JsonObject, expected: readonly string[], label: string): void {
   const actual = Object.keys(value).sort()
-  const sortedExpected = [...expected].sort()
+  const sortedExpected = expected.toSorted()
   if (!isDeepStrictEqual(actual, sortedExpected)) {
     throw new AggregateFailure(`${label} keys do not match`)
   }
@@ -1122,7 +1122,7 @@ function stringArray(
 }
 
 function assertSortedUnique(values: readonly string[], label: string): void {
-  const expected = [...values].sort((left, right) =>
+  const expected = values.toSorted((left, right) =>
     Buffer.compare(Buffer.from(left), Buffer.from(right)),
   )
   if (!isDeepStrictEqual(values, expected) || new Set(values).size !== values.length) {

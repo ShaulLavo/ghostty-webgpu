@@ -13,15 +13,10 @@ export type WritePath = 'bytes' | 'string'
 export const rollingFixtureNames = ['rolling-logs', 'rolling-unicode-logs', 'rolling-slow'] as const
 export type RollingFixtureName = (typeof rollingFixtureNames)[number]
 
-export const fixtureNames = [
-  'ascii',
-  'sgr',
-  'unicode',
-  'cursor',
-  'logs',
-  ...rollingFixtureNames,
-] as const
-export type FixtureName = (typeof fixtureNames)[number]
+const primaryFixtureNames = ['ascii', 'sgr', 'unicode', 'cursor', 'logs'] as const
+export type FixtureName = (typeof primaryFixtureNames)[number] | RollingFixtureName
+const primaryFixtures: readonly FixtureName[] = primaryFixtureNames
+export const fixtureNames = primaryFixtures.concat(rollingFixtureNames)
 
 export function isRollingFixture(name: FixtureName): name is RollingFixtureName {
   return rollingFixtureNames.some((rolling) => rolling === name)

@@ -25,7 +25,7 @@ function image(challenge, scale = 1) {
       (grid.top + Math.floor(index / grid.columns) * grid.cell + grid.cell / 2) * scale,
     )
     const offset = (y * png.width + x) * 4
-    png.data.set([...colors[index], 255], offset)
+    png.data.set(colors[index].concat([255]), offset)
   }
   return PNG.sync.write(png).toString('base64')
 }

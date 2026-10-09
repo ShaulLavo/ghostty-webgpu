@@ -64,7 +64,7 @@ test('default coordinated frame work joins its own accepted commit without borro
 })
 
 test('display qualification accepts skipped frames and requires a visible 60 Hz median', () => {
-  const probe = displaySummary([...Array(110).fill(16.67), ...Array(9).fill(33.33), 150], {
+  const probe = displaySummary(Array(110).fill(16.67).concat(Array(9).fill(33.33), [150]), {
     visibility: 'visible',
     focus: true,
   })

@@ -302,7 +302,7 @@ describe('LinkResolver precedence and ranges', () => {
       { text: '🙂' },
       { text: '' },
     ]
-    const line = [...prefix, ...cells(url), { text: '' }]
+    const line = prefix.concat(cells(url), [{ text: '' }])
     const resolver = new LinkResolver()
 
     const resolution = await resolver.resolve({ column: 12, line, row: 4 })
@@ -317,11 +317,10 @@ describe('LinkResolver precedence and ranges', () => {
   })
 
   it('includes a wide continuation tail in a built-in URL range', async () => {
-    const line: LinkCell[] = [
-      ...cells('https://example.test/'),
+    const line: LinkCell[] = cells('https://example.test/').concat([
       { text: '界' },
       { continuation: true, text: '' },
-    ]
+    ])
     const resolver = new LinkResolver()
 
     const resolution = await resolver.resolve({ column: line.length - 1, line, row: 0 })

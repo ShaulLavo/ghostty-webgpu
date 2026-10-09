@@ -212,7 +212,7 @@ function gitText(repositoryRoot: string, argv: readonly string[]): string {
 }
 
 function gitBuffer(repositoryRoot: string, argv: readonly string[]): Buffer {
-  const result = spawnSync('git', ['-C', repositoryRoot, ...argv], {
+  const result = spawnSync('git', ['-C', repositoryRoot].concat(argv), {
     encoding: 'buffer',
     env: { LANG: 'C', LC_ALL: 'C', PATH: '/usr/bin:/bin' },
     maxBuffer: 16 * 1024 * 1024,

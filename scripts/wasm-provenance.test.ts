@@ -22,7 +22,7 @@ it('binds the checked-in WASMs to the official pin and reproducible build inputs
   expect(receipt.source.officialArchive.bytes).toBeGreaterThan(0)
   expect(receipt.compiler.version).toBe('0.16.0')
   expect(receipt.compiler.executableSha256).toMatch(/^[a-f0-9]{64}$/)
-  expect(Object.keys(receipt.recipe.inputs).sort()).toEqual([...WASM_BUILD_INPUTS].sort())
+  expect(Object.keys(receipt.recipe.inputs).sort()).toEqual(WASM_BUILD_INPUTS.toSorted())
   for (const path of WASM_BUILD_INPUTS) {
     expect(receipt.recipe.inputs[path], path).toBe(sha256(await readFile(join(root, path))))
   }

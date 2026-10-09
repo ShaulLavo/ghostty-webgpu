@@ -9,7 +9,7 @@ class BrowserTestError extends Error {
 }
 
 async function runVitest(args: readonly string[]): Promise<void> {
-  const child = Bun.spawn(['bunx', 'vitest', ...args], {
+  const child = Bun.spawn(['bunx', 'vitest'].concat(args), {
     stderr: 'inherit',
     stdout: 'inherit',
   })
@@ -18,4 +18,4 @@ async function runVitest(args: readonly string[]): Promise<void> {
   throw new BrowserTestError(`Vitest exited with status ${exitCode}`)
 }
 
-await runVitest(['run', '--config', config, ...forwarded])
+await runVitest(['run', '--config', config].concat(forwarded))

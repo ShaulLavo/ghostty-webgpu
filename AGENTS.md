@@ -15,6 +15,10 @@
   artifact builds. Generated wasm is checked in at the repository root.
 - Import exact files. `src/index.ts` is the only barrel because it is the package entry point.
 
+## Array construction
+
+Follow Fregat's array construction rules: combine arrays with `concat` and use fresh array results directly. Preserve copies needed for ownership, iterable/typed-array conversion, tuple typing, or sparse-array behavior. Performance exceptions require measurements.
+
 ## Control Flow
 
 - Keep nesting depth to three or less.

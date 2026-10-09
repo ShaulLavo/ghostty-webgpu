@@ -33,7 +33,7 @@ export type CommandRunner = (
 ) => CommandResult
 
 export const runCommand: CommandRunner = (command, arguments_, cwd) => {
-  const result = spawnSync(command, [...arguments_], {
+  const result = spawnSync(command, arguments_, {
     cwd,
     env: releaseCommandEnvironment(),
     encoding: 'buffer',
@@ -70,16 +70,9 @@ export function requireVerifierAtHead(
   const files = commandBuffer(
     runner,
     'git',
-    [
-      'ls-tree',
-      '-r',
-      '--name-only',
-      '-z',
-      expectedHead,
-      '--',
-      'scripts/release-candidate',
-      ...VERIFIER_DEPENDENCIES,
-    ],
+    ['ls-tree', '-r', '--name-only', '-z', expectedHead, '--', 'scripts/release-candidate'].concat(
+      VERIFIER_DEPENDENCIES,
+    ),
     root,
     'release verifier file list',
   )

@@ -195,7 +195,7 @@ function loadArtifactPair(pair: ArtifactPair, options: AssembleNativeOptions): V
 
 function assertCompleteTargets(artifacts: readonly VerifiedArtifact[]): void {
   const targets = artifacts.map((artifact) => artifact.provenance.target).sort()
-  const expected = [...NATIVE_TARGETS].sort()
+  const expected = NATIVE_TARGETS.toSorted()
   if (JSON.stringify(targets) !== JSON.stringify(expected)) {
     throw new NativeContractError('native assembly target set is incomplete or duplicated')
   }

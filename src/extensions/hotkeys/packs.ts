@@ -44,12 +44,12 @@ const readlineKeys = [
   'Alt+~',
 ]
 
-export const terminalShellKeysPack: readonly Binding[] = [...controlLetters, ...readlineKeys].map(
-  (keys) => ({
+export const terminalShellKeysPack: readonly Binding[] = controlLetters
+  .concat(readlineKeys)
+  .map((keys) => ({
     keys,
     command: 'terminal.sendKeystroke',
     args: { keystroke: keys },
     context: 'Terminal',
     source: 'pack',
-  }),
-)
+  }))

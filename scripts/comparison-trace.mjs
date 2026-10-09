@@ -71,7 +71,7 @@ export async function fitGrid(page) {
     const main = document.querySelector('main')
     const sections = [...main.querySelectorAll('section')]
     const canvases = () =>
-      [...main.querySelectorAll('canvas')].map((canvas) => ({
+      Array.from(main.querySelectorAll('canvas'), (canvas) => ({
         width: canvas.width,
         height: canvas.height,
       }))

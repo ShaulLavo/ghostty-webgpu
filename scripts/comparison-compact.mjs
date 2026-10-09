@@ -74,7 +74,7 @@ function gpu(value) {
 async function timeline(run, directory) {
   const presentations = run.latency.presentations.filter((entry) => entry.operation === 'input')
   const p50 = quantile(run.latency.input, 0.5)
-  const selected = presentations.toSorted(
+  const selected = presentations.sort(
     (a, b) => Math.abs(a.milliseconds - p50) - Math.abs(b.milliseconds - p50),
   )[0]
   const trace = await readComparisonArtifact(join(directory, run.latency.trace), { gzip: true })
@@ -164,10 +164,10 @@ export async function compactEvidence(artifact, directory) {
     limitations: [
       'Compositor acknowledgement is on-demand; physical-vsync and optical display latency are unmeasured.',
       'GPU-process CPU is CPU consumption, not GPU hardware execution time.',
-      ...qualificationNotes(artifact),
+    ].concat(qualificationNotes(artifact), [
       'CPU verdicts require at least the configured minimum ticks per side and a difference exceeding one tick; idle and zero/zero can remain unresolved.',
       'Tracing instrumentation is loaded in every hardware run, including CPU and burst windows; inactive wrapper call counts differ by renderer.',
-    ],
+    ]),
     qualifications: artifact.qualifications,
     runs: artifact.runs.map((run) => ({
       variant: run.variant,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 export function quantile(values, percentile) {
   assert(values.length > 0 && values.every(Number.isFinite), 'Finite samples required')
-  const sorted = [...values].sort((a, b) => a - b)
+  const sorted = values.toSorted((a, b) => a - b)
   if (percentile === 0.5) {
     const middle = Math.floor(sorted.length / 2)
     return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
@@ -111,7 +111,7 @@ export async function fitGrid(page) {
     const main = document.querySelector('main')
     const sections = [...main.querySelectorAll('section')]
     const canvases = () =>
-      [...main.querySelectorAll('canvas')].map((canvas) => ({
+      Array.from(main.querySelectorAll('canvas'), (canvas) => ({
         width: canvas.width,
         height: canvas.height,
       }))

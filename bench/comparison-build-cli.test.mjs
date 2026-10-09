@@ -68,10 +68,14 @@ async function fixture(context, run) {
     git(['add', '.'])
     git(['commit', '--quiet', '-m', 'treatment'])
     const build = (output, args = []) =>
-      spawnSync(process.execPath, [join(root, 'scripts/build-comparison.ts'), output, ...args], {
-        cwd: root,
-        encoding: 'utf8',
-      })
+      spawnSync(
+        process.execPath,
+        [join(root, 'scripts/build-comparison.ts'), output].concat(args),
+        {
+          cwd: root,
+          encoding: 'utf8',
+        },
+      )
     await run({ repository, root, git, baseline, build })
   } finally {
     await rm(repository, { recursive: true, force: true })
@@ -123,7 +127,7 @@ async function assertDriverRequests(output) {
   try {
     for (const [, argumentsSource] of calls) {
       const options = Object.fromEntries(
-        [...argumentsSource.matchAll(/(wasm|bridge): '([^']+)'/g)].map(([, key, value]) => [
+        Array.from(argumentsSource.matchAll(/(wasm|bridge): '([^']+)'/g), ([, key, value]) => [
           key,
           value,
         ]),

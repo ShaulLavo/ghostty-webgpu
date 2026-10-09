@@ -171,7 +171,7 @@ test('backwards CPU sample deltas partition merged main tasks without overlappin
     { name: 'RunTask', ph: 'X', ts: 9000, dur: 2000 },
   ]
   const result = sampledProfile(
-    [profile, ...chunks],
+    [profile].concat(chunks),
     { main, offset: 0 },
     {
       markers: [

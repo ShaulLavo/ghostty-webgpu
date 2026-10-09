@@ -71,7 +71,7 @@ export const counterparts = {
 export const measurementPhases = ['parser', 'memory', 'idle', 'latency', 'burst', 'output']
 
 export function selectedVariants(args, available, fallback) {
-  const selected = [...selection(args, '--variants', fallback, available)]
+  const selected = Array.from(selection(args, '--variants', fallback, available))
   for (const native of selected) {
     const counterpart = counterparts[native]?.[0]
     if (counterpart && !selected.includes(counterpart)) selected.push(counterpart)
@@ -91,7 +91,7 @@ export function selectedTracePhases(args, fixtures) {
     args,
     '--trace-phase',
     ['latency', 'ascii', 'sgr'],
-    ['latency', ...fixtures.map(({ name }) => name)],
+    ['latency'].concat(fixtures.map(({ name }) => name)),
   )
 }
 
@@ -102,7 +102,7 @@ export function selectedPhases(args) {
 export function measurementCases(variants, paths, counts, repetition) {
   const ordered = (values) => {
     const offset = Math.floor(repetition / 2) % values.length
-    const rotated = [...values.slice(offset), ...values.slice(0, offset)]
+    const rotated = values.slice(offset).concat(values.slice(0, offset))
     return repetition % 2 ? rotated.reverse() : rotated
   }
   const treatments = ordered(variants).flatMap((variant) => {

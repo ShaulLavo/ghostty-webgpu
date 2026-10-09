@@ -91,15 +91,9 @@ it('copies arbitrary borrowed bytes before callback return and preserves split n
   const terminal = runtime.createTerminal()
   const observations: CustomOscObservation[] = []
   terminal.subscribeCustomOsc(7400, 7, (event) => observations.push(event))
-  const bytes = Uint8Array.from([
-    ...new TextEncoder().encode('\x1b]7400;'),
-    255,
-    128,
-    59,
-    254,
-    27,
-    92,
-  ])
+  const bytes = Uint8Array.from(
+    Array.from(new TextEncoder().encode('\x1b]7400;')).concat([255, 128, 59, 254, 27, 92]),
+  )
   for (const byte of bytes) terminal.write(Uint8Array.of(byte))
   terminal.write('\x1b]7400;replacement\x07')
   expect(observations[0]!.payload).toEqual(Uint8Array.from([255, 128, 59, 254]))

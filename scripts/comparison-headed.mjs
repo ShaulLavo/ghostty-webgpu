@@ -51,7 +51,9 @@ export function headedLaunchArguments(profile) {
     'Canonical whitespace-free profile required',
   )
   // A following flag keeps a rewritten profile token distinct from positional startup URLs.
-  return [`--user-data-dir=${profile}`, ...headedHardwareArguments, '--remote-debugging-port=0']
+  return [`--user-data-dir=${profile}`].concat(headedHardwareArguments, [
+    '--remote-debugging-port=0',
+  ])
 }
 
 export function observedVulkanRenderer(renderer) {
@@ -802,15 +804,14 @@ export async function launchOwnedHeadedBrowser({
           return
         }
         const group = await ownedGroupProcesses(rootIdentity)
-        owned = [
-          ...owned,
-          ...group.filter(
+        owned = owned.concat(
+          group.filter(
             (entry) =>
               !owned.some(
                 (known) => known.pid === entry.pid && known.startTimeTicks === entry.startTimeTicks,
               ),
           ),
-        ]
+        )
       })
       if (browser)
         await attempt('closeError', () => boundedSmokeOperation(() => browser.close(), 3000))
@@ -871,7 +872,7 @@ export async function launchOwnedHeadedBrowser({
       requestedArguments,
     })
     evidence.requestedArguments = requestedArguments
-    evidence.requestedArgv = [executable, ...requestedArguments, 'about:blank']
+    evidence.requestedArgv = [executable].concat(requestedArguments, ['about:blank'])
     server = createServer((request, response) => {
       if (request.url !== `/?smoke=${evidence.smokeId}`) {
         response.writeHead(404).end()
@@ -888,7 +889,7 @@ export async function launchOwnedHeadedBrowser({
       server.once('error', reject)
       server.listen(0, '127.0.0.1', resolve)
     })
-    child = spawn(executable, [...requestedArguments, 'about:blank'], {
+    child = spawn(executable, requestedArguments.concat(['about:blank']), {
       detached: true,
       stdio: ['ignore', 'ignore', 'pipe'],
     })

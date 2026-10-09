@@ -339,7 +339,7 @@ function unavailableChannels(metadata) {
       effectivePClockGHz: pTime,
     }
   }
-  const entries = [...new Set(Object.values(fieldCapabilities))].map((name) => [
+  const entries = Array.from(new Set(Object.values(fieldCapabilities)), (name) => [
     name,
     metadata.capabilities?.[name],
   ])
@@ -358,7 +358,7 @@ export function counterDelta(before, after, cpuBefore, cpuAfter) {
   const final = new Map(cpuAfter.map((row) => [row.id, row.type]))
   const coverage = { matched: [], errors: [] }
   const processes = []
-  for (const pid of new Set([...prior.keys(), ...final.keys()])) {
+  for (const pid of new Set(Array.from(prior.keys()).concat(Array.from(final.keys())))) {
     const row = matchedProcess(
       pid,
       prior,

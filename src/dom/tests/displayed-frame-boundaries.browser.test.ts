@@ -314,7 +314,7 @@ describe('review failure boundaries', () => {
 
 describe('review text publication reentrancy and device recovery', () => {
   it('keeps accessibility on the newest frame after a reentrant WebGPU layout update', async () => {
-    const { terminal, session, clock, host, errors } = await fixture('webgpu', true)
+    const { terminal, clock, host, errors } = await fixture('webgpu', true)
     terminal.write('row one\r\nrow two\r\nrow three\r\nrow four')
     clock.flush()
     let once = true
@@ -346,12 +346,12 @@ describe('review text publication reentrancy and device recovery', () => {
     terminal.write('\x1b[Hchanged')
     clock.flush()
     clock.flush()
-    const text = Array.from(host.querySelectorAll('[role="list"] [role="listitem"]')).map((row) =>
+    const text = Array.from(host.querySelectorAll('[role="list"] [role="listitem"]'), (row) =>
       row.textContent?.trimEnd(),
     )
     expect(errors).toEqual([])
     expect(text).toEqual(terminal.visibleLines().map((row) => row.trimEnd()))
-    expect(seen).toEqual([...seen].sort((a, b) => a - b))
+    expect(seen).toEqual(seen.toSorted((a, b) => a - b))
     expect(observed.every((row) => row.eventRows === row.mirrorRows)).toBe(true)
   })
 })

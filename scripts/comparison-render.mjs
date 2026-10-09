@@ -43,7 +43,7 @@ export function renderedFrame(records, capture) {
         span.start >= parse.end &&
         span.end <= captured,
     )
-    .toSorted((a, b) => a.start - b.start)
+    .sort((a, b) => a.start - b.start)
   for (const frame of frames) {
     const boundary = records.spans
       .filter(
@@ -54,7 +54,7 @@ export function renderedFrame(records, capture) {
           span.start >= frame.start &&
           span.end <= frame.end,
       )
-      .toSorted((a, b) => a.end - b.end)
+      .sort((a, b) => a.end - b.end)
       .at(-1)
     if (!boundary) continue
     if (boundary.operation !== 'encode')

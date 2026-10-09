@@ -495,13 +495,12 @@ it('renders identical atlas coordinates from two layers in one two-draw frame', 
 it('remaps physical storage rows with exact pixels after ring wrap and regional moves', async () => {
   const device = await createDevice()
   const cursor: CursorState = { x: 1, y: 2, visible: true, style: 'outline' }
-  const inputs = [
-    ...Array.from({ length: 7 }, () => '\r\n█'),
+  const inputs = Array.from({ length: 7 }, () => '\r\n█').concat([
     '\x1b[2;3r\x1b[3;1H\n█',
     '\x1b[2;1H\x1b[L',
     '\x1b[M',
     '\x1b[2;1H\x1bM',
-  ]
+  ])
   const control = await renderGrid(device, defaultRendererTheme, cursor, { inputs })
   const ring = await renderGrid(device, defaultRendererTheme, cursor, { inputs, stableRows: true })
   expect(ring.rowOffset).toBeGreaterThan(0)

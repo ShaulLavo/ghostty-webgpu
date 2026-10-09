@@ -70,7 +70,7 @@ function readyFrame(frameOptions = options): void {
 function expectNativeRecords(frame: ZigFrameBuilder): void {
   expect(frame.cellData).toHaveLength(frame.columns * frame.rows * 16)
   expect(frame.glyphData).toHaveLength(frame.columns * frame.rows * 24)
-  expect([...frame.cellData, ...frame.glyphData].every(Number.isFinite)).toBe(true)
+  expect(frame.cellData.every(Number.isFinite) && frame.glyphData.every(Number.isFinite)).toBe(true)
   expect(frame.missingGlyphs).toEqual([])
   for (let index = 0; index < frame.columns * frame.rows; index += 1) {
     const cell = frame.cellData.subarray(index * 16, index * 16 + 16)
@@ -804,9 +804,11 @@ describe('WASM Unicode descriptors and native records', () => {
   )
 
   it.each(
-    [...zigUnicodeFixtures, ...zigGlyphCollisionFixtures].flatMap((fixture) =>
-      (['grayscale', 'color'] as const).map((kind) => ({ ...fixture, kind })),
-    ),
+    zigUnicodeFixtures
+      .concat(zigGlyphCollisionFixtures)
+      .flatMap((fixture) =>
+        (['grayscale', 'color'] as const).map((kind) => ({ ...fixture, kind })),
+      ),
   )('matches distinct $kind atlas records for $name', async ({ content, kind }) => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 40, rows: 3 })
@@ -973,14 +975,14 @@ describe('WASM Unicode descriptors and native records', () => {
     const terminal = runtime.createTerminal({ columns: 40, rows: 10 })
     const state = runtime.createRenderState(terminal)
     const texts = Array.from({ length: 180 }, (_, index) => String.fromCodePoint(0x4e00 + index))
-    terminal.write(`\x1b[?25l${[...texts, ...texts].join('')}`)
+    terminal.write(`\x1b[?25l${texts.concat(texts).join('')}`)
     state.update()
     builder = state.createFrameBuilder(40, 10)
     expect(builder.build(options)).toBe(2)
     const keys = [...builder.missingGlyphs]
     expect(keys).toHaveLength(180)
     expect(new Set(keys).size).toBe(180)
-    expect(keys.map((key) => builder!.glyphInput(key).text).sort()).toEqual([...texts].sort())
+    expect(keys.map((key) => builder!.glyphInput(key).text).sort()).toEqual(texts.sort())
     const registered = fixtureGlyphs('grayscale')
     for (const key of keys.slice(0, 90))
       builder.registerGlyph(key, registered.resolveInput(builder.glyphInput(key)))

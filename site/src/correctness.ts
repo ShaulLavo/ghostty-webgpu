@@ -27,7 +27,7 @@ export function correctnessScores(
     else score.fail += 1
     scores.set(item.variant, score)
   }
-  return [...scores].map(([terminal, score]) => ({
+  return Array.from(scores, ([terminal, score]) => ({
     terminal,
     version: versions[terminal] ?? '',
     ...score,

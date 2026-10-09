@@ -586,7 +586,7 @@ function assertExactRoles(
   label: string,
 ): void {
   const actual = records.map((record) => record.role).sort(compareUtf8)
-  const sortedExpected = [...expected].sort(compareUtf8)
+  const sortedExpected = expected.toSorted(compareUtf8)
   if (!sameStrings(actual, sortedExpected)) fail(`${label} roles do not match`)
 }
 
@@ -690,7 +690,7 @@ function validateTargetBuildArgv(argv: readonly string[], target: ProofTarget): 
 export function projectObservedLinkArgv(
   linkArgv: readonly string[],
   target: ProofTarget,
-): readonly string[] {
+): string[] {
   const label = `${target} linkArgv`
   validateArgv(linkArgv, label)
   assertNoCacheTokenSyntax(linkArgv, label)
@@ -1443,7 +1443,7 @@ function asArray(
 
 function assertKeys(value: JsonObject, expected: readonly string[], label: string): void {
   const actual = Object.keys(value).sort(compareUtf16)
-  const sortedExpected = [...expected].sort(compareUtf16)
+  const sortedExpected = expected.toSorted(compareUtf16)
   if (!sameStrings(actual, sortedExpected)) fail(`${label} keys do not match`)
 }
 

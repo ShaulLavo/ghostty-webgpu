@@ -125,7 +125,7 @@ function parseOptions(argv: readonly string[]): ReadonlyMap<string, string> {
 
 function assertOptionSet(values: ReadonlyMap<string, string>, expected: readonly string[]): void {
   const actual = [...values.keys()].sort()
-  const wanted = [...expected].sort()
+  const wanted = expected.toSorted()
   if (JSON.stringify(actual) !== JSON.stringify(wanted)) {
     throw new NativeContractError('config resolver build option set is invalid')
   }
