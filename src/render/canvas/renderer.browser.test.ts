@@ -869,10 +869,9 @@ describe('CanvasTerminalRenderer', () => {
       expectFullRepaint(canvas, source)
       expect(copy).not.toHaveBeenCalled()
       expect(updates).toHaveBeenCalledOnce()
-      const packing = mode === 'fill-text' ? { packed: true } : {}
       expect(reads.mock.calls).toEqual([
-        [{ dirtyOnly: true, ...packing }],
-        [{ rows: new Set([9]), ...packing }],
+        [{ dirtyOnly: true, packed: mode === 'fill-text' }],
+        [{ rows: new Set([9]), packed: mode === 'fill-text' }],
       ])
       expect(reads.mock.results[1]?.value).toEqual(source.rows)
       expect(renderer.metrics.repaintedRows - before.repaintedRows).toBe(8)
@@ -919,7 +918,7 @@ describe('CanvasTerminalRenderer', () => {
         expect(updates).toHaveBeenCalledOnce()
         expect(reads).toHaveBeenCalledExactlyOnceWith({
           rows: new Set([8, 9]),
-          ...(mode === 'fill-text' ? { packed: true } : {}),
+          packed: mode === 'fill-text',
         })
         expect(reads.mock.results[0]?.value).toEqual(source.rows)
       }

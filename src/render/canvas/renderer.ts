@@ -120,17 +120,24 @@ class CanvasSurface implements RowRendererSurface {
         return source.update()
       },
       readRows: (options) => {
-        const rows = source.readRows(this.pixelTarget ? options : { ...options, packed: true })
+        // Pixel identities and full-row painting share the same decoded cells.
+        const rows = source.readRows({ ...options, packed: !this.pixelTarget })
         if (!this.capturing) return rows
-        for (const row of rows) {
-          if (row.y < 0 || row.y >= this.rowCount) continue
-          if (options?.rows && !options.rows.has(row.y)) continue
-          const text = this.pixelTarget ? undefined : plainRowText(row)
-          this.pending.set(row.y, text === undefined ? JSON.stringify(row.cells) : `plain:${text}`)
-        }
+        for (const row of rows) this.captureRow(row, options?.rows)
         return rows
       },
     }
+  }
+
+  private captureRow(row: RenderRow, requested?: ReadonlySet<number>): void {
+    if (row.y < 0 || row.y >= this.rowCount) return
+    if (requested && !requested.has(row.y)) return
+    const text = plainRowText(row)
+    if (text !== undefined) {
+      this.pending.set(row.y, `plain:${text}`)
+      return
+    }
+    this.pending.set(row.y, JSON.stringify(row.cells))
   }
 
   beginFrame(): void {
@@ -160,14 +167,15 @@ class CanvasSurface implements RowRendererSurface {
       if (!this.plan) this.prepare(cursor)
       if (!this.canReuse(row.y, cursor)) {
         this.pixelTarget?.beginRow(row.y)
-        // Pixel targets publish the whole scratch row.
         const key = this.pending.get(row.y)
         const text = key?.startsWith('plain:') ? key.slice(6) : null
         this.painter.paint(
           row,
           cursor,
           this.canvas.width,
-          !this.pixelTarget && this.pending.size === 1 && this.plan!.offset === 0,
+          (!this.pixelTarget || this.pixelTarget.cellDamage === true) &&
+            this.pending.size === 1 &&
+            this.plan!.offset === 0,
           text,
         )
         this.pixelTarget?.finishRow(row.y)
@@ -235,10 +243,6 @@ class CanvasSurface implements RowRendererSurface {
   }
 
   private copyRows(offset: number): void {
-    if (this.pixelTarget) {
-      this.pixelTarget.copyRows(offset)
-      return
-    }
     const sourceY = Math.max(0, -offset) * this.rowHeight
     const targetY = Math.max(0, offset) * this.rowHeight
     const height = (this.rowCount - Math.abs(offset)) * this.rowHeight
@@ -252,6 +256,7 @@ class CanvasSurface implements RowRendererSurface {
       // Source-over would retain destination pixels beneath transparent source pixels.
       this.context.globalCompositeOperation = 'copy'
       this.context.imageSmoothingEnabled = false
+      this.context.filter = 'none'
       this.context.drawImage(
         this.canvas,
         0,
@@ -268,6 +273,7 @@ class CanvasSurface implements RowRendererSurface {
     }
     this.reuseMetrics.copiedRows += this.rowCount - Math.abs(offset)
     this.reuseMetrics.selfCopies += 1
+    this.pixelTarget?.copyRows(offset)
   }
 }
 

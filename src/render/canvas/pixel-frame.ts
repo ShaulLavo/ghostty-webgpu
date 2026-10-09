@@ -27,6 +27,8 @@ export class PixelFrame {
     copiedFrameBytes: 0,
   }
   private readonly dirty = new Set<number>()
+  private dirtyLeft = Infinity
+  private dirtyRight = 0
   private view?: FrameView
   private rowHeight = 0
   private output?: FrameOutput
@@ -46,23 +48,49 @@ export class PixelFrame {
     this.rowHeight = rowHeight
     if (old && this.sameOutput(old, output) && oldRowHeight === rowHeight) return
     this.dirty.clear()
+    this.dirtyLeft = 0
+    this.dirtyRight = output.width
     for (let y = 0; y < output.height / rowHeight; y++) this.dirty.add(y)
   }
 
-  markRow(y: number): void {
+  markRow(y: number, x = 0, width = this.requireOutput().width): void {
     const output = this.requireOutput()
     if (!Number.isSafeInteger(y) || y < 0 || y >= output.height / this.rowHeight)
       throw createGhosttyError('canvas.frame', 'Canvas dirty row exceeds the framebuffer')
+    if (
+      !Number.isSafeInteger(x) ||
+      !Number.isSafeInteger(width) ||
+      x < 0 ||
+      width < 0 ||
+      x + width > output.width
+    )
+      throw createGhosttyError('canvas.frame', 'Canvas dirty columns exceed the framebuffer')
+    if (width === 0) return
+    this.dirtyLeft = Math.min(this.dirtyLeft, x)
+    this.dirtyRight = Math.max(this.dirtyRight, x + width)
     this.dirty.add(y)
   }
 
-  markTransportedRows(offset: number): void {
+  /** Moves pending damage after the output canvas has transported the same rows. */
+  transportDirtyRows(offset: number): void {
     const output = this.requireOutput()
     if (!Number.isSafeInteger(offset))
       throw createGhosttyError('canvas.frame', 'Canvas row transport requires an integer offset')
+    if (this.dirty.size === 0) return
     const first = Math.max(0, offset)
     const last = output.height / this.rowHeight + Math.min(0, offset)
-    for (let y = first; y < last; y++) this.dirty.add(y)
+    const moved = new Set<number>()
+    for (const y of this.dirty) {
+      const target = y + offset
+      if (target >= first && target < last) moved.add(target)
+      // Pixels outside the destination band stay at their existing screen coordinates.
+      if (y < first || y >= last) moved.add(y)
+    }
+    this.dirty.clear()
+    for (const y of moved) this.dirty.add(y)
+    if (this.dirty.size !== 0) return
+    this.dirtyLeft = Infinity
+    this.dirtyRight = 0
   }
 
   present(): void {
@@ -82,12 +110,16 @@ export class PixelFrame {
     }
     this.presentRows(image, first, last)
     this.dirty.clear()
+    this.dirtyLeft = Infinity
+    this.dirtyRight = 0
   }
 
   invalidate(): void {
     this.view = undefined
     const output = this.output
     if (!output) return
+    this.dirtyLeft = 0
+    this.dirtyRight = output.width
     for (let y = 0; y < output.height / this.rowHeight; y++) this.dirty.add(y)
   }
 
@@ -129,9 +161,10 @@ export class PixelFrame {
       throw createGhosttyError('canvas.frame', 'Canvas pixel memory changed during presentation')
     const top = first * this.rowHeight
     const height = (last - first + 1) * this.rowHeight
-    this.context.putImageData(image, 0, 0, 0, top, image.width, height)
+    const width = this.dirtyRight - this.dirtyLeft
+    this.context.putImageData(image, 0, 0, this.dirtyLeft, top, width, height)
     this.metrics.uploadedRegions += 1
-    this.metrics.uploadedPixelBytes += image.width * height * 4
+    this.metrics.uploadedPixelBytes += width * height * 4
   }
 
   private sameOutput(left: FrameOutput, right: FrameOutput): boolean {

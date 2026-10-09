@@ -125,6 +125,10 @@ rows. Layout and paint containment preserve this row-derived height.
 
 ## canvas and link cursors
 
+The renderer owns `terminal.canvas` and its drawing context. Drawing into the canvas or
+changing its 2D context state is unsupported. Pixel mode assumes the context has no active
+clip. Use a separate canvas or DOM element for custom drawing and overlays.
+
 The canvas exposed as `terminal.canvas` uses `cursor: pointer !important` while a link is hovered,
 overriding author cursor rules, including important ones. On leave, the terminal restores the
 pre-hover inline cursor value and priority unless the host's current cursor declaration differs

@@ -45,6 +45,7 @@ function packed(brush: Brush): number {
 /** Interprets only the operation set emitted by CanvasRowPainter. */
 export class StampTarget implements PixelTarget, PaintTarget {
   readonly context = this
+  readonly cellDamage = true
   readonly cache: StampCache
   readonly frame: PixelFrame
   metrics: PixelMetrics = {
@@ -78,10 +79,12 @@ export class StampTarget implements PixelTarget, PaintTarget {
   private parsedBrush?: { readonly brush: Brush; readonly color: number }
   private presenting = false
   private disposed = false
+  private rowLeft = Infinity
+  private rowRight = 0
 
   constructor(
     private readonly kernel: ComposeKernel,
-    output: Canvas2dContext,
+    private readonly output: Canvas2dContext,
   ) {
     this.cache = new StampCache(kernel)
     this.frame = new PixelFrame(kernel.memory, output)
@@ -154,9 +157,19 @@ export class StampTarget implements PixelTarget, PaintTarget {
 
   beginRow(_y: number): void {
     this.requireWritable()
+    this.rowLeft = Infinity
+    this.rowRight = 0
   }
   finishRow(y: number): void {
-    this.frame.markRow(y)
+    if (this.rowRight > this.rowLeft)
+      this.frame.markRow(y, this.rowLeft, this.rowRight - this.rowLeft)
+  }
+
+  measureText(text: string): TextMetrics {
+    this.output.font = this.font
+    this.output.textAlign = this.textAlign
+    this.output.textBaseline = this.textBaseline
+    return this.output.measureText(text)
   }
 
   copyRows(offset: number): void {
@@ -176,7 +189,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
         (rows - Math.abs(offset)) * this.rowHeight,
       ),
     )
-    this.frame.markTransportedRows(offset)
+    this.frame.transportDirtyRows(offset)
     this.metrics.bufferMoves += 1
     this.metrics.movedRows += rows - Math.abs(offset)
   }
@@ -235,6 +248,8 @@ export class StampTarget implements PixelTarget, PaintTarget {
   clearRect(x: number, y: number, width: number, height: number): void {
     this.requireWritable()
     const bounds = intersect(this.state.clip, [x, y, width, height])
+    this.rowLeft = Math.min(this.rowLeft, bounds[0])
+    this.rowRight = Math.max(this.rowRight, bounds[0] + bounds[2])
     this.kernel.check(
       this.kernel.exports.compose_clear(this.offset, this.width, this.height, ...bounds),
     )

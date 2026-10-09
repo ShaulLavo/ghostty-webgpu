@@ -76,6 +76,20 @@ describe('WASM output handoff lifetime', () => {
     expect(putImageData.mock.calls.map((call) => call.slice(3))).toEqual([[0, 0, 4, 4]])
   })
 
+  it('bounds uploads by the horizontal union of dirty rows', () => {
+    const { frame, putImageData } = fixture()
+    frame.present()
+    putImageData.mockClear()
+    frame.markRow(0, 1, 1)
+    frame.markRow(1, 2, 2)
+    frame.present()
+    expect(putImageData.mock.lastCall?.slice(3)).toEqual([1, 0, 3, 4])
+    putImageData.mockClear()
+    frame.markRow(2, 0, 0)
+    frame.present()
+    expect(putImageData).not.toHaveBeenCalled()
+  })
+
   it('retains all scheduled damage after a later upload fails', () => {
     const { frame, putImageData } = fixture()
     frame.present()
@@ -95,13 +109,38 @@ describe('WASM output handoff lifetime', () => {
     ])
   })
 
-  it('dirties transported destinations and invalidates after context loss', () => {
+  it('retains narrow columns after failure and canvas transport', () => {
     const { frame, putImageData } = fixture()
     frame.present()
     putImageData.mockClear()
-    frame.markTransportedRows(-1)
+    frame.markRow(0, 1, 1)
+    putImageData.mockImplementationOnce(() => {
+      throw new TypeError('Injected output failure')
+    })
+    expect(() => frame.present()).toThrow('Injected output failure')
+    frame.markRow(2, 2, 1)
     frame.present()
-    expect(putImageData.mock.calls[0]?.slice(3)).toEqual([0, 0, 4, 4])
+    expect(putImageData.mock.calls.slice(1).map((call) => call.slice(3))).toEqual([
+      [1, 0, 2, 2],
+      [1, 4, 2, 2],
+    ])
+    putImageData.mockClear()
+    frame.markRow(2, 1, 1)
+    frame.transportDirtyRows(-1)
+    frame.present()
+    expect(putImageData.mock.lastCall?.slice(3)).toEqual([1, 2, 1, 4])
+    expect(() => frame.markRow(0, -1, 1)).toThrow()
+    expect(() => frame.markRow(0, 1, 4)).toThrow()
+    expect(() => frame.markRow(0, 1.5, 1)).toThrow()
+  })
+
+  it('keeps clean canvas-transported rows clean and invalidates after context loss', () => {
+    const { frame, putImageData } = fixture()
+    frame.present()
+    putImageData.mockClear()
+    frame.transportDirtyRows(-1)
+    frame.present()
+    expect(putImageData).not.toHaveBeenCalled()
     const old = frame.getImage()
     frame.invalidate()
     expect(frame.getImage() === old).toBe(false)
@@ -109,11 +148,24 @@ describe('WASM output handoff lifetime', () => {
     expect(putImageData.mock.lastCall?.slice(3)).toEqual([0, 0, 4, 6])
   })
 
+  it.each([
+    { row: 0, offset: 1, expected: [[2, 0, 1, 4]] },
+    { row: 1, offset: -1, expected: [[2, 0, 1, 2]] },
+  ])('moves pending narrow damage with canvas transport $offset', ({ row, offset, expected }) => {
+    const { frame, putImageData } = fixture()
+    frame.present()
+    putImageData.mockClear()
+    frame.markRow(row, 2, 1)
+    frame.transportDirtyRows(offset)
+    frame.present()
+    expect(putImageData.mock.calls.map((call) => call.slice(3))).toEqual(expected)
+  })
+
   it('rejects invalid rows, shape, memory bounds and disposed access', () => {
     const { frame, output } = fixture()
     expect(() => frame.markRow(-1)).toThrow()
     expect(() => frame.markRow(3)).toThrow()
-    expect(() => frame.markTransportedRows(0.5)).toThrow()
+    expect(() => frame.transportDirtyRows(0.5)).toThrow()
     expect(() => frame.bind({ ...output, offset: 65536 }, 2)).toThrow()
     expect(() => frame.bind({ ...output, width: 0 }, 2)).toThrow()
     expect(() => frame.bind(output, 4)).toThrow()

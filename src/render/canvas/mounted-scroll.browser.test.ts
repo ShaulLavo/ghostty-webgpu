@@ -15,7 +15,6 @@ function expectScrollReuse(
   if (renderer.canvasPaintMode === 'pixels') {
     expect(renderer.metrics.bufferMoves - before.bufferMoves).toBe(1)
     expect(renderer.metrics.movedRows - before.movedRows).toBe(5)
-    return
   }
   expect(renderer.metrics.selfCopies - before.selfCopies).toBe(1)
   expect(renderer.metrics.copiedRows - before.copiedRows).toBe(5)
@@ -93,9 +92,9 @@ it.each(['canvas2d-fill-text', 'canvas2d-pixels'] as const)(
         expect(scroll).toHaveBeenCalledOnce()
         clock.flushFrame()
         expect(read).toHaveBeenCalledOnce()
-        expect(read.mock.calls[0]?.[0] ?? {}).toEqual(
-          rendererMode === 'canvas2d-fill-text' ? { packed: true } : {},
-        )
+        expect(read.mock.calls[0]?.[0]).toEqual({
+          packed: rendererMode === 'canvas2d-fill-text',
+        })
         expectScrollReuse(renderer, before)
         await expectFullRepaint(renderer, options)
       }
