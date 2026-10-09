@@ -24,6 +24,7 @@ interface RenderedGrid {
   destroy(): void
   pass: WebGpuTextPass
   pixels: Uint8Array
+  rowOffset: number
   pixel(x: number, y: number): readonly number[]
 }
 
@@ -31,6 +32,8 @@ interface GridFixture {
   atlas?: GlyphAtlas
   rasterizer?: GlyphRasterizer
   renderRows?: readonly RenderRow[]
+  stableRows?: boolean
+  inputs?: readonly string[]
 }
 
 function rgb(r: number, g: number, b: number): RgbColor {
@@ -169,10 +172,34 @@ async function renderGrid(
       theme: canonicalRendererTheme(theme),
       cursor,
       full: true,
+      stableRows: fixture.stableRows,
       overlayRows: new Set(),
     }),
   ).toBe(0)
-  const updates = builder.changedRanges()
+  for (const input of fixture.inputs ?? []) {
+    native.state.acknowledge()
+    native.terminal.write(input)
+    native.state.update()
+    expect(
+      buildZigFrame(builder, atlas, rasterizer, {
+        cellHeight: cellSize,
+        cellWidth: cellSize,
+        theme: canonicalRendererTheme(theme),
+        cursor,
+        full: false,
+        stableRows: fixture.stableRows,
+        overlayRows: new Set(),
+      }),
+    ).toBe(0)
+  }
+  // A newly allocated GPU pass needs all physical records, including reused rows.
+  const updates = [
+    {
+      row: 0,
+      cell: { byteOffset: 0, byteLength: builder.cellData.byteLength },
+      glyph: { byteOffset: 0, byteLength: builder.glyphData.byteLength },
+    },
+  ]
   const atlasTextures = new AtlasGpuTextures(device, atlas.textureLayout)
   onTestFinished(() => atlasTextures.destroy())
   atlasTextures.sync(atlas.consumeUploads())
@@ -216,6 +243,7 @@ async function renderGrid(
     },
     pass,
     pixels,
+    rowOffset: builder.rowOffset,
     pixel(x: number, y: number) {
       const offset = y * bytesPerRow + x * 4
       return [...pixels.subarray(offset, offset + 4)]
@@ -462,4 +490,20 @@ it('renders identical atlas coordinates from two layers in one two-draw frame', 
   expect(grid.pass.glyphBindGroupCreationCount).toBe(1)
   grid.destroy()
   device.destroy()
+})
+
+it('remaps physical storage rows with exact pixels after ring wrap and regional moves', async () => {
+  const device = await createDevice()
+  const cursor: CursorState = { x: 1, y: 2, visible: true, style: 'outline' }
+  const inputs = [
+    ...Array.from({ length: 7 }, () => '\r\n█'),
+    '\x1b[2;3r\x1b[3;1H\n█',
+    '\x1b[2;1H\x1b[L',
+    '\x1b[M',
+    '\x1b[2;1H\x1bM',
+  ]
+  const control = await renderGrid(device, defaultRendererTheme, cursor, { inputs })
+  const ring = await renderGrid(device, defaultRendererTheme, cursor, { inputs, stableRows: true })
+  expect(ring.rowOffset).toBeGreaterThan(0)
+  expect(ring.pixels).toEqual(control.pixels)
 })

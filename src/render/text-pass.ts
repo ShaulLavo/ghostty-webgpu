@@ -1,7 +1,12 @@
 import { createGhosttyError } from '../core/error.js'
 import type { AtlasGpuTextures } from './atlas/gpu-textures.js'
 import type { RowInstanceUpdate } from './instances/types.js'
-import { planUploadRanges } from './instances/upload-ranges.js'
+import {
+  planSparseUploadRanges,
+  planUploadRanges,
+  planWrappedUploadRanges,
+  type UploadPlan,
+} from './instances/upload-ranges.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from './instances/layout.js'
 import { cellShader } from './shaders/cell.wgsl.js'
 import { glyphShader } from './shaders/glyph.wgsl.js'
@@ -27,6 +32,20 @@ export interface TextPassCopy {
   size: GPUExtent3DStrict
   texture: GPUTexture
 }
+
+type FrameRows =
+  | {
+      readonly stableRows?: false
+      readonly columns?: number
+      readonly rowHeight?: number
+      readonly rowOffset?: number
+    }
+  | {
+      readonly stableRows: boolean
+      readonly columns: number
+      readonly rowHeight: number
+      readonly rowOffset: number
+    }
 
 interface PipelineResources {
   cellBindGroup: GPUBindGroup
@@ -87,6 +106,15 @@ export class WebGpuTextPass {
   private readonly resources: PipelineResources
   private readonly sampler: GPUSampler
   private readonly viewportBuffer: GPUBuffer
+  private readonly rowData = new ArrayBuffer(24)
+  private readonly rowView = new DataView(this.rowData)
+  private rowOffset = 0
+  private rowHeight = 0
+  private rowColumns = 0
+  private rowsInitialized = false
+  private wrapRow = Infinity
+  private editPlanner: (updates: readonly RowInstanceUpdate[], wrapRow: number) => UploadPlan =
+    planUploadRanges
 
   constructor(options: WebGpuTextPassOptions) {
     this.device = options.device
@@ -105,7 +133,7 @@ export class WebGpuTextPass {
       this.glyphBuffer = this.glyphBatches[0]!.buffer
       this.drawCount = 1 + this.glyphBatches.length
       this.viewportBuffer = options.device.createBuffer({
-        size: 16,
+        size: 32,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
       })
       this.ownedBuffers.push(this.viewportBuffer)
@@ -148,11 +176,23 @@ export class WebGpuTextPass {
   }
 
   uploadFrame(
-    data: { readonly cellData: Float32Array; readonly glyphData: Float32Array },
+    data: FrameRows & {
+      readonly cellData: Float32Array
+      readonly glyphData: Float32Array
+      readonly rowChanges?: number
+    },
     updates: readonly RowInstanceUpdate[],
   ): number {
     this.frameUploadedBytesValue = 0
-    const plan = planUploadRanges(updates)
+    const changes = data.rowChanges ?? 0
+    if (!this.rowsInitialized || changes !== 0) {
+      this.uploadRows(data)
+      this.rowsInitialized = true
+    }
+    const plan =
+      (changes & 1) === 0
+        ? this.editPlanner(updates, this.wrapRow)
+        : planSparseUploadRanges(updates)
     const cellData = data.cellData
     const glyphData = data.glyphData
     for (const range of plan.cell) this.writeRange(this.cellBuffer, cellData, range)
@@ -212,6 +252,27 @@ export class WebGpuTextPass {
 
   destroy(): void {
     for (const buffer of this.ownedBuffers) buffer.destroy()
+  }
+
+  private uploadRows(data: FrameRows): void {
+    const columns = data.stableRows ? data.columns : 0
+    const height = data.stableRows ? data.rowHeight : 0
+    const offset = data.stableRows ? data.rowOffset : 0
+    if (columns === this.rowColumns && height === this.rowHeight && offset === this.rowOffset)
+      return
+    this.rowColumns = columns
+    this.rowHeight = height
+    this.rowOffset = offset
+    this.wrapRow = offset === 0 ? Infinity : this.instanceCount / columns - offset
+    this.editPlanner = offset === 0 ? planUploadRanges : planWrappedUploadRanges
+    this.rowView.setUint32(0, columns, true)
+    this.rowView.setFloat32(4, height, true)
+    this.rowView.setUint32(8, offset, true)
+    this.rowView.setUint32(12, this.instanceCount, true)
+    this.device.queue.writeBuffer(this.viewportBuffer, 8, this.rowData)
+    this.frameUploadedBytesValue += this.rowData.byteLength
+    this.metrics.uploadedBytes += this.rowData.byteLength
+    this.metrics.uploadOperations += 1
   }
 
   private createPipelines(format: GPUTextureFormat): PipelineResources {

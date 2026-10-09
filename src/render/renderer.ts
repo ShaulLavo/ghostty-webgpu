@@ -588,6 +588,7 @@ export class WebGpuTerminalRenderer {
         this.focused ? undefined : this.inactiveCursorStyle,
       ),
       full: this.needsFullRebuild,
+      stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
     }
     const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)

@@ -1,3 +1,5 @@
+import { rowRemapShader } from './row-remap.wgsl.js'
+
 export const glyphShader = /* wgsl */ `
 const FLAG_GLYPH: u32 = 1u;
 
@@ -12,7 +14,11 @@ struct Instance {
 
 struct Viewport {
   size: vec2f,
-  padding: vec2f,
+  columns: u32,
+  rowHeight: f32,
+  rowOffset: u32,
+  instanceCount: u32,
+  padding: vec2u,
 }
 
 struct VertexOutput {
@@ -38,9 +44,9 @@ fn vertexMain(
     vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
     vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(1.0, 1.0),
   );
-  let instance = instances[instanceIndex];
+${rowRemapShader}
   let corner = corners[vertexIndex];
-  let pixel = instance.rect.xy + corner * instance.rect.zw;
+  let pixel = origin + corner * instance.rect.zw;
   var output: VertexOutput;
   output.position = vec4f(
     pixel.x / viewport.size.x * 2.0 - 1.0,

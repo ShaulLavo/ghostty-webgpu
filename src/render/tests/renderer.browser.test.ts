@@ -1621,17 +1621,28 @@ it('retains identical GPU records when output scrolls the viewport', async () =>
   try {
     clock.flushFrame()
     const beforePixels = await renderer.capturePixels()
-    const uploadedBytes = renderer.metrics.uploadedBytes
-    const uploadOperations = renderer.metrics.instanceUploadOperations
-    const rebuiltRows = renderer.metrics.rebuiltRows
+    let uploadedBytes = renderer.metrics.uploadedBytes
+    let uploadOperations = renderer.metrics.instanceUploadOperations
+    let rebuiltRows = renderer.metrics.rebuiltRows
     const scrollback = terminal.scrollbackLength
     terminal.write('\r\nsteady')
     expect(terminal.scrollbackLength).toBeGreaterThan(scrollback)
     renderer.notifyScroll()
     renderer.notifyWrite()
     clock.flushFrame()
+    expect(renderer.metrics.rebuiltRows).toBe(rebuiltRows + 3)
+    expect(renderer.metrics.uploadedBytes).toBe(uploadedBytes + 24 * 3 * (64 + 96) + 24)
+    expect(renderer.metrics.instanceUploadOperations).toBe(uploadOperations + 2)
+    expect(await renderer.capturePixels()).toEqual(beforePixels)
+    uploadedBytes = renderer.metrics.uploadedBytes
+    uploadOperations = renderer.metrics.instanceUploadOperations
+    rebuiltRows = renderer.metrics.rebuiltRows
+    terminal.write('\r\nsteady')
+    renderer.notifyScroll()
+    renderer.notifyWrite()
+    clock.flushFrame()
     expect(renderer.metrics.rebuiltRows).toBe(rebuiltRows + 1)
-    expect(renderer.metrics.uploadedBytes).toBe(uploadedBytes)
+    expect(renderer.metrics.uploadedBytes).toBe(uploadedBytes + 24)
     expect(renderer.metrics.instanceUploadOperations).toBe(uploadOperations)
     expect(await renderer.capturePixels()).toEqual(beforePixels)
     expect(renderer.hasPendingFrame).toBe(false)

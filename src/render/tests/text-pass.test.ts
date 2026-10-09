@@ -1,7 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { WebGpuTextPass } from '../text-pass.js'
+import { GhosttyRuntime } from '../../core/runtime.js'
+import { defaultRendererTheme } from '../instances/types.js'
 import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
 import type { RowInstanceUpdate } from '../instances/types.js'
+import { planUploadRanges, planWrappedUploadRanges } from '../instances/upload-ranges.js'
 
 interface BufferState {
   bytes: Uint8Array
@@ -124,7 +127,7 @@ it.each([
       pageWidth: 8,
     })
     fixture.pass.syncAtlas(textures)
-    expect(fixture.buffers.map((buffer) => buffer.bytes.byteLength)).toEqual([256, 192, 192, 16])
+    expect(fixture.buffers.map((buffer) => buffer.bytes.byteLength)).toEqual([256, 192, 192, 32])
     expect(fixture.pass.glyphBindGroupCreationCount).toBe(2)
     expect(fixture.pass.uploadFrame(data, [update(0, 0, 256, 0, 384)])).toBe(3)
     expect(fixture.pass.frameUploadedBytes).toBe(640)
@@ -205,38 +208,283 @@ it('coalesces twelve full rows to two uploads with native glyph bytes and preser
   )
 })
 
-it('bounds unordered cell and glyph changes independently using resident gap bytes', () => {
+it('installs the stock edit planner until a nonzero ring offset needs wrap planning', () => {
+  const fixture = gpuFixture()
+  expect(Reflect.get(fixture.pass, 'editPlanner')).toBe(planUploadRanges)
+  for (const layout of [
+    { stableRows: false, rowOffset: 0 },
+    { stableRows: true, rowOffset: 1 },
+    { stableRows: true, rowOffset: 0 },
+    { stableRows: false, rowOffset: 0 },
+  ]) {
+    const data = { ...frame(), ...layout, columns: 40, rowHeight: 16, rowChanges: 2 }
+    fixture.pass.uploadFrame(data, [])
+    const planner = layout.rowOffset === 0 ? planUploadRanges : planWrappedUploadRanges
+    expect(Reflect.get(fixture.pass, 'editPlanner')).toBe(planner)
+    fixture.writes.length = 0
+    data.rowChanges = 0
+    expect(fixture.pass.uploadFrame(data, [update(0, 0, 64, 0, 96)])).toBe(2)
+    expect(Reflect.get(fixture.pass, 'editPlanner')).toBe(planner)
+    expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([
+      [0, 64],
+      [0, 96],
+    ])
+  }
+})
+
+it.each([0, 1, 11])('does zero mapping work on edit frames at offset %s', (rowOffset) => {
+  const fixture = gpuFixture()
+  const data = {
+    ...frame(),
+    columns: 40,
+    rowHeight: 16,
+    rowOffset,
+    stableRows: rowOffset !== 0,
+    rowChanges: 1,
+  }
+  fixture.pass.uploadFrame(data, [])
+  fixture.writes.length = 0
+  let addedWork = 0
+  for (const key of ['columns', 'rowHeight', 'rowOffset', 'stableRows'] as const) {
+    const value = data[key]
+    Object.defineProperty(data, key, {
+      get() {
+        addedWork += 1
+        return value
+      },
+    })
+  }
+  data.rowChanges = 0
+  const updates = [update(0, 0, 64, 0, 96), update(3, 256, 64, 384, 96)]
+  expect(fixture.pass.uploadFrame(data, updates)).toBe(2)
+  expect(addedWork).toBe(0)
+  expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([
+    [0, 320],
+    [0, 480],
+  ])
+  for (const write of fixture.writes) {
+    const source = write.buffer === fixture.buffers[0] ? data.cellData : data.glyphData
+    expect(write.bytes).toEqual(
+      new Uint8Array(source.buffer, source.byteOffset + write.offset, write.bytes.byteLength),
+    )
+  }
+})
+
+it('bounds each side of wrapped edit rows without mapping work or clean-row uploads', () => {
+  const fixture = gpuFixture()
+  const data = {
+    ...frame(),
+    columns: 40,
+    rowHeight: 16,
+    rowOffset: 1,
+    stableRows: true,
+    rowChanges: 1,
+  }
+  fixture.pass.uploadFrame(data, [update(0, 0, 30720, 0, 46080)])
+  fixture.writes.length = 0
+  let mappingReads = 0
+  for (const key of ['columns', 'rowHeight', 'rowOffset', 'stableRows'] as const) {
+    const value = data[key]
+    Object.defineProperty(data, key, {
+      get() {
+        mappingReads += 1
+        return value
+      },
+    })
+  }
+  data.rowChanges = 0
+  data.cellData.fill(-1, 7040, 7056)
+  data.cellData.fill(-2, 0, 16)
+  data.glyphData.fill(-3, 10560, 10584)
+  data.glyphData.fill(-4, 0, 24)
+  expect(
+    fixture.pass.uploadFrame(data, [update(10, 28160, 64, 42240, 96), update(11, 0, 64, 0, 96)]),
+  ).toBe(4)
+  expect(mappingReads).toBe(0)
+  expect(fixture.pass.frameUploadedBytes).toBe(320)
+  expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([
+    [28160, 64],
+    [0, 64],
+    [42240, 96],
+    [0, 96],
+  ])
+  for (const write of fixture.writes) {
+    const source = write.buffer === fixture.buffers[0] ? data.cellData : data.glyphData
+    expect(write.sourceBuffer).toBe(source.buffer)
+    expect(write.bytes).toEqual(
+      new Uint8Array(source.buffer, source.byteOffset + write.offset, write.bytes.byteLength),
+    )
+  }
+  expect(fixture.buffers[0]!.bytes).toEqual(
+    new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, data.cellData.byteLength),
+  )
+  expect(fixture.buffers[1]!.bytes).toEqual(
+    new Uint8Array(data.glyphData.buffer, data.glyphData.byteOffset, data.glyphData.byteLength),
+  )
+})
+
+it.each([0, 1])('uses sparse spans only on moved rows: rowChanges=%s', (rowChanges) => {
+  const fixture = gpuFixture()
+  const data = { ...frame(), rowChanges }
+  const operations = fixture.pass.uploadFrame(data, [
+    update(0, 0, 64, 0, 96),
+    update(3, 256, 64, 384, 96),
+  ])
+  expect(operations).toBe(rowChanges === 0 ? 2 : 4)
+  expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual(
+    rowChanges === 0
+      ? [
+          [0, 320],
+          [0, 480],
+        ]
+      : [
+          [0, 64],
+          [256, 64],
+          [0, 96],
+          [384, 96],
+        ],
+  )
+  for (const write of fixture.writes) {
+    const source = write.buffer === fixture.buffers[0] ? data.cellData : data.glyphData
+    expect(write.bytes).toEqual(
+      new Uint8Array(source.buffer, source.byteOffset + write.offset, write.bytes.byteLength),
+    )
+  }
+})
+
+it('merges touching changes and keeps untouched resident gaps', () => {
   const fixture = gpuFixture(),
-    data = frame()
+    data = { ...frame(), rowChanges: 1 }
   expect(
     fixture.pass.uploadFrame(data, [
       update(2, 128, 64, 192, 96),
       update(0, 0, 64),
       update(1, 64, 64, 384, 96),
     ]),
-  ).toBe(2)
+  ).toBe(3)
   expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([
     [0, 192],
-    [192, 288],
+    [192, 96],
+    [384, 96],
   ])
   const words = new Uint32Array(fixture.buffers[1]!.bytes.buffer)
-  expect(words.slice(72, 96)).toEqual(
-    new Uint32Array(data.glyphData.buffer, data.glyphData.byteOffset + 288, 24),
-  )
+  expect(words.slice(72, 96)).toEqual(new Uint32Array(24))
 })
 
-it('bounding mode counts the actual uploaded span, including safe resident gaps', () => {
+it('counts only changed sparse spans', () => {
   const fixture = gpuFixture(),
-    data = frame()
+    data = { ...frame(), rowChanges: 1 }
   expect(
     fixture.pass.uploadFrame(data, [update(0, 64, 64, 96, 96), update(3, 256, 64, 384, 96)]),
-  ).toBe(2)
-  expect(fixture.pass.frameUploadedBytes).toBe(640)
-  expect(fixture.pass.metrics.uploadedBytes).toBe(640)
+  ).toBe(4)
+  expect(fixture.pass.frameUploadedBytes).toBe(320)
+  expect(fixture.pass.metrics.uploadedBytes).toBe(320)
   expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([
-    [64, 256],
-    [96, 384],
+    [64, 64],
+    [256, 64],
+    [96, 96],
+    [384, 96],
   ])
+})
+
+it('counts row-remap uniform writes separately from instance uploads', () => {
+  const fixture = gpuFixture()
+  const data = {
+    ...frame(),
+    columns: 40,
+    rowHeight: 16,
+    rowOffset: 1,
+    stableRows: true,
+    rowChanges: 1,
+  }
+  expect(fixture.pass.uploadFrame(data, [])).toBe(0)
+  expect(fixture.writes).toHaveLength(1)
+  expect(fixture.writes[0]!.offset).toBe(8)
+  expect(fixture.writes[0]!.bytes.byteLength).toBe(24)
+  const mapping = new DataView(fixture.writes[0]!.bytes.buffer)
+  expect(mapping.getUint32(0, true)).toBe(40)
+  expect(mapping.getFloat32(4, true)).toBe(16)
+  expect(mapping.getUint32(8, true)).toBe(1)
+  expect(mapping.getUint32(12, true)).toBe(480)
+  expect(fixture.pass.metrics.uploadOperations).toBe(1)
+  expect(fixture.pass.frameUploadedBytes).toBe(24)
+  expect(fixture.pass.uploadFrame(data, [])).toBe(0)
+  expect(fixture.pass.frameUploadedBytes).toBe(0)
+  expect(fixture.writes).toHaveLength(1)
+})
+
+it('restores the row remap after atlas synchronization fails between building and uploading', async () => {
+  const fixture = gpuFixture(16)
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 4, rows: 4 })
+  const state = runtime.createRenderState(terminal)
+  const builder = state.createFrameBuilder(4, 4)
+  const textures = new AtlasGpuTextures(fixture.device, {
+    layerCount: 1,
+    pageHeight: 8,
+    pageWidth: 8,
+  })
+  const options = {
+    cellWidth: 8,
+    cellHeight: 16,
+    theme: { ...defaultRendererTheme, cursorText: defaultRendererTheme.background },
+    full: true,
+    stableRows: true,
+    overlayRows: new Set<number>(),
+  }
+  const viewport = new DataView(fixture.buffers.at(-1)!.bytes.buffer)
+  const build = (full: boolean) => {
+    const frameOptions = { ...options, full }
+    let status = builder.build(frameOptions)
+    if (status === 2) {
+      for (const key of builder.missingGlyphs) builder.registerGlyph(key, undefined)
+      status = builder.build(frameOptions)
+    }
+    expect(status).toBe(0)
+  }
+  try {
+    terminal.write('\x1b[?25l\x1b[41m   \r\n\x1b[42m   \r\n\x1b[43m   \r\n\x1b[44m   ')
+    state.update()
+    build(true)
+    fixture.pass.uploadFrame(builder, builder.changedRanges())
+    state.acknowledge()
+    terminal.write('\r\n\x1b[45m   ')
+    state.update()
+    build(false)
+    expect(builder.rowOffset).toBe(1)
+    fixture.pass.uploadFrame(builder, builder.changedRanges())
+    expect(viewport.getUint32(16, true)).toBe(1)
+    state.acknowledge()
+
+    terminal.write('\r\n\x1b[46m   ')
+    state.update()
+    build(false)
+    expect(builder.rowOffset).toBe(2)
+    const failure = new RangeError('Injected atlas capacity failure')
+    const sync = vi.spyOn(textures, 'sync').mockImplementationOnce(() => {
+      throw failure
+    })
+    expect(() => {
+      textures.sync([])
+      fixture.pass.uploadFrame(builder, builder.changedRanges())
+    }).toThrow(failure)
+    expect(viewport.getUint32(16, true)).toBe(1)
+
+    build(true)
+    expect(builder.rowOffset).toBe(2)
+    textures.sync([])
+    fixture.pass.uploadFrame(builder, builder.changedRanges())
+    expect(viewport.getUint32(8, true)).toBe(4)
+    expect(viewport.getFloat32(12, true)).toBe(16)
+    expect(viewport.getUint32(16, true)).toBe(builder.rowOffset)
+    expect(builder.changedRanges().map((range) => range.row)).toEqual([0, 1, 2, 3])
+    sync.mockRestore()
+  } finally {
+    textures.destroy()
+    fixture.pass.destroy()
+    builder.dispose()
+    runtime.dispose()
+  }
 })
 
 it('reads each frame view once even when several rows change', () => {
