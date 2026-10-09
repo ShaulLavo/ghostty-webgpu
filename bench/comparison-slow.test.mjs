@@ -102,39 +102,45 @@ test('comparison entry dispatches the same rolling-slow frames at its existing c
   for (const variant of ['ghostty-canvas', 'ghostty-web', 'xterm-dom']) {
     for (const path of ['bytes', 'string']) {
       const frames = []
+      const fixture = rollingFixture(
+        logs,
+        settings.corpusBytes,
+        settings.chunkBytes,
+        'rolling-slow',
+      )
+      const reset =
+        path === 'bytes' ? encoder.encode('\x1b[3J\x1b[2J\x1b[H') : '\x1b[3J\x1b[2J\x1b[H'
+      const preparedBursts = new Map([
+        ['rolling-slow', { fixture, chunks: rollingInputs(fixture, path), reset }],
+      ])
       let cadence = 0
       let resets = 0
+      const write = async (chunk) => {
+        if (chunk === reset) {
+          resets++
+          return
+        }
+        frames.push(chunk)
+      }
       const burst = new Function(
         'context',
-        `const { rollingFixture, rollingInputs, rollingByteCount, settings, logs, current,
-          drivers, writeAll, settle, pacedBurst, frame, frameMetricDeltas, isRollingFixture,
-          corpus, fixtureText, encoder, performance } = context;
+        `const { rollingByteCount, drivers, settle, pacedBurst, frame, frameMetricDeltas,
+          isRollingFixture, performance, preparedBursts } = context;
          ${functions}
          return burst;`,
       )({
-        rollingFixture,
-        rollingInputs,
         rollingByteCount,
-        settings,
-        logs,
-        current: { variant, path, count: 1 },
-        drivers: [{ write: async (chunk) => frames.push(chunk) }],
-        writeAll: async (text) => {
-          assert.equal(text, '\x1b[3J\x1b[2J\x1b[H')
-          resets++
-        },
+        preparedBursts,
+        drivers: [{ write }],
         settle: async () => {},
         pacedBurst,
         frame: async () => ++cadence,
         frameMetricDeltas,
         isRollingFixture,
-        corpus,
-        fixtureText,
-        encoder,
         performance: { now: () => 0 },
       })
       const result = await burst('rolling-slow', 16)
-      assert.equal(resets, 1)
+      assert.equal(resets, 1, `${variant}/${path} reset`)
       assert.equal(cadence, 17)
       assert.equal(frames.length, 16)
       assert.equal(result.fixture, 'rolling-slow')

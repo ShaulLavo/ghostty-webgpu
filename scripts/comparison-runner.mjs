@@ -632,9 +632,10 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
       run.idleDisplay = await qualifyDisplay(page, session, browserSession, run)
     }
     run.phase = 'rendered/prepare'
+    await page.evaluate((testCase) => window.__compare.initialize(testCase), testCase)
     let empty
     if (!smoke && phases.includes('memory')) empty = await memory(page, session, browserSession)
-    await page.evaluate((testCase) => window.__compare.prepare(testCase), testCase)
+    await page.evaluate(() => window.__compare.createTerminals())
     const info = await page.evaluate(() => window.__compare.info())
     if (!smoke && testCase.variant === 'ghostty-webgpu')
       assert(info.adapter?.fallback === false, 'Software WebGPU adapter rejected')

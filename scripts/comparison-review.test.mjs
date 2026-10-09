@@ -100,7 +100,7 @@ test('review 1: opt-out CPU samples are byte-identical to the pinned base golden
 })
 
 for (const expected of golden.artifacts) {
-  test(`review 1: opt-out ${expected.tracing ? 'trace' : 'normal'} artifact, compact, summaries and Markdown match base bytes`, async () => {
+  test(`review 1: opt-out ${expected.tracing ? 'trace' : 'normal'} artifact, compact, summaries and Markdown match golden bytes`, async () => {
     assert.equal(JSON.stringify(createArtifact(expected.tracing)), expected.runner)
     assert.equal(JSON.stringify(await compactEvidence(expected.artifact)), expected.compact)
     assert.equal(JSON.stringify(summaries(expected.artifact)), JSON.stringify(expected.summaries))

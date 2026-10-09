@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { measurementCases } from './comparison-options.mjs'
+import { summaries } from './comparison-report.mjs'
 
 const source = await readFile(new URL('./comparison-runner.mjs', import.meta.url), 'utf8')
 const start = source.indexOf('async function measureBody(')
@@ -23,7 +24,10 @@ const createMeasureBody = new Function(
   'args',
   'accessibility',
   'platform',
-  `return ${source.slice(start, end)}`,
+  'bindings',
+  `const { assert, memory, qualifyDisplay, selectedOutputFixture, outputFrames,
+    qualifiedWindow, measureCpu, manifest, cpuOptions } = bindings ?? {};
+   return ${source.slice(start, end)}`,
 )
 
 async function failureArtifacts(testCase, repetition, evidence) {
@@ -91,6 +95,129 @@ for (const [kind, prefix] of [
     assert.equal(new Set(names).size, 2)
   })
 }
+
+async function memoryCase(path, count, terminalBytes) {
+  const calls = []
+  const fixtureBytes = path === 'bytes' ? 5 * 1048576 : 8 * 1048576
+  let prepared = false
+  let terminals = false
+  let state = 'empty'
+  const window = {
+    __compare: {
+      initialize: async (testCase) => {
+        assert.equal(testCase.path, path)
+        assert.equal(testCase.count, count)
+        calls.push('initialize')
+        prepared = true
+      },
+      createTerminals: async () => {
+        assert(prepared, 'Inputs must be prepared before terminal creation')
+        calls.push('createTerminals')
+        terminals = true
+        state = 'initial'
+      },
+      info: () => ({}),
+      history: async () => {
+        state = 'history'
+        return Array(count).fill(10000)
+      },
+      correctness: async () => {},
+      burst: async () => {
+        assert(prepared, 'Prepared inputs must survive warmup and measured output')
+        state = 'output'
+        return { bytes: count * 4096 }
+      },
+    },
+  }
+  const page = {
+    on() {},
+    goto: async () => {},
+    waitForFunction: async () => {},
+    bringToFront: async () => {},
+    screenshot: async () => {},
+    evaluate: async (callback, argument) =>
+      new Function('window', 'argument', `return (${callback.toString()})(argument)`)(
+        window,
+        argument,
+      ),
+  }
+  const context = {
+    newPage: async () => page,
+    newCDPSession: async () => ({}),
+    close: async () => {},
+  }
+  const measureBody = createMeasureBody(
+    { newContext: async () => context },
+    false,
+    ['memory', 'output'],
+    { viewport: { width: 1, height: 1 }, dpr: 1 },
+    join(tmpdir(), 'comparison-memory-test'),
+    join,
+    undefined,
+    'http://localhost',
+    false,
+    [],
+    'on',
+    () => 'linux',
+    {
+      assert,
+      memory: async () => {
+        assert(prepared, 'Memory baseline must include prepared inputs')
+        calls.push(`memory/${state}`)
+        const multiplier = { empty: 0, initial: 1, history: 2, output: 3 }[state]
+        return {
+          heap: { usedSize: fixtureBytes + count * terminalBytes * multiplier },
+          wasmBytes: terminals ? 65536 : 0,
+          rssBytes: fixtureBytes * 2 + count * terminalBytes * multiplier,
+        }
+      },
+      qualifyDisplay: async () => ({ periods: [16], median: 16 }),
+      selectedOutputFixture: 'rolling-logs',
+      outputFrames: 4,
+      qualifiedWindow: async (_run, _label, operation) => operation(),
+      measureCpu: async (_session, operation) => ({
+        sample: await operation(),
+        cpu: { percentOfOneCore: 0 },
+      }),
+      manifest: { fixtures: [{ name: 'rolling-logs' }] },
+    },
+  )
+  const run = { variant: 'ghostty-dom', path, count }
+  const contexts = new Set()
+  await measureBody(run, 1, undefined, run, contexts)
+  assert.equal(run.error, undefined)
+  assert.equal(contexts.size, 0)
+  assert.deepEqual(calls, [
+    'initialize',
+    'memory/empty',
+    'createTerminals',
+    'memory/initial',
+    'memory/history',
+    'memory/output',
+  ])
+  return summaries({ runs: [run], phases: ['memory', 'output'] }).filter(({ metric }) =>
+    metric.startsWith('memory/'),
+  )
+}
+
+function assertMemory(rows, count, terminalBytes) {
+  const value = (metric) => rows.find((row) => row.metric === metric).median
+  assert.equal(value('memory/terminal'), terminalBytes / 1048576)
+  assert.equal(value('memory/10k'), terminalBytes / 1048576)
+  assert.equal(value('memory/output/terminal'), (3 * terminalBytes) / 1048576)
+  for (const [state, multiplier] of [
+    ['initial', 1],
+    ['history', 2],
+    ['output', 3],
+  ])
+    assert.equal(value(`memory/${state}/rss-delta`), (count * terminalBytes * multiplier) / 1048576)
+}
+
+for (const { path, count } of measurementCases(['ghostty-dom'], ['bytes', 'string'], [1, 8, 17], 0))
+  test(`${path} count${count} memory excludes preparation and prepares inputs once`, async () => {
+    for (const terminalBytes of [0, 1048576])
+      assertMemory(await memoryCase(path, count, terminalBytes), count, terminalBytes)
+  })
 
 for (const name of ['rolling-logs', 'rolling-slow'])
   test(`${name} reaches warmup, measured writes, and the artifact`, async () => {

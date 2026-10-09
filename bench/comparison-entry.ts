@@ -38,6 +38,7 @@ import {
   spotCheck,
   type ComparisonCase,
   type FixtureName,
+  type RollingFixture,
   type RollingFixtureName,
 } from './comparison-fixtures.js'
 
@@ -62,6 +63,13 @@ let native: GhosttyRuntime | undefined
 let legacy: Ghostty | undefined
 let current: ComparisonCase
 let logs = ''
+interface PreparedBurst {
+  fixture?: RollingFixture
+  chunks: readonly InputChunk[]
+  bytes: number
+  reset: InputChunk
+}
+let preparedBursts = new Map<FixtureName, PreparedBurst>()
 let keyTime = 0
 let socket: WebSocket | undefined
 let adapterInfo: unknown
@@ -263,8 +271,7 @@ function createXterm(host: HTMLElement): Driver {
   }
 }
 
-async function prepare(testCase: ComparisonCase): Promise<void> {
-  await initialize(testCase)
+async function createTerminals(): Promise<void> {
   const faces = [400, 700].map(
     (weight) => `${weight} ${settings.fontSize}px "${settings.fontFamily}"`,
   )
@@ -309,6 +316,28 @@ async function correctness(): Promise<unknown> {
 async function initialize(testCase: ComparisonCase): Promise<void> {
   current = testCase
   logs = await (await fetch('/logs.txt')).text()
+  // Keep prepared inputs reachable until disposal, including across warmup and counter windows.
+  preparedBursts = new Map()
+  const reset = input('\x1b[3J\x1b[2J\x1b[H')
+  for (const name of fixtureNames) {
+    if (isRollingFixture(name)) {
+      const fixture = rollingFixture(logs, settings.corpusBytes, settings.chunkBytes, name)
+      preparedBursts.set(name, {
+        fixture,
+        chunks: rollingInputs(fixture, current.path),
+        bytes: fixture.bytes.length,
+        reset,
+      })
+      continue
+    }
+    const text = corpus(fixtureText(name, logs), settings.chunkBytes)
+    const bytes = encoder.encode(text)
+    preparedBursts.set(name, {
+      chunks: [current.path === 'bytes' ? bytes : text],
+      bytes: bytes.length,
+      reset,
+    })
+  }
 }
 
 async function smokeParse(name: FixtureName, size: number = settings.chunkBytes): Promise<unknown> {
@@ -594,10 +623,11 @@ async function legacyOriginalUnicode(): Promise<unknown> {
 }
 
 async function rollingBurst(name: RollingFixtureName, steps: number): Promise<unknown> {
-  const fixture = rollingFixture(logs, settings.corpusBytes, settings.chunkBytes, name)
-  const chunks = rollingInputs(fixture, current.path)
+  const prepared = preparedBursts.get(name)
+  if (!prepared?.fixture) throw new TypeError('Rolling inputs must be prepared before measurement')
+  const { fixture, chunks, reset } = prepared
   let offset = 0
-  await writeAll('\x1b[3J\x1b[2J\x1b[H')
+  await Promise.all(drivers.map((driver) => driver.write(reset)))
   await settle()
   const before = drivers.map((driver) => driver.frameMetrics?.())
   const started = performance.now()
@@ -628,15 +658,23 @@ async function rollingBurst(name: RollingFixtureName, steps: number): Promise<un
 
 async function burst(name: FixtureName, steps: number): Promise<unknown> {
   if (isRollingFixture(name)) return rollingBurst(name, steps)
-  const text = corpus(fixtureText(name, logs), settings.chunkBytes)
-  await writeAll('\x1b[3J\x1b[2J\x1b[H')
+  const prepared = preparedBursts.get(name)
+  if (!prepared) throw new TypeError('Burst inputs must be prepared before measurement')
+  const { chunks, reset, bytes } = prepared
+  await Promise.all(drivers.map((driver) => driver.write(reset)))
   await settle()
   const started = performance.now()
-  const intervals = await pacedBurst(() => writeAll(text), frame, steps)
+  const intervals = await pacedBurst(
+    async () => {
+      await Promise.all(drivers.map((driver) => driver.write(chunks[0]!)))
+    },
+    frame,
+    steps,
+  )
   await settle()
   return {
     intervals,
-    bytes: encoder.encode(text).length * steps * drivers.length,
+    bytes: bytes * steps * drivers.length,
     milliseconds: performance.now() - started,
   }
 }
@@ -717,7 +755,7 @@ window.__compare = {
   legacyEmptyWrite,
   legacyOriginalUnicode,
   legacyWriteControl,
-  prepare,
+  createTerminals,
   correctness,
   parse,
   smokeParse,
@@ -749,6 +787,7 @@ window.__compare = {
     socket?.close()
     drivers.forEach((driver) => driver.dispose())
     drivers = []
+    preparedBursts.clear()
     native?.dispose()
   },
 }
@@ -760,7 +799,7 @@ declare global {
       legacyEmptyWrite: typeof legacyEmptyWrite
       legacyOriginalUnicode: typeof legacyOriginalUnicode
       legacyWriteControl: typeof legacyWriteControl
-      prepare: typeof prepare
+      createTerminals: typeof createTerminals
       correctness: typeof correctness
       parse: typeof parse
       burst: typeof burst

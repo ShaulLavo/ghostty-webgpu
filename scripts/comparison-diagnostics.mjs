@@ -12,7 +12,8 @@ export function legacyDiagnostic({ origin, testCase, method, ...options }) {
     result.phase = 'prepare'
     await page.goto(origin)
     await page.waitForFunction(() => Boolean(window.__compare))
-    await page.evaluate((testCase) => window.__compare.prepare(testCase), testCase)
+    await page.evaluate((testCase) => window.__compare.initialize(testCase), testCase)
+    await page.evaluate(() => window.__compare.createTerminals())
     result.phase = method
     return page.evaluate((method) => window.__compare[method](), method)
   })

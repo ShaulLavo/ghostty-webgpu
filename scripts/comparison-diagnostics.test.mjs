@@ -20,7 +20,8 @@ test(
     const server = createServer((_request, response) =>
       response.end(`<!doctype html><script>
     window.__compare = {
-      prepare: async () => {},
+      initialize: async () => {},
+      createTerminals: async () => {},
       legacyWriteControl: async () => ({ documentedTerminalApi: { accepted: true, calls: 35 } }),
       legacyOriginalUnicode: async () => {
         console.info('legacy-original-unicode', JSON.stringify({ api: 'documentedTerminalApi', call: 22, phase: 'before-write' }));
