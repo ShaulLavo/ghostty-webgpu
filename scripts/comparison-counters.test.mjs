@@ -81,6 +81,110 @@ test('native decimal strings subtract before converting to numbers and use ns an
   assert.equal(sample.channels.renderer.pEnergyJ, 0.4)
 })
 
+test('Mac cluster counts, IPC and instruction shares describe placement per process and channel', () => {
+  const sample = delta(
+    macSnapshot(),
+    macSnapshot({
+      ri_instructions: '9007199254740993400',
+      ri_cycles: '9007199254740993250',
+      ri_pinstructions: '400',
+      ri_pcycles: '200',
+    }),
+  )
+  for (const row of [sample.processes[0], sample.channels.renderer, sample.channels.allChrome]) {
+    assert.equal(row.eInstructions, 100)
+    assert.equal(row.eCycles, 150)
+    assert.equal(row.ipc, 1.6)
+    assert.equal(row.pIPC, 3)
+    assert.equal(row.eIPC, 2 / 3)
+    assert.equal(row.pInstructionShare, 0.75)
+    assert.equal(row.pCycleShare, 0.4)
+  }
+})
+
+test('cluster IPC uses summed counts, including both renderer and GPU processes', () => {
+  const first = macSnapshot()
+  first.processes[2] = structuredClone(first.processes[1])
+  const last = macSnapshot({
+    ri_instructions: '9007199254740993200',
+    ri_cycles: '9007199254740993200',
+    ri_pinstructions: '200',
+    ri_pcycles: '150',
+  })
+  last.processes[2] = structuredClone(last.processes[1])
+  last.processes[2].values.ri_instructions = '9007199254740993800'
+  last.processes[2].values.ri_cycles = '9007199254740993250'
+  last.processes[2].values.ri_pinstructions = '900'
+  last.processes[2].values.ri_pcycles = '300'
+  const processInfo = [
+    { id: 1, type: 'renderer' },
+    { id: 2, type: 'GPU' },
+  ]
+  const sample = counterDelta(
+    parseCounterSnapshot(first, metadata),
+    parseCounterSnapshot(last, metadata),
+    processInfo,
+    processInfo,
+  )
+  assert.equal(sample.channels.renderer.pIPC, 2)
+  assert.equal(sample.channels.GPU.pIPC, 4)
+  assert.equal(sample.channels.rendererPlusGPU.pIPC, 900 / 250)
+  assert.equal(sample.channels.allChrome.eIPC, 100 / 200)
+  assert.equal(sample.channels.allChrome.pInstructionShare, 0.9)
+  assert.equal(sample.channels.allChrome.pCycleShare, 250 / 450)
+})
+
+test('cluster counts remain unavailable when the total or P-core capability is missing', () => {
+  for (const missing of ['instructions', 'cycles', 'pInstructions', 'pCycles']) {
+    const info = {
+      ...metadata,
+      capabilities: { ...metadata.capabilities, [missing]: { available: false } },
+    }
+    const sample = delta(macSnapshot(), macSnapshot(), info)
+    assert.equal(sample.status, 'measured')
+    for (const row of [sample.processes[0], sample.channels.allChrome]) {
+      const count = missing.endsWith('Instructions') || missing === 'instructions'
+      assert.equal(row[count ? 'eInstructions' : 'eCycles'], null)
+      assert.equal(row.eIPC, null)
+      assert.equal(row[count ? 'pInstructionShare' : 'pCycleShare'], null)
+    }
+  }
+})
+
+test('empty clusters have zero counts and no IPC estimate', () => {
+  const zero = delta(macSnapshot(), macSnapshot())
+  for (const row of [zero.processes[0], zero.channels.allChrome]) {
+    assert.equal(row.eInstructions, 0)
+    assert.equal(row.eCycles, 0)
+    assert.equal(row.ipc, null)
+    assert.equal(row.pIPC, null)
+    assert.equal(row.eIPC, null)
+    assert.equal(row.pInstructionShare, null)
+    assert.equal(row.pCycleShare, null)
+  }
+  const onlyP = delta(
+    macSnapshot(),
+    macSnapshot({
+      ri_instructions: '9007199254740993100',
+      ri_cycles: '9007199254740993050',
+      ri_pinstructions: '200',
+      ri_pcycles: '150',
+    }),
+  )
+  assert.equal(onlyP.channels.allChrome.eIPC, null)
+  assert.equal(onlyP.channels.allChrome.pInstructionShare, 1)
+  assert.equal(onlyP.channels.allChrome.pCycleShare, 1)
+})
+
+test('P-core counts above their total reject coverage without clamping', () => {
+  for (const values of [{ ri_pinstructions: '101' }, { ri_pcycles: '101' }]) {
+    const sample = delta(macSnapshot(), macSnapshot(values))
+    assert.equal(sample.status, 'incomplete')
+    assert.match(sample.coverage.errors[0].reason, /P-core .* exceeds total/)
+    assert.equal(sample.channels.allChrome, undefined)
+  }
+})
+
 test('PID reuse, disappeared processes and native errors leave aggregate coverage incomplete', () => {
   for (const after of [
     macSnapshot({}, '99'),
@@ -175,6 +279,41 @@ test('hybrid perf counters sum P and E PMUs without scaling or pretending to mea
   assert.equal(sample.processes[0].pmus.cpu_atom.instructions, 0)
   assert.equal(sample.scope, 'user-space only')
   assert.equal(sample.cpuTickNs, 10000000)
+})
+
+test('Linux perf counters omit Mac-only ratios for full and asymmetric event coverage', () => {
+  const fields = [
+    'eInstructions',
+    'eCycles',
+    'ipc',
+    'pIPC',
+    'eIPC',
+    'pInstructionShare',
+    'pCycleShare',
+  ]
+  for (const [instructionShare, cycleShare] of [
+    [1, 1],
+    [1, 0.5],
+    [0.5, 1],
+  ]) {
+    const last = linuxSnapshot(1e9, 1e9)
+    const events = last.processes[1].values.pmus.cpu_core
+    events.instructions[0].value = String(1e9 * instructionShare)
+    events.instructions[0].runningNs = String(1e9 * instructionShare)
+    events.cycles[0].value = String(2e9 * cycleShare)
+    events.cycles[0].runningNs = String(1e9 * cycleShare)
+    const sample = delta(linuxSnapshot(0, 0), last, { source: 'perf_event_open' })
+    assert.equal(sample.status, 'measured')
+    assert.equal(sample.channels.allChrome.instructions, 1e9 * instructionShare)
+    assert.equal(sample.channels.allChrome.cycles, 2e9 * cycleShare)
+    assert.equal(sample.processes[0].clockAvailable, cycleShare === 1)
+    for (const row of [...sample.processes, ...Object.values(sample.channels)]) {
+      assert.deepEqual(
+        Object.keys(row).filter((field) => fields.includes(field)),
+        [],
+      )
+    }
+  }
 })
 
 test('CPU seconds and their acquisition brackets keep the existing arithmetic with optional counters', async () => {

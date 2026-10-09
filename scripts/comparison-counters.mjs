@@ -206,6 +206,27 @@ function perfDelta(before, after, cpuSeconds) {
   }
 }
 
+function clusterMetrics({ instructions, cycles, pInstructions = null, pCycles = null }) {
+  const remainder = (total, part, name) => {
+    if (total === null || part === null) return null
+    assert(part <= total, `P-core ${name} exceeds total ${name}`)
+    return total - part
+  }
+  const ratio = (numerator, denominator) =>
+    numerator !== null && denominator > 0 ? numerator / denominator : null
+  const eInstructions = remainder(instructions, pInstructions, 'instructions')
+  const eCycles = remainder(cycles, pCycles, 'cycles')
+  return {
+    eInstructions,
+    eCycles,
+    ipc: ratio(instructions, cycles),
+    pIPC: ratio(pInstructions, pCycles),
+    eIPC: ratio(eInstructions, eCycles),
+    pInstructionShare: ratio(pInstructions, instructions),
+    pCycleShare: ratio(pCycles, cycles),
+  }
+}
+
 function processDelta(before, after, metadata) {
   assert(before.identity === after.identity, 'PID start identity changed')
   assert(!after.exit, 'Process exited during the window')
@@ -242,7 +263,7 @@ function processDelta(before, after, metadata) {
     pCoreNs === null || pCoreNs - (userNs + systemNs) < 4,
     'P-core time exceeds total CPU time',
   )
-  return result
+  return { ...result, ...clusterMetrics(result) }
 }
 
 function channel(rows, metadata) {
@@ -258,19 +279,22 @@ function channel(rows, metadata) {
     )
   }
   const cpuSeconds = sum('cpuSeconds')
+  const instructions = sum('instructions')
   const cycles = sum('cycles')
   const pCoreSeconds = mac ? sum('pCoreSeconds') : null
+  const pInstructions = mac ? sum('pInstructions') : null
   const pCycles = mac ? sum('pCycles') : null
   const energyNj = mac ? sum('energyNj') : null
   const pEnergyNj = mac ? sum('pEnergyNj') : null
   const clockAvailable = rows.every((row) => row.clockAvailable !== false)
   return {
-    instructions: sum('instructions'),
+    instructions,
     cycles,
     cpuSeconds,
     pCoreSeconds,
-    pInstructions: mac ? sum('pInstructions') : null,
+    pInstructions,
     pCycles,
+    ...(mac ? clusterMetrics({ instructions, cycles, pInstructions, pCycles }) : {}),
     pCoreShare: pCoreSeconds !== null && cpuSeconds > 0 ? pCoreSeconds / cpuSeconds : null,
     effectiveClockGHz:
       clockAvailable && cycles !== null && cpuSeconds > 0 ? cycles / cpuSeconds / 1e9 : null,
@@ -381,6 +405,7 @@ export function counterDelta(before, after, cpuBefore, cpuAfter) {
       ? [
           'Kernel CPU energy estimate excludes GPU-device, display and non-Chrome power.',
           'Effective clock is a counter ratio.',
+          'Total cycles combine core classes with different IPC and instruction placement.',
           'Endpoint snapshots cannot detect processes born and gone between endpoints.',
         ]
       : [
