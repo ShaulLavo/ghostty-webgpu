@@ -1,4 +1,5 @@
 import type { AbiLayouts, BridgeWasmExports, GhosttyWasmExports } from './abi.js'
+import { runtimeWasmAssets } from './assets.js'
 import { CallbackBridge } from './bridge.js'
 import { createGhosttyError } from './error.js'
 import { readNodeFileUrl } from './file-url.js'
@@ -6,9 +7,6 @@ import { parseAbiLayouts, WasmMemory } from './memory.js'
 import { GhosttyRenderState } from './render-state.js'
 import { GhosttyTerminal } from './terminal.js'
 import type { DecodedPng, RuntimeOptions, TerminalOptions, WasmSource } from './types.js'
-
-const defaultWasm = new URL('../../ghostty-vt.wasm', import.meta.url)
-const defaultBridge = new URL('../../bridge.wasm', import.meta.url)
 
 async function readFileUrl(url: URL): Promise<ArrayBuffer> {
   try {
@@ -90,8 +88,8 @@ export class GhosttyRuntime {
 
   static async create(options: RuntimeOptions = {}): Promise<GhosttyRuntime> {
     const [wasmModule, bridgeModule] = await Promise.all([
-      compileSource(options.wasm ?? defaultWasm),
-      compileSource(options.bridge ?? defaultBridge),
+      compileSource(options.wasm ?? runtimeWasmAssets.native),
+      compileSource(options.bridge ?? runtimeWasmAssets.bridge),
     ])
     let wasmExports: GhosttyWasmExports | undefined
     const wasmInstance = await WebAssembly.instantiate(wasmModule, {

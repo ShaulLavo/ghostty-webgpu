@@ -13,10 +13,11 @@ import {
   variants,
 } from '../bench/comparison-fixtures'
 import {
+  assetMap,
   checkoutFiles,
   comparisonBuildArguments,
   framedInputHash,
-  runtimePatterns,
+  runtimeCheckoutFiles,
   runtimeSource,
   sha256 as hash,
   sourceInventory,
@@ -47,29 +48,33 @@ try {
     plugins: runtime.plugins,
   })
   assert(build.success, JSON.stringify(build.logs))
-  const assets = {
-    ...runtime.assets,
-    'legacy.wasm': join(dirname(require.resolve('ghostty-web')), 'ghostty-vt.wasm'),
-    'font.woff2':
-      require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2'),
-    'font-bold.woff2':
-      require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2'),
-    'font-license.txt': join(
-      dirname(require.resolve('@fontsource/jetbrains-mono/package.json')),
-      'LICENSE',
-    ),
-    'xterm.css': require.resolve('@xterm/xterm/css/xterm.css'),
-    'xterm.mjs': join(dirname(require.resolve('@xterm/xterm')), 'xterm.mjs'),
-    'addon-webgl.mjs': join(dirname(require.resolve('@xterm/addon-webgl')), 'addon-webgl.mjs'),
-    'ghostty-web.mjs': join(dirname(require.resolve('ghostty-web')), 'ghostty-web.js'),
-    '__vite-browser-external-2447137e.js': join(
-      dirname(require.resolve('ghostty-web')),
-      '__vite-browser-external-2447137e.js',
-    ),
-    'logs.txt': join(root, 'bench/fixtures/git-history.txt'),
-  }
+  const logsPath = join(root, 'bench/fixtures/git-history.txt')
+  const assets = assetMap([
+    ...Object.entries(runtime.assets),
+    ...Object.entries({
+      'legacy.wasm': join(dirname(require.resolve('ghostty-web')), 'ghostty-vt.wasm'),
+      'font.woff2':
+        require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2'),
+      'font-bold.woff2':
+        require.resolve('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-700-normal.woff2'),
+      'font-license.txt': join(
+        dirname(require.resolve('@fontsource/jetbrains-mono/package.json')),
+        'LICENSE',
+      ),
+      'xterm.css': require.resolve('@xterm/xterm/css/xterm.css'),
+      'xterm.mjs': join(dirname(require.resolve('@xterm/xterm')), 'xterm.mjs'),
+      'addon-webgl.mjs': join(dirname(require.resolve('@xterm/addon-webgl')), 'addon-webgl.mjs'),
+      'ghostty-web.mjs': join(dirname(require.resolve('ghostty-web')), 'ghostty-web.js'),
+      '__vite-browser-external-2447137e.js': join(
+        dirname(require.resolve('ghostty-web')),
+        '__vite-browser-external-2447137e.js',
+      ),
+      'logs.txt': logsPath,
+    }),
+  ])
   const hashes: Record<string, string> = {}
   for (const [name, path] of Object.entries(assets)) {
+    await mkdir(dirname(join(output, name)), { recursive: true })
     await copyFile(path, join(output, name))
     hashes[name] = hash(await readFile(path))
   }
@@ -96,7 +101,7 @@ try {
     await copyFile(join(root, 'scripts', name), join(output, name))
     hashes[name] = hash(await readFile(join(output, name)))
   }
-  const logs = await readFile(assets['logs.txt'], 'utf8')
+  const logs = await readFile(logsPath, 'utf8')
   const fixtures = fixtureNames.map((name) => {
     const text = corpus(fixtureText(name, logs), settings.corpusBytes)
     const chunks = isRollingFixture(name)
@@ -155,7 +160,7 @@ try {
   )
   if (!ref)
     assert.equal(
-      (await sourceInventory(root, checkoutFiles(root, runtimePatterns))).sha256,
+      (await sourceInventory(root, await runtimeCheckoutFiles(root))).sha256,
       runtime.inventory.sha256,
       'Runtime inputs changed during the build; rebuild from stable inputs',
     )

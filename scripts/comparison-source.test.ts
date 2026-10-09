@@ -35,6 +35,15 @@ test('path and content boundaries distinguish inventories with equal unframed by
   expect(await comparisonSourceHash(root)).not.toBe(before)
 })
 
+test('staged and unstaged source deletions produce the same current-file provenance', async () => {
+  const before = await comparisonSourceHash(root)
+  await rm(join(root, 'src/a.ts'))
+  const deleted = await comparisonSourceHash(root)
+  expect(deleted).not.toBe(before)
+  execFileSync('git', ['add', '--all', 'src'], { cwd: root })
+  expect(await comparisonSourceHash(root)).toBe(deleted)
+})
+
 test('an archived runtime omits checkout provenance when tracked source is absent', async () => {
   execFileSync(
     'git',

@@ -1,3 +1,4 @@
+import { runtimeWasmAssets } from '../../core/assets.js'
 import { createGhosttyError } from '../../core/error.js'
 import type { StampStorage } from './stamp-cache.js'
 
@@ -86,7 +87,7 @@ export class ComposeKernel implements StampStorage {
 
   static async create(): Promise<ComposeKernel> {
     try {
-      const response = await fetch(new URL('../../../canvas-compose.wasm', import.meta.url))
+      const response = await fetch(runtimeWasmAssets.canvasCompose)
       if (!response.ok) throw createGhosttyError('canvas.load', 'Canvas compositor download failed')
       const { instance } = await WebAssembly.instantiate(await response.arrayBuffer())
       return new ComposeKernel(instance.exports as unknown as ComposeExports)
