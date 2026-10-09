@@ -75,7 +75,7 @@ describe.each(['main', 'worker'] as const)('packaged links %s', (mode) => {
     const activations: string[] = []
     const { root, terminal } = await open(mode, (uri) => activations.push(uri))
     await terminal.write('\x1b]8;;https://native-only.test/owned\x07Native label\x1b]8;;\x07')
-    await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.trimEnd()).toBe('Native label')
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('Native label')
     await expect(terminal.focusNextLink()).resolves.toBe(true)
     const overlay = root.querySelector<HTMLElement>('[role="link"]')!
     expect(overlay.getAttribute('aria-label')).toBe('Native label')
@@ -102,7 +102,7 @@ describe.each(['main', 'worker'] as const)('packaged links %s', (mode) => {
     })
     expect(typeof registration.token).toBe('symbol')
     await terminal.write('Host label')
-    await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.trimEnd()).toBe('Host label')
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('Host label')
     await expect(terminal.focusNextLink()).resolves.toBe(true)
     const overlay = root.querySelector<HTMLElement>('[role="link"]')!
     overlay.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
@@ -135,7 +135,7 @@ function move(terminal: TerminalApi, column = 0) {
 
 async function writeLabel(terminal: TerminalApi, text = 'Host label') {
   await terminal.write(`\r${text}`)
-  await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.trimEnd()).toBe(text)
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe(text)
 }
 
 function linkRequests(calls: readonly (readonly unknown[])[]) {
@@ -472,9 +472,7 @@ describe('packaged worker link authority transport', () => {
         '\x1b]8;;https://producer-native.test/owned\x07Producer label\x1b]8;;\x07',
       )
       channel.port1.postMessage({ ...identity, type: 'output', sequence: 1, data }, [data.buffer])
-      await expect
-        .poll(() => terminal.submittedFrame?.rows[0]?.text.trimEnd())
-        .toBe('Producer label')
+      await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('Producer label')
       await expect(terminal.focusNextLink()).resolves.toBe(true)
       root
         .querySelector<HTMLElement>('[role="link"]')!
@@ -506,7 +504,7 @@ describe.each(['main', 'worker'] as const)('packaged provider failures %s', (mod
 it('captures owned native OSC8 cell metadata for one packaged worker hover', async () => {
   const { root, terminal } = await open('worker', () => {})
   await terminal.write('\x1b]8;;https://snapshot-native.test/owned\x07Host label\x1b]8;;\x07')
-  await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.trimEnd()).toBe('Host label')
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('Host label')
   const original = MessagePort.prototype.postMessage
   const captured = deferred<NativeLinkSnapshot>()
   const transport = vi.spyOn(MessagePort.prototype, 'postMessage').mockImplementation(function (

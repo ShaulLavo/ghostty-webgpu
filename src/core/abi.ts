@@ -757,6 +757,37 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     dirtyOnly: number,
     snapshot: number,
   ): number
+  bridge_create_retained_frame(columns: number, rows: number): number
+  bridge_destroy_retained_frame(handle: number): void
+  bridge_capture_retained_frame(
+    handle: number,
+    baseline: number,
+    full: number,
+    state: number,
+    iterator: number,
+    cells: number,
+    tagShift: number,
+    styleShift: number,
+    styleWidth: number,
+  ): number
+  bridge_read_retained_text(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    snapshot: number,
+  ): number
+  bridge_read_retained_rows(
+    state: number,
+    iterator: number,
+    cells: number,
+    mask: number,
+    maskLength: number,
+    dirtyOnly: number,
+    snapshot: number,
+  ): number
   bridge_build_frame(
     state: number,
     iterator: number,

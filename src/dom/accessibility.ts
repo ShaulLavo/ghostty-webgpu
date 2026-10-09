@@ -1,5 +1,10 @@
 import type { TerminalScrollbar } from '../core/types.js'
-import type { RendererTextFrameRow, RendererTextFrameSnapshot } from '../render/renderer.js'
+import type { RendererTextFrameSnapshot } from '../render/renderer.js'
+import type { TerminalSubmittedRow } from './submitted-frame.js'
+
+type AccessibilitySnapshot = Pick<RendererTextFrameSnapshot, 'cursor' | 'paintedCursor'> & {
+  readonly rows: readonly TerminalSubmittedRow[]
+}
 
 export interface TerminalAccessibilityOptions {
   readonly label?: string
@@ -24,7 +29,7 @@ export interface TerminalAccessibilityController {
   dispose(): void
   notifyOutput(): void
   update(
-    snapshot: RendererTextFrameSnapshot,
+    snapshot: AccessibilitySnapshot,
     scrollbar: Readonly<TerminalScrollbar>,
     submittedOutput?: boolean,
   ): TerminalAccessibilityUpdate
@@ -41,7 +46,7 @@ interface PreviousFrame {
   readonly length: number
   readonly offset: number
   readonly rows: readonly AccessibilityRow[]
-  readonly snapshot: RendererTextFrameSnapshot
+  readonly snapshot: AccessibilitySnapshot
   readonly total: number
 }
 
@@ -116,7 +121,7 @@ function restoreAttribute(element: Element, name: string, value: string | null):
   element.setAttribute(name, value)
 }
 
-function normalizedRowText(row: RendererTextFrameRow): string {
+function normalizedRowText(row: TerminalSubmittedRow): string {
   return row.text.trimEnd()
 }
 
@@ -129,7 +134,7 @@ function ariaPosition(offset: number, y: number): string {
 }
 
 function normalizeRows(
-  rows: readonly RendererTextFrameRow[],
+  rows: readonly TerminalSubmittedRow[],
   scrollbar: Readonly<TerminalScrollbar>,
 ): readonly AccessibilityRow[] {
   const normalized = rows.map((row) => {
@@ -160,7 +165,7 @@ function frameByIdentity(rows: readonly AccessibilityRow[]): ReadonlyMap<string,
 }
 
 function previousFrame(
-  snapshot: RendererTextFrameSnapshot,
+  snapshot: AccessibilitySnapshot,
   rows: readonly AccessibilityRow[],
   scrollbar: Readonly<TerminalScrollbar>,
 ): PreviousFrame {
@@ -199,7 +204,7 @@ function changedOutput(previous: PreviousFrame, rows: readonly AccessibilityRow[
 }
 
 function cursorCoordinates(
-  snapshot: RendererTextFrameSnapshot,
+  snapshot: AccessibilitySnapshot,
   scrollbar: Readonly<TerminalScrollbar>,
 ): { readonly column: string; readonly row: string; readonly viewportRow: number } | undefined {
   const viewport = snapshot.cursor.viewport
@@ -263,7 +268,7 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
   }
 
   update(
-    snapshot: RendererTextFrameSnapshot,
+    snapshot: AccessibilitySnapshot,
     scrollbar: Readonly<TerminalScrollbar>,
     submittedOutput?: boolean,
   ): TerminalAccessibilityUpdate {
@@ -336,7 +341,7 @@ class OwnedTerminalAccessibility implements TerminalAccessibilityController {
   }
 
   private updateCursor(
-    snapshot: RendererTextFrameSnapshot,
+    snapshot: AccessibilitySnapshot,
     scrollbar: Readonly<TerminalScrollbar>,
     rows: readonly AccessibilityRow[],
   ): void {

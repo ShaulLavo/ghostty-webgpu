@@ -42,8 +42,13 @@ export class FrameCoordinator implements RenderSchedulerClock {
 
   submit(frame: FrameSubmission): void {
     if (!this.active) {
-      frame.device.queue.submit([frame.command])
-      frame.commit()
+      try {
+        frame.device.queue.submit([frame.command])
+        frame.commit()
+      } catch (cause) {
+        frame.failed(cause)
+        return
+      }
       frame.notify()
       return
     }
@@ -87,7 +92,15 @@ export class FrameCoordinator implements RenderSchedulerClock {
       if (result.kind === 'submitted') submitted.push(...result.frames)
       else failures.push(...result.frames.map((frame) => ({ frame, cause: result.cause })))
     }
-    const committed = submitted.filter((frame) => this.invoke(() => frame.commit()))
+    const committed = submitted.filter((frame) => {
+      try {
+        frame.commit()
+        return true
+      } catch (cause) {
+        failures.push({ frame, cause })
+        return false
+      }
+    })
     for (const failure of failures) this.invoke(() => failure.frame.failed(failure.cause))
     for (const frame of committed) this.invoke(() => frame.notify())
     this.flush()

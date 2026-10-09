@@ -25,9 +25,16 @@ export interface TerminalSubmittedFrame {
     | { readonly [Key in keyof SelectionCoordinates]: Readonly<SelectionCoordinates[Key]> }
     | undefined
   readonly scrollbar: Readonly<TerminalScrollbar>
+}
+
+export interface TerminalSubmittedText {
+  readonly frame: number
   readonly rows: readonly TerminalSubmittedRow[]
   readonly rowPatches: readonly TerminalSubmittedRow[]
 }
+
+/** Internal renderer publication; GPU row access materializes retained native text. */
+export interface TerminalSubmittedSnapshot extends TerminalSubmittedFrame, TerminalSubmittedText {}
 
 export interface TerminalSubmission {
   readonly nativeRevision: number
@@ -40,12 +47,14 @@ export interface TerminalSubmission {
   readonly selection: Readonly<SelectionCoordinates> | undefined
   readonly scrollbar: Readonly<TerminalScrollbar>
   readonly snapshot: RendererTextFrameSnapshot
+  readonly previousTextRows?: () => readonly TerminalSubmittedRow[]
 }
 
 export function submittedFrame(
-  previous: TerminalSubmittedFrame | undefined,
+  previous: TerminalSubmittedSnapshot | undefined,
   input: TerminalSubmission,
-): TerminalSubmittedFrame {
+): TerminalSubmittedSnapshot {
+  if (input.previousTextRows) return retainedSubmittedFrame(previous, input)
   const rowPatches: TerminalSubmittedRow[] = []
   const sameLayout = previous?.layout === input.layout
   const previousRows = sameLayout ? previous.rows : []
@@ -83,5 +92,65 @@ export function submittedFrame(
     scrollbar: Object.freeze({ ...input.scrollbar }),
     rows: Object.freeze(rows),
     rowPatches: Object.freeze(rowPatches),
+  })
+}
+
+function retainedSubmittedFrame(
+  previous: TerminalSubmittedSnapshot | undefined,
+  input: TerminalSubmission,
+): TerminalSubmittedSnapshot {
+  const sameLayout = previous?.layout === input.layout
+  const eagerPreviousRows = sameLayout && !input.previousTextRows ? previous.rows : []
+  let rows: readonly TerminalSubmittedRow[] | undefined
+  let rowPatches: readonly TerminalSubmittedRow[] | undefined
+  const materialize = () => {
+    if (rows) return
+    const patches: TerminalSubmittedRow[] = []
+    const previousRows = sameLayout ? (input.previousTextRows?.() ?? eagerPreviousRows) : []
+    rows = Object.freeze(
+      input.snapshot.rows.map((row) => {
+        const old = previousRows[row.y]
+        if (old?.y === row.y && old.text === row.text) return old
+        const owned = Object.freeze({ y: row.y, text: row.text })
+        patches.push(owned)
+        return owned
+      }),
+    )
+    rowPatches = Object.freeze(patches)
+  }
+  if (!input.previousTextRows) materialize()
+  const viewport = input.snapshot.cursor.viewport
+  return Object.freeze({
+    frame: (previous?.frame ?? 0) + 1,
+    nativeRevision: input.nativeRevision,
+    snapshotVersion: input.snapshotVersion,
+    layout: input.layout,
+    grid: Object.freeze({ ...input.grid }),
+    font: input.font,
+    padding: Object.freeze({ ...input.padding }),
+    theme: input.theme,
+    cursor: Object.freeze({
+      ...input.snapshot.cursor,
+      viewport: viewport ? Object.freeze({ ...viewport }) : undefined,
+    }),
+    paintedCursor: input.snapshot.paintedCursor
+      ? Object.freeze({ ...input.snapshot.paintedCursor })
+      : undefined,
+    selection: input.selection
+      ? Object.freeze({
+          ...input.selection,
+          start: Object.freeze({ ...input.selection.start }),
+          end: Object.freeze({ ...input.selection.end }),
+        })
+      : undefined,
+    scrollbar: Object.freeze({ ...input.scrollbar }),
+    get rows() {
+      materialize()
+      return rows!
+    },
+    get rowPatches() {
+      materialize()
+      return rowPatches!
+    },
   })
 }

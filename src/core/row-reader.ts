@@ -1,17 +1,17 @@
 import { PACKED_CELL_WORDS, PACKED_ROW_WORDS, PackedCells } from './packed-cells.js'
-import { SnapshotReader } from './snapshot-reader.js'
+import { SnapshotReader, type ExtractSnapshot } from './snapshot-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { ReadRowsOptions, RenderRow, TerminalSize } from './types.js'
 
 export class RowReader {
   private readonly snapshots: SnapshotReader
 
-  constructor(runtime: GhosttyRuntime) {
+  constructor(runtime: GhosttyRuntime, extract?: ExtractSnapshot) {
     this.snapshots = new SnapshotReader(runtime, {
       rowWords: PACKED_ROW_WORDS,
       cellWords: PACKED_CELL_WORDS,
       operation: 'bridge_read_rows',
-      extract: (...args) => runtime.bridge.readRows(...args),
+      extract: extract ?? ((...args) => runtime.bridge.readRows(...args)),
     })
   }
 

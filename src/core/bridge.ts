@@ -197,6 +197,46 @@ export class CallbackBridge {
     )
   }
 
+  createRetainedFrame(columns: number, rows: number): number {
+    return this.bridgeExports!.bridge_create_retained_frame(columns, rows)
+  }
+
+  destroyRetainedFrame(handle: number): void {
+    this.bridgeExports!.bridge_destroy_retained_frame(handle)
+  }
+
+  captureRetainedFrame(
+    handle: number,
+    baseline: number,
+    full: number,
+    state: number,
+    iterator: number,
+    cells: number,
+    tagShift: number,
+    styleShift: number,
+    styleWidth: number,
+  ): number {
+    return this.bridgeExports!.bridge_capture_retained_frame(
+      handle,
+      baseline,
+      full,
+      state,
+      iterator,
+      cells,
+      tagShift,
+      styleShift,
+      styleWidth,
+    )
+  }
+
+  readRetainedText(...args: Parameters<BridgeWasmExports['bridge_read_retained_text']>): number {
+    return this.bridgeExports!.bridge_read_retained_text(...args)
+  }
+
+  readRetainedRows(...args: Parameters<BridgeWasmExports['bridge_read_retained_rows']>): number {
+    return this.bridgeExports!.bridge_read_retained_rows(...args)
+  }
+
   buildFrame(
     state: number,
     iterator: number,

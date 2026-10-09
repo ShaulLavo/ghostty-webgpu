@@ -1,4 +1,4 @@
-import { SnapshotReader } from './snapshot-reader.js'
+import { SnapshotReader, type ExtractSnapshot } from './snapshot-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { ReadTextRowsOptions, RenderTextRow, TerminalSize } from './types.js'
 
@@ -109,12 +109,12 @@ export class TextRowReader {
   private readonly decoder = new TextDecoder()
   private asciiBytes: Uint8Array = new Uint8Array(0)
 
-  constructor(runtime: GhosttyRuntime) {
+  constructor(runtime: GhosttyRuntime, extract?: ExtractSnapshot) {
     this.snapshots = new SnapshotReader(runtime, {
       rowWords,
       cellWords,
       operation: 'bridge_read_text_rows',
-      extract: (...args) => runtime.bridge.readTextRows(...args),
+      extract: extract ?? ((...args) => runtime.bridge.readTextRows(...args)),
     })
   }
 

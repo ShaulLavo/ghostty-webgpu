@@ -1,6 +1,6 @@
 import type { LocalTerminalExecution } from '../dom/execution-local.js'
 import type { TerminalElementPadding } from '../dom/elements.js'
-import type { TerminalSubmittedFrame } from '../dom/submitted-frame.js'
+import type { TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
 import type { RendererTextFrameSnapshot } from '../render/renderer.js'
 import type { InactiveCursorStyle } from '../render/cursor.js'
 import type {
@@ -51,7 +51,7 @@ interface WorkerSubmission extends WorkerWatermarks {
   readonly type: 'frame'
   readonly mouseTracking: boolean
   readonly base: number
-  readonly summary: TerminalSubmittedFrame
+  readonly summary: TerminalSubmittedSnapshot
   readonly snapshot: RendererTextFrameSnapshot
 }
 

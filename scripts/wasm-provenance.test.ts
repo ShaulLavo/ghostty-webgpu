@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, posix } from 'node:path'
 import { expect, it } from 'vitest'
 import { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from '../src/core/version.js'
 import { sha256, WASM_BUILD_INPUTS } from './wasm-provenance.js'
@@ -40,5 +40,17 @@ it('binds the checked-in WASMs to the official pin and reproducible build inputs
         sha256(new Uint8Array(section)),
       ),
     )
+  }
+})
+
+it('records every local bridge module as a reproducible build input', async () => {
+  const root = join(import.meta.dirname, '..')
+  for (const path of WASM_BUILD_INPUTS) {
+    if (!path.endsWith('.zig')) continue
+    const source = await readFile(join(root, path), 'utf8')
+    for (const match of source.matchAll(/@import\("([^"]+\.zig)"\)/gu)) {
+      const dependency = posix.join(posix.dirname(path), match[1]!)
+      expect(WASM_BUILD_INPUTS, dependency).toContain(dependency)
+    }
   }
 })

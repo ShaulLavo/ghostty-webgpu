@@ -1,7 +1,7 @@
 import { Terminal, attachTerminalHotkeys } from 'ghostty-webgpu'
 
 export async function mountEcho(host: HTMLElement) {
-  const terminal = await Terminal.create()
+  const terminal = await Terminal.create({ accessibility: {} })
   const { r, g, b } = terminal.appearance.theme.background
   host.style.backgroundColor = `rgb(${r}, ${g}, ${b})`
   attachTerminalHotkeys(terminal)

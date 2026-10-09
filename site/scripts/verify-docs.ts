@@ -38,12 +38,20 @@ try {
             .evaluate((host) => getComputedStyle(host).backgroundColor !== 'rgba(0, 0, 0, 0)'),
           'Echo terminal needs an opaque background for readable text',
         )
+        const screen = page
+          .locator('[data-docs-terminal]')
+          .getByRole('list', { name: 'Terminal screen' })
+        await screen
+          .getByRole('listitem')
+          .filter({ hasText: 'Hello from Ghostty.' })
+          .waitFor({ state: 'attached' })
         await page
           .getByRole('textbox', { name: 'Terminal input' })
           .pressSequentially('docs-echo-check')
-        await page.waitForFunction(() =>
-          document.querySelector('[data-docs-terminal]')?.textContent?.includes('docs-echo-check'),
-        )
+        await screen
+          .getByRole('listitem')
+          .filter({ hasText: 'docs-echo-check' })
+          .waitFor({ state: 'attached' })
       }
       assert(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -78,7 +86,13 @@ try {
   await writeFile(
     `${directory}/verification.json`,
     JSON.stringify(
-      { url: root.href, widths: [1440, 390], pages: paths, errors, search: 'scrollback' },
+      {
+        url: root.href,
+        widths: [1440, 390],
+        pages: paths,
+        errors,
+        search: 'scrollback',
+      },
       null,
       2,
     ),

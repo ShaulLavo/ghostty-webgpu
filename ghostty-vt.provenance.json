@@ -43,12 +43,13 @@
     ],
     "inputs": {
       "scripts/build-wasm.ts": "91442f6b080a347aed96e61a7c592576102e9a82851d93013aba30f050847302",
-      "scripts/bridge.zig": "168bf2ce262e379045475c43b8f0094bd8b69628d94f40887edafcf241209e1f",
+      "scripts/bridge.zig": "9521435aca981aee862458d80a5045318091dc227d2aa0481948c8870b76370d",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
+      "scripts/retained-frame.zig": "1fb304d94a0ee7fb346af3f26c8c25e969c2d28c68bf1304bc9e0eb55cf67c24",
       "scripts/glyph-index.zig": "f34cf29a9cb11923b35d027b2f93fac017485d6abd43352cc27ef0fc89d524b3",
       "scripts/unknown-osc.zig": "99b6aa177a66bb6df934a8c16d17ebcb5488f15946600e1df52bf6d10a77b5d7",
       "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
-      "scripts/wasm-provenance.ts": "13519101ee21dfcdcc596b525c8541c0e2ee94f816094f3a08965f9f51a74569",
+      "scripts/wasm-provenance.ts": "d80276ceba1f05b74fbc1099041163278635b97fabfcae93b96b9e8b019ef14f",
       "src/core/version.ts": "a9f9166ef443f4fa2b0b2d43385802bad9efe4825d996cad0b7efa5db107d6fb"
     }
   },
@@ -59,8 +60,8 @@
       "nameSectionSha256": []
     },
     "bridge.wasm": {
-      "bytes": 17241,
-      "sha256": "284dfac3f2ecc934644d6f9a1bde8cad1e62edeb6f12d4570107232ecd393b88",
+      "bytes": 20910,
+      "sha256": "74678d4ec589054a0dada75eaed431742c67e40d33abf4b6b50d8674f3a42679",
       "nameSectionSha256": []
     }
   }

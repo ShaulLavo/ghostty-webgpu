@@ -30,7 +30,7 @@ Save the example as `terminal.ts`. Call `mountEcho` with your terminal element f
 
 <Code code={sample} lang='ts' title='terminal.ts' />
 
-The example sets the host background to the terminal theme's color so text stays readable on a light page.
+The example enables the screen-reader text mirror with `accessibility: {}`. It sets the host background to the terminal theme's color so text stays readable on a light page.
 
 `create` loads the wasm core. `open` mounts the host. `onData` emits bytes ready for a PTY; this example writes them back to show input immediately.
 

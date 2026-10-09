@@ -56,6 +56,15 @@ comptime {
     @export(&snapshot.readRows, .{ .name = "bridge_read_rows" });
 }
 
+const retained = @import("retained-frame.zig");
+comptime {
+    @export(&retained.create, .{ .name = "bridge_create_retained_frame" });
+    @export(&retained.destroy, .{ .name = "bridge_destroy_retained_frame" });
+    @export(&retained.capture, .{ .name = "bridge_capture_retained_frame" });
+    @export(&retained.readText, .{ .name = "bridge_read_retained_text" });
+    @export(&retained.readRows, .{ .name = "bridge_read_retained_rows" });
+}
+
 const std = @import("std");
 
 const c = @cImport({

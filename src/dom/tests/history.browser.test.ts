@@ -34,8 +34,9 @@ describe('built native history API in Chromium', () => {
       }
       const terminal =
         mode === 'main'
-          ? await Terminal.create({ appearance })
+          ? await Terminal.create({ accessibility: {}, appearance })
           : await WorkerTerminal.create({
+              accessibility: {},
               appearance,
               fonts: [
                 {

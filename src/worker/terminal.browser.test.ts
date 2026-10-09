@@ -45,12 +45,13 @@ async function eventually(condition: () => boolean | Promise<boolean>): Promise<
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
-async function create(mode: 'main' | 'webgpu' | 'webgl') {
+async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = false) {
   const appearance = { font: { family, size: 16 }, cursor: { blink: false } }
   if (mode === 'main') {
     const face = await new FontFace(family, `url(${JSON.stringify(fontUrl)})`).load()
     document.fonts.add(face)
     const terminal = await MainTerminal.create({
+      accessibility: enableAccessibility ? {} : false,
       appearance,
       runtime: { kind: 'owned', options: assets },
       rendererFactory: (options) => WebGlTerminalRenderer.create(options),
@@ -59,6 +60,7 @@ async function create(mode: 'main' | 'webgpu' | 'webgl') {
     return terminal
   }
   const terminal = await WorkerTerminal.create({
+    accessibility: enableAccessibility ? {} : false,
     appearance,
     backend: mode,
     fonts: [{ family, source: { url: fontUrl } }],
@@ -638,7 +640,8 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s shared await-style termi
     const summary = terminal.submittedFrame!
     expect(Object.isFrozen(summary)).toBe(true)
     expect(Object.isFrozen(summary.grid)).toBe(true)
-    expect(Object.isFrozen(summary.rows)).toBe(true)
+    expect(summary).not.toHaveProperty('rows')
+    expect(Object.isFrozen(terminal.visibleLines())).toBe(true)
     expect(summary.font.settings.family).toBe(family)
     expect(summary.grid.cellWidth).toBe(summary.font.cssCellWidth)
     expect(summary.grid.cellHeight).toBe(summary.font.cssCellHeight)
@@ -1265,7 +1268,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s review atomic host', (mo
   })
 
   it('announces atomic output through the enabled accessibility live region', async () => {
-    const terminal = await create(mode)
+    const terminal = await create(mode, true)
     const root = container()
     await terminal.open(root)
     const mirror = root.querySelector('[role="list"][aria-label="Terminal screen"]')!
@@ -1438,6 +1441,7 @@ describe.each(['webgl', 'webgpu'] as const)('%s ordered output accessibility', (
     '$operation retains output intent across a pre-output refresh submission for $label',
     async ({ operation, following }) => {
       const terminal = await WorkerTerminal.create({
+        accessibility: {},
         appearance: { font: { family, size: 16 }, cursor: { blink: false } },
         backend,
         fonts: [{ family, source: { url: fontUrl } }],
@@ -1489,6 +1493,7 @@ describe.each(['webgl', 'webgpu'] as const)('%s producer output accessibility', 
     'announces %s producer output once per submitted advance',
     async (ordering) => {
       const terminal = await WorkerTerminal.create({
+        accessibility: {},
         appearance: { font: { family, size: 16 }, cursor: { blink: false } },
         backend,
         fonts: [{ family, source: { url: fontUrl } }],

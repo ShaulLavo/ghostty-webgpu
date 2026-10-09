@@ -1,3 +1,8 @@
+import {
+  observeDisplayedFrame,
+  displayedFrameListener,
+  type DisplayedTextFrame,
+} from '../../render/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -55,9 +60,11 @@ async function fixture() {
           ...options,
           deviceFactory: () =>
             Promise.reject(new WebGpuUnavailableError('adapter', 'No supported adapter')),
-          onTextFrame: (snapshot) => {
-            observations.frames += 1
-            options.onTextFrame?.(snapshot)
+          ...{
+            [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => {
+              observations.frames += 1
+              displayedFrameListener(options)?.(snapshot)
+            },
           },
         },
         signal,

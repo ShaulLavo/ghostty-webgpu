@@ -46,7 +46,11 @@ export const Terminal = Object.freeze({
 })
 export { TerminalWorkerError } from './structured-errors.js'
 export type { TerminalApi, TerminalResult } from '../dom/terminal-api.js'
-export type { TerminalSubmittedFrame } from '../dom/submitted-frame.js'
+export type {
+  TerminalSubmittedFrame,
+  TerminalSubmittedRow,
+  TerminalSubmittedText,
+} from '../dom/submitted-frame.js'
 export type {
   TerminalOutputMessage,
   TerminalOutputReady,

@@ -190,4 +190,8 @@ export type {
   TerminalInputModes,
   TerminalInputConnection,
 } from './dom/types.js'
-export type { TerminalSubmittedFrame, TerminalSubmittedRow } from './dom/submitted-frame.js'
+export type {
+  TerminalSubmittedFrame,
+  TerminalSubmittedRow,
+  TerminalSubmittedText,
+} from './dom/submitted-frame.js'

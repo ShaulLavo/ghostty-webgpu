@@ -9,6 +9,7 @@ export const WASM_BUILD_INPUTS = [
   'scripts/build-wasm.ts',
   'scripts/bridge.zig',
   'scripts/snapshot.zig',
+  'scripts/retained-frame.zig',
   'scripts/glyph-index.zig',
   'scripts/unknown-osc.zig',
   'scripts/ghostty-source.ts',

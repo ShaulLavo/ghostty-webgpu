@@ -80,7 +80,11 @@ export class RowTerminalRenderer {
       columns: options.columns,
       rows: options.rows,
     })
-    this.frames = new FrameObserver(options)
+    this.frames = new FrameObserver(
+      options.retainDisplayedText
+        ? { ...options, retainDisplayedText: false, needsFrameRows: () => true }
+        : options,
+    )
     this.renderState = options.renderState
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)

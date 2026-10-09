@@ -6,7 +6,7 @@ import type { ReadTextRowsOptions, TerminalSize } from './types.js'
 // Text packets append a codepoint mask; paint packets leave the last word unused.
 const headerBytes = 40
 
-type ExtractSnapshot = (
+export type ExtractSnapshot = (
   state: number,
   iterator: number,
   cells: number,

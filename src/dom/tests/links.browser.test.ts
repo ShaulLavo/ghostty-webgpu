@@ -151,14 +151,14 @@ describe('link cursor writes', () => {
     await terminal.open(root)
     expect(terminal.diagnostics.rendererBackend).toBe('dom')
     terminal.write('ready')
-    await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.startsWith('ready')).toBe(true)
+    await expect.poll(() => terminal.visibleLines()[0]?.startsWith('ready')).toBe(true)
     const writes = observeCursorWrites(terminal.canvas!)
     const counts: number[] = []
     for (let tick = 0; tick < 8; tick += 1) {
       const before = writes.mock.calls.length
       const text = `edit ${tick}`
       terminal.write(`\u001b[H${text}`)
-      await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.startsWith(text)).toBe(true)
+      await expect.poll(() => terminal.visibleLines()[0]?.startsWith(text)).toBe(true)
       counts.push(writes.mock.calls.length - before)
     }
     expect(counts).toEqual(Array<number>(8).fill(0))
@@ -542,7 +542,7 @@ it('renders and activates a real native OSC link in the main terminal', async ()
   terminal.write(
     'OSC 8: \u001b]8;;https://native.test\u0007Native link label\u001b]8;;\u0007\r\nBuilt-in URL: https://text.test',
   )
-  await expect.poll(() => terminal.submittedFrame?.rows[0]?.text.startsWith('OSC 8:')).toBe(true)
+  await expect.poll(() => terminal.visibleLines()[0]?.startsWith('OSC 8:')).toBe(true)
   await expect(terminal.focusNextLink()).resolves.toBe(true)
   const overlay = root.querySelector<HTMLElement>('[role="link"]')!
   expect(overlay.getAttribute('aria-label')).toBe('Native link label')

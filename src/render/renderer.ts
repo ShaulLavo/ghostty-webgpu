@@ -1,7 +1,7 @@
 import { FrameCoordinator } from './frame-coordinator.js'
 import { DeviceOwner, type DeviceLease } from './device-owner.js'
 import { createGhosttyError } from '../core/error.js'
-import { FrameObserver } from './frame-observer.js'
+import { FrameObserver, type PreparedFrame } from './frame-observer.js'
 import { RenderStateDirty } from '../core/abi.js'
 import type { ZigFrameBuilder } from '../core/zig-frame.js'
 import { buildZigFrame } from './atlas/zig-glyphs.js'
@@ -109,6 +109,7 @@ export interface WebGpuTerminalRendererOptions {
   onTextFrame?: (snapshot: RendererTextFrameSnapshot) => void
   /** Return false for cursor-only snapshots; row data resumes with the full viewport. */
   needsFrameRows?: () => boolean
+  retainDisplayedText?: boolean
   /** Painted row IDs without requesting cell data. */
   onRowsChanged?: (rows: readonly number[]) => void
   onRowsPainted?: (rows: readonly RenderRow[]) => void
@@ -617,16 +618,22 @@ export class WebGpuTerminalRenderer {
           ? this.renderState.readRows({ packed: true })
           : this.rowsToRebuild(damage)
       }
-      if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-      this.recordFrame(rebuiltRows, operations)
-      this.metrics.zigFrames += 1
-      this.needsFullRebuild = false
-      this.frameFailed = false
-      this.overlayRows.clear()
-      this.emitFrame(
+      const frame = this.captureFrame(
         rows,
         updates.map((update) => update.row),
       )
+      try {
+        if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+        this.recordFrame(rebuiltRows, operations)
+        this.metrics.zigFrames += 1
+        this.needsFullRebuild = false
+        this.frameFailed = false
+        this.overlayRows.clear()
+        frame?.accept()
+      } finally {
+        frame?.discard()
+      }
+      frame?.notify()
       return
     }
     let command: GPUCommandBuffer
@@ -642,39 +649,37 @@ export class WebGpuTerminalRenderer {
       rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
     }
     const textPass = this.textPass
-    let notifyFrame: (() => void) | undefined
+    let frame: PreparedFrame | undefined
     this.coordinator.submit({
       owner: this,
       device: this.device,
       command,
       commit: () => {
         if (this.disposed) return
-        textPass.acceptFrame()
-        if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-        this.recordFrame(rebuiltRows, operations)
-        this.metrics.zigFrames += 1
-        this.needsFullRebuild = false
-        this.frameFailed = false
-        this.overlayRows.clear()
-        if (this.cursor)
-          notifyFrame = this.frames.capture(
-            this.renderState,
-            this.cursor,
-            renderCursorState(
-              this.cursor,
-              this.cursorPhaseVisible,
-              this.focused ? undefined : this.inactiveCursorStyle,
-            ),
-            updates.map((update) => update.row),
-            rows,
-          )
+        frame = this.captureFrame(
+          rows,
+          updates.map((update) => update.row),
+        )
+        try {
+          textPass.acceptFrame()
+          if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+          this.recordFrame(rebuiltRows, operations)
+          this.metrics.zigFrames += 1
+          this.needsFullRebuild = false
+          this.frameFailed = false
+          this.overlayRows.clear()
+          frame?.accept()
+        } finally {
+          frame?.discard()
+        }
       },
       notify: () => {
-        if (!this.disposed) notifyFrame?.()
+        if (!this.disposed) frame?.notify()
       },
       failed: (cause) => {
+        const retry = !this.frameFailed
         this.reportFrameFailure(cause)
-        this.scheduler.schedule()
+        if (retry && !this.disposed) this.scheduler.schedule()
       },
     })
   }
@@ -695,12 +700,12 @@ export class WebGpuTerminalRenderer {
     this.overlayRows.add(row)
   }
 
-  private emitFrame(
+  private captureFrame(
     rows: readonly RenderRow[] | undefined,
     changed = rows?.map((row) => row.y) ?? [],
-  ): void {
+  ): PreparedFrame | undefined {
     if (!this.cursor) return
-    this.frames.emit(
+    return this.frames.capture(
       this.renderState,
       this.cursor,
       renderCursorState(

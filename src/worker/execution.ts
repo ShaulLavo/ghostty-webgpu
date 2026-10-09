@@ -1,6 +1,6 @@
 import type { LocalTerminalExecution } from '../dom/execution-local.js'
 import type { TerminalElements } from '../dom/elements.js'
-import type { TerminalSubmittedFrame } from '../dom/submitted-frame.js'
+import type { TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
 import type { RendererTextFrameSnapshot } from '../render/renderer.js'
 import { EventEmitter } from '../term/events.js'
 import {
@@ -59,7 +59,7 @@ export class WorkerTerminalExecution {
   private submittedProducerOutput = 0
   private nextId = 0
   private state?: WorkerState
-  private summary?: TerminalSubmittedFrame
+  private summary?: TerminalSubmittedSnapshot
   private projection?: RendererTextFrameSnapshot
   private disposed = false
   private disposePromise?: Promise<void>
@@ -164,7 +164,7 @@ export class WorkerTerminalExecution {
   get revision() {
     return this.confirmed().revision
   }
-  get submittedFrame(): TerminalSubmittedFrame | undefined {
+  get submittedFrame(): TerminalSubmittedSnapshot | undefined {
     return this.summary
   }
   get linkProjection(): LinkProjection | undefined {

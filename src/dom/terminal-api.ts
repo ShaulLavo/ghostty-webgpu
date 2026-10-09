@@ -22,7 +22,7 @@ import type {
   TerminalMutationResult,
   TerminalTheme,
 } from '../term/types.js'
-import type { TerminalSubmittedFrame } from './submitted-frame.js'
+import type { TerminalSubmittedFrame, TerminalSubmittedText } from './submitted-frame.js'
 import type {
   GhosttyWebGpuTerminalDiagnostics,
   GhosttyWebGpuTerminalEventType,
@@ -69,6 +69,7 @@ export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
   focusNextLink(): Promise<boolean>
   registerLinkProvider(provider: LinkProvider<Event>): LinkProviderRegistration
   setAccessibilityEnabled(enabled: boolean): boolean
+  onText(listener: (text: TerminalSubmittedText) => void): GhosttyWebGpuTerminalSubscription
   visibleLines(): readonly string[]
 
   geometry(): TerminalResult<Mode, TerminalGeometry>

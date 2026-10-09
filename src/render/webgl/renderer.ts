@@ -1,5 +1,5 @@
 import { createGhosttyError } from '../../core/error.js'
-import { FrameObserver } from '../frame-observer.js'
+import { FrameObserver, type PreparedFrame } from '../frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
@@ -424,18 +424,24 @@ export class WebGlTerminalRenderer {
     if (this.frames.requiresFullRows) {
       rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
     }
-    if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-    if (operations > 0) {
-      this.recordFrame(pass, builder.rowRebuilds, operations)
-      this.metrics.zigFrames += 1
-    }
-    this.needsFullRebuild = false
-    this.frameFailed = false
-    this.overlayRows.clear()
-    this.emitFrame(
+    const frame = this.captureFrame(
       rows,
       updates.map((update) => update.row),
     )
+    try {
+      if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+      if (operations > 0) {
+        this.recordFrame(pass, builder.rowRebuilds, operations)
+        this.metrics.zigFrames += 1
+      }
+      this.needsFullRebuild = false
+      this.frameFailed = false
+      this.overlayRows.clear()
+      frame?.accept()
+    } finally {
+      frame?.discard()
+    }
+    frame?.notify()
   }
 
   private rowsToRebuild(damage: RenderStateDirty): readonly RenderRow[] {
@@ -516,12 +522,12 @@ export class WebGlTerminalRenderer {
     this.metrics.uploadedBytes += pass.frameUploadedBytes
   }
 
-  private emitFrame(
+  private captureFrame(
     rows: readonly RenderRow[] | undefined,
     changed = rows?.map((row) => row.y) ?? [],
-  ): void {
+  ): PreparedFrame | undefined {
     if (!this.cursor) return
-    this.frames.emit(
+    return this.frames.capture(
       this.renderState,
       this.cursor,
       renderCursorState(

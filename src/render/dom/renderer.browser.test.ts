@@ -503,6 +503,7 @@ describe('DOM terminal renderer', () => {
         font: { family: 'monospace', size: 16 },
         cursor: { blink: false },
       },
+      accessibility: {},
       links: { activateUri: (uri) => void activations.push(uri) },
     })
     cleanups.push(() => terminal.dispose())

@@ -44,6 +44,11 @@ async function validateWasm(path: string): Promise<void> {
   for (const name of [
     'bridge_read_rows',
     'bridge_read_text_rows',
+    'bridge_create_retained_frame',
+    'bridge_destroy_retained_frame',
+    'bridge_capture_retained_frame',
+    'bridge_read_retained_text',
+    'bridge_read_retained_rows',
     'bridge_build_frame',
     'bridge_register_glyph',
     'bridge_create_glyph_index',

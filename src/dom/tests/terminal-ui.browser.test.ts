@@ -1,3 +1,9 @@
+import {
+  observeDisplayedFrame,
+  displayedFrameListener,
+  type DisplayedFrameOptions,
+  type DisplayedTextFrame,
+} from '../../render/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -27,7 +33,7 @@ import {
 } from '../accessibility.js'
 import { createDomClipboardPolicyAdapter } from '../clipboard.js'
 import { fitTerminalFont, type TerminalFitController } from '../fit.js'
-import type { TerminalSubmittedFrame } from '../submitted-frame.js'
+import type { TerminalSubmittedFrame, TerminalSubmittedText } from '../submitted-frame.js'
 import { createDomLinkController, type DomLinkController } from '../links.js'
 import type { CommittedPointerLayout } from '../pointer.js'
 import { createTerminalScrollbar, type TerminalScrollbarClock } from '../scrollbar.js'
@@ -354,7 +360,7 @@ async function createIntegratedHarness(
     rendererFactory: async (rendererOptions) => {
       const canvas = rendererOptions.canvas
       if (!(canvas instanceof HTMLCanvasElement)) throw new TypeError('Expected an HTML canvas')
-      renderer = new FrameRenderer(canvas, rendererOptions.onTextFrame, rendererOptions)
+      renderer = new FrameRenderer(canvas, displayedFrameListener(rendererOptions), rendererOptions)
       return renderer
     },
     runtime: { kind: 'borrowed', runtime },
@@ -382,6 +388,7 @@ async function createObservedRendererHarness(
   readonly renderState: RenderStateSource
   readonly terminal: Terminal
   readRowsCalls(): number
+  readRetainedRowsCalls(): number
   readTextRowsCalls(): number
   updateCalls(): number
 }> {
@@ -389,6 +396,8 @@ async function createObservedRendererHarness(
   const snapshots: RendererTextFrameSnapshot[] = []
   let renderState: RenderStateSource | undefined
   let renderer: WebGpuTerminalRenderer | WebGlTerminalRenderer | undefined
+  const retainedRows = vi.spyOn(runtime.bridge, 'readRetainedRows')
+  cleanups.push(() => retainedRows.mockRestore())
   let readRowsCalls = () => 0
   let readTextRowsCalls = () => 0
   let updateCalls = () => 0
@@ -413,16 +422,16 @@ async function createObservedRendererHarness(
         readTextRows.mockRestore()
         update.mockRestore()
       })
-      const observedOptions: WebGpuTerminalRendererOptions = {
+      const observedOptions: WebGpuTerminalRendererOptions & DisplayedFrameOptions = {
         ...rendererOptions,
         onCleanUpdate: () => {
           beforeCleanUpdate?.()
           rendererOptions.onCleanUpdate?.()
           afterCleanUpdate?.()
         },
-        onTextFrame: (snapshot) => {
+        [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => {
           snapshots.push(snapshot)
-          rendererOptions.onTextFrame?.(snapshot)
+          displayedFrameListener(rendererOptions)?.(snapshot)
           if (renderer) afterTextFrame?.(terminal, renderer)
         },
       }
@@ -435,6 +444,7 @@ async function createObservedRendererHarness(
     runtime: { kind: 'borrowed', runtime },
   })
   cleanups.push(() => terminal.dispose())
+  terminal.onText(() => {})
   const font = fitTerminalFont(document, terminal.appearance.font, window.devicePixelRatio)
   const grid = terminal.appearance.grid
   host.style.width = `${Math.ceil(font.cssCellWidth * grid.columns + 12)}px`
@@ -449,6 +459,7 @@ async function createObservedRendererHarness(
     renderState,
     terminal,
     readRowsCalls,
+    readRetainedRowsCalls: () => retainedRows.mock.calls.length,
     readTextRowsCalls,
     updateCalls,
   }
@@ -1413,7 +1424,8 @@ describe('terminal frame consumer demand in Chromium', () => {
       expect(harness.terminal.visibleLines()[0]?.trimEnd()).toBe('ABC')
       expect(harness.readTextRowsCalls()).toBe(textReads)
       const full = harness.terminal.frameSnapshot()!
-      expect(harness.readRowsCalls()).toBe(1)
+      expect(harness.readRowsCalls()).toBe(0)
+      expect(harness.readRetainedRowsCalls()).toBe(1)
       expect(full.rows[0]?.renderCells[0]).toMatchObject({
         text: 'A',
         foreground: { r: 12, g: 34, b: 56 },
@@ -1424,7 +1436,8 @@ describe('terminal frame consumer demand in Chromium', () => {
       harness.terminal.write(`${escape}[2J${escape}[Hnew output`)
       await settleTerminal(harness.terminal)
       expect(harness.host.querySelector('[role="listitem"]')?.textContent).toBe('new output')
-      expect(harness.readRowsCalls()).toBe(1)
+      expect(harness.readRowsCalls()).toBe(0)
+      expect(harness.readRetainedRowsCalls()).toBe(1)
       expect(harness.readTextRowsCalls()).toBeGreaterThan(textReads)
       harness.terminal.dispose()
 
@@ -1461,10 +1474,12 @@ describe('terminal frame consumer demand in Chromium', () => {
       expect(harness.snapshots.length).toBe(textFrames + 1)
       expect(harness.snapshots.at(-1)?.rows[0]?.text.trimEnd()).toBe('B')
       expect(harness.readTextRowsCalls()).toBeGreaterThan(textReads)
-      expect(harness.readRowsCalls()).toBe(1)
+      expect(harness.readRowsCalls()).toBe(0)
+      expect(harness.readRetainedRowsCalls()).toBe(1)
       expect(harness.terminal.visibleLines()[0]?.trimEnd()).toBe('B')
       expect(harness.host.querySelector('[role="listitem"]')?.textContent).toBe('B')
       expect(harness.terminal.frameSnapshot()?.rows[0]?.text.trimEnd()).toBe('B')
+      expect(harness.readRetainedRowsCalls()).toBe(2)
       expect(retained.rows[0]?.text.trimEnd()).toBe('A')
       expect(retainedText.rows[0]?.text.trimEnd()).toBe('A')
       expect(changedRows.at(-1)).toEqual([0])
@@ -1486,7 +1501,7 @@ describe('terminal frame consumer demand in Chromium', () => {
       harness.terminal.write('old row\r\nsecond row')
       await settleTerminal(harness.terminal)
       const before = harness.terminal.submittedFrame!
-      const beforeText = before.rows.map((row) => row.text)
+      const beforeText = harness.terminal.visibleLines()
       const caret = harness.terminal.textarea!.style.left
       harness.terminal.selectRange({ x: 0, y: 0 }, { x: 2, y: 0 })
       harness.terminal.setFont({ size: before.font.settings.size + 2 })
@@ -1503,9 +1518,9 @@ describe('terminal frame consumer demand in Chromium', () => {
       expect(after.font.settings.size).toBe(before.font.settings.size + 2)
       expect(after.grid.cellWidth).toBe(after.font.cssCellWidth)
       expect(after.cursor.viewport).toMatchObject({ x: 3, y: 0 })
-      expect(after.rows[0]?.text.trimEnd()).toBe('new')
-      expect(harness.terminal.visibleLines()).toEqual(after.rows.map((row) => row.text))
-      expect(before.rows.map((row) => row.text)).toEqual(beforeText)
+      expect(harness.terminal.visibleLines()[0]?.trimEnd()).toBe('new')
+      expect(harness.terminal.visibleLines()).not.toEqual(beforeText)
+      expect(beforeText[0]?.trimEnd()).toBe('old row')
       expect(harness.terminal.captureViewport()).toBeDefined()
     },
   )
@@ -1522,6 +1537,7 @@ describe('terminal frame consumer demand in Chromium', () => {
     async (backend, change) => {
       const observations: Array<{
         readonly summary: TerminalSubmittedFrame
+        readonly text: readonly string[]
         readonly font: TerminalFittedFont
         readonly grid: RendererGridSize
         readonly caretLeft: number
@@ -1536,6 +1552,7 @@ describe('terminal frame consumer demand in Chromium', () => {
         (terminal, renderer) => {
           observations.push({
             summary: terminal.submittedFrame!,
+            text: terminal.visibleLines(),
             font: Reflect.get(renderer, 'font') as TerminalFittedFont,
             grid: Reflect.get(renderer, 'grid') as RendererGridSize,
             caretLeft: Number.parseFloat(terminal.textarea!.style.left),
@@ -1580,7 +1597,7 @@ describe('terminal frame consumer demand in Chromium', () => {
         expect(after.grid.rows).not.toBe(before.grid.rows)
       }
       if (change === 'padding') expect(after.padding.left).toBe(1)
-      for (const { summary, font, grid, caretLeft, caretTop, paddingLeft } of observations) {
+      for (const { summary, text, font, grid, caretLeft, caretTop, paddingLeft } of observations) {
         expect(summary.font, `frame ${summary.frame}`).toEqual(font)
         expect(summary.grid).toMatchObject({
           cellHeight: font.cssCellHeight,
@@ -1590,8 +1607,8 @@ describe('terminal frame consumer demand in Chromium', () => {
           rows: grid.rows,
         })
         expect(summary.scrollbar.length).toBe(grid.rows)
-        expect(summary.rows).toHaveLength(grid.rows)
-        expect(summary.rows[0]?.text.trimEnd()).toBe('resize font probe')
+        expect(text).toHaveLength(grid.rows)
+        expect(text[0]?.trimEnd()).toBe('resize font probe')
         expect(summary.padding.left).toBe(paddingLeft)
         expect(caretLeft).toBe(paddingLeft + (summary.cursor.viewport?.x ?? 0) * font.cssCellWidth)
         expect(caretTop).toBe(
@@ -1607,14 +1624,18 @@ describe('terminal frame consumer demand in Chromium', () => {
     'patches owned submitted row text without styled-cell reads (%s)',
     async (backend) => {
       const harness = await createObservedRendererHarness({}, backend)
+      let text: TerminalSubmittedText | undefined
+      harness.terminal.onText((value) => {
+        text = value
+      })
       harness.terminal.write('first\r\nsecond')
       await settleTerminal(harness.terminal)
-      const before = harness.terminal.submittedFrame!
+      const before = text!
       harness.terminal.write(`${escape}[1;1HX`)
       await settleTerminal(harness.terminal)
-      const after = harness.terminal.submittedFrame!
+      const after = text!
       expect(after.rowPatches.map((row) => row.y)).toEqual([0])
-      expect(after.rows[1]).toBe(before.rows[1])
+      expect(after.rows[1]).toEqual(before.rows[1])
       expect(before.rows[0]?.text.trimEnd()).toBe('first')
       expect(after.rows[0]?.text.trimEnd()).toBe('Xirst')
       expect(Object.isFrozen(after.rowPatches[0])).toBe(true)
@@ -1694,7 +1715,7 @@ describe('terminal frame consumer demand in Chromium', () => {
       expect(harness.snapshots.at(-1)?.rows).toHaveLength(
         harness.terminal.submittedFrame!.grid.rows,
       )
-      const renderingReads = harness.readRowsCalls()
+      const renderingReads = harness.readRetainedRowsCalls()
       const updates = harness.updateCalls()
 
       harness.terminal.write(`${escape}[2J${escape}[Hreplacement`)
@@ -1703,7 +1724,7 @@ describe('terminal frame consumer demand in Chromium', () => {
       const retainedRows = structuredClone(retained.rows)
 
       expect(harness.updateCalls()).toBe(updates)
-      expect(harness.readRowsCalls()).toBe(renderingReads + 1)
+      expect(harness.readRetainedRowsCalls()).toBe(renderingReads + 1)
       expect(harness.readTextRowsCalls()).toBe(harness.snapshots.length)
       expect(visible[0]?.trimEnd()).toBe('A界B')
       expect(retained.rows.map((row) => row.renderCells)).toEqual(expectedCells)
@@ -1717,9 +1738,9 @@ describe('terminal frame consumer demand in Chromium', () => {
       expect(Object.isFrozen(retained.rows[0]?.renderCells[0]?.style)).toBe(true)
 
       await settleTerminal(harness.terminal)
-      expect(harness.readRowsCalls()).toBe(renderingReads + 1)
+      expect(harness.readRetainedRowsCalls()).toBe(renderingReads + 1)
       expect(harness.terminal.visibleLines()[0]?.trimEnd()).toBe('replacement')
-      expect(harness.readRowsCalls()).toBe(renderingReads + 1)
+      expect(harness.readRetainedRowsCalls()).toBe(renderingReads + 1)
       expect(harness.readTextRowsCalls()).toBe(harness.snapshots.length)
       harness.terminal.write(`${escape}[2J${escape}[Hlater`)
       await settleTerminal(harness.terminal)
@@ -1875,7 +1896,7 @@ describe('terminal frame consumer demand in Chromium', () => {
     expect(retained.rows[0]?.text.trimEnd()).toBe('old')
   })
 
-  it('declines lazy hydration when unpainted native state has replaced the last captured state', async () => {
+  it('hydrates the retained displayed frame while newer native state is unpainted', async () => {
     const harness = await createObservedRendererHarness()
     harness.terminal.write('old')
     await settleTerminal(harness.terminal)
@@ -1885,7 +1906,10 @@ describe('terminal frame consumer demand in Chromium', () => {
     harness.terminal.write(`${escape}[2J${escape}[Hnew output`)
     harness.renderState.update()
 
-    expect(harness.terminal.frameSnapshot()).toBeUndefined()
+    const retained = harness.terminal.frameSnapshot()!
+    expect(retained.rows[0]?.text.trimEnd()).toBe('old')
+    expect(retained.cursor.viewport).toMatchObject({ x: 3, y: 0 })
+    expect(harness.readRetainedRowsCalls()).toBe(1)
     expect(harness.terminal.visibleLines()[0]?.trimEnd()).toBe('old')
     expect(harness.terminal.captureViewport()).toBeUndefined()
     expect(harness.readRowsCalls()).toBe(0)
@@ -1894,6 +1918,7 @@ describe('terminal frame consumer demand in Chromium', () => {
 
     expect(harness.terminal.visibleLines()[0]?.trimEnd()).toBe('new output')
     expect(harness.terminal.frameSnapshot()?.cursor.viewport).toMatchObject({ x: 10, y: 0 })
+    expect(retained.rows[0]?.text.trimEnd()).toBe('old')
   })
 
   it('hydrates accessibility from owned submitted rows and keeps later summary patches when disabled', async () => {
@@ -2306,8 +2331,8 @@ describe('integrated terminal UI host', () => {
       rendererFactory: async (options) => {
         const canvas = options.canvas
         if (!(canvas instanceof HTMLCanvasElement)) throw new TypeError('Expected an HTML canvas')
-        options.onTextFrame?.(frame([text, '', '', '']))
-        renderer = new FrameRenderer(canvas, options.onTextFrame, options)
+        displayedFrameListener(options)?.(frame([text, '', '', '']))
+        renderer = new FrameRenderer(canvas, displayedFrameListener(options), options)
         return renderer
       },
       runtime: { kind: 'borrowed', runtime },
@@ -2550,6 +2575,7 @@ describe('integrated terminal UI host', () => {
     const host = appendRoot(360, 100)
     let providerText: string | undefined
     const terminal = await Terminal.create({
+      accessibility: {},
       appearance: {
         cursor: { blink: false },
         grid: { columns: 12, rows: 2 },
@@ -2593,7 +2619,7 @@ describe('integrated terminal UI host', () => {
       rendererFactory: async (options) => {
         const canvas = options.canvas
         if (!(canvas instanceof HTMLCanvasElement)) throw new TypeError('Expected an HTML canvas')
-        return new FrameRenderer(canvas, options.onTextFrame, options)
+        return new FrameRenderer(canvas, displayedFrameListener(options), options)
       },
       runtime: { kind: 'borrowed', runtime },
     })
@@ -2633,6 +2659,7 @@ describe('integrated terminal UI host', () => {
     })
     let renderer: FrameRenderer | undefined
     const terminal = await Terminal.create({
+      accessibility: {},
       appearance: {
         cursor: { blink: false },
         grid: { columns: 20, rows: 3 },
@@ -2640,7 +2667,7 @@ describe('integrated terminal UI host', () => {
       rendererFactory: async (options) => {
         const canvas = options.canvas
         if (!(canvas instanceof HTMLCanvasElement)) throw new TypeError('Expected an HTML canvas')
-        renderer = new FrameRenderer(canvas, options.onTextFrame, options)
+        renderer = new FrameRenderer(canvas, displayedFrameListener(options), options)
         return renderer
       },
       runtime: { kind: 'borrowed', runtime },
