@@ -51,7 +51,8 @@ async function readClearColor(device: GPUDevice): Promise<Uint8Array> {
   const pass = encoder.beginRenderPass({
     colorAttachments: [
       {
-        clearValue: { a: 1, b: 0.75, g: 0.5, r: 0.25 },
+        // UNORM endpoints remain exact for both rounded and truncated conversions.
+        clearValue: { a: 1, b: 1, g: 1, r: 0 },
         loadOp: 'clear',
         storeOp: 'store',
         view: texture.createView(),
@@ -73,7 +74,7 @@ it('creates a WebGPU device, submits a frame, and reads pixels back', async () =
   const device = await createDevice()
   const pixels = await readClearColor(device)
 
-  expect([...pixels]).toEqual([64, 128, 191, 255])
+  expect([...pixels]).toEqual([0, 255, 255, 255])
   device.destroy()
 })
 
