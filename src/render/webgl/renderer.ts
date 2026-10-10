@@ -27,6 +27,7 @@ import type {
 } from '../renderer.js'
 import { RenderScheduler } from '../scheduler.js'
 import { WebGlTextPass } from './text-pass.js'
+import { WebGlUnavailableError } from './unavailable.js'
 
 type ContextState =
   | { readonly kind: 'ready'; readonly pass: WebGlTextPass }
@@ -36,13 +37,6 @@ type ContextState =
 
 export interface WebGlTerminalRendererOptions extends WebGpuTerminalRendererOptions {
   onContextLost?: () => void
-}
-
-export class WebGlUnavailableError extends Error {
-  constructor(message = 'Unable to create a WebGL2 canvas context') {
-    super(message)
-    this.name = 'WebGlUnavailableError'
-  }
 }
 
 function requireContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGL2RenderingContext {

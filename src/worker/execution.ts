@@ -22,6 +22,7 @@ import type {
   WorkerMessage,
   WorkerState,
   WorkerLayout,
+  WorkerCanvasReplacement,
 } from './protocol.js'
 import { TerminalWorkerError, workerError } from './structured-errors.js'
 import { freezeWorkerValue } from './owned.js'
@@ -64,6 +65,7 @@ export class WorkerTerminalExecution {
   private disposed = false
   private disposePromise?: Promise<void>
   private failure?: TerminalWorkerError
+  private elements?: TerminalElements
   private frameListener?: (snapshot: RendererTextFrameSnapshot) => void
 
   private constructor(options: WorkerExecutionOptions) {
@@ -245,6 +247,10 @@ export class WorkerTerminalExecution {
 
   private receive(message: WorkerMessage): void {
     if (message?.terminal !== this.terminal || message.generation !== this.generation) return
+    if (message.type === 'replaceCanvas') {
+      this.replaceCanvas()
+      return
+    }
     if (message.type === 'fatal') {
       this.fail(new TerminalWorkerError(message.failure))
       return
@@ -317,9 +323,37 @@ export class WorkerTerminalExecution {
   }
 
   open(elements: TerminalElements, layout: WorkerLayout): Promise<TerminalFittedFont> {
+    this.elements = elements
     const canvas = elements.canvas.transferControlToOffscreen()
     return this.request('open', [canvas, layout], [canvas]).then(readOpeningFont)
   }
+  private replaceCanvas(): void {
+    if (this.disposed) return
+    const elements = this.elements
+    if (!elements?.replaceCanvas) {
+      this.fail(workerError('capability', 'renderer.canvas', { replaceCanvas: false }))
+      return
+    }
+    try {
+      elements.signal.throwIfAborted()
+      const canvas = elements.replaceCanvas().transferControlToOffscreen()
+      const message: WorkerCanvasReplacement = {
+        type: 'canvas',
+        terminal: this.terminal,
+        generation: this.generation,
+        canvas,
+      }
+      // Canvas ownership replies bypass the native command queue awaiting this replacement.
+      this.port.postMessage(message, [canvas])
+    } catch (cause) {
+      this.fail(
+        workerError('capability', 'renderer.canvas', {
+          causeType: cause instanceof Error ? cause.name : typeof cause,
+        }),
+      )
+    }
+  }
+
   layout(layout: WorkerLayout): Promise<void> {
     return this.request('layout', [layout])
   }
@@ -478,6 +512,7 @@ export class WorkerTerminalExecution {
     this.port.close()
     for (const emitter of this.emitters.values()) emitter.dispose()
     this.frameListener = undefined
+    this.elements = undefined
     this.outputControls.clear()
     this.summary = undefined
     this.projection = undefined

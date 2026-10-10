@@ -1,5 +1,11 @@
 import '../../../dist/worker/entry.js'
 
+Object.defineProperty(navigator, 'platform', { configurable: true, value: 'MacIntel' })
+Object.defineProperty(navigator, 'userAgentData', {
+  configurable: true,
+  value: { platform: 'macOS' },
+})
+
 const parameters = new URL(import.meta.url).searchParams
 const channelName = parameters.get('channel')!
 const channel = new BroadcastChannel(channelName)

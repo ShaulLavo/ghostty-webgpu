@@ -1,3 +1,4 @@
+import { WebGlUnavailableError } from './unavailable.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../instances/layout.js'
@@ -35,7 +36,7 @@ function positiveInteger(name: string, value: number): void {
 function maximumInteger(context: WebGL2RenderingContext, parameter: number): number {
   const value: unknown = context.getParameter(parameter)
   if (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) return value
-  throw new Error('WebGL did not provide a valid resource limit')
+  throw new WebGlUnavailableError('limits', 'WebGL did not provide a valid resource limit')
 }
 
 function validateOptions(options: WebGlTextPassOptions): void {
@@ -49,9 +50,9 @@ function validateOptions(options: WebGlTextPassOptions): void {
   const textureLimit = maximumInteger(context, context.MAX_TEXTURE_SIZE)
   const layerLimit = maximumInteger(context, context.MAX_ARRAY_TEXTURE_LAYERS)
   if (options.atlasLayout.layerCount > layerLimit)
-    throw new RangeError('Atlas exceeds WebGL layers')
+    throw new WebGlUnavailableError('limits', 'Atlas exceeds WebGL layers')
   if (Math.max(options.atlasLayout.pageWidth, options.atlasLayout.pageHeight) > textureLimit) {
-    throw new RangeError('Atlas exceeds WebGL texture dimensions')
+    throw new WebGlUnavailableError('limits', 'Atlas exceeds WebGL texture dimensions')
   }
 }
 
@@ -207,7 +208,7 @@ export class WebGlTextPass {
   }
 
   private own<T>(resource: T | null, release: (resource: T) => void): T {
-    if (!resource) throw new Error('WebGL resource allocation failed')
+    if (!resource) throw new WebGlUnavailableError('allocation', 'WebGL resource allocation failed')
     this.cleanup.push(() => release(resource))
     return resource
   }
@@ -396,6 +397,8 @@ export class WebGlTextPass {
   private assertNoError(operation: string): void {
     const code = this.context.getError()
     if (code === this.context.NO_ERROR) return
+    if (code === this.context.OUT_OF_MEMORY || code === this.context.CONTEXT_LOST_WEBGL)
+      throw new WebGlUnavailableError('allocation', `${operation} failed with WebGL error ${code}`)
     throw new Error(`${operation} failed with WebGL error ${code}`)
   }
 }

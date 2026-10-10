@@ -129,10 +129,16 @@ type WorkerEvent = {
     readonly state: WorkerState
   }
 }[Exclude<keyof TerminalSessionEventMap, 'renderRequest'>]
+export interface WorkerCanvasReplacement extends WorkerIdentity {
+  readonly type: 'canvas'
+  readonly canvas: OffscreenCanvas
+}
+
 export type WorkerMessage =
   | WorkerReply
   | WorkerEvent
   | WorkerSubmission
+  | (WorkerWatermarks & { readonly type: 'replaceCanvas' })
   | (WorkerWatermarks & {
       readonly type: 'fatal'
       readonly failure: WorkerFailure

@@ -19,6 +19,8 @@ import type {
 import type { DeviceObservation } from './tests/device-loss.worker.js'
 import type { DeviceLifecycleObservation } from './tests/device-lifecycle.worker.js'
 import { observeDevice, type DeviceLifecycleCounts } from './tests/device-lifecycle.js'
+import { rendererPlatforms } from '../render/tests/platforms.js'
+import { stubRendererNavigator, restoreRendererNavigator } from '../render/tests/navigator.js'
 
 const family = 'PackagedWorkerTest'
 const fontUrl = new URL(
@@ -35,6 +37,7 @@ const containers: HTMLElement[] = []
 afterEach(async () => {
   for (const terminal of active.splice(0)) await terminal.dispose()
   for (const container of containers.splice(0)) container.remove()
+  restoreRendererNavigator()
 })
 function container(): HTMLDivElement {
   const value = document.createElement('div')
@@ -74,23 +77,129 @@ async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = f
   return terminal
 }
 
-it.each(['auto', 'webgpu'] as const)(
-  'selects the requested worker backend with a software adapter (%s)',
-  async (backend) => {
+interface WorkerPlatformCase {
+  name: string
+  platform: string
+  backend: 'auto' | 'webgpu'
+  expected: 'webgl2' | 'webgpu'
+  unavailableWebGl: boolean
+}
+
+it.each(
+  rendererPlatforms
+    .map<WorkerPlatformCase>((platform) => ({
+      name: platform.name,
+      platform: platform.name,
+      backend: 'auto',
+      expected: platform.backend,
+      unavailableWebGl: false,
+    }))
+    .concat([
+      {
+        name: 'Linux without WebGL',
+        platform: 'Linux legacy platform',
+        backend: 'auto',
+        expected: 'webgpu',
+        unavailableWebGl: true,
+      },
+      {
+        name: 'explicit WebGPU on Linux',
+        platform: 'Linux legacy platform',
+        backend: 'webgpu',
+        expected: 'webgpu',
+        unavailableWebGl: false,
+      },
+    ]),
+)('selects the worker renderer for $name', async (test) => {
+  const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
+  url.searchParams.set('platform', test.platform)
+  if (test.unavailableWebGl) url.searchParams.set('unavailableWebGl', '1')
+  const terminal = await WorkerTerminal.create({
+    assets,
+    appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+    backend: test.backend,
+    workerUrl: url,
+    fonts: [{ family, source: { url: fontUrl } }],
+  })
+  active.push(terminal)
+  await terminal.open(container())
+  await terminal.write('platform renderer selection')
+  await eventually(
+    () => terminal.visibleLines()[0]?.includes('platform renderer selection') === true,
+  )
+  expect(terminal.diagnostics.rendererBackend).toBe(test.expected)
+})
+
+it.each(['createShader', 'createProgram', 'createBuffer', 'createVertexArray', 'createTexture'])(
+  'replaces the transferred Linux canvas after %s fails and presents WebGPU output',
+  async (allocation) => {
+    const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
+    url.searchParams.set('platform', 'Linux legacy platform')
+    url.searchParams.set('allocationFailure', allocation)
     const terminal = await WorkerTerminal.create({
       assets,
       appearance: { font: { family, size: 16 }, cursor: { blink: false } },
-      backend,
-      workerUrl: new URL('./tests/software-adapter.worker.ts', import.meta.url),
+      backend: 'auto',
+      workerUrl: url,
       fonts: [{ family, source: { url: fontUrl } }],
     })
     active.push(terminal)
-    await terminal.open(container())
-    await terminal.write('software adapter selection')
-    await eventually(
-      () => terminal.visibleLines()[0]?.includes('software adapter selection') === true,
-    )
-    expect(terminal.diagnostics.rendererBackend).toBe(backend === 'auto' ? 'webgl2' : 'webgpu')
+    const host = container()
+    await terminal.open(host)
+    await terminal.write('allocation recovery')
+    await eventually(() => terminal.visibleLines()[0]?.includes('allocation recovery') === true)
+    expect(terminal.diagnostics.rendererBackend).toBe('webgpu')
+    expect(host.querySelector('canvas')?.isConnected).toBe(true)
+    expect(JSON.parse((await terminal.captureViewport())!).version).toBe(1)
+  },
+)
+
+it('propagates Linux worker shader programming failures', async () => {
+  const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
+  url.searchParams.set('platform', 'Linux legacy platform')
+  url.searchParams.set('shaderFailure', '1')
+  const terminal = await WorkerTerminal.create({
+    assets,
+    backend: 'auto',
+    workerUrl: url,
+    appearance: { font: { family, size: 16 } },
+    fonts: [{ family, source: { url: fontUrl } }],
+  })
+  active.push(terminal)
+  await expect(terminal.open(container())).rejects.toBeInstanceOf(TerminalWorkerError)
+  expect(terminal.diagnostics.rendererBackend).toBeUndefined()
+})
+
+it.each(['auto', 'webgpu'] as const)(
+  'selects the requested worker backend with a software adapter (%s)',
+  async (backend) => {
+    const channel = new BroadcastChannel(`software-adapter-${backend}`)
+    const observations: string[] = []
+    channel.onmessage = ({ data }) => observations.push(data)
+    try {
+      const url = new URL('./tests/software-adapter.worker.ts', import.meta.url)
+      url.searchParams.set('channel', channel.name)
+      const terminal = await WorkerTerminal.create({
+        assets,
+        appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+        backend,
+        workerUrl: url,
+        fonts: [{ family, source: { url: fontUrl } }],
+      })
+      active.push(terminal)
+      await terminal.open(container())
+      await terminal.write('software adapter selection')
+      await eventually(
+        () => terminal.visibleLines()[0]?.includes('software adapter selection') === true,
+      )
+      expect(terminal.diagnostics.rendererBackend).toBe(backend === 'auto' ? 'webgl2' : 'webgpu')
+      await expect.poll(() => observations.filter((value) => value === 'adapter').length).toBe(1)
+      expect(observations.filter((value) => value === 'device')).toHaveLength(
+        backend === 'auto' ? 0 : 1,
+      )
+    } finally {
+      channel.close()
+    }
   },
 )
 
@@ -101,6 +210,7 @@ it.each([
 ] as const)(
   'handles main hardware device loss (%s, replacement: %s)',
   async (backend, replacement) => {
+    stubRendererNavigator({ platform: 'MacIntel', userAgent: '' })
     const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu)
     const devices: GPUDevice[] = []
     let adapterRequests = 0

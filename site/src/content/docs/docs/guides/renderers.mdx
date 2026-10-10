@@ -14,7 +14,7 @@ You will know which renderer opened and how to choose a fallback. Start with the
 
 <Code code={sample} lang='ts' title='renderers.ts' />
 
-The main entry tries WebGPU, WebGL2, Canvas 2D, then DOM. A capability failure advances to the next backend. `diagnostics.rendererBackend` reports the selected backend after `open`.
+On desktop Linux, the main entry tries WebGL2, hardware WebGPU, Canvas 2D, then DOM. On macOS, Windows, Android, ChromeOS, and other platforms, it tries hardware WebGPU before WebGL2. A capability failure advances to the next backend. `diagnostics.rendererBackend` reports the selected backend after `open`.
 
 ## 2. Choose Canvas 2D explicitly
 
@@ -34,6 +34,6 @@ Use a secure context and a current browser with a usable GPU adapter. The defaul
 
 ### Many terminals lose WebGL contexts
 
-Browsers impose context limits. Dispose terminals you remove and bound the number of simultaneously live terminals. Test your intended count on your target browser.
+Browsers impose context limits. Dispose terminals you remove and bound the number of simultaneously live terminals. Test your intended count on your target browser. The main entry follows the remaining backend order after context loss, including hardware WebGPU when Linux selected WebGL2 first.
 
 Next, [load your fonts](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/) before comparing cell geometry.
