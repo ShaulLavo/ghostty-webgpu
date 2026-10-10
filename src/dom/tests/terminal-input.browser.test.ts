@@ -392,6 +392,31 @@ describe('Terminal DOM host', () => {
     expect(session.grid).toMatchObject({ columns: 23, rows: 7 })
   })
 
+  it('cancels compatibility mouse focus changes only on the retained canvas', async () => {
+    const terminal = await trackedTerminal({
+      rendererFactory: recordingRendererFactory({}),
+    })
+    await terminal.open(trackedHost())
+    terminal.focus()
+    const canvas = terminal.canvas!
+    const mouseDown = () => new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    const compatibilityMouse = mouseDown()
+
+    expect(canvas.dispatchEvent(compatibilityMouse)).toBe(false)
+    expect(compatibilityMouse.defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(terminal.textarea)
+
+    const inputMouse = mouseDown()
+    expect(terminal.textarea!.dispatchEvent(inputMouse)).toBe(true)
+    expect(inputMouse.defaultPrevented).toBe(false)
+    const rootMouse = mouseDown()
+    expect(terminal.element!.dispatchEvent(rootMouse)).toBe(true)
+    expect(rootMouse.defaultPrevented).toBe(false)
+
+    terminal.dispose()
+    expect(canvas.dispatchEvent(mouseDown())).toBe(true)
+  })
+
   it('adopts a synchronous DOM shell and keeps fixed-grid geometry current without auto-fit', async () => {
     const host = trackedHost(320, 140)
     const elements = createTerminalElements(host)

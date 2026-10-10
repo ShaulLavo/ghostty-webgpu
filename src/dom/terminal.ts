@@ -1184,6 +1184,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private installScrollbarFirstRefusal(elements: TerminalElements): void {
     const options = { capture: true, signal: elements.signal }
     elements.root.addEventListener('pointerdown', this.handleScrollbarPointerDown, options)
+    elements.root.addEventListener('mousedown', this.handleCanvasMouseDown, options)
     elements.root.addEventListener('pointermove', this.handleScrollbarPointerMove, options)
     elements.root.addEventListener('pointerup', this.handleScrollbarPointerUp, options)
     elements.root.addEventListener('pointercancel', this.handleScrollbarPointerUp, options)
@@ -1641,6 +1642,12 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     } catch (cause) {
       this.reportError(cause, operation)
     }
+  }
+
+  private readonly handleCanvasMouseDown = (event: MouseEvent): void => {
+    if (event.target !== this.elementsValue?.canvas) return
+    // iOS sends compatibility mousedown after a cancelled touch pointerdown; its default blurs input.
+    event.preventDefault()
   }
 
   private readonly handleScrollbarPointerDown = (event: PointerEvent): void => {
