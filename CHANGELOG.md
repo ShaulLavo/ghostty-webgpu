@@ -1,5 +1,11 @@
 # ghostty-webgpu
 
+## 0.3.23
+
+### Patch Changes
+
+- [#1248](https://github.com/ShaulLavo/fregat/pull/1248) [`7b40f8d`](https://github.com/ShaulLavo/fregat/commit/7b40f8daf886d02bb810393ebf34afc97bf2ca96) - Improved the default Canvas text renderer's CPU use during complete repaints while preserving exact glyph pixels.
+
 ## 0.3.22
 
 ### Patch Changes
