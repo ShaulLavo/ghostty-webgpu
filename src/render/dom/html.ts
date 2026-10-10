@@ -98,7 +98,7 @@ function cellStyle(
     .filter(Boolean)
     .join(' ')
   const underlineStyles = ['solid', 'solid', 'double', 'wavy', 'dotted', 'dashed']
-  let css = `display:inline-block;flex:none;direction:ltr;unicode-bidi:bidi-override;height:var(--ghostty-cell-height, ${font.cssCellHeight}px);vertical-align:top;`
+  let css = `display:inline-block;flex:none;contain:size layout;direction:ltr;unicode-bidi:bidi-override;height:var(--ghostty-cell-height, ${font.cssCellHeight}px);vertical-align:top;`
   if (width > 1) css += 'text-align:center;'
   css += `color:${style?.invisible ? 'transparent' : foreground};`
   if (style?.faint && !style.invisible)
@@ -145,17 +145,54 @@ export interface RowRun {
   readonly text: string
 }
 
+export function defaultCellStyle(font: TerminalFittedFont, theme: CanonicalRendererTheme): string {
+  return cellStyle(
+    emptyRenderCell(),
+    undefined,
+    font,
+    theme,
+    new CanvasColorCache(theme.minimumContrast),
+    1,
+  )
+}
+
+function rowRunStyle(style: string, width: number, font: TerminalFittedFont): string {
+  return `${style}width:calc(${width} * var(--ghostty-cell-width, ${font.cssCellWidth}px));`
+}
+
+export interface DefaultRowStyle {
+  readonly cell: string
+  readonly run: string
+  readonly columns: number
+}
+
+export function defaultRowStyle(
+  font: TerminalFittedFont,
+  theme: CanonicalRendererTheme,
+  columns: number,
+): DefaultRowStyle {
+  const cell = defaultCellStyle(font, theme)
+  return { cell, run: rowRunStyle(cell, columns, font), columns }
+}
+
 export function renderRowRuns(
   row: RenderRow,
   cursor: CursorState | undefined,
   font: TerminalFittedFont,
   theme: CanonicalRendererTheme,
+  styles?: DefaultRowStyle,
 ): readonly RowRun[] {
-  const colors = new CanvasColorCache(theme.minimumContrast)
   const packed = row.packed
+  const columns = packed?.length ?? row.cells.length
+  const defaultStyle = styles?.cell
+  const defaultRunStyle = styles?.columns === columns ? styles.run : undefined
+  if (packed && defaultRunStyle !== undefined && (!cursor?.visible || cursor.y !== row.y)) {
+    const text = packed.defaultRunText()
+    if (text !== undefined) return text ? [{ cursor: undefined, style: defaultRunStyle, text }] : []
+  }
+  let colors: CanvasColorCache | undefined
   const scratchA = emptyRenderCell()
   const scratchB = emptyRenderCell()
-  const columns = packed?.length ?? row.cells.length
   let length = columns
   const cursorEnd = cursor?.visible && cursor.y === row.y ? cursor.x + 1 : 0
   // The fixed-grid frame paints the default background; empty tails need no glyph layout.
@@ -179,7 +216,10 @@ export function renderRowRuns(
     if (currentWidth === 0) return
     runs.push({
       cursor: currentCursor,
-      style: `${currentStyle}width:calc(${currentWidth} * var(--ghostty-cell-width, ${font.cssCellWidth}px));`,
+      style:
+        defaultRunStyle !== undefined && currentStyle === defaultStyle && currentWidth === columns
+          ? defaultRunStyle
+          : rowRunStyle(currentStyle, currentWidth, font),
       text: currentText,
     })
     currentText = ''
@@ -195,10 +235,27 @@ export function renderRowRuns(
       cursor?.visible && cursor.y === row.y && cursor.x === cell.x ? cursor : undefined
     // Cursor and wide-cell paint stays isolated; font, theme and contrast are fixed for this row.
     const reusable = width === 1 && !paintedCursor
-    const style =
-      reusable && previousCell && sameAppearance(previousCell, cell)
-        ? currentStyle
-        : cellStyle(cell, paintedCursor, font, theme, colors, width)
+    let style = currentStyle
+    if (!(reusable && previousCell && sameAppearance(previousCell, cell))) {
+      const defaultAppearance =
+        defaultStyle !== undefined &&
+        reusable &&
+        !cell.selected &&
+        !cell.foreground &&
+        !cell.background &&
+        !cell.style
+      style =
+        defaultStyle !== undefined && defaultAppearance
+          ? defaultStyle
+          : cellStyle(
+              cell,
+              paintedCursor,
+              font,
+              theme,
+              (colors ??= new CanvasColorCache(theme.minimumContrast)),
+              width,
+            )
+    }
     previousCell = reusable ? cell : undefined
     if (style !== currentStyle || paintedCursor || currentCursor || width > 1) flush()
     currentStyle = style
@@ -209,7 +266,16 @@ export function renderRowRuns(
     if (width > 1 || paintedCursor) flush()
   }
   if (length > 0 && length < columns) {
-    const style = cellStyle(emptyRenderCell(), undefined, font, theme, colors, 1)
+    const style =
+      defaultStyle ??
+      cellStyle(
+        emptyRenderCell(),
+        undefined,
+        font,
+        theme,
+        (colors ??= new CanvasColorCache(theme.minimumContrast)),
+        1,
+      )
     // Keep default run widths stable as text changes, without laying out empty glyphs.
     if (style !== currentStyle || currentCursor) flush()
     currentStyle = style
@@ -230,7 +296,7 @@ function renderRowToHtml(
     const cursorAttribute = run.cursor ? ` data-cursor="${escapeHtml(run.cursor, true)}"` : ''
     return `<span${cursorAttribute} style="${escapeHtml(run.style, true)}">${escapeHtml(run.text)}</span>`
   })
-  return `<div data-row="${row.y}" style="display:flex;direction:ltr;unicode-bidi:bidi-override;height:var(--ghostty-cell-height, ${font.cssCellHeight}px);">${runs.join('')}</div>`
+  return `<div data-row="${row.y}" style="display:flex;contain:size layout;direction:ltr;unicode-bidi:bidi-override;height:var(--ghostty-cell-height, ${font.cssCellHeight}px);">${runs.join('')}</div>`
 }
 
 export function renderFrameToHtml(

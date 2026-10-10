@@ -13,10 +13,30 @@ import {
   type RowRendererSurface,
   type RowThemeInvalidation,
 } from '../row-renderer.js'
-import { frameStyle, renderFrameToHtml, renderRowRuns, type RowRun } from './html.js'
+import {
+  defaultRowStyle,
+  frameStyle,
+  renderFrameToHtml,
+  renderRowRuns,
+  type DefaultRowStyle,
+  type RowRun,
+} from './html.js'
 
 export { renderFrameToHtml } from './html.js'
 export type { RenderFrameHtmlOptions } from './html.js'
+
+function copyTheme(theme: CanonicalRendererTheme): CanonicalRendererTheme {
+  // Hosts can mutate and reapply RGB inputs; cached styles need an owned comparison snapshot.
+  return {
+    ...theme,
+    background: { ...theme.background },
+    cursor: { ...theme.cursor },
+    cursorText: { ...theme.cursorText },
+    foreground: { ...theme.foreground },
+    selectionBackground: { ...theme.selectionBackground },
+    selectionForeground: { ...theme.selectionForeground },
+  }
+}
 
 function themesEqual(first: CanonicalRendererTheme, second: CanonicalRendererTheme): boolean {
   if (first.minimumContrast !== second.minimumContrast) return false
@@ -49,20 +69,26 @@ interface MountedRow {
 class DomSurface implements RowRendererSurface {
   private readonly container: HTMLDivElement
   private readonly canvas: HTMLCanvasElement
+  private canvasStyle: CSSStyleDeclaration
+  private styleDocument: Document
   private readonly previousOpacity: string
   private font: TerminalFittedFont
   private grid: RendererGridSize
   private theme: CanonicalRendererTheme
   private rows: MountedRow[] = []
+  private defaultStyle: DefaultRowStyle
 
   constructor(options: WebGpuTerminalRendererOptions) {
     if (!('ownerDocument' in options.canvas) || !options.canvas.parentElement) {
       throw new TypeError('The DOM renderer requires a canvas mounted in a terminal host')
     }
     this.canvas = options.canvas
+    this.styleDocument = this.canvas.ownerDocument
+    this.canvasStyle = this.styleDocument.defaultView!.getComputedStyle(this.canvas)
     this.font = copyFittedFont(options.font)
     this.grid = normalizeRendererGrid(options)
-    this.theme = canonicalRendererTheme(mergeRendererTheme(options.theme))
+    this.theme = copyTheme(canonicalRendererTheme(mergeRendererTheme(options.theme)))
+    this.defaultStyle = defaultRowStyle(this.font, this.theme, this.grid.columns)
     this.container = this.canvas.ownerDocument.createElement('div')
     this.container.style.position = 'absolute'
     this.container.style.pointerEvents = 'none'
@@ -87,7 +113,7 @@ class DomSurface implements RowRendererSurface {
     const mounted = this.rows[row.y]
     if (!mounted) return false
     let changed = false
-    const runs = renderRowRuns(row, cursor, this.font, this.theme)
+    const runs = renderRowRuns(row, cursor, this.font, this.theme, this.defaultStyle)
     for (let index = 0; index < runs.length; index += 1) {
       const run = runs[index]!
       const previous = mounted.runs[index]
@@ -135,6 +161,7 @@ class DomSurface implements RowRendererSurface {
     const html = renderFrameToHtml({ cursor, rows: [] }, { ...grid, font, theme: this.theme })
     this.font = font
     this.grid = grid
+    this.defaultStyle = defaultRowStyle(font, this.theme, grid.columns)
     this.canvas.width = grid.columns * font.deviceCellWidth
     this.canvas.height = grid.rows * font.deviceCellHeight
     this.canvas.style.width = `${grid.columns * font.cssCellWidth}px`
@@ -149,13 +176,23 @@ class DomSurface implements RowRendererSurface {
 
   setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation {
     if (themesEqual(this.theme, theme)) return 'cursor'
-    this.theme = theme
-    this.container.firstElementChild?.setAttribute('style', frameStyle(this.font, this.grid, theme))
+    this.theme = copyTheme(theme)
+    this.defaultStyle = defaultRowStyle(this.font, this.theme, this.grid.columns)
+    this.container.firstElementChild?.setAttribute(
+      'style',
+      frameStyle(this.font, this.grid, this.theme),
+    )
     return 'all'
   }
 
   private position(): void {
-    const style = this.canvas.ownerDocument.defaultView!.getComputedStyle(this.canvas)
+    const document = this.canvas.ownerDocument
+    if (this.styleDocument !== document) {
+      this.canvasStyle = document.defaultView!.getComputedStyle(this.canvas)
+      this.styleDocument = document
+    }
+    // The declaration stays live; flow offsets and padding are read for every frame.
+    const style = this.canvasStyle
     const left = this.canvas.offsetLeft + (parseFloat(style.paddingLeft) || 0)
     const top = this.canvas.offsetTop + (parseFloat(style.paddingTop) || 0)
     const declarations = this.container.style

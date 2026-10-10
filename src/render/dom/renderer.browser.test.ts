@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { RenderRow } from '../../core/types.js'
-import type { CursorState } from '../instances/types.js'
+import type { CursorState, RendererTheme } from '../instances/types.js'
 import type { RendererFrameSnapshot } from '../renderer.js'
 import { Terminal } from '../../dom/terminal.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
@@ -60,6 +60,7 @@ async function rendererProbe(
   font = probeFont,
   onFrame?: (snapshot: RendererFrameSnapshot) => void,
   onRowsPainted?: (rows: readonly RenderRow[]) => void,
+  theme?: Partial<RendererTheme>,
 ) {
   const runtime = await GhosttyRuntime.create()
   cleanups.push(() => runtime.dispose())
@@ -76,6 +77,7 @@ async function rendererProbe(
     font,
     renderState: state,
     schedulerClock: clock,
+    theme,
     onFrame,
     onRowsPainted: (rows: readonly RenderRow[]) => {
       frames.push(rows.map((row) => row.y))
@@ -136,6 +138,92 @@ async function expectWideGlyphCursorPaint(font = probeFont) {
 }
 
 describe('DOM terminal renderer', () => {
+  it('repaints plain runs when the same theme RGB object is mutated and reapplied', async () => {
+    const foreground = { r: 180, g: 170, b: 160 }
+    const probe = await rendererProbe('dom', '\x1b[?25lplain', probeFont, undefined, undefined, {
+      foreground,
+    })
+    const fresh = await rendererProbe('dom', '\x1b[?25lplain')
+    const run = probe.canvas.parentElement!.querySelector('.ghostty-webgpu-frame span')!
+    const freshRun = fresh.canvas.parentElement!.querySelector('.ghostty-webgpu-frame span')!
+    fresh.renderer.setTheme({ foreground: { ...foreground } })
+    fresh.clock.flush()
+    expect(getComputedStyle(run).color).toBe('rgb(180, 170, 160)')
+    expect(getComputedStyle(run).color).toBe(getComputedStyle(freshRun).color)
+
+    for (const color of [
+      { r: 25, g: 210, b: 30 },
+      { r: 80, g: 50, b: 190 },
+    ]) {
+      Object.assign(foreground, color)
+      probe.renderer.setTheme({ foreground })
+      fresh.renderer.setTheme({ foreground: { ...foreground } })
+      probe.clock.flush()
+      fresh.clock.flush()
+      expect(run.textContent).toBe('plain')
+      expect(getComputedStyle(freshRun).color).toBe(`rgb(${color.r}, ${color.g}, ${color.b})`)
+      expect(getComputedStyle(run).color).toBe(getComputedStyle(freshRun).color)
+      expect(getComputedStyle(run.parentElement!.parentElement!).color).toBe(
+        getComputedStyle(freshRun.parentElement!.parentElement!).color,
+      )
+    }
+  })
+
+  it('refreshes default run styles when contrast, theme, font, and grid change', async () => {
+    const probe = await rendererProbe('dom', '\x1b[?25ledit 0000')
+    for (const [minimumContrast, weight, columns, cellWidth] of [
+      [1, 400, 12, 10],
+      [7, 400, 12, 10],
+      [1, 400, 12, 10],
+      [1, 600, 12, 10],
+      [1, 400, 12, 10],
+      [1, 400, 20, 10],
+      [1, 400, 12, 10],
+      [1, 400, 12, 12],
+      [1, 400, 12, 10],
+    ] as const) {
+      const theme = {
+        background: { r: 80, g: 80, b: 80 },
+        foreground: { r: 90, g: 90, b: 90 },
+        minimumContrast,
+      }
+      const font = {
+        ...probeFont,
+        cssCellWidth: cellWidth,
+        deviceCellWidth: cellWidth,
+        settings: { ...probeFont.settings, weight },
+      }
+      probe.renderer.setTheme(theme)
+      probe.renderer.setFont(font)
+      probe.terminal.resize({ columns, rows: 3 })
+      probe.renderer.resize({ columns, rows: 3 })
+      probe.clock.flush()
+      const frame = probe.canvas.parentElement!.querySelector('.ghostty-webgpu-frame')!
+      expect(frame.parentElement!.innerHTML).toBe(
+        renderFrameToHtml(snapshotRenderState(probe.state), {
+          columns,
+          rows: 3,
+          font,
+          theme,
+        }),
+      )
+    }
+  })
+
+  it('keeps source row widths when the renderer grid is resized first', async () => {
+    const probe = await rendererProbe('dom', '\x1b[?25ledit 0000')
+    probe.renderer.resize({ columns: 20, rows: 3 })
+    probe.clock.flush()
+    const frame = probe.canvas.parentElement!.querySelector('.ghostty-webgpu-frame')!
+    expect(frame.parentElement!.innerHTML).toBe(
+      renderFrameToHtml(snapshotRenderState(probe.state), {
+        columns: 20,
+        rows: 3,
+        font: probeFont,
+      }),
+    )
+  })
+
   it('matches Node-safe serialized markup and Canvas2D SGR and cursor colors on the same real core input', async () => {
     const dom = await rendererProbe('dom')
     const canvas = await rendererProbe('canvas2d')
@@ -424,7 +512,9 @@ describe('DOM terminal renderer', () => {
     expect(probe.canvas.style.opacity).toBe('')
   })
 
-  it('continues through DOM when a lost WebGL context cannot acquire Canvas2D', async () => {
+  it('continues through DOM when a lost WebGL context cannot acquire Canvas2D', async ({
+    skip,
+  }) => {
     const runtime = await GhosttyRuntime.create()
     cleanups.push(() => runtime.dispose())
     const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
@@ -432,6 +522,11 @@ describe('DOM terminal renderer', () => {
     terminal.write('before')
     const canvas = mountedCanvas()
     const host = canvas.parentElement!
+    const extension = canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')
+    if (!extension) {
+      skip('WebGL2 and WEBGL_lose_context are required for this fallback regression')
+      return
+    }
     const clock = new ProbeClock()
     const renderer = await createCompatibleTerminalRenderer({
       canvas,
@@ -453,7 +548,6 @@ describe('DOM terminal renderer', () => {
     cleanups.push(() => renderer.dispose())
     clock.flush()
     expect(renderer.backend).toBe('webgl2')
-    const extension = canvas.getContext('webgl2')!.getExtension('WEBGL_lose_context')!
     const lost = new Promise<void>((resolve) =>
       canvas.addEventListener('webglcontextlost', () => resolve(), { once: true }),
     )
@@ -733,6 +827,50 @@ it('keeps live flow offsets through fractional CSS, sibling flow and stylesheet 
   expectFlowOffsets()
 })
 
+it('reuses the live canvas style declaration while reading changed flow and padding each frame', async () => {
+  const probe = await rendererProbe('dom')
+  const canvas = probe.canvas
+  const container = canvas.nextElementSibling as HTMLElement
+  const computed = vi.spyOn(window, 'getComputedStyle')
+  for (const padding of ['11.5px', '19.25px']) {
+    canvas.style.paddingLeft = padding
+    canvas.style.marginLeft = padding
+    probe.terminal.write('\rnext')
+    probe.renderer.notifyWrite()
+    probe.clock.flush()
+    expect(container.style.left).toBe(`${canvas.offsetLeft + parseFloat(padding)}px`)
+  }
+  expect(computed.mock.calls.filter(([element]) => element === canvas)).toHaveLength(0)
+})
+
+it('rebinds the live canvas declaration after its host moves into another document', async () => {
+  const probe = await rendererProbe('dom')
+  const iframe = document.createElement('iframe')
+  document.body.append(iframe)
+  cleanups.push(() => iframe.remove())
+  const destination = iframe.contentDocument!
+  destination.body.append(probe.canvas.parentElement!)
+  const canvas = probe.canvas
+  canvas.style.paddingLeft = '23.5px'
+  canvas.style.marginLeft = '7.25px'
+  const computed = vi.spyOn(destination.defaultView!, 'getComputedStyle')
+  probe.terminal.write('\rnext')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(canvas.nextElementSibling!.getAttribute('style')).toContain(
+    `left: ${canvas.offsetLeft + 23.5}px`,
+  )
+  expect(computed.mock.calls.filter(([element]) => element === canvas)).toHaveLength(1)
+  canvas.style.paddingLeft = '31.25px'
+  probe.terminal.write('\rlater')
+  probe.renderer.notifyWrite()
+  probe.clock.flush()
+  expect(canvas.nextElementSibling!.getAttribute('style')).toContain(
+    `left: ${canvas.offsetLeft + 31.25}px`,
+  )
+  expect(computed.mock.calls.filter(([element]) => element === canvas)).toHaveLength(1)
+})
+
 it('isolates fixed-grid layout through theme and font changes', async () => {
   const probe = await rendererProbe('dom')
   const frame = () =>
@@ -745,6 +883,42 @@ it('isolates fixed-grid layout through theme and font changes', async () => {
   probe.clock.flush()
   expect(frame().style.contain).toBe('layout paint')
   expect(frame().getBoundingClientRect().width).toBe(144)
+})
+
+it('contains fixed row layout while preserving visible glyph overflow and frame flow', async () => {
+  const probe = await rendererProbe('dom')
+  const frame = probe.canvas.parentElement!.querySelector<HTMLElement>('.ghostty-webgpu-frame')!
+  const text = frame.textContent
+  for (const row of frame.querySelectorAll<HTMLElement>('[data-row]')) {
+    const style = getComputedStyle(row)
+    expect(style.contain).toBe('size layout')
+    expect(style.display).toBe('flex')
+    expect(style.overflowX).toBe('visible')
+    expect(style.overflowY).toBe('visible')
+    expect(row.getBoundingClientRect().height).toBe(probeFont.cssCellHeight)
+    expect(row.getBoundingClientRect().width).toBe(12 * probeFont.cssCellWidth)
+  }
+  frame.style.height = 'auto'
+  expect(frame.getBoundingClientRect().height).toBe(3 * probeFont.cssCellHeight)
+  expect(frame.textContent).toBe(text)
+})
+
+it('contains fixed runs while preserving their cell widths and visible glyph overflow', async () => {
+  const probe = await rendererProbe('dom')
+  const frame = probe.canvas.parentElement!.querySelector<HTMLElement>('.ghostty-webgpu-frame')!
+  for (const run of frame.querySelectorAll<HTMLElement>('[data-row] > span')) {
+    const style = getComputedStyle(run)
+    expect(style.contain).toBe('size layout')
+    expect(style.overflowX).toBe('visible')
+    expect(style.overflowY).toBe('visible')
+    expect(run.getBoundingClientRect().height).toBe(probeFont.cssCellHeight)
+    expect(run.getBoundingClientRect().width / probeFont.cssCellWidth).toBeGreaterThan(0)
+  }
+  const wide = Array.from(frame.querySelectorAll<HTMLElement>('span')).find(
+    (run) => run.textContent === '界',
+  )!
+  expect(wide.getBoundingClientRect().width).toBe(2 * probeFont.cssCellWidth)
+  expect(frame.textContent).toContain('界é<&"')
 })
 
 it('preserves row-derived frame height when the host overrides height to auto', async () => {
