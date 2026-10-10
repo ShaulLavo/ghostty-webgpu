@@ -189,7 +189,8 @@ function expectFullRepaint(
   const painter = new CanvasRowPainter(context, font, theme)
   painter.resetContext(font)
   const cursor = renderCursorState(source.readCursor(), true)
-  for (const row of source.readRows()) painter.paint(row, cursor, control.width, false)
+  for (const row of source.readRows())
+    painter.paint({ y: row.y, dirty: row.dirty, cells: row.cells }, cursor, control.width, false)
   const actual = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
   const expected = context.getImageData(0, 0, control.width, control.height).data
   expect([...actual]).toEqual([...expected])
@@ -402,6 +403,73 @@ describe('CanvasTerminalRenderer', () => {
     expect(decode).toHaveBeenCalledTimes(80)
     expectFullRepaint(canvas, source)
   })
+
+  it('decodes each dense packed row once for identity and painting', async () => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState([row(0, [cell(0)]), row(1, [cell(0)])])
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock))
+    clock.flushFrame()
+    const decodes = []
+    for (let y = 0; y < 2; y += 1) {
+      const packed = new PackedCells(
+        new Uint32Array([0x754c + y, 0x030201, 0xffffffff, 1, 0, 0]),
+        new Uint32Array(),
+      )
+      decodes.push(vi.spyOn(packed, 'readInto'))
+      let cells: readonly RenderCell[] | undefined
+      source.rows[y] = {
+        y,
+        dirty: true,
+        packed,
+        get cells() {
+          return (cells ??= packed.materialize())
+        },
+      }
+      source.dirtyRow(y)
+    }
+    renderer.notifyWrite()
+    clock.flushFrame()
+    for (const decode of decodes) expect(decode).toHaveBeenCalledTimes(1)
+    expectFullRepaint(canvas, source)
+  })
+
+  it.each([1, 2])(
+    'borrows packed cells only within multi-row frames (%i rows)',
+    async (rowCount) => {
+      const clock = new FakeClock()
+      const canvas = createCanvas()
+      const source = new FakeRenderState(
+        Array.from({ length: rowCount }, (_, y) => row(y, [cell(0, { text: 'A' })])),
+      )
+      source.cursor.visible = false
+      const renderer = await createRenderer(options(canvas, source, clock, { rows: rowCount }))
+      clock.flushFrame()
+      const materializations = []
+      for (let y = 0; y < rowCount; y += 1) {
+        const packed = new PackedCells(
+          new Uint32Array([0x754c + y, 0x030201, 0xffffffff, 1, 0, 0]),
+          new Uint32Array(),
+        )
+        materializations.push(vi.spyOn(packed, 'materialize'))
+        let cells: readonly RenderCell[] | undefined
+        source.rows[y] = {
+          y,
+          dirty: true,
+          packed,
+          get cells() {
+            return (cells ??= packed.materialize())
+          },
+        }
+        source.dirtyRow(y)
+      }
+      renderer.notifyWrite()
+      clock.flushFrame()
+      for (const spy of materializations) expect(spy).toHaveBeenCalledTimes(rowCount === 1 ? 1 : 0)
+      expectFullRepaint(canvas, source)
+    },
+  )
 
   it.each([
     { name: 'plain glyph', style: undefined, method: 'fillText' },

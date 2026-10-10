@@ -137,6 +137,10 @@ class CanvasSurface implements RowRendererSurface {
       this.pending.set(row.y, `plain:${text}`)
       return
     }
+    if (!this.pixelTarget && row.packed) {
+      this.pending.set(row.y, `packed:${row.packed.identity()}`)
+      return
+    }
     this.pending.set(row.y, JSON.stringify(row.cells))
   }
 
@@ -183,6 +187,7 @@ class CanvasSurface implements RowRendererSurface {
       }
       this.remaining -= 1
       if (this.remaining === 0) {
+        if (this.pending.size > 1 || this.plan!.offset !== 0) this.painter.finishFrame()
         this.pixelTarget?.present()
         this.image = this.nextImage
       }
