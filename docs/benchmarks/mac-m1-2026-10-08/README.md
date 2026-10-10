@@ -1,5 +1,7 @@
 # Reviewed M1 terminal measurements
 
+**Superseded by the [2026-10-10 set](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks/mac-m1-2026-10-10/README.md).** The public pages now show that set. This one stays as history and its verifier still runs.
+
 Published 2026-10-08 from the terminal performance wave's reviewed round-1 scoreboard. The windows ran on 2026-10-07 UTC. The publication adds no hardware runs and makes no claim about current main.
 
 [Public comparison page](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks/mac-m1-2026-10-08/scores.json)
@@ -34,10 +36,9 @@ From the ghostty-webgpu checkout, use Node 22 or newer.
 
 ```sh
 node docs/benchmarks/mac-m1-2026-10-08/verify.mjs
-node docs/benchmarks/mac-m1-2026-10-08/report.mjs --check
 ```
 
-The verifier recomputes all nine ratios from saved per-process counter deltas, checks equal logical output and public write counts, and verifies frozen archive hashes. The report check compares the public benchmark page and README table with the same score file. To publish an accepted score revision, update its evidence and reviews first, then run `report.mjs` without `--check`.
+The verifier recomputes all nine ratios from saved per-process counter deltas, checks equal logical output and public write counts, and verifies frozen archive hashes. The public benchmark page and README table are generated from the newer set.
 
 ## Reproduce a frozen measurement
 

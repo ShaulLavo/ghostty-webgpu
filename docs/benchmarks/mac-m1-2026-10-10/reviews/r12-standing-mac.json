@@ -1,0 +1,1030 @@
+{
+  "task": "Independent review of the one-build R08 standing (Mac WebGL and DOM cells)",
+  "reviewedDate": "2026-10-10",
+  "reviewedAt": "2026-10-09T22:54:40.528090+00:00",
+  "model": "gpt-6.1-sol",
+  "build": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+  "outcome": "done",
+  "scope": "The 100-cell review covers Mac, Linux and Raspberry Pi cells for five renderers. This copy keeps the nine published Mac WebGL and DOM cells and the one unavailable Mac DOM cell; the other cells are omitted.",
+  "publicationVerdictMeaning": {
+    "PUBLISHABLE": "Unrestricted numerical publication; none approved.",
+    "PUBLISHABLE WITH LIMITS": "Only the exact scoped descriptive statement with the required footnotes, pair outcomes and excluded inventory retained.",
+    "NOT PUBLISHABLE": "No qualified numerical claim; the receipt-backed unavailable status may be published."
+  },
+  "macSummary": {
+    "verdict": "PUBLISHABLE WITH LIMITS",
+    "requiredCells": 35,
+    "qualifiedCells": 34,
+    "publicationVerdicts": {
+      "PUBLISHABLE": 0,
+      "PUBLISHABLE WITH LIMITS": 34,
+      "NOT PUBLISHABLE": 1
+    },
+    "allScoredMetricsLowerInBothPairsCells": 32,
+    "headlineApproved": false,
+    "scope": "Only qualified scoped descriptive numerical rows; excluded rows remain visibly unavailable."
+  },
+  "method": {
+    "newMeasurements": 0,
+    "githubWrites": 0,
+    "sourceChanges": 0,
+    "method": "Independent stdlib Python endpoint subtraction, process/channel aggregation, chronological pair ratios and medians; saved protocol/seal/custody, work-counter, semantic, PNG and geometry receipts checked. Lane assertions inspected, not executed or used as arithmetic implementation."
+  },
+  "arithmetic": {
+    "mismatches": 0,
+    "numericCorrections": [],
+    "pairRatiosChecked": 10106,
+    "mediansChecked": 5053
+  },
+  "requiredFootnotes": {
+    "F01": "One sealed ghostty-webgpu 0.3.21 runtime at fb67ac08ded224fd6579389a23796e015ee23d5c. Publish the cell-specific browser, terminal count, ticks, harness generation, cadence, condition and geometry. This is a scoped observation, not a cross-machine normalized result.",
+    "F02": "Each numerical cell has two chronological actor-paired Ghostty/counterpart ratios; lower is less recorded work. The median is the median of those two ratios, not a ratio of summed counters. Projected order is ABBA or BAAB. Shared nested actor windows correlate cells and can make paired windows nonadjacent. No significance, universal winner or candidate KEEP decision follows.",
+    "F03": "The benchmark observer is enabled and its overhead is uncalibrated; no overhead is subtracted. Native reader capability calibration is separate and was checked. R08 prepares fixture inputs before the measurement window.",
+    "F04": "allChrome covers the endpoint-recorded Chrome process family, including CPU activity in Chrome’s GPU process. It excludes GPU-device, display, whole-machine and unrelated-process energy. Sequential native snapshots enclose CDP CPU snapshots and are non-atomic. Endpoint PID/type/start checks cannot detect a process born and gone wholly between endpoints.",
+    "F05": "Qualification checks equal public writes and UTF-8 bytes, the registered final retained output or common tail, Unicode cell widths where registered, logical settlement, stable same-actor PNGs and actual drawing/DOM geometry. This does not prove identical raster, typography, intermediate operations, GPU completion or physical presentation. A logical two-RAF endpoint is not a GPU/display fence.",
+    "F07": "xterm 6 Unicode-emoji cells use @xterm/addon-unicode11 0.9.0 and active Unicode version 11 before output. Exact owner text and cell-width/boundary digests are checked. Canvas xterm 5.5 uses its separately identified Unicode11 addon 0.8.0.",
+    "F09": "Mac scored metrics are kernel-estimated process CPU energy and retired instructions, all Chrome. Total cycles, CPU seconds, P/E placement, effective clocks and cluster CPI/IPC are diagnostics. Per-pair instruction, placement and within-cluster CPI factors are supplied. Cycle/speed headlines require a matched-placement protocol. A within-cluster CPI rise is disclosed without an unmeasured GC, compilation, stall or thread-role attribution.",
+    "F13": "Publish the actual drawing-buffer size and DPR. Standing uses DPR2 on Mac/Pi and DPR1 on Linux. In particular Linux standing WebGPU uses 280×228 pixels, whereas the earlier r12-webgpu controls use 560×456 pixels at DPR2: four times the pixel count. The two sessions are not the same raster experiment.",
+    "F14": "This review does not verify automatic renderer selection, an inherent platform limitation, faster physical presentation, uninstrumented behavior or a universal/all-workloads win. Rule 37 exceptions require separate attribution and automatic-selection evidence.",
+    "F15": "An unavailable/unqualified cell has no publishable qualified numerical ratio. Keep it visibly unavailable with its receipt-backed reason; it is neither a measured loss nor a win, and must not be dropped from inventory or borrowed from another build/condition.",
+    "F16": "Custody is assessed from saved per-run and final receipts: bounded Mac controllers and owned-prefix cleanup, private Linux compositor/no-card-node/no-DRM-master cleanup, and stopped Pi browser/service with restored ondemand governor. This is not a new live-host custody check.",
+    "F17": "The Mac DOM Unicode r02 was registered prospectively with unchanged conditions, but it repeated DOM windows whose r01 per-window and same-actor PNG gates passed. Only xterm DOM failed the repeated-PNG gate. Strict per-window no-valid-replay compliance fails for this excluded cell; neither attempt contributes to the 85 qualified numerical cells."
+  },
+  "requiredPublicationLimits": [
+    {
+      "id": "L01",
+      "finding": "Two-pair descriptive observations with observer and endpoint limits; no unrestricted headline, statistical significance, universal goal completion or auto-selection exception."
+    },
+    {
+      "id": "L02",
+      "finding": "Linux WebGPU raster/DPR differs from the earlier control; current qualified Unicode is mixed despite its sub-1 median."
+    },
+    {
+      "id": "L03",
+      "finding": "Tiny nonzero raw hybrid-PMU scheduling deficits disclosed; Linux timing/cycles remain unqualified."
+    },
+    {
+      "id": "L04",
+      "finding": "Mac within-cluster CPI rises in some cycle-disagreement cells are shown by decomposition; causes are unconfirmed without tracing."
+    }
+  ],
+  "prohibitedClaims": [
+    "A general faster/more-efficient-on-every-workload statement.",
+    "Treating a below-1 median with opposite-sign pairs as a two-pair win.",
+    "Linux timing/cycles/cadence verdicts or Pi per-process energy.",
+    "Mac cycles as a scored efficiency metric or a physical speed claim.",
+    "The DPR2 r12-webgpu losses were fixed by the standing build.",
+    "Equal full retained histories in the registered ghostty-web rolling sibling conditions.",
+    "GPU-device/whole-machine energy, continuous complete process coverage or presented-frame equivalence.",
+    "Automatic selection chooses the winner or an inherent platform limitation excuses a loss."
+  ],
+  "unavailableFinding": {
+    "id": "B01",
+    "title": "Mac DOM Unicode PNG gate and no-replay policy",
+    "observed": "The exact registered same-actor PNG gate failed in both attempts. Independent endpoint, work-counter and geometry checks also show r01 DOM windows valid and stable; r02 repeated them despite the per-window no-valid-replay rule.",
+    "expected": "Four qualified windows, the exact registered gates and no replay of valid windows."
+  },
+  "lossDisclosure": [
+    {
+      "id": "r12-standing:mac:DOM:XDOM:interactive-edits",
+      "scoredMetrics": {
+        "energyJ": {
+          "pairs": [0.9974198037995046, 1.0181053937375553],
+          "median": 1.00776259876853,
+          "pairVerdict": "mixed",
+          "signedMedianPercentHigher": 0.7762598768529916,
+          "scored": true
+        },
+        "instructions": {
+          "pairs": [0.9842630771340989, 1.012150443057959],
+          "median": 0.9982067600960289,
+          "pairVerdict": "mixed",
+          "signedMedianPercentHigher": -0.17932399039710667,
+          "scored": true
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:GL:XGL:unicode-emoji",
+      "scoredMetrics": {
+        "energyJ": {
+          "pairs": [0.9889065971651908, 0.9832070478220436],
+          "median": 0.9860568224936173,
+          "pairVerdict": "win",
+          "signedMedianPercentHigher": -1.3943177506382742,
+          "scored": true
+        },
+        "instructions": {
+          "pairs": [1.0001782411885192, 1.0030478647471865],
+          "median": 1.0016130529678529,
+          "pairVerdict": "loss",
+          "signedMedianPercentHigher": 0.1613052967852857,
+          "scored": true
+        }
+      }
+    }
+  ],
+  "cells": [
+    {
+      "id": "r12-standing:mac:GL:XGL:rolling-logs",
+      "machine": "mac-m1",
+      "renderer": "ghostty WebGL",
+      "counterpart": "xterm 6 WebGL",
+      "workload": "rolling-logs",
+      "condition": "bounded-matched-final",
+      "harnessGeneration": "R08",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0",
+        "@xterm/addon-webgl": "0.19.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "b2d8bc65fd5281f60ba33995b4ffae7b41132e131bf7c1fce00029cfe38c794c",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T20:09:03.947Z",
+      "rawSha256": "bf3dce81544ae827d2b58aed3ad3f2565c7dd3121f9282807f1ba70fdfa3b513",
+      "ownActor": "GL",
+      "counterpartActor": "XGL",
+      "projectedActorOrder": ["XGL", "GL", "GL", "XGL"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [4, 5]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "GL": [8841],
+        "XGL": [8841]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 8,841 rows, counterpart 8,841 rows per terminal.",
+      "drawingBuffersByActor": {
+        "GL": [[560, 456]],
+        "XGL": [[560, 456]]
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac rolling-logs test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 WebGL versus xterm 6 WebGL recorded all-Chrome median kernel-estimated CPU energy ratio 0.612131 (lower in both pairs); retired user-space instructions ratio 0.613082 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 8,841 rows, counterpart 8,841 rows per terminal. Drawing buffer 560×456 pixels at DPR 2; displayed rectangle 162.492×132.315 CSS pixels. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.6227957415923908, 0.6014659519141047],
+            "median": 0.6121308467532478,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -38.78691532467522,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.6126321751805769, 0.6135320714928701],
+            "median": 0.6130821233367235,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -38.69178766632765,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.6121308467532478,
+          "instructions": 0.6130821233367235,
+          "cycles": 0.7136966178526576,
+          "cpuSeconds": 0.7586798544928721
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:GL:XGL:rolling-unicode-logs",
+      "machine": "mac-m1",
+      "renderer": "ghostty WebGL",
+      "counterpart": "xterm 6 WebGL",
+      "workload": "rolling-unicode-logs",
+      "condition": "bounded-matched-final",
+      "harnessGeneration": "R08-u11",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0",
+        "@xterm/addon-webgl": "0.19.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "2ad580ffc4051c32a28f46a66cf29b7efa32a1c8f47da2ed07024b0d028bbc07",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T20:13:49.398Z",
+      "rawSha256": "0d3707db1ad042ed3930bb3bdc87919de20e09aaa9bf5b76e18e7e68d9567b74",
+      "ownActor": "GL",
+      "counterpartActor": "XGL",
+      "projectedActorOrder": ["XGL", "GL", "GL", "XGL"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [4, 5]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "GL": [9572],
+        "XGL": [9572]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 9,572 rows, counterpart 9,572 rows per terminal.",
+      "drawingBuffersByActor": {
+        "GL": [[560, 456]],
+        "XGL": [[560, 456]]
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac rolling-unicode-logs test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 WebGL versus xterm 6 WebGL recorded all-Chrome median kernel-estimated CPU energy ratio 0.610727 (lower in both pairs); retired user-space instructions ratio 0.614579 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 9,572 rows, counterpart 9,572 rows per terminal. Drawing buffer 560×456 pixels at DPR 2; displayed rectangle 162.492×132.315 CSS pixels. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.6023772837328075, 0.6190772025191027],
+            "median": 0.6107272431259552,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -38.92727568740448,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.6073466069899853, 0.6218115764212002],
+            "median": 0.6145790917055928,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -38.542090829440724,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.6107272431259552,
+          "instructions": 0.6145790917055928,
+          "cycles": 0.709206666402739,
+          "cpuSeconds": 0.7606762868164751
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:GL:XGL:unicode-emoji",
+      "machine": "mac-m1",
+      "renderer": "ghostty WebGL",
+      "counterpart": "xterm 6 WebGL",
+      "workload": "unicode-emoji",
+      "condition": "primary",
+      "harnessGeneration": "R08-u11",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0",
+        "@xterm/addon-webgl": "0.19.0",
+        "@xterm/addon-unicode11": "0.9.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "65c44becb0ede34ae43f1872bf1075b2d08a1288b10eb2972096922559706431",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T20:23:02.582Z",
+      "rawSha256": "8c6c1221b6f57084a502e8a8b0cd469ee2eb685251a04aba293ac5fc8bd5d617",
+      "ownActor": "GL",
+      "counterpartActor": "XGL",
+      "projectedActorOrder": ["XGL", "GL", "GL", "XGL"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09", "F07"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [4, 5]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": false,
+      "scoredLossMetrics": ["instructions"],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": ["instructions"],
+      "historyRowsByActor": {
+        "GL": [889],
+        "XGL": [889]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 889 rows, counterpart 889 rows per terminal.",
+      "drawingBuffersByActor": {
+        "GL": [[560, 456]],
+        "XGL": [[560, 456]]
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac unicode-emoji test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 WebGL versus xterm 6 WebGL recorded all-Chrome median kernel-estimated CPU energy ratio 0.986057 (lower in both pairs); retired user-space instructions ratio 1.001613 (higher in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 889 rows, counterpart 889 rows per terminal. Drawing buffer 560×456 pixels at DPR 2; displayed rectangle 162.492×132.315 CSS pixels. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.9889065971651908, 0.9832070478220436],
+            "median": 0.9860568224936173,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -1.3943177506382742,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [1.0001782411885192, 1.0030478647471865],
+            "median": 1.0016130529678529,
+            "pairVerdict": "loss",
+            "signedMedianPercentHigher": 0.1613052967852857,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.9860568224936173,
+          "instructions": 1.0016130529678529,
+          "cycles": 1.002916615197538,
+          "cpuSeconds": 0.989421514350836
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:GL:XGL:line-scroll",
+      "machine": "mac-m1",
+      "renderer": "ghostty WebGL",
+      "counterpart": "xterm 6 WebGL",
+      "workload": "line-scroll",
+      "condition": "primary",
+      "harnessGeneration": "R08",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0",
+        "@xterm/addon-webgl": "0.19.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "54ba3a2d18f9652e5bb5428caf797b1cc1b7cbcc42a4768c186d81404b7809bd",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T20:31:05.317Z",
+      "rawSha256": "48a753ee939668e6bbe7635816ea7729a72513793aedefc5f931e470e7b4bb41",
+      "ownActor": "GL",
+      "counterpartActor": "XGL",
+      "projectedActorOrder": ["XGL", "GL", "GL", "XGL"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [4, 5]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "GL": [889],
+        "XGL": [889]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 889 rows, counterpart 889 rows per terminal.",
+      "drawingBuffersByActor": {
+        "GL": [[560, 456]],
+        "XGL": [[560, 456]]
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac line-scroll test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 WebGL versus xterm 6 WebGL recorded all-Chrome median kernel-estimated CPU energy ratio 0.954519 (lower in both pairs); retired user-space instructions ratio 0.985148 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 889 rows, counterpart 889 rows per terminal. Drawing buffer 560×456 pixels at DPR 2; displayed rectangle 162.492×132.315 CSS pixels. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.9694791913467613, 0.939558082773951],
+            "median": 0.9545186370603562,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -4.548136293964378,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.9854207532635109, 0.9848744140323908],
+            "median": 0.9851475836479509,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -1.4852416352049147,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.9545186370603562,
+          "instructions": 0.9851475836479509,
+          "cycles": 0.9797915727861017,
+          "cpuSeconds": 0.990836218500014
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:GL:XGL:interactive-edits",
+      "machine": "mac-m1",
+      "renderer": "ghostty WebGL",
+      "counterpart": "xterm 6 WebGL",
+      "workload": "interactive-edits",
+      "condition": "primary",
+      "harnessGeneration": "R08",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0",
+        "@xterm/addon-webgl": "0.19.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "162911677f0196c8559271aaefbd2d484c681549775e2b086158fec740850469",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T20:36:34.380Z",
+      "rawSha256": "c79298173d8e20cd66c3b7e9824624d1ec40e63b36539884207d039967dfa024",
+      "ownActor": "GL",
+      "counterpartActor": "XGL",
+      "projectedActorOrder": ["XGL", "GL", "GL", "XGL"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [4, 5]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "GL": [0],
+        "XGL": [0]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 0 rows, counterpart 0 rows per terminal.",
+      "drawingBuffersByActor": {
+        "GL": [[560, 456]],
+        "XGL": [[560, 456]]
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac interactive-edits test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 WebGL versus xterm 6 WebGL recorded all-Chrome median kernel-estimated CPU energy ratio 0.910773 (lower in both pairs); retired user-space instructions ratio 0.954064 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 0 rows, counterpart 0 rows per terminal. Drawing buffer 560×456 pixels at DPR 2; displayed rectangle 162.492×132.315 CSS pixels. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.9179397160929413, 0.9036053258812358],
+            "median": 0.9107725209870885,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -8.92274790129115,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.9530698735040373, 0.9550571930464823],
+            "median": 0.9540635332752598,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -4.593646672474017,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.9107725209870885,
+          "instructions": 0.9540635332752598,
+          "cycles": 0.9144733317215634,
+          "cpuSeconds": 1.0113011433478418
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:DOM:XDOM:rolling-logs",
+      "machine": "mac-m1",
+      "renderer": "ghostty DOM",
+      "counterpart": "xterm 6 DOM",
+      "workload": "rolling-logs",
+      "condition": "bounded-matched-final",
+      "harnessGeneration": "R08",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "29c6fc7c1ab58dcd2146aa6bc7272172005f3cd770137503c84bed6938912e3b",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T19:15:00.721Z",
+      "rawSha256": "86a641247b076d77c68498949805571a96376ce5c356541960fa890b220d3a84",
+      "ownActor": "DOM",
+      "counterpartActor": "XDOM",
+      "projectedActorOrder": ["XDOM", "DOM", "DOM", "XDOM"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [2, 3]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "DOM": [8841],
+        "XDOM": [8841]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 8,841 rows, counterpart 8,841 rows per terminal.",
+      "drawingBuffersByActor": {
+        "DOM": [],
+        "XDOM": []
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac rolling-logs test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 DOM versus xterm 6 DOM recorded all-Chrome median kernel-estimated CPU energy ratio 0.529125 (lower in both pairs); retired user-space instructions ratio 0.592229 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 8,841 rows, counterpart 8,841 rows per terminal. DPR 2. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.5258573674568849, 0.5323935382163365],
+            "median": 0.5291254528366107,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -47.087454716338925,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.5911313705417024, 0.5933262549990302],
+            "median": 0.5922288127703663,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -40.777118722963365,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.5291254528366107,
+          "instructions": 0.5922288127703663,
+          "cycles": 0.6403365575482947,
+          "cpuSeconds": 0.7023053754905952
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:DOM:XDOM:rolling-unicode-logs",
+      "machine": "mac-m1",
+      "renderer": "ghostty DOM",
+      "counterpart": "xterm 6 DOM",
+      "workload": "rolling-unicode-logs",
+      "condition": "bounded-matched-final",
+      "harnessGeneration": "R08-u11",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "9349bd7128dd40808e7fda3c6d26e5b0fa80cc4db52e38fcb13c8c299e98b4ba",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T19:18:49.639Z",
+      "rawSha256": "88a3463f59a98a211a72ed1ab8fa36d335b20cb2f57a19fff977503d96fc5400",
+      "ownActor": "DOM",
+      "counterpartActor": "XDOM",
+      "projectedActorOrder": ["XDOM", "DOM", "DOM", "XDOM"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [2, 3]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "DOM": [9572],
+        "XDOM": [9572]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 9,572 rows, counterpart 9,572 rows per terminal.",
+      "drawingBuffersByActor": {
+        "DOM": [],
+        "XDOM": []
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac rolling-unicode-logs test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 DOM versus xterm 6 DOM recorded all-Chrome median kernel-estimated CPU energy ratio 0.592134 (lower in both pairs); retired user-space instructions ratio 0.618112 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 9,572 rows, counterpart 9,572 rows per terminal. DPR 2. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.5957220831754102, 0.5885457983222729],
+            "median": 0.5921339407488415,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -40.78660592511585,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.6187299943335179, 0.617494622455668],
+            "median": 0.618112308394593,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -38.1887691605407,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.5921339407488415,
+          "instructions": 0.618112308394593,
+          "cycles": 0.6741244007270162,
+          "cpuSeconds": 0.7036348264178676
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:DOM:XDOM:line-scroll",
+      "machine": "mac-m1",
+      "renderer": "ghostty DOM",
+      "counterpart": "xterm 6 DOM",
+      "workload": "line-scroll",
+      "condition": "primary",
+      "harnessGeneration": "R08",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "a637261ed1986d624a0c7950926610f60fcffade4789265769ed823ba942c4ef",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T19:31:44.470Z",
+      "rawSha256": "48b4723704a8df3da590ecca0fa8eb8ce899361b7f54b3f7170781c2a4e5d6f2",
+      "ownActor": "DOM",
+      "counterpartActor": "XDOM",
+      "projectedActorOrder": ["XDOM", "DOM", "DOM", "XDOM"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [2, 3]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": true,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": [],
+      "medianScoredLossMetrics": [],
+      "historyRowsByActor": {
+        "DOM": [889],
+        "XDOM": [889]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 889 rows, counterpart 889 rows per terminal.",
+      "drawingBuffersByActor": {
+        "DOM": [],
+        "XDOM": []
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac line-scroll test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 DOM versus xterm 6 DOM recorded all-Chrome median kernel-estimated CPU energy ratio 0.668761 (lower in both pairs); retired user-space instructions ratio 0.798577 (lower in both pairs). These are medians of two pair ratios. Registered final history: Ghostty 889 rows, counterpart 889 rows per terminal. DPR 2. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.6674002937097442, 0.6701209729919696],
+            "median": 0.6687606333508569,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -33.12393666491431,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.7972157605890673, 0.7999373417123405],
+            "median": 0.7985765511507039,
+            "pairVerdict": "win",
+            "signedMedianPercentHigher": -20.142344884929607,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 0.6687606333508569,
+          "instructions": 0.7985765511507039,
+          "cycles": 0.8250175111069296,
+          "cpuSeconds": 0.976396986590486
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:DOM:XDOM:interactive-edits",
+      "machine": "mac-m1",
+      "renderer": "ghostty DOM",
+      "counterpart": "xterm 6 DOM",
+      "workload": "interactive-edits",
+      "condition": "primary",
+      "harnessGeneration": "R08",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "PUBLISHABLE WITH LIMITS",
+      "publicationScope": "Scoped descriptive two-pair all-Chrome observation",
+      "qualifiedForNumericalPublication": true,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "e1ebad649de1f589e3090c4a40cf61251814ded82760240223aeac50f0ad67c3",
+      "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+      "acquisitionStartedAt": "2026-10-09T19:33:52.943Z",
+      "rawSha256": "ec033993bf6a9a595576b40e2f30791c40befa45eda631cecc84a51f248833b2",
+      "ownActor": "DOM",
+      "counterpartActor": "XDOM",
+      "projectedActorOrder": ["XDOM", "DOM", "DOM", "XDOM"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": ["F01", "F02", "F03", "F04", "F05", "F13", "F14", "F16", "F09"],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "pairCount": 2,
+      "pairingIndicesOwnThenCounterpart": [
+        [1, 0],
+        [2, 3]
+      ],
+      "adjacentPairs": [true, true],
+      "allScoredMetricsLowerInBothPairs": false,
+      "scoredLossMetrics": [],
+      "scoredMixedMetrics": ["energyJ", "instructions"],
+      "medianScoredLossMetrics": ["energyJ"],
+      "historyRowsByActor": {
+        "DOM": [0],
+        "XDOM": [0]
+      },
+      "historyGapRows": 0,
+      "historyExplanation": "Registered final history: Ghostty 0 rows, counterpart 0 rows per terminal.",
+      "drawingBuffersByActor": {
+        "DOM": [],
+        "XDOM": []
+      },
+      "dpr": 2,
+      "websiteStatement": "In this registered Apple M1 Mac interactive-edits test (17 terminals, 900 measured ticks), ghostty-webgpu 0.3.21 DOM versus xterm 6 DOM recorded all-Chrome median kernel-estimated CPU energy ratio 1.007763 (mixed across the two pairs); retired user-space instructions ratio 0.998207 (mixed across the two pairs). These are medians of two pair ratios. Registered final history: Ghostty 0 rows, counterpart 0 rows per terminal. DPR 2. Registered cadence 60 Hz; no presentation or cadence verdict.",
+      "allChrome": {
+        "scoredMetrics": {
+          "energyJ": {
+            "pairs": [0.9974198037995046, 1.0181053937375553],
+            "median": 1.00776259876853,
+            "pairVerdict": "mixed",
+            "signedMedianPercentHigher": 0.7762598768529916,
+            "scored": true
+          },
+          "instructions": {
+            "pairs": [0.9842630771340989, 1.012150443057959],
+            "median": 0.9982067600960289,
+            "pairVerdict": "mixed",
+            "signedMedianPercentHigher": -0.17932399039710667,
+            "scored": true
+          }
+        },
+        "medianRatios": {
+          "energyJ": 1.00776259876853,
+          "instructions": 0.9982067600960289,
+          "cycles": 1.028834117721275,
+          "cpuSeconds": 1.0217944563378345
+        }
+      }
+    },
+    {
+      "id": "r12-standing:mac:DOM:XDOM:unicode-emoji",
+      "machine": "mac-m1",
+      "renderer": "ghostty DOM",
+      "counterpart": "xterm 6 DOM",
+      "workload": "unicode-emoji",
+      "condition": "primary",
+      "harnessGeneration": "R08-u11",
+      "terminalCount": 17,
+      "ticks": 900,
+      "warmupTicks": 120,
+      "cadenceHz": 60,
+      "scoredMetrics": ["energyJ", "instructions"],
+      "verdict": "NOT PUBLISHABLE",
+      "publicationScope": "Unavailable comparison; no qualified numerical claim",
+      "qualifiedForNumericalPublication": false,
+      "sourceBuild": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+      "executedRuntimeDirty": "",
+      "versions": {
+        "ghostty-webgpu": "0.3.21",
+        "@xterm/xterm": "6.0.0",
+        "@xterm/addon-unicode11": "0.9.0"
+      },
+      "browserVersion": "154.0.8037.93",
+      "crossApi": false,
+      "protocolSha256": "d63900bf0525efc27fde0176abc9828c0d723b95a5885ac63f02825951e47cae",
+      "registeredAt": "2026-10-09T19:26:46.386164+00:00",
+      "acquisitionStartedAt": "2026-10-09T19:26:47.740Z",
+      "rawSha256": "2d7b8ba7831f7d07ec1a1b37f1be97ff9c06e0a53b2b23af2a2e21c2d95b6e70",
+      "ownActor": "DOM",
+      "counterpartActor": "XDOM",
+      "projectedActorOrder": ["XDOM", "DOM", "DOM", "XDOM"],
+      "principalChannel": "allChrome",
+      "requiredFootnotes": [
+        "F01",
+        "F02",
+        "F03",
+        "F04",
+        "F05",
+        "F13",
+        "F14",
+        "F16",
+        "F09",
+        "F07",
+        "F15",
+        "F17"
+      ],
+      "commonTailRowsIncludingViewport": null,
+      "headlineApproved": false,
+      "exclusionReason": "xterm DOM produced two different same-actor settled PNG hashes in both attempts; the exact PNG gate failed. The r02 full-cohort retry also repeated the already-valid r01 DOM windows.",
+      "exclusionReceiptConfirmed": true,
+      "observedRuns": [
+        {
+          "index": 0,
+          "actor": "XDOM",
+          "status": "complete",
+          "failure": null,
+          "pacingPass": null
+        },
+        {
+          "index": 1,
+          "actor": "DOM",
+          "status": "complete",
+          "failure": null,
+          "pacingPass": null
+        },
+        {
+          "index": 2,
+          "actor": "DOM",
+          "status": "complete",
+          "failure": null,
+          "pacingPass": null
+        },
+        {
+          "index": 3,
+          "actor": "XDOM",
+          "status": "complete",
+          "failure": null,
+          "pacingPass": null
+        }
+      ],
+      "pairCount": 0,
+      "allChrome": null,
+      "ratiosByChannel": null,
+      "websiteStatement": "A qualified numerical comparison of ghostty-webgpu DOM versus xterm 6 DOM is unavailable for unicode-emoji on Apple M1 Mac. xterm DOM produced two different same-actor settled PNG hashes in both attempts; the exact PNG gate failed. The r02 full-cohort retry also repeated the already-valid r01 DOM windows.",
+      "noReplayPolicyFinding": {
+        "cell": "r12-standing:mac:DOM:XDOM:unicode-emoji",
+        "selectedQualifiedEvidenceAffected": false,
+        "gateChecks": {
+          "complete window": 4,
+          "page errors": 4,
+          "ticks": 4,
+          "work target count": 8,
+          "work delta arithmetic": 68,
+          "public writes": 68,
+          "input bytes": 68,
+          "render callbacks": 68,
+          "content digest arithmetic": 4,
+          "within-actor output": 4,
+          "registered history": 68,
+          "PNG custody": 4,
+          "geometry count": 8,
+          "DPR": 136,
+          "context lifetime": 136,
+          "settled geometry": 4,
+          "DOM targets": 8,
+          "normalized DOM geometry": 136,
+          "DOM viewport containment": 136,
+          "DOM hidden scrollbars": 136,
+          "Mac AC/load guard": 4,
+          "process PID/type coverage": 4,
+          "counter envelope": 4,
+          "Mac calibrated capability": 4,
+          "Mac calibration precedes window": 4,
+          "process birth identity": 28,
+          "process lifetime": 28,
+          "nonnegative native deltas": 28,
+          "per-process arithmetic": 392,
+          "channel arithmetic": 440,
+          "core writes": 68,
+          "cell digest arithmetic": 4,
+          "Unicode widths mode": 68
+        },
+        "gateMismatches": [],
+        "records": [
+          {
+            "attempt": "tw-standing-dom-unicode-emoji-r01",
+            "rawSha256": "2c330f4387bf0ca6f790cfd352db329f7afbf04830b3f8472a51eaf92f3d31db",
+            "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+            "startedAt": "2026-10-09T19:20:52.824Z",
+            "DOMIndices": [1, 2],
+            "DOMWindowGateProblems": [],
+            "DOMSameActorPNGStable": true,
+            "XDOMPNGHashes": [
+              "761c5fd35928c5eb4d7b0955948d198b323c5f123c01a14ddc4e487ba7034b7d",
+              "041d2a3621fb805b5406c6c79660a7b5f67d2e9a92730dca5c4773c80174db3d"
+            ],
+            "replacementOf": null
+          },
+          {
+            "attempt": "tw-standing-dom-unicode-emoji-r02",
+            "rawSha256": "2d7b8ba7831f7d07ec1a1b37f1be97ff9c06e0a53b2b23af2a2e21c2d95b6e70",
+            "registeredAt": "2026-10-09T19:26:46.386164+00:00",
+            "startedAt": "2026-10-09T19:26:47.740Z",
+            "DOMIndices": [1, 2],
+            "DOMWindowGateProblems": [],
+            "DOMSameActorPNGStable": true,
+            "XDOMPNGHashes": [
+              "041d2a3621fb805b5406c6c79660a7b5f67d2e9a92730dca5c4773c80174db3d",
+              "761c5fd35928c5eb4d7b0955948d198b323c5f123c01a14ddc4e487ba7034b7d"
+            ],
+            "replacementOf": "tw-standing-dom-unicode-emoji-r01"
+          }
+        ],
+        "finding": "The prospectively registered r02 repeats both DOM windows after their r01 per-window gates and same-actor PNG passed. Only XDOM failed the repeated-PNG gate. Under the strict per-window no-valid-replay rule this full-cohort retry is a policy violation; rejecting a comparison does not itself invalidate the stable DOM windows. Both attempts remain excluded, so this changes none of the 85 qualified numerical cells."
+      }
+    }
+  ]
+}

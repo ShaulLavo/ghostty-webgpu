@@ -1,4 +1,4 @@
-import snapshot from '../../docs/benchmarks/mac-m1-2026-10-08/scores.json'
+import snapshot from '../../docs/benchmarks/mac-m1-2026-10-10/scores.json'
 
 const evidence = 'https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks'
 
@@ -6,8 +6,11 @@ interface MeasurementScore {
   readonly renderer: string
   readonly workload: string
   readonly history: string
+  readonly historyRows: number
   readonly energy: number
   readonly instructions: number
+  readonly energyPairs: readonly number[]
+  readonly instructionPairs: readonly number[]
   readonly status: string
 }
 
@@ -19,6 +22,8 @@ export interface MeasurementRow {
   readonly history: string
   readonly energy: number
   readonly instructions: number
+  readonly energyPairs: readonly number[]
+  readonly instructionPairs: readonly number[]
   readonly verdict: Verdict
 }
 
@@ -58,11 +63,10 @@ const workloads: Readonly<Record<string, string>> = {
   'interactive-edits': 'Typing-like edits',
 }
 
-const boundedRows = /\(([\d,]+) rows\)/.exec(snapshot.conditions.history['equal ~9k'])![1]
-const histories: Readonly<Record<string, string>> = {
-  'equal ~9k': `${boundedRows} final rows`,
-  'full-stream': 'Full stream',
-  'equal 889/0': 'Equal by construction',
+function historyOf(row: MeasurementScore) {
+  if (row.history === 'bounded-matched-final')
+    return `${row.historyRows.toLocaleString('en-US')} final rows`
+  return 'Equal by construction'
 }
 
 function verdictOf(row: MeasurementScore): Verdict {
@@ -77,17 +81,35 @@ export function measurementRows(scores: readonly MeasurementScore[]): Measuremen
     .map((row) => ({
       renderer: row.renderer.replace('ghostty ', ''),
       workload: workloads[row.workload] ?? row.workload,
-      history: histories[row.history] ?? row.history,
+      history: historyOf(row),
       energy: row.energy,
       instructions: row.instructions,
+      energyPairs: row.energyPairs,
+      instructionPairs: row.instructionPairs,
       verdict: verdictOf(row),
     }))
 }
 
 export const measurements = measurementRows(snapshot.scores)
 
+function direction(pairs: readonly number[]) {
+  if (pairs.every((value) => value < 1)) return 'lower'
+  if (pairs.every((value) => value >= 1)) return 'higher'
+  return 'mixed'
+}
+
+function evenNote(row: MeasurementRow) {
+  const energy = direction(row.energyPairs)
+  const instructions = direction(row.instructionPairs)
+  if (energy === 'mixed' && instructions === 'mixed')
+    return 'Roughly even. The two pairs disagree on energy and instructions.'
+  if (instructions === 'higher')
+    return `Roughly even. Energy is ${energy} and instructions are higher in both pairs, which the review records as an instruction loss.`
+  return 'Roughly even.'
+}
+
 export function rowNote(row: MeasurementRow) {
-  if (row.verdict === 'even') return 'Roughly even.'
+  if (row.verdict === 'even') return evenNote(row)
   if (row.verdict === 'win') return ''
   return `Loss: about ${Math.round((row.energy - 1) * 100)}% more CPU energy.`
 }
@@ -103,13 +125,17 @@ const measuredMethod = [
 ].join(' ')
 
 function measuredTab(renderer: string, counterpartNote: string): MeasuredTab {
+  const gaps = snapshot.unavailable
+    .filter((gap) => gap.renderer === `ghostty ${renderer}`)
+    .map((gap) => ` ${workloads[gap.workload]} is unavailable: ${gap.reason}`)
+    .join('')
   return {
     kind: 'measured',
     id: renderer.toLowerCase(),
     label: renderer,
     title: `CPU energy, ${renderer} against xterm.js ${renderer}`,
     status: snapshot.status,
-    method: `${measuredMethod}${counterpartNote}`,
+    method: `${measuredMethod}${counterpartNote}${gaps}`,
     series: [
       { name: 'ghostty-webgpu', version: versions['ghostty-webgpu'], ours: true },
       { name: 'xterm.js', version: versions['@xterm/xterm'], ours: false },
@@ -119,7 +145,10 @@ function measuredTab(renderer: string, counterpartNote: string): MeasuredTab {
 }
 
 export const benchTabs: readonly BenchTab[] = [
-  measuredTab('WebGL', ` xterm.js WebGL addon ${versions['@xterm/addon-webgl']}.`),
+  measuredTab(
+    'WebGL',
+    ` xterm.js WebGL addon ${versions['@xterm/addon-webgl']}, with Unicode 11 addon ${versions['@xterm/addon-unicode11']} on one Unicode line per tick.`,
+  ),
   measuredTab('DOM', ''),
   {
     kind: 'pending',
@@ -143,6 +172,6 @@ export const benchTabs: readonly BenchTab[] = [
 
 export const benchLinks = {
   results: 'https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md',
-  recompute: `${evidence}/mac-m1-2026-10-08/README.md#recompute-without-a-browser`,
-  recomputeCommand: 'node docs/benchmarks/mac-m1-2026-10-08/verify.mjs',
+  recompute: `${evidence}/mac-m1-2026-10-10/README.md#recompute-without-a-browser`,
+  recomputeCommand: 'node docs/benchmarks/mac-m1-2026-10-10/verify.mjs',
 }

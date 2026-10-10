@@ -1,0 +1,2973 @@
+{
+  "id": "tw-standing-dom-rolling-logs-r01",
+  "sessionId": "10d3344a-4d1c-474f-9156-fdf457f3696f",
+  "startedAt": "2026-10-09T19:15:00.721Z",
+  "finishedAt": "2026-10-09T19:16:52.206Z",
+  "protocolSha256": "29c6fc7c1ab58dcd2146aa6bc7272172005f3cd770137503c84bed6938912e3b",
+  "bundleSha256": "2595c1cfa6f3a5f9c3c3f7d74da6a26466c8d8a00c7393131a73d0d4fcdb4ca6",
+  "runtimeCommit": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+  "sealSha256": "c95a90064329c74b8c4d16d8f72eee27bb9433fe574fc99538f0e22f57519cde",
+  "readerSha256": "584868250904c21b9132f3be4cb054a9d15d350776aa0f8fd62321dd0106ca86",
+  "browserVersion": "154.0.8037.93",
+  "backend": {
+    "devices": [
+      {
+        "vendorId": 4203,
+        "deviceId": 0,
+        "vendorString": "Google Inc. (Apple)",
+        "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+        "driverVendor": "Apple",
+        "driverVersion": "26.4"
+      }
+    ],
+    "modelName": "MacBookAir",
+    "modelVersion": "10.1"
+  },
+  "browserLaunchArguments": [
+    "--force-device-scale-factor=2",
+    "--enable-unsafe-webgpu",
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+    "--max-active-webgl-contexts=32",
+    "--optimization-guide-performance-class=1"
+  ],
+  "complete": true,
+  "originalIndexSha256": "86a641247b076d77c68498949805571a96376ce5c356541960fa890b220d3a84",
+  "omittedActors": [],
+  "protocol": {
+    "status": "Approved",
+    "id": "tw-standing-dom-rolling-logs-r01",
+    "lane": "r12-standing",
+    "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+    "archiveSha256": "60457d50d42f135d9276c609045f7d4a2e4947e47a883484aac8636198587e1d",
+    "sealSha256": "c95a90064329c74b8c4d16d8f72eee27bb9433fe574fc99538f0e22f57519cde",
+    "runtimeCommit": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+    "bundleSha256": "2595c1cfa6f3a5f9c3c3f7d74da6a26466c8d8a00c7393131a73d0d4fcdb4ca6",
+    "readerSha256": "584868250904c21b9132f3be4cb054a9d15d350776aa0f8fd62321dd0106ca86",
+    "build": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+    "harness": "r07",
+    "harnessGeneration": "R08",
+    "scoredMetrics": ["energyJ", "instructions"],
+    "machine": "mac",
+    "workloads": ["rolling-logs"],
+    "workload": "rolling-logs",
+    "order": ["XDOM", "DOM", "DOM", "XDOM"],
+    "comparisons": [["DOM", "XDOM"]],
+    "count": 17,
+    "ticks": 900,
+    "warmupTicks": 120,
+    "condition": "bounded-matched-final",
+    "smoke": false,
+    "retentionMode": "bounded",
+    "xtermMaximumRows": 8841,
+    "readerValidation": "tw-tools validated RUSAGE_INFO_V6 ABI, units, start identities and calibration. Fresh positive helper calibration before every window.",
+    "requiredReaderCapabilities": [
+      "instructions",
+      "cycles",
+      "pCoreSeconds",
+      "pInstructions",
+      "pCycles",
+      "energyJ",
+      "pEnergyJ"
+    ],
+    "metrics": [
+      "energyJ",
+      "instructions",
+      "cycles",
+      "cpuSeconds",
+      "effectiveClockGHz",
+      "pCoreTimeShare",
+      "pCpuSeconds",
+      "pEffectiveClockGHz",
+      "cdpCpuSeconds"
+    ],
+    "channels": ["renderer", "GPU", "rendererPlusGPU", "allChrome", "otherChrome"],
+    "acceptance": "Descriptive only. Exact input bytes/writes, parser/core work, logical settlement, per-target output and registered history; same-actor settled PNG; matching actual geometry; stable endpoint PID/type/start identities; native bracket encloses CDP CPU bracket; calibrated raw counters recompute.",
+    "replacementPolicy": "Never repeat completed valid windows. Preserve failures; only rejected windows can receive a fresh identity.",
+    "coverage": "Sequential non-atomic snapshots miss short-lived processes wholly between endpoints. Logical two-RAF endpoint is not a GPU fence. Kernel estimated CPU energy excludes GPU-device, display and other-process energy. Observer enabled and uncalibrated; no overhead subtraction.",
+    "cycleCaveat": "At lower clock, memory stalls cost fewer cycles, slightly favouring the lower-clocked arm. A cycles win with an instructions loss needs stall analysis.",
+    "deadlines": { "soft": 555, "hardCleanup": 560, "controller": 590 },
+    "trace": false,
+    "cellOracle": false,
+    "expectedFinalHistoryRows": 8841,
+    "historyGapRows": 0,
+    "fonts": {
+      "DOM": { "family": "Bench Mono", "size": 15, "lineHeight": 1.2, "letterSpacing": 0 },
+      "XDOM": { "family": "Bench Mono", "size": 15, "lineHeight": 1.2, "letterSpacing": 0 }
+    },
+    "surfaceNormalization": {
+      "panelHeight": 320,
+      "hideScrollbars": true,
+      "expectedWidth": 360,
+      "expectedHeight": 288
+    },
+    "capsule": "capsule-r07"
+  },
+  "runs": [
+    {
+      "index": 0,
+      "actor": "XDOM",
+      "workload": "rolling-logs",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 84437,
+            "type": "browser",
+            "startAbstime": "78180597785398",
+            "cdpCpuSeconds": 0.08512299999999984,
+            "ri_user_time": 60309083,
+            "ri_system_time": 24878000,
+            "ri_user_ptime": 57250334,
+            "ri_system_ptime": 20984583,
+            "ri_instructions": 286694208,
+            "ri_cycles": 207322904,
+            "ri_pinstructions": 274213549,
+            "ri_pcycles": 195359999,
+            "ri_energy_nj": 79568057,
+            "ri_penergy_nj": 78688155,
+            "ri_runnable_time": 101065750,
+            "ri_interrupt_wkups": 35,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84531,
+            "type": "renderer",
+            "startAbstime": "78181091571766",
+            "cdpCpuSeconds": 0.0008030000000000051,
+            "ri_user_time": 559875,
+            "ri_system_time": 241750,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 963989,
+            "ri_cycles": 887940,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 44477,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 1096334,
+            "ri_interrupt_wkups": 4,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84532,
+            "type": "renderer",
+            "startAbstime": "78181091593094",
+            "cdpCpuSeconds": 9.087852999999999,
+            "ri_user_time": 8895936375,
+            "ri_system_time": 191915459,
+            "ri_user_ptime": 8282230167,
+            "ri_system_ptime": 160742958,
+            "ri_instructions": 90403047603,
+            "ri_cycles": 23209015064,
+            "ri_pinstructions": 88630765064,
+            "ri_pcycles": 21879641213,
+            "ri_energy_nj": 19439690053,
+            "ri_penergy_nj": 19319104750,
+            "ri_runnable_time": 9394648125,
+            "ri_interrupt_wkups": 1455,
+            "ri_pkg_idle_wkups": 10
+          },
+          {
+            "pid": 84530,
+            "type": "renderer",
+            "startAbstime": "78181090727711",
+            "cdpCpuSeconds": 0.0016079999999999983,
+            "ri_user_time": 1128459,
+            "ri_system_time": 479541,
+            "ri_user_ptime": 1128458,
+            "ri_system_ptime": 479542,
+            "ri_instructions": 3318399,
+            "ri_cycles": 3938006,
+            "ri_pinstructions": 3318399,
+            "ri_pcycles": 3938006,
+            "ri_energy_nj": 1276882,
+            "ri_penergy_nj": 1276882,
+            "ri_runnable_time": 7285834,
+            "ri_interrupt_wkups": 21,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84447,
+            "type": "GPU",
+            "startAbstime": "78180605152439",
+            "cdpCpuSeconds": 1.3967769999999997,
+            "ri_user_time": 1044290083,
+            "ri_system_time": 352485625,
+            "ri_user_ptime": 1039629125,
+            "ri_system_ptime": 348686917,
+            "ri_instructions": 6596668312,
+            "ri_cycles": 3544822122,
+            "ri_pinstructions": 6589085838,
+            "ri_pcycles": 3528047113,
+            "ri_energy_nj": 1842460737,
+            "ri_penergy_nj": 1841476390,
+            "ri_runnable_time": 1636222583,
+            "ri_interrupt_wkups": 1850,
+            "ri_pkg_idle_wkups": 6
+          },
+          {
+            "pid": 84448,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78180605222273",
+            "cdpCpuSeconds": 0.0010840000000000016,
+            "ri_user_time": 308875,
+            "ri_system_time": 773792,
+            "ri_user_ptime": 308875,
+            "ri_system_ptime": 773792,
+            "ri_instructions": 4553455,
+            "ri_cycles": 2617114,
+            "ri_pinstructions": 4553455,
+            "ri_pcycles": 2617114,
+            "ri_energy_nj": 1258446,
+            "ri_penergy_nj": 1258446,
+            "ri_runnable_time": 1202542,
+            "ri_interrupt_wkups": 4,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 84449,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78180605801054",
+            "cdpCpuSeconds": 2.5999999999998247e-5,
+            "ri_user_time": 16917,
+            "ri_system_time": 9000,
+            "ri_user_ptime": 16917,
+            "ri_system_ptime": 9000,
+            "ri_instructions": 20936,
+            "ri_cycles": 61885,
+            "ri_pinstructions": 20936,
+            "ri_pcycles": 61885,
+            "ri_energy_nj": 8423,
+            "ri_penergy_nj": 8423,
+            "ri_runnable_time": 62667,
+            "ri_interrupt_wkups": 2,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 8897624709,
+            "ri_system_time": 192636750,
+            "ri_user_ptime": 8283358625,
+            "ri_system_ptime": 161222500,
+            "ri_instructions": 90407329991,
+            "ri_cycles": 23213841010,
+            "ri_pinstructions": 88634083463,
+            "ri_pcycles": 21883579219,
+            "ri_energy_nj": 19441011412,
+            "ri_penergy_nj": 19320381632,
+            "ri_runnable_time": 9403030293,
+            "ri_interrupt_wkups": 1480,
+            "ri_pkg_idle_wkups": 10,
+            "cpuSeconds": 9.090261459,
+            "pCpuSeconds": 8.444581125,
+            "cdpCpuSeconds": 9.090263999999998,
+            "instructions": 90407329991,
+            "cycles": 23213841010,
+            "energyJ": 19.441011412,
+            "effectiveClockGHz": 2.5537044357526875,
+            "pEffectiveClockGHz": 2.5914345418761076,
+            "pCoreTimeShare": 0.9289701031249511
+          },
+          "GPU": {
+            "ri_user_time": 1044290083,
+            "ri_system_time": 352485625,
+            "ri_user_ptime": 1039629125,
+            "ri_system_ptime": 348686917,
+            "ri_instructions": 6596668312,
+            "ri_cycles": 3544822122,
+            "ri_pinstructions": 6589085838,
+            "ri_pcycles": 3528047113,
+            "ri_energy_nj": 1842460737,
+            "ri_penergy_nj": 1841476390,
+            "ri_runnable_time": 1636222583,
+            "ri_interrupt_wkups": 1850,
+            "ri_pkg_idle_wkups": 6,
+            "cpuSeconds": 1.396775708,
+            "pCpuSeconds": 1.388316042,
+            "cdpCpuSeconds": 1.3967769999999997,
+            "instructions": 6596668312,
+            "cycles": 3544822122,
+            "energyJ": 1.842460737,
+            "effectiveClockGHz": 2.537860661305258,
+            "pEffectiveClockGHz": 2.5412420560361135,
+            "pCoreTimeShare": 0.993943432756206
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 9941914792,
+            "ri_system_time": 545122375,
+            "ri_user_ptime": 9322987750,
+            "ri_system_ptime": 509909417,
+            "ri_instructions": 97003998303,
+            "ri_cycles": 26758663132,
+            "ri_pinstructions": 95223169301,
+            "ri_pcycles": 25411626332,
+            "ri_energy_nj": 21283472149,
+            "ri_penergy_nj": 21161858022,
+            "ri_runnable_time": 11039252876,
+            "ri_interrupt_wkups": 3330,
+            "ri_pkg_idle_wkups": 16,
+            "cpuSeconds": 10.487037167,
+            "pCpuSeconds": 9.832897167,
+            "cdpCpuSeconds": 10.487040999999998,
+            "instructions": 97003998303,
+            "cycles": 26758663132,
+            "energyJ": 21.283472149,
+            "effectiveClockGHz": 2.551594192514413,
+            "pEffectiveClockGHz": 2.5843478173740566,
+            "pCoreTimeShare": 0.9376239456785364
+          },
+          "allChrome": {
+            "ri_user_time": 10002549667,
+            "ri_system_time": 570783167,
+            "ri_user_ptime": 9380563876,
+            "ri_system_ptime": 531676792,
+            "ri_instructions": 97295266902,
+            "ri_cycles": 26968665035,
+            "ri_pinstructions": 95501957241,
+            "ri_pcycles": 25609665330,
+            "ri_energy_nj": 21364307075,
+            "ri_penergy_nj": 21241813046,
+            "ri_runnable_time": 11141583835,
+            "ri_interrupt_wkups": 3371,
+            "ri_pkg_idle_wkups": 17,
+            "cpuSeconds": 10.573332834,
+            "pCpuSeconds": 9.912240668,
+            "cdpCpuSeconds": 10.573274,
+            "instructions": 97295266902,
+            "cycles": 26968665035,
+            "energyJ": 21.364307075,
+            "effectiveClockGHz": 2.550630483160292,
+            "pEffectiveClockGHz": 2.5836403884619643,
+            "pCoreTimeShare": 0.9374755172868325
+          },
+          "otherChrome": {
+            "ri_user_time": 60634875,
+            "ri_system_time": 25660792,
+            "ri_user_ptime": 57576126,
+            "ri_system_ptime": 21767375,
+            "ri_instructions": 291268599,
+            "ri_cycles": 210001903,
+            "ri_pinstructions": 278787940,
+            "ri_pcycles": 198038998,
+            "ri_energy_nj": 80834926,
+            "ri_penergy_nj": 79955024,
+            "ri_runnable_time": 102330959,
+            "ri_interrupt_wkups": 41,
+            "ri_pkg_idle_wkups": 1,
+            "cpuSeconds": 0.086295667,
+            "pCpuSeconds": 0.079343501,
+            "cdpCpuSeconds": 0.08623299999999984,
+            "instructions": 291268599,
+            "cycles": 210001903,
+            "energyJ": 0.080834926,
+            "effectiveClockGHz": 2.433516192649626,
+            "pEffectiveClockGHz": 2.4959699975931238,
+            "pCoreTimeShare": 0.9194378322610334
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        }
+      ],
+      "contentSha256": "6f77e8f2d2200dedb0b30ccb6fc4825bbf001dcb25c3e4775cbd9634b5f670f7",
+      "screenshotSha256": "d6ab1f17a0b8165bb3767a290640f35fedd5397424796e4ca8f5b4f3eb254ead",
+      "hostAfter": { "at": "2026-10-09T19:15:43.932Z", "ac": true, "load": 2.35 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 1,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 2,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 3,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 4,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 5,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 6,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 7,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 8,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 9,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 10,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 11,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 12,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 13,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 14,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 15,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 16,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "actor": "DOM",
+      "workload": "rolling-logs",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 84437,
+            "type": "browser",
+            "startAbstime": "78180597785398",
+            "cdpCpuSeconds": 0.06483400000000006,
+            "ri_user_time": 50863625,
+            "ri_system_time": 14038250,
+            "ri_user_ptime": 49138500,
+            "ri_system_ptime": 12838708,
+            "ri_instructions": 132996707,
+            "ri_cycles": 147226260,
+            "ri_pinstructions": 129779557,
+            "ri_pcycles": 142916850,
+            "ri_energy_nj": 40781386,
+            "ri_penergy_nj": 40495886,
+            "ri_runnable_time": 74814625,
+            "ri_interrupt_wkups": 41,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 84949,
+            "type": "renderer",
+            "startAbstime": "78181636310717",
+            "cdpCpuSeconds": 0.0010870000000000046,
+            "ri_user_time": 748250,
+            "ri_system_time": 339083,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 1183317,
+            "ri_cycles": 1453604,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 75467,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 1197500,
+            "ri_interrupt_wkups": 3,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84950,
+            "type": "renderer",
+            "startAbstime": "78181636319325",
+            "cdpCpuSeconds": 5.956238,
+            "ri_user_time": 5795636375,
+            "ri_system_time": 160635458,
+            "ri_user_ptime": 5488603166,
+            "ri_system_ptime": 146139583,
+            "ri_instructions": 51360998130,
+            "ri_cycles": 13868424670,
+            "ri_pinstructions": 50405861602,
+            "ri_pcycles": 13210810295,
+            "ri_energy_nj": 9687162812,
+            "ri_penergy_nj": 9622352198,
+            "ri_runnable_time": 6162462333,
+            "ri_interrupt_wkups": 727,
+            "ri_pkg_idle_wkups": 6
+          },
+          {
+            "pid": 84948,
+            "type": "renderer",
+            "startAbstime": "78181635686483",
+            "cdpCpuSeconds": 0.002024999999999999,
+            "ri_user_time": 1405417,
+            "ri_system_time": 619083,
+            "ri_user_ptime": 1368209,
+            "ri_system_ptime": 571333,
+            "ri_instructions": 3591270,
+            "ri_cycles": 4270689,
+            "ri_pinstructions": 3546432,
+            "ri_pcycles": 4177433,
+            "ri_energy_nj": 1243515,
+            "ri_penergy_nj": 1238506,
+            "ri_runnable_time": 3219084,
+            "ri_interrupt_wkups": 20,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84447,
+            "type": "GPU",
+            "startAbstime": "78180605152439",
+            "cdpCpuSeconds": 1.3715899999999999,
+            "ri_user_time": 1006733375,
+            "ri_system_time": 364943166,
+            "ri_user_ptime": 1000022667,
+            "ri_system_ptime": 362040042,
+            "ri_instructions": 6007813103,
+            "ri_cycles": 3114403810,
+            "ri_pinstructions": 5994681388,
+            "ri_pcycles": 3094935270,
+            "ri_energy_nj": 1502655038,
+            "ri_penergy_nj": 1501308314,
+            "ri_runnable_time": 1547560792,
+            "ri_interrupt_wkups": 1858,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 84448,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78180605222273",
+            "cdpCpuSeconds": 0.0043340000000000045,
+            "ri_user_time": 3056708,
+            "ri_system_time": 1277500,
+            "ri_user_ptime": 3023917,
+            "ri_system_ptime": 1250167,
+            "ri_instructions": 6594943,
+            "ri_cycles": 9252281,
+            "ri_pinstructions": 6555194,
+            "ri_pcycles": 9168212,
+            "ri_energy_nj": 2296508,
+            "ri_penergy_nj": 2292483,
+            "ri_runnable_time": 5986625,
+            "ri_interrupt_wkups": 18,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84449,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78180605801054",
+            "cdpCpuSeconds": 0.0006390000000000007,
+            "ri_user_time": 384375,
+            "ri_system_time": 255750,
+            "ri_user_ptime": 366417,
+            "ri_system_ptime": 239958,
+            "ri_instructions": 1107001,
+            "ri_cycles": 1316134,
+            "ri_pinstructions": 1084623,
+            "ri_pcycles": 1283326,
+            "ri_energy_nj": 363550,
+            "ri_penergy_nj": 362448,
+            "ri_runnable_time": 826583,
+            "ri_interrupt_wkups": 9,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 5797790042,
+            "ri_system_time": 161593624,
+            "ri_user_ptime": 5489971375,
+            "ri_system_ptime": 146710916,
+            "ri_instructions": 51365772717,
+            "ri_cycles": 13874148963,
+            "ri_pinstructions": 50409408034,
+            "ri_pcycles": 13214987728,
+            "ri_energy_nj": 9688481794,
+            "ri_penergy_nj": 9623590704,
+            "ri_runnable_time": 6166878917,
+            "ri_interrupt_wkups": 750,
+            "ri_pkg_idle_wkups": 6,
+            "cpuSeconds": 5.959383666,
+            "pCpuSeconds": 5.636682291,
+            "cdpCpuSeconds": 5.95935,
+            "instructions": 51365772717,
+            "cycles": 13874148963,
+            "energyJ": 9.688481794,
+            "effectiveClockGHz": 2.3281180975401896,
+            "pEffectiveClockGHz": 2.3444620515689096,
+            "pCoreTimeShare": 0.945849874234293
+          },
+          "GPU": {
+            "ri_user_time": 1006733375,
+            "ri_system_time": 364943166,
+            "ri_user_ptime": 1000022667,
+            "ri_system_ptime": 362040042,
+            "ri_instructions": 6007813103,
+            "ri_cycles": 3114403810,
+            "ri_pinstructions": 5994681388,
+            "ri_pcycles": 3094935270,
+            "ri_energy_nj": 1502655038,
+            "ri_penergy_nj": 1501308314,
+            "ri_runnable_time": 1547560792,
+            "ri_interrupt_wkups": 1858,
+            "ri_pkg_idle_wkups": 1,
+            "cpuSeconds": 1.371676541,
+            "pCpuSeconds": 1.362062709,
+            "cdpCpuSeconds": 1.3715899999999999,
+            "instructions": 6007813103,
+            "cycles": 3114403810,
+            "energyJ": 1.502655038,
+            "effectiveClockGHz": 2.270508911473758,
+            "pEffectiveClockGHz": 2.2722413950178857,
+            "pCoreTimeShare": 0.9929911814391815
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 6804523417,
+            "ri_system_time": 526536790,
+            "ri_user_ptime": 6489994042,
+            "ri_system_ptime": 508750958,
+            "ri_instructions": 57373585820,
+            "ri_cycles": 16988552773,
+            "ri_pinstructions": 56404089422,
+            "ri_pcycles": 16309922998,
+            "ri_energy_nj": 11191136832,
+            "ri_penergy_nj": 11124899018,
+            "ri_runnable_time": 7714439709,
+            "ri_interrupt_wkups": 2608,
+            "ri_pkg_idle_wkups": 7,
+            "cpuSeconds": 7.331060207,
+            "pCpuSeconds": 6.998745,
+            "cdpCpuSeconds": 7.33094,
+            "instructions": 57373585820,
+            "cycles": 16988552773,
+            "energyJ": 11.191136832,
+            "effectiveClockGHz": 2.3173391424037995,
+            "pEffectiveClockGHz": 2.3304068083634992,
+            "pCoreTimeShare": 0.9546702390081736
+          },
+          "allChrome": {
+            "ri_user_time": 6858828125,
+            "ri_system_time": 542108290,
+            "ri_user_ptime": 6542522876,
+            "ri_system_ptime": 523079791,
+            "ri_instructions": 57514284471,
+            "ri_cycles": 17146347448,
+            "ri_pinstructions": 56541508796,
+            "ri_pcycles": 16463291386,
+            "ri_energy_nj": 11234578276,
+            "ri_penergy_nj": 11168049835,
+            "ri_runnable_time": 7796067542,
+            "ri_interrupt_wkups": 2676,
+            "ri_pkg_idle_wkups": 8,
+            "cpuSeconds": 7.400936415,
+            "pCpuSeconds": 7.065602667,
+            "cdpCpuSeconds": 7.400746999999999,
+            "instructions": 57514284471,
+            "cycles": 17146347448,
+            "energyJ": 11.234578276,
+            "effectiveClockGHz": 2.316780808067515,
+            "pEffectiveClockGHz": 2.330061873262707,
+            "pCoreTimeShare": 0.9546903622465456
+          },
+          "otherChrome": {
+            "ri_user_time": 54304708,
+            "ri_system_time": 15571500,
+            "ri_user_ptime": 52528834,
+            "ri_system_ptime": 14328833,
+            "ri_instructions": 140698651,
+            "ri_cycles": 157794675,
+            "ri_pinstructions": 137419374,
+            "ri_pcycles": 153368388,
+            "ri_energy_nj": 43441444,
+            "ri_penergy_nj": 43150817,
+            "ri_runnable_time": 81627833,
+            "ri_interrupt_wkups": 68,
+            "ri_pkg_idle_wkups": 1,
+            "cpuSeconds": 0.069876208,
+            "pCpuSeconds": 0.066857667,
+            "cdpCpuSeconds": 0.06980700000000006,
+            "instructions": 140698651,
+            "cycles": 157794675,
+            "energyJ": 0.043441444,
+            "effectiveClockGHz": 2.2582031783980034,
+            "pEffectiveClockGHz": 2.293953631376339,
+            "pCoreTimeShare": 0.9568015911796472
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        }
+      ],
+      "contentSha256": "6f77e8f2d2200dedb0b30ccb6fc4825bbf001dcb25c3e4775cbd9634b5f670f7",
+      "screenshotSha256": "d6ab1f17a0b8165bb3767a290640f35fedd5397424796e4ca8f5b4f3eb254ead",
+      "hostAfter": { "at": "2026-10-09T19:16:06.516Z", "ac": true, "load": 2.3 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 1,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 2,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 3,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 4,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 5,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 6,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 7,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 8,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 9,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 10,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 11,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 12,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 13,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 14,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 15,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 16,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "actor": "DOM",
+      "workload": "rolling-logs",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 84437,
+            "type": "browser",
+            "startAbstime": "78180597785398",
+            "cdpCpuSeconds": 0.05690000000000017,
+            "ri_user_time": 45554334,
+            "ri_system_time": 11399709,
+            "ri_user_ptime": 45391292,
+            "ri_system_ptime": 11238875,
+            "ri_instructions": 115522461,
+            "ri_cycles": 130956041,
+            "ri_pinstructions": 115307640,
+            "ri_pcycles": 130499393,
+            "ri_energy_nj": 36213967,
+            "ri_penergy_nj": 36190488,
+            "ri_runnable_time": 64949417,
+            "ri_interrupt_wkups": 42,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 85264,
+            "type": "renderer",
+            "startAbstime": "78182178652484",
+            "cdpCpuSeconds": 0.0007790000000000019,
+            "ri_user_time": 551333,
+            "ri_system_time": 228792,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 906217,
+            "ri_cycles": 791834,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 34723,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 818791,
+            "ri_interrupt_wkups": 3,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 85265,
+            "type": "renderer",
+            "startAbstime": "78182178661255",
+            "cdpCpuSeconds": 5.888152,
+            "ri_user_time": 5729375750,
+            "ri_system_time": 158773625,
+            "ri_user_ptime": 5431530333,
+            "ri_system_ptime": 143085333,
+            "ri_instructions": 51032603267,
+            "ri_cycles": 13760716832,
+            "ri_pinstructions": 50122016748,
+            "ri_pcycles": 13119285872,
+            "ri_energy_nj": 9641416199,
+            "ri_penergy_nj": 9579586051,
+            "ri_runnable_time": 6116008458,
+            "ri_interrupt_wkups": 684,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 85263,
+            "type": "renderer",
+            "startAbstime": "78182177876259",
+            "cdpCpuSeconds": 0.0017479999999999996,
+            "ri_user_time": 1235709,
+            "ri_system_time": 510916,
+            "ri_user_ptime": 1235708,
+            "ri_system_ptime": 510916,
+            "ri_instructions": 3629828,
+            "ri_cycles": 3838097,
+            "ri_pinstructions": 3629828,
+            "ri_pcycles": 3838097,
+            "ri_energy_nj": 1198157,
+            "ri_penergy_nj": 1198157,
+            "ri_runnable_time": 1960875,
+            "ri_interrupt_wkups": 19,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84447,
+            "type": "GPU",
+            "startAbstime": "78180605152439",
+            "cdpCpuSeconds": 1.3691820000000003,
+            "ri_user_time": 1007131875,
+            "ri_system_time": 362049917,
+            "ri_user_ptime": 1004719542,
+            "ri_system_ptime": 359165208,
+            "ri_instructions": 6008981149,
+            "ri_cycles": 3113123527,
+            "ri_pinstructions": 6003733755,
+            "ri_pcycles": 3102547693,
+            "ri_energy_nj": 1517479366,
+            "ri_penergy_nj": 1516853054,
+            "ri_runnable_time": 1550936250,
+            "ri_interrupt_wkups": 1841,
+            "ri_pkg_idle_wkups": 5
+          },
+          {
+            "pid": 84448,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78180605222273",
+            "cdpCpuSeconds": 0.003595000000000015,
+            "ri_user_time": 2264208,
+            "ri_system_time": 1331292,
+            "ri_user_ptime": 2242000,
+            "ri_system_ptime": 1320625,
+            "ri_instructions": 10363097,
+            "ri_cycles": 7778314,
+            "ri_pinstructions": 10345362,
+            "ri_pcycles": 7746367,
+            "ri_energy_nj": 2766561,
+            "ri_penergy_nj": 2765556,
+            "ri_runnable_time": 3798792,
+            "ri_interrupt_wkups": 11,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84449,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78180605801054",
+            "cdpCpuSeconds": 0.00029799999999999965,
+            "ri_user_time": 230750,
+            "ri_system_time": 67542,
+            "ri_user_ptime": 230750,
+            "ri_system_ptime": 67542,
+            "ri_instructions": 406731,
+            "ri_cycles": 453088,
+            "ri_pinstructions": 406731,
+            "ri_pcycles": 453088,
+            "ri_energy_nj": 118984,
+            "ri_penergy_nj": 118984,
+            "ri_runnable_time": 364917,
+            "ri_interrupt_wkups": 6,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 5731162792,
+            "ri_system_time": 159513333,
+            "ri_user_ptime": 5432766041,
+            "ri_system_ptime": 143596249,
+            "ri_instructions": 51037139312,
+            "ri_cycles": 13765346763,
+            "ri_pinstructions": 50125646576,
+            "ri_pcycles": 13123123969,
+            "ri_energy_nj": 9642649079,
+            "ri_penergy_nj": 9580784208,
+            "ri_runnable_time": 6118788124,
+            "ri_interrupt_wkups": 706,
+            "ri_pkg_idle_wkups": 0,
+            "cpuSeconds": 5.890676125,
+            "pCpuSeconds": 5.57636229,
+            "cdpCpuSeconds": 5.8906789999999996,
+            "instructions": 51037139312,
+            "cycles": 13765346763,
+            "energyJ": 9.642649079,
+            "effectiveClockGHz": 2.336802511443455,
+            "pEffectiveClockGHz": 2.353348524814015,
+            "pCoreTimeShare": 0.9466421462782424
+          },
+          "GPU": {
+            "ri_user_time": 1007131875,
+            "ri_system_time": 362049917,
+            "ri_user_ptime": 1004719542,
+            "ri_system_ptime": 359165208,
+            "ri_instructions": 6008981149,
+            "ri_cycles": 3113123527,
+            "ri_pinstructions": 6003733755,
+            "ri_pcycles": 3102547693,
+            "ri_energy_nj": 1517479366,
+            "ri_penergy_nj": 1516853054,
+            "ri_runnable_time": 1550936250,
+            "ri_interrupt_wkups": 1841,
+            "ri_pkg_idle_wkups": 5,
+            "cpuSeconds": 1.369181792,
+            "pCpuSeconds": 1.36388475,
+            "cdpCpuSeconds": 1.3691820000000003,
+            "instructions": 6008981149,
+            "cycles": 3113123527,
+            "energyJ": 1.517479366,
+            "effectiveClockGHz": 2.2737108725734503,
+            "pEffectiveClockGHz": 2.274787289028637,
+            "pCoreTimeShare": 0.9961312354349509
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 6738294667,
+            "ri_system_time": 521563250,
+            "ri_user_ptime": 6437485583,
+            "ri_system_ptime": 502761457,
+            "ri_instructions": 57046120461,
+            "ri_cycles": 16878470290,
+            "ri_pinstructions": 56129380331,
+            "ri_pcycles": 16225671662,
+            "ri_energy_nj": 11160128445,
+            "ri_penergy_nj": 11097637262,
+            "ri_runnable_time": 7669724374,
+            "ri_interrupt_wkups": 2547,
+            "ri_pkg_idle_wkups": 5,
+            "cpuSeconds": 7.259857917,
+            "pCpuSeconds": 6.94024704,
+            "cdpCpuSeconds": 7.259861,
+            "instructions": 57046120461,
+            "cycles": 16878470290,
+            "energyJ": 11.160128445,
+            "effectiveClockGHz": 2.324903666568548,
+            "pEffectiveClockGHz": 2.337909813365952,
+            "pCoreTimeShare": 0.9559756016365575
+          },
+          "allChrome": {
+            "ri_user_time": 6786343959,
+            "ri_system_time": 534361793,
+            "ri_user_ptime": 6485349625,
+            "ri_system_ptime": 515388499,
+            "ri_instructions": 57172412750,
+            "ri_cycles": 17017657733,
+            "ri_pinstructions": 56255440064,
+            "ri_pcycles": 16364370510,
+            "ri_energy_nj": 11199227957,
+            "ri_penergy_nj": 11136712290,
+            "ri_runnable_time": 7738837500,
+            "ri_interrupt_wkups": 2606,
+            "ri_pkg_idle_wkups": 6,
+            "cpuSeconds": 7.320705752,
+            "pCpuSeconds": 7.000738124,
+            "cdpCpuSeconds": 7.320654,
+            "instructions": 57172412750,
+            "cycles": 17017657733,
+            "energyJ": 11.199227957,
+            "effectiveClockGHz": 2.324592506446638,
+            "pEffectiveClockGHz": 2.337520732835228,
+            "pCoreTimeShare": 0.956292789405914
+          },
+          "otherChrome": {
+            "ri_user_time": 48049292,
+            "ri_system_time": 12798543,
+            "ri_user_ptime": 47864042,
+            "ri_system_ptime": 12627042,
+            "ri_instructions": 126292289,
+            "ri_cycles": 139187443,
+            "ri_pinstructions": 126059733,
+            "ri_pcycles": 138698848,
+            "ri_energy_nj": 39099512,
+            "ri_penergy_nj": 39075028,
+            "ri_runnable_time": 69113126,
+            "ri_interrupt_wkups": 59,
+            "ri_pkg_idle_wkups": 1,
+            "cpuSeconds": 0.060847835,
+            "pCpuSeconds": 0.060491084,
+            "cdpCpuSeconds": 0.06079300000000019,
+            "instructions": 126292289,
+            "cycles": 139187443,
+            "energyJ": 0.039099512,
+            "effectiveClockGHz": 2.2874674670019073,
+            "pEffectiveClockGHz": 2.2928808483577514,
+            "pCoreTimeShare": 0.9941369976433837
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 901,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": { "paintedCells": 432480, "paintedRows": 10812, "submittedFrames": 901 },
+          "historyRows": 8841,
+          "dirty": 0,
+          "nativeSessionRevision": 1028,
+          "acceptedFrameSessionRevision": 1028,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "dom",
+            "scrollbarVisible": false
+          }
+        }
+      ],
+      "contentSha256": "6f77e8f2d2200dedb0b30ccb6fc4825bbf001dcb25c3e4775cbd9634b5f670f7",
+      "screenshotSha256": "d6ab1f17a0b8165bb3767a290640f35fedd5397424796e4ca8f5b4f3eb254ead",
+      "hostAfter": { "at": "2026-10-09T19:16:29.131Z", "ac": true, "load": 1.97 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 1,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 2,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 3,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 4,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 5,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 6,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 7,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 8,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 9,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 10,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 11,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 12,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 13,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 14,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 15,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 16,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "actor": "XDOM",
+      "workload": "rolling-logs",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 84437,
+            "type": "browser",
+            "startAbstime": "78180597785398",
+            "cdpCpuSeconds": 0.057646000000000086,
+            "ri_user_time": 46044542,
+            "ri_system_time": 11671958,
+            "ri_user_ptime": 45980584,
+            "ri_system_ptime": 11540458,
+            "ri_instructions": 113490966,
+            "ri_cycles": 141611925,
+            "ri_pinstructions": 113382594,
+            "ri_pcycles": 141347881,
+            "ri_energy_nj": 39760699,
+            "ri_penergy_nj": 39750564,
+            "ri_runnable_time": 66272000,
+            "ri_interrupt_wkups": 26,
+            "ri_pkg_idle_wkups": 2
+          },
+          {
+            "pid": 85351,
+            "type": "renderer",
+            "startAbstime": "78182721663468",
+            "cdpCpuSeconds": 0.0008910000000000029,
+            "ri_user_time": 607250,
+            "ri_system_time": 283583,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 904846,
+            "ri_cycles": 872794,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 33783,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 921916,
+            "ri_interrupt_wkups": 3,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 85352,
+            "type": "renderer",
+            "startAbstime": "78182721673839",
+            "cdpCpuSeconds": 8.942307000000001,
+            "ri_user_time": 8754663375,
+            "ri_system_time": 187642625,
+            "ri_user_ptime": 8205678041,
+            "ri_system_ptime": 161207458,
+            "ri_instructions": 89648382709,
+            "ri_cycles": 22757041556,
+            "ri_pinstructions": 88087172589,
+            "ri_pcycles": 21571397837,
+            "ri_energy_nj": 19157666609,
+            "ri_penergy_nj": 19051371181,
+            "ri_runnable_time": 9257911375,
+            "ri_interrupt_wkups": 1383,
+            "ri_pkg_idle_wkups": 11
+          },
+          {
+            "pid": 85350,
+            "type": "renderer",
+            "startAbstime": "78182721031423",
+            "cdpCpuSeconds": 0.001690999999999998,
+            "ri_user_time": 1195333,
+            "ri_system_time": 496375,
+            "ri_user_ptime": 1178375,
+            "ri_system_ptime": 476875,
+            "ri_instructions": 3545326,
+            "ri_cycles": 4272180,
+            "ri_pinstructions": 3514197,
+            "ri_pcycles": 4196970,
+            "ri_energy_nj": 1294694,
+            "ri_penergy_nj": 1289742,
+            "ri_runnable_time": 1905833,
+            "ri_interrupt_wkups": 20,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84447,
+            "type": "GPU",
+            "startAbstime": "78180605152439",
+            "cdpCpuSeconds": 1.3862680000000003,
+            "ri_user_time": 1042430334,
+            "ri_system_time": 343836875,
+            "ri_user_ptime": 1038368834,
+            "ri_system_ptime": 340128291,
+            "ri_instructions": 6592416671,
+            "ri_cycles": 3484295670,
+            "ri_pinstructions": 6585264948,
+            "ri_pcycles": 3468950506,
+            "ri_energy_nj": 1836717201,
+            "ri_penergy_nj": 1835803294,
+            "ri_runnable_time": 1608178292,
+            "ri_interrupt_wkups": 1837,
+            "ri_pkg_idle_wkups": 7
+          },
+          {
+            "pid": 84448,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78180605222273",
+            "cdpCpuSeconds": 0.00011900000000000799,
+            "ri_user_time": 98292,
+            "ri_system_time": 21125,
+            "ri_user_ptime": 98291,
+            "ri_system_ptime": 21125,
+            "ri_instructions": 203772,
+            "ri_cycles": 284938,
+            "ri_pinstructions": 203772,
+            "ri_pcycles": 284938,
+            "ri_energy_nj": 75720,
+            "ri_penergy_nj": 75720,
+            "ri_runnable_time": 148041,
+            "ri_interrupt_wkups": 5,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 84449,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78180605801054",
+            "cdpCpuSeconds": 0.00017199999999999854,
+            "ri_user_time": 137792,
+            "ri_system_time": 33750,
+            "ri_user_ptime": 137792,
+            "ri_system_ptime": 33750,
+            "ri_instructions": 204270,
+            "ri_cycles": 277319,
+            "ri_pinstructions": 204270,
+            "ri_pcycles": 277319,
+            "ri_energy_nj": 70912,
+            "ri_penergy_nj": 70912,
+            "ri_runnable_time": 218125,
+            "ri_interrupt_wkups": 5,
+            "ri_pkg_idle_wkups": 1
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 8756465958,
+            "ri_system_time": 188422583,
+            "ri_user_ptime": 8206856416,
+            "ri_system_ptime": 161684333,
+            "ri_instructions": 89652832881,
+            "ri_cycles": 22762186530,
+            "ri_pinstructions": 88090686786,
+            "ri_pcycles": 21575594807,
+            "ri_energy_nj": 19158995086,
+            "ri_penergy_nj": 19052660923,
+            "ri_runnable_time": 9260739124,
+            "ri_interrupt_wkups": 1406,
+            "ri_pkg_idle_wkups": 12,
+            "cpuSeconds": 8.944888541,
+            "pCpuSeconds": 8.368540749,
+            "cdpCpuSeconds": 8.944889,
+            "instructions": 89652832881,
+            "cycles": 22762186530,
+            "energyJ": 19.158995086,
+            "effectiveClockGHz": 2.5447143836020665,
+            "pEffectiveClockGHz": 2.5781788550863163,
+            "pCoreTimeShare": 0.9355668000380062
+          },
+          "GPU": {
+            "ri_user_time": 1042430334,
+            "ri_system_time": 343836875,
+            "ri_user_ptime": 1038368834,
+            "ri_system_ptime": 340128291,
+            "ri_instructions": 6592416671,
+            "ri_cycles": 3484295670,
+            "ri_pinstructions": 6585264948,
+            "ri_pcycles": 3468950506,
+            "ri_energy_nj": 1836717201,
+            "ri_penergy_nj": 1835803294,
+            "ri_runnable_time": 1608178292,
+            "ri_interrupt_wkups": 1837,
+            "ri_pkg_idle_wkups": 7,
+            "cpuSeconds": 1.386267209,
+            "pCpuSeconds": 1.378497125,
+            "cdpCpuSeconds": 1.3862680000000003,
+            "instructions": 6592416671,
+            "cycles": 3484295670,
+            "energyJ": 1.836717201,
+            "effectiveClockGHz": 2.5134372705197565,
+            "pEffectiveClockGHz": 2.5164727898870303,
+            "pCoreTimeShare": 0.9943949593919884
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 9798896292,
+            "ri_system_time": 532259458,
+            "ri_user_ptime": 9245225250,
+            "ri_system_ptime": 501812624,
+            "ri_instructions": 96245249552,
+            "ri_cycles": 26246482200,
+            "ri_pinstructions": 94675951734,
+            "ri_pcycles": 25044545313,
+            "ri_energy_nj": 20995712287,
+            "ri_penergy_nj": 20888464217,
+            "ri_runnable_time": 10868917416,
+            "ri_interrupt_wkups": 3243,
+            "ri_pkg_idle_wkups": 19,
+            "cpuSeconds": 10.33115575,
+            "pCpuSeconds": 9.747037874,
+            "cdpCpuSeconds": 10.331157000000001,
+            "instructions": 96245249552,
+            "cycles": 26246482200,
+            "energyJ": 20.995712287,
+            "effectiveClockGHz": 2.5405175214786593,
+            "pEffectiveClockGHz": 2.5694519336798463,
+            "pCoreTimeShare": 0.9434605488354969
+          },
+          "allChrome": {
+            "ri_user_time": 9845176918,
+            "ri_system_time": 543986291,
+            "ri_user_ptime": 9291441917,
+            "ri_system_ptime": 513407957,
+            "ri_instructions": 96359148560,
+            "ri_cycles": 26388656382,
+            "ri_pinstructions": 94789742370,
+            "ri_pcycles": 25186455451,
+            "ri_energy_nj": 21035619618,
+            "ri_penergy_nj": 20928361413,
+            "ri_runnable_time": 10935555582,
+            "ri_interrupt_wkups": 3279,
+            "ri_pkg_idle_wkups": 22,
+            "cpuSeconds": 10.389163209,
+            "pCpuSeconds": 9.804849874,
+            "cdpCpuSeconds": 10.389093999999998,
+            "instructions": 96359148560,
+            "cycles": 26388656382,
+            "energyJ": 21.035619618,
+            "effectiveClockGHz": 2.540017502000531,
+            "pEffectiveClockGHz": 2.5687752260019967,
+            "pCoreTimeShare": 0.9437574207618746
+          },
+          "otherChrome": {
+            "ri_user_time": 46280626,
+            "ri_system_time": 11726833,
+            "ri_user_ptime": 46216667,
+            "ri_system_ptime": 11595333,
+            "ri_instructions": 113899008,
+            "ri_cycles": 142174182,
+            "ri_pinstructions": 113790636,
+            "ri_pcycles": 141910138,
+            "ri_energy_nj": 39907331,
+            "ri_penergy_nj": 39897196,
+            "ri_runnable_time": 66638166,
+            "ri_interrupt_wkups": 36,
+            "ri_pkg_idle_wkups": 3,
+            "cpuSeconds": 0.058007459,
+            "pCpuSeconds": 0.057812,
+            "cdpCpuSeconds": 0.05793700000000009,
+            "instructions": 113899008,
+            "cycles": 142174182,
+            "energyJ": 0.039907331,
+            "effectiveClockGHz": 2.450963797604029,
+            "pEffectiveClockGHz": 2.454683076177956,
+            "pCoreTimeShare": 0.9966304505770543
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 3682774,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 1802,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 8841
+        }
+      ],
+      "contentSha256": "6f77e8f2d2200dedb0b30ccb6fc4825bbf001dcb25c3e4775cbd9634b5f670f7",
+      "screenshotSha256": "d6ab1f17a0b8165bb3767a290640f35fedd5397424796e4ca8f5b4f3eb254ead",
+      "hostAfter": { "at": "2026-10-09T19:16:51.769Z", "ac": true, "load": 1.86 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 1,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 2,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 3,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 4,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 5,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 6,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 7,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 8,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 9,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 10,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 11,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 12,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 13,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 14,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 15,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        },
+        {
+          "index": 16,
+          "historyRows": 8841,
+          "retainedRows": 8853,
+          "retainedTextSha256": "1db854e3032c3488b50973acf2d936dbfe2cea7279db4c1eb6f5d6c6228a46f1"
+        }
+      ]
+    }
+  ]
+}

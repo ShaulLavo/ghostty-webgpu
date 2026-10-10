@@ -4,42 +4,61 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { expect, test } from 'vitest'
-import snapshot from '../../docs/benchmarks/mac-m1-2026-10-08/scores.json'
+import snapshot from '../../docs/benchmarks/mac-m1-2026-10-10/scores.json'
 import { benchTabs, measurementRows, measurements, rowNote } from './measurements'
 import results from '../../docs/correctness-results.json'
 import { correctness, correctnessScores } from './correctness'
 
-test('uses all nine reviewed scores, including the losing workloads', () => {
+test('uses all nine reviewed scores, including the near-even workloads', () => {
   expect(measurements).toHaveLength(9)
   expect(measurements).toEqual(measurementRows(snapshot.scores))
   expect(measurements).toContainEqual({
     renderer: 'WebGL',
     workload: 'One Unicode line per tick',
     history: 'Equal by construction',
-    energy: 1.3202,
-    instructions: 1.3476,
-    verdict: 'loss',
+    energy: 0.9861,
+    instructions: 1.0016,
+    energyPairs: [0.9889, 0.9832],
+    instructionPairs: [1.0002, 1.003],
+    verdict: 'even',
   })
   expect(measurements).toContainEqual({
     renderer: 'DOM',
     workload: 'Typing-like edits',
     history: 'Equal by construction',
-    energy: 1.1475,
-    instructions: 1.1514,
-    verdict: 'loss',
+    energy: 1.0078,
+    instructions: 0.9982,
+    energyPairs: [0.9974, 1.0181],
+    instructionPairs: [0.9843, 1.0122],
+    verdict: 'even',
+  })
+  expect(measurements).toContainEqual({
+    renderer: 'WebGL',
+    workload: 'Heavy Unicode output',
+    history: '9,572 final rows',
+    energy: 0.6107,
+    instructions: 0.6146,
+    energyPairs: [0.6024, 0.6191],
+    instructionPairs: [0.6073, 0.6218],
+    verdict: 'win',
   })
 })
 
-test('charts every reviewed row under its renderer tab and labels the losses', () => {
+test('charts every reviewed row under its renderer tab and names the unavailable cell', () => {
   const charted = benchTabs.flatMap((tab) => (tab.kind === 'measured' ? tab.rows : []))
   expect(charted).toHaveLength(measurements.length)
-  const losses = charted.filter((row) => row.verdict === 'loss').map(rowNote)
-  expect(losses).toEqual([
-    'Loss: about 32% more CPU energy.',
-    'Loss: about 36% more CPU energy.',
-    'Loss: about 15% more CPU energy.',
+  expect(charted.filter((row) => row.verdict === 'loss')).toEqual([])
+  const even = charted.filter((row) => row.verdict === 'even')
+  expect(even.map((row) => row.workload)).toEqual([
+    'One Unicode line per tick',
+    'Typing-like edits',
   ])
-  expect(charted.find((row) => row.verdict === 'even')?.workload).toBe('Typing-like edits')
+  expect(even.map(rowNote)).toEqual([
+    'Roughly even. Energy is lower and instructions are higher in both pairs, which the review records as an instruction loss.',
+    'Roughly even. The two pairs disagree on energy and instructions.',
+  ])
+  const dom = benchTabs.find((tab) => tab.id === 'dom')
+  expect(dom?.method).toContain('One Unicode line per tick is unavailable')
 })
 
 test('counts correctness results from the saved run', () => {
@@ -55,7 +74,8 @@ test('counts correctness results from the saved run', () => {
 })
 
 test('recomputes the evidence and checks the generated public tables', () => {
-  const root = new URL('../../docs/benchmarks/mac-m1-2026-10-08/', import.meta.url)
+  const root = new URL('../../docs/benchmarks/mac-m1-2026-10-10/', import.meta.url)
+  const earlier = new URL('../../docs/benchmarks/mac-m1-2026-10-08/', import.meta.url)
   const verify = execFileSync(process.execPath, [fileURLToPath(new URL('verify.mjs', root))], {
     encoding: 'utf8',
   })
@@ -64,8 +84,12 @@ test('recomputes the evidence and checks the generated public tables', () => {
     [fileURLToPath(new URL('report.mjs', root)), '--check'],
     { encoding: 'utf8' },
   )
+  const history = execFileSync(process.execPath, [fileURLToPath(new URL('verify.mjs', earlier))], {
+    encoding: 'utf8',
+  })
   expect(verify).toContain('9 reviewed rows reproduce')
   expect(report).toContain('README match reviewed data')
+  expect(history).toContain('9 reviewed rows reproduce')
 })
 
 test('omits experimental rows and preserves reviewed losses', () => {
@@ -78,6 +102,8 @@ test('omits experimental rows and preserves reviewed losses', () => {
       history: '8,841 final rows',
       energy: 2,
       instructions: 3,
+      energyPairs: [0.6228, 0.6015],
+      instructionPairs: [0.6126, 0.6135],
       verdict: 'loss',
     },
   ])
@@ -85,8 +111,8 @@ test('omits experimental rows and preserves reviewed losses', () => {
 
 test('refreshes the README WebGL table without replacing product copy', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'ghostty-report-'))
-  const reportDirectory = path.join(directory, 'docs/benchmarks/mac-m1-2026-10-08')
-  const source = new URL('../../docs/benchmarks/mac-m1-2026-10-08/', import.meta.url)
+  const reportDirectory = path.join(directory, 'docs/benchmarks/mac-m1-2026-10-10')
+  const source = new URL('../../docs/benchmarks/mac-m1-2026-10-10/', import.meta.url)
   const before =
     '# Ghostty browser terminal\n\n## Measured wins and losses\n\nKeep the reviewed method and limits.\n\n'
   const after =
@@ -104,8 +130,8 @@ test('refreshes the README WebGL table without replacing product copy', () => {
     const updated = readFileSync(path.join(directory, 'README.md'), 'utf8')
     expect(updated.startsWith(before)).toBe(true)
     expect(updated.endsWith(after)).toBe(true)
-    expect(updated).toContain('| Heavy log output | 0.751 | 0.690 |')
-    expect(updated).toContain('| One ASCII line per tick | 1.361 | 1.417 |')
+    expect(updated).toContain('| Heavy log output | 0.612 | 0.613 |')
+    expect(updated).toContain('| One ASCII line per tick | 0.955 | 0.985 |')
     expect(updated).not.toContain('Stale workload')
     expect(updated.split('\n').filter((line) => line.startsWith('|'))).toHaveLength(7)
     expect(execFileSync(process.execPath, [script, '--check'], { encoding: 'utf8' })).toContain(

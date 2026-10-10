@@ -1,0 +1,3510 @@
+{
+  "id": "tw-standing-gpu-interactive-edits-r01",
+  "sessionId": "4413b16e-2d42-4081-af4b-1b6c5bc748a8",
+  "startedAt": "2026-10-09T20:36:34.380Z",
+  "finishedAt": "2026-10-09T20:39:10.700Z",
+  "protocolSha256": "162911677f0196c8559271aaefbd2d484c681549775e2b086158fec740850469",
+  "bundleSha256": "2595c1cfa6f3a5f9c3c3f7d74da6a26466c8d8a00c7393131a73d0d4fcdb4ca6",
+  "runtimeCommit": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+  "sealSha256": "c95a90064329c74b8c4d16d8f72eee27bb9433fe574fc99538f0e22f57519cde",
+  "readerSha256": "584868250904c21b9132f3be4cb054a9d15d350776aa0f8fd62321dd0106ca86",
+  "browserVersion": "154.0.8037.93",
+  "backend": {
+    "devices": [
+      {
+        "vendorId": 4203,
+        "deviceId": 0,
+        "vendorString": "Google Inc. (Apple)",
+        "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Version 26.4 (Build 25E246))",
+        "driverVendor": "Apple",
+        "driverVersion": "26.4"
+      }
+    ],
+    "modelName": "MacBookAir",
+    "modelVersion": "10.1"
+  },
+  "browserLaunchArguments": [
+    "--force-device-scale-factor=2",
+    "--enable-unsafe-webgpu",
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+    "--max-active-webgl-contexts=32",
+    "--optimization-guide-performance-class=1"
+  ],
+  "complete": true,
+  "originalIndexSha256": "c79298173d8e20cd66c3b7e9824624d1ec40e63b36539884207d039967dfa024",
+  "omittedActors": ["GPU"],
+  "protocol": {
+    "status": "Approved",
+    "id": "tw-standing-gpu-interactive-edits-r01",
+    "lane": "r12-standing",
+    "registeredAt": "2026-10-09T19:14:16.903952+00:00",
+    "archiveSha256": "60457d50d42f135d9276c609045f7d4a2e4947e47a883484aac8636198587e1d",
+    "sealSha256": "c95a90064329c74b8c4d16d8f72eee27bb9433fe574fc99538f0e22f57519cde",
+    "runtimeCommit": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+    "bundleSha256": "2595c1cfa6f3a5f9c3c3f7d74da6a26466c8d8a00c7393131a73d0d4fcdb4ca6",
+    "readerSha256": "584868250904c21b9132f3be4cb054a9d15d350776aa0f8fd62321dd0106ca86",
+    "build": "fb67ac08ded224fd6579389a23796e015ee23d5c",
+    "harness": "r07",
+    "harnessGeneration": "R08",
+    "scoredMetrics": ["energyJ", "instructions"],
+    "machine": "mac",
+    "workloads": ["interactive-edits"],
+    "workload": "interactive-edits",
+    "order": ["XGL", "GL", "GPU", "GPU", "GL", "XGL"],
+    "comparisons": [
+      ["GL", "XGL"],
+      ["GPU", "XGL"]
+    ],
+    "count": 17,
+    "ticks": 900,
+    "warmupTicks": 120,
+    "condition": "primary",
+    "smoke": false,
+    "retentionMode": "bounded",
+    "xtermMaximumRows": 200000,
+    "readerValidation": "tw-tools validated RUSAGE_INFO_V6 ABI, units, start identities and calibration. Fresh positive helper calibration before every window.",
+    "requiredReaderCapabilities": [
+      "instructions",
+      "cycles",
+      "pCoreSeconds",
+      "pInstructions",
+      "pCycles",
+      "energyJ",
+      "pEnergyJ"
+    ],
+    "metrics": [
+      "energyJ",
+      "instructions",
+      "cycles",
+      "cpuSeconds",
+      "effectiveClockGHz",
+      "pCoreTimeShare",
+      "pCpuSeconds",
+      "pEffectiveClockGHz",
+      "cdpCpuSeconds"
+    ],
+    "channels": ["renderer", "GPU", "rendererPlusGPU", "allChrome", "otherChrome"],
+    "acceptance": "Descriptive only. Exact input bytes/writes, parser/core work, logical settlement, per-target output and registered history; same-actor settled PNG; matching actual geometry; stable endpoint PID/type/start identities; native bracket encloses CDP CPU bracket; calibrated raw counters recompute.",
+    "replacementPolicy": "Never repeat completed valid windows. Preserve failures; only rejected windows can receive a fresh identity.",
+    "coverage": "Sequential non-atomic snapshots miss short-lived processes wholly between endpoints. Logical two-RAF endpoint is not a GPU fence. Kernel estimated CPU energy excludes GPU-device, display and other-process energy. Observer enabled and uncalibrated; no overhead subtraction.",
+    "cycleCaveat": "At lower clock, memory stalls cost fewer cycles, slightly favouring the lower-clocked arm. A cycles win with an instructions loss needs stall analysis.",
+    "deadlines": { "soft": 555, "hardCleanup": 560, "controller": 590 },
+    "trace": false,
+    "cellOracle": false,
+    "expectedFinalHistoryRows": 0,
+    "historyGapRows": 0,
+    "capsule": "capsule-r07"
+  },
+  "runs": [
+    {
+      "index": 0,
+      "actor": "XGL",
+      "workload": "interactive-edits",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 21365,
+            "type": "browser",
+            "startAbstime": "78298047884301",
+            "cdpCpuSeconds": 0.04661100000000007,
+            "ri_user_time": 29339458,
+            "ri_system_time": 17352375,
+            "ri_user_ptime": 24974792,
+            "ri_system_ptime": 14165916,
+            "ri_instructions": 185520245,
+            "ri_cycles": 78635400,
+            "ri_pinstructions": 175154979,
+            "ri_pcycles": 67401381,
+            "ri_energy_nj": 32480187,
+            "ri_penergy_nj": 31791294,
+            "ri_runnable_time": 54046333,
+            "ri_interrupt_wkups": 39,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21588,
+            "type": "renderer",
+            "startAbstime": "78298541962731",
+            "cdpCpuSeconds": 0.0009270000000000042,
+            "ri_user_time": 651709,
+            "ri_system_time": 275708,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 957288,
+            "ri_cycles": 1203957,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 45236,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 1150208,
+            "ri_interrupt_wkups": 4,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21589,
+            "type": "renderer",
+            "startAbstime": "78298541980819",
+            "cdpCpuSeconds": 1.600105,
+            "ri_user_time": 1417979667,
+            "ri_system_time": 182123541,
+            "ri_user_ptime": 1385913875,
+            "ri_system_ptime": 171477209,
+            "ri_instructions": 4196621530,
+            "ri_cycles": 2239738217,
+            "ri_pinstructions": 4102767016,
+            "ri_pcycles": 2156582092,
+            "ri_energy_nj": 738577781,
+            "ri_penergy_nj": 731608889,
+            "ri_runnable_time": 1736942541,
+            "ri_interrupt_wkups": 541,
+            "ri_pkg_idle_wkups": 4
+          },
+          {
+            "pid": 21587,
+            "type": "renderer",
+            "startAbstime": "78298540971266",
+            "cdpCpuSeconds": 0.0022929999999999895,
+            "ri_user_time": 1597959,
+            "ri_system_time": 692208,
+            "ri_user_ptime": 1597167,
+            "ri_system_ptime": 684500,
+            "ri_instructions": 3206791,
+            "ri_cycles": 3226283,
+            "ri_pinstructions": 3197379,
+            "ri_pcycles": 3208730,
+            "ri_energy_nj": 781964,
+            "ri_penergy_nj": 780903,
+            "ri_runnable_time": 2518542,
+            "ri_interrupt_wkups": 19,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21374,
+            "type": "GPU",
+            "startAbstime": "78298055293485",
+            "cdpCpuSeconds": 7.140697000000001,
+            "ri_user_time": 4008730958,
+            "ri_system_time": 3131965250,
+            "ri_user_ptime": 4001987375,
+            "ri_system_ptime": 3107998167,
+            "ri_instructions": 15149408754,
+            "ri_cycles": 9986086394,
+            "ri_pinstructions": 15124781447,
+            "ri_pcycles": 9929897551,
+            "ri_energy_nj": 2959145820,
+            "ri_penergy_nj": 2956009279,
+            "ri_runnable_time": 8205208917,
+            "ri_interrupt_wkups": 2026,
+            "ri_pkg_idle_wkups": 5
+          },
+          {
+            "pid": 21375,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78298055361518",
+            "cdpCpuSeconds": 0.0018819999999999948,
+            "ri_user_time": 572042,
+            "ri_system_time": 1310459,
+            "ri_user_ptime": 572042,
+            "ri_system_ptime": 1310459,
+            "ri_instructions": 4635166,
+            "ri_cycles": 2724970,
+            "ri_pinstructions": 4635166,
+            "ri_pcycles": 2724970,
+            "ri_energy_nj": 910444,
+            "ri_penergy_nj": 910444,
+            "ri_runnable_time": 1997833,
+            "ri_interrupt_wkups": 4,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21376,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78298055970980",
+            "cdpCpuSeconds": 2.9000000000001247e-5,
+            "ri_user_time": 17708,
+            "ri_system_time": 10291,
+            "ri_user_ptime": 17708,
+            "ri_system_ptime": 10292,
+            "ri_instructions": 20740,
+            "ri_cycles": 45015,
+            "ri_pinstructions": 20740,
+            "ri_pcycles": 45015,
+            "ri_energy_nj": 6429,
+            "ri_penergy_nj": 6429,
+            "ri_runnable_time": 51875,
+            "ri_interrupt_wkups": 2,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 1420229335,
+            "ri_system_time": 183091457,
+            "ri_user_ptime": 1387511042,
+            "ri_system_ptime": 172161709,
+            "ri_instructions": 4200785609,
+            "ri_cycles": 2244168457,
+            "ri_pinstructions": 4105964395,
+            "ri_pcycles": 2159790822,
+            "ri_energy_nj": 739404981,
+            "ri_penergy_nj": 732389792,
+            "ri_runnable_time": 1740611291,
+            "ri_interrupt_wkups": 564,
+            "ri_pkg_idle_wkups": 4,
+            "cpuSeconds": 1.603320792,
+            "pCpuSeconds": 1.559672751,
+            "cdpCpuSeconds": 1.603325,
+            "instructions": 4200785609,
+            "cycles": 2244168457,
+            "energyJ": 0.739404981,
+            "effectiveClockGHz": 1.3997002148276263,
+            "pEffectiveClockGHz": 1.384771786655392,
+            "pCoreTimeShare": 0.9727764766615712
+          },
+          "GPU": {
+            "ri_user_time": 4008730958,
+            "ri_system_time": 3131965250,
+            "ri_user_ptime": 4001987375,
+            "ri_system_ptime": 3107998167,
+            "ri_instructions": 15149408754,
+            "ri_cycles": 9986086394,
+            "ri_pinstructions": 15124781447,
+            "ri_pcycles": 9929897551,
+            "ri_energy_nj": 2959145820,
+            "ri_penergy_nj": 2956009279,
+            "ri_runnable_time": 8205208917,
+            "ri_interrupt_wkups": 2026,
+            "ri_pkg_idle_wkups": 5,
+            "cpuSeconds": 7.140696208,
+            "pCpuSeconds": 7.109985542,
+            "cdpCpuSeconds": 7.140697000000001,
+            "instructions": 15149408754,
+            "cycles": 9986086394,
+            "energyJ": 2.95914582,
+            "effectiveClockGHz": 1.398475177085982,
+            "pEffectiveClockGHz": 1.3966129034077859,
+            "pCoreTimeShare": 0.9956992056368967
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 5428960293,
+            "ri_system_time": 3315056707,
+            "ri_user_ptime": 5389498417,
+            "ri_system_ptime": 3280159876,
+            "ri_instructions": 19350194363,
+            "ri_cycles": 12230254851,
+            "ri_pinstructions": 19230745842,
+            "ri_pcycles": 12089688373,
+            "ri_energy_nj": 3698550801,
+            "ri_penergy_nj": 3688399071,
+            "ri_runnable_time": 9945820208,
+            "ri_interrupt_wkups": 2590,
+            "ri_pkg_idle_wkups": 9,
+            "cpuSeconds": 8.744017,
+            "pCpuSeconds": 8.669658293,
+            "cdpCpuSeconds": 8.744022000000001,
+            "instructions": 19350194363,
+            "cycles": 12230254851,
+            "energyJ": 3.698550801,
+            "effectiveClockGHz": 1.3986998025049586,
+            "pEffectiveClockGHz": 1.3944826848321552,
+            "pCoreTimeShare": 0.9914960472972548
+          },
+          "allChrome": {
+            "ri_user_time": 5458889501,
+            "ri_system_time": 3333729832,
+            "ri_user_ptime": 5415062959,
+            "ri_system_ptime": 3295646543,
+            "ri_instructions": 19540370514,
+            "ri_cycles": 12311660236,
+            "ri_pinstructions": 19410556727,
+            "ri_pcycles": 12159859739,
+            "ri_energy_nj": 3731947861,
+            "ri_penergy_nj": 3721107238,
+            "ri_runnable_time": 10001916249,
+            "ri_interrupt_wkups": 2635,
+            "ri_pkg_idle_wkups": 9,
+            "cpuSeconds": 8.792619333,
+            "pCpuSeconds": 8.710709502,
+            "cdpCpuSeconds": 8.792544000000001,
+            "instructions": 19540370514,
+            "cycles": 12311660236,
+            "energyJ": 3.731947861,
+            "effectiveClockGHz": 1.4002266866930677,
+            "pEffectiveClockGHz": 1.3959666243269928,
+            "pCoreTimeShare": 0.9906842514274922
+          },
+          "otherChrome": {
+            "ri_user_time": 29929208,
+            "ri_system_time": 18673125,
+            "ri_user_ptime": 25564542,
+            "ri_system_ptime": 15486667,
+            "ri_instructions": 190176151,
+            "ri_cycles": 81405385,
+            "ri_pinstructions": 179810885,
+            "ri_pcycles": 70171366,
+            "ri_energy_nj": 33397060,
+            "ri_penergy_nj": 32708167,
+            "ri_runnable_time": 56096041,
+            "ri_interrupt_wkups": 45,
+            "ri_pkg_idle_wkups": 0,
+            "cpuSeconds": 0.048602333,
+            "pCpuSeconds": 0.041051209,
+            "cdpCpuSeconds": 0.048522000000000065,
+            "instructions": 190176151,
+            "cycles": 81405385,
+            "energyJ": 0.03339706,
+            "effectiveClockGHz": 1.6749275183971106,
+            "pEffectiveClockGHz": 1.7093617388954367,
+            "pCoreTimeShare": 0.8446345363709187
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        }
+      ],
+      "contentSha256": "f984b635790fdcca89c475229e1586d5dc9a54b64d9128e2288fe549d51be457",
+      "screenshotSha256": "517db5fd9dee9bbc1c0e2fe5df7c3305cc53d4e426f9089b2851fe3375eb199e",
+      "hostAfter": { "at": "2026-10-09T20:37:17.561Z", "ac": true, "load": 3.55 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 1,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 2,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 3,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 4,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 5,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 6,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 7,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 8,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 9,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 10,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 11,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 12,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 13,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 14,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 15,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 16,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "actor": "GL",
+      "workload": "interactive-edits",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 21365,
+            "type": "browser",
+            "startAbstime": "78298047884301",
+            "cdpCpuSeconds": 0.02729999999999988,
+            "ri_user_time": 19989333,
+            "ri_system_time": 7410916,
+            "ri_user_ptime": 18306625,
+            "ri_system_ptime": 6565208,
+            "ri_instructions": 53608090,
+            "ri_cycles": 35163587,
+            "ri_pinstructions": 50691276,
+            "ri_pcycles": 30661278,
+            "ri_energy_nj": 9480046,
+            "ri_penergy_nj": 9188973,
+            "ri_runnable_time": 29616542,
+            "ri_interrupt_wkups": 42,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21690,
+            "type": "renderer",
+            "startAbstime": "78299085896787",
+            "cdpCpuSeconds": 0.0011940000000000006,
+            "ri_user_time": 842292,
+            "ri_system_time": 351584,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 1188649,
+            "ri_cycles": 2071916,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 92953,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 1414417,
+            "ri_interrupt_wkups": 3,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21691,
+            "type": "renderer",
+            "startAbstime": "78299085905681",
+            "cdpCpuSeconds": 1.9143880000000002,
+            "ri_user_time": 1696960167,
+            "ri_system_time": 217425292,
+            "ri_user_ptime": 1650350833,
+            "ri_system_ptime": 207461583,
+            "ri_instructions": 5005077076,
+            "ri_cycles": 2466903191,
+            "ri_pinstructions": 4906088736,
+            "ri_pcycles": 2355711406,
+            "ri_energy_nj": 855116617,
+            "ri_penergy_nj": 847378469,
+            "ri_runnable_time": 2090873875,
+            "ri_interrupt_wkups": 500,
+            "ri_pkg_idle_wkups": 4
+          },
+          {
+            "pid": 21689,
+            "type": "renderer",
+            "startAbstime": "78299085168274",
+            "cdpCpuSeconds": 0.003134999999999999,
+            "ri_user_time": 2231417,
+            "ri_system_time": 903042,
+            "ri_user_ptime": 2231416,
+            "ri_system_ptime": 903042,
+            "ri_instructions": 3990410,
+            "ri_cycles": 4292373,
+            "ri_pinstructions": 3990410,
+            "ri_pcycles": 4292373,
+            "ri_energy_nj": 989661,
+            "ri_penergy_nj": 989661,
+            "ri_runnable_time": 3495958,
+            "ri_interrupt_wkups": 19,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21374,
+            "type": "GPU",
+            "startAbstime": "78298055293485",
+            "cdpCpuSeconds": 6.928847000000001,
+            "ri_user_time": 3841433917,
+            "ri_system_time": 3087414416,
+            "ri_user_ptime": 3829395292,
+            "ri_system_ptime": 3063341334,
+            "ri_instructions": 13550032313,
+            "ri_cycles": 8876944442,
+            "ri_pinstructions": 13513331145,
+            "ri_pcycles": 8808626724,
+            "ri_energy_nj": 2558006806,
+            "ri_penergy_nj": 2553522857,
+            "ri_runnable_time": 7978424792,
+            "ri_interrupt_wkups": 1940,
+            "ri_pkg_idle_wkups": 3
+          },
+          {
+            "pid": 21375,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78298055361518",
+            "cdpCpuSeconds": 0.00573499999999999,
+            "ri_user_time": 3601042,
+            "ri_system_time": 2135542,
+            "ri_user_ptime": 3543625,
+            "ri_system_ptime": 2109292,
+            "ri_instructions": 8363513,
+            "ri_cycles": 7471811,
+            "ri_pinstructions": 8318173,
+            "ri_pcycles": 7305902,
+            "ri_energy_nj": 1759048,
+            "ri_penergy_nj": 1752909,
+            "ri_runnable_time": 6540791,
+            "ri_interrupt_wkups": 15,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21376,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78298055970980",
+            "cdpCpuSeconds": 0.0009590000000000015,
+            "ri_user_time": 659000,
+            "ri_system_time": 301584,
+            "ri_user_ptime": 579125,
+            "ri_system_ptime": 267542,
+            "ri_instructions": 1078403,
+            "ri_cycles": 1402153,
+            "ri_pinstructions": 1010624,
+            "ri_pcycles": 1207858,
+            "ri_energy_nj": 258029,
+            "ri_penergy_nj": 248999,
+            "ri_runnable_time": 1159333,
+            "ri_interrupt_wkups": 9,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 1700033876,
+            "ri_system_time": 218679918,
+            "ri_user_ptime": 1652582249,
+            "ri_system_ptime": 208364625,
+            "ri_instructions": 5010256135,
+            "ri_cycles": 2473267480,
+            "ri_pinstructions": 4910079146,
+            "ri_pcycles": 2360003779,
+            "ri_energy_nj": 856199231,
+            "ri_penergy_nj": 848368130,
+            "ri_runnable_time": 2095784250,
+            "ri_interrupt_wkups": 522,
+            "ri_pkg_idle_wkups": 4,
+            "cpuSeconds": 1.918713794,
+            "pCpuSeconds": 1.860946874,
+            "cdpCpuSeconds": 1.918717,
+            "instructions": 5010256135,
+            "cycles": 2473267480,
+            "energyJ": 0.856199231,
+            "effectiveClockGHz": 1.2890236614414,
+            "pEffectiveClockGHz": 1.2681736442735225,
+            "pCoreTimeShare": 0.9698928937809053
+          },
+          "GPU": {
+            "ri_user_time": 3841433917,
+            "ri_system_time": 3087414416,
+            "ri_user_ptime": 3829395292,
+            "ri_system_ptime": 3063341334,
+            "ri_instructions": 13550032313,
+            "ri_cycles": 8876944442,
+            "ri_pinstructions": 13513331145,
+            "ri_pcycles": 8808626724,
+            "ri_energy_nj": 2558006806,
+            "ri_penergy_nj": 2553522857,
+            "ri_runnable_time": 7978424792,
+            "ri_interrupt_wkups": 1940,
+            "ri_pkg_idle_wkups": 3,
+            "cpuSeconds": 6.928848333,
+            "pCpuSeconds": 6.892736626,
+            "cdpCpuSeconds": 6.928847000000001,
+            "instructions": 13550032313,
+            "cycles": 8876944442,
+            "energyJ": 2.558006806,
+            "effectiveClockGHz": 1.2811572739616495,
+            "pEffectiveClockGHz": 1.27795782748656,
+            "pCoreTimeShare": 0.9947882093438225
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 5541467793,
+            "ri_system_time": 3306094334,
+            "ri_user_ptime": 5481977541,
+            "ri_system_ptime": 3271705959,
+            "ri_instructions": 18560288448,
+            "ri_cycles": 11350211922,
+            "ri_pinstructions": 18423410291,
+            "ri_pcycles": 11168630503,
+            "ri_energy_nj": 3414206037,
+            "ri_penergy_nj": 3401890987,
+            "ri_runnable_time": 10074209042,
+            "ri_interrupt_wkups": 2462,
+            "ri_pkg_idle_wkups": 7,
+            "cpuSeconds": 8.847562127,
+            "pCpuSeconds": 8.7536835,
+            "cdpCpuSeconds": 8.847564000000002,
+            "instructions": 18560288448,
+            "cycles": 11350211922,
+            "energyJ": 3.414206037,
+            "effectiveClockGHz": 1.2828632067315688,
+            "pEffectiveClockGHz": 1.2758778065256757,
+            "pCoreTimeShare": 0.989389322657197
+          },
+          "allChrome": {
+            "ri_user_time": 5565717168,
+            "ri_system_time": 3315942376,
+            "ri_user_ptime": 5504406916,
+            "ri_system_ptime": 3280648001,
+            "ri_instructions": 18623338454,
+            "ri_cycles": 11394249473,
+            "ri_pinstructions": 18483430364,
+            "ri_pcycles": 11207805541,
+            "ri_energy_nj": 3425703160,
+            "ri_penergy_nj": 3413081868,
+            "ri_runnable_time": 10111525708,
+            "ri_interrupt_wkups": 2528,
+            "ri_pkg_idle_wkups": 7,
+            "cpuSeconds": 8.881659544,
+            "pCpuSeconds": 8.785054917,
+            "cdpCpuSeconds": 8.881558,
+            "instructions": 18623338454,
+            "cycles": 11394249473,
+            "energyJ": 3.42570316,
+            "effectiveClockGHz": 1.2828964470606599,
+            "pEffectiveClockGHz": 1.275780931011794,
+            "pCoreTimeShare": 0.989123133292667
+          },
+          "otherChrome": {
+            "ri_user_time": 24249375,
+            "ri_system_time": 9848042,
+            "ri_user_ptime": 22429375,
+            "ri_system_ptime": 8942042,
+            "ri_instructions": 63050006,
+            "ri_cycles": 44037551,
+            "ri_pinstructions": 60020073,
+            "ri_pcycles": 39175038,
+            "ri_energy_nj": 11497123,
+            "ri_penergy_nj": 11190881,
+            "ri_runnable_time": 37316666,
+            "ri_interrupt_wkups": 66,
+            "ri_pkg_idle_wkups": 0,
+            "cpuSeconds": 0.034097417,
+            "pCpuSeconds": 0.031371417,
+            "cdpCpuSeconds": 0.03399399999999987,
+            "instructions": 63050006,
+            "cycles": 44037551,
+            "energyJ": 0.011497123,
+            "effectiveClockGHz": 1.2915216129127904,
+            "pEffectiveClockGHz": 1.2487493950305146,
+            "pCoreTimeShare": 0.9200525951863158
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        }
+      ],
+      "contentSha256": "f984b635790fdcca89c475229e1586d5dc9a54b64d9128e2288fe549d51be457",
+      "screenshotSha256": "671d9cc2737ff069dc2ff8e490afb352a3fbc60a248f07c8f4423249c89bc8d5",
+      "hostAfter": { "at": "2026-10-09T20:37:40.205Z", "ac": true, "load": 2.97 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 1,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 2,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 3,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 4,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 5,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 6,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 7,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 8,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 9,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 10,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 11,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 12,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 13,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 14,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 15,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 16,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "actor": "GL",
+      "workload": "interactive-edits",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 21365,
+            "type": "browser",
+            "startAbstime": "78298047884301",
+            "cdpCpuSeconds": 0.03809700000000005,
+            "ri_user_time": 28850542,
+            "ri_system_time": 9332209,
+            "ri_user_ptime": 28554042,
+            "ri_system_ptime": 8734667,
+            "ri_instructions": 124691442,
+            "ri_cycles": 68100971,
+            "ri_pinstructions": 123889015,
+            "ri_pcycles": 66350335,
+            "ri_energy_nj": 27302336,
+            "ri_penergy_nj": 27196106,
+            "ri_runnable_time": 43279167,
+            "ri_interrupt_wkups": 41,
+            "ri_pkg_idle_wkups": 2
+          },
+          {
+            "pid": 22112,
+            "type": "renderer",
+            "startAbstime": "78300713630792",
+            "cdpCpuSeconds": 0.0013699999999999962,
+            "ri_user_time": 862458,
+            "ri_system_time": 509042,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 1304168,
+            "ri_cycles": 1762606,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 84397,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 1865000,
+            "ri_interrupt_wkups": 3,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 22113,
+            "type": "renderer",
+            "startAbstime": "78300713641300",
+            "cdpCpuSeconds": 1.850112,
+            "ri_user_time": 1637735125,
+            "ri_system_time": 212375958,
+            "ri_user_ptime": 1582090375,
+            "ri_system_ptime": 201080125,
+            "ri_instructions": 4995275566,
+            "ri_cycles": 2497824945,
+            "ri_pinstructions": 4858030229,
+            "ri_pcycles": 2364771438,
+            "ri_energy_nj": 871132692,
+            "ri_penergy_nj": 860804587,
+            "ri_runnable_time": 2010870667,
+            "ri_interrupt_wkups": 518,
+            "ri_pkg_idle_wkups": 2
+          },
+          {
+            "pid": 22111,
+            "type": "renderer",
+            "startAbstime": "78300712976812",
+            "cdpCpuSeconds": 0.002919000000000005,
+            "ri_user_time": 2051416,
+            "ri_system_time": 866500,
+            "ri_user_ptime": 2051417,
+            "ri_system_ptime": 866500,
+            "ri_instructions": 3937454,
+            "ri_cycles": 3850716,
+            "ri_pinstructions": 3937454,
+            "ri_pcycles": 3850716,
+            "ri_energy_nj": 928981,
+            "ri_penergy_nj": 928981,
+            "ri_runnable_time": 3299292,
+            "ri_interrupt_wkups": 20,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 21374,
+            "type": "GPU",
+            "startAbstime": "78298055293485",
+            "cdpCpuSeconds": 6.886444999999998,
+            "ri_user_time": 3773855000,
+            "ri_system_time": 3112592208,
+            "ri_user_ptime": 3761240375,
+            "ri_system_ptime": 3087571709,
+            "ri_instructions": 13739446523,
+            "ri_cycles": 9093590779,
+            "ri_pinstructions": 13705233366,
+            "ri_pcycles": 9022138798,
+            "ri_energy_nj": 2629949837,
+            "ri_penergy_nj": 2625561055,
+            "ri_runnable_time": 7920971292,
+            "ri_interrupt_wkups": 1946,
+            "ri_pkg_idle_wkups": 8
+          },
+          {
+            "pid": 21375,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78298055361518",
+            "cdpCpuSeconds": 0.0016369999999999996,
+            "ri_user_time": 1170334,
+            "ri_system_time": 468667,
+            "ri_user_ptime": 1148125,
+            "ri_system_ptime": 443625,
+            "ri_instructions": 1786197,
+            "ri_cycles": 2550821,
+            "ri_pinstructions": 1760631,
+            "ri_pcycles": 2453246,
+            "ri_energy_nj": 530821,
+            "ri_penergy_nj": 526037,
+            "ri_runnable_time": 1960167,
+            "ri_interrupt_wkups": 8,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 21376,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78298055970980",
+            "cdpCpuSeconds": 0.000671999999999999,
+            "ri_user_time": 513958,
+            "ri_system_time": 157875,
+            "ri_user_ptime": 489333,
+            "ri_system_ptime": 130667,
+            "ri_instructions": 709687,
+            "ri_cycles": 921565,
+            "ri_pinstructions": 665785,
+            "ri_pcycles": 814532,
+            "ri_energy_nj": 178088,
+            "ri_penergy_nj": 171080,
+            "ri_runnable_time": 888875,
+            "ri_interrupt_wkups": 6,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 1640648999,
+            "ri_system_time": 213751500,
+            "ri_user_ptime": 1584141792,
+            "ri_system_ptime": 201946625,
+            "ri_instructions": 5000517188,
+            "ri_cycles": 2503438267,
+            "ri_pinstructions": 4861967683,
+            "ri_pcycles": 2368622154,
+            "ri_energy_nj": 872146070,
+            "ri_penergy_nj": 861733568,
+            "ri_runnable_time": 2016034959,
+            "ri_interrupt_wkups": 541,
+            "ri_pkg_idle_wkups": 3,
+            "cpuSeconds": 1.854400499,
+            "pCpuSeconds": 1.786088417,
+            "cdpCpuSeconds": 1.8544010000000002,
+            "instructions": 5000517188,
+            "cycles": 2503438267,
+            "energyJ": 0.87214607,
+            "effectiveClockGHz": 1.3499987021951292,
+            "pEffectiveClockGHz": 1.326150559768173,
+            "pCoreTimeShare": 0.9631621744942164
+          },
+          "GPU": {
+            "ri_user_time": 3773855000,
+            "ri_system_time": 3112592208,
+            "ri_user_ptime": 3761240375,
+            "ri_system_ptime": 3087571709,
+            "ri_instructions": 13739446523,
+            "ri_cycles": 9093590779,
+            "ri_pinstructions": 13705233366,
+            "ri_pcycles": 9022138798,
+            "ri_energy_nj": 2629949837,
+            "ri_penergy_nj": 2625561055,
+            "ri_runnable_time": 7920971292,
+            "ri_interrupt_wkups": 1946,
+            "ri_pkg_idle_wkups": 8,
+            "cpuSeconds": 6.886447208,
+            "pCpuSeconds": 6.848812084,
+            "cdpCpuSeconds": 6.886444999999998,
+            "instructions": 13739446523,
+            "cycles": 9093590779,
+            "energyJ": 2.629949837,
+            "effectiveClockGHz": 1.3205054078445497,
+            "pEffectiveClockGHz": 1.3173290035329284,
+            "pCoreTimeShare": 0.9945348998019938
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 5414503999,
+            "ri_system_time": 3326343708,
+            "ri_user_ptime": 5345382167,
+            "ri_system_ptime": 3289518334,
+            "ri_instructions": 18739963711,
+            "ri_cycles": 11597029046,
+            "ri_pinstructions": 18567201049,
+            "ri_pcycles": 11390760952,
+            "ri_energy_nj": 3502095907,
+            "ri_penergy_nj": 3487294623,
+            "ri_runnable_time": 9937006251,
+            "ri_interrupt_wkups": 2487,
+            "ri_pkg_idle_wkups": 11,
+            "cpuSeconds": 8.740847707,
+            "pCpuSeconds": 8.634900501,
+            "cdpCpuSeconds": 8.740845999999998,
+            "instructions": 18739963711,
+            "cycles": 11597029046,
+            "energyJ": 3.502095907,
+            "effectiveClockGHz": 1.3267625103126623,
+            "pEffectiveClockGHz": 1.319153700807652,
+            "pCoreTimeShare": 0.9878790696793455
+          },
+          "allChrome": {
+            "ri_user_time": 5445038833,
+            "ri_system_time": 3336302459,
+            "ri_user_ptime": 5375573667,
+            "ri_system_ptime": 3298827293,
+            "ri_instructions": 18867151037,
+            "ri_cycles": 11668602403,
+            "ri_pinstructions": 18693516480,
+            "ri_pcycles": 11460379065,
+            "ri_energy_nj": 3530107152,
+            "ri_penergy_nj": 3515187846,
+            "ri_runnable_time": 9983134460,
+            "ri_interrupt_wkups": 2542,
+            "ri_pkg_idle_wkups": 14,
+            "cpuSeconds": 8.781341292,
+            "pCpuSeconds": 8.67440096,
+            "cdpCpuSeconds": 8.781251999999999,
+            "instructions": 18867151037,
+            "cycles": 11668602403,
+            "energyJ": 3.530107152,
+            "effectiveClockGHz": 1.3287950001021323,
+            "pEffectiveClockGHz": 1.321172391943478,
+            "pCoreTimeShare": 0.987821868158407
+          },
+          "otherChrome": {
+            "ri_user_time": 30534834,
+            "ri_system_time": 9958751,
+            "ri_user_ptime": 30191500,
+            "ri_system_ptime": 9308959,
+            "ri_instructions": 127187326,
+            "ri_cycles": 71573357,
+            "ri_pinstructions": 126315431,
+            "ri_pcycles": 69618113,
+            "ri_energy_nj": 28011245,
+            "ri_penergy_nj": 27893223,
+            "ri_runnable_time": 46128209,
+            "ri_interrupt_wkups": 55,
+            "ri_pkg_idle_wkups": 3,
+            "cpuSeconds": 0.040493585,
+            "pCpuSeconds": 0.039500459,
+            "cdpCpuSeconds": 0.040406000000000046,
+            "instructions": 127187326,
+            "cycles": 71573357,
+            "energyJ": 0.028011245,
+            "effectiveClockGHz": 1.7675233496861293,
+            "pEffectiveClockGHz": 1.7624633931468996,
+            "pCoreTimeShare": 0.975474485650011
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualCoreWrites": 901,
+            "rendererCallbacks": 901,
+            "actualScrollNotifications": 0,
+            "actualRenderUpdates": 901,
+            "actualAcknowledgements": 901,
+            "actualFramePublications": 901
+          },
+          "metrics": {
+            "zigFrames": 901,
+            "atlasCacheHits": 0,
+            "atlasCacheMisses": 0,
+            "atlasEvictions": 0,
+            "atlasPages": 0,
+            "atlasUploadedBytes": 0,
+            "atlasUploadOperations": 0,
+            "deviceRestores": 0,
+            "draws": 900,
+            "instanceUploadOperations": 901,
+            "rebuiltRows": 913,
+            "submittedFrames": 901,
+            "uploadedBytes": 97344
+          },
+          "historyRows": 0,
+          "dirty": 0,
+          "nativeSessionRevision": 1026,
+          "acceptedFrameSessionRevision": 1026,
+          "diagnostics": {
+            "hasPendingFrame": false,
+            "hasPendingLinkResolution": false,
+            "hasPendingTimer": false,
+            "lifecycle": "open",
+            "pointerOwner": "none",
+            "pressedButtonCount": 0,
+            "rendererBackend": "webgl2",
+            "scrollbarVisible": false
+          },
+          "contextLost": false
+        }
+      ],
+      "contentSha256": "f984b635790fdcca89c475229e1586d5dc9a54b64d9128e2288fe549d51be457",
+      "screenshotSha256": "671d9cc2737ff069dc2ff8e490afb352a3fbc60a248f07c8f4423249c89bc8d5",
+      "hostAfter": { "at": "2026-10-09T20:38:48.032Z", "ac": true, "load": 3.65 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 1,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 2,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 3,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 4,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 5,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 6,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 7,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 8,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 9,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 10,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 11,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 12,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 13,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 14,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 15,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 16,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "actor": "XGL",
+      "workload": "interactive-edits",
+      "status": "complete",
+      "errors": [],
+      "native": {
+        "perPid": [
+          {
+            "pid": 21365,
+            "type": "browser",
+            "startAbstime": "78298047884301",
+            "cdpCpuSeconds": 0.01807800000000004,
+            "ri_user_time": 13580000,
+            "ri_system_time": 4589125,
+            "ri_user_ptime": 12706833,
+            "ri_system_ptime": 3675750,
+            "ri_instructions": 28266589,
+            "ri_cycles": 30235365,
+            "ri_pinstructions": 27320182,
+            "ri_pcycles": 27053019,
+            "ri_energy_nj": 6860227,
+            "ri_penergy_nj": 6714820,
+            "ri_runnable_time": 20916375,
+            "ri_interrupt_wkups": 40,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 22331,
+            "type": "renderer",
+            "startAbstime": "78301257510891",
+            "cdpCpuSeconds": 0.0011859999999999926,
+            "ri_user_time": 733125,
+            "ri_system_time": 451625,
+            "ri_user_ptime": 0,
+            "ri_system_ptime": 0,
+            "ri_instructions": 1105122,
+            "ri_cycles": 1489796,
+            "ri_pinstructions": 0,
+            "ri_pcycles": 0,
+            "ri_energy_nj": 64942,
+            "ri_penergy_nj": 0,
+            "ri_runnable_time": 1392083,
+            "ri_interrupt_wkups": 3,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 22332,
+            "type": "renderer",
+            "startAbstime": "78301257519480",
+            "cdpCpuSeconds": 1.563981,
+            "ri_user_time": 1389002666,
+            "ri_system_time": 174976708,
+            "ri_user_ptime": 1357513458,
+            "ri_system_ptime": 164335917,
+            "ri_instructions": 4210689132,
+            "ri_cycles": 2341643525,
+            "ri_pinstructions": 4125405171,
+            "ri_pcycles": 2261898128,
+            "ri_energy_nj": 769210141,
+            "ri_penergy_nj": 762812788,
+            "ri_runnable_time": 1696688292,
+            "ri_interrupt_wkups": 514,
+            "ri_pkg_idle_wkups": 1
+          },
+          {
+            "pid": 22330,
+            "type": "renderer",
+            "startAbstime": "78301256830704",
+            "cdpCpuSeconds": 0.00295200000000001,
+            "ri_user_time": 2061958,
+            "ri_system_time": 888875,
+            "ri_user_ptime": 2061958,
+            "ri_system_ptime": 874167,
+            "ri_instructions": 3896515,
+            "ri_cycles": 4179413,
+            "ri_pinstructions": 3883723,
+            "ri_pcycles": 4149093,
+            "ri_energy_nj": 966336,
+            "ri_penergy_nj": 964441,
+            "ri_runnable_time": 3375042,
+            "ri_interrupt_wkups": 23,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21374,
+            "type": "GPU",
+            "startAbstime": "78298055293485",
+            "cdpCpuSeconds": 7.084144000000002,
+            "ri_user_time": 3900503250,
+            "ri_system_time": 3183638292,
+            "ri_user_ptime": 3895083917,
+            "ri_system_ptime": 3160147041,
+            "ri_instructions": 15507968898,
+            "ri_cycles": 10533904736,
+            "ri_pinstructions": 15485302392,
+            "ri_pcycles": 10482082379,
+            "ri_energy_nj": 3129166065,
+            "ri_penergy_nj": 3126313712,
+            "ri_runnable_time": 8129378000,
+            "ri_interrupt_wkups": 1901,
+            "ri_pkg_idle_wkups": 3
+          },
+          {
+            "pid": 21375,
+            "type": "network.mojom.NetworkService",
+            "startAbstime": "78298055361518",
+            "cdpCpuSeconds": 0.002385000000000026,
+            "ri_user_time": 586125,
+            "ri_system_time": 1798166,
+            "ri_user_ptime": 316084,
+            "ri_system_ptime": 319458,
+            "ri_instructions": 2769685,
+            "ri_cycles": 3481235,
+            "ri_pinstructions": 847635,
+            "ri_pcycles": 931162,
+            "ri_energy_nj": 346299,
+            "ri_penergy_nj": 214508,
+            "ri_runnable_time": 2619208,
+            "ri_interrupt_wkups": 9,
+            "ri_pkg_idle_wkups": 0
+          },
+          {
+            "pid": 21376,
+            "type": "storage.mojom.StorageService",
+            "startAbstime": "78298055970980",
+            "cdpCpuSeconds": 0.00032799999999999496,
+            "ri_user_time": 247125,
+            "ri_system_time": 81750,
+            "ri_user_ptime": 203875,
+            "ri_system_ptime": 62166,
+            "ri_instructions": 300068,
+            "ri_cycles": 494566,
+            "ri_pinstructions": 263749,
+            "ri_pcycles": 364856,
+            "ri_energy_nj": 77386,
+            "ri_penergy_nj": 71653,
+            "ri_runnable_time": 438458,
+            "ri_interrupt_wkups": 6,
+            "ri_pkg_idle_wkups": 0
+          }
+        ],
+        "channels": {
+          "renderer": {
+            "ri_user_time": 1391797749,
+            "ri_system_time": 176317208,
+            "ri_user_ptime": 1359575416,
+            "ri_system_ptime": 165210084,
+            "ri_instructions": 4215690769,
+            "ri_cycles": 2347312734,
+            "ri_pinstructions": 4129288894,
+            "ri_pcycles": 2266047221,
+            "ri_energy_nj": 770241419,
+            "ri_penergy_nj": 763777229,
+            "ri_runnable_time": 1701455417,
+            "ri_interrupt_wkups": 540,
+            "ri_pkg_idle_wkups": 1,
+            "cpuSeconds": 1.568114957,
+            "pCpuSeconds": 1.5247855,
+            "cdpCpuSeconds": 1.568119,
+            "instructions": 4215690769,
+            "cycles": 2347312734,
+            "energyJ": 0.770241419,
+            "effectiveClockGHz": 1.496900927780641,
+            "pEffectiveClockGHz": 1.486141638282893,
+            "pCoreTimeShare": 0.9723684435209426
+          },
+          "GPU": {
+            "ri_user_time": 3900503250,
+            "ri_system_time": 3183638292,
+            "ri_user_ptime": 3895083917,
+            "ri_system_ptime": 3160147041,
+            "ri_instructions": 15507968898,
+            "ri_cycles": 10533904736,
+            "ri_pinstructions": 15485302392,
+            "ri_pcycles": 10482082379,
+            "ri_energy_nj": 3129166065,
+            "ri_penergy_nj": 3126313712,
+            "ri_runnable_time": 8129378000,
+            "ri_interrupt_wkups": 1901,
+            "ri_pkg_idle_wkups": 3,
+            "cpuSeconds": 7.084141542,
+            "pCpuSeconds": 7.055230958,
+            "cdpCpuSeconds": 7.084144000000002,
+            "instructions": 15507968898,
+            "cycles": 10533904736,
+            "energyJ": 3.129166065,
+            "effectiveClockGHz": 1.4869698288137339,
+            "pEffectiveClockGHz": 1.4857178229033392,
+            "pCoreTimeShare": 0.9959189714337867
+          },
+          "rendererPlusGPU": {
+            "ri_user_time": 5292300999,
+            "ri_system_time": 3359955500,
+            "ri_user_ptime": 5254659333,
+            "ri_system_ptime": 3325357125,
+            "ri_instructions": 19723659667,
+            "ri_cycles": 12881217470,
+            "ri_pinstructions": 19614591286,
+            "ri_pcycles": 12748129600,
+            "ri_energy_nj": 3899407484,
+            "ri_penergy_nj": 3890090941,
+            "ri_runnable_time": 9830833417,
+            "ri_interrupt_wkups": 2441,
+            "ri_pkg_idle_wkups": 4,
+            "cpuSeconds": 8.652256499,
+            "pCpuSeconds": 8.580016458,
+            "cdpCpuSeconds": 8.652263000000001,
+            "instructions": 19723659667,
+            "cycles": 12881217470,
+            "energyJ": 3.899407484,
+            "effectiveClockGHz": 1.4887697182219193,
+            "pEffectiveClockGHz": 1.4857931406546028,
+            "pCoreTimeShare": 0.9916507282223602
+          },
+          "allChrome": {
+            "ri_user_time": 5306714249,
+            "ri_system_time": 3366424541,
+            "ri_user_ptime": 5267886125,
+            "ri_system_ptime": 3329414499,
+            "ri_instructions": 19754996009,
+            "ri_cycles": 12915428636,
+            "ri_pinstructions": 19643022852,
+            "ri_pcycles": 12776478637,
+            "ri_energy_nj": 3906691396,
+            "ri_penergy_nj": 3897091922,
+            "ri_runnable_time": 9854807458,
+            "ri_interrupt_wkups": 2496,
+            "ri_pkg_idle_wkups": 4,
+            "cpuSeconds": 8.67313879,
+            "pCpuSeconds": 8.597300624,
+            "cdpCpuSeconds": 8.673054000000002,
+            "instructions": 19754996009,
+            "cycles": 12915428636,
+            "energyJ": 3.906691396,
+            "effectiveClockGHz": 1.489129708254098,
+            "pEffectiveClockGHz": 1.486103510366209,
+            "pCoreTimeShare": 0.9912559722799041
+          },
+          "otherChrome": {
+            "ri_user_time": 14413250,
+            "ri_system_time": 6469041,
+            "ri_user_ptime": 13226792,
+            "ri_system_ptime": 4057374,
+            "ri_instructions": 31336342,
+            "ri_cycles": 34211166,
+            "ri_pinstructions": 28431566,
+            "ri_pcycles": 28349037,
+            "ri_energy_nj": 7283912,
+            "ri_penergy_nj": 7000981,
+            "ri_runnable_time": 23974041,
+            "ri_interrupt_wkups": 55,
+            "ri_pkg_idle_wkups": 0,
+            "cpuSeconds": 0.020882291,
+            "pCpuSeconds": 0.017284166,
+            "cdpCpuSeconds": 0.02079100000000006,
+            "instructions": 31336342,
+            "cycles": 34211166,
+            "energyJ": 0.007283912,
+            "effectiveClockGHz": 1.6382860482118557,
+            "pEffectiveClockGHz": 1.6401738446622185,
+            "pCoreTimeShare": 0.8276949114443429
+          }
+        },
+        "coverage": "Stable endpoint PID/type/start identities. Short-lived processes entirely between endpoints are outside this coverage. Sequential CDP and per-PID counter reads are non-atomic."
+      },
+      "targetWork": [
+        {
+          "index": 0,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 1,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 2,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 3,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 4,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 5,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 6,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 7,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 8,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 9,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 10,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 11,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 12,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 13,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 14,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 15,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        },
+        {
+          "index": 16,
+          "counters": {
+            "publicWrites": 901,
+            "inputBytes": 17119,
+            "actualParserCalls": 901,
+            "rendererCallbacks": 901,
+            "writeCallbacks": 901
+          },
+          "metrics": {},
+          "historyRows": 0,
+          "contextLost": false
+        }
+      ],
+      "contentSha256": "f984b635790fdcca89c475229e1586d5dc9a54b64d9128e2288fe549d51be457",
+      "screenshotSha256": "517db5fd9dee9bbc1c0e2fe5df7c3305cc53d4e426f9089b2851fe3375eb199e",
+      "hostAfter": { "at": "2026-10-09T20:39:10.607Z", "ac": true, "load": 3.31 },
+      "content": [
+        {
+          "index": 0,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 1,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 2,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 3,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 4,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 5,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 6,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 7,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 8,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 9,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 10,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 11,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 12,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 13,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 14,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 15,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        },
+        {
+          "index": 16,
+          "historyRows": 0,
+          "retainedRows": 12,
+          "retainedTextSha256": "59ded7e22f6897232ffcd1858f88439ca7cb60294148f5111c2cefa4e9aea204"
+        }
+      ]
+    }
+  ]
+}

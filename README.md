@@ -23,23 +23,23 @@ It has its own API and WebGPU, WebGL2, Canvas 2D, and DOM renderers.
 ## Measured wins and losses
 
 [Reviewed benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) compare like-for-like renderers.
-These frozen-build results come from an Apple M1 MacBook on AC power, headed Chrome 154.0.8037.93, acquired 2026-10-07 and reviewed 2026-10-08.
-They compare ghostty-webgpu 0.3.20 with xterm.js 6.0.0 and WebGL addon 0.19.0.
-The workload uses 17 visible terminals, 40 by 12 cells, DPR 2, and 900 measured ticks at 60 Hz after 120 warm-up ticks.
+These results come from an Apple M1 MacBook on AC power, headed Chrome 154.0.8037.93, acquired 2026-10-09 and reviewed 2026-10-10.
+They compare ghostty-webgpu 0.3.21 with xterm.js 6.0.0 and WebGL addon 0.19.0.
+The workload uses 17 visible terminals, 40 by 12 cells, DPR 2, and 900 measured ticks at 60 Hz after 120 warm-up ticks. Each row is the median of two balanced pairs.
 
 Each ratio is ghostty divided by xterm.js. Below 1 means ghostty uses less estimated CPU energy or fewer instructions.
 
 | WebGL vs xterm.js WebGL   | CPU energy ratio | Instruction ratio |
 | ------------------------- | ---------------: | ----------------: |
-| Heavy log output          |            0.751 |             0.690 |
-| Heavy Unicode output      |            0.730 |             0.689 |
-| One Unicode line per tick |            1.320 |             1.348 |
-| One ASCII line per tick   |            1.361 |             1.417 |
-| Typing-like edits         |            1.010 |             1.048 |
+| Heavy log output          |            0.612 |             0.613 |
+| Heavy Unicode output      |            0.611 |             0.615 |
+| One Unicode line per tick |            0.986 |             1.002 |
+| One ASCII line per tick   |            0.955 |             0.985 |
+| Typing-like edits         |            0.911 |             0.954 |
 
-Heavy output wins in this run. Incremental line output loses, and typing-like edits are near energy parity.
-These whole-browser counters measure CPU work and estimated CPU energy. The retained-history limits and observer qualifications matter.
-Read the [method and reproduction script](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/README.md) before applying the results to your workload.
+Heavy output uses about 39% less energy and fewer instructions. Scrolling and typing-like edits are lower by smaller margins. One Unicode line per tick is even: energy is 1.4% lower and instructions are 0.2% higher in both pairs, which the review records as an instruction loss.
+These whole-browser counters measure CPU work and estimated CPU energy. The review marks every row publishable with limits. Two pairs per row, retained-history limits and observer qualifications matter.
+Read the [method and recompute steps](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md) before applying the results to your workload.
 
 ### Correctness
 

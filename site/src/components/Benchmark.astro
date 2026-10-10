@@ -9,7 +9,7 @@ const scaleMax = (rows: readonly { energy: number }[]) => Math.max(1.4, ...rows.
   <div class="bench-head">
     <div>
       <h2 id="measured-heading">Measured</h2>
-      <p>Like for like: each renderer against the same renderer in xterm.js. Losses stay on the chart.</p>
+      <p>Like for like: each renderer against the same renderer in xterm.js. Ties and losses stay on the chart.</p>
     </div>
     <div class="seg" role="tablist" aria-label="Benchmark" id="bench-tabs">
       {benchTabs.map((tab, index) => (
