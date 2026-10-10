@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { chromium, type Page } from 'playwright'
 import { displayedInk } from './displayed-ink'
-import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch'
+import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.mjs'
 import { rendererSmokeHotkeys } from './renderer-smoke-dependency'
 
 const root = process.env.GHOSTTY_PACKAGE_ROOT ?? join(import.meta.dirname, '..')

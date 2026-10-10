@@ -1,7 +1,7 @@
 import { deepStrictEqual } from 'node:assert'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright'
-import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.js'
+import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.mjs'
 
 // CPU-side copy costs only; SwiftShader lets the same headless Chromium launch everywhere.
 // Run after build: bun scripts/selection-copy-probe.ts <output.json> [baseline.json]

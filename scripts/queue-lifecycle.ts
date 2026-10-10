@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { chromium, type Page } from 'playwright'
-import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.js'
+import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.mjs'
 import {
   lifecycleCases,
   type LifecycleCase,
