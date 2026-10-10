@@ -1,5 +1,11 @@
 # ghostty-webgpu
 
+## 0.3.24
+
+### Patch Changes
+
+- [#1256](https://github.com/ShaulLavo/fregat/pull/1256) [`402e9f3`](https://github.com/ShaulLavo/fregat/commit/402e9f3ad2b7aa478e0b7003649422c0f5299748) - Improved `Terminal` output performance while its default scrollbar is hidden. Accessibility values stay current, and the thumb uses its latest size and position before appearing or handling input.
+
 ## 0.3.23
 
 ### Patch Changes
