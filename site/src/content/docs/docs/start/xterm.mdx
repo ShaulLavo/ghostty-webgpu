@@ -1,9 +1,51 @@
 ---
 title: Coming from xterm.js
-description: Map xterm.js APIs and addons to the native Ghostty API.
+description: Map xterm.js APIs and capabilities to the native Ghostty API.
 ---
 
 Creation is asynchronous, input events carry bytes, and the main entry writes synchronously. Begin with [the quick start](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/), then replace your transport and appearance wiring.
+
+import { Code } from 'astro:components'
+import { docsCodeThemes } from '../../../../docs-theme.js'
+import {
+  migrationComparison,
+  migrationRendererOption,
+} from '../../../../examples/migration-comparison.js'
+
+## Quick comparison
+
+These are the same checked examples shown on the landing page. `opts` holds `GhosttyWebGpuTerminalOptions`, `host` is a sized element, and `send` forwards input to your PTY. `grid` contains `columns` and `rows`. Opening fits the host automatically; `setAppearance({ grid })` applies explicit geometry.
+
+<table class='migration-comparison' aria-label='xterm.js to ghostty-webgpu'>
+  <thead>
+    <tr>
+      <th>xterm.js</th>
+      <th>ghostty-webgpu</th>
+    </tr>
+  </thead>
+  <tbody>
+    {migrationComparison.map(({ from, to }) => (
+      <tr>
+        <td data-label='xterm.js'>
+          <Code
+            code={from}
+            lang={from.startsWith('@') ? 'text' : 'ts'}
+            themes={docsCodeThemes}
+            defaultColor={false}
+          />
+        </td>
+        <td data-label='ghostty-webgpu'>
+          <Code code={to} lang='ts' themes={docsCodeThemes} defaultColor={false} />
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<p>
+  GPU rendering is on by default (WebGPU or WebGL2, with canvas and DOM fallback); choose canvas
+  with <code>{migrationRendererOption}</code>.
+</p>
 
 ## API mapping
 
@@ -36,22 +78,22 @@ import { migration } from '../../../../examples/migration.js'
 
 Use `sendInput` for generated input, `paste` for bracketed paste and `key` for a synthesized key. Named events include `title`, `bell`, `selection` and `scroll`. The generated reference has their payload types.
 
-## Addon mapping
+## xterm.js addon capabilities
 
-| xterm.js addon                 | Current integration                                                                           | Status                                          |
-| ------------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Fit                            | The host fits automatically                                                                   | Built in                                        |
-| WebGL                          | Automatic WebGL2/WebGPU selection                                                             | Built in                                        |
-| Unicode 11 / Unicode graphemes | Native widths and mode 2027                                                                   | Built in                                        |
-| Web links                      | URL detection, OSC 8 and link providers                                                       | Built in on main entry                          |
-| Clipboard                      | Host `clipboardWrite` policy for OSC 52 writes; defaults to deny                              | Write-only policy                               |
-| Attach                         | [WebSocket recipe](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/)               | Guide                                           |
-| Web fonts                      | [Load browser or worker faces](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/) | Guide                                           |
-| Serialize                      | History reads, selection formats and visual viewport capture                                  | Partial; full emulator serialization is planned |
-| Search                         | Retained-cell search                                                                          | Planned                                         |
-| Image                          | Image protocols                                                                               | Planned                                         |
-| Ligatures                      | Run shaping                                                                                   | Planned                                         |
-| Progress                       | Native progress events exposed to the host                                                    | Planned                                         |
+| xterm.js addon                 | Current integration                                                                                                         | Status                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Fit                            | `await term.open(host)` fits automatically; `term.setAppearance({ grid })` applies geometry                                 | Built in                                        |
+| WebGL                          | `{ rendererMode: 'auto' }` chooses WebGL2/WebGPU; `rendererFactory` selects WebGPU or DOM; `canvas2d-pixels` selects canvas | Built in                                        |
+| Unicode 11 / Unicode graphemes | Native widths and mode 2027                                                                                                 | Built in                                        |
+| Web links                      | URL detection, OSC 8 and link providers                                                                                     | Built in on main entry                          |
+| Clipboard                      | Host `clipboardWrite` policy for OSC 52 writes; defaults to deny                                                            | Write-only policy                               |
+| Attach                         | [WebSocket recipe](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/)                                             | Guide                                           |
+| Web fonts                      | [Load browser or worker faces](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/)                               | Guide                                           |
+| Serialize                      | History reads, selection formats and visual viewport capture                                                                | Partial; full emulator serialization is planned |
+| Search                         | Retained-cell search                                                                                                        | Planned                                         |
+| Image                          | Image protocols                                                                                                             | Planned                                         |
+| Ligatures                      | Run shaping                                                                                                                 | Planned                                         |
+| Progress                       | Native progress events exposed to the host                                                                                  | Planned                                         |
 
 The [extension plan](https://github.com/ShaulLavo/fregat/blob/main/plans/286-ghostty-extensions.md) tracks the extension model. The [terminal roadmap](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md) tracks delivery. Worker link providers and keyboard link discovery currently report capability errors.
 

@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "typecheck": "../../node_modules/.bin/tsc --noEmit -p tsconfig.json && ../../node_modules/.bin/tsc --noEmit -p tsconfig.tests.json",
     "verify:sections": "bun scripts/verify-sections.ts",
+    "verify:migration": "bun scripts/verify-migration.ts",
     "docs:check": "bun scripts/check-docs.ts && bun test scripts/pty.test.ts"
   },
   "dependencies": {
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@astrojs/markdown-remark": "7.3.0",
     "@astrojs/starlight": "0.42.5",
+    "@shikijs/themes": "4.4.3",
     "@types/bun": "1.4.2",
     "@webgpu/types": "0.1.74",
     "astro": "7.3.5",

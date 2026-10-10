@@ -361,7 +361,7 @@
 
 .callout {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   align-items: start;
   gap: 32px;
   margin-top: clamp(56px, 9vh, 96px);
@@ -374,6 +374,10 @@
 
 .callout a {
   color: var(--ink);
+}
+
+.migration-map {
+  container-type: inline-size;
 }
 
 .map {
@@ -402,8 +406,15 @@
   vertical-align: top;
 }
 
-.map td:first-child {
-  color: #a8a3c6;
+.map pre {
+  margin: 0;
+  background: transparent !important;
+  font: inherit;
+  white-space: pre;
+}
+
+.map code {
+  font: inherit;
 }
 
 .map tr:last-child td {
@@ -584,6 +595,42 @@
   .map td,
   .map th {
     padding-inline: 10px;
+  }
+}
+
+@container (max-width: 600px) {
+  .map thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .map tbody,
+  .map tr,
+  .map td {
+    display: block;
+  }
+
+  .map tr {
+    padding: 10px 6px;
+  }
+
+  .map tr:nth-child(even) {
+    background: rgb(255 255 255 / 3%);
+  }
+
+  .map td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    font-family: var(--font-ui);
+    color: #a8a3c6;
+  }
+
+  .map tr:last-child td {
+    padding-bottom: 7px;
   }
 }
 
