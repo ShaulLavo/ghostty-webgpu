@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../../dom/terminal.js'
@@ -15,10 +16,7 @@ async function settle(): Promise<void> {
 }
 it('retains cursor appearance rows while publishing frames and observing current geometry', async () => {
   const family = 'DOMAppearanceRetention'
-  const url = new URL(
-    '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-    import.meta.url,
-  ).href
+  const url = testFontUrl
   const face = await new FontFace(family, `url(${JSON.stringify(url)})`).load()
   document.fonts.add(face)
   cleanups.push(() => document.fonts.delete(face))

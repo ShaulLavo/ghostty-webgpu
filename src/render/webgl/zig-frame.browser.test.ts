@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { page } from 'vitest/browser'
 import { RenderStateDirty } from '../../core/abi.js'
@@ -615,10 +616,7 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
   onTestFinished(() => page.viewport(viewport.width, viewport.height))
   await page.viewport(1000, 1500)
   const nativeSource = await runtimeFixture(1, 2)
-  const face = new FontFace(
-    'AtlasResidencyTest',
-    `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
-  )
+  const face = new FontFace('AtlasResidencyTest', `url(${testFontUrl})`)
   await face.load()
   document.fonts.add(face)
   onTestFinished(() => {

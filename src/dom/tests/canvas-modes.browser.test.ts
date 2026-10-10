@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -39,10 +40,7 @@ async function createWorker(rendererMode?: GhosttyWebGpuTerminalOptions['rendere
       {
         family: 'CanvasModeWorkerTest',
         source: {
-          url: new URL(
-            '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-            import.meta.url,
-          ).href,
+          url: testFontUrl,
         },
       },
     ],

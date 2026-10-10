@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -10,10 +11,7 @@ const emojiFont = new FontFace(
   'Canvas ZWJ Emoji',
   `url(${new URL('./tests/zwj-emoji.ttf', import.meta.url).href})`,
 )
-const textFont = new FontFace(
-  'Canvas ZWJ Text',
-  `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
-)
+const textFont = new FontFace('Canvas ZWJ Text', `url(${testFontUrl})`)
 const cleanups: (() => void)[] = []
 const viewport = { width: window.innerWidth, height: window.innerHeight }
 const columns = 24

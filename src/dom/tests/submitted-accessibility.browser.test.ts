@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import {
   observeDisplayedFrame,
   displayedFrameListener,
@@ -365,10 +366,7 @@ describe('accessibility from real submitted native frames', () => {
 })
 
 const packagedFamily = 'SubmittedAccessibilityTest'
-const packagedFontUrl = new URL(
-  '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-  import.meta.url,
-).href
+const packagedFontUrl = testFontUrl
 const packagedAssets = {
   wasm: new URL('../../../ghostty-vt.wasm', import.meta.url).href,
   bridge: new URL('../../../bridge.wasm', import.meta.url).href,

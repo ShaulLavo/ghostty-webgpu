@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Terminal, TERMINAL_READ_LINES_MAX_ROWS } from '../../../dist/index.js'
 import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
@@ -42,10 +43,7 @@ describe('built native history API in Chromium', () => {
                 {
                   family: 'HistoryTest',
                   source: {
-                    url: new URL(
-                      '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-                      import.meta.url,
-                    ).href,
+                    url: testFontUrl,
                   },
                 },
               ],

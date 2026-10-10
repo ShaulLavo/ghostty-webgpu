@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -291,10 +292,7 @@ describe('worker displayed-text correctness fallback', () => {
         {
           family,
           source: {
-            url: new URL(
-              '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-              import.meta.url,
-            ).href,
+            url: testFontUrl,
           },
         },
       ],

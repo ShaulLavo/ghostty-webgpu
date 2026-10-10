@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { DomTerminalRenderer, Terminal } from '../../index.js'
@@ -1134,10 +1135,7 @@ it('delivers an extension-only frame queued during opening through the host boun
 
 async function createWorkerTerminal(): Promise<WorkerTerminal> {
   const family = 'ExtensionWorkerIntegration'
-  const url = new URL(
-    '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-    import.meta.url,
-  ).href
+  const url = testFontUrl
   const terminal = await WorkerTerminal.create({
     backend: 'webgl',
     fonts: [{ family, source: { url } }],

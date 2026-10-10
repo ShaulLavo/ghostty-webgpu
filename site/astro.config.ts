@@ -42,7 +42,7 @@ const references = [
 })
 
 export default defineConfig({
-  base: '/ghostty-webgpu',
+  base: process.env.SITE_ORIGIN ? '/' : '/ghostty-webgpu',
   // Keep the authored markup verbatim so inline whitespace renders unchanged.
   compressHTML: false,
   site: process.env.SITE_ORIGIN ?? 'https://shaullavo.github.io',
@@ -52,6 +52,7 @@ export default defineConfig({
       title: 'ghostty-webgpu',
       description: 'Ghostty’s terminal core in the browser. Guides and API reference.',
       ...docsTheme,
+      components: { Head: './src/components/DocsHead.astro' },
       customCss: docsTheme.customCss.concat(['./src/styles/docs.css']),
       editLink: { baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/ghostty-webgpu/site/' },
       lastUpdated: true,

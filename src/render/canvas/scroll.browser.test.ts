@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { frameMetricDeltas } from '../../../bench/comparison-metrics.js'
@@ -75,10 +76,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 beforeAll(async () => {
-  const face = new FontFace(
-    'CanvasScrollFixture',
-    `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
-  )
+  const face = new FontFace('CanvasScrollFixture', `url(${testFontUrl})`)
   document.fonts.add(await face.load())
 })
 

@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, expect, it } from 'vitest'
 import { Terminal } from '../../../dist/dom/terminal.js'
 import { createTerminalSelectionController } from '../../../dist/dom/selection.js'
@@ -23,10 +24,7 @@ it.each(['cancel', 'dispose', 'new press'] as const)(
         {
           family,
           source: {
-            url: new URL(
-              '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-              import.meta.url,
-            ).href,
+            url: testFontUrl,
           },
         },
       ],

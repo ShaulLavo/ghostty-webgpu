@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { Terminal as Xterm } from '@xterm/xterm'
@@ -19,10 +20,7 @@ const font = {
   boldWeight: 700,
   letterSpacing: 0,
 }
-const fontUrl = new URL(
-  '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-  import.meta.url,
-).href
+const fontUrl = testFontUrl
 const wasmUrl = new URL('../../../ghostty-vt.wasm', import.meta.url).href
 const bridgeUrl = new URL('../../../bridge.wasm', import.meta.url).href
 const oldColor = [41, 91, 151, 255]

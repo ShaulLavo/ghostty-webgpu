@@ -11,7 +11,7 @@
     "webgl",
     "webgpu"
   ],
-  "homepage": "https://shaulavo.dev/ghostty-webgpu/",
+  "homepage": "https://ghostty.shaulavo.dev/",
   "bugs": {
     "url": "https://github.com/ShaulLavo/fregat/issues"
   },

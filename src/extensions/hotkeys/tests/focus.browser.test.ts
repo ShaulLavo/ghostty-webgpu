@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../../tests/fonts.js'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { createBrowserDispatcher, type KeymapEntry, type KeymapPlatform } from '@fregat/hotkeys'
 import {
@@ -13,10 +14,7 @@ import { DomTerminalRenderer } from '../../../../dist/render/dom/renderer.js'
 
 const cleanups: Array<() => unknown> = []
 const decoder = new TextDecoder()
-const fontUrl = new URL(
-  '../../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-  import.meta.url,
-).href
+const fontUrl = testFontUrl
 const assets = {
   wasm: new URL('../../../../ghostty-vt.wasm', import.meta.url).href,
   bridge: new URL('../../../../bridge.wasm', import.meta.url).href,

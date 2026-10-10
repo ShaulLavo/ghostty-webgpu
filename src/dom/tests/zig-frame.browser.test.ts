@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyResult } from '../../core/abi.js'
@@ -212,10 +213,7 @@ it.each(['webgl2', 'webgpu'] as const)(
     const nativeClock = new TestClock()
     const native = await hostFixture(backend, { columns: 6, rows: 3 }, nativeClock)
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
-    const face = new FontFace(
-      'AtlasExhaustionTest',
-      `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
-    )
+    const face = new FontFace('AtlasExhaustionTest', `url(${testFontUrl})`)
     document.fonts.add(await face.load())
     onTestFinished(() => {
       document.fonts.delete(face)

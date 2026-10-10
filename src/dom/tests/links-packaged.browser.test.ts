@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProvidedLink } from '../../term/links.js'
 import type {
@@ -14,10 +15,7 @@ import type { TerminalApi } from '../../../dist/dom/terminal-api.js'
 import { WebGlTerminalRenderer } from '../../../dist/render/webgl/renderer.js'
 
 const family = 'PackagedLinksTest'
-const fontUrl = new URL(
-  '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-  import.meta.url,
-).href
+const fontUrl = testFontUrl
 const assets = {
   wasm: new URL('../../../ghostty-vt.wasm', import.meta.url).href,
   bridge: new URL('../../../bridge.wasm', import.meta.url).href,

@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
 import { Terminal as MainTerminal } from '../../../dist/index.js'
@@ -10,10 +11,7 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
 const family = 'PackagedSelectionTest'
-const fontUrl = new URL(
-  '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-  import.meta.url,
-).href
+const fontUrl = testFontUrl
 const assets = {
   wasm: new URL('../../../ghostty-vt.wasm', import.meta.url).href,
   bridge: new URL('../../../bridge.wasm', import.meta.url).href,

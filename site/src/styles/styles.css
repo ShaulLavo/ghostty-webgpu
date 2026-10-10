@@ -11,8 +11,8 @@
   --shade: rgba(21, 19, 31, 0.28);
   --window-edge: #3d3951;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --font-ui: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-ui: 'Bricolage Grotesque', 'Bricolage Fallback', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'JetBrains Fallback', ui-monospace, Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {

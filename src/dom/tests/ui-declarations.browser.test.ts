@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DomTerminalRenderer } from '../../render/dom/renderer.js'
 import { TerminalSession } from '../../term/session.js'
@@ -156,10 +157,7 @@ describe('terminal UI declarations', () => {
     'styles the first worker preedit with actor metrics (host font loaded: %s)',
     async (hostLoaded) => {
       const family = hostLoaded ? 'PreeditWorkerHost' : 'PreeditWorkerOnly'
-      const source = new URL(
-        '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-        import.meta.url,
-      ).href
+      const source = testFontUrl
       expect(Array.from(document.fonts).some((face) => face.family === family)).toBe(false)
       if (hostLoaded) {
         const face = await new FontFace(family, `url(${JSON.stringify(source)})`).load()

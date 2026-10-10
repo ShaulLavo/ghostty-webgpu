@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { expect, it } from 'vitest'
 import { createGhosttyError } from '../../core/error.js'
 import type {
@@ -70,10 +71,7 @@ async function runWorker(backend: WorkerBackend, scenario: WorkerScenario): Prom
         backend,
         canvas: offscreen,
         output: channel.port2,
-        fontUrl: new URL(
-          '../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-          import.meta.url,
-        ).href,
+        fontUrl: testFontUrl,
         wasmUrl: new URL('../../../ghostty-vt.wasm', import.meta.url).href,
         bridgeUrl: new URL('../../../bridge.wasm', import.meta.url).href,
         failAfterFrame: scenario !== 'success',

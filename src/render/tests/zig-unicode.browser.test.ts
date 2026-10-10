@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -23,10 +24,7 @@ const devicePool: GPUDevice[] = []
 const resourceChecks: (() => void)[] = []
 let sentinel: GPUDevice
 const viewport = { width: window.innerWidth, height: window.innerHeight }
-const unicodeFont = new FontFace(
-  'Zig Unicode Test',
-  `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
-)
+const unicodeFont = new FontFace('Zig Unicode Test', `url(${testFontUrl})`)
 const intrinsicFont = new FontFace(
   'Zig Intrinsic Colors',
   `url(${new URL('./fixtures/intrinsic-colors.ttf', import.meta.url).href})`,

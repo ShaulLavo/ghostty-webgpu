@@ -1,3 +1,4 @@
+import { testFontUrl } from '../tests/fonts.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import {
@@ -23,10 +24,7 @@ import { rendererPlatforms } from '../render/tests/platforms.js'
 import { stubRendererNavigator, restoreRendererNavigator } from '../render/tests/navigator.js'
 
 const family = 'PackagedWorkerTest'
-const fontUrl = new URL(
-  '../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2',
-  import.meta.url,
-).href
+const fontUrl = testFontUrl
 const workerUrl = new URL('../../dist/worker/entry.js', import.meta.url)
 const assets = {
   wasm: new URL('../../ghostty-vt.wasm', import.meta.url).href,

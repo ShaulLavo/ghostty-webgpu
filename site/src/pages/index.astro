@@ -1,6 +1,7 @@
 ---
 import pageCss from '../styles/styles.css?inline'
 import fontCss from '../styles/fonts.css?inline'
+import FontPreloads from '../components/FontPreloads.astro'
 import firstFrameCss from '../styles/first-frame.css?inline'
 import sectionsCss from '../styles/sections.css?inline'
 import { firstGhostFrame } from '../first-frame.js'
@@ -13,7 +14,6 @@ const firstFrame = await firstGhostFrame()
 
 const version = __SITE_VERSION__
 const base = import.meta.env.BASE_URL
-const fontStyles = fontCss.replaceAll('/ghostty-webgpu/', `${base.replace(/\/$/, '')}/`)
 const roadmapLabels = { done: 'Done', progress: 'In progress' } as const
 ---
 
@@ -23,7 +23,7 @@ const roadmapLabels = { done: 'Done', progress: 'In progress' } as const
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ghostty-webgpu: Ghostty's terminal, in the browser</title>
-    <style is:inline set:html={pageCss + fontStyles + firstFrameCss + sectionsCss}></style>
+    <style is:inline set:html={pageCss + fontCss + firstFrameCss + sectionsCss}></style>
     <meta
       name="description"
       content="The real libghostty-vt core, unpatched, compiled to WebAssembly, with four renderers that draw only what changed. Try it live."
@@ -32,10 +32,7 @@ const roadmapLabels = { done: 'Done', progress: 'In progress' } as const
       document.documentElement.style.setProperty('--ghost-device-pixel', `${1 / devicePixelRatio}px`)
     </script>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href="fonts/jetbrains-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="fonts/jetbrains-mono-latin-600-normal.woff2" fetchpriority="low" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="fonts/jetbrains-mono-latin-400-italic.woff2" fetchpriority="low" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="fonts/bricolage-grotesque-latin-variable.woff2" as="font" type="font/woff2" crossorigin />
+    <FontPreloads />
     <link rel="preload" href="ghostty-vt.wasm" fetchpriority="low" as="fetch" type="application/wasm" crossorigin />
     <link rel="preload" href="ghost-frames.txt.gz" fetchpriority="low" as="fetch" crossorigin />
   </head>

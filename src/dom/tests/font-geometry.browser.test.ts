@@ -1,3 +1,4 @@
+import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, beforeAll, expect, it, onTestFinished } from 'vitest'
 import { CanvasRenderer } from 'ghostty-web'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -18,10 +19,7 @@ const font: TerminalFontSettings = {
 let face: FontFace
 
 beforeAll(async () => {
-  face = new FontFace(
-    font.family,
-    `url(${new URL('../../../site/public/fonts/jetbrains-mono-latin-400-normal.woff2', import.meta.url).href})`,
-  )
+  face = new FontFace(font.family, `url(${testFontUrl})`)
   document.fonts.add(await face.load())
   await document.fonts.ready
   expect(document.fonts.check(`400 12px ${font.family}`)).toBe(true)

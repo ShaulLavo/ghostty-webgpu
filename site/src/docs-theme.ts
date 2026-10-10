@@ -13,8 +13,9 @@ export const docsTheme = {
       borderRadius: '12px',
       borderColor: '#2b2839',
       codeBackground: ink,
-      codeFontFamily: "'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace",
-      uiFontFamily: "'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif",
+      codeFontFamily:
+        "'JetBrains Mono', 'JetBrains Fallback', ui-monospace, Menlo, Consolas, monospace",
+      uiFontFamily: "'Bricolage Grotesque', 'Bricolage Fallback', Arial, sans-serif",
       frames: {
         editorTabBarBackground: ink,
         editorActiveTabBackground: ink,

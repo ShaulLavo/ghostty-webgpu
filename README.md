@@ -9,13 +9,13 @@
   <a href="https://github.com/ShaulLavo/fregat/tree/main/ghostty-webgpu"><img src="https://img.shields.io/badge/install-source%20%2F%20workspace-blue" alt="Install from source or workspace" /></a>
 </p>
 <p align="center">
-  <a href="https://shaulavo.dev/ghostty-webgpu/">Website and demo</a> ·
+  <a href="https://ghostty.shaulavo.dev/">Website and demo</a> ·
   <a href="https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/api.md">API</a> ·
   <a href="https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/integration.md">Integration guide</a> ·
   <a href="https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md">Benchmarks</a>
 </p>
 
-[![ghostty-webgpu rendering the ghost demo](https://raw.githubusercontent.com/ShaulLavo/fregat/main/ghostty-webgpu/docs/images/terminal.webp)](https://shaulavo.dev/ghostty-webgpu/)
+[![ghostty-webgpu rendering the ghost demo](https://raw.githubusercontent.com/ShaulLavo/fregat/main/ghostty-webgpu/docs/images/terminal.webp)](https://ghostty.shaulavo.dev/)
 
 An unofficial browser terminal powered by Ghostty's unpatched `libghostty-vt`, compiled to WebAssembly.
 It has its own API and WebGPU, WebGL2, Canvas 2D, and DOM renderers.
@@ -59,7 +59,7 @@ Full VT conformance and general native Ghostty parity remain open. The report in
 
 ## Quick start
 
-[Open the live demo](https://shaulavo.dev/ghostty-webgpu/) to try the terminal and its Shell tab.
+[Open the live demo](https://ghostty.shaulavo.dev/) to try the terminal and its Shell tab.
 The npm release is still 0.1.2. Current publishing is deferred. Use Fregat's source workspace for the API below:
 
 ```sh
