@@ -143,6 +143,7 @@ export class CanvasRowPainter {
     width: number,
     allowCellDamage = true,
     capturedPlainText?: string | null,
+    clearRow = true,
   ): void {
     const damage = allowCellDamage
       ? this.plainDamage(row, cursor, width, capturedPlainText)
@@ -176,7 +177,7 @@ export class CanvasRowPainter {
       this.context.beginPath()
       this.context.rect(x, y, paintWidth, this.font.deviceCellHeight)
       this.context.clip()
-      this.context.clearRect(x, y, paintWidth, this.font.deviceCellHeight)
+      if (clearRow) this.context.clearRect(x, y, paintWidth, this.font.deviceCellHeight)
       if (plain) {
         this.paintPlain(damage.text, cursor, row.y, damage.first, damage.end)
         return

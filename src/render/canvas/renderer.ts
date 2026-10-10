@@ -65,6 +65,7 @@ class CanvasSurface implements RowRendererSurface {
   private readonly pixelTarget?: PixelTarget
   private image?: PaintedImage
   private capturing = false
+  private clearedFrame = false
   private pending = new Map<number, string>()
   private plan?: CanvasScrollPlan
   private nextImage?: PaintedImage
@@ -146,6 +147,7 @@ class CanvasSurface implements RowRendererSurface {
 
   beginFrame(): void {
     this.capturing = false
+    this.clearedFrame = false
     this.plan = undefined
     this.nextImage = undefined
     this.remaining = this.pending.size
@@ -181,6 +183,7 @@ class CanvasSurface implements RowRendererSurface {
             this.pending.size === 1 &&
             this.plan!.offset === 0,
           text,
+          !this.clearedFrame,
         )
         this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1
@@ -231,6 +234,17 @@ class CanvasSurface implements RowRendererSurface {
     const keys = new Map(previous)
     for (const [y, key] of this.pending) keys.set(y, key)
     this.nextImage = { keys, cursor: cursor ? { ...cursor } : undefined }
+    if (
+      !this.pixelTarget &&
+      this.pending.size > 1 &&
+      this.pending.size === this.rowCount &&
+      this.plan.offset === 0 &&
+      this.plan.reused.size === 0
+    ) {
+      // Row clips still contain glyph overhang; only a complete repaint can share its clear.
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+      this.clearedFrame = true
+    }
     if (this.plan.offset !== 0) {
       this.painter.invalidate()
       this.copyRows(this.plan.offset)

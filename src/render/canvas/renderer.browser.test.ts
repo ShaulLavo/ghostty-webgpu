@@ -227,6 +227,63 @@ async function createRenderer(
 }
 
 describe('CanvasTerminalRenderer', () => {
+  it.each([1, 2])(
+    'shares a complete repaint clear while retaining exact row pixels at DPR %s',
+    async (dpr) => {
+      const clock = new FakeClock()
+      const canvas = createCanvas()
+      const base = fittedFont()
+      const font = {
+        ...base,
+        charTop: base.charTop * dpr,
+        deviceBaseline: base.deviceBaseline * dpr,
+        deviceCellHeight: base.deviceCellHeight * dpr,
+        deviceCellWidth: base.deviceCellWidth * dpr,
+        deviceCharHeight: base.deviceCharHeight * dpr,
+        deviceCharWidth: base.deviceCharWidth * dpr,
+        pixelRatio: dpr,
+      }
+      const source = new FakeRenderState([
+        row(0, [cell(0, { text: '日' }), cell(1, { text: 'é', style: styled({ italic: true }) })]),
+        row(1, [cell(0, { text: '🧪' }), cell(1, { text: 'x', style: styled({ faint: true }) })]),
+      ])
+      source.cursor.visible = false
+      const renderer = await createRenderer(options(canvas, source, clock, { font }))
+      const clear = vi.spyOn(canvas.getContext('2d')!, 'clearRect')
+      clock.flushFrame()
+      expect(clear.mock.calls).toEqual([[0, 0, canvas.width, canvas.height]])
+      expectFullRepaint(canvas, source, font)
+
+      source.rows[0] = row(0, [cell(0, { text: 'A' }), cell(1)])
+      source.rows[1] = row(1, [cell(0, { text: 'B', style: styled({ bold: true }) }), cell(1)])
+      source.dirtyRow(0)
+      source.dirtyRow(1)
+      clear.mockClear()
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expect(clear.mock.calls).toEqual([[0, 0, canvas.width, canvas.height]])
+      expectFullRepaint(canvas, source, font)
+
+      source.rows[1] = row(1, [cell(0, { text: 'c', style: styled({ italic: true }) }), cell(1)])
+      source.dirtyRow(1)
+      clear.mockClear()
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expect(clear.mock.calls).toEqual([
+        [0, font.deviceCellHeight, canvas.width, font.deviceCellHeight],
+      ])
+      expectFullRepaint(canvas, source, font)
+
+      source.dirtyRow(0)
+      source.dirtyRow(1)
+      clear.mockClear()
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expect(clear).not.toHaveBeenCalled()
+      expectFullRepaint(canvas, source, font)
+    },
+  )
+
   it('repaints only changed plain-text cells while keeping full-row pixels', async () => {
     const clock = new FakeClock()
     const canvas = createCanvas()
