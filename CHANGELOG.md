@@ -1,5 +1,33 @@
 # ghostty-webgpu
 
+## 0.3.22
+
+### Patch Changes
+
+- [#1206](https://github.com/ShaulLavo/fregat/pull/1206) [`89607da`](https://github.com/ShaulLavo/fregat/commit/89607da8dbf8bfe65a9ad453c812a8d780b5f4af) - Fixed initial automatic renderer selection to choose WebGL for software WebGPU adapters, including worker terminals. WebGPU terminals can repaint with a software replacement after device loss. Replacement acquisition failures reach the renderer's `onError` callback and the terminal's `error` event.
+
+- [#1162](https://github.com/ShaulLavo/fregat/pull/1162) [`e5c8de7`](https://github.com/ShaulLavo/fregat/commit/e5c8de780a66ffb12fa941f7ff9d77d0ff1ad908) - Improved WebGL rendering efficiency for sparse terminal content. `metrics.draws` now counts the draw calls actually submitted for each frame.
+
+- [#1229](https://github.com/ShaulLavo/fregat/pull/1229) [`917e6da`](https://github.com/ShaulLavo/fregat/commit/917e6da49cd610209ecb7d55508ed8275f76e5e6) - Improved `canvas2d-fill-text` rendering speed for rapidly scrolling terminal output.
+
+- [#1208](https://github.com/ShaulLavo/fregat/pull/1208) [`7d6f95d`](https://github.com/ShaulLavo/fregat/commit/7d6f95d3d3ac9d924104f739c7340cfa50ed8e3e) - Changed `backend: 'auto'` and the main-thread automatic renderer to prefer WebGL on desktop Linux, where it measured lower CPU work than WebGPU. macOS and Windows still prefer hardware WebGPU, and explicit `backend: 'webgpu'` keeps its current behavior. Automatic selection continues after WebGL resource allocation failures, and managed WebGL context-loss recovery tries the remaining backends in platform order.
+
+- [#1210](https://github.com/ShaulLavo/fregat/pull/1210) [`f6eef9d`](https://github.com/ShaulLavo/fregat/commit/f6eef9d590c8377bdb8b4442e1a79fc4668e102a) - Improved DOM rendering with contained fixed-row layout, direct plain-row text projection, and reused styles while preserving every terminal column, immutable snapshot, styled cell, selection, cursor, and wide glyph. Reused live canvas style declarations while keeping per-frame flow and padding updates. Fixed DOM `setTheme` colours when a host mutates and reapplies an RGB object.
+
+- [#1146](https://github.com/ShaulLavo/fregat/pull/1146) [`25f35de`](https://github.com/ShaulLavo/fregat/commit/25f35de8fdd0130a51408ef409b3ae5905b8d576) - Breaking: `submittedFrame` now contains frame metadata only; read displayed text with synchronous `visibleLines()` or subscribe with `onText(({ frame, rows, rowPatches }) => …)`, disposing the returned subscription when finished. Displayed text and public renderer `onTextFrame` snapshots remain readable after later frames or disposal; `onText` delivers accepted frames in order after opening, and failures before frame acceptance preserve prior metadata, lazy text and styled snapshots. WebGL and WebGPU create owned text on demand, and accessibility is opt-in through `accessibility: {}` or `setAccessibilityEnabled(true)` with its text subscription released when disabled.
+
+- [#1141](https://github.com/ShaulLavo/fregat/pull/1141) [`97fa72f`](https://github.com/ShaulLavo/fregat/commit/97fa72ffc9388e4273d94ec4d2e754a0e7d78575) - Breaking: Move custom drawing and overlays off `terminal.canvas` onto a separate canvas.
+  Improved `canvas2d-pixels` scrolling and small edits to upload fewer pixels while preserving exact output and failed-upload recovery.
+  Changed: The renderer owns `terminal.canvas` and its drawing context, and pixel mode assumes no active clip.
+
+- [#1128](https://github.com/ShaulLavo/fregat/pull/1128) [`5636f74`](https://github.com/ShaulLavo/fregat/commit/5636f7469198f43424bd0bdc30bf8db6c09ceb61) - Fixed comparison packets to include and hash every runtime WASM asset, including the Canvas pixel compositor. Packets built with `--runtime-ref` now keep these assets tied to the selected source revision.
+
+- [#1180](https://github.com/ShaulLavo/fregat/pull/1180) [`fb67ac0`](https://github.com/ShaulLavo/fregat/commit/fb67ac08ded224fd6579389a23796e015ee23d5c) - Improved DOM rendering of sparse rows. `renderFrameToHtml` omits default empty cell text while preserving fixed-grid run widths, wide-glyph spacing, cursor paint, selection, and styled cells.
+
+- [#1244](https://github.com/ShaulLavo/fregat/pull/1244) [`8b2d69b`](https://github.com/ShaulLavo/fregat/commit/8b2d69bfb4e4640a99ab2c52f8f28c4cfd9f5468) - Fixed terminal taps dismissing the on-screen keyboard in iPhone Safari. The terminal input keeps focus so touch users can type and receive echoed output.
+
+- [#1136](https://github.com/ShaulLavo/fregat/pull/1136) [`0675313`](https://github.com/ShaulLavo/fregat/commit/067531315906e6c5b6ecc73136fa4736281b84b6) - Improved WebGPU terminal scrolling by retaining unchanged rows in GPU buffers and uploading changed record ranges. WebGPU devices with multiple glyph storage batches retain their existing rendering layout.
+
 ## 0.3.21
 
 ### Patch Changes
