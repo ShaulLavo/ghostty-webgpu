@@ -186,6 +186,7 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
   ) {
     this.snapshotValue = snapshot
     this.renderSnapshot()
+    this.renderThumb()
   }
 
   get hasPendingTimer(): boolean {
@@ -401,6 +402,11 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
       'aria-valuetext',
       `Row ${snapshot.offset} of ${maximumOffset(snapshot)}`,
     )
+    if (this.visibleValue) this.renderThumb()
+  }
+
+  private renderThumb(): void {
+    const snapshot = this.snapshotValue
     const ratio = snapshot.total === 0 ? 1 : snapshot.length / snapshot.total
     const maximum = maximumOffset(snapshot)
     const progress = maximum === 0 ? 0 : snapshot.offset / maximum
@@ -440,6 +446,7 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
   private setVisible(visible: boolean): void {
     if (this.visibleValue === visible) return
     this.visibleValue = visible
+    if (visible) this.renderThumb()
     this.element.style.opacity = visible ? '1' : '0'
   }
 

@@ -860,6 +860,67 @@ describe('terminal links in Chromium', () => {
 })
 
 describe('terminal scrollbar in Chromium', () => {
+  it('defers hidden thumb writes while keeping ARIA current and restores the latest geometry', () => {
+    const root = appendRoot(48, 200)
+    const clock = new FakeScrollbarClock()
+    const controller = createTerminalScrollbar({
+      actions: scrollbarActions().controller,
+      clock,
+      root,
+      snapshot: scrollbar(20, 100, 20),
+    })
+    cleanups.push(() => controller.dispose())
+    const initialStyle = controller.thumb.getAttribute('style')
+    const observer = new MutationObserver(() => {})
+    observer.observe(controller.thumb, { attributes: true })
+    cleanups.push(() => observer.disconnect())
+
+    controller.update(scrollbar(40, 200, 20))
+    expect(controller.element.getAttribute('aria-valuenow')).toBe('40')
+    expect(controller.element.getAttribute('aria-valuemax')).toBe('180')
+    expect(controller.thumb.getAttribute('style')).toBe(initialStyle)
+    expect(observer.takeRecords()).toHaveLength(0)
+
+    controller.notifyActivity()
+    const track = controller.element.getBoundingClientRect()
+    const thumb = controller.thumb.getBoundingClientRect()
+    expect(thumb.height).toBeCloseTo(20, 1)
+    expect(thumb.top - track.top).toBeCloseTo(40, 1)
+    expect(observer.takeRecords().length).toBeGreaterThan(0)
+    controller.update(scrollbar(120, 200, 20))
+    expect(controller.thumb.getBoundingClientRect().top - track.top).toBeCloseTo(120, 1)
+    observer.takeRecords()
+
+    clock.flush()
+    controller.update(scrollbar(160, 200, 20))
+    root.style.height = '100px'
+    expect(observer.takeRecords()).toHaveLength(0)
+    controller.notifyActivity()
+    const resizedTrack = controller.element.getBoundingClientRect()
+    const resizedThumb = controller.thumb.getBoundingClientRect()
+    expect(resizedThumb.height).toBeCloseTo(20, 1)
+    expect(resizedThumb.top - resizedTrack.top).toBeCloseTo((160 / 180) * 80, 1)
+  })
+
+  it('restores a hidden updated thumb before deciding between paging and dragging', () => {
+    const root = appendRoot(48, 200)
+    const actions = scrollbarActions()
+    const controller = createTerminalScrollbar({
+      actions: actions.controller,
+      clock: new FakeScrollbarClock(),
+      root,
+      snapshot: scrollbar(20, 200, 20),
+    })
+    cleanups.push(() => controller.dispose())
+    const captured = installPointerCapture(controller.element)
+    controller.update(scrollbar(80, 100, 20))
+    const bounds = controller.element.getBoundingClientRect()
+    dispatchPointer(controller.element, 'pointerdown', bounds.left + 2, bounds.bottom - 30)
+    expect(captured.has(7)).toBe(true)
+    expect(actions.calls).toEqual([])
+    expect(controller.visible).toBe(true)
+  })
+
   it('renders changed snapshots and width without reading client geometry', () => {
     const root = appendRoot(48, 200)
     const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
@@ -993,11 +1054,15 @@ describe('terminal scrollbar in Chromium', () => {
   )
 
   it('keeps actual terminal geometry aligned through font, grid and parent-height changes', async () => {
-    const { host, terminal } = await createObservedRendererHarness({}, 'webgl2')
+    const { host, terminal } = await createObservedRendererHarness(
+      { scrollbar: { clock: new FakeScrollbarClock() } },
+      'webgl2',
+    )
     terminal.write(Array.from({ length: 100 }, (_, index) => `row ${index}\r\n`).join(''))
     await settleTerminal(terminal)
     const element = host.querySelector<HTMLDivElement>('[role="scrollbar"]')!
     const thumb = element.firstElementChild as HTMLDivElement
+    element.focus()
     for (const size of [14, 20, 12]) {
       terminal.setFont({ size })
       await animationFrames()
