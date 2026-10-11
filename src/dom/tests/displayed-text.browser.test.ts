@@ -242,7 +242,7 @@ describe('main-thread displayed-text demand', () => {
     expect(errors).toEqual([])
   })
 
-  it('enables accessibility through a text subscription and releases demand when disabled', async () => {
+  it('hydrates accessibility immediately and coalesces later text extraction until disabled', async () => {
     const count = extractionCount()
     const { terminal, clock, host, errors } = await fixture()
     terminal.write('current displayed text')
@@ -252,7 +252,9 @@ describe('main-thread displayed-text demand', () => {
     expect(host.querySelector('[role="list"]')?.textContent).toContain('current displayed text')
     terminal.write('\rnext displayed text')
     clock.flush()
-    expect(host.querySelector('[role="list"]')?.textContent).toContain('next displayed text')
+    await expect
+      .poll(() => host.querySelector('[role="list"]')?.textContent)
+      .toContain('next displayed text')
     expect(terminal.setAccessibilityEnabled(false)).toBe(true)
     expect(host.querySelector('[role="list"]')).toBeNull()
     const disabled = count()

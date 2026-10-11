@@ -324,7 +324,6 @@ describe('review text publication reentrancy and device recovery', () => {
       current: number | undefined
       eventRows: number
       displayedRows: number
-      mirrorRows: number
     }[] = []
     terminal.onText(() => {
       if (!once) return
@@ -340,18 +339,25 @@ describe('review text publication reentrancy and device recovery', () => {
         current: terminal.submittedFrame?.frame,
         eventRows: text.rows.length,
         displayedRows: terminal.visibleLines().length,
-        mirrorRows: host.querySelectorAll('[role="list"] [role="listitem"]').length,
       })
     })
     terminal.write('\x1b[Hchanged')
     clock.flush()
     clock.flush()
-    const text = Array.from(host.querySelectorAll('[role="list"] [role="listitem"]'), (row) =>
-      row.textContent?.trimEnd(),
-    )
     expect(errors).toEqual([])
-    expect(text).toEqual(terminal.visibleLines().map((row) => row.trimEnd()))
     expect(seen).toEqual(seen.toSorted((a, b) => a - b))
-    expect(observed.every((row) => row.eventRows === row.mirrorRows)).toBe(true)
+    expect(observed.at(-1)).toEqual({
+      event: terminal.submittedFrame!.frame,
+      current: terminal.submittedFrame!.frame,
+      eventRows: 5,
+      displayedRows: 5,
+    })
+    await expect
+      .poll(() =>
+        Array.from(host.querySelectorAll('[role="list"] [role="listitem"]'), (row) =>
+          row.textContent?.trimEnd(),
+        ),
+      )
+      .toEqual(terminal.visibleLines().map((row) => row.trimEnd()))
   })
 })

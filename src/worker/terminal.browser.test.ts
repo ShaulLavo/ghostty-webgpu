@@ -1558,6 +1558,11 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s review atomic host', (mo
     expect(mirror).toBeInstanceOf(HTMLElement)
     expect(live).toBeInstanceOf(HTMLElement)
     await eventually(() => mirror.children.length > 0)
+    // Establish the opening resize boundary before testing independent output intervals.
+    const initial = await terminal.geometry()
+    await eventually(() => (terminal.submittedFrame?.nativeRevision ?? -1) >= initial.revision)
+    terminal.textarea!.focus()
+    expect(live.textContent).toBe('')
     await terminal.write('ordinary ')
     await eventually(() => live.textContent === 'ordinary')
     expect(live.children).toHaveLength(1)
@@ -1720,7 +1725,7 @@ describe.each(['webgl', 'webgpu'] as const)('%s ordered output accessibility', (
       { operation, following: true, label: 'queued outputs' },
     ]),
   )(
-    '$operation retains output intent across a pre-output refresh submission for $label',
+    '$operation retains displayed output across a pre-output refresh submission for $label',
     async ({ operation, following }) => {
       const terminal = await WorkerTerminal.create({
         accessibility: {},
@@ -1762,17 +1767,20 @@ describe.each(['webgl', 'webgpu'] as const)('%s ordered output accessibility', (
         text: '',
         live: '',
       })
-      expect(live.textContent, JSON.stringify({ native, geometry, frames })).toBe(expected)
-      expect(live.children).toHaveLength(following ? 2 : 1)
-      expect(live.children[0]?.textContent).toBe('ordered output')
-      if (following) expect(live.children[1]?.textContent).toBe(' tail')
+      const combined = operation === 'writeln' && following ? 'ordered output\n tail' : expected
+      const announcements = following
+        ? [[combined], ['ordered output', ' tail']]
+        : [['ordered output']]
+      expect(announcements, JSON.stringify({ native, geometry, frames })).toContainEqual(
+        Array.from(live.children, (entry) => entry.textContent),
+      )
     },
   )
 })
 
 describe.each(['webgl', 'webgpu'] as const)('%s producer output accessibility', (backend) => {
   it.each(['mixed', 'fenced', 'unfenced'] as const)(
-    'announces %s producer output once per submitted advance',
+    'announces %s producer output once across coalesced displayed advances',
     async (ordering) => {
       const terminal = await WorkerTerminal.create({
         accessibility: {},
@@ -1831,28 +1839,25 @@ describe.each(['webgl', 'webgpu'] as const)('%s producer output accessibility', 
         const native = await terminal.readLines(0, 1)
         expect(native[0]?.text).toContain(expected)
         expect(live.textContent, JSON.stringify({ ordering, native, frames })).toBe(expected)
-        expect(live.children).toHaveLength(ordering === 'mixed' ? 2 : 1)
-        expect(live.children[0]?.textContent).toBe('producer')
-        if (ordering === 'mixed') {
-          expect(live.children[1]?.textContent).toBe(' tail')
-          expect(frames).toContainEqual({
-            frame: expect.any(Number),
-            text: 'producer',
-            live: 'producer',
-          })
-        }
+        const initialAnnouncements = Array.from(live.children, (entry) => entry.textContent)
+        const announcements =
+          ordering === 'mixed' ? [[expected], ['producer', ' tail']] : [['producer']]
+        expect(announcements).toContainEqual(initialAnnouncements)
+        expect(frames.map(({ frame }) => frame)).toContain(terminal.submittedFrame!.frame)
         const before = terminal.submittedFrame!.frame
         const refresh = terminal.refresh(0, terminal.submittedFrame!.grid.rows - 1)
         await Promise.all([refresh, terminal.fenceOutput(1)])
         await eventually(() => terminal.submittedFrame!.frame > before)
         expect(live.textContent, JSON.stringify(frames)).toBe(expected)
-        expect(live.children).toHaveLength(ordering === 'mixed' ? 2 : 1)
+        expect(Array.from(live.children, (entry) => entry.textContent)).toEqual(
+          initialAnnouncements,
+        )
         const next = new TextEncoder().encode(' next')
         channel.port1.postMessage({ ...identity, type: 'output', sequence: 2, data: next }, [
           next.buffer,
         ])
         await eventually(() => mirror.textContent === `${expected} next`)
-        expect(live.children).toHaveLength(ordering === 'mixed' ? 3 : 2)
+        expect(live.children).toHaveLength(initialAnnouncements.length + 1)
         expect(live.lastElementChild?.textContent).toBe(' next')
         if (ordering === 'mixed')
           await page.screenshot({

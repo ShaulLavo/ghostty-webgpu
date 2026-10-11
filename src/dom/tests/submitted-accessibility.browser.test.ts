@@ -5,13 +5,14 @@ import {
   type DisplayedTextFrame,
 } from '../../render/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { page } from 'vitest/browser'
+import { cdp, page, server } from 'vitest/browser'
 import { Terminal as MainTerminal } from '../../../dist/index.js'
 import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
 import type { TerminalApi } from '../../../dist/dom/terminal-api.js'
 import { WebGlTerminalRenderer } from '../../../dist/render/webgl/renderer.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { CanvasTerminalRenderer } from '../../render/canvas/renderer.js'
+import { WebGlTerminalRenderer as SourceWebGlRenderer } from '../../render/webgl/renderer.js'
 import type { RendererTextFrameSnapshot } from '../../render/renderer.js'
 import type { RenderSchedulerClock } from '../../render/scheduler.js'
 import { TerminalSession } from '../../term/session.js'
@@ -65,7 +66,7 @@ afterAll(() => {
   runtime.dispose()
 })
 
-async function fixture() {
+async function fixture(publicText = true, gpu = false, settleAccessibility = true) {
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:180px;position:relative'
   document.body.append(host)
@@ -88,34 +89,36 @@ async function fixture() {
   elements.textarea.setAttribute('aria-controls', 'existing-screen')
   elements.textarea.setAttribute('aria-describedby', 'existing-description')
   const clock = new DeferredFrameClock()
-  let renderer: CanvasTerminalRenderer | undefined
+  let renderer: CanvasTerminalRenderer | SourceWebGlRenderer | undefined
   const snapshots: RendererTextFrameSnapshot[] = []
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     accessibility: {},
     autoFit: false,
     elements,
     rendererFactory: async (options) => {
-      renderer = await CanvasTerminalRenderer.create({
+      const rendererOptions = {
         ...options,
         schedulerClock: clock,
-        ...{
-          [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => {
-            displayedFrameListener(options)?.(snapshot)
-            snapshots.push(snapshot)
-          },
+        [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => {
+          displayedFrameListener(options)?.(snapshot)
+          snapshots.push(snapshot)
         },
-      })
+      }
+      renderer = gpu
+        ? await SourceWebGlRenderer.create(rendererOptions)
+        : await CanvasTerminalRenderer.create(rendererOptions)
       return renderer
     },
   })
   cleanups.push(() => terminal.dispose())
   const errors: unknown[] = []
   terminal.on('error', (error) => errors.push(error))
-  observeText(terminal)
+  if (publicText) observeText(terminal)
   await terminal.open(host)
   clock.flush()
   expect(renderer).toBeDefined()
-  expect(publishedFrame(terminal)).toBeDefined()
+  if (publicText) expect(publishedFrame(terminal)).toBeDefined()
+  if (settleAccessibility) await expect.poll(() => controller(terminal).rowElements.length).toBe(3)
   return { clock, elements, errors, host, renderer: renderer!, session, snapshots, terminal }
 }
 
@@ -143,7 +146,35 @@ function submittedSnapshot(terminal: object): RendererTextFrameSnapshot {
   return value!
 }
 
-function expectDisplayed(
+async function expectDisplayed(
+  harness: { readonly terminal: Pick<TerminalApi, 'textarea'> },
+  summary: TerminalSubmittedSnapshot,
+): Promise<void> {
+  const accessibility = controller(harness.terminal)
+  const viewport = summary.cursor.viewport
+  const column = viewport?.wideTail ? Math.max(0, viewport.x - 1) : viewport?.x
+  const cursorText =
+    viewport && summary.cursor.visible
+      ? `Cursor at row ${summary.scrollbar.offset + viewport.y + 1}, column ${column! + 1}`
+      : 'Cursor location unavailable'
+  await expect
+    .poll(
+      () => ({
+        text: accessibility.rowElements.map((row) => row.textContent),
+        positions: accessibility.rowElements.map((row) => row.getAttribute('aria-posinset')),
+        cursor: accessibility.cursorStatus.textContent,
+      }),
+      { timeout: 1_000 },
+    )
+    .toEqual({
+      text: summary.rows.map((row) => row.text.trimEnd()),
+      positions: summary.rows.map((row) => String(summary.scrollbar.offset + row.y + 1)),
+      cursor: cursorText,
+    })
+  assertDisplayed(harness, summary)
+}
+
+function assertDisplayed(
   harness: { readonly terminal: Pick<TerminalApi, 'textarea'> },
   summary: TerminalSubmittedSnapshot,
 ): void {
@@ -188,8 +219,482 @@ function expectDisplayed(
   )
 }
 
+interface AccessibleNode {
+  readonly nodeId: string
+  readonly ignored: boolean
+  readonly role?: { readonly value: string }
+  readonly name?: { readonly value: string }
+  readonly childIds?: readonly string[]
+  readonly properties?: readonly {
+    readonly name: string
+    readonly value: { readonly value: unknown }
+  }[]
+}
+
+interface BrowserFrameTree {
+  readonly frame: { readonly id: string; readonly url: string }
+  readonly childFrames?: readonly BrowserFrameTree[]
+}
+
+function browserFrames(tree: BrowserFrameTree): BrowserFrameTree['frame'][] {
+  return [tree.frame].concat((tree.childFrames ?? []).flatMap(browserFrames))
+}
+
+function accessibleText(nodes: readonly AccessibleNode[], node: AccessibleNode): string[] {
+  if (node.ignored) return []
+  if (node.role?.value === 'StaticText') return [node.name?.value ?? '']
+  return (node.childIds ?? []).flatMap((id) => {
+    const child = nodes.find((candidate) => candidate.nodeId === id)
+    return child ? accessibleText(nodes, child) : []
+  })
+}
+
+function screenText(nodes: readonly AccessibleNode[]): string[] {
+  const screen = nodes.find(
+    (node) =>
+      !node.ignored && node.role?.value === 'list' && node.name?.value === 'Terminal screen',
+  )
+  return screen ? accessibleText(nodes, screen) : []
+}
+
+function liveText(nodes: readonly AccessibleNode[]): string[] {
+  const live = nodes.find(
+    (node) =>
+      !node.ignored &&
+      node.properties?.some(
+        (property) => property.name === 'live' && property.value.value === 'polite',
+      ),
+  )
+  return live ? accessibleText(nodes, live) : []
+}
+
 describe('accessibility from real submitted native frames', () => {
-  it('retains one displayed subject through pending output and font layout, then announces the new submission', async () => {
+  it('keeps scrolled rows and fresh announcements in the Chrome accessibility tree', async ({
+    skip,
+  }) => {
+    if (server.browser !== 'chromium') skip('Chrome accessibility-tree verification uses CDP')
+    const { terminal, clock, elements, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    const session = cdp()
+    const { frameTree } = (await session.send('Page.getFrameTree')) as {
+      frameTree: BrowserFrameTree
+    }
+    const frame = browserFrames(frameTree).find((candidate) => candidate.url === location.href)
+    expect(frame).toBeDefined()
+    const tree = async (): Promise<readonly AccessibleNode[]> => {
+      const { nodes } = (await session.send('Accessibility.getFullAXTree', {
+        frameId: frame!.id,
+      })) as { nodes: AccessibleNode[] }
+      return nodes
+    }
+    const control = document.createElement('p')
+    control.textContent = 'Known readable AX control'
+    elements.root.append(control)
+    cleanups.push(() => control.remove())
+    await expect
+      .poll(async () =>
+        (await tree()).some(
+          (node) =>
+            !node.ignored &&
+            node.role?.value === 'StaticText' &&
+            node.name?.value === control.textContent,
+        ),
+      )
+      .toBe(true)
+
+    terminal.write('alpha\r\nbeta\r\ngamma\r\ndelta\r\nepsilon\r\nzeta')
+    clock.flush()
+    await expect.poll(async () => screenText(await tree())).toEqual(['delta', 'epsilon', 'zeta'])
+    expect(accessibility.mirror.isConnected).toBe(true)
+
+    terminal.scrollToTop()
+    clock.flush()
+    await expect.poll(async () => screenText(await tree())).toEqual(['alpha', 'beta', 'gamma'])
+    terminal.scrollToBottom()
+    clock.flush()
+    await expect.poll(async () => screenText(await tree())).toEqual(['delta', 'epsilon', 'zeta'])
+    accessibility.liveRegion.replaceChildren()
+    terminal.write('\r\nnew 界😀')
+    clock.flush()
+    await expect.poll(async () => screenText(await tree())).toEqual(['epsilon', 'zeta', 'new 界😀'])
+    await expect.poll(async () => liveText(await tree())).toContain('new 界😀')
+    expect(accessibility.liveRegion.isConnected).toBe(true)
+    expect(errors).toEqual([])
+  })
+
+  it('hydrates an initial empty display immediately and announces subsequent startup output', async () => {
+    const { terminal, clock, errors } = await fixture(false, true, false)
+    const accessibility = controller(terminal)
+    expect(accessibility.rowElements).toHaveLength(3)
+    terminal.write('startup 界😀')
+    clock.flush()
+    await expect.poll(() => accessibility.liveRegion.textContent).toBe('startup 界😀')
+    expect(errors).toEqual([])
+  })
+
+  it('coalesces paints, keeps native text lazy and announces the latest Unicode output', async () => {
+    const harness = await fixture(false, true)
+    const { terminal, clock } = harness
+    const accessibility = controller(terminal)
+    const update = vi.spyOn(accessibility, 'update')
+    const extraction = vi.spyOn(runtime.bridge, 'readRetainedText')
+    const timers = vi.spyOn(window, 'setTimeout')
+    cleanups.push(() => {
+      update.mockRestore()
+      extraction.mockRestore()
+      timers.mockRestore()
+    })
+    terminal.write('first')
+    clock.flush()
+    terminal.write(' 界😀')
+    clock.flush()
+    terminal.write(' latest')
+    clock.flush()
+    expect(update).not.toHaveBeenCalled()
+    expect(extraction).not.toHaveBeenCalled()
+    expect(timers.mock.calls.filter(([, delay]) => delay === 100)).toHaveLength(1)
+    expect(accessibility.rowElements[0]?.textContent).toBe('')
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('first 界😀 latest')
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(extraction).toHaveBeenCalled()
+    expect(accessibility.liveRegion.textContent).toBe('first 界😀 latest')
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(harness.errors).toEqual([])
+  })
+
+  it('publishes every public text frame while the accessible mirror coalesces them', async () => {
+    const harness = await fixture()
+    const { terminal, clock } = harness
+    const frames: number[] = []
+    const subscription = terminal.onText((text) => frames.push(text.frame))
+    cleanups.push(() => subscription.dispose())
+    terminal.write('one')
+    clock.flush()
+    terminal.write(' two')
+    clock.flush()
+    terminal.write(' three')
+    clock.flush()
+    expect(frames).toHaveLength(3)
+    expect(new Set(frames).size).toBe(3)
+    expect(controller(terminal).rowElements[0]?.textContent).toBe('')
+    await expectDisplayed(harness, publishedFrame(terminal)!)
+    expect(controller(terminal).liveRegion.textContent).toBe('one two three')
+  })
+
+  it('preserves output waiting for its next paint when focus replays the displayed frame', async () => {
+    const harness = await fixture()
+    const { terminal, clock, elements } = harness
+    terminal.write('displayed')
+    clock.flush()
+    await expectDisplayed(harness, publishedFrame(terminal)!)
+    const accessibility = controller(terminal)
+    accessibility.liveRegion.replaceChildren()
+    terminal.write('!')
+    elements.textarea.focus()
+    expect(accessibility.liveRegion.textContent).toBe('')
+    expect(accessibility.rowElements[0]?.textContent).toBe('displayed')
+    clock.flush()
+    await expectDisplayed(harness, publishedFrame(terminal)!)
+    expect(accessibility.liveRegion.textContent).toBe('!')
+  })
+
+  it('announces an unpainted write after focus refreshes newer displayed output', async () => {
+    const { terminal, clock, elements, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('A')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('A')
+    accessibility.liveRegion.replaceChildren()
+    terminal.write('B')
+    clock.flush()
+    terminal.write('C')
+    elements.textarea.focus()
+    expect(accessibility.rowElements[0]?.textContent).toBe('AB')
+    expect(accessibility.liveRegion.textContent).toBe('B')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('ABC')
+    expect(accessibility.liveRegion.textContent).toBe('BC')
+    expect(errors).toEqual([])
+  })
+
+  it('announces output received before a return from history settles', async () => {
+    const { terminal, clock, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('alpha\r\nbeta\r\ngamma\r\ndelta\r\nepsilon\r\nzeta')
+    clock.flush()
+    await expect
+      .poll(() => accessibility.rowElements.map((row) => row.textContent))
+      .toEqual(['delta', 'epsilon', 'zeta'])
+    terminal.scrollToTop()
+    clock.flush()
+    await expect
+      .poll(() => accessibility.rowElements.map((row) => row.textContent))
+      .toEqual(['alpha', 'beta', 'gamma'])
+    accessibility.liveRegion.replaceChildren()
+    terminal.scrollToBottom()
+    clock.flush()
+    terminal.write('!')
+    clock.flush()
+    await expect
+      .poll(() => accessibility.rowElements.map((row) => row.textContent))
+      .toEqual(['delta', 'epsilon', 'zeta!'])
+    expect(accessibility.liveRegion.textContent).toBe('!')
+    expect(errors).toEqual([])
+  })
+
+  it('silences output in a wrapping resize interval and keeps the mirror current', async () => {
+    const { terminal, clock, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('abcdefghijklmno')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('abcdefghijklmno')
+    accessibility.liveRegion.replaceChildren()
+    terminal.write('!')
+    clock.flush()
+    terminal.setAppearance({ grid: { columns: 10, rows: 3 } })
+    clock.flush()
+    await expect
+      .poll(() => accessibility.rowElements.map((row) => row.textContent))
+      .toEqual(['abcdefghij', 'klmno!', ''])
+    expect(accessibility.liveRegion.textContent).toBe('')
+    expect(errors).toEqual([])
+  })
+
+  it.each([
+    { text: 'hello world', columns: 20, rows: 3, widened: 6, expected: ['hello', 'world', ''] },
+    { text: 'abcabc', columns: 3, rows: 1, widened: 6, expected: ['abcabc'] },
+  ])(
+    'silences a resize-only interval for $text',
+    async ({ text, columns, rows, widened, expected }) => {
+      const { terminal, clock, errors } = await fixture(false, true)
+      const accessibility = controller(terminal)
+      terminal.setAppearance({ grid: { columns, rows } })
+      clock.flush()
+      await expect.poll(() => Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+      terminal.write(text)
+      clock.flush()
+      await expect.poll(() => accessibility.liveRegion.textContent).not.toBe('')
+      accessibility.liveRegion.replaceChildren()
+      terminal.setAppearance({ grid: { columns: widened, rows } })
+      clock.flush()
+      await expect
+        .poll(() => accessibility.rowElements.map((row) => row.textContent))
+        .toEqual(expected)
+      expect(accessibility.liveRegion.textContent).toBe('')
+      expect(errors).toEqual([])
+    },
+  )
+
+  it.each([
+    { initial: 'old', output: '\rnewold', expected: ['newold', '', ''] },
+    { initial: 'base', output: '\r\none\r\ntwo', expected: ['base', 'one', 'two'] },
+  ])(
+    'silences output $output in a resize interval and keeps the mirror current',
+    async ({ initial, output, expected }) => {
+      const { terminal, clock, errors } = await fixture(false, true)
+      const accessibility = controller(terminal)
+      terminal.write(initial)
+      clock.flush()
+      await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe(initial)
+      accessibility.liveRegion.replaceChildren()
+      terminal.write(output)
+      clock.flush()
+      terminal.setAppearance({ grid: { columns: 10, rows: 3 } })
+      clock.flush()
+      await expect
+        .poll(() => accessibility.rowElements.map((row) => row.textContent))
+        .toEqual(expected)
+      expect(accessibility.liveRegion.textContent).toBe('')
+      terminal.write('!')
+      clock.flush()
+      await expect.poll(() => accessibility.liveRegion.textContent).toBe('!')
+      expect(errors).toEqual([])
+    },
+  )
+
+  it.each(['before output', 'after output'] as const)(
+    'silences a row-only resize interval %s',
+    async (ordering) => {
+      const { terminal, clock, errors } = await fixture(false, true)
+      const accessibility = controller(terminal)
+      terminal.write('base')
+      clock.flush()
+      await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('base')
+      accessibility.liveRegion.replaceChildren()
+      if (ordering === 'before output') {
+        terminal.setAppearance({ grid: { columns: 20, rows: 4 } })
+        clock.flush()
+      }
+      terminal.write('!')
+      clock.flush()
+      if (ordering === 'after output') {
+        terminal.setAppearance({ grid: { columns: 20, rows: 4 } })
+        clock.flush()
+      }
+      await expect
+        .poll(() => accessibility.rowElements.map((row) => row.textContent))
+        .toEqual(['base!', '', '', ''])
+      expect(accessibility.liveRegion.textContent).toBe('')
+      expect(errors).toEqual([])
+    },
+  )
+
+  it('silences a resize round trip through focus and resumes the next interval', async () => {
+    const { terminal, clock, elements, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('base')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('base')
+    accessibility.liveRegion.replaceChildren()
+    terminal.write('!')
+    terminal.setAppearance({ grid: { columns: 10, rows: 3 } })
+    terminal.setAppearance({ grid: { columns: 20, rows: 3 } })
+    expect(terminal.submittedFrame!.grid.columns).toBe(20)
+    elements.textarea.focus()
+    expect(accessibility.rowElements[0]?.textContent).toBe('base!')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('base!')
+    expect(accessibility.liveRegion.textContent).toBe('')
+    terminal.write(' next')
+    clock.flush()
+    await expect.poll(() => accessibility.liveRegion.textContent).toBe(' next')
+    expect(errors).toEqual([])
+  })
+
+  it('keeps a hidden resize interval silent through visibility refresh and resumes ordinary output', async () => {
+    const { terminal, clock, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('base')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('base')
+    accessibility.liveRegion.replaceChildren()
+    const setVisible = Reflect.get(terminal, 'setDocumentVisible') as (visible: boolean) => void
+    setVisible.call(terminal, false)
+    terminal.write('!')
+    terminal.setAppearance({ grid: { columns: 10, rows: 3 } })
+    clock.flush()
+    setVisible.call(terminal, true)
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('base!')
+    expect(accessibility.liveRegion.textContent).toBe('')
+    terminal.write(' next')
+    clock.flush()
+    await expect.poll(() => accessibility.liveRegion.textContent).toBe(' next')
+    expect(errors).toEqual([])
+  })
+
+  it('announces exactly the new multiline text in an ordinary output interval', async () => {
+    const { terminal, clock, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('base')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('base')
+    accessibility.liveRegion.replaceChildren()
+    terminal.write('\r\none\r\ntwo')
+    clock.flush()
+    await expect
+      .poll(() => accessibility.rowElements.map((row) => row.textContent))
+      .toEqual(['base', 'one', 'two'])
+    expect(Array.from(accessibility.liveRegion.children, (entry) => entry.textContent)).toEqual([
+      'one\ntwo',
+    ])
+    expect(errors).toEqual([])
+  })
+
+  it('suspends a queued accessibility refresh until the document becomes visible', async () => {
+    const { terminal, clock, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    const update = vi.spyOn(accessibility, 'update')
+    const visibility = vi.spyOn(document, 'visibilityState', 'get')
+    cleanups.push(() => {
+      visibility.mockRestore()
+      document.dispatchEvent(new Event('visibilitychange'))
+      update.mockRestore()
+    })
+    terminal.write('queued')
+    clock.flush()
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeDefined()
+    visibility.mockReturnValue('hidden')
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 150))
+    expect(update).not.toHaveBeenCalled()
+    terminal.write(' hidden')
+    clock.flush()
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    visibility.mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    clock.flush()
+    await expect.poll(() => accessibility.liveRegion.textContent).toBe('queued hidden')
+    expect(accessibility.rowElements[0]?.textContent).toBe('queued hidden')
+    expect(errors).toEqual([])
+  })
+
+  it('leaves focused cursor-blink paints free of accessibility timers after settlement', async () => {
+    const { terminal, clock, elements, errors } = await fixture(false, true)
+    const accessibility = controller(terminal)
+    terminal.write('idle')
+    clock.flush()
+    await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('idle')
+    terminal.setAppearance({ cursor: { blink: true } })
+    elements.textarea.focus()
+    clock.flush()
+    await expect.poll(() => Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    const settled = terminal.submittedFrame!
+    const update = vi.spyOn(accessibility, 'update')
+    const timers = vi.spyOn(window, 'setTimeout')
+    cleanups.push(() => {
+      update.mockRestore()
+      timers.mockRestore()
+    })
+    for (let index = 0; index < 3; index += 1) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 550))
+      clock.flush()
+    }
+    expect(terminal.submittedFrame!.frame).toBeGreaterThan(settled.frame)
+    expect(terminal.submittedFrame!.nativeRevision).toBe(settled.nativeRevision)
+    expect(terminal.submittedFrame!.cursor).toEqual(settled.cursor)
+    expect(update).not.toHaveBeenCalled()
+    expect(timers.mock.calls.filter(([, delay]) => delay === 100)).toHaveLength(0)
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(errors).toEqual([])
+  })
+
+  it('refreshes immediately on focus and cancels queued refreshes on disable and disposal', async () => {
+    const harness = await fixture()
+    const { terminal, clock, elements } = harness
+    const initial = controller(terminal)
+    const update = vi.spyOn(initial, 'update')
+    cleanups.push(() => update.mockRestore())
+    terminal.write('focus text')
+    clock.flush()
+    expect(update).not.toHaveBeenCalled()
+    elements.textarea.focus()
+    assertDisplayed(harness, publishedFrame(terminal)!)
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    terminal.write(' disabled')
+    clock.flush()
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeDefined()
+    terminal.setAccessibilityEnabled(false)
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    terminal.setAccessibilityEnabled(true)
+    assertDisplayed(harness, publishedFrame(terminal)!)
+    const replacement = controller(terminal)
+    const nextUpdate = vi.spyOn(replacement, 'update')
+    cleanups.push(() => nextUpdate.mockRestore())
+    terminal.write(' disposed')
+    clock.flush()
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeDefined()
+    terminal.dispose()
+    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 150))
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(nextUpdate).not.toHaveBeenCalled()
+    expect(harness.errors).toEqual([])
+  })
+
+  it('retains one displayed subject through pending output and silences the font layout interval', async () => {
     const harness = await fixture()
     const { clock, terminal } = harness
     const accessibility = controller(terminal)
@@ -197,7 +702,7 @@ describe('accessibility from real submitted native frames', () => {
     clock.flush()
     const displayed = publishedFrame(terminal)!
     const rowIds = accessibility.rowElements.map((row) => row.id)
-    expectDisplayed(harness, displayed)
+    await expectDisplayed(harness, displayed)
     expect(accessibility.liveRegion.textContent).toBe('displayed')
     accessibility.liveRegion.replaceChildren()
 
@@ -205,7 +710,9 @@ describe('accessibility from real submitted native frames', () => {
     harness.session.renderState.update()
     terminal.setFont({ size: 20 })
     expect(publishedFrame(terminal)).toBe(displayed)
-    expectDisplayed(harness, displayed)
+    harness.elements.textarea.focus()
+    expect(terminal.submittedFrame!.nativeRevision).toBe(displayed.nativeRevision)
+    await expectDisplayed(harness, displayed)
     expect(accessibility.liveRegion.textContent).toBe('')
     clock.flush()
 
@@ -216,9 +723,12 @@ describe('accessibility from real submitted native frames', () => {
     expect(next.padding).toEqual({ bottom: 4, left: 5, right: 6, top: 3 })
     expect(next.rows[0]?.text.trimEnd()).toBe('displayed!')
     expect(displayed.rows[0]?.text.trimEnd()).toBe('displayed')
-    expectDisplayed(harness, next)
+    await expectDisplayed(harness, next)
     expect(accessibility.rowElements.map((row) => row.id)).toEqual(rowIds)
-    expect(accessibility.liveRegion.textContent).toBe('!')
+    expect(accessibility.liveRegion.textContent).toBe('')
+    terminal.write(' next')
+    clock.flush()
+    await expect.poll(() => accessibility.liveRegion.textContent).toBe(' next')
     expect(harness.errors).toEqual([])
     await page.screenshot({
       element: harness.elements.root,
@@ -235,19 +745,19 @@ describe('accessibility from real submitted native frames', () => {
     const bottom = publishedFrame(terminal)!
     expect(bottom.scrollbar.offset).toBeGreaterThan(0)
     expect(bottom.rows.map((row) => row.text.trimEnd())).toEqual(['delta', 'epsilon', 'zeta'])
-    expectDisplayed(harness, bottom)
+    await expectDisplayed(harness, bottom)
     const liveRegion = controller(terminal).liveRegion
     liveRegion.replaceChildren()
 
     expect(terminal.scrollToTop() instanceof Promise).toBe(false)
     expect(session.scrollbar.offset).toBe(0)
     expect(publishedFrame(terminal)).toBe(bottom)
-    expectDisplayed(harness, bottom)
+    await expectDisplayed(harness, bottom)
     clock.flush()
     const top = publishedFrame(terminal)!
     expect(top.scrollbar.offset).toBe(0)
     expect(top.rows.map((row) => row.text.trimEnd())).toEqual(['alpha', 'beta', 'gamma'])
-    expectDisplayed(harness, top)
+    await expectDisplayed(harness, top)
     expect(liveRegion.textContent).toBe('')
     expect(terminal.readLines(0, 1)[0]?.text.trimEnd()).toBe('alpha')
 
@@ -258,7 +768,7 @@ describe('accessibility from real submitted native frames', () => {
     terminal.setAppearance({ grid: { columns: 24, rows: 4 } })
     terminal.setFont({ size: 18 })
     expect(publishedFrame(terminal)).toBe(beforeResize)
-    expectDisplayed(harness, beforeResize)
+    await expectDisplayed(harness, beforeResize)
     renderer.setDocumentVisible(true)
     clock.flush()
     const resized = publishedFrame(terminal)!
@@ -266,7 +776,7 @@ describe('accessibility from real submitted native frames', () => {
     expect(resized.grid).toMatchObject({ columns: 24, rows: 4 })
     expect(resized.font.settings.size).toBe(18)
     expect(resized.rows).toHaveLength(4)
-    expectDisplayed(harness, resized)
+    await expectDisplayed(harness, resized)
     expect(liveRegion.textContent).toBe('')
     expect(harness.errors).toEqual([])
   })
@@ -279,17 +789,17 @@ describe('accessibility from real submitted native frames', () => {
     const wide = publishedFrame(terminal)!
     expect(wide.rows[0]?.text.trimEnd()).toBe('AB界Z')
     expect(wide.cursor.viewport).toEqual({ x: 3, y: 0, wideTail: true })
-    expectDisplayed(harness, wide)
+    await expectDisplayed(harness, wide)
     expect(controller(terminal).cursorStatus.textContent).toBe('Cursor at row 1, column 3')
 
     terminal.write(`${escape}[?25l`)
     clock.flush()
     expect(publishedFrame(terminal)!.cursor.visible).toBe(false)
-    expectDisplayed(harness, publishedFrame(terminal)!)
+    await expectDisplayed(harness, publishedFrame(terminal)!)
     terminal.write(`${escape}[?25h${escape}[2;3H`)
     clock.flush()
     expect(publishedFrame(terminal)!.cursor.viewport).toMatchObject({ x: 2, y: 1 })
-    expectDisplayed(harness, publishedFrame(terminal)!)
+    await expectDisplayed(harness, publishedFrame(terminal)!)
     expect(controller(terminal).rowElements[0]?.hasAttribute('aria-current')).toBe(false)
     expect(harness.errors).toEqual([])
   })
@@ -320,7 +830,7 @@ describe('accessibility from real submitted native frames', () => {
     expect(elements.textarea.hasAttribute('aria-activedescendant')).toBe(false)
     terminal.write('!')
     terminal.setAccessibilityEnabled(true)
-    expectDisplayed(harness, oldSummary)
+    await expectDisplayed(harness, oldSummary)
     const replacement = controller(terminal)
     expect(replacement).not.toBe(old)
     const attributes = elements.textarea.outerHTML
@@ -338,7 +848,7 @@ describe('accessibility from real submitted native frames', () => {
     expect(getSelection).not.toHaveBeenCalled()
     clock.flush()
     expect(publishedFrame(terminal)!.rows[0]?.text.trimEnd()).toBe('owned rows!')
-    expectDisplayed(harness, publishedFrame(terminal)!)
+    await expectDisplayed(harness, publishedFrame(terminal)!)
 
     const snapshot = submittedSnapshot(terminal)
     const summary = publishedFrame(terminal)!
@@ -412,7 +922,7 @@ async function packagedFixture(mode: 'main' | 'webgl' | 'webgpu') {
   observeText(terminal)
   await terminal.open(host)
   await expect.poll(() => publishedFrame(terminal), { timeout: 5_000 }).toBeDefined()
-  expectDisplayed({ terminal }, publishedFrame(terminal)!)
+  await expectDisplayed({ terminal }, publishedFrame(terminal)!)
   return { terminal, host, errors }
 }
 
@@ -431,7 +941,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)(
         .poll(() => publishedFrame(terminal)?.scrollbar.offset, { timeout: 5_000 })
         .toBeGreaterThan(0)
       const bottom = publishedFrame(terminal)!
-      expectDisplayed(harness, bottom)
+      await expectDisplayed(harness, bottom)
       const live = controller(terminal).liveRegion
       const announcements = live.textContent
       const top = terminal.scrollToTop()
@@ -441,7 +951,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)(
         .poll(() => publishedFrame(terminal)?.scrollbar.offset, { timeout: 5_000 })
         .toBe(0)
       expect(publishedFrame(terminal)!.rows[0]?.text.trimEnd()).toBe('line 1')
-      expectDisplayed(harness, publishedFrame(terminal)!)
+      await expectDisplayed(harness, publishedFrame(terminal)!)
       expect(live.textContent).toBe(announcements)
       const history = terminal.readLines(0, 1)
       expect(history instanceof Promise).toBe(mode !== 'main')
@@ -460,29 +970,70 @@ describe.each(['main', 'webgl', 'webgpu'] as const)(
       expect(nextLayout.grid.rows).toBeLessThan(previousLayout.grid.rows)
       expect(nextLayout.padding).toEqual({ bottom: 4, left: 5, right: 6, top: 3 })
       expect(previousLayout.font.settings.size).toBe(16)
-      expectDisplayed(harness, nextLayout)
+      await expectDisplayed(harness, nextLayout)
       expect(live.textContent).toBe(announcements)
       await terminal.write('\r\nAB界Z\x1b[4G')
       await expect
         .poll(() => publishedFrame(terminal)?.cursor.viewport, { timeout: 5_000 })
         .toMatchObject({ x: 3, wideTail: true })
-      expectDisplayed(harness, publishedFrame(terminal)!)
+      await expectDisplayed(harness, publishedFrame(terminal)!)
       await terminal.write('\x1b[?25l')
       await expect
         .poll(() => publishedFrame(terminal)?.cursor.visible, { timeout: 5_000 })
         .toBe(false)
-      expectDisplayed(harness, publishedFrame(terminal)!)
+      await expectDisplayed(harness, publishedFrame(terminal)!)
       await terminal.write('\x1b[?25h')
       await expect
         .poll(() => publishedFrame(terminal)?.cursor.visible, { timeout: 5_000 })
         .toBe(true)
-      expectDisplayed(harness, publishedFrame(terminal)!)
+      await expectDisplayed(harness, publishedFrame(terminal)!)
       expect(harness.errors).toEqual([])
       await page.screenshot({
         element: terminal.element!,
         path: `../../../.artifacts/submitted-accessibility-packaged-${mode}.png`,
         scale: 'css',
       })
+    }, 20_000)
+
+    it('silences output through a font reflow before refresh and resumes the next interval', async () => {
+      const harness = await packagedFixture(mode)
+      const { terminal } = harness
+      await terminal.write('original')
+      await expect.poll(() => publishedFrame(terminal)?.rows[0]?.text.trimEnd()).toBe('original')
+      await expectDisplayed(harness, publishedFrame(terminal)!)
+      const accessibility = controller(terminal)
+      accessibility.liveRegion.replaceChildren()
+      const view = terminal.textarea!.ownerDocument.defaultView!
+      const originalTimeout = view.setTimeout.bind(view)
+      const timers = vi
+        .spyOn(view, 'setTimeout')
+        .mockImplementation((handler, delay, ...args) =>
+          Reflect.apply(
+            originalTimeout,
+            view,
+            [handler, delay === 100 ? 10_000 : delay].concat(args),
+          ),
+        )
+      cleanups.push(() => timers.mockRestore())
+      await terminal.write(' new')
+      await expect
+        .poll(() => publishedFrame(terminal)?.rows[0]?.text.trimEnd())
+        .toBe('original new')
+      await terminal.setFont({ size: 18 })
+      await expect.poll(() => publishedFrame(terminal)?.font.settings.size).toBe(18)
+      expect(accessibility.rowElements[0]?.textContent).toBe('original')
+      expect(accessibility.liveRegion.textContent).toBe('')
+      if (mode !== 'main') {
+        const execution = Reflect.get(terminal, 'execution') as { submittedOutput: boolean }
+        expect(execution.submittedOutput).toBe(false)
+      }
+      terminal.textarea!.focus()
+      assertDisplayed(harness, publishedFrame(terminal)!)
+      expect(accessibility.liveRegion.textContent).toBe('')
+      timers.mockRestore()
+      await terminal.write(' next')
+      await expect.poll(() => accessibility.liveRegion.textContent).toBe(' next')
+      expect(harness.errors).toEqual([])
     }, 20_000)
 
     it('hydrates synchronous controls without native queries and announces output after observer toggle reentry', async () => {
@@ -507,7 +1058,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)(
       expect(terminal.textarea!.hasAttribute('aria-activedescendant')).toBe(false)
       expect(terminal.setAccessibilityEnabled(true)).toBe(true)
       expect(terminal.setAccessibilityEnabled(true)).toBe(false)
-      expectDisplayed(harness, summary)
+      await expectDisplayed(harness, summary)
       expect(terminal.textarea!.getAttribute('aria-label')).toBe('Packaged accessible input')
       expect(terminal.visibleLines()).toEqual(summary.rows.map((row) => row.text))
       expect(requests?.mock.calls ?? []).toHaveLength(0)
@@ -529,7 +1080,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)(
         const count = requests?.mock.calls.length
         expect(terminal.setAccessibilityEnabled(false)).toBe(true)
         expect(terminal.setAccessibilityEnabled(true)).toBe(true)
-        expectDisplayed(harness, publishedFrame(terminal)!)
+        assertDisplayed(harness, publishedFrame(terminal)!)
         expect(requests?.mock.calls.length).toBe(count)
         toggled = true
       })
@@ -540,7 +1091,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)(
       await expect
         .poll(() => terminal.visibleLines()[0]?.trimEnd(), { timeout: 5_000 })
         .toBe('owned rows!')
-      expectDisplayed(harness, publishedFrame(terminal)!)
+      await expectDisplayed(harness, publishedFrame(terminal)!)
       expect(controller(terminal).liveRegion.textContent).toBe('!')
       expect(harness.errors).toEqual([])
     }, 20_000)
