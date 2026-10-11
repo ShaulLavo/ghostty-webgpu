@@ -37,7 +37,7 @@ const less = (ratio, digits = 0) => ((1 - ratio) * 100).toFixed(digits)
 const more = (ratio, digits = 0) => ((ratio - 1) * 100).toFixed(digits)
 const pick = (rows, workload) => rows.find((row) => row.workload === workload)
 const compact = (rows) =>
-  ['| WebGL vs xterm.js WebGL | CPU energy ratio | Instruction ratio |', '| --- | ---: | ---: |']
+  ['| Workload | CPU energy ratio | Instruction ratio |', '| --- | ---: | ---: |']
     .concat(
       rows.map(
         (row) =>
@@ -132,11 +132,11 @@ Every published row has an independent review that recomputed the ratios from th
 `
 const readmeUrl = new URL('../../../README.md', root)
 const oldReadme = await readFile(readmeUrl, 'utf8')
-const sectionStart = oldReadme.indexOf('## Measured wins and losses\n')
+const sectionStart = oldReadme.indexOf('## Performance\n')
 const sectionEnd = oldReadme.indexOf('\n### Correctness\n', sectionStart)
 assert(sectionStart >= 0 && sectionEnd > sectionStart, 'README benchmark section is missing')
 const section = oldReadme.slice(sectionStart, sectionEnd)
-const readmeTable = /^\| WebGL vs xterm\.js WebGL[^\n]*\n(?:\|[^\n]*\n)+/m
+const readmeTable = /^\| Workload\s*\| CPU energy ratio[^\n]*\n(?:\|[^\n]*\n)+/m
 assert(readmeTable.test(section), 'README WebGL table is missing')
 const nextReadme =
   oldReadme.slice(0, sectionStart) +

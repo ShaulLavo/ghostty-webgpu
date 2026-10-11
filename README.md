@@ -20,16 +20,11 @@
 An unofficial browser terminal powered by Ghostty's unpatched `libghostty-vt`, compiled to WebAssembly.
 It has its own API and WebGPU, WebGL2, Canvas 2D, and DOM renderers.
 
-## Measured wins and losses
+## Performance
 
-[Reviewed benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) compare like-for-like renderers.
-These results come from an Apple M1 MacBook on AC power, headed Chrome 154.0.8037.93, acquired 2026-10-09 and reviewed 2026-10-10.
-They compare ghostty-webgpu 0.3.21 with xterm.js 6.0.0 and WebGL addon 0.19.0.
-The workload uses 17 visible terminals, 40 by 12 cells, DPR 2, and 900 measured ticks at 60 Hz after 120 warm-up ticks. Each row is the median of two balanced pairs.
+WebGL compared with xterm.js WebGL. Each ratio is ghostty-webgpu divided by xterm.js; below 1 means less CPU work.
 
-Each ratio is ghostty divided by xterm.js. Below 1 means ghostty uses less estimated CPU energy or fewer instructions.
-
-| WebGL vs xterm.js WebGL   | CPU energy ratio | Instruction ratio |
+| Workload                  | CPU energy ratio | Instruction ratio |
 | ------------------------- | ---------------: | ----------------: |
 | Heavy log output          |            0.612 |             0.613 |
 | Heavy Unicode output      |            0.611 |             0.615 |
@@ -37,17 +32,41 @@ Each ratio is ghostty divided by xterm.js. Below 1 means ghostty uses less estim
 | One ASCII line per tick   |            0.955 |             0.985 |
 | Typing-like edits         |            0.911 |             0.954 |
 
-Heavy output uses about 39% less energy and fewer instructions. Scrolling and typing-like edits are lower by smaller margins. One Unicode line per tick is even: energy is 1.4% lower and instructions are 0.2% higher in both pairs, which the review records as an instruction loss.
-These whole-browser counters measure CPU work and estimated CPU energy. The review marks every row publishable with limits. Two pairs per row, retained-history limits and observer qualifications matter.
+Heavy output uses about 39% less CPU energy and fewer instructions. Scrolling and typing-like edits improve by smaller margins.
+One Unicode line per tick is roughly even, with 1.4% less energy and 0.2% more instructions in both pairs.
+
+<details>
+<summary>Benchmark setup and limits</summary>
+
+| Detail      | Setup                                                                                                                                                                                  |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Machine     | Apple M1 MacBook on AC power                                                                                                                                                           |
+| Browser     | Headed Chrome 154.0.8037.93                                                                                                                                                            |
+| Versions    | ghostty-webgpu 0.3.21, xterm.js 6.0.0, WebGL addon 0.19.0                                                                                                                              |
+| Workload    | 17 visible terminals, 40 × 12 cells, DPR 2                                                                                                                                             |
+| Sampling    | 900 measured ticks at 60 Hz after 120 warm-up ticks; each row is the median of two balanced pairs                                                                                      |
+| Dates       | Acquired 2026-10-09, reviewed 2026-10-10                                                                                                                                               |
+| Measurement | Whole-browser instruction counts and estimated CPU energy                                                                                                                              |
+| Limits      | Two pairs per row; retained-history limits and observer qualifications apply. The review marks every row publishable with limits and records the Unicode instruction result as a loss. |
+
+[Reviewed benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) compare like-for-like renderers.
 Read the [method and recompute steps](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md) before applying the results to your workload.
+
+</details>
 
 ### Correctness
 
-The [2026-10-08 correctness run](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md) checks a fixed selection of 132 esctest2 methods and 37 local cases.
-On an Intel Core i7-14700K running Arch Linux with headless Chromium 153, ghostty-webgpu 0.3.20 passed 167 and failed 2.
-xterm.js 6.0.0 passed 126 and failed 43. ghostty-web 0.4.0 passed 161 and failed 8.
-The two ghostty-webgpu failures reproduce in the pinned upstream core. They remain failures.
-Full VT conformance and general native Ghostty parity remain open. The report includes [versions and reproduction commands](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md#reproduce).
+The [2026-10-08 run](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md) checks 132 selected esctest2 methods and 37 local cases.
+
+| Terminal              | Passed | Failed |
+| --------------------- | -----: | -----: |
+| ghostty-webgpu 0.3.20 |    167 |      2 |
+| xterm.js 6.0.0        |    126 |     43 |
+| ghostty-web 0.4.0     |    161 |      8 |
+
+Tested on an Intel Core i7-14700K running Arch Linux with headless Chromium 153.
+Both ghostty-webgpu failures reproduce in the pinned upstream core. Full VT conformance and general native Ghostty parity remain open.
+See [versions and reproduction commands](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md#reproduce).
 
 ## What it gives you
 
@@ -84,26 +103,6 @@ terminal.focus()
 Call `terminal.dispose()` when you remove it.
 For a real shell, follow the [WebSocket PTY example](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/integration.md).
 For xterm.js integrations, start with the [API reference](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/api.md) and map input, output, fitting, and cleanup explicitly.
-
-## Screen reader text
-
-Pass `accessibility: {}` when creating a terminal, or call `setAccessibilityEnabled(true)`.
-The accessible row list and cursor position refresh from the latest displayed frame
-after a 100 ms delay under normal foreground scheduling. Enabling accessibility and
-focusing the input refresh that text immediately. The first displayed frame hydrates the
-readable row list immediately and establishes the live region's comparison boundary.
-Subsequent output can be announced, including a prompt after an initial empty frame.
-Settled terminals, including cursor-blink paints, have no accessibility refresh timer.
-
-The polite live region announces recent changes to visible rows at the same cadence,
-within its configured character and entry limits. Intermediate frames are coalesced.
-History navigation refreshes the row list immediately, and returning to current output
-establishes a fresh announcement boundary. A refresh interval containing a resize or font
-reflow updates readable text silently, including output received during that interval. The
-next output-only interval resumes announcements. Hidden documents suspend refreshes until
-they become visible.
-The short delay lets fast output settle into readable text while keeping interactive
-output responsive; visible rendering and public `onText` subscriptions keep their cadence.
 
 ## Planned work
 

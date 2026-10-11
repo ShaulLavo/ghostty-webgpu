@@ -114,7 +114,7 @@ test('refreshes the README WebGL table without replacing product copy', () => {
   const reportDirectory = path.join(directory, 'docs/benchmarks/mac-m1-2026-10-10')
   const source = new URL('../../docs/benchmarks/mac-m1-2026-10-10/', import.meta.url)
   const before =
-    '# Ghostty browser terminal\n\n## Measured wins and losses\n\nKeep the reviewed method and limits.\n\n'
+    '# Ghostty browser terminal\n\n## Performance\n\nKeep the reviewed method and limits.\n\n'
   const after =
     '\nKeep the workload qualifications.\n\n### Correctness\n\nKeep the correctness results.\n\n## Quick start\n\nKeep the source setup.\n'
   try {
@@ -123,7 +123,7 @@ test('refreshes the README WebGL table without replacing product copy', () => {
       copyFileSync(fileURLToPath(new URL(file, source)), path.join(reportDirectory, file))
     writeFileSync(
       path.join(directory, 'README.md'),
-      `${before}| WebGL vs xterm.js WebGL | CPU energy ratio | Instruction ratio |\n| --- | ---: | ---: |\n| Stale workload | 999 | 999 |\n${after}`,
+      `${before}| Workload | CPU energy ratio | Instruction ratio |\n| --- | ---: | ---: |\n| Stale workload | 999 | 999 |\n${after}`,
     )
     const script = path.join(reportDirectory, 'report.mjs')
     execFileSync(process.execPath, [script])
