@@ -89,6 +89,8 @@ export interface GhosttyWebGpuTerminalDiagnostics {
   readonly pointerOwner: TerminalPointerOwner
   readonly pressedButtonCount: number
   readonly rendererBackend: 'dom' | 'canvas2d' | 'webgl2' | 'webgpu' | undefined
+  /** The renderer's context reports `desynchronized`; the browser may still composite it. */
+  readonly desynchronized: boolean
   readonly scrollbarVisible: boolean
 }
 
@@ -106,6 +108,7 @@ export interface GhosttyWebGpuRenderer {
   /** Required to settle clean updates through onCleanUpdate. */
   readonly canPaint?: boolean
   readonly backend?: 'dom' | 'canvas2d' | 'webgl2' | 'webgpu'
+  readonly desynchronized?: boolean
   readonly hasPendingFrame?: boolean
   readonly hasPendingTimer?: boolean
   clearTextureAtlas?(): void
@@ -142,6 +145,8 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly padding?: TerminalElementPaddingInput
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
+  /** `immediate` paints a write before the next display frame; main-thread terminals only. */
+  readonly presentation?: WebGpuTerminalRendererOptions['presentation']
   readonly runtime?: TerminalSessionRuntime
   readonly scrollbar?: GhosttyWebGpuTerminalScrollbarOptions
 }

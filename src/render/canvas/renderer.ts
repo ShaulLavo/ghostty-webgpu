@@ -37,10 +37,14 @@ interface PaintedImage {
   readonly cursor: CursorState | undefined
 }
 
-function requireContext(canvas: HTMLCanvasElement | OffscreenCanvas): Canvas2dContext {
+function requireContext(
+  canvas: HTMLCanvasElement | OffscreenCanvas,
+  presentation: WebGpuTerminalRendererOptions['presentation'],
+): Canvas2dContext {
   // Explicit false avoids Chromium's automatic software fallback after incidental pixel reads.
   const context = canvas.getContext('2d', {
     alpha: true,
+    desynchronized: presentation === 'immediate',
     willReadFrequently: false,
   }) as Canvas2dContext | null
   if (context) return context
@@ -61,6 +65,7 @@ function cursorKey(cursor: CursorState | undefined, y: number): string {
 
 class CanvasSurface implements RowRendererSurface {
   private readonly context: Canvas2dContext
+  readonly desynchronized: boolean
   private readonly painter: CanvasRowPainter
   private readonly pixelTarget?: PixelTarget
   private image?: PaintedImage
@@ -92,7 +97,10 @@ class CanvasSurface implements RowRendererSurface {
     targetFactory?: PixelTargetFactory,
   ) {
     this.font = options.font
-    this.context = requireContext(canvas)
+    this.context = requireContext(canvas, options.presentation)
+    this.desynchronized =
+      'getContextAttributes' in this.context &&
+      this.context.getContextAttributes().desynchronized === true
     this.pixelTarget = targetFactory?.(canvas, this.context)
     this.painter = new CanvasRowPainter(
       this.pixelTarget?.context ?? this.context,
@@ -352,6 +360,10 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
   override notifySelectionChange(): void {
     this.canvasSurface.invalidate()
     super.notifySelectionChange()
+  }
+
+  override get desynchronized(): boolean {
+    return this.canvasSurface.desynchronized
   }
 
   override refreshRows(startRow: number, endRow: number): void {

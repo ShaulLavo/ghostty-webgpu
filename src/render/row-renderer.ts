@@ -94,6 +94,7 @@ export class RowTerminalRenderer {
     this.scheduler = new RenderScheduler({
       clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
+      presentation: options.presentation,
     })
     this.scheduler.schedule()
   }
@@ -124,7 +125,7 @@ export class RowTerminalRenderer {
 
   notifyWrite(): void {
     this.resetCursorBlink()
-    this.scheduler.schedule()
+    this.scheduler.scheduleWrite()
   }
 
   refreshRows(startRow: number, endRow: number): void {
@@ -136,6 +137,11 @@ export class RowTerminalRenderer {
     }
     for (let row = start; row <= end; row += 1) this.overlayRows.add(row)
     this.scheduler.schedule()
+  }
+
+  /** The context reports the low-latency `desynchronized` attribute. */
+  get desynchronized(): boolean {
+    return false
   }
 
   schedule(): void {

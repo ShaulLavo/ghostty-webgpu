@@ -35,7 +35,11 @@ import {
   type CursorState,
   type RendererTheme,
 } from './instances/types.js'
-import { RenderScheduler, type RenderSchedulerClock } from './scheduler.js'
+import {
+  RenderScheduler,
+  type RenderSchedulerClock,
+  type TerminalPresentation,
+} from './scheduler.js'
 import { textPassGlyphCapacity, WebGpuTextPass } from './text-pass.js'
 
 export interface RenderStateSource {
@@ -116,6 +120,8 @@ export interface WebGpuTerminalRendererOptions {
   /** Painted row IDs without requesting cell data. */
   onRowsChanged?: (rows: readonly number[]) => void
   onRowsPainted?: (rows: readonly RenderRow[]) => void
+  /** `immediate` prefers WebGL2 with a desynchronized canvas; WebGPU always presents per frame. */
+  presentation?: TerminalPresentation
   replaceCanvas?: () => HTMLCanvasElement | OffscreenCanvas
   renderState: GhosttyRenderState | RenderStateSource
   rendererMode?: TerminalRendererMode
@@ -286,6 +292,7 @@ export class WebGpuTerminalRenderer {
     uploadedBytes: 0,
   }
   readonly backend = 'webgpu' as const
+  readonly desynchronized = false
 
   private constructor(
     options: WebGpuTerminalRendererOptions,

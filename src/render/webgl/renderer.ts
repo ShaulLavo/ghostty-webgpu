@@ -39,11 +39,15 @@ export interface WebGlTerminalRendererOptions extends WebGpuTerminalRendererOpti
   onContextLost?: () => void
 }
 
-function requireContext(canvas: HTMLCanvasElement | OffscreenCanvas): WebGL2RenderingContext {
+function requireContext(
+  canvas: HTMLCanvasElement | OffscreenCanvas,
+  presentation: WebGpuTerminalRendererOptions['presentation'],
+): WebGL2RenderingContext {
   const context = canvas.getContext('webgl2', {
     alpha: true,
     antialias: false,
     depth: false,
+    desynchronized: presentation === 'immediate',
     premultipliedAlpha: true,
     stencil: false,
   })
@@ -66,6 +70,8 @@ function cursorEquals(left: RenderCursorSnapshot, right: RenderCursorSnapshot): 
 
 export class WebGlTerminalRenderer {
   readonly backend = 'webgl2' as const
+  /** The context reports the low-latency `desynchronized` attribute. */
+  readonly desynchronized: boolean
   readonly metrics: RendererMetrics = {
     zigFrames: 0,
     atlasCacheHits: 0,
@@ -129,9 +135,11 @@ export class WebGlTerminalRenderer {
     this.resizeCanvas()
     this.rasterizer = new CanvasGlyphRasterizer({ font })
     this.state = { kind: 'ready', pass: this.createTextPass() }
+    this.desynchronized = context.getContextAttributes()?.desynchronized === true
     this.scheduler = new RenderScheduler({
       clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
+      presentation: options.presentation,
     })
     this.canvas.addEventListener('webglcontextlost', this.handleContextLost)
     this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored)
@@ -144,7 +152,7 @@ export class WebGlTerminalRenderer {
       columns: options.columns,
       rows: options.rows,
     })
-    const context = requireContext(options.canvas)
+    const context = requireContext(options.canvas, options.presentation)
     try {
       return new WebGlTerminalRenderer(options, font, grid, context)
     } catch (cause) {
@@ -183,7 +191,11 @@ export class WebGlTerminalRenderer {
   notifyWrite(): void {
     this.scheduler.setCursorBlinkEnabled(false)
     this.synchronizeCursorBlink()
-    this.schedule()
+    if (this.state.kind === 'unavailable') {
+      this.schedule()
+      return
+    }
+    this.scheduler.scheduleWrite()
   }
 
   refreshRows(startRow: number, endRow: number): void {

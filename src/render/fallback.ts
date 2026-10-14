@@ -90,6 +90,10 @@ export class FallbackTerminalRenderer {
     return this.state.renderer.metrics
   }
 
+  get desynchronized(): boolean {
+    return this.activeRenderer?.desynchronized ?? false
+  }
+
   get canPaint(): boolean {
     return this.activeRenderer?.canPaint ?? false
   }

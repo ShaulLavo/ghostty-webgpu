@@ -54,6 +54,97 @@ function createScheduler(clock: FakeClock, frames: RenderFrameState[]): RenderSc
 }
 
 describe('RenderScheduler', () => {
+  it('batches writes into the next frame by default', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = createScheduler(clock, frames)
+
+    scheduler.scheduleWrite()
+
+    expect(frames).toHaveLength(0)
+    expect(clock.frames.size).toBe(1)
+  })
+
+  it('paints the first write of a frame immediately and batches the rest', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = new RenderScheduler({
+      clock,
+      onFrame: (state) => frames.push(state),
+      presentation: 'immediate',
+    })
+
+    scheduler.scheduleWrite()
+    expect(frames).toHaveLength(1)
+    for (let write = 0; write < 100; write += 1) scheduler.scheduleWrite()
+    expect(frames).toHaveLength(1)
+    expect(clock.frames.size).toBe(2)
+
+    clock.takeFrame()()
+    clock.takeFrame()()
+    expect(frames).toHaveLength(2)
+    scheduler.scheduleWrite()
+    expect(frames).toHaveLength(2)
+
+    clock.takeFrame()()
+    clock.takeFrame()()
+    expect(frames).toHaveLength(3)
+    clock.takeFrame()()
+    expect(clock.frames.size).toBe(0)
+    scheduler.scheduleWrite()
+    expect(frames).toHaveLength(4)
+  })
+
+  it('reports an immediate paint failure after the write returns', async () => {
+    const clock = new FakeClock()
+    const failure = new TypeError('paint failed')
+    const scheduler = new RenderScheduler({
+      clock,
+      onFrame: () => {
+        throw failure
+      },
+      presentation: 'immediate',
+    })
+    const reported = new Promise<unknown>((resolve) => {
+      const original = globalThis.queueMicrotask
+      globalThis.queueMicrotask = (callback) => {
+        globalThis.queueMicrotask = original
+        try {
+          callback()
+        } catch (cause) {
+          resolve(cause)
+        }
+      }
+    })
+
+    expect(() => scheduler.scheduleWrite()).not.toThrow()
+    await expect(reported).resolves.toBe(failure)
+  })
+
+  it('skips immediate paints while hidden and cancels the frame reset on dispose', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = new RenderScheduler({
+      clock,
+      onFrame: (state) => frames.push(state),
+      presentation: 'immediate',
+    })
+
+    scheduler.setDocumentVisible(false)
+    scheduler.scheduleWrite()
+    expect(frames).toHaveLength(0)
+    expect(clock.frames.size).toBe(0)
+
+    scheduler.setDocumentVisible(true)
+    clock.takeFrame()()
+    clock.takeFrame()()
+    frames.length = 0
+    scheduler.scheduleWrite()
+    expect(frames).toHaveLength(1)
+    scheduler.dispose()
+    expect(clock.frames.size).toBe(0)
+  })
+
   it('coalesces write storms and clears pending state before the callback', () => {
     const clock = new FakeClock()
     let scheduler: RenderScheduler

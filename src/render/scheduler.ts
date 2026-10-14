@@ -9,10 +9,14 @@ export interface RenderFrameState {
   cursorVisible: boolean
 }
 
+/** `immediate` paints a write synchronously unless a paint already landed this display frame; those writes join the next one. */
+export type TerminalPresentation = 'frame' | 'immediate'
+
 export interface RenderSchedulerOptions {
   blinkIntervalMs?: number
   clock: RenderSchedulerClock
   onFrame(state: RenderFrameState): void
+  presentation?: TerminalPresentation
 }
 
 const defaultBlinkIntervalMs = 500
@@ -36,11 +40,14 @@ export class RenderScheduler {
   private frameHandle?: number
   private frameToken = 0
   private flushRequested = false
+  private immediateResetHandle?: number
+  private readonly immediate: boolean
   private readonly onFrame: (state: RenderFrameState) => void
 
   constructor(options: RenderSchedulerOptions) {
     this.clock = options.clock
     this.onFrame = options.onFrame
+    this.immediate = options.presentation === 'immediate'
     this.blinkIntervalMs = validateBlinkInterval(options.blinkIntervalMs ?? defaultBlinkIntervalMs)
   }
 
@@ -71,6 +78,24 @@ export class RenderScheduler {
       return
     }
     this.frameHandle = handle
+  }
+
+  /** Schedules output; immediate presentation paints now unless a paint already landed this display frame. */
+  scheduleWrite(): void {
+    if (!this.immediate || this.immediateResetHandle !== undefined) {
+      this.schedule()
+      return
+    }
+    if (!this.canPaint) return
+    this.armImmediateReset()
+    try {
+      this.flush()
+    } catch (cause) {
+      // Paint failures surface as they do from a frame callback; the caller's write already landed.
+      queueMicrotask(() => {
+        throw cause
+      })
+    }
   }
 
   /** Flushes now; a flush during paint runs after the active frame callback completes. */
@@ -114,6 +139,9 @@ export class RenderScheduler {
     this.disposed = true
     this.cancelFrame()
     this.cancelBlinkTimer()
+    if (this.immediateResetHandle === undefined) return
+    this.clock.cancelFrame(this.immediateResetHandle)
+    this.immediateResetHandle = undefined
   }
 
   private get blinkEligible(): boolean {
@@ -162,7 +190,15 @@ export class RenderScheduler {
     if (this.disposed) return
     if (token !== this.frameToken) return
     this.frameHandle = undefined
+    this.armImmediateReset()
     this.deliverFrames()
+  }
+
+  private armImmediateReset(): void {
+    if (!this.immediate || this.immediateResetHandle !== undefined) return
+    this.immediateResetHandle = this.clock.requestFrame(() => {
+      this.immediateResetHandle = undefined
+    })
   }
 
   private deliverFrames(): void {

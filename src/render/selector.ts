@@ -37,7 +37,7 @@ async function createRenderer(
   if (options.rendererMode && options.rendererMode !== 'auto')
     return CanvasTerminalRenderer.create(options)
   options = { ...options }
-  const backends = automaticGpuBackends()
+  const backends = automaticGpuBackends(options.presentation)
   for (const [index, backend] of backends.entries()) {
     signal?.throwIfAborted()
     try {

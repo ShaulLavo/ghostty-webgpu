@@ -315,6 +315,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
   private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
+  private readonly presentation: GhosttyWebGpuTerminalOptions['presentation']
   private scrollbar?: TerminalScrollbarController
   private readonly scrollbarOptions?: GhosttyWebGpuTerminalScrollbarOptions
   private readonly scrollbarWidthValue: number
@@ -337,6 +338,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
     this.rendererMode = options.rendererMode
+    this.presentation = options.presentation
     this.scrollbarOptions = options.scrollbar
     this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
 
@@ -520,6 +522,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       pressedButtonCount: this.pointer?.pressedButtonCount ?? 0,
       rendererBackend:
         this.execution.kind === 'async' ? this.execution.backend : this.renderer?.backend,
+      desynchronized: this.renderer?.desynchronized === true,
       scrollbarVisible: this.scrollbar?.visible === true,
     })
   }
@@ -1005,6 +1008,15 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           fix: 'Use the main terminal entry or automatic worker rendering.',
           internal: { actor: 'worker', capability: 'canvas2d' },
         })
+      if (this.presentation === 'immediate')
+        throw new TerminalWorkerError({
+          code: 'capability',
+          operation: 'renderer.create',
+          status: 501,
+          why: 'Immediate presentation runs in the main-thread terminal.',
+          fix: 'Use the main terminal entry or frame presentation.',
+          internal: { actor: 'worker', capability: 'presentation' },
+        })
       this.execution.setFrameListener((snapshot) => this.handleFrame(snapshot))
       this.fittedFont = await this.execution.open(
         elements,
@@ -1043,6 +1055,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           : undefined,
         rows: grid.rows,
         rendererMode: this.rendererMode,
+        presentation: this.presentation,
         theme: appearance.rendererTheme,
       },
       elements.signal,

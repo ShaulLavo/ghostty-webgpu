@@ -99,6 +99,9 @@ export class LocalTerminalExecution {
       get backend() {
         return execution.rendererValue?.backend
       },
+      get desynchronized() {
+        return execution.rendererValue?.desynchronized
+      },
       get hasPendingFrame() {
         return execution.rendererValue?.hasPendingFrame
       },
