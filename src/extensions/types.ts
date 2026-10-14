@@ -11,8 +11,9 @@ export type TerminalInputEvent =
 
 export type TerminalInputHandler = (event: TerminalInputEvent) => 'claim' | 'pass'
 
+// Output timing is recorded only for host listeners (`terminal.on('outputTiming')`).
 type TerminalEventHandlers = {
-  readonly [Event in keyof GhosttyWebGpuTerminalEventMap]?: (
+  readonly [Event in Exclude<keyof GhosttyWebGpuTerminalEventMap, 'outputTiming'>]?: (
     event: GhosttyWebGpuTerminalEventMap[Event],
   ) => void
 }

@@ -89,6 +89,7 @@ export type {
   GhosttyWebGpuTerminalLifecycle,
   GhosttyWebGpuTerminalListener,
   GhosttyWebGpuTerminalOptions,
+  GhosttyWebGpuTerminalOutputTimingOptions,
   GhosttyWebGpuTerminalResizeEvent,
   GhosttyWebGpuTerminalScrollbarOptions,
   GhosttyWebGpuTerminalSubscription,
@@ -189,6 +190,7 @@ export type {
   TerminalGeneratedInput,
   TerminalInputModes,
   TerminalInputConnection,
+  TerminalOutputTiming,
 } from './dom/types.js'
 export type {
   TerminalSubmittedFrame,

@@ -1377,7 +1377,7 @@ export class TerminalSession<TEvent = unknown> {
 
   reportFocus(): TerminalInputResult {
     return this.runOperation(() =>
-      this.publishInput(encodeFocus(this.terminal, this.focusedValue), false),
+      this.publishInput(encodeFocus(this.terminal, this.focusedValue), false, 'reply'),
     )
   }
 
@@ -1697,7 +1697,7 @@ export class TerminalSession<TEvent = unknown> {
     if (focused === this.focusedValue) return new Uint8Array()
     const bytes = encodeFocus(this.terminal, focused)
     this.focusedValue = focused
-    return this.publishInput(bytes, false)
+    return this.publishInput(bytes, false, 'reply')
   }
 
   private clearNow(): TerminalMutationResult {
@@ -1803,7 +1803,11 @@ export class TerminalSession<TEvent = unknown> {
     return this.emitRenderRequest()
   }
 
-  private publishInput(bytes: Uint8Array, clearSelection: boolean): TerminalInputResult {
+  private publishInput(
+    bytes: Uint8Array,
+    clearSelection: boolean,
+    origin: TerminalDataEvent['origin'] = 'input',
+  ): TerminalInputResult {
     const result = Uint8Array.from(bytes)
     if (result.length === 0) return result
     const selectionChanged = clearSelection && this.selection.clear()
@@ -1811,7 +1815,7 @@ export class TerminalSession<TEvent = unknown> {
       this.emitSelection()
       this.requestRender()
     }
-    const event: TerminalDataEvent = { bytes: Uint8Array.from(result) }
+    const event: TerminalDataEvent = { bytes: Uint8Array.from(result), origin }
     this.emitters.data.emit(event)
     return result
   }
@@ -1904,7 +1908,7 @@ export class TerminalSession<TEvent = unknown> {
       return
     }
     if (effect.type === 'data') {
-      this.emitters.data.emit({ bytes: effect.bytes })
+      this.emitters.data.emit({ bytes: effect.bytes, origin: 'reply' })
       return
     }
     if (effect.type === 'bell') {

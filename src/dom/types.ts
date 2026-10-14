@@ -43,6 +43,43 @@ export interface GhosttyWebGpuTerminalResizeEvent {
   readonly rows: number
 }
 
+/**
+ * One burst of output: writes that arrive with less than `quietMs` between them. All times are
+ * `performance.now()` values in this window's clock.
+ */
+export interface TerminalOutputTiming {
+  /** The last typed, pasted, mouse or `sendInput` input within `inputWindowMs` before this output began. */
+  readonly inputAt?: number
+  readonly firstOutputAt: number
+  readonly lastOutputAt: number
+  /**
+   * When the first frame holding the last output was drawn: WebGPU commands submitted, WebGL or
+   * canvas draw calls issued, or DOM rows written. In a worker terminal, when the frame's notice
+   * reached this window. Missing when no frame drew it, such as output that changed nothing visible.
+   */
+  readonly drawnAt?: number
+  /**
+   * When the browser finished the page update that carries the drawn frame: the first task after
+   * that update. The display shows it at its next refresh. A desynchronized canvas can appear
+   * before this. Missing in worker terminals and when `drawnAt` is missing.
+   */
+  readonly presentedAt?: number
+  readonly writes: number
+  /** No frame drew this output because the page was hidden when it ended. */
+  readonly hidden: boolean
+  readonly presentation: NonNullable<GhosttyWebGpuTerminalOptions['presentation']>
+  /** The canvas presents without waiting for the browser's compositor, as `diagnostics.desynchronized`. */
+  readonly desynchronized: boolean
+  readonly rendererBackend: 'dom' | 'canvas2d' | 'webgl2' | 'webgpu' | undefined
+}
+
+export interface GhosttyWebGpuTerminalOutputTimingOptions {
+  /** Output that pauses for this many milliseconds ends a burst. Defaults to 100. */
+  readonly quietMs?: number
+  /** Input older than this many milliseconds when output begins is not paired with it. Defaults to 2000. */
+  readonly inputWindowMs?: number
+}
+
 export interface GhosttyWebGpuTerminalEventMap {
   readonly open: HTMLDivElement
   readonly appearance: TerminalAppearance
@@ -50,6 +87,8 @@ export interface GhosttyWebGpuTerminalEventMap {
   readonly data: Uint8Array
   readonly frame: { readonly rows: readonly number[] }
   readonly error: TerminalErrorEvent
+  /** Fires once per output burst after it is drawn. Timing is recorded only while someone listens. */
+  readonly outputTiming: TerminalOutputTiming
   readonly resize: GhosttyWebGpuTerminalResizeEvent
   readonly scroll: TerminalScrollEvent
   readonly selection: TerminalSelectionEvent
@@ -142,6 +181,7 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly extensions?: readonly ExtensionInput[]
   readonly linkActivationModifier?: (event: MouseEvent) => boolean
   readonly links?: LinkResolverOptions<Event>
+  readonly outputTiming?: GhosttyWebGpuTerminalOutputTimingOptions
   readonly padding?: TerminalElementPaddingInput
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']

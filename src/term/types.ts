@@ -233,6 +233,8 @@ export type TerminalCursorSnapshot = Readonly<TerminalCursor>
 
 export interface TerminalDataEvent {
   readonly bytes: Uint8Array
+  /** `input` comes from typing, pasting, mouse reports or `sendInput`; `reply` is the terminal answering a query or reporting focus. */
+  readonly origin: 'input' | 'reply'
 }
 
 export interface TerminalTitleEvent {

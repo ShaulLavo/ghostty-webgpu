@@ -20,6 +20,12 @@ import { createCompatibleTerminalRenderer } from '../render/selector.js'
 import type { InactiveCursorStyle } from '../render/cursor.js'
 import { observeDisplayedFrame } from '../render/displayed-frame.js'
 import { EventEmitter } from '../term/events.js'
+import {
+  browserOutputTimingClock,
+  outputTimingLimits,
+  OutputTimingTracker,
+  type OutputTimingLimits,
+} from './output-timing.js'
 import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
 import type { TerminalSession } from '../term/session.js'
 import { LocalTerminalExecution } from './execution-local.js'
@@ -123,6 +129,7 @@ function createHostEmitters(): HostEmitters {
     data: new EventEmitter(sink('event.data')),
     error,
     frame: new EventEmitter(sink('event.frame')),
+    outputTiming: new EventEmitter(sink('event.outputTiming')),
     resize: new EventEmitter(sink('event.resize')),
     scroll: new EventEmitter(sink('event.scroll')),
     selection: new EventEmitter(sink('event.selection')),
@@ -136,6 +143,7 @@ function disposeHostEmitters(emitters: HostEmitters): void {
   emitters.bell.dispose()
   emitters.data.dispose()
   emitters.frame.dispose()
+  emitters.outputTiming.dispose()
   emitters.resize.dispose()
   emitters.scroll.dispose()
   emitters.selection.dispose()
@@ -316,6 +324,9 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
   private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
   private readonly presentation: GhosttyWebGpuTerminalOptions['presentation']
+  private readonly outputTimingLimits: OutputTimingLimits
+  private outputTimingTracker?: OutputTimingTracker
+  private timedWorkerWrite?: { readonly sequence: number; readonly control: number }
   private scrollbar?: TerminalScrollbarController
   private readonly scrollbarOptions?: GhosttyWebGpuTerminalScrollbarOptions
   private readonly scrollbarWidthValue: number
@@ -339,6 +350,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
     this.rendererMode = options.rendererMode
     this.presentation = options.presentation
+    this.outputTimingLimits = outputTimingLimits(options.outputTiming)
     this.scrollbarOptions = options.scrollbar
     this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
 
@@ -609,7 +621,23 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   ): GhosttyWebGpuTerminalSubscription {
     this.ensureActive()
     const emitter = this.emitters[type] as EventEmitter<GhosttyWebGpuTerminalEventMap[TType]>
-    return emitter.subscribe(listener)
+    if (type !== 'outputTiming') return emitter.subscribe(listener)
+    this.outputTimingTracker ??= this.createOutputTimingTracker()
+    const subscription = emitter.subscribe(listener)
+    return {
+      dispose: () => {
+        subscription.dispose()
+        this.releaseOutputTiming()
+      },
+    }
+  }
+
+  // The last listener leaving drops recorded input and any open burst.
+  private releaseOutputTiming(): void {
+    if (this.emitters.outputTiming.hasListeners) return
+    this.outputTimingTracker?.dispose()
+    this.outputTimingTracker = undefined
+    this.timedWorkerWrite = undefined
   }
 
   onData(listener: GhosttyWebGpuTerminalListener<'data'>): GhosttyWebGpuTerminalSubscription {
@@ -677,7 +705,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   writeAndReadGeometry(data: TerminalInputData): TerminalResult<Mode, TerminalGeometry> {
     this.ensureOpen()
     this.invalidateLinks()
+    const timing = this.observedOutputTiming()
+    const sequence = timing?.output()
     const geometry = this.execution.writeAndReadGeometry(data)
+    if (timing) this.markOutputApplied(timing, sequence!)
     if (this.stateValue !== 'open') return this.result(geometry)
     this.updateScrollbar()
     this.renderer?.notifyWrite()
@@ -739,7 +770,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   write(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
     this.invalidateLinks()
+    const timing = this.observedOutputTiming()
+    const sequence = timing?.output()
     const result = this.execution.write(data)
+    if (timing) this.markOutputApplied(timing, sequence!)
     if (this.stateValue !== 'open') return this.result(result)
     this.updateScrollbar()
     this.renderer?.notifyWrite()
@@ -749,7 +783,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   writeln(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
     this.invalidateLinks()
+    const timing = this.observedOutputTiming()
+    const sequence = timing?.output()
     const result = this.execution.writeln(data)
+    if (timing) this.markOutputApplied(timing, sequence!)
     if (this.stateValue !== 'open') return this.result(result)
     this.updateScrollbar()
     this.renderer?.notifyWrite()
@@ -944,6 +981,9 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.nextGeneration()
     this.pendingEvents.length = 0
     this.pendingText.length = 0
+    this.outputTimingTracker?.dispose()
+    this.outputTimingTracker = undefined
+    this.timedWorkerWrite = undefined
     this.inputOwner?.dispose()
     this.extensions?.dispose()
     this.cleanup.dispose((cause) => this.emitters.error.emit({ cause, operation: 'dispose' }))
@@ -1042,7 +1082,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         cursorBlink: appearance.cursor.blink,
         font,
         onError: (cause) => this.reportError(cause, 'renderer.restore'),
-        onCleanUpdate: () => this.handleCleanUpdate(),
+        onCleanUpdate: () => {
+          this.noteDrawn()
+          this.handleCleanUpdate()
+        },
         [observeDisplayedFrame]: (snapshot) => this.handleFrame(snapshot),
         retainDisplayedText: true,
         needsFrameRows: () => Boolean(this.links?.needsFrame || this.textSubscribers.hasListeners),
@@ -1086,6 +1129,53 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     })
   }
 
+  private observedOutputTiming(): OutputTimingTracker | undefined {
+    const tracker = this.outputTimingTracker
+    if (!tracker || !this.emitters.outputTiming.hasListeners) return undefined
+    return tracker
+  }
+
+  private markOutputApplied(timing: OutputTimingTracker, sequence: number): void {
+    if (this.execution.kind === 'sync') {
+      timing.applied(sequence)
+      return
+    }
+    // The worker can submit the frame holding a write before it replies to that write.
+    this.timedWorkerWrite = { sequence, control: this.execution.requestedControl }
+  }
+
+  private noteDrawn(): void {
+    const timing = this.observedOutputTiming()
+    if (!timing) return
+    const write = this.timedWorkerWrite
+    if (
+      write &&
+      this.execution.kind === 'async' &&
+      this.execution.submittedControl >= write.control
+    )
+      timing.applied(write.sequence)
+    timing.drawn()
+  }
+
+  private createOutputTimingTracker(): OutputTimingTracker {
+    return new OutputTimingTracker({
+      clock: browserOutputTimingClock(),
+      limits: this.outputTimingLimits,
+      visible: () => this.documentVisible,
+      measuresPresentation: this.execution.kind === 'sync',
+      pendingFrame: () => this.execution.kind === 'sync' && this.renderer?.hasPendingFrame === true,
+      describe: () => {
+        const diagnostics = this.diagnostics
+        return {
+          desynchronized: diagnostics.desynchronized,
+          presentation: this.presentation ?? 'frame',
+          rendererBackend: diagnostics.rendererBackend,
+        }
+      },
+      emit: (timing) => this.emitHostEvent('outputTiming', timing),
+    })
+  }
+
   private installRenderer(renderer: GhosttyWebGpuRenderer): void {
     this.renderer = renderer
     renderer.setInactiveCursorStyle?.(this.inactiveCursorStyle)
@@ -1098,7 +1188,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     )
     this.trackSubscription(this.execution.on('bell', () => this.emitHostEvent('bell', undefined)))
     this.trackSubscription(
-      this.execution.on('data', ({ bytes }) => this.emitHostEvent('data', Uint8Array.from(bytes))),
+      this.execution.on('data', ({ bytes, origin }) => {
+        if (origin === 'input') this.observedOutputTiming()?.input()
+        this.emitHostEvent('data', Uint8Array.from(bytes))
+      }),
     )
     this.trackSubscription(
       this.execution.on('error', (error) => {
@@ -1541,6 +1634,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private setDocumentVisible(visible: boolean): void {
     this.documentVisible = visible
+    if (visible) this.outputTimingTracker?.resume()
     if (visible) this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
     else this.cancelAccessibilityTimer()
     if (this.execution.kind === 'async') {
@@ -1578,6 +1672,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private handleFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
+    this.noteDrawn()
     this.updateFrameUi(this.execution.kind === 'sync' ? this.execution.submit(snapshot) : snapshot)
     this.publishText()
     this.scheduleAccessibility()
