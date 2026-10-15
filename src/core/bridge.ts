@@ -359,7 +359,7 @@ export class CallbackBridge {
     truncated: number,
   ): void {
     const registration = this.targets.get(terminal)?.customOsc.get(number)
-    if (!registration || registration.canCapture?.() === false) return
+    if (!registration) return
     const observation = this.captureCustomOsc(
       number,
       registration.generation,
@@ -368,6 +368,8 @@ export class CallbackBridge {
       terminator,
       truncated,
     )
+    // The predicate can reenter native parsing and overwrite the borrowed payload.
+    if (registration.canCapture?.() === false) return
     registration.observe(observation)
   }
 

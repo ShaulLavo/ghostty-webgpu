@@ -158,3 +158,26 @@ it('uses native control-byte handling across byte-split Unicode and incomplete e
   terminal.dispose()
   expect(observations).toHaveLength(1)
 })
+
+it('captures borrowed OSC bytes before a capture predicate reenters the terminal', async () => {
+  runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal()
+  const observations: CustomOscObservation[] = []
+  let reentered = false
+  terminal.subscribeCustomOsc(
+    7400,
+    1,
+    (event) => observations.push(event),
+    () => {
+      if (reentered) return true
+      reentered = true
+      terminal.write('\x1b]7400;inner\x07')
+      return true
+    },
+  )
+  terminal.write('\x1b]7400;outer\x07')
+  expect(reentered).toBe(true)
+  const payloads = observations.map((event) => new TextDecoder().decode(event.payload))
+  expect(payloads).toContain('inner')
+  expect(payloads.at(-1)).toBe('outer')
+})
