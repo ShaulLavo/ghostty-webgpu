@@ -50,6 +50,7 @@ export interface TerminalFontSettings {
   readonly boldWeight: number
   readonly family: string
   readonly letterSpacing: number
+  /** Measured font-box multiplier, at least 0.5. Values below 1 clip glyphs to their cells. */
   readonly lineHeight: number
   readonly size: number
   readonly weight: number
@@ -57,6 +58,7 @@ export interface TerminalFontSettings {
 
 export interface TerminalFittedFont {
   readonly charLeft: number
+  /** Signed device-pixel offset that centres the natural font box inside its cell. */
   readonly charTop: number
   readonly cssCellHeight: number
   readonly cssCellWidth: number

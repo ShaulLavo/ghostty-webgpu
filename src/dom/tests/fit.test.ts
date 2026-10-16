@@ -95,6 +95,23 @@ describe('calculateTerminalFittedFont', () => {
     expect(calculateTerminalFittedFont(font({ lineHeight: 1 }), measurement, 2).charTop).toBe(0)
   })
 
+  it.each([0.5, 0.6, 0.99])(
+    'centres the natural font in a shorter cell at line height %s',
+    (lineHeight) => {
+      const fitted = calculateTerminalFittedFont(font({ lineHeight }), measurement, 2)
+      expect(fitted.deviceCellHeight).toBe(Math.floor(28 * lineHeight))
+      expect(fitted.charTop).toBe(Math.round((fitted.deviceCellHeight - 28) / 2))
+      expect(fitted.deviceBaseline).toBe(fitted.charTop + 21)
+      expect(fitted.cssCellHeight).toBe(fitted.deviceCellHeight / 2)
+    },
+  )
+
+  it.each([0.49, 0, -1, NaN, Infinity])('rejects an unsupported line height %s', (lineHeight) => {
+    expect(() => calculateTerminalFittedFont(font({ lineHeight }), measurement, 1)).toThrow(
+      /at least 0.5/u,
+    )
+  })
+
   it('rejects negative spacing only when it collapses the fitted device cell', () => {
     expect(
       calculateTerminalFittedFont(font({ letterSpacing: -1 }), measurement, 1).deviceCellWidth,

@@ -39,7 +39,7 @@ it('fits the loaded font box before line-height and device-pixel rounding', () =
   )
 
   for (const pixelRatio of [1, 1.25, 2]) {
-    for (const lineHeight of [1, 1.2]) {
+    for (const lineHeight of [0.5, 0.6, 1, 1.2]) {
       const fitted = fitTerminalFont(document, { ...font, lineHeight }, pixelRatio)
       const characterHeight = Math.ceil(
         (metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) * pixelRatio,

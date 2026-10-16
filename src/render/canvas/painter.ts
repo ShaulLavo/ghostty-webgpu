@@ -264,7 +264,7 @@ export class CanvasRowPainter {
       if (glyph === '\u0000') continue
       this.setFill(column === activeCursor?.x ? cursorForeground : foreground)
       const x = column * this.font.deviceCellWidth + this.font.charLeft + characterWidth / 2
-      this.context.fillText(glyph, x, y + this.font.deviceBaseline)
+      this.fillCellText(glyph, x, y + this.font.deviceBaseline, column, row, 1)
     }
   }
 
@@ -375,9 +375,37 @@ export class CanvasRowPainter {
         row.y * this.font.deviceCellHeight,
       )
     } else {
-      this.context.fillText(text, x, y)
+      this.fillCellText(text, x, y, cell.x, row.y, span)
     }
     return span
+  }
+
+  private fillCellText(
+    text: string,
+    x: number,
+    y: number,
+    column: number,
+    row: number,
+    span: number,
+  ): void {
+    if (this.font.settings.lineHeight >= 1) {
+      this.context.fillText(text, x, y)
+      return
+    }
+    this.context.save()
+    try {
+      this.context.beginPath()
+      this.context.rect(
+        column * this.font.deviceCellWidth,
+        row * this.font.deviceCellHeight,
+        span * this.font.deviceCellWidth,
+        this.font.deviceCellHeight,
+      )
+      this.context.clip()
+      this.context.fillText(text, x, y)
+    } finally {
+      this.context.restore()
+    }
   }
 
   private setAlpha(value: number): void {

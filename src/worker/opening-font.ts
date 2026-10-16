@@ -31,11 +31,10 @@ function isFittedFont(value: unknown): value is TerminalFittedFont {
     ) &&
     weights.every((weight) => Number.isInteger(weight) && weight >= 1 && weight <= 1000) &&
     Number.isFinite(settings.lineHeight) &&
-    settings.lineHeight >= 1 &&
+    settings.lineHeight >= 0.5 &&
     Number.isFinite(settings.letterSpacing) &&
     Number.isSafeInteger(font.charLeft) &&
     Number.isSafeInteger(font.charTop) &&
-    font.charTop! >= 0 &&
     font.cssCellWidth === font.deviceCellWidth! / font.pixelRatio! &&
     font.cssCellHeight === font.deviceCellHeight! / font.pixelRatio!
   )

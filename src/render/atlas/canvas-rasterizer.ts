@@ -252,6 +252,11 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
     this.canvas.height = Math.ceil(this.font.deviceCellHeight + padding * 2)
     const context = this.configure(input)
     context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+    if (this.font.settings.lineHeight < 1) {
+      context.beginPath()
+      context.rect(padding, padding, cellWidth, this.font.deviceCellHeight)
+      context.clip()
+    }
     context.fillStyle = ink
     const drawX = padding + this.font.charLeft + characterWidth / 2
     context.fillText(input.text, drawX, padding + this.font.deviceBaseline)

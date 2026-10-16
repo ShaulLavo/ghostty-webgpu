@@ -18,7 +18,7 @@ The example registers a `FontFace`, waits for it to load, then creates the termi
 
 ## 2. Change appearance
 
-Call `setFont` with a partial font object to change `family`, `size`, `lineHeight`, `weight`, `boldWeight` or `letterSpacing`. `lineHeight` multiplies the measured font box and must be at least 1. Font size describes the em size; the measured row can be taller.
+Call `setFont` with a partial font object to change `family`, `size`, `lineHeight`, `weight`, `boldWeight` or `letterSpacing`. `lineHeight` multiplies the measured font box and must be at least 0.5. Values below 1 centre the font in a shorter cell and clip glyphs to their cell spans. Fitted device cell heights and baselines must remain positive integers. Font size describes the em size; the measured row can be taller.
 
 The fitter measures the font in CSS pixels, rounds its device-pixel geometry, then fits the host. Let the terminal perform this calculation so the session and renderer agree.
 

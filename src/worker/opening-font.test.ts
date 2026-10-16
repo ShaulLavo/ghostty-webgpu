@@ -25,7 +25,7 @@ it.each([
   ['invalid size', { ...font, settings: { ...font.settings, size: 0 } }],
   ['invalid weight', { ...font, settings: { ...font.settings, weight: 1001 } }],
   ['invalid bold weight', { ...font, settings: { ...font.settings, boldWeight: 0 } }],
-  ['invalid line height', { ...font, settings: { ...font.settings, lineHeight: 0.5 } }],
+  ['invalid line height', { ...font, settings: { ...font.settings, lineHeight: 0.49 } }],
   ['non-finite spacing', { ...font, settings: { ...font.settings, letterSpacing: NaN } }],
   ['zero cell width', { ...font, cssCellWidth: 0 }],
   ['non-finite cell height', { ...font, cssCellHeight: Infinity }],
@@ -34,6 +34,8 @@ it.each([
   ['missing device width', { ...font, deviceCellWidth: undefined }],
   ['fractional device height', { ...font, deviceCellHeight: 1.5 }],
   ['missing character offset', { ...font, charLeft: undefined }],
+  ['fractional top offset', { ...font, charTop: -0.5 }],
+  ['non-finite top offset', { ...font, charTop: Infinity }],
   ['invalid baseline', { ...font, deviceBaseline: -1 }],
 ])('rejects %s with structured protocol guidance', (_name, value) => {
   expect(() => readOpeningFont(value)).toThrow(
@@ -47,4 +49,14 @@ it.each([
       internal: { expected: 'complete fitted font', receivedType: typeof value },
     }),
   )
+})
+
+it('accepts centred short-line opening metrics', () => {
+  const short = calculateTerminalFittedFont(
+    { ...font.settings, lineHeight: 0.6 },
+    { advanceWidth: 12, fontAscent: 16, fontDescent: 4 },
+    1,
+  )
+  expect(readOpeningFont(short)).toBe(short)
+  expect(short.charTop).toBe(-4)
 })

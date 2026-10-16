@@ -31,9 +31,15 @@ deviceCellWidth = deviceCharWidth + round(letterSpacing * d)
 cssCellWidth = deviceCellWidth / d
 ```
 
-`font.lineHeight` is finite and at least 1. It is a multiplier of the measured font box,
+`font.lineHeight` is finite and at least 0.5. It is a multiplier of the measured font box,
 with device rounding before and after multiplication. It is neither a CSS row height in
 pixels nor the CSS unitless multiplier of `font.size`.
+
+Below 1, `charTop` is a signed integer that centres the natural font box in a shorter
+cell. The baseline retains its positive integer validation. Measurements must produce
+a positive device cell height and baseline. All four renderers clip each glyph to its
+cell span at these line heights, including wide glyphs. At 1 and above, the existing
+glyph-overflow behavior is preserved.
 
 The DOM host commits the fitted font and the session's CSS cell metrics together.
 With `autoFit: false`, that commit preserves the requested column and row counts.

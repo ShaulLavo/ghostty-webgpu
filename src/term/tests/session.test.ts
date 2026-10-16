@@ -806,7 +806,9 @@ describe('TerminalSession', () => {
       /integer from 1 to 1000/u,
     )
     expect(() => session.setFont({ letterSpacing: Number.NEGATIVE_INFINITY })).toThrow(/finite/u)
-    expect(() => session.setFont({ lineHeight: 0.99 })).toThrow(/at least 1/u)
+    session.setFont({ lineHeight: 0.6 })
+    expect(session.appearance.font.lineHeight).toBe(0.6)
+    expect(() => session.setFont({ lineHeight: 0.49 })).toThrow(/at least 0.5/u)
   })
 
   it('queues VT effects in native order and emits one revisioned render request per write', async () => {

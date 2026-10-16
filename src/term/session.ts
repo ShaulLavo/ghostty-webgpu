@@ -563,8 +563,8 @@ function validateFontWeight(name: string, value: number): number {
 }
 
 function validateLineHeight(value: number): number {
-  if (Number.isFinite(value) && value >= 1) return value
-  throw new RangeError('font.lineHeight must be finite and at least 1')
+  if (Number.isFinite(value) && value >= 0.5) return value
+  throw new RangeError('font.lineHeight must be finite and at least 0.5')
 }
 
 function copyColor(color: RgbColor, name: string): TerminalColor {

@@ -79,10 +79,11 @@ export function copyFittedFont(font: TerminalFittedFont): TerminalFittedFont {
   if (!Number.isFinite(settings.letterSpacing)) {
     throw new RangeError('font.settings.letterSpacing must be finite')
   }
-  if (settings.lineHeight < 1) throw new RangeError('font.settings.lineHeight must be at least 1')
+  if (settings.lineHeight < 0.5)
+    throw new RangeError('font.settings.lineHeight must be at least 0.5')
   return Object.freeze({
     charLeft: safeRendererInteger('font.charLeft', font.charLeft, Number.MIN_SAFE_INTEGER),
-    charTop: safeRendererInteger('font.charTop', font.charTop),
+    charTop: safeRendererInteger('font.charTop', font.charTop, Number.MIN_SAFE_INTEGER),
     cssCellHeight: positiveFinite('font.cssCellHeight', font.cssCellHeight),
     cssCellWidth: positiveFinite('font.cssCellWidth', font.cssCellWidth),
     deviceBaseline: positiveInteger('font.deviceBaseline', font.deviceBaseline),
