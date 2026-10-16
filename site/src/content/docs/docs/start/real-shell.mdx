@@ -6,7 +6,7 @@ description: Connect the terminal to a Bun PTY over WebSocket.
 import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/pty-server.ts?raw'
 
-You will run Bash in a browser tab. This local tutorial uses Bun 1.4.2 or newer on Linux or macOS, Bash, and the client from [the first terminal](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/).
+You will run Bash in a browser tab. This local tutorial uses Bun 1.4.2 or newer on Linux or macOS, Bash, and the client from [the first terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/).
 
 ## 1. Start a PTY server
 
@@ -22,7 +22,7 @@ The server prints `Shell WebSocket listening at ws://127.0.0.1:8080/pty`.
 
 ## 2. Connect the browser
 
-Replace the echo client with the complete client in [Connect to a PTY](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/). Call `connectShell(host, 'ws://127.0.0.1:8080/pty')` on your sized host element.
+Replace the echo client with the complete client in [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/). Call `connectShell(host, 'ws://127.0.0.1:8080/pty')` on your sized host element.
 
 The client sends keyboard bytes as binary messages and sends grid changes as JSON. The server writes the bytes into Bash and changes the PTY size. Bash's output returns as binary messages.
 
@@ -46,4 +46,4 @@ An HTTPS page needs a `wss://` endpoint. Run this local tutorial from a loopback
 
 This server starts a shell with your account's permissions. Keep it on loopback for the tutorial. It accepts HTTP browser origins on `localhost` or `127.0.0.1`, validates resize dimensions and closes malformed JSON connections. A deployed service also needs authentication, an explicit Origin allowlist, per-user isolation, rate limits and bounded output queues.
 
-[The PTY guide](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/) covers flow control and reconnecting.
+[The PTY guide](https://ghostty.shaulavo.dev/docs/guides/pty/) covers flow control and reconnecting.

@@ -1,6 +1,6 @@
 # ghostty-webgpu site
 
-The custom landing page and Starlight docs build together. The landing page keeps its own stylesheet. `src/styles/docs.css` is the single place for docs styling changes; leave Starlight's theme defaults in place until the site design is chosen.
+The landing page and Starlight docs build together. Every visit draws one of ascii.rest's colour scenes in a ghostty-webgpu terminal, and the whole site takes that scene's colours (`src/scene/`). The landing page's sections are ascii.rest pieces in those colours (`src/scene/art.ts`); the docs keep the tab's scene through `SceneTheme.astro` and `src/styles/docs-theme.css`. Add `?scene=<name>` to any page to pin a scene.
 
 ## Build from the workspace
 
@@ -17,7 +17,7 @@ The docs workspace pins TypeScript 6.0.3 for TypeDoc's JavaScript compiler API. 
 
 ## Write a page
 
-Pages live in `src/content/docs/docs/`. Put executable TypeScript examples in `src/examples/`, import their source with `?raw`, and display it with Starlight's `Code` component. The example checker rejects handwritten JavaScript and TypeScript fences so displayed code always comes from a checked module. It also extracts and compiles the package README's executable fences and the landing page's two samples. The API currently has no TSDoc `@example` blocks.
+Pages live in `src/content/docs/docs/`. Put executable TypeScript examples in `src/examples/`, import their source with `?raw`, and display it with Starlight's `Code` component. The example checker rejects handwritten JavaScript and TypeScript fences so displayed code always comes from a checked module. It also extracts and compiles the package README's executable fences. The API currently has no TSDoc `@example` blocks.
 
 Use absolute published docs URLs in authored Markdown so links work in the mirror. `scripts/docs-links.ts` rewrites those URLs to the active build base before link validation. Generated reference links follow the base chosen by Starlight TypeDoc.
 

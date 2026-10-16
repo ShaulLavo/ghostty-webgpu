@@ -31,23 +31,6 @@ try {
     const extension = ['tsx', 'jsx'].includes(match[1]!) ? 'tsx' : 'ts'
     await writeFile(join(snippets, `readme-${++fences}.${extension}`), match[2]! + '\nexport {}\n')
   }
-  const landing = await readFile(join(root, 'src/pages/index.astro'), 'utf8')
-  const samples = [
-    ...landing.matchAll(/<pre class="example"[^>]*><code>([\s\S]*?)<\/code><\/pre>/g),
-  ]
-  assert.equal(samples.length, 2, 'Landing samples must remain covered by the type-check')
-  const code = samples
-    .map((sample) =>
-      sample[1]!
-        .replaceAll("{'{'}", '{')
-        .replaceAll("{'}'}", '}')
-        .replace(/<[^>]*>/g, '')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&amp;', '&'),
-    )
-    .join('\n')
-  await writeFile(join(snippets, 'landing.ts'), code + '\nexport {}\n')
   const migrationSamples = migrationComparison
     .map(({ to }): string => to)
     .concat([
@@ -65,7 +48,7 @@ try {
   })
   assert.equal(result.exitCode, 0, 'Docs and README example type-check failed')
   console.log(
-    `Docs samples checked. ${pages} authored pages; ${fences} README fences; 2 landing samples; ${migrationSamples.length} migration snippets; examples compile against built declarations.`,
+    `Docs samples checked. ${pages} authored pages; ${fences} README fences; ${migrationSamples.length} migration snippets; examples compile against built declarations.`,
   )
 } finally {
   await rm(snippets, { recursive: true, force: true })

@@ -1,0 +1,44 @@
+---
+import { loadScenes } from '../scene/scenes'
+import paperMono from '../fonts/paper-mono-variable.woff2?url'
+
+interface Props {
+  /** The landing page draws a new scene each visit; other pages keep the one the tab already has. */
+  fresh?: boolean
+}
+
+const { fresh = false } = Astro.props
+const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+const scenes = await loadScenes()
+---
+
+<link rel="preload" href={paperMono} as="font" type="font/woff2" crossorigin />
+<style is:inline set:html={`@font-face{font-family:'Paper Mono';font-style:normal;font-weight:100 800;font-display:optional;src:url('${paperMono}') format('woff2')}`}></style>
+<script type="application/json" id="scenes" set:html={JSON.stringify(scenes)} />
+<script is:inline define:vars={{ fresh, base }}>
+  // The scene, and the page's colours from it, before the first paint: the Worker's, ?scene=name, the tab's, or one at random.
+  const key = 'ghostty-webgpu:scene'
+  const scenes = JSON.parse(document.getElementById('scenes').textContent)
+  const remembered = (() => {
+    try {
+      return fresh ? null : sessionStorage.getItem(key)
+    } catch {
+      return null
+    }
+  })()
+  const root = document.documentElement
+  // The site's Worker writes the scene into the page; hosts without it choose here.
+  const served = root.dataset.scene
+  const asked = served ?? new URLSearchParams(location.search).get('scene') ?? remembered
+  const scene = scenes.find((entry) => entry.name === asked) ?? scenes[Math.floor(Math.random() * scenes.length)]
+  try {
+    sessionStorage.setItem(key, scene.name)
+  } catch {}
+  root.dataset.scene = scene.name
+  for (const [name, value] of Object.entries(scene.theme)) root.style.setProperty(`--${name}`, value)
+  // The landing page's hero paints this baked first frame long before the terminal starts.
+  if (fresh && !served)
+    window.sceneFrame = fetch(`${base}/scenes/${scene.name}.txt`, { priority: 'high' }).then((response) =>
+      response.ok ? response.text() : '',
+    )
+</script>

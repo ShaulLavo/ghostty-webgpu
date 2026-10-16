@@ -20,11 +20,11 @@ On desktop Linux, the main entry tries WebGL2, hardware WebGPU, Canvas 2D, then 
 
 Set `rendererMode` to `canvas2d-fill-text` when creating the main-thread terminal. The public mode option accepts `auto`, `canvas2d-fill-text` and `canvas2d-pixels`. The pixel compositor is experimental. Use fill-text for a Canvas integration.
 
-For a GPU-specific integration, `rendererFactory` lets the host supply a renderer. `rendererMode: 'webgpu'` and `rendererMode: 'webgl2'` are outside this option's type. The [worker entry](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) has a separate `backend` option with `auto`, `webgpu` and `webgl`.
+For a GPU-specific integration, `rendererFactory` lets the host supply a renderer. `rendererMode: 'webgpu'` and `rendererMode: 'webgl2'` are outside this option's type. The [worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/) has a separate `backend` option with `auto`, `webgpu` and `webgl`.
 
 ## 3. Check the result
 
-All four backends read Ghostty's terminal state. Font availability and browser capabilities can change appearance. Measure the workload on the backend your users will run. The [benchmark report](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/) keeps renderer comparisons and limitations together.
+All four backends read Ghostty's terminal state. Font availability and browser capabilities can change appearance. Measure the workload on the backend your users will run. The [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) keeps renderer comparisons and limitations together.
 
 ## If it doesn't work
 
@@ -36,4 +36,4 @@ Use a secure context and a current browser with a usable GPU adapter. The defaul
 
 Browsers impose context limits. Dispose terminals you remove and bound the number of simultaneously live terminals. Test your intended count on your target browser. The main entry follows the remaining backend order after context loss, including hardware WebGPU when Linux selected WebGL2 first.
 
-Next, [load your fonts](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/) before comparing cell geometry.
+Next, [load your fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/) before comparing cell geometry.

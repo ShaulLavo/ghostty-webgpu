@@ -14,7 +14,7 @@ You will connect the browser terminal to a PTY endpoint and keep its size in syn
 
 <Code code={sample} lang='ts' title='websocket.ts' />
 
-Call `connectShell(host, socketUrl)`. Keep its disposer. Closing the page's terminal should release both the terminal and its transport. The [real shell tutorial](https://shaullavo.github.io/ghostty-webgpu/docs/start/real-shell/) supplies a local Bun server for this protocol.
+Call `connectShell(host, socketUrl)`. Keep its disposer. Closing the page's terminal should release both the terminal and its transport. The [real shell tutorial](https://ghostty.shaulavo.dev/docs/start/real-shell/) supplies a local Bun server for this protocol.
 
 ## 2. Preserve the bytes
 
@@ -40,4 +40,4 @@ A new WebSocket needs an explicit server session policy. Reattach to the existin
 
 Configure the server to emit binary frames. The sample ignores text frames because text is reserved for control messages in this protocol.
 
-Next, [move the terminal into a worker](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) or [read its history](https://shaullavo.github.io/ghostty-webgpu/docs/guides/scrollback/).
+Next, [move the terminal into a worker](https://ghostty.shaulavo.dev/docs/guides/workers/) or [read its history](https://ghostty.shaulavo.dev/docs/guides/scrollback/).

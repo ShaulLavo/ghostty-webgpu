@@ -3,7 +3,7 @@ title: Coming from ghostty-web
 description: Move initialization, input, fonts and fitting to the native API.
 ---
 
-ghostty-webgpu has its own native API. Start with [a working terminal](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/) and move the transport before changing appearance.
+ghostty-webgpu has its own native API. Start with [a working terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/) and move the transport before changing appearance.
 
 ## Map the integration
 
@@ -17,16 +17,16 @@ ghostty-webgpu has its own native API. Start with [a working terminal](https://s
 | Theme colors                                      | `TerminalTheme` RGB objects and a 256-entry palette   |
 | Main-thread terminal                              | Main entry or dedicated `/worker` entry               |
 
-These mappings describe ghostty-web 0.4.0 and the current ghostty-webgpu checkout. Check the [xterm.js mapping](https://shaullavo.github.io/ghostty-webgpu/docs/start/xterm/) for more API names; the native API takes a different shape from the xterm-style facade.
+These mappings describe ghostty-web 0.4.0 and the current ghostty-webgpu checkout. Check the [xterm.js mapping](https://ghostty.shaulavo.dev/docs/start/xterm/) for more API names; the native API takes a different shape from the xterm-style facade.
 
 ## Keep input as bytes
 
-Send `onData` bytes directly to your PTY. Set the socket to `arraybuffer` and pass binary output into `write`. The [PTY client](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/) includes resize and disposal.
+Send `onData` bytes directly to your PTY. Set the socket to `arraybuffer` and pass binary output into `write`. The [PTY client](https://ghostty.shaulavo.dev/docs/guides/pty/) includes resize and disposal.
 
 ## Load fonts before fitting
 
-Use [browser font loading](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/) for the main entry. Supply font URLs or bytes to [the worker entry](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) so its own font set can measure and render them.
+Use [browser font loading](https://ghostty.shaulavo.dev/docs/guides/fonts/) for the main entry. Supply font URLs or bytes to [the worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/) so its own font set can measure and render them.
 
 ## Check your feature needs
 
-URL detection, OSC 8 links and native widths are available. Search, images and ligatures remain planned. Worker link providers and finite synchronous hotkeys have capability limits. Compare current versions and renderer classes through the [benchmark report](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/).
+URL detection, OSC 8 links and native widths are available. Search, images and ligatures remain planned. Worker link providers and finite synchronous hotkeys have capability limits. Compare current versions and renderer classes through the [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/).

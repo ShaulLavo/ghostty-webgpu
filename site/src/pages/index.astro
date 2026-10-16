@@ -1,20 +1,49 @@
 ---
-import pageCss from '../styles/styles.css?inline'
-import fontCss from '../styles/fonts.css?inline'
-import FontPreloads from '../components/FontPreloads.astro'
-import firstFrameCss from '../styles/first-frame.css?inline'
-import sectionsCss from '../styles/sections.css?inline'
-import { firstGhostFrame } from '../first-frame.js'
-import Benchmark from '../components/Benchmark.astro'
-import Correctness from '../components/Correctness.astro'
-import Migration from '../components/Migration.astro'
+import landingCss from '../styles/landing.css?inline'
+import SceneTheme from '../components/SceneTheme.astro'
+import { chart, fact, score, still, wordmark, working } from '../scene/art'
+import { benchLinks, benchTabs } from '../measurements'
+import { core, correctness } from '../correctness'
 import { docsHref, docsIndex, roadmap } from '../site-links'
-
-const firstFrame = await firstGhostFrame()
+import { migrationComparison } from '../examples/migration-comparison'
 
 const version = __SITE_VERSION__
 const base = import.meta.env.BASE_URL
-const roadmapLabels = { done: 'Done', progress: 'In progress' } as const
+
+const facts = [
+  ['Only what changed is drawn', 'The renderer tracks damage per cell, so an idle terminal costs nothing and a busy one costs only its busy rows.'],
+  ['Runs anywhere', 'WebGPU where the browser has it, then WebGL2, then Canvas2D, then plain DOM. Each draws the same cells.'],
+  ['Off the main thread', 'Import ghostty-webgpu/worker and the emulator, frame builder and renderer run in a worker on an OffscreenCanvas.'],
+] as const
+
+const measured = benchTabs.map((tab) => {
+  if (tab.kind === 'pending') return { tab, data: undefined, max: 0 }
+  const data = Object.fromEntries(tab.rows.map((row) => [row.workload, row.energy]))
+  return { tab, data, max: Math.max(1.4, ...tab.rows.map((row) => row.energy)) }
+})
+
+const total = correctness.upstreamCases + correctness.localCases
+const scores = correctness.scores.map((entry) => ({
+  label: `${entry.terminal} ${entry.version}`.trim(),
+  value: entry.pass / total,
+  ours: entry.terminal === 'ghostty-webgpu',
+  text: `${entry.pass} of ${total}`,
+}))
+
+// Each ascii.rest piece on the page: the server writes its first frame as text, and the page redraws it in the
+// scene's colours.
+const arts = {
+  wordmark: still(wordmark),
+  facts: facts.map(([title, text]) => still(fact(title, text))),
+  charts: measured.map(({ data, max }) => (data ? still(chart(data, max)) : '')),
+  scores: scores.map(({ label, value, ours }) => still(score(label, value, ours))),
+  working: still(working),
+}
+const pageData = {
+  facts,
+  charts: measured.map(({ data, max }) => (data ? { data, max } : null)),
+  scores: scores.map(({ label, value, ours }) => ({ label, value, ours })),
+}
 ---
 
 <!doctype html>
@@ -23,145 +52,194 @@ const roadmapLabels = { done: 'Done', progress: 'In progress' } as const
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ghostty-webgpu: Ghostty's terminal, in the browser</title>
-    <style is:inline set:html={pageCss + fontCss + firstFrameCss + sectionsCss}></style>
-    <meta
-      name="description"
-      content="The real libghostty-vt core, unpatched, compiled to WebAssembly, with four renderers that draw only what changed. Try it live."
-    />
-    <script is:inline>
-      document.documentElement.style.setProperty('--ghost-device-pixel', `${1 / devicePixelRatio}px`)
-    </script>
+    <meta name="description" content="The real libghostty-vt core, unpatched, compiled to WebAssembly, with four renderers that draw only what changed." />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <FontPreloads />
-    <link rel="preload" href="ghostty-vt.wasm" fetchpriority="low" as="fetch" type="application/wasm" crossorigin />
-    <link rel="preload" href="ghost-frames.txt.gz" fetchpriority="low" as="fetch" crossorigin />
+    <link rel="preload" href="ghostty-vt.wasm" as="fetch" type="application/wasm" crossorigin />
+    <link rel="preload" href="bridge.wasm" as="fetch" type="application/wasm" crossorigin />
+    <SceneTheme fresh />
+    <style is:inline set:html={landingCss}></style>
   </head>
   <body>
-    <header class="masthead">
-      <div class="identity">
-        <a class="wordmark" href={base}>ghostty-webgpu</a>
-        <a class="version" href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md" title="Changelog">v{version}</a>
+    <header class="hero">
+      <div class="scene" id="scene" aria-hidden="true" inert>
+        <canvas class="scene-first" id="scene-first"></canvas>
       </div>
-      <nav class="links" aria-label="Project links">
-        <a href={docsHref()}>Docs</a>
-        <a href="#measured">Benchmarks</a>
-        <a href="https://github.com/ShaulLavo/ghostty-webgpu">GitHub</a>
-        <a href="https://www.npmjs.com/package/ghostty-webgpu">npm</a>
-      </nav>
+      <script type="text/plain" id="scene-frame"></script>
+      <script is:inline>
+        // The scene's baked first frame, drawn as ascii.rest draws it: one dot per square cell, sized as Paper Mono's
+        // ·, • and ● are in the terminal that takes over. The site's Worker writes the frame into the page above;
+        // other hosts fetch it.
+        const paintFrame = (text) => {
+          if (!text) return
+          const [palette, rows, colors] = text.split('|')
+          const inks = palette.split(',')
+          const lines = rows.split('\n')
+          const canvas = document.getElementById('scene-first')
+          if (!canvas) return
+          const ratio = devicePixelRatio || 1
+          const width = canvas.clientWidth
+          const height = canvas.clientHeight
+          canvas.width = Math.round(width * ratio)
+          canvas.height = Math.round(height * ratio)
+          const context = canvas.getContext('2d')
+          context.scale(ratio, ratio)
+          const side = Math.max(width / 200, height / lines.length)
+          const left = (width - side * 200) / 2
+          const top = (height - side * lines.length) / 2
+          const radius = { '.': 0.14, o: 0.295, O: 0.5 }
+          let at = 0
+          lines.forEach((line, y) => {
+            for (let x = 0; x < line.length; x++) {
+              const dot = radius[line[x]]
+              if (!dot) continue
+              context.fillStyle = inks[colors.charCodeAt(at++) - 48]
+              context.beginPath()
+              context.arc(left + (x + 0.5) * side, top + (y + 0.5) * side, dot * side, 0, Math.PI * 2)
+              context.fill()
+            }
+          })
+        }
+        const inline = document.getElementById('scene-frame').textContent
+        if (inline) paintFrame(inline)
+        else window.sceneFrame?.then(paintFrame)
+      </script>
+      <div class="hero-copy">
+        <h1>
+          <span class="sr-only">ghostty-webgpu</span>
+          <span class="art wordmark" data-art="wordmark" aria-hidden="true"><pre>{arts.wordmark}</pre></span>
+        </h1>
+        <p class="lede">Ghostty's terminal, in the browser. The real libghostty-vt core, unpatched, compiled to WebAssembly.</p>
+      </div>
     </header>
 
-    <main class="page">
-      <section class="intro">
-        <h1>Ghostty's terminal, in the browser.</h1>
-        <p class="lede">
-          The real libghostty-vt core, unpatched, compiled to WebAssembly. Four renderers that draw only what changed, built to run dozens of terminals on one page.
-        </p>
-        <div class="install">
-          <code>npm install ghostty-webgpu</code>
-          <button id="copy-install" type="button">Copy</button>
-        </div>
-        <p class="used-in">
-          <img src="fregat.svg" alt="" width="22" height="22" />
-          <span>Runs every terminal in <a href="https://github.com/ShaulLavo/fregat">Fregat</a>, an IDE in your browser.</span>
-        </p>
+    <nav class="bar" aria-label="Project">
+      <a href={docsHref()}>[ docs ]</a>
+      <a href="#measured">[ benchmarks ]</a>
+      <a href="https://github.com/ShaulLavo/ghostty-webgpu">[ github ]</a>
+      <a href="https://www.npmjs.com/package/ghostty-webgpu">[ npm ]</a>
+      <a class="version" href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md">v{version}</a>
+      <span class="credit" id="credit">scene from <a href="https://ascii.rest">ascii.rest</a></span>
+    </nav>
+
+    <main>
+      <section class="install" aria-label="Install">
+        <span class="prompt">&gt;</span>
+        <code id="install-command">npm install ghostty-webgpu</code>
+        <button type="button" id="copy-install">[ copy ]</button>
       </section>
 
-      <section class="window" id="window" data-ready="true" aria-label="Live terminal">
-        <div class="chrome">
-          <div class="window-dots" aria-hidden="true">
-            <span></span><span></span><span></span>
-          </div>
-          <div class="tabs" id="tabs" role="tablist" aria-label="Demos">
-            <button type="button" role="tab" data-demo="ghost" aria-selected="true">Ghost</button>
-            <button type="button" role="tab" data-demo="matrix" aria-selected="false">Matrix</button>
-            <button type="button" role="tab" data-demo="shell" aria-selected="false">Shell</button>
-          </div>
-          <span class="backend" id="backend" title="Renderer in use on this device">html</span>
-        </div>
-        <div class="screen">
-          <div id="terminal" role="tabpanel" aria-label="Animated Ghostty ghost">
-            <div id="ghost-first-frame" set:html={firstFrame}></div>
-          </div>
-        </div>
-      </section>
-      <p class="caption" id="caption"></p>
-      <p class="stat" id="stat" aria-live="polite"></p>
-      <Benchmark />
-      <section class="usage" aria-label="Usage">
-        <pre class="example" aria-label="Create a terminal"><code><span class="tk-k">import</span> <span class="tk-p">{'{'}</span> <span class="tk-t">Terminal</span> <span class="tk-p">{'}'}</span> <span class="tk-k">from</span> <span class="tk-s">'ghostty-webgpu'</span>
-
-<span class="tk-k">const</span> host <span class="tk-p">=</span> document.<span class="tk-f">getElementById</span><span class="tk-p">(</span><span class="tk-s">'terminal'</span><span class="tk-p">)!</span>
-<span class="tk-k">const</span> terminal <span class="tk-p">=</span> <span class="tk-k">await</span> <span class="tk-t">Terminal</span>.<span class="tk-f">create</span><span class="tk-p">()</span>
-<span class="tk-k">await</span> terminal.<span class="tk-f">open</span><span class="tk-p">(</span>host<span class="tk-p">)</span>
-terminal.<span class="tk-f">write</span><span class="tk-p">(</span><span class="tk-s">'hello from ghostty\r\n'</span><span class="tk-p">)</span>
-terminal.<span class="tk-f">focus</span><span class="tk-p">()</span></code></pre>
-        <details class="pty-example">
-          <summary>Connect a WebSocket PTY</summary>
-          <pre class="example" aria-label="WebSocket PTY wiring"><code><span class="tk-k">const</span> socket <span class="tk-p">=</span> <span class="tk-k">new</span> <span class="tk-t">WebSocket</span><span class="tk-p">(</span><span class="tk-s">'wss://host/pty'</span><span class="tk-p">)</span>
-socket.binaryType <span class="tk-p">=</span> <span class="tk-s">'arraybuffer'</span>
-
-terminal.<span class="tk-f">onData</span><span class="tk-p">((</span>bytes<span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
-  <span class="tk-k">if</span> <span class="tk-p">(</span>socket.readyState <span class="tk-p">!==</span> <span class="tk-t">WebSocket</span>.OPEN<span class="tk-p">)</span> <span class="tk-k">return</span>
-  socket.<span class="tk-f">send</span><span class="tk-p">(</span><span class="tk-k">new</span> <span class="tk-t">Uint8Array</span><span class="tk-p">(</span>bytes<span class="tk-p">))</span>
-<span class="tk-p">{'}'})</span>
-
-socket.<span class="tk-f">addEventListener</span><span class="tk-p">(</span><span class="tk-s">'message'</span><span class="tk-p">,</span> <span class="tk-p">(</span><span class="tk-p">{'{'}</span> data <span class="tk-p">{'}'}</span><span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
-  <span class="tk-k">if</span> <span class="tk-p">(!(</span>data <span class="tk-k">instanceof</span> <span class="tk-t">ArrayBuffer</span><span class="tk-p">))</span> <span class="tk-k">return</span>
-  terminal.<span class="tk-f">write</span><span class="tk-p">(</span><span class="tk-k">new</span> <span class="tk-t">Uint8Array</span><span class="tk-p">(</span>data<span class="tk-p">))</span>
-<span class="tk-p">{'}'})</span></code></pre>
-          <p>The mount needs a height and width. Dispose the terminal and close the socket when the connection ends.</p>
-        </details>
-      </section>
+      <hr />
 
       <section class="facts" aria-label="What makes it different">
-        <p>
-          <strong>Only what changed is drawn.</strong> The renderer tracks damage per cell, so an
-          idle terminal costs nothing and a busy one costs only its busy rows.
-        </p>
-        <p>
-          <strong>Runs anywhere.</strong> WebGPU where the browser has it, then WebGL2, then Canvas2D, then plain DOM. Each draws the same cells. This page is drawing with <span id="backend-fact">html</span>.
-        </p>
-        <p>
-          <strong>Off the main thread.</strong> Import <code>ghostty-webgpu/worker</code> and the emulator,
-          frame builder and renderer run in a worker on an OffscreenCanvas.
-        </p>
+        {facts.map(([title, text], index) => (
+          <article>
+            <h2 class="sr-only">{title}</h2>
+            <p class="sr-only">{text}</p>
+            <div class="art" data-art={`fact-${index}`} aria-hidden="true"><pre>{arts.facts[index]}</pre></div>
+          </article>
+        ))}
       </section>
-      <Correctness />
-      <Migration />
-      <section class="sect" aria-labelledby="docs-heading">
-        <h2 id="docs-heading">Docs</h2>
-        <div class="docs-grid">{docsIndex.map((column) => (
-          <div class="docs-col">
-            <h3><a href={column.links[0]!.href}>{column.title}</a></h3>
-            <ul>{column.links.map((link) => (
-              <li><a href={link.href}>{link.code ? <code>{link.label}</code> : link.label}</a></li>
-            ))}</ul>
+
+      <hr />
+
+      <section class="panel" id="measured" aria-labelledby="measured-heading">
+        <h2 id="measured-heading"><span>measured</span></h2>
+        <p>Like for like: each renderer against the same renderer in xterm.js. CPU energy as ghostty-webgpu ÷ xterm.js, so below 1.00 uses less. Ties and losses stay on the chart.</p>
+        <div class="choices" role="tablist" aria-label="Renderer" id="bench-tabs">
+          {measured.map(({ tab }, index) => (
+            <button type="button" role="tab" id={`bench-tab-${tab.id}`} aria-controls={`bench-panel-${tab.id}`} aria-selected={index === 0 ? 'true' : 'false'} tabindex={index === 0 ? 0 : -1}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {measured.map(({ tab, data }, index) => (
+          <div class="bench" role="tabpanel" id={`bench-panel-${tab.id}`} aria-labelledby={`bench-tab-${tab.id}`} hidden={index !== 0}>
+            <p class="status">{tab.title} · {tab.status}</p>
+            <p class="muted">{tab.method}</p>
+            {data ? (
+              <Fragment>
+                <div class="art" data-art={`chart-${index}`} aria-hidden="true"><pre>{arts.charts[index]}</pre></div>
+                <div class="sr-only"><table>
+                  <caption>{tab.title}: CPU energy, ghostty-webgpu ÷ xterm.js</caption>
+                  <tbody>{Object.entries(data).map(([name, value]) => <tr><th scope="row">{name}</th><td>{value.toFixed(2)}</td></tr>)}</tbody>
+                </table></div>
+              </Fragment>
+            ) : (
+              <p class="pending">The chart returns here when the new run is reviewed.</p>
+            )}
           </div>
-        ))}</div>
+        ))}
+        <p class="links"><a href={benchLinks.results}>[ full results ]</a> <a href={benchLinks.recompute}>[ recompute without a browser ]</a></p>
+      </section>
+
+      <hr />
+
+      <section class="panel" aria-labelledby="correct-heading">
+        <h2 id="correct-heading"><span>correct because it is ghostty</span></h2>
+        <p>Parsing, modes, wrapping, reflow, selection text and Unicode widths come from Ghostty's own core, libghostty-vt <a href={core.revisionUrl}>{core.revision}</a>, unpatched and built with Zig {core.zig}. The renderer and input path are ours, tested in real browsers.</p>
+        <p class="muted">{total} cases: {correctness.upstreamCases} from esctest2, {correctness.localCases} Unicode and delivery cases. <a href={correctness.doc}>Every case and failure</a>.</p>
+        <ul class="scores">
+          {scores.map(({ label, text }, index) => (
+            <li>
+              <span class="sr-only">{label}: {text}</span>
+              <div class="art" data-art={`score-${index}`} aria-hidden="true"><pre>{arts.scores[index]}</pre></div>
+            </li>
+          ))}
+        </ul>
+        <p class="muted">Not there yet: images (Sixel, Kitty graphics), ligatures, search, synchronized output.</p>
+      </section>
+
+      <hr />
+
+      <section class="panel" aria-labelledby="xterm-heading">
+        <h2 id="xterm-heading"><span>coming from xterm.js</span></h2>
+        <p>Creation is async, and data stays as bytes from the PTY to the screen. <a href={docsHref('start/xterm')}>Read the migration guide</a>.</p>
+        <dl class="map">
+          {migrationComparison.map(({ from, to }) => (
+            <div><dt><code>{from}</code></dt><dd><code>{to}</code></dd></div>
+          ))}
+        </dl>
+      </section>
+
+      <hr />
+
+      <section class="panel docs-panel" aria-labelledby="docs-heading">
+        <h2 id="docs-heading"><span>docs</span></h2>
+        <div class="tree">
+          {docsIndex.map((column) => (
+            <div>
+              <a class="branch" href={column.links[0]!.href}>{column.title}/</a>
+              <ul>{column.links.map((link) => <li><a href={link.href}>{link.label}</a></li>)}</ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <hr />
+
+      <section class="panel" aria-labelledby="roadmap-heading">
+        <h2 id="roadmap-heading"><span>roadmap</span></h2>
+        <ul class="roadmap">
+          {roadmap.map((item) => (
+            <li>
+              {item.state === 'done' ? (
+                <span class="done">[done]</span>
+              ) : (
+                <span class="wip"><span class="art inline" data-art="working" aria-hidden="true"><pre>{arts.working}</pre></span><span class="sr-only">In progress</span></span>
+              )}
+              <a href={item.plan}>{item.text}</a>
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
 
-    <footer class="colophon">
-      <section class="preview" aria-labelledby="preview-heading">
-        <h2 id="preview-heading">Roadmap</h2>
-        <table class="roadmap">
-          <tbody>{roadmap.map((item) => (
-            <tr><td class={`st-${item.state}`}>{roadmapLabels[item.state]}</td><td><a class="roadmap-link" href={item.plan}>{item.text}</a></td></tr>
-          ))}</tbody>
-        </table>
-      </section>
-      <nav class="footer-links" aria-label="Related">
-        <a href="https://github.com/ShaulLavo/fregat">Fregat</a>
-        <a href="https://github.com/ShaulLavo/singapore">Singapore editor</a>
-        <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md">Changelog</a>
-      </nav>
-      <p>
-        MIT licensed. Built on libghostty-vt. Not affiliated with the Ghostty project. The ghost
-        animation is from <a href="https://github.com/ghostty-org/website">ghostty.org</a>, used
-        under its MIT license.
-      </p>
+    <footer>
+      <p>MIT licensed. Built on libghostty-vt. Not affiliated with the Ghostty project. Scenes and art from <a href="https://ascii.rest">ascii.rest</a> (<a href="licenses/ascii.rest.txt">MIT licence</a>), set in Paper Mono (<a href="licenses/paper-mono.txt">OFL</a>).</p>
+      <p><a href="https://github.com/ShaulLavo/fregat">Fregat</a> · <a href="https://github.com/ShaulLavo/singapore">Singapore editor</a> · <a href="https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md">Changelog</a></p>
     </footer>
 
-    <script src="../main.ts"></script>
+    <script type="application/json" id="page-data" set:html={JSON.stringify(pageData)} />
+    <script src="../landing.ts"></script>
   </body>
 </html>

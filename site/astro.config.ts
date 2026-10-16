@@ -42,17 +42,22 @@ const references = [
 })
 
 export default defineConfig({
-  base: process.env.SITE_ORIGIN ? '/' : '/ghostty-webgpu',
+  base: '/',
   // Keep the authored markup verbatim so inline whitespace renders unchanged.
   compressHTML: false,
-  site: process.env.SITE_ORIGIN ?? 'https://shaullavo.github.io',
+  site: process.env.SITE_ORIGIN ?? 'https://ghostty.shaulavo.dev',
   integrations: [
     docsLinks(),
     starlight({
       title: 'ghostty-webgpu',
+      // The site's own 404 is ascii.rest's not-found piece in the scene's colours.
+      disable404Route: true,
       description: 'Ghostty’s terminal core in the browser. Guides and API reference.',
       ...docsTheme,
-      components: { Head: './src/components/DocsHead.astro' },
+      components: {
+        Head: './src/components/DocsHead.astro',
+        ThemeSelect: './src/components/NoThemeSelect.astro',
+      },
       customCss: docsTheme.customCss.concat(['./src/styles/docs.css']),
       editLink: { baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/ghostty-webgpu/site/' },
       lastUpdated: true,
@@ -88,7 +93,7 @@ export default defineConfig({
           starlightLinksValidator({
             sameSitePolicy: 'validate',
             // Starlight cannot inspect the custom landing page; verify-docs checks it in a browser.
-            exclude: ['https://shaullavo.github.io/ghostty-webgpu/'],
+            exclude: ['https://ghostty.shaulavo.dev/'],
           }),
         ]),
     }),

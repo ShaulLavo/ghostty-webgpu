@@ -1,7 +1,7 @@
 import { unified } from '@astrojs/markdown-remark'
 import type { AstroIntegration } from 'astro'
 
-const publishedDocs = 'https://shaullavo.github.io/ghostty-webgpu/docs/'
+const publishedDocs = 'https://ghostty.shaulavo.dev/docs/'
 
 interface MarkdownNode {
   type: string

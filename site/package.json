@@ -7,11 +7,10 @@
     "dev": "bun scripts/sync-assets.ts && astro dev",
     "preview": "astro preview",
     "typecheck": "../../node_modules/.bin/tsc --noEmit -p tsconfig.json && ../../node_modules/.bin/tsc --noEmit -p tsconfig.tests.json",
-    "verify:sections": "bun scripts/verify-sections.ts",
-    "verify:migration": "bun scripts/verify-migration.ts",
-    "docs:check": "bun scripts/check-docs.ts && bun test scripts/pty.test.ts"
+    "docs:check": "bun scripts/check-docs.ts && bun test scripts/pty.test.ts worker/index.test.ts"
   },
   "dependencies": {
+    "ascii.rest": "0.4.0",
     "ghostty-webgpu": "workspace:*"
   },
   "devDependencies": {
@@ -21,7 +20,6 @@
     "@types/bun": "1.4.2",
     "@webgpu/types": "0.1.74",
     "astro": "7.3.5",
-    "just-bash": "3.6.0",
     "playwright": "1.63.0",
     "starlight-links-validator": "0.26.0",
     "starlight-typedoc": "0.23.1",

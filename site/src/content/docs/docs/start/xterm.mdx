@@ -3,7 +3,7 @@ title: Coming from xterm.js
 description: Map xterm.js APIs and capabilities to the native Ghostty API.
 ---
 
-Creation is asynchronous, input events carry bytes, and the main entry writes synchronously. Begin with [the quick start](https://shaullavo.github.io/ghostty-webgpu/docs/start/quick-start/), then replace your transport and appearance wiring.
+Creation is asynchronous, input events carry bytes, and the main entry writes synchronously. Begin with [the quick start](https://ghostty.shaulavo.dev/docs/start/quick-start/), then replace your transport and appearance wiring.
 
 import { Code } from 'astro:components'
 import { docsCodeThemes } from '../../../../docs-theme.js'
@@ -87,8 +87,8 @@ Use `sendInput` for generated input, `paste` for bracketed paste and `key` for a
 | Unicode 11 / Unicode graphemes | Native widths and mode 2027                                                                                                 | Built in                                        |
 | Web links                      | URL detection, OSC 8 and link providers                                                                                     | Built in on main entry                          |
 | Clipboard                      | Host `clipboardWrite` policy for OSC 52 writes; defaults to deny                                                            | Write-only policy                               |
-| Attach                         | [WebSocket recipe](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/)                                             | Guide                                           |
-| Web fonts                      | [Load browser or worker faces](https://shaullavo.github.io/ghostty-webgpu/docs/guides/fonts/)                               | Guide                                           |
+| Attach                         | [WebSocket recipe](https://ghostty.shaulavo.dev/docs/guides/pty/)                                                           | Guide                                           |
+| Web fonts                      | [Load browser or worker faces](https://ghostty.shaulavo.dev/docs/guides/fonts/)                                             | Guide                                           |
 | Serialize                      | History reads, selection formats and visual viewport capture                                                                | Partial; full emulator serialization is planned |
 | Search                         | Retained-cell search                                                                                                        | Planned                                         |
 | Image                          | Image protocols                                                                                                             | Planned                                         |
@@ -105,8 +105,8 @@ Use `appearance.scrollbackLimit` and `appearance.scrollbackByteLimit`. Retention
 
 ## Compare performance on your workload
 
-The [benchmark report](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/) records the environments, methods, renderer-specific results and losses. Compare WebGL with WebGL and DOM with DOM. Input latency, Unicode output and scrolling are separate workloads.
+The [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) records the environments, methods, renderer-specific results and losses. Compare WebGL with WebGL and DOM with DOM. Input latency, Unicode output and scrolling are separate workloads.
 
 ## Next steps
 
-[Connect your PTY](https://shaullavo.github.io/ghostty-webgpu/docs/guides/pty/), [apply a theme](https://shaullavo.github.io/ghostty-webgpu/docs/guides/themes/) and [check the worker boundaries](https://shaullavo.github.io/ghostty-webgpu/docs/guides/workers/) before moving your host off the main thread.
+[Connect your PTY](https://ghostty.shaulavo.dev/docs/guides/pty/), [apply a theme](https://ghostty.shaulavo.dev/docs/guides/themes/) and [check the worker boundaries](https://ghostty.shaulavo.dev/docs/guides/workers/) before moving your host off the main thread.

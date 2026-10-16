@@ -1,0 +1,65 @@
+---
+import { load } from 'ascii.rest'
+import type { Piece } from 'ascii.rest'
+import landingCss from '../styles/landing.css?inline'
+import SceneTheme from '../components/SceneTheme.astro'
+import { docsHref } from '../site-links'
+
+const piece = (await load['not-found']()) as Piece
+const still = piece.default(piece.meta.options)(piece.meta.still ?? 0, { paper: false })
+const base = import.meta.env.BASE_URL
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Not found · ghostty-webgpu</title>
+    <link rel="icon" href={`${base.replace(/\/$/, '')}/favicon.svg`} type="image/svg+xml" />
+    <SceneTheme />
+    <style is:inline set:html={landingCss}></style>
+    <style>
+      main.not-found {
+        min-height: 100dvh;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 28px;
+        padding: 24px;
+      }
+
+      .not-found pre {
+        margin: 0;
+        /* ascii.rest's own face for its art: Paper Mono's full block is narrower than its cell and leaves seams. */
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+        letter-spacing: 0;
+        font-size: min(14px, 2.6vw);
+        /* Rows touch, so the block letters are solid. */
+        line-height: 1;
+        color: var(--accent);
+      }
+
+      .not-found nav {
+        display: flex;
+        gap: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="not-found">
+      <h1 class="sr-only">Page not found</h1>
+      <pre id="not-found" role="img" aria-label="404, page not found: a ghost drifting under the number">{still}</pre>
+      <nav aria-label="Ways back">
+        <a href={base}>[ home ]</a>
+        <a href={docsHref()}>[ docs ]</a>
+      </nav>
+    </main>
+    <script>
+      import { load, mount } from 'ascii.rest'
+
+      const host = document.getElementById('not-found')!
+      mount(host, await load['not-found']())
+    </script>
+  </body>
+</html>

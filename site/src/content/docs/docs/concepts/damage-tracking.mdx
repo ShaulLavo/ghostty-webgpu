@@ -21,7 +21,7 @@ Write / resize / appearance change
 
 A first frame needs the whole viewport. Later writes can reuse unchanged rows and buffers. GPU paths build persistent cell and glyph records in Zig and upload changed byte ranges. Canvas and DOM paths use their own row reuse strategies. A resize, font change, palette change or lost GPU resource can require broader repainting.
 
-Scrolling changes which retained rows occupy the viewport. It can also change glyph placement and frame ownership. Damage-aware rendering reduces unnecessary work, but the cost still depends on the renderer and workload. The [benchmark report](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/benchmarks/) records those differences.
+Scrolling changes which retained rows occupy the viewport. It can also change glyph placement and frame ownership. Damage-aware rendering reduces unnecessary work, but the cost still depends on the renderer and workload. The [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) records those differences.
 
 ## Observer ownership
 
@@ -29,4 +29,4 @@ An observer that needs rendered text should use the coherent submitted frame. Na
 
 `refresh(startRow, endRow)` requests repainting a range. `clearTextureAtlas` releases cached glyph images so they can be rebuilt. These operations change renderer work; the emulator remains the owner of text.
 
-See [TerminalSubmittedFrame](https://shaullavo.github.io/ghostty-webgpu/docs/reference/api/interfaces/terminalsubmittedframe/) and the frame methods on [Terminal](https://shaullavo.github.io/ghostty-webgpu/docs/reference/api/classes/terminal/) in the generated API. Read [the wasm core](https://shaullavo.github.io/ghostty-webgpu/docs/concepts/how-it-works/) for the full pipeline.
+See [TerminalSubmittedFrame](https://ghostty.shaulavo.dev/docs/reference/api/interfaces/terminalsubmittedframe/) and the frame methods on [Terminal](https://ghostty.shaulavo.dev/docs/reference/api/classes/terminal/) in the generated API. Read [the wasm core](https://ghostty.shaulavo.dev/docs/concepts/how-it-works/) for the full pipeline.

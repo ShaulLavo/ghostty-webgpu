@@ -1,0 +1,410 @@
+/* The scene's colours arrive as --ground, --surface, --line, --text, --muted, --accent, --accentText and --second. */
+:root {
+  color-scheme: dark;
+  --font: 'Paper Mono', ui-monospace, Menlo, Consolas, monospace;
+  --measure: 1040px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font: 15px/1.6 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+code {
+  font: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ascii.rest pieces: text first, then a canvas the width of that text. Neither may widen the page. */
+.art {
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.art pre {
+  margin: 0;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: pre;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.art canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.art.inline,
+.art.inline canvas {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.hero {
+  position: relative;
+}
+
+.scene {
+  position: relative;
+  width: 100%;
+  /* Every scene is 200 by 100 square cells; the terminal settles the exact height once its font is measured. */
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  background: var(--ground);
+}
+
+.scene-first {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-copy {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: clamp(18px, 4vw, 48px);
+  /* The scene is busy behind the wordmark: fade it nearly to the ground before the letters start. */
+  padding-top: clamp(60px, 10vw, 160px);
+  background: linear-gradient(
+    transparent,
+    color-mix(in srgb, var(--ground) 80%, transparent) 30%,
+    color-mix(in srgb, var(--ground) 94%, transparent) 55%,
+    var(--ground)
+  );
+  pointer-events: none;
+}
+
+.hero-copy h1 {
+  margin: 0;
+  max-width: min(100%, 900px);
+}
+
+.wordmark {
+  display: block;
+}
+
+.wordmark pre {
+  width: 100%;
+}
+
+.wordmark canvas {
+  width: 100% !important;
+}
+
+.wordmark pre {
+  /* The banner is 145 columns, 87em of Paper Mono: fit it to the hero's text width. */
+  font-size: calc(min(900px, 100vw - 2 * clamp(18px, 4vw, 48px)) / 88);
+  color: var(--accent);
+}
+
+.lede {
+  margin: 14px 0 0;
+  max-width: 60ch;
+  color: var(--text);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: baseline;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 16px clamp(16px, 4vw, 40px);
+}
+
+.bar .version {
+  color: var(--muted);
+}
+
+.credit {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+main,
+footer {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 40px);
+}
+
+hr {
+  border: 0;
+  margin: 40px 0;
+  height: 1.2em;
+  overflow: hidden;
+  color: var(--line);
+}
+
+/* ascii.rest's dividers piece: · · ─ ─ ──────━━━━━━────── ─ ─ · · */
+hr::before {
+  display: block;
+  content: '· · ─ ─ ──────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────── ─ ─ · ·';
+  text-align: center;
+  white-space: nowrap;
+}
+
+.install {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: baseline;
+  margin-top: 8px;
+  font-size: 17px;
+}
+
+.install .prompt {
+  color: var(--accent);
+}
+
+.install code::after {
+  content: '█';
+  color: var(--accent);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install code::after {
+    animation: none;
+  }
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.panel h2 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.panel h2 span::before {
+  content: '╭─ ';
+  color: var(--line);
+}
+
+.panel h2 span::after {
+  content: ' ─────────────────';
+  color: var(--line);
+}
+
+.panel p {
+  max-width: 72ch;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.muted,
+.status,
+.pending {
+  color: var(--muted);
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 18px 0 10px;
+}
+
+.choices button {
+  color: var(--muted);
+}
+
+.choices button::before {
+  content: '( ) ';
+}
+
+.choices button[aria-selected='true'] {
+  color: var(--text);
+}
+
+.choices button[aria-selected='true']::before {
+  content: '(*) ';
+  color: var(--accent);
+}
+
+.scores {
+  grid-template-columns: minmax(0, 1fr);
+  list-style: none;
+  margin: 18px 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.map {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0 0;
+}
+
+.map > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 18px;
+  padding: 6px 0;
+  border-top: 1px dashed var(--line);
+}
+
+.map dt {
+  color: var(--muted);
+}
+
+.map dd {
+  margin: 0;
+}
+
+.map dd::before {
+  content: '→ ';
+  color: var(--accent);
+}
+
+.tree {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px;
+}
+
+.tree .branch {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.tree ul {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.tree li::before {
+  content: '├─ ';
+  color: var(--line);
+}
+
+.tree li:last-child::before {
+  content: '└─ ';
+}
+
+.roadmap {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.roadmap li {
+  display: grid;
+  grid-template-columns: 7ch 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.roadmap a {
+  color: var(--text);
+}
+
+.done {
+  color: var(--accent);
+}
+
+footer {
+  margin-top: 56px;
+  padding-bottom: 40px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 700px) {
+  html,
+  body {
+    font-size: 14px;
+  }
+
+  .hero-copy {
+    position: static;
+    padding: 14px 16px 0;
+    background: none;
+  }
+
+  .credit {
+    margin-left: 0;
+  }
+
+  .map > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  /* A card is 34 columns; on a phone it fills the width so its text reads at body size. */
+  .facts .art canvas {
+    width: 100% !important;
+  }
+
+  /* Four narrow columns wrap badly on a phone; the bar's [ docs ] link leads there instead. */
+  .docs-panel,
+  .docs-panel + hr {
+    display: none;
+  }
+}
