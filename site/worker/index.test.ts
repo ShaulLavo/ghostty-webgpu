@@ -1,4 +1,7 @@
 import { expect, test } from 'bun:test'
+import { load } from 'ascii.rest'
+import type { Piece } from 'ascii.rest'
+import { frameText } from '../src/scene/frame'
 import worker, { type Env } from './index'
 
 const page =
@@ -7,7 +10,7 @@ const scenes = [
   { name: 'tokyo-rain', theme: { ground: '#07060d', accent: '#ffc65e' } },
   { name: 'kyoto-dusk', theme: { ground: '#0b0a16', accent: '#e28fab' } },
 ]
-const frame = '#07060d,#ffc65e|.oO\n O|01<>'
+const frame = '2,2|#07060d,#ffc65e|.o\n O|01<'
 
 interface Stub extends Env {
   readonly seen: string[]
@@ -87,4 +90,14 @@ test('files pass through untouched', async () => {
   }
   const response = await worker.fetch(new Request('https://ghostty.test/x.wasm'), wasm)
   expect(response.headers.get('etag')).toBe('"w"')
+})
+
+test('a baked frame from the build passes into the landing page whole', async () => {
+  const baked = frameText((await load['tokyo-rain']()) as Piece)
+  expect(baked).toStartWith('200,100|')
+  const response = await worker.fetch(
+    new Request('https://ghostty.test/?scene=tokyo-rain'),
+    assets({}, baked),
+  )
+  expect(await response.text()).toContain(`id="scene-frame">${baked}</script>`)
 })

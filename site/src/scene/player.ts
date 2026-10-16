@@ -1,13 +1,14 @@
 import { load, type Piece, type PieceName } from 'ascii.rest'
 import { fitTerminalFont, Terminal } from '../../../dist/index.js'
+import { coverMap, sceneGrid, SCROLLBAR } from './grid.js'
 import type { SceneTheme } from './theme'
 
 export const SCENE_FONT = '"Paper Mono", ui-monospace, monospace'
 
-const font = (size: number, lineHeight = 1) =>
+const font = (size: number, lineHeight: number, letterSpacing = 0) =>
   fitTerminalFont(
     document,
-    { boldWeight: 600, family: SCENE_FONT, letterSpacing: 0, lineHeight, size, weight: 400 },
+    { boldWeight: 600, family: SCENE_FONT, letterSpacing, lineHeight, size, weight: 400 },
     devicePixelRatio,
   )
 
@@ -19,16 +20,25 @@ const rgb = (hex: string) => {
 const sgr = (layer: number, color: number) =>
   `\x1b[${layer};2;${(color >> 16) & 255};${(color >> 8) & 255};${color & 255}m`
 
-/** Square cells `columns` across, each glyph as wide as its cell, as ascii.rest's canvas draws a scene. */
-function squareCells(host: HTMLElement, columns: number, rows: number) {
-  const side = host.clientWidth / columns
-  let size = side / 0.6
-  while (size > 2 && font(size).cssCellWidth > side) size -= 0.125
-  const width = font(size).cssCellWidth
-  let lineHeight = Math.max(0.5, width / font(size).cssCellHeight)
-  while (font(size, lineHeight).cssCellHeight < width) lineHeight += 0.01
-  host.style.height = `${Math.ceil(rows * font(size, lineHeight).cssCellHeight)}px`
-  return { lineHeight, size }
+/**
+ * Font settings whose cell is exactly `cell` CSS pixels square: the largest face whose half-height line fits, its
+ * line raised to the cell's height and its advance widened to the cell's width.
+ */
+function exactCell(cell: number) {
+  let size = cell * 2
+  while (size > 1 && (font(size, 0.5).cssCellHeight > cell || font(size, 0.5).cssCellWidth > cell))
+    size -= 1 / 16
+  let lineHeight = 0.5
+  while (lineHeight < 2 && font(size, lineHeight + 0.005).cssCellHeight <= cell) lineHeight += 0.005
+  const letterSpacing = cell - font(size, lineHeight).cssCellWidth
+  return { letterSpacing, lineHeight, size }
+}
+
+/** The grid for the host's width; sets the host's height to its whole rows. */
+function fitHost(host: HTMLElement, cols: number, rows: number) {
+  const grid = sceneGrid(host.clientWidth, devicePixelRatio, cols, rows)
+  host.style.height = `${grid.height}px`
+  return exactCell(grid.cell)
 }
 
 interface Grid {
@@ -38,18 +48,9 @@ interface Grid {
   readonly sentFg: Int32Array
 }
 
-/** Covers the terminal with the scene: nearest scene cells repeat when pixel snapping leaves a few spare. */
 function coverGrid(columns: number, rows: number, cols: number, sceneRows: number): Grid {
-  const scale = Math.max(columns / cols, rows / sceneRows)
-  const offX = (cols * scale - columns) / 2
-  const offY = (sceneRows * scale - rows) / 2
   return {
-    mapX: Int32Array.from({ length: columns }, (_, x) =>
-      Math.min(cols - 1, Math.floor((x + offX) / scale)),
-    ),
-    mapY: Int32Array.from({ length: rows }, (_, y) =>
-      Math.min(sceneRows - 1, Math.floor((y + offY) / scale)),
-    ),
+    ...coverMap(columns, rows, cols, sceneRows),
     sentCh: new Int32Array(columns * rows).fill(-1),
     sentFg: new Int32Array(columns * rows).fill(-1),
   }
@@ -96,12 +97,12 @@ export async function mountScene(
   const piece = (await load[name]()) as Piece
   const { cols, rows, palette = [], fps } = piece.meta
   await document.fonts.load(`400 14px ${SCENE_FONT}`).catch(() => undefined)
-  const { lineHeight, size } = squareCells(host, cols, rows)
+  const cellFont = fitHost(host, cols, rows)
   const ground = rgb(theme.ground)
   const terminal = await Terminal.create({
     appearance: {
       cursor: { blink: false, style: 'block' },
-      font: { family: SCENE_FONT, lineHeight, size },
+      font: { family: SCENE_FONT, ...cellFont },
       scrollbackLimit: 0,
       theme: {
         background: ground,
@@ -116,7 +117,7 @@ export async function mountScene(
       },
     },
     padding: { top: 0, bottom: 0, left: 0, right: 0 },
-    scrollbar: { width: 1 },
+    scrollbar: { width: SCROLLBAR },
     // The same URLs the page preloads, so the browser fetches each file once.
     runtime: {
       kind: 'owned',
@@ -140,6 +141,8 @@ export async function mountScene(
     const { columns, rows: height } = terminal.appearance.grid
     if (grid?.mapX.length !== columns || grid.mapY.length !== height) {
       grid = coverGrid(columns, height, cols, rows)
+      // Beside the first frame's data-grid: the two must agree for the hand-over to keep its picture.
+      host.dataset.terminalGrid = `${columns}x${height}`
       terminal.write('\x1b[2J')
     }
     const out = frameOutput(frame(t, { paper: false, color }).split('\n'), color, cols, inks, grid)
@@ -154,13 +157,13 @@ export async function mountScene(
   })
   let t = piece.meta.still ?? 0
   draw(t)
-  // A new width (a resized window, a turned phone) needs new square cells; the grid change redraws the scene.
+  // A new width (a resized window, a turned phone) needs a new grid; the terminal's resize redraws the scene.
   terminal.onResize(() => draw(t))
   let width = host.clientWidth
   new ResizeObserver(() => {
     if (host.clientWidth === width) return
     width = host.clientWidth
-    terminal.setFont(squareCells(host, cols, rows))
+    terminal.setFont(fitHost(host, cols, rows))
   }).observe(host)
   if (reducedMotion || !fps) return terminal
 

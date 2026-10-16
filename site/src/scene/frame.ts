@@ -1,7 +1,8 @@
 import type { Piece } from 'ascii.rest'
 
-// A scene's resting frame as text: its palette on the first line, then a row of dots per scene row (' ', '.', 'o',
-// 'O' for ascii.rest's ' ', '·', '•', '●'), then '|' and one palette index per dot as a character from '0'.
+// A scene's resting frame as text, in four '|'-separated parts: its columns and rows, its palette, a row of dots per
+// scene row (' ', '.', 'o', 'O' for ascii.rest's ' ', '·', '•', '●'), and one palette index per dot as a character
+// from '0'.
 const DOTS: Readonly<Record<string, string>> = { '·': '.', '•': 'o', '●': 'O' }
 
 export function frameText(piece: Piece): string {
@@ -19,5 +20,5 @@ export function frameText(piece: Piece): string {
     }
     dots.push(row.trimEnd())
   }
-  return [palette.join(','), dots.join('\n'), colors].join('|')
+  return [`${cols},${rows}`, palette.join(','), dots.join('\n'), colors].join('|')
 }

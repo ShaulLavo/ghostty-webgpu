@@ -119,6 +119,32 @@ try {
     `Resized scene is ${resized}px tall, a fresh load differs`,
   )
   await page.setViewportSize({ width: 1440, height: 960 })
+  // The first frame and the terminal that replaces it draw the same grid, at fractional pixel ratios too.
+  for (const [width, deviceScaleFactor] of [
+    [1024, 1.5],
+    [1023, 1.5],
+    [321, 1.5],
+    [420, 1.25],
+    [390, 3],
+  ] as const) {
+    const context = await browser.newContext({
+      viewport: { width, height: 900 },
+      deviceScaleFactor,
+    })
+    const scenePage = await context.newPage()
+    await scenePage.goto(new URL('../?scene=tokyo-rain', root).href)
+    await scenePage.waitForFunction(() => document.getElementById('scene')!.dataset['terminalGrid'])
+    const grids = await scenePage.evaluate(() => {
+      const scene = document.getElementById('scene')!
+      return [scene.dataset['grid'], scene.dataset['terminalGrid']]
+    })
+    assert.equal(
+      grids[1],
+      grids[0],
+      `First frame and terminal grids differ at ${width}px, ratio ${deviceScaleFactor}`,
+    )
+    await context.close()
+  }
   // A missing page at any depth is the site's 404, with its font.
   const missing = await page.goto(new URL('../missing/deep/', root).href)
   assert.equal(missing?.status(), 404)

@@ -1,6 +1,8 @@
 ---
 import landingCss from '../styles/landing.css?inline'
 import SceneTheme from '../components/SceneTheme.astro'
+import gridSource from '../scene/grid.js?raw'
+import firstFrameSource from '../scene/first-frame.js?raw'
 import { chart, fact, score, still, wordmark, working } from '../scene/art'
 import { benchLinks, benchTabs } from '../measurements'
 import { core, correctness } from '../correctness'
@@ -44,6 +46,9 @@ const pageData = {
   charts: measured.map(({ data, max }) => (data ? { data, max } : null)),
   scores: scores.map(({ label, value, ours }) => ({ label, value, ours })),
 }
+
+// The grid module and the first-frame painter, inlined and scoped so the hero paints before any bundle loads.
+const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firstFrameSource, '})()'].join('\n')
 ---
 
 <!doctype html>
@@ -65,44 +70,7 @@ const pageData = {
         <canvas class="scene-first" id="scene-first"></canvas>
       </div>
       <script type="text/plain" id="scene-frame"></script>
-      <script is:inline>
-        // The scene's baked first frame, drawn as ascii.rest draws it: one dot per square cell, sized as Paper Mono's
-        // ·, • and ● are in the terminal that takes over. The site's Worker writes the frame into the page above;
-        // other hosts fetch it.
-        const paintFrame = (text) => {
-          if (!text) return
-          const [palette, rows, colors] = text.split('|')
-          const inks = palette.split(',')
-          const lines = rows.split('\n')
-          const canvas = document.getElementById('scene-first')
-          if (!canvas) return
-          const ratio = devicePixelRatio || 1
-          const width = canvas.clientWidth
-          const height = canvas.clientHeight
-          canvas.width = Math.round(width * ratio)
-          canvas.height = Math.round(height * ratio)
-          const context = canvas.getContext('2d')
-          context.scale(ratio, ratio)
-          const side = Math.max(width / 200, height / lines.length)
-          const left = (width - side * 200) / 2
-          const top = (height - side * lines.length) / 2
-          const radius = { '.': 0.14, o: 0.295, O: 0.5 }
-          let at = 0
-          lines.forEach((line, y) => {
-            for (let x = 0; x < line.length; x++) {
-              const dot = radius[line[x]]
-              if (!dot) continue
-              context.fillStyle = inks[colors.charCodeAt(at++) - 48]
-              context.beginPath()
-              context.arc(left + (x + 0.5) * side, top + (y + 0.5) * side, dot * side, 0, Math.PI * 2)
-              context.fill()
-            }
-          })
-        }
-        const inline = document.getElementById('scene-frame').textContent
-        if (inline) paintFrame(inline)
-        else window.sceneFrame?.then(paintFrame)
-      </script>
+      <script is:inline set:html={firstFrameScript}></script>
       <div class="hero-copy">
         <h1>
           <span class="sr-only">ghostty-webgpu</span>
