@@ -1,8 +1,7 @@
 import { GhosttyRuntime } from '../src/core/runtime.js'
-import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
-import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
-import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
+import { measuredRenderState } from './native-state.js'
+import { createBenchmarkRenderer, parseBenchmarkBackend } from './renderer-factory.js'
 import type {
   RendererBenchmark,
   BenchmarkScenario,
@@ -11,7 +10,9 @@ import type {
 
 const columns = 200
 const rows = 50
-const backend = new URL(location.href).searchParams.get('backend') ?? 'webgpu'
+const backend = parseBenchmarkBackend(
+  new URL(location.href).searchParams.get('backend') ?? 'webgpu',
+)
 const mount = document.querySelector('main')
 if (!mount) throw new Error('Missing benchmark mount')
 const nativeRequestFrame = window.requestAnimationFrame.bind(window)
@@ -22,9 +23,15 @@ let frameRequests = 0
 let writeMilliseconds: number[] = []
 let writtenBytes = 0
 let sequence = 0
-let decodedRows = 0
-let decodedCells = 0
+const decoded = { rows: 0, cells: 0 }
 let adapterInfo: unknown
+let rendererPath = 'ghostty-web'
+const drawErrors: string[] = []
+
+function assertNoDrawErrors(): void {
+  if (drawErrors.length === 0) return
+  throw new Error(`Renderer reported ${drawErrors.length} draw error(s): ${drawErrors.join('; ')}`)
+}
 
 window.requestAnimationFrame = (callback) => {
   frameRequests += 1
@@ -56,7 +63,7 @@ const font = fitTerminalFont(
 )
 
 interface Driver {
-  dispose(): void
+  dispose(): Promise<void> | void
   metrics(): Readonly<Record<string, number>>
   output(): string
   scroll(delta: number): void
@@ -80,29 +87,41 @@ async function createNativeDriver(): Promise<Driver> {
     rows,
     font,
     onFrame: () => {},
+    onError: (cause: unknown) => {
+      const message = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)
+      drawErrors.push(message)
+      window.__rendererBenchFailure = message
+    },
     needsFrameRows: () => false,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
-    renderState: {
-      update: () => state.update(),
-      acknowledge: () => state.acknowledge(),
-      readCursor: () => state.readCursor(),
-      readRows: (options: Parameters<typeof state.readRows>[0]) => {
-        const result = state.readRows(options)
-        decodedRows += result.length
-        decodedCells += result.reduce((sum, row) => sum + row.cells.length, 0)
-        return result
-      },
-    },
+    renderState: measuredRenderState(state, decoded),
   }
-  const renderer = await createRenderer(options)
+  if (backend === 'ghostty-web') throw new Error('Native renderer backend required')
+  let created: Awaited<ReturnType<typeof createBenchmarkRenderer>>
+  try {
+    created = await createBenchmarkRenderer(backend, options)
+  } catch (cause) {
+    runtime.dispose()
+    throw cause
+  }
+  adapterInfo = created.adapter
+  rendererPath = created.path
+  const renderer = created.renderer
   renderer.setCursorBlinkEnabled(false)
   renderer.setFocused(false)
   return {
-    dispose() {
-      renderer.dispose()
-      runtime.dispose()
+    async dispose() {
+      try {
+        await renderer.dispose()
+      } finally {
+        runtime.dispose()
+      }
     },
-    metrics: () => ({ ...renderer.metrics, decodedRows, decodedCells }),
+    metrics: () => ({
+      ...renderer.metrics,
+      decodedRows: decoded.rows,
+      decodedCells: decoded.cells,
+    }),
     output: () =>
       state
         .readRows()
@@ -122,22 +141,6 @@ async function createNativeDriver(): Promise<Driver> {
       renderer.notifyWrite()
     },
   }
-}
-
-async function createRenderer(options: Parameters<typeof WebGpuTerminalRenderer.create>[0]) {
-  if (backend === 'canvas2d') return CanvasTerminalRenderer.create(options)
-  if (backend === 'webgl2') return WebGlTerminalRenderer.create(options)
-  if (backend !== 'webgpu') throw new Error(`Unknown backend: ${backend}`)
-  const adapter = await navigator.gpu?.requestAdapter({ powerPreference: 'high-performance' })
-  if (!adapter) throw new Error('No WebGPU adapter')
-  adapterInfo = {
-    vendor: adapter.info.vendor,
-    architecture: adapter.info.architecture,
-    description: adapter.info.description,
-    fallback: adapter.info.isFallbackAdapter,
-  }
-  const device = await adapter.requestDevice()
-  return WebGpuTerminalRenderer.create({ ...options, deviceFactory: async () => device })
 }
 
 async function createBaselineDriver(): Promise<Driver> {
@@ -169,6 +172,11 @@ async function createBaselineDriver(): Promise<Driver> {
 }
 
 const driver = backend === 'ghostty-web' ? await createBaselineDriver() : await createNativeDriver()
+
+function assertSelectedRendererPath(): void {
+  if (backend === 'canvas2d-pixels' && rendererPath !== 'pixels')
+    throw new Error('Canvas pixel benchmark arm selected a different paint mode')
+}
 
 function outputLine(index: number): string {
   return (
@@ -236,6 +244,7 @@ async function run(
     await frame()
   }
   await frame()
+  assertNoDrawErrors()
   const elapsedMilliseconds = performance.now() - started
   const after = driver.metrics()
   const metrics = Object.fromEntries(
@@ -256,11 +265,14 @@ async function run(
 writeLines(200)
 await frame()
 await frame()
+assertNoDrawErrors()
+assertSelectedRendererPath()
 window.__rendererBench = {
   dispose: () => driver.dispose(),
   getPageInfo: () => ({
     adapter: adapterInfo,
     backend,
+    rendererPath,
     columns,
     rows,
     dpr: devicePixelRatio,

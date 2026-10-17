@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { platform, release } from 'node:os'
 import { chromium, type CDPSession, type Page } from 'playwright'
 import { displayedInk } from './displayed-ink'
+import { benchmarkBackends } from '../bench/renderer-benchmark-types'
 import type { BenchmarkBackend, BenchmarkScenario } from '../bench/renderer-benchmark-types'
 
 const root = join(import.meta.dirname, '..')
@@ -21,9 +22,8 @@ assert(
   scenarios.length > 0 && scenarios.length === scenarioNames.length,
   'Unknown or repeated BENCH_SCENARIOS',
 )
-const allowedBackends: readonly BenchmarkBackend[] = ['canvas2d', 'webgl2', 'webgpu', 'ghostty-web']
 const requested = (process.env.BENCH_BACKENDS ?? 'canvas2d,webgl2,webgpu').split(',')
-const backends = allowedBackends.filter((backend) => requested.includes(backend))
+const backends = benchmarkBackends.filter((backend) => requested.includes(backend))
 assert(
   backends.length === requested.length && backends.length > 0,
   'Unknown or repeated BENCH_BACKENDS',
@@ -126,9 +126,10 @@ async function buildBrowserBundle(sourceRoot: string): Promise<string> {
 }
 
 async function routePage(page: Page, bundle: string, sourceRoot: string): Promise<void> {
-  const [wasm, bridge] = await Promise.all([
+  const [wasm, bridge, canvasCompose] = await Promise.all([
     readFile(join(sourceRoot, 'ghostty-vt.wasm')),
     readFile(join(sourceRoot, 'bridge.wasm')),
+    readFile(join(sourceRoot, 'canvas-compose.wasm')),
   ])
   await page.route(`${origin}/**`, async (route) => {
     const url = new URL(route.request().url())
@@ -138,6 +139,8 @@ async function routePage(page: Page, bundle: string, sourceRoot: string): Promis
       return route.fulfill({ body: wasm, contentType: 'application/wasm' })
     if (url.pathname === '/bridge.wasm')
       return route.fulfill({ body: bridge, contentType: 'application/wasm' })
+    if (url.pathname === '/canvas-compose.wasm')
+      return route.fulfill({ body: canvasCompose, contentType: 'application/wasm' })
     if (url.pathname !== '/') return route.abort()
     await route.fulfill({
       contentType: 'text/html',
@@ -192,7 +195,20 @@ async function measure(
   try {
     await routePage(page, bundle, source.root)
     await page.goto(`${origin}/?backend=${backend}`)
-    await page.waitForFunction(() => Boolean(window.__rendererBench), null, { timeout: 30_000 })
+    assert.deepEqual(errors, [], `${backend} failed during page initialization`)
+    const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
+    await Promise.race([
+      page.waitForFunction(
+        () => Boolean(window.__rendererBench || window.__rendererBenchFailure),
+        null,
+        {
+          timeout: 30_000,
+        },
+      ),
+      startupError,
+    ])
+    const drawFailure = await page.evaluate(() => window.__rendererBenchFailure)
+    assert(!drawFailure, `${backend} renderer draw failed: ${drawFailure}`)
     await page.bringToFront()
     const pixels = await displayedInk(page)
     assert(pixels.red > 20, `${backend} did not present red glyphs`)
@@ -210,7 +226,7 @@ async function measure(
     const after = await processes(browserSession)
     const cpu = cpuDelta(before, after, performance.now() - started)
     const info = await page.evaluate(() => window.__rendererBench.getPageInfo())
-    if (!headless && backend === 'webgpu') {
+    if (!headless && backend.startsWith('webgpu')) {
       assert(info && typeof info === 'object' && 'adapter' in info)
       const adapter = info.adapter
       assert(
@@ -230,6 +246,8 @@ async function measure(
       ),
     })
     const terminalText = await page.evaluate(() => window.__rendererBench.output())
+    const lateDrawFailure = await page.evaluate(() => window.__rendererBenchFailure)
+    assert(!lateDrawFailure, `${backend} renderer draw failed: ${lateDrawFailure}`)
     await page.evaluate(() => window.__rendererBench.dispose())
     assert.deepEqual(errors, [])
     if (backend !== 'ghostty-web' && scenario === 'settled-idle')
@@ -276,6 +294,9 @@ try {
         .digest('hex'),
       bridgeSha256: createHash('sha256')
         .update(await readFile(join(source.root, 'bridge.wasm')))
+        .digest('hex'),
+      canvasComposeSha256: createHash('sha256')
+        .update(await readFile(join(source.root, 'canvas-compose.wasm')))
         .digest('hex'),
     })
   }
