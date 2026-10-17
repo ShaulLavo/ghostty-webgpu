@@ -47,7 +47,7 @@ const STAND_INS: Readonly<Record<string, string>> = {
   '#a00003': 'var(--second)',
 }
 
-export const serverTheme = {
+const serverTheme = {
   accent: '#a00001',
   muted: '#a00002',
   second: '#a00003',
