@@ -194,6 +194,17 @@ try {
       await scenePage.evaluate(() => document.activeElement?.textContent?.trim()),
       '[ docs ]',
     )
+    // The hero's tagline is text a mouse can select.
+    const lede = (await scenePage.locator('.lede').boundingBox())!
+    await scenePage.mouse.move(lede.x + 2, lede.y + lede.height / 2)
+    await scenePage.mouse.down()
+    await scenePage.mouse.move(lede.x + lede.width - 2, lede.y + lede.height / 2, { steps: 8 })
+    await scenePage.mouse.up()
+    assert.match(
+      await scenePage.evaluate(() => String(getSelection())),
+      /WebAssembly/,
+      'The tagline can be selected',
+    )
     await scenePage.touchscreen.tap(sceneBox.x + 200, sceneBox.y + 120)
     assert(!(await inScene()), 'A touch on the scene leaves focus outside it')
     await context.close()
