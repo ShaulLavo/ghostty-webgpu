@@ -3,7 +3,7 @@ import landingCss from '../styles/landing.css?inline'
 import SceneTheme from '../components/SceneTheme.astro'
 import gridSource from '../scene/grid.js?raw'
 import firstFrameSource from '../scene/first-frame.js?raw'
-import { box, chart, fact, score, still, wordmark, working } from '../scene/art'
+import { box, chart, columns, fact, score, serverHtml, still, wordmark, working } from '../scene/art'
 import { benchLinks, benchTabs } from '../measurements'
 import { core, correctness } from '../correctness'
 import { docsHref, docsIndex, roadmap } from '../site-links'
@@ -45,13 +45,8 @@ function wordmarkLayers(text: string) {
 // scene's colours.
 const arts = {
   wordmark: wordmarkLayers(still(wordmark)),
-  facts: facts.map(([title, text]) => still(fact(title, text))),
-  charts: measured.map(({ data, max }) => (data ? still(chart(data, max)) : '')),
-  scores: scores.map(({ label, value, ours }) => still(score(label, value, ours))),
-  working: still(working),
 }
 const pageData = {
-  facts,
   charts: measured.map(({ data, max }) => (data ? { data, max } : null)),
   scores: scores.map(({ label, value, ours }) => ({ label, value, ours })),
 }
@@ -112,7 +107,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
           <article>
             <h2 class="sr-only">{title}</h2>
             <p class="sr-only">{text}</p>
-            <div class="art" data-art={`fact-${index}`} aria-hidden="true" style={box(fact(...facts[index]!))}><noscript><pre>{arts.facts[index]}</pre></noscript></div>
+            <pre class="ascii" aria-hidden="true" style={`--cols:${columns(fact(title, text))}`} set:html={serverHtml(fact(title, text))} />
           </article>
         ))}
       </section>
@@ -135,7 +130,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
             <p class="muted">{tab.method}</p>
             {data ? (
               <Fragment>
-                <div class="art" data-art={`chart-${index}`} aria-hidden="true" style={box(chart(data, measured[index]!.max))}><noscript><pre>{arts.charts[index]}</pre></noscript></div>
+                <pre class="ascii" data-chart={index} aria-hidden="true" style={`--cols:${columns(chart(data, measured[index]!.max))}`} set:html={serverHtml(chart(data, measured[index]!.max))} />
                 <div class="sr-only"><table>
                   <caption>{tab.title}: CPU energy, ghostty-webgpu ÷ xterm.js</caption>
                   <tbody>{Object.entries(data).map(([name, value]) => <tr><th scope="row">{name}</th><td>{value.toFixed(2)}</td></tr>)}</tbody>
@@ -159,7 +154,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
           {scores.map(({ label, text }, index) => (
             <li>
               <span class="sr-only">{label}: {text}</span>
-              <div class="art" data-art={`score-${index}`} aria-hidden="true" style={box(score(scores[index]!.label, scores[index]!.value, scores[index]!.ours))}><noscript><pre>{arts.scores[index]}</pre></noscript></div>
+              <pre class="ascii" data-score={index} aria-hidden="true" style={`--cols:${columns(score(label, scores[index]!.value, scores[index]!.ours))}`} set:html={serverHtml(score(label, scores[index]!.value, scores[index]!.ours))} />
             </li>
           ))}
         </ul>
@@ -202,7 +197,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
               {item.state === 'done' ? (
                 <span class="done">[done]</span>
               ) : (
-                <span class="wip"><span class="art inline" data-art="working" aria-hidden="true" style={box(working)}><noscript><pre>{arts.working}</pre></noscript></span><span class="sr-only">In progress</span></span>
+                <span class="wip"><span class="ascii inline" data-working aria-hidden="true" set:html={serverHtml(working)} /><span class="sr-only">In progress</span></span>
               )}
               <a href={item.plan}>{item.text}</a>
             </li>

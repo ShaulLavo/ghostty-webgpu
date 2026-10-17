@@ -153,7 +153,7 @@ try {
       const artPage = await context.newPage()
       if (!scripts) await artPage.route(/\/_astro\/.*\.js$|\.wasm$/, (route) => route.abort())
       await artPage.goto(new URL('../?scene=tokyo-rain', root).href)
-      if (scripts) await artPage.locator('.facts canvas').first().waitFor()
+      if (scripts) await artPage.locator('[data-art="wordmark"] canvas').waitFor()
       positions.push(
         await artPage.evaluate(
           () => document.getElementById('measured')!.getBoundingClientRect().top,

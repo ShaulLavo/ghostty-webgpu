@@ -56,16 +56,38 @@ code {
 }
 
 /*
- * ascii.rest pieces: the server sizes each box as its canvas will be (--cols columns of 0.61em, --rows half-height
- * cells), and the canvas fades in to fill it, so nothing moves or changes colour when it arrives.
+ * ascii.rest pieces as text: the server writes each piece's frame as coloured HTML, and the page animates it. A piece
+ * shrinks to fit its column (--cols columns of about 0.61em, sized at 0.62 for headroom), and never past 14px.
  */
+.panel,
+.facts article {
+  container-type: inline-size;
+}
+
+.ascii {
+  max-width: 100%;
+  overflow: hidden;
+  margin: 0;
+  font: inherit;
+  font-size: min(14px, calc(100cqi / var(--cols) / 0.62));
+  line-height: 1.2;
+  white-space: pre;
+  color: #f0f6fc;
+}
+
+.ascii.inline {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+/* The wordmark: a canvas filling the box the server sized for it, over a first frame in the same colours and cells. */
 .art {
   position: relative;
   display: block;
   width: min(100%, calc(var(--cols) * 0.61em));
   aspect-ratio: var(--cols) / var(--rows);
   overflow: hidden;
-  font-size: 14px;
 }
 
 .art canvas {
@@ -73,32 +95,6 @@ code {
   inset: 0;
   width: 100% !important;
   height: 100%;
-  animation: art-in 160ms ease-out;
-}
-
-@keyframes art-in {
-  from {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .art canvas {
-    animation: none;
-  }
-}
-
-.art pre {
-  margin: 0;
-  font: inherit;
-  line-height: 1.2;
-  white-space: pre;
-  color: var(--text);
-}
-
-.art.inline {
-  display: inline-block;
-  vertical-align: middle;
 }
 
 .hero {
@@ -148,15 +144,13 @@ code {
   font-size: calc(min(900px, 100vw - 2 * clamp(18px, 4vw, 48px)) / 88.5);
 }
 
-/* Its canvas replaces matching text, so it appears at once. */
-.wordmark canvas {
-  animation: none;
-}
-
 .wordmark pre {
   position: absolute;
   inset: 0;
   display: grid;
+  margin: 0;
+  font-family: inherit;
+  white-space: pre;
   font-size: calc(100cqi / var(--cols) / 0.61);
   line-height: 1.22;
 }
@@ -437,8 +431,8 @@ footer {
   }
 
   /* A card is 34 columns; on a phone it fills the width so its text reads at body size. */
-  .facts .art {
-    width: 100%;
+  .facts .ascii {
+    font-size: calc(100cqi / var(--cols) / 0.62);
   }
 
   /* Four narrow columns wrap badly on a phone; the bar's [ docs ] link leads there instead. */
