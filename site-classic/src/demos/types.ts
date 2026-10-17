@@ -1,9 +1,12 @@
+import type { Terminal } from '../../../dist/index.js'
+
 interface DemoGrid {
   readonly cols: number
   readonly rows: number
 }
 
 export interface DemoContext {
+  terminal: Terminal
   grid(): DemoGrid
   /** Show a short live figure under the window, or clear it with an empty string. */
   stat(text: string): void

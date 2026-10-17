@@ -56,6 +56,7 @@ async function loadFonts(): Promise<void> {
 
 function createContext(instance: Terminal): DemoContext {
   return {
+    terminal: instance,
     grid: () => ({
       cols: instance.appearance.grid.columns,
       rows: instance.appearance.grid.rows,

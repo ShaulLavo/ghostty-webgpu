@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prebuild": "bun run --cwd ../.. turbo run build --filter=ghostty-webgpu-line-editor",
     "build": "bun run typecheck && bun run docs:check && bun scripts/sync-assets.ts && astro build",
     "dev": "bun scripts/sync-assets.ts && astro dev",
     "preview": "astro preview",
@@ -10,6 +11,9 @@
     "docs:check": "bun ../site/scripts/check-docs.ts && bun test ../site/scripts/pty.test.ts ../site/worker/index.test.ts && bun run test",
     "verify:first-frame": "node scripts/verify-first-frame.mjs",
     "test": "bun run --cwd .. test:site-classic"
+  },
+  "dependencies": {
+    "ghostty-webgpu-line-editor": "workspace:*"
   },
   "devDependencies": {
     "@astrojs/markdown-remark": "7.3.0",

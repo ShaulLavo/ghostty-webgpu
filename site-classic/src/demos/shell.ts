@@ -1,31 +1,23 @@
 import type { Bash } from 'just-bash/browser'
+import { readline, type ReadlineApi } from 'ghostty-webgpu-line-editor'
 import { clearScreen, fg, reset, showCursor } from '../ansi.js'
 import { dusk, pale, spectre } from '../theme.js'
 import { shellFiles } from './shell-files.js'
 import type { Demo, DemoContext } from './types.js'
 
-const ESC = '\x1b'
-const CSI = `${ESC}[`
 const HOME = '/home/ghost'
 const BENCH_CHUNK_BYTES = 64 * 1024
-const decoder = new TextDecoder()
 const encoder = new TextEncoder()
 const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
-
-function isFinalByte(char: string, length: number): boolean {
-  if (length < 3) return false
-  const code = char.charCodeAt(0)
-  return code >= 0x40 && code <= 0x7e
-}
 
 function crlf(text: string): string {
   return text.replace(/\r?\n/g, '\r\n')
 }
 
 function benchLine(index: number): string {
+  const level = index % 11 === 0 ? '\u001b[33mwarn\u001b[0m' : '\u001b[32minfo\u001b[0m'
   const ms = (index * 7919) % 997
-  const level = index % 11 === 0 ? `${CSI}33mwarn${CSI}0m` : `${CSI}32minfo${CSI}0m`
-  return `${CSI}2m${String(index).padStart(7, '0')}${CSI}0m ${level} request ${index} served in ${ms} ms\r\n`
+  return `\u001b[2m${String(index).padStart(7, '0')}\u001b[0m ${level} request ${index} served in ${ms} ms\r\n`
 }
 
 export class ShellDemo implements Demo {
@@ -38,63 +30,56 @@ export class ShellDemo implements Demo {
   private context: DemoContext | undefined
   private bash: Bash | undefined
   private loading: Promise<Bash> | undefined
+  private editor: ReadlineApi | undefined
+  private editorHandle: { readonly api: ReadlineApi; dispose(): void } | undefined
   private env: Record<string, string> = {}
-  private line = ''
-  private escape = ''
-  private history: string[] = []
-  private historyIndex = 0
   private busy = false
-  /** Typed or pasted text not yet handled; drained one command at a time. */
-  private pending = ''
 
   start(context: DemoContext): void {
     this.context = context
-    this.line = ''
-    this.escape = ''
-    this.pending = ''
     context.stat('')
     context.write(clearScreen + showCursor)
+    this.editorHandle = context.terminal.use(
+      readline({
+        onError: (cause) =>
+          context.write(`${fg(dusk)}line editor error: ${String(cause)}${reset}\r\n`),
+      }),
+    )
+    this.editor = this.editorHandle.api
     if (this.bash) {
       this.busy = false
-      this.greet()
+      void this.greet()
       return
     }
     this.busy = true
     context.write(`${fg(dusk)}Loading bash…${reset}`)
     this.load()
       .then(() => {
-        // A later start() greets for itself once bash is here.
         if (this.context !== context) return
         this.busy = false
-        context.write(`\r${CSI}K`)
-        this.greet()
+        context.write('\r\u001b[K')
+        void this.greet()
       })
       .catch((cause: unknown) => {
+        if (this.context !== context) return
         const message = cause instanceof Error ? cause.message : String(cause)
-        context.write(`\r${CSI}K${fg(dusk)}bash did not load. ${message}${reset}\r\n`)
+        context.write(`\r\u001b[K${fg(dusk)}bash did not load. ${message}${reset}\r\n`)
       })
   }
 
   stop(): void {
+    this.editorHandle?.dispose()
+    this.editorHandle = undefined
+    this.editor = undefined
     this.context = undefined
+    this.busy = false
   }
 
   resize(): void {}
 
   setPaused(): void {}
 
-  input(bytes: Uint8Array): void {
-    this.pending += decoder.decode(bytes, { stream: true })
-    this.drain()
-  }
-
-  private drain(): void {
-    while (this.pending !== '' && !this.busy) {
-      const [char = ''] = this.pending
-      this.pending = this.pending.slice(char.length)
-      this.key(char)
-    }
-  }
+  input(): void {}
 
   private load(): Promise<Bash> {
     this.loading ??= import('just-bash/browser').then(({ Bash, defineCommand }) => {
@@ -110,12 +95,14 @@ export class ShellDemo implements Demo {
     return this.loading
   }
 
-  private greet(): void {
-    this.print(
+  private async greet(): Promise<void> {
+    const editor = this.editor
+    if (!editor) return
+    editor.print(
       `${fg(pale)}bash${reset} ${fg(dusk)}in your browser tab. Nothing leaves this page.${reset}\r\n` +
         `${fg(dusk)}Try${reset} ls${fg(dusk)},${reset} cat README.md${fg(dusk)},${reset} seq 1 50000${fg(dusk)}, or${reset} bench 20${fg(dusk)}.${reset}\r\n\r\n`,
     )
-    this.prompt()
+    await this.readPrompt()
   }
 
   /** Streams generated log lines straight into the terminal and times the parse. */
@@ -144,97 +131,36 @@ export class ShellDemo implements Demo {
     return { exitCode: 0, stderr: '', stdout: summary }
   }
 
-  private key(char: string): void {
-    if (this.escape !== '') {
-      this.escape += char
-      this.finishEscape()
+  private async readPrompt(): Promise<void> {
+    const editor = this.editor
+    if (!editor || !this.bash || this.busy) return
+    const result = await editor.read({ prompt: this.prompt() }).catch(() => undefined)
+    if (!result) return
+    if (result.kind !== 'submit') {
+      await this.readPrompt()
       return
     }
-    if (char === ESC) {
-      this.escape = char
+    const input = result.text
+    if (input.trim() === '') {
+      await this.readPrompt()
       return
     }
-    if (char === '\r' || char === '\n') {
-      void this.submit()
-      return
-    }
-    if (char === '\x7f' || char === '\b') {
-      this.backspace()
-      return
-    }
-    if (char === '\x03') {
-      this.print('^C\r\n')
-      this.line = ''
-      this.prompt()
-      return
-    }
-    if (char === '\x0c') {
-      this.print(clearScreen)
-      this.prompt()
-      this.print(this.line)
-      return
-    }
-    if (char < ' ') return
-    this.line += char
-    this.print(char)
-  }
-
-  /** Waits for the whole sequence so a key like Delete (ESC [ 3 ~) leaves nothing behind. */
-  private finishEscape(): void {
-    const sequence = this.escape
-    if (sequence.length < 2) return
-    const kind = sequence[1]
-    if (kind === '[' && !isFinalByte(sequence.at(-1)!, sequence.length)) return
-    if (kind === 'O' && sequence.length < 3) return
-    this.escape = ''
-    if (sequence === `${CSI}A`) this.recall(-1)
-    if (sequence === `${CSI}B`) this.recall(1)
-  }
-
-  private recall(direction: number): void {
-    const next = this.historyIndex + direction
-    if (next < 0 || next > this.history.length) return
-    this.historyIndex = next
-    this.line = this.history[next] ?? ''
-    this.print(`\r${CSI}K`)
-    this.prompt()
-    this.print(this.line)
-  }
-
-  private backspace(): void {
-    if (this.line.length === 0) return
-    this.line = [...this.line].slice(0, -1).join('')
-    this.print('\b \b')
-  }
-
-  private async submit(): Promise<void> {
-    const input = this.line
-    this.line = ''
-    this.print('\r\n')
-    if (input.trim() === '' || !this.bash) {
-      this.prompt()
-      return
-    }
-    this.history.push(input)
-    this.historyIndex = this.history.length
     if (input.trim() === 'clear') {
-      this.print(clearScreen)
-      this.prompt()
+      editor.print(clearScreen)
+      await this.readPrompt()
       return
     }
     this.busy = true
-    const result = await this.run(input)
-    this.print(crlf(result.stdout))
-    if (result.stderr !== '') this.print(`${fg(dusk)}${crlf(result.stderr)}${reset}`)
-    this.prompt()
+    const output = await this.run(input)
+    if (output.stdout !== '') editor.print(crlf(output.stdout))
+    if (output.stderr !== '') editor.print(`${fg(dusk)}${crlf(output.stderr)}${reset}`)
     this.busy = false
-    this.drain()
+    await this.readPrompt()
   }
 
   private async run(input: string): Promise<{ stderr: string; stdout: string }> {
     try {
       const result = await this.bash!.exec(input, { cwd: this.env['PWD'], env: this.env })
-      // Each exec starts fresh; carrying the environment keeps cd and exports.
       this.env = result.env
       return result
     } catch (cause) {
@@ -242,13 +168,9 @@ export class ShellDemo implements Demo {
     }
   }
 
-  private prompt(): void {
+  private prompt(): string {
     const cwd = this.env['PWD'] ?? HOME
     const path = cwd.startsWith(HOME) ? `~${cwd.slice(HOME.length)}` : cwd
-    this.print(`${fg(spectre)}ghost${reset}:${fg(pale)}${path}${reset}${fg(dusk)}$${reset} `)
-  }
-
-  private print(data: string): void {
-    this.context?.write(data)
+    return `${fg(spectre)}ghost${reset}:${fg(pale)}${path}${reset}${fg(dusk)}$${reset} `
   }
 }
