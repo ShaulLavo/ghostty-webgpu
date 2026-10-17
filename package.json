@@ -22,7 +22,10 @@
     "directory": "ghostty-webgpu"
   },
   "workspaces": {
-    "packages": [],
+    "packages": [
+      "site",
+      "site-classic"
+    ],
     "catalog": {
       "@fregat/hotkeys": "https://github.com/ShaulLavo/fregat/releases/download/hotkeys-0.0.2-68d8aaf6f631-260650623e7e/fregat-hotkeys-0.0.2-68d8aaf6f631-260650623e7e.tgz"
     }
@@ -133,7 +136,10 @@
     "test:package:host": "bun scripts/package-smoke.ts",
     "verify:host": "bun run verify:config-resolver-artifacts && bun run verify && bun run test:package:host",
     "site:build": "bun run --cwd site build",
-    "site:dev": "bun run --cwd site dev"
+    "site:dev": "bun run --cwd site dev",
+    "site:classic:build": "bun run --cwd site-classic build",
+    "site:classic:dev": "bun run --cwd site-classic dev",
+    "test:site-classic": "vitest run site-classic/src"
   },
   "dependencies": {
     "@fregat/hotkeys": "catalog:",

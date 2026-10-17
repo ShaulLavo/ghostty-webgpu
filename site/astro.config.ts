@@ -7,6 +7,7 @@ import { createStarlightTypeDocPlugin } from 'starlight-typedoc'
 import starlightLinksValidator from 'starlight-links-validator'
 import { docsLinks } from './scripts/docs-links.js'
 import { docsTheme } from './src/docs-theme.js'
+import { packageAliases } from './scripts/package-aliases.js'
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url))
 const referenceItems: NonNullable<Parameters<typeof starlight>[0]['sidebar']> = [
@@ -99,6 +100,7 @@ export default defineConfig({
     }),
   ],
   vite: {
+    resolve: { alias: packageAliases },
     define: { __SITE_VERSION__: JSON.stringify(pkg.version) },
     // The browser shell needs a stub; build-time ghost rendering needs Node's real gzip.
     plugins: [

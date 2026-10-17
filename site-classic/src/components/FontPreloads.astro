@@ -1,0 +1,11 @@
+---
+import mono from '../fonts/jetbrains-mono-latin-400-normal.woff2?url'
+import monoBold from '../fonts/jetbrains-mono-latin-600-normal.woff2?url'
+import monoItalic from '../fonts/jetbrains-mono-latin-400-italic.woff2?url'
+import heading from '../fonts/bricolage-grotesque-latin-variable.woff2?url'
+---
+
+<link rel="preload" href={mono} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={heading} as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={monoBold} fetchpriority="low" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href={monoItalic} fetchpriority="low" as="font" type="font/woff2" crossorigin />

@@ -6,7 +6,9 @@ on:
     paths:
       - '.github/workflows/site.yml'
       - 'site/**'
+      - 'site-classic/**'
       - 'src/**'
+      - 'docs/**'
       - 'package.json'
       - 'bun.lock'
       - '*.wasm'
@@ -32,14 +34,14 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install
-      - run: bun install --cwd site
+      - run: bun install --cwd site-classic
       - name: Build package
         run: bun run build
-      - name: Build site
-        run: bun run site:build
+      - name: Build classic site
+        run: bun run site:classic:build --base /ghostty-webgpu/
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site/dist
+          path: site-classic/dist
 
   deploy:
     needs: build

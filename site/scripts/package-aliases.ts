@@ -1,0 +1,13 @@
+import { fileURLToPath } from 'node:url'
+
+// The mirror's package root is outside its site workspaces, so resolve the built entry points directly.
+export const packageAliases = [
+  {
+    find: /^ghostty-webgpu$/,
+    replacement: fileURLToPath(new URL('../../dist/index.js', import.meta.url)),
+  },
+  {
+    find: /^ghostty-webgpu\/worker$/,
+    replacement: fileURLToPath(new URL('../../dist/worker/index.js', import.meta.url)),
+  },
+]

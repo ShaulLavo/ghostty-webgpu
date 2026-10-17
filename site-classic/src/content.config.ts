@@ -1,0 +1,1 @@
+../../site/src/content.config.ts

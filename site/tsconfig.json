@@ -4,7 +4,11 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "rootDir": "..",
-    "types": ["bun", "@webgpu/types", "astro/client"]
+    "types": ["bun", "@webgpu/types", "astro/client"],
+    "paths": {
+      "ghostty-webgpu": ["../dist/index.d.ts"],
+      "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"]
+    }
   },
   "include": ["src/**/*.ts", "astro.config.ts", "scripts/**/*.ts"],
   "exclude": ["scripts/*.test.ts"]

@@ -40,7 +40,7 @@ try {
     join(snippets, 'migration.ts'),
     migrationContext + migrationSamples.join('\n') + '\nexport {}\n',
   )
-  const compiler = fileURLToPath(new URL('../../../node_modules/.bin/tsc', import.meta.url))
+  const compiler = fileURLToPath(new URL('../../node_modules/.bin/tsc', import.meta.url))
   const result = Bun.spawnSync([compiler, '--noEmit', '-p', join(root, 'tsconfig.examples.json')], {
     cwd: root,
     stdout: 'inherit',
