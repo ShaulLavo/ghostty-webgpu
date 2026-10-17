@@ -314,6 +314,7 @@ describe('terminal UI declarations', () => {
     await terminal.open(host)
     const preedit = host.querySelector<HTMLDivElement>('.ghostty-webgpu-composition')!
     const frame = host.querySelector<HTMLDivElement>('.ghostty-webgpu-frame')!
+    terminal.focus()
     terminal.write('\x1b[6;1H\x1b[2Kedit 0000')
     await vi.waitFor(() => expect(frame.textContent).toContain('edit 0000'))
     const before = preedit.getAttribute('style')

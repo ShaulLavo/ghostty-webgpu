@@ -1649,6 +1649,7 @@ describe('terminal frame consumer demand in Chromium', () => {
           })
         },
       )
+      harness.terminal.focus()
       if (change === 'resize') {
         harness.host.style.width = '480px'
         harness.host.style.height = '220px'
@@ -1737,6 +1738,7 @@ describe('terminal frame consumer demand in Chromium', () => {
     'owns submitted text rows without styled reads while positioning the cursor and publishing changed row IDs (%s)',
     async (backend) => {
       const harness = await createObservedRendererHarness({}, backend)
+      harness.terminal.focus()
       const changedRows: Array<readonly number[]> = []
       harness.terminal.onFrame((event) => changedRows.push(event.rows))
 

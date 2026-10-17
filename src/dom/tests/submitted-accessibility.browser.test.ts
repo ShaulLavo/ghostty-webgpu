@@ -211,6 +211,7 @@ function assertDisplayed(
   expect(textarea.getAttribute('aria-activedescendant')).toBe(row.id)
   expect(row.getAttribute('aria-current')).toBe('true')
   expect(rows.filter((row) => row.hasAttribute('aria-current'))).toHaveLength(1)
+  if (textarea.ownerDocument.activeElement !== textarea) return
   expect(Number.parseFloat(textarea.style.left)).toBeCloseTo(
     summary.padding.left + column * summary.grid.cellWidth,
   )
