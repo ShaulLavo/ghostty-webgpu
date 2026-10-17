@@ -87,6 +87,23 @@ function frameOutput(
   return out
 }
 
+let lastPointer = ''
+
+function mouseOnly(event: Event) {
+  if (event instanceof PointerEvent && event.type !== 'click') lastPointer = event.pointerType
+  if (lastPointer !== 'mouse') event.stopPropagation()
+}
+
+/** Ctrl or Cmd+C copies the scene's selected cells, unless the page has its own text selected. */
+function copySelection(event: KeyboardEvent, terminal: Terminal) {
+  if (event.key.toLowerCase() !== 'c' || !(event.ctrlKey || event.metaKey) || event.altKey) return
+  if (!document.getSelection()?.isCollapsed) return
+  const text = terminal.getSelection()
+  if (!text) return
+  event.preventDefault()
+  void navigator.clipboard.writeText(text)
+}
+
 /** Plays an ascii.rest scene in a ghostty-webgpu terminal, cell for cell, while it is on screen. */
 export async function mountScene(
   host: HTMLElement,
@@ -112,8 +129,8 @@ export async function mountScene(
         minimumContrast: 1,
         // The scene writes exact colours, so the indexed palette is never read.
         palette: new Array(256).fill(ground),
-        selectionBackground: rgb(theme.line),
-        selectionForeground: rgb(theme.text),
+        selectionBackground: rgb(theme.accent),
+        selectionForeground: ground,
       },
     },
     padding: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -128,9 +145,17 @@ export async function mountScene(
     },
   })
   await terminal.open(host)
-  for (const type of ['wheel', 'pointerdown', 'pointermove', 'pointerup', 'click'] as const) {
-    host.addEventListener(type, (event) => event.stopPropagation(), { capture: true })
+  // Only a mouse reaches the terminal, to select cells; touch passes through to the page on any device. Nothing in
+  // the scene takes focus, so the keyboard stays with the page, and Ctrl or Cmd+C copies the selected cells.
+  host.inert = false
+  host.addEventListener('wheel', (event) => event.stopPropagation(), { capture: true })
+  for (const type of ['pointerdown', 'pointermove', 'pointerup', 'click'] as const) {
+    host.addEventListener(type, (event) => mouseOnly(event), { capture: true })
   }
+  host.addEventListener('focusin', (event) => (event.target as HTMLElement).blur())
+  for (const stop of host.querySelectorAll('textarea, [tabindex]'))
+    stop.setAttribute('tabindex', '-1')
+  document.addEventListener('keydown', (event) => copySelection(event, terminal))
   terminal.write('\x1b[?25l\x1b[?7l\x1b[2J')
 
   const inks = palette.map(int)

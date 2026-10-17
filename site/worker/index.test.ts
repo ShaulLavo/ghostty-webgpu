@@ -7,8 +7,8 @@ import worker, { type Env } from './index'
 const page =
   '<!doctype html><html lang="en"><body><script type="text/plain" id="scene-frame"></script></body></html>'
 const scenes = [
-  { name: 'tokyo-rain', theme: { ground: '#07060d', accent: '#ffc65e' } },
-  { name: 'kyoto-dusk', theme: { ground: '#0b0a16', accent: '#e28fab' } },
+  { name: 'tokyo-rain', label: 'tokyo rain', theme: { ground: '#07060d', accent: '#ffc65e' } },
+  { name: 'kyoto-dusk', label: 'kyoto dusk', theme: { ground: '#0b0a16', accent: '#e28fab' } },
 ]
 const frame = '2,2|#07060d,#ffc65e|.o\n O|01<'
 
@@ -51,6 +51,7 @@ test('a revalidation gets the page written for this visit, with no file validato
   expect(response.headers.get('etag')).toBeNull()
   expect(response.headers.get('cache-control')).toBe('private, no-store')
   expect(html).toContain('data-scene="kyoto-dusk"')
+  expect(html).toContain('--scene-label:&quot;kyoto dusk&quot;')
   expect(response.headers.get('set-cookie')).toStartWith('scene=kyoto-dusk;')
   expect(html).toContain(`id="scene-frame">${frame}</script>`)
 })

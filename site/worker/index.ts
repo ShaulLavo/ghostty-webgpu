@@ -25,6 +25,7 @@ export interface Env {
 
 interface Scene {
   readonly name: string
+  readonly label: string
   readonly theme: Readonly<Record<string, string>>
 }
 
@@ -90,6 +91,7 @@ export default {
     const scene = pick(list, url, request)
     const style = Object.entries(scene.theme)
       .map(([name, value]) => `--${name}:${value}`)
+      .concat([`--scene-label:${JSON.stringify(scene.label)}`])
       .join(';')
     const frame = url.pathname === '/' ? await sceneFrame(env, url, scene.name) : ''
 

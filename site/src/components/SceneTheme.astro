@@ -36,6 +36,7 @@ const scenes = await loadScenes()
   } catch {}
   root.dataset.scene = scene.name
   for (const [name, value] of Object.entries(scene.theme)) root.style.setProperty(`--${name}`, value)
+  root.style.setProperty('--scene-label', JSON.stringify(scene.label))
   // The landing page's hero paints this baked first frame long before the terminal starts.
   if (fresh && !served)
     window.sceneFrame = fetch(`${base}/scenes/${scene.name}.txt`, { priority: 'high' }).then((response) =>

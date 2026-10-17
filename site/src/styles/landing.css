@@ -55,31 +55,48 @@ code {
   white-space: nowrap;
 }
 
-/* ascii.rest pieces: text first, then a canvas the width of that text. Neither may widen the page. */
+/*
+ * ascii.rest pieces: the server sizes each box as its canvas will be (--cols columns of 0.61em, --rows half-height
+ * cells), and the canvas fades in to fill it, so nothing moves or changes colour when it arrives.
+ */
 .art {
-  max-width: 100%;
-  min-width: 0;
+  position: relative;
+  display: block;
+  width: min(100%, calc(var(--cols) * 0.61em));
+  aspect-ratio: var(--cols) / var(--rows);
   overflow: hidden;
   font-size: 14px;
+}
+
+.art canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100%;
+  animation: art-in 160ms ease-out;
+}
+
+@keyframes art-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art canvas {
+    animation: none;
+  }
 }
 
 .art pre {
   margin: 0;
   font: inherit;
-  font-size: 14px;
   line-height: 1.2;
   white-space: pre;
-  overflow: hidden;
   color: var(--text);
 }
 
-.art canvas {
-  display: block;
-  max-width: 100%;
-}
-
-.art.inline,
-.art.inline canvas {
+.art.inline {
   display: inline-block;
   vertical-align: middle;
 }
@@ -124,22 +141,39 @@ code {
   max-width: min(100%, 900px);
 }
 
+/* The banner's first frame in its canvas colours and cells: the letters' fade across the columns over its grey shadow. */
 .wordmark {
-  display: block;
+  container-type: inline-size;
+  /* The banner is 145 columns of 0.61em: fit it to the hero's text width. */
+  font-size: calc(min(900px, 100vw - 2 * clamp(18px, 4vw, 48px)) / 88.5);
 }
 
-.wordmark pre {
-  width: 100%;
-}
-
+/* Its canvas replaces matching text, so it appears at once. */
 .wordmark canvas {
-  width: 100% !important;
+  animation: none;
 }
 
 .wordmark pre {
-  /* The banner is 145 columns, 87em of Paper Mono: fit it to the hero's text width. */
-  font-size: calc(min(900px, 100vw - 2 * clamp(18px, 4vw, 48px)) / 88);
-  color: var(--accent);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  font-size: calc(100cqi / var(--cols) / 0.61);
+  line-height: 1.22;
+}
+
+.wordmark pre > span {
+  grid-area: 1 / 1;
+}
+
+.wordmark .letters {
+  background: linear-gradient(90deg, var(--accent), var(--second));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.wordmark .shadow {
+  color: #9198a1;
 }
 
 .lede {
@@ -165,6 +199,11 @@ code {
 .credit {
   margin-left: auto;
   color: var(--muted);
+}
+
+/* The scene's name arrives with its colours, before the first paint, so the line never shifts. */
+.credit::before {
+  content: var(--scene-label) ' · ';
 }
 
 main,
@@ -398,8 +437,8 @@ footer {
   }
 
   /* A card is 34 columns; on a phone it fills the width so its text reads at body size. */
-  .facts .art canvas {
-    width: 100% !important;
+  .facts .art {
+    width: 100%;
   }
 
   /* Four narrow columns wrap badly on a phone; the bar's [ docs ] link leads there instead. */

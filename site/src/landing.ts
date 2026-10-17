@@ -27,7 +27,7 @@ const scene =
   scenes.find((entry) => entry.name === document.documentElement.dataset['scene']) ?? scenes[0]!
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** Redraws each server-written piece in the scene's colours, on a canvas the size of its text. */
+/** Draws each piece in the scene's colours, on a canvas filling the box the server sized for it. */
 async function paintArt() {
   const [{ mount }, { chart, fact, score, wordmark, working }] = await Promise.all([
     import('ascii.rest'),
@@ -50,9 +50,6 @@ async function paintArt() {
     if (!art) continue
     const piece = art(scene.theme)
     const canvas = document.createElement('canvas')
-    // mount() fills the canvas's width; this keeps a piece at the size of the text it replaces.
-    canvas.style.width = `calc(${piece.meta.cols}ch * var(--art-scale, 1))`
-    canvas.style.aspectRatio = `${piece.meta.cols} / ${piece.meta.rows * (piece.meta.cell ?? 2)}`
     host.replaceChildren(canvas)
     mount(canvas, piece, { motion: !reducedMotion })
   }
@@ -95,7 +92,6 @@ function wireTabs() {
   })
 }
 
-document.getElementById('credit')!.prepend(`${scene.label} · `)
 wireCopy()
 wireTabs()
 // The scene's terminal and the page's art load side by side; neither waits for the other.

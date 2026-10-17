@@ -3,7 +3,7 @@ import landingCss from '../styles/landing.css?inline'
 import SceneTheme from '../components/SceneTheme.astro'
 import gridSource from '../scene/grid.js?raw'
 import firstFrameSource from '../scene/first-frame.js?raw'
-import { chart, fact, score, still, wordmark, working } from '../scene/art'
+import { box, chart, fact, score, still, wordmark, working } from '../scene/art'
 import { benchLinks, benchTabs } from '../measurements'
 import { core, correctness } from '../correctness'
 import { docsHref, docsIndex, roadmap } from '../site-links'
@@ -32,10 +32,19 @@ const scores = correctness.scores.map((entry) => ({
   text: `${entry.pass} of ${total}`,
 }))
 
+// The banner as its canvas colours it: letters (its ▓ fill) fade from the accent to the second colour across the
+// columns, and the shadow strokes are ascii.rest's grey.
+function wordmarkLayers(text: string) {
+  return {
+    letters: text.replace(/[^▓\n]/g, ' '),
+    shadow: text.replace(/▓/g, ' '),
+  }
+}
+
 // Each ascii.rest piece on the page: the server writes its first frame as text, and the page redraws it in the
 // scene's colours.
 const arts = {
-  wordmark: still(wordmark),
+  wordmark: wordmarkLayers(still(wordmark)),
   facts: facts.map(([title, text]) => still(fact(title, text))),
   charts: measured.map(({ data, max }) => (data ? still(chart(data, max)) : '')),
   scores: scores.map(({ label, value, ours }) => still(score(label, value, ours))),
@@ -74,7 +83,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
       <div class="hero-copy">
         <h1>
           <span class="sr-only">ghostty-webgpu</span>
-          <span class="art wordmark" data-art="wordmark" aria-hidden="true"><pre>{arts.wordmark}</pre></span>
+          <span class="art wordmark" data-art="wordmark" aria-hidden="true" style={box(wordmark)}><pre><span class="letters">{arts.wordmark.letters}</span><span class="shadow">{arts.wordmark.shadow}</span></pre></span>
         </h1>
         <p class="lede">Ghostty's terminal, in the browser. The real libghostty-vt core, unpatched, compiled to WebAssembly.</p>
       </div>
@@ -103,7 +112,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
           <article>
             <h2 class="sr-only">{title}</h2>
             <p class="sr-only">{text}</p>
-            <div class="art" data-art={`fact-${index}`} aria-hidden="true"><pre>{arts.facts[index]}</pre></div>
+            <div class="art" data-art={`fact-${index}`} aria-hidden="true" style={box(fact(...facts[index]!))}><noscript><pre>{arts.facts[index]}</pre></noscript></div>
           </article>
         ))}
       </section>
@@ -126,7 +135,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
             <p class="muted">{tab.method}</p>
             {data ? (
               <Fragment>
-                <div class="art" data-art={`chart-${index}`} aria-hidden="true"><pre>{arts.charts[index]}</pre></div>
+                <div class="art" data-art={`chart-${index}`} aria-hidden="true" style={box(chart(data, measured[index]!.max))}><noscript><pre>{arts.charts[index]}</pre></noscript></div>
                 <div class="sr-only"><table>
                   <caption>{tab.title}: CPU energy, ghostty-webgpu ÷ xterm.js</caption>
                   <tbody>{Object.entries(data).map(([name, value]) => <tr><th scope="row">{name}</th><td>{value.toFixed(2)}</td></tr>)}</tbody>
@@ -150,7 +159,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
           {scores.map(({ label, text }, index) => (
             <li>
               <span class="sr-only">{label}: {text}</span>
-              <div class="art" data-art={`score-${index}`} aria-hidden="true"><pre>{arts.scores[index]}</pre></div>
+              <div class="art" data-art={`score-${index}`} aria-hidden="true" style={box(score(scores[index]!.label, scores[index]!.value, scores[index]!.ours))}><noscript><pre>{arts.scores[index]}</pre></noscript></div>
             </li>
           ))}
         </ul>
@@ -193,7 +202,7 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
               {item.state === 'done' ? (
                 <span class="done">[done]</span>
               ) : (
-                <span class="wip"><span class="art inline" data-art="working" aria-hidden="true"><pre>{arts.working}</pre></span><span class="sr-only">In progress</span></span>
+                <span class="wip"><span class="art inline" data-art="working" aria-hidden="true" style={box(working)}><noscript><pre>{arts.working}</pre></noscript></span><span class="sr-only">In progress</span></span>
               )}
               <a href={item.plan}>{item.text}</a>
             </li>

@@ -145,6 +145,59 @@ try {
     )
     await context.close()
   }
+  // The art's boxes are sized before any script runs: the sections below sit where they will stay.
+  for (const width of [1440, 390]) {
+    const positions: number[] = []
+    for (const scripts of [false, true]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 } })
+      const artPage = await context.newPage()
+      if (!scripts) await artPage.route(/\/_astro\/.*\.js$|\.wasm$/, (route) => route.abort())
+      await artPage.goto(new URL('../?scene=tokyo-rain', root).href)
+      if (scripts) await artPage.locator('.facts canvas').first().waitFor()
+      positions.push(
+        await artPage.evaluate(
+          () => document.getElementById('measured')!.getBoundingClientRect().top,
+        ),
+      )
+      await context.close()
+    }
+    assert(
+      Math.abs(positions[0]! - positions[1]!) <= 1,
+      `Art moved the page at ${width}px: ${positions.join(' → ')}`,
+    )
+  }
+  // A mouse selects and copies scene cells without taking the keyboard; touch on the same device passes through.
+  {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      hasTouch: true,
+      permissions: ['clipboard-read', 'clipboard-write'],
+    })
+    const scenePage = await context.newPage()
+    await scenePage.goto(new URL('../?scene=tokyo-rain', root).href)
+    await scenePage.waitForFunction(() => !document.querySelector('.scene-first'))
+    const sceneBox = (await scenePage.locator('#scene').boundingBox())!
+    await scenePage.mouse.move(sceneBox.x + 100, sceneBox.y + 100)
+    await scenePage.mouse.down()
+    await scenePage.mouse.move(sceneBox.x + 400, sceneBox.y + 180, { steps: 10 })
+    await scenePage.mouse.up()
+    await scenePage.keyboard.press('Control+c')
+    assert(
+      (await scenePage.evaluate(() => navigator.clipboard.readText())).length > 0,
+      'Ctrl+C copies the selected scene cells',
+    )
+    const inScene = () =>
+      scenePage.evaluate(() => Boolean(document.activeElement?.closest('#scene')))
+    assert(!(await inScene()), 'A mouse selection leaves focus outside the scene')
+    await scenePage.keyboard.press('Tab')
+    assert.equal(
+      await scenePage.evaluate(() => document.activeElement?.textContent?.trim()),
+      '[ docs ]',
+    )
+    await scenePage.touchscreen.tap(sceneBox.x + 200, sceneBox.y + 120)
+    assert(!(await inScene()), 'A touch on the scene leaves focus outside it')
+    await context.close()
+  }
   // A missing page at any depth is the site's 404, with its font.
   const missing = await page.goto(new URL('../missing/deep/', root).href)
   assert.equal(missing?.status(), 404)

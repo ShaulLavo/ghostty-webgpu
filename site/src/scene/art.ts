@@ -48,3 +48,9 @@ export function still(art: Art): string {
   const piece = art()
   return piece.default(piece.meta.options)(piece.meta.still ?? 0, { paper: false })
 }
+
+/** The box a piece's canvas fills, as CSS custom properties: its columns and its rows in half-height cells. */
+export function box(art: Art): string {
+  const { cols, rows, cell = 2 } = art().meta
+  return `--cols:${cols};--rows:${rows * cell}`
+}
