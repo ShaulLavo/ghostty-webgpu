@@ -1,20 +1,20 @@
 import { expect, it } from 'vitest'
 import { calculateTerminalFittedFont } from '../../dom/fit.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GlyphAtlas } from '../atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
-import type { GlyphBitmap, GlyphRasterizationInput } from '../atlas/types.js'
-import { canonicalRendererTheme } from '../config.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
+import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import type { GlyphBitmap, GlyphRasterizationInput } from '../shared/atlas/types.js'
+import { canonicalRendererTheme } from '../shared/config.js'
 import {
   CELL_INSTANCE_FLOATS,
   CellOffset,
   GLYPH_INSTANCE_FLOATS,
   GlyphFlag,
   GlyphOffset,
-} from '../instances/layout.js'
+} from '../shared/instances/layout.js'
 import { createNativeTestState } from './native-state.js'
-import { buildZigFrame } from '../atlas/zig-glyphs.js'
-import { defaultRendererTheme as rawDefaultRendererTheme } from '../instances/types.js'
+import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
+import { defaultRendererTheme as rawDefaultRendererTheme } from '../shared/instances/types.js'
 
 const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)
 

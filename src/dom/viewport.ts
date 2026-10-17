@@ -6,9 +6,9 @@ import type {
   TerminalScrollbar,
 } from '../core/types.js'
 import { CanvasRowPainter } from '../render/canvas/painter.js'
-import { canonicalRendererTheme } from '../render/config.js'
-import { renderCursorState } from '../render/cursor.js'
-import type { RendererTheme } from '../render/instances/types.js'
+import { canonicalRendererTheme } from '../render/shared/config.js'
+import { renderCursorState } from '../render/shared/cursor.js'
+import type { RendererTheme } from '../render/shared/instances/types.js'
 import type { TerminalFittedFont, TerminalFontSettings } from '../term/types.js'
 import type { TerminalElementPadding } from './elements.js'
 

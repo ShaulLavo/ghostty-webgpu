@@ -1,4 +1,4 @@
-import type { WebGpuTerminalRendererOptions } from '../../renderer.js'
+import type { WebGpuTerminalRendererOptions } from '../../shared/types.js'
 import { CanvasTerminalRenderer } from '../renderer.js'
 import { ReferenceTarget } from './reference-target.js'
 

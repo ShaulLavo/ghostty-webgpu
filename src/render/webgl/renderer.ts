@@ -1,12 +1,12 @@
 import { createGhosttyError } from '../../core/error.js'
-import { FrameObserver, type PreparedFrame } from '../frame-observer.js'
+import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
-import { buildZigFrame } from '../atlas/zig-glyphs.js'
+import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GlyphAtlas } from '../atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
+import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import {
   browserRenderClock,
   canonicalRendererTheme,
@@ -16,16 +16,16 @@ import {
   mergeRendererTheme,
   normalizeRendererGrid,
   safeRendererInteger,
-} from '../config.js'
-import { renderCursorState, type InactiveCursorStyle } from '../cursor.js'
-import type { CanonicalRendererTheme, RendererTheme } from '../instances/types.js'
+} from '../shared/config.js'
+import { renderCursorState, type InactiveCursorStyle } from '../shared/cursor.js'
+import type { CanonicalRendererTheme, RendererTheme } from '../shared/instances/types.js'
 import type {
   RendererGridSize,
   RendererMetrics,
   RenderStateSource,
   WebGpuTerminalRendererOptions,
-} from '../renderer.js'
-import { RenderScheduler } from '../scheduler.js'
+} from '../shared/types.js'
+import { RenderScheduler } from '../shared/scheduler.js'
 import { WebGlTextPass } from './text-pass.js'
 import { WebGlUnavailableError } from './unavailable.js'
 

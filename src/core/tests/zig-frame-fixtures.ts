@@ -1,7 +1,7 @@
 import type { RenderRow } from '../types.js'
-import type { AtlasGlyph, GlyphRasterizationInput } from '../../render/atlas/types.js'
-import { contrastAdjustedColor } from '../../render/contrast.js'
-import type { CanonicalRendererTheme } from '../../render/instances/types.js'
+import type { AtlasGlyph, GlyphRasterizationInput } from '../../render/shared/atlas/types.js'
+import { contrastAdjustedColor } from '../../render/shared/contrast.js'
+import type { CanonicalRendererTheme } from '../../render/shared/instances/types.js'
 
 export const zigFrameContents = [
   'plain ASCII abc 123',

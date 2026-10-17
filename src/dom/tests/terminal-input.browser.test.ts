@@ -1,13 +1,13 @@
-import { displayedFrameListener } from '../../render/displayed-frame.js'
+import { displayedFrameListener } from '../../render/shared/displayed-frame.js'
 import { detectPlatform } from '@fregat/hotkeys'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import type { RendererTheme } from '../../render/instances/types.js'
+import type { RendererTheme } from '../../render/shared/instances/types.js'
 import type {
   RendererFrameSnapshot,
   RendererGridSize,
   WebGpuTerminalRendererOptions,
-} from '../../render/renderer.js'
+} from '../../render/shared/types.js'
 import { TerminalSession } from '../../term/session.js'
 import type { TerminalFittedFont, TerminalKeyInput } from '../../term/types.js'
 import { createTerminalElements } from '../elements.js'

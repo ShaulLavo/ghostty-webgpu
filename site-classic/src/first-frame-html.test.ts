@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { GhosttyRuntime } from '../../src/core/runtime.js'
-import { snapshotRenderState } from '../../src/render/frame.js'
+import { snapshotRenderState } from '../../src/render/shared/frame.js'
 import { renderFrameToHtml } from '../../src/render/dom/html.js'
 import { probeFont } from '../../src/render/dom/tests/probe.js'
 import { compactGhostHtml } from './first-frame-html.js'

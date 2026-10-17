@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultRendererTheme } from '../../render/instances/types.js'
+import { defaultRendererTheme } from '../../render/shared/instances/types.js'
 import { encodeTerminalViewport, TERMINAL_VIEWPORT_MAX_BYTES } from '../viewport.js'
 
 function input() {

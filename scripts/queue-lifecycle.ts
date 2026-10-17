@@ -19,7 +19,7 @@ const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding:
 const sourceHashes = Object.fromEntries(
   await Promise.all(
     [
-      'src/render/renderer.ts',
+      'src/render/webgpu/renderer.ts',
       'scripts/queue-lifecycle-entry.ts',
       'scripts/queue-lifecycle.ts',
       'scripts/queue-lifecycle-types.ts',

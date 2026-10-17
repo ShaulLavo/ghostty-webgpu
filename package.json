@@ -23,6 +23,7 @@
   },
   "workspaces": {
     "packages": [
+      "packages/*",
       "site",
       "site-classic"
     ],

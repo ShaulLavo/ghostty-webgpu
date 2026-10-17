@@ -3,16 +3,13 @@ import type {
   GhosttyWebGpuRendererFactory,
   GhosttyWebGpuTerminalDiagnostics,
 } from '../../dist/dom/types.js'
-import {
-  WebGpuUnavailableError,
-  type RendererTextFrameSnapshot,
-  type RendererMetrics,
-} from '../../dist/render/renderer.js'
-import type { RenderSchedulerClock } from '../../dist/render/scheduler.js'
+import { WebGpuUnavailableError } from '../../dist/render/webgpu/renderer.js'
+import type { RendererTextFrameSnapshot, RendererMetrics } from '../../dist/render/shared/types.js'
+import type { RenderSchedulerClock } from '../../dist/render/shared/scheduler.js'
 import {
   createCompatibleTerminalRenderer,
   type CompatibleTerminalRenderer,
-} from '../../dist/render/selector.js'
+} from '../../dist/render/shared/selector.js'
 import type { TerminalClipboardWrite } from '../../dist/term/types.js'
 
 type Tone = 'bad' | 'good' | 'warn'

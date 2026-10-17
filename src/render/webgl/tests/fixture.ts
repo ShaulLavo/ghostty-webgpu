@@ -10,8 +10,8 @@ import type {
   RgbColor,
 } from '../../../core/types.js'
 import type { TerminalFittedFont } from '../../../term/types.js'
-import type { RenderStateSource } from '../../renderer.js'
-import type { RenderSchedulerClock } from '../../scheduler.js'
+import type { RenderStateSource } from '../../shared/types.js'
+import type { RenderSchedulerClock } from '../../shared/scheduler.js'
 
 export class TestClock implements RenderSchedulerClock {
   private nextHandle = 1

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import { canonicalRendererTheme, mergeRendererTheme } from '../config.js'
+import { canonicalRendererTheme, mergeRendererTheme } from '../shared/config.js'
 import { CanvasRowPainter } from './painter.js'
 import type { PaintTarget } from './paint-target.js'
 import { fittedFont } from './tests/font.js'

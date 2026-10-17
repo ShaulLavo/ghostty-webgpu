@@ -1,6 +1,6 @@
 import type { SelectionCoordinates } from '../core/selection.js'
 import type { TerminalScrollbar } from '../core/types.js'
-import type { RendererTextFrameSnapshot } from '../render/renderer.js'
+import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
 import type { TerminalFittedFont, TerminalGrid, TerminalRendererTheme } from '../term/types.js'
 import type { TerminalElementPadding } from './elements.js'
 

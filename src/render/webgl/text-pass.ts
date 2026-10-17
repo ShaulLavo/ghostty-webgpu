@@ -1,16 +1,16 @@
 import { WebGlUnavailableError } from './unavailable.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
-import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../atlas/types.js'
-import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../instances/layout.js'
-import type { InstanceByteRange } from '../instances/types.js'
-import { planUploadRanges } from '../instances/upload-ranges.js'
+import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
+import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
+import type { InstanceByteRange } from '../shared/instances/types.js'
+import { planUploadRanges } from '../shared/instances/upload-ranges.js'
 
 import {
   cellFragmentShader,
   cellVertexShader,
   glyphFragmentShader,
   glyphVertexShader,
-} from './shaders.js'
+} from '../shaders/webgl.js'
 
 export interface WebGlTextPassOptions {
   readonly atlasLayout: AtlasTextureLayout

@@ -1,10 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { WebGpuTextPass } from '../text-pass.js'
+import { WebGpuTextPass } from '../webgpu/text-pass.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import { defaultRendererTheme } from '../instances/types.js'
-import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
-import type { RowInstanceUpdate } from '../instances/types.js'
-import { planUploadRanges, planWrappedUploadRanges } from '../instances/upload-ranges.js'
+import { defaultRendererTheme } from '../shared/instances/types.js'
+import { AtlasGpuTextures } from '../webgpu/gpu-textures.js'
+import type { RowInstanceUpdate } from '../shared/instances/types.js'
+import { planUploadRanges, planWrappedUploadRanges } from '../shared/instances/upload-ranges.js'
 
 interface BufferState {
   bytes: Uint8Array

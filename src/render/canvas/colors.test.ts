@@ -1,8 +1,8 @@
-import { contrastAdjustedColor } from '../contrast.js'
+import { contrastAdjustedColor } from '../shared/contrast.js'
 import { describe, expect, it } from 'vitest'
 import type { RenderCell } from '../../core/types.js'
-import { canonicalRendererTheme } from '../config.js'
-import { defaultRendererTheme as rawDefaultRendererTheme } from '../instances/types.js'
+import { canonicalRendererTheme } from '../shared/config.js'
+import { defaultRendererTheme as rawDefaultRendererTheme } from '../shared/instances/types.js'
 import { CanvasColorCache, resolveCanvasCellColors } from './colors.js'
 
 const defaultRendererTheme = canonicalRendererTheme(rawDefaultRendererTheme)

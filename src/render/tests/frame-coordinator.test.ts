@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { FrameCoordinator, type FrameSubmission } from '../frame-coordinator.js'
+import { FrameCoordinator, type FrameSubmission } from '../shared/frame-coordinator.js'
 
 function fixture() {
   const callbacks = new Map<number, () => void>()

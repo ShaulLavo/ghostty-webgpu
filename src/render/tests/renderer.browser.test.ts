@@ -6,7 +6,7 @@ import {
   qualifyDeviceReplacement,
   type DeviceReplacementQualification,
 } from './adapter-qualification.js'
-import { FrameObserver } from '../frame-observer.js'
+import { FrameObserver } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -18,12 +18,12 @@ import type {
 } from '../../core/types.js'
 import type { TerminalFittedFont, TerminalFontSettings } from '../../term/types.js'
 import {
-  WebGpuTerminalRenderer,
   type RendererFrameSnapshot,
   type RenderStateSource,
   type WebGpuTerminalRendererOptions,
-} from '../renderer.js'
-import type { RenderSchedulerClock } from '../scheduler.js'
+} from '../shared/types.js'
+import { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
+import type { RenderSchedulerClock } from '../shared/scheduler.js'
 
 const devices = new Set<GPUDevice>()
 const renderers = new Set<WebGpuTerminalRenderer>()

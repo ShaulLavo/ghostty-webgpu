@@ -2,8 +2,8 @@ import type { GhosttyRenderState } from '../src/core/render-state.js'
 import type { GhosttyRuntime } from '../src/core/runtime.js'
 import type { GhosttyTerminal } from '../src/core/terminal.js'
 import type { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
-import type { RowTerminalRenderer } from '../src/render/row-renderer.js'
-import type { WebGpuTerminalRenderer } from '../src/render/renderer.js'
+import type { RowTerminalRenderer } from '../src/render/shared/row-renderer.js'
+import type { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 
 type Category = 'parse' | 'snapshot' | 'damage' | 'instances' | 'upload' | 'commands' | 'js'
 interface Span {

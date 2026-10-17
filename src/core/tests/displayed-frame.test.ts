@@ -1,4 +1,4 @@
-import { retainDisplayedFrame } from '../../render/displayed-frame.js'
+import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { TerminalSession } from '../../term/session.js'
 import { DisplayedFrameStore } from '../displayed-frame.js'

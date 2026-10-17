@@ -4,16 +4,15 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import type { RendererPlatform } from './platforms.js'
 import { stubRendererNavigator, restoreRendererNavigator } from './navigator.js'
 import { rendererPlatforms } from './platforms.js'
-import { FallbackTerminalRenderer } from '../fallback.js'
+import { FallbackTerminalRenderer } from '../shared/fallback.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
+import { type RenderStateSource, type WebGpuTerminalRendererOptions } from '../shared/types.js'
+import { WebGpuTerminalRenderer, WebGpuUnavailableError } from '../webgpu/renderer.js'
+import type { RenderSchedulerClock } from '../shared/scheduler.js'
 import {
-  WebGpuTerminalRenderer,
-  WebGpuUnavailableError,
-  type RenderStateSource,
-  type WebGpuTerminalRendererOptions,
-} from '../renderer.js'
-import type { RenderSchedulerClock } from '../scheduler.js'
-import { createCompatibleTerminalRenderer, type CompatibleTerminalRenderer } from '../selector.js'
+  createCompatibleTerminalRenderer,
+  type CompatibleTerminalRenderer,
+} from '../shared/selector.js'
 import { WebGlTerminalRenderer } from '../webgl/renderer.js'
 
 const canvases = new Set<HTMLCanvasElement>()

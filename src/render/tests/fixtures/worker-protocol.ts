@@ -1,4 +1,4 @@
-import type { RendererMetrics } from '../../renderer.js'
+import type { RendererMetrics } from '../../shared/types.js'
 import type { TerminalCursorSnapshot } from '../../../term/types.js'
 
 export type WorkerBackend = 'webgpu' | 'webgl'

@@ -48,8 +48,8 @@ import type {
   TerminalSelectionFormatOptions,
   TerminalSize,
 } from '../core/types.js'
-import { defaultRendererTheme } from '../render/instances/types.js'
-import type { RenderStateSource } from '../render/renderer.js'
+import { defaultRendererTheme } from '../render/shared/instances/types.js'
+import type { RenderStateSource } from '../render/shared/types.js'
 import { EventEmitter } from './events.js'
 import {
   captureNativeLinkSnapshot,

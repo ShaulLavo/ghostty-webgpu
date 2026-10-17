@@ -7,9 +7,13 @@ import {
   copyFittedFont,
   mergeRendererTheme,
   normalizeRendererGrid,
-} from '../config.js'
-import type { CanonicalRendererTheme, CursorState, RendererTheme } from '../instances/types.js'
-import type { RendererFrameSnapshot, RendererGridSize } from '../renderer.js'
+} from '../shared/config.js'
+import type {
+  CanonicalRendererTheme,
+  CursorState,
+  RendererTheme,
+} from '../shared/instances/types.js'
+import type { RendererFrameSnapshot, RendererGridSize } from '../shared/types.js'
 
 export interface RenderFrameHtmlOptions extends RendererGridSize {
   readonly font: TerminalFittedFont

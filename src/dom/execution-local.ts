@@ -1,13 +1,13 @@
 import { createGhosttyError } from '../core/error.js'
-import type { DisplayedTextFrame, DisplayedFrameOptions } from '../render/displayed-frame.js'
-import { copiedFrameRow } from '../render/frame-row.js'
+import type { DisplayedTextFrame, DisplayedFrameOptions } from '../render/shared/displayed-frame.js'
+import { copiedFrameRow } from '../render/shared/frame-row.js'
 import type { SelectionPoint } from '../core/selection.js'
 import type { ReadLinesOptions, TerminalSelectionFormatOptions } from '../core/types.js'
 import type {
   RendererFrameSnapshot,
   RendererTextFrameSnapshot,
   WebGpuTerminalRendererOptions,
-} from '../render/renderer.js'
+} from '../render/shared/types.js'
 import type { LinkProvider, LinkResolution } from '../term/links.js'
 import {
   linkProjectionEquals,

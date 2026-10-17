@@ -1,7 +1,7 @@
 import { createGhosttyError } from '../../../core/error.js'
 import type { Canvas2dContext } from '../painter.js'
 
-import type { PixelMetrics, PixelTarget } from '../pixel-target.js'
+import type { PixelMetrics, PixelTarget } from '../../pixels/pixel-target.js'
 
 function scratchCanvas(
   canvas: HTMLCanvasElement | OffscreenCanvas,

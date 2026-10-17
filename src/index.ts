@@ -6,7 +6,7 @@ export { GhosttyTerminal } from './core/terminal.js'
 export { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from './core/version.js'
 export { calculateTerminalFittedFont, fitTerminalFont } from './dom/fit.js'
 export { Terminal } from './dom/terminal.js'
-export { WebGpuTerminalRenderer } from './render/renderer.js'
+export { WebGpuTerminalRenderer } from './render/webgpu/renderer.js'
 export { TerminalSession } from './term/session.js'
 export type {
   SelectionAutoscrollDirection,
@@ -105,8 +105,8 @@ export type {
   RendererMetrics,
   RenderStateSource,
   WebGpuTerminalRendererOptions,
-} from './render/renderer.js'
-export type { CursorState, CursorStyle, RendererTheme } from './render/instances/types.js'
+} from './render/shared/types.js'
+export type { CursorState, CursorStyle, RendererTheme } from './render/shared/instances/types.js'
 export type {
   LinkActivation,
   LinkCell,
@@ -176,7 +176,7 @@ export type { TerminalViewportOptions, TerminalViewportPaint } from './dom/viewp
 
 export { DomTerminalRenderer, renderFrameToHtml } from './render/dom/renderer.js'
 export type { RenderFrameHtmlOptions } from './render/dom/renderer.js'
-export { snapshotRenderState } from './render/frame.js'
+export { snapshotRenderState } from './render/shared/frame.js'
 
 export { attachTerminalHotkeys } from './extensions/hotkeys/connection.js'
 export { terminalDefaultPack, terminalShellKeysPack } from './extensions/hotkeys/packs.js'

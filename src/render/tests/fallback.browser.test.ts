@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { attachNativeTestBuilder } from './native-state.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
-import { WebGpuUnavailableError, type WebGpuTerminalRendererOptions } from '../renderer.js'
-import { createCompatibleTerminalRenderer, type CompatibleTerminalRenderer } from '../selector.js'
+import { type WebGpuTerminalRendererOptions } from '../shared/types.js'
+import { WebGpuUnavailableError } from '../webgpu/renderer.js'
+import {
+  createCompatibleTerminalRenderer,
+  type CompatibleTerminalRenderer,
+} from '../shared/selector.js'
 import { TestClock, TestRenderState, cell, fittedFont, rgb, row } from '../webgl/tests/fixture.js'
 
 const canvases = new Set<HTMLCanvasElement>()

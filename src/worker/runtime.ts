@@ -1,5 +1,5 @@
-import { automaticGpuBackends, type GpuBackend } from '../render/backend-order.js'
-import { isSoftwareWebGpuAdapter } from '../render/adapter.js'
+import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
+import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
 import {
   calculateTerminalFittedFont,
@@ -8,13 +8,10 @@ import {
   paddingEquals,
 } from '../dom/fit.js'
 import type { GhosttyWebGpuRenderer } from '../dom/types.js'
-import type { InactiveCursorStyle } from '../render/cursor.js'
-import type { RenderSchedulerClock } from '../render/scheduler.js'
-import {
-  WebGpuTerminalRenderer,
-  WebGpuUnavailableError,
-  type WebGpuTerminalRendererOptions,
-} from '../render/renderer.js'
+import type { InactiveCursorStyle } from '../render/shared/cursor.js'
+import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
+import { type WebGpuTerminalRendererOptions } from '../render/shared/types.js'
+import { WebGpuTerminalRenderer, WebGpuUnavailableError } from '../render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
 import { WebGlUnavailableError } from '../render/webgl/unavailable.js'
 import type {

@@ -1,6 +1,6 @@
 import type { RenderCell, RgbColor } from '../../core/types.js'
-import { contrastAdjustedColor } from '../contrast.js'
-import type { CanonicalRendererTheme } from '../instances/types.js'
+import { contrastAdjustedColor } from '../shared/contrast.js'
+import type { CanonicalRendererTheme } from '../shared/instances/types.js'
 
 export interface CanvasCellColors {
   readonly background: RgbColor

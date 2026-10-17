@@ -6,7 +6,7 @@ import {
   type SelectionDragEvent,
   type SelectionPressEvent,
 } from '../../core/selection.js'
-import { defaultRendererTheme } from '../../render/instances/types.js'
+import { defaultRendererTheme } from '../../render/shared/instances/types.js'
 import { EventEmitter } from '../events.js'
 import { createLinkLineSnapshot, LinkResolver } from '../links.js'
 import type {

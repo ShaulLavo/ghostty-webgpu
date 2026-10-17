@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HeldRenderClock } from '../../../bench/held-render-clock.js'
-import { RenderScheduler, type RenderSchedulerClock } from '../scheduler.js'
+import { RenderScheduler, type RenderSchedulerClock } from '../shared/scheduler.js'
 
 class FrameClock implements RenderSchedulerClock {
   private nextHandle = 1

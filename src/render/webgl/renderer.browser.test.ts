@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { attachNativeTestBuilder } from '../tests/native-state.js'
-import { browserRenderClock } from '../config.js'
-import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../renderer.js'
+import { browserRenderClock } from '../shared/config.js'
+import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../shared/types.js'
 import { WebGlTerminalRenderer } from './renderer.js'
 import {
   TestClock,

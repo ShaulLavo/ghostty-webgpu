@@ -9,7 +9,9 @@
 ## Organization
 
 - `src/core/` contains browser-independent wasm loading and typed libghostty-vt bindings.
-- `src/render/` contains scheduler, atlas, instance, shader, and WebGPU resource ownership.
+- `src/render/` groups backends in `webgpu/`, `webgl/`, `canvas/`, `pixels/`, and `dom/`.
+- `src/render/shaders/` owns GPU shader sources. `shared/` owns scheduling, atlas, frame, theme, and renderer contracts.
+- `packages/line-editor/` is the optional `ghostty-webgpu-line-editor` workspace package.
 - `src/term/` and `src/dom/` are introduced only when their phase begins.
 - `bench/` contains browser benchmark entry points; `scripts/` owns their runners and reproducible
   artifact builds. Generated wasm is checked in at the repository root.

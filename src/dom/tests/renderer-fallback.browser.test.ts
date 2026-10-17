@@ -2,12 +2,12 @@ import {
   observeDisplayedFrame,
   displayedFrameListener,
   type DisplayedTextFrame,
-} from '../../render/displayed-frame.js'
+} from '../../render/shared/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import { WebGpuUnavailableError } from '../../render/renderer.js'
-import { createCompatibleTerminalRenderer } from '../../render/selector.js'
+import { WebGpuUnavailableError } from '../../render/webgpu/renderer.js'
+import { createCompatibleTerminalRenderer } from '../../render/shared/selector.js'
 import { TerminalSession } from '../../term/session.js'
 import { createTerminalElements } from '../elements.js'
 import { createGhosttyWebGpuTerminalFromSession, type Terminal } from '../terminal.js'

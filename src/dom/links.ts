@@ -1,4 +1,4 @@
-import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/renderer.js'
+import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/shared/types.js'
 import type { LinkCell, LinkHit, LinkResolution } from '../term/links.js'
 import type { TerminalLinkRequest } from '../term/types.js'
 import {

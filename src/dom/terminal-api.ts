@@ -7,8 +7,8 @@ import type {
   TerminalLine,
   TerminalSelectionFormatOptions,
 } from '../core/types.js'
-import type { InactiveCursorStyle } from '../render/cursor.js'
-import type { RendererFrameSnapshot } from '../render/renderer.js'
+import type { InactiveCursorStyle } from '../render/shared/cursor.js'
+import type { RendererFrameSnapshot } from '../render/shared/types.js'
 import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
 import type {
   TerminalAppearance,

@@ -1,4 +1,4 @@
-import type { GlyphRasterizationInput } from '../atlas/types.js'
+import type { GlyphRasterizationInput } from '../shared/atlas/types.js'
 import type { Canvas2dContext } from './painter.js'
 
 export type PaintTarget = Pick<

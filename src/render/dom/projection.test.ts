@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { CellStyle } from '../../core/types.js'
 import { CanvasColorCache } from '../canvas/colors.js'
-import { canonicalRendererTheme, mergeRendererTheme } from '../config.js'
+import { canonicalRendererTheme, mergeRendererTheme } from '../shared/config.js'
 import { renderRowRuns } from './html.js'
 import { probeFont } from './tests/probe.js'
 

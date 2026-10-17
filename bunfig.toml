@@ -1,0 +1,4 @@
+# Isolated installs resolve type peers (e.g. @types/react for @phosphor-icons/react) only from the local store.
+# Upstream fix: https://github.com/oven-sh/bun/pull/36796
+[install]
+globalStore = false

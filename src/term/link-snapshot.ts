@@ -1,4 +1,4 @@
-import type { RendererTextFrameRow, RenderStateSource } from '../render/renderer.js'
+import type { RendererTextFrameRow, RenderStateSource } from '../render/shared/types.js'
 import {
   LinkResolver,
   type LinkCell,

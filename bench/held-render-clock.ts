@@ -1,5 +1,5 @@
 import { createGhosttyError } from '../src/core/error.js'
-import type { RenderSchedulerClock } from '../src/render/scheduler.js'
+import type { RenderSchedulerClock } from '../src/render/shared/scheduler.js'
 
 type Frame = { callback: () => void; nativeHandle?: number }
 

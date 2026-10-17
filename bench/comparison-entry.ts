@@ -16,11 +16,11 @@ import { GhosttyTerminal } from '../src/core/terminal.js'
 import { TerminalOption } from '../src/core/abi.js'
 import { TerminalSession } from '../src/term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../src/dom/terminal.js'
-import { WebGpuTerminalRenderer } from '../src/render/renderer.js'
+import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
 import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
 import { DomTerminalRenderer } from '../src/render/dom/renderer.js'
-import type { RowRendererMetrics } from '../src/render/row-renderer.js'
+import type { RowRendererMetrics } from '../src/render/shared/row-renderer.js'
 import { ComparisonTracing } from './comparison-tracing.js'
 import { refreshSampler } from './comparison-refresh.js'
 import { frameMetricDeltas } from './comparison-metrics.js'
@@ -50,7 +50,7 @@ interface Driver {
   onData(listener: (data: string | Uint8Array) => void): void
   dispose(): void
   frameMetrics?():
-    | import('../src/render/renderer.js').RendererMetrics
+    | import('../src/render/shared/types.js').RendererMetrics
     | RowRendererMetrics
     | undefined
 }

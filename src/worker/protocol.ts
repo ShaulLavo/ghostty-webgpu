@@ -1,8 +1,8 @@
 import type { LocalTerminalExecution } from '../dom/execution-local.js'
 import type { TerminalElementPadding } from '../dom/elements.js'
 import type { TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
-import type { RendererTextFrameSnapshot } from '../render/renderer.js'
-import type { InactiveCursorStyle } from '../render/cursor.js'
+import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
+import type { InactiveCursorStyle } from '../render/shared/cursor.js'
 import type {
   TerminalAppearance,
   TerminalAppearanceOptions,

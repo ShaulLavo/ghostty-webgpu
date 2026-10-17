@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "bun run --cwd ../.. turbo run build --filter=ghostty-webgpu-line-editor",
+    "prebuild": "bun run --cwd .. build && bun run --cwd ../packages/line-editor build",
     "build": "bun run typecheck && bun run docs:check && bun scripts/sync-assets.ts && astro build",
     "dev": "bun scripts/sync-assets.ts && astro dev",
     "preview": "astro preview",

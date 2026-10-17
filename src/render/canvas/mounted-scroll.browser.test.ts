@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { Terminal } from '../../dom/terminal.js'
-import type { WebGpuTerminalRendererOptions } from '../renderer.js'
+import type { WebGpuTerminalRendererOptions } from '../shared/types.js'
 import { TestClock } from '../webgl/tests/fixture.js'
 import { CanvasTerminalRenderer } from './renderer.js'
 

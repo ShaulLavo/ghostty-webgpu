@@ -2,7 +2,7 @@ import { onTestFinished } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { GhosttySelectionGesture } from '../../core/selection.js'
 import type { RenderCell, RenderRow, RgbColor } from '../../core/types.js'
-import type { RenderStateSource } from '../renderer.js'
+import type { RenderStateSource } from '../shared/types.js'
 
 function colorSequence(color: RgbColor | undefined, foreground: boolean): string {
   if (!color) return ''

@@ -3,27 +3,27 @@ import {
   displayedFrameListener,
   type DisplayedFrameOptions,
   type DisplayedTextFrame,
-} from '../../render/displayed-frame.js'
+} from '../../render/shared/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { TerminalScrollbar } from '../../core/types.js'
-import { GlyphAtlas } from '../../render/atlas/atlas.js'
-import type { CanvasGlyphRasterizer } from '../../render/atlas/canvas-rasterizer.js'
-import { AtlasGpuTextures } from '../../render/atlas/gpu-textures.js'
-import { WebGpuTerminalRenderer } from '../../render/renderer.js'
+import { GlyphAtlas } from '../../render/shared/atlas/atlas.js'
+import type { CanvasGlyphRasterizer } from '../../render/shared/atlas/canvas-rasterizer.js'
+import { AtlasGpuTextures } from '../../render/webgpu/gpu-textures.js'
+import { WebGpuTerminalRenderer } from '../../render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../../render/webgl/renderer.js'
 import { WebGlTextPass } from '../../render/webgl/text-pass.js'
 import { displayedPixels } from '../../render/webgl/tests/fixture.js'
-import type { RenderScheduler } from '../../render/scheduler.js'
-import type { WebGpuTextPass } from '../../render/text-pass.js'
+import type { RenderScheduler } from '../../render/shared/scheduler.js'
+import type { WebGpuTextPass } from '../../render/webgpu/text-pass.js'
 import type {
   RenderStateSource,
   RendererFrameSnapshot,
   RendererGridSize,
   RendererTextFrameSnapshot,
   WebGpuTerminalRendererOptions,
-} from '../../render/renderer.js'
+} from '../../render/shared/types.js'
 import type { ProvidedLink } from '../../term/links.js'
 import { TerminalSession } from '../../term/session.js'
 import type { TerminalFittedFont, TerminalSessionOptions } from '../../term/types.js'

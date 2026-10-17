@@ -125,3 +125,12 @@ Read the [contribution guide and AI policy](https://github.com/ShaulLavo/fregat/
 
 [MIT](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/LICENSE).
 The [third-party notices](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/THIRD_PARTY_NOTICES.md) cover the bundled Ghostty code.
+
+## Workspace layout
+
+The terminal package lives at the repository root. Optional packages live under `packages/`, including
+[`ghostty-webgpu-line-editor`](packages/line-editor/README.md). Run `bun install` at the root to link the workspaces.
+
+Renderer implementations live under `src/render/webgpu/`, `webgl/`, `canvas/`, `pixels/`, and `dom/`.
+`shaders/` contains GPU shader sources; `shared/` contains scheduling, frame contracts, the glyph atlas,
+and backend selection. Pixel composition uses the Canvas host and row painter.

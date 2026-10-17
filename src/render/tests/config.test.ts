@@ -1,6 +1,6 @@
 import { calculateTerminalFittedFont } from '../../dom/fit.js'
 import { describe, expect, it } from 'vitest'
-import { canonicalRendererTheme, copyFittedFont, mergeRendererTheme } from '../config.js'
+import { canonicalRendererTheme, copyFittedFont, mergeRendererTheme } from '../shared/config.js'
 
 describe('renderer theme canonicalization', () => {
   it('tracks background while cursor text is omitted and preserves explicit cursor text', () => {

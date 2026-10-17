@@ -5,10 +5,10 @@ import { createGhosttyWebGpuTerminalFromSession } from '../../dom/terminal.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { fitTerminalFont } from '../../dom/fit.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
+import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
 import { DomTerminalRenderer } from '../dom/renderer.js'
-import { WebGpuTerminalRenderer } from '../renderer.js'
+import { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../webgl/renderer.js'
 
 const cleanups: (() => void)[] = []

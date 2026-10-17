@@ -1,7 +1,7 @@
 import { GhosttyRuntime } from '../src/core/runtime.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
-import { WebGpuTerminalRenderer } from '../src/render/renderer.js'
-import type { RenderSchedulerClock } from '../src/render/scheduler.js'
+import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
+import type { RenderSchedulerClock } from '../src/render/shared/scheduler.js'
 
 import type { LifecycleCase, LifecycleEvent, LifecycleResult } from './queue-lifecycle-types.js'
 

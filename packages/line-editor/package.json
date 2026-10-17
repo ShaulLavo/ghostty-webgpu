@@ -1,0 +1,51 @@
+{
+  "name": "ghostty-webgpu-line-editor",
+  "version": "0.0.3",
+  "private": true,
+  "description": "Readline-style editing for ghostty-webgpu local shells",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:package": "node scripts/package-smoke.mjs",
+    "lint": "oxlint src scripts",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:package"
+  },
+  "dependencies": {
+    "evlog": "2.29.0"
+  },
+  "devDependencies": {
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  },
+  "peerDependencies": {
+    "ghostty-webgpu": "^0.3.24"
+  },
+  "peerDependenciesMeta": {
+    "ghostty-webgpu": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "bun@1.4.2"
+}

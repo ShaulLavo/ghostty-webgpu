@@ -1,22 +1,22 @@
 import { createGhosttyError } from '../../core/error.js'
 import type { RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { canonicalRendererTheme, mergeRendererTheme } from '../config.js'
-import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
+import { canonicalRendererTheme, mergeRendererTheme } from '../shared/config.js'
+import type { CanonicalRendererTheme, CursorState } from '../shared/instances/types.js'
 import type {
   CanvasPaintMode,
   RendererGridSize,
   RenderStateSource,
   WebGpuTerminalRendererOptions,
-} from '../renderer.js'
+} from '../shared/types.js'
 import {
   RowTerminalRenderer,
   type RowRendererMetrics,
   type RowRendererSurface,
   type RowThemeInvalidation,
-} from '../row-renderer.js'
+} from '../shared/row-renderer.js'
 import { CanvasRowPainter, plainRowText, type Canvas2dContext } from './painter.js'
-import type { PixelTarget, PixelMetrics, PixelTargetFactory } from './pixel-target.js'
+import type { PixelTarget, PixelMetrics, PixelTargetFactory } from '../pixels/pixel-target.js'
 import { canvasScrollPlan, type CanvasScrollPlan } from './scroll.js'
 
 export interface CanvasRendererMetrics
@@ -374,8 +374,8 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
   static async create(options: WebGpuTerminalRendererOptions): Promise<CanvasTerminalRenderer> {
     if (options.rendererMode !== 'canvas2d-pixels') return new CanvasTerminalRenderer(options)
     const [{ ComposeKernel }, { StampTarget }] = await Promise.all([
-      import('./kernel.js'),
-      import('./stamp-target.js'),
+      import('../pixels/kernel.js'),
+      import('../pixels/stamp-target.js'),
     ])
     const kernel = await ComposeKernel.create()
     return new CanvasTerminalRenderer(options, (_canvas, output) => new StampTarget(kernel, output))

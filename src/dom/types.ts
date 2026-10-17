@@ -17,13 +17,13 @@ import type {
   TerminalSessionRuntime,
   TerminalTheme,
 } from '../term/types.js'
-import type { RendererTheme } from '../render/instances/types.js'
-import type { InactiveCursorStyle } from '../render/cursor.js'
+import type { RendererTheme } from '../render/shared/instances/types.js'
+import type { InactiveCursorStyle } from '../render/shared/cursor.js'
 import type {
   RendererFrameSnapshot,
   RendererGridSize,
   WebGpuTerminalRendererOptions,
-} from '../render/renderer.js'
+} from '../render/shared/types.js'
 import type { TerminalAccessibilityOptions } from './accessibility.js'
 import type { DomClipboardWritePolicy } from './clipboard.js'
 import type { TerminalElementPaddingInput, TerminalElements } from './elements.js'

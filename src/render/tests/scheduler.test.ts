@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { RenderScheduler, type RenderFrameState, type RenderSchedulerClock } from '../scheduler.js'
+import {
+  RenderScheduler,
+  type RenderFrameState,
+  type RenderSchedulerClock,
+} from '../shared/scheduler.js'
 
 class FakeClock implements RenderSchedulerClock {
   private nextHandle = 1

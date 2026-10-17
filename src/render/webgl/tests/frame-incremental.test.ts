@@ -2,7 +2,7 @@ import { afterEach, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../../core/runtime.js'
 import type { ZigFrameBuilder, ZigFrameOptions } from '../../../core/zig-frame.js'
 import { fixtureGlyphs } from '../../../core/tests/zig-frame-fixtures.js'
-import { defaultRendererTheme } from '../../instances/types.js'
+import { defaultRendererTheme } from '../../shared/instances/types.js'
 
 let runtime: GhosttyRuntime | undefined
 let builder: ZigFrameBuilder | undefined

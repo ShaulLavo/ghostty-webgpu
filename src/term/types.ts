@@ -13,8 +13,8 @@ import type {
   TerminalCursorStyle,
   TerminalScrollbar,
 } from '../core/types.js'
-import type { RendererTheme } from '../render/instances/types.js'
-import type { RenderStateSource } from '../render/renderer.js'
+import type { RendererTheme } from '../render/shared/instances/types.js'
+import type { RenderStateSource } from '../render/shared/types.js'
 import type { LinkRequest, LinkResolverOptions } from './links.js'
 
 type RendererColorKey =

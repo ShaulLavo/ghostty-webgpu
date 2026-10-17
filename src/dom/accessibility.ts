@@ -1,5 +1,5 @@
 import type { TerminalScrollbar } from '../core/types.js'
-import type { RendererTextFrameSnapshot } from '../render/renderer.js'
+import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
 import type { TerminalSubmittedRow } from './submitted-frame.js'
 
 type AccessibilitySnapshot = Pick<RendererTextFrameSnapshot, 'cursor' | 'paintedCursor'> & {

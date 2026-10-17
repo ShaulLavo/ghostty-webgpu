@@ -1,9 +1,9 @@
-import { contrastAdjustedColor } from '../contrast.js'
+import { contrastAdjustedColor } from '../shared/contrast.js'
 import type { PaintTarget } from './paint-target.js'
 import type { RenderCell, RenderRow } from '../../core/types.js'
 import { emptyRenderCell } from '../../core/packed-cells.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
+import type { CanonicalRendererTheme, CursorState } from '../shared/instances/types.js'
 import { CanvasColorCache, resolveCanvasCellColors, type CanvasCellColors } from './colors.js'
 
 export type Canvas2dContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D

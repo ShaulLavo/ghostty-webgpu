@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { DeviceOwner } from '../device-owner.js'
+import { DeviceOwner } from '../webgpu/device-owner.js'
 
 function deviceFixture() {
   const loss = Promise.withResolvers<Pick<GPUDeviceLostInfo, 'message' | 'reason'>>()

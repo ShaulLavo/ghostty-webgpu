@@ -9,7 +9,7 @@ import {
 import { Terminal as WorkerTerminal, TerminalWorkerError } from '../../dist/worker/index.js'
 import type { TerminalApi } from '../../dist/dom/terminal-api.js'
 import { WebGlTerminalRenderer } from '../../dist/render/webgl/renderer.js'
-import { WebGpuTerminalRenderer } from '../../dist/render/renderer.js'
+import { WebGpuTerminalRenderer } from '../../dist/render/webgpu/renderer.js'
 import { createDomInputController } from '../../dist/dom/input.js'
 import type {
   TerminalOutputReady,

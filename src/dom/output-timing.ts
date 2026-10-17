@@ -1,4 +1,4 @@
-import { insideAnimationFrame } from '../render/config.js'
+import { insideAnimationFrame } from '../render/shared/config.js'
 import type { TerminalOutputTiming } from './types.js'
 
 const defaultQuietMs = 100

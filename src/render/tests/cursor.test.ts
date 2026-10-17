@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import type { RenderCursorSnapshot } from '../../core/types.js'
-import { renderCursorState } from '../cursor.js'
+import { renderCursorState } from '../shared/cursor.js'
 
 const cursor: RenderCursorSnapshot = {
   blinking: false,

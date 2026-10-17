@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import { copiedFrameRow } from '../frame-row.js'
+import { copiedFrameRow } from '../shared/frame-row.js'
 
 it.each([
   '',

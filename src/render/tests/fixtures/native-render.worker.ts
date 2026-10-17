@@ -1,8 +1,9 @@
 import { createGhosttyError } from '../../../core/error.js'
 import { calculateTerminalFittedFont } from '../../../dom/fit.js'
 import { TerminalSession } from '../../../term/session.js'
-import type { RenderSchedulerClock } from '../../scheduler.js'
-import { WebGpuTerminalRenderer, type RendererTextFrameSnapshot } from '../../renderer.js'
+import type { RenderSchedulerClock } from '../../shared/scheduler.js'
+import { type RendererTextFrameSnapshot } from '../../shared/types.js'
+import { WebGpuTerminalRenderer } from '../../webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../../webgl/renderer.js'
 import type {
   WorkerCleanup,

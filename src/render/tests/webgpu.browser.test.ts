@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GlyphAtlas } from '../atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
-import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
+import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import { AtlasGpuTextures } from '../webgpu/gpu-textures.js'
 
 const bytesPerRow = 256
 

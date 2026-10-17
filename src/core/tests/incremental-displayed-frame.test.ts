@@ -1,4 +1,4 @@
-import { retainDisplayedFrame } from '../../render/displayed-frame.js'
+import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
 import { readFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it } from 'vitest'
 import { CallbackBridge } from '../bridge.js'

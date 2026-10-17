@@ -1,7 +1,7 @@
 import type { LocalTerminalExecution } from '../dom/execution-local.js'
 import type { TerminalElements } from '../dom/elements.js'
 import type { TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
-import type { RendererTextFrameSnapshot } from '../render/renderer.js'
+import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
 import { EventEmitter } from '../term/events.js'
 import {
   createProjectedLinkSession,

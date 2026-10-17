@@ -1,13 +1,13 @@
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { RgbColor } from './types.js'
-import type { AtlasGlyph, GlyphRasterizationInput } from '../render/atlas/types.js'
-import { contrastAdjustedColor } from '../render/contrast.js'
+import type { AtlasGlyph, GlyphRasterizationInput } from '../render/shared/atlas/types.js'
+import { contrastAdjustedColor } from '../render/shared/contrast.js'
 import type {
   CanonicalRendererTheme,
   CursorState,
   RowInstanceUpdate,
-} from '../render/instances/types.js'
+} from '../render/shared/instances/types.js'
 
 const frameBytes = 144
 

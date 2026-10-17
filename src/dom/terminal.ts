@@ -15,10 +15,10 @@ import type {
   TerminalScrollbar,
   TerminalSelectionFormatOptions,
 } from '../core/types.js'
-import type { RendererFrameSnapshot, RendererTextFrameSnapshot } from '../render/renderer.js'
-import { createCompatibleTerminalRenderer } from '../render/selector.js'
-import type { InactiveCursorStyle } from '../render/cursor.js'
-import { observeDisplayedFrame } from '../render/displayed-frame.js'
+import type { RendererFrameSnapshot, RendererTextFrameSnapshot } from '../render/shared/types.js'
+import { createCompatibleTerminalRenderer } from '../render/shared/selector.js'
+import type { InactiveCursorStyle } from '../render/shared/cursor.js'
+import { observeDisplayedFrame } from '../render/shared/displayed-frame.js'
 import { EventEmitter } from '../term/events.js'
 import {
   browserOutputTimingClock,

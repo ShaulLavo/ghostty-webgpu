@@ -2,15 +2,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createGhosttyError } from '../error.js'
 import { GhosttyRuntime } from '../runtime.js'
 import type { ZigFrameBuilder, ZigFrameOptions } from '../zig-frame.js'
-import { GlyphAtlas } from '../../render/atlas/atlas.js'
+import { GlyphAtlas } from '../../render/shared/atlas/atlas.js'
 import type {
   AtlasGlyph,
   GlyphRasterizationInput,
   GlyphRasterizer,
-} from '../../render/atlas/types.js'
-import { buildZigFrame } from '../../render/atlas/zig-glyphs.js'
-import { CellFlag, CellOffset, GlyphFlag, GlyphOffset } from '../../render/instances/layout.js'
-import { defaultRendererTheme } from '../../render/instances/types.js'
+} from '../../render/shared/atlas/types.js'
+import { buildZigFrame } from '../../render/shared/atlas/zig-glyphs.js'
+import {
+  CellFlag,
+  CellOffset,
+  GlyphFlag,
+  GlyphOffset,
+} from '../../render/shared/instances/layout.js'
+import { defaultRendererTheme } from '../../render/shared/instances/types.js'
 import {
   expectedGlyphs,
   fixtureGlyphs,

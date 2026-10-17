@@ -1,17 +1,21 @@
 import { expect, it, onTestFinished } from 'vitest'
 import type { CellStyle, RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GlyphAtlas } from '../atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../atlas/canvas-rasterizer.js'
-import { AtlasGpuTextures } from '../atlas/gpu-textures.js'
-import type { GlyphRasterizer } from '../atlas/types.js'
-import { canonicalRendererTheme } from '../config.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
+import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import { AtlasGpuTextures } from '../webgpu/gpu-textures.js'
+import type { GlyphRasterizer } from '../shared/atlas/types.js'
+import { canonicalRendererTheme } from '../shared/config.js'
 import { fitTerminalFont } from '../../dom/fit.js'
 import { createNativeTestState } from './native-state.js'
 import { limitDeviceBuffers } from './device-limits.js'
-import { buildZigFrame } from '../atlas/zig-glyphs.js'
-import { defaultRendererTheme, type CursorState, type RendererTheme } from '../instances/types.js'
-import { WebGpuTextPass } from '../text-pass.js'
+import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
+import {
+  defaultRendererTheme,
+  type CursorState,
+  type RendererTheme,
+} from '../shared/instances/types.js'
+import { WebGpuTextPass } from '../webgpu/text-pass.js'
 
 const cellSize = 16
 const columns = 7

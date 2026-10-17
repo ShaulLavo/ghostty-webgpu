@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
-import { snapshotRenderState } from '../frame.js'
+import { snapshotRenderState } from '../shared/frame.js'
 import { renderFrameToHtml } from './renderer.js'
 import { probeFont, probeInput } from './tests/probe.js'
 

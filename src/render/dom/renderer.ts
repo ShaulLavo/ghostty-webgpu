@@ -5,14 +5,14 @@ import {
   copyFittedFont,
   mergeRendererTheme,
   normalizeRendererGrid,
-} from '../config.js'
-import type { CanonicalRendererTheme, CursorState } from '../instances/types.js'
-import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../renderer.js'
+} from '../shared/config.js'
+import type { CanonicalRendererTheme, CursorState } from '../shared/instances/types.js'
+import type { RendererGridSize, WebGpuTerminalRendererOptions } from '../shared/types.js'
 import {
   RowTerminalRenderer,
   type RowRendererSurface,
   type RowThemeInvalidation,
-} from '../row-renderer.js'
+} from '../shared/row-renderer.js'
 import {
   defaultRowStyle,
   frameStyle,

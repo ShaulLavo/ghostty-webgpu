@@ -4,7 +4,7 @@ import { createGhosttyWebGpuTerminalFromSession } from '../../dom/terminal.js'
 import type { Terminal } from '../../dom/terminal.js'
 import { TerminalSession } from '../../term/session.js'
 import { CanvasTerminalRenderer } from './renderer.js'
-import { StampTarget } from './stamp-target.js'
+import { StampTarget } from '../pixels/stamp-target.js'
 
 function targetFor(renderer: CanvasTerminalRenderer): StampTarget {
   const surface: unknown = Reflect.get(renderer, 'canvasSurface')
