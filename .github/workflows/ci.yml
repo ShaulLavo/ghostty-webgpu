@@ -21,6 +21,10 @@ jobs:
           bun-version: 1.4.2
       - run: bun install
       - run: bunx playwright install --with-deps chromium
+      - name: Build browser package
+        run: bun run build
+      - name: Verify compiled shader extension
+        run: bun run --cwd packages/shaders verify && bun run --cwd packages/shaders test:browser
       - name: Verify browser package
         run: bun run verify
       - name: Verify browser package with production npm settings

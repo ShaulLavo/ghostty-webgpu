@@ -1,0 +1,53 @@
+{
+  "name": "ghostty-webgpu-shaders",
+  "version": "0.0.1",
+  "description": "Optional compiled shader effects for ghostty-webgpu terminals",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShaulLavo/fregat.git",
+    "directory": "ghostty-webgpu/packages/shaders"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src scripts",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "test": "vitest run",
+    "test:browser": "bun run --cwd ../.. test:browser packages/shaders/src/tests/",
+    "test:package": "node scripts/package-smoke.mjs",
+    "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:package"
+  },
+  "devDependencies": {
+    "@webgpu/types": "0.1.74",
+    "oxfmt": "0.70.0",
+    "oxlint": "1.85.0",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  },
+  "peerDependencies": {
+    "ghostty-webgpu": "^0.3.24"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "bun@1.4.2"
+}
