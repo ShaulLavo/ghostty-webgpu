@@ -156,13 +156,13 @@ test('native inputs reject changes to the active workspace workflow', () => {
   const originalInputs = createNativeInputs(family)
 
   const original = readFileSync(workflow, 'utf8')
-  writeFileSync(workflow, original.replace('BUN_VERSION: 1.4.2', 'BUN_VERSION: 1.4.3'))
+  writeFileSync(workflow, original.replace('BUN_VERSION: 1.4.4', 'BUN_VERSION: 1.4.5'))
   expect(() => createNativeInputs(family)).toThrow(/native workflow/)
 
   const canonical = join(family, '.github/workflows/config-resolver.yml')
   const updated = readFileSync(canonical, 'utf8').replace(
-    'BUN_VERSION: 1.4.2',
-    'BUN_VERSION: 1.4.3',
+    'BUN_VERSION: 1.4.4',
+    'BUN_VERSION: 1.4.5',
   )
   writeFileSync(canonical, updated)
   writeFileSync(workflow, renderWorkspaceNativeWorkflow(updated))
