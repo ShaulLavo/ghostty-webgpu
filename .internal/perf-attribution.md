@@ -871,7 +871,7 @@ The compact generator retains preparation failures and missing metrics, so incom
 
 ## Conclusions and target reproducibility
 
-The corrected baseline is [benchmarks.md](benchmarks.md), from Fregat PR #235. This investigation preserves the CPU disadvantage at 17 terminals, identifies renderer-side snapshot/instance work, and does **not** reproduce the one-terminal input-p95 disadvantage.
+The corrected baseline is [benchmarks.md](../docs/benchmarks.md), from Fregat PR #235. This investigation preserves the CPU disadvantage at 17 terminals, identifies renderer-side snapshot/instance work, and does **not** reproduce the one-terminal input-p95 disadvantage.
 
 | Target                         |     PR #235 native / xterm | This run native / xterm | Measured conclusion                                                                                                           |
 | ------------------------------ | -------------------------: | ----------------------: | ----------------------------------------------------------------------------------------------------------------------------- |

@@ -43,7 +43,7 @@ Follow Fregat's array construction rules: combine arrays with `concat` and use f
 
 ## Build And Tests
 
-- Autonomous performance research follows [program.md](program.md), using the current local research checkpoint and existing benchmark qualification.
+- Autonomous performance research follows [.internal/program.md](.internal/program.md), using the current local research checkpoint and existing benchmark qualification.
 
 - Consumers execute `dist`; run `bun run build` after source changes.
 - Core tests run in plain Vitest under Node and must not require DOM globals.

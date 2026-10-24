@@ -45,6 +45,6 @@ The setup runs the repository gates, full typecheck, formatting, and targeted he
 
 Give an agent this instruction from the Fregat checkout, supplying the local binding's absolute path:
 
-> Read ghostty-webgpu/program.md and the autoresearch host-binding.json in the existing terminal-performance research directory. Start a fresh research checkpoint and budget of four experiments or 60 elapsed minutes. Read the stopped setup checkpoint as history. Recover the latest valid candidate or choose the next justified hypothesis, follow the existing qualification rules, and continue autonomously after KEEP or REJECT.
+> Read ghostty-webgpu/.internal/program.md and the autoresearch host-binding.json in the existing terminal-performance research directory. Start a fresh research checkpoint and budget of four experiments or 60 elapsed minutes. Read the stopped setup checkpoint as history. Recover the latest valid candidate or choose the next justified hypothesis, follow the existing qualification rules, and continue autonomously after KEEP or REJECT.
 
 The first real step is a current evidence/source reconciliation. A later checkpoint can change the priority. Subsequent agents resume the research checkpoint with its original budget and recover any unfinished acquisition before starting another experiment.

@@ -2,7 +2,7 @@
 
 Start with one instruction:
 
-> Run ghostty-webgpu/program.md autonomously. Resume the current autoresearch checkpoint using the host's research binding. Research for at most four experiments or 60 elapsed minutes. Continue after each KEEP or REJECT without asking me to choose the next experiment.
+> Run ghostty-webgpu/.internal/program.md autonomously. Resume the current autoresearch checkpoint using the host's research binding. Research for at most four experiments or 60 elapsed minutes. Continue after each KEEP or REJECT without asking me to choose the next experiment.
 
 The agent performs the loop. The checkpoint helper saves continuation state. It does not launch agents, schedule hardware, benchmark, or decide acceptance.
 
@@ -128,7 +128,7 @@ On resume, recover the current experiment first. Verify outputs and process stat
 
 This loop adapts [Karpathy's program.md at 228791f](https://github.com/karpathy/autoresearch/blob/228791fb499afffb54b46200aca536f79142f117/program.md), read on 2026-10-06. It retains an agent-facing programme, bounded isolated experiments, fixed evaluation, baseline advancement, negative-result records, and autonomous continuation. Fregat's metrics, resource rules, qualification, stop conditions, and worktree discipline govern execution.
 
-The [setup proof](docs/autoresearch-setup.md) records the bounded dry run. Run the checkpoint regression check with:
+The [setup proof](autoresearch-setup.md) records the bounded dry run. Run the checkpoint regression check with:
 
 ```sh
 node --test ghostty-webgpu/scripts/autoresearch-checkpoint.test.mjs
