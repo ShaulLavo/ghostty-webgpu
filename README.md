@@ -39,7 +39,7 @@ _Bytes flow through one wasm core. Canvas 2D and the DOM read rows from it. WebG
 
 ## Quick start
 
-The npm release is 0.1.2 and predates this API. Run the current source from Fregat's workspace. You need [Bun](https://bun.sh/) and Node 20 or newer.
+The npm release is 0.1.2 and predates this API. Run the current source from Fregat's workspace. You need [Bun](https://bun.sh/), which runs the install, the build, and the demo server. Node 20 or newer is the range `package.json` declares in `engines.node`. The benchmark verifier and the `node --test` steps run on Node.
 
 ```sh
 git clone https://github.com/ShaulLavo/fregat.git
@@ -56,16 +56,14 @@ To embed the terminal, add `<div id="terminal" style="height: 32rem"></div>` to 
 
 ## What you can do
 
-| Task                                      | Where                                                                                                                                                                              |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Connect a real shell over a WebSocket     | [Connect a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/)                                                                                                                     |
-| Move off xterm.js or ghostty-web          | [From xterm.js](https://ghostty.shaulavo.dev/docs/start/xterm/), [from ghostty-web](https://ghostty.shaulavo.dev/docs/start/ghostty-web/)                                          |
-| Pick or force a renderer                  | [Renderers and fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/)                                                                                                     |
-| Run the emulator and GPU in a worker      | [Worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/)                                                                                                                  |
-| Load fonts, set themes, bind hotkeys      | [Fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/), [themes](https://ghostty.shaulavo.dev/docs/guides/themes/), [hotkeys](https://ghostty.shaulavo.dev/docs/guides/hotkeys/) |
-| Read history, save and restore a viewport | [Scrollback](https://ghostty.shaulavo.dev/docs/guides/scrollback/)                                                                                                                 |
-| Look up an option or a type               | [Options](https://ghostty.shaulavo.dev/docs/reference/options/), [generated API](https://ghostty.shaulavo.dev/docs/reference/api/)                                                 |
-| Fix a symptom                             | [Troubleshooting](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/troubleshooting.md)                                                                            |
+- Connect a real shell over a WebSocket: [Connect a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/).
+- Move off xterm.js or ghostty-web: [from xterm.js](https://ghostty.shaulavo.dev/docs/start/xterm/) or [from ghostty-web](https://ghostty.shaulavo.dev/docs/start/ghostty-web/).
+- Pick or force a renderer: [Renderers and fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/).
+- Run the emulator and GPU in a worker: [Worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/).
+- Load fonts, set themes, bind hotkeys: [fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/), [themes](https://ghostty.shaulavo.dev/docs/guides/themes/), [hotkeys](https://ghostty.shaulavo.dev/docs/guides/hotkeys/).
+- Read history, save and restore a viewport: [Scrollback](https://ghostty.shaulavo.dev/docs/guides/scrollback/).
+- Look up an option or a type: [Options](https://ghostty.shaulavo.dev/docs/reference/options/) and the [generated API](https://ghostty.shaulavo.dev/docs/reference/api/).
+- Fix a symptom: [Troubleshooting](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/troubleshooting.md).
 
 ## Performance
 
@@ -85,16 +83,14 @@ One Unicode line per tick is roughly even, with 1.4% less energy and 0.2% more i
 <details>
 <summary>Benchmark setup and limits</summary>
 
-| Detail      | Setup                                                                                                                                                                                  |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Machine     | Apple M1 MacBook on AC power                                                                                                                                                           |
-| Browser     | Headed Chrome 154.0.8037.93                                                                                                                                                            |
-| Versions    | ghostty-webgpu 0.3.21, xterm.js 6.0.0, WebGL addon 0.19.0                                                                                                                              |
-| Workload    | 17 visible terminals, 40 × 12 cells, DPR 2                                                                                                                                             |
-| Sampling    | 900 measured ticks at 60 Hz after 120 warm-up ticks; each row is the median of two balanced pairs                                                                                      |
-| Dates       | Acquired 2026-10-09, reviewed 2026-10-10                                                                                                                                               |
-| Measurement | Whole-browser instruction counts and estimated CPU energy                                                                                                                              |
-| Limits      | Two pairs per row; retained-history limits and observer qualifications apply. The review marks every row publishable with limits and records the Unicode instruction result as a loss. |
+- **Machine:** Apple M1 MacBook on AC power.
+- **Browser:** headed Chrome 154.0.8037.93.
+- **Versions:** ghostty-webgpu 0.3.21, xterm.js 6.0.0, WebGL addon 0.19.0.
+- **Workload:** 17 visible terminals, 40 × 12 cells, DPR 2.
+- **Sampling:** 900 measured ticks at 60 Hz after 120 warm-up ticks. Each row is the median of two balanced pairs.
+- **Dates:** acquired 2026-10-09, reviewed 2026-10-10.
+- **Measurement:** whole-browser instruction counts and estimated CPU energy.
+- **Limits:** two pairs per row. Retained-history limits and observer qualifications apply. The review marks every row publishable with limits. For one Unicode line per tick it records instructions as higher (1.002).
 
 Recompute the table without a browser, from `ghostty-webgpu/`: `node docs/benchmarks/mac-m1-2026-10-10/verify.mjs`.
 The [reviewed benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) cover DOM too, and the [method and recompute steps](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md) list what the numbers do not show. Read them before applying the results to your workload.
@@ -105,11 +101,9 @@ The [reviewed benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-
 
 The [2026-10-08 run](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md) checks 132 selected esctest2 methods and 37 local cases.
 
-| Terminal              | Passed | Failed |
-| --------------------- | -----: | -----: |
-| ghostty-webgpu 0.3.20 |    167 |      2 |
-| xterm.js 6.0.0        |    126 |     43 |
-| ghostty-web 0.4.0     |    161 |      8 |
+- ghostty-webgpu 0.3.20: 167 passed, 2 failed.
+- xterm.js 6.0.0: 126 passed, 43 failed.
+- ghostty-web 0.4.0: 161 passed, 8 failed.
 
 Tested on an Intel Core i7-14700K running Arch Linux with headless Chromium 153.
 Both ghostty-webgpu failures reproduce in the pinned upstream core. Full VT conformance and general native Ghostty parity remain open.
