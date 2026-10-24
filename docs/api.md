@@ -1,6 +1,6 @@
 # Terminal API and rendering
 
-See [browser integration](integration.md) for installation and PTY wiring.
+This page states the behavior that type signatures do not show: execution modes, frames, scrollback, geometry, and extensions. Signatures are in the [generated API reference](https://ghostty.shaulavo.dev/docs/reference/api/). For PTY wiring, read [browser integration](integration.md).
 
 ## execution conventions
 

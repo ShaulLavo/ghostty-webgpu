@@ -1,8 +1,6 @@
 # Browser integration
 
-Install with `npm install ghostty-webgpu`.
-
-See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
+npm's latest release, 0.1.2, predates this API. Build the package from source as the [README](../README.md#quick-start) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
 
 The terminal mount needs a real size.
 
@@ -64,6 +62,12 @@ currentColor layers follow SGR, theme, selection, cursor and minimum-contrast co
 Bitmap retention is bounded to 4 MiB and 4,096 entries, and atlas layers have their own
 fixed capacity. Ordinary text and foreground-only COLR glyphs share a one-byte coverage
 mask across foreground colors.
+
+## Security
+
+The terminal sends every keystroke to the socket you give it, so the PTY endpoint decides who gets a shell. Authenticate the endpoint and check the WebSocket `Origin` header on the server. The [local demo](../demo/src/authorization.ts) shows one way. It binds `127.0.0.1`, puts a random token in the page, and rejects upgrades with a wrong host, origin, or token.
+
+A program in the terminal can ask to write the clipboard with OSC 52. The terminal denies that unless you pass a `clipboardWrite` policy to `Terminal.create()`. It sends no reply to OSC 52 reads. Report vulnerabilities as the [security policy](https://github.com/ShaulLavo/fregat/blob/main/SECURITY.md) describes.
 
 ## Verification
 
