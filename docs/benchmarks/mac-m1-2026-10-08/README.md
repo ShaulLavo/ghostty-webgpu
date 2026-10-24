@@ -1,10 +1,10 @@
 # Reviewed M1 terminal measurements
 
-**Superseded by the [2026-10-10 set](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks/mac-m1-2026-10-10/README.md).** The public pages now show that set. This one stays as history and its verifier still runs.
+**Superseded by the [2026-10-10 set](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md).** The public pages now show that set. This one stays as history and its verifier still runs.
 
 Published 2026-10-08 from the terminal performance wave's reviewed round-1 scoreboard. The windows ran on 2026-10-07 UTC. The publication adds no hardware runs and makes no claim about current main.
 
-[Public comparison page](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks/mac-m1-2026-10-08/scores.json)
+[Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/scores.json)
 
 ## What is saved
 

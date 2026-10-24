@@ -46,7 +46,7 @@ The measured result is that ghostty-webgpu passes more cases in this fixed selec
 | reports        |          2 / 0 |    2 / 0 |       2 / 0 |
 | unicode-burst  |          1 / 0 |    1 / 0 |       0 / 1 |
 
-[All individual results and failure details](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/correctness-results.json) include the exact emitted input hex for every upstream case, assertion messages, and available screen text, cursor coordinates and replies for failures.
+[All individual results and failure details](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness-results.json) include the exact emitted input hex for every upstream case, assertion messages, and available screen text, cursor coordinates and replies for failures.
 
 ### Findings
 

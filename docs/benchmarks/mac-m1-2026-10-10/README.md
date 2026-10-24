@@ -2,7 +2,7 @@
 
 Published 2026-10-10 from the terminal performance wave's one-build standing. The windows ran on 2026-10-09 UTC. The publication runs no new measurements and makes no claim about builds after ghostty-webgpu 0.3.21.
 
-[Public comparison page](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks/mac-m1-2026-10-10/scores.json) · [Earlier set, 2026-10-08](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks/mac-m1-2026-10-08/README.md)
+[Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/scores.json) · [Earlier set, 2026-10-08](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/README.md)
 
 ## What is saved
 

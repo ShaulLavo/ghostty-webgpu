@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 
 const root = new URL('./', import.meta.url)
 const data = JSON.parse(await readFile(new URL('scores.json', root)))
-const base = 'https://github.com/ShaulLavo/ghostty-webgpu/blob/main/'
+const base = 'https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/'
 const evidence = `${base}docs/benchmarks/mac-m1-2026-10-10/`
 const fregat = 'https://github.com/ShaulLavo/fregat/pull/'
 const { versions, runtimeCommit } = data.conditions
