@@ -84,7 +84,7 @@ Apple M1 MacBook, AC power, headed Chrome 154.0.8037.93, hardware ANGLE Metal GP
 
 ${table(gl)}
 
-WebGL uses ${less(pick(gl, 'rolling-logs').energy)}% less estimated CPU energy and ${less(pick(gl, 'rolling-logs').instructions)}% fewer instructions on heavy log output. The same two figures are ${lessBoth(gl, 'rolling-unicode-logs')} on heavy Unicode output, ${lessBoth(gl, 'line-scroll')} on one ASCII line per tick and ${lessBoth(gl, 'interactive-edits')} on typing-like edits. The scrolling and edits margins are small and come from two pairs per cell.
+WebGL uses ${less(pick(gl, 'rolling-logs').energy)}% less estimated CPU energy and ${less(pick(gl, 'rolling-logs').instructions)}% fewer instructions on heavy log output. The same two figures are ${lessBoth(gl, 'rolling-unicode-logs')} on heavy Unicode output, ${lessBoth(gl, 'line-scroll')} on one ASCII line per tick and ${lessBoth(gl, 'interactive-edits')} on typing-like edits. One ASCII line per tick is the \`line-scroll\` workload: each tick appends one line, so the screen scrolls one row per tick. Its margins and the edits margins are small and come from two pairs per cell.
 
 One Unicode line per tick is even. Energy is ${less(glLine.energy, 1)}% lower in both pairs and instructions are ${more(glLine.instructions, 1)}% higher in both pairs. The review records the instruction ratio as a loss.
 

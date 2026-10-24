@@ -78,7 +78,7 @@ WebGL compared with xterm.js WebGL. Each ratio is ghostty-webgpu divided by xter
 | One ASCII line per tick   |            0.955 |             0.985 |
 | Typing-like edits         |            0.911 |             0.954 |
 
-Heavy output uses about 39% less CPU energy and fewer instructions. Scrolling and typing-like edits improve by smaller margins.
+Heavy output uses about 39% less CPU energy and fewer instructions. One ASCII line per tick (the `line-scroll` workload, which scrolls the screen one row per tick) and typing-like edits improve by smaller margins.
 One Unicode line per tick is roughly even, with 1.4% less energy and 0.2% more instructions in both pairs.
 
 <details>
