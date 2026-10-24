@@ -10,10 +10,11 @@ You need [Bun](https://bun.sh/) (the repo pins 1.4.4 in `packageManager`) and No
 git clone https://github.com/ShaulLavo/fregat.git
 cd fregat
 bun install --frozen-lockfile
+bun run --cwd hotkeys/packages/hotkeys build
 bun run --cwd ghostty-webgpu build
 ```
 
-`build` compiles TypeScript to `dist/` and bundles the worker. Consumers import `dist`, so rebuild after every source change.
+The first build is `@fregat/hotkeys`, which ghostty-webgpu imports from its own `dist/`. The second `build` compiles TypeScript to `dist/` and bundles the worker. Consumers import `dist`, so rebuild after every source change.
 
 To see your build in a browser, run `bun run --cwd ghostty-webgpu demo`. It serves a terminal lab with a real shell at `http://127.0.0.1:4173`.
 

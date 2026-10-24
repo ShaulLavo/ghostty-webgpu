@@ -9,6 +9,7 @@ Tutorials and task guides are on [ghostty.shaulavo.dev/docs](https://ghostty.sha
 | [concepts.md](concepts.md)                           | Explanation | See how bytes become pixels and how a renderer is chosen.               |
 | [status.md](status.md)                               | Reference   | Check stability, browser support, and known gaps.                       |
 | [troubleshooting.md](troubleshooting.md)             | How-to      | Fix a blank terminal, a missing `.wasm`, or a denied clipboard.         |
+| [use-in-your-app.md](use-in-your-app.md)             | How-to      | Link the built package into your app and ship its `.wasm` files.        |
 | [integration.md](integration.md)                     | How-to      | Wire a terminal to a WebSocket PTY and learn the emoji width rule.      |
 | [api.md](api.md)                                     | Reference   | Look up exact behavior of frames, scrollback, geometry, and extensions. |
 | [hotkeys.md](hotkeys.md)                             | Reference   | Look up `attachTerminalHotkeys`.                                        |

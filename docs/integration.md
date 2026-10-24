@@ -1,6 +1,6 @@
 # Browser integration
 
-npm's latest release, 0.1.2, predates this API. Build the package from source as the [README](../README.md#quick-start) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
+npm's latest release, 0.1.2, predates this API. Build and link the package from source as [use ghostty-webgpu in your own app](use-in-your-app.md) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
 
 The terminal mount needs a real size.
 

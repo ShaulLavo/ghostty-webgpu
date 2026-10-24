@@ -45,13 +45,14 @@ The npm release is 0.1.2 and predates this API. Run the current source from Freg
 git clone https://github.com/ShaulLavo/fregat.git
 cd fregat
 bun install --frozen-lockfile
+bun run --cwd hotkeys/packages/hotkeys build
 bun run --cwd ghostty-webgpu build
 bun run --cwd ghostty-webgpu demo
 ```
 
 The last command prints `ghostty-webgpu demo: http://127.0.0.1:4173`. Open it for a terminal lab with a real shell on your machine. Stop it with Ctrl+C.
 
-To embed the terminal, add `<div id="terminal" style="height: 32rem"></div>` to your page and run the example near the top of this page. The terminal fits its grid to that element. Call `terminal.focus()` to take keyboard input and `terminal.dispose()` when you remove it. The [first-terminal tutorial](https://ghostty.shaulavo.dev/docs/start/quick-start/) adds input echo.
+To embed the terminal, add `<div id="terminal" style="height: 32rem"></div>` to your page and run the example near the top of this page. The terminal fits its grid to that element. To use it from your own project, [link the built package and ship the `.wasm` files](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/use-in-your-app.md). Call `terminal.focus()` to take keyboard input and `terminal.dispose()` when you remove it. The [first-terminal tutorial](https://ghostty.shaulavo.dev/docs/start/quick-start/) adds input echo.
 
 ## What you can do
 
