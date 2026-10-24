@@ -39,15 +39,19 @@ terminal.focus()
 await terminal.dispose()
 ```
 
-`backend` accepts `webgpu`, `webgl` or `auto`. Automatic selection tries WebGL before hardware
-WebGPU on desktop Linux because WebGL measured lower CPU work there, while macOS, Windows,
-Android, ChromeOS, and other platforms try hardware WebGPU before WebGL. The main-thread
+`backend` is an option of the worker entry only. It accepts `webgpu`, `webgl` or `auto`, and
+defaults to `auto`. The main-thread `Terminal.create` has no `backend` option. It takes
+`rendererMode` (`auto`, `canvas2d-fill-text` or `canvas2d-pixels`) or a `rendererFactory`.
+Automatic selection tries WebGL before hardware WebGPU on desktop Linux because WebGL measured
+lower CPU work there, while macOS, Windows, Android, ChromeOS, and other platforms try hardware
+WebGPU before WebGL. The main-thread
 terminal then falls through to Canvas and DOM when both GPU renderers are unavailable.
 The worker supports the same GPU order. WebGL resource allocation failures advance to the next
 backend on a replacement canvas. Managed main-thread WebGL context-loss recovery follows the
 remaining order, including hardware WebGPU when Linux selected WebGL first.
 Automatic selection skips software WebGPU adapters.
-An explicit `webgpu` backend uses any available WebGPU adapter, including software adapters.
+An explicit `backend: 'webgpu'` on the worker entry uses any available WebGPU adapter,
+including software adapters.
 
 `WebGpuTerminalRenderer.create` can be passed directly as `rendererFactory`. Its
 `adapterPolicy` option defaults to `any`; `hardware` requires an eligible hardware adapter

@@ -53,7 +53,7 @@ flowchart TD
   canvas -- unavailable --> dom["DomTerminalRenderer"]
 ```
 
-Automatic selection skips software WebGPU adapters. An explicit `backend: 'webgpu'` on the worker entry accepts any adapter. After a lost WebGL context, the main entry follows the remaining order. The order lives in `src/render/shared/backend-order.ts` and `src/render/shared/selector.ts`. Desktop Linux tries WebGL2 first because it measured lower CPU work there ([changelog 0.3.22](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/CHANGELOG.md)).
+Automatic selection skips software WebGPU adapters. `backend` is an option of the worker entry only, and an explicit `backend: 'webgpu'` there accepts any adapter. The main entry has no `backend` option. It takes `rendererMode` or a `rendererFactory`. After a lost WebGL context, the main entry follows the remaining order. The order lives in `src/render/shared/backend-order.ts` and `src/render/shared/selector.ts`. Desktop Linux tries WebGL2 first because it measured lower CPU work there ([changelog 0.3.22](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/CHANGELOG.md)).
 
 ## The worker entry
 
