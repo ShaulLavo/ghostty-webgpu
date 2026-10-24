@@ -67,4 +67,4 @@ Every published row has an independent review that recomputed the ratios from th
 - A stable xterm.js DOM screenshot for one Unicode line per tick, so that the DOM comparison can qualify.
 - Parser throughput on the current build. The October 1 parser numbers are historical and are not in the README headline.
 - Whole-browser memory including resident WASM, matched retained rows, idle and history baselines, and repeatability checks.
-- Write-to-presentation and key-to-presentation latency with at least 100 samples per case, at 1 and 17 terminals. Plan 283 retired the old CDP-screencast latency rows because their capture cadence distorted the endpoint.
+- Write-to-presentation and key-to-presentation latency with at least 100 samples per case, at 1 and 17 terminals. The old CDP-screencast latency rows were retired because their capture cadence distorted the endpoint.
