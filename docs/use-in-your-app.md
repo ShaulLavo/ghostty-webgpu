@@ -6,7 +6,7 @@ This page was run end to end with Bun 1.4.4 and Vite 8.3.1 on macOS. The steps b
 
 ## Build the package
 
-You need [Bun](https://bun.sh/) and Node 20 or newer.
+You need [Bun](https://bun.sh/), which runs the install and the build. Node 20 or newer is the range `package.json` declares in `engines.node`.
 
 ```sh
 git clone https://github.com/ShaulLavo/fregat.git
@@ -59,10 +59,8 @@ The mount element needs a real height. See [browser integration](integration.md)
 
 By default the package finds its `.wasm` files with `new URL('../../ghostty-vt.wasm', import.meta.url)` in `dist/core/assets.js` (`src/core/assets.ts`). Your bundler has to copy them, and your server has to send them as `application/wasm`.
 
-| Bundler          | What happens                                                                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vite             | Nothing to do. `vite build` emitted `ghostty-vt-<hash>.wasm` and `bridge-<hash>.wasm` under `assets/`, and a headless Chromium run loaded both with HTTP 200. |
-| `bun build` HTML | The bundle keeps the `new URL(...)` and copies no `.wasm`. The page failed with `expected magic word 00 61 73 6d` until the files sat beside the bundle.      |
+- Vite: nothing to do. `vite build` emitted `ghostty-vt-<hash>.wasm` and `bridge-<hash>.wasm` under `assets/`, and a headless Chromium run loaded both with HTTP 200.
+- `bun build` HTML: the bundle keeps the `new URL(...)` and copies no `.wasm`. The page failed with `expected magic word 00 61 73 6d` until the files sat beside the bundle.
 
 `bun build` needs the copy step. For an `index.html` built into `dist/`, this made the same page work:
 
@@ -112,14 +110,12 @@ If you set a Content Security Policy, allow WebAssembly compilation with `'wasm-
 
 ## Package exports
 
-| Specifier                            | Resolves to                     | Use it for                                                                              |
-| ------------------------------------ | ------------------------------- | --------------------------------------------------------------------------------------- |
-| `ghostty-webgpu`                     | `dist/index.js`                 | The main-thread `Terminal`.                                                             |
-| `ghostty-webgpu/worker`              | `dist/worker/index.js`          | The worker `Terminal`.                                                                  |
-| `ghostty-webgpu/config-resolver`     | `dist/config-resolver/index.js` | Reading a Ghostty config. Bun and Node only. See [config resolver](config-resolver.md). |
-| `ghostty-webgpu/ghostty-vt.wasm`     | `ghostty-vt.wasm`               | The terminal core.                                                                      |
-| `ghostty-webgpu/bridge.wasm`         | `bridge.wasm`                   | The frame builder for WebGPU and WebGL2.                                                |
-| `ghostty-webgpu/canvas-compose.wasm` | `canvas-compose.wasm`           | The Canvas 2D pixel mode.                                                               |
+- `ghostty-webgpu` resolves to `dist/index.js`. The main-thread `Terminal`.
+- `ghostty-webgpu/worker` resolves to `dist/worker/index.js`. The worker `Terminal`.
+- `ghostty-webgpu/config-resolver` resolves to `dist/config-resolver/index.js`. Reading a Ghostty config. Bun and Node only. See [config resolver](config-resolver.md).
+- `ghostty-webgpu/ghostty-vt.wasm` resolves to `ghostty-vt.wasm`. The terminal core.
+- `ghostty-webgpu/bridge.wasm` resolves to `bridge.wasm`. The frame builder for WebGPU and WebGL2.
+- `ghostty-webgpu/canvas-compose.wasm` resolves to `canvas-compose.wasm`. The Canvas 2D pixel mode.
 
 The list comes from `exports` in `package.json`. Any other subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 

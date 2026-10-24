@@ -1,6 +1,6 @@
 # Status and limits
 
-ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package version 0.3.24. Each row names where the claim comes from, so you can recheck it.
+ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package version 0.3.24. Each item names where the claim comes from, so you can recheck it.
 
 ## Stability
 
@@ -10,37 +10,31 @@ ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package 
 
 ## Entry points
 
-| Import                           | Runs in           | Notes                                                               |
-| -------------------------------- | ----------------- | ------------------------------------------------------------------- |
-| `ghostty-webgpu`                 | Browser           | `Terminal`, `TerminalSession`, `GhosttyTerminal`, `GhosttyRuntime`. |
-| `ghostty-webgpu/worker`          | Browser           | The emulator and GPU renderer in a dedicated worker.                |
-| `ghostty-webgpu/config-resolver` | Node and Bun only | Reads the user's Ghostty config. Keep it out of client bundles.     |
+- `ghostty-webgpu` runs in the browser and exports `Terminal`, `TerminalSession`, `GhosttyTerminal`, and `GhosttyRuntime`.
+- `ghostty-webgpu/worker` runs in the browser and puts the emulator and GPU renderer in a dedicated worker.
+- `ghostty-webgpu/config-resolver` runs in Node and Bun only. It reads the user's Ghostty config, so keep it out of client bundles.
 
-`GhosttyRuntime` and `GhosttyTerminal` use no DOM globals. The core tests run under plain Node (`bun run test:unit`). `package.json` sets `engines.node` to `>=20`.
+`GhosttyRuntime` and `GhosttyTerminal` use no DOM globals. The core tests run under plain Node (`bun run test:unit`). `package.json` declares `engines.node` as `>=20`, and the Node-run scripts (`node --test` and the benchmark verifier) use that range.
 
 ## Browser support
 
-| Environment       | Status           | Evidence                                                                                                                                                            |
-| ----------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chromium, desktop | Tested           | The `workspace-libraries` workflow runs the browser suite in Chromium. Benchmarks use Chrome 154 on macOS. The correctness run uses headless Chromium 153 on Linux. |
-| Firefox, WebKit   | Not tested in CI | `vitest.browser.config.ts` accepts `GHOSTTY_BROWSER_ENGINE=firefox` or `webkit`. No Ghostty workflow sets it.                                                       |
-| iPhone Safari     | Not tested in CI | A tap-dismisses-keyboard bug was fixed in 0.3.22. No automated test covers it.                                                                                      |
+- Chromium, desktop: tested. The `workspace-libraries` workflow runs the browser suite in Chromium. Benchmarks use Chrome 154 on macOS. The correctness run uses headless Chromium 153 on Linux.
+- Firefox, WebKit: not tested in CI. `vitest.browser.config.ts` accepts `GHOSTTY_BROWSER_ENGINE=firefox` or `webkit`. No Ghostty workflow sets it.
+- iPhone Safari: not tested in CI. A tap-dismisses-keyboard bug was fixed in 0.3.22. No automated test covers it.
 
 WebGPU needs a secure context and a hardware adapter. Without one, the terminal falls through to WebGL2, Canvas 2D, then the DOM. [Concepts](concepts.md#four-renderers-and-the-order-they-are-tried) shows the order.
 
 ## Feature status
 
-| Area                               | State                                                                                                                                                                      |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| WebGPU, WebGL2, DOM renderers      | Implemented. Compared with xterm.js in [benchmarks](benchmarks.md) on one Mac.                                                                                             |
-| Canvas 2D `canvas2d-fill-text`     | Implemented. This is the Canvas default.                                                                                                                                   |
-| Canvas 2D `canvas2d-pixels`        | Experimental. Correctness tests exist. Visual calibration and performance qualification are pending.                                                                       |
-| Worker entry                       | Partial. No Canvas modes, no link providers, no keyboard link discovery. Hotkeys are main-entry only.                                                                      |
-| Accessibility                      | Opt-in text mirror and live region (`accessibility: {}`). No screen-reader audit yet.                                                                                      |
-| Clipboard                          | OSC 52 writes are denied unless the host sets a `clipboardWrite` policy. OSC 52 reads get no reply.                                                                        |
-| Search, image protocols, ligatures | Not built.                                                                                                                                                                 |
-| VT conformance                     | 167 of 169 selected cases pass. Full conformance is not claimed. See [correctness](correctness.md).                                                                        |
-| Config resolver                    | Source checkout holds only `native/config-resolver/bootstrap.json`. Native binaries exist only in assembled host distributions. See [config resolver](config-resolver.md). |
+- WebGPU, WebGL2, DOM renderers: implemented. Compared with xterm.js in [benchmarks](benchmarks.md) on one Mac.
+- Canvas 2D `canvas2d-fill-text`: implemented. This is the Canvas default.
+- Canvas 2D `canvas2d-pixels`: experimental. Correctness tests exist. Visual calibration and performance qualification are pending.
+- Worker entry: partial. No Canvas modes, no link providers, no keyboard link discovery. Hotkeys are main-entry only.
+- Accessibility: opt-in text mirror and live region (`accessibility: {}`). No screen-reader audit yet.
+- Clipboard: OSC 52 writes are denied unless the host sets a `clipboardWrite` policy. OSC 52 reads get no reply.
+- Search, image protocols, ligatures: not built.
+- VT conformance: 167 of 169 selected cases pass. Full conformance is not claimed. See [correctness](correctness.md).
+- Config resolver: the source checkout holds only `native/config-resolver/bootstrap.json`. Native binaries exist only in assembled host distributions. See [config resolver](config-resolver.md).
 
 ## Evidence limits
 

@@ -15,12 +15,10 @@ Ghostty's `libghostty-vt` parses the byte stream and owns the active screen, cur
 
 Four classes expose that state at different depths.
 
-| Class             | Adds                                                    | Runs where                                |
-| ----------------- | ------------------------------------------------------- | ----------------------------------------- |
-| `GhosttyRuntime`  | Loads the wasm core.                                    | Browser or Node.                          |
-| `GhosttyTerminal` | Headless reads and writes of one terminal.              | Browser or Node.                          |
-| `TerminalSession` | The native session model, with selection and events.    | Browser or Node.                          |
-| `Terminal`        | The DOM host: fitting, focus, input, links, a renderer. | The page, or a page host around a worker. |
+- `GhosttyRuntime` (browser or Node): loads the wasm core.
+- `GhosttyTerminal` (browser or Node): headless reads and writes of one terminal.
+- `TerminalSession` (browser or Node): the native session model, with selection and events.
+- `Terminal` (the page, or a page host around a worker): the DOM host, with fitting, focus, input, links, and a renderer.
 
 Selection, `readLines`, accessibility text, and every renderer read the same native state. That is why a resize or a renderer switch never loses the screen.
 

@@ -4,7 +4,7 @@ How to build, test, and change ghostty-webgpu. Development happens in the [Frega
 
 ## Set up
 
-You need [Bun](https://bun.sh/) (the repo pins 1.4.4 in `packageManager`) and Node 20 or newer.
+You need [Bun](https://bun.sh/) (the repo pins 1.4.4 in `packageManager`) and Node 20 or newer, the range `package.json` declares in `engines.node`. The benchmark verifier and `node --test` steps run on Node.
 
 ```sh
 git clone https://github.com/ShaulLavo/fregat.git

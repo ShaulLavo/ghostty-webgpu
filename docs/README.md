@@ -4,33 +4,29 @@ Tutorials and task guides are on [ghostty.shaulavo.dev/docs](https://ghostty.sha
 
 ## Pages
 
-| Page                                                 | Kind        | Use it to                                                               |
-| ---------------------------------------------------- | ----------- | ----------------------------------------------------------------------- |
-| [concepts.md](concepts.md)                           | Explanation | See how bytes become pixels and how a renderer is chosen.               |
-| [status.md](status.md)                               | Reference   | Check stability, browser support, and known gaps.                       |
-| [troubleshooting.md](troubleshooting.md)             | How-to      | Fix a blank terminal, a missing `.wasm`, or a denied clipboard.         |
-| [use-in-your-app.md](use-in-your-app.md)             | How-to      | Link the built package into your app and ship its `.wasm` files.        |
-| [integration.md](integration.md)                     | How-to      | Wire a terminal to a WebSocket PTY and learn the emoji width rule.      |
-| [api.md](api.md)                                     | Reference   | Look up exact behavior of frames, scrollback, geometry, and extensions. |
-| [hotkeys.md](hotkeys.md)                             | Reference   | Look up `attachTerminalHotkeys`.                                        |
-| [history-api.md](history-api.md)                     | Reference   | Look up the synchronous text-read methods.                              |
-| [saved-viewport.md](saved-viewport.md)               | Reference   | Look up `captureViewport` and `paintTerminalViewport`.                  |
-| [font-geometry.md](font-geometry.md)                 | Reference   | Look up how cell size comes from the font.                              |
-| [config-resolver.md](config-resolver.md)             | Reference   | Look up the host-only Ghostty config entry point.                       |
-| [correctness.md](correctness.md)                     | Reference   | Read the conformance results and how to reproduce them.                 |
-| [benchmarks.md](benchmarks.md)                       | Reference   | Read the CPU comparison with xterm.js and how to recompute it.          |
-| [benchmark-tracing.md](benchmark-tracing.md)         | Reference   | Look up the WebGPU upload byte counters.                                |
-| [comparison-provenance.md](comparison-provenance.md) | How-to      | Build a comparison bundle against a past commit.                        |
-| [development.md](development.md)                     | How-to      | Build, test, and change the package.                                    |
-| [adr/](adr/001-unpatched-pinned-ghostty-core.md)     | Decisions   | Read why the core is unpatched and why WebGPU stays instanced.          |
+- [concepts.md](concepts.md) (explanation): see how bytes become pixels and how a renderer is chosen.
+- [status.md](status.md) (reference): check stability, browser support, and known gaps.
+- [troubleshooting.md](troubleshooting.md) (how-to): fix a blank terminal, a missing `.wasm`, or a denied clipboard.
+- [use-in-your-app.md](use-in-your-app.md) (how-to): link the built package into your app and ship its `.wasm` files.
+- [integration.md](integration.md) (how-to): wire a terminal to a WebSocket PTY and learn the emoji width rule.
+- [api.md](api.md) (reference): look up exact behavior of frames, scrollback, geometry, and extensions.
+- [hotkeys.md](hotkeys.md) (reference): look up `attachTerminalHotkeys`.
+- [history-api.md](history-api.md) (reference): look up the synchronous text-read methods.
+- [saved-viewport.md](saved-viewport.md) (reference): look up `captureViewport` and `paintTerminalViewport`.
+- [font-geometry.md](font-geometry.md) (reference): look up how cell size comes from the font.
+- [config-resolver.md](config-resolver.md) (reference): look up the host-only Ghostty config entry point.
+- [correctness.md](correctness.md) (reference): read the conformance results and how to reproduce them.
+- [benchmarks.md](benchmarks.md) (reference): read the CPU comparison with xterm.js and how to recompute it.
+- [benchmark-tracing.md](benchmark-tracing.md) (reference): look up the WebGPU upload byte counters.
+- [comparison-provenance.md](comparison-provenance.md) (how-to): build a comparison bundle against a past commit.
+- [development.md](development.md) (how-to): build, test, and change the package.
+- [adr/](adr/001-unpatched-pinned-ghostty-core.md) (decisions): read why the core is unpatched and why WebGPU stays instanced.
 
 ## Evidence kept in place
 
 These files are measurement or proof records. Tests or CI read them, so their paths cannot change. They are not user documentation.
 
-| Path                                      | Read by                                                                    |
-| ----------------------------------------- | -------------------------------------------------------------------------- |
-| `benchmarks/mac-m1-2026-10-10/`           | `site/src/measurements.test.ts`, and `benchmarks.md` is generated from it. |
-| `benchmarks/mac-m1-2026-10-08/`           | `site/src/measurements.test.ts`.                                           |
-| `correctness-results.json`                | `site/src/correctness.ts`.                                                 |
-| `config-resolver-feasibility.md`, `.json` | `scripts/config-resolver-proof/verify-evidence.ts`.                        |
+- `benchmarks/mac-m1-2026-10-10/`: read by `site/src/measurements.test.ts`, and `benchmarks.md` is generated from it.
+- `benchmarks/mac-m1-2026-10-08/`: read by `site/src/measurements.test.ts`.
+- `correctness-results.json`: read by `site/src/correctness.ts`.
+- `config-resolver-feasibility.md`, `.json`: read by `scripts/config-resolver-proof/verify-evidence.ts`.
