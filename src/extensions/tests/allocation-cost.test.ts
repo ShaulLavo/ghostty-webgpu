@@ -8,7 +8,7 @@ import { expect, it } from 'vitest'
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 const runner = fileURLToPath(
-  new URL('../../../../scripts/ghostty-extension-allocation-counters.ts', import.meta.url),
+  new URL('../../../../../scripts/ghostty-extension-allocation-counters.ts', import.meta.url),
 )
 const bunAvailable = spawnSync('bun', ['--version'], { encoding: 'utf8' }).status === 0
 

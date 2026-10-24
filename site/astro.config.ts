@@ -60,13 +60,15 @@ export default defineConfig({
         ThemeSelect: './src/components/NoThemeSelect.astro',
       },
       customCss: docsTheme.customCss.concat(['./src/styles/docs.css']),
-      editLink: { baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/ghostty-webgpu/site/' },
+      editLink: {
+        baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/packages/ghostty-webgpu/site/',
+      },
       lastUpdated: true,
       social: [
         {
           icon: 'github',
           label: 'Source on GitHub',
-          href: 'https://github.com/ShaulLavo/fregat/tree/main/ghostty-webgpu',
+          href: 'https://github.com/ShaulLavo/fregat/tree/main/packages/ghostty-webgpu',
         },
       ],
       sidebar: [

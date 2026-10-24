@@ -15,8 +15,8 @@
     "windowReadiness": "waitForOwnedNonceWindow filters exact PID before inspecting titles, observes only owned windows, and polls for mapping within 1800 ms with bounded client reads"
   },
   "standalone": {
-    "from": "repository root",
-    "command": "node ghostty-webgpu/scripts/headed-presentation-smoke.mjs --executable <full-Chrome-ELF-binary> --output <new-evidence-directory> --window-system hyprland",
+    "from": "Fregat repository root",
+    "command": "node packages/ghostty-webgpu/scripts/headed-presentation-smoke.mjs --executable <full-Chrome-ELF-binary> --output <new-evidence-directory> --window-system hyprland",
     "prerequisites": [
       "Install the repository dependencies using its documented Bun workflow",
       "Provide an existing full Chrome/Chromium ELF binary; package shell wrappers and headless-shell binaries do not qualify",
@@ -28,7 +28,7 @@
     "resourceAccounting": "Run through the host's configured browser job queue with a bounded outer deadline",
     "output": "result.json includes actual OS process provenance, executable/profile custody, hardware renderer, compositor window facts, page geometry, submitted challenges, raw PNG frames, compositor timestamps and cleanup"
   },
-  "focusedTests": "node --test ghostty-webgpu/scripts/comparison-headed.test.mjs ghostty-webgpu/scripts/comparison-presentation.test.mjs ghostty-webgpu/scripts/comparison-provenance.test.mjs",
+  "focusedTests": "node --test packages/ghostty-webgpu/scripts/comparison-headed.test.mjs packages/ghostty-webgpu/scripts/comparison-presentation.test.mjs packages/ghostty-webgpu/scripts/comparison-provenance.test.mjs",
   "constraints": [
     "Raw observed command line and requested argv are independent evidence; original execve argument boundaries remain null",
     "No whitespace in executable, task root or requested flag arguments because rewritten Linux command lines cannot recover argument boundaries",

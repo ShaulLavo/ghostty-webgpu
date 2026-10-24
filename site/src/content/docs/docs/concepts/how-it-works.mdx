@@ -19,7 +19,7 @@ PTY bytes → libghostty-vt → native screen and history
 
 Parsing changes the active screen, cursor, modes and retained history. Selection, text reads and rendered output read that same native state. `GhosttyRuntime` loads the core. `GhosttyTerminal` exposes headless operations. `TerminalSession` adds the native session model, and `Terminal` supplies the DOM host.
 
-The wasm build uses the official upstream revision recorded in [the provenance file](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/ghostty-vt.provenance.json). That file records the compiler, source hashes and unpatched build recipe. Browser font drawing and protocol integrations remain host responsibilities.
+The wasm build uses the official upstream revision recorded in [the provenance file](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/ghostty-vt.provenance.json). That file records the compiler, source hashes and unpatched build recipe. Browser font drawing and protocol integrations remain host responsibilities.
 
 ## The host and the worker
 

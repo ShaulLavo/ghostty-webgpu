@@ -46,7 +46,7 @@ The measured result is that ghostty-webgpu passes more cases in this fixed selec
 | reports        |          2 / 0 |    2 / 0 |       2 / 0 |
 | unicode-burst  |          1 / 0 |    1 / 0 |       0 / 1 |
 
-[All individual results and failure details](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness-results.json) include the exact emitted input hex for every upstream case, assertion messages, and available screen text, cursor coordinates and replies for failures.
+[All individual results and failure details](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/correctness-results.json) include the exact emitted input hex for every upstream case, assertion messages, and available screen text, cursor coordinates and replies for failures.
 
 ### Findings
 
@@ -105,7 +105,7 @@ From a fresh Fregat checkout with the documented Bun prerequisite, Git and Pytho
 
 ```sh
 bun install --frozen-lockfile
-cd ghostty-webgpu
+cd packages/ghostty-webgpu
 bunx playwright install chromium
 bun scripts/correctness.ts
 ```
@@ -120,4 +120,4 @@ The runner uses an OS-assigned free port on `127.0.0.1`. It closes Chromium, sto
 
 Exit status zero means the comparison completed and its calibration, version pins and case inventory checks passed. Terminal assertion failures remain in the results. A runner, build, calibration or inventory failure exits with an error.
 
-Source: [runner](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/scripts/correctness.ts), [browser drivers](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/scripts/correctness-browser.ts), [esctest2 adapter](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/scripts/correctness-esctest.py).
+Source: [runner](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/scripts/correctness.ts), [browser drivers](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/scripts/correctness-browser.ts), [esctest2 adapter](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/scripts/correctness-esctest.py).

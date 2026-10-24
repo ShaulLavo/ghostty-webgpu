@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ShaulLavo/fregat/main/ghostty-webgpu/site/public/favicon.svg" width="96" alt="ghostty-webgpu ghost mark" />
+  <img src="https://raw.githubusercontent.com/ShaulLavo/fregat/main/packages/ghostty-webgpu/site/public/favicon.svg" width="96" alt="ghostty-webgpu ghost mark" />
 </p>
 <h1 align="center">ghostty-webgpu</h1>
 <p align="center">Ghostty's terminal, in the browser.</p>
 <p align="center">
   <a href="https://github.com/ShaulLavo/fregat/actions/workflows/workspace-libraries.yml"><img src="https://github.com/ShaulLavo/fregat/actions/workflows/workspace-libraries.yml/badge.svg" alt="Workspace library checks" /></a>
-  <a href="https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
-  <a href="https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/status.md"><img src="https://img.shields.io/badge/status-pre--1.0-orange" alt="Pre-1.0 status" /></a>
+  <a href="https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" /></a>
+  <a href="https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/status.md"><img src="https://img.shields.io/badge/status-pre--1.0-orange" alt="Pre-1.0 status" /></a>
 </p>
 <p align="center">
   <a href="https://ghostty.shaulavo.dev/">Website and demo</a> ·
   <a href="https://ghostty.shaulavo.dev/docs/">Docs</a> ·
-  <a href="https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md">Benchmarks</a>
+  <a href="https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks.md">Benchmarks</a>
 </p>
 
-[![ghostty-webgpu rendering the ghost demo in a window with Ghost, Matrix and Shell tabs](https://raw.githubusercontent.com/ShaulLavo/fregat/main/ghostty-webgpu/docs/images/terminal.webp)](https://ghostty.shaulavo.dev/)
+[![ghostty-webgpu rendering the ghost demo in a window with Ghost, Matrix and Shell tabs](https://raw.githubusercontent.com/ShaulLavo/fregat/main/packages/ghostty-webgpu/docs/images/terminal.webp)](https://ghostty.shaulavo.dev/)
 
 An unofficial browser terminal. It runs Ghostty's unpatched `libghostty-vt`, compiled to WebAssembly, and draws with WebGPU, WebGL2, Canvas 2D, or the DOM. You get Ghostty's parser and screen state behind its own TypeScript API.
 
@@ -31,8 +31,8 @@ terminal.write('hello from ghostty\r\n')
 - **Bytes in, bytes out.** `write()` accepts bytes and `onData()` emits bytes, so a WebSocket PTY needs no translation layer.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ShaulLavo/fregat/main/ghostty-webgpu/docs/assets/architecture.dark.svg">
-  <img alt="Bytes from a shell or app pass through the Terminal host into libghostty-vt. Its state feeds the Canvas 2D and DOM renderers directly, and feeds a Zig frame builder that drives the WebGPU and WebGL2 renderers." src="https://raw.githubusercontent.com/ShaulLavo/fregat/main/ghostty-webgpu/docs/assets/architecture.light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ShaulLavo/fregat/main/packages/ghostty-webgpu/docs/assets/architecture.dark.svg">
+  <img alt="Bytes from a shell or app pass through the Terminal host into libghostty-vt. Its state feeds the Canvas 2D and DOM renderers directly, and feeds a Zig frame builder that drives the WebGPU and WebGL2 renderers." src="https://raw.githubusercontent.com/ShaulLavo/fregat/main/packages/ghostty-webgpu/docs/assets/architecture.light.svg">
 </picture>
 
 _Bytes flow through one wasm core. Canvas 2D and the DOM read rows from it. WebGPU and WebGL2 get changed byte ranges from the frame builder._
@@ -45,14 +45,14 @@ The npm release is 0.1.2 and predates this API. Run the current source from Freg
 git clone https://github.com/ShaulLavo/fregat.git
 cd fregat
 bun install --frozen-lockfile
-bun run --cwd hotkeys/packages/hotkeys build
-bun run --cwd ghostty-webgpu build
-bun run --cwd ghostty-webgpu demo
+bun run --cwd packages/hotkeys/packages/hotkeys build
+bun run --cwd packages/ghostty-webgpu build
+bun run --cwd packages/ghostty-webgpu demo
 ```
 
 The last command prints `ghostty-webgpu demo: http://127.0.0.1:4173`. Open it for a terminal lab with a real shell on your machine. Stop it with Ctrl+C.
 
-To embed the terminal, add `<div id="terminal" style="height: 32rem"></div>` to your page and run the example near the top of this page. The terminal fits its grid to that element. To use it from your own project, [link the built package and ship the `.wasm` files](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/use-in-your-app.md). Call `terminal.focus()` to take keyboard input and `terminal.dispose()` when you remove it. The [first-terminal tutorial](https://ghostty.shaulavo.dev/docs/start/quick-start/) adds input echo.
+To embed the terminal, add `<div id="terminal" style="height: 32rem"></div>` to your page and run the example near the top of this page. The terminal fits its grid to that element. To use it from your own project, [link the built package and ship the `.wasm` files](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/use-in-your-app.md). Call `terminal.focus()` to take keyboard input and `terminal.dispose()` when you remove it. The [first-terminal tutorial](https://ghostty.shaulavo.dev/docs/start/quick-start/) adds input echo.
 
 ## What you can do
 
@@ -63,7 +63,7 @@ To embed the terminal, add `<div id="terminal" style="height: 32rem"></div>` to 
 - Load fonts, set themes, bind hotkeys: [fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/), [themes](https://ghostty.shaulavo.dev/docs/guides/themes/), [hotkeys](https://ghostty.shaulavo.dev/docs/guides/hotkeys/).
 - Read history, save and restore a viewport: [Scrollback](https://ghostty.shaulavo.dev/docs/guides/scrollback/).
 - Look up an option or a type: [Options](https://ghostty.shaulavo.dev/docs/reference/options/) and the [generated API](https://ghostty.shaulavo.dev/docs/reference/api/).
-- Fix a symptom: [Troubleshooting](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/troubleshooting.md).
+- Fix a symptom: [Troubleshooting](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/troubleshooting.md).
 
 ## Performance
 
@@ -99,7 +99,7 @@ The [full benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webg
 
 ### Correctness
 
-The [2026-10-08 run](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md) checks 132 selected esctest2 methods and 37 local cases.
+The [2026-10-08 run](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/correctness.md) checks 132 selected esctest2 methods and 37 local cases.
 
 - ghostty-webgpu 0.3.20: 167 passed, 2 failed.
 - xterm.js 6.0.0: 126 passed, 43 failed.
@@ -107,15 +107,15 @@ The [2026-10-08 run](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgp
 
 Tested on an Intel Core i7-14700K running Arch Linux with headless Chromium 153.
 Both ghostty-webgpu failures reproduce in the pinned upstream core. Full VT conformance and general native Ghostty parity remain open.
-See [versions and reproduction commands](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/correctness.md#reproduce).
+See [versions and reproduction commands](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/correctness.md#reproduce).
 
 ## How it works
 
-`libghostty-vt` runs as WebAssembly and owns the screen, cursor, modes, and scrollback. The `Terminal` class adds the DOM parts: fitting, focus, pointer and keyboard input, selection, and links. For WebGPU and WebGL2, a Zig frame builder in `bridge.wasm` keeps cell and glyph records and reports only the byte ranges that changed. Canvas 2D and the DOM read rows straight from the core. Read [concepts](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/concepts.md) for the full path and the renderer fallback order.
+`libghostty-vt` runs as WebAssembly and owns the screen, cursor, modes, and scrollback. The `Terminal` class adds the DOM parts: fitting, focus, pointer and keyboard input, selection, and links. For WebGPU and WebGL2, a Zig frame builder in `bridge.wasm` keeps cell and glyph records and reports only the byte ranges that changed. Canvas 2D and the DOM read rows straight from the core. Read [concepts](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/concepts.md) for the full path and the renderer fallback order.
 
 ## Docs
 
-[Tutorials and guides](https://ghostty.shaulavo.dev/docs/) · [Concepts](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/concepts.md) · [Reference and internals](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/README.md) · [Decision records](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/adr/001-unpatched-pinned-ghostty-core.md) · [Changelog](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/CHANGELOG.md)
+[Tutorials and guides](https://ghostty.shaulavo.dev/docs/) · [Concepts](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/concepts.md) · [Reference and internals](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/README.md) · [Decision records](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/adr/001-unpatched-pinned-ghostty-core.md) · [Changelog](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/CHANGELOG.md)
 
 ## Status
 
@@ -125,11 +125,11 @@ Pre-1.0 and experimental. Breaking changes ship in patch releases, and the API i
 - **Tested in Chromium.** CI runs the library's browser tests in Chromium only. Firefox and WebKit are not part of CI. The benchmarks come from one Mac.
 - **Open gaps.** Search, image protocols, and ligatures are not built. Accessibility has a text mirror, and a screen-reader audit is still open. The worker entry lacks Canvas modes and link providers. Canvas pixel mode is experimental.
 
-Platform notes and the full list are in [status and limits](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/status.md).
+Platform notes and the full list are in [status and limits](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/status.md).
 
 ## Credits, contributing, license
 
 Thanks to [Ghostty](https://ghostty.org/) for the terminal core and [ghostty-web](https://github.com/coder/ghostty-web) for the inspiration.
-Development happens in [Fregat](https://github.com/ShaulLavo/fregat/tree/main/ghostty-webgpu). This repository is a read-only mirror, so send issues and pull requests to Fregat. Read the [contribution guide and AI policy](https://github.com/ShaulLavo/fregat/blob/main/CONTRIBUTING.md) and the [development notes](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/development.md).
+Development happens in [Fregat](https://github.com/ShaulLavo/fregat/tree/main/packages/ghostty-webgpu). This repository is a read-only mirror, so send issues and pull requests to Fregat. Read the [contribution guide and AI policy](https://github.com/ShaulLavo/fregat/blob/main/CONTRIBUTING.md) and the [development notes](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/development.md).
 
-[MIT](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/LICENSE). The [third-party notices](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/THIRD_PARTY_NOTICES.md) cover the bundled Ghostty code.
+[MIT](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/LICENSE). The [third-party notices](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/THIRD_PARTY_NOTICES.md) cover the bundled Ghostty code.

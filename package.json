@@ -19,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ShaulLavo/fregat.git",
-    "directory": "ghostty-webgpu"
+    "directory": "packages/ghostty-webgpu"
   },
   "workspaces": {
     "packages": [

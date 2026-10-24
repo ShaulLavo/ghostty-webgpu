@@ -12,8 +12,8 @@ You need [Bun](https://bun.sh/), which runs the install and the build. Node 20 o
 git clone https://github.com/ShaulLavo/fregat.git
 cd fregat
 bun install --frozen-lockfile
-bun run --cwd hotkeys/packages/hotkeys build
-bun run --cwd ghostty-webgpu build
+bun run --cwd packages/hotkeys/packages/hotkeys build
+bun run --cwd packages/ghostty-webgpu build
 ```
 
 The first build step is `@fregat/hotkeys`, a workspace dependency that ghostty-webgpu imports from its own `dist/`. Without it, the `ghostty-webgpu` build stops with `Cannot find module '@fregat/hotkeys'`.

@@ -10,7 +10,7 @@
 
 - `src/core/` holds browser-independent wasm loading and typed libghostty-vt bindings. It uses no DOM globals.
 - `src/render/` groups backends in `webgpu/`, `webgl/`, `canvas/`, `pixels/`, and `dom/`. `shared/` owns scheduling, atlas, frame, theme, backend selection, and renderer contracts. `shaders/` owns GPU shader sources.
-- `packages/line-editor/` is the optional `ghostty-webgpu-line-editor` workspace package.
+- Fregat's `packages/ghostty-webgpu/packages/line-editor/` is the optional `ghostty-webgpu-line-editor` workspace package. The standalone mirror keeps it at `packages/line-editor/`.
 - `bench/` holds browser benchmark entry points; `scripts/` holds their runners and the artifact builds. Generated wasm is checked in at the package root.
 - Import exact files. `src/index.ts` is the only barrel because it is the package entry point.
 - Read `docs/concepts.md` before changing the frame path. Read `docs/adr/` before reopening the unpatched core or the instanced WebGPU renderer.

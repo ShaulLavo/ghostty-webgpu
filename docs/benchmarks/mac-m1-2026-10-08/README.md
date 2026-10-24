@@ -1,10 +1,10 @@
 # M1 terminal measurements, 2026-10-08
 
-This set is replaced by the [2026-10-10 set](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md), which the public pages show. Its verifier still runs.
+This set is replaced by the [2026-10-10 set](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md), which the public pages show. Its verifier still runs.
 
 Measured on 2026-10-07 UTC on ghostty-webgpu 0.3.20. It makes no claim about later builds.
 
-[Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/scores.json)
+[Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/scores.json)
 
 ## What is saved
 

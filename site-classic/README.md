@@ -8,12 +8,12 @@ From the Fregat root:
 
 ```sh
 bun install --frozen-lockfile
-bun run --cwd hotkeys/packages/hotkeys build
-bun run --cwd ghostty-webgpu build
-bun run --cwd ghostty-webgpu/site-classic build --base /ghostty-webgpu/
+bun run --cwd packages/hotkeys/packages/hotkeys build
+bun run --cwd packages/ghostty-webgpu build
+bun run --cwd packages/ghostty-webgpu/site-classic build --base /ghostty-webgpu/
 ```
 
-The build checks types, shared docs examples, PTY and Worker tests, classic first-frame and fit tests, API links and Pagefind search. The mirror's Pages workflow calls `site:classic:build` and publishes `site-classic/dist`. The mirror job splits the entire `ghostty-webgpu/` tree, including both site folders and their relative symlinks.
+The build checks types, shared docs examples, PTY and Worker tests, classic first-frame and fit tests, API links and Pagefind search. The mirror's Pages workflow calls `site:classic:build` and publishes `site-classic/dist`. The mirror job splits the entire `packages/ghostty-webgpu/` tree, including both site folders and their relative symlinks.
 
 ## Shared docs
 
@@ -24,7 +24,7 @@ Author links as `https://ghostty.shaulavo.dev/docs/…`. The shared docs-links i
 ## Preview locally
 
 ```sh
-bun run --cwd ghostty-webgpu/site-classic preview --ignore-lock --host 127.0.0.1 --port 4327
+bun run --cwd packages/ghostty-webgpu/site-classic preview --ignore-lock --host 127.0.0.1 --port 4327
 ```
 
 Choose an available port and stop the preview when done. The docs keep the Mist palette, Bricolage Grotesque and JetBrains Mono fonts, and Starlight's light/dark switch.

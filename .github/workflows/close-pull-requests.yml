@@ -19,4 +19,4 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --comment \
-            'Thanks for your contribution! This repository is a read-only mirror of Fregat. Please open your pull request in https://github.com/ShaulLavo/fregat with changes to the ghostty-webgpu/ folder: https://github.com/ShaulLavo/fregat/tree/main/ghostty-webgpu.'
+            'Thanks for your contribution! This repository is a read-only mirror of Fregat. Please open your pull request in https://github.com/ShaulLavo/fregat with changes to the packages/ghostty-webgpu/ folder: https://github.com/ShaulLavo/fregat/tree/main/packages/ghostty-webgpu.'

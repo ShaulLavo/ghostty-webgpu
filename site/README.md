@@ -6,12 +6,12 @@ The landing page and Starlight docs build together. Every visit draws one of asc
 
 ```sh
 bun install --frozen-lockfile
-bun run --cwd hotkeys/packages/hotkeys build
-bun run --cwd ghostty-webgpu build
-bun run --cwd ghostty-webgpu/site build
+bun run --cwd packages/hotkeys/packages/hotkeys build
+bun run --cwd packages/ghostty-webgpu build
+bun run --cwd packages/ghostty-webgpu/site build
 ```
 
-Run these from the Fregat root. The build checks examples, generates the API reference from `ghostty-webgpu/dist/**/*.d.ts`, validates internal links and builds Pagefind search. `--base /fregat/ghostty-webgpu/` builds the same docs under a different hosting path.
+Run these from the Fregat root. The build checks examples, generates the API reference from `packages/ghostty-webgpu/dist/**/*.d.ts`, validates internal links and builds Pagefind search. `--base /fregat/ghostty-webgpu/` builds the same docs under a different hosting path.
 
 The docs workspace pins TypeScript 6.0.3 for TypeDoc's JavaScript compiler API. Example checks use the package compiler and the built declarations. Package builds stay on the root TypeScript version.
 
@@ -28,7 +28,7 @@ The `ghostty docs` workflow builds pull requests touching the package, site or d
 ## Preview locally
 
 ```sh
-bun run --cwd ghostty-webgpu/site preview --ignore-lock --host 127.0.0.1 --port 4327
+bun run --cwd packages/ghostty-webgpu/site preview --ignore-lock --host 127.0.0.1 --port 4327
 ```
 
 Choose a free port and stop the server when done. The echo component uses the same checked module shown on the quick-start page. Its fallback text remains readable when JavaScript is disabled.

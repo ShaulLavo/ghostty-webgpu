@@ -2,7 +2,7 @@
 
 Measured on 2026-10-09 UTC. These numbers describe ghostty-webgpu 0.3.21 only; later builds are not measured.
 
-[Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/scores.json) · [Earlier set, 2026-10-08, superseded](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/README.md)
+[Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/scores.json) · [Earlier set, 2026-10-08, superseded](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/README.md)
 
 ## What is saved
 

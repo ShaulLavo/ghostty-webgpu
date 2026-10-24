@@ -15,49 +15,52 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-test.each(['.', 'ghostty-webgpu'])('checks committed native inputs inside %s', (prefix) => {
-  const checkout = mkdtempSync(join(tmpdir(), 'ghostty-native-inputs-'))
-  roots.push(checkout)
-  const family = join(checkout, prefix)
-  mkdirSync(family, { recursive: true })
-  const bytes = Buffer.from('{"name":"native-input-fixture"}\n')
-  writeFileSync(join(family, 'package.json'), bytes)
-  const git = (args: string[]) => {
-    const result = spawnSync('git', args, { cwd: checkout, encoding: 'utf8' })
-    expect(result.status, result.stderr).toBe(0)
-    return result.stdout.trim()
-  }
-  git(['init', '-q'])
-  git(['add', '.'])
-  git([
-    '-c',
-    'user.name=Fixture',
-    '-c',
-    'user.email=fixture@example.test',
-    'commit',
-    '-qm',
-    'Fixture',
-  ])
-  const head = git(['rev-parse', 'HEAD'])
-  const inputs: NativeInputs = JSON.parse(
-    readFileSync(new URL('./native-inputs.json', import.meta.url), 'utf8'),
-  )
-  const fixtureInputs: NativeInputs = {
-    ...inputs,
-    ownedFiles: [
-      {
-        path: 'package.json',
-        mode: '100644',
-        bytes: bytes.length,
-        sha256: createHash('sha256').update(bytes).digest('hex'),
-      },
-    ],
-  }
-  const loadedInputs = JSON.parse(canonicalObjectBytes(fixtureInputs).toString('utf8'))
-  expect(() => verifyOwnedFilesAtHead(family, loadedInputs, head)).not.toThrow()
-})
+test.each(['.', 'packages/ghostty-webgpu'])(
+  'checks committed native inputs inside %s',
+  (prefix) => {
+    const checkout = mkdtempSync(join(tmpdir(), 'ghostty-native-inputs-'))
+    roots.push(checkout)
+    const family = join(checkout, prefix)
+    mkdirSync(family, { recursive: true })
+    const bytes = Buffer.from('{"name":"native-input-fixture"}\n')
+    writeFileSync(join(family, 'package.json'), bytes)
+    const git = (args: string[]) => {
+      const result = spawnSync('git', args, { cwd: checkout, encoding: 'utf8' })
+      expect(result.status, result.stderr).toBe(0)
+      return result.stdout.trim()
+    }
+    git(['init', '-q'])
+    git(['add', '.'])
+    git([
+      '-c',
+      'user.name=Fixture',
+      '-c',
+      'user.email=fixture@example.test',
+      'commit',
+      '-qm',
+      'Fixture',
+    ])
+    const head = git(['rev-parse', 'HEAD'])
+    const inputs: NativeInputs = JSON.parse(
+      readFileSync(new URL('./native-inputs.json', import.meta.url), 'utf8'),
+    )
+    const fixtureInputs: NativeInputs = {
+      ...inputs,
+      ownedFiles: [
+        {
+          path: 'package.json',
+          mode: '100644',
+          bytes: bytes.length,
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        },
+      ],
+    }
+    const loadedInputs = JSON.parse(canonicalObjectBytes(fixtureInputs).toString('utf8'))
+    expect(() => verifyOwnedFilesAtHead(family, loadedInputs, head)).not.toThrow()
+  },
+)
 
-test.each(['.', 'ghostty-webgpu'])(
+test.each(['.', 'packages/ghostty-webgpu'])(
   'package version changes preserve native input identity and bootstrap state inside %s',
   (prefix) => {
     const family = nativeInputFixture(prefix)
@@ -73,7 +76,7 @@ test.each(['.', 'ghostty-webgpu'])(
   },
 )
 
-test.each(['.', 'ghostty-webgpu'])(
+test.each(['.', 'packages/ghostty-webgpu'])(
   'family TypeScript compiler configuration invalidates native input identity and bootstrap state inside %s',
   (prefix) => {
     const family = nativeInputFixture(prefix)
@@ -138,13 +141,16 @@ test('native inputs reject changes to the active workspace workflow', () => {
   const source = resolve(import.meta.dirname, '../..')
   const checkout = mkdtempSync(join(tmpdir(), 'ghostty-native-workflow-'))
   roots.push(checkout)
-  const family = join(checkout, 'ghostty-webgpu')
+  const family = join(checkout, 'packages/ghostty-webgpu')
   for (const file of discoverOwnedPaths(source)) {
     const destination = join(family, file)
     mkdirSync(dirname(destination), { recursive: true })
     copyFileSync(join(source, file), destination)
   }
-  writeFileSync(join(checkout, 'package.json'), JSON.stringify({ workspaces: ['ghostty-webgpu'] }))
+  writeFileSync(
+    join(checkout, 'package.json'),
+    JSON.stringify({ workspaces: ['packages/ghostty-webgpu'] }),
+  )
   const workflow = join(checkout, '.github/workflows/ghostty-config-resolver.yml')
   mkdirSync(dirname(workflow), { recursive: true })
   writeFileSync(
