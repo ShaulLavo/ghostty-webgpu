@@ -1,6 +1,6 @@
 # ghostty-webgpu-line-editor
 
-Readline-style editing for local shells hosted by ghostty-webgpu. Working package name and current version `0.0.3`. This package is under development and marked private until publication is authorized.
+Readline-style editing for local shells hosted by ghostty-webgpu. Working package name and current version `0.0.3`.
 
 The package provides a browser-independent model, keymap, history, read lifecycle and a `readline()` terminal extension. The extension owns input while a read is active, renders the prompt through the terminal API, and exposes `print()` for output that arrives during editing.
 
