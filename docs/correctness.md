@@ -50,13 +50,13 @@ The measured result is that ghostty-webgpu passes more cases in this fixed selec
 
 ### Findings
 
-Both ghostty-webgpu failures below are inherited from the pinned upstream core and reproduced in unpatched libghostty-vt and native Ghostty 1.3.1-arch2. [The independent probes](https://github.com/ShaulLavo/fregat/pull/964#issuecomment-6054698739) also reproduce them through the checked-in WASM with no bridge. Both remain counted as failures. This establishes agreement for these two cases; general native Ghostty parity and full VT conformance remain open.
+Both ghostty-webgpu failures below are inherited from the pinned upstream core and reproduced in unpatched libghostty-vt and native Ghostty 1.3.1-arch2. Independent probes also reproduce them through the checked-in WASM with no bridge. Both remain counted as failures. This establishes agreement for these two cases; general native Ghostty parity and full VT conformance remain open.
 
 - ghostty-webgpu fails `test_CHA_RespectsOriginMode`. esctest2 expects `X` at column 5, row 6; the observed `X` is at column 5, row 11. ghostty-web shows the same row displacement. xterm.js also fails this test, with a different position. The disagreement with this upstream expectation stays in the totals.
 - ghostty-webgpu fails `test_TBC_Default`. After clearing the tab stop with `CSI g`, the next tab still reaches column 9; esctest2 expects column 17. The explicit `CSI 0 g` control passes. ghostty-web also fails the default-parameter case. xterm.js passes it.
 - xterm.js loses U+200D in both one-byte ZWJ cases. `👩‍💻` becomes `👩💻`, and `👨‍👩‍👧‍👦` becomes `👨👩👧👦`. Whole-buffer writes retain these code points. Both Ghostty wrappers retain them with either delivery pattern.
 - xterm.js has six width disagreements with the stated emoji expectations. Its default Unicode provider was used. These are distinct from the two text-retention failures and say nothing about its optional Unicode providers.
-- ghostty-web throws `RangeError: offset is out of bounds` for an empty byte write. Its page also crashes in the 40-by-12 Unicode burst case, reported by Playwright as `Target crashed`. The earlier benchmark described a WASM `memory access out of bounds` exception. This run reproduces a Unicode-related page failure, with a different observed failure signature. Its cause is unconfirmed. The same burst completes in ghostty-webgpu and xterm.js.
+- ghostty-web throws `RangeError: offset is out of bounds` for an empty byte write. Its page also crashes in the 40-by-12 Unicode burst case, reported by Playwright as `Target crashed`. This is a Unicode-related page failure. Its cause is unconfirmed. The same burst completes in ghostty-webgpu and xterm.js.
 - ghostty-web also disagrees with DCH, DL, tab and REP expectations. The JSON retains those failures, including extra cell text after delete operations. Left/right margins and ISO-protected erasure account for many of xterm.js's VT disagreements. Unsupported features count as failures in this fixed selection.
 
 ## Versions and method

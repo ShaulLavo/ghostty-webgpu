@@ -22,9 +22,9 @@ Tutorials and task guides are on [ghostty.shaulavo.dev/docs](https://ghostty.sha
 - [development.md](development.md) (how-to): build, test, and change the package.
 - [adr/](adr/001-unpatched-pinned-ghostty-core.md) (decisions): read why the core is unpatched and why WebGPU stays instanced.
 
-## Evidence kept in place
+## Data files
 
-These files are measurement or proof records. Tests or CI read them, so their paths cannot change. They are not user documentation.
+These files are measurement and proof data. Tests and CI read them by path. They are not user documentation.
 
 - `benchmarks/mac-m1-2026-10-10/`: read by `site/src/measurements.test.ts`, and `benchmarks.md` is generated from it.
 - `benchmarks/mac-m1-2026-10-08/`: read by `site/src/measurements.test.ts`.

@@ -49,5 +49,3 @@ Completion candidates are replacements for the whitespace-delimited token before
 ## Verification
 
 Build the terminal from the family root with `bun run build`, then run `bun run verify` from this directory. Tests run in Node through Vitest. From the repository root, the package is included in `build:workspaces`, workspace lint/typecheck/test commands and the Ghostty CI job.
-
-The approved delivery work lives in [Plan 286](https://github.com/ShaulLavo/fregat/blob/main/plans/286-ghostty-extensions.md), under the root [roadmap](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md).

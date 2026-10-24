@@ -25,10 +25,10 @@ Use absolute published docs URLs in authored Markdown so links work in the mirro
 
 The `ghostty docs` workflow builds pull requests touching the package, site or dependencies. It checks docs and the echo terminal at desktop and phone widths, then exercises Pagefind search. `docs:check` also runs the real PTY example on a free port, checking binary output, resize and the tutorial's input guards. The Worker publishes this edition. The mirror’s Pages workflow publishes `../site-classic`, which reads these same docs and examples through relative symlinks. Engineering notes remain under the package's repository docs directory.
 
-## Local review
+## Preview locally
 
 ```sh
 bun run --cwd ghostty-webgpu/site preview --ignore-lock --host 127.0.0.1 --port 4327
 ```
 
-Choose a free port and stop the server after review. The echo component uses the same checked module shown on the quick-start page. Its fallback text remains readable when JavaScript is disabled.
+Choose a free port and stop the server when done. The echo component uses the same checked module shown on the quick-start page. Its fallback text remains readable when JavaScript is disabled.

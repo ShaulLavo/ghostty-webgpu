@@ -20,7 +20,7 @@ ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package 
 
 - Chromium, desktop: tested. The `workspace-libraries` workflow runs the browser suite in Chromium. Benchmarks use Chrome 154 on macOS. The correctness run uses headless Chromium 153 on Linux.
 - Firefox, WebKit: not tested in CI. `vitest.browser.config.ts` accepts `GHOSTTY_BROWSER_ENGINE=firefox` or `webkit`. No Ghostty workflow sets it.
-- iPhone Safari: not tested in CI. A tap-dismisses-keyboard bug was fixed in 0.3.22. No automated test covers it.
+- iPhone Safari: not tested in CI. No automated test covers it.
 
 WebGPU needs a secure context and a hardware adapter. Without one, the terminal falls through to WebGL2, Canvas 2D, then the DOM. [Concepts](concepts.md#four-renderers-and-the-order-they-are-tried) shows the order.
 

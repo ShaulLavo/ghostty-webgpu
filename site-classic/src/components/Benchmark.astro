@@ -39,7 +39,7 @@ const scaleMax = (rows: readonly { energy: number }[]) => Math.max(1.4, ...rows.
         </div>
         <span class="status" data-kind={tab.kind}>{tab.status}</span>
         {tab.kind === 'pending' ? (
-          <div class="pending-slot">The chart returns here when the new run is reviewed.</div>
+          <div class="pending-slot">No chart for this release.</div>
         ) : (
           <Fragment>
             <ul class="rows" aria-label={`${tab.title}, chart`}>

@@ -1,7 +1,7 @@
 # 002. Keep the instanced WebGPU renderer and drop the compute-copy renderer
 
 Status: accepted
-Date: 2026-10-24 (recorded after the fact; the experiment finished earlier)
+Date: 2026-10-24
 
 ## Context
 
@@ -24,4 +24,4 @@ Keep the instanced renderer. Leave the compute-copy code on its research branch 
 
 - WebGPU keeps one draw path. The Zig frame builder writes cell and glyph records and the renderer uploads changed byte ranges.
 - The result is one machine, one browser build, and one workload set. It rejects this implementation. It does not prove that no compute design could win.
-- The raw packets were local to the owner's host and are not in the repository. The benchmark repairs from this work shipped, so the benchmark state wrapper in the comparison harness (`bun run bench:compare`) now forwards native frame-builder creation and the snapshot version.
+- The raw measurement packets are not in the repository.

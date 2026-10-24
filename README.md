@@ -88,12 +88,12 @@ One Unicode line per tick is roughly even, with 1.4% less energy and 0.2% more i
 - **Versions:** ghostty-webgpu 0.3.21, xterm.js 6.0.0, WebGL addon 0.19.0.
 - **Workload:** 17 visible terminals, 40 × 12 cells, DPR 2.
 - **Sampling:** 900 measured ticks at 60 Hz after 120 warm-up ticks. Each row is the median of two balanced pairs.
-- **Dates:** acquired 2026-10-09, reviewed 2026-10-10.
+- **Date:** measured 2026-10-09.
 - **Measurement:** whole-browser instruction counts and estimated CPU energy.
-- **Limits:** two pairs per row. Retained-history limits and observer qualifications apply. The review marks every row publishable with limits. For one Unicode line per tick it records instructions as higher (1.002).
+- **Limits:** two pairs per row. Retained-history limits and observer qualifications apply. For one Unicode line per tick, instructions are higher (1.002).
 
 Recompute the table without a browser, from `ghostty-webgpu/`: `node docs/benchmarks/mac-m1-2026-10-10/verify.mjs`.
-The [reviewed benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) cover DOM too, and the [method and recompute steps](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md) list what the numbers do not show. Read them before applying the results to your workload.
+The [full benchmarks](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) cover DOM too, and the [method and recompute steps](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md) list what the numbers do not show. Read them before applying the results to your workload.
 
 </details>
 

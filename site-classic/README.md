@@ -21,10 +21,10 @@ Edit pages in `../site/src/content/docs`, examples in `../site/src/examples`, an
 
 Author links as `https://ghostty.shaulavo.dev/docs/…`. The shared docs-links integration rewrites these URLs to the active base before Starlight validates links, so Pages readers stay on the classic site. API references are generated from the package's built declarations. Both sites use the shared docs checker. Build them sequentially because TypeDoc writes reference pages into the shared content directory; the workspace task graph enforces that order.
 
-## Review
+## Preview locally
 
 ```sh
 bun run --cwd ghostty-webgpu/site-classic preview --ignore-lock --host 127.0.0.1 --port 4327
 ```
 
-Choose an available port and stop the preview after review. The docs keep the Mist palette, Bricolage Grotesque and JetBrains Mono fonts, and Starlight's light/dark switch.
+Choose an available port and stop the preview when done. The docs keep the Mist palette, Bricolage Grotesque and JetBrains Mono fonts, and Starlight's light/dark switch.

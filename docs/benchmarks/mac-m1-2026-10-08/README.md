@@ -1,24 +1,24 @@
-# Reviewed M1 terminal measurements
+# M1 terminal measurements, 2026-10-08
 
-**Superseded by the [2026-10-10 set](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md).** The public pages now show that set. This one stays as history and its verifier still runs.
+This set is replaced by the [2026-10-10 set](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-10/README.md), which the public pages show. Its verifier still runs.
 
-Published 2026-10-08 from the terminal performance wave's reviewed round-1 scoreboard. The windows ran on 2026-10-07 UTC. The publication adds no hardware runs and makes no claim about current main.
+Measured on 2026-10-07 UTC on ghostty-webgpu 0.3.20. It makes no claim about later builds.
 
 [Public comparison page](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks.md) · [Scores](https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/docs/benchmarks/mac-m1-2026-10-08/scores.json)
 
 ## What is saved
 
-`scores.json` contains only the nine independently reviewed WebGL and DOM rows. Each row links its counter record, frozen capsule and review. Unreviewed Canvas, WebGPU, Pi and later candidate observations are omitted. The historical full-stream WebGL wins are omitted in favor of the reviewed bounded-history condition.
+`scores.json` contains the nine WebGL and DOM rows. Each row links its counter record, frozen capsule and review. Canvas, WebGPU and Pi observations are omitted. The bounded-history WebGL condition replaces the earlier full-stream one.
 
 The source is ghostty-webgpu 0.3.20 at Fregat commit `902687697db8a58a211495d07f4938d331feef92`, paired with xterm.js 6.0.0 and WebGL addon 0.19.0. The bundled font is JetBrains Mono 5.3.0. The machine is an Apple M1 MacBook on AC power, running headed Chrome 154.0.8037.93 with hardware ANGLE Metal rendering. This saved acquisition does not include a separate OS-build receipt. Browser, source and runtime hashes identify the measured software.
 
 Each workload has 17 visible 40 × 12 terminals at DPR 2, 120 warm-up ticks and 900 measured ticks paced at 60 Hz. Runs alternate in balanced adjacent pairs. WebGL and DOM rolling logs have four pairs; other DOM workloads have two. The result is the median of each pair's ghostty/xterm ratio. It is not a ratio of separately calculated medians.
 
-Energy means macOS's kernel estimate of process CPU energy across the Chrome process family. Instructions are retired CPU instructions across those same processes. GPU-process CPU work is included. GPU-device and display energy are outside the measurement. CPU seconds are saved for context; pre-October-7 efficiency verdicts based only on CPU seconds are superseded.
+Energy means macOS's kernel estimate of process CPU energy across the Chrome process family. Instructions are retired CPU instructions across those same processes. GPU-process CPU work is included. GPU-device and display energy are outside the measurement. CPU seconds are saved for context.
 
-The JSON counter records are compact copies of the original indexes. They preserve per-PID native deltas, aggregate channels, work counters, output hashes, final retained rows, geometry, times, and original index/protocol hashes. Large repeated text arrays, endpoint snapshots and PNG payloads are omitted. The original index hash identifies the complete private acquisition; the compact copy cannot replace it for every possible audit. Independent review JSON files retain their numerical evidence and qualifications, with private paths removed.
+The JSON counter records are compact copies of the original indexes. They preserve per-PID native deltas, aggregate channels, work counters, output hashes, final retained rows, geometry, times, and original index/protocol hashes. Large repeated text arrays, endpoint snapshots and PNG payloads are omitted. The original index hash identifies the complete private acquisition; the compact copy cannot replace it for every possible audit. The review JSON files retain their numerical evidence and qualifications.
 
-The frozen browser assets are compressed under `reproduce/assets/`. Five measurement configurations share three distinct browser bundles and common assets. `assets.json` records archive and asset hashes, original manifest/seal hashes, and the original driver hash. Runtime files retain their original bytes. The assets directory includes the Ghostty, ghostty-web and xterm.js licenses; the common archive carries the font license. The measured native engine uses Ghostty revision `7b11f3dca034d8d24369ad3856afe57946d7902a`. The publication changes the scripts' input/output paths, Playwright resolution and Python-reader location, while preserving each configuration's measurement body.
+The frozen browser assets are compressed under `reproduce/assets/`. Five measurement configurations share three distinct browser bundles and common assets. `assets.json` records archive and asset hashes, original manifest/seal hashes, and the original driver hash. Runtime files retain their original bytes. The assets directory includes the Ghostty, ghostty-web and xterm.js licenses; the common archive carries the font license. The measured native engine uses Ghostty revision `7b11f3dca034d8d24369ad3856afe57946d7902a`.
 
 ## Review limits
 
@@ -28,7 +28,7 @@ The frozen browser assets are compressed under `reproduce/assets/`. Five measure
 - Observer calibration supports a limited rolling-log comparison. It does not prove zero overhead or cross-workload equivalence. The small DOM workloads have two pairs and uncalibrated observer overhead.
 - Counter coverage uses stable endpoint PID/type/start identities. Entirely transient processes can escape that coverage. Sequential samples are non-atomic.
 - Counters end after reset, writes, two animation frames and work snapshots. Text and screenshot capture follow. This proves logical settlement, not physical presentation.
-- The reviews qualify local instrumented whole-terminal comparisons with limits. They do not establish universal renderer speed, physical-device energy savings or cross-session confidence intervals.
+- These are local instrumented whole-terminal comparisons. They do not establish universal renderer speed, physical-device energy savings or cross-session confidence intervals.
 
 ## Recompute without a browser
 
@@ -66,10 +66,4 @@ Case names are `webgl-bounded-logs`, `webgl-bounded-unicode`, `webgl-unicode`, `
 
 For a preparation-only check on Linux or macOS, add `--prepare-only` and omit `--browser`. It verifies and extracts the frozen inputs without opening a browser or collecting counters.
 
-A rerun uses the frozen historical runtime. It does not measure current main, retroactively extend the independent review, or automatically qualify a new public number. Current-main runs require a newly registered protocol, equal-work checks and independent review. The terminal performance wave owns the next Mac session.
-
-## Fresh measurements
-
-Current-main WebGL and DOM need all five workloads with equal bounded history and its trajectory recorded. Canvas needs reviewed like-for-like pairs. WebGPU needs reviewed own-control measurements and separately labeled cross-API comparisons. Parser throughput needs a current run.
-
-Whole-browser memory and presentation latency have no current headline here. Memory must include resident WASM in the browser process-family totals, with idle and matched-history baselines. Do not add WASM capacity to RSS. Plan 283 retired the October 1 screencast latency rows; a new presentation-clock protocol needs at least 100 samples per case at 1 and 17 terminals.
+A rerun uses the frozen runtime. It does not measure the current build or qualify a new public number. A current-build run needs a newly registered protocol and equal-work checks.

@@ -54,7 +54,7 @@ test('charts every reviewed row under its renderer tab and names the unavailable
     'Typing-like edits',
   ])
   expect(even.map(rowNote)).toEqual([
-    'Roughly even. Energy is lower and instructions are higher in both pairs, which the review records as an instruction loss.',
+    'Roughly even. Energy is lower and instructions are higher in both pairs.',
     'Roughly even. The two pairs disagree on energy and instructions.',
   ])
   const dom = benchTabs.find((tab) => tab.id === 'dom')

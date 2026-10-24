@@ -104,7 +104,7 @@ function evenNote(row: MeasurementRow) {
   if (energy === 'mixed' && instructions === 'mixed')
     return 'Roughly even. The two pairs disagree on energy and instructions.'
   if (instructions === 'higher')
-    return `Roughly even. Energy is ${energy} and instructions are higher in both pairs, which the review records as an instruction loss.`
+    return `Roughly even. Energy is ${energy} and instructions are higher in both pairs.`
   return 'Roughly even.'
 }
 
@@ -155,18 +155,17 @@ export const benchTabs: readonly BenchTab[] = [
     id: 'parsing',
     label: 'Parsing',
     title: 'Parse throughput',
-    status: 'Being re-measured on the current release.',
-    method:
-      'The 1 Oct parser numbers measured an older release, so they are withdrawn until a reviewed run on the current release.',
+    status: 'Not measured on the current release.',
+    method: 'No parse-throughput numbers exist for the current release.',
   },
   {
     kind: 'pending',
     id: 'latency',
     label: 'Latency',
     title: 'Write and keystroke to screen',
-    status: 'Being re-measured.',
+    status: 'Not measured.',
     method:
-      'The earlier latency rows used a capture clock that distorted the result, so they were retired. The new run takes at least 100 samples per case, at 1 and 17 terminals.',
+      'No write-to-screen or keystroke-to-screen latency numbers exist for the current release.',
   },
 ]
 

@@ -63,7 +63,7 @@ The public docs live in three places.
 - `site/src/content/docs/` holds the tutorials and guides on [ghostty.shaulavo.dev](https://ghostty.shaulavo.dev/docs/). Put code in `site/src/examples/` and show it with `Code`. The checker rejects handwritten `ts` fences. See the [site README](../site/README.md).
 - `docs/` holds reference, concepts, and decision records.
 
-Two generated pieces are locked. `docs/benchmarks.md` and the README table between `## Performance` and `### Correctness` come from `docs/benchmarks/mac-m1-2026-10-10/scores.json`. Edit the data or `report.mjs`, then run `node docs/benchmarks/mac-m1-2026-10-10/report.mjs`. `report.mjs --check` fails when either file drifts.
+Two pieces are generated. `docs/benchmarks.md` and the README table between `## Performance` and `### Correctness` come from `docs/benchmarks/mac-m1-2026-10-10/scores.json`. Edit the data or `report.mjs`, then run `node docs/benchmarks/mac-m1-2026-10-10/report.mjs`. `report.mjs --check` fails when either file drifts.
 
 From the repository root, `bun scripts/check-package-pages.mjs` checks the package manifest, including the homepage, which must stay `https://ghostty.shaulavo.dev/`.
 
