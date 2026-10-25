@@ -186,21 +186,26 @@ test('a CPU qualification failure stops recording and drains the Chrome trace st
       return { spans: [], counters: [], markers: [], ownership: [] }
     },
   }
-  await assert.rejects(
-    tracePhase({
-      page,
-      browserSession: session,
-      traced: true,
-      operation: async () => ({}),
-      label: 'failure',
-      output: '/work/tmp/plan-283',
-    }),
-    /process/i,
-  )
-  assert(calls.includes('record-end'))
-  assert(calls.includes('Tracing.end'))
-  assert(calls.includes('IO.read'))
-  assert(calls.includes('IO.close'))
+  const output = await mkdtemp(join(tmpdir(), 'gw-cpu-failure-'))
+  try {
+    await assert.rejects(
+      tracePhase({
+        page,
+        browserSession: session,
+        traced: true,
+        operation: async () => ({}),
+        label: 'failure',
+        output,
+      }),
+      /process/i,
+    )
+    assert(calls.includes('record-end'))
+    assert(calls.includes('Tracing.end'))
+    assert(calls.includes('IO.read'))
+    assert(calls.includes('IO.close'))
+  } finally {
+    await rm(output, { recursive: true })
+  }
 })
 
 test('mounted probes reject hidden pages, empty samples and probe errors', () => {

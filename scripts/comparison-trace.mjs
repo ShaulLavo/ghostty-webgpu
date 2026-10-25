@@ -2,10 +2,18 @@ import assert from 'node:assert/strict'
 import { gzipSync } from 'node:zlib'
 import { mkdir, readdir, unlink, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { measureCpu, withDeadline } from './comparison-guards.mjs'
+import {
+  attachFailure,
+  failureProperty,
+  failureText,
+  measureCpu,
+  withDeadline,
+} from './comparison-guards.mjs'
 import { createCounterReader } from './comparison-counters.mjs'
 import { quantile } from './comparison-report.mjs'
 import { renderOperations } from './comparison-render.mjs'
+
+const traceOwners = new WeakMap()
 
 export function displaySummary(periods, metadata = {}) {
   return {
@@ -221,19 +229,26 @@ export function summarizeRecords(records) {
   return { milliseconds, instrumentedMilliseconds: total, shares, byTerminal, frames, ownership }
 }
 
-async function collectTrace(browserSession, completed) {
+function closeTrace(browserSession, state) {
+  if (!state.stream || state.closing) return Promise.resolve()
+  state.closing = true
+  return browserSession.send('IO.close', { handle: state.stream })
+}
+
+async function collectTrace(browserSession, completed, state) {
   const { stream } = await completed
   const chunks = []
   try {
-    for (;;) {
+    while (state.active) {
       const part = await browserSession.send('IO.read', { handle: stream })
+      if (!state.active) return
       chunks.push(Buffer.from(part.data, part.base64Encoded ? 'base64' : 'utf8'))
       if (part.eof) break
     }
+    if (state.active) state.trace = Buffer.concat(chunks)
   } finally {
-    await browserSession.send('IO.close', { handle: stream })
+    await closeTrace(browserSession, state)
   }
-  return Buffer.concat(chunks)
 }
 
 export async function tracePhase(options) {
@@ -258,8 +273,8 @@ async function capturedOperation(operation, state) {
   try {
     return await operation()
   } catch (error) {
-    state.failure = String(error.stack ?? error)
-    return error.partialLatency
+    state.failure = failureText(error)
+    return failureProperty(error, 'partialLatency')
   }
 }
 
@@ -269,15 +284,26 @@ async function measurePhase(browserSession, operation, options) {
     const measurement = await measureCpu(
       browserSession,
       () => capturedOperation(operation, state),
-      options,
+      {
+        ...options,
+        onFailure: (cpu) => {
+          state.cpu = cpu
+        },
+      },
     )
     return { measurement, failure: state.failure }
   } catch (error) {
-    if (!error.cpuFailure) throw error
+    if (!state.cpu) throw error
+    if (state.failure && state.cpu.operation) state.cpu.operation.error = state.failure
+    const operationEvidence = state.cpu.operation
     return {
-      measurement: { cpu: error.cpuFailure },
-      failure: String(error.stack ?? error),
-      cpuError: error,
+      measurement: {
+        sample: operationEvidence?.sample,
+        milliseconds: operationEvidence && operationEvidence.completed - operationEvidence.started,
+        cpu: state.cpu,
+      },
+      failure: failureText(error),
+      outcome: { error },
     }
   }
 }
@@ -290,60 +316,115 @@ function endRecords(page) {
   return page.evaluate(() => window.__compare.traceEnd())
 }
 
-async function runTracePhase({
-  page,
-  browserSession,
-  output,
-  label,
-  operation,
-  traced,
-  now,
-  categories,
-  cpuOptions,
-}) {
-  if (traced)
-    await browserSession.send('Tracing.start', {
-      categories:
-        categories ??
-        'toplevel,devtools.timeline,blink.user_timing,v8,cc,viz,gpu,disabled-by-default-devtools.timeline,disabled-by-default-v8.cpu_profiler',
-      transferMode: 'ReturnAsStream',
-    })
-  const completed = traced
-    ? new Promise((resolve) => browserSession.once('Tracing.tracingComplete', resolve))
-    : undefined
-  let result
-  let cpuError
-  let trace
-  let recording = false
-  try {
-    if (traced) {
-      await beginRecords(page)
-      recording = true
-    }
-    const measured = await measurePhase(browserSession, operation, { ...cpuOptions, now })
-    cpuError = measured.cpuError
-    const records = traced ? await endRecords(page) : undefined
-    recording = false
-    result = { label, traced, ...measured.measurement, error: measured.failure }
-    if (records) {
+function endTrace(browserSession, state) {
+  if (!state.ownsTrace) return Promise.resolve()
+  state.ending ??= Promise.resolve().then(() => browserSession.send('Tracing.end'))
+  return state.ending
+}
+
+function releaseTraceListeners(browserSession, state) {
+  browserSession.removeListener('Tracing.tracingComplete', state.onComplete)
+  browserSession.removeListener('close', state.onClose)
+  if (traceOwners.get(browserSession) === state) traceOwners.delete(browserSession)
+}
+
+async function finishTrace(page, browserSession, completed, state, result) {
+  if (state.recording) {
+    state.recording = false
+    try {
+      const records = await endRecords(page)
+      if (!state.active) return
       result.records = records
       result.summary = summarizeRecords(records)
+    } catch (error) {
+      if (!state.active) return
+      state.recordingFailure = { error }
     }
+  }
+  if (!state.active) return
+  await endTrace(browserSession, state)
+  if (!state.active) return
+  return collectTrace(browserSession, completed, state)
+}
+
+async function finalizeTrace(options, completed, state, result) {
+  const { page, browserSession, output, label, finalizationMilliseconds = 10_000 } = options
+  let failure
+  try {
+    await withDeadline(
+      () => finishTrace(page, browserSession, completed, state, result),
+      finalizationMilliseconds,
+      () => {
+        state.active = false
+        // Recorder completion cannot delay release of the browser-wide trace.
+        void endTrace(browserSession, state).catch(() => {})
+        void closeTrace(browserSession, state).catch(() => {})
+      },
+    )
+  } catch (error) {
+    failure = { error }
   } finally {
-    if (recording) await endRecords(page).catch(() => {})
-    if (traced) {
-      await browserSession.send('Tracing.end')
-      trace = await collectTrace(browserSession, completed)
+    state.active = false
+    void closeTrace(browserSession, state).catch(() => {})
+    if (state.stream || !state.ownsTrace) releaseTraceListeners(browserSession, state)
+  }
+  if (state.trace) {
+    await writeFile(join(output, `${label}.trace.json.gz`), gzipSync(state.trace))
+    result.trace = `${label}.trace.json.gz`
+    result.traceBytes = state.trace.length
+  }
+  if (failure) throw failure.error
+  if (state.recordingFailure) throw state.recordingFailure.error
+}
+
+async function runTracePhase(options) {
+  const { page, browserSession, label, operation, traced, now, categories, cpuOptions } = options
+  const result = { label, traced }
+  const state = { active: true, recording: false }
+  const completed = new Promise((resolve) => {
+    state.onComplete = (event) => {
+      releaseTraceListeners(browserSession, state)
+      state.stream = event.stream
+      if (!state.active) void closeTrace(browserSession, state).catch(() => {})
+      resolve(event)
     }
+  })
+  state.onClose = () => releaseTraceListeners(browserSession, state)
+  let failure
+  try {
+    if (traced) {
+      assert(!traceOwners.has(browserSession), 'Previous browser trace is still finalizing')
+      traceOwners.set(browserSession, state)
+      browserSession.once('Tracing.tracingComplete', state.onComplete)
+      browserSession.once('close', state.onClose)
+      await browserSession.send('Tracing.start', {
+        categories:
+          categories ??
+          'toplevel,devtools.timeline,blink.user_timing,v8,cc,viz,gpu,disabled-by-default-devtools.timeline,disabled-by-default-v8.cpu_profiler',
+        transferMode: 'ReturnAsStream',
+      })
+      state.ownsTrace = true
+      state.recording = true
+      await beginRecords(page)
+    }
+    const measured = await measurePhase(browserSession, operation, { ...cpuOptions, now })
+    Object.assign(result, measured.measurement, { error: measured.failure })
+    failure = measured.outcome
+  } catch (error) {
+    failure = { error }
+    result.error = failureText(error)
   }
   if (traced) {
-    result.trace = `${label}.trace.json.gz`
-    result.traceBytes = trace.length
-    await writeFile(join(output, result.trace), gzipSync(trace))
+    try {
+      await finalizeTrace(options, completed, state, result)
+    } catch (error) {
+      result.finalizationError = failureText(error)
+      failure ??= { error }
+    }
   }
-  if (cpuError) {
-    cpuError.phaseFailure = result
-    throw cpuError
+  if (failure) {
+    attachFailure(failure.error, 'phaseFailure', result)
+    throw failure.error
   }
   return result
 }
