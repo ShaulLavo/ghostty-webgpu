@@ -1,47 +1,39 @@
 # Use ghostty-webgpu in your own app
 
-Build the package from a Fregat checkout, link it into your project, and make your bundler ship the three `.wasm` files. npm's latest release, 0.1.2, predates this API, so there is no `npm install` route for the current source.
+Install a built tarball from a [GitHub release](https://github.com/ShaulLavo/ghostty-webgpu/releases), then ship the three `.wasm` files with your app. The historical npm release uses an earlier API.
 
-This page was run end to end with Bun 1.4.4 and Vite 8.3.1 on macOS. The steps below are what that run needed.
+## Install a release
 
-## Build the package
-
-You need [Bun](https://bun.sh/), which runs the install and the build. Node 20 or newer is the range `package.json` declares in `engines.node`.
+Copy the terminal tarball URL from the release you selected, and pin that exact URL in your app:
 
 ```sh
-git clone https://github.com/ShaulLavo/fregat.git
-cd fregat
+bun add ghostty-webgpu@<release-asset-url>
+```
+
+The URL ends in `/ghostty-webgpu.tgz`. npm can install the same tarball with `npm install <release-asset-url>`. Each release identifies its source commit. The tarball includes built JavaScript, declarations, and the checked-in wasm files, so consumers need no compiler or lifecycle scripts.
+
+The optional `ghostty-webgpu-line-editor.tgz` and `ghostty-webgpu-shaders.tgz` assets install the same way. Install the terminal alongside either addon to satisfy its peer dependency.
+
+## Build and link a checkout
+
+For development, install Bun 1.4.4 and Node 20 or newer:
+
+```sh
+git clone https://github.com/ShaulLavo/ghostty-webgpu.git
+cd ghostty-webgpu
 bun install --frozen-lockfile
-bun run --cwd packages/hotkeys/packages/hotkeys build
-bun run --cwd packages/ghostty-webgpu build
+bun run build
 ```
 
-The first build step is `@fregat/hotkeys`, a workspace dependency that ghostty-webgpu imports from its own `dist/`. Without it, the `ghostty-webgpu` build stops with `Cannot find module '@fregat/hotkeys'`.
+`build` compiles `src/` to `dist/` and bundles the worker. The pinned `@fregat/hotkeys` dependency arrives already built. The three wasm files are checked in. See [development](development.md#rebuild-the-wasm) to rebuild them.
 
-`build` cleans `dist/`, compiles `src/` to `dist/` with `tsc` (JavaScript, `.d.ts` files, and source maps), and bundles the worker to `dist/worker/entry.js`. It does not build the `.wasm` files. `ghostty-vt.wasm`, `bridge.wasm`, and `canvas-compose.wasm` are checked in at the package root. [Development](development.md#rebuild-the-wasm) says how to rebuild them. Rebuild the package after every source change, because consumers import `dist/`.
-
-## Link it into your project
-
-Pick the route that matches where your app lives.
-
-**Your app is outside the checkout.** Link the package folder. Run `bun install` in the checkout first. The linked package finds its own dependencies in the checkout's `node_modules`.
+From your app, link the checkout with an absolute path:
 
 ```sh
-cd my-app
-bun add ghostty-webgpu@link:/path/to/fregat/ghostty-webgpu
+bun add ghostty-webgpu@link:/absolute/path/to/ghostty-webgpu
 ```
 
-**Your app is a workspace package in the checkout.** Put it in a folder that the root `package.json` `workspaces` list matches, such as `apps/*`, then depend on it the way `apps/web` does:
-
-```json
-{
-  "dependencies": {
-    "ghostty-webgpu": "workspace:*"
-  }
-}
-```
-
-Either way, `ghostty-webgpu` resolves to `ghostty-webgpu/dist/index.js`.
+Rebuild after a source edit. To test the release layout locally, run `bun run verify` in the checkout and install its `.artifacts/ghostty-webgpu.tgz` in your app. A Git source archive contains source files, so use a built release tarball for a dependency that can run immediately after install.
 
 ## Import it
 
