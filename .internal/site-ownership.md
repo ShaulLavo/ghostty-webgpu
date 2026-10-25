@@ -48,3 +48,19 @@ Initial preview checks exposed Astro's auto-background behavior. The final helpe
 Not run: full unrelated terminal/browser suite, remote native builds, live production checks, or any deployment. Independent review and remote CI belong to the coordinator.
 
 The public runbook is [site deployment](../docs/site-deployment.md). It covers build, dry run, source and artifact rollback, and the coordinator's switch-over steps.
+
+## Packed Canvas qualification
+
+The adjacent packed-browser check now requires and measures `canvas-compose.wasm`, and the renderer smoke serves it with the other two WASM assets. The packed consumer exercises both main-thread Canvas paint modes. The explicit `canvas2d-pixels` scenario must fetch the compositor once, display red glyphs, repaint them green, preserve selection, and dispose its canvas. Opening retains the existing 15-second timeout.
+
+Before the fix, `bun scripts/package-smoke.ts --browser --tarball "$MISSING_TARBALL"` passed with `canvas-compose.wasm` removed. Adding the pixels scenario before allowing its asset failed with `GhosttyError: Canvas pixel composition is unavailable`.
+
+After the fix, the following checks passed through the browser queue with relocated npm installs of the actual packed output:
+
+- `bun scripts/package-smoke.ts --browser --tarball "$VALID_TARBALL"`. Both Canvas modes passed. The measurement JSON contains all three WASM assets.
+- The same command with the missing-asset fixture failed with `packed package is missing .../canvas-compose.wasm`.
+- The same command with invalid bytes in the compositor asset failed with `Canvas pixel composition is unavailable`.
+- `bun run test:renderer-smoke`. WebGPU, WebGL2, Canvas fill-text, and Canvas pixels passed visible glyphs, theme repaint, selection, and disposal.
+- `bun run typecheck` and `bunx oxlint scripts/package-smoke.ts scripts/renderer-fallback-smoke.ts` passed.
+
+The fixtures used the same `createTarball` helper as the package check. Each negative fixture changed only the compositor asset. No runtime source, exported API, version, or WASM bytes changed. Temporary installed consumers clean themselves in `finally`; the fixture copies and tarballs are disposable after verification.
