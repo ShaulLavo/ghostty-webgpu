@@ -2,6 +2,8 @@ name: CI
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
   pull_request:
   push:
     branches: [main]
@@ -64,12 +66,32 @@ jobs:
             .artifacts/release.json
           include-hidden-files: true
           if-no-files-found: error
+      - name: Build the scene site from the verified packages
+        working-directory: site
+        run: bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /
+      - name: Package the existing custom-domain Worker without deploying
+        run: bun run site:worker:dry-run
       - name: Build the classic site from the verified packages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         working-directory: site-classic
         run: bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /ghostty-webgpu/
+      - name: Verify both docs sites, examples and search
+        run: bun run sites:verify "$PWD/.artifacts/docs-browser" 4327
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: always()
+        with:
+          name: docs-browser
+          path: .artifacts/docs-browser
+          include-hidden-files: true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: site-worker
+          path: |
+            site/dist
+            .artifacts/site-worker
+            wrangler.jsonc
+          include-hidden-files: true
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: site
           path: site-classic/dist

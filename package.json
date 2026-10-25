@@ -140,7 +140,11 @@
     "test:site-classic": "vitest run site-classic/src",
     "pack:release": "bun scripts/release.ts pack",
     "test:package:built": "bun scripts/release.ts check",
-    "verify:extensions": "bun run --cwd packages/line-editor build && bun run --cwd packages/line-editor typecheck && bun run --cwd packages/line-editor test && bun run --cwd packages/line-editor test:package && bun run --cwd packages/shaders build && bun run --cwd packages/shaders typecheck && bun run --cwd packages/shaders test && bun run --cwd packages/shaders test:package"
+    "verify:extensions": "bun run --cwd packages/line-editor build && bun run --cwd packages/line-editor typecheck && bun run --cwd packages/line-editor test && bun run --cwd packages/line-editor test:package && bun run --cwd packages/shaders build && bun run --cwd packages/shaders typecheck && bun run --cwd packages/shaders test && bun run --cwd packages/shaders test:package",
+    "site:worker:build": "bun run build && bun run --cwd site build --base /",
+    "site:worker:dry-run": "wrangler deploy --config wrangler.jsonc --dry-run --outdir .artifacts/site-worker",
+    "site:worker:deploy": "wrangler deploy --config wrangler.jsonc",
+    "sites:verify": "bash scripts/verify-sites.sh"
   },
   "dependencies": {
     "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
@@ -162,6 +166,7 @@
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.2",
+    "wrangler": "4.149.0",
     "ws": "8.22.0"
   },
   "engines": {

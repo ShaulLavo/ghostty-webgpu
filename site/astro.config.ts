@@ -61,14 +61,14 @@ export default defineConfig({
       },
       customCss: docsTheme.customCss.concat(['./src/styles/docs.css']),
       editLink: {
-        baseUrl: 'https://github.com/ShaulLavo/fregat/edit/main/packages/ghostty-webgpu/site/',
+        baseUrl: 'https://github.com/ShaulLavo/ghostty-webgpu/edit/main/site/',
       },
       lastUpdated: true,
       social: [
         {
           icon: 'github',
           label: 'Source on GitHub',
-          href: 'https://github.com/ShaulLavo/fregat/tree/main/packages/ghostty-webgpu',
+          href: 'https://github.com/ShaulLavo/ghostty-webgpu',
         },
       ],
       sidebar: [
