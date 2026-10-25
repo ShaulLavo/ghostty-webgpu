@@ -19,7 +19,7 @@ To see your build in a browser, run `bun run demo`. It serves a terminal lab wit
 
 ## Run the checks
 
-Run these from the repository root.
+Run these from the repository root. Before running the full browser suite directly, build the terminal with `bun run build` and the addons with `bun run verify:extensions`. `bun run verify` runs those steps in order.
 
 | Command                | What it proves                                                                     |
 | ---------------------- | ---------------------------------------------------------------------------------- |

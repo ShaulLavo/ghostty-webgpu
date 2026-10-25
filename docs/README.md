@@ -4,8 +4,6 @@ Tutorials and task guides are on [ghostty.shaulavo.dev/docs](https://ghostty.sha
 
 ## Pages
 
-- [overview.md](overview.md) (explanation): read the terminal overview and published measurement summary.
-- [releasing.md](releasing.md) (how-to): distribute tested tarballs through GitHub releases.
 - [concepts.md](concepts.md) (explanation): see how bytes become pixels and how a renderer is chosen.
 - [status.md](status.md) (reference): check stability, browser support, and known gaps.
 - [troubleshooting.md](troubleshooting.md) (how-to): fix a blank terminal, a missing `.wasm`, or a denied clipboard.

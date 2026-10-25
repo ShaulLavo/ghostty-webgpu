@@ -23,6 +23,7 @@
   "workspaces": {
     "packages": [
       "packages/*",
+      "demo",
       "site",
       "site-classic"
     ]
@@ -125,10 +126,10 @@
     "test:renderer-smoke": "bun scripts/renderer-fallback-smoke.ts",
     "test:unit": "vitest run && bun run bench:compare:test && node --test scripts/autoresearch-checkpoint.test.mjs",
     "typecheck": "tsc --noEmit",
-    "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:renderer-smoke && bun run verify:extensions && bun run --cwd site docs:check && bun run pack:release && bun run test:package:built",
+    "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run verify:extensions && bun run test && bun run test:renderer-smoke && bun run --cwd site docs:check && bun run pack:release && bun run test:package:built",
     "verify:config-resolver-artifacts": "bun scripts/verify-config-resolver-artifacts.ts --state assembled",
     "verify:config-resolver-state": "bun scripts/verify-config-resolver-artifacts.ts",
-    "verify:source-only": "bun run build:source-only && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:renderer-smoke",
+    "verify:source-only": "bun run build:source-only && bun run typecheck && bun run lint && bun run format:check && bun run verify:extensions && bun run test && bun run test:renderer-smoke",
     "build:host": "bun run verify:config-resolver-artifacts && bun run build",
     "test:package:host": "bun scripts/package-smoke.ts",
     "verify:host": "bun run verify:config-resolver-artifacts && bun run verify && bun run test:package:host",
