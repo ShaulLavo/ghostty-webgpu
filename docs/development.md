@@ -1,25 +1,25 @@
 # Development
 
-How to build, test, and change ghostty-webgpu. Development happens in the [Fregat](https://github.com/ShaulLavo/fregat) monorepo under `packages/ghostty-webgpu/`. The standalone ghostty-webgpu repository is a read-only mirror, so send changes to Fregat. Read the [contribution guide](https://github.com/ShaulLavo/fregat/blob/main/CONTRIBUTING.md) first, and [AGENTS.md](../AGENTS.md) for the code conventions.
+Build, test, and change [ghostty-webgpu](https://github.com/ShaulLavo/ghostty-webgpu) in this repository. Read [AGENTS.md](../AGENTS.md) for code conventions.
 
 ## Set up
 
 You need [Bun](https://bun.sh/) (the repo pins 1.4.4 in `packageManager`) and Node 20 or newer, the range `package.json` declares in `engines.node`. The benchmark verifier and `node --test` steps run on Node.
 
 ```sh
-git clone https://github.com/ShaulLavo/fregat.git
-cd fregat
+git clone https://github.com/ShaulLavo/ghostty-webgpu.git
+cd ghostty-webgpu
 bun install --frozen-lockfile
-bun run --cwd packages/ghostty-webgpu build
+bun run build
 ```
 
-`build` prepares the local `@fregat/hotkeys` dependency through the workspace task graph, compiles TypeScript to `dist/`, and bundles the worker. Consumers import `dist`, so rebuild after every source change.
+`build` compiles TypeScript to `dist/` and bundles the worker. `bun install` downloads the built `@fregat/hotkeys` package from its pinned release tarball. Consumers import `dist`, so rebuild after every source change.
 
-To see your build in a browser, run `bun run --cwd packages/ghostty-webgpu demo`. It serves a terminal lab with a real shell at `http://127.0.0.1:4173`.
+To see your build in a browser, run `bun run demo`. It serves a terminal lab with a real shell at `http://127.0.0.1:4173`.
 
 ## Run the checks
 
-Run these from `packages/ghostty-webgpu/`.
+Run these from the repository root. Before running the full browser suite directly, build the terminal with `bun run build` and the addons with `bun run verify:extensions`. `bun run verify` runs those steps in order.
 
 | Command                | What it proves                                                                     |
 | ---------------------- | ---------------------------------------------------------------------------------- |
@@ -40,31 +40,31 @@ Set `GHOSTTY_BROWSER_ENGINE` to `firefox` or `webkit` to run the browser suite t
 
 ## Where things live
 
-| Path                     | Holds                                                                                                                                                                                    |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/core/`              | Wasm loading and typed `libghostty-vt` bindings. No DOM globals.                                                                                                                         |
-| `src/term/`              | `TerminalSession`: selection, links, events.                                                                                                                                             |
-| `src/dom/`               | The `Terminal` host: fitting, input, accessibility, clipboard.                                                                                                                           |
-| `src/render/`            | `webgpu/`, `webgl/`, `canvas/`, `pixels/`, `dom/` backends. `shared/` holds the scheduler, glyph atlas, frame contracts, and backend selection. `shaders/` holds GPU shader sources.     |
-| `src/worker/`            | The `ghostty-webgpu/worker` entry.                                                                                                                                                       |
-| `src/config-resolver/`   | The host-only `ghostty-webgpu/config-resolver` entry.                                                                                                                                    |
-| `scripts/*.zig`          | The Zig sources for `bridge.wasm` and `canvas-compose.wasm`.                                                                                                                             |
-| `bench/`, `scripts/`     | Benchmark entry points and their runners.                                                                                                                                                |
-| `packages/`              | Workspace packages in the standalone mirror. Fregat keeps the line editor in `packages/ghostty-webgpu/packages/line-editor/` and shaders in `packages/ghostty-webgpu/packages/shaders/`. |
-| `demo/`                  | The local terminal lab.                                                                                                                                                                  |
-| `site/`, `site-classic/` | The Astro docs and landing sites. Their READMEs say how to build them.                                                                                                                   |
+| Path                     | Holds                                                                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/core/`              | Wasm loading and typed `libghostty-vt` bindings. No DOM globals.                                                                                                                     |
+| `src/term/`              | `TerminalSession`: selection, links, events.                                                                                                                                         |
+| `src/dom/`               | The `Terminal` host: fitting, input, accessibility, clipboard.                                                                                                                       |
+| `src/render/`            | `webgpu/`, `webgl/`, `canvas/`, `pixels/`, `dom/` backends. `shared/` holds the scheduler, glyph atlas, frame contracts, and backend selection. `shaders/` holds GPU shader sources. |
+| `src/worker/`            | The `ghostty-webgpu/worker` entry.                                                                                                                                                   |
+| `src/config-resolver/`   | The host-only `ghostty-webgpu/config-resolver` entry.                                                                                                                                |
+| `scripts/*.zig`          | The Zig sources for `bridge.wasm` and `canvas-compose.wasm`.                                                                                                                         |
+| `bench/`, `scripts/`     | Benchmark entry points and their runners.                                                                                                                                            |
+| `packages/`              | The optional line editor and shader addon. `verify` builds and checks both.                                                                                                          |
+| `demo/`                  | The local terminal lab.                                                                                                                                                              |
+| `site/`, `site-classic/` | The Astro docs and landing sites. Their READMEs say how to build them.                                                                                                               |
 
 ## Change the docs
 
 The public docs live in three places.
 
-- `README.md` is rendered by npm, so every link and image in it is an absolute HTTPS URL. Its `ts` fence is type-checked against the built declarations by `bun run --cwd packages/ghostty-webgpu/site docs:check`.
+- `README.md` is rendered by npm, so every link and image in it is an absolute HTTPS URL. Its `ts` fence is type-checked against the built declarations by `bun run --cwd site docs:check`.
 - `site/src/content/docs/` holds the tutorials and guides on [ghostty.shaulavo.dev](https://ghostty.shaulavo.dev/docs/). Put code in `site/src/examples/` and show it with `Code`. The checker rejects handwritten `ts` fences. See the [site README](../site/README.md).
 - `docs/` holds reference, concepts, and decision records.
 
-Two pieces are generated. `docs/benchmarks.md` and the README table between `## Performance` and `### Correctness` come from `docs/benchmarks/mac-m1-2026-10-10/scores.json`. Edit the data or `report.mjs`, then run `node docs/benchmarks/mac-m1-2026-10-10/report.mjs`. `report.mjs --check` fails when either file drifts.
+Two pieces are generated. `docs/benchmarks.md` and the `docs/overview.md` table between `## Performance` and `### Correctness` come from `docs/benchmarks/mac-m1-2026-10-10/scores.json`. Edit the data or `report.mjs`, then run `node docs/benchmarks/mac-m1-2026-10-10/report.mjs`. `report.mjs --check` fails when either generated file drifts.
 
-From the repository root, `bun scripts/check-package-pages.mjs` checks the package manifest, including the homepage, which must stay `https://ghostty.shaulavo.dev/`.
+Run `bunx playwright install --with-deps chromium` before the first browser test on Linux. `bun run verify` also checks docs examples, packs all three packages, and installs the terminal tarball in a temporary consumer. See [releases](releasing.md) to distribute those tested files.
 
 ## Benchmark tooling
 

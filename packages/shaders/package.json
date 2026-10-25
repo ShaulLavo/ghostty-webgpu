@@ -5,8 +5,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ShaulLavo/fregat.git",
-    "directory": "packages/ghostty-webgpu/packages/shaders"
+    "url": "git+https://github.com/ShaulLavo/ghostty-webgpu.git",
+    "directory": "packages/shaders"
   },
   "files": [
     "dist",

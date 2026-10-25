@@ -88,7 +88,7 @@ test('recomputes the evidence and checks the generated public tables', () => {
     encoding: 'utf8',
   })
   expect(verify).toContain('9 reviewed rows reproduce')
-  expect(report).toContain('README match reviewed data')
+  expect(report).toContain('overview match reviewed data')
   expect(history).toContain('9 reviewed rows reproduce')
 })
 
@@ -109,7 +109,7 @@ test('omits experimental rows and preserves reviewed losses', () => {
   ])
 })
 
-test('refreshes the README WebGL table without replacing product copy', () => {
+test('refreshes the overview WebGL table without replacing product copy', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'ghostty-report-'))
   const reportDirectory = path.join(directory, 'docs/benchmarks/mac-m1-2026-10-10')
   const source = new URL('../../docs/benchmarks/mac-m1-2026-10-10/', import.meta.url)
@@ -122,12 +122,12 @@ test('refreshes the README WebGL table without replacing product copy', () => {
     for (const file of ['report.mjs', 'scores.json'])
       copyFileSync(fileURLToPath(new URL(file, source)), path.join(reportDirectory, file))
     writeFileSync(
-      path.join(directory, 'README.md'),
+      path.join(directory, 'docs/overview.md'),
       `${before}| Workload | CPU energy ratio | Instruction ratio |\n| --- | ---: | ---: |\n| Stale workload | 999 | 999 |\n${after}`,
     )
     const script = path.join(reportDirectory, 'report.mjs')
     execFileSync(process.execPath, [script])
-    const updated = readFileSync(path.join(directory, 'README.md'), 'utf8')
+    const updated = readFileSync(path.join(directory, 'docs/overview.md'), 'utf8')
     expect(updated.startsWith(before)).toBe(true)
     expect(updated.endsWith(after)).toBe(true)
     expect(updated).toContain('| Heavy log output | 0.612 | 0.613 |')
@@ -135,7 +135,7 @@ test('refreshes the README WebGL table without replacing product copy', () => {
     expect(updated).not.toContain('Stale workload')
     expect(updated.split('\n').filter((line) => line.startsWith('|'))).toHaveLength(7)
     expect(execFileSync(process.execPath, [script, '--check'], { encoding: 'utf8' })).toContain(
-      'README match reviewed data',
+      'overview match reviewed data',
     )
   } finally {
     rmSync(directory, { recursive: true, force: true })

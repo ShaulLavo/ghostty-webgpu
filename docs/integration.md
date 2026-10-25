@@ -1,6 +1,6 @@
 # Browser integration
 
-npm's latest release, 0.1.2, predates this API. Build and link the package from source as [use ghostty-webgpu in your own app](use-in-your-app.md) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
+Install a built release tarball or link a checkout as [use ghostty-webgpu in your own app](use-in-your-app.md) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
 
 The terminal mount needs a real size.
 
@@ -46,6 +46,61 @@ terminal.focus()
 
 The terminal fits its grid to the mount automatically. Call `terminal.dispose()` when removing
 the terminal. Close the WebSocket when your application no longer needs the PTY connection.
+
+## Connect a byte-first PTY
+
+Run the PTY on your server. Each example takes a `send` function that sends binary output to an authenticated WebSocket. Forward incoming binary messages to `write`, validated grid dimensions to `resize`, and the socket close event to `close`. Check authentication and the WebSocket origin before opening a shell. See [Security](#security).
+
+### Bun
+
+Bun's built-in terminal option connects a subprocess to a PTY. Its data callback receives `Uint8Array` output:
+
+```js
+export function openPty(send) {
+  const terminal = new Bun.Terminal({
+    cols: 80,
+    rows: 24,
+    data(_terminal, bytes) {
+      send(bytes)
+    },
+  })
+  const child = Bun.spawn([process.env.SHELL ?? '/bin/sh'], { terminal })
+  void child.exited.finally(() => terminal.close())
+  return {
+    write: (bytes) => terminal.write(bytes),
+    resize: (cols, rows) => terminal.resize(cols, rows),
+    close() {
+      child.kill()
+      terminal.close()
+    },
+  }
+}
+```
+
+### Node
+
+Install `node-pty` in your server project. Set `encoding: null` so output arrives as bytes, and write incoming bytes as a `Buffer`:
+
+```js
+import { spawn } from 'node-pty'
+
+export function openPty(send) {
+  const terminal = spawn(process.env.SHELL ?? '/bin/sh', [], {
+    name: 'xterm-256color',
+    cols: 80,
+    rows: 24,
+    encoding: null,
+  })
+  terminal.onData((bytes) => send(bytes))
+  return {
+    write: (bytes) => terminal.write(Buffer.from(bytes)),
+    resize: (cols, rows) => terminal.resize(cols, rows),
+    close: () => terminal.kill(),
+  }
+}
+```
+
+Keep each socket bound to its own PTY and bound queued output in a production server. The [local demo](../demo/src/pty-bridge.mjs) uses the maintained `@lydell/node-pty` fork and adds flow control and shutdown handling.
 
 ## ZWJ emoji and grapheme widths
 

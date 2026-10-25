@@ -13,23 +13,20 @@
   ],
   "homepage": "https://ghostty.shaulavo.dev/",
   "bugs": {
-    "url": "https://github.com/ShaulLavo/fregat/issues"
+    "url": "https://github.com/ShaulLavo/ghostty-webgpu/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ShaulLavo/fregat.git",
-    "directory": "packages/ghostty-webgpu"
+    "url": "git+https://github.com/ShaulLavo/ghostty-webgpu.git"
   },
   "workspaces": {
     "packages": [
       "packages/*",
+      "demo",
       "site",
       "site-classic"
-    ],
-    "catalog": {
-      "@fregat/hotkeys": "https://github.com/ShaulLavo/fregat/releases/download/hotkeys-0.0.2-68d8aaf6f631-260650623e7e/fregat-hotkeys-0.0.2-68d8aaf6f631-260650623e7e.tgz"
-    }
+    ]
   },
   "files": [
     "dist",
@@ -105,7 +102,7 @@
   },
   "scripts": {
     "build:canvas-compose": "bun scripts/build-canvas-compose.ts",
-    "build": "bun run scripts/build-dependencies.ts && bun run clean && tsc -p tsconfig.build.json && bun run build:worker",
+    "build": "bun run clean && tsc -p tsconfig.build.json && bun run build:worker",
     "build:worker": "bun run scripts/build-worker.ts",
     "build:bridge": "bun scripts/build-bridge.ts",
     "build:config-resolver": "bun scripts/build-config-resolver.ts",
@@ -129,10 +126,10 @@
     "test:renderer-smoke": "bun scripts/renderer-fallback-smoke.ts",
     "test:unit": "vitest run && bun run bench:compare:test && node --test scripts/autoresearch-checkpoint.test.mjs",
     "typecheck": "tsc --noEmit",
-    "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:renderer-smoke && bun run test:package",
+    "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run verify:extensions && bun run test && bun run test:renderer-smoke && bun run --cwd site docs:check && bun run pack:release && bun run test:package:built",
     "verify:config-resolver-artifacts": "bun scripts/verify-config-resolver-artifacts.ts --state assembled",
     "verify:config-resolver-state": "bun scripts/verify-config-resolver-artifacts.ts",
-    "verify:source-only": "bun run build:source-only && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:renderer-smoke",
+    "verify:source-only": "bun run build:source-only && bun run typecheck && bun run lint && bun run format:check && bun run verify:extensions && bun run test && bun run test:renderer-smoke",
     "build:host": "bun run verify:config-resolver-artifacts && bun run build",
     "test:package:host": "bun scripts/package-smoke.ts",
     "verify:host": "bun run verify:config-resolver-artifacts && bun run verify && bun run test:package:host",
@@ -140,10 +137,13 @@
     "site:dev": "bun run --cwd site dev",
     "site:classic:build": "bun run --cwd site-classic build",
     "site:classic:dev": "bun run --cwd site-classic dev",
-    "test:site-classic": "vitest run site-classic/src"
+    "test:site-classic": "vitest run site-classic/src",
+    "pack:release": "bun scripts/release.ts pack",
+    "test:package:built": "bun scripts/release.ts check",
+    "verify:extensions": "bun run --cwd packages/line-editor build && bun run --cwd packages/line-editor typecheck && bun run --cwd packages/line-editor test && bun run --cwd packages/line-editor test:package && bun run --cwd packages/shaders build && bun run --cwd packages/shaders typecheck && bun run --cwd packages/shaders test && bun run --cwd packages/shaders test:package"
   },
   "dependencies": {
-    "@fregat/hotkeys": "catalog:",
+    "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
     "@webgpu/types": "0.1.74"
   },
   "devDependencies": {

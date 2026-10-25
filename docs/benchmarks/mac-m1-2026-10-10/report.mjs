@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 
 const root = new URL('./', import.meta.url)
 const data = JSON.parse(await readFile(new URL('scores.json', root)))
-const base = 'https://github.com/ShaulLavo/fregat/blob/main/ghostty-webgpu/'
+const base = 'https://github.com/ShaulLavo/ghostty-webgpu/blob/main/'
 const evidence = `${base}docs/benchmarks/mac-m1-2026-10-10/`
 const { versions, runtimeCommit } = data.conditions
 const labels = {
@@ -115,18 +115,18 @@ Native snapshots bracket the reset, paced writes, logical settlement through two
 
 These tables do not support a claim that ghostty is faster on every workload. Each saved record preserves per-process counter deltas, output digests and work counts. Recompute every ratio with \`node docs/benchmarks/mac-m1-2026-10-10/verify.mjs\`, from \`ghostty-webgpu/\`.
 `
-const readmeUrl = new URL('../../../README.md', root)
-const oldReadme = await readFile(readmeUrl, 'utf8')
-const sectionStart = oldReadme.indexOf('## Performance\n')
-const sectionEnd = oldReadme.indexOf('\n### Correctness\n', sectionStart)
-assert(sectionStart >= 0 && sectionEnd > sectionStart, 'README benchmark section is missing')
-const section = oldReadme.slice(sectionStart, sectionEnd)
-const readmeTable = /^\| Workload\s*\| CPU energy ratio[^\n]*\n(?:\|[^\n]*\n)+/m
-assert(readmeTable.test(section), 'README WebGL table is missing')
-const nextReadme =
-  oldReadme.slice(0, sectionStart) +
-  section.replace(readmeTable, `${compact(gl)}\n`) +
-  oldReadme.slice(sectionEnd)
+const overviewUrl = new URL('../../overview.md', root)
+const oldOverview = await readFile(overviewUrl, 'utf8')
+const sectionStart = oldOverview.indexOf('## Performance\n')
+const sectionEnd = oldOverview.indexOf('\n### Correctness\n', sectionStart)
+assert(sectionStart >= 0 && sectionEnd > sectionStart, 'overview benchmark section is missing')
+const section = oldOverview.slice(sectionStart, sectionEnd)
+const overviewTable = /^\| Workload\s*\| CPU energy ratio[^\n]*\n(?:\|[^\n]*\n)+/m
+assert(overviewTable.test(section), 'overview WebGL table is missing')
+const nextOverview =
+  oldOverview.slice(0, sectionStart) +
+  section.replace(overviewTable, `${compact(gl)}\n`) +
+  oldOverview.slice(sectionEnd)
 const normalize = (text) =>
   text
     .split('\n')
@@ -146,7 +146,7 @@ const normalize = (text) =>
     .trim()
 const targets = [
   [new URL('../../benchmarks.md', root), report],
-  [readmeUrl, nextReadme],
+  [overviewUrl, nextOverview],
 ]
 for (const [url, text] of targets) {
   if (process.argv.includes('--check'))
@@ -159,6 +159,6 @@ for (const [url, text] of targets) {
 }
 console.log(
   process.argv.includes('--check')
-    ? 'PASS: public report and README match reviewed data'
-    : 'Updated public report and README from reviewed data',
+    ? 'PASS: public report and overview match reviewed data'
+    : 'Updated public report and overview from reviewed data',
 )
