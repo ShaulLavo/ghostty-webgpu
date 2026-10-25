@@ -13,6 +13,7 @@ export default defineConfig({
       'scripts/browser-file-roots.test.ts',
       'scripts/renderer-smoke-dependency.test.ts',
       'scripts/package-tarball.test.ts',
+      'scripts/release-artifacts.test.ts',
       'site/src/**/*.test.ts',
       'site-classic/src/**/*.test.ts',
       'scripts/config-resolver-native/*.test.ts',

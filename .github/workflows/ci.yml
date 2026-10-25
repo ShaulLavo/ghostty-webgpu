@@ -25,10 +25,10 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.bun/install/cache
@@ -39,7 +39,7 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - name: Build and verify all packages
         run: bun run verify
-      - name: Verify the same tarball with production npm settings
+      - name: Verify the same three tarballs with production npm settings
         env:
           NODE_ENV: production
           npm_config_omit: dev
@@ -54,16 +54,21 @@ jobs:
             bootstrap) echo 'Native resolver is source-only; browser package checks passed.' ;;
             *) echo 'Invalid native resolver state' >&2; exit 1 ;;
           esac
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: packages
-          path: .artifacts/*.tgz
+          path: |
+            .artifacts/ghostty-webgpu.tgz
+            .artifacts/ghostty-webgpu-line-editor.tgz
+            .artifacts/ghostty-webgpu-shaders.tgz
+            .artifacts/release.json
+          include-hidden-files: true
           if-no-files-found: error
       - name: Build the classic site from the verified packages
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         working-directory: site-classic
         run: bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /ghostty-webgpu/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           name: site
@@ -74,16 +79,30 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: packages
           path: packages
+      - name: Verify release tag, source identity, and package checksums
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: bun scripts/release.ts validate packages "$RELEASE_TAG" "$RELEASE_COMMIT"
       - name: Publish tested packages as a GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" packages/*.tgz --verify-tag --generate-notes --draft
+        run: gh release create "$RELEASE_TAG" packages/*.tgz packages/release.json --verify-tag --generate-notes --draft

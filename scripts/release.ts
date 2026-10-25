@@ -1,20 +1,16 @@
-import { mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import {
+  ReleaseError,
+  releasePackages,
+  sourceCommit,
+  validateReleaseArtifacts,
+  writeReleaseManifest,
+} from './release-artifacts'
 
 const root = join(import.meta.dirname, '..')
 const artifacts = join(root, '.artifacts')
-const packages = [
-  { directory: root, name: 'ghostty-webgpu' },
-  { directory: join(root, 'packages/line-editor'), name: 'ghostty-webgpu-line-editor' },
-  { directory: join(root, 'packages/shaders'), name: 'ghostty-webgpu-shaders' },
-]
-
-class ReleaseError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ReleaseError'
-  }
-}
 
 async function run(command: string[], cwd = root): Promise<void> {
   const child = Bun.spawn(command, { cwd, stdout: 'inherit', stderr: 'inherit' })
@@ -24,11 +20,63 @@ async function run(command: string[], cwd = root): Promise<void> {
 
 async function pack(): Promise<void> {
   await mkdir(artifacts, { recursive: true })
-  for (const entry of packages) {
+  for (const entry of await releasePackages(root)) {
     await run(
-      ['bun', 'pm', 'pack', '--ignore-scripts', '--filename', join(artifacts, `${entry.name}.tgz`)],
+      ['bun', 'pm', 'pack', '--ignore-scripts', '--filename', join(artifacts, entry.filename)],
       entry.directory,
     )
+  }
+  await writeReleaseManifest(root, artifacts)
+}
+
+async function checkAddons(): Promise<void> {
+  const consumer = await mkdtemp(join(tmpdir(), 'ghostty-release-'))
+  try {
+    await writeFile(
+      join(consumer, 'package.json'),
+      JSON.stringify({ private: true, type: 'module' }),
+    )
+    const tarballs = (await releasePackages(root)).map((entry) => join(artifacts, entry.filename))
+    await run(
+      ['npm', 'install', '--dry-run=false', '--ignore-scripts', '--no-audit', '--no-fund'].concat(
+        tarballs,
+      ),
+      consumer,
+    )
+    await copyFile(
+      join(root, 'packages/line-editor/scripts/package-smoke.mjs'),
+      join(consumer, 'line-editor.mjs'),
+    )
+    await copyFile(
+      join(root, 'packages/shaders/scripts/package-smoke.mjs'),
+      join(consumer, 'shaders.mjs'),
+    )
+    await copyFile(
+      join(root, 'scripts/fixtures/release-consumer.ts.txt'),
+      join(consumer, 'consumer.ts'),
+    )
+    await run(
+      [
+        'node',
+        join(root, 'node_modules/typescript/bin/tsc'),
+        '--noEmit',
+        '--strict',
+        '--target',
+        'ES2023',
+        '--module',
+        'ESNext',
+        '--moduleResolution',
+        'Bundler',
+        '--lib',
+        'ES2023,DOM',
+        'consumer.ts',
+      ],
+      consumer,
+    )
+    await run(['node', 'line-editor.mjs'], consumer)
+    await run(['node', 'shaders.mjs', '--installed'], consumer)
+  } finally {
+    await rm(consumer, { recursive: true, force: true })
   }
 }
 
@@ -37,6 +85,7 @@ switch (process.argv[2]) {
     await pack()
     break
   case 'check':
+    await validateReleaseArtifacts({ root, artifacts, commit: sourceCommit(root) })
     await run([
       'bun',
       'scripts/package-smoke.ts',
@@ -44,7 +93,17 @@ switch (process.argv[2]) {
       '--tarball',
       join(artifacts, 'ghostty-webgpu.tgz'),
     ])
+    await checkAddons()
+    await validateReleaseArtifacts({ root, artifacts, commit: sourceCommit(root) })
     break
+  case 'validate': {
+    const [directory, tag, commit] = process.argv.slice(3)
+    if (!directory || !tag || !commit || process.argv.length !== 6) {
+      throw new ReleaseError('Usage: bun scripts/release.ts validate <artifacts> <tag> <commit>')
+    }
+    await validateReleaseArtifacts({ root, artifacts: resolve(directory), tag, commit })
+    break
+  }
   default:
-    throw new ReleaseError('Usage: bun scripts/release.ts pack|check')
+    throw new ReleaseError('Usage: bun scripts/release.ts pack|check|validate')
 }
