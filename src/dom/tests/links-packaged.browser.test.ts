@@ -943,6 +943,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
         await expect.poll(() => terminal.submittedFrame!.nativeRevision).toBeGreaterThan(before)
       })
       expect(changed).toBe(true)
+      await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
       expect(activations).toBe(0)
     },
     20_000,
@@ -981,6 +982,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
         terminal.canvas!.dispatchEvent(new PointerEvent(type, { pointerId: event.pointerId }))
       })
       expect(changed).toBe(true)
+      await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
       expect(uris).toEqual([])
     },
     20_000,
