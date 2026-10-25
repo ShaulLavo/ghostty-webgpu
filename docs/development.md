@@ -71,3 +71,5 @@ Run `bunx playwright install --with-deps chromium` before the first browser test
 - [Upload byte counters](benchmark-tracing.md) defines the WebGPU trace fields.
 - [Comparison runtime provenance](comparison-provenance.md) shows how to build a comparison bundle against a past commit with `--runtime-ref`.
 - [Terminal comparison benchmarks](benchmarks.md) holds the published results and how to recompute them.
+
+Build and publish the two sites with [site deployment](site-deployment.md).

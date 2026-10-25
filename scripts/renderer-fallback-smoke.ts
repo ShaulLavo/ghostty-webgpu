@@ -8,7 +8,7 @@ import { rendererSmokeHotkeys } from './renderer-smoke-dependency'
 const root = process.env.GHOSTTY_PACKAGE_ROOT ?? join(import.meta.dirname, '..')
 const hotkeys = await rendererSmokeHotkeys(root)
 const origin = 'http://127.0.0.1:41799'
-const backends = ['webgpu', 'webgl2', 'canvas2d'] as const
+const backends = ['webgpu', 'webgl2', 'canvas2d', 'canvas2d-pixels'] as const
 const requested = process.argv.slice(2)
 for (const backend of requested) {
   assert(
@@ -32,7 +32,8 @@ const openScenario = `(async (backend) => {
   const rendererFactory = backend === 'webgpu'
     ? (options) => WebGpuTerminalRenderer.create(options)
     : undefined;
-  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererFactory });
+  const rendererMode = backend === 'canvas2d-pixels' ? backend : undefined;
+  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererFactory, rendererMode });
   globalThis.rendererSmokeTerminal = terminal;
   await terminal.open(document.querySelector('main'));
   terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 255, g: 0, b: 0 } });
@@ -75,9 +76,11 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
   const page = await browser.newPage()
   page.setDefaultTimeout(15_000)
   const errors: string[] = []
+  const composeRequests: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.route(`${origin}/**`, async (route) => {
     const path = new URL(route.request().url()).pathname
+    if (path === '/canvas-compose.wasm') composeRequests.push(path)
     if (path === '/') {
       await route.fulfill({
         body: `<!doctype html><script type="importmap">${JSON.stringify({ imports })}</script><main style="width:640px;height:320px"></main>`,
@@ -90,7 +93,10 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
       return
     }
     const allowed =
-      path.startsWith('/dist/') || path === '/ghostty-vt.wasm' || path === '/bridge.wasm'
+      path.startsWith('/dist/') ||
+      path === '/ghostty-vt.wasm' ||
+      path === '/bridge.wasm' ||
+      path === '/canvas-compose.wasm'
     if (!allowed) return route.abort()
     const file = Bun.file(join(root, path))
     await route.fulfill({
@@ -118,7 +124,8 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
     )
     assert(result && typeof result === 'object')
     assert('backend' in result && 'text' in result)
-    assert.equal(result.backend, backend)
+    assert.equal(result.backend, backend === 'canvas2d-pixels' ? 'canvas2d' : backend)
+    assert.equal(composeRequests.length, backend === 'canvas2d-pixels' ? 1 : 0)
     assert.equal(typeof result.text, 'string')
     assert(String(result.text).includes('built-fallback-ok'))
     await checkPresentation(page, backend)

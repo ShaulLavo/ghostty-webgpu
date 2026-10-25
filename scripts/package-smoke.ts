@@ -343,6 +343,7 @@ async function verifyBrowserFiles(packageRoot: string): Promise<void> {
     'types/legacy/index.d.ts',
     'ghostty-vt.wasm',
     'bridge.wasm',
+    'canvas-compose.wasm',
   ]) {
     await requirePath(join(packageRoot, path))
   }
@@ -834,11 +835,13 @@ async function verifyInstalledBrowserPackage(root: string, tarball: string): Pro
   await verifyHostExportShape(packageRoot)
   await rejectPath(join(root, 'node_modules/ghostty-web'))
   await recordBrowserMeasurements(root, packageRoot, tarball, javascript)
-  await run(['bun', join(projectRoot, 'scripts/renderer-fallback-smoke.ts'), 'canvas2d'], root, {
-    env: { ...process.env, GHOSTTY_PACKAGE_ROOT: packageRoot },
-  })
+  await run(
+    ['bun', join(projectRoot, 'scripts/renderer-fallback-smoke.ts'), 'canvas2d', 'canvas2d-pixels'],
+    root,
+    { env: { ...process.env, GHOSTTY_PACKAGE_ROOT: packageRoot } },
+  )
   console.log(
-    'Packed browser imports, types, bundling, WASM and Canvas2D presentation verified; native artifacts were not qualified',
+    'Packed browser imports, types, bundling, all three WASM assets and both Canvas2D paint modes verified; native artifacts were not qualified',
   )
 }
 
@@ -849,7 +852,7 @@ async function recordBrowserMeasurements(
   javascript: ReturnType<typeof transferBytes>,
 ): Promise<void> {
   const wasm = []
-  for (const file of ['ghostty-vt.wasm', 'bridge.wasm']) {
+  for (const file of ['ghostty-vt.wasm', 'bridge.wasm', 'canvas-compose.wasm']) {
     wasm.push({
       file,
       ...transferBytes(new Uint8Array(await Bun.file(join(packageRoot, file)).arrayBuffer())),
