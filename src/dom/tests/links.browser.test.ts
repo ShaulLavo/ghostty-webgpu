@@ -378,6 +378,25 @@ describe('link cursor writes', () => {
   })
 })
 
+it('keeps accepted link text readable after its frame reader retires', async () => {
+  const view = await harness()
+  view.session.registerLinkProvider({
+    provideLinks: () => [{ range: { start: 0, end: 9 }, activate: () => {} }],
+  })
+  const rows = view.session.renderState.readTextRows!({ dirtyOnly: false })
+  let retired = false
+  view.controller.updateFrame({
+    cursor: view.session.renderState.readCursor(),
+    get rows() {
+      if (retired) throw new DOMException('Frame reader retired', 'InvalidStateError')
+      return rows
+    },
+  })
+  retired = true
+  await expect(view.controller.focusNextLink()).resolves.toBe(true)
+  expect(view.root.querySelector('[role="link"]')?.getAttribute('aria-label')).toBe('link label')
+})
+
 describe('committed link projection', () => {
   it('discovers and activates a real session provider link', async () => {
     const view = await harness()

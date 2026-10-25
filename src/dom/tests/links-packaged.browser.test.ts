@@ -31,7 +31,7 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 
-async function create(mode: 'main' | 'worker', activateUri: (uri: string) => void) {
+async function create(mode: 'main' | 'worker', activateUri: (uri: string, event: Event) => void) {
   const options = {
     appearance: { font: { family, size: 16 }, cursor: { blink: false } },
     links: { activateUri },
@@ -58,7 +58,7 @@ async function create(mode: 'main' | 'worker', activateUri: (uri: string) => voi
   return terminal
 }
 
-async function open(mode: 'main' | 'worker', activateUri: (uri: string) => void) {
+async function open(mode: 'main' | 'worker', activateUri: (uri: string, event: Event) => void) {
   const terminal = await create(mode, activateUri)
   const root = document.createElement('div')
   root.style.cssText = 'width:480px;height:120px;position:relative;background:#151515'
@@ -598,4 +598,391 @@ describe.each(['main', 'worker'] as const)('packaged old activation %s', (mode) 
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await expect.poll(() => activations).toBe(1)
   }, 20_000)
+})
+
+function linkPosition(terminal: TerminalApi) {
+  const frame = terminal.submittedFrame!
+  return {
+    x: frame.padding.left + 2.5 * frame.grid.cellWidth,
+    y: frame.padding.top + 0.5 * frame.grid.cellHeight,
+  }
+}
+
+async function clickLink(terminal: TerminalApi, delay = 0) {
+  const apple = /^(Mac|iPhone|iPad|iPod)/iu.test(navigator.platform)
+  await page.elementLocator(terminal.canvas!).click({
+    delay,
+    modifiers: [apple ? 'Meta' : 'Control'],
+    position: linkPosition(terminal),
+  })
+}
+
+async function heldLinkClick(
+  root: HTMLElement,
+  terminal: TerminalApi,
+  action: (event: PointerEvent) => void | Promise<void>,
+) {
+  const controller = new AbortController()
+  const options = { capture: true, signal: controller.signal }
+  let released = false
+  let changedBeforeRelease = false
+  let failure: unknown
+  let change: Promise<void> | undefined
+  window.addEventListener(
+    'pointerup',
+    () => {
+      released = true
+    },
+    options,
+  )
+  root.addEventListener(
+    'pointerdown',
+    (event) => {
+      change = new Promise<void>((resolve) => setTimeout(resolve, 0))
+        .then(() => action(event))
+        .then(
+          () => {
+            changedBeforeRelease = !released
+          },
+          (cause: unknown) => {
+            failure = cause
+          },
+        )
+    },
+    { ...options, once: true },
+  )
+  try {
+    await clickLink(terminal, 300)
+    await change
+    if (failure) throw failure
+    return changedBeforeRelease
+  } finally {
+    controller.abort()
+  }
+}
+
+function osc8Label(uri = 'https://native-click.test/one') {
+  return `\x1b]8;;${uri}\x07Native label\x1b]8;;\x07`
+}
+
+async function preparePointerLink(root: HTMLElement, terminal: TerminalApi, text: string) {
+  await terminal.write(`\x1b[H${text}\x1b[2;1Hidle`)
+  await expect.poll(() => terminal.visibleLines()[1]?.trimEnd()).toBe('idle')
+  root.tabIndex = 0
+  root.focus()
+}
+
+function repeatedOutput(terminal: TerminalApi, text: (tick: number) => string) {
+  const ready = deferred<void>()
+  const pending: Promise<unknown>[] = []
+  let animation = 0
+  let ticks = 0
+  const write = () => {
+    ticks += 1
+    pending.push(Promise.resolve(terminal.write(text(ticks))))
+    if (ticks === 3) ready.resolve()
+    animation = requestAnimationFrame(write)
+  }
+  return {
+    ready: ready.promise,
+    start: write,
+    stop: async () => {
+      cancelAnimationFrame(animation)
+      await Promise.all(pending)
+    },
+  }
+}
+
+describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) => {
+  it.each(['painted', 'clean'] as const)(
+    'checks frame authority while %s output repeats every animation frame',
+    async (kind) => {
+      const uris: string[] = []
+      const errors: string[] = []
+      const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+      terminal.on('error', ({ operation }) => errors.push(operation))
+      await preparePointerLink(root, terminal, osc8Label())
+      await page.elementLocator(terminal.canvas!).hover({ position: linkPosition(terminal) })
+      await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
+      const output = repeatedOutput(terminal, (tick) =>
+        kind === 'painted' ? `\x1b[2;1Htick ${tick}` : '\x1b[0m',
+      )
+      try {
+        const changed = await heldLinkClick(root, terminal, async () => {
+          output.start()
+          await output.ready
+        })
+        expect(changed).toBe(true)
+        if (mode === 'main')
+          await expect.poll(() => uris).toEqual(['https://native-click.test/one'])
+        if (mode === 'worker') {
+          await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
+          expect(uris.length).toBeLessThanOrEqual(1)
+          expect(uris.every((uri) => uri === 'https://native-click.test/one')).toBe(true)
+        }
+        expect(errors).toEqual([])
+      } finally {
+        await output.stop()
+      }
+      if (mode !== 'worker') return
+      await expect.poll(() => terminal.hasPendingFrame).toBe(false)
+      uris.length = 0
+      await clickLink(terminal)
+      await expect.poll(() => uris).toEqual(['https://native-click.test/one'])
+    },
+    20_000,
+  )
+
+  it.each(['url', 'osc8'] as const)(
+    'activates a %s without a primed hover or input focus',
+    async (kind) => {
+      const uris: string[] = []
+      const trusted: boolean[] = []
+      const input: unknown[] = []
+      const { root, terminal } = await open(mode, (uri, event) => {
+        uris.push(uri)
+        trusted.push(event.isTrusted)
+      })
+      terminal.onData((event) => input.push(event))
+      const uri = kind === 'url' ? 'https://plain-click.test/path' : 'https://native-click.test/one'
+      await preparePointerLink(root, terminal, kind === 'url' ? uri : osc8Label(uri))
+      await clickLink(terminal)
+      await expect.poll(() => uris).toEqual([uri])
+      expect(trusted).toEqual([true])
+      expect(input).toEqual([])
+      expect(document.activeElement).toBe(root)
+    },
+    20_000,
+  )
+
+  it.each(['url', 'osc8'] as const)(
+    'keeps a held %s click across unrelated output',
+    async (kind) => {
+      const uris: string[] = []
+      const errors: string[] = []
+      const input: unknown[] = []
+      const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+      terminal.on('error', ({ operation }) => errors.push(operation))
+      terminal.onData((event) => input.push(event))
+      const uri = kind === 'url' ? 'https://plain-click.test/path' : 'https://native-click.test/one'
+      await preparePointerLink(root, terminal, kind === 'url' ? uri : osc8Label(uri))
+      await page.elementLocator(terminal.canvas!).hover({ position: linkPosition(terminal) })
+      await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
+      const changed = await heldLinkClick(root, terminal, async () => {
+        const before = terminal.submittedFrame!.nativeRevision
+        await terminal.write('\x1b[2;1Hnext')
+        await expect.poll(() => terminal.submittedFrame!.nativeRevision).toBeGreaterThan(before)
+      })
+      expect(changed).toBe(true)
+      await expect.poll(() => uris).toEqual([uri])
+      expect(input).toEqual([])
+      expect(errors).toEqual([])
+    },
+    20_000,
+  )
+
+  it('activates a provider that creates a fresh callback on each lookup', async () => {
+    const { root, terminal } = await open(mode, () => {})
+    let activations = 0
+    terminal.registerLinkProvider({
+      provideLinks: (_line, row) =>
+        row === 0
+          ? [
+              {
+                range: { start: 0, end: 9 },
+                activate: () => {
+                  activations += 1
+                },
+              },
+            ]
+          : [],
+    })
+    await preparePointerLink(root, terminal, 'Host label')
+    await page.elementLocator(terminal.canvas!).hover({ position: linkPosition(terminal) })
+    await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
+    await clickLink(terminal)
+    await expect.poll(() => activations).toBe(1)
+  }, 20_000)
+
+  it('keeps a pending provider click current while hover moves', async () => {
+    const { root, terminal } = await open(mode, () => {})
+    const gate = deferred<void>()
+    let started = false
+    let activations = 0
+    terminal.registerLinkProvider({
+      provideLinks: async (_line, row) => {
+        if (row !== 0) return []
+        started = true
+        await gate.promise
+        return [
+          {
+            range: { start: 0, end: 9 },
+            activate: () => {
+              activations += 1
+            },
+          },
+        ]
+      },
+    })
+    await preparePointerLink(root, terminal, 'Host label')
+    const changed = await heldLinkClick(root, terminal, async () => {
+      await expect.poll(() => started).toBe(true)
+      move(terminal, 5)
+      gate.resolve()
+    })
+    expect(changed).toBe(true)
+    await expect.poll(() => activations).toBe(1)
+  }, 20_000)
+
+  it.each(['blur', 'leave', 'dispose'] as const)(
+    'cancels a delayed provider after release and %s',
+    async (change) => {
+      const { root, terminal } = await open(mode, () => {})
+      const gate = deferred<readonly ProvidedLink<Event>[]>()
+      let started = false
+      let laterProviderCalls = 0
+      let activations = 0
+      terminal.registerLinkProvider({
+        provideLinks: () => {
+          started = true
+          return gate.promise
+        },
+      })
+      terminal.registerLinkProvider({
+        provideLinks: () => {
+          laterProviderCalls += 1
+          return [
+            {
+              range: { start: 0, end: 9 },
+              activate: () => {
+                activations += 1
+              },
+            },
+          ]
+        },
+      })
+      await preparePointerLink(root, terminal, 'Host label')
+      await clickLink(terminal)
+      await expect.poll(() => started).toBe(true)
+      expect(terminal.hasPendingLinkResolution).toBe(true)
+      if (change === 'blur') window.dispatchEvent(new Event('blur'))
+      if (change === 'leave') terminal.canvas!.dispatchEvent(new PointerEvent('pointerleave'))
+      if (change === 'dispose') await terminal.dispose()
+      gate.resolve([])
+      await new Promise<void>((resolve) => setTimeout(resolve, 0))
+      expect(terminal.hasPendingLinkResolution).toBe(false)
+      expect(laterProviderCalls).toBe(0)
+      expect(activations).toBe(0)
+    },
+    20_000,
+  )
+
+  it('preserves ordinary primary clicks in application mouse reporting', async () => {
+    const uris: string[] = []
+    const input: string[] = []
+    const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+    terminal.onData((bytes) => input.push(new TextDecoder().decode(bytes)))
+    await preparePointerLink(root, terminal, osc8Label())
+    await terminal.write('\x1b[?1000h\x1b[?1006h')
+    await page.elementLocator(terminal.canvas!).click({ position: linkPosition(terminal) })
+    await expect.poll(() => input.join('')).toBe('\x1b[<0;3;1M\x1b[<0;3;1m')
+    expect(uris).toEqual([])
+  }, 20_000)
+
+  it.skipIf(!/^(Mac|iPhone|iPad|iPod)/iu.test(navigator.platform))(
+    'preserves the native macOS Ctrl-click context menu',
+    async () => {
+      const uris: string[] = []
+      const contextMenus: boolean[] = []
+      const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+      root.addEventListener(
+        'contextmenu',
+        (event) => {
+          event.preventDefault()
+          contextMenus.push(event.isTrusted)
+        },
+        { once: true },
+      )
+      await preparePointerLink(root, terminal, osc8Label())
+      await page.elementLocator(terminal.canvas!).click({
+        modifiers: ['Control'],
+        position: linkPosition(terminal),
+      })
+      expect(contextMenus).toEqual([true])
+      expect(uris).toEqual([])
+    },
+    20_000,
+  )
+
+  it.each(['revision', 'unregister'] as const)(
+    'cancels a provider click after %s changes',
+    async (change) => {
+      const { root, terminal } = await open(mode, () => {})
+      let activations = 0
+      const registration = terminal.registerLinkProvider({
+        provideLinks: (_line, row) =>
+          row === 0
+            ? [
+                {
+                  range: { start: 0, end: 9 },
+                  activate: () => {
+                    activations += 1
+                  },
+                },
+              ]
+            : [],
+      })
+      await preparePointerLink(root, terminal, 'Host label')
+      const changed = await heldLinkClick(root, terminal, async () => {
+        if (change === 'unregister') {
+          registration.dispose()
+          return
+        }
+        const before = terminal.submittedFrame!.nativeRevision
+        await terminal.write('\x1b[2;1Hnext')
+        await expect.poll(() => terminal.submittedFrame!.nativeRevision).toBeGreaterThan(before)
+      })
+      expect(changed).toBe(true)
+      expect(activations).toBe(0)
+    },
+    20_000,
+  )
+
+  it.each(['uri', 'remove', 'layout', 'blur', 'cancel', 'capture', 'dispose'] as const)(
+    'cancels a held native link after %s changes',
+    async (change) => {
+      const uris: string[] = []
+      const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+      await preparePointerLink(root, terminal, osc8Label())
+      const changed = await heldLinkClick(root, terminal, async (event) => {
+        if (change === 'uri') {
+          await terminal.write(`\x1b[H${osc8Label('https://native-click.test/two')}`)
+          return
+        }
+        if (change === 'remove') {
+          await terminal.write('\x1b[H\x1b[2KNative label')
+          return
+        }
+        if (change === 'layout') {
+          const before = terminal.submittedFrame!.layout
+          root.style.width = '560px'
+          await expect.poll(() => terminal.submittedFrame!.layout).not.toBe(before)
+          return
+        }
+        if (change === 'blur') {
+          window.dispatchEvent(new Event('blur'))
+          return
+        }
+        if (change === 'dispose') {
+          await terminal.dispose()
+          return
+        }
+        const type = change === 'cancel' ? 'pointercancel' : 'lostpointercapture'
+        terminal.canvas!.dispatchEvent(new PointerEvent(type, { pointerId: event.pointerId }))
+      })
+      expect(changed).toBe(true)
+      expect(uris).toEqual([])
+    },
+    20_000,
+  )
 })
