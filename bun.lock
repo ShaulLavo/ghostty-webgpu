@@ -5,7 +5,7 @@
     "": {
       "name": "ghostty-webgpu",
       "dependencies": {
-        "@fregat/hotkeys": "https://github.com/ShaulLavo/fregat/releases/download/hotkeys-0.0.2-68d8aaf6f631-260650623e7e/fregat-hotkeys-0.0.2-68d8aaf6f631-260650623e7e.tgz",
+        "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
         "@webgpu/types": "0.1.74",
       },
       "devDependencies": {
@@ -268,7 +268,7 @@
 
     "@fontsource/jetbrains-mono": ["@fontsource/jetbrains-mono@5.3.0", "", {}, "sha512-fqDfB5I9f1p1TV486aUgB9t8zP84P0O1FtQR5Ol9vjwPy+S+EIGlVYm1cvj2W5shcZMTg2nZFdVMoH5wFu8a1A=="],
 
-    "@fregat/hotkeys": ["@fregat/hotkeys@https://github.com/ShaulLavo/fregat/releases/download/hotkeys-0.0.2-68d8aaf6f631-260650623e7e/fregat-hotkeys-0.0.2-68d8aaf6f631-260650623e7e.tgz", { "dependencies": { "@tanstack/store": "^0.11.1" } }, "sha512-7YbQUTyIJR4dPNCjszI6GMP828nRvR2PQEROdvsegoIzyMVvyLwGjMn+m6AtyilO41W96a/b1YsfaIdIm3glKw=="],
+    "@fregat/hotkeys": ["@fregat/hotkeys@https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz", { "dependencies": { "@tanstack/store": "^0.11.1" } }, "sha512-qZwKG97kn5M4eNOqbHX4dijpovJMaSJM6tVky9HXC+okwbN7olthQmAkJaFXYOGMgR0oz2inuccEKqUeWBLP1Q=="],
 
     "@gerrit0/mini-shiki": ["@gerrit0/mini-shiki@3.23.0", "", { "dependencies": { "@shikijs/engine-oniguruma": "^3.23.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/types": "^3.23.0", "@shikijs/vscode-textmate": "^10.0.2" } }, "sha512-bEMORlG0cqdjVyCEuU0cDQbORWX+kYCeo0kV1lbxF5bt4r7SID2l9bqsxJEM0zndaxpOUT7riCyIVEuqq/Ynxg=="],
 

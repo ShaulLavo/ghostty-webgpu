@@ -143,7 +143,7 @@
     "verify:extensions": "bun run --cwd packages/line-editor build && bun run --cwd packages/line-editor typecheck && bun run --cwd packages/line-editor test && bun run --cwd packages/line-editor test:package && bun run --cwd packages/shaders build && bun run --cwd packages/shaders typecheck && bun run --cwd packages/shaders test && bun run --cwd packages/shaders test:package"
   },
   "dependencies": {
-    "@fregat/hotkeys": "https://github.com/ShaulLavo/fregat/releases/download/hotkeys-0.0.2-68d8aaf6f631-260650623e7e/fregat-hotkeys-0.0.2-68d8aaf6f631-260650623e7e.tgz",
+    "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
     "@webgpu/types": "0.1.74"
   },
   "devDependencies": {
