@@ -1869,7 +1869,6 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     if (this.scrollbar?.consumePointerDown(event)) return
     const elements = this.elementsValue
     if (!elements || event.target !== elements.canvas) return
-    if (this.links?.isActivationGesture(event)) return
     elements.textarea.focus({ preventScroll: true })
   }
 

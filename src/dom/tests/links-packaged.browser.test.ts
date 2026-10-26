@@ -734,7 +734,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
   )
 
   it.each(['url', 'osc8'] as const)(
-    'activates a %s without a primed hover or input focus',
+    'activates a %s without a primed hover and focuses the terminal',
     async (kind) => {
       const uris: string[] = []
       const trusted: boolean[] = []
@@ -750,7 +750,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
       await expect.poll(() => uris).toEqual([uri])
       expect(trusted).toEqual([true])
       expect(input).toEqual([])
-      expect(document.activeElement).toBe(root)
+      expect(document.activeElement).toBe(root.querySelector('textarea'))
     },
     20_000,
   )
@@ -937,6 +937,28 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
     await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
     await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
     expect(uris).toEqual([])
+  }, 20_000)
+
+  it('passes a modified click on plain text to application mouse reporting', async () => {
+    const uris: string[] = []
+    const input: string[] = []
+    const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+    terminal.onData((bytes) => input.push(new TextDecoder().decode(bytes)))
+    await preparePointerLink(root, terminal, osc8Label())
+    await terminal.write('\x1b[?1000h\x1b[?1006h')
+    const frame = terminal.submittedFrame!
+    const position = {
+      x: frame.padding.left + 1.5 * frame.grid.cellWidth,
+      y: frame.padding.top + 1.5 * frame.grid.cellHeight,
+    }
+    const locator = page.elementLocator(terminal.canvas!)
+    await locator.hover({ position })
+    await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
+    const apple = /^(Mac|iPhone|iPad|iPod)/iu.test(navigator.platform)
+    await locator.click({ modifiers: [apple ? 'Meta' : 'Control'], position })
+    await expect.poll(() => input.join('')).toMatch(/^\x1b\[<\d+;2;2M\x1b\[<\d+;2;2m$/u)
+    expect(uris).toEqual([])
+    expect(document.activeElement).toBe(root.querySelector('textarea'))
   }, 20_000)
 
   it('preserves ordinary primary clicks in application mouse reporting', async () => {

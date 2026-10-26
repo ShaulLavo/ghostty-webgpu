@@ -41,7 +41,6 @@ export interface DomLinkController {
   dispose(): void
   focusNextLink(): Promise<boolean>
   invalidate(): void
-  isActivationGesture(event: MouseEvent): boolean
   updateFrame(snapshot: RendererTextFrameSnapshot): void
 }
 
@@ -238,6 +237,7 @@ class BrowserLinkController implements DomLinkController {
   private frameSnapshot?: RendererTextFrameSnapshot
   private frameProjection?: LinkProjection
   private generation = 0
+  private knownMiss?: LinkQuery
   private lastPoint?: PointerPoint
   private lastQuery?: LinkQuery
   private readonly overlay: HTMLDivElement
@@ -276,10 +276,6 @@ class BrowserLinkController implements DomLinkController {
 
   get hasPendingResolution(): boolean {
     return this.pendingGeneration !== undefined || this.pointerSequence !== undefined
-  }
-
-  isActivationGesture(event: MouseEvent): boolean {
-    return event.button === 0 && this.activationModifier(event)
   }
 
   dispose(): void {
@@ -430,6 +426,8 @@ class BrowserLinkController implements DomLinkController {
     const displayed = this.displayedHit
     const projection = currentProjection ?? displayed?.projection
     if (!cell || (this.options.getProjection && !projection)) return
+    // Like xterm.js and native Ghostty, a modified click on plain text stays an ordinary click.
+    if (this.isKnownMiss(cell)) return
     if (
       !currentProjection &&
       this.options.getProjection &&
@@ -693,6 +691,10 @@ class BrowserLinkController implements DomLinkController {
     }
   }
 
+  private isActivationGesture(event: MouseEvent): boolean {
+    return event.button === 0 && this.activationModifier(event)
+  }
+
   private activationModifier(event: MouseEvent): boolean {
     const configured = this.options.activationModifier
     if (configured) return configured(event)
@@ -769,8 +771,21 @@ class BrowserLinkController implements DomLinkController {
       return
     }
     const resolution = await this.resolveForCell(row, cell, scope)
-    if (!this.finishResolution(scope) || !resolution?.hit) return
+    if (!this.finishResolution(scope) || !resolution) return
+    if (!resolution.hit || !cellInsideHit(cell, resolution.hit)) {
+      this.knownMiss = { ...cell, frameRevision: this.frameRevision, projection: scope.projection }
+      return
+    }
     this.commitHit(cell, resolution, scope)
+  }
+
+  private isKnownMiss(cell: ResolvedCell): boolean {
+    const miss = this.knownMiss
+    if (!miss || miss.row !== cell.row || miss.column !== cell.column) return false
+    if (miss.frameRevision !== this.frameRevision) return false
+    return (
+      !this.options.getProjection || linkProjectionEquals(miss.projection, this.readProjection())
+    )
   }
 
   private async resolveForCell(
