@@ -75,6 +75,19 @@ interface FrameCell extends ResolvedCell {
   readonly frameRow: RendererTextFrameRow
 }
 
+interface PointerLinkActivation {
+  readonly pointerId: number
+  readonly sequence: number
+  readonly frameRevision: number
+  readonly projection: LinkProjection | undefined
+  readonly target: PointerLinkTarget | Promise<PointerLinkTarget | undefined>
+}
+
+interface PointerLinkTarget {
+  readonly hit: LinkHit<Event>
+  readonly resolution?: LinkResolution<Event>
+}
+
 function isApplePlatform(view: Window): boolean {
   return /^(Mac|iPhone|iPad|iPod)/iu.test(view.navigator.platform)
 }
@@ -117,6 +130,14 @@ function linkCells(row: RendererTextFrameRow): readonly LinkCell[] {
   return row.cells.map((text, column) =>
     Object.freeze({ continuation: row.continuations[column] === true, text: text.slice() }),
   )
+}
+
+function ownedLinkFrame(snapshot: RendererTextFrameSnapshot): RendererTextFrameSnapshot {
+  return Object.freeze({
+    cursor: snapshot.cursor,
+    paintedCursor: snapshot.paintedCursor,
+    rows: snapshot.rows,
+  })
 }
 
 function frameContentEquals(
@@ -173,6 +194,18 @@ function cellInsideHit(cell: ResolvedCell, hit: LinkHit<Event>): boolean {
   return cell.column >= hit.range.start && cell.column <= hit.range.end
 }
 
+function sameUriHit(left: LinkHit<Event> | undefined, right: LinkHit<Event> | undefined): boolean {
+  if (!left || !right || left.source === 'provider' || right.source === 'provider') return false
+  return (
+    left.source === right.source &&
+    left.row === right.row &&
+    left.text === right.text &&
+    left.range.start === right.range.start &&
+    left.range.end === right.range.end &&
+    left.uri === right.uri
+  )
+}
+
 function accessibleHitLabel(hit: LinkHit<Event>): string {
   if (hit.text.length > 0) return hit.text
   if (hit.source !== 'provider') return hit.uri
@@ -188,20 +221,28 @@ function applyOverlayStyles(overlay: HTMLDivElement): void {
 }
 
 class BrowserLinkController implements DomLinkController {
-  private activationPointer?: number
-  private claimedClick = false
+  private activation?: PointerLinkActivation
+  private activationSequence = 0
+  private claimedClick?: PointerLinkActivation
+  private pointerSequence?: number
   private readonly abortController = new AbortController()
   private currentResolution?: LinkResolution<Event>
   private currentScope?: LinkScope
   private disposed = false
+  private displayedHit?: {
+    readonly hit: LinkHit<Event>
+    readonly projection: LinkProjection | undefined
+  }
   private frameRevision = 0
   private frameSnapshot?: RendererTextFrameSnapshot
   private frameProjection?: LinkProjection
   private generation = 0
+  private knownMiss?: LinkQuery
   private lastPoint?: PointerPoint
   private lastQuery?: LinkQuery
   private readonly overlay: HTMLDivElement
   private pendingGeneration?: number
+  private readonly pointerFrameWaiters = new Set<() => void>()
   private replacedCursor?: CursorDeclaration
   private readonly view: Window
 
@@ -223,6 +264,7 @@ class BrowserLinkController implements DomLinkController {
   get needsFrame(): boolean {
     return (
       this.lastPoint !== undefined ||
+      this.pointerSequence !== undefined ||
       this.pendingGeneration !== undefined ||
       this.options.canvas.ownerDocument.activeElement === this.overlay
     )
@@ -233,7 +275,7 @@ class BrowserLinkController implements DomLinkController {
   }
 
   get hasPendingResolution(): boolean {
-    return this.pendingGeneration !== undefined
+    return this.pendingGeneration !== undefined || this.pointerSequence !== undefined
   }
 
   dispose(): void {
@@ -246,6 +288,7 @@ class BrowserLinkController implements DomLinkController {
     this.clearVisibleHit()
     this.lastPoint = undefined
     this.frameSnapshot = undefined
+    this.displayedHit = undefined
   }
 
   invalidate(): void {
@@ -253,7 +296,6 @@ class BrowserLinkController implements DomLinkController {
     this.frameRevision += 1
     this.advanceGeneration()
     this.pendingGeneration = undefined
-    this.finishActivationGesture()
     this.lastQuery = undefined
     this.frameSnapshot = undefined
     this.clearVisibleHit()
@@ -261,18 +303,21 @@ class BrowserLinkController implements DomLinkController {
 
   updateFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.disposed) return
-    if (this.preserveEquivalentFrame(snapshot)) return
+    const frame = ownedLinkFrame(snapshot)
+    this.notifyPointerFrame()
+    if (this.preserveEquivalentFrame(frame)) return
     this.frameRevision += 1
     this.advanceGeneration()
     this.pendingGeneration = undefined
     this.lastQuery = undefined
-    this.frameSnapshot = snapshot
+    this.frameSnapshot = frame
     this.frameProjection = this.readProjection()
     this.clearVisibleHit()
     if (this.lastPoint) this.requestResolution(this.lastPoint)
   }
 
   async focusNextLink(): Promise<boolean> {
+    this.finishActivationGesture()
     const snapshot = this.readFrame()
     if (this.disposed || !snapshot) return false
     const cells = orderedDiscoveryCells(snapshot, this.currentHit)
@@ -366,53 +411,73 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private readonly handleActivationPointerCancel = (event: PointerEvent): void => {
-    if (event.pointerId !== this.activationPointer) return
+    if (event.pointerId !== this.activation?.pointerId) return
     this.consumeActivationEvent(event)
     this.finishActivationGesture()
   }
 
   private readonly handleActivationPointerDown = (event: PointerEvent): void => {
-    this.claimedClick = false
-    if (event.button !== 0 || !this.activationModifier(event)) return
-    if (!this.currentResolutionAt(event)) return
-    this.activationPointer = event.pointerId
-    if (!this.captureActivationPointer(event.pointerId)) {
-      this.activationPointer = undefined
+    this.claimedClick = undefined
+    this.activationSequence += 1
+    this.finishActivationGesture()
+    if (!this.isActivationGesture(event)) return
+    const cell = this.cellAt(event)
+    const currentProjection = this.readProjection()
+    const displayed = this.displayedHit
+    const projection = currentProjection ?? displayed?.projection
+    if (!cell || (this.options.getProjection && !projection)) return
+    // Like xterm.js and native Ghostty, a modified click on plain text stays an ordinary click.
+    if (this.isKnownMiss(cell)) return
+    if (
+      !currentProjection &&
+      this.options.getProjection &&
+      (!displayed || !cellInsideHit(cell, displayed.hit))
+    )
       return
+    if (!this.captureActivationPointer(event.pointerId)) return
+    this.pointerSequence = this.activationSequence
+    const target = this.initialPointerTarget(cell)
+    this.activation = {
+      pointerId: event.pointerId,
+      sequence: this.activationSequence,
+      frameRevision: this.frameRevision,
+      projection,
+      target,
     }
     this.consumeActivationEvent(event)
   }
 
   private readonly handleActivationPointerMove = (event: PointerEvent): void => {
-    if (event.pointerId !== this.activationPointer) return
+    if (event.pointerId !== this.activation?.pointerId) return
+    this.lastPoint = { clientX: event.clientX, clientY: event.clientY }
     this.consumeActivationEvent(event)
   }
 
   private readonly handleActivationPointerUp = (event: PointerEvent): void => {
-    if (event.pointerId !== this.activationPointer) return
-    this.claimedClick = true
+    if (event.pointerId !== this.activation?.pointerId) return
+    this.lastPoint = { clientX: event.clientX, clientY: event.clientY }
+    this.claimedClick = this.activation
     this.consumeActivationEvent(event)
-    this.finishActivationGesture()
+    this.finishActivationGesture(true)
   }
 
   private readonly handleLostPointerCapture = (event: PointerEvent): void => {
-    if (event.pointerId !== this.activationPointer) return
+    if (event.pointerId !== this.activation?.pointerId) return
     this.finishActivationGesture()
   }
 
   private readonly handleWindowBlur = (): void => {
-    this.claimedClick = false
+    this.claimedClick = undefined
+    this.activationSequence += 1
     this.finishActivationGesture()
   }
 
   private readonly handleClick = (event: MouseEvent): void => {
     const claimed = this.claimedClick
-    this.claimedClick = false
+    this.claimedClick = undefined
     if (!claimed) return
-    const resolution = this.currentResolutionAt(event)
-    if (!resolution) return
     this.consumeActivationEvent(event)
-    this.activate(resolution, event)
+    void this.activatePointer(claimed, event)
   }
 
   private readonly handleOverlayKeyDown = (event: KeyboardEvent): void => {
@@ -424,8 +489,10 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private readonly handlePointerLeave = (): void => {
-    if (this.activationPointer !== undefined) return
+    if (this.activation !== undefined) return
     if (this.options.canvas.ownerDocument.activeElement === this.overlay) return
+    // A claimed click survives leaving: touch fires pointerleave before click.
+    this.displayedHit = undefined
     this.lastPoint = undefined
     this.lastQuery = undefined
     this.advanceGeneration()
@@ -434,6 +501,8 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    // Click follows pointerup in the same task; a later move means it never arrived.
+    if (this.claimedClick) this.finishActivationGesture()
     const point = { clientX: event.clientX, clientY: event.clientY }
     this.lastPoint = point
     this.requestResolution(point)
@@ -461,6 +530,131 @@ class BrowserLinkController implements DomLinkController {
     }
   }
 
+  private async pointerTarget(cell: ResolvedCell): Promise<PointerLinkTarget | undefined> {
+    try {
+      const snapshot = this.options.getFrame ? this.options.getFrame() : this.readFrame()
+      const row = snapshot && frameRow(snapshot, cell.row)
+      if (!row) return undefined
+      const resolution = await this.options.session.resolveLink({ ...cell, line: linkCells(row) })
+      return resolution.hit ? { hit: resolution.hit, resolution } : undefined
+    } catch (cause) {
+      if (!this.disposed) this.options.onError?.(cause, 'resolve')
+      return undefined
+    }
+  }
+
+  private pointerCurrent(
+    activation: PointerLinkActivation,
+    event: MouseEvent,
+    hit: LinkHit<Event>,
+  ): boolean {
+    if (this.disposed || activation.sequence !== this.activationSequence) return false
+    const cell = this.cellAt(event)
+    if (!cell || !cellInsideHit(cell, hit)) return false
+    if (!this.options.getProjection) return true
+    const projection = this.readProjection()
+    return (
+      projection !== undefined &&
+      projection.generation === activation.projection?.generation &&
+      projection.layout === activation.projection?.layout
+    )
+  }
+
+  private initialPointerTarget(
+    cell: ResolvedCell,
+  ): PointerLinkTarget | Promise<PointerLinkTarget | undefined> {
+    const resolution = this.currentResolution
+    const scope = this.currentScope
+    if (
+      resolution?.hit &&
+      scope &&
+      this.isScopeCurrent(scope) &&
+      cellInsideHit(cell, resolution.hit)
+    )
+      return { hit: resolution.hit, resolution }
+    const displayed = this.displayedHit?.hit
+    if (displayed && displayed.source !== 'provider' && cellInsideHit(cell, displayed))
+      return { hit: displayed }
+    return this.pointerTarget(cell)
+  }
+
+  private revalidatePointerTarget(
+    activation: PointerLinkActivation,
+    original: PointerLinkTarget,
+    cell: ResolvedCell,
+  ): LinkResolution<Event> | Promise<LinkResolution<Event> | undefined> | undefined {
+    const sameProjection =
+      !this.options.getProjection ||
+      linkProjectionEquals(activation.projection, this.readProjection())
+    if (original.resolution && activation.frameRevision === this.frameRevision && sameProjection)
+      return original.resolution
+    if (original.hit.source === 'provider') return undefined
+    return this.pointerTarget(cell).then((current) =>
+      sameUriHit(original.hit, current?.hit) ? current?.resolution : undefined,
+    )
+  }
+
+  private async activatePointer(
+    activation: PointerLinkActivation,
+    event: MouseEvent,
+  ): Promise<void> {
+    try {
+      const target = activation.target
+      const original = target instanceof Promise ? await target : target
+      if (!original) return
+      if (this.options.getProjection && !this.readProjection()) await this.waitForPointerFrame()
+      if (!this.pointerCurrent(activation, event, original.hit)) return
+      const projection = this.readProjection()
+      const cell = this.cellAt(event)
+      if (!cell) return
+      const revalidated = this.revalidatePointerTarget(activation, original, cell)
+      const current = revalidated instanceof Promise ? await revalidated : revalidated
+      if (!current) return
+      const currency = this.options.session.isLinkCurrent(current)
+      const live = currency instanceof Promise ? await currency : currency
+      if (!live || !this.pointerCurrent(activation, event, original.hit)) return
+      if (this.options.getProjection && !linkProjectionEquals(projection, this.readProjection()))
+        return
+      const opened = this.options.session.activateLink(current, event)
+      // The session checks currency synchronously; a slow host opener must not freeze hover.
+      this.releasePointerActivation(activation)
+      await opened
+    } catch (cause) {
+      if (!this.disposed) this.options.onError?.(cause, 'activate')
+    } finally {
+      this.releasePointerActivation(activation)
+    }
+  }
+
+  private releasePointerActivation(activation: PointerLinkActivation): void {
+    if (this.pointerSequence !== activation.sequence) return
+    this.pointerSequence = undefined
+    if (this.lastPoint && !this.disposed) this.requestResolution(this.lastPoint)
+  }
+
+  private notifyPointerFrame(): void {
+    if (this.pointerFrameWaiters.size === 0 || !this.readProjection()) return
+    for (const done of this.pointerFrameWaiters) done()
+  }
+
+  private waitForPointerFrame(): Promise<void> {
+    const signal = this.abortController.signal
+    if (signal.aborted) return Promise.resolve()
+    return new Promise((resolve) => {
+      let timer = 0
+      const done = (): void => {
+        this.pointerFrameWaiters.delete(done)
+        this.view.clearTimeout(timer)
+        signal.removeEventListener('abort', done)
+        resolve()
+      }
+      this.pointerFrameWaiters.add(done)
+      timer = this.view.setTimeout(done, 100)
+      signal.addEventListener('abort', done, { once: true })
+      this.notifyPointerFrame()
+    })
+  }
+
   private captureActivationPointer(pointerId: number): boolean {
     try {
       this.options.canvas.setPointerCapture(pointerId)
@@ -475,18 +669,18 @@ class BrowserLinkController implements DomLinkController {
     event.stopImmediatePropagation()
   }
 
-  private currentResolutionAt(point: PointerPoint): LinkResolution<Event> | undefined {
-    const cell = this.cellAt(point)
-    const resolution = this.currentResolution
-    const hit = resolution?.hit
-    if (!cell || !resolution || !hit || !cellInsideHit(cell, hit)) return undefined
-    if (!this.currentScope || !this.isScopeCurrent(this.currentScope)) return undefined
-    return resolution
-  }
-
-  private finishActivationGesture(): void {
-    const pointerId = this.activationPointer
-    this.activationPointer = undefined
+  private finishActivationGesture(preserveClick = false): void {
+    const pointerId = this.activation?.pointerId
+    this.activation = undefined
+    if (!preserveClick && this.pointerSequence !== undefined) {
+      this.pointerSequence = undefined
+      this.claimedClick = undefined
+      this.activationSequence += 1
+      this.pendingGeneration = undefined
+      this.lastQuery = undefined
+      this.advanceGeneration()
+      this.clearVisibleHit()
+    }
     if (pointerId === undefined) return
     try {
       if (this.options.canvas.hasPointerCapture(pointerId)) {
@@ -495,6 +689,10 @@ class BrowserLinkController implements DomLinkController {
     } catch {
       return
     }
+  }
+
+  private isActivationGesture(event: MouseEvent): boolean {
+    return event.button === 0 && this.activationModifier(event)
   }
 
   private activationModifier(event: MouseEvent): boolean {
@@ -536,13 +734,15 @@ class BrowserLinkController implements DomLinkController {
   private readFrame(): RendererTextFrameSnapshot | undefined {
     if (this.disposed) return undefined
     if (!this.frameSnapshot) {
-      this.frameSnapshot = this.options.getFrame?.()
+      const frame = this.options.getFrame?.()
+      this.frameSnapshot = frame ? ownedLinkFrame(frame) : undefined
       this.frameProjection = this.readProjection()
     }
     return this.frameSnapshot
   }
 
   private requestResolution(point: PointerPoint): void {
+    if (this.pointerSequence !== undefined) return
     const snapshot = this.readFrame()
     const cell = this.cellAt(point)
     if (!snapshot || !cell) {
@@ -571,8 +771,21 @@ class BrowserLinkController implements DomLinkController {
       return
     }
     const resolution = await this.resolveForCell(row, cell, scope)
-    if (!this.finishResolution(scope) || !resolution?.hit) return
+    if (!this.finishResolution(scope) || !resolution) return
+    if (!resolution.hit || !cellInsideHit(cell, resolution.hit)) {
+      this.knownMiss = { ...cell, frameRevision: this.frameRevision, projection: scope.projection }
+      return
+    }
     this.commitHit(cell, resolution, scope)
+  }
+
+  private isKnownMiss(cell: ResolvedCell): boolean {
+    const miss = this.knownMiss
+    if (!miss || miss.row !== cell.row || miss.column !== cell.column) return false
+    if (miss.frameRevision !== this.frameRevision) return false
+    return (
+      !this.options.getProjection || linkProjectionEquals(miss.projection, this.readProjection())
+    )
   }
 
   private async resolveForCell(
@@ -658,7 +871,7 @@ class BrowserLinkController implements DomLinkController {
 
   private advanceGeneration(): void {
     this.generation += 1
-    this.options.session.cancelLinkResolution?.()
+    if (this.pointerSequence === undefined) this.options.session.cancelLinkResolution?.()
   }
 
   private beginResolution(): LinkScope {
@@ -684,6 +897,7 @@ class BrowserLinkController implements DomLinkController {
     if (!hit || !layout || !cellInsideHit(cell, hit) || !this.isScopeCurrent(scope)) return
     this.currentResolution = resolution
     this.currentScope = scope
+    this.displayedHit = { hit, projection: scope.projection }
     this.positionOverlay(hit, layout)
     const style = this.options.canvas.style
     const value = style.getPropertyValue('cursor')

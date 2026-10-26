@@ -1706,7 +1706,11 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   }
 
   private handleCleanUpdate(): void {
-    if (this.execution.kind === 'sync') this.execution.confirmCleanUpdate()
+    if (this.execution.kind !== 'sync') return
+    this.execution.confirmCleanUpdate()
+    if (!this.links?.needsFrame) return
+    const snapshot = this.readFrame()
+    if (snapshot) this.updateLinkFrame(snapshot)
   }
 
   private handleFrame(snapshot: RendererTextFrameSnapshot): void {
