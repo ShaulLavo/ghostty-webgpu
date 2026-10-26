@@ -834,7 +834,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
     await expect.poll(() => activations).toBe(1)
   }, 20_000)
 
-  it.each(['blur', 'leave', 'dispose'] as const)(
+  it.each(['blur', 'dispose'] as const)(
     'cancels a delayed provider after release and %s',
     async (change) => {
       const { root, terminal } = await open(mode, () => {})
@@ -866,7 +866,6 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
       await expect.poll(() => started).toBe(true)
       expect(terminal.hasPendingLinkResolution).toBe(true)
       if (change === 'blur') window.dispatchEvent(new Event('blur'))
-      if (change === 'leave') terminal.canvas!.dispatchEvent(new PointerEvent('pointerleave'))
       if (change === 'dispose') await terminal.dispose()
       gate.resolve([])
       await new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -876,6 +875,69 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
     },
     20_000,
   )
+
+  it('keeps a released provider click when the pointer leaves', async () => {
+    const { root, terminal } = await open(mode, () => {})
+    const gate = deferred<void>()
+    let started = false
+    let activations = 0
+    terminal.registerLinkProvider({
+      provideLinks: async (_line, row) => {
+        if (row !== 0) return []
+        started = true
+        await gate.promise
+        return [
+          {
+            range: { start: 0, end: 9 },
+            activate: () => {
+              activations += 1
+            },
+          },
+        ]
+      },
+    })
+    await preparePointerLink(root, terminal, 'Host label')
+    await clickLink(terminal)
+    await expect.poll(() => started).toBe(true)
+    terminal.canvas!.dispatchEvent(new PointerEvent('pointerleave'))
+    gate.resolve()
+    await expect.poll(() => activations).toBe(1)
+    await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
+  }, 20_000)
+
+  it('resumes hover while the host opener is still running', async () => {
+    const opener = deferred<void>()
+    const uris: string[] = []
+    const { root, terminal } = await open(mode, (uri) => {
+      uris.push(uri)
+      return opener.promise
+    })
+    await preparePointerLink(root, terminal, osc8Label())
+    await page.elementLocator(terminal.canvas!).hover({ position: linkPosition(terminal) })
+    await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
+    await clickLink(terminal)
+    await expect.poll(() => uris).toEqual(['https://native-click.test/one'])
+    await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
+    move(terminal, 3)
+    await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
+    opener.resolve()
+  }, 20_000)
+
+  it('releases a claimed press whose click never arrives', async () => {
+    const uris: string[] = []
+    const { root, terminal } = await open(mode, (uri) => uris.push(uri))
+    await preparePointerLink(root, terminal, osc8Label())
+    window.addEventListener('click', (event) => event.stopImmediatePropagation(), {
+      capture: true,
+      once: true,
+    })
+    await clickLink(terminal)
+    expect(terminal.hasPendingLinkResolution).toBe(true)
+    move(terminal, 3)
+    await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
+    await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
+    expect(uris).toEqual([])
+  }, 20_000)
 
   it('preserves ordinary primary clicks in application mouse reporting', async () => {
     const uris: string[] = []

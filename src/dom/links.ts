@@ -493,8 +493,7 @@ class BrowserLinkController implements DomLinkController {
   private readonly handlePointerLeave = (): void => {
     if (this.activation !== undefined) return
     if (this.options.canvas.ownerDocument.activeElement === this.overlay) return
-    this.activationSequence += 1
-    this.pointerSequence = undefined
+    // A claimed click survives leaving: touch fires pointerleave before click.
     this.displayedHit = undefined
     this.lastPoint = undefined
     this.lastQuery = undefined
@@ -504,6 +503,8 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    // Click follows pointerup in the same task; a later move means it never arrived.
+    if (this.claimedClick) this.finishActivationGesture()
     const point = { clientX: event.clientX, clientY: event.clientY }
     this.lastPoint = point
     this.requestResolution(point)
@@ -616,15 +617,21 @@ class BrowserLinkController implements DomLinkController {
       if (!live || !this.pointerCurrent(activation, event, original.hit)) return
       if (this.options.getProjection && !linkProjectionEquals(projection, this.readProjection()))
         return
-      await this.options.session.activateLink(current, event)
+      const opened = this.options.session.activateLink(current, event)
+      // The session checks currency synchronously; a slow host opener must not freeze hover.
+      this.releasePointerActivation(activation)
+      await opened
     } catch (cause) {
       if (!this.disposed) this.options.onError?.(cause, 'activate')
     } finally {
-      if (this.pointerSequence === activation.sequence) {
-        this.pointerSequence = undefined
-        if (this.lastPoint && !this.disposed) this.requestResolution(this.lastPoint)
-      }
+      this.releasePointerActivation(activation)
     }
+  }
+
+  private releasePointerActivation(activation: PointerLinkActivation): void {
+    if (this.pointerSequence !== activation.sequence) return
+    this.pointerSequence = undefined
+    if (this.lastPoint && !this.disposed) this.requestResolution(this.lastPoint)
   }
 
   private notifyPointerFrame(): void {
