@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -8,7 +7,7 @@ import { expect, it } from 'vitest'
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 const instrumentation = fileURLToPath(
-  new URL('../../../../../scripts/ghostty-extension-allocations.ts', import.meta.url),
+  new URL('../../../scripts/ghostty-extension-allocations.ts', import.meta.url),
 )
 const bunAvailable = spawnSync('bun', ['--version'], { encoding: 'utf8' }).status === 0
 
@@ -197,8 +196,8 @@ function verifyWork(rows: readonly Row[]) {
   }
 }
 
-it.skipIf(!bunAvailable || !existsSync(instrumentation))(
-  'keeps public fresh-use work constant and creation factories affine (requires Bun and Fregat instrumentation)',
+it.skipIf(!bunAvailable)(
+  'keeps public fresh-use work constant and creation factories affine (requires Bun)',
   async () => {
     const scratch = await mkdtemp(join(tmpdir(), 'extension-work-'))
     try {
