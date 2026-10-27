@@ -1,11 +1,4 @@
-import {
-  RenderStateCursorVisualStyle,
-  RenderStateData,
-  RenderStateDirty,
-  RenderStateOption,
-  RenderStateRowData,
-  RenderStateRowOption,
-} from './abi.js'
+import { RenderStateCursorVisualStyle, RenderStateData, RenderStateDirty } from './abi.js'
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
 import { ZigFrameBuilder } from './zig-frame.js'
@@ -167,11 +160,8 @@ export class GhosttyRenderState {
   private readonly dirtyPointer: number
   private readonly iterator: OwnedHandle
   private readonly runtime: GhosttyRuntime
-  private readonly scalarPointer: number
   private readonly state: OwnedHandle
   private readonly terminal: GhosttyTerminal
-  private readonly zeroBooleanPointer: number
-  private readonly zeroDirtyPointer: number
 
   constructor(runtime: GhosttyRuntime, terminal: GhosttyTerminal) {
     this.runtime = runtime
@@ -183,13 +173,13 @@ export class GhosttyRenderState {
     this.cells = this.createCells()
     let rowReader: RowReader | undefined
     let cursorReader: CursorReader | undefined
-    let scalarPointer = 0
+    let dirtyPointer = 0
     try {
       rowReader = new RowReader(runtime)
       cursorReader = new CursorReader(runtime)
-      scalarPointer = runtime.memory.allocate(12)
+      dirtyPointer = runtime.memory.allocate(4)
     } catch (cause) {
-      if (scalarPointer !== 0) runtime.memory.free(scalarPointer, 12)
+      if (dirtyPointer !== 0) runtime.memory.free(dirtyPointer, 4)
       cursorReader?.dispose()
       rowReader?.dispose()
       this.freeNativeHandles()
@@ -198,10 +188,7 @@ export class GhosttyRenderState {
     this.rowReader = rowReader
     this.textRowReader = new TextRowReader(runtime)
     this.cursorReader = cursorReader
-    this.scalarPointer = scalarPointer
-    this.dirtyPointer = scalarPointer
-    this.zeroBooleanPointer = scalarPointer + 4
-    this.zeroDirtyPointer = scalarPointer + 8
+    this.dirtyPointer = dirtyPointer
     this.unsubscribeRenderHold = terminal.subscribeRenderHold((held) => {
       if (held) this.captureUpdate()
       for (const listener of this.renderRequestListeners) listener()
@@ -319,29 +306,11 @@ export class GhosttyRenderState {
 
   acknowledge(): number {
     this.ensureActive()
-    this.resetIterator()
-    let acknowledgedRows = 0
-    while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
-      if (!this.readRowDirty()) continue
-      assertGhosttyResult(
-        'ghostty_render_state_row_set(DIRTY)',
-        this.runtime.exports.ghostty_render_state_row_set(
-          this.iterator.handle,
-          RenderStateRowOption.Dirty,
-          this.zeroBooleanPointer,
-        ),
-      )
-      acknowledgedRows += 1
-    }
     assertGhosttyResult(
-      'ghostty_render_state_set(DIRTY)',
-      this.runtime.exports.ghostty_render_state_set(
-        this.state.handle,
-        RenderStateOption.Dirty,
-        this.zeroDirtyPointer,
-      ),
+      'bridge_acknowledge',
+      this.runtime.bridge.acknowledge(this.state.handle, this.iterator.handle, this.dirtyPointer),
     )
-    return acknowledgedRows
+    return this.runtime.memory.view.getUint32(this.dirtyPointer, true)
   }
 
   dispose(): void {
@@ -352,7 +321,7 @@ export class GhosttyRenderState {
     this.cursorReader.dispose()
     this.rowReader.dispose()
     this.textRowReader.dispose()
-    this.runtime.memory.free(this.scalarPointer, 12)
+    this.runtime.memory.free(this.dirtyPointer, 4)
     this.freeNativeHandles()
     this.runtime.releaseRenderState(this)
     this.disposed = true
@@ -415,30 +384,6 @@ export class GhosttyRenderState {
       ),
     )
     return { columns, rows: this.runtime.memory.view.getUint16(this.dirtyPointer, true) }
-  }
-
-  private resetIterator(): void {
-    assertGhosttyResult(
-      'ghostty_render_state_get(ROW_ITERATOR)',
-      this.runtime.exports.ghostty_render_state_get(
-        this.state.handle,
-        RenderStateData.RowIterator,
-        this.iterator.out,
-      ),
-    )
-    this.iterator.handle = this.runtime.memory.readHandle(this.iterator.out)
-  }
-
-  private readRowDirty(): boolean {
-    assertGhosttyResult(
-      'ghostty_render_state_row_get(DIRTY)',
-      this.runtime.exports.ghostty_render_state_row_get(
-        this.iterator.handle,
-        RenderStateRowData.Dirty,
-        this.dirtyPointer,
-      ),
-    )
-    return this.runtime.memory.view.getUint8(this.dirtyPointer) !== 0
   }
 
   private ensureActive(): void {

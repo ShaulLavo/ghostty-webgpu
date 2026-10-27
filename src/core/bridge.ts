@@ -162,6 +162,10 @@ export class CallbackBridge {
     this.indexes = installBridge(this.exports.__indirect_function_table, exports)
   }
 
+  acknowledge(state: number, iterator: number, count: number): number {
+    return this.bridgeExports!.bridge_acknowledge(state, iterator, count)
+  }
+
   readRows(
     state: number,
     iterator: number,

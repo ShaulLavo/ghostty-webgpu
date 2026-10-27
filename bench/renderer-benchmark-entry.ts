@@ -81,6 +81,18 @@ async function createNativeDriver(): Promise<Driver> {
     cellHeight: font.deviceCellHeight,
   })
   const state = runtime.createRenderState(terminal)
+  let acknowledgementMilliseconds = 0
+  let acknowledgements = 0
+  let acknowledgedRows = 0
+  const renderState = measuredRenderState(state, decoded)
+  renderState.acknowledge = () => {
+    const started = performance.now()
+    const count = state.acknowledge()
+    acknowledgementMilliseconds += performance.now() - started
+    acknowledgements += 1
+    acknowledgedRows += count
+    return count
+  }
   const options = {
     canvas,
     columns,
@@ -94,7 +106,7 @@ async function createNativeDriver(): Promise<Driver> {
     },
     needsFrameRows: () => false,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
-    renderState: measuredRenderState(state, decoded),
+    renderState,
   }
   if (backend === 'ghostty-web') throw new Error('Native renderer backend required')
   let created: Awaited<ReturnType<typeof createBenchmarkRenderer>>
@@ -119,6 +131,9 @@ async function createNativeDriver(): Promise<Driver> {
     },
     metrics: () => ({
       ...renderer.metrics,
+      acknowledgementMilliseconds,
+      acknowledgements,
+      acknowledgedRows,
       decodedRows: decoded.rows,
       decodedCells: decoded.cells,
     }),
@@ -203,6 +218,11 @@ function advance(scenario: BenchmarkScenario, step: number): void {
     write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
     return
   }
+  if (scenario === 'sparse-edit') {
+    const text = step % 2 === 0 ? 'A' : 'B'
+    write(`\x1b[1;1H${text}\x1b[${rows};${columns - 1}H${text}`)
+    return
+  }
   if (scenario === 'burst-output') {
     writeLines(10)
     return
@@ -263,6 +283,7 @@ async function run(
 }
 
 writeLines(200)
+driver.write('\x1b[2;1H\x1b[?2027h界é\x1b[3mf\x1b[0m🧪')
 await frame()
 await frame()
 assertNoDrawErrors()

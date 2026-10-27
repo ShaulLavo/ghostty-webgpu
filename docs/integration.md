@@ -1,6 +1,6 @@
 # Browser integration
 
-Install a built release tarball or link a checkout as [use ghostty-webgpu in your own app](use-in-your-app.md) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions.
+Install a built release tarball or link a checkout as [use ghostty-webgpu in your own app](use-in-your-app.md) shows. See [the API reference](api.md) for workers, frame ownership, geometry, and extensions. The [integration guarantee audit](integration-guarantees.md) covers disposal, shared resources, WASM assets, renderer replacement, and synchronous replies.
 
 The terminal mount needs a real size.
 
