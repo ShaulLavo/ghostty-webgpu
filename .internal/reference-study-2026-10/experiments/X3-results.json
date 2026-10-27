@@ -1,0 +1,377 @@
+{
+  "experiment": "X3 / E4",
+  "decision": "keep; native parity passed, warm cost within bounded measurement noise; +1.9% unicode CPU medians retained as a finding",
+  "pin": "7b11f3dca034d8d24369ad3856afe57946d7902a",
+  "before": "d2ed8989a745f016188e0a2e749009b3e1450f33",
+  "runtimeCandidate": "abe63a8c023d42c77bcfb0eaea09deb40dbf7662",
+  "host": "PC Linux x86_64, Intel i7-14700K, NVIDIA RTX 3060 Ti",
+  "browser": "153.0.8010.12",
+  "adapter": "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2, OpenGL ES 3.2 NVIDIA 615.78.08)",
+  "cellGrid": "100x30, DPR 2",
+  "samples": [
+    {
+      "workload": "ntcharts-heatmap",
+      "backend": "webgl2",
+      "steps": 256,
+      "pairs": 8,
+      "qualified": true,
+      "before": {
+        "cpuSeconds": 0.6749999999999996,
+        "rendererCpuSeconds": 0.43,
+        "gpuCpuSeconds": 0.1899999999999995,
+        "cpuPercent": 15.34125107908421,
+        "callbackP95Ms": 0.6000000089406967,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4274.5, 4300.100000008941, 4275.20000000298, 4275.5, 4274.70000000298, 4276.699999988079,
+          4276.9000000059605, 4277
+        ],
+        "vramBeforeMiB": [6776, 6662, 6706, 6694, 6723, 6739, 6711, 6684]
+      },
+      "after": {
+        "cpuSeconds": 0.6700000000000002,
+        "rendererCpuSeconds": 0.43,
+        "gpuCpuSeconds": 0.17999999999999972,
+        "cpuPercent": 15.232888944424904,
+        "callbackP95Ms": 0.6000000089406967,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4274.100000008941, 4276.29999999702, 4276, 4282.79999999702, 4275.5, 4276.5,
+          4273.899999991059, 4276.5999999940395
+        ],
+        "vramBeforeMiB": [6725, 6626, 6707, 6626, 6676, 6611, 6678, 6632]
+      },
+      "pixelChanges": [
+        {
+          "repetition": 0,
+          "cpuRatio": 1.0,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 1,
+          "cpuRatio": 0.9189189189189186,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 2,
+          "cpuRatio": 0.9275362318840579,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 3,
+          "cpuRatio": 1.0151515151515151,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 4,
+          "cpuRatio": 1.028985507246377,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 5,
+          "cpuRatio": 1.218181818181817,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 6,
+          "cpuRatio": 1.0724637681159435,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 7,
+          "cpuRatio": 1.035714285714282,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        }
+      ]
+    },
+    {
+      "workload": "ntcharts-heatmap",
+      "backend": "webgpu",
+      "steps": 256,
+      "pairs": 8,
+      "qualified": true,
+      "before": {
+        "cpuSeconds": 0.945,
+        "rendererCpuSeconds": 0.465,
+        "gpuCpuSeconds": 0.4249999999999998,
+        "cpuPercent": 21.44102024303607,
+        "callbackP95Ms": 0.7000000029802322,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4294.20000000298, 4273.4000000059605, 4295.5, 4278.70000000298, 4274.100000008941,
+          4274.29999999702, 4276.79999999702, 4282.800000011921
+        ],
+        "vramBeforeMiB": [6642, 6634, 6712, 6626, 6731, 6642, 6722, 6629]
+      },
+      "after": {
+        "cpuSeconds": 0.9500000000000002,
+        "rendererCpuSeconds": 0.47000000000000003,
+        "gpuCpuSeconds": 0.42500000000000004,
+        "cpuPercent": 21.45469538872951,
+        "callbackP95Ms": 0.7000000029802322,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4283.300000011921, 4319, 4301.5, 4270.79999999702, 4264.9000000059605, 4276.70000000298,
+          4277.20000000298, 4276.5
+        ],
+        "vramBeforeMiB": [6632, 6640, 6640, 6650, 6642, 6620, 6627, 6643]
+      },
+      "pixelChanges": [
+        {
+          "repetition": 0,
+          "cpuRatio": 1.0987654320987652,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 1,
+          "cpuRatio": 0.9793814432989696,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 2,
+          "cpuRatio": 0.8962264150943401,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 3,
+          "cpuRatio": 1.0510204081632666,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 4,
+          "cpuRatio": 1.0752688172043001,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 5,
+          "cpuRatio": 1.021505376344086,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 6,
+          "cpuRatio": 0.8333333333333337,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 7,
+          "cpuRatio": 1.1363636363636385,
+          "changedPixels": 0,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        }
+      ]
+    },
+    {
+      "workload": "unicode-varied",
+      "backend": "webgl2",
+      "steps": 256,
+      "pairs": 8,
+      "qualified": true,
+      "before": {
+        "cpuSeconds": 0.5199999999999994,
+        "rendererCpuSeconds": 0.27,
+        "gpuCpuSeconds": 0.1849999999999996,
+        "cpuPercent": 11.797836823454695,
+        "callbackP95Ms": 0.4000000059604645,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4279.4000000059605, 4278.29999999702, 4276, 4301, 4282.0999999940395, 4280,
+          4282.9000000059605, 4275.9000000059605
+        ],
+        "vramBeforeMiB": [6790, 6668, 6692, 6729, 6676, 6742, 6721, 6684]
+      },
+      "after": {
+        "cpuSeconds": 0.5299999999999995,
+        "rendererCpuSeconds": 0.28500000000000003,
+        "gpuCpuSeconds": 0.1849999999999996,
+        "cpuPercent": 12.08889268680526,
+        "callbackP95Ms": 0.4000000059604645,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4291.5, 4277, 4278.20000000298, 4278.800000011921, 4261.70000000298, 4289.9000000059605,
+          4250.20000000298, 4280.5
+        ],
+        "vramBeforeMiB": [6733, 6638, 6746, 6644, 6729, 6654, 6713, 6632]
+      },
+      "pixelChanges": [
+        {
+          "repetition": 0,
+          "cpuRatio": 0.8478260869565216,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 1,
+          "cpuRatio": 1.0000000000000004,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 2,
+          "cpuRatio": 0.8676470588235291,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 3,
+          "cpuRatio": 1.1153846153846165,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 4,
+          "cpuRatio": 0.8709677419354814,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 5,
+          "cpuRatio": 1.0370370370370416,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 6,
+          "cpuRatio": 1.0975609756097549,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 7,
+          "cpuRatio": 1.0,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        }
+      ]
+    },
+    {
+      "workload": "unicode-varied",
+      "backend": "webgpu",
+      "steps": 256,
+      "pairs": 8,
+      "qualified": true,
+      "before": {
+        "cpuSeconds": 0.7750000000000001,
+        "rendererCpuSeconds": 0.295,
+        "gpuCpuSeconds": 0.41999999999999993,
+        "cpuPercent": 17.515679378507677,
+        "callbackP95Ms": 0.4000000059604645,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4346.20000000298, 4288.100000008941, 4280.9000000059605, 4293.0999999940395, 4286, 4299.5,
+          4291.20000000298, 4287.29999999702
+        ],
+        "vramBeforeMiB": [6713, 6618, 6675, 6632, 6676, 6642, 6719, 6624]
+      },
+      "after": {
+        "cpuSeconds": 0.79,
+        "rendererCpuSeconds": 0.315,
+        "gpuCpuSeconds": 0.41500000000000004,
+        "cpuPercent": 17.83193004832875,
+        "callbackP95Ms": 0.45000000298023224,
+        "frameRequests": [256, 256, 256, 256, 256, 256, 256, 256],
+        "elapsedMs": [
+          4282.5, 4323.699999988079, 4288.5, 4288.70000000298, 4289.0999999940395,
+          4296.899999991059, 4294.79999999702, 4282.29999999702
+        ],
+        "vramBeforeMiB": [6638, 6648, 6634, 6632, 6648, 6626, 6626, 6632]
+      },
+      "pixelChanges": [
+        {
+          "repetition": 0,
+          "cpuRatio": 1.147058823529412,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 1,
+          "cpuRatio": 1.0249999999999997,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 2,
+          "cpuRatio": 1.0263157894736832,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 3,
+          "cpuRatio": 0.954022988505748,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 4,
+          "cpuRatio": 0.9999999999999994,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 5,
+          "cpuRatio": 1.0000000000000007,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 6,
+          "cpuRatio": 1.0422535211267614,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        },
+        {
+          "repetition": 7,
+          "cpuRatio": 1.065789473684212,
+          "changedPixels": 71404,
+          "totalPixels": 1800000,
+          "changedOutsideSpriteCells": 0
+        }
+      ]
+    }
+  ]
+}

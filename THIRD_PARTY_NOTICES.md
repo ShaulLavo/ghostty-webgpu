@@ -2,10 +2,11 @@
 
 ## Ghostty
 
-`ghostty-webgpu` includes `ghostty-vt.wasm` and host-native config resolver executables, built from Ghostty revision
-`c8554f28e0efe2f5595f32020371c34b25ec628f` without build-time patch application.
+`ghostty-webgpu` includes `ghostty-vt.wasm`, built from Ghostty revision
+`7b11f3dca034d8d24369ad3856afe57946d7902a`, and host-native config resolver executables,
+built from `c8554f28e0efe2f5595f32020371c34b25ec628f`, without build-time patch application.
 
-That Ghostty revision pins the native resolver's separate immutable runtime-theme archive. The
+The resolver revision pins its separate immutable runtime-theme archive. The
 executables and resources are present only for the package's supported macOS and Linux hosts.
 
 - Source: <https://github.com/ghostty-org/ghostty>

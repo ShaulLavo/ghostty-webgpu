@@ -8,6 +8,7 @@ Only import wiring changes in the disposable adapter; draw functions are unchang
 import json
 import math
 import re
+import signal
 from pathlib import Path
 import subprocess
 import sys
@@ -85,6 +86,14 @@ def packed_lines(text, styles):
         styles[arms.get(arm, "none")] << (index * 2)
         for index, arm in enumerate(["up", "right", "down", "left"])
     )
+
+
+def interrupted(number, _frame):
+    raise SystemExit(128 + number)
+
+
+for number in [signal.SIGTERM, signal.SIGHUP]:
+    signal.signal(number, interrupted)
 
 
 with tempfile.TemporaryDirectory(prefix="ghw-x3-native-", dir="/work/tmp") as scratch:

@@ -8,10 +8,11 @@ import {
   zigGlyphCollisionFixtures,
   zigUnicodeFixtures,
 } from '../../core/tests/zig-frame-fixtures.js'
-import type { RenderRow } from '../../core/types.js'
+import type { RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import { drawSprite, spriteCodepoint } from '../shared/atlas/sprites.js'
 import { defaultRendererTheme, type CanonicalRendererTheme } from '../shared/instances/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
 import { type WebGpuTerminalRendererOptions } from '../shared/types.js'
@@ -204,11 +205,12 @@ function expectGlyphInk(
       )
     }
   }
-  // Transparent text keeps atlas-style grayscale antialiasing without reading atlas rasters.
+  // Match the atlas's software rasterization and defer viewport clipping until composition.
+  const padding = Math.ceil(Math.max(font.deviceCellHeight, font.settings.size * font.pixelRatio))
   const ink = document.createElement('canvas')
-  ink.width = canvas.width
-  ink.height = canvas.height
-  const inkContext = ink.getContext('2d')!
+  ink.width = canvas.width + padding * 2
+  ink.height = canvas.height + padding * 2
+  const inkContext = ink.getContext('2d', { willReadFrequently: true })!
   inkContext.textAlign = 'center'
   inkContext.textBaseline = 'alphabetic'
   for (const { x, y, input } of expectedGlyphs(rows, theme)) {
@@ -219,9 +221,17 @@ function expectGlyphInk(
     inkContext.fillStyle = '#fff'
     const spacing = font.deviceCellWidth - font.deviceCharWidth
     const center = font.charLeft + (font.deviceCellWidth * input.cellSpan - spacing) / 2
-    const drawX = x * font.deviceCellWidth + center
-    const drawY = y * font.deviceCellHeight + font.deviceBaseline
-    inkContext.fillText(input.text, drawX, drawY)
+    const drawX = padding + x * font.deviceCellWidth + center
+    const drawY = padding + y * font.deviceCellHeight + font.deviceBaseline
+    const cp = spriteCodepoint(input.text)
+    if (cp === undefined) inkContext.fillText(input.text, drawX, drawY)
+    if (cp !== undefined) {
+      inkContext.save()
+      inkContext.strokeStyle = '#fff'
+      inkContext.translate(padding + x * font.deviceCellWidth, padding + y * font.deviceCellHeight)
+      drawSprite(inkContext, cp, font, input.cellSpan)
+      inkContext.restore()
+    }
     const image = inkContext.getImageData(0, 0, ink.width, ink.height)
     const color = image.data.some(
       (value, index) => index % 4 !== 3 && image.data[index - (index % 4) + 3]! > 0 && value < 253,
@@ -232,21 +242,25 @@ function expectGlyphInk(
       inkContext.fillStyle = `rgb(${brush.r}, ${brush.g}, ${brush.b})`
       inkContext.fillText(input.text, drawX, drawY)
     } else {
-      for (let index = 0; index < image.data.length; index += 4) {
-        image.data[index] = brush.r
-        image.data[index + 1] = brush.g
-        image.data[index + 2] = brush.b
-      }
+      tintImage(image, brush)
       inkContext.putImageData(image, 0, 0)
     }
-    context.drawImage(ink, 0, 0)
+    context.drawImage(ink, -padding, -padding)
   }
   const expected = context.getImageData(0, 0, canvas.width, canvas.height).data
   const differences = pixels.reduce(
     (count, value, index) => count + (Math.abs(value - expected[index]!) > 2 ? 1 : 0),
     0,
   )
-  expect(differences, 'GPU glyph ink matches the independent Canvas2D text oracle').toBe(0)
+  expect(differences, 'GPU glyph ink matches the Canvas2D text and sprite oracle').toBe(0)
+}
+
+function tintImage(image: ImageData, brush: RgbColor): void {
+  for (let index = 0; index < image.data.length; index += 4) {
+    image.data[index] = brush.r
+    image.data[index + 1] = brush.g
+    image.data[index + 2] = brush.b
+  }
 }
 
 function cleanRowRecords(builder: ZigFrameBuilder) {
@@ -295,7 +309,7 @@ for (const backend of ['webgpu', 'webgl2'] as const) {
             pair.native.state.readRows(),
             pair.native.font,
           ),
-        ).toThrow('GPU glyph ink matches the independent Canvas2D text oracle')
+        ).toThrow('GPU glyph ink matches the Canvas2D text and sprite oracle')
       },
     )
 

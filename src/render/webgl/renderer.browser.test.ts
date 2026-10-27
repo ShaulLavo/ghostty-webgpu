@@ -175,8 +175,8 @@ describe('WebGlTerminalRenderer', () => {
   it('uses selection and cursor text colors and makes low-contrast glyphs readable', async () => {
     const source = new TestRenderState([
       row(0, [
-        cell(0, { selected: true, text: '█' }),
-        cell(1, { text: '█' }),
+        cell(0, { selected: true, text: '▌' }),
+        cell(1, { text: '▌' }),
         cell(2, { background: rgb(128, 128, 128), foreground: rgb(128, 128, 128), text: '█' }),
       ]),
     ])
