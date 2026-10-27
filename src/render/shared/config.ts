@@ -1,3 +1,4 @@
+import { fontMetricsEqual, normalizeFontMetrics } from '../../term/font-metrics.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import {
   defaultRendererTheme,
@@ -33,6 +34,7 @@ function fittedFontWeight(name: string, value: number): number {
 
 function fontSettingsEqual(left: TerminalFittedFont, right: TerminalFittedFont): boolean {
   return (
+    fontMetricsEqual(left.settings.metrics, right.settings.metrics) &&
     left.settings.boldWeight === right.settings.boldWeight &&
     left.settings.family === right.settings.family &&
     left.settings.letterSpacing === right.settings.letterSpacing &&
@@ -68,7 +70,9 @@ export function browserRenderClock(): RenderSchedulerClock {
 }
 
 export function copyFittedFont(font: TerminalFittedFont): TerminalFittedFont {
+  const metrics = normalizeFontMetrics(font.settings.metrics)
   const settings = Object.freeze({
+    ...(metrics ? { metrics } : {}),
     boldWeight: fittedFontWeight('font.settings.boldWeight', font.settings.boldWeight),
     family: nonEmptyString('font.settings.family', font.settings.family),
     letterSpacing: Number(font.settings.letterSpacing),

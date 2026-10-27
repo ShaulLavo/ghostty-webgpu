@@ -1,6 +1,7 @@
 import type { AtlasKind, GlyphBitmap, GlyphRasterizationInput, GlyphRasterizer } from './types.js'
 import type { TerminalFittedFont } from '../../../term/types.js'
 import { glyphKey } from './key.js'
+import { drawSprite, spriteCodepoint } from './sprites.js'
 
 export interface CanvasGlyphRasterizerOptions {
   font: TerminalFittedFont
@@ -258,6 +259,13 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       context.clip()
     }
     context.fillStyle = ink
+    const cp = spriteCodepoint(input.text, this.font)
+    if (cp !== undefined) {
+      context.strokeStyle = ink
+      context.translate(padding, padding)
+      drawSprite(context, cp, this.font, input.cellSpan)
+      return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+    }
     const drawX = padding + this.font.charLeft + characterWidth / 2
     context.fillText(input.text, drawX, padding + this.font.deviceBaseline)
     return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
@@ -280,6 +288,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       // Intrinsically gray glyphs need RGBA too; the black probe also identifies white color glyphs.
       const bitmapKind =
         kind ??
+        (spriteCodepoint(input.text, this.font) !== undefined ? 'grayscale' : undefined) ??
         (hasIntrinsicColor(image, bounds, 255) ||
         hasIntrinsicColor(this.draw(input, padding, '#000000'), bounds, 0)
           ? 'color'

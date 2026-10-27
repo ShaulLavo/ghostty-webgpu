@@ -1,5 +1,5 @@
 import { testFontUrl } from '../tests/fonts.js'
-import { afterEach, describe, expect, it, vi, onTestFinished } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import {
   Terminal as MainTerminal,
@@ -1982,6 +1982,28 @@ it.each([1.5, 2.25])(
     }
   },
 )
+
+it('derives procedural sprite metrics from an owned TrueType font', async () => {
+  const url = new URL(
+    '../render/shared/atlas/sprite-fixtures/JetBrainsMono-Regular.ttf',
+    import.meta.url,
+  ).href
+  const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer())
+  const terminal = await WorkerTerminal.create({
+    backend: 'webgl',
+    assets,
+    fonts: [{ family: 'WorkerPostFont', source: { bytes }, descriptors: { weight: '400' } }],
+    appearance: { font: { size: 14 } },
+  })
+  active.push(terminal)
+  await terminal.open(container())
+  await terminal.write('║─┼')
+  await eventually(() => terminal.visibleLines()[0]?.trimEnd() === '║─┼')
+  expect(terminal.submittedFrame?.font.settings.metrics).toEqual({
+    unitsPerEm: 1000,
+    underlineThickness: 50,
+  })
+})
 
 it.each(['main', 'webgpu', 'webgl'] as const)(
   '%s entry renders both text blink phases and stays idle after erasure',
