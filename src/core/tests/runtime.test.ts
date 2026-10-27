@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ClipboardLocation,
   ClipboardWriteResult,
@@ -16,6 +16,8 @@ let runtime: GhosttyRuntime | undefined
 afterEach(() => {
   runtime?.dispose()
   runtime = undefined
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 function rowText(row: RenderRow): string {
@@ -29,6 +31,23 @@ async function wasmWithRenamedExport(name: string): Promise<Uint8Array> {
   if (offset < 0) throw new TypeError(`Wasm export is missing from the test artifact: ${name}`)
   bytes[offset + name.length - 1] = 'x'.charCodeAt(0)
   return bytes
+}
+
+async function stubWasmUrls() {
+  const [wasm, bridge] = await Promise.all([
+    readFile(new URL('../../../ghostty-vt.wasm', import.meta.url)),
+    readFile(new URL('../../../bridge.wasm', import.meta.url)),
+  ])
+  const assets = {
+    wasm: new URL('https://assets.test/ghostty-vt.wasm'),
+    bridge: new URL('https://assets.test/bridge.wasm'),
+  }
+  const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+    const bytes = String(input).includes('bridge') ? bridge : wasm
+    return new Response(bytes, { headers: { 'Content-Type': 'application/wasm' } })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return { assets, fetchMock }
 }
 
 describe('runtime export validation', () => {
@@ -87,6 +106,30 @@ describe('runtime export validation', () => {
     }
   })
 
+  it('reuses compiled native and bridge modules with isolated runtime memories', async () => {
+    const [wasm, bridge] = await Promise.all([
+      readFile(new URL('../../../ghostty-vt.wasm', import.meta.url)).then((bytes) =>
+        WebAssembly.compile(bytes),
+      ),
+      readFile(new URL('../../../bridge.wasm', import.meta.url)).then((bytes) =>
+        WebAssembly.compile(bytes),
+      ),
+    ])
+    runtime = await GhosttyRuntime.create({ wasm, bridge })
+    const second = await GhosttyRuntime.create({ wasm, bridge })
+    try {
+      expect(second.exports.memory).not.toBe(runtime.exports.memory)
+      const first = runtime.createTerminal()
+      const secondTerminal = second.createTerminal()
+      first.write('first')
+      secondTerminal.write('second')
+      expect(first.readLines(0, 1)[0]?.text).toContain('first')
+      expect(secondTerminal.readLines(0, 1)[0]?.text).toContain('second')
+    } finally {
+      second.dispose()
+    }
+  })
+
   it('rejects a wasm module without the required cell accessor', async () => {
     const wasm = await wasmWithRenamedExport('ghostty_cell_get')
 
@@ -111,6 +154,25 @@ describe('runtime export validation', () => {
     await expect(GhosttyRuntime.create({ wasm })).rejects.toThrow(
       'libghostty-vt export is missing: ghostty_terminal_get',
     )
+  })
+})
+
+describe('runtime URL compilation', () => {
+  it('uses streaming compilation for native and bridge URLs', async () => {
+    const { assets } = await stubWasmUrls()
+    const streaming = vi.spyOn(WebAssembly, 'compileStreaming')
+    runtime = await GhosttyRuntime.create(assets)
+    expect(streaming).toHaveBeenCalledTimes(2)
+  })
+
+  it('falls back to byte compilation when streaming rejects a response', async () => {
+    const { assets } = await stubWasmUrls()
+    const streaming = vi
+      .spyOn(WebAssembly, 'compileStreaming')
+      .mockRejectedValue(new TypeError('MIME type is not application/wasm'))
+    runtime = await GhosttyRuntime.create(assets)
+    expect(streaming).toHaveBeenCalledTimes(2)
+    expect(runtime.memory.buffer.byteLength).toBeGreaterThan(0)
   })
 })
 

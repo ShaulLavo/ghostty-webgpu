@@ -128,6 +128,24 @@ it('keeps default fillText free of compose downloads and explicit pixels on the 
   )
 })
 
+it('loads the compositor from the renderer asset override', async () => {
+  const { state } = await native('override')
+  const asset = new URL('../../../canvas-compose.wasm', import.meta.url)
+  asset.searchParams.set('override', 'renderer')
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  const renderer = await CanvasTerminalRenderer.create({
+    canvas: document.createElement('canvas'),
+    columns: 24,
+    rows: 4,
+    font: fittedFont(),
+    renderState: state,
+    rendererMode: 'canvas2d-pixels',
+    compositorAsset: asset,
+  })
+  cleanups.push(() => renderer.dispose())
+  expect(fetches).toHaveBeenCalledWith(asset)
+})
+
 it('matches a fresh packed repaint after scroll, cursor, theme, DPR and atlas invalidation', async () => {
   const { state, terminal } = await native('\x1b[?25lone 界\r\ntwo é\r\nthree 😀\r\nfour')
   const font = fittedFont()
