@@ -11,6 +11,11 @@ const repetitions = Number(process.env.WORKER_POOL_REPETITIONS ?? 2)
 const headless = process.env.WORKER_POOL_HEADLESS === '1'
 const origin = 'http://localhost:41807'
 const port = 41808
+const fixtures = process.env.WORKER_POOL_FIXTURES?.split(',') ?? [
+  'mixed-edit',
+  'sustained-logs',
+  'unicode-varied',
+]
 const modes = ['control', 'pool'] as const
 const counts = process.env.WORKER_POOL_COUNTS?.split(',').map(Number) ?? [4, 16]
 const geometries = [
@@ -181,6 +186,7 @@ async function route(page: Page, assets: Map<string, string | Buffer>): Promise<
 
 async function measure(
   mode: (typeof modes)[number],
+  fixture: string,
   count: number,
   columns: number,
   rows: number,
@@ -222,7 +228,7 @@ async function measure(
         pageErrors.push(message.text())
     })
     await route(page, assets)
-    await page.goto(origin)
+    await page.goto(`${origin}/?fixture=${fixture}`)
     await page.evaluate(
       ({ mode, count, columns, rows }) =>
         window.__workerPoolBench.setup(mode, count, columns, rows),
@@ -248,7 +254,7 @@ async function measure(
     const liveHeaps = await workerHeaps(raw)
     const pageHeap = await pageCdp.send('Runtime.getHeapUsage')
     const memory = await processMemory(after.map((process) => process.id))
-    const prefix = `${mode}-${count}-${columns}x${rows}-${repetition}`
+    const prefix = `${fixture}-${mode}-${count}-${columns}x${rows}-${repetition}`
     const screenshots: string[] = []
     for (let index = 0; index < count; index += 1) {
       const png = await page
@@ -265,6 +271,7 @@ async function measure(
     )
     const receipt = {
       mode,
+      fixture,
       count,
       columns,
       rows,
@@ -297,7 +304,7 @@ async function measure(
       errors: report.errors,
       bytes: report.bytes - warm.bytes,
       lifecycle:
-        mode === 'pool'
+        mode === 'pool' && fixture === 'mixed-edit' && columns === 80 && repetition === 0
           ? await page
               .evaluate(() => window.__workerPoolBench.lifecycle())
               .catch((error: unknown) => ({
@@ -334,6 +341,18 @@ const assets = new Map<string, string | Buffer>([
     ),
   ],
 ])
+for (const fixture of fixtures) await addFixture(fixture)
+async function addFixture(fixture: string): Promise<void> {
+  if (fixture === 'mixed-edit') return
+  const directory = '/work/reports/ghostty-webgpu-reference-study-2026-10-27/bench/workloads'
+  const metadata = JSON.parse(await readFile(join(directory, `${fixture}.json`), 'utf8'))
+  const bytes = await readFile(join(directory, `${fixture}.bin`))
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), metadata.sha256)
+  const chunks = metadata.chunks.map((chunk: { offset: number; length: number }) =>
+    bytes.subarray(chunk.offset, chunk.offset + chunk.length).toString('utf8'),
+  )
+  assets.set(`/fixtures/${fixture}.json`, JSON.stringify(chunks))
+}
 const results: unknown[] = []
 try {
   for (let repetition = 0; repetition < repetitions; repetition += 1)
@@ -357,24 +376,30 @@ try {
 }
 async function runRepetition(repetition: number) {
   const order = repetition % 2 === 0 ? modes : modes.toReversed()
-  for (const geometry of geometries) await runGeometry(geometry, repetition, order)
-}
-async function runGeometry(
-  geometry: (typeof geometries)[number],
-  repetition: number,
-  order: readonly (typeof modes)[number][],
-) {
-  for (const count of counts) await runPair(count, geometry, repetition, order)
+  const cases = geometries.flatMap((geometry) =>
+    counts.flatMap((count) => fixtures.map((fixture) => ({ geometry, count, fixture }))),
+  )
+  for (const sample of cases) await runPair(sample, repetition, order)
 }
 async function runPair(
-  count: number,
-  geometry: (typeof geometries)[number],
+  sample: { geometry: (typeof geometries)[number]; count: number; fixture: string },
   repetition: number,
   order: readonly (typeof modes)[number][],
 ) {
   for (const mode of order) {
-    console.log(`sample ${mode} ${count} ${geometry.columns}x${geometry.rows} r${repetition}`)
-    const result = await measure(mode, count, geometry.columns, geometry.rows, repetition, assets)
+    const { geometry, count, fixture } = sample
+    console.log(
+      `sample ${fixture} ${mode} ${count} ${geometry.columns}x${geometry.rows} r${repetition}`,
+    )
+    const result = await measure(
+      mode,
+      fixture,
+      count,
+      geometry.columns,
+      geometry.rows,
+      repetition,
+      assets,
+    )
     results.push(result)
     await Bun.write(output, JSON.stringify({ results }, null, 2))
   }

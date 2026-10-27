@@ -27,6 +27,7 @@ let errors: string[] = []
 let handlerMilliseconds = 0
 let worker: Worker | undefined
 let sequence = 0
+let fixtureChunks: string[] = []
 const pending = new Map<string, { resolve(): void; reject(cause: unknown): void }>()
 
 function reportError(error: unknown): void {
@@ -125,6 +126,11 @@ async function setup(
   height: number,
 ): Promise<void> {
   root.replaceChildren()
+  const fixture = new URL(location.href).searchParams.get('fixture')
+  fixtureChunks =
+    fixture && fixture !== 'mixed-edit'
+      ? await fetch(`/fixtures/${fixture}.json`).then((response) => response.json())
+      : []
   columns = width
   rows = height
   reports = Array.from({ length: count }, () => ({
@@ -180,6 +186,7 @@ async function waitFrames(targets: number[]): Promise<void> {
 }
 
 function payload(step: number, terminal: number): string {
+  if (fixtureChunks.length > 0) return fixtureChunks[step % fixtureChunks.length]!
   const y = (step % rows) + 1
   const text = `${String(step).padStart(6, '0')} T${terminal} A界e\u0301𝑓🧪 ${'output '.repeat(30)}`
   return `\x1b[${y};1H\x1b[2K${text.slice(0, columns - 12)}\x1b[?25l`

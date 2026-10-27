@@ -264,6 +264,11 @@ async function command(request: WorkerPoolCommand): Promise<void> {
       1.25,
     )
     session.execution.commitLayout(font, { top: 0, right: 0, bottom: 0, left: 0 })
+    session.execution.resize({
+      cellWidth: font.cssCellWidth,
+      cellHeight: font.cssCellHeight,
+      pixelRatio: font.pixelRatio,
+    })
     session.renderer?.setFont(font)
     session.renderer?.refreshRows?.(0, session.execution.grid.rows - 1)
   }
