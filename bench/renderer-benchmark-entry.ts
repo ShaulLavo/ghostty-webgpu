@@ -218,6 +218,11 @@ function advance(scenario: BenchmarkScenario, step: number): void {
     write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
     return
   }
+  if (scenario === 'sparse-edit') {
+    const text = step % 2 === 0 ? 'A' : 'B'
+    write(`\x1b[1;1H${text}\x1b[${rows};${columns - 1}H${text}`)
+    return
+  }
   if (scenario === 'burst-output') {
     writeLines(10)
     return
@@ -278,6 +283,7 @@ async function run(
 }
 
 writeLines(200)
+driver.write('\x1b[2;1H\x1b[?2027h界é\x1b[3mf\x1b[0m🧪')
 await frame()
 await frame()
 assertNoDrawErrors()
