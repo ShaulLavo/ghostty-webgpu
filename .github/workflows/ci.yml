@@ -38,6 +38,11 @@ jobs:
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
       - run: bun install --frozen-lockfile
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: '0.16.0'
+      - name: Test bridge row identity index
+        run: bun run test:bridge
       - run: bunx playwright install --with-deps chromium
       - name: Build and verify all packages
         run: bun run verify

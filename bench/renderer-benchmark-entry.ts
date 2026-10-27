@@ -42,11 +42,7 @@ WebAssembly.instantiate = new Proxy(instantiate, {
         env: {
           ...imports.env,
           ghostty_render_state_get: (state: number, data: number, out: number) => {
-            if (planningStarted !== 0 && data === RenderStateData.RowIterator) {
-              planningIterators += 1
-              if (planningIterators === 2)
-                rowPlanMilliseconds += performance.now() - planningStarted
-            }
+            recordRowPlan(data)
             return get(state, data, out)
           },
         },
@@ -54,6 +50,14 @@ WebAssembly.instantiate = new Proxy(instantiate, {
     ])
   },
 })
+
+function recordRowPlan(data: number): void {
+  if (planningStarted === 0 || data !== RenderStateData.RowIterator) return
+  planningIterators += 1
+  if (planningIterators !== 2) return
+  rowPlanMilliseconds += performance.now() - planningStarted
+}
+
 let adapterInfo: unknown
 let rendererPath = 'ghostty-web'
 const drawErrors: string[] = []

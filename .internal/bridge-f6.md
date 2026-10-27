@@ -4,7 +4,7 @@ Status: Approved. Implementation commit: `9da1e9063152ebbf34aaa8a7bad105c289e225
 
 The cache indexes both opaque row-id words in a half-full, preallocated hash table. Insertion keeps the first source for duplicate IDs, and lookup does not consume a match. Unmatched destinations take unused sources with one forward-only cursor. This replaces both repeated scans. Rotation, streaming, and row reuse checks stay unchanged. Expected matching and unused-slot assignment cost is O(R), with O(R) scratch space, rather than O(R²). Existing O(N) record copies are unchanged. The 500-row table adds 24 KiB per frame builder.
 
-Two direct Zig tests pin duplicate, both-word, collision, missing-id and reset behavior. All 107 existing frame-builder tests pass, including scroll direction, row movement, missing-glyph retries, wide/combining/color glyphs, and exact record reuse. The normal gates pass with 1106 unit tests, 482 Bun comparison tests, 4 checkpoint tests and 77 browser tests, with existing skips.
+Four native Zig tests pin duplicate, both-word, deliberately colliding, missing-id and reset behavior, including two current rows selecting the same first previous source. All 107 existing frame-builder tests pass, including scroll direction, row movement, missing-glyph retries, wide/combining/color glyphs, and exact record reuse. The normal gates pass with 1106 unit tests, 482 Bun comparison tests, 4 checkpoint tests and 77 browser tests, with existing skips.
 
 ## Measurements
 
@@ -65,10 +65,16 @@ The 500-row case uses font size 8 and DPR 1 to keep its canvas below the default
 | Mac  | 40x250  | webgpu  | dense-redraw     | 122.5 → 100.0               | 780.0 → 757.5                   |
 | Mac  | 40x250  | webgpu  | sustained-scroll | 195.0 → 167.5               | 397.5 → 415.0                   |
 
-The constant-N sweep holds 10,000 cells while changing R from 25 to 100 to 250. The index removes the growing search cost, while small viewports can pay more for hashing than for the original scan. There is no consistent end-to-end CPU win at 50 rows, and none is claimed. At 500 rows the WebGPU row plan falls from 115 to 50 µs on PC and 342.5 to 160 µs on Mac. Whole-frame bridge cost falls from 425 to 352.5 µs and 1010 to 897.5 µs respectively.
+The constant-N sweep holds 10,000 cells while changing R from 25 to 100 to 250. The index removes the growing search cost, while small viewports can pay more for hashing than for the original scan. Small viewports are not proven regression-free; the standard 80×24 grid was not measured. PC 200×50 WebGPU dense redraw rises from 125 to 135 µs for the whole bridge, and PC 400×25 WebGL2 scroll rises from 197.5 to 270 µs. There is no consistent end-to-end CPU win at 50 rows, and none is claimed. At 500 rows the WebGPU row plan falls from 115 to 50 µs on PC and 342.5 to 160 µs on Mac. Whole-frame bridge cost falls from 425 to 352.5 µs and 1010 to 897.5 µs respectively.
 
 Every paired capture compares exact decoded RGBA, final text, input bytes, measured steps, built frames and submitted frames. The parity report records all 144 pairs. Native record and browser tests cover glyph edge cases separately. `ghostty-vt.wasm` remains byte-identical at SHA-256 `de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426`. The bridge was rebuilt with `bun run build:bridge --source /work/tmp/ghw-bridge-upstream --zig /home/shaul/.local/share/mise/installs/zig/0.16.0/zig`, using clean official source `7b11f3dca034d8d24369ad3856afe57946d7902a`.
 
 ## Reproduce
 
 Use `bun run bench:renderer` with `BENCH_BASELINE_ROOT` pointing at the baseline source and these variables: `BENCH_BACKENDS=webgl2,webgpu BENCH_SCENARIOS=dense-redraw,sustained-scroll BENCH_STEPS=40 BENCH_WARMUP_STEPS=10 BENCH_REPETITIONS=3 BENCH_COLUMNS=<C> BENCH_ROWS=<R> BENCH_FONT_SIZE=8 BENCH_DPR=1 BENCH_OUTPUT=<report.json>`. Use the host reservation and quiet heavy queue described by the shared brief. Standalone index tests run with Zig 0.16.0 via `zig test scripts/row-index.zig`.
+
+## Review correction
+
+The native tests now run through `bun run test:bridge` in the blocking `CI / verify` job, before browser installation and `bun run verify`. That job installs Zig 0.16.0 through the commit-pinned setup action, which caches the toolchain and Zig caches. The test entry point imports the production index, so the original two tests and both new tests execute in one invocation. Forced collisions wrap through bucket zero and exercise each identity word independently. A separate fixture checks duplicate previous IDs, two identical incoming IDs choosing the same source, and reset followed by reinsertion.
+
+The exact CI command was run locally with `CI=true` and Zig 0.16.0. Five deliberate production mutations each fail the gate: overwriting the first source, comparing only either identity word, retaining a stale entry after reset, and consuming a lookup. Restoring the source passes all four tests. Logs and the mutation reproducer are retained under `/work/reports/ghostty-webgpu-next-2026-10/bridge/f6-review/`. No production Zig source or checked-in Wasm artifact changes in this correction. The benchmark timing hook uses an extracted guard-based helper to keep nesting within three levels. Historical measurement tables are unchanged.
