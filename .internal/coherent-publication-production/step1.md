@@ -106,3 +106,19 @@ Main-reference packets are `pc-owned-main-{normal,parity}.json` and
 `mac-owned-{normal,parity}.json`. Isolated cost is `pc-owned-cost.json` and `mac-owned-cost.json`.
 The exact ownership red/green logs are `own-exact-red.log`, `own-green.log` and `own-checks.log`.
 All task-created execution resources are removed on both hosts after retaining this checkpoint.
+
+## Light-excluding confirmation
+
+The coordinator authorized an external drain repeat excluding light jobs. The task published
+`drain.request`, took all three slot locks and the admission lock, and ran a bounded 590-second
+systemd unit. Before and after snapshots show only the pre-existing declared server running;
+light requests remained queued. The request, locks, process group and transient unit were
+released after the run. Raw data: `pc-owned-clean-cost.json`, with queue snapshots and the
+rerunnable `clean-repeat.py` in the report directory.
+
+The clean WebGL2, sixteen-terminal ownership comparison gives dense 24.61 to 26.78 ms per loop,
+about +8.8%, and scroll 12.17 to 13.08 ms, about +7.5%. Scroll pairs rise +6.3% and +8.8%.
+Step 1 therefore remains unpublished by itself. Per the coordinator's next instruction, steps 2
+and 3 are carried locally. All three will be published as a stack only if the cumulative
+sixteen-terminal heap and CPU gate passes on both hosts. The stack must state this layer's
+transient ownership cost.
