@@ -78,6 +78,22 @@ const c = @cImport({
     @cInclude("ghostty/vt/style.h");
 });
 
+export fn bridge_acknowledge(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, count: *u32) c.GhosttyResult {
+    var it = iterator;
+    var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    var dirty_rows: u32 = 0;
+    while (c.ghostty_render_state_row_iterator_next(it)) {
+        var dirty = false;
+        result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        dirty_rows += @intFromBool(dirty);
+    }
+    result = c.ghostty_render_state_clean(state);
+    if (result == c.GHOSTTY_SUCCESS) count.* = dirty_rows;
+    return result;
+}
+
 const TextRow = extern struct { y: u32, start: u32, len: u32 };
 // Unicode scalar values leave bit 31 available for the wide-tail continuation flag.
 const TextCell = extern struct { codepoint: u32, grapheme_start: u32, grapheme_len: u32 };

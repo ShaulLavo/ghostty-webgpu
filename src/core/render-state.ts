@@ -429,31 +429,12 @@ class SharedRenderState {
 
   acknowledge(): number {
     this.ensureActive()
-    this.runtime.memory.view.setUint8(this.booleanPointer, 0)
-    this.runtime.memory.view.setInt32(this.dirtyValuePointer, RenderStateDirty.False, true)
-    this.resetIterator()
-    let acknowledgedRows = 0
-    while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
-      if (!this.readRowDirty()) continue
-      assertGhosttyResult(
-        'ghostty_render_state_row_set(DIRTY)',
-        this.runtime.exports.ghostty_render_state_row_set(
-          this.iterator.handle,
-          RenderStateRowOption.Dirty,
-          this.booleanPointer,
-        ),
-      )
-      acknowledgedRows += 1
-    }
+    this.preparedFor = undefined
     assertGhosttyResult(
-      'ghostty_render_state_set(DIRTY)',
-      this.runtime.exports.ghostty_render_state_set(
-        this.state.handle,
-        RenderStateOption.Dirty,
-        this.dirtyValuePointer,
-      ),
+      'bridge_acknowledge',
+      this.runtime.bridge.acknowledge(this.state.handle, this.iterator.handle, this.dirtyPointer),
     )
-    return acknowledgedRows
+    return this.runtime.memory.view.getUint32(this.dirtyPointer, true)
   }
 
   dispose(): void {
