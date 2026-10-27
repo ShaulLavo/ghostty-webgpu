@@ -145,6 +145,8 @@ export class GhosttyTerminal {
   private readonly effects: TerminalEffects
   private defaultCursorBlinkValue = false
   private defaultCursorStyleValue: TerminalCursorStyle = 'block'
+  private readonly renderHoldListeners = new Set<(held: boolean) => void>()
+  private renderHoldTimer?: ReturnType<typeof setTimeout>
   private disposed = false
   private handleValue: number
   private sizeValue: TerminalSize
@@ -155,13 +157,38 @@ export class GhosttyTerminal {
     this.sizeValue = normalizeTerminalSize(options)
     this.handleValue = this.createHandle()
     try {
-      this.runtime.bridge.registerTerminal(this.handleValue, this.effects, this.sizeValue)
+      this.runtime.bridge.registerTerminal(this.handleValue, this.effects, this.sizeValue, (held) =>
+        this.setRenderHeld(held),
+      )
       this.resize(this.sizeValue)
     } catch (cause) {
       this.runtime.bridge.unregisterTerminal(this.handleValue)
       this.runtime.exports.ghostty_terminal_free(this.handleValue)
       throw cause
     }
+  }
+
+  get renderHeld(): boolean {
+    return this.renderHoldTimer !== undefined
+  }
+
+  subscribeRenderHold(listener: (held: boolean) => void): () => void {
+    this.renderHoldListeners.add(listener)
+    return () => {
+      this.renderHoldListeners.delete(listener)
+    }
+  }
+
+  private setRenderHeld(held: boolean): void {
+    if (held === this.renderHeld) return
+    if (this.renderHoldTimer !== undefined) clearTimeout(this.renderHoldTimer)
+    this.renderHoldTimer = undefined
+    // Upstream recommends one second, also used by xterm, to bound a stuck hold.
+    if (held)
+      this.renderHoldTimer = setTimeout(() => {
+        this.setMode(TerminalMode.SynchronizedOutput, false)
+      }, 1000)
+    for (const listener of this.renderHoldListeners) listener(held)
   }
 
   get handle(): number {
@@ -389,6 +416,7 @@ export class GhosttyTerminal {
       this.runtime.memory.view.setUint16(pointer + fieldOffset(layout, 'mode'), mode, true)
       this.runtime.memory.view.setUint8(pointer + fieldOffset(layout, 'value'), Number(enabled))
     })
+    if (mode === TerminalMode.SynchronizedOutput) this.setRenderHeld(enabled)
   }
 
   /** Native pruning removes whole historical pages and permits at least one page of rows.
@@ -629,6 +657,9 @@ export class GhosttyTerminal {
 
   dispose(): void {
     if (this.disposed) return
+    if (this.renderHoldTimer !== undefined) clearTimeout(this.renderHoldTimer)
+    this.renderHoldTimer = undefined
+    this.renderHoldListeners.clear()
     this.runtime.bridge.unregisterTerminal(this.handleValue)
     this.runtime.exports.ghostty_terminal_free(this.handleValue)
     this.runtime.releaseTerminal(this)

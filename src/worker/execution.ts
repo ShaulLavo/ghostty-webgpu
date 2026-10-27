@@ -275,17 +275,13 @@ export class WorkerTerminalExecution {
         )
         return
       }
-      // Producer submissions advance independently of the host's requested output fence.
-      this.submittedOutputValue = message.output > this.submittedProducerOutput
-      this.submittedProducerOutput = message.output
-      this.submittedControlValue = message.control
-      for (const control of this.outputControls) {
-        if (control > message.control) break
-        this.submittedOutputValue = true
-        this.outputControls.delete(control)
-      }
+      this.recordSubmittedOutput(message)
       if (this.state)
-        this.state = freezeWorkerValue({ ...this.state, mouseTracking: message.mouseTracking })
+        this.state = freezeWorkerValue({
+          ...this.state,
+          mouseTracking: message.mouseTracking,
+          renderHeld: message.snapshot.renderHeld ?? false,
+        })
       this.summary = freezeWorkerValue(message.summary)
       this.projection = freezeWorkerValue(message.snapshot)
       this.frameListener?.(this.textFrame()!)
@@ -316,6 +312,19 @@ export class WorkerTerminalExecution {
     pending.resolve(freezeWorkerValue(message.result))
   }
 
+  private recordSubmittedOutput(message: Extract<WorkerMessage, { type: 'frame' }>): void {
+    this.submittedOutputValue = false
+    if (message.snapshot.renderHeld) return
+    this.submittedOutputValue = message.output > this.submittedProducerOutput
+    this.submittedProducerOutput = message.output
+    this.submittedControlValue = message.control
+    for (const control of this.outputControls) {
+      if (control > message.control) break
+      this.submittedOutputValue = true
+      this.outputControls.delete(control)
+    }
+  }
+
   on<K extends TerminalSessionEventType>(type: K, listener: TerminalSessionListener<K>) {
     let emitter = this.emitters.get(type)
     if (!emitter) {
@@ -323,6 +332,10 @@ export class WorkerTerminalExecution {
       this.emitters.set(type, emitter)
     }
     return emitter.subscribe(listener as (value: unknown) => unknown)
+  }
+
+  get renderHeld(): boolean {
+    return this.state?.renderHeld ?? false
   }
 
   textFrame(): RendererTextFrameSnapshot | undefined {

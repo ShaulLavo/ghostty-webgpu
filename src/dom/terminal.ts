@@ -1164,6 +1164,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       clock: browserOutputTimingClock(),
       limits: this.outputTimingLimits,
       visible: () => this.documentVisible,
+      renderHeld: () => this.execution.renderHeld,
       measuresPresentation: this.execution.kind === 'sync',
       pendingFrame: () => this.execution.kind === 'sync' && this.renderer?.hasPendingFrame === true,
       describe: () => {
@@ -1248,7 +1249,9 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     if (!summary) return
     const previous = this.accessibilityFrame
     if (
-      previous?.nativeRevision === summary.nativeRevision &&
+      previous &&
+      previous.snapshotVersion === summary.snapshotVersion &&
+      previous.nativeRevision === summary.nativeRevision &&
       previous.layout === summary.layout &&
       previous.cursor.visible === summary.cursor.visible &&
       previous.cursor.viewport?.x === summary.cursor.viewport?.x &&
@@ -1715,7 +1718,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private handleFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
-    this.noteDrawn()
+    if (!snapshot.renderHeld) this.noteDrawn()
     this.updateFrameUi(this.execution.kind === 'sync' ? this.execution.submit(snapshot) : snapshot)
     this.publishText()
     this.scheduleAccessibility()
