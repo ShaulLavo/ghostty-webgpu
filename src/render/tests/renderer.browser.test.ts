@@ -392,6 +392,31 @@ it.each([false, true])(
   },
 )
 
+it('captures retained records after presentation without acquiring another canvas texture', async () => {
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    rows: 2,
+    font: fittedFont(),
+    renderState: new FakeRenderState(2, 2),
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  const before = await renderer.capturePixels()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  const acquire = vi.spyOn(canvas.getContext('webgpu')!, 'getCurrentTexture')
+  try {
+    expect(await renderer.capturePixels()).toEqual(before)
+    expect(before.some((value) => value !== 0)).toBe(true)
+    expect(acquire).not.toHaveBeenCalled()
+  } finally {
+    acquire.mockRestore()
+    canvas.remove()
+  }
+})
+
 it('schedules bounded row refreshes and texture-atlas clears without a standing loop', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 3)
@@ -447,6 +472,11 @@ it('submits one frame per blink transition without a standing animation frame', 
   renderer.setFocused(true)
   clock.flushFrame()
   const beforeBlink = renderer.metrics.submittedFrames
+
+  source.dirtyRow(1)
+  renderer.notifyWrite()
+  clock.flushFrame()
+  expect(renderer.metrics.submittedFrames).toBe(beforeBlink)
 
   expect(clock.frames.size).toBe(0)
   expect(clock.timers.size).toBe(1)
@@ -1778,6 +1808,7 @@ it('submits both default surfaces before callbacks can reenter a peer terminal',
                 armed = false
                 acknowledgedAtCallback = sources[1]!.acknowledgements
                 sources[1]!.dirtyRow(1)
+                peer.refreshRows(1, 1)
                 peer.notifyWrite()
               }
             : undefined,
@@ -1794,6 +1825,7 @@ it('submits both default surfaces before callbacks can reenter a peer terminal',
   armed = true
   sources[0]!.dirtyRow(0)
   sources[1]!.dirtyRow(0)
+  pair.forEach((renderer) => renderer.refreshRows(0, 0))
   pair[0]!.notifyWrite()
   pair[1]!.notifyWrite()
   await expect.poll(() => pair[1]!.metrics.submittedFrames).toBe(before[1]! + 2)
@@ -1837,6 +1869,7 @@ it('repaints default surfaces after one combined queue failure without acknowled
   })
   sources[0]!.dirtyRow(0)
   sources[1]!.dirtyRow(0)
+  pair.forEach((renderer) => renderer.refreshRows(0, 0))
   pair[0]!.notifyWrite()
   pair[1]!.notifyWrite()
   await expect
@@ -1956,6 +1989,7 @@ it('a submitted callback can dispose its peer without notifying that peer or ret
   const acknowledgements = sources[1]!.acknowledgements
   peerFrame.mockClear()
   sources.forEach((source) => source.dirtyRow(0))
+  pair.forEach((renderer) => renderer.refreshRows(0, 0))
   armed = true
   pair.forEach((renderer) => renderer.notifyWrite())
   await expect.poll(() => sources[1]!.acknowledgements).toBe(acknowledgements + 1)
@@ -2158,6 +2192,7 @@ it('submits an encoded surface before a reentrant font change resizes and config
       .toBe(true)
     events.length = 0
     sources.forEach((source) => source.dirtyRow(0))
+    pair.forEach((renderer) => renderer.refreshRows(0, 0))
     armed = true
     pair.forEach((renderer) => renderer.notifyWrite())
     await expect.poll(() => events.includes('resize')).toBe(true)
@@ -2210,6 +2245,7 @@ it('stops an acquisition retry when flushing a peer callback disposes the failin
     })
     armed = true
     sources.forEach((source) => source.dirtyRow(0))
+    pair.forEach((renderer) => renderer.refreshRows(0, 0))
     pair.forEach((renderer) => renderer.notifyWrite())
     await expect.poll(() => disposedByPeer).toBe(true)
     expect(acquire).toHaveBeenCalledOnce()

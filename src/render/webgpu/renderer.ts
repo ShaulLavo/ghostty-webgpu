@@ -381,14 +381,20 @@ export class WebGpuTerminalRenderer {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     })
     let mapped = false
+    let texture: GPUTexture | undefined
     try {
-      const encoder = this.device.createCommandEncoder()
-      encoder.copyTextureToBuffer(
-        { texture: this.context.getCurrentTexture() },
-        { buffer: output, bytesPerRow },
-        [width, height],
-      )
-      this.device.queue.submit([encoder.finish()])
+      texture = this.device.createTexture({
+        format: this.format,
+        size: [width, height],
+        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+      })
+      const command = this.textPass.encode(texture.createView(), {
+        texture,
+        buffer: output,
+        bytesPerRow,
+        size: [width, height],
+      })
+      this.device.queue.submit([command])
       await output.mapAsync(GPUMapMode.READ)
       mapped = true
       const sourcePixels = new Uint8Array(output.getMappedRange())
@@ -402,6 +408,7 @@ export class WebGpuTerminalRenderer {
     } finally {
       if (mapped) output.unmap()
       output.destroy()
+      texture?.destroy()
     }
   }
 
