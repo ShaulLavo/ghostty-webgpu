@@ -2153,3 +2153,40 @@ it('stops an acquisition retry when flushing a peer callback disposes the failin
     canvases.forEach((canvas) => canvas.remove())
   }
 })
+
+it('captures retained pixels after presentation without acquiring or publishing a canvas frame', async () => {
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 1)
+  const canvas = createCanvas()
+  const frames: RendererFrameSnapshot[] = []
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    rows: 1,
+    font: fittedFont(),
+    renderState: source,
+    schedulerClock: clock,
+    onFrame: (frame) => frames.push(frame),
+  })
+  clock.flushFrame()
+  const before = await renderer.capturePixels()
+  expect(before.findIndex((value, index) => value !== before[index % 4])).toBeGreaterThanOrEqual(0)
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
+  const context = canvas.getContext('webgpu')
+  if (!context) throw new Error('Expected the configured WebGPU context')
+  const acquire = vi.spyOn(context, 'getCurrentTexture')
+  const submitted = renderer.metrics.submittedFrames
+  const draws = renderer.metrics.draws
+  const acknowledged = source.acknowledgements
+  const notifications = frames.length
+  expect(await renderer.capturePixels()).toEqual(before)
+  expect(acquire).not.toHaveBeenCalled()
+  expect(renderer.metrics.submittedFrames).toBe(submitted)
+  expect(renderer.metrics.draws).toBe(draws)
+  expect(source.acknowledgements).toBe(acknowledged)
+  expect(frames).toHaveLength(notifications)
+  renderer.dispose()
+  canvas.remove()
+})
