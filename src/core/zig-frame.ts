@@ -1,7 +1,11 @@
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { RgbColor } from './types.js'
-import type { AtlasGlyph, GlyphRasterizationInput } from '../render/shared/atlas/types.js'
+import type {
+  AtlasGlyph,
+  AtlasPageIdentity,
+  GlyphRasterizationInput,
+} from '../render/shared/atlas/types.js'
 import { contrastAdjustedColor } from '../render/shared/contrast.js'
 import type {
   CanonicalRendererTheme,
@@ -41,6 +45,11 @@ export class ZigFrameBuilder {
   private readonly mask: number
   private readonly entry: number
   private disposed = false
+  private deferredGlyphs = false
+
+  get hasDeferredGlyphs(): boolean {
+    return this.deferredGlyphs
+  }
 
   constructor(
     private readonly runtime: GhosttyRuntime,
@@ -285,6 +294,32 @@ export class ZigFrameBuilder {
   clearGlyphs(): void {
     this.ensureActive()
     this.runtime.bridge.clearGlyphs(this.index)
+    this.deferredGlyphs = false
+  }
+
+  invalidateGlyphPage(page: AtlasPageIdentity): void {
+    this.ensureActive()
+    this.runtime.bridge.invalidateGlyphPage(
+      this.index,
+      page.kind === 'color' ? 1 : 0,
+      page.layer,
+      page.generation,
+    )
+  }
+
+  deferGlyph(key: number): void {
+    this.ensureActive()
+    const data = new Float32Array(this.runtime.memory.bytes.buffer, this.entry, 12)
+    data.fill(0)
+    data[11] = 2
+    this.runtime.bridge.registerGlyph(key, this.entry)
+    this.deferredGlyphs = true
+  }
+
+  retryDeferredGlyphs(): boolean {
+    this.ensureActive()
+    this.deferredGlyphs = false
+    return this.runtime.bridge.retryDeferredGlyphs(this.index)
   }
 
   dispose(): void {

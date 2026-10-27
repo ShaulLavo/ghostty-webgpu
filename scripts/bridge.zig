@@ -568,6 +568,24 @@ export fn bridge_clear_glyphs(index: *glyph_index.Index) void {
     glyph_index.clear(index);
 }
 
+export fn bridge_invalidate_glyph_page(index: *glyph_index.Index, kind: u32, layer: u32, generation: u32) void {
+    glyph_index.invalidatePage(index, kind, layer, generation);
+}
+
+export fn bridge_retry_deferred_glyphs(index: *glyph_index.Index) bool {
+    return glyph_index.retryDeferred(index);
+}
+
+fn rowGlyphsChanged(frame: *Frame, y: u32) bool {
+    const cache = frame.row_cache.?;
+    const row = cache.previous[cache.sources[y]];
+    for (row.cells[0..frame.columns]) |cell| {
+        const key = cell.key orelse continue;
+        if (cell.registration != key.registration) return true;
+    }
+    return false;
+}
+
 fn frameColor(cells: c.GhosttyRenderStateRowCells, field: c.GhosttyRenderStateRowCellsData, out: *u32) c.GhosttyResult {
     var rgb: c.GhosttyColorRgb = undefined;
     const result = c.ghostty_render_state_row_cells_get(cells, field, &rgb);
@@ -832,14 +850,26 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     return c.GHOSTTY_SUCCESS;
 }
 
+fn collectFrameGlyphs(frame: *Frame) bool {
+    const cache = frame.row_cache.?;
+    for (cache.inputs[0 .. frame.columns * frame.rows]) |input| {
+        if (input.key) |key| key.retained = true;
+    }
+    for (cache.rendered[0 .. frame.columns * frame.rows]) |input| {
+        if (input.key) |key| key.retained = true;
+    }
+    return glyph_index.collect(frame.glyph_index);
+}
+
 export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {
     // Grayscale brushes share entries; color histories get eight viewports of headroom.
     const recycle = frame.status != 2 and frame.glyph_index.count >= frame.columns * frame.rows * 8;
     if (recycle) {
-        glyph_index.clear(frame.glyph_index);
+        if (!collectFrameGlyphs(frame)) return c.GHOSTTY_OUT_OF_MEMORY;
         frame.index_rebuilds += 1;
     }
     const rebuild_all = frame.glyph_index.rebuild_all != 0;
+    const residency_changed = frame.glyph_index.residency_changed != 0;
     // A missing-glyph retry must upload cell changes written before registration.
     const retry = frame.status == 2;
     var force = !dirty_only or retry or rebuild_all;
@@ -878,6 +908,7 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
         if (result != c.GHOSTTY_SUCCESS) return result;
         var write = !dirty_only or dirty or rebuild_all or layout_changed;
+        if (residency_changed and !rebuild_all) write = write or rowGlyphsChanged(frame, y);
         if (mask) |m| write = write or (y < mask_len and m[y] != 0);
         write = write or cache.sources[y] != y;
         cache.next[y].cursor = frame.cursor_visible != 0 and frame.cursor_y == y;
@@ -895,6 +926,9 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     std.mem.swap([*]CachedRow, &cache.previous, &cache.next);
-    if (frame.status == 0) frame.glyph_index.rebuild_all = 0;
+    if (frame.status == 0) {
+        frame.glyph_index.rebuild_all = 0;
+        frame.glyph_index.residency_changed = 0;
+    }
     return c.GHOSTTY_SUCCESS;
 }

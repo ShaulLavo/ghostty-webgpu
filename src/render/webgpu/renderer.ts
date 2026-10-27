@@ -556,7 +556,7 @@ export class WebGpuTerminalRenderer {
     const updates = phaseOnly ? [] : builder.changedRanges()
     const rebuiltRows = phaseOnly ? 0 : builder.rowRebuilds
     const atlasUploads = this.atlas.consumeUploads()
-    this.atlasTextures.sync(atlasUploads)
+    if (this.atlasTextures.sync(atlasUploads)) this.textPass.syncAtlas(this.atlasTextures)
     const operations = this.textPass.uploadFrame(builder, updates)
     const textPhaseChanged = textBlink ? this.textPass.setTextVisible(this.textPhaseVisible) : false
     if (

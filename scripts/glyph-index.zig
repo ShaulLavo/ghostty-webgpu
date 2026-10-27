@@ -18,7 +18,7 @@ pub const Glyph = extern struct {
     valid: f32,
 };
 
-// Text is owned by the index; keys remain stable until clear or disposal.
+// Text is owned by the index; frame references keep keys alive during collection.
 pub const Key = extern struct {
     text: [*]const u32,
     text_len: u32,
@@ -28,7 +28,7 @@ pub const Key = extern struct {
     background: u32,
     minimum_contrast: f64,
 };
-pub const Entry = extern struct { key: Key, glyph: Glyph, queued_generation: u32, variant: u32, registration: u64 };
+pub const Entry = extern struct { key: Key, glyph: Glyph, queued_generation: u32, variant: u32, registration: u64, retained: bool };
 pub const Index = extern struct {
     entries: [*]?*Entry,
     capacity: u32,
@@ -37,6 +37,7 @@ pub const Index = extern struct {
     scratch_cap: u32,
     build_generation: u32,
     rebuild_all: u32,
+    residency_changed: u32,
 };
 
 fn allocate(comptime T: type, count: usize) ?[*]T {
@@ -52,7 +53,7 @@ pub fn create() ?*Index {
         return null;
     };
     @memset(entries[0..256], null);
-    index.* = .{ .entries = entries, .capacity = 256, .count = 0, .scratch = null, .scratch_cap = 0, .build_generation = 0, .rebuild_all = 0 };
+    index.* = .{ .entries = entries, .capacity = 256, .count = 0, .scratch = null, .scratch_cap = 0, .build_generation = 0, .rebuild_all = 0, .residency_changed = 0 };
     return index;
 }
 
@@ -81,6 +82,52 @@ pub fn destroy(index: *Index) void {
     ghostty_wasm_free(@ptrCast(index.entries), index.capacity * @sizeOf(?*Entry));
     ghostty_wasm_free(@ptrCast(index.scratch), index.scratch_cap * 4);
     ghostty_wasm_free(@ptrCast(index), @sizeOf(Index));
+}
+
+pub fn invalidatePage(index: *Index, kind: u32, layer: u32, generation: u32) void {
+    for (index.entries[0..index.capacity]) |slot_entry| {
+        const entry = slot_entry orelse continue;
+        const glyph = &entry.glyph;
+        if (glyph.valid == 0 or glyph.width == 0) continue;
+        if (glyph.kind != @as(f32, @floatFromInt(kind)) or glyph.layer != @as(f32, @floatFromInt(layer))) continue;
+        if (glyph.generation == @as(f32, @floatFromInt(generation))) continue;
+        glyph.valid = 0;
+        entry.registration +%= 1;
+        index.residency_changed = 1;
+    }
+}
+
+pub fn retryDeferred(index: *Index) bool {
+    var changed = false;
+    for (index.entries[0..index.capacity]) |slot_entry| {
+        const entry = slot_entry orelse continue;
+        if (entry.glyph.valid != 2) continue;
+        entry.glyph.valid = 0;
+        entry.registration +%= 1;
+        changed = true;
+    }
+    if (changed) index.residency_changed = 1;
+    return changed;
+}
+
+pub fn collect(index: *Index) bool {
+    const entries = allocate(?*Entry, index.capacity) orelse return false;
+    @memset(entries[0..index.capacity], null);
+    const previous = index.entries;
+    index.entries = entries;
+    index.count = 0;
+    for (previous[0..index.capacity]) |slot_entry| {
+        const entry = slot_entry orelse continue;
+        if (!entry.retained) {
+            ghostty_wasm_free(@ptrCast(entry), @sizeOf(Entry) + entry.key.text_len * 4);
+            continue;
+        }
+        entry.retained = false;
+        entries[slot(index, entry.key, entry.variant != 0)] = entry;
+        index.count += 1;
+    }
+    ghostty_wasm_free(@ptrCast(previous), index.capacity * @sizeOf(?*Entry));
+    return true;
 }
 
 pub fn scratch(index: *Index, length: u32) ?[]u32 {
@@ -166,6 +213,7 @@ pub fn resolve(index: *Index, key: Key) ?*Entry {
     entry.queued_generation = 0;
     entry.variant = @intFromBool(variant);
     entry.registration = 0;
+    entry.retained = false;
     index.entries[position] = entry;
     index.count += 1;
     return entry;
