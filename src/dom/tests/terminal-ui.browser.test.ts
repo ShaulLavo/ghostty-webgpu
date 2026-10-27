@@ -1,11 +1,14 @@
 import {
   observeDisplayedFrame,
+  retainDisplayedFrame,
   displayedFrameListener,
   type DisplayedFrameOptions,
   type DisplayedTextFrame,
 } from '../../render/shared/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import type { NativeDisplayedFrame } from '../../core/displayed-frame.js'
+import { GhosttyRenderState } from '../../core/render-state.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { TerminalScrollbar } from '../../core/types.js'
@@ -373,6 +376,21 @@ async function createIntegratedHarness(
   return { host, renderer, terminal }
 }
 
+function countedTextFrame(frame: NativeDisplayedFrame, read: () => void): NativeDisplayedFrame {
+  const observed: NativeDisplayedFrame = {
+    token: frame.token,
+    accept: () => frame.accept(),
+    discard: () => frame.discard(),
+    readRows: (options) => frame.readRows(options),
+    readTextRows: (options) => {
+      read()
+      return frame.readTextRows(options)
+    },
+    readPreviousTextRows: () => frame.readPreviousTextRows(),
+  }
+  return Object.freeze(observed)
+}
+
 async function createObservedRendererHarness(
   options: GhosttyWebGpuTerminalOptions = {},
   backend: 'webgpu' | 'webgl2' = 'webgpu',
@@ -414,13 +432,23 @@ async function createObservedRendererHarness(
       renderState = rendererOptions.renderState
       const readRows = vi.spyOn(rendererOptions.renderState, 'readRows')
       const readTextRows = vi.spyOn(rendererOptions.renderState, 'readTextRows')
+      const state = rendererOptions.renderState
+      if (!(state instanceof GhosttyRenderState)) throw new Error('Expected native render state')
+      const retain = state[retainDisplayedFrame].bind(state)
+      let retainedTextReads = 0
+      const capture = vi.spyOn(state, retainDisplayedFrame).mockImplementation((options) =>
+        countedTextFrame(retain(options), () => {
+          retainedTextReads += 1
+        }),
+      )
       const update = vi.spyOn(rendererOptions.renderState, 'update')
       readRowsCalls = () => readRows.mock.calls.length
-      readTextRowsCalls = () => readTextRows.mock.calls.length
+      readTextRowsCalls = () => readTextRows.mock.calls.length + retainedTextReads
       updateCalls = () => update.mock.calls.length
       cleanups.push(() => {
         readRows.mockRestore()
         readTextRows.mockRestore()
+        capture.mockRestore()
         update.mockRestore()
       })
       const observedOptions: WebGpuTerminalRendererOptions & DisplayedFrameOptions = {

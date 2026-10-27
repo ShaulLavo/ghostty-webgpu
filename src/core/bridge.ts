@@ -206,6 +206,10 @@ export class CallbackBridge {
     )
   }
 
+  readRetainedRevisions(frame: number, out: number): void {
+    this.bridgeExports!.bridge_read_retained_revisions(frame, out)
+  }
+
   createRetainedFrame(columns: number, rows: number): number {
     return this.bridgeExports!.bridge_create_retained_frame(columns, rows)
   }
