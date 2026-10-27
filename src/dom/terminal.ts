@@ -1659,15 +1659,39 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private installVisibility(elements: TerminalElements): void {
     if (this.renderWhenOffscreen) return
-    const observer = new IntersectionObserver((entries) => {
-      const entry = entries.at(-1)
-      if (!entry || this.stateValue === 'disposed') return
-      if (this.elementVisible === entry.isIntersecting) return
-      this.elementVisible = entry.isIntersecting
-      this.synchronizeRenderVisibility()
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries.at(-1)
+        if (!entry) return
+        const bounds = entry.boundingClientRect
+        const intersection = entry.intersectionRect
+        this.setElementVisible(
+          bounds.width > 0 &&
+            bounds.height > 0 &&
+            intersection.width > 0 &&
+            intersection.height > 0,
+        )
+      },
+      { threshold: [0, Number.EPSILON] },
+    )
+    const resize = new ResizeObserver(() => {
+      if (this.stateValue === 'disposed') return
+      // Zero-size targets can keep the same intersection ratio, so request a fresh entry.
+      observer.unobserve(elements.root)
+      observer.observe(elements.root)
     })
-    this.cleanup.add(() => observer.disconnect())
+    this.cleanup.add(() => {
+      resize.disconnect()
+      observer.disconnect()
+    })
     observer.observe(elements.root)
+    resize.observe(elements.root, { box: 'border-box' })
+  }
+
+  private setElementVisible(visible: boolean): void {
+    if (this.stateValue === 'disposed' || this.elementVisible === visible) return
+    this.elementVisible = visible
+    this.synchronizeRenderVisibility()
   }
 
   private setDocumentVisible(visible: boolean): void {

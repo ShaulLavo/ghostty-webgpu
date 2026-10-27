@@ -253,6 +253,10 @@ it.for(areaBackends)(
     const displayed = terminal.visibleLines()
     Object.assign(host.style, { width: area.width, height: area.height, top: area.top })
     await frames(5)
+    const bounds = terminal.element!.getBoundingClientRect()
+    expect(bounds.width).toBe(Number.parseFloat(area.width))
+    expect(bounds.height).toBe(Number.parseFloat(area.height))
+    if (area.name === 'viewport edge') expect(bounds.bottom).toBe(0)
     let painted = 0
     let published = 0
     terminal.onFrame(() => painted++)

@@ -12,7 +12,7 @@ The baseline at `607eacf8830cb9230cf80184160a44b1c6d5f520`, whose product source
 
 The browser regression covers WebGPU, WebGL2, Canvas fill-text, Canvas pixels, DOM, worker WebGPU, and worker WebGL2. It checks suppressed frames and scheduler requests, live native text, retained displayed text and accessibility text, hidden font/theme/size changes, and exactly one submitted repaint on return. Additional cases cover the opt-out, clipping ancestors, immediate writes, cursor timers, document visibility during reentry, and output timing waiting for the returning paint.
 
-The final visibility suite passes all 14 cases. Eight affected browser suites pass 231 tests. The unit gate passes 1,106 Vitest tests, 482 benchmark-tool tests, and four checkpoint tests. Build, typecheck, lint, formatting, and the site docs check pass. Screenshots were inspected at original resolution.
+At the original PR checkpoint, the rebuilt visibility suite passed all 14 cases. The broader gate passed 231 tests across eight affected browser suites. The unit gate passes 1,106 Vitest tests, 482 benchmark-tool tests, and four checkpoint tests. Build, typecheck, lint, formatting, and the site docs check pass. Screenshots were inspected at original resolution.
 
 ## Hardware measurement
 
@@ -43,3 +43,15 @@ BENCH_OUTPUT=/path/to/hardware.json bun run bench:renderer
 ```
 
 Use the shared heavy runner's `--class bench --quiet` mode and the hardware preflight from the wave brief. Raw receipts are retained at `/work/reports/ghostty-webgpu-next-2026-10/f8/`, including the before/after bundles, JSON, logs, and screenshots. Task-created browsers exit, and the baseline and implementation worktrees are removed after the PR is pushed.
+
+## Review fixes
+
+The reviewed `fefb995549a9d77f97719bd8569790b9f5ca39e3` checkpoint treated `isIntersecting` as proof of visible pixels. Chromium can retain that flag for zero-size targets and for edge-only contact. The default threshold also misses some transitions between positive and zero visible area.
+
+The shared host now requires positive element and intersection width and height. A positive epsilon threshold reports the viewport-edge transition. A border-box ResizeObserver restarts intersection observation when size changes, forcing a current geometry entry even when the intersection flag and ratio stay unchanged. Disposal disconnects both observers. The opt-out skips both.
+
+The failing-first matrix adds zero width, zero height, zero size, and viewport-edge cases across all seven backend paths. All 28 cases fail on the reviewed implementation with `expected 1 to be +0`. With the fix, the visibility suite passes 46 cases. All seven return-to-view screenshots match the original PR screenshots byte for byte. The matrix also checks suppressed scheduler requests and text publication, retained submitted text, continued native parsing, and one current-state paint on return. Viewport-edge cases resume with only one pixel visible. Four control cases retain painting for collapsed and edge-touching main/worker terminals when opted out.
+
+Review-fix gates passed build, typecheck, lint, formatting, the site docs check, 1,106 Vitest tests, 482 benchmark-tool tests, and four checkpoint tests. The seven companion browser suites passed 219 tests, for 265 browser cases total with the visibility suite.
+
+`docs/api.md` now states the default and opt-out for both entries beside the submitted-frame/accessibility contract. It covers continued parsing and layout changes, retained submitted text and accessibility, suppressed frame notifications, repaint on return, and asynchronous intersection limits. Review-fix logs are retained under `/work/reports/ghostty-webgpu-next-2026-10/f8/review-fixes/`. This correctness follow-up adds no new performance claim; the audited hardware result above remains the original measured checkpoint.
