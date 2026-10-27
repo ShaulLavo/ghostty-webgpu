@@ -1,5 +1,7 @@
 import type { RenderRow } from '../types.js'
 import type { AtlasGlyph, GlyphRasterizationInput } from '../../render/shared/atlas/types.js'
+import { glyphConstraintWidth } from '../../render/shared/atlas/key.js'
+import { neighborConstraintWidth } from '../../render/shared/atlas/glyph-constraints.js'
 import { contrastAdjustedColor } from '../../render/shared/contrast.js'
 import type { CanonicalRendererTheme } from '../../render/shared/instances/types.js'
 
@@ -41,14 +43,17 @@ export const zigFrameCursorStyles = ['block', 'bar', 'underline', 'outline'] as 
 
 // Decode through the styled reader, independently of the native frame's glyph descriptors.
 export function expectedGlyphs(rows: readonly RenderRow[], theme: CanonicalRendererTheme) {
-  return rows.flatMap((row) =>
-    row.cells.flatMap((cell, index) => {
+  return rows.flatMap((row) => {
+    const codepoints = row.cells.map((cell) => cell.text.codePointAt(0) ?? 0)
+    return row.cells.flatMap((cell, index) => {
       if (cell.continuation || !cell.text || cell.style?.invisible) return []
       const foreground = cell.foreground ?? theme.foreground
       const background = cell.background ?? theme.background
+      const cellSpan = row.cells[index + 1]?.continuation ? 2 : 1
       const input: GlyphRasterizationInput = {
         text: cell.text,
-        cellSpan: row.cells[index + 1]?.continuation ? 2 : 1,
+        cellSpan,
+        constraintWidth: cellSpan === 2 ? 2 : neighborConstraintWidth(codepoints, index),
         weight: cell.style?.bold ? 'bold' : 'normal',
         italic: cell.style?.italic ?? false,
         foreground: contrastAdjustedColor(
@@ -58,8 +63,8 @@ export function expectedGlyphs(rows: readonly RenderRow[], theme: CanonicalRende
         ),
       }
       return [{ x: cell.x, y: row.y, input }]
-    }),
-  )
+    })
+  })
 }
 
 const glyph = {
@@ -82,6 +87,7 @@ export function inputIdentity(input: GlyphRasterizationInput): string {
   return JSON.stringify([
     input.text,
     input.cellSpan,
+    glyphConstraintWidth(input),
     input.weight,
     input.italic,
     input.foreground.r,
@@ -95,7 +101,13 @@ export function fixtureGlyphs(kind: 'color' | 'grayscale') {
   const identityOf = (input: GlyphRasterizationInput) =>
     kind === 'color'
       ? inputIdentity(input)
-      : JSON.stringify([input.text, input.cellSpan, input.weight, input.italic])
+      : JSON.stringify([
+          input.text,
+          input.cellSpan,
+          glyphConstraintWidth(input),
+          input.weight,
+          input.italic,
+        ])
   const resolveInput = (input: GlyphRasterizationInput): AtlasGlyph => {
     const identity = identityOf(input)
     const existing = glyphs.get(identity)

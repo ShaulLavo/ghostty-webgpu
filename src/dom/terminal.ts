@@ -1428,15 +1428,16 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         },
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
         onPreedit: (value) => this.updatePreedit(value),
+        selectionReadback: {
+          hasSelection: () =>
+            this.execution.kind === 'sync'
+              ? this.execution.selectionCoordinates() !== undefined
+              : this.execution.submittedFrame?.selection !== undefined,
+          copy: () => this.copyUserSelection(view, elements.signal),
+        },
         ...(this.execution.kind === 'sync'
           ? { session: this.execution.input }
-          : {
-              encoding: this.execution,
-              selectionReadback: {
-                hasSelection: () => this.execution.submittedFrame?.selection !== undefined,
-                copy: () => this.copyWorkerSelection(view, elements.signal),
-              },
-            }),
+          : { encoding: this.execution }),
         signal: elements.signal,
         textarea: elements.textarea,
       })
@@ -1520,15 +1521,17 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.cleanup.add(() => fit.dispose())
   }
 
-  private copyWorkerSelection(view: Window, signal: AbortSignal): Promise<void> {
-    if (this.execution.kind !== 'async') return Promise.resolve()
-    const text = this.execution.selectionSnapshot().then((snapshot) => snapshot.selection?.text)
+  private async copyUserSelection(view: Window, signal: AbortSignal): Promise<void> {
+    const text =
+      this.execution.kind === 'sync'
+        ? this.execution.getSelection()
+        : this.execution.selectionSnapshot().then((snapshot) => snapshot.selection?.text)
+    if (text === undefined) return
     const copy = this.copySelection
     if (!copy) return writeUserSelectionToClipboard(view, text, { signal })
-    return text.then((value) => {
-      signal.throwIfAborted()
-      if (value !== undefined) return copy(value)
-    })
+    const value = typeof text === 'string' ? text : await text
+    signal.throwIfAborted()
+    if (value !== undefined) await copy(value)
   }
 
   private refreshSelectionProjection(
