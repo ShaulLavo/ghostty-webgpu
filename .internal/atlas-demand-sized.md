@@ -21,7 +21,7 @@ The raw receipts and rerunnable harness live in `/work/reports/ghostty-webgpu-ne
 - Baseline `failing-pressure.log` records three failures. Eviction changes a clean visible glyph's generation, and a visible set beyond capacity never reaches a renderable frame.
 - Baseline `failing-growth.log` observes 16 initial layers where the new test requires one.
 - `failing-clean-retry.log` captures a blank clean row when page invalidation ends before the registered-glyph retry. `clean-retry.log` records the fix.
-- Native tests exercise clean and rotating row storage, descriptor collection during 129 evictions, deferred glyph recovery, and external eviction of a clean row.
+- Native tests exercise clean and rotating row storage, descriptor collection during 131 evictions, deferred glyph recovery, and external eviction of a clean row.
 - Browser tests read back both texture kinds after growth, preserve clean-row pixels during eviction, compact fragmented pages, and restore pixels after growing to four layers and losing the device or WebGL context.
 
 ## Measurement procedure

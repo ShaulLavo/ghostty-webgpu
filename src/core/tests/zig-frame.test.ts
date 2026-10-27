@@ -1214,16 +1214,20 @@ describe('atlas pressure', () => {
       const retained = builder.glyphData.slice(retainedOffset, retainedOffset + 24)
       const clear = vi.spyOn(builder, 'clearGlyphs')
       const invalidate = vi.spyOn(atlas, 'invalidateAll')
+      const insertions = vi.spyOn(atlas, 'tryGetOrInsert')
       frameOptions.full = false
-      for (const text of Array.from({ length: 128 }, (_, index) =>
-        String.fromCodePoint(0x100 + index),
-      ).concat(['A'])) {
+      const changes = ['B', 'C', 'A'].concat(
+        Array.from({ length: 128 }, (_, index) => String.fromCodePoint(0x100 + index)),
+      )
+      for (const text of changes) {
+        insertions.mockClear()
         terminal.write(`\x1b[2;1H${text}`)
         state.update()
         expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
         expect(builder.glyphData.slice(retainedOffset, retainedOffset + 24)).toEqual(retained)
         expect(atlas.cacheMissCount).toBe(atlas.evictionCount + 2)
         expect(builder.rowRebuilds).toBe(1)
+        expect(insertions).toHaveBeenCalledTimes(1)
         state.acknowledge()
       }
       expect(clear).not.toHaveBeenCalled()
