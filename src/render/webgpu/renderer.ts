@@ -658,7 +658,7 @@ export class WebGpuTerminalRenderer {
 
   private captureFrame(
     rows: readonly RenderRow[] | undefined,
-    changed = rows?.map((row) => row.y) ?? [],
+    changed: readonly number[] = rows?.map((row) => row.y) ?? [],
   ): PreparedFrame | undefined {
     if (!this.cursor) return
     return this.frames.capture(
