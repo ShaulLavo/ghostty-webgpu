@@ -94,7 +94,7 @@ class RevisionTextCache {
   }
 
   private readRevisions(slot: NativeSlot): number[] {
-    const size = slot.rows * 4
+    const size = slot.rows * Float64Array.BYTES_PER_ELEMENT
     if (size > this.revisionsSize) {
       const revisions = this.runtime.memory.allocate(size)
       if (this.revisions !== 0) this.runtime.memory.free(this.revisions, this.revisionsSize)
@@ -103,7 +103,7 @@ class RevisionTextCache {
     }
     this.runtime.bridge.readRetainedRevisions(slot.handle, this.revisions)
     const revisions = Array.from(
-      new Uint32Array(this.runtime.exports.memory.buffer, this.revisions, slot.rows),
+      new Float64Array(this.runtime.exports.memory.buffer, this.revisions, slot.rows),
     )
     this.slotRevisions.set(slot, revisions)
     return revisions

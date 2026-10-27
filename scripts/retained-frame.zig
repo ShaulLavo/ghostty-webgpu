@@ -9,8 +9,10 @@ extern "env" fn ghostty_wasm_free(ptr: ?[*]u8, len: usize) void;
 
 const Decoration = struct { foreground: u32 = 0xffffffff, background: u32 = 0xffffffff, flags: u32 = 0 };
 const Grapheme = struct { pointer: ?[*]u32 = null, length: u32 = 0 };
-const RawRow = struct { selection: c.GhosttyRenderStateRowSelection, selected: bool = false, revision: u64 = 0, text_revision: u32 = 0 };
-pub const Frame = struct {
+// Native revisions must remain exact when exposed as JavaScript number keys.
+const max_text_revision: u64 = (1 << 53) - 1;
+const RawRow = struct { selection: c.GhosttyRenderStateRowSelection, selected: bool = false, revision: u64 = 0, text_revision: u64 = 0 };
+pub const Frame = extern struct {
     columns: u32,
     rows: u32,
     raw: [*]c.GhosttyCell,
@@ -18,7 +20,7 @@ pub const Frame = struct {
     graphemes: [*]Grapheme,
     metadata: [*]RawRow,
     revision: u64 = 0,
-    text_revisions: u32 = 0,
+    text_revisions: u64 = 0,
 };
 
 fn allocate(comptime T: type, count: usize) ?[*]T {
@@ -214,13 +216,13 @@ pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.Ghos
             if (result != c.GHOSTTY_SUCCESS) return result;
             continue;
         }
+        if (frame.text_revisions >= max_text_revision) return c.GHOSTTY_OUT_OF_SPACE;
         frame.metadata[y].revision = 0;
         frame.metadata[y].text_revision = 0;
         result = captureRow(frame, it, cells, y, @intCast(tag_shift), @intCast(style_shift), (@as(u64, 1) << @as(u6, @intCast(style_width))) - 1);
         if (result != c.GHOSTTY_SUCCESS) return result;
         frame.metadata[y].revision = revision;
-        frame.text_revisions +%= 1;
-        if (frame.text_revisions == 0) frame.text_revisions = 1;
+        frame.text_revisions += 1;
         frame.metadata[y].text_revision = frame.text_revisions;
     }
     if (y != frame.rows) return c.GHOSTTY_INVALID_VALUE;
@@ -287,6 +289,6 @@ pub fn readRows(frame: *Frame, _: u32, _: u32, mask: ?[*]const u8, mask_len: u32
     return read(false, frame, mask, mask_len, snapshot);
 }
 
-pub fn readRevisions(frame: *Frame, out: [*]u32) callconv(.c) void {
-    for (0..frame.rows) |y| out[y] = frame.metadata[y].text_revision;
+pub fn readRevisions(frame: *Frame, out: [*]f64) callconv(.c) void {
+    for (0..frame.rows) |y| out[y] = @floatFromInt(frame.metadata[y].text_revision);
 }
