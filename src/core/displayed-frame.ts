@@ -69,6 +69,10 @@ class RevisionTextCache {
     return Object.freeze(result)
   }
 
+  invalidate(): void {
+    this.rows.clear()
+  }
+
   private take(revision: number): RenderTextRow | undefined {
     if (revision === 0) return undefined
     return this.rows.get(revision)
@@ -160,7 +164,10 @@ class DisplayedFrame implements NativeDisplayedFrame {
   }
 
   discard(): void {
-    if (this.pending()) this.frames.pending = undefined
+    if (!this.pending()) return
+    this.frames.pending = undefined
+    // Abandoned revisions can be reused by the next attempt from the accepted baseline.
+    this.frames.textCache.invalidate()
   }
 
   readRows(options: DisplayedRowsOptions = noOptions): readonly RenderRow[] {

@@ -1,4 +1,11 @@
+import {
+  observeDisplayedFrame,
+  retainDisplayedFrame,
+  type DisplayedFrameOptions,
+} from '../src/render/shared/displayed-frame.js'
+import type { WebGpuTerminalRendererOptions } from '../src/render/shared/types.js'
 import { GhosttyRuntime } from '../src/core/runtime.js'
+import { GhosttyRenderState } from '../src/core/render-state.js'
 import { TerminalSession } from '../src/term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../src/dom/terminal.js'
 import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
@@ -8,7 +15,14 @@ import { DomTerminalRenderer } from '../src/render/dom/renderer.js'
 declare global {
   interface Window {
     __x7?: {
-      run(steps: number): Promise<{ frames: number; texts: number }>
+      run(steps: number): Promise<{
+        frames: number
+        texts: number
+        parsedWrites: number
+        submitted: number
+        presented: null
+        observerDigest: string | null
+      }>
       digest(): Promise<string>
       info(): { wasmBytes: number; adapter?: unknown }
     }
@@ -21,6 +35,8 @@ const backend = params.get('backend') ?? 'webgl2'
 const count = Number(params.get('count') ?? 1)
 const workload = params.get('workload') ?? 'dense'
 const observers = params.get('observers') === 'on'
+const parity = params.get('parity') === 'on'
+const discard = params.get('discard') === 'on'
 const columns = 200
 const rows = 50
 const words = 'alpha beta gamma delta 界 é epsilon zeta eta theta iota kappa lambda mu '
@@ -51,10 +67,21 @@ async function create(runtime: GhosttyRuntime, host: HTMLElement) {
       cursor: { blink: false },
     },
   })
+  const renderState = session.renderState
+  if (!(renderState instanceof GhosttyRenderState))
+    throw new Error('Expected a native render state')
+  let payloadHash = 2166136261
+  const record = (value: unknown) => {
+    if (!parity) return
+    const text = JSON.stringify(value)
+    for (let index = 0; index < text.length; index += 1)
+      payloadHash = Math.imul(payloadHash ^ text.charCodeAt(index), 16777619) >>> 0
+  }
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
     accessibility: observers ? {} : false,
     rendererFactory: async (options) => {
+      if (parity) observePayloads(options, record)
       if (backend === 'webgl2') return WebGlTerminalRenderer.create(options)
       if (backend === 'dom') return DomTerminalRenderer.create(options)
       const renderer = await WebGpuTerminalRenderer.create(options)
@@ -75,15 +102,53 @@ async function create(runtime: GhosttyRuntime, host: HTMLElement) {
   if (observers) {
     terminal.onText((text) => {
       texts += 1
+      record(text)
       for (const row of text.rowPatches) chars += row.text.length
     })
-    terminal.onFrame(() => {})
+    terminal.onFrame(record)
   }
   return {
     terminal,
+    abandon() {
+      renderState.update()
+      const pending = renderState[retainDisplayedFrame]()
+      pending.readTextRows()
+      pending.discard()
+    },
     texts: () => texts,
     chars: () => chars,
+    payloadHash: () => payloadHash,
   }
+}
+
+function observePayloads(
+  options: WebGpuTerminalRendererOptions,
+  record: (value: unknown) => void,
+): void {
+  const observed: WebGpuTerminalRendererOptions & DisplayedFrameOptions = options
+  const original = observed[observeDisplayedFrame]
+  observed[observeDisplayedFrame] = (snapshot) => {
+    record({
+      rows: snapshot.rows,
+      previous: snapshot.nativeFrame?.readPreviousTextRows(),
+      styled: snapshot.nativeFrame?.readRows(),
+    })
+    original?.(snapshot)
+  }
+}
+
+function writeStep(terminals: readonly Created[], step: number): number {
+  let parsedWrites = 0
+  for (const [index, entry] of terminals.entries()) {
+    if (discard) {
+      entry.terminal.write(`\x1b[H\x1b[2Kdiscarded ${step}`)
+      parsedWrites += 1
+      entry.abandon()
+    }
+    entry.terminal.write(output(step, index))
+    parsedWrites += 1
+  }
+  return parsedWrites
 }
 
 const nextFrame = () => new Promise<number>((resolve) => requestAnimationFrame(resolve))
@@ -104,8 +169,13 @@ async function main(): Promise<void> {
   window.__x7 = {
     async run(steps) {
       let frames = 0
+      let parsedWrites = 0
+      const submittedBefore = terminals.reduce(
+        (sum, entry) => sum + (entry.terminal.submittedFrame?.frame ?? 0),
+        0,
+      )
       for (let end = step + steps; step < end; step += 1) {
-        terminals.forEach((entry, index) => entry.terminal.write(output(step, index)))
+        parsedWrites += writeStep(terminals, step)
         await nextFrame()
         frames += 1
         if (!observers) continue
@@ -114,6 +184,12 @@ async function main(): Promise<void> {
       return {
         frames,
         texts: terminals.reduce((sum, entry) => sum + entry.texts(), 0),
+        parsedWrites,
+        submitted:
+          terminals.reduce((sum, entry) => sum + (entry.terminal.submittedFrame?.frame ?? 0), 0) -
+          submittedBefore,
+        presented: null,
+        observerDigest: parity ? terminals.map((entry) => entry.payloadHash()).join(',') : null,
       }
     },
     async digest() {

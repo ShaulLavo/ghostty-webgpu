@@ -16,6 +16,8 @@ const repetitions = Number(env('X7_REPETITIONS', '2'))
 const steps = Number(env('X7_STEPS', '180'))
 const warmup = Number(env('X7_WARMUP', '30'))
 const headless = env('X7_HEADLESS', '0') === '1'
+const parity = env('X7_PARITY', 'off')
+const discard = env('X7_DISCARD', 'off')
 const output = resolve(env('X7_OUTPUT', join(root, '.artifacts/x7-publication.json')))
 const arms = [
   {
@@ -149,6 +151,10 @@ async function measure(
       elapsedMs: elapsed,
       frames: run.frames,
       texts: run.texts,
+      parsedWrites: run.parsedWrites,
+      submitted: run.submitted,
+      presented: run.presented,
+      observerDigest: run.observerDigest,
       rendererCpu: cpuPercent(before, after, elapsed, 'renderer'),
       gpuCpu: cpuPercent(before, after, elapsed, 'GPU'),
       jsHeapUsed: metric('JSHeapUsedSize'),
@@ -166,6 +172,14 @@ async function measure(
 const codes = new Map<string, string>()
 for (const arm of arms) codes.set(arm.label, await bundle(arm.root))
 const results: unknown[] = []
+const sources = Object.fromEntries(
+  arms.map((arm) => [
+    arm.label,
+    execFileSync('git', ['rev-parse', 'HEAD'], { cwd: arm.root, encoding: 'utf8' }).trim(),
+  ]),
+)
+let browserVersion = ''
+const packet = () => ({ steps, warmup, sources, browserVersion, results })
 await mkdir(dirname(output), { recursive: true })
 for (const backend of backends) {
   const vram = freeVram()
@@ -185,6 +199,7 @@ for (const backend of backends) {
     args,
   })
   try {
+    browserVersion = browser.version()
     const browserSession = await browser.newBrowserCDPSession()
     const gpu = (await browserSession.send('SystemInfo.getInfo')) as {
       gpu: { auxAttributes?: { glRenderer?: string } }
@@ -202,6 +217,8 @@ for (const backend of backends) {
                 count,
                 workload,
                 observers,
+                parity,
+                discard,
               })
               pair.push(result)
               results.push({ ...result, repetition, glRenderer: renderer })
@@ -212,10 +229,18 @@ for (const backend of backends) {
               pair[1]!.digest,
               `text differs for ${backend}/${count}/${workload}/${observers}`,
             )
-            await writeFile(output, JSON.stringify({ steps, warmup, results }, null, 2))
+            for (const field of [
+              'frames',
+              'texts',
+              'parsedWrites',
+              'submitted',
+              'observerDigest',
+            ] as const)
+              assert.equal(pair[0]![field], pair[1]![field], `${field} differs`)
+            await writeFile(output, JSON.stringify(packet(), null, 2))
           }
   } finally {
     await browser.close()
   }
 }
-await writeFile(output, JSON.stringify({ steps, warmup, results }, null, 2))
+await writeFile(output, JSON.stringify(packet(), null, 2))
