@@ -168,8 +168,40 @@ describe('WebGL WASM frame pixels', () => {
         full: [false],
         uploadedBytes: expect.any(Number),
       })
-      expect(uploadedBytes).toBeLessThan(fullBufferBytes)
+      expect(uploadedBytes).toBeLessThanOrEqual(
+        delta === -1 ? fullBufferBytes + 32 : fullBufferBytes - 1,
+      )
       expect(readRows).not.toHaveBeenCalled()
+    }
+  })
+
+  it('retains physical rows through scroll wrap and matches a full repaint', async () => {
+    const content = '\x1b[?25l\x1b[31mfirst 界\r\n\x1b[32msecond e\u0301\r\n\x1b[34mthird 🦊'
+    const source = await runtimeFixture()
+    const controlSource = await runtimeFixture()
+    source.terminal.write(content)
+    controlSource.terminal.write(content)
+    const native = await rendererFixture(source)
+    const control = await rendererFixture(controlSource)
+    native.clock.flushFrame()
+    control.clock.flushFrame()
+    const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    const rowBytes = 32 * (64 + 96)
+    for (const [index, line] of ['third 🦊', 'third 🦊', 'third 🦊', 'third 🦊'].entries()) {
+      const uploaded = native.renderer.metrics.uploadedBytes
+      build.mockClear()
+      writeFrame(source, `\r\n${line}`)
+      native.renderer.notifyWrite()
+      native.clock.flushFrame()
+      expect(build.mock.calls.every(([options]) => options.stableRows)).toBe(true)
+      expect(native.renderer.metrics.uploadedBytes - uploaded).toBeLessThanOrEqual(
+        (index === 0 ? rowBytes * 3 : rowBytes) + 32,
+      )
+      const incremental = await expectPainted(native.renderer)
+      writeFrame(controlSource, `\r\n${line}`)
+      control.renderer.setTheme({})
+      control.clock.flushFrame()
+      expectPixelsEqual(await expectPainted(control.renderer), incremental)
     }
   })
 

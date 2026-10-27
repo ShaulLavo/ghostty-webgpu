@@ -26,7 +26,7 @@ Selection, `readLines`, accessibility text, and every renderer read the same nat
 
 `write()` changes emulator state at once. Painting is separate and follows a scheduler. The core records damage, the rows and cells that changed, and the renderer uses it to decide what to repaint.
 
-- **WebGPU and WebGL2** use a frame builder written in Zig and shipped as `bridge.wasm`. It keeps persistent cell and glyph records for the whole viewport. JavaScript rasterizes any glyph the browser font has not drawn yet, then uploads only the changed byte ranges.
+- **WebGPU and WebGL2** use a frame builder written in Zig and shipped as `bridge.wasm`. It keeps persistent cell and glyph records for the whole viewport. JavaScript rasterizes any glyph the browser font has not drawn yet, then uploads only the changed byte ranges. Both GPU backends reuse physical rows on full-viewport scrolls and move them on screen through shader row offsets. WebGPU disables this reuse when the glyph buffer needs multiple draw batches.
 - **Canvas 2D and the DOM** read rows straight from the core and repaint changed rows with their own reuse strategies.
 
 A resize, font change, palette change, or lost GPU resource can need a full repaint. `onFrame` reports the rows each submitted frame painted.

@@ -414,6 +414,7 @@ export class WebGlTerminalRenderer {
         this.focused ? undefined : this.inactiveCursorStyle,
       ),
       full: this.needsFullRebuild,
+      stableRows: true,
       overlayRows: this.overlayRows,
     }
     const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
