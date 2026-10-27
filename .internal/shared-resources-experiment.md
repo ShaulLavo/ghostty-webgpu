@@ -4,13 +4,13 @@ Status: decided. Date: 2026-10-27. Plan: [next steps](reference-study-2026-10/ne
 
 ## Decision
 
-| Step                                         | Verdict                                       | Why                                                                                                                                                                                                        |
-| -------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Pipelines, layouts, sampler per device    | **REJECT**                                    | 32 pipelines become 2, with equal output, but CPU, heap and startup do not move beyond run-order noise on either host. Pipeline creation is not on the per-frame path.                                     |
-| 2. One atlas set per font key                | **KEEP** (memory gate), production work below | At 16 terminals atlas textures fall from 20 to 1.25 MiB (−94%) on both hosts, at 32 from 40 to 1.25 MiB; CPU atlas backing at 32 falls from 9.5 to 1.6 MiB. CPU is unchanged. Output identical.            |
-| 3. One command encoder per coordinated frame | **REJECT**                                    | CPU unchanged on both hosts (16 terminals −2.9% PC, −2.1% Mac, inside noise); no latency added, but no gain, and one encoder couples every terminal's failure. Breaks one reentrant-ordering browser test. |
+| Step                                         | Verdict                                       | Why                                                                                                                                                                                                                            |
+| -------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Pipelines, layouts, sampler per device    | **REJECT**                                    | 32 pipelines become 2, with equal output, but CPU, heap and startup do not move beyond run-order noise on either host. Pipeline creation is not on the per-frame path.                                                         |
+| 2. One atlas set per font key                | **KEEP** (memory gate), production work below | At 16 terminals atlas textures fall from 20 to 1.25 MiB (−94%) on both hosts, at 32 from 40 to 1.25 MiB; CPU atlas backing at 32 falls from 9.5 to 1.6 MiB. CPU is unchanged. Output equal for all 16 terminals (fleet check). |
+| 3. One command encoder per coordinated frame | **REJECT**                                    | CPU unchanged on both hosts (16 terminals −2.9% PC, −2.1% Mac, inside noise); callback cost flat, latency gate not measured. Rejected for no gain, failure coupling and a reentrant-ordering test regression.                  |
 
-The CPU growth with terminal count is presentation, not resources. On the PC at 16 terminals the GPU process uses 47–50% of a core and the renderer 8–10%. A pure-WebGPU probe reproduces that with no terminal code: 16 canvases cost 52% GPU-process CPU, 16 command buffers merged into one encoder cost the same 52%, and the same 16 tiles drawn into **one shared canvas cost 9%**, the cost of one terminal. None of steps 1–3 can reach that; a shared surface can on Linux. On the Mac the curve is flatter (44% at 16 terminals) and one canvas saves only 16% of GPU-process CPU. That is the next experiment ([below](#next-shared-surface)).
+The CPU growth with terminal count is not in the resources sharing removes; it is canvas-count-dependent overhead in Chrome's GPU process. On the PC at 16 terminals the GPU process uses 47–50% of a core and the renderer 8–10%. A pure-WebGPU probe reproduces that with no terminal code: 16 canvases cost 52% GPU-process CPU, 16 command buffers merged into one encoder cost the same 52%, and the same 16 tiles drawn into **one shared canvas cost 9%**, the cost of one terminal. The one-canvas arm changes canvas and current-texture count, render-pass count and attachment topology together, so which of those (presentation, compositing, Dawn or driver resource handling) carries the cost is a hypothesis, not attributed by trace. None of steps 1–3 can reach it; a shared surface can, on this NVIDIA/Wayland/Chromium setup. On the Mac total Chrome CPU at 16 terminals is 44% (GPU process about 29%), and one canvas saves only 16% of GPU-process CPU. That is the next experiment ([below](#next-shared-surface)).
 
 ## Method
 
@@ -18,12 +18,13 @@ The CPU growth with terminal count is presentation, not resources. On the PC at 
 - Harness: the baseline packet's archived harness (`.internal/benchmarks/baseline-2026-10/harness.patch.gz`), extended to read shared pipelines and texture identity so a shared atlas is counted once. Production-default ownership (`BENCH_DEFAULT_GPU=1`: shared device, queue and frame coordinator), WebGPU, `burst-output` (the baseline's rolling logs), DPR 2, 13 px.
 - Matrix: 80×24 at 1, 4, 16 and 32 terminals and 200×50 at 4, 300 paced updates after 30 warmup updates (5 s windows, five times the study's 1 s, so CPU resolution is 0.2 points), two repetitions, before/after order reversed in the second.
 - Pairs are cumulative and same-session: step 1 against main; step 3 against step 1; step 2 against PR #16 (F3, demand-sized atlas) plus steps 1 and 3, because step 2 shares the atlas F3 reshapes.
-- Equal output: per-terminal text hashes match in every record, delivered bytes and submitted frames match, and all 30 PC before/candidate screenshot pairs are byte-identical (Mac: text hashes equal in every record).
+- Equal output, matrix runs: the frozen harness hashes only the **first** terminal's text and screenshots only the first canvas. In every record that first-terminal hash, the aggregate delivered bytes and the aggregate submitted frames match their pair, and all 60 first-canvas screenshot pairs (30 PC, 30 Mac) are byte-identical. That does not cover peers.
+- Equal output, fleet check: for the qualifying case, step 2 at 16 × 80×24 on the PC, the harness was extended to record every terminal's text hash, delivered bytes and cumulative submitted frames, and to screenshot every canvas, then the pair was rerun (two repetitions, order reversed). All 16 terminals' text hashes match before and candidate (one distinct hash across all 64 terminal records), every terminal received 280,000 bytes, and all 64 per-canvas screenshot pairs are byte-identical. Each record submits exactly 4,800 frames in the measured window (16 × 300). Per-terminal cumulative counts, which include startup and warmup, are 331 or 332 in both arms; one repetition pairs a 331 with a 332 on one terminal, a startup-scheduling difference that also varies between repetitions of the same arm. CPU in this rerun: 62.9 → 61.2%, atlas 20 → 1.25 MiB. Step 1 and step 3 equality remains first-terminal only; neither is kept. Raw: `pc-step2-fleet/`, `fleet-check-pc-step2-16.json`.
 - Memory: atlas is logical texel storage from the live GPU textures, deduplicated by texture identity; CPU atlas backing is CDP `backingStorageSize` after GC; heap is post-GC `usedSize`; wasm is linear-memory capacity.
 
 ## Results
 
-CPU is percent of one core for all Chrome processes; "GPU" is the GPU process alone. Values are means of the two repetitions.
+CPU is host CPU time from CDP `SystemInfo.getProcessInfo` (cumulative `cpuTime` per process), as `100 × Δ CPU seconds / elapsed wall seconds`: percent of one core for all Chrome processes, and "GPU" for processes of type `GPU` alone. It is not GPU utilization, GPU execution time or presentation latency. Values are means of the two repetitions. Callback p95 is the duration of the whole coordinated animation-frame callback, not any terminal's write-to-submit or presentation latency.
 
 ### Step 1: shared pipelines (main → step 1)
 
@@ -51,7 +52,7 @@ The startup differences follow run order, not the arm: the first page in each br
 | Mac 80×24×16 | 44.9 → 43.9   | 27.3 → 28.8 | 1.90 → 1.80     | 4800 → 4800 |
 | Mac 80×24×32 | 64.4 → 62.0   | 39.7 → 38.7 | 2.50 → 2.40     | 9600 → 9600 |
 
-The busiest-terminal latency gate holds (callback p95 is flat), so the step is rejected on cost, not latency. The coordinator already submits every terminal's command buffer in one `queue.submit`; merging encoders removes only per-terminal `createCommandEncoder`/`finish`, which is not where the time goes. Against it: one invalid pass invalidates every terminal's frame, and the prototype fails three existing renderer browser tests. Two only count command buffers per submission (expected for this change); "submits an encoded surface before a reentrant font change resizes and configures its canvas" times out, a real reentrancy regression that was not investigated further.
+Callback cost is flat, but callback duration is not the busiest terminal's latency: no write-to-submit, acknowledgement or presentation endpoint was recorded, so the plan's latency gate is **unmeasured** for this step. It is rejected without it: no useful CPU gain, failure coupling and an ordering regression. The coordinator already submits every terminal's command buffer in one `queue.submit`; merging encoders removes only per-terminal `createCommandEncoder`/`finish`, which is not where the time goes. Against it: one invalid pass invalidates every terminal's frame, and the prototype fails three existing renderer browser tests. Two only count command buffers per submission (expected for this change); "submits an encoded surface before a reentrant font change resizes and configures its canvas" times out, a real reentrancy regression that was not investigated further.
 
 ### Step 2: shared atlas per font key (F3 + steps 1, 3 → + step 2)
 
@@ -80,7 +81,7 @@ Atlas memory meets the keep gate (≥50% less at 16 terminals) on both hosts: on
 | 16    | 52.2             | 52.0              | 9.0              | 4.1 → 2.4                            |
 | 32    | 89.2             | 87.7              | 8.0              | 4.8 → 1.8                            |
 
-The probe's 16-canvas GPU cost (52%) matches the terminal benchmark's (47–50%), so the terminal's own per-frame work is not the GPU-process cost. On the Mac the same probe gives 34.3 / 33.5 / 28.7% at 16 tiles and 43.1 / 42.8 / 37.5% at 32: Core Animation presents separate canvases cheaply, and one large canvas adds its own GPU-process cost. The shared-surface win is large on Linux (−83% at 16) and small on macOS (−16%).
+Same counter and formula as above (GPU-process host CPU). The probe's 16-canvas GPU-process cost (52%) matches the terminal benchmark's (47–50%), so the terminal's own per-frame work is not where that cost comes from. The one-encoder control rules out encoder and command-buffer count; it does not separate presentation and compositing from Dawn or driver per-texture work, and no GPU-process trace was taken. On the Mac the same probe gives 34.3 / 33.5 / 28.7% at 16 tiles and 43.1 / 42.8 / 37.5% at 32. A plausible reading, not measured, is that Core Animation composites separate canvases cheaply and one large canvas adds its own cost. The shared-canvas reduction is large on this PC (−83% at 16) and small on the Mac (−16%).
 
 ## Correctness qualification (step 2)
 
@@ -98,22 +99,33 @@ An earlier cut flushed peers' pending frames before every shared-atlas upload. T
 
 ## Production steps for step 2
 
-Not shipped from this experiment: it depends on F3 (#16), and the items below change public metrics and atlas ownership.
+Not shipped from this experiment: the items below change public metrics and atlas ownership. Its F3 dependency (#16) has since merged, so the production change can start from current main.
 
 1. **Font key.** Key by what the rasterizer reads: family stack, size, weight/bold weight, style, letter spacing, DPR, device cell and character geometry and baseline (wraithterm adds font bytes, fallbacks, line height and features). The prototype uses `JSON.stringify` of the fitted font.
 2. **Owner-aware atlas** (`src/render/shared/atlas/atlas.ts`). Each owner keeps the pins from its last frame until its next one. Recycling only takes pages no owner pins. Compaction only touches pages pinned by the current owner alone, because moving a peer's glyphs corrupts its pending or presented frame. Each attached owner has its own eviction queue, consumed at the start of its next build (the cross-owner form of xterm.js's per-renderer layout version, study lane 05). Clear and font-wide invalidation reach every owner the same way.
-3. **Texture lifetime** (`src/render/webgpu/gpu-textures.ts`). A grown texture can still be bound by peers' frames pending in the same coordinated frame. Retire it after the coordinated frame submits; the prototype uses `setTimeout(0)`, production should hook the frame coordinator's flush. Each device has its own refcounted texture set; a new device is filled from the CPU pages. Each owner re-binds its glyph bind group when the texture version for its device changes.
+3. **Texture lifetime** (`src/render/webgpu/gpu-textures.ts`). A grown texture can still be bound by peers' frames pending in the same coordinated frame. Retire it in submission order, after the coordinated frame submits; the prototype's `setTimeout(0)` is not acceptable, and nothing may flush a peer mid-build (the reentrancy bug above). Each device has its own refcounted texture set; a new device is filled from the CPU pages. Each owner re-binds its glyph bind group when the texture version for its device changes.
 4. **Metrics.** `atlasCacheHits`, `atlasCacheMisses`, `atlasEvictions`, `atlasPages` and atlas upload counters become per-owner counts kept in the registration path, not reads of shared atlas totals.
 5. **Pressure policy.** A shared atlas reaches F3's 16-layer cap with the union of every terminal's visible set. Decide whether the cap scales with owners or stays fixed with deferral, and test thrash: two terminals whose visible sets together exceed capacity must not rebuild each other every frame.
 6. **WebGL2.** One context per terminal cannot share textures, so WebGL2 could share only the CPU atlas and rasterizer, with per-context upload cursors. Measure that separately; the GPU saving is WebGPU-only.
-7. **Tests to add.** Cross-owner compaction refusal, growth while a peer's frame is pending under the coordinator, thrash under shared pressure, and dispose of the last owner releasing all device texture sets.
+7. **Tests to add.** Cross-owner compaction refusal; invalidation and growth while another owner's frame is encoded but not yet submitted under the coordinator; real loss of the device every owner shares (the prototype test uses `simulateDeviceLoss()`, which replaces one renderer's device while its peer keeps the original); thrash under shared pressure; dispose of the last owner releasing all device texture sets; per-terminal output and pixels for every sharing terminal.
 
 ## Next: shared surface
 
-The probe points at a shared presentation surface (one canvas or one swap chain behind several terminals), as in wraithterm's `feat/fleet-surface` (study lane 03). Before building it, measure what the probe skipped: copying or compositing the tiles into each terminal's DOM position (one overlay canvas positioned over terminals versus per-terminal `copyExternalImageToTexture` or `transferToImageBitmap`), clipping and z-order inside scrolling containers, opacity, and resize. Gate: the 16-terminal GPU-process CPU falls by at least 30% with identical screenshots and no added input latency. Its natural home is the terminal-pool work (E6), which already groups terminals.
+Recommendation: build a shared presentation canvas next, one canvas or swap chain behind several terminals, with wraithterm's `feat/fleet-surface` (study lane 03) as a design reference. The probe measured only drawing tiles into one canvas; the experiment must measure the complete terminal path: placing or copying tiles into each terminal's DOM position (one overlay canvas positioned over the terminals versus per-terminal copies), clipping and z-order inside scrolling containers, scroll, opacity and resize.
+
+Gates, all required:
+
+- GPU-process CPU (the counter above) at 16 × 80×24 terminals on the PC falls by at least 30%. The probe's 83% is not promised for the finished path.
+- No material regression on the Mac, measured the same way.
+- Equal fleet output: every terminal's text, delivered bytes, submitted frames and pixels, plus unchanged acknowledgements and frame-observer behavior.
+- Busiest-terminal latency, measured directly rather than as callback duration: write-to-acknowledgement p95/p99 for the busiest terminal, and write-to-presented through the plan's trace-joined presentation endpoint (baseline packet `endpoints.md`), each no worse than the paired control.
+- Attribute the GPU-process saving with a GPU-process trace or a no-presentation control, so the result states which cost it removed.
+
+Its natural home is the terminal-pool work (E6), which already groups terminals.
 
 ## Evidence
 
 - Prototype branches: `research/shared-resources` (harness, steps 1 and 3, probe) and `research/shared-resources-step2` (F3 + steps 1, 3 and 2, with the tests above).
 - Raw records, frozen bundles, screenshots, logs, `summarize.py` and the run scripts: `/work/reports/ghostty-webgpu-next-2026-10/x1/` (Mac results under `mac/`). `python3 summarize.py <pair-directory>` reprints every table row.
-- Source SHAs:
+- Source SHAs (raw `sourceArtifacts`, Mac `mac/manifest.txt`): main + harness `ec032b1642201ea7f597ab87dea4067a0cd2de04`; step 1 `39d762268fd43263dc7b5a2cfcc29a2a1db922b9`; step 1 + 3 `cb54e1e045058ad96ccfea1279949a8ce4034d7a`; step 2 control (F3 + steps 1, 3) `2884b5643f970985e9dcc5bf013c132551d58f65`; step 2 `adf86d61dcb14abff4c5a5e365f68b6879d2c9a1`; probe `01c4e6208`. Unpushed measurement-root commits are kept as patches under `roots/`.
+- Fleet check sources: control `3c25196aa`, step 2 `4199ff507` (the step 2 control and step 2 above plus the per-terminal harness commit, kept as patches under `roots/`).
