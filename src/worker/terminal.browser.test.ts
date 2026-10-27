@@ -51,7 +51,11 @@ async function eventually(condition: () => boolean | Promise<boolean>): Promise<
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
-async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = false) {
+async function create(
+  mode: 'main' | 'webgpu' | 'webgl',
+  enableAccessibility = false,
+  textBlink?: boolean,
+) {
   const appearance = { font: { family, size: 16 }, cursor: { blink: false } }
   if (mode === 'main') {
     const face = await new FontFace(family, `url(${JSON.stringify(fontUrl)})`).load()
@@ -59,6 +63,7 @@ async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = f
     const terminal = await MainTerminal.create({
       accessibility: enableAccessibility ? {} : false,
       appearance,
+      textBlink,
       runtime: { kind: 'owned', options: assets },
       rendererFactory: (options) => WebGlTerminalRenderer.create(options),
     })
@@ -68,6 +73,7 @@ async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = f
   const terminal = await WorkerTerminal.create({
     accessibility: enableAccessibility ? {} : false,
     appearance,
+    textBlink,
     backend: mode,
     fonts: [{ family, source: { url: fontUrl } }],
   })
@@ -1993,7 +1999,7 @@ it.each(['main', 'webgpu', 'webgl'] as const)(
       motionQueries.push(media)
       return media
     })
-    const terminal = await create(backend)
+    const terminal = await create(backend, false, true)
     const host = container()
     await terminal.open(host)
     terminal.focus()
@@ -2029,6 +2035,31 @@ it.each(['main', 'webgpu', 'webgl'] as const)(
     await new Promise((resolve) => setTimeout(resolve, 100))
     const settled = frames
     await new Promise((resolve) => setTimeout(resolve, 1300))
+    expect(frames).toBe(settled)
+  },
+  15_000,
+)
+
+it.each(['main', 'webgpu', 'webgl'] as const)(
+  '%s entry renders SGR 5/6 steadily without opt-in',
+  async (backend) => {
+    const terminal = await create(backend)
+    const host = container()
+    await terminal.open(host)
+    terminal.focus()
+    let frames = 0
+    terminal.onFrame(() => {
+      frames += 1
+    })
+    await terminal.write('\x1b[?25l\x1b[5;41mFIVE\x1b[6mSIX\x1b[0m')
+    await eventually(() => frames > 0)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const before = await page.screenshot({ element: terminal.canvas!, save: false, scale: 'css' })
+    const settled = frames
+    await new Promise((resolve) => setTimeout(resolve, 1300))
+    expect(await page.screenshot({ element: terminal.canvas!, save: false, scale: 'css' })).toBe(
+      before,
+    )
     expect(frames).toBe(settled)
   },
   15_000,

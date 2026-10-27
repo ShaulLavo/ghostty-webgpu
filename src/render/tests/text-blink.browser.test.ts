@@ -1,5 +1,8 @@
-import { expect, it, onTestFinished } from 'vitest'
+import { expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import { PackedCells } from '../../core/packed-cells.js'
+import { WebGpuTextPass } from '../webgpu/text-pass.js'
+import { WebGlTextPass } from '../webgl/text-pass.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { fitTerminalFont } from '../../dom/fit.js'
 import { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
@@ -49,7 +52,11 @@ class Clock implements RenderSchedulerClock {
 
 const backends = ['webgpu', 'webgl2', 'fill-text', 'pixels', 'dom'] as const
 
-async function setup(backend: (typeof backends)[number], input: string) {
+async function setup(
+  backend: (typeof backends)[number],
+  input: string,
+  extension: { textBlink?: boolean } = { textBlink: true },
+) {
   const runtime = await GhosttyRuntime.create()
   onTestFinished(() => runtime.dispose())
   const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
@@ -72,7 +79,15 @@ async function setup(backend: (typeof backends)[number], input: string) {
     1,
   )
   const clock = new Clock()
-  const options = { canvas, font, columns: 12, rows: 3, renderState: state, schedulerClock: clock }
+  const options = {
+    canvas,
+    font,
+    columns: 12,
+    rows: 3,
+    renderState: state,
+    schedulerClock: clock,
+    textBlink: extension.textBlink,
+  }
   terminal.write('\x1b[?25l' + input)
   const renderer = await create(backend, options)
   onTestFinished(() => renderer.dispose())
@@ -186,5 +201,33 @@ it.each(backends)(
     fixture.clock.flush()
     expect(fixture.clock.timers.size).toBe(0)
     expect(fixture.clock.frames.size).toBe(0)
+  },
+)
+
+it.each(
+  backends.flatMap((backend) => [
+    { backend, textBlink: undefined },
+    { backend, textBlink: false },
+  ]),
+)(
+  '$backend keeps SGR 5/6 steady with textBlink=$textBlink and no phase work',
+  async ({ backend, textBlink }) => {
+    onTestFinished(() => {
+      vi.restoreAllMocks()
+    })
+    const packedScan = vi.spyOn(PackedCells.prototype, 'hasBlinkingText')
+    const gpuPhase = vi.spyOn(WebGpuTextPass.prototype, 'setTextVisible')
+    const glPhase = vi.spyOn(WebGlTextPass.prototype, 'setTextVisible')
+    const fixture = await setup(backend, '\x1b[5mA\x1b[0m \x1b[6mB\x1b[0m', { textBlink })
+    const before = await pixels(fixture)
+    const submitted = fixture.renderer.metrics.submittedFrames
+    expect(fixture.clock.timers.size).toBe(0)
+    for (let index = 0; index < 3; index += 1) fixture.clock.tick()
+    expect(await pixels(fixture)).toEqual(before)
+    expect(fixture.renderer.metrics.submittedFrames).toBe(submitted)
+    expect(fixture.clock.frames.size).toBe(0)
+    expect(packedScan).not.toHaveBeenCalled()
+    expect(gpuPhase).not.toHaveBeenCalled()
+    expect(glPhase).not.toHaveBeenCalled()
   },
 )
