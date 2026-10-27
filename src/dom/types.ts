@@ -160,6 +160,7 @@ export interface GhosttyWebGpuRenderer {
   schedule(): void
   setCursorBlinkEnabled(enabled: boolean): void
   setDocumentVisible(visible: boolean): void
+  setReducedMotion?(reduced: boolean): void
   setFocused(focused: boolean): void
   setInactiveCursorStyle?(style: InactiveCursorStyle | undefined): void
   setFont(font: TerminalFittedFont): void
@@ -186,6 +187,8 @@ export interface GhosttyWebGpuTerminalOptions {
   /** Keep painting outside the viewport or clipping ancestors. Defaults to false. */
   readonly renderWhenOffscreen?: boolean
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
+  /** Opt-in SGR 5/6 animation; false by default, matching native Ghostty. */
+  readonly textBlink?: boolean
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
   /** `immediate` paints a write before the next display frame; main-thread terminals only. */
   readonly presentation?: WebGpuTerminalRendererOptions['presentation']

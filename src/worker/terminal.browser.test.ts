@@ -1998,3 +1998,85 @@ it('derives procedural sprite metrics from an owned TrueType font', async () => 
     underlineThickness: 50,
   })
 })
+
+it.each(['main', 'webgpu', 'webgl'] as const)(
+  '%s entry renders both text blink phases and stays idle after erasure',
+  async (backend) => {
+    onTestFinished(() => {
+      vi.restoreAllMocks()
+    })
+    let reduced = false
+    const motionQueries: MediaQueryList[] = []
+    const matchMedia = window.matchMedia.bind(window)
+    vi.spyOn(window, 'matchMedia').mockImplementation((query) => {
+      const media = matchMedia(query)
+      if (query !== '(prefers-reduced-motion: reduce)') return media
+      Object.defineProperty(media, 'matches', { get: () => reduced })
+      motionQueries.push(media)
+      return media
+    })
+    const terminal = await create(backend, false, true)
+    const host = container()
+    await terminal.open(host)
+    terminal.focus()
+    let frames = 0
+    terminal.onFrame(() => {
+      frames += 1
+    })
+    await terminal.write('\x1b[?25l\x1b[5;41mBLINK\x1b[0m plain')
+    await eventually(() => frames > 0)
+    const canvas = terminal.canvas!
+    const visible = await page.screenshot({ element: canvas, save: false, scale: 'css' })
+    await eventually(
+      async () =>
+        (await page.screenshot({ element: canvas, save: false, scale: 'css' })) !== visible,
+    )
+    await eventually(
+      async () =>
+        (await page.screenshot({ element: canvas, save: false, scale: 'css' })) === visible,
+    )
+    reduced = true
+    for (const media of motionQueries) media.dispatchEvent(new Event('change'))
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const paused = await page.screenshot({ element: canvas, save: false, scale: 'css' })
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    expect(await page.screenshot({ element: canvas, save: false, scale: 'css' })).toBe(paused)
+    reduced = false
+    for (const media of motionQueries) media.dispatchEvent(new Event('change'))
+    await eventually(
+      async () =>
+        (await page.screenshot({ element: canvas, save: false, scale: 'css' })) !== paused,
+    )
+    await terminal.write('\x1b[H\x1b[0m\x1b[2Jplain')
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const settled = frames
+    await new Promise((resolve) => setTimeout(resolve, 1300))
+    expect(frames).toBe(settled)
+  },
+  15_000,
+)
+
+it.each(['main', 'webgpu', 'webgl'] as const)(
+  '%s entry renders SGR 5/6 steadily without opt-in',
+  async (backend) => {
+    const terminal = await create(backend)
+    const host = container()
+    await terminal.open(host)
+    terminal.focus()
+    let frames = 0
+    terminal.onFrame(() => {
+      frames += 1
+    })
+    await terminal.write('\x1b[?25l\x1b[5;41mFIVE\x1b[6mSIX\x1b[0m')
+    await eventually(() => frames > 0)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    const before = await page.screenshot({ element: terminal.canvas!, save: false, scale: 'css' })
+    const settled = frames
+    await new Promise((resolve) => setTimeout(resolve, 1300))
+    expect(await page.screenshot({ element: terminal.canvas!, save: false, scale: 'css' })).toBe(
+      before,
+    )
+    expect(frames).toBe(settled)
+  },
+  15_000,
+)

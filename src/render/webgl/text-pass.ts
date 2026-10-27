@@ -3,7 +3,7 @@ import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
 import type { InstanceByteRange } from '../shared/instances/types.js'
-import { planWebglUploadRanges } from '../shared/instances/upload-ranges.js'
+import { planSparseUploadRanges, planWebglUploadRanges } from '../shared/instances/upload-ranges.js'
 
 import {
   cellFragmentShader,
@@ -13,6 +13,7 @@ import {
 } from '../shaders/webgl.js'
 
 export interface WebGlTextPassOptions {
+  readonly textBlink?: boolean
   readonly atlasLayout: AtlasTextureLayout
   readonly context: WebGL2RenderingContext
   readonly height: number
@@ -20,10 +21,17 @@ export interface WebGlTextPassOptions {
   readonly width: number
 }
 
+type FrameRows =
+  | { readonly stableRows?: false }
+  | Pick<ZigFrameBuilder, 'stableRows' | 'columns' | 'rowHeight' | 'rowOffset'>
+
 interface Pipeline {
   readonly buffer: WebGLBuffer
   readonly program: WebGLProgram
   readonly vertexArray: WebGLVertexArrayObject
+  readonly rowLayout: WebGLUniformLocation
+  readonly firstInstance: WebGLUniformLocation
+  readonly stride: number
   drawable: Uint8Array
   drawInstanceCount: number
 }
@@ -69,14 +77,21 @@ export class WebGlTextPass {
   private readonly atlasLayout: AtlasTextureLayout
   private readonly cells: Pipeline
   private readonly glyphs: Pipeline
-  private readonly textures: Readonly<Record<AtlasKind, WebGLTexture>>
+  private readonly textures: Record<AtlasKind, WebGLTexture>
+  private readonly textureLayers: Record<AtlasKind, number> = { color: 1, grayscale: 1 }
   private atlasUploadedBytesValue = 0
   private atlasUploadOperationsValue = 0
   private frameUploadedBytesValue = 0
+  private rowColumns = 0
+  private rowHeight = 0
+  private rowOffset = 0
   private disposed = false
+  private readonly textBlinkEnabled: boolean
+  private textVisible = true
 
   constructor(options: WebGlTextPassOptions) {
     validateOptions(options)
+    this.textBlinkEnabled = options.textBlink ?? false
     this.context = options.context
     this.width = options.width
     this.height = options.height
@@ -116,6 +131,13 @@ export class WebGlTextPass {
   syncAtlas(uploads: readonly AtlasPageUpload[]): void {
     this.ensureActive()
     if (uploads.length === 0) return
+    for (const kind of ['grayscale', 'color'] as const) {
+      const required = uploads.reduce(
+        (count, upload) => (upload.kind === kind ? Math.max(count, upload.layer + 1) : count),
+        1,
+      )
+      if (required > this.textureLayers[kind]) this.growAtlasTexture(kind, required)
+    }
     const gl = this.context
     gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
@@ -130,15 +152,16 @@ export class WebGlTextPass {
   }
 
   uploadFrame(
-    frame: Pick<ZigFrameBuilder, 'cellData' | 'glyphData'>,
+    frame: Pick<ZigFrameBuilder, 'cellData' | 'glyphData'> & FrameRows,
     updates: readonly { readonly cell: InstanceByteRange; readonly glyph: InstanceByteRange }[],
   ): number {
     this.ensureActive()
     this.frameUploadedBytesValue = 0
-    const plan = planWebglUploadRanges(updates)
+    const rowsChanged = this.uploadRows(frame)
+    const plan = rowsChanged ? planSparseUploadRanges(updates) : planWebglUploadRanges(updates)
     this.writeRanges(this.cells, frame.cellData, plan.cell, CELL_INSTANCE_BYTES)
     this.writeRanges(this.glyphs, frame.glyphData, plan.glyph, GLYPH_INSTANCE_BYTES)
-    return plan.cell.length + plan.glyph.length
+    return plan.cell.length + plan.glyph.length + Number(rowsChanged)
   }
 
   resize(options: { width: number; height: number; instanceCount: number }): void {
@@ -151,6 +174,18 @@ export class WebGlTextPass {
     this.instanceCount = options.instanceCount
     this.resizePipeline(this.cells, CELL_INSTANCE_BYTES)
     this.resizePipeline(this.glyphs, GLYPH_INSTANCE_BYTES)
+    this.uploadRows({ stableRows: false })
+  }
+
+  setTextVisible(visible: boolean): boolean {
+    if (!this.textBlinkEnabled || this.textVisible === visible) return false
+    this.textVisible = visible
+    const gl = this.context
+    for (const pipeline of [this.cells, this.glyphs]) {
+      gl.useProgram(pipeline.program)
+      gl.uniform1f(this.uniform(pipeline.program, 'textHidden'), visible ? 0 : 1)
+    }
+    return true
   }
 
   submit(): number {
@@ -216,7 +251,13 @@ export class WebGlTextPass {
   private createShader(type: number, source: string): WebGLShader {
     const gl = this.context
     const shader = this.own(gl.createShader(type), (resource) => gl.deleteShader(resource))
-    gl.shaderSource(shader, source)
+    const code = this.textBlinkEnabled
+      ? source.replace(
+          'const bool ENABLE_TEXT_BLINK = false;',
+          'const bool ENABLE_TEXT_BLINK = true;',
+        )
+      : source
+    gl.shaderSource(shader, code)
     gl.compileShader(shader)
     if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader
     throw new Error(`WebGL shader compilation failed: ${gl.getShaderInfoLog(shader) ?? ''}`)
@@ -254,6 +295,9 @@ export class WebGlTextPass {
       buffer,
       program,
       vertexArray,
+      rowLayout: this.uniform(program, 'rowLayout'),
+      firstInstance: this.uniform(program, 'firstInstance'),
+      stride,
       drawable: new Uint8Array(this.instanceCount),
       drawInstanceCount: 0,
     }
@@ -275,7 +319,7 @@ export class WebGlTextPass {
     gl.uniform2f(this.uniform(pipeline.program, 'viewport'), this.width, this.height)
   }
 
-  private createAtlasTexture(kind: AtlasKind): WebGLTexture {
+  private createAtlasTexture(kind: AtlasKind, layers = 1): WebGLTexture {
     const gl = this.context
     const texture = this.own(gl.createTexture(), (resource) => gl.deleteTexture(resource))
     const target = gl.TEXTURE_2D_ARRAY
@@ -286,13 +330,49 @@ export class WebGlTextPass {
       kind === 'grayscale' ? gl.R8 : gl.RGBA8,
       this.atlasLayout.pageWidth,
       this.atlasLayout.pageHeight,
-      this.atlasLayout.layerCount,
+      layers,
     )
     gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     return texture
+  }
+
+  private growAtlasTexture(kind: AtlasKind, required: number): void {
+    if (required > this.atlasLayout.layerCount)
+      throw new RangeError('Atlas upload layer is outside texture-array capacity')
+    const gl = this.context
+    const previous = this.textures[kind]
+    const previousLayers = this.textureLayers[kind]
+    const layers = Math.min(this.atlasLayout.layerCount, Math.max(required, previousLayers * 2))
+    const next = this.createAtlasTexture(kind, layers)
+    const framebuffer = gl.createFramebuffer()
+    if (!framebuffer) throw new WebGlUnavailableError('allocation', 'Unable to copy the atlas')
+    try {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer)
+      for (let layer = 0; layer < previousLayers; layer += 1) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, previous, 0, layer)
+        gl.copyTexSubImage3D(
+          gl.TEXTURE_2D_ARRAY,
+          0,
+          0,
+          0,
+          layer,
+          0,
+          0,
+          this.atlasLayout.pageWidth,
+          this.atlasLayout.pageHeight,
+        )
+      }
+      this.assertNoError('Atlas growth')
+    } finally {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null)
+      gl.deleteFramebuffer(framebuffer)
+    }
+    gl.deleteTexture(previous)
+    this.textures[kind] = next
+    this.textureLayers[kind] = layers
   }
 
   private configureSamplers(): void {
@@ -385,12 +465,60 @@ export class WebGlTextPass {
       pipeline.drawInstanceCount -= 1
   }
 
+  private uploadRows(frame: FrameRows): boolean {
+    const columns = frame.stableRows ? frame.columns : 0
+    const height = frame.stableRows ? frame.rowHeight : 0
+    const offset = frame.stableRows ? frame.rowOffset : 0
+    if (columns === this.rowColumns && height === this.rowHeight && offset === this.rowOffset)
+      return false
+    this.rowColumns = columns
+    this.rowHeight = height
+    this.rowOffset = offset
+    const gl = this.context
+    for (const pipeline of [this.cells, this.glyphs]) {
+      gl.useProgram(pipeline.program)
+      gl.uniform4f(
+        pipeline.rowLayout,
+        columns,
+        height,
+        offset,
+        columns ? this.instanceCount / columns : 0,
+      )
+    }
+    this.frameUploadedBytesValue += 32
+    return true
+  }
+
   private draw(pipeline: Pipeline): number {
     if (pipeline.drawInstanceCount === 0) return 0
     const gl = this.context
     gl.useProgram(pipeline.program)
     gl.bindVertexArray(pipeline.vertexArray)
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, pipeline.drawInstanceCount)
+    const split = this.rowOffset * this.rowColumns
+    if (split === 0) {
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, pipeline.drawInstanceCount)
+      return 1
+    }
+    // Draw logical rows in order so overhanging glyphs blend the same way across the wrap.
+    const high = this.drawRange(pipeline, split, pipeline.drawInstanceCount - split)
+    return high + this.drawRange(pipeline, 0, Math.min(split, pipeline.drawInstanceCount))
+  }
+
+  private drawRange(pipeline: Pipeline, first: number, count: number): number {
+    if (count <= 0) return 0
+    const gl = this.context
+    gl.bindBuffer(gl.ARRAY_BUFFER, pipeline.buffer)
+    for (let attribute = 0; attribute < pipeline.stride / 16; attribute += 1)
+      gl.vertexAttribPointer(
+        attribute,
+        4,
+        gl.FLOAT,
+        false,
+        pipeline.stride,
+        first * pipeline.stride + attribute * 16,
+      )
+    gl.uniform1i(pipeline.firstInstance, first)
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count)
     return 1
   }
 

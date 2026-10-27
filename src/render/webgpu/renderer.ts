@@ -147,8 +147,10 @@ export class WebGpuTerminalRenderer {
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
   private readonly context: GPUCanvasContext
   private cursor?: RenderCursorSnapshot
+  private readonly textBlinkEnabled: boolean
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
+  private textPhaseVisible = true
   private device: GPUDevice
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
@@ -213,6 +215,7 @@ export class WebGpuTerminalRenderer {
     this.font = prepared.font
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
+    this.textBlinkEnabled = options.textBlink ?? false
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.frames = new FrameObserver(options)
     this.frames.resize(this.grid.rows)
@@ -230,10 +233,12 @@ export class WebGpuTerminalRenderer {
       this.textPass = textPass
       this.textPass.syncAtlas(this.atlasTextures)
       scheduler = new RenderScheduler({
+        textBlink: options.textBlink,
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
         onFrame: () => this.drawFrame(),
       })
       this.scheduler = scheduler
+      this.setReducedMotion(options.reducedMotion ?? false)
       this.scheduler.schedule()
       this.watchDeviceLoss(device, this.deviceGeneration)
       this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
@@ -317,6 +322,10 @@ export class WebGpuTerminalRenderer {
     if (this.cursorBlinkPreference === enabled) return
     this.cursorBlinkPreference = enabled
     this.synchronizeCursorBlink()
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.scheduler.textBlink?.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -449,6 +458,7 @@ export class WebGpuTerminalRenderer {
 
   private createTextPass(device: GPUDevice = this.device): WebGpuTextPass {
     return new WebGpuTextPass({
+      textBlink: this.textBlinkEnabled,
       device,
       format: this.format,
       height: this.canvas.height,
@@ -495,12 +505,17 @@ export class WebGpuTerminalRenderer {
   }
 
   private drawZigFrame(damage: RenderStateDirty): void {
+    const textBlink = this.scheduler.textBlink
+    const phaseChanged = textBlink !== undefined && this.textPhaseVisible !== textBlink.visible
+    const phaseOnly =
+      !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
       damage === RenderStateDirty.False &&
-      this.overlayRows.size === 0
+      this.overlayRows.size === 0 &&
+      !phaseChanged
     ) {
       this.coordinator?.flushPending()
       if (!this.disposed) this.frames.notifyCleanUpdate(this.renderState)
@@ -527,19 +542,25 @@ export class WebGpuTerminalRenderer {
       stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
     }
-    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
         `The native frame could not be built after atlas recovery (status ${status})`,
       )
     }
-    const updates = builder.changedRanges()
-    const rebuiltRows = builder.rowRebuilds
+    if (textBlink) {
+      textBlink.setNeeded(builder.blinkingRows > 0)
+      this.textPhaseVisible = textBlink.visible
+    }
+    const updates = phaseOnly ? [] : builder.changedRanges()
+    const rebuiltRows = phaseOnly ? 0 : builder.rowRebuilds
     const atlasUploads = this.atlas.consumeUploads()
-    this.atlasTextures.sync(atlasUploads)
+    if (this.atlasTextures.sync(atlasUploads)) this.textPass.syncAtlas(this.atlasTextures)
     const operations = this.textPass.uploadFrame(builder, updates)
+    const textPhaseChanged = textBlink ? this.textPass.setTextVisible(this.textPhaseVisible) : false
     if (
+      !textPhaseChanged &&
       !options.full &&
       this.overlayRows.size === 0 &&
       atlasUploads.length === 0 &&
@@ -552,6 +573,7 @@ export class WebGpuTerminalRenderer {
       )
       return
     }
+
     if (!this.coordinator) {
       try {
         this.textPass.submit(this.context.getCurrentTexture().createView())

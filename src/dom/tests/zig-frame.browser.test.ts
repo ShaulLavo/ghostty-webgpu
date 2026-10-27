@@ -6,6 +6,12 @@ import { GhosttyRuntime } from '../../core/runtime.js'
 import { createGhosttyError } from '../../core/error.js'
 import type { WebGpuTextPass } from '../../render/webgpu/text-pass.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
+import { GlyphAtlas } from '../../render/shared/atlas/atlas.js'
+import {
+  GLYPH_INSTANCE_FLOATS,
+  GlyphFlag,
+  GlyphOffset,
+} from '../../render/shared/instances/layout.js'
 import { CanvasGlyphRasterizer } from '../../render/shared/atlas/canvas-rasterizer.js'
 import { defaultRendererTheme } from '../../render/shared/instances/types.js'
 import { WebGpuTerminalRenderer } from '../../render/webgpu/renderer.js'
@@ -174,6 +180,13 @@ it.each(['webgl2', 'webgpu'] as const)(
     await expectPainted(native)
     const before = await displayedPixels(native.canvas)
     const builds = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    const invalidateAll = vi.spyOn(GlyphAtlas.prototype, 'invalidateAll')
+    const clearGlyphs = vi.spyOn(ZigFrameBuilder.prototype, 'clearGlyphs')
+    const submitted = native.renderer.metrics.submittedFrames
+    const rebuilt = native.renderer.metrics.rebuiltRows
+    const builder: unknown = Reflect.get(native.renderer, 'zigBuilder')
+    if (!(builder instanceof ZigFrameBuilder)) throw new Error('Expected the native frame builder')
+    const cleanGlyph = builder.glyphData.slice(GLYPH_INSTANCE_FLOATS)
     const glyphs = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].flatMap((letter) => [
       `\x1b[0m${letter}`,
       `\x1b[1m${letter}`,
@@ -184,12 +197,14 @@ it.each(['webgl2', 'webgpu'] as const)(
       expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
     }
     expect(native.renderer.metrics.atlasEvictions).toBeGreaterThan(0)
-    expect(
-      builds.mock.results.some(
-        (result, index, results) =>
-          result.value === 2 && results[index + 1]?.value === 2 && results[index + 2]?.value === 0,
-      ),
-    ).toBe(true)
+    expect(builds.mock.results.some((result) => result.value === 2)).toBe(true)
+    expect(builds.mock.calls.every(([options]) => !options.full)).toBe(true)
+    expect(invalidateAll).not.toHaveBeenCalled()
+    expect(clearGlyphs).not.toHaveBeenCalled()
+    expect(builder.glyphData.slice(GLYPH_INSTANCE_FLOATS)).toEqual(cleanGlyph)
+    expect(native.renderer.metrics.submittedFrames - submitted).toBe(glyphs.length)
+    // Moving the hidden write cursor also dirties its previous row once.
+    expect(native.renderer.metrics.rebuiltRows - rebuilt).toBeLessThanOrEqual(glyphs.length + 1)
     flush()
     await expectPainted(native)
     const after = await displayedPixels(native.canvas)
@@ -208,8 +223,11 @@ it.each(['webgl2', 'webgpu'] as const)(
 )
 
 it.each(['webgl2', 'webgpu'] as const)(
-  'bounds genuine native atlas exhaustion and returns to exact Zig pixels after shrinking (%s)',
+  'bounds genuine native atlas exhaustion and renders deferred glyphs when the visible set shrinks (%s)',
   async (backend) => {
+    const viewport = { width: window.innerWidth, height: window.innerHeight }
+    onTestFinished(() => page.viewport(viewport.width, viewport.height))
+    await page.viewport(4000, 2100)
     const nativeClock = new TestClock()
     const native = await hostFixture(backend, { columns: 6, rows: 3 }, nativeClock)
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
@@ -241,14 +259,18 @@ it.each(['webgl2', 'webgpu'] as const)(
       })
       .slice(0, 18)
     expect(glyphs).toHaveLength(18)
+    native.host.style.width = `${font.deviceCellWidth * 6}px`
+    native.host.style.height = `${font.deviceCellHeight * 3}px`
     native.renderer.setFont(font)
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
     const readRows = vi.spyOn(native.state, 'readRows')
     const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
     const before = native.renderer.metrics.submittedFrames
-    const uploadOperations = native.renderer.metrics.instanceUploadOperations
-    const atlasUploads = native.renderer.metrics.atlasUploadOperations
     const acknowledge = vi.spyOn(native.state, 'acknowledge')
+    const atlas: unknown = Reflect.get(native.renderer, 'atlas')
+    if (!(atlas instanceof GlyphAtlas)) throw new Error('Expected the renderer atlas')
+    const invalidateAll = vi.spyOn(atlas, 'invalidateAll')
+    const clearGlyphs = vi.spyOn(ZigFrameBuilder.prototype, 'clearGlyphs')
     native.terminal.write(
       '\x1b[?25l' +
         glyphs
@@ -259,30 +281,63 @@ it.each(['webgl2', 'webgpu'] as const)(
           .join(''),
     )
     expect(() => nativeClock.flushFrame()).not.toThrow()
-    expect(native.errors).toEqual([
-      expect.objectContaining({
-        cause: expect.objectContaining({
-          operation: 'frame_builder',
-          message: 'The native frame could not be built after atlas recovery (status 2)',
-        }),
-      }),
-    ])
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 2, 2, 2])
+    await expectPainted(native)
+    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.calls.every(([options]) => !options.full)).toBe(true)
     expect(readRows).not.toHaveBeenCalled()
-    expect(native.renderer.metrics.submittedFrames).toBe(before)
-    expect(native.renderer.metrics.instanceUploadOperations).toBe(uploadOperations)
-    expect(native.renderer.metrics.atlasUploadOperations).toBe(atlasUploads)
-    expect(acknowledge).not.toHaveBeenCalled()
+    expect(native.renderer.metrics.submittedFrames).toBe(before + 1)
+    expect(acknowledge).toHaveBeenCalledTimes(1)
+    expect(native.renderer.metrics.atlasPages).toBe(16)
+    expect(native.renderer.metrics.atlasEvictions).toBe(0)
+    const builder = build.mock.contexts.at(-1)
+    if (!(builder instanceof ZigFrameBuilder)) throw new Error('Expected the native frame builder')
+    const data = builder.glyphData
+    const deferred = Array.from({ length: glyphs.length }, (_, index) => index).filter(
+      (index) => (data[index * GLYPH_INSTANCE_FLOATS + GlyphOffset.Meta]! & GlyphFlag.Glyph) === 0,
+    )
+    expect(deferred).toHaveLength(2)
+    expect(builder.hasDeferredGlyphs).toBe(true)
+    const snapshot = native.terminal.frameSnapshot()!
+    expect(snapshot.rows.map((row) => row.text)).toEqual(
+      Array.from({ length: 3 }, (_, row) =>
+        glyphs
+          .slice(row * 6, row * 6 + 6)
+          .map((glyph) => glyph.text)
+          .join(''),
+      ),
+    )
+    const partialPixels = await native.renderer.capturePixels()
+    expectGlyphPixels(partialPixels)
+    native.terminal.write(
+      deferred.map((index) => `\x1b[${Math.floor(index / 6) + 1};${(index % 6) + 1}H `).join(''),
+    )
+    if (nativeClock.frames.size > 0) nativeClock.flushFrame()
+    await expectPainted(native)
+    expectExactPixels(await native.renderer.capturePixels(), partialPixels)
+    expect(native.renderer.metrics.submittedFrames).toBe(before + 2)
+    expect(acknowledge).toHaveBeenCalledTimes(2)
+    const target = glyphs[deferred[0]!]!
+    native.terminal.write(`\x1b[2J\x1b[H\x1b[${target.weight === 'bold' ? 1 : 0}m${target.text}`)
+    if (nativeClock.frames.size > 0) nativeClock.flushFrame()
+    await expectPainted(native)
+    expect(native.renderer.metrics.submittedFrames).toBe(before + 3)
+    expect(acknowledge).toHaveBeenCalledTimes(3)
+    expect(builder.hasDeferredGlyphs).toBe(false)
+    expect(builder.glyphData[GlyphOffset.Meta]! & GlyphFlag.Glyph).toBe(GlyphFlag.Glyph)
+    expect(native.terminal.visibleLines()[0]?.trimEnd()).toBe(target.text)
+    expect(readRows).not.toHaveBeenCalled()
+    expect(invalidateAll).not.toHaveBeenCalled()
+    expect(clearGlyphs).not.toHaveBeenCalled()
     expect(native.renderer.hasPendingTimer).toBe(false)
     expect(native.terminal.hasPendingFrame).toBe(false)
-    const nativeFrames = native.renderer.metrics.zigFrames
-    native.terminal.write('\x1b[0m\x1b[2J\x1b[Hrecovered')
-    native.renderer.setFont(fittedFont())
+    const recovered = await native.renderer.capturePixels()
+    expectGlyphPixels(recovered)
+    native.renderer.clearTextureAtlas()
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
-    expect(native.renderer.metrics.zigFrames).toBeGreaterThan(nativeFrames)
-    await expectPainted(native, 1)
-    expect(native.terminal.hasPendingTimer).toBe(false)
+    await expectPainted(native)
+    expectExactPixels(await native.renderer.capturePixels(), recovered)
   },
+  30_000,
 )
 
 it.each(['webgl2', 'webgpu'] as const)(
@@ -525,22 +580,35 @@ it('settles rolling ASCII scroll notifications without uploading unchanged nativ
   const native = await hostFixture()
   native.terminal.write('\x1b[?25lsame\r\nsame\r\nsame')
   await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
+  native.terminal.write('\r\nsame')
+  await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
   const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
   const scroll = vi.spyOn(native.renderer, 'notifyScroll')
-  const nativeDraw = vi.spyOn(native.canvas.getContext('webgl2')!, 'drawArraysInstanced')
+  const gl = native.canvas.getContext('webgl2')!
+  const nativeDraw = vi.spyOn(gl, 'drawArraysInstanced')
+  const writes = vi.spyOn(gl, 'bufferSubData')
   const uploaded = native.renderer.metrics.uploadedBytes
   const operations = native.renderer.metrics.instanceUploadOperations
   const submitted = native.renderer.metrics.submittedFrames
   native.terminal.write('\r\nsame')
   await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
   expect(scroll).toHaveBeenCalledOnce()
-  expect(nativeDraw).toHaveBeenCalledTimes(
-    (native.renderer.metrics.submittedFrames - submitted) * 2,
-  )
+  expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
+  expect(nativeDraw).toHaveBeenCalled()
+  expect(writes).not.toHaveBeenCalled()
   expect({
     full: build.mock.calls.map(([options]) => options.full),
     uploadedBytes: native.renderer.metrics.uploadedBytes - uploaded,
     uploadOperations: native.renderer.metrics.instanceUploadOperations - operations,
-  }).toEqual({ full: [false], uploadedBytes: 0, uploadOperations: 0 })
+  }).toEqual({ full: [false], uploadedBytes: 32, uploadOperations: 1 })
   expect(native.errors).toEqual([])
 })
+
+function expectExactPixels(actual: Uint8Array, expected: Uint8Array): void {
+  expect(actual.byteLength).toBe(expected.byteLength)
+  expect(actual.findIndex((value, index) => value !== expected[index])).toBe(-1)
+}
+
+function expectGlyphPixels(pixels: Uint8Array): void {
+  expect(pixels.findIndex((value, index) => value !== pixels[index % 4])).toBeGreaterThanOrEqual(0)
+}

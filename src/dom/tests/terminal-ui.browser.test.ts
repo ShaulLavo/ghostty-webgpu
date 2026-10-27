@@ -7,6 +7,7 @@ import {
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
+import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { TerminalScrollbar } from '../../core/types.js'
 import { GlyphAtlas } from '../../render/shared/atlas/atlas.js'
 import type { CanvasGlyphRasterizer } from '../../render/shared/atlas/canvas-rasterizer.js'
@@ -1916,30 +1917,52 @@ describe('terminal frame consumer demand in Chromium', () => {
       )
       expect(harness.readTextRowsCalls()).toBe(harness.snapshots.length)
       expect(atlas.rowsWithStaleReferences()).toEqual([])
-      const rebuiltRows = renderer.metrics.rebuiltRows
       const styledReads = harness.readRowsCalls()
       const zigFrames = renderer.metrics.zigFrames
+      const acknowledge = vi.spyOn(harness.renderState, 'acknowledge')
+      const invalidateAll = vi.spyOn(atlas, 'invalidateAll')
+      const clearGlyphs = vi.spyOn(ZigFrameBuilder.prototype, 'clearGlyphs')
       harness.terminal.write(`${escape}[1;1H界ABCDE`)
       expect(() => scheduler.flush()).not.toThrow()
-      expect(onError).toHaveBeenCalledExactlyOnceWith(
-        expect.objectContaining({ cause: expect.objectContaining({ operation: 'frame_builder' }) }),
-      )
+      expect(onError).not.toHaveBeenCalled()
+      expect(acknowledge).toHaveBeenCalledTimes(1)
       expect(harness.readRowsCalls()).toBe(styledReads)
-      expect(renderer.metrics.submittedFrames).toBe(submittedFrames + 1)
-      expect(harness.terminal.frameSnapshot()).toBe(snapshot)
+      expect(renderer.metrics.submittedFrames).toBe(submittedFrames + 2)
+      expect(renderer.metrics.zigFrames).toBe(zigFrames + 1)
+      expect(harness.snapshots).toHaveLength(paintedFrames + 2)
+      const overflowSnapshot = harness.terminal.frameSnapshot()!
+      expect(overflowSnapshot).not.toBe(snapshot)
+      expect(overflowSnapshot.rows.slice(0, 2).map((row) => row.text.trimEnd())).toEqual([
+        '界ABCDE',
+        'EEE',
+      ])
+      expect(snapshot.rows.slice(0, 2).map((row) => row.text.trimEnd())).toEqual(['AAA', 'EEE'])
       expect(
         harness.terminal
           .visibleLines()
           .slice(0, 2)
           .map((text) => text.trimEnd()),
-      ).toEqual(['AAA', 'EEE'])
+      ).toEqual(['界ABCDE', 'EEE'])
+      const builder: unknown = Reflect.get(renderer, 'zigBuilder')
+      if (!(builder instanceof ZigFrameBuilder))
+        throw new Error('Expected the native frame builder')
+      expect(builder.hasDeferredGlyphs).toBe(true)
+      const rebuiltRows = renderer.metrics.rebuiltRows
 
       harness.terminal.write(`${escape}[1;1HC${escape}[K`)
       scheduler.flush()
 
-      expect(renderer.metrics.submittedFrames).toBe(submittedFrames + 2)
-      expect(renderer.metrics.zigFrames).toBe(zigFrames + 1)
-      expect(renderer.metrics.rebuiltRows - rebuiltRows).toBe(harness.terminal.appearance.grid.rows)
+      expect(renderer.metrics.submittedFrames).toBe(submittedFrames + 3)
+      expect(renderer.metrics.zigFrames).toBe(zigFrames + 2)
+      // Compaction can move E on the same page as the newly resident C.
+      expect(renderer.metrics.rebuiltRows - rebuiltRows).toBeLessThanOrEqual(2)
+      expect(acknowledge).toHaveBeenCalledTimes(2)
+      expect(harness.snapshots).toHaveLength(paintedFrames + 3)
+      expect(harness.readTextRowsCalls()).toBe(harness.snapshots.length)
+      expect(harness.readRowsCalls()).toBe(styledReads)
+      expect(builder.hasDeferredGlyphs).toBe(false)
+      expect(invalidateAll).not.toHaveBeenCalled()
+      expect(clearGlyphs).not.toHaveBeenCalled()
       expect(
         harness.terminal
           .visibleLines()

@@ -221,6 +221,7 @@ const Frame = extern struct {
     stable_rows: u32,
     stable_allowed: u32,
     row_changes: u32,
+    blinking_rows: u32,
 };
 
 extern "env" fn ghostty_wasm_alloc(len: usize) ?[*]u8;
@@ -246,6 +247,7 @@ const CachedRow = struct {
     id: c.GhosttyRenderStateRowId,
     cells: [*]CachedCell,
     selected: bool = false,
+    blinking: bool = false,
     selection_start: u32 = 0,
     selection_end: u32 = 0,
     cursor: bool = false,
@@ -410,7 +412,7 @@ fn visualStyle(style: c.GhosttyStyle) u32 {
     return @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1) |
         (@as(u32, @intFromBool(style.faint)) << 2) | (@as(u32, @intFromBool(style.inverse)) << 3) |
         (@as(u32, @intFromBool(style.invisible)) << 4) | (@as(u32, @intFromBool(style.strikethrough)) << 5) |
-        (@as(u32, @intFromBool(style.overline)) << 6) | (@as(u32, @intCast(style.underline)) << 8);
+        (@as(u32, @intFromBool(style.overline)) << 6) | (@as(u32, @intFromBool(style.blink)) << 7) | (@as(u32, @intCast(style.underline)) << 8);
 }
 
 fn matchingFrameRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, matches: *bool) c.GhosttyResult {
@@ -566,6 +568,24 @@ export fn bridge_clear_glyphs(index: *glyph_index.Index) void {
     glyph_index.clear(index);
 }
 
+export fn bridge_invalidate_glyph_page(index: *glyph_index.Index, kind: u32, layer: u32, generation: u32) void {
+    glyph_index.invalidatePage(index, kind, layer, generation);
+}
+
+export fn bridge_retry_deferred_glyphs(index: *glyph_index.Index) bool {
+    return glyph_index.retryDeferred(index);
+}
+
+fn rowGlyphsChanged(frame: *Frame, y: u32) bool {
+    const cache = frame.row_cache.?;
+    const row = cache.previous[cache.sources[y]];
+    for (row.cells[0..frame.columns]) |cell| {
+        const key = cell.key orelse continue;
+        if (cell.registration != key.registration) return true;
+    }
+    return false;
+}
+
 fn frameColor(cells: c.GhosttyRenderStateRowCells, field: c.GhosttyRenderStateRowCellsData, out: *u32) c.GhosttyResult {
     var rgb: c.GhosttyColorRgb = undefined;
     const result = c.ghostty_render_state_row_cells_get(cells, field, &rgb);
@@ -637,7 +657,8 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     writeColor(cell[8..12], background, if (draw_background) 1 else 0);
     const flags: u32 = @as(u32, @intFromBool(cursor)) | (@as(u32, @intFromBool(style.overline)) << 1) |
         (@as(u32, @intFromBool(style.strikethrough)) << 2);
-    cell[12] = @floatFromInt(flags);
+    cell[12] = @floatFromInt(flags | (@as(u32, @intFromBool(style.blink)) << 3));
+    if (style.blink and !style.invisible and (style.underline > 0 or style.strikethrough or style.overline)) frame.row_cache.?.next[y].blinking = true;
     cell[13] = @floatFromInt(style.underline);
     cell[14] = if (cursor) @floatFromInt(frame.cursor_style) else 0;
     cell[15] = frame.minimum_contrast;
@@ -671,7 +692,8 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     writeColor(glyph[4..8], foreground, if (style.faint) 0.5 else 1);
     glyph[8..12].* = .{ entry.u0, entry.v0, entry.u1, entry.v1 };
     writeColor(glyph[12..16], background, 1);
-    glyph[16] = 1;
+    glyph[16] = if (style.blink) 3 else 1;
+    if (style.blink) frame.row_cache.?.next[y].blinking = true;
     glyph[18] = frame.minimum_contrast;
     glyph[20] = entry.layer;
     glyph[21] = entry.generation;
@@ -785,6 +807,7 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     if (!has_selection and result != c.GHOSTTY_NO_VALUE) return result;
     const cached = &frame.row_cache.?.next[y];
     cached.appearance = frame.row_cache.?.appearance;
+    cached.blinking = false;
     cached.selected = has_selection;
     cached.selection_start = if (has_selection) selection.start_x else 0;
     cached.selection_end = if (has_selection) selection.end_x else 0;
@@ -827,14 +850,26 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     return c.GHOSTTY_SUCCESS;
 }
 
+fn collectFrameGlyphs(frame: *Frame) bool {
+    const cache = frame.row_cache.?;
+    for (cache.inputs[0 .. frame.columns * frame.rows]) |input| {
+        if (input.key) |key| key.retained = true;
+    }
+    for (cache.rendered[0 .. frame.columns * frame.rows]) |input| {
+        if (input.key) |key| key.retained = true;
+    }
+    return glyph_index.collect(frame.glyph_index);
+}
+
 export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {
     // Grayscale brushes share entries; color histories get eight viewports of headroom.
     const recycle = frame.status != 2 and frame.glyph_index.count >= frame.columns * frame.rows * 8;
     if (recycle) {
-        glyph_index.clear(frame.glyph_index);
+        if (!collectFrameGlyphs(frame)) return c.GHOSTTY_OUT_OF_MEMORY;
         frame.index_rebuilds += 1;
     }
     const rebuild_all = frame.glyph_index.rebuild_all != 0;
+    const residency_changed = frame.glyph_index.residency_changed != 0;
     // A missing-glyph retry must upload cell changes written before registration.
     const retry = frame.status == 2;
     var force = !dirty_only or retry or rebuild_all;
@@ -866,11 +901,14 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
     result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
     if (result != c.GHOSTTY_SUCCESS) return result;
     var y: u32 = 0;
+    frame.blinking_rows = 0;
     while (c.ghostty_render_state_row_iterator_next(it)) : (y += 1) {
+        defer frame.blinking_rows += @intFromBool(cache.next[y].blinking);
         var dirty = false;
         result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
         if (result != c.GHOSTTY_SUCCESS) return result;
         var write = !dirty_only or dirty or rebuild_all or layout_changed;
+        if (residency_changed and !rebuild_all) write = write or rowGlyphsChanged(frame, y);
         if (mask) |m| write = write or (y < mask_len and m[y] != 0);
         write = write or cache.sources[y] != y;
         cache.next[y].cursor = frame.cursor_visible != 0 and frame.cursor_y == y;
@@ -888,6 +926,9 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     std.mem.swap([*]CachedRow, &cache.previous, &cache.next);
-    if (frame.status == 0) frame.glyph_index.rebuild_all = 0;
+    if (frame.status == 0) {
+        frame.glyph_index.rebuild_all = 0;
+        frame.glyph_index.residency_changed = 0;
+    }
     return c.GHOSTTY_SUCCESS;
 }

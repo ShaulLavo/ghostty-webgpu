@@ -592,3 +592,137 @@ it('bounding uploads preserve bit patterns, erasures and authoritative gaps afte
   expect(grid.pass.uploadFrame(frame, [])).toBe(0)
   expect(grid.pass.frameUploadedBytes).toBe(0)
 })
+
+it('grows grayscale storage without reuploading or changing old grayscale and color pixels', async () => {
+  const grid = await createGrid({
+    atlas: new GlyphAtlas({ pageWidth: 18, pageHeight: 18, maxLayersPerKind: 4 }),
+    columns: 3,
+    rows: 1,
+    renderRows: [row(0, [cell(0, { text: 'X' }), cell(2, { text: 'C' })])],
+  })
+  const before = grid.pixels
+  const storage = vi.spyOn(grid.gl, 'texStorage3D')
+  grid.native.state.acknowledge()
+  grid.native.terminal.write('\x1b[1;2HY')
+  grid.native.state.update()
+  expect(
+    buildZigFrame(grid.builder, grid.atlas, rasterizer, { ...grid.frameOptions, full: false }),
+  ).toBe(0)
+  const uploads = grid.atlas.consumeUploads()
+  expect(uploads.map((upload) => [upload.kind, upload.layer])).toEqual([['grayscale', 1]])
+  grid.pass.syncAtlas(uploads)
+  grid.pass.uploadFrame(grid.builder, grid.builder.changedRanges())
+  const after = grid.pass.capturePixels()
+  const pixelOffset = (x: number) => (8 * grid.width + x) * 4
+  expect(after.slice(pixelOffset(8), pixelOffset(8) + 4)).toEqual(
+    before.slice(pixelOffset(8), pixelOffset(8) + 4),
+  )
+  expect(after.slice(pixelOffset(40), pixelOffset(40) + 4)).toEqual(
+    before.slice(pixelOffset(40), pixelOffset(40) + 4),
+  )
+  expect(storage.mock.calls.map((call) => [call[2], call[5]])).toEqual([[grid.gl.R8, 2]])
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})
+
+it('preserves overlapping glyph paint order through both ring draw segments and resize', async () => {
+  const grid = await createGrid({
+    columns: 1,
+    rows: 3,
+    renderRows: [
+      row(0, [cell(0, { text: 'X', foreground: { r: 255, g: 0, b: 0 } })]),
+      row(1, [cell(0, { text: 'X', foreground: { r: 0, g: 255, b: 0 } })]),
+      row(2, [cell(0, { text: 'X', foreground: { r: 0, g: 0, b: 255 } })]),
+    ],
+  })
+  const cellData = grid.builder.cellData.slice()
+  const glyphData = grid.builder.glyphData.slice()
+  for (let y = 0; y < 3; y += 1) {
+    glyphData[y * 24 + 1] = y * cellSize - cellSize / 2
+    glyphData[y * 24 + 3] = cellSize * 2
+    glyphData[y * 24 + 7] = 0.5
+  }
+  const full = [
+    {
+      cell: { byteOffset: 0, byteLength: cellData.byteLength },
+      glyph: { byteOffset: 0, byteLength: glyphData.byteLength },
+    },
+  ]
+  grid.pass.uploadFrame({ cellData, glyphData }, full)
+  const expected = grid.pass.capturePixels()
+  const physicalCells = new Float32Array(cellData.length)
+  const physicalGlyphs = new Float32Array(glyphData.length)
+  for (const offset of [1, 2, 0]) {
+    for (let y = 0; y < 3; y += 1) {
+      const physical = (y + offset) % 3
+      physicalCells.set(cellData.subarray(y * 16, (y + 1) * 16), physical * 16)
+      physicalGlyphs.set(glyphData.subarray(y * 24, (y + 1) * 24), physical * 24)
+      physicalCells[physical * 16 + 1] = 0
+      physicalGlyphs[physical * 24 + 1] = -cellSize / 2
+    }
+    grid.pass.uploadFrame(
+      {
+        cellData: physicalCells,
+        glyphData: physicalGlyphs,
+        stableRows: true,
+        columns: 1,
+        rowHeight: cellSize,
+        rowOffset: offset,
+      },
+      full,
+    )
+    expect(grid.pass.capturePixels()).toEqual(expected)
+  }
+  grid.pass.resize({ width: cellSize, height: cellSize * 3, instanceCount: 3 })
+  grid.pass.uploadFrame({ cellData, glyphData }, full)
+  expect(grid.pass.capturePixels()).toEqual(expected)
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})
+
+it('submits row-offset-only movement without touching the resident instance buffers', async () => {
+  const grid = await createGrid({ columns: 2, rows: 3, renderRows: [] })
+  const frame = {
+    cellData: grid.builder.cellData,
+    glyphData: grid.builder.glyphData,
+    stableRows: true,
+    columns: 2,
+    rowHeight: cellSize,
+    rowOffset: 1,
+  }
+  const writes = vi.spyOn(grid.gl, 'bufferSubData')
+  expect(grid.pass.uploadFrame(frame, [])).toBe(1)
+  expect(grid.pass.frameUploadedBytes).toBe(32)
+  expect(writes).not.toHaveBeenCalled()
+  expect(grid.pass.uploadFrame(frame, [])).toBe(0)
+  expect(grid.pass.frameUploadedBytes).toBe(0)
+  expect(grid.pass.uploadFrame({ ...frame, rowOffset: 2 }, [])).toBe(1)
+  expect(writes).not.toHaveBeenCalled()
+})
+
+it('keeps wrapped scroll uploads sparse and splits distant edit ranges at large clean gaps', async () => {
+  const grid = await createGrid({ columns: 200, rows: 12, renderRows: [] })
+  const frame = {
+    cellData: grid.builder.cellData,
+    glyphData: grid.builder.glyphData,
+    stableRows: true,
+    columns: 200,
+    rowHeight: cellSize,
+    rowOffset: 1,
+  }
+  const nearWrap = [0, 2399].map((index) => ({
+    cell: { byteOffset: index * 64, byteLength: 64 },
+    glyph: { byteOffset: index * 96, byteLength: 96 },
+  }))
+  const writes = vi.spyOn(grid.gl, 'bufferSubData')
+  expect(grid.pass.uploadFrame(frame, nearWrap)).toBe(5)
+  expect(grid.pass.frameUploadedBytes).toBe(352)
+  expect(writes.mock.calls.map((args) => args[1])).toEqual([0, 2399 * 64, 0, 2399 * 96])
+  writes.mockClear()
+  const distantEdits = [0, 1000].map((index) => ({
+    cell: { byteOffset: index * 64, byteLength: 64 },
+    glyph: { byteOffset: index * 96, byteLength: 96 },
+  }))
+  expect(grid.pass.uploadFrame(frame, distantEdits)).toBe(4)
+  expect(grid.pass.frameUploadedBytes).toBe(320)
+  expect(writes.mock.calls.map((args) => args[1])).toEqual([0, 1000 * 64, 0, 1000 * 96])
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})

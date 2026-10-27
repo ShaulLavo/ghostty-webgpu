@@ -10,6 +10,10 @@ if (engine !== 'chromium' && engine !== 'firefox' && engine !== 'webkit')
   throw new Error(`Unsupported GHOSTTY_BROWSER_ENGINE: ${engine}`)
 
 const launchArgs = engine === 'chromium' ? ['--enable-unsafe-webgpu'] : []
+// Headed Retina Chromium otherwise reports native pixels to ResizeObserver at emulated DPR 1.
+if (engine === 'chromium' && hardware && process.platform === 'darwin')
+  launchArgs.push('--force-device-scale-factor=1')
+
 const swiftShader = engine === 'chromium' && process.platform === 'linux' && !hardware
 if (swiftShader) launchArgs.push(...swiftShaderArgs)
 // Full headless Chromium finds no adapter with ANGLE on Vulkan; the headless shell does.

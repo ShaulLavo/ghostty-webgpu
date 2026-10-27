@@ -1,0 +1,213 @@
+diff --git i/bench/renderer-benchmark-entry.ts w/bench/renderer-benchmark-entry.ts
+index c66a4b4ee..881b48911 100644
+--- i/bench/renderer-benchmark-entry.ts
++++ w/bench/renderer-benchmark-entry.ts
+@@ -1,3 +1,5 @@
++import { CanvasGlyphRasterizer } from '../src/render/shared/atlas/canvas-rasterizer.js'
++import { GlyphAtlas } from '../src/render/shared/atlas/atlas.js'
+ import { RenderStateData } from '../src/core/abi.js'
+ import { GhosttyRuntime } from '../src/core/runtime.js'
+ import { fitTerminalFont } from '../src/dom/fit.js'
+@@ -9,6 +11,43 @@ import type {
+   BenchmarkResult,
+ } from './renderer-benchmark-types.js'
+
++const stages = { rasterMilliseconds: 0, rasterCalls: 0, parsedWrites: 0, observerFrames: 0 }
++let rasterDepth = 0
++let lastRasterizer: CanvasGlyphRasterizer | undefined
++let warmupStartMilliseconds = 0
++let warmupMilliseconds = 0
++const prototype = CanvasGlyphRasterizer.prototype
++for (const name of ['rasterize', 'rasterizeBatch'] as const) {
++  const original = prototype[name]
++  if (!original) continue
++  Object.defineProperty(prototype, name, {
++    value: function (this: CanvasGlyphRasterizer, ...args: unknown[]) {
++      lastRasterizer = this
++      const outer = rasterDepth === 0
++      const started = performance.now()
++      rasterDepth += 1
++      try {
++        return Reflect.apply(original, this, args)
++      } finally {
++        rasterDepth -= 1
++        if (outer) {
++          stages.rasterMilliseconds += performance.now() - started
++          stages.rasterCalls += 1
++        }
++      }
++    },
++  })
++}
++const atlasPages = new Map<string, Uint8Array>()
++const consumeUploads = GlyphAtlas.prototype.consumeUploads
++GlyphAtlas.prototype.consumeUploads = function () {
++  const uploads = consumeUploads.call(this)
++  for (const upload of uploads) atlasPages.set(upload.kind + '/' + upload.layer, upload.pixels.slice())
++  return uploads
++}
++let resetAtlas: (() => void) | undefined
++let firstContentMilliseconds = 0
++const startupStarted = performance.now()
+ const parameters = new URL(location.href).searchParams
+ const columns = Number(parameters.get('columns') ?? 200)
+ const rows = Number(parameters.get('rows') ?? 50)
+@@ -151,7 +190,12 @@ async function createNativeDriver(): Promise<Driver> {
+     columns,
+     rows,
+     font,
+-    onFrame: () => {},
++    onFrame: () => {
++      stages.observerFrames += 1
++      if (firstContentMilliseconds !== 0) return
++      firstContentMilliseconds = performance.now() - startupStarted
++      if (parameters.has('asciiWarmup')) requestAnimationFrame(() => requestIdleCallback(warmAscii))
++    },
+     onError: (cause: unknown) => {
+       const message = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)
+       drawErrors.push(message)
+@@ -172,6 +216,7 @@ async function createNativeDriver(): Promise<Driver> {
+   adapterInfo = created.adapter
+   rendererPath = created.path
+   const renderer = created.renderer
++  resetAtlas = () => renderer.clearTextureAtlas()
+   renderer.setCursorBlinkEnabled(false)
+   renderer.setFocused(false)
+   return {
+@@ -184,6 +229,7 @@ async function createNativeDriver(): Promise<Driver> {
+     },
+     metrics: () => ({
+       ...renderer.metrics,
++      ...stages,
+       rowPlanMilliseconds,
+       bridgeMilliseconds,
+       bridgeBuilds,
+@@ -209,6 +255,7 @@ async function createNativeDriver(): Promise<Driver> {
+     },
+     write(data) {
+       terminal.write(data)
++      stages.parsedWrites += 1
+       renderer.notifyWrite()
+     },
+   }
+@@ -272,6 +319,11 @@ function writeLines(count: number): void {
+ }
+
+ function advance(scenario: BenchmarkScenario, step: number): void {
++  if (scenario === 'cold-cache') {
++    resetAtlas?.()
++    write('\x1b[H' + 'ASCII italic \x1b[3mfj\x1b[0m 界e\u0301🧪 👩‍💻\r\n'.repeat(rows))
++    return
++  }
+   if (scenario === 'cursor-movement') {
+     write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
+     return
+@@ -356,8 +408,12 @@ assertNoDrawErrors()
+ assertSelectedRendererPath()
+ window.__rendererBench = {
+   dispose: () => driver.dispose(),
+-  getPageInfo: () => ({
++  getPageInfo: async () => ({
+     adapter: adapterInfo,
++    firstContentMilliseconds,
++    warmupStartMilliseconds,
++    warmupMilliseconds,
++    atlas: await Promise.all(Array.from(atlasPages, async ([key, pixels]) => ({ key, hash: await hashPixels(pixels) }))),
+     backend,
+     rendererPath,
+     columns,
+@@ -375,3 +431,28 @@ window.__rendererBench = {
+   output: () => driver.output(),
+   run,
+ } satisfies RendererBenchmark
++
++async function hashPixels(pixels: Uint8Array): Promise<string> {
++  const digest = await crypto.subtle.digest('SHA-256', Uint8Array.from(pixels))
++  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('')
++}
++
++function warmAscii(): void {
++  const rasterizer = lastRasterizer
++  if (!rasterizer?.rasterizeBatch) return
++  warmupStartMilliseconds = performance.now() - startupStarted
++  const started = performance.now()
++  const styles = [
++    { weight: 'normal', italic: false },
++    { weight: 'bold', italic: false },
++    { weight: 'normal', italic: true },
++    { weight: 'bold', italic: true },
++  ] as const
++  rasterizer.rasterizeBatch(styles.flatMap((style) =>
++    Array.from({ length: 95 }, (_, index) => ({
++      cellSpan: 1, foreground: { r: 255, g: 255, b: 255 },
++      text: String.fromCharCode(32 + index), ...style,
++    })),
++  ))
++  warmupMilliseconds = performance.now() - started
++}
+diff --git i/bench/renderer-benchmark-types.ts w/bench/renderer-benchmark-types.ts
+index fe4d85cf3..cd019b0e0 100644
+--- i/bench/renderer-benchmark-types.ts
++++ w/bench/renderer-benchmark-types.ts
+@@ -15,6 +15,7 @@ export type BenchmarkScenario =
+   | 'sparse-edit'
+   | 'sustained-scroll'
+   | 'glyph-churn'
++  | 'cold-cache'
+
+ export interface BenchmarkResult {
+   callbackMilliseconds: readonly number[]
+diff --git i/scripts/renderer-benchmark.ts w/scripts/renderer-benchmark.ts
+index d3ae63ef3..8a7c13240 100644
+--- i/scripts/renderer-benchmark.ts
++++ w/scripts/renderer-benchmark.ts
+@@ -17,6 +17,7 @@ const allowedScenarios: readonly BenchmarkScenario[] = [
+   'sparse-edit',
+   'sustained-scroll',
+   'glyph-churn',
++  'cold-cache',
+ ]
+ const scenarioNames = (process.env.BENCH_SCENARIOS ?? allowedScenarios.join(',')).split(',')
+ const scenarios = allowedScenarios.filter((scenario) => scenarioNames.includes(scenario))
+@@ -200,7 +201,7 @@ async function measure(
+   try {
+     await routePage(page, bundle, source.root)
+     await page.goto(
+-      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}`,
++      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}${process.env.BENCH_ASCII_WARMUP === '1' && source.label === 'candidate' ? '&asciiWarmup' : ''}`,
+     )
+     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
+     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
+@@ -246,7 +247,7 @@ async function measure(
+     }
+     const pageSession = await page.context().newCDPSession(page)
+     const memory: unknown = await pageSession.send('Runtime.getHeapUsage')
+-    await page.locator('main canvas').screenshot({
++    const screenshot = await page.locator('main canvas').screenshot({
+       path: join(
+         dirname(output),
+         `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
+@@ -270,6 +271,7 @@ async function measure(
+       memory,
+       ...counts,
+       outputSha256: createHash('sha256').update(terminalText).digest('hex'),
++      screenSha256: createHash('sha256').update(screenshot).digest('hex'),
+       callbackMilliseconds: distribution(callbackMilliseconds),
+       writeMilliseconds: distribution(writeMilliseconds),
+     }
+@@ -394,6 +396,15 @@ async function measureSource(
+       'Paired workloads produced different text',
+     )
+   }
++  if (paired) {
++    console.log(JSON.stringify({
++      backend, scenario, repetition,
++      equalScreen: result.screenSha256 === paired.screenSha256,
++      equalAtlas: JSON.stringify(result.info.atlas) === JSON.stringify(paired.info.atlas),
++      rasterMilliseconds: result.metrics.rasterMilliseconds,
++      source: source.label,
++    }))
++  }
+   console.log(
+     `${source.label} ${backend} ${scenario} #${repetition + 1}: ${result.cpu.percentOfOneCore.toFixed(1)}% CPU, callback p95 ${result.callbackMilliseconds.p95.toFixed(2)}ms, ${result.writtenBytes} bytes`,
+   )

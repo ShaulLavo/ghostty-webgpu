@@ -15,6 +15,7 @@ function cellSequence(cell: RenderCell, y: number): string {
   if (style?.bold) codes.push(1)
   if (style?.faint) codes.push(2)
   if (style?.italic) codes.push(3)
+  if (style?.blink) codes.push(5)
   if (style?.inverse) codes.push(7)
   if (style?.invisible) codes.push(8)
   if (style?.strikethrough) codes.push(9)

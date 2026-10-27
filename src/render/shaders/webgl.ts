@@ -1,7 +1,18 @@
 const vertexHeader = `#version 300 es
 precision highp float;
 precision highp int;
+const bool ENABLE_TEXT_BLINK = false;
 uniform vec2 viewport;
+uniform vec4 rowLayout;
+uniform int firstInstance;
+vec2 rowOrigin(vec4 rect) {
+  if (rowLayout.x == 0.0 || rect.w == 0.0) return rect.xy;
+  int columns = int(rowLayout.x);
+  int rows = int(rowLayout.w);
+  int physicalRow = (gl_InstanceID + firstInstance) / columns;
+  int logicalRow = (physicalRow + rows - int(rowLayout.z)) % rows;
+  return vec2(rect.x, float(logicalRow) * rowLayout.y + rect.y);
+}
 const vec2 corners[6] = vec2[6](
   vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0),
   vec2(0.0, 1.0), vec2(1.0, 0.0), vec2(1.0, 1.0)
@@ -15,6 +26,7 @@ vec4 clipPosition(vec2 pixel) {
 const fragmentHeader = `#version 300 es
 precision highp float;
 precision highp int;
+const bool ENABLE_TEXT_BLINK = false;
 out vec4 outputColor;
 
 float srgbChannelToLinear(float value) {
@@ -60,7 +72,7 @@ flat out vec2 v_size;
 
 void main() {
   vec2 local = corners[gl_VertexID] * rect.zw;
-  gl_Position = clipPosition(rect.xy + local);
+  gl_Position = clipPosition(rowOrigin(rect) + local);
   v_foreground = foreground;
   v_background = background;
   v_metadata = metadata;
@@ -70,6 +82,7 @@ void main() {
 `
 
 export const cellFragmentShader = `${fragmentHeader}
+uniform float textHidden;
 flat in vec4 v_foreground;
 flat in vec4 v_background;
 flat in vec4 v_metadata;
@@ -116,6 +129,7 @@ float cursorCoverage(uint flags, uint style, vec2 local, vec2 size) {
 void main() {
   uint flags = uint(v_metadata.x);
   float decoration = decorationCoverage(flags, uint(v_metadata.y), v_local, v_size);
+  if (ENABLE_TEXT_BLINK && hasFlag(flags, 8u) && textHidden > 0.5) decoration = 0.0;
   float cursor = cursorCoverage(flags, uint(v_metadata.z), v_local, v_size);
   float effectAlpha = max(decoration, cursor) * v_foreground.a;
   vec3 adjusted = contrastColor(v_foreground.rgb, v_background.rgb, v_metadata.w);
@@ -132,6 +146,7 @@ layout(location = 2) in vec4 uv;
 layout(location = 3) in vec4 background;
 layout(location = 4) in vec4 attributes;
 layout(location = 5) in vec4 atlas;
+uniform float textHidden;
 flat out vec4 v_color;
 out vec2 v_uv;
 flat out vec4 v_background;
@@ -140,7 +155,9 @@ flat out vec4 v_atlas;
 
 void main() {
   vec2 corner = corners[gl_VertexID];
-  gl_Position = clipPosition(rect.xy + corner * rect.zw);
+  bool hidden = ENABLE_TEXT_BLINK && (uint(attributes.x) & 2u) != 0u && textHidden > 0.5;
+  vec2 size = hidden ? vec2(0.0) : rect.zw;
+  gl_Position = clipPosition(rowOrigin(rect) + corner * size);
   v_color = color;
   v_uv = mix(uv.xy, uv.zw, corner);
   v_background = background;

@@ -31,6 +31,8 @@ export interface AtlasInsertResult {
   invalidatedRows: readonly number[]
 }
 
+export type AtlasPageIdentity = Pick<AtlasGlyph, 'generation' | 'kind' | 'layer'>
+
 export interface AtlasPageUpload {
   bytesPerRow: number
   dataOffset: number

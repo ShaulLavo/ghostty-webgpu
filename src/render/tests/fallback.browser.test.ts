@@ -7,7 +7,15 @@ import {
   createCompatibleTerminalRenderer,
   type CompatibleTerminalRenderer,
 } from '../shared/selector.js'
-import { TestClock, TestRenderState, cell, fittedFont, rgb, row } from '../webgl/tests/fixture.js'
+import {
+  TestClock,
+  TestRenderState,
+  cell,
+  fittedFont,
+  rgb,
+  row,
+  style,
+} from '../webgl/tests/fixture.js'
 
 const canvases = new Set<HTMLCanvasElement>()
 const renderers = new Set<CompatibleTerminalRenderer>()
@@ -198,4 +206,24 @@ describe('managed renderer fallback', () => {
     expect(onError).toHaveBeenCalledOnce()
     expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
   })
+})
+
+it('reapplies reduced motion changed while a replacement renderer is opening', async () => {
+  const source = new TestRenderState([
+    row(0, [cell(0, { text: 'A', style: style({ blink: true }) })]),
+  ])
+  const { canvas, clock, renderer } = await fixture(source, { textBlink: true })
+  renderer.setFocused(true)
+  clock.flushFrame()
+  expect(clock.timers.size).toBe(1)
+  const createCanvasRenderer = CanvasTerminalRenderer.create.bind(CanvasTerminalRenderer)
+  vi.spyOn(CanvasTerminalRenderer, 'create').mockImplementation(async (options) => {
+    const replacement = await createCanvasRenderer(options)
+    renderer.setReducedMotion(true)
+    return replacement
+  })
+  await loseContext(canvas)
+  await vi.waitFor(() => expect(renderer.backend).toBe('canvas2d'))
+  clock.flushFrame()
+  expect(clock.timers.size).toBe(0)
 })

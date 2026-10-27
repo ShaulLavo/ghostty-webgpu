@@ -119,6 +119,7 @@ export class LocalTerminalExecution {
       schedule: () => this.rendererValue?.schedule(),
       setCursorBlinkEnabled: (enabled) => this.rendererValue?.setCursorBlinkEnabled(enabled),
       setDocumentVisible: (visible) => this.rendererValue?.setDocumentVisible(visible),
+      setReducedMotion: (reduced) => this.rendererValue?.setReducedMotion?.(reduced),
       setFocused: (focused) => this.rendererValue?.setFocused(focused),
       setInactiveCursorStyle: (style) => this.rendererValue?.setInactiveCursorStyle?.(style),
       setFont: (font) => this.rendererValue?.setFont(font),
