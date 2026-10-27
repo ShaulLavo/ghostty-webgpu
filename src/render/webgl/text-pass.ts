@@ -69,7 +69,8 @@ export class WebGlTextPass {
   private readonly atlasLayout: AtlasTextureLayout
   private readonly cells: Pipeline
   private readonly glyphs: Pipeline
-  private readonly textures: Readonly<Record<AtlasKind, WebGLTexture>>
+  private readonly textures: Record<AtlasKind, WebGLTexture>
+  private readonly textureLayers: Record<AtlasKind, number> = { color: 1, grayscale: 1 }
   private atlasUploadedBytesValue = 0
   private atlasUploadOperationsValue = 0
   private frameUploadedBytesValue = 0
@@ -116,6 +117,13 @@ export class WebGlTextPass {
   syncAtlas(uploads: readonly AtlasPageUpload[]): void {
     this.ensureActive()
     if (uploads.length === 0) return
+    for (const kind of ['grayscale', 'color'] as const) {
+      const required = uploads.reduce(
+        (count, upload) => (upload.kind === kind ? Math.max(count, upload.layer + 1) : count),
+        1,
+      )
+      if (required > this.textureLayers[kind]) this.growAtlasTexture(kind, required)
+    }
     const gl = this.context
     gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null)
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
@@ -275,7 +283,7 @@ export class WebGlTextPass {
     gl.uniform2f(this.uniform(pipeline.program, 'viewport'), this.width, this.height)
   }
 
-  private createAtlasTexture(kind: AtlasKind): WebGLTexture {
+  private createAtlasTexture(kind: AtlasKind, layers = 1): WebGLTexture {
     const gl = this.context
     const texture = this.own(gl.createTexture(), (resource) => gl.deleteTexture(resource))
     const target = gl.TEXTURE_2D_ARRAY
@@ -286,13 +294,49 @@ export class WebGlTextPass {
       kind === 'grayscale' ? gl.R8 : gl.RGBA8,
       this.atlasLayout.pageWidth,
       this.atlasLayout.pageHeight,
-      this.atlasLayout.layerCount,
+      layers,
     )
     gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     return texture
+  }
+
+  private growAtlasTexture(kind: AtlasKind, required: number): void {
+    if (required > this.atlasLayout.layerCount)
+      throw new RangeError('Atlas upload layer is outside texture-array capacity')
+    const gl = this.context
+    const previous = this.textures[kind]
+    const previousLayers = this.textureLayers[kind]
+    const layers = Math.min(this.atlasLayout.layerCount, Math.max(required, previousLayers * 2))
+    const next = this.createAtlasTexture(kind, layers)
+    const framebuffer = gl.createFramebuffer()
+    if (!framebuffer) throw new WebGlUnavailableError('allocation', 'Unable to copy the atlas')
+    try {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer)
+      for (let layer = 0; layer < previousLayers; layer += 1) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, previous, 0, layer)
+        gl.copyTexSubImage3D(
+          gl.TEXTURE_2D_ARRAY,
+          0,
+          0,
+          0,
+          layer,
+          0,
+          0,
+          this.atlasLayout.pageWidth,
+          this.atlasLayout.pageHeight,
+        )
+      }
+      this.assertNoError('Atlas growth')
+    } finally {
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null)
+      gl.deleteFramebuffer(framebuffer)
+    }
+    gl.deleteTexture(previous)
+    this.textures[kind] = next
+    this.textureLayers[kind] = layers
   }
 
   private configureSamplers(): void {

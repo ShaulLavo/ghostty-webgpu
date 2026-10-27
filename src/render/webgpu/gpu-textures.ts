@@ -1,6 +1,7 @@
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
 
 interface OwnedTexture {
+  layers: number
   texture: GPUTexture
   view: GPUTextureView
 }
@@ -27,12 +28,13 @@ function createTexture(
   device: GPUDevice,
   kind: AtlasKind,
   layout: AtlasTextureLayout,
+  layers = 1,
 ): OwnedTexture {
   const texture = device.createTexture({
     dimension: '2d',
     format: formatForKind(kind),
     size: {
-      depthOrArrayLayers: layout.layerCount,
+      depthOrArrayLayers: layers,
       height: layout.pageHeight,
       width: layout.pageWidth,
     },
@@ -40,11 +42,11 @@ function createTexture(
   })
   try {
     const view = texture.createView({
-      arrayLayerCount: layout.layerCount,
+      arrayLayerCount: layers,
       baseArrayLayer: 0,
       dimension: '2d-array',
     })
-    return { texture, view }
+    return { layers, texture, view }
   } catch (cause) {
     texture.destroy()
     throw cause
@@ -57,6 +59,7 @@ export class AtlasGpuTextures {
   private readonly textures: Record<AtlasKind, OwnedTexture>
   private uploadBytesValue = 0
   private uploadOperationCountValue = 0
+  private textureCreationCountValue = 2
 
   constructor(device: GPUDevice, layout: AtlasTextureLayout) {
     validateLayout(device, layout)
@@ -72,7 +75,7 @@ export class AtlasGpuTextures {
   }
 
   get textureCreationCount(): number {
-    return 2
+    return this.textureCreationCountValue
   }
 
   get uploadBytes(): number {
@@ -83,8 +86,19 @@ export class AtlasGpuTextures {
     return this.uploadOperationCountValue
   }
 
-  sync(uploads: readonly AtlasPageUpload[]): void {
+  sync(uploads: readonly AtlasPageUpload[]): boolean {
+    let changed = false
+    for (const kind of ['grayscale', 'color'] as const) {
+      const required = uploads.reduce(
+        (count, upload) => (upload.kind === kind ? Math.max(count, upload.layer + 1) : count),
+        1,
+      )
+      if (required <= this.textures[kind].layers) continue
+      this.grow(kind, required)
+      changed = true
+    }
     for (const upload of uploads) this.syncPage(upload)
+    return changed
   }
 
   texture(kind: AtlasKind): GPUTexture {
@@ -98,6 +112,28 @@ export class AtlasGpuTextures {
   destroy(): void {
     this.textures.grayscale.texture.destroy()
     this.textures.color.texture.destroy()
+  }
+
+  private grow(kind: AtlasKind, required: number): void {
+    if (required > this.layout.layerCount)
+      throw new RangeError('atlas upload layer is outside texture-array capacity')
+    const previous = this.textures[kind]
+    const layers = Math.min(this.layout.layerCount, Math.max(required, previous.layers * 2))
+    const next = createTexture(this.device, kind, this.layout, layers)
+    const encoder = this.device.createCommandEncoder()
+    encoder.copyTextureToTexture(
+      { texture: previous.texture },
+      { texture: next.texture },
+      {
+        width: this.layout.pageWidth,
+        height: this.layout.pageHeight,
+        depthOrArrayLayers: previous.layers,
+      },
+    )
+    this.device.queue.submit([encoder.finish()])
+    previous.texture.destroy()
+    this.textures[kind] = next
+    this.textureCreationCountValue += 1
   }
 
   private syncPage(upload: AtlasPageUpload): void {

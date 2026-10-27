@@ -6,6 +6,7 @@ import {
   qualifyDeviceReplacement,
   type DeviceReplacementQualification,
 } from './adapter-qualification.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { FrameObserver } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -682,7 +683,23 @@ it('recovers through a replacement device and submits a full repaint', async ({ 
     rows: 2,
     schedulerClock: clock,
   })
+  const atlas: unknown = Reflect.get(renderer, 'atlas')
+  if (!(atlas instanceof GlyphAtlas)) throw new Error('Expected the renderer atlas')
+  for (let index = 0; index < 3; index += 1)
+    atlas.getOrInsert(
+      `seed-${index}`,
+      {
+        kind: 'grayscale',
+        width: 510,
+        height: 510,
+        offsetX: 0,
+        offsetY: 0,
+        pixels: new Uint8Array(510 * 510),
+      },
+      -1,
+    )
   clock.flushFrame()
+  const beforePixels = await renderer.capturePixels()
   const uploadedBeforeRestore = renderer.metrics.atlasUploadedBytes
   const operationsBeforeRestore = renderer.metrics.atlasUploadOperations
   await renderer.simulateDeviceLoss()
@@ -693,8 +710,9 @@ it('recovers through a replacement device and submits a full repaint', async ({ 
 
   expect(renderer.metrics.submittedFrames).toBe(2)
   expect(renderer.metrics.rebuiltRows).toBe(4)
-  expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 512 * 512)
-  expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 1)
+  expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 4 * 512 * 512)
+  expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 4)
+  expect(await renderer.capturePixels()).toEqual(beforePixels)
   renderer.dispose()
   canvas.remove()
 })

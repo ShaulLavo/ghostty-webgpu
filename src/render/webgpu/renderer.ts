@@ -522,7 +522,8 @@ export class WebGpuTerminalRenderer {
     }
     const updates = builder.changedRanges()
     const rebuiltRows = builder.rowRebuilds
-    this.atlasTextures.sync(this.atlas.consumeUploads())
+    if (this.atlasTextures.sync(this.atlas.consumeUploads()))
+      this.textPass.syncAtlas(this.atlasTextures)
     const operations = this.textPass.uploadFrame(builder, updates)
     if (!this.coordinator) {
       try {

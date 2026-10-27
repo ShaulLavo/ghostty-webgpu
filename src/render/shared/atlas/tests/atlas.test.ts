@@ -184,3 +184,25 @@ describe('GlyphAtlas', () => {
     expect(cached.generation).toBe(glyph.generation)
   })
 })
+
+it('compacts a fragmented page while retaining its pinned glyphs and the other page', () => {
+  const atlas = new GlyphAtlas({ maxLayersPerKind: 2, padding: 0, pageWidth: 8, pageHeight: 4 })
+  const entries = Array.from(
+    'ABCD',
+    (key, index) => atlas.getOrInsert(key, bitmap('grayscale', index + 1, 4), 0).glyph,
+  )
+  atlas.consumeUploads()
+  atlas.beginFrame()
+  for (const glyph of entries.slice(0, 3)) expect(atlas.touchGlyph(glyph, 0)).toBe(true)
+  const result = atlas.tryGetOrInsert('E', bitmap('grayscale', 5, 4), 0)
+  atlas.endFrame()
+  expect(result?.glyph.layer).toBe(1)
+  expect(atlas.touchGlyph(entries[0]!, 0)).toBe(true)
+  expect(atlas.touchGlyph(entries[2]!, 0)).toBe(false)
+  expect(atlas.getOrInsert('C', bitmap('grayscale', 3, 4), 0).glyph.generation).toBe(2)
+  expect(atlas.evictionCount).toBe(1)
+  const uploads = atlas.consumeUploads()
+  expect(uploads).toHaveLength(1)
+  expect(uploads[0]?.layer).toBe(1)
+  expect(uploads[0]?.pixels.slice(0, 8)).toEqual(Uint8Array.from([3, 3, 3, 3, 5, 5, 5, 5]))
+})

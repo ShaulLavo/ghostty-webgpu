@@ -54,6 +54,8 @@ async function validateWasm(path: string): Promise<void> {
     'bridge_create_glyph_index',
     'bridge_destroy_glyph_index',
     'bridge_clear_glyphs',
+    'bridge_invalidate_glyph_page',
+    'bridge_retry_deferred_glyphs',
   ]) {
     if (exports.has(name)) continue
     throw new BridgeBuildError(`Generated bridge is missing export: ${name}`)

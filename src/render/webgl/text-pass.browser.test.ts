@@ -592,3 +592,34 @@ it('bounding uploads preserve bit patterns, erasures and authoritative gaps afte
   expect(grid.pass.uploadFrame(frame, [])).toBe(0)
   expect(grid.pass.frameUploadedBytes).toBe(0)
 })
+
+it('grows grayscale storage without reuploading or changing old grayscale and color pixels', async () => {
+  const grid = await createGrid({
+    atlas: new GlyphAtlas({ pageWidth: 18, pageHeight: 18, maxLayersPerKind: 4 }),
+    columns: 3,
+    rows: 1,
+    renderRows: [row(0, [cell(0, { text: 'X' }), cell(2, { text: 'C' })])],
+  })
+  const before = grid.pixels
+  const storage = vi.spyOn(grid.gl, 'texStorage3D')
+  grid.native.state.acknowledge()
+  grid.native.terminal.write('\x1b[1;2HY')
+  grid.native.state.update()
+  expect(
+    buildZigFrame(grid.builder, grid.atlas, rasterizer, { ...grid.frameOptions, full: false }),
+  ).toBe(0)
+  const uploads = grid.atlas.consumeUploads()
+  expect(uploads.map((upload) => [upload.kind, upload.layer])).toEqual([['grayscale', 1]])
+  grid.pass.syncAtlas(uploads)
+  grid.pass.uploadFrame(grid.builder, grid.builder.changedRanges())
+  const after = grid.pass.capturePixels()
+  const pixelOffset = (x: number) => (8 * grid.width + x) * 4
+  expect(after.slice(pixelOffset(8), pixelOffset(8) + 4)).toEqual(
+    before.slice(pixelOffset(8), pixelOffset(8) + 4),
+  )
+  expect(after.slice(pixelOffset(40), pixelOffset(40) + 4)).toEqual(
+    before.slice(pixelOffset(40), pixelOffset(40) + 4),
+  )
+  expect(storage.mock.calls.map((call) => [call[2], call[5]])).toEqual([[grid.gl.R8, 2]])
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})

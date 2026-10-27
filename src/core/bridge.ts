@@ -282,6 +282,14 @@ export class CallbackBridge {
     this.bridgeExports!.bridge_clear_glyphs(index)
   }
 
+  invalidateGlyphPage(index: number, kind: number, layer: number, generation: number): void {
+    this.bridgeExports!.bridge_invalidate_glyph_page(index, kind, layer, generation)
+  }
+
+  retryDeferredGlyphs(index: number): boolean {
+    return this.bridgeExports!.bridge_retry_deferred_glyphs(index) !== 0
+  }
+
   dispose(): void {
     this.memory.free(this.stackPointer, 65536)
   }

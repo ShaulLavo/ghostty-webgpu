@@ -532,13 +532,12 @@ describe('WebGL native atlas residency', () => {
     expect(replacement.invalidatedRows).toEqual([zigGlyphRow])
     expect(atlas.evictionCount).toBe(1)
     const clearGlyphs = vi.spyOn(builder, 'clearGlyphs')
-    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(false)
+    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(true)
     expect(builder.build(options)).toBe(2)
-    // The replacement owns row zero, so a missing native glyph must reject its eviction too.
-    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(false)
-    expect(clearGlyphs).toHaveBeenCalledTimes(2)
-    expect(builder.build(options)).toBe(2)
-    expect(builder.missingGlyphs.map((key) => builder.glyphInput(key).text)).toContain('M')
+    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(true)
+    expect(clearGlyphs).not.toHaveBeenCalled()
+    expect(builder.build(options)).toBe(0)
+    expect(builder.missingGlyphs).toEqual([])
   })
 
   it('rebuilds native pixels after clearing the atlas and changing the fitted font', async () => {
@@ -609,7 +608,7 @@ function flushPendingFrames(clock: TestClock): void {
   expect(clock.frames.size).toBe(0)
 }
 
-it('preserves active native pixels across a full-atlas recycle and bounded empty-atlas rebuild', async ({
+it('preserves active native pixels while recycling only the evicted layer', async ({
   onTestFinished,
 }) => {
   const viewport = { width: window.innerWidth, height: window.innerHeight }
@@ -625,7 +624,7 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
   const fitted = fittedFont(400, 650, 650)
   const font = { ...fitted, settings: { ...fitted.settings, family: 'AtlasResidencyTest' } }
   writeFrame(nativeSource, '\x1b[?25lM\x1b[2;1HA')
-  const insertions = vi.spyOn(GlyphAtlas.prototype, 'getOrInsert')
+  const insertions = vi.spyOn(GlyphAtlas.prototype, 'tryGetOrInsert')
   const native = await rendererFixture(nativeSource, { font })
   flushPendingFrames(native.clock)
   const nativeM = atlasInsertion(insertions, 0, JSON.stringify([1, 'normal', false, 'M']))?.glyph
@@ -698,26 +697,35 @@ it('preserves active native pixels across a full-atlas recycle and bounded empty
   expectPixelsEqual(finalPixels.subarray(0, rowBytes), warmPixels.subarray(0, rowBytes))
   expect(nativeFirstEviction.glyph.layer).not.toBe(nativeM.layer)
   expect(native.renderer.metrics.atlasEvictions - warm.native.atlasEvictions).toBe(1)
-  expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(3)
-  expect(native.renderer.metrics.atlasUploadOperations - warm.native.atlasUploadOperations).toBe(16)
+  expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(1)
+  expect(native.renderer.metrics.atlasUploadOperations - warm.native.atlasUploadOperations).toBe(1)
   expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(
-    16 * 512 * 512,
+    512 * 512,
   )
-  expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0, 0, 0, 2, 2, 0])
+  expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0, 0, 0, 2, 0])
   expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
   expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches.mock.calls).toEqual([
-    [{ generation: nativeM.generation, kind: 'grayscale', layer: nativeM.layer }, zigGlyphRow],
+    [
+      {
+        generation: nativeM.generation,
+        kind: 'grayscale',
+        layer: nativeM.layer,
+        x: nativeM.x,
+        y: nativeM.y,
+      },
+      zigGlyphRow,
+    ],
   ])
 }, 20_000)
 
 function atlasInsertion(
-  insertions: MockInstance<GlyphAtlas['getOrInsert']>,
+  insertions: MockInstance<GlyphAtlas['tryGetOrInsert']>,
   start: number,
   key: string,
 ): AtlasInsertResult | undefined {
   for (const result of insertions.mock.results.slice(start)) {
     if (result.type !== 'return') continue
-    if (result.value.glyph.key === key) return result.value
+    if (result.value?.glyph.key === key) return result.value
   }
 }
