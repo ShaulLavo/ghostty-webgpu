@@ -109,7 +109,7 @@ describe.each(['main', 'worker'] as const)('%s packaged native selection', (mode
     expect(await terminal.getSelection()).toBeUndefined()
     await terminal.write('\x1b[?1000h\x1b[?1006h')
     const output: string[] = []
-    terminal.onData((data) => output.push(new TextDecoder().decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
     const down = pointer(terminal, 'pointerdown', 1, 1)
     expect(down.defaultPrevented).toBe(true)
     expect(terminal.diagnostics.pointerOwner).toBe('mouse')

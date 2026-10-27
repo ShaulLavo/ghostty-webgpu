@@ -28,7 +28,7 @@ terminal.write('hello from ghostty\r\n')
 
 - **One terminal state.** Ghostty owns parsing, cell widths, and history. Selection, text reads, and every renderer read that same state.
 - **Four renderers with fallback.** The terminal picks WebGPU or WebGL2, then Canvas 2D, then the DOM. Damage tracking redraws only what changed.
-- **Bytes in, bytes out.** `write()` accepts bytes and `onData()` emits bytes, so a WebSocket PTY needs no translation layer.
+- **Bytes in, labeled bytes out.** `write()` accepts bytes and `onData()` emits `{ bytes, origin }`, so a WebSocket PTY needs no translation layer and applications can distinguish terminal replies from input.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ShaulLavo/ghostty-webgpu/main/docs/assets/architecture.dark.svg">

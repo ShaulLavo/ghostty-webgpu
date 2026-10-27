@@ -31,7 +31,7 @@ await terminal.open(host)
 const socket = new WebSocket('wss://example.com/pty')
 socket.binaryType = 'arraybuffer'
 
-terminal.onData((bytes) => {
+terminal.onData(({ bytes }) => {
   if (socket.readyState !== WebSocket.OPEN) return
   socket.send(bytes)
 })
@@ -91,7 +91,7 @@ export function openPty(send) {
     rows: 24,
     encoding: null,
   })
-  terminal.onData((bytes) => send(bytes))
+  terminal.onData(({ bytes }) => send(bytes))
   return {
     write: (bytes) => terminal.write(Buffer.from(bytes)),
     resize: (cols, rows) => terminal.resize(cols, rows),

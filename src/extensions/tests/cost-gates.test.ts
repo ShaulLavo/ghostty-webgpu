@@ -93,7 +93,7 @@ describe('manager-only extension cost gates', () => {
       })
       manager.emit('data', () => {
         payloads.data += 1
-        return new Uint8Array([97])
+        return { bytes: new Uint8Array([97]), origin: 'input' }
       })
       manager.emit('resize', () => {
         payloads.resize += 1
@@ -238,7 +238,7 @@ describe('manager-only extension cost gates', () => {
       })
       manager.emit('data', () => {
         payloads.data += 1
-        return new Uint8Array([97])
+        return { bytes: new Uint8Array([97]), origin: 'input' }
       })
       manager.emit('resize', () => {
         payloads.resize += 1

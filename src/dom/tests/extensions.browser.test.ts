@@ -91,7 +91,7 @@ describe('public extension interest costs', () => {
       })
       terminal.use({ name: 'seed', setup: () => ({}) }).dispose()
       const data: string[] = []
-      terminal.onData((bytes) => data.push(decoder.decode(bytes)))
+      terminal.onData(({ bytes }) => data.push(decoder.decode(bytes)))
       const inputInterest = vi.spyOn(ExtensionManager.prototype, 'hasInput', 'get')
       const eventInterest = vi.spyOn(ExtensionManager.prototype, 'hasEvent')
       const inputDispatch = vi.spyOn(ExtensionManager.prototype, 'dispatchInput')
@@ -409,7 +409,7 @@ describe('public extension activation', () => {
     ).toThrow('Custom OSC observation is unavailable')
     expect(cleaned).toBe(1)
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     press(terminal)
     expect(output).toEqual(['a'])
   })
@@ -419,7 +419,7 @@ describe('public extension activation', () => {
     async (order) => {
       const terminal = await openTerminal()
       const output: string[] = []
-      terminal.onData((data) => output.push(decoder.decode(data)))
+      terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
       compose(terminal, '中', order)
       expect(output).toEqual(['中'])
     },
@@ -442,7 +442,7 @@ describe('public extension activation', () => {
   it('observes a known-good native key and lets an extension claim before any PTY output', async () => {
     const control = await openTerminal()
     const controlOutput: string[] = []
-    control.onData((data) => controlOutput.push(decoder.decode(data)))
+    control.onData(({ bytes: data }) => controlOutput.push(decoder.decode(data)))
     press(control)
     expect(controlOutput).toEqual(['a'])
     const claimed: KeyboardEvent[] = []
@@ -460,7 +460,7 @@ describe('public extension activation', () => {
       ],
     })
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     const event = press(terminal)
     expect(claimed).toEqual([event])
     expect(event.defaultPrevented).toBe(true)
@@ -497,7 +497,7 @@ describe('public extension activation', () => {
         return claim ? 'claim' : 'pass'
       })
       const output: string[] = []
-      terminal.onData((data) => output.push(decoder.decode(data)))
+      terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
       if (active) terminal.textarea!.dispatchEvent(new CompositionEvent('compositionstart'))
       for (const ownership of [false, true]) {
         claim = ownership
@@ -675,7 +675,7 @@ describe('public extension activation', () => {
       ],
     })
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     const clipboardData = new DataTransfer()
     clipboardData.setData('text/plain', 'paste\ntext')
     const paste = new ClipboardEvent('paste', { clipboardData, cancelable: true })
@@ -725,7 +725,7 @@ describe('public extension activation', () => {
         ],
       })
       const output: string[] = []
-      terminal.onData((data) => output.push(decoder.decode(data)))
+      terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
       compose(terminal, '中', order)
       expect(inputs).toEqual([{ type: 'composition', text: '中' }])
       expect(output).toEqual([])
@@ -739,7 +739,7 @@ describe('public extension activation', () => {
       terminal.focus()
       const textarea = terminal.textarea!
       const output: string[] = []
-      terminal.onData((data) => output.push(decoder.decode(data)))
+      terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
       textarea.dispatchEvent(new CompositionEvent('compositionstart'))
       textarea.value = '中'
       textarea.dispatchEvent(
@@ -789,7 +789,7 @@ describe('public extension activation', () => {
         ],
       })
       const output: string[] = []
-      terminal.onData((data) => output.push(decoder.decode(data)))
+      terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
       const textarea = terminal.textarea!
       textarea.dispatchEvent(new CompositionEvent('compositionstart'))
       textarea.value = '中'
@@ -835,7 +835,7 @@ describe('public extension activation', () => {
       ],
     })
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     compose(terminal, '中', 'end-only')
     const textarea = terminal.textarea!
     textarea.value = '中'
@@ -852,7 +852,7 @@ describe('public extension activation', () => {
     async (later) => {
       const terminal = await openTerminal()
       const output: string[] = []
-      terminal.onData((data) => output.push(decoder.decode(data)))
+      terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
       const textarea = terminal.textarea!
       textarea.dispatchEvent(new CompositionEvent('compositionstart'))
       textarea.value = '中'
@@ -881,7 +881,7 @@ describe('public extension activation', () => {
   it('consumes the genuine composition final tail once and preserves a later identical text action', async () => {
     const terminal = await openTerminal()
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     compose(terminal, '中', 'end-only')
     const textarea = terminal.textarea!
     const tail = new InputEvent('input', { data: '中', inputType: 'insertCompositionText' })
@@ -897,7 +897,7 @@ describe('public extension activation', () => {
   it('preserves a later ordinary key with the same text as the previous composition', async () => {
     const terminal = await openTerminal()
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     compose(terminal, '中', 'end-first')
     press(terminal, '中')
     expect(output).toEqual(['中', '中'])
@@ -919,7 +919,7 @@ describe('public extension activation', () => {
       ],
     })
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     terminal.write('\x1b[?2004h')
     terminal.paste('a\nb')
     expect(output).toEqual(['\x1b[200~a\nb\x1b[201~'])
@@ -1005,7 +1005,7 @@ describe('public extension activation', () => {
       }),
     })
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     press(terminal)
     first.dispose()
     second.dispose()
@@ -1032,7 +1032,7 @@ describe('public extension activation', () => {
       }),
     })
     const output: string[] = []
-    terminal.onData((data) => output.push(decoder.decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(decoder.decode(data)))
     const event = press(terminal)
     expect(terminal.lifecycle).toBe('disposed')
     expect(event.defaultPrevented).toBe(true)
@@ -1270,7 +1270,7 @@ describe('public worker extension integration', () => {
     await terminal.open(workerContainer())
     const received: TerminalInputEvent[] = []
     const output: string[] = []
-    terminal.onData((data) => output.push(new TextDecoder().decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
     await terminal.use({
       name: 'original worker input',
       setup: () => ({
@@ -1338,7 +1338,7 @@ describe('finite original input ownership', () => {
     const terminal = await openTerminal()
     const order: string[] = []
     const output: string[] = []
-    terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+    terminal.onData(({ bytes }) => output.push(decoder.decode(bytes)))
     terminal.use({
       name: 'general input',
       setup: () => ({
@@ -1368,7 +1368,7 @@ describe('finite original input ownership', () => {
   it('rejects a second finite owner and keeps old disposal from clearing a replacement', async () => {
     const terminal = await openTerminal()
     const output: string[] = []
-    terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+    terminal.onData(({ bytes }) => output.push(decoder.decode(bytes)))
     const first = terminal.connectInput(() => 'claim')
     expect(() => terminal.connectInput(() => 'pass')).toThrow('already has an owner')
     press(terminal)
@@ -1394,7 +1394,7 @@ describe('finite original input ownership', () => {
       const terminal = await openTerminal()
       const output: string[] = []
       const general = vi.fn(() => 'pass' as const)
-      terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+      terminal.onData(({ bytes }) => output.push(decoder.decode(bytes)))
       terminal.use({ name: 'general after finite', setup: () => ({ input: general }) })
       const connection = terminal.connectInput(() => {
         if (target === 'terminal') terminal.dispose()
@@ -1428,7 +1428,7 @@ describe('finite original input ownership', () => {
     const terminal = await openTerminal()
     const seen: TerminalInputEvent[] = []
     const output: string[] = []
-    terminal.onData((bytes) => output.push(decoder.decode(bytes)))
+    terminal.onData(({ bytes }) => output.push(decoder.decode(bytes)))
     terminal.connectInput((input) => {
       seen.push(input)
       return 'claim'

@@ -950,7 +950,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s shared await-style termi
     await terminal.write('\x1b[?2004h\x1b[?1004h')
     expect(new TextDecoder().decode(await terminal.paste('paste'))).toBe('\x1b[200~paste\x1b[201~')
     const output: string[] = []
-    terminal.onData((data) => output.push(new TextDecoder().decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
     terminal.focus()
     await eventually(() => output.includes('\x1b[I'))
     terminal.blur()
@@ -1226,7 +1226,7 @@ it('forwards release after a pending press when host input becomes disabled', as
   await terminal.open(container())
   await terminal.write('\x1b[>11u')
   const output: string[] = []
-  terminal.onData((data) => output.push(new TextDecoder().decode(data)))
+  terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
   terminal.textarea!.dispatchEvent(
     new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', bubbles: true, cancelable: true }),
   )
@@ -1369,7 +1369,7 @@ it.each(['pending', 'current', 'older'] as const)(
     await terminal.open(container())
     await terminal.write('\x1b[>11u')
     const output: string[] = []
-    terminal.onData((data) => output.push(new TextDecoder().decode(data)))
+    terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
     const send = (type: 'keydown' | 'keyup') =>
       terminal.textarea!.dispatchEvent(
         new KeyboardEvent(type, { key: 'a', code: 'KeyA', bubbles: true, cancelable: true }),
@@ -1620,7 +1620,7 @@ it('preserves default worker browser paste keys and native clipboard encoding', 
   await terminal.open(container())
   await terminal.write('\x1b[?2004h')
   const output: string[] = []
-  terminal.onData((bytes) => output.push(new TextDecoder().decode(bytes)))
+  terminal.onData(({ bytes }) => output.push(new TextDecoder().decode(bytes)))
   const textarea = terminal.textarea!
   const modifier = /Mac/.test(navigator.platform) ? { metaKey: true } : { ctrlKey: true }
   const send = (type: 'keydown' | 'keyup', repeat = false) => {
