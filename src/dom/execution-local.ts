@@ -52,6 +52,7 @@ interface SubmittedLayout {
 function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
   const viewport = snapshot.cursor.viewport
   return Object.freeze({
+    renderHeld: snapshot.renderHeld,
     cursor: Object.freeze({
       ...snapshot.cursor,
       viewport: viewport ? Object.freeze({ ...viewport }) : undefined,
@@ -356,6 +357,10 @@ export class LocalTerminalExecution {
     return this.session.resize(grid)
   }
 
+  get renderHeld(): boolean {
+    return this.session.renderState.renderHeld ?? false
+  }
+
   private get canReadSubmittedState(): boolean {
     return this.lastFrameVersion === this.session.renderState.snapshotVersion
   }
@@ -372,6 +377,7 @@ export class LocalTerminalExecution {
         this.lastFrame.nativeFrame.readRows({ packed: true }).map(copiedFrameRow),
       )
       this.lastFullFrame = copiedFrame({
+        renderHeld: this.lastFrame.renderHeld,
         cursor: this.lastFrame.cursor,
         paintedCursor: this.lastFrame.paintedCursor,
         rows,
@@ -431,6 +437,7 @@ export class LocalTerminalExecution {
     const nativeFrame = snapshot.nativeFrame
     if (nativeFrame) {
       this.lastFrame = Object.freeze({
+        renderHeld: snapshot.renderHeld,
         cursor: snapshot.cursor,
         paintedCursor: snapshot.paintedCursor,
         nativeFrame,
@@ -495,6 +502,8 @@ export class LocalTerminalExecution {
       this.rendererValue.hasPendingFrame
     )
       return
+    if (this.lastFrame && this.lastFrame.renderHeld !== this.renderHeld)
+      this.lastFrame = Object.freeze({ ...this.lastFrame, renderHeld: this.renderHeld })
     if (!this.lastFrame?.nativeFrame) {
       this.summaryValue = Object.freeze({ ...summary, nativeRevision: this.session.revision })
       return

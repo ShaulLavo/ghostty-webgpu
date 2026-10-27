@@ -116,10 +116,17 @@ class CanvasSurface implements RowRendererSurface {
 
   source(source: RenderStateSource): RenderStateSource {
     return {
+      get renderHeld() {
+        return source.renderHeld
+      },
+      get hasSnapshot() {
+        return source.hasSnapshot
+      },
       get snapshotVersion() {
         return source.snapshotVersion
       },
       createFrameBuilder: source.createFrameBuilder?.bind(source),
+      subscribeRenderRequest: source.subscribeRenderRequest?.bind(source),
       readTextRows: source.readTextRows?.bind(source),
       readCursor: () => source.readCursor(),
       acknowledge: () => source.acknowledge(),

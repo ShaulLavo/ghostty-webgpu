@@ -29,6 +29,13 @@ interface OwnedHandle {
   out: number
 }
 
+const emptyCursor: RenderCursorSnapshot = {
+  blinking: false,
+  passwordInput: false,
+  style: 'block',
+  visible: false,
+}
+
 const renderSnapshotFieldCount = 2
 const renderSnapshotKeysOffset = 0
 const renderSnapshotValuesOffset = 8
@@ -147,6 +154,8 @@ function createOwnedHandle(
 }
 
 export class GhosttyRenderState {
+  private readonly renderRequestListeners = new Set<() => void>()
+  private readonly unsubscribeRenderHold: () => void
   private displayedFrames?: DisplayedFrameStore
   private readonly cells: OwnedHandle
   private readonly rowReader: RowReader
@@ -193,6 +202,18 @@ export class GhosttyRenderState {
     this.dirtyPointer = scalarPointer
     this.zeroBooleanPointer = scalarPointer + 4
     this.zeroDirtyPointer = scalarPointer + 8
+    this.unsubscribeRenderHold = terminal.subscribeRenderHold((held) => {
+      if (held) this.captureUpdate()
+      for (const listener of this.renderRequestListeners) listener()
+    })
+  }
+
+  get renderHeld(): boolean {
+    return this.terminal.renderHeld
+  }
+
+  get hasSnapshot(): boolean {
+    return this.cursorSnapshot !== undefined
   }
 
   /** Advances on damaged updates, independently of whether the renderer paints them. */
@@ -213,8 +234,20 @@ export class GhosttyRenderState {
     return this.runtime.memory.view.getInt32(this.dirtyPointer, true) as RenderStateDirty
   }
 
+  subscribeRenderRequest(listener: () => void): () => void {
+    this.renderRequestListeners.add(listener)
+    return () => {
+      this.renderRequestListeners.delete(listener)
+    }
+  }
+
   update(): RenderStateDirty {
     this.ensureActive()
+    if (this.terminal.renderHeld) return this.hasSnapshot ? this.dirty : RenderStateDirty.False
+    return this.captureUpdate()
+  }
+
+  private captureUpdate(): RenderStateDirty {
     assertGhosttyResult(
       'ghostty_render_state_update',
       this.runtime.exports.ghostty_render_state_update(this.state.handle, this.terminal.handle),
@@ -281,7 +314,7 @@ export class GhosttyRenderState {
   readCursor(): RenderCursorSnapshot {
     this.ensureActive()
     if (!this.cursorSnapshot) this.update()
-    return copyCursor(this.cursorSnapshot!)
+    return copyCursor(this.cursorSnapshot ?? emptyCursor)
   }
 
   acknowledge(): number {
@@ -313,6 +346,8 @@ export class GhosttyRenderState {
 
   dispose(): void {
     if (this.disposed) return
+    this.unsubscribeRenderHold()
+    this.renderRequestListeners.clear()
     this.displayedFrames?.dispose()
     this.cursorReader.dispose()
     this.rowReader.dispose()

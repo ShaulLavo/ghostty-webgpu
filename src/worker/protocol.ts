@@ -41,6 +41,7 @@ interface WorkerWatermarks extends WorkerIdentity {
   readonly output: number
 }
 export interface WorkerState {
+  readonly renderHeld: boolean
   readonly appearance: TerminalAppearance
   readonly scrollbar: LocalTerminalExecution['scrollbar']
   readonly revision: number

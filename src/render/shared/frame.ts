@@ -6,6 +6,7 @@ export function snapshotRenderState(state: RenderStateSource): RendererFrameSnap
   state.update()
   const cursor = state.readCursor()
   return Object.freeze({
+    renderHeld: state.renderHeld ?? false,
     cursor: Object.freeze({
       ...cursor,
       viewport: cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined,
