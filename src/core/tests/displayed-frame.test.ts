@@ -1,5 +1,5 @@
 import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TerminalSession } from '../../term/session.js'
 import { DisplayedFrameStore } from '../displayed-frame.js'
 import { GhosttyRuntime } from '../runtime.js'
@@ -44,6 +44,120 @@ describe('retained native displayed frame', () => {
     expect(displayed.readTextRows({ rows: new Set([1]) })).toEqual(
       state.readTextRows({ rows: new Set([1]) }),
     )
+  })
+
+  it('shares extracted text with the next frame history and unchanged rows', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('first\r\n界 é 🧑‍💻\r\nthird')
+    state.update()
+    const first = state[retainDisplayedFrame]()
+    first.accept()
+    state.acknowledge()
+    const owned = first.readTextRows()
+    const read = vi.spyOn(runtime.bridge, 'readRetainedText')
+    try {
+      terminal.write('\x1b[1;1Hnext')
+      state.update()
+      const second = state[retainDisplayedFrame]()
+      expect(second.readPreviousTextRows()).toEqual(owned)
+      expect(read).not.toHaveBeenCalled()
+      const rows = second.readTextRows()
+      expect(rows).toEqual(state.readTextRows())
+      expect(rows[3]).toBe(owned[3])
+      read.mockClear()
+      expect(second.readTextRows()).toBe(rows)
+      expect(read).not.toHaveBeenCalled()
+      second.accept()
+      state.acknowledge()
+      state.update()
+      const third = state[retainDisplayedFrame]()
+      expect(third.readTextRows()).toEqual(rows)
+      expect(third.readPreviousTextRows()).toEqual(rows)
+      expect(read).not.toHaveBeenCalled()
+      third.discard()
+      expect(owned[0]?.text).toContain('first')
+    } finally {
+      read.mockRestore()
+    }
+  })
+
+  it('matches dense, scrolling, styled and Unicode text through resize and lazy history', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 5 })
+    const state = runtime.createRenderState(terminal)
+    let previous = '[]'
+    for (let index = 0; index < 40; index += 1) {
+      const outputs = [
+        `\x1b[H\x1b[2Jdense ${index}\r\n` + `row ${index} `.repeat(6),
+        `\r\nscroll ${index} 界 é 🧑‍💻 ☕️`,
+        `\x1b[3;1H\x1b[2K\x1b[1;38;2;1;2;3mstyled ${index}\x1b[0m`,
+        '',
+        `\x1b[${(index % 4) + 1};5H${index % 3 === 0 ? ' ' : 'x'}`,
+      ]
+      terminal.write(outputs[index % outputs.length]!)
+      if (index === 23) terminal.resize({ columns: 30, rows: 6 })
+      state.update()
+      const live = serialized(state.readTextRows())
+      const frame = state[retainDisplayedFrame]()
+      state.acknowledge()
+      frame.accept()
+      expect(serialized(frame.readTextRows())).toBe(live)
+      expect(serialized(frame.readPreviousTextRows())).toBe(previous)
+      previous = live
+    }
+  })
+
+  it('retires cached rows with their native slots without native reads during acceptance', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    const store = new DisplayedFrameStore(runtime)
+    const cache = Reflect.get(Reflect.get(store, 'frames'), 'textCache')
+    const retained: unknown = Reflect.get(cache, 'rows')
+    if (!(retained instanceof Map)) throw new Error('Expected revision cache')
+    const revisions = vi.spyOn(runtime.bridge, 'readRetainedRevisions')
+    let held = ''
+    let owned: ReturnType<ReturnType<typeof store.capture>['readTextRows']> = []
+    try {
+      for (let index = 0; index < 4; index += 1) {
+        terminal.write(`\x1b[H\x1b[2Jframe ${index} 界 é`)
+        state.update()
+        const frame = store.capture(...handles(state), { columns: 24, rows: 4 }, true)
+        const rows = frame.readTextRows()
+        owned = index === 0 ? rows : owned
+        held = index === 0 ? serialized(owned) : held
+        const reads = revisions.mock.calls.length
+        frame.accept()
+        expect(revisions.mock.calls.length).toBe(reads)
+        expect(retained.size).toBe(Math.min(index + 1, 2) * 4)
+        state.acknowledge()
+      }
+      expect(serialized(owned)).toBe(held)
+    } finally {
+      revisions.mockRestore()
+      store.dispose()
+    }
+    expect(serialized(owned)).toBe(held)
+  })
+
+  it('owns ASCII blank flags across bitmap words after native disposal', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 40, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[1;33HX\x1b[2;32H Y')
+    state.update()
+    const expected = serialized(state.readTextRows())
+    const frame = state[retainDisplayedFrame]()
+    frame.accept()
+    const owned = frame.readTextRows()
+    runtime.dispose()
+    expect(serialized(owned)).toBe(expected)
+    expect(owned[0]?.cells[31]).toBe('')
+    expect(owned[0]?.cells[32]).toBe('X')
+    expect(owned[1]?.cells[31]).toBe(' ')
+    expect(owned[1]?.cells[32]).toBe('Y')
   })
 
   it('retains selected cells after native selection is cleared', async () => {

@@ -1493,16 +1493,11 @@ it('copies paint-row text without visiting styles for text-only frame consumers'
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 16, rows: 2 })
   const state = runtime.createRenderState(terminal)
-  const canvas = createCanvas()
   const frames: {
     rows: readonly { text: string; cells: readonly string[]; continuations: readonly boolean[] }[]
   }[] = []
   const observer = new FrameObserver({
-    canvas,
-    columns: 16,
     rows: 2,
-    font: fittedFont(),
-    renderState: state,
     onTextFrame: (frame) => frames.push(frame),
   })
   try {
@@ -1542,7 +1537,6 @@ it('copies paint-row text without visiting styles for text-only frame consumers'
     state.dispose()
     terminal.dispose()
     runtime.dispose()
-    canvas.remove()
   }
 })
 
@@ -1550,15 +1544,10 @@ it('restores the whole resized viewport after cursor-only callback demand', asyn
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
   const state = runtime.createRenderState(terminal)
-  const canvas = createCanvas()
   let demand = false
   const frames: RendererFrameSnapshot[] = []
   const observer = new FrameObserver({
-    canvas,
-    columns: 12,
     rows: 3,
-    font: fittedFont(),
-    renderState: state,
     needsFrameRows: () => demand,
     onFrame: (snapshot) => frames.push(snapshot),
   })
@@ -1581,7 +1570,6 @@ it('restores the whole resized viewport after cursor-only callback demand', asyn
     state.dispose()
     terminal.dispose()
     runtime.dispose()
-    canvas.remove()
   }
 })
 
@@ -1589,16 +1577,11 @@ it('keeps reentrant frame identities intact and delivers only the newest text fr
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 12, rows: 1 })
   const state = runtime.createRenderState(terminal)
-  const canvas = createCanvas()
   const fullFrames: RendererFrameSnapshot[] = []
   const textFrames: { x: number | undefined; text: string | undefined }[] = []
   let nested = false
   const observer = new FrameObserver({
-    canvas,
-    columns: 12,
     rows: 1,
-    font: fittedFont(),
-    renderState: state,
     onFrame: (snapshot) => {
       fullFrames.push(snapshot)
       if (nested) return
@@ -1628,7 +1611,6 @@ it('keeps reentrant frame identities intact and delivers only the newest text fr
     state.dispose()
     terminal.dispose()
     runtime.dispose()
-    canvas.remove()
   }
 })
 

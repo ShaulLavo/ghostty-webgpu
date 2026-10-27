@@ -16,6 +16,19 @@ import type {
   WebGpuTerminalRendererOptions,
 } from './types.js'
 
+type FrameObserverOptions = Pick<
+  WebGpuTerminalRendererOptions,
+  | 'rows'
+  | 'onFrame'
+  | 'onTextFrame'
+  | 'onRowsChanged'
+  | 'onRowsPainted'
+  | 'onCleanUpdate'
+  | 'needsFrameRows'
+  | 'retainDisplayedText'
+> &
+  DisplayedFrameOptions
+
 export interface PreparedFrame {
   accept(): void
   discard(): void
@@ -32,7 +45,7 @@ export class FrameObserver {
 
   private rowCount: number
 
-  constructor(private readonly options: WebGpuTerminalRendererOptions) {
+  constructor(private readonly options: FrameObserverOptions) {
     this.rowCount = options.rows
   }
 
@@ -83,19 +96,22 @@ export class FrameObserver {
     const generation = ++this.generation
     const { onFrame, onTextFrame, onRowsChanged, onRowsPainted } = this.options
     const changedRows = Object.freeze([...changed])
-    const onDisplayedFrame = (this.options as DisplayedFrameOptions)[observeDisplayedFrame]
+    const onDisplayedFrame = this.options[observeDisplayedFrame]
     const observesFrame = Boolean(onFrame || onTextFrame || onDisplayedFrame)
     const retain = (state as DisplayedFrameSource)[retainDisplayedFrame]
     const needsRows =
       observesFrame &&
       (this.rowsNeeded ||
         Boolean(onDisplayedFrame && (!this.options.retainDisplayedText || !retain)))
-    const previousTextRows = needsRows ? this.displayedFrame?.readTextRows() : undefined
-    const preparedRows = needsRows ? this.updateRows(state, changed, rows) : undefined
+    const derived = Boolean(retain && this.options.retainDisplayedText && !onFrame)
+    const ownsRows = needsRows && !derived
+    const previousTextRows = ownsRows ? this.displayedFrame?.readTextRows() : undefined
+    const preparedRows = ownsRows ? this.updateRows(state, changed, rows) : undefined
     const nativeFrame =
       observesFrame && this.options.retainDisplayedText
         ? retain?.call(state, { full: !this.retained })
         : undefined
+    const derivedRows = needsRows && derived ? readCapturedText(nativeFrame!) : undefined
     const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
     const snapshot = {
       renderHeld: state.renderHeld ?? false,
@@ -110,7 +126,7 @@ export class FrameObserver {
       : undefined
     const ownedTextRows = preparedRows
       ? Object.freeze(preparedRows.textRows.filter(defined))
-      : undefined
+      : derivedRows
     const displayedFrame: DisplayedTextFrame | undefined = onDisplayedFrame
       ? Object.freeze({
           ...snapshot,
@@ -175,10 +191,7 @@ export class FrameObserver {
         rows && (this.current || rows.length === this.rowCount) ? rows : state.readRows(options)
       for (const row of source) fullRows[row.y] = copiedFrameRow(row)
     }
-    if (
-      this.options.onTextFrame ||
-      (this.options as DisplayedFrameOptions)[observeDisplayedFrame]
-    ) {
+    if (this.options.onTextFrame || this.options[observeDisplayedFrame]) {
       const source = this.readTextRows(state, options, rows, fullRows)
       for (const row of source) textRows[row.y] = row
     }
@@ -220,6 +233,15 @@ function copiedPaintTextRow(row: RenderRow): RendererTextFrameRow {
       return (continuations ??= Object.freeze(flags))
     },
   })
+}
+
+function readCapturedText(frame: NativeDisplayedFrame): readonly RendererTextFrameRow[] {
+  try {
+    return frame.readTextRows()
+  } catch (cause) {
+    frame.discard()
+    throw cause
+  }
 }
 
 function defined<T>(value: T | undefined): value is T {
