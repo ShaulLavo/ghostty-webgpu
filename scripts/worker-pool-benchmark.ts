@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { chromium, type CDPSession, type Page } from 'playwright'
-import { PNG } from 'pngjs'
 
 const root = join(import.meta.dirname, '..')
 const output = resolve(process.env.WORKER_POOL_OUTPUT ?? join(root, '.artifacts/worker-pool.json'))
@@ -185,6 +184,23 @@ async function route(page: Page, assets: Map<string, string | Buffer>): Promise<
   })
 }
 
+async function pixelHash(page: Page, png: Buffer): Promise<string> {
+  return page.evaluate(async (encoded) => {
+    const bytes = Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('pixel comparison context unavailable')
+    context.drawImage(bitmap, 0, 0)
+    bitmap.close()
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data
+    const digest = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  }, png.toString('base64'))
+}
+
 async function measure(
   mode: (typeof modes)[number],
   fixture: string,
@@ -272,7 +288,7 @@ async function measure(
         .locator('canvas')
         .nth(index)
         .screenshot({ path: join(dirname(output), `${prefix}-${index}.png`) })
-      screenshots.push(createHash('sha256').update(PNG.sync.read(png).data).digest('hex'))
+      screenshots.push(await pixelHash(page, png))
     }
     const metric = (name: string) =>
       (afterMetrics.metrics.find((metric) => metric.name === name)?.value ?? 0) -
