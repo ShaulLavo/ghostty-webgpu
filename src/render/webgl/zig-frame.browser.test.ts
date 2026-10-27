@@ -189,10 +189,13 @@ describe('WebGL WASM frame pixels', () => {
     const rowBytes = 32 * (64 + 96)
     for (const [index, line] of ['third 🦊', 'third 🦊', 'third 🦊', 'third 🦊'].entries()) {
       const uploaded = native.renderer.metrics.uploadedBytes
+      const submitted = native.renderer.metrics.submittedFrames
       build.mockClear()
       writeFrame(source, `\r\n${line}`)
       native.renderer.notifyWrite()
       native.clock.flushFrame()
+      expect(build).toHaveBeenCalled()
+      expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
       expect(build.mock.calls.every(([options]) => options.stableRows)).toBe(true)
       expect(native.renderer.metrics.uploadedBytes - uploaded).toBeLessThanOrEqual(
         (index === 0 ? rowBytes * 3 : rowBytes) + 32,

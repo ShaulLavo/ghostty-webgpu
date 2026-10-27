@@ -666,3 +666,32 @@ it('submits row-offset-only movement without touching the resident instance buff
   expect(grid.pass.uploadFrame({ ...frame, rowOffset: 2 }, [])).toBe(1)
   expect(writes).not.toHaveBeenCalled()
 })
+
+it('keeps wrapped scroll uploads sparse and splits distant edit ranges at large clean gaps', async () => {
+  const grid = await createGrid({ columns: 200, rows: 12, renderRows: [] })
+  const frame = {
+    cellData: grid.builder.cellData,
+    glyphData: grid.builder.glyphData,
+    stableRows: true,
+    columns: 200,
+    rowHeight: cellSize,
+    rowOffset: 1,
+  }
+  const nearWrap = [0, 2399].map((index) => ({
+    cell: { byteOffset: index * 64, byteLength: 64 },
+    glyph: { byteOffset: index * 96, byteLength: 96 },
+  }))
+  const writes = vi.spyOn(grid.gl, 'bufferSubData')
+  expect(grid.pass.uploadFrame(frame, nearWrap)).toBe(5)
+  expect(grid.pass.frameUploadedBytes).toBe(352)
+  expect(writes.mock.calls.map((args) => args[1])).toEqual([0, 2399 * 64, 0, 2399 * 96])
+  writes.mockClear()
+  const distantEdits = [0, 1000].map((index) => ({
+    cell: { byteOffset: index * 64, byteLength: 64 },
+    glyph: { byteOffset: index * 96, byteLength: 96 },
+  }))
+  expect(grid.pass.uploadFrame(frame, distantEdits)).toBe(4)
+  expect(grid.pass.frameUploadedBytes).toBe(320)
+  expect(writes.mock.calls.map((args) => args[1])).toEqual([0, 1000 * 64, 0, 1000 * 96])
+  expect(grid.gl.getError()).toBe(grid.gl.NO_ERROR)
+})
