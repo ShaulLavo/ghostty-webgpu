@@ -184,9 +184,9 @@ async function createTerminalVisibilityDriver(): Promise<Driver> {
       foreground: { r: 255, g: 0, b: 0 },
       background: { r: 0, g: 0, b: 0 },
     })
-    visibilityGrid = terminal.appearance.grid
   }
   await new Promise((resolve) => setTimeout(resolve, 100))
+  visibilityGrid = terminals[0]?.appearance.grid
   return {
     async dispose() {
       for (const terminal of terminals) await terminal.dispose()
