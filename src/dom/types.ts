@@ -183,6 +183,8 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly links?: LinkResolverOptions<Event>
   readonly outputTiming?: GhosttyWebGpuTerminalOutputTimingOptions
   readonly padding?: TerminalElementPaddingInput
+  /** Keep painting outside the viewport or clipping ancestors. Defaults to false. */
+  readonly renderWhenOffscreen?: boolean
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
   /** `immediate` paints a write before the next display frame; main-thread terminals only. */

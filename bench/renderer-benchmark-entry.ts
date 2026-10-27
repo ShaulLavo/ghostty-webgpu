@@ -30,6 +30,7 @@ let sequence = 0
 const decoded = { rows: 0, cells: 0 }
 let adapterInfo: unknown
 let rendererPath = 'ghostty-web'
+let visibilityGrid: Terminal['appearance']['grid'] | undefined
 const drawErrors: string[] = []
 
 function assertNoDrawErrors(): void {
@@ -183,6 +184,7 @@ async function createTerminalVisibilityDriver(): Promise<Driver> {
     })
     terminals.push(terminal)
     await terminal.open(host)
+    visibilityGrid = terminal.appearance.grid
   }
   await new Promise((resolve) => setTimeout(resolve, 100))
   return {
@@ -258,14 +260,18 @@ function assertSelectedRendererPath(): void {
 
 function outputLine(index: number): string {
   return (
-    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(12)}`.slice(0, columns - 2) +
-    '\r\n'
+    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(12)}`.slice(
+      0,
+      terminalVisibility ? 32 : columns - 2,
+    ) + '\r\n'
   )
 }
 
 function write(data: string): void {
   const started = performance.now()
-  const delivered = terminalVisibility ? '\x1b[31m界 é 🧑‍💻 \x1b[3mf\x1b[0m ' + data : data
+  const delivered = terminalVisibility
+    ? data.replaceAll('\r\n', ' 界 é 🧑‍💻 \x1b[3mf\x1b[0m\r\n')
+    : data
   driver.write(delivered)
   writeMilliseconds.push(performance.now() - started)
   writtenBytes += new TextEncoder().encode(delivered).byteLength * (terminalVisibility ? 16 : 1)
@@ -353,8 +359,8 @@ window.__rendererBench = {
     adapter: adapterInfo,
     backend,
     rendererPath,
-    columns,
-    rows,
+    columns: visibilityGrid?.columns ?? columns,
+    rows: visibilityGrid?.rows ?? rows,
     dpr: devicePixelRatio,
     font:
       backend === 'ghostty-web'

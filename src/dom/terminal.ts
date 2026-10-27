@@ -285,6 +285,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private accessibilityFrame?: TerminalSubmittedSnapshot
   private accessibilityResizeRevision?: number
   private documentVisible = true
+  private elementVisible = true
+  private readonly renderWhenOffscreen: boolean
   private publicFrameSource?: TerminalSubmittedSnapshot
   private publicFrame?: TerminalSubmittedFrame
   private accessibility?: TerminalAccessibilityController
@@ -350,6 +352,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
+    this.renderWhenOffscreen = options.renderWhenOffscreen === true
     this.rendererMode = options.rendererMode
     this.presentation = options.presentation
     this.outputTimingLimits = outputTimingLimits(options.outputTiming)
@@ -591,6 +594,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       renderer = undefined
       this.reconcileRendererAppearance(elements, initialAppearance)
       this.setDocumentVisible(elements.root.ownerDocument.visibilityState !== 'hidden')
+      this.installVisibility(elements)
       if (this.execution.kind === 'sync') this.subscribeToSession()
       this.installAccessibility(elements)
       this.installScrollbar(elements)
@@ -1163,7 +1167,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     return new OutputTimingTracker({
       clock: browserOutputTimingClock(),
       limits: this.outputTimingLimits,
-      visible: () => this.documentVisible,
+      visible: () => this.renderVisible,
       renderHeld: () => this.execution.renderHeld,
       measuresPresentation: this.execution.kind === 'sync',
       pendingFrame: () => this.execution.kind === 'sync' && this.renderer?.hasPendingFrame === true,
@@ -1649,11 +1653,33 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.emitHostEvent('selection', selection)
   }
 
+  private get renderVisible(): boolean {
+    return this.documentVisible && this.elementVisible
+  }
+
+  private installVisibility(elements: TerminalElements): void {
+    if (this.renderWhenOffscreen) return
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries.at(-1)
+      if (!entry || this.stateValue === 'disposed') return
+      if (this.elementVisible === entry.isIntersecting) return
+      this.elementVisible = entry.isIntersecting
+      this.synchronizeRenderVisibility()
+    })
+    this.cleanup.add(() => observer.disconnect())
+    observer.observe(elements.root)
+  }
+
   private setDocumentVisible(visible: boolean): void {
     this.documentVisible = visible
-    if (visible) this.outputTimingTracker?.resume()
     if (visible) this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
     else this.cancelAccessibilityTimer()
+    this.synchronizeRenderVisibility()
+  }
+
+  private synchronizeRenderVisibility(): void {
+    const visible = this.renderVisible
+    if (visible) this.outputTimingTracker?.resume()
     if (this.execution.kind === 'async') {
       void this.execution
         .request('visible', [visible])

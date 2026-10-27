@@ -240,8 +240,8 @@ async function measure(
     }
     const pageSession = await page.context().newCDPSession(page)
     const memory: unknown = await pageSession.send('Runtime.getHeapUsage')
-    await page
-      .locator('main canvas')
+    const screenshot = await page
+      .locator(terminalVisibility ? 'main' : 'main canvas')
       .first()
       .screenshot({
         path: join(
@@ -266,6 +266,7 @@ async function measure(
       cpu,
       memory,
       ...counts,
+      pixelSha256: createHash('sha256').update(screenshot).digest('hex'),
       outputSha256: createHash('sha256').update(terminalText).digest('hex'),
       callbackMilliseconds: distribution(callbackMilliseconds),
       writeMilliseconds: distribution(writeMilliseconds),
@@ -379,6 +380,12 @@ async function measureSource(
   )
   results.push(result)
   if (paired) {
+    if (terminalVisibility)
+      assert.equal(
+        result.pixelSha256,
+        paired.pixelSha256,
+        'Paired visible terminals produced different pixels',
+      )
     assert.equal(result.steps, paired.steps, 'Paired workloads processed different steps')
     assert.equal(
       result.writtenBytes,

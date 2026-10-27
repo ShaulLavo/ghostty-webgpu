@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -49,14 +49,20 @@ async function intersection(element: Element, visible: boolean): Promise<void> {
   await frames()
 }
 
-async function fixture(backend: Backend) {
+async function fixture(
+  backend: Backend,
+  options: { renderWhenOffscreen?: boolean; presentation?: 'immediate' } = {},
+) {
   const host = document.createElement('div')
   host.style.cssText = 'position:fixed;top:0;left:0;width:480px;height:160px'
   document.body.append(host)
   cleanups.push(() => host.remove())
+  let requestedFrames = 0
   let terminal: TerminalApi
   if (backend === 'worker-webgpu' || backend === 'worker-webgl2') {
     terminal = await WorkerTerminal.create({
+      renderWhenOffscreen: options.renderWhenOffscreen,
+      accessibility: {},
       backend: backend === 'worker-webgpu' ? 'webgpu' : 'webgl',
       appearance: { cursor: { blink: false } },
       fonts: [{ family: 'VisibilityTest', source: { url: testFontUrl } }],
@@ -68,6 +74,8 @@ async function fixture(backend: Backend) {
     })
   } else {
     terminal = await Terminal.create({
+      ...options,
+      accessibility: {},
       appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
       runtime: { kind: 'borrowed', runtime },
       rendererFactory: (options) =>
@@ -80,6 +88,15 @@ async function fixture(backend: Backend) {
         })[backend].create({
           ...options,
           rendererMode: backend === 'pixels' ? 'canvas2d-pixels' : 'auto',
+          schedulerClock: {
+            requestFrame: (callback) => {
+              requestedFrames += 1
+              return window.requestAnimationFrame(callback)
+            },
+            cancelFrame: (handle) => window.cancelAnimationFrame(handle),
+            setTimer: (callback, delay) => window.setTimeout(callback, delay),
+            clearTimer: (handle) => window.clearTimeout(handle),
+          },
         }),
     })
   }
@@ -88,20 +105,25 @@ async function fixture(backend: Backend) {
   await intersection(terminal.element!, true)
   await terminal.write('before')
   await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before')
+  await expect
+    .poll(() => terminal.element!.querySelector('[role="list"]')?.textContent)
+    .toBe('before')
   await frames()
-  return { terminal, host }
+  return { terminal, host, scheduled: () => requestedFrames }
 }
 
 it.for(backends)(
   'pauses offscreen %s and submits current layout and text once on return',
   { timeout: 20_000 },
   async (backend) => {
-    const { terminal, host } = await fixture(backend)
+    const { terminal, host, scheduled } = await fixture(backend)
     const before = terminal.visibleLines()
     const mirror = terminal.element!.querySelector('[role="list"]')
+    expect(mirror).not.toBeNull()
     const accessibleBefore = mirror?.textContent
     host.style.top = '200vh'
     await intersection(terminal.element!, false)
+    const scheduledBefore = scheduled()
     let painted = 0
     terminal.onFrame(() => painted++)
     await terminal.write('\x1b[H\x1b[2Jhidden 界 é 🧑‍💻')
@@ -123,15 +145,76 @@ it.for(backends)(
     expect(terminal.visibleLines()).toEqual(before)
     expect(mirror?.textContent).toBe(accessibleBefore)
     expect(terminal.hasPendingFrame).toBe(false)
+    expect(scheduled()).toBe(scheduledBefore)
     host.style.top = '0'
     await intersection(terminal.element!, true)
     await expect.poll(() => terminal.visibleLines()[1]?.trimEnd()).toBe('latest')
     expect(terminal.visibleLines()[0]).toContain('hidden 界 é')
     await frames()
     expect(painted).toBe(1)
+    await expect.poll(() => mirror?.textContent).toContain('latest')
     await page.screenshot({
       element: terminal.element!,
       path: `../../../.artifacts/visibility-${backend}.png`,
     })
+  },
+)
+
+it.for(['canvas2d', 'worker-webgl2'] as const)(
+  'can keep painting offscreen %s',
+  async (backend) => {
+    const { terminal, host } = await fixture(backend, { renderWhenOffscreen: true })
+    host.style.top = '200vh'
+    await intersection(terminal.element!, false)
+    await terminal.write(' offscreen')
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before offscreen')
+  },
+)
+
+it('pauses immediate writes and cursor timers when clipped by a scrolling parent', async () => {
+  const { terminal, host } = await fixture('canvas2d', { presentation: 'immediate' })
+  const clip = document.createElement('div')
+  clip.style.cssText = 'position:fixed;top:0;left:0;width:500px;height:180px;overflow:auto'
+  document.body.append(clip)
+  cleanups.push(() => clip.remove())
+  host.style.position = 'relative'
+  clip.append(host)
+  await terminal.setCursor({ blink: true })
+  terminal.focus()
+  host.style.marginTop = '1000px'
+  await intersection(terminal.element!, false)
+  let painted = 0
+  terminal.onFrame(() => painted++)
+  terminal.write(' clipped')
+  await frames()
+  expect(terminal.hasPendingTimer).toBe(false)
+  expect(terminal.hasPendingFrame).toBe(false)
+  expect(painted).toBe(0)
+  await terminal.setCursor({ blink: false })
+  clip.scrollTop = 1000
+  await intersection(terminal.element!, true)
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before clipped')
+  expect(painted).toBe(1)
+})
+
+it.for(['canvas2d', 'worker-webgl2'] as const)(
+  'keeps document visibility authoritative when %s reenters the viewport',
+  async (backend) => {
+    const { terminal, host } = await fixture(backend)
+    host.style.top = '200vh'
+    await intersection(terminal.element!, false)
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    cleanups.push(() => {
+      visibility.mockRestore()
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+    await terminal.write(' pending')
+    host.style.top = '0'
+    await intersection(terminal.element!, true)
+    expect(terminal.visibleLines()[0]?.trimEnd()).toBe('before')
+    visibility.mockReturnValue('visible')
+    document.dispatchEvent(new Event('visibilitychange'))
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before pending')
   },
 )
