@@ -30,6 +30,8 @@ import {
 import type { LinkProvider, LinkProviderRegistration } from '../term/links.js'
 import type { TerminalSession } from '../term/session.js'
 import { LocalTerminalExecution } from './execution-local.js'
+import { TerminalWriteQueue } from './write-queue.js'
+import type { TerminalBatchedWriteOptions } from './write-queue.js'
 import type {
   TerminalSubmittedFrame,
   TerminalSubmittedSnapshot,
@@ -339,6 +341,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly scrollbarWidthValue: number
   private selection?: TerminalSelectionController
   private stateValue: GhosttyWebGpuTerminalLifecycle = 'created'
+  private readonly writeQueue: TerminalWriteQueue<TerminalMutationResult>
 
   private constructor(
     private readonly execution: LocalTerminalExecution | WorkerTerminalExecution,
@@ -360,6 +363,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.rendererMode = options.rendererMode
     this.presentation = options.presentation
     this.outputTimingLimits = outputTimingLimits(options.outputTiming)
+    this.writeQueue = new TerminalWriteQueue(
+      (data) => this.writeParsed(data, true),
+      options.writeQueue,
+    )
     this.scrollbarOptions = options.scrollbar
     this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
 
@@ -571,6 +578,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     return this.stateValue
   }
 
+  get pendingWriteBytes(): number {
+    return this.writeQueue.pendingBytes
+  }
+
   get textarea(): HTMLTextAreaElement | undefined {
     return this.elementsValue?.textarea
   }
@@ -714,6 +725,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   writeAndReadGeometry(data: TerminalInputData): TerminalResult<Mode, TerminalGeometry> {
     this.ensureOpen()
+    this.writeQueue.flush()
     this.invalidateLinks()
     const timing = this.observedOutputTiming()
     const sequence = timing?.output()
@@ -779,19 +791,39 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   write(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
+    this.writeQueue.flush()
+    return this.result(this.writeParsed(data, false))
+  }
+
+  writeBatched(
+    data: TerminalInputData,
+    options?: TerminalBatchedWriteOptions,
+  ): Promise<TerminalMutationResult> {
+    this.ensureOpen()
+    return this.writeQueue.write(data, options)
+  }
+
+  private writeParsed(
+    data: TerminalInputData,
+    owned: boolean,
+  ): TerminalMutationResult | Promise<TerminalMutationResult> {
     this.invalidateLinks()
     const timing = this.observedOutputTiming()
     const sequence = timing?.output()
-    const result = this.execution.write(data)
+    const result =
+      owned && this.execution.kind === 'async'
+        ? this.execution.writeOwned(data as Uint8Array)
+        : this.execution.write(data)
     if (timing) this.markOutputApplied(timing, sequence!)
-    if (this.stateValue !== 'open') return this.result(result)
+    if (this.stateValue !== 'open') return result
     this.updateScrollbar()
     this.renderer?.notifyWrite()
-    return this.result(result)
+    return result
   }
 
   writeln(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
+    this.writeQueue.flush()
     this.invalidateLinks()
     const timing = this.observedOutputTiming()
     const sequence = timing?.output()
@@ -805,18 +837,21 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   sendInput(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    this.writeQueue.noteInput()
     if (this.claimText('text', data)) return this.emptyInputResult()
     return this.result(this.execution.sendInput(data))
   }
 
   paste(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    this.writeQueue.noteInput()
     if (this.claimText('paste', data)) return this.emptyInputResult()
     return this.result(this.execution.paste(data))
   }
 
   key(input: TerminalKeyInput): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    this.writeQueue.noteInput()
     if (
       (this.inputOwner || this.extensionDispatch.input) &&
       this.claimInput({ type: 'key', input })
@@ -827,6 +862,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   sendGeneratedInput(input: TerminalGeneratedInput): TerminalResult<Mode, TerminalInputResult> {
     this.ensureOpen()
+    this.writeQueue.noteInput()
     if (input.type === 'key') return this.result(this.execution.key(input.input))
     if (input.type === 'paste') return this.result(this.execution.paste(input.data))
     return this.result(
@@ -846,6 +882,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   reset(): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
+    this.writeQueue.flush()
     this.input?.resetTransientState()
     this.pointer?.cancel()
     return this.result(this.execution.reset())
@@ -981,6 +1018,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   setAppearance(options: TerminalAppearanceOptions): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
+    this.writeQueue.flush()
     return this.result(this.execution.setAppearance(options))
   }
 
@@ -988,6 +1026,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     if (this.stateValue === 'disposed' || this.stateValue === 'disposing')
       return this.result(this.execution.kind === 'async' ? this.execution.dispose() : undefined)
     this.stateValue = 'disposing'
+    this.writeQueue.dispose()
     this.nextGeneration()
     this.pendingEvents.length = 0
     this.pendingText.length = 0
@@ -1201,7 +1240,10 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.trackSubscription(this.execution.on('bell', () => this.emitHostEvent('bell', undefined)))
     this.trackSubscription(
       this.execution.on('data', ({ bytes, origin }) => {
-        if (origin === 'input') this.observedOutputTiming()?.input()
+        if (origin === 'input') {
+          this.writeQueue.noteInput()
+          this.observedOutputTiming()?.input()
+        }
         this.emitHostEvent('data', Uint8Array.from(bytes))
       }),
     )
@@ -1386,7 +1428,13 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       input = createDomInputController({
         claimKey: this.claimDomKey,
         claimText: this.claimText,
-        hooks: this.inputHooks,
+        hooks: {
+          ...this.inputHooks,
+          beforeUserInput: () => {
+            this.writeQueue.noteInput()
+            this.inputHooks?.beforeUserInput?.()
+          },
+        },
         onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
         onPreedit: (value) => this.updatePreedit(value),
         ...(this.execution.kind === 'sync'
@@ -1438,6 +1486,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       let identity = 1
       const update = () => {
         const layout = workerLayout(elements, ++identity, this.scrollbarWidthValue, this.autoFit)
+        this.writeQueue.flush()
         void execution.layout(layout).catch((cause: unknown) => this.reportError(cause, 'layout'))
       }
       this.cleanup.add(observeWorkerLayout(elements, update))
@@ -1585,6 +1634,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.fittedFont = result.font
     this.layoutCommitted = true
     if (paddingChanged || scrollbarWidthChanged) this.invalidateLinks()
+    this.writeQueue.flush()
     this.execution.resize(result.grid)
     // Padding can change without native cells changing; submit its new layout with owned rows.
     if (paddingChanged || scrollbarWidthChanged)
@@ -1602,6 +1652,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.renderer?.setFont(font)
     this.fittedFont = font
     this.layoutCommitted = true
+    this.writeQueue.flush()
     this.execution.resize({
       cellHeight: font.cssCellHeight,
       cellWidth: font.cssCellWidth,

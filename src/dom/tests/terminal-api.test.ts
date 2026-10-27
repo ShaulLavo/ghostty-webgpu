@@ -28,6 +28,10 @@ describe('shared terminal return convention', () => {
     expectTypeOf<ReturnType<TerminalApi['write']>>().toEqualTypeOf<
       TerminalMutationResult | Promise<TerminalMutationResult>
     >()
+    expectTypeOf<ReturnType<TerminalApi['writeBatched']>>().toEqualTypeOf<
+      Promise<TerminalMutationResult>
+    >()
+    expectTypeOf<TerminalApi['pendingWriteBytes']>().toEqualTypeOf<number>()
     expectTypeOf<ReturnType<TerminalApi['readLines']>>().toEqualTypeOf<
       TerminalResult<'sync' | 'async', ReturnType<Terminal['readLines']>>
     >()

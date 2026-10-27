@@ -23,6 +23,7 @@ import type {
   TerminalTheme,
 } from '../term/types.js'
 import type { TerminalSubmittedFrame, TerminalSubmittedText } from './submitted-frame.js'
+import type { TerminalBatchedWriteOptions } from './write-queue.js'
 import type {
   GhosttyWebGpuTerminalDiagnostics,
   GhosttyWebGpuTerminalEventType,
@@ -50,6 +51,7 @@ export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
   readonly hasPendingLinkResolution: boolean
   readonly hasPendingTimer: boolean
   readonly lifecycle: GhosttyWebGpuTerminalLifecycle
+  readonly pendingWriteBytes: number
   readonly submittedFrame: TerminalSubmittedFrame | undefined
   readonly textarea: HTMLTextAreaElement | undefined
 
@@ -85,6 +87,10 @@ export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
     options?: ReadLinesOptions,
   ): TerminalResult<Mode, readonly TerminalLine[]>
   write(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult>
+  writeBatched(
+    data: TerminalInputData,
+    options?: TerminalBatchedWriteOptions,
+  ): Promise<TerminalMutationResult>
   writeln(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult>
   sendInput(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult>
   paste(data: TerminalInputData): TerminalResult<Mode, TerminalInputResult>
