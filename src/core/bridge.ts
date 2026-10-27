@@ -238,6 +238,10 @@ export class CallbackBridge {
     return this.bridgeExports!.bridge_read_retained_text(...args)
   }
 
+  readRetainedRevisions(frame: number, out: number): void {
+    this.bridgeExports!.bridge_read_retained_revisions(frame, out)
+  }
+
   readRetainedRows(...args: Parameters<BridgeWasmExports['bridge_read_retained_rows']>): number {
     return this.bridgeExports!.bridge_read_retained_rows(...args)
   }

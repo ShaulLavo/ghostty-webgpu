@@ -90,12 +90,16 @@ export class FrameObserver {
       observesFrame &&
       (this.rowsNeeded ||
         Boolean(onDisplayedFrame && (!this.options.retainDisplayedText || !retain)))
-    const previousTextRows = needsRows ? this.displayedFrame?.readTextRows() : undefined
-    const preparedRows = needsRows ? this.updateRows(state, changed, rows) : undefined
+    // Retained native text is the displayed owner; JS rows are derived from it by row revision.
+    const derived = Boolean(retain && this.options.retainDisplayedText && !onFrame)
+    const ownsRows = needsRows && !derived
+    const previousTextRows = ownsRows ? this.displayedFrame?.readTextRows() : undefined
+    const preparedRows = ownsRows ? this.updateRows(state, changed, rows) : undefined
     const nativeFrame =
       observesFrame && this.options.retainDisplayedText
         ? retain?.call(state, { full: !this.retained })
         : undefined
+    const derivedRows = needsRows && derived ? nativeFrame!.readTextRows() : undefined
     const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
     const snapshot = {
       renderHeld: state.renderHeld ?? false,
@@ -110,7 +114,7 @@ export class FrameObserver {
       : undefined
     const ownedTextRows = preparedRows
       ? Object.freeze(preparedRows.textRows.filter(defined))
-      : undefined
+      : derivedRows
     const displayedFrame: DisplayedTextFrame | undefined = onDisplayedFrame
       ? Object.freeze({
           ...snapshot,

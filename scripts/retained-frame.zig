@@ -276,6 +276,9 @@ fn read(comptime text: bool, frame: *Frame, mask: ?[*]const u8, mask_len: u32, s
 pub fn readText(frame: *Frame, _: u32, _: u32, mask: ?[*]const u8, mask_len: u32, _: bool, snapshot: *TextSnapshot) callconv(.c) c.GhosttyResult {
     return read(true, frame, mask, mask_len, snapshot);
 }
+pub fn readRevisions(frame: *Frame, out: [*]u32) callconv(.c) void {
+    for (0..frame.rows) |y| out[y] = @truncate(frame.metadata[y].revision);
+}
 pub fn readRows(frame: *Frame, _: u32, _: u32, mask: ?[*]const u8, mask_len: u32, _: bool, snapshot: *Snapshot) callconv(.c) c.GhosttyResult {
     return read(false, frame, mask, mask_len, snapshot);
 }

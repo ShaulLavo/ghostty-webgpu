@@ -68,6 +68,7 @@ comptime {
     @export(&retained.capture, .{ .name = "bridge_capture_retained_frame" });
     @export(&retained.readText, .{ .name = "bridge_read_retained_text" });
     @export(&retained.readRows, .{ .name = "bridge_read_retained_rows" });
+    @export(&retained.readRevisions, .{ .name = "bridge_read_retained_revisions" });
 }
 
 const std = @import("std");

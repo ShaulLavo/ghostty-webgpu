@@ -781,6 +781,7 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     dirtyOnly: number,
     snapshot: number,
   ): number
+  bridge_read_retained_revisions(frame: number, out: number): void
   bridge_read_retained_rows(
     state: number,
     iterator: number,
