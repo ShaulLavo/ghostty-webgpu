@@ -225,7 +225,12 @@ async function initialize(init: WorkerPoolInit): Promise<void> {
   if (init.mode === 'pool') sharedGl = new SharedWebGl()
   const canvases = init.mode === 'control' ? [init.canvas!] : init.canvases!
   sessions = await Promise.all(canvases.map((canvas, id) => createSession(init, font, id, canvas)))
-  post({ type: 'ready', terminalCount: sessions.length })
+  post({
+    type: 'ready',
+    terminalCount: sessions.length,
+    cellWidth: font.cssCellWidth,
+    cellHeight: font.cssCellHeight,
+  })
 }
 
 async function write(terminal: number, sequence: number, data: string): Promise<void> {

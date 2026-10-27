@@ -85,7 +85,13 @@ async function createPool(canvases: HTMLCanvasElement[]): Promise<void> {
   }
   pool.onmessage = ({ data }: MessageEvent<WorkerPoolMessage>) => {
     const started = performance.now()
-    if (data.type === 'ready') ready.resolve()
+    if (data.type === 'ready') {
+      for (const canvas of canvases) {
+        canvas.style.width = `${columns * data.cellWidth}px`
+        canvas.style.height = `${rows * data.cellHeight}px`
+      }
+      ready.resolve()
+    }
     receive(data)
     handlerMilliseconds += performance.now() - started
   }

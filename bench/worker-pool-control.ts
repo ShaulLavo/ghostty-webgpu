@@ -22,7 +22,7 @@ export async function createControl(
   document.querySelector('main')!.append(container)
   const elements = createTerminalElements(container)
   execution.setFrameListener(onFrame)
-  await execution.open(elements, {
+  const font = await execution.open(elements, {
     identity: 1,
     width: 2000,
     height: 1500,
@@ -31,5 +31,7 @@ export async function createControl(
     scrollbarWidth: 0,
     autoFit: false,
   })
+  elements.canvas.style.width = `${columns * font.cssCellWidth}px`
+  elements.canvas.style.height = `${rows * font.cssCellHeight}px`
   return { execution, elements }
 }

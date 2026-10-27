@@ -41,6 +41,8 @@ export type WorkerPoolRequest =
 
 export interface WorkerPoolReady {
   readonly type: 'ready'
+  readonly cellWidth: number
+  readonly cellHeight: number
   readonly terminalCount: number
 }
 
