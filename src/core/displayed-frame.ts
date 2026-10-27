@@ -22,6 +22,12 @@ interface NativeSlot {
   readonly rows: number
 }
 
+interface PendingCapture {
+  readonly slot: NativeSlot
+  readonly token: number
+  readonly insertedRevisions: Set<number>
+}
+
 interface PackedDescriptor {
   readonly bits: Record<string, { readonly lsb: number; readonly width: number }>
 }
@@ -38,7 +44,11 @@ class RevisionTextCache {
     private readonly reader: TextRowReader,
   ) {}
 
-  read(slot: NativeSlot, readable: readonly (NativeSlot | undefined)[]): readonly RenderTextRow[] {
+  read(
+    slot: NativeSlot,
+    readable: readonly (NativeSlot | undefined)[],
+    inserted?: Set<number>,
+  ): readonly RenderTextRow[] {
     const revisions = this.readRevisions(slot)
     const result: RenderTextRow[] = Array.from({ length: slot.rows })
     const missing = new Set<number>()
@@ -47,14 +57,14 @@ class RevisionTextCache {
       if (cached) result[y] = cached
       else missing.add(y)
     }
-    if (missing.size > 0) this.extract(slot, missing, revisions, result)
+    if (missing.size > 0) this.extract(slot, missing, revisions, result, inserted)
     this.prune(readable)
     return Object.freeze(result)
   }
 
-  invalidate(): void {
-    this.rows.clear()
-    this.slotRevisions.clear()
+  discard(pending: PendingCapture): void {
+    for (const revision of pending.insertedRevisions) this.rows.delete(revision)
+    this.slotRevisions.delete(pending.slot)
   }
 
   private take(revision: number): RenderTextRow | undefined {
@@ -67,12 +77,15 @@ class RevisionTextCache {
     missing: ReadonlySet<number>,
     revisions: readonly number[],
     result: RenderTextRow[],
+    inserted: Set<number> | undefined,
   ): void {
     const options = missing.size === slot.rows ? noOptions : { rows: missing }
     for (const row of this.reader.read(slot.handle, 0, 0, slot, options)) {
       result[row.y] = row
       const revision = revisions[row.y]!
-      if (revision !== 0) this.rows.set(revision, row)
+      if (revision === 0 || this.rows.has(revision)) continue
+      this.rows.set(revision, row)
+      inserted?.add(revision)
     }
   }
 
@@ -121,10 +134,9 @@ interface DisplayedFrames {
   current?: NativeSlot
   previous?: NativeSlot
   spare?: NativeSlot
-  pending?: NativeSlot
+  pending?: PendingCapture
   disposed: boolean
   currentToken: number
-  pendingToken: number
   readonly rowReader: RowReader
   readonly textReader: TextRowReader
   readonly textCache: RevisionTextCache
@@ -134,7 +146,7 @@ const noOptions = Object.freeze({})
 const emptyTextRows: readonly RenderTextRow[] = Object.freeze([])
 
 function readableSlots(frames: DisplayedFrames): readonly (NativeSlot | undefined)[] {
-  return [frames.current, frames.previous, frames.pending]
+  return [frames.current, frames.previous, frames.pending?.slot]
 }
 
 class DisplayedFrame implements NativeDisplayedFrame {
@@ -160,10 +172,10 @@ class DisplayedFrame implements NativeDisplayedFrame {
   }
 
   discard(): void {
-    if (!this.pending()) return
+    const pending = this.pending()
+    if (!pending) return
     this.frames.pending = undefined
-    // Abandoned revisions can be reused by the next attempt from the accepted baseline.
-    this.frames.textCache.invalidate()
+    this.frames.textCache.discard(pending)
   }
 
   readRows(options: DisplayedRowsOptions = noOptions): readonly RenderRow[] {
@@ -175,7 +187,11 @@ class DisplayedFrame implements NativeDisplayedFrame {
     this.active()
     if (options.rows)
       return this.frames.textReader.read(this.current.handle, 0, 0, this.current, options)
-    return (this.#rows ??= this.frames.textCache.read(this.current, readableSlots(this.frames)))
+    return (this.#rows ??= this.frames.textCache.read(
+      this.current,
+      readableSlots(this.frames),
+      this.pending()?.insertedRevisions,
+    ))
   }
 
   readPreviousTextRows(): readonly RenderTextRow[] {
@@ -187,8 +203,10 @@ class DisplayedFrame implements NativeDisplayedFrame {
     ))
   }
 
-  private pending(): boolean {
-    return this.frames.pending === this.current && this.frames.pendingToken === this.token
+  private pending(): PendingCapture | undefined {
+    const pending = this.frames.pending
+    if (!pending || pending.slot !== this.current || pending.token !== this.token) return undefined
+    return pending
   }
 
   private active(): void {
@@ -214,7 +232,6 @@ export class DisplayedFrameStore {
     this.frames = {
       disposed: false,
       currentToken: 0,
-      pendingToken: 0,
       rowReader: new RowReader(runtime, (...args) => runtime.bridge.readRetainedRows(...args)),
       textReader,
       textCache: new RevisionTextCache(runtime, textReader),
@@ -268,10 +285,9 @@ export class DisplayedFrameStore {
       this.runtime.bridge.destroyRetainedFrame(frames.spare.handle)
     // Each capture has its own descriptor because native handles are recycled.
     const captured = { ...next }
-    frames.spare = captured
-    frames.pending = captured
     const token = ++this.token
-    frames.pendingToken = token
+    frames.spare = captured
+    frames.pending = { slot: captured, token, insertedRevisions: new Set() }
     return Object.freeze(new DisplayedFrame(frames, captured, frames.current, token))
   }
 
