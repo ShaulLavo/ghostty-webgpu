@@ -99,7 +99,7 @@ export class FrameObserver {
       observesFrame && this.options.retainDisplayedText
         ? retain?.call(state, { full: !this.retained })
         : undefined
-    const derivedRows = needsRows && derived ? nativeFrame!.readTextRows() : undefined
+    const derivedRows = needsRows && derived ? readCapturedText(nativeFrame!) : undefined
     const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
     const snapshot = {
       renderHeld: state.renderHeld ?? false,
@@ -224,6 +224,16 @@ function copiedPaintTextRow(row: RenderRow): RendererTextFrameRow {
       return (continuations ??= Object.freeze(flags))
     },
   })
+}
+
+function readCapturedText(frame: NativeDisplayedFrame): readonly RendererTextFrameRow[] {
+  try {
+    return frame.readTextRows()
+  } catch (cause) {
+    // A pending capture would block the next frame's capture.
+    frame.discard()
+    throw cause
+  }
 }
 
 function defined<T>(value: T | undefined): value is T {

@@ -131,7 +131,7 @@ describe('review failure boundaries', () => {
     clock.flush()
     const accepted = terminal.visibleLines()
     terminal.onText(() => {})
-    const read = vi.spyOn(runtime.bridge, 'readTextRows').mockReturnValue(-1)
+    const read = vi.spyOn(runtime.bridge, 'readRetainedText').mockReturnValue(-1)
     cleanups.push(() => read.mockRestore())
     terminal.write('\rpending')
     clock.flush()
@@ -219,7 +219,7 @@ describe('review failure boundaries', () => {
     },
   )
 
-  it.each(['captureRetainedFrame', 'readTextRows'] as const)(
+  it.each(['captureRetainedFrame', 'readRetainedText'] as const)(
     'reports and recovers %s failure through coordinated WebGPU commits',
     async (operation) => {
       const { terminal, clock, errors } = await fixture('webgpu', true)

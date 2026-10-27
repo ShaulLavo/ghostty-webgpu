@@ -254,8 +254,11 @@ pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.Ghos
         }
         frame.metadata[y].revision = 0;
         frame.metadata[y].text_revision = 0;
-        result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_ID, &frame.metadata[y].id);
-        if (result != c.GHOSTTY_SUCCESS) return result;
+        frame.metadata[y].id = std.mem.zeroes(c.GhosttyRenderStateRowId);
+        if (track_text) {
+            result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_ID, &frame.metadata[y].id);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+        }
         result = captureRow(frame, it, cells, y, @intCast(tag_shift), @intCast(style_shift), (@as(u64, 1) << @as(u6, @intCast(style_width))) - 1);
         if (result != c.GHOSTTY_SUCCESS) return result;
         frame.metadata[y].revision = revision;

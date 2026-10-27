@@ -26,9 +26,6 @@ interface PackedDescriptor {
   readonly bits: Record<string, { readonly lsb: number; readonly width: number }>
 }
 
-// Three rotating slots plus rows scrolled out of the newest frame stay addressable.
-const cachedRowsPerViewportRow = 4
-
 function movedRow(row: RenderTextRow, y: number): RenderTextRow {
   if (row.y === y) return row
   return Object.freeze({
@@ -46,6 +43,7 @@ function movedRow(row: RenderTextRow, y: number): RenderTextRow {
 /** Text rows memoized by native text revision, which follows row identity while text is equal. */
 class RevisionTextCache {
   private rows = new Map<number, RenderTextRow>()
+  private lastRead: readonly number[] = []
   private revisions = 0
   private revisionsSize = 0
   extractedRows = 0
@@ -68,17 +66,13 @@ class RevisionTextCache {
       else missing.add(y)
     }
     if (missing.size > 0) this.extract(slot, missing, revisions, result)
-    this.prune(slot.rows)
+    this.prune(revisions)
     return Object.freeze(result)
   }
 
   private take(revision: number): RenderTextRow | undefined {
     if (revision === 0) return undefined
-    const row = this.rows.get(revision)
-    if (!row) return undefined
-    this.rows.delete(revision)
-    this.rows.set(revision, row)
-    return row
+    return this.rows.get(revision)
   }
 
   private extract(
@@ -96,11 +90,13 @@ class RevisionTextCache {
     this.extractedRows += missing.size
   }
 
-  private prune(rows: number): void {
-    const excess = this.rows.size - rows * cachedRowsPerViewportRow
-    if (excess <= 0) return
-    const keys = Array.from(this.rows.keys()).slice(0, excess)
-    for (const key of keys) this.rows.delete(key)
+  // Readers ask for the current frame and the one before it, so two reads bound the working set.
+  private prune(revisions: readonly number[]): void {
+    const keep = new Set(revisions)
+    for (const revision of this.lastRead) keep.add(revision)
+    this.lastRead = revisions
+    if (this.rows.size <= keep.size) return
+    for (const revision of this.rows.keys()) if (!keep.has(revision)) this.rows.delete(revision)
   }
 
   private readRevisions(slot: NativeSlot): number[] {
@@ -120,6 +116,7 @@ class RevisionTextCache {
     if (this.revisions !== 0) this.runtime.memory.free(this.revisions, this.revisionsSize)
     this.revisions = 0
     this.rows.clear()
+    this.lastRead = []
   }
 }
 
