@@ -10,6 +10,34 @@ The default `TerminalApi` accepts both conventions for await-style common caller
 subscriptions, focus and displayed text stay synchronous; `open()` and `focusNextLink()` already
 return promises in the main entry.
 
+## batched output
+
+`writeBatched(data, { signal })` is an opt-in asynchronous producer path in both entries. It copies
+strings as UTF-8 and copies caller-owned byte arrays, then returns a promise when that write has
+finished native parsing. The acknowledgement does not mean that output has been submitted or
+presented. Await it before using an authoritative read as a read-after-write barrier for that
+batched write. Synchronous `write()` keeps its existing immediate parse and read-after-write
+behavior.
+
+```ts
+const parsed = terminal.writeBatched(output)
+await parsed
+const rows = await terminal.readLines(0, 24)
+```
+
+`pendingWriteBytes` reports queued bytes plus worker writes waiting for their parse
+acknowledgement. `writeQueue.maxBytes` bounds that total and defaults to 8 MiB. A write that would
+exceed the bound rejects without entering the queue, giving the producer a point at which to pause
+input. `writeQueue.timeBudgetMs` defaults to 12 ms. The queue yields to a timer after that budget,
+checked between writes; one large write can take longer. The first batched output after user input
+runs immediately when no older output is queued.
+
+An abort signal cancels its write only while that write is still queued. Active and completed writes
+are unaffected. Terminal disposal rejects queued and unacknowledged writes and releases their byte
+charges. Ordinary `write`, `writeln`, `writeAndReadGeometry`, reset, appearance changes and fitted
+resizes flush older batched writes first, preserving stream order. Worker batched writes transfer
+the queue's owned buffers to the worker; caller-owned buffers remain attached and unchanged.
+
 ## packaged worker checkpoint
 
 The `ghostty-webgpu/worker` entry creates the same DOM host around a dedicated worker.

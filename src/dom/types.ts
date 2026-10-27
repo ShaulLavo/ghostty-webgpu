@@ -24,6 +24,7 @@ import type {
   RendererGridSize,
   WebGpuTerminalRendererOptions,
 } from '../render/shared/types.js'
+import type { TerminalWriteQueueOptions } from './write-queue.js'
 import type { TerminalAccessibilityOptions } from './accessibility.js'
 import type { DomClipboardWritePolicy } from './clipboard.js'
 import type { TerminalElementPaddingInput, TerminalElements } from './elements.js'
@@ -194,6 +195,7 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly presentation?: WebGpuTerminalRendererOptions['presentation']
   readonly runtime?: TerminalSessionRuntime
   readonly scrollbar?: GhosttyWebGpuTerminalScrollbarOptions
+  readonly writeQueue?: TerminalWriteQueueOptions
 }
 
 export interface GhosttyWebGpuTerminalInputHooks {
