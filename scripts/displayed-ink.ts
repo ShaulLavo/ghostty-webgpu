@@ -1,7 +1,7 @@
 import type { Page } from 'playwright'
 
 export async function displayedInk(page: Page): Promise<{ red: number; green: number }> {
-  const png = await page.locator('main canvas').screenshot()
+  const png = await page.locator('main').screenshot()
   return page.evaluate(async (encoded) => {
     const bytes = Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))
     const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }))

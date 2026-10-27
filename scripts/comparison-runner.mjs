@@ -188,7 +188,7 @@ const echo = new WebSocketServer({ server, path: '/echo' })
 echo.on('connection', (socket) =>
   socket.on('message', (data) => socket.send(data, { binary: true })),
 )
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+await new Promise((resolve) => server.listen(Number(process.env.L7A_PORT ?? 41873), '127.0.0.1', resolve))
 const origin = `http://127.0.0.1:${server.address().port}`
 const browserArgs = [
   `--force-device-scale-factor=${s.dpr}`,

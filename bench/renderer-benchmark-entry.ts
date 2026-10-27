@@ -1,4 +1,14 @@
-import { RenderStateData } from '../src/core/abi.js'
+import { createHostedDriver } from './renderer-hosted-driver.mjs'
+import {
+  tracing,
+  attachNative,
+  attachRenderer,
+  snapshot,
+  startup,
+  completion,
+} from './renderer-diagnostics.mjs'
+import { fixtureText } from './comparison-fixtures.js'
+import type { GhosttyTerminal } from '../src/core/terminal.js'
 import { GhosttyRuntime } from '../src/core/runtime.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
 import { measuredRenderState } from './native-state.js'
@@ -9,12 +19,30 @@ import type {
   BenchmarkResult,
 } from './renderer-benchmark-types.js'
 
-const parameters = new URL(location.href).searchParams
-const columns = Number(parameters.get('columns') ?? 200)
-const rows = Number(parameters.get('rows') ?? 50)
+const params = new URL(location.href).searchParams
+const columns = Number(params.get('columns') ?? 200)
+const rows = Number(params.get('rows') ?? 50)
+const terminalCount = Number(params.get('count') ?? 1)
+const doTrace = params.has('trace')
+const doCompletion = params.has('completion')
+const nativeDrivers: {
+  runtime: GhosttyRuntime
+  renderer: Awaited<ReturnType<typeof createBenchmarkRenderer>>['renderer']
+  core: GhosttyTerminal
+}[] = []
+const frameTimes: number[] = []
+const startupBegin = performance.now()
 const backend = parseBenchmarkBackend(
   new URL(location.href).searchParams.get('backend') ?? 'webgpu',
 )
+let externalChunks: string[] = []
+if (params.has('workload')) {
+  const bytes = new Uint8Array(await (await fetch('/workload.bin')).arrayBuffer())
+  const metadata = await (await fetch('/workload.json')).json()
+  externalChunks = metadata.chunks.map(({ offset, length }: { offset: number; length: number }) =>
+    new TextDecoder().decode(bytes.subarray(offset, offset + length)),
+  )
+}
 const mount = document.querySelector('main')
 if (!mount) throw new Error('Missing benchmark mount')
 const nativeRequestFrame = window.requestAnimationFrame.bind(window)
@@ -24,40 +52,9 @@ let callbackMilliseconds: number[] = []
 let frameRequests = 0
 let writeMilliseconds: number[] = []
 let writtenBytes = 0
+let pendingWrites: Promise<unknown>[] = []
 let sequence = 0
 const decoded = { rows: 0, cells: 0 }
-let planningStarted = 0
-let planningIterators = 0
-let rowPlanMilliseconds = 0
-const instantiate = WebAssembly.instantiate
-WebAssembly.instantiate = new Proxy(instantiate, {
-  apply(target, receiver, args) {
-    const [module, imports] = args
-    const get = imports?.env?.ghostty_render_state_get
-    if (typeof get !== 'function') return Reflect.apply(target, receiver, args)
-    return Reflect.apply(target, receiver, [
-      module,
-      {
-        ...imports,
-        env: {
-          ...imports.env,
-          ghostty_render_state_get: (state: number, data: number, out: number) => {
-            recordRowPlan(data)
-            return get(state, data, out)
-          },
-        },
-      },
-    ])
-  },
-})
-
-function recordRowPlan(data: number): void {
-  if (planningStarted === 0 || data !== RenderStateData.RowIterator) return
-  planningIterators += 1
-  if (planningIterators !== 2) return
-  rowPlanMilliseconds += performance.now() - planningStarted
-}
-
 let adapterInfo: unknown
 let rendererPath = 'ghostty-web'
 const drawErrors: string[] = []
@@ -90,18 +87,21 @@ const font = fitTerminalFont(
     family: 'monospace',
     letterSpacing: 0,
     lineHeight: 1.2,
-    size: Number(parameters.get('fontSize') ?? 13),
+    size: 13,
     weight: 400,
   },
   devicePixelRatio,
 )
 
 interface Driver {
+  readonly adapter?: unknown
   dispose(): Promise<void> | void
   metrics(): Readonly<Record<string, number>>
   output(): string
   scroll(delta: number): void
-  write(data: string): void
+  prepare?(): Promise<void>
+  diagnostics?(): Promise<unknown>
+  write(data: string): unknown
 }
 
 async function createNativeDriver(): Promise<Driver> {
@@ -114,44 +114,17 @@ async function createNativeDriver(): Promise<Driver> {
     cellWidth: font.deviceCellWidth,
     cellHeight: font.deviceCellHeight,
   })
+  terminal.setScrollbackLimit(Number(params.get('scrollback') ?? 10000))
   const state = runtime.createRenderState(terminal)
-  let bridgeMilliseconds = 0
-  let bridgeBuilds = 0
-  let acknowledgementMilliseconds = 0
-  let acknowledgements = 0
-  let acknowledgedRows = 0
-  const renderState = measuredRenderState(state, decoded)
-  renderState.createFrameBuilder = (columns, rows) => {
-    const builder = state.createFrameBuilder(columns, rows)
-    const build = builder.build.bind(builder)
-    builder.build = (options) => {
-      const started = performance.now()
-      planningStarted = started
-      planningIterators = 0
-      try {
-        return build(options)
-      } finally {
-        planningStarted = 0
-        bridgeMilliseconds += performance.now() - started
-        bridgeBuilds += 1
-      }
-    }
-    return builder
-  }
-  renderState.acknowledge = () => {
-    const started = performance.now()
-    const count = state.acknowledge()
-    acknowledgementMilliseconds += performance.now() - started
-    acknowledgements += 1
-    acknowledgedRows += count
-    return count
-  }
+  if (doTrace) attachNative(nativeDrivers.length, runtime, terminal, state)
   const options = {
     canvas,
     columns,
     rows,
     font,
-    onFrame: () => {},
+    onFrame: () => {
+      frameTimes.push(performance.now())
+    },
     onError: (cause: unknown) => {
       const message = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause)
       drawErrors.push(message)
@@ -159,7 +132,7 @@ async function createNativeDriver(): Promise<Driver> {
     },
     needsFrameRows: () => false,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
-    renderState,
+    renderState: measuredRenderState(state, decoded),
   }
   if (backend === 'ghostty-web') throw new Error('Native renderer backend required')
   let created: Awaited<ReturnType<typeof createBenchmarkRenderer>>
@@ -172,6 +145,8 @@ async function createNativeDriver(): Promise<Driver> {
   adapterInfo = created.adapter
   rendererPath = created.path
   const renderer = created.renderer
+  if (doTrace) attachRenderer(nativeDrivers.length, renderer)
+  nativeDrivers.push({ runtime, renderer, core: terminal })
   renderer.setCursorBlinkEnabled(false)
   renderer.setFocused(false)
   return {
@@ -184,12 +159,6 @@ async function createNativeDriver(): Promise<Driver> {
     },
     metrics: () => ({
       ...renderer.metrics,
-      rowPlanMilliseconds,
-      bridgeMilliseconds,
-      bridgeBuilds,
-      acknowledgementMilliseconds,
-      acknowledgements,
-      acknowledgedRows,
       decodedRows: decoded.rows,
       decodedCells: decoded.cells,
     }),
@@ -242,7 +211,46 @@ async function createBaselineDriver(): Promise<Driver> {
   }
 }
 
-const driver = backend === 'ghostty-web' ? await createBaselineDriver() : await createNativeDriver()
+const drivers: Driver[] = []
+for (let index = 0; index < terminalCount; index += 1)
+  drivers.push(
+    params.has('hosted')
+      ? await createHostedDriver({
+          backend,
+          columns,
+          rows,
+          mount: mount!,
+          worker: params.has('worker'),
+          doTrace,
+        })
+      : backend === 'ghostty-web'
+        ? await createBaselineDriver()
+        : await createNativeDriver(),
+  )
+if (params.has('hosted')) adapterInfo = drivers[0]!.adapter
+const driver: Driver = {
+  dispose: async () => {
+    for (const entry of drivers) await entry.dispose()
+  },
+  output: () => drivers[0]!.output(),
+  scroll: (delta) => {
+    for (const entry of drivers) entry.scroll(delta)
+  },
+  write: (data) => {
+    for (const entry of drivers) {
+      const result = entry.write(data)
+      if (result instanceof Promise) pendingWrites.push(result)
+    }
+  },
+  metrics: () => {
+    const metrics: Record<string, number> = {}
+    for (const entry of drivers) {
+      for (const [key, value] of Object.entries(entry.metrics()))
+        metrics[key] = (metrics[key] ?? 0) + value
+    }
+    return metrics
+  },
+}
 
 function assertSelectedRendererPath(): void {
   if (backend === 'canvas2d-pixels' && rendererPath !== 'pixels')
@@ -251,10 +259,8 @@ function assertSelectedRendererPath(): void {
 
 function outputLine(index: number): string {
   return (
-    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(Math.ceil(columns / 16))}`.slice(
-      0,
-      columns - 2,
-    ) + '\r\n'
+    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(12)}`.slice(0, columns - 2) +
+    '\r\n'
   )
 }
 
@@ -272,21 +278,49 @@ function writeLines(count: number): void {
 }
 
 function advance(scenario: BenchmarkScenario, step: number): void {
-  if (scenario === 'cursor-movement') {
-    write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
-    return
-  }
-  if (scenario === 'dense-redraw') {
-    write(
-      '\x1b[H' +
-        Array.from({ length: rows }, (_, y) => outputLine(sequence + y).slice(0, -2)).join('\r\n'),
-    )
-    sequence += rows
+  if (scenario === 'external') {
+    write(externalChunks[step % externalChunks.length]!)
     return
   }
   if (scenario === 'sparse-edit') {
-    const text = step % 2 === 0 ? 'A' : 'B'
-    write(`\x1b[1;1H${text}\x1b[${rows};${columns - 1}H${text}`)
+    write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H${step % 10}`)
+    return
+  }
+  if (scenario === 'dense-redraw') {
+    const line = String(step % 10).repeat(columns - 1)
+    write('\x1b[H' + Array.from({ length: rows }, () => line).join('\r\n'))
+    return
+  }
+  if (scenario === 'warm-unicode') {
+    write(fixtureText('unicode', '').repeat(4))
+    return
+  }
+  if (scenario === 'cold-cache') {
+    for (const entry of nativeDrivers) entry.renderer.clearTextureAtlas()
+    write(fixtureText('unicode', '').repeat(4))
+    return
+  }
+  if (scenario === 'resize-dpr') {
+    const next = { columns: columns + (step % 2), rows: rows + (step % 2) }
+    const nextFont = fitTerminalFont(document, { ...font.settings, size: 13 }, (step % 2) + 1)
+    for (const entry of nativeDrivers) {
+      entry.core.resize({
+        ...next,
+        cellWidth: nextFont.deviceCellWidth,
+        cellHeight: nextFont.deviceCellHeight,
+      })
+      entry.renderer.resize(next)
+      entry.renderer.setFont(nextFont)
+    }
+    return
+  }
+  if (scenario === 'hidden-output') {
+    writeLines(10)
+    return
+  }
+
+  if (scenario === 'cursor-movement') {
+    write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
     return
   }
   if (scenario === 'burst-output') {
@@ -317,26 +351,68 @@ async function run(
   steps: number,
   idleMilliseconds: number,
 ): Promise<BenchmarkResult> {
+  for (const entry of nativeDrivers) {
+    entry.renderer.setDocumentVisible(scenario !== 'hidden-output')
+    entry.renderer.setFocused(scenario === 'cursor-blink')
+    entry.renderer.setCursorBlinkEnabled(scenario === 'cursor-blink')
+  }
+  if (scenario === 'cursor-blink') {
+    write('\x1b[1 q')
+    await frame()
+    await frame()
+  }
+  await Promise.all(drivers.map((entry) => entry.prepare?.()))
   const before = driver.metrics()
+  const completions = []
+  const frameIntervals = []
+  const writeCompletions = []
+  if (doTrace) tracing.begin()
   callbackMilliseconds = []
   frameRequests = 0
   writeMilliseconds = []
   writtenBytes = 0
   const started = performance.now()
-  if (scenario === 'settled-idle')
+  if (scenario === 'settled-idle' || scenario === 'cursor-blink')
     await new Promise((resolve) => setTimeout(resolve, idleMilliseconds))
-  for (let step = 0; step < steps && scenario !== 'settled-idle'; step += 1) {
+  for (
+    let step = 0;
+    step < steps && scenario !== 'settled-idle' && scenario !== 'cursor-blink';
+    step += 1
+  ) {
+    const frameStarted = performance.now()
     advance(scenario, step)
+    await Promise.all(pendingWrites)
+    pendingWrites = []
+    writeCompletions.push(performance.now() - frameStarted)
     await frame()
+    frameIntervals.push(performance.now() - frameStarted)
+    if (doCompletion) {
+      for (const entry of nativeDrivers) completions.push(await completion(entry.renderer))
+    }
   }
   await frame()
   assertNoDrawErrors()
   const elapsedMilliseconds = performance.now() - started
+  const hosted = await Promise.all(drivers.map((entry) => entry.diagnostics?.()))
+  const trace = doTrace ? tracing.end() : null
   const after = driver.metrics()
   const metrics = Object.fromEntries(
     Object.entries(after).map(([key, value]) => [key, value - (before[key] ?? 0)]),
   )
   return {
+    diagnostics: {
+      hosted,
+      started,
+      ended: started + elapsedMilliseconds,
+      writeCompletions,
+      trace,
+      completions,
+      frameIntervals,
+      startup,
+      startupToReady: startupReady,
+      firstSubmittedMilliseconds: frameTimes[0]! - startupBegin,
+      terminals: nativeDrivers.map((entry) => snapshot(entry.runtime, entry.renderer)),
+    },
     callbackMilliseconds,
     elapsedMilliseconds,
     frameRequests,
@@ -348,12 +424,16 @@ async function run(
   }
 }
 
-writeLines(Math.max(200, rows * 2))
-driver.write('\x1b[2;1H\x1b[?2027h界é\x1b[3mf\x1b[0m🧪')
+await Promise.all(pendingWrites)
+pendingWrites = []
+writeLines(Math.max(1, Number(params.get('history') ?? 200)))
+await Promise.all(pendingWrites)
+pendingWrites = []
 await frame()
 await frame()
 assertNoDrawErrors()
 assertSelectedRendererPath()
+const startupReady = performance.now() - startupBegin
 window.__rendererBench = {
   dispose: () => driver.dispose(),
   getPageInfo: () => ({
@@ -362,6 +442,7 @@ window.__rendererBench = {
     rendererPath,
     columns,
     rows,
+    terminalCount,
     dpr: devicePixelRatio,
     font:
       backend === 'ghostty-web'

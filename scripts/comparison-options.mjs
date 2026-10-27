@@ -47,7 +47,7 @@ export function hardwareLaunch(host, smoke, headed = false) {
   const headless = host === 'linux' ? !headed : smoke && !headed
   const arguments_ =
     host === 'linux' && !smoke
-      ? ['--enable-features=Vulkan', '--use-angle=vulkan', '--ignore-gpu-blocklist']
+      ? ['--ignore-gpu-blocklist', '--ozone-platform=wayland']
       : []
   return { headless, arguments: arguments_ }
 }
