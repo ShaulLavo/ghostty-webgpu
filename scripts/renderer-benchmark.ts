@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { platform, release } from 'node:os'
 import { chromium, type CDPSession, type Page } from 'playwright'
 import { displayedInk } from './displayed-ink'
+import { measureCpu } from './comparison-guards.mjs'
 import { benchmarkBackends } from '../bench/renderer-benchmark-types'
 import type { BenchmarkBackend, BenchmarkScenario } from '../bench/renderer-benchmark-types'
 
@@ -13,11 +14,20 @@ const allowedScenarios: readonly BenchmarkScenario[] = [
   'settled-idle',
   'cursor-movement',
   'burst-output',
-  'sparse-edit',
   'sustained-scroll',
   'glyph-churn',
+  'sparse-edit',
+  'dense-redraw',
+  'warm-unicode',
+  'cold-cache',
+  'resize-dpr',
+  'cursor-blink',
+  'hidden-output',
+  'external',
 ]
-const scenarioNames = (process.env.BENCH_SCENARIOS ?? allowedScenarios.join(',')).split(',')
+const scenarioNames = (
+  process.env.BENCH_SCENARIOS ?? allowedScenarios.filter((name) => name !== 'external').join(',')
+).split(',')
 const scenarios = allowedScenarios.filter((scenario) => scenarioNames.includes(scenario))
 assert(
   scenarios.length > 0 && scenarios.length === scenarioNames.length,
@@ -100,13 +110,20 @@ function distribution(samples: readonly number[]) {
   const sorted = samples.toSorted((left, right) => left - right)
   return {
     count: samples.length,
+    p99: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99))] ?? 0,
     median: sorted[Math.floor(sorted.length / 2)] ?? 0,
     p95: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] ?? 0,
     samples,
   }
 }
 
+let workerBundle = ''
 async function buildBrowserBundle(sourceRoot: string): Promise<string> {
+  if (process.env.BENCH_PREBUILT_BUNDLE) {
+    if (process.env.BENCH_PREBUILT_WORKER)
+      workerBundle = await readFile(process.env.BENCH_PREBUILT_WORKER, 'utf8')
+    return readFile(process.env.BENCH_PREBUILT_BUNDLE, 'utf8')
+  }
   const result = await Bun.build({
     entrypoints: [join(root, 'bench/renderer-benchmark-entry.ts')],
     format: 'esm',
@@ -123,10 +140,25 @@ async function buildBrowserBundle(sourceRoot: string): Promise<string> {
     ],
   })
   assert(result.success && result.outputs[0], 'Benchmark browser bundle failed')
+  if (process.env.BENCH_WORKER === '1') {
+    const built = await Bun.build({
+      entrypoints: [join(root, 'bench/renderer-diagnostic-worker.mjs')],
+      format: 'esm',
+      target: 'browser',
+    })
+    assert(built.success && built.outputs[0])
+    workerBundle = await built.outputs[0].text()
+    await Bun.write(output + '.worker.js', workerBundle)
+  }
   return result.outputs[0].text()
 }
 
-async function routePage(page: Page, bundle: string, sourceRoot: string): Promise<void> {
+async function routePage(
+  page: Page,
+  bundle: string,
+  sourceRoot: string,
+  workload?: string,
+): Promise<void> {
   const [wasm, bridge, canvasCompose] = await Promise.all([
     readFile(join(sourceRoot, 'ghostty-vt.wasm')),
     readFile(join(sourceRoot, 'bridge.wasm')),
@@ -134,6 +166,28 @@ async function routePage(page: Page, bundle: string, sourceRoot: string): Promis
   ])
   await page.route(`${origin}/**`, async (route) => {
     const url = new URL(route.request().url())
+    if (url.pathname === '/diagnostic-worker.js')
+      return route.fulfill({ body: workerBundle, contentType: 'text/javascript' })
+    if (url.pathname === '/font.woff2')
+      return route.fulfill({
+        body: await readFile(
+          join(
+            root,
+            'node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2',
+          ),
+        ),
+        contentType: 'font/woff2',
+      })
+    if (url.pathname === '/workload.bin')
+      return route.fulfill({
+        body: await readFile((workload ?? process.env.BENCH_WORKLOAD) + '.bin'),
+        contentType: 'application/octet-stream',
+      })
+    if (url.pathname === '/workload.json')
+      return route.fulfill({
+        body: await readFile((workload ?? process.env.BENCH_WORKLOAD) + '.json'),
+        contentType: 'application/json',
+      })
     if (url.pathname === '/bundle.js')
       return route.fulfill({ body: bundle, contentType: 'text/javascript' })
     if (url.pathname === '/ghostty-vt.wasm')
@@ -145,7 +199,7 @@ async function routePage(page: Page, bundle: string, sourceRoot: string): Promis
     if (url.pathname !== '/') return route.abort()
     await route.fulfill({
       contentType: 'text/html',
-      body: '<!doctype html><style>body{margin:0;background:black}main{width:1600px;height:900px}</style><main></main><script type="module" src="/bundle.js"></script>',
+      body: `<!doctype html><style>body{margin:0;background:black}main{width:1600px;height:900px;display:flex;flex-wrap:wrap;align-content:flex-start}canvas{max-width:${Math.floor(1600 / Math.ceil(Math.sqrt(Number(process.env.BENCH_COUNT ?? 1))))}px;max-height:${Math.floor(900 / Math.ceil(Math.sqrt(Number(process.env.BENCH_COUNT ?? 1))))}px;object-fit:contain}</style><main></main><script type="module" src="/bundle.js"></script>`,
     })
   })
 }
@@ -159,8 +213,30 @@ const args = [
 if (!headless && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
   args.push('--ozone-platform=wayland')
 const browser = await chromium.launch({ channel: 'chromium', headless, args })
+const reusedPage =
+  process.env.BENCH_REUSE_PAGE === '1'
+    ? await browser.newPage({
+        viewport: { width: 1600, height: 1000 },
+        deviceScaleFactor: Number(process.env.BENCH_DPR ?? 2),
+      })
+    : undefined
 const browserSession = await browser.newBrowserCDPSession()
 const gpuInfo: unknown = await browserSession.send('SystemInfo.getInfo')
+const fullLaunchArgv = await (async () => {
+  try {
+    if (platform() !== 'linux') return await browserSession.send('Browser.getBrowserCommandLine')
+    const process = (await processes(browserSession)).find((entry) => entry.type === 'browser')
+    assert(process, 'Owned browser process required')
+    return {
+      arguments: (await readFile(`/proc/${process.id}/cmdline`, 'utf8'))
+        .split('\0')
+        .filter(Boolean),
+      source: 'owned CDP browser pid /proc cmdline',
+    }
+  } catch (cause) {
+    return { unavailable: String(cause) }
+  }
+})()
 const hardware = hardwareRenderer(gpuInfo)
 const results: Awaited<ReturnType<typeof measure>>[] = []
 const sourceArtifacts: unknown[] = []
@@ -186,16 +262,45 @@ async function measure(
   repetition: number,
   bundle: string,
 ) {
-  const page = await browser.newPage({
-    viewport: { width: 1600, height: 1000 },
-    deviceScaleFactor: 2,
-  })
+  const page =
+    reusedPage ??
+    (await browser.newPage({
+      viewport: { width: 1600, height: 1000 },
+      deviceScaleFactor: Number(process.env.BENCH_DPR ?? 2),
+    }))
   page.setDefaultTimeout(15_000)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
+  page.on('console', (message) => {
+    if (message.type() === 'error') console.error(message.text())
+  })
   try {
-    await routePage(page, bundle, source.root)
-    await page.goto(`${origin}/?backend=${backend}`)
+    const workloads = process.env.BENCH_WORKLOADS?.split(',')
+    const workload = workloads?.[repetition % workloads.length] ?? process.env.BENCH_WORKLOAD
+    await routePage(page, bundle, source.root, workload)
+    const query = new URLSearchParams({
+      backend,
+      columns: process.env.BENCH_COLUMNS ?? '200',
+      rows: process.env.BENCH_ROWS ?? '50',
+      count: process.env.BENCH_COUNT ?? '1',
+      history: process.env.BENCH_HISTORY ?? '200',
+      scrollback: process.env.BENCH_SCROLLBACK ?? '10000',
+    })
+    if (process.env.BENCH_HOSTED === '1') query.set('hosted', '')
+    if (process.env.BENCH_WORKER === '1') {
+      query.set('worker', '')
+      query.set('hosted', '')
+    }
+    if (process.env.BENCH_DEFAULT_GPU === '1') query.set('defaultGpu', '')
+    if (workload) query.set('workload', workload)
+    const traced =
+      process.env.BENCH_TRACE_ABBA === '1'
+        ? repetition === 1 || repetition === 2
+        : process.env.BENCH_TRACE === '1'
+    if (traced) query.set('trace', '')
+    if (process.env.BENCH_COMPLETION === '1') query.set('completion', '')
+    if (process.env.BENCH_TIMESTAMP === '1') query.set('timestamp', '')
+    await page.goto(`${origin}/?${query}`)
     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
     await Promise.race([
@@ -213,17 +318,22 @@ async function measure(
     await page.bringToFront()
     const pixels = await displayedInk(page)
     assert(pixels.red > 20, `${backend} did not present red glyphs`)
-    await page.evaluate(
-      ({ scenario, warmupSteps }) => window.__rendererBench.run(scenario, warmupSteps, 100),
-      { scenario, warmupSteps },
-    )
+    if (process.env.BENCH_COLD !== '1')
+      await page.evaluate(
+        ({ scenario, warmupSteps }) => window.__rendererBench.run(scenario, warmupSteps, 100),
+        { scenario, warmupSteps },
+      )
     const before = await processes(browserSession)
     const started = performance.now()
-    const result = await page.evaluate(
+    const operation = () => page.evaluate(
       ({ scenario, steps, idleMilliseconds }) =>
         window.__rendererBench.run(scenario, steps, idleMilliseconds),
       { scenario, steps, idleMilliseconds },
     )
+    const nativeMeasurement = process.env.BENCH_ENERGY === '1'
+      ? await measureCpu(browserSession, operation, { processCounters: true })
+      : { sample: await operation(), cpu: null }
+    const result = nativeMeasurement.sample
     const after = await processes(browserSession)
     const cpu = cpuDelta(before, after, performance.now() - started)
     const info = await page.evaluate(() => window.__rendererBench.getPageInfo())
@@ -239,16 +349,22 @@ async function measure(
       )
     }
     const pageSession = await page.context().newCDPSession(page)
+    await pageSession.send('HeapProfiler.collectGarbage')
     const memory: unknown = await pageSession.send('Runtime.getHeapUsage')
-    await page.locator('main canvas').screenshot({
-      path: join(
-        dirname(output),
-        `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
-      ),
-    })
+    if (process.env.BENCH_SCREENSHOTS !== '0')
+      await page
+        .locator('main canvas')
+        .first()
+        .screenshot({
+          path: join(
+            dirname(output),
+            `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
+          ),
+        })
     const terminalText = await page.evaluate(() => window.__rendererBench.output())
     const lateDrawFailure = await page.evaluate(() => window.__rendererBenchFailure)
     assert(!lateDrawFailure, `${backend} renderer draw failed: ${lateDrawFailure}`)
+    const workerMemory = process.env.BENCH_WORKER === '1' ? await workerHeaps() : []
     await page.evaluate(() => window.__rendererBench.dispose())
     assert.deepEqual(errors, [])
     if (backend !== 'ghostty-web' && scenario === 'settled-idle')
@@ -256,19 +372,26 @@ async function measure(
     const { callbackMilliseconds, writeMilliseconds, ...counts } = result
     return {
       source: source.label,
+      workload,
       backend,
       scenario,
       repetition,
       info,
       cpu,
       memory,
+      nativeCpu: nativeMeasurement.cpu,
+      workerHeaps: workerMemory,
       ...counts,
       outputSha256: createHash('sha256').update(terminalText).digest('hex'),
       callbackMilliseconds: distribution(callbackMilliseconds),
       writeMilliseconds: distribution(writeMilliseconds),
     }
   } finally {
-    await page.close()
+    if (reusedPage) {
+      await page.unrouteAll({ behavior: 'wait' })
+      page.removeAllListeners('pageerror')
+      page.removeAllListeners('console')
+    } else await page.close()
   }
 }
 
@@ -318,6 +441,7 @@ try {
           release: release(),
           browser: browser.version(),
           args,
+          fullLaunchArgv,
           headless,
           gpuInfo,
         },
@@ -393,3 +517,38 @@ async function measureSource(
   )
 }
 console.log(`Evidence: ${output}`)
+
+async function workerHeaps() {
+  const { targetInfos } = await browserSession.send('Target.getTargets')
+  const heaps = []
+  for (const target of targetInfos.filter((entry) => entry.type === 'worker')) {
+    try {
+      heaps.push({ target, heap: await targetHeap(target.targetId) })
+    } catch (error) {
+      heaps.push({ target, error: String(error) })
+    }
+  }
+  return heaps
+}
+async function targetHeap(targetId: string) {
+  const { sessionId } = await browserSession.send('Target.attachToTarget', { targetId, flatten: false })
+  let listener: (event: { sessionId: string; message: string }) => void
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    const response = new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('Worker Runtime.getHeapUsage timeout')), 5000)
+      listener = (event) => {
+        if (event.sessionId !== sessionId) return
+        const message = JSON.parse(event.message)
+        if (message.id === 501) resolve(message)
+      }
+      browserSession.on('Target.receivedMessageFromTarget', listener)
+    })
+    await browserSession.send('Target.sendMessageToTarget', { sessionId, message: JSON.stringify({ id: 501, method: 'Runtime.getHeapUsage' }) })
+    return await response
+  } finally {
+    clearTimeout(timer)
+    browserSession.off('Target.receivedMessageFromTarget', listener!)
+    await browserSession.send('Target.detachFromTarget', { sessionId })
+  }
+}

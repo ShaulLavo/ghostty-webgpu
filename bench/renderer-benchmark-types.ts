@@ -1,4 +1,5 @@
 export const benchmarkBackends = [
+  'dom',
   'canvas2d',
   'canvas2d-pixels',
   'webgl2',
@@ -14,8 +15,17 @@ export type BenchmarkScenario =
   | 'sparse-edit'
   | 'sustained-scroll'
   | 'glyph-churn'
+  | 'sparse-edit'
+  | 'dense-redraw'
+  | 'warm-unicode'
+  | 'cold-cache'
+  | 'resize-dpr'
+  | 'cursor-blink'
+  | 'hidden-output'
+  | 'external'
 
 export interface BenchmarkResult {
+  diagnostics: unknown
   callbackMilliseconds: readonly number[]
   elapsedMilliseconds: number
   frameRequests: number

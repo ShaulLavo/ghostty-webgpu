@@ -1,3 +1,4 @@
+import { DomTerminalRenderer } from '../src/render/dom/renderer.js'
 import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
 import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
 import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
@@ -21,6 +22,8 @@ export async function createBenchmarkRenderer(
   backend: Exclude<BenchmarkBackend, 'ghostty-web'>,
   options: WebGpuTerminalRendererOptions,
 ) {
+  if (backend === 'dom')
+    return { renderer: await DomTerminalRenderer.create(options), adapter: null, path: 'dom' }
   if (backend === 'canvas2d') {
     const renderer = await CanvasTerminalRenderer.create(options)
     return { renderer, adapter: null, path: renderer.canvasPaintMode }
@@ -43,6 +46,22 @@ export async function createBenchmarkRenderer(
       path: 'instanced',
     }
 
+  if (new URL(location.href).searchParams.has('defaultGpu')) {
+    const renderer = await WebGpuTerminalRenderer.create(options)
+    const device: unknown = Reflect.get(renderer, 'device')
+    if (!(device instanceof GPUDevice)) throw new Error('GPU device required')
+    const info = device.adapterInfo
+    return {
+      renderer,
+      adapter: {
+        vendor: info.vendor,
+        architecture: info.architecture,
+        description: info.description,
+        fallback: info.isFallbackAdapter,
+      },
+      path: 'instanced-shared-default',
+    }
+  }
   const adapter = await navigator.gpu?.requestAdapter({ powerPreference: 'high-performance' })
   if (!adapter) throw new Error('No WebGPU adapter')
   const info: AdapterInfo = {
@@ -51,7 +70,10 @@ export async function createBenchmarkRenderer(
     description: adapter.info.description,
     fallback: adapter.info.isFallbackAdapter,
   }
-  const device = await adapter.requestDevice()
+  const timestamp = new URL(location.href).searchParams.has('timestamp')
+  const device = await adapter.requestDevice({
+    requiredFeatures: timestamp && adapter.features.has('timestamp-query') ? ['timestamp-query'] : [],
+  })
   return {
     renderer: await WebGpuTerminalRenderer.create({
       ...options,
