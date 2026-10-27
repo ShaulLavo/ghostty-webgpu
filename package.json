@@ -125,7 +125,7 @@
     "test:package": "bun scripts/package-smoke.ts --browser",
     "test:renderer-fallbacks": "bun scripts/browser-tests.ts src/render/webgl/ src/render/tests/selector.browser.test.ts src/render/tests/fallback.browser.test.ts src/render/canvas/renderer.browser.test.ts src/render/dom/renderer.browser.test.ts src/dom/tests/renderer-fallback.browser.test.ts",
     "test:renderer-smoke": "bun scripts/renderer-fallback-smoke.ts",
-    "test:unit": "vitest run && bun run bench:compare:test && node --test scripts/autoresearch-checkpoint.test.mjs",
+    "test:unit": "vitest run && bun run bench:compare:test && node --test scripts/autoresearch-checkpoint.test.mjs && bun test ./.internal/worker-delta-prototype/codec.test.ts",
     "typecheck": "tsc --noEmit",
     "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run verify:extensions && bun run test && bun run test:renderer-smoke && bun run --cwd site docs:check && bun run pack:release && bun run test:package:built",
     "verify:config-resolver-artifacts": "bun scripts/verify-config-resolver-artifacts.ts --state assembled",
