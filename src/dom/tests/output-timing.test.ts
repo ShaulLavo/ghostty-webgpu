@@ -55,7 +55,12 @@ class FakeClock implements OutputTimingClock {
 
 function tracker(
   clock: FakeClock,
-  options: { pending?: () => boolean; presentation?: boolean; visible?: () => boolean },
+  options: {
+    pending?: () => boolean
+    presentation?: boolean
+    visible?: () => boolean
+    held?: () => boolean
+  },
 ) {
   const emitted: TerminalOutputTiming[] = []
   const timing = new OutputTimingTracker({
@@ -64,6 +69,7 @@ function tracker(
     measuresPresentation: options.presentation ?? true,
     pendingFrame: options.pending ?? (() => false),
     visible: options.visible ?? (() => true),
+    renderHeld: options.held,
     describe: () => ({ desynchronized: false, presentation: 'frame', rendererBackend: 'webgl2' }),
     emit: (event) => emitted.push(event),
   })
@@ -262,6 +268,27 @@ describe('OutputTimingTracker', () => {
     expect(emitted).toHaveLength(1)
     expect(emitted[0]).toMatchObject({ hidden: true })
     expect(emitted[0]?.drawnAt).toBeUndefined()
+  })
+
+  it('waits through held clean updates and repaints until the output is released', () => {
+    const clock = new FakeClock()
+    let held = true
+    const { timing, emitted } = tracker(clock, { held: () => held })
+    write(clock, timing, 0)
+    timing.drawn()
+    clock.runFrame(16)
+    clock.runTasks(17)
+    clock.advance(60)
+    clock.advance(120)
+    clock.advance(180)
+    clock.advance(1000)
+    expect(emitted).toEqual([])
+    held = false
+    clock.time = 1005
+    timing.drawn()
+    clock.runFrame(1010)
+    clock.runTasks(1011)
+    expect(emitted[0]).toMatchObject({ drawnAt: 1005, presentedAt: 1011 })
   })
 
   it('rejects limits that are not positive', () => {
