@@ -1,6 +1,6 @@
 # Upload byte counters
 
-WebGPU comparison traces record `bufferBytes` from the text pass's `frameUploadedBytes` value. This counts the actual lengths passed to `GPUQueue.writeBuffer`, including gaps introduced by bounding upload ranges and the private 80-byte GPU glyph layout. It does not measure driver copies or physical GPU transfer.
+WebGPU comparison traces record `bufferBytes` from the text pass's `frameUploadedBytes` value. This counts the actual lengths passed to `GPUQueue.writeBuffer`, including gaps introduced by bounding upload ranges. Cell records are 64 bytes and glyph records 96 bytes. It does not measure driver copies or physical GPU transfer.
 
 `canonicalRangeBytes` separately sums the requested native cell and glyph range lengths before coalescing and packing. Native glyph records remain 96 bytes. This sum can exceed actual uploads after packing or fall below them when coalescing uploads the gaps between requested ranges. Empty upload frames report zero for both counters.
 
