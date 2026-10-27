@@ -59,6 +59,11 @@ function consumeDelta(message: Extract<WorkerPoolMessage, { type: 'delta' }>): v
 }
 
 function receive(message: WorkerPoolMessage): void {
+  if (message.type === 'commandReply') {
+    pending.get(`command:${message.id}`)?.resolve()
+    pending.delete(`command:${message.id}`)
+    return
+  }
   if (message.type === 'delta') return consumeDelta(message)
   if (message.type === 'ack') {
     const key = `${message.terminal}:${message.sequence}`
@@ -213,6 +218,46 @@ function report() {
   }
 }
 
+async function lifecycleCommand(
+  command: 'disposeSession' | 'fontDpr' | 'lose',
+  terminal: number,
+): Promise<void> {
+  if (!worker) throw new Error('lifecycle requires pooled worker')
+  const id = ++sequence
+  const reply = Promise.withResolvers<void>()
+  pending.set(`command:${id}`, reply)
+  worker.postMessage({ type: 'command', id, terminal, command })
+  await reply.promise
+}
+
+async function lifecycle(): Promise<unknown> {
+  const count = reports.length
+  await lifecycleCommand('disposeSession', count - 1)
+  const afterDispose = reports[0]!.frames
+  await update(0, ++sequence)
+  await waitSingleFrame(0, afterDispose + 1)
+  await lifecycleCommand('fontDpr', 0)
+  const afterFont = reports[0]!.frames
+  await update(0, ++sequence)
+  await waitSingleFrame(0, afterFont + 1)
+  const beforeLoss = reports.map((report) => report.frames)
+  await lifecycleCommand('lose', 0)
+  const targets = beforeLoss.map((frames, index) => (index === count - 1 ? frames : frames + 1))
+  await waitFrames(targets)
+  return {
+    disposedSession: count - 1,
+    survivingSessions: count - 1,
+    framesAfterRecovery: reports.map((report, index) => report.frames - beforeLoss[index]!),
+    errors: errors.slice(),
+  }
+}
+
+async function waitSingleFrame(index: number, count: number): Promise<void> {
+  const targets = reports.map((report) => report.frames)
+  targets[index] = count
+  await waitFrames(targets)
+}
+
 async function dispose(): Promise<void> {
   await Promise.all(drivers.map((driver) => driver.dispose()))
   worker?.postMessage({ type: 'dispose' })
@@ -230,8 +275,9 @@ declare global {
       sample: typeof sample
       report: typeof report
       dispose: typeof dispose
+      lifecycle: typeof lifecycle
     }
   }
 }
 window.__workerReceiveMilliseconds = 0
-window.__workerPoolBench = { setup, sample, report, dispose }
+window.__workerPoolBench = { setup, sample, report, dispose, lifecycle }

@@ -7,6 +7,7 @@ import type { RendererTextFrameSnapshot } from '../src/render/shared/types.js'
 import type { GhosttyWebGpuRenderer } from '../src/dom/types.js'
 import type { TerminalFittedFont, TerminalFontSettings } from '../src/term/types.js'
 import type {
+  WorkerPoolCommand,
   WorkerPoolDelta,
   WorkerPoolFailure,
   WorkerPoolFrame,
@@ -33,6 +34,7 @@ interface Session {
   readonly rows: Map<number, string>
   sequence: number
   writeSequence: number
+  releaseSurface?: () => void
 }
 
 const scope = globalThis as unknown as WorkerScope
@@ -183,6 +185,7 @@ async function createSession(
   }
   const surface = sharedGl?.surface(canvas)
   if (surface) surfaceCleanups.push(surface.dispose)
+  session.releaseSurface = surface?.dispose
   const renderer = await execution.createRenderer(
     (options) => WebGlTerminalRenderer.create(options),
     {
@@ -237,6 +240,37 @@ async function write(terminal: number, sequence: number, data: string): Promise<
   post({ type: 'ack', terminal, sequence })
 }
 
+async function command(request: WorkerPoolCommand): Promise<void> {
+  const session = sessions[request.terminal]
+  if (!session) throw new Error('unknown lifecycle session')
+  if (request.command === 'disposeSession') {
+    session.execution.dispose()
+    session.renderer = undefined
+    session.releaseSurface?.()
+  }
+  if (request.command === 'fontDpr') {
+    session.execution.setAppearance({ font: { size: 15 } })
+    const settings = session.execution.appearance.font
+    const context = new OffscreenCanvas(1, 1).getContext('2d')!
+    context.font = `${settings.weight} ${settings.size}px ${JSON.stringify(settings.family)}`
+    const measured = context.measureText('M')
+    const font = calculateTerminalFittedFont(
+      settings,
+      {
+        advanceWidth: measured.width,
+        fontAscent: measured.fontBoundingBoxAscent,
+        fontDescent: measured.fontBoundingBoxDescent,
+      },
+      1.25,
+    )
+    session.execution.commitLayout(font, { top: 0, right: 0, bottom: 0, left: 0 })
+    session.renderer?.setFont(font)
+    session.renderer?.refreshRows?.(0, session.execution.grid.rows - 1)
+  }
+  if (request.command === 'lose') await sharedGl?.lose()
+  post({ type: 'commandReply', id: request.id })
+}
+
 async function dispose(): Promise<void> {
   if (disposed) return
   disposed = true
@@ -254,6 +288,7 @@ scope.onmessage = ({ data }: MessageEvent<WorkerPoolRequest>) => {
     .then(async () => {
       if (data.type === 'initialize') return initialize(data)
       if (data.type === 'write') return write(data.terminal, data.sequence, data.data)
+      if (data.type === 'command') return command(data)
       return dispose()
     })
     .catch(fail)

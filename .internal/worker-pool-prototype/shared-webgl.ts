@@ -1,6 +1,6 @@
 interface Surface {
-  readonly framebuffer: WebGLFramebuffer
-  readonly texture: WebGLTexture
+  framebuffer: WebGLFramebuffer
+  texture: WebGLTexture
   readonly canvas: OffscreenCanvas
   readonly context: OffscreenCanvasRenderingContext2D
   width: number
@@ -21,6 +21,14 @@ export class SharedWebGl {
     })
     if (!gl) throw new Error('shared WebGL2 unavailable')
     this.gl = gl
+    this.canvas.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault()
+      this.broadcast('webglcontextlost')
+    })
+    this.canvas.addEventListener('webglcontextrestored', () => {
+      this.restoreSurfaces()
+      this.broadcast('webglcontextrestored')
+    })
   }
 
   surface(canvas: OffscreenCanvas): { canvas: OffscreenCanvas; present(): void; dispose(): void } {
@@ -50,8 +58,8 @@ export class SharedWebGl {
       canvas: virtualCanvas,
       present: () => this.present(surface),
       dispose: () => {
-        gl.deleteFramebuffer(framebuffer)
-        gl.deleteTexture(texture)
+        gl.deleteFramebuffer(surface.framebuffer)
+        gl.deleteTexture(surface.texture)
         this.surfaces.delete(surface)
       },
     }
@@ -127,6 +135,34 @@ export class SharedWebGl {
       surface.width,
       surface.height,
     )
+  }
+
+  private restoreSurfaces(): void {
+    for (const surface of this.surfaces) {
+      const framebuffer = this.gl.createFramebuffer()
+      const texture = this.gl.createTexture()
+      if (!framebuffer || !texture) throw new Error('surface restore allocation failed')
+      surface.framebuffer = framebuffer
+      surface.texture = texture
+      this.resize(surface)
+    }
+  }
+
+  private broadcast(type: string): void {
+    for (const surface of this.surfaces)
+      surface.canvas.dispatchEvent(new Event(type, { cancelable: true }))
+  }
+
+  async lose(): Promise<void> {
+    const extension = this.gl.getExtension('WEBGL_lose_context')
+    if (!extension) throw new Error('context loss extension unavailable')
+    const restored = new Promise<void>((resolve) =>
+      this.canvas.addEventListener('webglcontextrestored', () => resolve(), { once: true }),
+    )
+    extension.loseContext()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    extension.restoreContext()
+    await restored
   }
 
   dispose(): void {

@@ -26,7 +26,18 @@ export interface WorkerPoolDispose {
   readonly type: 'dispose'
 }
 
-export type WorkerPoolRequest = WorkerPoolInit | WorkerPoolWrite | WorkerPoolDispose
+export interface WorkerPoolCommand {
+  readonly type: 'command'
+  readonly id: number
+  readonly terminal: number
+  readonly command: 'disposeSession' | 'fontDpr' | 'lose'
+}
+
+export type WorkerPoolRequest =
+  | WorkerPoolInit
+  | WorkerPoolWrite
+  | WorkerPoolDispose
+  | WorkerPoolCommand
 
 export interface WorkerPoolReady {
   readonly type: 'ready'
@@ -71,7 +82,13 @@ export interface WorkerPoolFailure {
   readonly message: string
 }
 
+export interface WorkerPoolCommandReply {
+  readonly type: 'commandReply'
+  readonly id: number
+}
+
 export type WorkerPoolMessage =
+  | WorkerPoolCommandReply
   | WorkerPoolReady
   | WorkerPoolAck
   | WorkerPoolFrame

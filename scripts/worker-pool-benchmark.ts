@@ -296,6 +296,14 @@ async function measure(
       screenshots,
       errors: report.errors,
       bytes: report.bytes - warm.bytes,
+      lifecycle:
+        mode === 'pool'
+          ? await page
+              .evaluate(() => window.__workerPoolBench.lifecycle())
+              .catch((error: unknown) => ({
+                failure: error instanceof Error ? error.message : String(error),
+              }))
+          : undefined,
     }
     await page.evaluate(() => window.__workerPoolBench.dispose())
     return receipt
