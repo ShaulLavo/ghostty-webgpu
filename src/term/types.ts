@@ -46,7 +46,14 @@ export interface TerminalGrid {
   readonly rows: number
 }
 
+export interface TerminalFontMetrics {
+  readonly unitsPerEm: number
+  readonly underlineThickness: number
+}
+
 export interface TerminalFontSettings {
+  /** Positive head.unitsPerEm and post.underlineThickness from this font face. */
+  readonly metrics?: TerminalFontMetrics
   readonly boldWeight: number
   readonly family: string
   readonly letterSpacing: number

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { TerminalFontSettings } from '../../term/types.js'
-import { calculateTerminalFittedFont, type TerminalFontMeasurement } from '../fit.js'
+import {
+  calculateTerminalFittedFont,
+  fittedFontEquals,
+  type TerminalFontMeasurement,
+} from '../fit.js'
 import { projectPointerPosition, type CommittedPointerLayout } from '../pointer.js'
 
 const measurement: TerminalFontMeasurement = {
@@ -136,4 +140,19 @@ describe('calculateTerminalFittedFont', () => {
     expect(first.selection.viewport).toEqual({ x: 0, y: 0 })
     expect(last.selection.viewport).toEqual({ x: 79, y: 23 })
   })
+})
+
+it('treats a font post metric change as a new fitted font', () => {
+  const first = calculateTerminalFittedFont(
+    font({ metrics: { unitsPerEm: 1000, underlineThickness: 50 } }),
+    measurement,
+    1,
+  )
+  const next = calculateTerminalFittedFont(
+    font({ metrics: { unitsPerEm: 1000, underlineThickness: 80 } }),
+    measurement,
+    1,
+  )
+  expect(first.settings.metrics).toEqual({ unitsPerEm: 1000, underlineThickness: 50 })
+  expect(fittedFontEquals(first, next)).toBe(false)
 })
