@@ -146,6 +146,17 @@ it('loads the compositor from the renderer asset override', async () => {
   expect(fetches).toHaveBeenCalledWith(asset)
 })
 
+it('loads the scalar compositor in Chromium when SIMD validation fails', async () => {
+  vi.spyOn(WebAssembly, 'validate').mockImplementationOnce(() => false)
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  const kernel = await ComposeKernel.create()
+  const requests = fetches.mock.calls.map(([url]) => String(url))
+  expect(requests).toHaveLength(2)
+  expect(requests[0]).toContain('canvas-compose.wasm')
+  expect(requests[1]).toContain('canvas-compose-scalar.wasm')
+  expect(kernel.memory.buffer.byteLength).toBe(131072)
+})
+
 it('matches a fresh packed repaint after scroll, cursor, theme, DPR and atlas invalidation', async () => {
   const { state, terminal } = await native('\x1b[?25lone 界\r\ntwo é\r\nthree 😀\r\nfour')
   const font = fittedFont()
