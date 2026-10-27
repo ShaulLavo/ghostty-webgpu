@@ -14,6 +14,7 @@ const allowedScenarios: readonly BenchmarkScenario[] = [
   'cursor-movement',
   'burst-output',
   'dense-redraw',
+  'sparse-edit',
   'sustained-scroll',
   'glyph-churn',
 ]
