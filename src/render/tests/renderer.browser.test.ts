@@ -339,12 +339,83 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
   expect(clock.frames.size).toBe(1)
   clock.flushFrame()
 
-  expect(renderer.metrics.submittedFrames).toBe(2)
+  expect(renderer.metrics.submittedFrames).toBe(1)
   expect(renderer.metrics.rebuiltRows).toBe(2)
   expect(renderer.metrics.instanceUploadOperations).toBe(2)
   expect(source.acknowledgements).toBe(2)
   renderer.dispose()
   canvas.remove()
+})
+
+it.each([false, true])(
+  'accepts identical damaged output without acquiring or submitting a texture, shared=%s',
+  async (shared) => {
+    const clock = new FakeClock()
+    const source = new FakeRenderState(2, 2)
+    const canvas = createCanvas()
+    const onFrame = vi.fn()
+    const onRowsChanged = vi.fn()
+    const renderer = await createRenderer({
+      canvas,
+      columns: 2,
+      rows: 2,
+      font: fittedFont(),
+      renderState: source,
+      schedulerClock: clock,
+      deviceFactory: shared ? undefined : createDevice,
+      onFrame,
+      onRowsChanged,
+    })
+    clock.flushFrame()
+    const metrics = { ...renderer.metrics }
+    const context = canvas.getContext('webgpu')!
+    const acquire = vi.spyOn(context, 'getCurrentTexture')
+    const submit = vi.spyOn(GPUQueue.prototype, 'submit')
+    const encode = vi.spyOn(GPUDevice.prototype, 'createCommandEncoder')
+    try {
+      source.dirtyRow(1)
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expect(source.acknowledgements).toBe(2)
+      expect(onFrame).toHaveBeenCalledTimes(2)
+      expect(onFrame.mock.calls[1]![0]).toEqual(onFrame.mock.calls[0]![0])
+      expect(onRowsChanged.mock.calls.at(-1)).toEqual([[]])
+      expect(acquire).not.toHaveBeenCalled()
+      expect(encode).not.toHaveBeenCalled()
+      expect(submit).not.toHaveBeenCalled()
+      expect(renderer.metrics).toEqual(metrics)
+    } finally {
+      acquire.mockRestore()
+      submit.mockRestore()
+      encode.mockRestore()
+      canvas.remove()
+    }
+  },
+)
+
+it('captures retained records after presentation without acquiring another canvas texture', async () => {
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    rows: 2,
+    font: fittedFont(),
+    renderState: new FakeRenderState(2, 2),
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  const before = await renderer.capturePixels()
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  const acquire = vi.spyOn(canvas.getContext('webgpu')!, 'getCurrentTexture')
+  try {
+    expect(await renderer.capturePixels()).toEqual(before)
+    expect(before.some((value) => value !== 0)).toBe(true)
+    expect(acquire).not.toHaveBeenCalled()
+  } finally {
+    acquire.mockRestore()
+    canvas.remove()
+  }
 })
 
 it('schedules bounded row refreshes and texture-atlas clears without a standing loop', async () => {
@@ -402,6 +473,11 @@ it('submits one frame per blink transition without a standing animation frame', 
   renderer.setFocused(true)
   clock.flushFrame()
   const beforeBlink = renderer.metrics.submittedFrames
+
+  source.dirtyRow(1)
+  renderer.notifyWrite()
+  clock.flushFrame()
+  expect(renderer.metrics.submittedFrames).toBe(beforeBlink)
 
   expect(clock.frames.size).toBe(0)
   expect(clock.timers.size).toBe(1)
@@ -626,7 +702,7 @@ it('coalesces a runtime font change into one full repaint', async () => {
   canvas.remove()
 })
 
-it('publishes immutable copied frame state only after submitted frames', async () => {
+it('publishes immutable copied frame state after accepted updates', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const frames: RendererFrameSnapshot[] = []
@@ -895,7 +971,7 @@ it('keeps the current grid and paint when a resize exceeds the device binding li
   renderer.notifyWrite()
   clock.flushFrame()
   expect(await renderer.capturePixels()).toEqual(pixels)
-  expect(renderer.metrics.draws).toBe(6)
+  expect(renderer.metrics.draws).toBe(3)
 })
 
 it.each([false, true])(
@@ -1626,6 +1702,42 @@ it.each([
   },
 )
 
+it('draws row-map changes even when cell and glyph records stay unchanged', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  terminal.write('\x1b[?25lsteady\r\nsteady\r\nsteady')
+  const renderer = await createRenderer({
+    canvas,
+    columns: 24,
+    rows: 3,
+    font: fittedFont(),
+    renderState: state,
+    schedulerClock: clock,
+  })
+  try {
+    clock.flushFrame()
+    terminal.write('\r\nsteady')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    const before = { ...renderer.metrics }
+    terminal.write('\r\nsteady')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(renderer.metrics.instanceUploadOperations).toBe(before.instanceUploadOperations)
+    expect(renderer.metrics.uploadedBytes).toBeGreaterThan(before.uploadedBytes)
+    expect(renderer.metrics.submittedFrames).toBe(before.submittedFrames + 1)
+  } finally {
+    renderer.dispose()
+    state.dispose()
+    terminal.dispose()
+    runtime.dispose()
+    canvas.remove()
+  }
+})
+
 it('retains identical GPU records when output scrolls the viewport', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
@@ -1714,6 +1826,7 @@ it('submits both default surfaces before callbacks can reenter a peer terminal',
                 armed = false
                 acknowledgedAtCallback = sources[1]!.acknowledgements
                 sources[1]!.dirtyRow(1)
+                peer.refreshRows(1, 1)
                 peer.notifyWrite()
               }
             : undefined,
@@ -1730,6 +1843,7 @@ it('submits both default surfaces before callbacks can reenter a peer terminal',
   armed = true
   sources[0]!.dirtyRow(0)
   sources[1]!.dirtyRow(0)
+  pair.forEach((renderer) => renderer.refreshRows(0, 0))
   pair[0]!.notifyWrite()
   pair[1]!.notifyWrite()
   await expect.poll(() => pair[1]!.metrics.submittedFrames).toBe(before[1]! + 2)
@@ -1773,6 +1887,7 @@ it('repaints default surfaces after one combined queue failure without acknowled
   })
   sources[0]!.dirtyRow(0)
   sources[1]!.dirtyRow(0)
+  pair.forEach((renderer) => renderer.refreshRows(0, 0))
   pair[0]!.notifyWrite()
   pair[1]!.notifyWrite()
   await expect
@@ -1892,6 +2007,7 @@ it('a submitted callback can dispose its peer without notifying that peer or ret
   const acknowledgements = sources[1]!.acknowledgements
   peerFrame.mockClear()
   sources.forEach((source) => source.dirtyRow(0))
+  pair.forEach((renderer) => renderer.refreshRows(0, 0))
   armed = true
   pair.forEach((renderer) => renderer.notifyWrite())
   await expect.poll(() => sources[1]!.acknowledgements).toBe(acknowledgements + 1)
@@ -1917,66 +2033,69 @@ it('a submitted callback can dispose its peer without notifying that peer or ret
   canvases.forEach((canvas) => canvas.remove())
 })
 
-it('flushes accepted peer work before a clean callback mutates its native state', async () => {
-  const runtime = await GhosttyRuntime.create()
-  const terminals = [
-    runtime.createTerminal({ columns: 8, rows: 1 }),
-    runtime.createTerminal({ columns: 8, rows: 1 }),
-  ]
-  const states = terminals.map((terminal) => runtime.createRenderState(terminal))
-  const canvases = [createCanvas(), createCanvas()]
-  const text: string[] = []
-  let armed = false
-  let painted: WebGpuTerminalRenderer | undefined
-  terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
-  const pair = await Promise.all(
-    states.map((state, index) =>
-      createRenderer({
-        canvas: canvases[index]!,
-        columns: 8,
-        rows: 1,
-        font: fittedFont(),
-        renderState: state,
-        deviceFactory: undefined,
-        onTextFrame:
-          index === 0
-            ? (snapshot) => {
-                text.push(snapshot.rows[0]!.text.trimEnd())
-              }
-            : undefined,
-        onCleanUpdate:
-          index === 1
-            ? () => {
-                if (!armed || !painted) return
-                armed = false
-                terminals[0]!.write('\r\x1b[2Kinner')
-                states[0]!.update()
-                painted.notifyWrite()
-              }
-            : undefined,
-      }),
-    ),
-  )
-  painted = pair[0]!
-  try {
-    await expect
-      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
-      .toBe(true)
-    text.length = 0
-    armed = true
-    terminals[0]!.write('\r\x1b[2Kouter')
-    pair[0]!.notifyWrite()
-    pair[1]!.schedule()
-    await expect.poll(() => text.length).toBe(2)
-    expect(text).toEqual(['outer', 'inner'])
-  } finally {
-    pair.forEach((renderer) => renderer.dispose())
-    states.forEach((state) => state.dispose())
-    terminals.forEach((terminal) => terminal.dispose())
-    runtime.dispose()
-    canvases.forEach((canvas) => canvas.remove())
-  }
-})
+it.each([false, true])(
+  'settles peer work before an unchanged update callback, damaged=%s',
+  async (damaged) => {
+    const runtime = await GhosttyRuntime.create()
+    const terminals = [
+      runtime.createTerminal({ columns: 8, rows: 1 }),
+      runtime.createTerminal({ columns: 8, rows: 1 }),
+    ]
+    const states = terminals.map((terminal) => runtime.createRenderState(terminal))
+    const canvases = [createCanvas(), createCanvas()]
+    const text: string[] = []
+    let armed = false
+    let painted: WebGpuTerminalRenderer | undefined
+    terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
+    const mutatePeer = () => {
+      if (!armed || !painted) return
+      armed = false
+      terminals[0]!.write('\r\x1b[2Kinner')
+      states[0]!.update()
+      painted.notifyWrite()
+    }
+    const pair = await Promise.all(
+      states.map((state, index) =>
+        createRenderer({
+          canvas: canvases[index]!,
+          columns: 8,
+          rows: 1,
+          font: fittedFont(),
+          renderState: state,
+          deviceFactory: undefined,
+          onTextFrame:
+            index === 0
+              ? (snapshot) => {
+                  text.push(snapshot.rows[0]!.text.trimEnd())
+                }
+              : undefined,
+          onFrame: index === 1 && damaged ? mutatePeer : undefined,
+          onCleanUpdate: index === 1 && !damaged ? mutatePeer : undefined,
+        }),
+      ),
+    )
+    painted = pair[0]!
+    try {
+      await expect
+        .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+        .toBe(true)
+      text.length = 0
+      armed = true
+      terminals[0]!.write('\r\x1b[2Kouter')
+      pair[0]!.notifyWrite()
+      if (damaged) terminals[1]!.write('\rstart')
+      pair[1]!.schedule()
+      await expect.poll(() => text.length).toBe(2)
+      expect(text).toEqual(['outer', 'inner'])
+    } finally {
+      pair.forEach((renderer) => renderer.dispose())
+      states.forEach((state) => state.dispose())
+      terminals.forEach((terminal) => terminal.dispose())
+      runtime.dispose()
+      canvases.forEach((canvas) => canvas.remove())
+    }
+  },
+)
 
 it('flushes accepted peer work before an error callback mutates its native state', async () => {
   const runtime = await GhosttyRuntime.create()
@@ -2091,6 +2210,7 @@ it('submits an encoded surface before a reentrant font change resizes and config
       .toBe(true)
     events.length = 0
     sources.forEach((source) => source.dirtyRow(0))
+    pair.forEach((renderer) => renderer.refreshRows(0, 0))
     armed = true
     pair.forEach((renderer) => renderer.notifyWrite())
     await expect.poll(() => events.includes('resize')).toBe(true)
@@ -2143,6 +2263,7 @@ it('stops an acquisition retry when flushing a peer callback disposes the failin
     })
     armed = true
     sources.forEach((source) => source.dirtyRow(0))
+    pair.forEach((renderer) => renderer.refreshRows(0, 0))
     pair.forEach((renderer) => renderer.notifyWrite())
     await expect.poll(() => disposedByPeer).toBe(true)
     expect(acquire).toHaveBeenCalledOnce()

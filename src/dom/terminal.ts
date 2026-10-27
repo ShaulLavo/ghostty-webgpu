@@ -285,6 +285,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private accessibilityFrame?: TerminalSubmittedSnapshot
   private accessibilityResizeRevision?: number
   private documentVisible = true
+  private elementVisible = true
+  private readonly renderWhenOffscreen: boolean
   private publicFrameSource?: TerminalSubmittedSnapshot
   private publicFrame?: TerminalSubmittedFrame
   private accessibility?: TerminalAccessibilityController
@@ -350,6 +352,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
+    this.renderWhenOffscreen = options.renderWhenOffscreen === true
     this.rendererMode = options.rendererMode
     this.presentation = options.presentation
     this.outputTimingLimits = outputTimingLimits(options.outputTiming)
@@ -591,6 +594,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       renderer = undefined
       this.reconcileRendererAppearance(elements, initialAppearance)
       this.setDocumentVisible(elements.root.ownerDocument.visibilityState !== 'hidden')
+      this.installVisibility(elements)
       if (this.execution.kind === 'sync') this.subscribeToSession()
       this.installAccessibility(elements)
       this.installScrollbar(elements)
@@ -1163,7 +1167,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     return new OutputTimingTracker({
       clock: browserOutputTimingClock(),
       limits: this.outputTimingLimits,
-      visible: () => this.documentVisible,
+      visible: () => this.renderVisible,
       renderHeld: () => this.execution.renderHeld,
       measuresPresentation: this.execution.kind === 'sync',
       pendingFrame: () => this.execution.kind === 'sync' && this.renderer?.hasPendingFrame === true,
@@ -1649,11 +1653,57 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.emitHostEvent('selection', selection)
   }
 
+  private get renderVisible(): boolean {
+    return this.documentVisible && this.elementVisible
+  }
+
+  private installVisibility(elements: TerminalElements): void {
+    if (this.renderWhenOffscreen) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries.at(-1)
+        if (!entry) return
+        const bounds = entry.boundingClientRect
+        const intersection = entry.intersectionRect
+        this.setElementVisible(
+          bounds.width > 0 &&
+            bounds.height > 0 &&
+            intersection.width > 0 &&
+            intersection.height > 0,
+        )
+      },
+      { threshold: [0, Number.EPSILON] },
+    )
+    const resize = new ResizeObserver(() => {
+      if (this.stateValue === 'disposed') return
+      // Zero-size targets can keep the same intersection ratio, so request a fresh entry.
+      observer.unobserve(elements.root)
+      observer.observe(elements.root)
+    })
+    this.cleanup.add(() => {
+      resize.disconnect()
+      observer.disconnect()
+    })
+    observer.observe(elements.root)
+    resize.observe(elements.root, { box: 'border-box' })
+  }
+
+  private setElementVisible(visible: boolean): void {
+    if (this.stateValue === 'disposed' || this.elementVisible === visible) return
+    this.elementVisible = visible
+    this.synchronizeRenderVisibility()
+  }
+
   private setDocumentVisible(visible: boolean): void {
     this.documentVisible = visible
-    if (visible) this.outputTimingTracker?.resume()
     if (visible) this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
     else this.cancelAccessibilityTimer()
+    this.synchronizeRenderVisibility()
+  }
+
+  private synchronizeRenderVisibility(): void {
+    const visible = this.renderVisible
+    if (visible) this.outputTimingTracker?.resume()
     if (this.execution.kind === 'async') {
       void this.execution
         .request('visible', [visible])

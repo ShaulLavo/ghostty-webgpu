@@ -38,6 +38,7 @@ const columns = positiveInteger('BENCH_COLUMNS', 200)
 const rows = positiveInteger('BENCH_ROWS', 50)
 const fontSize = positiveInteger('BENCH_FONT_SIZE', 13)
 const headless = process.env.BENCH_HEADLESS === '1'
+const terminalVisibility = process.env.BENCH_TERMINALS === '16'
 const output = resolve(process.env.BENCH_OUTPUT ?? join(root, '.artifacts/renderer-benchmark.json'))
 const origin = 'http://localhost:41799'
 const candidates = [{ label: 'candidate', root }]
@@ -200,7 +201,7 @@ async function measure(
   try {
     await routePage(page, bundle, source.root)
     await page.goto(
-      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}`,
+      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}${terminalVisibility ? '&terminals=16' : ''}`,
     )
     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
@@ -246,12 +247,15 @@ async function measure(
     }
     const pageSession = await page.context().newCDPSession(page)
     const memory: unknown = await pageSession.send('Runtime.getHeapUsage')
-    await page.locator('main canvas').screenshot({
-      path: join(
-        dirname(output),
-        `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
-      ),
-    })
+    const screenshot = await page
+      .locator(terminalVisibility ? 'main' : 'main canvas')
+      .first()
+      .screenshot({
+        path: join(
+          dirname(output),
+          `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
+        ),
+      })
     const terminalText = await page.evaluate(() => window.__rendererBench.output())
     const lateDrawFailure = await page.evaluate(() => window.__rendererBenchFailure)
     assert(!lateDrawFailure, `${backend} renderer draw failed: ${lateDrawFailure}`)
@@ -269,6 +273,7 @@ async function measure(
       cpu,
       memory,
       ...counts,
+      pixelSha256: createHash('sha256').update(screenshot).digest('hex'),
       outputSha256: createHash('sha256').update(terminalText).digest('hex'),
       callbackMilliseconds: distribution(callbackMilliseconds),
       writeMilliseconds: distribution(writeMilliseconds),
@@ -382,6 +387,12 @@ async function measureSource(
   )
   results.push(result)
   if (paired) {
+    if (terminalVisibility)
+      assert.equal(
+        result.pixelSha256,
+        paired.pixelSha256,
+        'Paired visible terminals produced different pixels',
+      )
     assert.equal(result.steps, paired.steps, 'Paired workloads processed different steps')
     assert.equal(
       result.writtenBytes,

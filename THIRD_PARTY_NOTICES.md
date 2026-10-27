@@ -70,3 +70,16 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Noto Sans Mono
+
+`bench/fixtures/correctness/NotoSansMono-Regular.ttf` contains Noto Sans Mono version 2.007 for
+browser correctness fixtures. The font is not part of the published npm package.
+
+- Source: <https://github.com/notofonts/noto-fonts>, `hinted/ttf/NotoSansMono/NotoSansMono-Regular.ttf`, revision `ffebf8c1ee449e544955a7e813c54f9b73848eac`
+- License: SIL Open Font License 1.1
+
+Copyright 2015-2021 Google LLC. All Rights Reserved.
+
+The complete SIL Open Font License 1.1 text appears in
+`bench/fixtures/correctness/NotoSansMono-LICENSE.txt`.

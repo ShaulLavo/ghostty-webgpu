@@ -580,23 +580,27 @@ it('settles rolling ASCII scroll notifications without uploading unchanged nativ
   const native = await hostFixture()
   native.terminal.write('\x1b[?25lsame\r\nsame\r\nsame')
   await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
+  native.terminal.write('\r\nsame')
+  await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
   const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
   const scroll = vi.spyOn(native.renderer, 'notifyScroll')
-  const nativeDraw = vi.spyOn(native.canvas.getContext('webgl2')!, 'drawArraysInstanced')
+  const gl = native.canvas.getContext('webgl2')!
+  const nativeDraw = vi.spyOn(gl, 'drawArraysInstanced')
+  const writes = vi.spyOn(gl, 'bufferSubData')
   const uploaded = native.renderer.metrics.uploadedBytes
   const operations = native.renderer.metrics.instanceUploadOperations
   const submitted = native.renderer.metrics.submittedFrames
   native.terminal.write('\r\nsame')
   await expect.poll(() => native.terminal.hasPendingFrame).toBe(false)
   expect(scroll).toHaveBeenCalledOnce()
-  expect(nativeDraw).toHaveBeenCalledTimes(
-    (native.renderer.metrics.submittedFrames - submitted) * 2,
-  )
+  expect(native.renderer.metrics.submittedFrames).toBe(submitted + 1)
+  expect(nativeDraw).toHaveBeenCalled()
+  expect(writes).not.toHaveBeenCalled()
   expect({
     full: build.mock.calls.map(([options]) => options.full),
     uploadedBytes: native.renderer.metrics.uploadedBytes - uploaded,
     uploadOperations: native.renderer.metrics.instanceUploadOperations - operations,
-  }).toEqual({ full: [false], uploadedBytes: 0, uploadOperations: 0 })
+  }).toEqual({ full: [false], uploadedBytes: 32, uploadOperations: 1 })
   expect(native.errors).toEqual([])
 })
 

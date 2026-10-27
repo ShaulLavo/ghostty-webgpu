@@ -3,7 +3,7 @@ import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
 import type { InstanceByteRange } from '../shared/instances/types.js'
-import { planWebglUploadRanges } from '../shared/instances/upload-ranges.js'
+import { planSparseUploadRanges, planWebglUploadRanges } from '../shared/instances/upload-ranges.js'
 
 import {
   cellFragmentShader,
@@ -20,10 +20,17 @@ export interface WebGlTextPassOptions {
   readonly width: number
 }
 
+type FrameRows =
+  | { readonly stableRows?: false }
+  | Pick<ZigFrameBuilder, 'stableRows' | 'columns' | 'rowHeight' | 'rowOffset'>
+
 interface Pipeline {
   readonly buffer: WebGLBuffer
   readonly program: WebGLProgram
   readonly vertexArray: WebGLVertexArrayObject
+  readonly rowLayout: WebGLUniformLocation
+  readonly firstInstance: WebGLUniformLocation
+  readonly stride: number
   drawable: Uint8Array
   drawInstanceCount: number
 }
@@ -74,6 +81,9 @@ export class WebGlTextPass {
   private atlasUploadedBytesValue = 0
   private atlasUploadOperationsValue = 0
   private frameUploadedBytesValue = 0
+  private rowColumns = 0
+  private rowHeight = 0
+  private rowOffset = 0
   private disposed = false
 
   constructor(options: WebGlTextPassOptions) {
@@ -138,15 +148,16 @@ export class WebGlTextPass {
   }
 
   uploadFrame(
-    frame: Pick<ZigFrameBuilder, 'cellData' | 'glyphData'>,
+    frame: Pick<ZigFrameBuilder, 'cellData' | 'glyphData'> & FrameRows,
     updates: readonly { readonly cell: InstanceByteRange; readonly glyph: InstanceByteRange }[],
   ): number {
     this.ensureActive()
     this.frameUploadedBytesValue = 0
-    const plan = planWebglUploadRanges(updates)
+    const rowsChanged = this.uploadRows(frame)
+    const plan = rowsChanged ? planSparseUploadRanges(updates) : planWebglUploadRanges(updates)
     this.writeRanges(this.cells, frame.cellData, plan.cell, CELL_INSTANCE_BYTES)
     this.writeRanges(this.glyphs, frame.glyphData, plan.glyph, GLYPH_INSTANCE_BYTES)
-    return plan.cell.length + plan.glyph.length
+    return plan.cell.length + plan.glyph.length + Number(rowsChanged)
   }
 
   resize(options: { width: number; height: number; instanceCount: number }): void {
@@ -159,6 +170,7 @@ export class WebGlTextPass {
     this.instanceCount = options.instanceCount
     this.resizePipeline(this.cells, CELL_INSTANCE_BYTES)
     this.resizePipeline(this.glyphs, GLYPH_INSTANCE_BYTES)
+    this.uploadRows({ stableRows: false })
   }
 
   submit(): number {
@@ -262,6 +274,9 @@ export class WebGlTextPass {
       buffer,
       program,
       vertexArray,
+      rowLayout: this.uniform(program, 'rowLayout'),
+      firstInstance: this.uniform(program, 'firstInstance'),
+      stride,
       drawable: new Uint8Array(this.instanceCount),
       drawInstanceCount: 0,
     }
@@ -429,12 +444,60 @@ export class WebGlTextPass {
       pipeline.drawInstanceCount -= 1
   }
 
+  private uploadRows(frame: FrameRows): boolean {
+    const columns = frame.stableRows ? frame.columns : 0
+    const height = frame.stableRows ? frame.rowHeight : 0
+    const offset = frame.stableRows ? frame.rowOffset : 0
+    if (columns === this.rowColumns && height === this.rowHeight && offset === this.rowOffset)
+      return false
+    this.rowColumns = columns
+    this.rowHeight = height
+    this.rowOffset = offset
+    const gl = this.context
+    for (const pipeline of [this.cells, this.glyphs]) {
+      gl.useProgram(pipeline.program)
+      gl.uniform4f(
+        pipeline.rowLayout,
+        columns,
+        height,
+        offset,
+        columns ? this.instanceCount / columns : 0,
+      )
+    }
+    this.frameUploadedBytesValue += 32
+    return true
+  }
+
   private draw(pipeline: Pipeline): number {
     if (pipeline.drawInstanceCount === 0) return 0
     const gl = this.context
     gl.useProgram(pipeline.program)
     gl.bindVertexArray(pipeline.vertexArray)
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, pipeline.drawInstanceCount)
+    const split = this.rowOffset * this.rowColumns
+    if (split === 0) {
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, pipeline.drawInstanceCount)
+      return 1
+    }
+    // Draw logical rows in order so overhanging glyphs blend the same way across the wrap.
+    const high = this.drawRange(pipeline, split, pipeline.drawInstanceCount - split)
+    return high + this.drawRange(pipeline, 0, Math.min(split, pipeline.drawInstanceCount))
+  }
+
+  private drawRange(pipeline: Pipeline, first: number, count: number): number {
+    if (count <= 0) return 0
+    const gl = this.context
+    gl.bindBuffer(gl.ARRAY_BUFFER, pipeline.buffer)
+    for (let attribute = 0; attribute < pipeline.stride / 16; attribute += 1)
+      gl.vertexAttribPointer(
+        attribute,
+        4,
+        gl.FLOAT,
+        false,
+        pipeline.stride,
+        first * pipeline.stride + attribute * 16,
+      )
+    gl.uniform1i(pipeline.firstInstance, first)
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count)
     return 1
   }
 
