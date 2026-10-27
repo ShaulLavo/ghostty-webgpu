@@ -64,7 +64,11 @@ Raw evidence and exact controller logs are retained under `/work/reports/ghostty
 
 The Prove It Works principle kept atlas bytes and screenshots beside timings. Build the Lever produced the rerunnable analyzer and research patches. Foundational Thinking kept full-key ownership in the native builder and scratch geometry inside the rasterizer. Sequence Work into Verifiable Units put bitmap parity before hardware measurements. No additional agent was started, as required by the lane brief.
 
-The experiment removes most readback calls for monochrome misses, but keeps per-glyph painting, two color probes, bounds scans and bitmap copies. These measurements do not isolate which remaining operation dominates. Further tuning is a new hypothesis, not a reason to lower the 40% gate. Do not promote this prototype on its smaller improvement.
+The 10.8–31.2% gain comes from the packed, batched readback path with ASCII warmup disabled. On the primary monochrome miss path, the baseline performs a white probe and a black probe, each with its own `fillText` and readback. The candidate keeps both `fillText` calls per glyph but shares canvas setup and reduces readback to one `getImageData` per chunk. This identifies the changed work; the receipts do not separately time the contribution of canvas setup or readback. Warmup runs in a separate cohort after the first callback and does not produce the primary raster-time result.
+
+The remaining raster time includes per-glyph painting, per-region bounds scans, color-probe scans, bitmap copies and cache bookkeeping. Packing also requires clipping and region metadata. The receipts do not time these operations individually, so they cannot establish their shares or identify the dominant remaining operation. Upload and encode CPU are outside the raster timer and cannot explain its remaining time.
+
+**Reject stands for the single-readback subset and for warmup. Do not ship either as a small production change.** The single-readback path still needs the packed canvas, clipping, region metadata, scans, color probes and copies. It retains the batching complexity while the observed 10.8–31.2% reduction remains below the 40% gate. Reconsideration requires a new experiment with operation-level timing before opening a production PR. There is no evidence here supporting promotion of a simpler subset.
 
 ## Validation and retained evidence
 
