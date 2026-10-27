@@ -897,7 +897,9 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     std.mem.swap([*]CachedRow, &cache.previous, &cache.next);
-    if (frame.status == 0) frame.glyph_index.rebuild_all = 0;
-    frame.glyph_index.residency_changed = 0;
+    if (frame.status == 0) {
+        frame.glyph_index.rebuild_all = 0;
+        frame.glyph_index.residency_changed = 0;
+    }
     return c.GHOSTTY_SUCCESS;
 }

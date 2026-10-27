@@ -1241,3 +1241,34 @@ describe('atlas pressure', () => {
     expect(invalidate).not.toHaveBeenCalled()
   })
 })
+
+it('repairs a clean row through both native passes after an external page eviction', async () => {
+  runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 2, rows: 2 })
+  const state = runtime.createRenderState(terminal)
+  builder = state.createFrameBuilder(2, 2)
+  const atlas = new GlyphAtlas({ pageWidth: 4, pageHeight: 4, padding: 0, maxLayersPerKind: 2 })
+  const rasterizer: GlyphRasterizer = {
+    rasterize: () => ({ ...bitmap, width: 4, height: 4, pixels: new Uint8Array(16).fill(255) }),
+  }
+  terminal.write('\x1b[?25lM\x1b[2;1HA')
+  state.update()
+  expect(buildZigFrame(builder, atlas, rasterizer, { ...options })).toBe(0)
+  const other = builder.glyphData.slice(2 * 24, 3 * 24)
+  state.acknowledge()
+  atlas.getOrInsert(
+    'foreign',
+    rasterizer.rasterize({
+      cellSpan: 1,
+      foreground: options.theme.foreground,
+      italic: false,
+      text: 'foreign',
+      weight: 'normal',
+    })!,
+    -1,
+  )
+  expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
+  expect(builder.glyphData[GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+  expect(builder.glyphData[GlyphOffset.Atlas + 1]).toBe(3)
+  expect(builder.glyphData.slice(2 * 24, 3 * 24)).toEqual(other)
+})
