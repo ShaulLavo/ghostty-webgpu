@@ -30,6 +30,14 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## Procedural terminal sprites
+
+The procedural atlas glyphs and native comparison fixtures adapt Ghostty's sprite
+geometry at revision `7b11f3dca034d8d24369ad3856afe57946d7902a`, specifically
+`src/font/sprite/draw/{box,block,braille,powerline,symbols_for_legacy_computing,common}.zig`.
+The native fixture generator uses the same revision's sprite canvas and the pinned
+z2d dependency. Ghostty's MIT license and copyright notice appear above.
+
 ## ghostty.org home animation
 
 The demo site under `site/` includes the terminal animation frames from the ghostty.org website,
