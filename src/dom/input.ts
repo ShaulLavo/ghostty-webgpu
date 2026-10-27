@@ -542,10 +542,11 @@ class BrowserInputController implements DomInputController {
       return true
     }
     const readback = this.options.selectionReadback
+    const copyShortcut = this.platform === 'mac' ? 'Mod+C' : 'Ctrl+Shift+C'
     if (
       !readback ||
-      this.platform !== 'mac' ||
-      normalizeHotkeyFromEvent(event, this.platform) !== normalizeHotkey('Mod+C', this.platform) ||
+      normalizeHotkeyFromEvent(event, this.platform) !==
+        normalizeHotkey(copyShortcut, this.platform) ||
       !readback.hasSelection()
     )
       return false
