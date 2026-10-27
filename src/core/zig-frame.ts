@@ -50,6 +50,7 @@ export class ZigFrameBuilder {
     readonly columns: number,
     readonly rows: number,
     private readonly ensureOwnerActive: () => void,
+    private readonly prepareSnapshot: () => void = () => {},
   ) {
     try {
       this.frame = this.allocate(frameBytes)
@@ -163,6 +164,7 @@ export class ZigFrameBuilder {
 
   build(options: ZigFrameOptions): number {
     this.ensureActive()
+    this.prepareSnapshot()
     const full = options.full
     this.setUint(132, options.stableRows ? 1 : 0)
     const { memory } = this.runtime

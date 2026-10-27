@@ -1,3 +1,4 @@
+import { captureRenderAcknowledgement } from './displayed-frame.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { GhosttyRenderState } from '../../core/render-state.js'
 import type {
@@ -20,6 +21,7 @@ export interface RenderStateSource {
   subscribeRenderRequest?(listener: () => void): () => void
   createFrameBuilder?(columns: number, rows: number): ZigFrameBuilder
   acknowledge(): number
+  [captureRenderAcknowledgement]?(): () => number
   readCursor(): RenderCursorSnapshot
   readRows(options?: ReadRowsOptions): readonly RenderRow[]
   readTextRows?(options?: ReadRowsOptions): readonly RendererTextFrameRow[]

@@ -184,10 +184,20 @@ The main and worker entries honor holds on every supported renderer.
 The renderer can repaint the captured pre-hold frame during the hold. Output timing acknowledges
 held output only after release, including when release comes from the timeout.
 
-A render state created after a hold begins exposes an empty viewport and hidden cursor until
-release. Renderers defer its first submission until it has a snapshot.
+Render states share one captured viewport per terminal. A state created during a hold reads
+the safe pre-hold snapshot if another state already captured it. Without an existing snapshot,
+it exposes an empty viewport and hidden cursor until release. Renderers defer its first
+submission until it has a snapshot.
 
 ## first frames and damage
+
+`runtime.createRenderState(terminal)` creates an independent damage subscription to one shared
+native snapshot. Updating any subscription refreshes the viewport and cursor for all of them.
+Each subscription accumulates changed rows until its own `acknowledge()`. An acknowledgement
+only clears damage through that subscription's last update or row read, so a later capture by
+another subscription stays pending. Dispose each subscription when its consumer stops. The last
+subscription releases the native snapshot. Submitted-frame history remains separate for each
+consumer. Use `snapshotRenderState()` when you need an immutable copy of a captured viewport.
 
 `renderFrameToHtml(snapshot, { font, columns, rows, theme })` produces the DOM backend's
 cell runs as HTML under Node or in a browser. `snapshotRenderState(renderState)` reads an
