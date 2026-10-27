@@ -15,6 +15,7 @@ import { testFontUrl } from '../../tests/fonts.js'
 const family = 'SynchronizedOutputMono'
 const factories = {
   canvas: CanvasTerminalRenderer.create,
+  'canvas-pixels': CanvasTerminalRenderer.create,
   dom: DomTerminalRenderer.create,
   webgl: WebGlTerminalRenderer.create,
   webgpu: WebGpuTerminalRenderer.create,
@@ -26,7 +27,7 @@ const assets = {
 
 type Backend = keyof typeof factories | 'worker-webgl' | 'worker-webgpu'
 
-async function createTerminal(backend: Backend) {
+async function createTerminal(backend: Backend, quietMs = 100) {
   const appearance = {
     grid: { columns: 24, rows: 4 },
     font: { family, size: 16 },
@@ -37,6 +38,7 @@ async function createTerminal(backend: Backend) {
       appearance,
       autoFit: false,
       accessibility: {},
+      outputTiming: { quietMs },
       backend: backend === 'worker-webgl' ? 'webgl' : 'webgpu',
       fonts: [{ family, source: { url: testFontUrl } }],
     })
@@ -46,6 +48,8 @@ async function createTerminal(backend: Backend) {
     autoFit: false,
     accessibility: {},
     runtime: { kind: 'owned', options: assets },
+    outputTiming: { quietMs },
+    rendererMode: backend === 'canvas-pixels' ? 'canvas2d-pixels' : undefined,
     rendererFactory: (options) => factories[backend](options),
   }
   return Terminal.create(options)
@@ -55,7 +59,7 @@ async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 120))
 }
 
-it.each(['canvas', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'worker-webgpu'] as const)(
+it.each(['canvas', 'canvas-pixels', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'worker-webgpu'] as const)(
   'holds displayed pixels, observers and accessibility with %s',
   async (backend) => {
     await page.viewport(800, 600)
@@ -103,12 +107,15 @@ it.each(['canvas', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'worker-webgpu'] as
       expect(frames).toBeGreaterThan(heldFrames)
       expect(await page.screenshot({ element: screen, save: false, scale: 'css' })).not.toBe(before)
       await page.screenshot({ element: host, path: `.artifacts/dec2026-${backend}-released.png` })
-      await terminal.write('\x1b[?2026h\r\x1b[2Ktimeout')
+      await terminal.write('\x1b[?2026h\r\x1b[2Ktimeout rendered')
+      await terminal.clearTextureAtlas()
       await settle()
       expect(terminal.visibleLines()[0]?.trimEnd()).toBe('partial complete')
       await expect
         .poll(() => terminal.visibleLines()[0]?.trimEnd(), { timeout: 2500 })
-        .toBe('timeout')
+        .toBe('timeout rendered')
+      await expect.poll(() => host.querySelector('.ghostty-webgpu-accessibility')?.textContent).toContain('timeout rendered')
+      await page.screenshot({ element: host, path: `.artifacts/dec2026-${backend}-timeout.png` })
     } finally {
       await terminal.dispose()
       host.remove()
@@ -116,4 +123,53 @@ it.each(['canvas', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'worker-webgpu'] as
     }
   },
   15_000,
+)
+
+
+it.each(['canvas', 'worker-webgl', 'worker-webgpu'] as const)(
+  'acknowledges held output timing only after release with %s',
+  async (backend) => {
+    const face = await new FontFace(family, `url(${testFontUrl})`).load()
+    document.fonts.add(face)
+    const host = document.createElement('div')
+    host.style.cssText = 'width:480px;height:160px;position:relative'
+    document.body.append(host)
+    const terminal = await createTerminal(backend, 50).catch((cause: unknown) => {
+      host.remove()
+      document.fonts.delete(face)
+      throw cause
+    })
+    const events: { drawnAt?: number; presentedAt?: number }[] = []
+    try {
+      await terminal.open(host)
+      await terminal.write('\x1b[?25lbefore')
+      await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before')
+      await settle()
+      terminal.on('outputTiming', (event) => { events.push(event) })
+      const start = performance.now()
+      await terminal.write('\x1b[?2026h\rpartial')
+      await new Promise((resolve) => setTimeout(resolve, 200))
+      expect(terminal.visibleLines()[0]?.trimEnd()).toBe('before')
+      expect(events).toEqual([])
+      await terminal.clearTextureAtlas()
+      await settle()
+      expect(events).toEqual([])
+      await expect.poll(() => events.find((event) => event.drawnAt !== undefined), { timeout: 2500 }).toBeDefined()
+      expect(events[0]?.drawnAt).toBeGreaterThanOrEqual(start + 950)
+      await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('partial')
+      events.length = 0
+      await terminal.write('\x1b[?2026h\rupdated')
+      await new Promise((resolve) => setTimeout(resolve, 200))
+      expect(events).toEqual([])
+      const released = performance.now()
+      await terminal.write('\x1b[?2026l')
+      await expect.poll(() => events.find((event) => event.drawnAt !== undefined)).toBeDefined()
+      expect(events.filter((event) => event.drawnAt !== undefined).every((event) => event.drawnAt! >= released)).toBe(true)
+    } finally {
+      await terminal.dispose()
+      host.remove()
+      document.fonts.delete(face)
+    }
+  },
+  10_000,
 )
