@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, readdir } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { chromium, type CDPSession, type Page } from 'playwright'
 
@@ -457,102 +457,115 @@ async function measure(
   }
 }
 
-await mkdir(dirname(output), { recursive: true })
-const assets = new Map<string, string | Buffer>([
-  [
-    '/',
-    '<!doctype html><style>body{margin:0;background:#000}main{display:flex;flex-direction:column;gap:4px}canvas{max-width:none}</style><main></main><script type="module" src="/page.js"></script>',
-  ],
-  ['/page.js', await bundle('bench/worker-delta-page.ts')],
-  ['/delta-worker.js', await bundle('src/worker/entry.ts', true)],
-  ['/control-worker.js', await bundle('src/worker/entry.ts')],
-  ['/ghostty-vt.wasm', await readFile(join(root, 'ghostty-vt.wasm'))],
-  ['/bridge.wasm', await readFile(join(root, 'bridge.wasm'))],
-  [
-    '/fonts/JetBrainsMono-Regular.woff2',
-    await readFile(
-      join(
-        root,
-        'node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2',
+async function main(): Promise<void> {
+  await mkdir(dirname(output), { recursive: true })
+  const assets = new Map<string, string | Buffer>([
+    [
+      '/',
+      '<!doctype html><style>body{margin:0;background:#000}main{display:flex;flex-direction:column;gap:4px}canvas{max-width:none}</style><main></main><script type="module" src="/page.js"></script>',
+    ],
+    ['/page.js', await bundle('bench/worker-delta-page.ts')],
+    ['/delta-worker.js', await bundle('src/worker/entry.ts', true)],
+    ['/control-worker.js', await bundle('src/worker/entry.ts')],
+    ['/ghostty-vt.wasm', await readFile(join(root, 'ghostty-vt.wasm'))],
+    ['/bridge.wasm', await readFile(join(root, 'bridge.wasm'))],
+    [
+      '/fonts/JetBrainsMono-Regular.woff2',
+      await readFile(
+        join(
+          root,
+          'node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2',
+        ),
       ),
-    ),
-  ],
-])
-for (const fixture of fixtures) await addFixture(fixture)
-async function addFixture(fixture: string): Promise<void> {
-  if (fixture === 'mixed-edit') return
-  const directory = '/work/reports/ghostty-webgpu-reference-study-2026-10-27/bench/workloads'
-  const metadata = JSON.parse(await readFile(join(directory, `${fixture}.json`), 'utf8'))
-  const bytes = await readFile(join(directory, `${fixture}.bin`))
-  assert.equal(createHash('sha256').update(bytes).digest('hex'), metadata.sha256)
-  const chunks = metadata.chunks.map((chunk: { offset: number; length: number }) =>
-    bytes.subarray(chunk.offset, chunk.offset + chunk.length).toString('utf8'),
-  )
-  assets.set(`/fixtures/${fixture}.json`, JSON.stringify(chunks))
-}
-const results: Awaited<ReturnType<typeof measure>>[] = []
-try {
-  for (let repetition = 0; repetition < repetitions; repetition += 1)
-    await runRepetition(repetition)
-} finally {
-  await Bun.write(
-    output,
-    JSON.stringify(
-      {
-        recordedAt: new Date().toISOString(),
-        source: Bun.spawnSync(['git', 'rev-parse', 'HEAD']).stdout.toString().trim(),
-        headless,
-        steps,
-        repetitions,
-        results,
-      },
-      null,
-      2,
-    ),
-  )
-}
-async function runRepetition(repetition: number) {
-  const order = repetition % 2 === 0 ? modes : modes.toReversed()
-  const cases = geometries.flatMap((geometry) =>
-    counts.flatMap((count) => fixtures.map((fixture) => ({ geometry, count, fixture }))),
-  )
-  for (const sample of cases) await runPair(sample, repetition, order)
-}
-async function runPair(
-  sample: { geometry: (typeof geometries)[number]; count: number; fixture: string },
-  repetition: number,
-  order: readonly (typeof modes)[number][],
-) {
-  const resources = await browserResources()
-  try {
-    for (const mode of order) {
-      const { geometry, count, fixture } = sample
-      console.log(
-        `sample ${fixture} ${mode} ${count} ${geometry.columns}x${geometry.rows} r${repetition}`,
-      )
-      const result = await measure(
-        resources,
-        mode,
-        fixture,
-        count,
-        geometry.columns,
-        geometry.rows,
-        repetition,
-        assets,
-      )
-      results.push(result)
-      await Bun.write(output, JSON.stringify({ results }, null, 2))
-    }
-    const pair = results.slice(-2)
-    assert.deepEqual(pair[0]?.eventHashes, pair[1]?.eventHashes, 'native event contents and order')
-    assert.deepEqual(pair[0]?.inputHashes, pair[1]?.inputHashes, 'input bytes and order')
-    assert.deepEqual(pair[0]?.inputBytes, pair[1]?.inputBytes, 'input byte counts')
-    assert.deepEqual(pair[0]?.rowHashes, pair[1]?.rowHashes, 'text parity')
-    assert.deepEqual(pair[0]?.screenshots, pair[1]?.screenshots, 'pixel parity')
-    assert.deepEqual(pair[0]?.snapshotHashes, pair[1]?.snapshotHashes, 'complete snapshot parity')
-    assert.deepEqual(pair[0]?.deliveredFrames, pair[1]?.deliveredFrames, 'delivery parity')
-  } finally {
-    resources.raw.close()
-    await resources.browser.close()
+    ],
+  ])
+  for (const fixture of fixtures) await addFixture(fixture)
+  async function addFixture(fixture: string): Promise<void> {
+    if (fixture === 'mixed-edit') return
+    const directory = '/work/reports/ghostty-webgpu-reference-study-2026-10-27/bench/workloads'
+    const metadata = JSON.parse(await readFile(join(directory, `${fixture}.json`), 'utf8'))
+    const bytes = await readFile(join(directory, `${fixture}.bin`))
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), metadata.sha256)
+    const chunks = metadata.chunks.map((chunk: { offset: number; length: number }) =>
+      bytes.subarray(chunk.offset, chunk.offset + chunk.length).toString('utf8'),
+    )
+    assets.set(`/fixtures/${fixture}.json`, JSON.stringify(chunks))
   }
+  const results: Awaited<ReturnType<typeof measure>>[] = []
+  try {
+    for (let repetition = 0; repetition < repetitions; repetition += 1)
+      await runRepetition(repetition)
+  } finally {
+    await Bun.write(
+      output,
+      JSON.stringify(
+        {
+          recordedAt: new Date().toISOString(),
+          source: Bun.spawnSync(['git', 'rev-parse', 'HEAD']).stdout.toString().trim(),
+          headless,
+          steps,
+          repetitions,
+          results,
+        },
+        null,
+        2,
+      ),
+    )
+  }
+  async function runRepetition(repetition: number) {
+    const order = repetition % 2 === 0 ? modes : modes.toReversed()
+    const cases = geometries.flatMap((geometry) =>
+      counts.flatMap((count) => fixtures.map((fixture) => ({ geometry, count, fixture }))),
+    )
+    for (const sample of cases) await runPair(sample, repetition, order)
+  }
+  async function runPair(
+    sample: { geometry: (typeof geometries)[number]; count: number; fixture: string },
+    repetition: number,
+    order: readonly (typeof modes)[number][],
+  ) {
+    const resources = await browserResources()
+    try {
+      for (const mode of order) {
+        const { geometry, count, fixture } = sample
+        console.log(
+          `sample ${fixture} ${mode} ${count} ${geometry.columns}x${geometry.rows} r${repetition}`,
+        )
+        const result = await measure(
+          resources,
+          mode,
+          fixture,
+          count,
+          geometry.columns,
+          geometry.rows,
+          repetition,
+          assets,
+        )
+        results.push(result)
+        await Bun.write(output, JSON.stringify({ results }, null, 2))
+      }
+      const pair = results.slice(-2)
+      assert.deepEqual(
+        pair[0]?.eventHashes,
+        pair[1]?.eventHashes,
+        'native event contents and order',
+      )
+      assert.deepEqual(pair[0]?.inputHashes, pair[1]?.inputHashes, 'input bytes and order')
+      assert.deepEqual(pair[0]?.inputBytes, pair[1]?.inputBytes, 'input byte counts')
+      assert.deepEqual(pair[0]?.rowHashes, pair[1]?.rowHashes, 'text parity')
+      assert.deepEqual(pair[0]?.screenshots, pair[1]?.screenshots, 'pixel parity')
+      assert.deepEqual(pair[0]?.snapshotHashes, pair[1]?.snapshotHashes, 'complete snapshot parity')
+      assert.deepEqual(pair[0]?.deliveredFrames, pair[1]?.deliveredFrames, 'delivery parity')
+    } finally {
+      resources.raw.close()
+      await resources.browser.close()
+    }
+  }
+}
+const scratch = await mkdtemp('/work/tmp/x4b-')
+process.env.TMPDIR = scratch
+try {
+  await main()
+} finally {
+  await rm(scratch, { recursive: true, force: true })
 }
