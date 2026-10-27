@@ -139,6 +139,46 @@ async function waitForDeviceCleanup(): Promise<void> {
 }
 
 
+function createCanvas(): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  document.body.append(canvas)
+  return canvas
+}
+
+function fittedFont(
+  cellWidth = 8,
+  cellHeight = 16,
+  pixelRatio = 1,
+  settings: Partial<TerminalFontSettings> = {},
+): TerminalFittedFont {
+  const deviceCellWidth = Math.round(cellWidth * pixelRatio)
+  const deviceCellHeight = Math.round(cellHeight * pixelRatio)
+  const size = settings.size ?? 14
+  const deviceCharHeight = Math.min(deviceCellHeight, Math.ceil(size * pixelRatio))
+  const charTop = Math.round((deviceCellHeight - deviceCharHeight) / 2)
+  return Object.freeze({
+    charLeft: 0,
+    charTop,
+    cssCellHeight: deviceCellHeight / pixelRatio,
+    cssCellWidth: deviceCellWidth / pixelRatio,
+    deviceBaseline: charTop + Math.ceil(deviceCharHeight * 0.8),
+    deviceCellHeight,
+    deviceCellWidth,
+    deviceCharHeight,
+    deviceCharWidth: deviceCellWidth,
+    pixelRatio,
+    settings: Object.freeze({
+      boldWeight: 700,
+      family: 'monospace',
+      letterSpacing: 0,
+      lineHeight: deviceCellHeight / deviceCharHeight,
+      size,
+      weight: 400,
+      ...settings,
+    }),
+  })
+}
+
 interface Terminal {
   readonly canvas: HTMLCanvasElement
   readonly clock: FakeClock
