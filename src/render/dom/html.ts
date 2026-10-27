@@ -95,7 +95,7 @@ function cellStyle(
   const resolved = resolveCanvasCellColors(cell, theme, cursor?.style === 'block')
   const style = cell.style
   const foreground = colors.foreground(resolved)
-  const blinkingHidden = style?.blink && !textVisible
+  const blinkingHidden = !textVisible && style?.blink
   const hidden = style?.invisible || blinkingHidden
   const decorations = [
     style?.underline ? 'underline' : '',
