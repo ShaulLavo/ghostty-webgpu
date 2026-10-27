@@ -14,6 +14,8 @@ import type { RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import { glyphConstraint, isEmojiPresentationText } from '../shared/atlas/glyph-constraints.js'
+import type { GlyphRasterizationInput } from '../shared/atlas/types.js'
 import { drawSprite, spriteCodepoint } from '../shared/atlas/sprites.js'
 import { defaultRendererTheme, type CanonicalRendererTheme } from '../shared/instances/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
@@ -193,6 +195,40 @@ async function expectPainted(pair: Fixture, submitted: number): Promise<Uint8Arr
   return native
 }
 
+function drawConstraintOracle(
+  context: CanvasRenderingContext2D,
+  font: TerminalFittedFont,
+  input: GlyphRasterizationInput,
+  x: number,
+  y: number,
+): boolean {
+  if (spriteCodepoint(input.text, font) !== undefined || isEmojiPresentationText(input.text)) {
+    return false
+  }
+  if (!glyphConstraint(input.text.codePointAt(0) ?? 0)) return false
+  const bitmap = new CanvasGlyphRasterizer({ font }).rasterize(input)
+  if (!bitmap) return true
+  const image = new ImageData(bitmap.width, bitmap.height)
+  if (bitmap.kind === 'color') {
+    image.data.set(bitmap.pixels)
+  } else {
+    for (let index = 0; index < bitmap.pixels.length; index += 1) {
+      image.data[index * 4 + 3] = bitmap.pixels[index] ?? 0
+    }
+    tintImage(image, input.foreground)
+  }
+  const canvas = document.createElement('canvas')
+  canvas.width = bitmap.width
+  canvas.height = bitmap.height
+  canvas.getContext('2d')!.putImageData(image, 0, 0)
+  context.drawImage(
+    canvas,
+    x * font.deviceCellWidth + bitmap.offsetX,
+    y * font.deviceCellHeight + bitmap.offsetY,
+  )
+  return true
+}
+
 function expectGlyphInk(
   pixels: Uint8Array,
   canvas: HTMLCanvasElement,
@@ -240,6 +276,7 @@ function expectGlyphInk(
     const drawX = padding + x * font.deviceCellWidth + center
     const drawY = padding + y * font.deviceCellHeight + font.deviceBaseline
     const cp = spriteCodepoint(input.text, font)
+    if (drawConstraintOracle(context, font, input, x, y)) continue
     if (cp === undefined) inkContext.fillText(input.text, drawX, drawY)
     if (cp !== undefined) {
       inkContext.save()

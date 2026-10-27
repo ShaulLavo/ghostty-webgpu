@@ -27,6 +27,7 @@ pub const Key = extern struct {
     foreground: u32,
     background: u32,
     minimum_contrast: f64,
+    constraint_width: u32,
 };
 pub const Entry = extern struct { key: Key, glyph: Glyph, queued_generation: u32, variant: u32, registration: u64, retained: bool };
 pub const Index = extern struct {
@@ -143,7 +144,7 @@ pub fn scratch(index: *Index, length: u32) ?[]u32 {
 
 fn hash(key: Key, variant: bool) u32 {
     var value: u32 = 2166136261;
-    for ([_]u32{ key.span, key.style }) |word| value = (value ^ word) *% 16777619;
+    for ([_]u32{ key.span, key.style, key.constraint_width }) |word| value = (value ^ word) *% 16777619;
     for (key.text[0..key.text_len]) |word| value = (value ^ word) *% 16777619;
     if (!variant) return value;
     const contrast: u64 = @bitCast(key.minimum_contrast);
@@ -155,6 +156,7 @@ fn hash(key: Key, variant: bool) u32 {
 
 fn sameShape(first: Key, second: Key) bool {
     return first.span == second.span and first.style == second.style and
+        first.constraint_width == second.constraint_width and
         std.mem.eql(u32, first.text[0..first.text_len], second.text[0..second.text_len]);
 }
 

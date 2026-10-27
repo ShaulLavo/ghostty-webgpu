@@ -55,6 +55,7 @@ export interface GlyphRasterizer {
 
 export interface GlyphRasterizationInput {
   cellSpan: number
+  constraintWidth?: 1 | 2
   foreground: RgbColor
   italic: boolean
   text: string

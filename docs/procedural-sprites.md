@@ -25,3 +25,9 @@ an underline thickness of 50 font units. At 14 CSS pixels its procedural stroke 
 1, 1 and 2 device pixels for DPR 1, 1.25 and 2. These values come from the font file,
 not a family-name rule. Metadata must belong to the font face actually loaded. Replace it when changing
 the font resource, even if the family alias stays the same.
+
+## Glyph constraints
+
+Nerd Font icons and non-emoji symbols use Ghostty's native fit and alignment constraints. Extended
+pictographic emoji, emoji modifiers, and regional-indicator flags retain the existing browser
+rendering path instead of Ghostty's native emoji constraints.
