@@ -172,11 +172,6 @@ async function createTerminalVisibilityDriver(): Promise<Driver> {
         return created.renderer
       },
     })
-    terminal.setTheme({
-      ...terminal.appearance.theme,
-      foreground: { r: 255, g: 0, b: 0 },
-      background: { r: 0, g: 0, b: 0 },
-    })
     terminal.onFrame(() => submittedFrames++)
     terminal.on('error', ({ cause }) => {
       drawErrors.push(String(cause))
@@ -184,6 +179,11 @@ async function createTerminalVisibilityDriver(): Promise<Driver> {
     })
     terminals.push(terminal)
     await terminal.open(host)
+    terminal.setTheme({
+      ...terminal.appearance.theme,
+      foreground: { r: 255, g: 0, b: 0 },
+      background: { r: 0, g: 0, b: 0 },
+    })
     visibilityGrid = terminal.appearance.grid
   }
   await new Promise((resolve) => setTimeout(resolve, 100))
