@@ -1,6 +1,6 @@
 # Selective discard invalidation
 
-Status: Approved, carried locally toward the cumulative step-3 gate.
+Status: Approved layer 2 of the cumulative-qualified three-step publication stack.
 
 Each pending capture owns its slot, token and set of revisions first inserted by its reads.
 Discard removes those entries and that pending slot's revision list. It makes no native read or
@@ -17,3 +17,10 @@ failure cases remain. Raw evidence is in
 The coordinator authorized carrying this step with step 3 before publishing a stack. The repeated
 abandon/read/discard workload remains part of qualification; the cumulative normal-path gate is
 checked against current main after step 3.
+
+The cumulative normal gate passes at step 3. Repeated discard/retry output, callbacks, parsed
+writes and submitted frames are equal. The line-payload stress CPU and heap are lower on both
+hosts and PC backends. Dense stress CPU also falls everywhere. Its PC WebGPU heap packet is
+6.03 to 7.13 MiB; retain that experimental two-pair finding alongside the passing normal gate.
+These recovery measurements qualify the combined layers; no isolated speed claim is made for
+this ledger alone. The coordinator owns review and merge of the ordered stack.
