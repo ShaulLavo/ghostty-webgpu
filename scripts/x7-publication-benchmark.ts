@@ -175,7 +175,8 @@ const results: unknown[] = []
 const sources = Object.fromEntries(
   arms.map((arm) => [
     arm.label,
-    execFileSync('git', ['rev-parse', 'HEAD'], { cwd: arm.root, encoding: 'utf8' }).trim(),
+    process.env[`X7_${arm.label.toUpperCase()}_SHA`] ??
+      execFileSync('git', ['rev-parse', 'HEAD'], { cwd: arm.root, encoding: 'utf8' }).trim(),
   ]),
 )
 let browserVersion = ''
