@@ -293,6 +293,7 @@ export const enum FocusEvent {
 export const enum TerminalMode {
   Autowrap = 7,
   GraphemeClustering = 2027,
+  SynchronizedOutput = 2026,
   Origin = 6,
   LeftRightMargin = 69,
   FocusEvent = 1004,
@@ -440,6 +441,7 @@ export const enum TerminalOption {
   UnknownSequence = 35,
   UnknownMaxBytes = 36,
   TerminfoName = 37,
+  RenderHold = 41,
 }
 
 export const enum TerminalData {
@@ -802,6 +804,7 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
   bridge_destroy_glyph_index(index: number): void
   bridge_register_glyph(key: number, entry: number): void
   bridge_clear_glyphs(index: number): void
+  bridge_render_hold: WebAssembly.ExportValue
   bridge_bell: WebAssembly.ExportValue
   bridge_clipboard_write: WebAssembly.ExportValue
   bridge_color_scheme: WebAssembly.ExportValue

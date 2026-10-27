@@ -1,5 +1,6 @@
 const host = struct {
     extern "env" fn write_pty(terminal: u32, userdata: u32, data: u32, len: u32) void;
+    extern "env" fn render_hold(terminal: u32, userdata: u32, held: u32) void;
     extern "env" fn bell(terminal: u32, userdata: u32) void;
     extern "env" fn color_scheme(terminal: u32, userdata: u32, out: u32) u32;
     extern "env" fn clipboard_write(terminal: u32, userdata: u32, write: u32) void;
@@ -12,6 +13,10 @@ const host = struct {
 
 export fn bridge_write_pty(terminal: u32, userdata: u32, data: u32, len: u32) void {
     host.write_pty(terminal, userdata, data, len);
+}
+
+export fn bridge_render_hold(terminal: u32, userdata: u32, held: u32) void {
+    host.render_hold(terminal, userdata, held);
 }
 
 export fn bridge_bell(terminal: u32, userdata: u32) void {

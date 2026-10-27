@@ -169,6 +169,7 @@ export class WebGpuTerminalRenderer {
   private restorePromise?: Promise<void>
   private readonly retiredReleases = new Set<Promise<void>>()
   private deviceUnavailable = false
+  private readonly unsubscribeRenderRequest?: () => void
   private readonly scheduler: RenderScheduler
   private textPass: WebGpuTextPass
   private theme: CanonicalRendererTheme
@@ -234,6 +235,9 @@ export class WebGpuTerminalRenderer {
       this.scheduler = scheduler
       this.scheduler.schedule()
       this.watchDeviceLoss(device, this.deviceGeneration)
+      this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
+        this.scheduler.schedule(),
+      )
     } catch (cause) {
       scheduler?.dispose()
       textPass?.destroy()
@@ -410,6 +414,7 @@ export class WebGpuTerminalRenderer {
       this.disposed = true
       this.coordinator?.flushOwner(this)
       this.deviceGeneration += 1
+      this.unsubscribeRenderRequest?.()
       this.scheduler.dispose()
       this.zigBuilder?.dispose()
       this.textPass.destroy()

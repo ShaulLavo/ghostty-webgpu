@@ -109,6 +109,7 @@ export class WebGlTerminalRenderer {
   private readonly overlayRows = new Set<number>()
   private rasterizer: CanvasGlyphRasterizer
   private readonly renderState: RenderStateSource
+  private readonly unsubscribeRenderRequest?: () => void
   private readonly scheduler: RenderScheduler
   private state: ContextState
   private theme: CanonicalRendererTheme
@@ -143,6 +144,9 @@ export class WebGlTerminalRenderer {
     })
     this.canvas.addEventListener('webglcontextlost', this.handleContextLost)
     this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored)
+    this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
+      this.scheduler.schedule(),
+    )
     this.scheduler.schedule()
   }
 
@@ -277,6 +281,7 @@ export class WebGlTerminalRenderer {
 
   dispose(): void {
     if (this.state.kind === 'disposed') return
+    this.unsubscribeRenderRequest?.()
     this.scheduler.dispose()
     this.zigBuilder?.dispose()
     this.canvas.removeEventListener('webglcontextlost', this.handleContextLost)

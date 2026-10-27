@@ -15,6 +15,7 @@ import type { RenderSchedulerClock, TerminalPresentation } from './scheduler.js'
 
 export interface RenderStateSource {
   readonly snapshotVersion?: number
+  subscribeRenderRequest?(listener: () => void): () => void
   createFrameBuilder?(columns: number, rows: number): ZigFrameBuilder
   acknowledge(): number
   readCursor(): RenderCursorSnapshot

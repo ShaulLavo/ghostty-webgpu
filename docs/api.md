@@ -155,6 +155,17 @@ overriding author cursor rules, including important ones. On leave, the terminal
 pre-hover inline cursor value and priority unless the host's current cursor declaration differs
 from `pointer !important`.
 
+## synchronized output
+
+DEC private mode 2026 holds the pre-hold viewport while the application writes its next frame.
+Resetting the mode displays the completed frame at once. A one-second deadline clears a stuck
+hold, even if the application repeatedly sets the mode. Resize and full reset also release it.
+The main and worker entries honor holds on every supported renderer.
+
+`readLines()` continues to read live terminal state during a hold. `visibleLines()`, accessibility,
+`onFrame` and `onText` describe submitted frames and never expose the unfinished held output.
+The renderer can repaint the captured pre-hold frame during the hold.
+
 ## first frames and damage
 
 `renderFrameToHtml(snapshot, { font, columns, rows, theme })` produces the DOM backend's

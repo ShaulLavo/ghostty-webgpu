@@ -62,6 +62,7 @@ export class RowTerminalRenderer {
   private readonly frames: FrameObserver
   private readonly overlayRows = new Set<number>()
   private readonly renderState: RenderStateSource
+  private readonly unsubscribeRenderRequest?: () => void
   private readonly scheduler: RenderScheduler
   private theme: CanonicalRendererTheme
   private themeInput: RendererTheme
@@ -92,6 +93,9 @@ export class RowTerminalRenderer {
       onFrame: () => this.drawFrame(),
       presentation: options.presentation,
     })
+    this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
+      this.scheduler.schedule(),
+    )
     this.scheduler.schedule()
   }
 
@@ -201,6 +205,7 @@ export class RowTerminalRenderer {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    this.unsubscribeRenderRequest?.()
     this.scheduler.dispose()
     this.surface.dispose()
     this.overlayRows.clear()

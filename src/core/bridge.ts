@@ -23,6 +23,7 @@ import type {
 const bridgeNames = [
   'bridge_write_pty',
   'bridge_bell',
+  'bridge_render_hold',
   'bridge_color_scheme',
   'bridge_clipboard_write',
   'bridge_device_attributes',
@@ -51,6 +52,7 @@ const defaultDeviceAttributes: DeviceAttributes = {
 }
 
 interface BridgeIndexes {
+  bridge_render_hold: number
   bridge_unknown_sequence: number
   bridge_bell: number
   bridge_clipboard_write: number
@@ -70,6 +72,7 @@ interface CustomOscRegistration {
 }
 
 interface TerminalTarget {
+  readonly renderHold: (held: boolean) => void
   readonly customOsc: Map<number, CustomOscRegistration>
   effects: TerminalEffects
   size: TerminalSize
@@ -125,6 +128,8 @@ export class CallbackBridge {
       env: {
         ...exports,
         bell: (...args: number[]) => this.bell(...args),
+        render_hold: (terminal: number, _userdata: number, held: number) =>
+          this.targets.get(terminal)?.renderHold(held !== 0),
         clipboard_write: (...args: number[]) => this.clipboardWrite(...args),
         color_scheme: (...args: number[]) => this.colorScheme(...args),
         custom_osc: (
@@ -291,9 +296,14 @@ export class CallbackBridge {
     )
   }
 
-  registerTerminal(terminal: number, effects: TerminalEffects, size: TerminalSize): void {
+  registerTerminal(
+    terminal: number,
+    effects: TerminalEffects,
+    size: TerminalSize,
+    renderHold: (held: boolean) => void,
+  ): void {
     const version = this.memory.allocateBytes(effects.xtversion ?? 'ghostty-webgpu')
-    this.targets.set(terminal, { customOsc: new Map(), effects, size, version })
+    this.targets.set(terminal, { customOsc: new Map(), effects, size, version, renderHold })
     this.installTerminalCallbacks(terminal)
   }
 
@@ -415,6 +425,7 @@ export class CallbackBridge {
     const callbacks: readonly [number, number][] = [
       [TerminalOption.WritePty, indexes.bridge_write_pty],
       [TerminalOption.Bell, indexes.bridge_bell],
+      [TerminalOption.RenderHold, indexes.bridge_render_hold],
       [TerminalOption.Xtversion, indexes.bridge_xtversion],
       [TerminalOption.TitleChanged, indexes.bridge_title_changed],
       [TerminalOption.Size, indexes.bridge_size],

@@ -147,6 +147,8 @@ function createOwnedHandle(
 }
 
 export class GhosttyRenderState {
+  private readonly renderRequestListeners = new Set<() => void>()
+  private readonly unsubscribeRenderHold: () => void
   private displayedFrames?: DisplayedFrameStore
   private readonly cells: OwnedHandle
   private readonly rowReader: RowReader
@@ -193,6 +195,10 @@ export class GhosttyRenderState {
     this.dirtyPointer = scalarPointer
     this.zeroBooleanPointer = scalarPointer + 4
     this.zeroDirtyPointer = scalarPointer + 8
+    this.unsubscribeRenderHold = terminal.subscribeRenderHold((held) => {
+      if (held) this.captureUpdate()
+      for (const listener of this.renderRequestListeners) listener()
+    })
   }
 
   /** Advances on damaged updates, independently of whether the renderer paints them. */
@@ -213,8 +219,20 @@ export class GhosttyRenderState {
     return this.runtime.memory.view.getInt32(this.dirtyPointer, true) as RenderStateDirty
   }
 
+  subscribeRenderRequest(listener: () => void): () => void {
+    this.renderRequestListeners.add(listener)
+    return () => {
+      this.renderRequestListeners.delete(listener)
+    }
+  }
+
   update(): RenderStateDirty {
     this.ensureActive()
+    if (this.terminal.renderHeld) return this.dirty
+    return this.captureUpdate()
+  }
+
+  private captureUpdate(): RenderStateDirty {
     assertGhosttyResult(
       'ghostty_render_state_update',
       this.runtime.exports.ghostty_render_state_update(this.state.handle, this.terminal.handle),
@@ -313,6 +331,8 @@ export class GhosttyRenderState {
 
   dispose(): void {
     if (this.disposed) return
+    this.unsubscribeRenderHold()
+    this.renderRequestListeners.clear()
     this.displayedFrames?.dispose()
     this.cursorReader.dispose()
     this.rowReader.dispose()
