@@ -338,7 +338,7 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
   expect(clock.frames.size).toBe(1)
   clock.flushFrame()
 
-  expect(renderer.metrics.submittedFrames).toBe(2)
+  expect(renderer.metrics.submittedFrames).toBe(1)
   expect(renderer.metrics.rebuiltRows).toBe(2)
   expect(renderer.metrics.instanceUploadOperations).toBe(2)
   expect(source.acknowledgements).toBe(2)
@@ -923,7 +923,7 @@ it('keeps the current grid and paint when a resize exceeds the device binding li
   renderer.notifyWrite()
   clock.flushFrame()
   expect(await renderer.capturePixels()).toEqual(pixels)
-  expect(renderer.metrics.draws).toBe(6)
+  expect(renderer.metrics.draws).toBe(3)
 })
 
 it.each([false, true])(
@@ -1654,6 +1654,42 @@ it.each([
   },
 )
 
+it('draws row-map changes even when cell and glyph records stay unchanged', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  const clock = new FakeClock()
+  const canvas = createCanvas()
+  terminal.write('\x1b[?25lsteady\r\nsteady\r\nsteady')
+  const renderer = await createRenderer({
+    canvas,
+    columns: 24,
+    rows: 3,
+    font: fittedFont(),
+    renderState: state,
+    schedulerClock: clock,
+  })
+  try {
+    clock.flushFrame()
+    terminal.write('\r\nsteady')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    const before = { ...renderer.metrics }
+    terminal.write('\r\nsteady')
+    renderer.notifyWrite()
+    clock.flushFrame()
+    expect(renderer.metrics.instanceUploadOperations).toBe(before.instanceUploadOperations)
+    expect(renderer.metrics.uploadedBytes).toBeGreaterThan(before.uploadedBytes)
+    expect(renderer.metrics.submittedFrames).toBe(before.submittedFrames + 1)
+  } finally {
+    renderer.dispose()
+    state.dispose()
+    terminal.dispose()
+    runtime.dispose()
+    canvas.remove()
+  }
+})
+
 it('retains identical GPU records when output scrolls the viewport', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
@@ -1945,66 +1981,69 @@ it('a submitted callback can dispose its peer without notifying that peer or ret
   canvases.forEach((canvas) => canvas.remove())
 })
 
-it('flushes accepted peer work before a clean callback mutates its native state', async () => {
-  const runtime = await GhosttyRuntime.create()
-  const terminals = [
-    runtime.createTerminal({ columns: 8, rows: 1 }),
-    runtime.createTerminal({ columns: 8, rows: 1 }),
-  ]
-  const states = terminals.map((terminal) => runtime.createRenderState(terminal))
-  const canvases = [createCanvas(), createCanvas()]
-  const text: string[] = []
-  let armed = false
-  let painted: WebGpuTerminalRenderer | undefined
-  terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
-  const pair = await Promise.all(
-    states.map((state, index) =>
-      createRenderer({
-        canvas: canvases[index]!,
-        columns: 8,
-        rows: 1,
-        font: fittedFont(),
-        renderState: state,
-        deviceFactory: undefined,
-        onTextFrame:
-          index === 0
-            ? (snapshot) => {
-                text.push(snapshot.rows[0]!.text.trimEnd())
-              }
-            : undefined,
-        onCleanUpdate:
-          index === 1
-            ? () => {
-                if (!armed || !painted) return
-                armed = false
-                terminals[0]!.write('\r\x1b[2Kinner')
-                states[0]!.update()
-                painted.notifyWrite()
-              }
-            : undefined,
-      }),
-    ),
-  )
-  painted = pair[0]!
-  try {
-    await expect
-      .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
-      .toBe(true)
-    text.length = 0
-    armed = true
-    terminals[0]!.write('\r\x1b[2Kouter')
-    pair[0]!.notifyWrite()
-    pair[1]!.schedule()
-    await expect.poll(() => text.length).toBe(2)
-    expect(text).toEqual(['outer', 'inner'])
-  } finally {
-    pair.forEach((renderer) => renderer.dispose())
-    states.forEach((state) => state.dispose())
-    terminals.forEach((terminal) => terminal.dispose())
-    runtime.dispose()
-    canvases.forEach((canvas) => canvas.remove())
-  }
-})
+it.each([false, true])(
+  'settles peer work before an unchanged update callback, damaged=%s',
+  async (damaged) => {
+    const runtime = await GhosttyRuntime.create()
+    const terminals = [
+      runtime.createTerminal({ columns: 8, rows: 1 }),
+      runtime.createTerminal({ columns: 8, rows: 1 }),
+    ]
+    const states = terminals.map((terminal) => runtime.createRenderState(terminal))
+    const canvases = [createCanvas(), createCanvas()]
+    const text: string[] = []
+    let armed = false
+    let painted: WebGpuTerminalRenderer | undefined
+    terminals.forEach((terminal) => terminal.write('\x1b[?25lstart'))
+    const mutatePeer = () => {
+      if (!armed || !painted) return
+      armed = false
+      terminals[0]!.write('\r\x1b[2Kinner')
+      states[0]!.update()
+      painted.notifyWrite()
+    }
+    const pair = await Promise.all(
+      states.map((state, index) =>
+        createRenderer({
+          canvas: canvases[index]!,
+          columns: 8,
+          rows: 1,
+          font: fittedFont(),
+          renderState: state,
+          deviceFactory: undefined,
+          onTextFrame:
+            index === 0
+              ? (snapshot) => {
+                  text.push(snapshot.rows[0]!.text.trimEnd())
+                }
+              : undefined,
+          onFrame: index === 1 && damaged ? mutatePeer : undefined,
+          onCleanUpdate: index === 1 && !damaged ? mutatePeer : undefined,
+        }),
+      ),
+    )
+    painted = pair[0]!
+    try {
+      await expect
+        .poll(() => pair.every((renderer) => renderer.metrics.submittedFrames >= 1))
+        .toBe(true)
+      text.length = 0
+      armed = true
+      terminals[0]!.write('\r\x1b[2Kouter')
+      pair[0]!.notifyWrite()
+      if (damaged) terminals[1]!.write('\rstart')
+      pair[1]!.schedule()
+      await expect.poll(() => text.length).toBe(2)
+      expect(text).toEqual(['outer', 'inner'])
+    } finally {
+      pair.forEach((renderer) => renderer.dispose())
+      states.forEach((state) => state.dispose())
+      terminals.forEach((terminal) => terminal.dispose())
+      runtime.dispose()
+      canvases.forEach((canvas) => canvas.remove())
+    }
+  },
+)
 
 it('flushes accepted peer work before an error callback mutates its native state', async () => {
   const runtime = await GhosttyRuntime.create()

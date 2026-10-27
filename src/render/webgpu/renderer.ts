@@ -522,8 +522,22 @@ export class WebGpuTerminalRenderer {
     }
     const updates = builder.changedRanges()
     const rebuiltRows = builder.rowRebuilds
-    this.atlasTextures.sync(this.atlas.consumeUploads())
+    const atlasUploads = this.atlas.consumeUploads()
+    this.atlasTextures.sync(atlasUploads)
     const operations = this.textPass.uploadFrame(builder, updates)
+    if (
+      !options.full &&
+      this.overlayRows.size === 0 &&
+      atlasUploads.length === 0 &&
+      operations === 0 &&
+      this.textPass.frameUploadedBytes === 0
+    ) {
+      this.acceptUnchangedFrame(
+        damage,
+        updates.map((update) => update.row),
+      )
+      return
+    }
     if (!this.coordinator) {
       try {
         this.textPass.submit(this.context.getCurrentTexture().createView())
@@ -603,6 +617,20 @@ export class WebGpuTerminalRenderer {
         if (retry && !this.disposed) this.scheduler.schedule()
       },
     })
+  }
+
+  private acceptUnchangedFrame(damage: RenderStateDirty, changed: readonly number[]): void {
+    const rows = this.frames.requiresFullRows ? this.rowsToRebuild(damage) : undefined
+    const frame = this.captureFrame(rows, changed)
+    try {
+      if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+      frame?.accept()
+    } finally {
+      frame?.discard()
+    }
+    // Settle peer submissions before observers can mutate their native state.
+    this.coordinator?.flushPending()
+    if (!this.disposed) frame?.notify()
   }
 
   private get deviceCellHeight(): number {
