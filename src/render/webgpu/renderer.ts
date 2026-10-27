@@ -458,6 +458,7 @@ export class WebGpuTerminalRenderer {
       return
     }
     const damage = this.renderState.update()
+    if (this.renderState.hasSnapshot === false) return
     const cursor = this.renderState.readCursor()
     this.updateCursor(cursor)
     this.synchronizeCursorBlink()

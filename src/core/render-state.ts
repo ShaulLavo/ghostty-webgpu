@@ -29,6 +29,13 @@ interface OwnedHandle {
   out: number
 }
 
+const emptyCursor: RenderCursorSnapshot = {
+  blinking: false,
+  passwordInput: false,
+  style: 'block',
+  visible: false,
+}
+
 const renderSnapshotFieldCount = 2
 const renderSnapshotKeysOffset = 0
 const renderSnapshotValuesOffset = 8
@@ -201,6 +208,10 @@ export class GhosttyRenderState {
     })
   }
 
+  get hasSnapshot(): boolean {
+    return this.cursorSnapshot !== undefined
+  }
+
   /** Advances on damaged updates, independently of whether the renderer paints them. */
   get snapshotVersion(): number {
     return this.snapshotRevision
@@ -228,7 +239,7 @@ export class GhosttyRenderState {
 
   update(): RenderStateDirty {
     this.ensureActive()
-    if (this.terminal.renderHeld) return this.dirty
+    if (this.terminal.renderHeld) return this.hasSnapshot ? this.dirty : RenderStateDirty.False
     return this.captureUpdate()
   }
 
@@ -299,7 +310,7 @@ export class GhosttyRenderState {
   readCursor(): RenderCursorSnapshot {
     this.ensureActive()
     if (!this.cursorSnapshot) this.update()
-    return copyCursor(this.cursorSnapshot!)
+    return copyCursor(this.cursorSnapshot ?? emptyCursor)
   }
 
   acknowledge(): number {

@@ -368,6 +368,7 @@ export class WebGlTerminalRenderer {
     if (this.context.isContextLost()) return this.suspendContext()
     const pass = this.state.pass
     const damage = this.renderState.update()
+    if (this.renderState.hasSnapshot === false) return
     const cursor = this.renderState.readCursor()
     this.updateCursor(cursor)
     this.synchronizeCursorBlink()

@@ -116,6 +116,9 @@ class CanvasSurface implements RowRendererSurface {
 
   source(source: RenderStateSource): RenderStateSource {
     return {
+      get hasSnapshot() {
+        return source.hasSnapshot
+      },
       get snapshotVersion() {
         return source.snapshotVersion
       },

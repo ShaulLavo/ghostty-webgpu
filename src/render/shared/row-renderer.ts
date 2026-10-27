@@ -221,6 +221,7 @@ export class RowTerminalRenderer {
   private drawFrame(): void {
     if (this.disposed) return
     const damage = this.renderState.update()
+    if (this.renderState.hasSnapshot === false) return
     const cursor = this.renderState.readCursor()
     this.updateCursor(cursor)
     this.synchronizeCursorBlink()
