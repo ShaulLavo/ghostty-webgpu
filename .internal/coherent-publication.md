@@ -1,10 +1,9 @@
 # Coherent live and displayed publication (X7)
 
 Status: Approved research. Plan item X7 in `.internal/reference-study-2026-10/next-steps.md`.
-Base: PR #9 head `b246eea93` (one shared render state per terminal). #9 has since moved to
-`89933c289` (merge with main, native clean acknowledgement from #11, review fixes) and is not
-merged. The research branch rebases onto main when #9 lands. Prototype: branch
-`research/coherent-publication`. Decision: see [Decision](#decision).
+PR #9 is merged at `46b13c564`. The research branch merges current main before the
+review fixes. Prototype: branch `research/coherent-publication`. This note describes a
+subscriber-owned displayed history, with one shared live projection. Decision: see [Decision](#decision).
 
 ## Question
 
@@ -16,8 +15,11 @@ highest-value slice of that design pay for itself on hardware?
 
 ## Inventory
 
-Sizes are per terminal at 200×50 (N = 10,000 cells, R = 50 rows), wasm32. Struct sizes come from
-`@sizeOf` in the pinned build. Citations are at `b246eea93` unless marked.
+Sizes assume one displayed subscriber per terminal at 200×50 (N = 10,000 cells, R = 50 rows), wasm32. Struct sizes come from
+`@sizeOf` in the pinned build. Inventory file anchors describe the measured `b246eea93` baseline, not current main.
+On merged main `cb607d878`, shared live state starts at `src/core/render-state.ts:166`;
+subscriber-owned displayed storage is at `:556`, capture at `:632` and disposal at `:661`.
+The research merge preserves those ownership boundaries.
 
 | #   | Representation                                    | Where                                                                                                                                                               | Writer, when                                                                                                                                                                 | Readers                                                                                                                           | Size                                                                                       | Requirement                                                                      |
 | --- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
@@ -37,7 +39,7 @@ Sizes are per terminal at 200×50 (N = 10,000 cells, R = 50 rows), wasm32. Struc
 
 Counting only representations that hold viewport content: the main entry on a GPU backend keeps
 rows 1 to 7 resident. With text observers (links, `onText`) it adds rows 9 to 11, and it rebuilds
-row 10 every frame. The worker entry has all of these inside the worker, and row 13 on top.
+row 10 every frame. The worker skips native displayed capture, row 6. It retains the other applicable views and adds row 13.
 
 ### Copies per frame
 
@@ -56,17 +58,30 @@ About three quarters of that is the two redundant text extractions.
 
 ## Design
 
-**One owner.** After #9 each terminal has one `SharedRenderState`. It owns the upstream projection
-(row 1) and should own the displayed viewport too: one `DisplayedFrameStore`, holding native rows
-retained per accepted submission (row 6), plus one text cache keyed by row identity. Subscriptions
-(renderers) receive displayed tokens, not copies. #11's native clean acknowledgement runs on the
-shared state and doesn't interact with this.
+**Ownership.** One `SharedRenderState` per terminal owns the live upstream projection,
+not the accepted displayed histories. Each `GhosttyRenderState` subscriber keeps its own
+`DisplayedFrameStore`, native current/previous/spare slots, pending capture and text cache.
+Subscriber A accepting, discarding, acknowledging or disposing a frame never retires B's token
+or changes B's previous frame. Captures from different subscribers may overlap. A subscriber's
+accepted token stays readable until that subscriber accepts a replacement or is disposed.
+Owned JS rows remain immutable and readable after token retirement. This preserves PR #9's
+per-subscriber contract and narrows the original one-owner proposal.
+
+There is no shared displayed-content pool in this migration. Its cost is up to three native
+slots per subscriber, as on main. Sharing those slots would be a separate experiment with
+reference-counted current, previous and pending pins per subscriber and a new memory gate.
+#11's native clean acknowledgement stays on the shared live state.
 
 **Identity.** Each retained row records its upstream row id (`GHOSTTY_RENDER_STATE_ROW_DATA_ID`,
 which upstream documents as stable "across updates" for renderer caches). It also records a _text
 revision_. A recaptured row inherits the text revision of the baseline row with the same id when
 its cells match on everything except style bits and its graphemes are equal; otherwise it gets a
-fresh revision. Equal revision therefore implies equal text, cells and continuation flags, at any
+fresh revision. The namespace is one subscriber's `DisplayedFrameStore` in one runtime.
+There is no cross-store or cross-runtime text cache. Revisions from an abandoned attempt may be
+reused, so discard clears that store's entire revision cache before another capture can start.
+This also removes rows inserted before a failed eager extraction or acknowledgement. Current and
+previous native slots remain readable and refill the cache on demand. Already-owned JS rows stay
+immutable. Equal cached revision within that namespace therefore implies equal text, cells and continuation flags, at any
 `y`. This is xterm.js master's per-line string cache with mutation invalidation, except that
 invalidation comes from native comparison rather than JS mutation hooks.
 
@@ -90,7 +105,7 @@ rows) serves Canvas and DOM painting, a different requirement from text.
 per-frame previous-text re-extraction (row 10) and its reader scratch, the live text read on the
 observer path, and, in the worker, the full-graph clone (row 13), replaced by revision patches. A
 later step can drop the previous native slot (6) to two slots: once text has revisions, the
-previous frame needs only its revision list, with its rows pinned in the cache.
+previous frame needs its revision list and materialized text rows pinned in that subscriber's cache. Unread text must be extracted before recycling its native slot.
 
 ## Prototype
 
@@ -128,6 +143,20 @@ live read taken before acknowledgement, that the previous rows equal the prior f
 and that `rows` and `rowPatches` equal the old eager computation. Two mutations (ignoring the
 revision, and sharing revisions without the text compare) each fail both cases.
 
+The review fix keeps those subscriber stores and invalidates a store's revision cache whenever
+its pending frame is discarded. It deliberately clears accepted entries too. Their native slots
+remain available, so this costs only a later re-read during recovery and avoids tracking which
+cache entries an unsuccessful attempt inserted. Clearing the cache requires no native reads or
+wasm allocation, so discard cannot fail while trying to preserve selected cache entries.
+The normal accepted-frame path is unchanged.
+
+The new regression covers a populated pending cache, discard, different output and successful
+retry, both with and without resize. A second case overlaps two subscribers' pending captures,
+advances A twice while B keeps its older accepted frame, disposes A and then retries B. The
+browser case injects acknowledgement failure after eager extraction and checks `visibleLines`
+and both `onText` rows and patches on recovery. Existing extraction-failure tests stay in place.
+A temporary single-store mutation must fail the independent-history test on overlapping capture.
+
 ## Measurements
 
 ### Protocol
@@ -145,10 +174,14 @@ Every arm gets a fresh page. "Before" is PR #9 head `b246eea93`. "After" is `54f
 matrix, and `800bf692b` (the final prototype) for the 16-terminal observers-on confirmation cohort. Metrics:
 
 - **CPU:** renderer and GPU process CPU from `SystemInfo.getProcessInfo`.
-- **Main-thread time:** `ScriptDuration` and `TaskDuration` deltas per frame.
+- **Main-thread time:** `ScriptDuration` and `TaskDuration` deltas per animation-loop iteration.
 - **Memory:** JS heap after a forced GC, and wasm memory.
 - **Output check:** a SHA-256 of every terminal's `visibleLines()` at the end. The script fails if
-  a pair differs.
+  a pair differs. The historical `frames` field counts animation-loop iterations, not renderer
+  submissions or presentations. It does not establish parity of every observer payload.
+
+The six historical packets contain 144 before/after pairs, 108 on the PC and 36 on the Mac.
+Those packets describe the old prototype and do not qualify discard/retry correctness.
 
 Tables show medians. Numbers are experimental: two pairs per cell, no significance claim. Raw
 data is in `/work/reports/ghostty-webgpu-next-2026-10/x7/`.
@@ -265,62 +298,158 @@ pattern, but the JS heap rose by up to 2.2 MB at 16 terminals with observers on.
 as `pc-hardware-r1.json` and `mac-r1/`. Commit `54fd89f8a` fixed the heap, which the full matrices
 show. The confirmation cohorts show `800bf692b` restoring the dense gain that `54fd89f8a` lost.
 
+## Review-fix qualification
+
+The fixed code is `f0de8756a02f35c626cf613bb8c8b60e084da797`. Both arms include merged main
+`cb607d8788f52652e1e850f3a789aad9c058d386`. The PC after source is
+`975c77030e3c912ce33338f282b718571d66429e`; the Mac after source is
+`a98bdcda4d3d083f3fda2873daf9049c2382893b`. Their runtime code and wasm are identical.
+The later PC commit adjusts a browser-test count assertion only.
+
+Both hosts use Playwright Chromium `153.0.8010.12`. The PC runs on the RTX 3060 Ti,
+NVIDIA driver `615.78.08`, with ANGLE OpenGL ES and a non-fallback WebGPU adapter. It has
+quiet heavy-runner admission and a VRAM check before every headed browser. The Mac runs
+non-fallback WebGPU on the M1, under its exclusive agent lock and AC power.
+
+There are 32 timing pairs, each with 30 warmup and 180 measured loop iterations, in
+counterbalanced order. Twenty pairs confirm normal publication. Twelve exercise recovery by
+writing a synthetic abandoned frame, eagerly reading its text, discarding it and writing the
+workload payload before the renderer submits. The recovery arm labeled `scroll` writes home
+and a discarded first row before each line payload; it is a repeated-failure stress case, not
+the normal viewport-scroll workload. This is the path cache invalidation can change.
+Observers-off and DOM paths have no changed capture code and were not remeasured.
+
+Times below are milliseconds per animation-loop iteration. Renderer CPU is process CPU time,
+computed from `rendererCpu * elapsedMs / 100 / frames`, rather than the wall-time percentage.
+Heap and wasm columns are MiB after GC. These two-pair medians remain experimental.
+All entries show before → after.
+
+### Normal publication
+
+| Host | Backend | Terminals | Payload |     Script ms | Renderer CPU ms | JS heap MiB |        Wasm MiB |
+| ---- | ------- | --------: | ------- | ------------: | --------------: | ----------: | --------------: |
+| PC   | webgl2  |         1 | dense   |   1.23 → 1.09 |     2.06 → 1.83 | 3.16 → 3.12 |     8.69 → 8.56 |
+| PC   | webgl2  |         1 | scroll  |   0.92 → 0.60 |     1.67 → 1.22 | 3.15 → 3.16 |     8.69 → 8.56 |
+| PC   | webgl2  |        16 | dense   | 19.05 → 14.85 |   24.94 → 19.44 | 7.45 → 6.81 | 120.25 → 118.25 |
+| PC   | webgl2  |        16 | scroll  |  13.24 → 9.00 |   18.03 → 12.72 | 7.26 → 6.31 | 120.19 → 118.19 |
+| PC   | webgpu  |         1 | dense   |   1.37 → 1.23 |     2.14 → 1.92 | 3.05 → 3.05 |     8.69 → 8.56 |
+| PC   | webgpu  |         1 | scroll  |   0.74 → 0.45 |     1.56 → 1.14 | 3.12 → 3.11 |     8.69 → 8.56 |
+| PC   | webgpu  |        16 | dense   | 19.68 → 16.09 |   25.94 → 20.75 | 6.78 → 6.57 | 120.25 → 118.25 |
+| PC   | webgpu  |        16 | scroll  |   7.92 → 3.26 |    12.89 → 6.64 | 6.86 → 6.68 | 120.19 → 118.19 |
+| Mac  | webgpu  |        16 | dense   | 26.11 → 22.04 |   36.90 → 30.01 | 7.45 → 7.00 | 120.25 → 118.25 |
+| Mac  | webgpu  |        16 | scroll  |   9.79 → 4.56 |   17.81 → 10.24 | 7.90 → 6.60 | 120.19 → 118.19 |
+
+### Repeated discard and retry
+
+| Host | Backend | Terminals | Payload |     Script ms | Renderer CPU ms | JS heap MiB |        Wasm MiB |
+| ---- | ------- | --------: | ------- | ------------: | --------------: | ----------: | --------------: |
+| PC   | webgl2  |        16 | dense   | 18.21 → 19.12 |   27.17 → 25.81 | 6.89 → 6.85 | 120.25 → 118.25 |
+| PC   | webgl2  |        16 | scroll  |   3.47 → 3.34 |     8.00 → 8.86 | 5.60 → 6.42 | 120.19 → 118.19 |
+| PC   | webgpu  |        16 | dense   | 19.34 → 18.89 |   29.75 → 25.75 | 6.44 → 7.04 | 120.25 → 118.25 |
+| PC   | webgpu  |        16 | scroll  |   3.90 → 3.60 |     8.67 → 9.94 | 6.49 → 8.31 | 120.19 → 118.19 |
+| Mac  | webgpu  |        16 | dense   | 26.66 → 25.28 |   42.67 → 36.36 | 7.14 → 6.85 | 120.25 → 118.25 |
+| Mac  | webgpu  |        16 | scroll  |   5.09 → 5.01 |   12.70 → 15.24 | 6.32 → 8.28 | 120.19 → 118.19 |
+
+### Output and endpoints
+
+All 32 timing pairs have equal final `visibleLines` SHA-256, parsed-write counts, submitted-frame
+counts and cumulative text-event counts. Each normal 16-terminal arm parses 2,880 writes and
+submits 2,880 frames. Recovery parses 5,760 writes and still submits 2,880 frames. The historical
+`frames` field is 180 loop iterations. The `texts` field includes initial and warmup events.
+Presentation counts remain unresolved and are stored as `null`.
+
+Twelve separate parity pairs use 3 warmup and 12 measured steps, one and sixteen terminals,
+both PC GPU backends and Mac WebGPU, with a discard before every workload payload. Each
+terminal hashes every displayed row with cells and continuation flags, previous rows, styled
+native rows, public `onText` rows and patches, and public frame-event payload. Every pair has
+equal payload hashes and final text. Their instrumentation costs are excluded from timing claims.
+
+The real-wasm tests reproduce all three stale-cache cases before the fix. They then pass, along
+with the browser acknowledgement-failure case. The proposed single shared store mutation fails
+the overlapping-subscriber test with "awaiting acceptance". This is why displayed histories stay
+subscriber-owned. Browser demand tests now count retained extraction instead of live reads,
+allowing unchanged revisions to skip extraction. Output and lazy-read assertions remain.
+
+Raw packets, source metadata, commands and invalid setup logs are under
+`/work/reports/ghostty-webgpu-next-2026-10/x7/fix/`. `summarize.py` checks all recorded pair
+endpoints and produces `summary.json`. Invalid Zig-0.17 and missing-dependency attempts are
+retained separately and contribute no correctness or performance evidence.
+
 ## Decision
 
-**KEEP.** The gate was fewer representations at equal or lower CPU and memory, with every
-observer's output unchanged. It passes on both hosts:
+**REJECT the current prototype for production.** The correctness fixes remove the stale-cache
+failure and preserve independent subscriber histories. The lower-CPU gate is still not met in
+all affected paths. The PC line-payload recovery case also increases renderer CPU by about
+11% on WebGL2 and 15% on WebGPU. Under the synthetic repeated-discard line-payload sequence on the Mac, renderer CPU rises
+from 12.70 to 15.24 ms per animation-loop iteration, about 20%, even though script time is nearly
+equal. JS heap rises from 6.32 to 8.28 MiB while wasm falls by 2 MiB. These are experimental two-pair
+results, so they do not prove a precise regression size. They do rule out the old claim that the
+corrected prototype has demonstrated equal or lower costs everywhere.
+
+The normal publication gains remain useful evidence. They do not justify an unconditional KEEP.
+This bounded follow-up stops here rather than optimizing a synthetic repeated-failure workload.
+The six steps below describe the corrected design and acceptance criteria for future work. Each
+step must pass its own gate before production. No production code changes are part of this PR.
+
+Historical findings:
 
 - **Fewer representations.** The observer's y-indexed text cache, the per-frame previous-text
   re-extraction and one reader scratch are gone. Current and previous frames share one
   revision-keyed text cache derived from the retained native frame.
-- **Output unchanged.** Every hardware pair has equal text hashes and equal frame counts. The Node
+- **Historical output checks.** Every hardware pair has equal final text hashes and loop counts. The Node
   equivalence test checks `rows`, `rowPatches`, previous rows and per-cell text against the old
   computation every frame. The existing displayed-text, links, accessibility, synchronized-output,
-  held-output and multiple-render-state browser tests pass unchanged; the two extraction-failure
+  held-output and multiple-render-state browser tests passed in the recorded run at `54fd89f8a`; the two extraction-failure
   tests now inject at the retained reader.
 - **CPU.** With observers on at 16 terminals, script time per frame falls on scroll (WebGPU −58%
   PC, −52% Mac; WebGL2 −33%) and on dense (WebGPU −17% PC, −15% Mac; WebGL2 −13%). Other cells are
   equal within the noise named above.
 - **Memory.** The JS heap ranges from +0.13 MB (DOM scroll, within run-to-run spread) to −1.4 MB
-  across the final cells. It falls 1.0 to 1.4 MB on GPU backends at 16 terminals with observers
-  on. Wasm memory is 2 MiB lower at 16 terminals.
+  across the final cells. It falls 1.0 to 1.4 MB on scroll with GPU backends at 16 terminals with observers
+  on. Dense savings are smaller in several cohorts. Wasm memory is 2 MiB lower at 16 terminals.
 
 Not decided here: the worker step (5) needs X4's delta-only run, and the two-slot step (4) needs
-its own measurement. The prototype is research code. It is not merged; production follows the
-steps below.
+its own measurement. The corrected prototype stays on the research branch; this decision does
+not authorize merging that prototype into production.
 
 ## Production migration
 
-Each step is one PR with its own failing-first test and a before/after on hardware. Each leaves
-every observer's output unchanged and is reviewable on its own. Steps 1 and 2 are the prototype
-split cleanly; the rest are new work.
+Each step is one PR with its own failing-first test and affected before/after hardware pairs.
+The independent history, unequal cadence, overlapping pending captures, failure and disposal
+checks from PR #9 and `discarded-publication.test.ts` remain acceptance criteria for every step.
+No step moves a single-current store into `SharedRenderState`.
 
-1. **Revision-memoized displayed text.** Export per-row revisions from the retained frame; memoize
-   text rows by `(row, revision)` across current and previous frames; delete the previous-text
-   reader. No observer change yet. Test: equivalence over dense, scroll, Unicode and resize, plus a
-   counter that a second read of an unchanged frame extracts zero rows.
-2. **Observer text from the retained frame.** `FrameObserver.capture` takes text rows from the
-   retained frame when it has one and no `onFrame` listener, instead of its y-indexed cache and a
-   live read. Delete the dead branch for retained consumers. Test: the equivalence test with
-   observers on, and the existing displayed-text, links, accessibility and held-output browser
-   tests.
-3. **Text revisions follow row identity.** Record the upstream row id and an inherited text
-   revision in the retained frame; key the JS cache by text revision; enable matching after the
-   first text read. Test: a scroll of N rows extracts N rows, and a same-id row whose text changed
-   (or whose graphemes changed under equal raw cells) is re-read.
-4. **Two native slots.** The previous frame keeps its revision list and pins its cached rows;
-   `readPreviousTextRows` reads through them; the third slot goes. Test: `rowPatches` equivalence
-   across 3+ frames without reads in between, and across a resize.
-5. **Worker publication by revision.** This is the key for X4's approved "Delta-only follow-up"
-   (`.internal/worker-pool-experiment.md` on main, after #17 rejected the pooled WebGL2 bundle).
-   Publish the frame's ordered text-revision list and rows only for revisions the host lacks. The
-   host keeps the same revision cache and rebuilds projection rows and the summary with the shared
-   functions, so the deep freeze of cloned rows goes. Rows carry text, cell boundaries and
-   continuation flags, the parts X4's text-only sketch left out. Test: host `visibleLines`,
-   `onText`, links and accessibility equal the main entry's over the same input, and a one-line
-   scroll publishes one row.
-6. **`rowPatches` from revisions.** Compare text only for rows whose revision changed. Output is
-   identical by construction; the gain is skipping 50 string compares per frame.
+1. **Failure-safe revision-memoized displayed text.** Keep one store and cache per subscriber.
+   Export native row revisions and clear that store's revision cache on pending discard before
+   any revision can be reused. Native capture failures expose no rows, while failures after eager
+   extraction must discard the pending capture. Memoize current and previous text, and delete the
+   previous-text reader. Test dense, scroll, Unicode and resize equivalence, zero extraction on a
+   repeated read, and a populated pending cache followed by discard, changed output and retry.
+   Preserve extraction-failure tests and add acknowledgement failure after eager extraction.
+2. **Observer text from that subscriber's retained frame.** Derive text from the retained frame
+   when there is no styled `onFrame` consumer. Remove the redundant observer cache only for that
+   path. Test every observer payload, `visibleLines`, links, accessibility, held output and
+   coordinated recovery, including different subscriber submission cadences.
+3. **Text revisions follow row identity.** Reuse a revision only after native cells and graphemes
+   match the subscriber's accepted baseline, ignoring style bits. Enable matching after the first
+   text read. Test N-row scroll extraction, same-id text mutations, combining changes, independent
+   stores with overlapping local tokens, and failure followed by a different retry.
+4. **Two native slots per subscriber.** Before recycling a previous native slot, materialize
+   every previously unread text row and pin the rows plus ordered revisions in that subscriber's
+   history. Release pins only when that subscriber's history retires. Test 3+ submissions without
+   intervening text reads, resize, lazy previous reads, unequal cadence, pending discard and
+   disposal. Measure the JS rows added against the native memory removed before keeping this step.
+5. **Worker publication by revision.** This remains a new experiment after X4b's rejected pooled
+   WebGL2 prototype. Use a `(runtime, source store, revision)` namespace and independent host subscriber histories, including
+   current, previous and pending revision pins. Send ordered revisions and missing rows containing
+   text, cell boundaries and continuation flags. Define release acknowledgements before evicting
+   shared content. Compare every API and observer payload, links, accessibility, delivered updates,
+   latency and memory against the current worker. Retain all X4b gates. A one-line scroll sending
+   one row alone does not qualify it.
+6. **`rowPatches` from revisions.** Skip string comparisons only for equal revisions in the same
+   runtime and subscriber-store namespace. When revisions differ, compare strings because identical output can receive
+   fresh revisions. Test style changes, identical rewrites, discard/retry, resize and each
+   subscriber's independent previous frame. Measure the affected summary work.
 
 Out of scope here and owned elsewhere: scratch records (X5, X6), the bridge row cache's O(R²)
 matching (X6), and the upstream projection (ADR 001).
@@ -340,7 +469,12 @@ reproduce the PC matrix from the research worktree, with a "before" worktree at 
 `X7_BEFORE_ROOT=<before> bun scripts/x7-publication-benchmark.ts` through the heavy runner's quiet
 bench class.
 
-Removed after the runs: the Mac scratch (`~/tmp/ghw-x7`, its clone and two worktrees, staged twice), the PC
+Removed after the original runs: the Mac scratch (`~/tmp/ghw-x7`, its clone and two worktrees, staged twice), the PC
 baseline worktree, the pinned Ghostty worktree in `/work/tmp`, the identity scratch worktree and
 the size probe. Each harness run closed its browser in `finally`. The harness serves pages through
 request interception, so it creates no server.
+
+The review-fix run removed its Mac source trees, node modules, transferred archives, browser
+profiles and agent lock on the Mac. PC worktrees, transfer archives and the pinned upstream
+worktree are task-owned and removed after the final push. Only the small review packet remains
+for the coordinator's review. The original raw measurement archives are unchanged.

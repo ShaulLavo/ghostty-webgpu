@@ -169,6 +169,13 @@ async function measure(
   }
 }
 
+function assertPair(pair: readonly Awaited<ReturnType<typeof measure>>[]): void {
+  const [before, after] = pair
+  assert(before && after, 'Expected two measurement arms')
+  for (const field of ['frames', 'texts', 'parsedWrites', 'submitted', 'observerDigest'] as const)
+    assert.equal(before[field], after[field], `${field} differs`)
+}
+
 const codes = new Map<string, string>()
 for (const arm of arms) codes.set(arm.label, await bundle(arm.root))
 const results: unknown[] = []
@@ -230,14 +237,7 @@ for (const backend of backends) {
               pair[1]!.digest,
               `text differs for ${backend}/${count}/${workload}/${observers}`,
             )
-            for (const field of [
-              'frames',
-              'texts',
-              'parsedWrites',
-              'submitted',
-              'observerDigest',
-            ] as const)
-              assert.equal(pair[0]![field], pair[1]![field], `${field} differs`)
+            assertPair(pair)
             await writeFile(output, JSON.stringify(packet(), null, 2))
           }
   } finally {
