@@ -1,12 +1,9 @@
 import type { RenderSchedulerClock } from './scheduler.js'
-import type { SurfaceCompositor } from '../webgpu/shared-surface.js'
 
 export interface FrameSubmission {
   readonly owner: object
   readonly device: GPUDevice
   readonly command: GPUCommandBuffer
-  /** Presents the frame's pane on a shared surface after every pane command in the group. */
-  readonly compositor?: SurfaceCompositor
   commit(): void
   notify(): void
   failed(cause: unknown): void
@@ -46,7 +43,7 @@ export class FrameCoordinator implements RenderSchedulerClock {
   submit(frame: FrameSubmission): void {
     if (!this.active) {
       try {
-        frame.device.queue.submit(withComposites(frame.device, [frame]))
+        frame.device.queue.submit([frame.command])
         frame.commit()
       } catch (cause) {
         frame.failed(cause)
@@ -116,7 +113,7 @@ export class FrameCoordinator implements RenderSchedulerClock {
     | { kind: 'submitted'; frames: readonly FrameSubmission[] }
     | { kind: 'failed'; frames: readonly FrameSubmission[]; cause: unknown } {
     try {
-      device.queue.submit(withComposites(device, frames))
+      device.queue.submit(frames.map((frame) => frame.command))
       return { kind: 'submitted', frames }
     } catch (cause) {
       return { kind: 'failed', frames, cause }
@@ -134,14 +131,4 @@ export class FrameCoordinator implements RenderSchedulerClock {
       return false
     }
   }
-}
-
-function withComposites(device: GPUDevice, frames: readonly FrameSubmission[]): GPUCommandBuffer[] {
-  const commands = frames.map((frame) => frame.command)
-  const compositors = new Set(frames.map((frame) => frame.compositor))
-  for (const compositor of compositors) {
-    const command = compositor?.encode(device)
-    if (command) commands.push(command)
-  }
-  return commands
 }

@@ -6,7 +6,6 @@ import type {
 } from '../shared/types.js'
 import { isSoftwareWebGpuAdapter } from './adapter.js'
 import { FrameCoordinator } from '../shared/frame-coordinator.js'
-import { canvasTarget, type RenderTarget } from './shared-surface.js'
 import { DeviceOwner, type DeviceLease } from './device-owner.js'
 import { createGhosttyError } from '../../core/error.js'
 import { captureRenderAcknowledgement } from '../shared/displayed-frame.js'
@@ -35,7 +34,7 @@ import { RenderScheduler } from '../shared/scheduler.js'
 import { textPassGlyphCapacity, WebGpuTextPass } from './text-pass.js'
 
 interface PreparedRenderer {
-  readonly context?: GPUCanvasContext
+  readonly context: GPUCanvasContext
   readonly font: TerminalFittedFont
   readonly format: GPUTextureFormat
   readonly grid: RendererGridSize
@@ -128,19 +127,7 @@ function prepareRenderer(
 ): PreparedRenderer {
   if (!navigator.gpu) throw new WebGpuUnavailableError('api', 'WebGPU is unavailable')
   const format = navigator.gpu.getPreferredCanvasFormat()
-  const context = options.surface ? undefined : requireContext(options.canvas)
-  return { ...validated, context, format }
-}
-
-function createTarget(
-  options: WebGpuTerminalRendererOptions,
-  prepared: PreparedRenderer,
-  coordinator: FrameCoordinator | undefined,
-): RenderTarget {
-  if (prepared.context) return canvasTarget(prepared.context)
-  if (!coordinator || !options.surface || !(options.canvas instanceof HTMLCanvasElement))
-    throw new Error('A shared surface needs the default frame coordinator and a DOM canvas')
-  return options.surface.createTarget(options.canvas, coordinator)
+  return { ...validated, context: requireContext(options.canvas), format }
 }
 
 const defaultDeviceOwner = new DeviceOwner(() => defaultDeviceFactory('any'))
@@ -158,7 +145,7 @@ export class WebGpuTerminalRenderer {
   private atlasUploadOperationsOffset = 0
   private atlasTextures: AtlasGpuTextures
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
-  private readonly target: RenderTarget
+  private readonly context: GPUCanvasContext
   private cursor?: RenderCursorSnapshot
   private readonly textBlinkEnabled: boolean
   private cursorBlinkPreference: boolean
@@ -215,13 +202,13 @@ export class WebGpuTerminalRenderer {
     prepared: PreparedRenderer,
   ) {
     this.canvas = options.canvas
+    this.context = prepared.context
     const device = lease.device
     this.device = device
     this.deviceLease = lease
     this.replacementDeviceOwner = replacementDeviceOwner
     if (!options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
-    this.target = createTarget(options, prepared, this.coordinator)
     this.renderState = options.renderState
     this.onError = options.onError
     this.grid = prepared.grid
@@ -278,7 +265,7 @@ export class WebGpuTerminalRenderer {
       return new WebGpuTerminalRenderer(options, lease, replacementOwner, prepared)
     } catch (cause) {
       try {
-        prepared?.context?.unconfigure()
+        prepared?.context.unconfigure()
       } catch {}
       await lease.release()
       throw cause
@@ -457,7 +444,12 @@ export class WebGpuTerminalRenderer {
   }
 
   private configureContext(device: GPUDevice): void {
-    this.target.configure(device, this.format)
+    this.context.configure({
+      alphaMode: 'premultiplied',
+      device,
+      format: this.format,
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+    })
   }
 
   private createRasterizer(): CanvasGlyphRasterizer {
@@ -584,12 +576,12 @@ export class WebGpuTerminalRenderer {
 
     if (!this.coordinator) {
       try {
-        this.textPass.submit(this.target.view())
+        this.textPass.submit(this.context.getCurrentTexture().createView())
       } catch (cause) {
         this.reportFrameFailure(cause)
         if (this.disposed) return
         // Retry once in this turn; an acquired canvas texture presents empty after an abandoned submit.
-        this.textPass.submit(this.target.view())
+        this.textPass.submit(this.context.getCurrentTexture().createView())
       }
       let rows: readonly RenderRow[] | undefined
       if (this.frames.requiresFullRows) {
@@ -617,11 +609,11 @@ export class WebGpuTerminalRenderer {
     }
     let command: GPUCommandBuffer
     try {
-      command = this.textPass.encode(this.target.view())
+      command = this.textPass.encode(this.context.getCurrentTexture().createView())
     } catch (cause) {
       this.reportFrameFailure(cause)
       if (this.disposed) return
-      command = this.textPass.encode(this.target.view())
+      command = this.textPass.encode(this.context.getCurrentTexture().createView())
     }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
@@ -645,7 +637,6 @@ export class WebGpuTerminalRenderer {
       owner: this,
       device: this.device,
       command,
-      compositor: this.target.compositor,
       commit: () => {
         if (this.disposed) {
           frame?.discard()
@@ -929,7 +920,7 @@ export class WebGpuTerminalRenderer {
 
   private unconfigureContext(): void {
     try {
-      this.target.unconfigure()
+      this.context.unconfigure()
     } catch {}
   }
 

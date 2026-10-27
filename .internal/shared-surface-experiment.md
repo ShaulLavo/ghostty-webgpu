@@ -1,24 +1,26 @@
 # Shared drawing surface for many terminals
 
-Status: decided. Date: 2026-10-27. Branch: `research/shared-surface`. Follows X1 ([PR #28](https://github.com/ShaulLavo/ghostty-webgpu/pull/28)), ledger rows A05–A09, B19, C04 and C06.
+Status: decided; retained experiment, production deferred. Date: 2026-10-27. Prototype: immutable commit `a80617b148dc25f11af43d98bc10b6951e2a1f7c`, kept as branch `research/shared-surface-prototype` and in the history of `research/shared-surface`. Paths below marked `@a80617b1` exist only at that commit. Follows X1 ([PR #28](https://github.com/ShaulLavo/ghostty-webgpu/pull/28)), ledger rows A05–A09, B19, C04 and C06.
 
 ## Decision
 
-| Scope                      | Verdict                           | Why                                                                                                                                                                                                                             |
-| -------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| WebGPU on Linux            | **KEEP** (gate met), low priority | 16 busy terminals: total CPU 58.1 → 22.2% (−62%), GPU process 46.4 → 11.5%. Equal text in every record, all 16 pane screenshots byte-identical, acknowledgement latency unchanged. WebGL2, the Linux default, is still cheaper. |
-| WebGPU on macOS            | **REJECT**                        | 16 busy terminals: 45.7 → 46.0% (flat). With one busy terminal the surface costs more: +13% at 16, +38% at 32, +11% for a single terminal. Keep per-terminal canvases on the Mac.                                               |
-| Per-pane copies (any form) | **REJECT**                        | Copying one shared target into N WebGPU canvases costs what N canvases cost (48.8 vs 52.9% GPU process at 16). Copying into N 2D canvases costs more (77.7%).                                                                   |
+| Scope                      | Verdict                                          | Why                                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| WebGPU on Linux            | **RETAIN** as an experiment; production deferred | PC performance sub-gate passed: 16 busy terminals 58.1 → 22.2% total CPU (−62%), GPU process 46.4 → 11.5%, equal text, 16 byte-identical pane screenshots, acknowledgement latency unchanged. But WebGL2, the Linux default, is cheaper in the same session, and one-busy cases regress. |
+| WebGPU on macOS            | **REJECT**                                       | 16 busy terminals: 45.7 → 46.0% (flat). With one busy terminal the surface costs more: +13% at 16, +38% at 32, +11% for a single terminal. Keep per-terminal canvases on the Mac.                                                                                                        |
+| Per-pane copies (any form) | **REJECT**                                       | Copying one shared target into N WebGPU canvases costs what N canvases cost (48.8 vs 52.9% GPU process at 16). Copying into N 2D canvases costs more (77.7%).                                                                                                                            |
 
-The gate was ≥30% less total CPU at 16 terminals on the PC, no Mac regression, equal output and a qualified checklist. The PC result clears it by a wide margin. The Mac does not regress only if the surface is never used there, so the keep is scoped to non-Apple WebGPU and measured only on Linux. Windows is unmeasured.
+The combined gate was ≥30% less total CPU at 16 terminals on the PC, no Mac regression, equal output and a qualified checklist. It was not met. The PC performance sub-gate passed by a wide margin. The Mac regresses, and several checklist items remain open (below).
 
-The product impact is narrow today. Desktop Linux selects WebGL2 first, and in the same session WebGL2 stays below the shared surface in every case (16 busy terminals: 24.2% WebGL2, 26.6% shared surface, 63.0% today's WebGPU). The surface makes WebGPU on Linux nearly as cheap as WebGL2 for many busy terminals. It matters where WebGPU is used on Linux anyway, and past 16 terminals, where stock Chromium refuses more WebGL2 contexts (lane 07a) and the surface runs 32 busy terminals at 32.6% instead of 95.3%.
+The prototype is retained for one eventual use: an **opt-in Linux WebGPU pane group with many simultaneously updating terminals**, particularly a consumer that exceeds Chromium's WebGL context budget. Backend defaults stay unchanged, macOS is excluded and Windows is unmeasured. **Production work is deferred until a real consumer needs that case.** Reopen it with a same-session comparison against that consumer's actual default and fallback backend and its busy-pane mix, an agreed one-busy cost, memory and size limits, and the open correctness checks. The production steps below are conditional follow-up work, not scheduled implementation.
+
+The product impact is narrow today. Desktop Linux selects WebGL2 first, and in the same session WebGL2 stays below the shared surface in every case (16 busy terminals: 24.2% WebGL2, 26.6% shared surface, 63.0% today's WebGPU). The surface makes WebGPU on Linux nearly as cheap as WebGL2 for many busy terminals. It could matter where WebGPU is used on Linux anyway, and past 16 terminals, where stock Chromium refuses more WebGL2 contexts (lane 07a). At 32 busy terminals the surface runs at 32.6% instead of 95.3%, but that compares two WebGPU designs. It does not show the surface beats an application's default or fallback strategy at that count.
 
 ## Attribution: what the probe measured
 
-PR #28 left open whether per-canvas compositing explains the X1 probe. It does not. The cost is per WebGPU canvas presented in a frame, on the GPU process main thread, and ordinary layer compositing is cheap.
+PR #28 left open whether per-canvas compositing explains the X1 probe. Canvas or layer count alone does not explain it. On this Linux browser and driver, the measured overhead follows active WebGPU canvas presentation: it grows with the number of WebGPU canvases presented per frame, on the GPU process main thread. The compositor is not ruled out. About 25 of the points sit in display-compositor swap and image access for those canvases.
 
-The probe (`bench/shared-surface/probe.ts`) extends X1's with four controls. All arms draw 1,920 instanced quads per 1280×768 tile for 300 frames, two repetitions in reversed order. CPU is CDP `SystemInfo.getProcessInfo` `cpuTime` per process type, `100 × Δ CPU s / wall s`. It is host CPU, not GPU time.
+The probe (`bench/shared-surface/probe.ts@a80617b1`) extends X1's with controls, 300 frames per arm, two repetitions in reversed order. The equal-work arms draw 1,920 instanced quads into each of N 1280×768 tiles every frame: N WebGPU canvases, one canvas holding N tiles, N offscreen targets, and the two copy designs. Two controls do less work. "N canvases, one updated" draws only the first tile. "N 2D canvases, each filled" does no WebGPU drawing and fills a 64×64 rectangle in each canvas. CPU is CDP `SystemInfo.getProcessInfo` `cpuTime` per process type, `100 × Δ CPU s / wall s`. It is host CPU, not GPU time.
 
 GPU-process CPU %, PC (Linux, Wayland, RTX 3060 Ti); all-Chrome total in parentheses:
 
@@ -30,9 +32,9 @@ GPU-process CPU %, PC (Linux, Wayland, RTX 3060 Ti); all-Chrome total in parenth
 | 32    | 89.1 (95.4)       | 8.8 (12.0)          | 2.8 (4.5)                      | 8.5 (11.6)              | 87.5 (92.9)                            | 101.6 (109.0)                       | 10.2 (14.0)                |
 
 - N render passes into N targets cost 2.4% at 16. Passes, attachments and encoders are not the cost.
-- Sixteen canvases that exist but stay unchanged cost nothing per frame (8.0%). The cost scales with canvases presented per frame, which is the number of busy terminals.
-- Sixteen accelerated 2D canvases updated every frame cost 8.0%. Updating and compositing many layers is cheap in general. Caveat: the fill damages 64×64 pixels per canvas, not the whole canvas.
-- The GPU-process trace at 16 tiles (`trace-summary.ts`) puts the N-canvas cost on `CrGpuMain`: 50.6% traced, against 7.8% for one canvas. Per WebGPU canvas it grows in four places: `SkiaOutputSurfaceImplOnGpu::SwapBuffers` 12.9% (1.3% with one canvas), `Begin/EndAccessImages` 12.4% (1.9%), the WebGPU decoder `CommandBufferService:PutChanged` and `PerformPollingWork` 18.5% (2.2%), and `Queue::Submit` 4.6% (0.8%). Draw-quad work in viz stays under 0.5%. Hypothesis, not proven: each frame of a Dawn (Vulkan) canvas image needs cross-API synchronization when the GL-based display compositor reads it.
+- Reduced-work control: sixteen WebGPU canvases with only one presented per frame cost 8.0%. Idle canvases add nothing measurable. The cost follows canvases presented per frame, which is the number of busy terminals.
+- Reduced-work control: sixteen accelerated 2D canvases updated every frame cost 8.0%. So sixteen updating layers alone do not produce the cost. This is not an equal-damage compositing control: each fill damages 64×64 pixels, while WebGPU replaces whole tiles. It does not exclude compositor work specific to WebGPU canvas images.
+- The GPU-process trace at 16 tiles (`trace-summary.ts`) puts the N-canvas cost on `CrGpuMain`: 50.6% traced, against 7.8% for one canvas. Per WebGPU canvas it grows in four places: `SkiaOutputSurfaceImplOnGpu::SwapBuffers` 12.9% (1.3% with one canvas), `Begin/EndAccessImages` 12.4% (1.9%), the WebGPU decoder `CommandBufferService:PutChanged` and `PerformPollingWork` 18.5% (2.2%), and `Queue::Submit` 4.6% (0.8%). Draw-quad work in viz stays under 0.5%. The trace localizes the work; it does not rule the compositor out. Two explanations remain open: WebGPU-specific compositor image handling, and cross-API synchronization when the GL-based display compositor reads each Dawn (Vulkan) canvas image. The synchronization explanation is unproven.
 
 On the Mac the same probe gives 31.6% for 16 canvases against 27.6% for one canvas, and 2D canvases cost more than WebGPU ones (42.0%). The trace covers only 9.4% of the Mac GPU process, with no dominant per-canvas slice. The untraced remainder grows with the presented area, consistent with X1's Core Animation hypothesis. One canvas helps the Mac only where it does not enlarge the presented area.
 
@@ -48,7 +50,7 @@ On the Mac the same probe gives 31.6% for 16 canvases against 27.6% for one canv
 
 ## The prototype
 
-`src/render/webgpu/shared-surface.ts` adds `WebGpuSharedSurface(container)` and a `RenderTarget` seam in the WebGPU renderer.
+`src/render/webgpu/shared-surface.ts@a80617b1` adds `WebGpuSharedSurface(container)` and a `RenderTarget` seam in the WebGPU renderer. None of it is on `main`.
 
 - The surface prepends one canvas to the container: absolutely positioned at the content origin, `z-index:-1` in an isolated stacking context, `pointer-events:none`. It sits above the container's background and below its content, and scrolls with the content.
 - A renderer created with `surface` keeps its own `<canvas>` element for layout, padding and pointer events, but never gives it a context. It draws its unchanged frame into a retained pane texture of the same size.
@@ -58,7 +60,7 @@ On the Mac the same probe gives 31.6% for 16 canvases against 27.6% for one canv
 
 ## Results in the terminal path
 
-Fleet benchmark (`bench/shared-surface/fleet.ts`): N production-default WebGPU renderers (shared device and frame coordinator), DPR 2, 13 px monospace, in a 1600×1000 scrolling grid. Thirty warm-up updates, then 300 paced updates of ten lines each, written to every terminal ("all") or only the first ("one"). Arms are counterbalanced in ABBA order, one fresh page each, two repetitions. Every tenth line carries a wide CJK glyph, a combining mark, a ZWJ emoji, italic and bold. Latency is for the first terminal. "Ack" runs from `write()` to the `acknowledge()` inside the coordinated frame's commit. "Next frame" runs to the next animation frame after it, a stand-in for presentation, not a measured photon time.
+Fleet benchmark (`bench/shared-surface/fleet.ts@a80617b1`): N production-default WebGPU renderers (shared device and frame coordinator), DPR 2, 13 px monospace, in a 1600×1000 scrolling grid. Thirty warm-up updates, then 300 paced updates of ten lines each, written to every terminal ("all") or only the first ("one"). Arms are counterbalanced in ABBA order, one fresh page each, two repetitions. Every tenth line carries a wide CJK glyph, a precomposed `é` (U+00E9), a ZWJ emoji, italic and bold. It contains no combining sequence. Latency is for the first terminal. "Ack" runs from `write()` to the `acknowledge()` inside the coordinated frame's commit. "Next frame" runs to the next animation frame after it, a stand-in for presentation, not a measured photon time.
 
 ### PC (Linux, NVIDIA, Chromium 153.0.8010.12)
 
@@ -108,7 +110,9 @@ Mac acknowledgement p95 stays within 17.5–18.4 ms in both arms.
 - Text: every terminal's text hash matches across both arms in every record on both hosts (one hash per terminal per record).
 - Submitted frames match per case, and per-terminal frame and acknowledgement counts are recorded in the raw data.
 - Pixels, 16 × 80×24, all busy: on the PC all 16 per-pane screenshots are byte-identical between arms. On the Mac 14 of 16 are; panes 10 and 14 differ only in a 14-pixel column at x 1182–1196, the macOS overlay scrollbar of the scrolling container fading (≤3 levels). Terminal pixels are identical.
-- Browser tests compare each pane against its own-canvas rendering in the same layout (below).
+- Browser tests compare each pane against its own-canvas rendering in the same layout (below). They also use the precomposed `é`.
+- **Not covered:** combining sequences such as `e` + U+0301. The equality above holds for this workload only. Pixel coverage of genuine combining sequences is pending before any production qualification.
+- These records compare text, counts and screenshots. They do not measure presented-frame identity or exercise public frame observers.
 
 ## Checklist
 
@@ -131,9 +135,9 @@ Mac acknowledgement p95 stays within 17.5–18.4 ms in both arms.
 
 `nvidia-smi` free-memory deltas swung by ±150 MiB between repetitions because other GUI processes share the GPU, so they are not usable. Logical sizes at 16 × 80×24 on the PC: each pane is 1200×960 RGBA, 4.4 MiB. Today that is 16 canvases, each with its swap-chain images in flight. The prototype adds 16 retained pane textures (70.3 MiB) plus one 4800×3840 surface (70.3 MiB per swap-chain image). So it holds roughly one extra copy of every pane. Drawing panes straight into the surface would remove the retained textures but redraw idle panes every frame. At 32 terminals the surface is 158 MiB per image, because it spans the whole grid.
 
-## Production steps
+## Conditional follow-up: production steps
 
-Not shipped from this experiment. The prototype is on the research branch only.
+Not scheduled. This is the ready plan for when a consumer needs an opt-in Linux WebGPU pane group with many busy terminals, and only after the reopening comparison described in the decision. The prototype stays at `a80617b1`.
 
 1. **Scope.** Offer the surface only for WebGPU on non-Apple platforms, through an explicit pane-group API (`TerminalSurface`, the main entry's `surface` option passed to the WebGPU renderer). Measure Windows before enabling it there. Leave the Linux default on WebGL2; reconsider only if a same-session comparison puts the surface below WebGL2.
 2. **Sizing.** Size the canvas to the union of pane boxes, not the whole container. That removes the single-terminal and sparse-layout cost. Fall back to per-pane canvases when the union exceeds `maxTextureDimension2D`. Shrink when content shrinks.
@@ -141,13 +145,13 @@ Not shipped from this experiment. The prototype is on the research branch only.
 4. **Failure isolation.** A composite that throws now fails every pane frame in that device group. Submit pane commands first and the composite separately, report surface failures once, and recover the canvas context.
 5. **Memory option.** Measure drawing panes directly into the surface, with no retained textures, against the copy design. Keep whichever has lower total memory at equal CPU.
 6. **Documented constraints.** Panes need transparent ancestors up to the container; no per-pane opacity, filters, transforms or non-rectangular clips; terminal pixels sit under the container's content.
-7. **Tests to add.** Real DPR change, container shrink, size-cap fallback, a pane moved without a resize, and composite failure isolation.
+7. **Tests to add.** Genuine combining sequences (`e` + U+0301) in pixel comparisons, real DPR change, container shrink, size-cap fallback, a pane moved without a resize, public frame observers, and composite failure isolation.
 8. **One-busy cost.** On Linux the surface costs +9–16% total CPU when one of 16–32 terminals is busy. Accept it, or present per-pane canvases while one pane is busy and switch to the surface when several are.
 
 ## Method and evidence
 
 - Hosts. PC: i7-14700K, RTX 3060 Ti, NVIDIA 615.78.08, headed Chromium 153.0.8010.12 on native Wayland, WebGPU on the NVIDIA adapter; VRAM ≥ 2 GiB checked before each page; runs through the shared queue in quiet mode. Mac: M1 MacBook Air, macOS 26.4, same Chromium, Metal, AC power, under the agent lock; background load 2–3.7, so Mac numbers are experimental.
 - Source: `bc1b8c4cc` on `research/shared-surface` plus the working diff stored with each run (format changes, the WebGL2 arm and the last-pane clear). Mac runs used `bc1b8c4cc` unmodified.
-- Raw data, traces, screenshots, run scripts and summarizers: `/work/reports/ghostty-webgpu-next-2026-10/shared-surface/` (`probe-pc/`, `fleet-pc/`, `fleet-pc-webgl2/`, `mac/`). `python3 summarize.py <fleet.json>` and `python3 probe-summary.py <probe.json>` reprint every table; `bun bench/shared-surface/trace-summary.ts <trace.json>` reprints the trace attribution (traces are stored gzipped).
-- Browser tests: `src/render/tests/shared-surface.browser.test.ts` (SwiftShader, correctness only).
+- Raw data, traces, screenshots, run scripts and summarizers: `/work/reports/ghostty-webgpu-next-2026-10/shared-surface/` (`probe-pc/`, `fleet-pc/`, `fleet-pc-webgl2/`, `mac/`). `python3 summarize.py <fleet.json>` and `python3 probe-summary.py <probe.json>` reprint every table; `bun bench/shared-surface/trace-summary.ts <trace.json>` at `a80617b1` reprints the trace attribution (traces are stored gzipped).
+- Browser tests: `src/render/tests/shared-surface.browser.test.ts@a80617b1` (SwiftShader, correctness only; 9 pass there, and the full suite passed at that commit).
 - All CPU figures are two-repetition means and experimental, not qualified speedup claims.

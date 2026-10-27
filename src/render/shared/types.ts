@@ -1,4 +1,3 @@
-import type { WebGpuSharedSurface } from '../webgpu/shared-surface.js'
 import { captureRenderAcknowledgement } from './displayed-frame.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { GhosttyRenderState } from '../../core/render-state.js'
@@ -108,8 +107,6 @@ export interface WebGpuTerminalRendererOptions {
   rendererMode?: TerminalRendererMode
   rows: number
   schedulerClock?: RenderSchedulerClock
-  /** Draw into a pane of this shared surface; `canvas` stays the layout and input element. */
-  surface?: WebGpuSharedSurface
   theme?: Partial<RendererTheme>
 }
 
