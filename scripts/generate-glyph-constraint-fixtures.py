@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Render pinned Ghostty glyph constraints with native Zig and FreeType.
 
-Usage: native-reference.py GHOSTTY_REPO ZIG OUTPUT
+Usage: generate-glyph-constraint-fixtures.py GHOSTTY_REPO ZIG OUTPUT [EXPECTED]
+The pinned font is extracted from GHOSTTY_REPO and verified by SHA-256.
 """
 
 import ctypes as c
@@ -23,10 +24,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "sprites"))
 from font_metrics import BBox, NativeFont
 
 PIN = "7b11f3dca034d8d24369ad3856afe57946d7902a"
-repo, zig, destination = sys.argv[1:]
+FONT_SHA256 = "a2f4268a1719b95d1f1448376173a42317919cb598423f18ea327eaca13dd916"
+if len(sys.argv) not in [4, 5]:
+    raise SystemExit("Usage: generate-glyph-constraint-fixtures.py GHOSTTY_REPO ZIG OUTPUT [EXPECTED]")
+repo, zig, destination = sys.argv[1:4]
+expected = Path(sys.argv[4]).resolve() if len(sys.argv) == 5 else None
 output = Path(destination).resolve()
 output.mkdir(parents=True, exist_ok=True)
 font_path = output / "JetBrainsMonoNerdFont-Regular.ttf"
+font_bytes = subprocess.check_output(
+    ["git", "-C", repo, "show", f"{PIN}:src/font/res/{font_path.name}"]
+)
+if hashlib.sha256(font_bytes).hexdigest() != FONT_SHA256:
+    raise RuntimeError("Pinned Nerd Font checksum mismatch")
+font_path.write_bytes(font_bytes)
 codepoints = [
     0xEA61,
     0xF013,
@@ -297,3 +308,10 @@ pub fn main(init: std.process.Init) !void {
     }
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     subprocess.run(["bun", "x", "oxfmt", "--write", str(output / "manifest.json")], check=True)
+
+if expected:
+    names = ["manifest.json"] + [f"case-{index}.png" for index in range(len(cases))]
+    for name in names:
+        if (output / name).read_bytes() != (expected / name).read_bytes():
+            raise RuntimeError(f"Generated fixture differs from {expected / name}")
+    print(f"Verified manifest and {len(cases)} contact sheets byte for byte")
