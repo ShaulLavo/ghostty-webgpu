@@ -377,19 +377,29 @@ retained separately and contribute no correctness or performance evidence.
 
 ## Decision
 
-**REJECT the current prototype for production.** The correctness fixes remove the stale-cache
-failure and preserve independent subscriber histories. The lower-CPU gate is still not met in
-all affected paths. The PC line-payload recovery case also increases renderer CPU by about
-11% on WebGL2 and 15% on WebGPU. Under the synthetic repeated-discard line-payload sequence on the Mac, renderer CPU rises
-from 12.70 to 15.24 ms per animation-loop iteration, about 20%, even though script time is nearly
-equal. JS heap rises from 6.32 to 8.28 MiB while wasm falls by 2 MiB. These are experimental two-pair
-results, so they do not prove a precise regression size. They do rule out the old claim that the
-corrected prototype has demonstrated equal or lower costs everywhere.
+**KEEP on the normal publication path, with a documented recovery tradeoff.** The coordinator
+accepted this decision on 2026-10-27. The corrected prototype has fewer representations, equal
+output and lower renderer CPU in every measured normal-publication cell. At sixteen terminals,
+scroll renderer CPU falls from 12.89 to 6.64 ms per loop iteration on PC WebGPU and from 17.81 to
+10.24 ms on the Mac. Dense publication and the single-terminal cells also improve.
 
-The normal publication gains remain useful evidence. They do not justify an unconditional KEEP.
-This bounded follow-up stops here rather than optimizing a synthetic repeated-failure workload.
-The six steps below describe the corrected design and acceptance criteria for future work. Each
-step must pass its own gate before production. No production code changes are part of this PR.
+The synthetic stress case discards an eagerly read frame before every payload. Its line-payload
+recovery sequence raises renderer CPU from 8.00 to 8.86 ms on PC WebGL2, 8.67 to 9.94 ms on PC
+WebGPU, and 12.70 to 15.24 ms on Mac WebGPU, about 11%, 15% and 20%. JS heap rises from 5.60 to
+6.42 MiB, 6.49 to 8.31 MiB and 6.32 to 8.28 MiB respectively. Wasm remains 2 MiB lower at sixteen
+terminals. Dense recovery renderer CPU improves on all three host/backend combinations.
+These are experimental two-pair medians, not precise regression estimates.
+
+Discard happens only on failed commits, so this stress case repeats a rare recovery path on
+every iteration. The coordinator accepts that cost in exchange for the normal-path gains,
+following the owner's rule that gates are means, not ends. The KEEP decision does not claim
+that recovery costs improve. Production step 2 targets the cost by tracking cache entries first
+inserted by a pending attempt and invalidating only those entries on discard.
+
+The seven steps below preserve independent accepted histories and their token lifetimes.
+Each remains a separate PR with its own tests and measurement gate. This decision keeps the
+corrected design for production migration; it does not merge the research prototype wholesale.
+No production code changes are part of this PR.
 
 Historical findings:
 
@@ -408,7 +418,7 @@ Historical findings:
   across the final cells. It falls 1.0 to 1.4 MB on scroll with GPU backends at 16 terminals with observers
   on. Dense savings are smaller in several cohorts. Wasm memory is 2 MiB lower at 16 terminals.
 
-Not decided here: the worker step (5) needs X4's delta-only run, and the two-slot step (4) needs
+Not decided here: the worker step (6) needs X4's delta-only run, and the two-slot step (5) needs
 its own measurement. The corrected prototype stays on the research branch; this decision does
 not authorize merging that prototype into production.
 
@@ -426,27 +436,37 @@ No step moves a single-current store into `SharedRenderState`.
    previous-text reader. Test dense, scroll, Unicode and resize equivalence, zero extraction on a
    repeated read, and a populated pending cache followed by discard, changed output and retry.
    Preserve extraction-failure tests and add acknowledgement failure after eager extraction.
-2. **Observer text from that subscriber's retained frame.** Derive text from the retained frame
+2. **Selective discard invalidation.** Track revision-cache entries first inserted by each pending
+   capture attempt. On discard, remove those entries instead of clearing the entire store's
+   cache. Preserve pre-existing accepted entries, independent subscriber histories, token
+   lifetimes and owned rows. Cover partial extraction failure, acknowledgement failure after
+   eager extraction, different retry output, overlapping subscribers, resize and disposal.
+   Gate this step with the existing repeated-discard stress case, using same-session
+   counterbalanced pairs on both hosts and both PC GPU backends. Remove the documented recovery
+   renderer-CPU and JS-heap increases against the pre-optimization baseline while retaining the
+   normal-path gains. Require equal per-observer payloads, parsed writes and submitted frames.
+
+3. **Observer text from that subscriber's retained frame.** Derive text from the retained frame
    when there is no styled `onFrame` consumer. Remove the redundant observer cache only for that
    path. Test every observer payload, `visibleLines`, links, accessibility, held output and
    coordinated recovery, including different subscriber submission cadences.
-3. **Text revisions follow row identity.** Reuse a revision only after native cells and graphemes
+4. **Text revisions follow row identity.** Reuse a revision only after native cells and graphemes
    match the subscriber's accepted baseline, ignoring style bits. Enable matching after the first
    text read. Test N-row scroll extraction, same-id text mutations, combining changes, independent
    stores with overlapping local tokens, and failure followed by a different retry.
-4. **Two native slots per subscriber.** Before recycling a previous native slot, materialize
+5. **Two native slots per subscriber.** Before recycling a previous native slot, materialize
    every previously unread text row and pin the rows plus ordered revisions in that subscriber's
    history. Release pins only when that subscriber's history retires. Test 3+ submissions without
    intervening text reads, resize, lazy previous reads, unequal cadence, pending discard and
    disposal. Measure the JS rows added against the native memory removed before keeping this step.
-5. **Worker publication by revision.** This remains a new experiment after X4b's rejected pooled
+6. **Worker publication by revision.** This remains a new experiment after X4b's rejected pooled
    WebGL2 prototype. Use a `(runtime, source store, revision)` namespace and independent host subscriber histories, including
    current, previous and pending revision pins. Send ordered revisions and missing rows containing
    text, cell boundaries and continuation flags. Define release acknowledgements before evicting
    shared content. Compare every API and observer payload, links, accessibility, delivered updates,
    latency and memory against the current worker. Retain all X4b gates. A one-line scroll sending
    one row alone does not qualify it.
-6. **`rowPatches` from revisions.** Skip string comparisons only for equal revisions in the same
+7. **`rowPatches` from revisions.** Skip string comparisons only for equal revisions in the same
    runtime and subscriber-store namespace. When revisions differ, compare strings because identical output can receive
    fresh revisions. Test style changes, identical rewrites, discard/retry, resize and each
    subscriber's independent previous frame. Measure the affected summary work.
