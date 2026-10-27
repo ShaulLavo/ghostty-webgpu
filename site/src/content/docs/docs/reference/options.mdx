@@ -7,19 +7,20 @@ Create a terminal with `Terminal.create(options)`. The main entry takes `Ghostty
 
 ## Main entry
 
-| Option            | Purpose                                         | When omitted                    |
-| ----------------- | ----------------------------------------------- | ------------------------------- |
-| `appearance`      | Font, theme, cursor, grid and history budgets   | Native appearance defaults      |
-| `rendererMode`    | `auto`, `canvas2d-fill-text`, `canvas2d-pixels` | Automatic fallback selection    |
-| `rendererFactory` | Host-owned renderer construction                | Built-in selection              |
-| `keyboard`        | Enable keyboard input                           | Enabled                         |
-| `accessibility`   | Text mirror and live-region options, or `false` | Off                             |
-| `clipboardWrite`  | Policy for OSC 52 writes                        | Denied                          |
-| `extensions`      | Native extension registrations                  | Empty                           |
-| `links`           | Link resolution policy                          | Built-in URL and OSC 8 handling |
-| `padding`         | Insets around the terminal grid                 | Host defaults                   |
-| `scrollbar`       | Scrollbar presentation                          | Host defaults                   |
-| `runtime`         | Reuse a session runtime                         | Create the terminal runtime     |
+| Option                | Purpose                                           | When omitted                    |
+| --------------------- | ------------------------------------------------- | ------------------------------- |
+| `appearance`          | Font, theme, cursor, grid and history budgets     | Native appearance defaults      |
+| `rendererMode`        | `auto`, `canvas2d-fill-text`, `canvas2d-pixels`   | Automatic fallback selection    |
+| `renderWhenOffscreen` | Paint outside the viewport and clipping ancestors | `false`                         |
+| `rendererFactory`     | Host-owned renderer construction                  | Built-in selection              |
+| `keyboard`            | Enable keyboard input                             | Enabled                         |
+| `accessibility`       | Text mirror and live-region options, or `false`   | Off                             |
+| `clipboardWrite`      | Policy for OSC 52 writes                          | Denied                          |
+| `extensions`          | Native extension registrations                    | Empty                           |
+| `links`               | Link resolution policy                            | Built-in URL and OSC 8 handling |
+| `padding`             | Insets around the terminal grid                   | Host defaults                   |
+| `scrollbar`           | Scrollbar presentation                            | Host defaults                   |
+| `runtime`             | Reuse a session runtime                           | Create the terminal runtime     |
 
 ## Worker entry
 
@@ -30,6 +31,8 @@ Create a terminal with `Terminal.create(options)`. The main entry takes `Ghostty
 | `assets`     | Hosted wasm and bridge URLs       | Package-relative files                      |
 | `workerUrl`  | Hosted worker module              | Package worker                              |
 | `appearance` | Same appearance model             | Native defaults, first supplied font family |
+
+Both entries pause painting when the document is hidden. By default, an IntersectionObserver also pauses a terminal outside the viewport or a clipping ancestor. Parsing and layout changes continue. On return, the renderer paints the current state. `visibleLines()` and the accessibility mirror retain the last displayed text until that paint. Set `renderWhenOffscreen: true` to keep offscreen painting enabled. Element intersection does not detect another element covering the terminal.
 
 ## Appearance
 

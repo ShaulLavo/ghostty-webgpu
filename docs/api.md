@@ -227,6 +227,21 @@ Public renderer `onTextFrame` snapshots contain owned rows, with no native ident
 reader functions, and remain readable after later captures and disposal. The terminal's private
 GPU publication channel keeps the no-demand path lazy.
 
+Both terminal entries pause painting when the document is hidden or the terminal root has no
+positive visible area in the viewport. The main and worker entries both default
+`renderWhenOffscreen` to `false`. Set it to `true` to keep painting panes
+with no viewport intersection, including collapsed panes. Document visibility still applies.
+Parsing, authoritative reads, layout, font and theme changes continue while painting is paused.
+`onFrame` and `onText` publish no frames for that hidden interval. `submittedFrame`,
+`visibleLines()` and the accessibility mirror retain the last submitted viewport until a new
+paint is accepted. On return, the renderer paints current state, including changes accumulated
+while hidden.
+
+Visibility follows asynchronous browser observer notifications. IntersectionObserver reports
+viewport and ancestor clipping; it does not detect opacity or another element covering a pane.
+A terminal that only touches the viewport boundary, or has zero width or height, has no visible
+area and pauses by default.
+
 Accessibility defaults to off. Pass `accessibility: {}` or configure its label and live-region
 limits to enable the mirror. `setAccessibilityEnabled(true)` enables it after opening. The
 mirror pulls the latest displayed viewport after a coalesced 100 ms foreground delay;

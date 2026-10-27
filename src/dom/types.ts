@@ -65,7 +65,7 @@ export interface TerminalOutputTiming {
    */
   readonly presentedAt?: number
   readonly writes: number
-  /** No frame drew this output because the page was hidden when it ended. */
+  /** No frame drew this output because the terminal was hidden when it ended. */
   readonly hidden: boolean
   readonly presentation: NonNullable<GhosttyWebGpuTerminalOptions['presentation']>
   /** The canvas presents without waiting for the browser's compositor, as `diagnostics.desynchronized`. */
@@ -183,6 +183,8 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly links?: LinkResolverOptions<Event>
   readonly outputTiming?: GhosttyWebGpuTerminalOutputTimingOptions
   readonly padding?: TerminalElementPaddingInput
+  /** Keep painting outside the viewport or clipping ancestors. Defaults to false. */
+  readonly renderWhenOffscreen?: boolean
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
   /** `immediate` paints a write before the next display frame; main-thread terminals only. */
