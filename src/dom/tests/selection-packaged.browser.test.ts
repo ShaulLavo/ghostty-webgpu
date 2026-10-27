@@ -178,6 +178,8 @@ it.for(['main', 'worker'] as const)(
   { timeout: 15000 },
   async (mode, { skip }) => {
     const clipboard = navigator.clipboard
+    const chromium = /Chrom(e|ium)/.test(navigator.userAgent)
+    if (chromium) expect(clipboard?.write).toBeTypeOf('function')
     if (!clipboard?.write || typeof ClipboardItem === 'undefined') {
       skip('Browser clipboard writes are unavailable')
       return
@@ -188,7 +190,9 @@ it.for(['main', 'worker'] as const)(
     cleanups.push(() => button.remove())
     let baseline: Promise<void> | undefined
     button.addEventListener('click', () => {
-      baseline = clipboard.write([new ClipboardItem({ 'text/plain': new Blob(['baseline']) })])
+      baseline = clipboard.write([
+        new ClipboardItem({ 'text/plain': new Blob(['baseline'], { type: 'text/plain' }) }),
+      ])
       void baseline.catch(() => {})
     })
     await userEvent.click(button)
@@ -196,7 +200,8 @@ it.for(['main', 'worker'] as const)(
     try {
       await baseline
     } catch (cause) {
-      if (!(cause instanceof DOMException) || cause.name !== 'NotAllowedError') throw cause
+      if (chromium || !(cause instanceof DOMException) || cause.name !== 'NotAllowedError')
+        throw cause
       skip('Browser denies ordinary activated clipboard writes')
       return
     }
