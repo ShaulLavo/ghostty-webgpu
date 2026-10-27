@@ -1,0 +1,382 @@
+diff --git i/src/render/shared/atlas/canvas-rasterizer.browser.test.ts w/src/render/shared/atlas/canvas-rasterizer.browser.test.ts
+index fc3c2103a..e1c4ff322 100644
+--- i/src/render/shared/atlas/canvas-rasterizer.browser.test.ts
++++ w/src/render/shared/atlas/canvas-rasterizer.browser.test.ts
+@@ -1,4 +1,4 @@
+-import { expect, it } from 'vitest'
++import { expect, it, vi } from 'vitest'
+ import type { GlyphBitmap, GlyphRasterizationInput } from './types.js'
+ import type { TerminalFittedFont } from '../../../term/types.js'
+ import { CanvasGlyphRasterizer } from './canvas-rasterizer.js'
+@@ -190,3 +190,77 @@ it('places glyphs from fitted positive and safe negative letter spacing at every
+     expect(coverage(negative)).toBeGreaterThan(0)
+   }
+ })
++
++it.each([1, 2])('batches cold glyphs with byte-identical bitmaps at DPR %s', (pixelRatio) => {
++  const texts = ['A', 'j', 'f', '界', 'e\u0301', '🧪', '👩‍💻', ' ', '']
++  const inputs = [false, true].flatMap((italic) =>
++    (['normal', 'bold'] as const).flatMap((weight) =>
++      texts.map((text) =>
++        input(text, text === '界' || text.includes('🧪') || text.includes('👩') ? 2 : 1, {
++          foreground: { r: 20, g: 170, b: 255 },
++          italic,
++          weight,
++        }),
++      ),
++    ),
++  )
++  const control = createRasterizer({ pixelRatio })
++  const candidate = createRasterizer({ pixelRatio })
++  const expected = inputs.map((value) => control.rasterize(value))
++  expect(candidate.rasterizeBatch(inputs)).toEqual(expected)
++  expect(candidate.rasterizeBatch(inputs)).toEqual(expected)
++})
++
++it('keeps clipping and extreme overhangs independent of adjacent batch slots', () => {
++  const inputs = ['f'.repeat(10), 'M', 'j', '🧪', '界'].map((text) =>
++    input(text, 1, { italic: true }),
++  )
++  for (const lineHeight of [0.8, 1.2]) {
++    const control = createRasterizer({ lineHeight })
++    const candidate = createRasterizer({ lineHeight })
++    const expected = inputs.map((value) => control.rasterize(value))
++    expect(candidate.rasterizeBatch(inputs)).toEqual(expected)
++  }
++})
++
++it('uses one readback for a cold monochrome batch including both color probes', () => {
++  const readback = vi.spyOn(OffscreenCanvasRenderingContext2D.prototype, 'getImageData')
++  try {
++    const inputs = Array.from({ length: 24 }, (_, index) =>
++      input(String.fromCodePoint(0x4e00 + index), 2),
++    )
++    const bitmaps = createRasterizer().rasterizeBatch(inputs)
++    expect(bitmaps.every((bitmap) => bitmap?.kind === 'grayscale')).toBe(true)
++    expect(readback).toHaveBeenCalledTimes(1)
++  } finally {
++    readback.mockRestore()
++  }
++})
++
++it('batches fixed white, black, gray and currentColor font layers without changing their brush', async () => {
++  const face = await new FontFace(
++    'Batch intrinsic colors',
++    'url(' + new URL('../../tests/fixtures/intrinsic-colors.ttf', import.meta.url).href + ')',
++  ).load()
++  document.fonts.add(face)
++  try {
++    const font = fittedFont()
++    const intrinsic = {
++      ...font,
++      settings: { ...font.settings, family: '"Batch intrinsic colors"' },
++    }
++    const control = new CanvasGlyphRasterizer({ font: intrinsic })
++    const candidate = new CanvasGlyphRasterizer({ font: intrinsic })
++    const inputs = ['W', 'B', 'G', 'X', 'C', 'M'].flatMap((text) =>
++      [
++        { r: 255, g: 255, b: 255 },
++        { r: 20, g: 150, b: 60 },
++      ].map((foreground) => input(text, 1, { foreground })),
++    )
++    expect(candidate.rasterizeBatch(inputs)).toEqual(
++      inputs.map((value) => control.rasterize(value)),
++    )
++  } finally {
++    document.fonts.delete(face)
++  }
++})
+diff --git i/src/render/shared/atlas/canvas-rasterizer.ts w/src/render/shared/atlas/canvas-rasterizer.ts
+index 8f02d5b25..bcd324284 100644
+--- i/src/render/shared/atlas/canvas-rasterizer.ts
++++ w/src/render/shared/atlas/canvas-rasterizer.ts
+@@ -20,6 +20,17 @@ const colorChannelTolerance = 2
+ const maxBitmapCacheBytes = 4 * 1_024 * 1_024
+ const maxBitmapCacheEntries = 4_096
+ const maxScratchAttempts = 3
++const maxBatchWidth = 8_192
++
++interface BatchRequest {
++  input: GlyphRasterizationInput
++  key: string
++}
++
++interface BatchRegion {
++  left: number
++  width: number
++}
+
+ function validateInput(input: GlyphRasterizationInput): GlyphRasterizationInput {
+   if (!Number.isSafeInteger(input.cellSpan) || input.cellSpan <= 0) {
+@@ -75,12 +86,20 @@ function fontString(
+ }
+
+ function alphaBounds(image: ImageData): PixelBounds | undefined {
+-  let left = image.width
++  return alphaBoundsInRegion(image, 0, image.width)
++}
++
++function alphaBoundsInRegion(
++  image: ImageData,
++  sourceX: number,
++  width: number,
++): PixelBounds | undefined {
++  let left = width
+   let right = -1
+   let top = image.height
+   let bottom = -1
+   for (let y = 0; y < image.height; y += 1) {
+-    const row = alphaRowBounds(image, y)
++    const row = alphaRowBounds(image, y, sourceX, width)
+     if (!row) continue
+     left = Math.min(left, row.left)
+     right = Math.max(right, row.right)
+@@ -94,14 +113,17 @@ function alphaBounds(image: ImageData): PixelBounds | undefined {
+ function alphaRowBounds(
+   image: ImageData,
+   row: number,
++  sourceX = 0,
++  width = image.width,
+ ): { left: number; right: number } | undefined {
+-  let left = image.width
++  let left = width
+   let right = -1
+-  for (let x = 0; x < image.width; x += 1) {
++  for (let column = 0; column < width; column += 1) {
++    const x = sourceX + column
+     const alpha = image.data[(row * image.width + x) * 4 + 3] ?? 0
+     if (alpha === 0) continue
+-    left = Math.min(left, x)
+-    right = x
++    left = Math.min(left, column)
++    right = column
+   }
+   if (right < left) return undefined
+   return { left, right }
+@@ -116,9 +138,14 @@ function touchesScratchEdge(bounds: PixelBounds, width: number, height: number):
+   )
+ }
+
+-function hasIntrinsicColor(image: ImageData, bounds: PixelBounds, ink: 0 | 255): boolean {
++function hasIntrinsicColor(
++  image: ImageData,
++  bounds: PixelBounds,
++  ink: 0 | 255,
++  sourceX = 0,
++): boolean {
+   for (let y = bounds.top; y <= bounds.bottom; y += 1) {
+-    if (rowContainsIntrinsicColor(image, bounds, y, ink)) return true
++    if (rowContainsIntrinsicColor(image, bounds, y, ink, sourceX)) return true
+   }
+   return false
+ }
+@@ -128,9 +155,10 @@ function rowContainsIntrinsicColor(
+   bounds: PixelBounds,
+   row: number,
+   ink: 0 | 255,
++  sourceX = 0,
+ ): boolean {
+   for (let x = bounds.left; x <= bounds.right; x += 1) {
+-    const offset = (row * image.width + x) * 4
++    const offset = (row * image.width + sourceX + x) * 4
+     const alpha = image.data[offset + 3] ?? 0
+     if (alpha === 0) continue
+     const red = image.data[offset] ?? 0
+@@ -142,13 +170,18 @@ function rowContainsIntrinsicColor(
+   return false
+ }
+
+-function copyPixels(image: ImageData, bounds: PixelBounds, kind: AtlasKind): Uint8Array {
++function copyPixels(
++  image: ImageData,
++  bounds: PixelBounds,
++  kind: AtlasKind,
++  sourceX = 0,
++): Uint8Array {
+   const width = bounds.right - bounds.left + 1
+   const height = bounds.bottom - bounds.top + 1
+   const bytesPerPixel = kind === 'grayscale' ? 1 : 4
+   const pixels = new Uint8Array(width * height * bytesPerPixel)
+   for (let row = 0; row < height; row += 1) {
+-    copyPixelRow(image, bounds, kind, row, pixels, width)
++    copyPixelRow(image, bounds, kind, row, pixels, width, sourceX)
+   }
+   return pixels
+ }
+@@ -160,9 +193,10 @@ function copyPixelRow(
+   row: number,
+   target: Uint8Array,
+   width: number,
++  sourceX: number,
+ ): void {
+   for (let column = 0; column < width; column += 1) {
+-    const source = ((bounds.top + row) * image.width + bounds.left + column) * 4
++    const source = ((bounds.top + row) * image.width + sourceX + bounds.left + column) * 4
+     if (kind === 'grayscale') {
+       target[row * width + column] = image.data[source + 3] ?? 0
+       continue
+@@ -200,6 +234,116 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
+     return this.rasterizeCached(input, glyphKey(input, 'color'), `rgb(${r}, ${g}, ${b})`, 'color')
+   }
+
++  rasterizeBatch(
++    rawInputs: readonly GlyphRasterizationInput[],
++  ): readonly (GlyphBitmap | undefined)[] {
++    const inputs = rawInputs.map(validateInput)
++    const missing = new Map<string, BatchRequest>()
++    for (const input of inputs) {
++      const key = glyphKey(input, 'grayscale')
++      if (this.bitmaps.has(key)) continue
++      missing.set(key, { input, key })
++    }
++    let requests: BatchRequest[] = []
++    let width = 0
++    for (const request of missing.values()) {
++      const glyphWidth = this.scratchWidth(request.input) * 2
++      if (requests.length > 0 && width + glyphWidth > maxBatchWidth) {
++        this.rasterizeChunk(requests)
++        requests = []
++        width = 0
++      }
++      requests.push(request)
++      width += glyphWidth
++    }
++    if (requests.length > 0) this.rasterizeChunk(requests)
++    return inputs.map((input) => this.rasterize(input))
++  }
++
++  private scratchWidth(input: GlyphRasterizationInput): number {
++    return Math.ceil(this.font.deviceCellWidth * input.cellSpan + this.initialPadding * 2)
++  }
++
++  private rasterizeChunk(requests: readonly BatchRequest[]): void {
++    let width = 0
++    const regions = requests.map(({ input }) => {
++      const region = { left: width, width: this.scratchWidth(input) }
++      width += region.width * 2
++      return region
++    })
++    this.canvas.width = width
++    this.canvas.height = Math.ceil(this.font.deviceCellHeight + this.initialPadding * 2)
++    const context = requireContext(this.canvas)
++    requests.forEach(({ input }, index) => {
++      const region = regions[index]!
++      this.drawRegion(context, input, region, '#ffffff')
++      this.drawRegion(
++        context,
++        input,
++        { left: region.left + region.width, width: region.width },
++        '#000000',
++      )
++    })
++    const image = context.getImageData(0, 0, this.canvas.width, this.canvas.height)
++    requests.forEach((request, index) => {
++      const region = regions[index]!
++      const bitmap = this.bitmapFromRegion(image, request.input, region)
++      this.cacheBitmap(request.key, bitmap)
++    })
++  }
++
++  private drawRegion(
++    context: ScratchContext,
++    input: GlyphRasterizationInput,
++    region: BatchRegion,
++    ink: string,
++  ): void {
++    const padding = this.initialPadding
++    const cellWidth = this.font.deviceCellWidth * input.cellSpan
++    const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
++    context.save()
++    context.beginPath()
++    context.rect(region.left, 0, region.width, this.canvas.height)
++    context.clip()
++    if (this.font.settings.lineHeight < 1) {
++      context.beginPath()
++      context.rect(region.left + padding, padding, cellWidth, this.font.deviceCellHeight)
++      context.clip()
++    }
++    context.font = fontString(this.font, input)
++    context.textAlign = 'center'
++    context.textBaseline = 'alphabetic'
++    context.fillStyle = ink
++    context.fillText(
++      input.text,
++      region.left + padding + this.font.charLeft + (cellWidth - deviceSpacing) / 2,
++      padding + this.font.deviceBaseline,
++    )
++    context.restore()
++  }
++
++  private bitmapFromRegion(
++    image: ImageData,
++    input: GlyphRasterizationInput,
++    region: BatchRegion,
++  ): GlyphBitmap | undefined {
++    const bounds = alphaBoundsInRegion(image, region.left, region.width)
++    if (!bounds) return undefined
++    if (touchesScratchEdge(bounds, region.width, image.height)) {
++      return this.rasterizeUncached(input, '#ffffff', undefined)
++    }
++    const color =
++      hasIntrinsicColor(image, bounds, 255, region.left) ||
++      hasIntrinsicColor(image, bounds, 0, region.left + region.width)
++    return this.bitmapFromImage(
++      image,
++      bounds,
++      this.initialPadding,
++      color ? 'color' : 'grayscale',
++      region.left,
++    )
++  }
++
+   private rasterizeCached(
+     input: GlyphRasterizationInput,
+     key: string,
+@@ -294,13 +438,14 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
+     bounds: PixelBounds,
+     padding: number,
+     kind: AtlasKind,
++    sourceX = 0,
+   ): GlyphBitmap {
+     return {
+       height: bounds.bottom - bounds.top + 1,
+       kind,
+       offsetX: bounds.left - padding,
+       offsetY: bounds.top - padding,
+-      pixels: copyPixels(image, bounds, kind),
++      pixels: copyPixels(image, bounds, kind, sourceX),
+       width: bounds.right - bounds.left + 1,
+     }
+   }
+diff --git i/src/render/shared/atlas/types.ts w/src/render/shared/atlas/types.ts
+index e0d6a3705..7bd7765e4 100644
+--- i/src/render/shared/atlas/types.ts
++++ w/src/render/shared/atlas/types.ts
+@@ -49,6 +49,7 @@ export interface AtlasTextureLayout {
+
+ export interface GlyphRasterizer {
+   rasterize(input: GlyphRasterizationInput): GlyphBitmap | undefined
++  rasterizeBatch?(inputs: readonly GlyphRasterizationInput[]): readonly (GlyphBitmap | undefined)[]
+ }
+
+ export interface GlyphRasterizationInput {
+diff --git i/src/render/shared/atlas/zig-glyphs.ts w/src/render/shared/atlas/zig-glyphs.ts
+index 226eaab52..1dc67ae2b 100644
+--- i/src/render/shared/atlas/zig-glyphs.ts
++++ w/src/render/shared/atlas/zig-glyphs.ts
+@@ -36,9 +36,12 @@ export function registerZigGlyphs(
+     return false
+   }
+   const evictions = atlas.evictionCount
+-  for (const key of builder.missingGlyphs) {
+-    const input = builder.glyphInput(key)
+-    const bitmap = rasterizer.rasterize(input)
++  const keys = Array.from(builder.missingGlyphs)
++  const inputs = keys.map((key) => builder.glyphInput(key))
++  const bitmaps = rasterizer.rasterizeBatch?.(inputs)
++  for (const [index, key] of keys.entries()) {
++    const input = inputs[index]!
++    const bitmap = bitmaps ? bitmaps[index] : rasterizer.rasterize(input)
+     if (!bitmap) {
+       builder.registerGlyph(key, undefined)
+       continue

@@ -84,6 +84,16 @@ export class PackedCells {
     return text
   }
 
+  hasBlinkingText(): boolean {
+    for (let offset = 0; offset < this.words.length; offset += PACKED_CELL_WORDS) {
+      const flags = this.words[offset + 3]!
+      if ((flags & (1 << 7)) === 0 || (flags & (1 << 9)) !== 0) continue
+      if (flags >>> 12 !== 0 || (flags & ((1 << 10) | (1 << 11))) !== 0) return true
+      if ((flags & 3) !== 2 && this.textAt(offset).trim().length > 0) return true
+    }
+    return false
+  }
+
   span(index: number): number {
     let span = 1
     while (

@@ -3,6 +3,7 @@ import type {
   AtlasInsertResult,
   AtlasKind,
   AtlasPageUpload,
+  AtlasPageIdentity,
   AtlasTextureLayout,
   GlyphBitmap,
 } from './types.js'
@@ -53,6 +54,7 @@ function bytesPerPixel(kind: AtlasKind): number {
 
 class AtlasPage {
   readonly entries = new Map<string, AtlasGlyph>()
+  readonly positions = new Map<number, string>()
   generation = 1
   lastUsed = 0
   readonly pixels: Uint8Array
@@ -110,6 +112,7 @@ class AtlasPage {
     }
     this.blit(position, bitmap)
     this.entries.set(cacheKey, glyph)
+    this.positions.set(glyph.y * this.width + glyph.x, cacheKey)
     this.markDirty(position.x, position.y, bitmap.width, bitmap.height)
     return glyph
   }
@@ -121,6 +124,7 @@ class AtlasPage {
   reset(): void {
     this.generation += 1
     this.entries.clear()
+    this.positions.clear()
     this.pixels.fill(0)
     this.rows.clear()
     this.shelfHeight = 0
@@ -185,6 +189,9 @@ export class GlyphAtlas {
   readonly pageWidth: number
   private readonly rowReferences = new Map<number, Map<number, number>>()
   private tick = 0
+  private readonly pinnedPages = new Map<number, Set<string>>()
+  private readonly evictedPages = new Map<number, AtlasPageIdentity>()
+  private pinning = false
 
   constructor(options: GlyphAtlasOptions = {}) {
     this.pageWidth = validatePositiveInteger(
@@ -228,6 +235,26 @@ export class GlyphAtlas {
     }
   }
 
+  beginFrame(): void {
+    this.pinnedPages.clear()
+    this.pinning = true
+  }
+
+  endFrame(): void {
+    this.pinning = false
+    this.pinnedPages.clear()
+  }
+
+  get hasReclaimableSpace(): boolean {
+    return this.pages.some((page) => (this.pinnedPages.get(page.id)?.size ?? 0) < page.entries.size)
+  }
+
+  consumeEvictedPages(): readonly AtlasPageIdentity[] {
+    const pages = Array.from(this.evictedPages.values())
+    this.evictedPages.clear()
+    return pages
+  }
+
   beginRow(row: number): void {
     const references = this.rowReferences.get(row)
     if (!references) return
@@ -245,27 +272,46 @@ export class GlyphAtlas {
   }
 
   getOrInsert(key: string, bitmap: GlyphBitmap, row: number): AtlasInsertResult {
+    const result = this.tryGetOrInsert(key, bitmap, row)
+    if (result) return result
+    throw new RangeError('all atlas layers are pinned by visible glyphs')
+  }
+
+  tryGetOrInsert(key: string, bitmap: GlyphBitmap, row: number): AtlasInsertResult | undefined {
     validateBitmap(bitmap)
+    if (
+      bitmap.width + this.padding * 2 > this.pageWidth ||
+      bitmap.height + this.padding * 2 > this.pageHeight
+    )
+      throw new RangeError(
+        'glyph ' + bitmap.width + '×' + bitmap.height + ' does not fit an empty atlas layer',
+      )
     const cacheKey = bitmapCacheKey(key, bitmap.kind)
     const cached = this.cache.get(cacheKey)
     if (cached) {
       this.cacheHitCountValue += 1
-      this.touch(cached.page, row)
+      this.touch(cached.page, row, cacheKey)
       return { glyph: cached.glyph, invalidatedRows: [] }
     }
     this.cacheMissCountValue += 1
     const allocation = this.allocatePage(cacheKey, key, bitmap)
+    if (!allocation) return undefined
     this.cache.set(cacheKey, { glyph: allocation.glyph, page: allocation.page })
-    this.touch(allocation.page, row)
+    this.touch(allocation.page, row, cacheKey)
     return { glyph: allocation.glyph, invalidatedRows: allocation.invalidatedRows }
   }
 
-  touchGlyph(glyph: Pick<AtlasGlyph, 'generation' | 'kind' | 'layer'>, row: number): boolean {
+  touchGlyph(
+    glyph: Pick<AtlasGlyph, 'generation' | 'kind' | 'layer' | 'x' | 'y'>,
+    row: number,
+  ): boolean {
     const page = this.pages.find(
       (candidate) => candidate.kind === glyph.kind && candidate.layer === glyph.layer,
     )
     if (!page || page.generation !== glyph.generation) return false
-    this.touch(page, row)
+    const key = page.positions.get(Math.round(glyph.y) * page.width + Math.round(glyph.x))
+    if (key === undefined) return false
+    this.touch(page, row, key)
     return true
   }
 
@@ -274,6 +320,7 @@ export class GlyphAtlas {
     this.cache.clear()
     this.rowReferences.clear()
     for (const page of this.pages) page.reset()
+    for (const page of this.pages) this.recordEviction(page)
     return rows
   }
 
@@ -293,7 +340,7 @@ export class GlyphAtlas {
     cacheKey: string,
     key: string,
     bitmap: GlyphBitmap,
-  ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } {
+  ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } | undefined {
     const pages = this.pages.filter((page) => page.kind === bitmap.kind)
     for (const page of pages) {
       const glyph = page.insert(cacheKey, key, bitmap)
@@ -302,7 +349,13 @@ export class GlyphAtlas {
     if (pages.length < this.maxLayersPerKind) {
       return this.insertIntoNewPage(cacheKey, key, bitmap, pages.length)
     }
-    return this.insertIntoRecycledPage(cacheKey, key, bitmap, pages)
+    const evictable = pages.filter((page) => !this.pinnedPages.has(page.id))
+    if (evictable.length > 0) return this.insertIntoRecycledPage(cacheKey, key, bitmap, evictable)
+    for (const page of pages) {
+      const compacted = this.compactPage(page, cacheKey, key, bitmap)
+      if (compacted) return compacted
+    }
+    return undefined
   }
 
   private createPage(kind: AtlasKind, layer: number): AtlasPage {
@@ -359,6 +412,7 @@ export class GlyphAtlas {
     for (const cacheKey of page.entries.keys()) this.cache.delete(cacheKey)
     for (const row of rows) this.removePageReference(row, page.id)
     page.reset()
+    this.recordEviction(page)
     this.evictionCountValue += 1
     return rows
   }
@@ -378,12 +432,69 @@ export class GlyphAtlas {
     this.rowReferences.delete(row)
   }
 
-  private touch(page: AtlasPage, row: number): void {
+  private touch(page: AtlasPage, row: number, cacheKey: string): void {
+    if (this.pinning) this.pin(page, cacheKey)
     this.tick += 1
     page.lastUsed = this.tick
     page.rows.add(row)
     const references = this.rowReferences.get(row) ?? new Map<number, number>()
     references.set(page.id, page.generation)
     this.rowReferences.set(row, references)
+  }
+
+  private recordEviction(page: AtlasPage): void {
+    this.evictedPages.set(page.id, {
+      kind: page.kind,
+      layer: page.layer,
+      generation: page.generation,
+    })
+  }
+
+  private pin(page: AtlasPage, cacheKey: string): void {
+    const keys = this.pinnedPages.get(page.id) ?? new Set<string>()
+    keys.add(cacheKey)
+    this.pinnedPages.set(page.id, keys)
+  }
+
+  private compactPage(
+    page: AtlasPage,
+    cacheKey: string,
+    key: string,
+    bitmap: GlyphBitmap,
+  ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } | undefined {
+    const pinned = this.pinnedPages.get(page.id)
+    if (!pinned || pinned.size === page.entries.size) return undefined
+    const next = new AtlasPage(
+      page.id,
+      page.kind,
+      page.layer,
+      page.width,
+      page.height,
+      this.padding,
+    )
+    next.generation = page.generation + 1
+    for (const [entryKey, glyph] of page.entries) {
+      if (!pinned.has(entryKey)) continue
+      if (!next.insert(entryKey, glyph.key, this.readBitmap(page, glyph))) return undefined
+    }
+    const glyph = next.insert(cacheKey, key, bitmap)
+    if (!glyph) return undefined
+    const invalidatedRows = this.recyclePage(page)
+    next.markFullDirty()
+    this.pages[this.pages.indexOf(page)] = next
+    for (const [entryKey, entryGlyph] of next.entries)
+      this.cache.set(entryKey, { glyph: entryGlyph, page: next })
+    return { glyph, invalidatedRows, page: next }
+  }
+
+  private readBitmap(page: AtlasPage, glyph: AtlasGlyph): GlyphBitmap {
+    const channels = bytesPerPixel(page.kind)
+    const stride = glyph.width * channels
+    const pixels = new Uint8Array(stride * glyph.height)
+    for (let row = 0; row < glyph.height; row += 1) {
+      const offset = ((glyph.y + row) * page.width + glyph.x) * channels
+      pixels.set(page.pixels.subarray(offset, offset + stride), row * stride)
+    }
+    return { ...glyph, pixels }
   }
 }

@@ -1,3 +1,4 @@
+export { readSfntFontMetrics } from './term/font-metrics.js'
 export { GhosttyError } from './core/error.js'
 export { TERMINAL_READ_LINES_MAX_ROWS } from './core/grid-text.js'
 export { GhosttyRenderState } from './core/render-state.js'
@@ -138,6 +139,7 @@ export type {
   TerminalDataEvent,
   TerminalErrorEvent,
   TerminalFontSettings,
+  TerminalFontMetrics,
   TerminalFittedFont,
   TerminalGrid,
   TerminalInputData,

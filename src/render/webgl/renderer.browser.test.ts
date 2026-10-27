@@ -3,6 +3,7 @@ import { page } from 'vitest/browser'
 import { attachNativeTestBuilder } from '../tests/native-state.js'
 import { browserRenderClock } from '../shared/config.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../shared/types.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { WebGlTerminalRenderer } from './renderer.js'
 import {
   TestClock,
@@ -175,8 +176,8 @@ describe('WebGlTerminalRenderer', () => {
   it('uses selection and cursor text colors and makes low-contrast glyphs readable', async () => {
     const source = new TestRenderState([
       row(0, [
-        cell(0, { selected: true, text: '█' }),
-        cell(1, { text: '█' }),
+        cell(0, { selected: true, text: '▌' }),
+        cell(1, { text: '▌' }),
         cell(2, { background: rgb(128, 128, 128), foreground: rgb(128, 128, 128), text: '█' }),
       ]),
     ])
@@ -324,9 +325,25 @@ describe('WebGlTerminalRenderer', () => {
       row(0, [cell(0, { foreground: rgb(255, 0, 0), text: '█' }), cell(1)]),
     ])
     const { canvas, clock, renderer } = await fixture(source)
+    const atlas: unknown = Reflect.get(renderer, 'atlas')
+    if (!(atlas instanceof GlyphAtlas)) throw new Error('Expected the renderer atlas')
+    for (let index = 0; index < 3; index += 1)
+      atlas.getOrInsert(
+        `seed-${index}`,
+        {
+          kind: 'grayscale',
+          width: 510,
+          height: 510,
+          offsetX: 0,
+          offsetY: 0,
+          pixels: new Uint8Array(510 * 510),
+        },
+        -1,
+      )
     clock.flushFrame()
     const before = await renderer.capturePixels()
     const gl = context(canvas)
+    const storage = vi.spyOn(gl, 'texStorage3D')
     const extension = contextLossExtension(gl)
     const lost = nextEvent(canvas, 'webglcontextlost')
     extension.loseContext()
@@ -351,6 +368,7 @@ describe('WebGlTerminalRenderer', () => {
     )
     expect(pixel(after, canvas.width, 24, 12)).toEqual([0, 0, 255, 255])
     expect(source.acknowledgements).toBe(2)
+    expect(storage.mock.calls.some((call) => call[2] === gl.R8 && call[5] === 4)).toBe(true)
     expect(gl.getError()).toBe(0)
     expect([clock.frames.size, clock.timers.size]).toEqual([0, 0])
   })

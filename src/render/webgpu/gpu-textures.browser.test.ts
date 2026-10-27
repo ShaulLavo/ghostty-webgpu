@@ -59,7 +59,7 @@ async function readPixel(
   return result
 }
 
-it('uploads odd-stride dirty rectangles to two layers of each fixed texture array', async () => {
+it('uploads odd-stride dirty rectangles to two layers of each growing texture array', async () => {
   const device = await createDevice()
   device.pushErrorScope('validation')
   const textures = new AtlasGpuTextures(device, layout)
@@ -80,9 +80,9 @@ it('uploads odd-stride dirty rectangles to two layers of each fixed texture arra
   expect(await readPixel(device, textures, 'color', 1)).toEqual([224, 31, 80, 255])
   expect(textures.uploadBytes).toBe(60)
   expect(textures.uploadOperationCount).toBe(4)
-  expect(textures.textureCreationCount).toBe(2)
-  expect(textures.view('grayscale')).toBe(grayscaleView)
-  expect(textures.view('color')).toBe(colorView)
+  expect(textures.textureCreationCount).toBe(4)
+  expect(textures.view('grayscale')).not.toBe(grayscaleView)
+  expect(textures.view('color')).not.toBe(colorView)
   expect(await device.popErrorScope()).toBeNull()
   textures.destroy()
   device.destroy()
@@ -94,4 +94,26 @@ it('rejects a layer capacity above the adapter limit before allocating textures'
 
   expect(() => new AtlasGpuTextures(device, oversized)).toThrow(/exceeds adapter limit/u)
   device.destroy()
+})
+
+it('starts each kind at one layer and preserves existing pixels when only grayscale grows', async ({
+  onTestFinished,
+}) => {
+  const device = await createDevice()
+  const textures = new AtlasGpuTextures(device, { ...layout, layerCount: 16 })
+  onTestFinished(() => {
+    textures.destroy()
+    device.destroy()
+  })
+  expect(textures.texture('grayscale').depthOrArrayLayers).toBe(1)
+  expect(textures.texture('color').depthOrArrayLayers).toBe(1)
+  textures.sync([upload('grayscale', 0, 71), upload('color', 0, 52)])
+  const colorView = textures.view('color')
+  textures.sync([upload('grayscale', 1, 182)])
+  expect(textures.texture('grayscale').depthOrArrayLayers).toBe(2)
+  expect(textures.texture('color').depthOrArrayLayers).toBe(1)
+  expect(textures.view('color')).toBe(colorView)
+  expect(await readPixel(device, textures, 'grayscale', 0)).toEqual([71])
+  expect(await readPixel(device, textures, 'grayscale', 1)).toEqual([182])
+  expect(await readPixel(device, textures, 'color', 0)).toEqual([52, 203, 0, 255])
 })

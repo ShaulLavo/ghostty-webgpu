@@ -94,8 +94,10 @@ export class WebGlTerminalRenderer {
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
   private readonly context: WebGL2RenderingContext
   private cursor?: RenderCursorSnapshot
+  private readonly textBlinkEnabled: boolean
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
+  private textPhaseVisible = true
   private documentVisible = true
   private focused = false
   private font: TerminalFittedFont
@@ -129,6 +131,7 @@ export class WebGlTerminalRenderer {
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.frames = new FrameObserver(options)
+    this.textBlinkEnabled = options.textBlink ?? false
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
@@ -138,10 +141,12 @@ export class WebGlTerminalRenderer {
     this.state = { kind: 'ready', pass: this.createTextPass() }
     this.desynchronized = context.getContextAttributes()?.desynchronized === true
     this.scheduler = new RenderScheduler({
+      textBlink: options.textBlink,
       clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
       presentation: options.presentation,
     })
+    this.setReducedMotion(options.reducedMotion ?? false)
     this.canvas.addEventListener('webglcontextlost', this.handleContextLost)
     this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored)
     this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
@@ -224,6 +229,10 @@ export class WebGlTerminalRenderer {
     this.cursorBlinkPreference = enabled
     this.synchronizeCursorBlink()
     this.schedule()
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.scheduler.textBlink?.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -331,6 +340,7 @@ export class WebGlTerminalRenderer {
   private createTextPass(): WebGlTextPass {
     return new WebGlTextPass({
       atlasLayout: this.atlas.textureLayout,
+      textBlink: this.textBlinkEnabled,
       context: this.context,
       height: this.canvas.height,
       instanceCount: this.grid.columns * this.grid.rows,
@@ -386,12 +396,17 @@ export class WebGlTerminalRenderer {
   }
 
   private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): void {
+    const textBlink = this.scheduler.textBlink
+    const phaseChanged = textBlink !== undefined && this.textPhaseVisible !== textBlink.visible
+    const phaseOnly =
+      !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
       damage === RenderStateDirty.False &&
-      this.overlayRows.size === 0
+      this.overlayRows.size === 0 &&
+      !phaseChanged
     ) {
       this.frames.notifyCleanUpdate(this.renderState)
       return
@@ -417,18 +432,23 @@ export class WebGlTerminalRenderer {
       stableRows: true,
       overlayRows: this.overlayRows,
     }
-    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
         `The native frame could not be built after atlas recovery (status ${status})`,
       )
     }
-    const updates = builder.changedRanges()
+    if (textBlink) {
+      textBlink.setNeeded(builder.blinkingRows > 0)
+      this.textPhaseVisible = textBlink.visible
+    }
+    const updates = phaseOnly ? [] : builder.changedRanges()
     pass.syncAtlas(this.atlas.consumeUploads())
     const operations = pass.uploadFrame(builder, updates)
+    const blinkChanged = textBlink ? pass.setTextVisible(this.textPhaseVisible) : false
     // Persistent records can report terminal damage without changing either GPU buffer.
-    const draws = operations > 0 ? pass.submit() : 0
+    const draws = operations > 0 || blinkChanged ? pass.submit() : 0
     if (this.context.isContextLost()) {
       this.suspendContext()
       return
@@ -443,8 +463,8 @@ export class WebGlTerminalRenderer {
     )
     try {
       if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-      if (operations > 0) {
-        this.recordFrame(pass, builder.rowRebuilds, operations, draws)
+      if (operations > 0 || blinkChanged) {
+        this.recordFrame(pass, phaseOnly ? 0 : builder.rowRebuilds, operations, draws)
         this.metrics.zigFrames += 1
       }
       this.needsFullRebuild = false

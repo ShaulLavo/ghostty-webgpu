@@ -6,6 +6,7 @@ import {
   qualifyDeviceReplacement,
   type DeviceReplacementQualification,
 } from './adapter-qualification.js'
+import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { FrameObserver } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -758,7 +759,23 @@ it('recovers through a replacement device and submits a full repaint', async ({ 
     rows: 2,
     schedulerClock: clock,
   })
+  const atlas: unknown = Reflect.get(renderer, 'atlas')
+  if (!(atlas instanceof GlyphAtlas)) throw new Error('Expected the renderer atlas')
+  for (let index = 0; index < 3; index += 1)
+    atlas.getOrInsert(
+      `seed-${index}`,
+      {
+        kind: 'grayscale',
+        width: 510,
+        height: 510,
+        offsetX: 0,
+        offsetY: 0,
+        pixels: new Uint8Array(510 * 510),
+      },
+      -1,
+    )
   clock.flushFrame()
+  const beforePixels = await renderer.capturePixels()
   const uploadedBeforeRestore = renderer.metrics.atlasUploadedBytes
   const operationsBeforeRestore = renderer.metrics.atlasUploadOperations
   await renderer.simulateDeviceLoss()
@@ -769,8 +786,9 @@ it('recovers through a replacement device and submits a full repaint', async ({ 
 
   expect(renderer.metrics.submittedFrames).toBe(2)
   expect(renderer.metrics.rebuiltRows).toBe(4)
-  expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 512 * 512)
-  expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 1)
+  expect(renderer.metrics.atlasUploadedBytes).toBe(uploadedBeforeRestore + 4 * 512 * 512)
+  expect(renderer.metrics.atlasUploadOperations).toBe(operationsBeforeRestore + 4)
+  expect(await renderer.capturePixels()).toEqual(beforePixels)
   renderer.dispose()
   canvas.remove()
 })
@@ -2255,4 +2273,41 @@ it('stops an acquisition retry when flushing a peer callback disposes the failin
     pair.forEach((renderer) => renderer.dispose())
     canvases.forEach((canvas) => canvas.remove())
   }
+})
+
+it('captures retained pixels after presentation without acquiring or publishing a canvas frame', async () => {
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 1)
+  const canvas = createCanvas()
+  const frames: RendererFrameSnapshot[] = []
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    rows: 1,
+    font: fittedFont(),
+    renderState: source,
+    schedulerClock: clock,
+    onFrame: (frame) => frames.push(frame),
+  })
+  clock.flushFrame()
+  const before = await renderer.capturePixels()
+  expect(before.findIndex((value, index) => value !== before[index % 4])).toBeGreaterThanOrEqual(0)
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
+  const context = canvas.getContext('webgpu')
+  if (!context) throw new Error('Expected the configured WebGPU context')
+  const acquire = vi.spyOn(context, 'getCurrentTexture')
+  const submitted = renderer.metrics.submittedFrames
+  const draws = renderer.metrics.draws
+  const acknowledged = source.acknowledgements
+  const notifications = frames.length
+  expect(await renderer.capturePixels()).toEqual(before)
+  expect(acquire).not.toHaveBeenCalled()
+  expect(renderer.metrics.submittedFrames).toBe(submitted)
+  expect(renderer.metrics.draws).toBe(draws)
+  expect(source.acknowledgements).toBe(acknowledged)
+  expect(frames).toHaveLength(notifications)
+  renderer.dispose()
+  canvas.remove()
 })

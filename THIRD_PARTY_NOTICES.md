@@ -2,10 +2,11 @@
 
 ## Ghostty
 
-`ghostty-webgpu` includes `ghostty-vt.wasm` and host-native config resolver executables, built from Ghostty revision
-`c8554f28e0efe2f5595f32020371c34b25ec628f` without build-time patch application.
+`ghostty-webgpu` includes `ghostty-vt.wasm`, built from Ghostty revision
+`7b11f3dca034d8d24369ad3856afe57946d7902a`, and host-native config resolver executables,
+built from `c8554f28e0efe2f5595f32020371c34b25ec628f`, without build-time patch application.
 
-That Ghostty revision pins the native resolver's separate immutable runtime-theme archive. The
+The resolver revision pins its separate immutable runtime-theme archive. The
 executables and resources are present only for the package's supported macOS and Linux hosts.
 
 - Source: <https://github.com/ghostty-org/ghostty>
@@ -29,6 +30,14 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Procedural terminal sprites
+
+The procedural atlas glyphs and native comparison fixtures adapt Ghostty's sprite
+geometry at revision `7b11f3dca034d8d24369ad3856afe57946d7902a`, specifically
+`src/font/sprite/draw/{box,block,braille,powerline,symbols_for_legacy_computing,common}.zig`.
+The native fixture generator uses the same revision's sprite canvas and the pinned
+z2d dependency. Ghostty's MIT license and copyright notice appear above.
 
 ## ghostty.org home animation
 
@@ -70,6 +79,16 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## JetBrains Mono sprite reference font
+
+The sprite regression fixture includes a decompressed copy of the Latin regular
+font from `@fontsource/jetbrains-mono` 5.3.0. It is test data and is not included in
+the npm package.
+
+- Source: <https://github.com/JetBrains/JetBrainsMono>
+- License: SIL Open Font License 1.1, reproduced in
+  `src/render/shared/atlas/sprite-fixtures/FONT-LICENSE.txt`.
 
 ## Noto Sans Mono
 

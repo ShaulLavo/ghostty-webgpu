@@ -31,6 +31,7 @@ export const Terminal = Object.freeze({
         bridge: runtimeWasmAssets.bridge.href,
       },
       backend: options.backend ?? 'auto',
+      textBlink: options.textBlink,
       faces: options.fonts,
       appearance,
       links: options.links,

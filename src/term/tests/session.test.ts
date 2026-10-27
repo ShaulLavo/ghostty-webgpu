@@ -1817,3 +1817,15 @@ describe('TerminalSession', () => {
     expect(() => runtime.ensureActive()).not.toThrow()
   })
 })
+
+it('binds supplied font metrics to the selected family and primary weight', async () => {
+  const metrics = { unitsPerEm: 1000, underlineThickness: 50 }
+  const session = await createSession({ appearance: { font: { metrics } } })
+  session.setFont({ size: 18 })
+  expect(session.appearance.font.metrics).toEqual(metrics)
+  session.setFont({ family: 'Other Font' })
+  expect(session.appearance.font.metrics).toBeUndefined()
+  session.setFont({ metrics })
+  session.setFont({ weight: 500 })
+  expect(session.appearance.font.metrics).toBeUndefined()
+})

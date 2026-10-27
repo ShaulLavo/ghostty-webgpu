@@ -1168,3 +1168,168 @@ describe('WASM frame ownership and row bounds', () => {
     },
   )
 })
+
+describe('atlas pressure', () => {
+  const rasterizer: GlyphRasterizer = {
+    rasterize: (input) =>
+      input.text === ' '
+        ? undefined
+        : { ...bitmap, width: 4, height: 4, pixels: new Uint8Array(16).fill(255) },
+  }
+
+  it.each([
+    { stableRows: false, kind: 'grayscale' },
+    { stableRows: true, kind: 'grayscale' },
+    { stableRows: false, kind: 'color' },
+    { stableRows: true, kind: 'color' },
+  ] as const)(
+    'keeps a clean visible $kind glyph resident during eviction, stableRows=$stableRows',
+    async ({ stableRows, kind }) => {
+      const rasterizer: GlyphRasterizer = {
+        rasterize: () => ({
+          ...bitmap,
+          kind,
+          width: 4,
+          height: 4,
+          pixels: new Uint8Array(16 * (kind === 'color' ? 4 : 1)).fill(255),
+        }),
+      }
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 2, rows: 2 })
+      const state = runtime.createRenderState(terminal)
+      builder = state.createFrameBuilder(2, 2)
+      const atlas = new GlyphAtlas({ pageWidth: 4, pageHeight: 4, padding: 0, maxLayersPerKind: 2 })
+      const frameOptions = { ...options, stableRows }
+      terminal.write('\x1b[?25l\x1b[2;1HM')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+      state.acknowledge()
+      frameOptions.full = false
+      terminal.write('\r\nA')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+      state.acknowledge()
+      expect(builder.stableRows).toBe(stableRows)
+      const retainedOffset = builder.rowOffset * builder.columns * 24
+      const retained = builder.glyphData.slice(retainedOffset, retainedOffset + 24)
+      const clear = vi.spyOn(builder, 'clearGlyphs')
+      const invalidate = vi.spyOn(atlas, 'invalidateAll')
+      const insertions = vi.spyOn(atlas, 'tryGetOrInsert')
+      frameOptions.full = false
+      const changes = ['B', 'C', 'A'].concat(
+        Array.from({ length: 128 }, (_, index) => String.fromCodePoint(0x100 + index)),
+      )
+      for (const text of changes) {
+        insertions.mockClear()
+        terminal.write(`\x1b[2;1H${text}`)
+        state.update()
+        expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+        expect(builder.glyphData.slice(retainedOffset, retainedOffset + 24)).toEqual(retained)
+        expect(atlas.cacheMissCount).toBe(atlas.evictionCount + 2)
+        expect(builder.rowRebuilds).toBe(1)
+        expect(insertions).toHaveBeenCalledTimes(1)
+        state.acknowledge()
+      }
+      expect(clear).not.toHaveBeenCalled()
+      expect(invalidate).not.toHaveBeenCalled()
+    },
+  )
+
+  it('bounds an over-capacity visible set and restores deferred glyphs when space opens', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 3, rows: 2 })
+    const state = runtime.createRenderState(terminal)
+    builder = state.createFrameBuilder(3, 2)
+    const atlas = new GlyphAtlas({ pageWidth: 4, pageHeight: 4, padding: 0, maxLayersPerKind: 2 })
+    const frameOptions = { ...options }
+    terminal.write('\x1b[?25lAB\x1b[2;1HC')
+    state.update()
+    expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+    expect(builder.glyphData[GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+    expect(builder.glyphData[24 + GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+    expect(builder.glyphData[3 * 24 + GlyphOffset.Meta]).toBe(0)
+    state.acknowledge()
+    frameOptions.full = false
+    const invalidate = vi.spyOn(atlas, 'invalidateAll')
+    for (let iteration = 0; iteration < 8; iteration += 1) {
+      terminal.write('\x1b[2;1HC')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+      expect(atlas.evictionCount).toBe(0)
+      state.acknowledge()
+    }
+    terminal.write('\x1b[1;1H ')
+    state.update()
+    expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+    expect(builder.glyphData[3 * 24 + GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+    expect(atlas.evictionCount).toBe(1)
+    expect(invalidate).not.toHaveBeenCalled()
+  })
+})
+
+it('repairs a clean row through both native passes after an external page eviction', async () => {
+  runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 2, rows: 2 })
+  const state = runtime.createRenderState(terminal)
+  builder = state.createFrameBuilder(2, 2)
+  const atlas = new GlyphAtlas({ pageWidth: 4, pageHeight: 4, padding: 0, maxLayersPerKind: 2 })
+  const rasterizer: GlyphRasterizer = {
+    rasterize: () => ({ ...bitmap, width: 4, height: 4, pixels: new Uint8Array(16).fill(255) }),
+  }
+  terminal.write('\x1b[?25lM\x1b[2;1HA')
+  state.update()
+  expect(buildZigFrame(builder, atlas, rasterizer, { ...options })).toBe(0)
+  const other = builder.glyphData.slice(2 * 24, 3 * 24)
+  state.acknowledge()
+  atlas.getOrInsert(
+    'foreign',
+    rasterizer.rasterize({
+      cellSpan: 1,
+      foreground: options.theme.foreground,
+      italic: false,
+      text: 'foreign',
+      weight: 'normal',
+    })!,
+    -1,
+  )
+  expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
+  expect(builder.glyphData[GlyphOffset.Meta]).toBe(GlyphFlag.Glyph)
+  expect(builder.glyphData[GlyphOffset.Atlas + 1]).toBe(3)
+  expect(builder.glyphData.slice(2 * 24, 3 * 24)).toEqual(other)
+})
+
+it.each([false, true])(
+  'tracks blinking rows through reuse, scroll and erasure with stableRows=%s',
+  async (stableRows) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 8, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25l\x1b[5;4mA\x1b[0m')
+    state.update()
+    builder = state.createFrameBuilder(8, 3)
+    readyFrame({ ...options, stableRows })
+    expect(builder.blinkingRows).toBe(1)
+    expect(builder.glyphData[GlyphOffset.Meta]! & GlyphFlag.Blink).toBe(GlyphFlag.Blink)
+    expect(builder.cellData[CellOffset.Meta]! & CellFlag.Blink).toBe(CellFlag.Blink)
+    state.acknowledge()
+    terminal.write('\r\nplain')
+    state.update()
+    readyFrame({ ...options, stableRows, full: false })
+    expect(builder.blinkingRows).toBe(1)
+    state.acknowledge()
+    terminal.write('\r\nplain\r\nplain')
+    state.update()
+    readyFrame({ ...options, stableRows, full: false })
+    expect(builder.blinkingRows).toBe(0)
+    state.acknowledge()
+    terminal.write('\x1b[H\x1b[5;4m \x1b[0m')
+    state.update()
+    readyFrame({ ...options, stableRows, full: false })
+    expect(builder.blinkingRows).toBe(1)
+    state.acknowledge()
+    terminal.write('\x1b[H\x1b[0m\x1b[2K')
+    state.update()
+    readyFrame({ ...options, stableRows, full: false })
+    expect(builder.blinkingRows).toBe(0)
+  },
+)
