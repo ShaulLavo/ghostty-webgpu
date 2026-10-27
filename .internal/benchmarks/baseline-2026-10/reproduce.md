@@ -63,3 +63,20 @@ Build the exporter from raw evidence, including `mac-results/`. `raw-manifest.js
 ## Verification environment
 
 Build, typecheck, lint and format checks ran on a clean source archive on the Mac. Its first unit run used macOS's `/var/folders` temporary path and exposed two expected-versus-canonical `/private/var/folders` path mismatches. Moving temporary files under the staged checkout fixed those path comparisons but made an intentionally uninstalled dependency fixture inherit the checkout's `node_modules`. The final unit environment uses a canonical sibling directory, `TMPDIR=$HOME/tmp/ghw-p0a-unit-t`, outside the source tree, and includes `/opt/homebrew/bin` in `PATH`. The failed runs are retained, not reported as product regressions. The PC gate job was withdrawn from the shared queue before it began; the Mac executes the required checks instead.
+
+## Review acquisition and channel registry
+
+`channel-inventory.json` is the editable source of the per-channel status, coverage, evidence and reason. The exporter regenerates `channel-inventory.md`, copies the full registry into summary schema 2 and emits every non-measured row in `unresolved`. Required channel IDs and partial M2/M5/M7/M8 item status are asserted, so cloned/transferred writes and replacement-adapter identity cannot disappear from the generated gaps again.
+
+The review probe reuses the hosted benchmark entry and diagnostic worker. Its producer messages use the same attached port, identity, sequence acknowledgement and bytes for both arms. Only the transfer list changes. Owned buffers are allocated before the measured loop. Four warmup writes precede 24 measured writes, with clone/transfer/transfer/clone order for 4 KiB, 64 KiB and 1 MiB ASCII buffers on WebGPU and WebGL2 at 200×50 DPR 2. Sender detachment, parser calls, submitted frames, output hashes, synchronous `postMessage` cost and parse-ack wall times are retained. Two animation-frame waits pace each acknowledged update. This is an instrumented transport diagnostic, not a throughput or presentation result.
+
+Recovery records current `GPUDevice.adapterInfo` before and after `GPUDevice.destroy`, or current WebGL unmasked vendor/renderer before and after `WEBGL_lose_context`. WebGL restoration is deliberately requested after 100 ms; that delay is included in submission latency. Local device/resource identities and restore counts remain separate from adapter metadata. Web APIs do not expose a physical GPU serial number, so equal exposed metadata does not establish unique physical-adapter identity among identical cards.
+
+Apply the archived harness in an exclusive measurement checkout, then run:
+
+```sh
+export PATH=$HOME/.local/share/mise/shims:$PATH
+P0A_OUTPUT=/work/reports/ghostty-webgpu-next-2026-10/p0a/review-r1 TMPDIR=/work/tmp/ghw-p0ar1-t bun /work/platform-production/heavy/current/run.js --quiet --class bench 'p0a review channel probes' -- bun .internal/benchmarks/baseline-2026-10/review-probes.mjs
+```
+
+The probe binds localhost port 41881 and closes the browser, contexts and server in `finally`. It records source head, runtime revision, browser, hardware details, frozen bundle hashes and wasm hashes. Raw review evidence stays in `review-r1/`. Build declarations with `bun run build` before `bun run --cwd site docs:check` in a fresh review checkout; the docs checker imports the built package types.

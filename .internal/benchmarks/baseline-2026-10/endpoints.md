@@ -1,6 +1,6 @@
 # Timing endpoints and remaining channels
 
-M1 is recorded on both hosts. M2 remains partial. The scope added by the coordinator is separated below so a completed acknowledgement probe does not close a missing presentation channel.
+M1 is recorded on both hosts. M2, M5, M7 and M8 remain partial. The [channel inventory](channel-inventory.md) lists exact coverage, acquisition status, evidence and the missing probe or observed failure for every channel. The scope added by the coordinator is separated below so a completed acknowledgement probe does not close a missing presentation channel.
 
 ## Completion, acknowledgement and GPU passes
 
@@ -26,7 +26,9 @@ The Mac main/worker ABBA checks measure font-change and `GPUDevice.destroy` reco
 
 A 16,002-byte write every 4 ms runs alongside eight real key events. The first Mac window reaches a maximum of one outstanding write on the main entry and two on the worker entry. Acknowledgement counts and individual key-to-echo-ack times are retained. This offered load does not create a growing backlog, so it cannot establish behavior under overload. It measures responsiveness at the recorded load. It does not join those busy-window echoes to presentation.
 
-Peak resident memory, DPR rebuild latency, and WebGL context-loss rebuild latency are still unresolved. The new probes record JS heap endpoints and GPU allocation descriptors, not the maximum resident footprint during a rebuild. Endpoint heap values must not be reported as peak memory. PC font changes take 5.9–13.3 ms and device rebuilds take 72.6–75.2 ms through submission in this ABBA window. These cross-host differences are not a hardware-controlled comparison.
+Peak resident memory and real DPR rebuild latency remain unresolved. The original WebGL context-loss cohort was not acquired; the review adds a PC worker observation and records the remaining main/Mac blockers in the channel inventory. The new probes record JS heap endpoints and GPU allocation descriptors, not the maximum resident footprint during a rebuild. Endpoint heap values must not be reported as peak memory. PC font changes take 5.9–13.3 ms and device rebuilds take 72.6–75.2 ms through submission in this ABBA window. These cross-host differences are not a hardware-controlled comparison.
+
+The [review buffer and adapter results](review-results.md) add a PC owned-buffer clone/transfer cohort, fresh WebGPU adapter metadata after device recovery, and a WebGL worker context-loss observation. M7 and M8 remain partial because the Mac cohort, overload behavior, real DPR rebuilds and peak memory remain missing.
 
 The worker-isolate heap is measured by attaching to its CDP target and calling `Runtime.getHeapUsage`, independently of the main-page heap. The Mac worker samples cover rolling logs, glyph churn and dense redraw; the raw worker target response includes used heap, total heap, embedder heap and backing storage.
 
@@ -40,4 +42,4 @@ The headed tests created another page and brought it forward, first in a disposa
 
 ## Owner decisions
 
-Keep M2 and M5 open for their named channels. The next useful work is a worker-aware Chrome trace join and a native browser session that can navigate without Playwright's focus overrides. The baseline controls, native energy, queue completion, GPU pass durations and worker heap do not need to wait for those investigations. Completing peak resident memory needs interval sampling or an allocator/native high-water probe around each recovery operation. Context-loss recovery, actual DPR rebuild timing and overload presentation still need separate acquisition windows. No additional host or credentials are required by the completed measurements.
+Keep M2, M5, M7 and M8 partial for their named channels. The generated inventory distinguishes missing acquisitions from observed trace/visibility failures; no `not_probed` channel is classified as unsupported. The next useful work is a worker-aware Chrome trace join and a native browser session that can navigate without Playwright's focus overrides. The baseline controls, native energy, queue completion, GPU pass durations and worker heap do not need to wait for those investigations. Completing peak resident memory needs interval sampling or an allocator/native high-water probe around each recovery operation. The guarded main WebGL recovery retry, Mac recovery, actual DPR rebuild timing and overload presentation still need separate acquisition windows. The PC recovery retry expired in quiet admission after 600 seconds; the Mac remained reserved by F2 and then X7 during the review checks. No additional host or credentials are required by the completed measurements.
