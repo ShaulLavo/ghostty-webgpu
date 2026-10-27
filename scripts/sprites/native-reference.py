@@ -9,6 +9,8 @@ import json
 import math
 import re
 import signal
+import struct
+import hashlib
 from pathlib import Path
 import subprocess
 import sys
@@ -26,21 +28,63 @@ codepoints = (
     + list(range(0x1FB00, 0x1FB3C))
     + list(range(0xE0B0, 0xE0C0))
 )
-cases = []
-for width, height in [(9, 18), (13, 27), (18, 36)]:
-    for dpr in [1, 1.25, 2]:
-        w, h = math.floor(width * dpr + 0.5), math.floor(height * dpr + 0.5)
-        ascent = math.floor(h * 0.8 + 0.5)
-        cases.append(
-            dict(
-                width=w,
-                height=h,
-                thickness=math.ceil(0.15 * 0.75 * 0.75 * ascent),
-                span=1,
-                dpr=dpr,
-            )
-        )
-cases.append(dict(width=16, height=34, thickness=3, span=2, dpr=1.25))
+font_path = (
+    Path(__file__).resolve().parents[2]
+    / "src/render/shared/atlas/sprite-fixtures/JetBrainsMono-Regular.ttf"
+)
+font_bytes = font_path.read_bytes()
+
+
+def u16(offset):
+    return struct.unpack_from(">H", font_bytes, offset)[0]
+
+
+def i16(offset):
+    return struct.unpack_from(">h", font_bytes, offset)[0]
+
+
+def u32(offset):
+    return struct.unpack_from(">I", font_bytes, offset)[0]
+
+
+tables = {
+    font_bytes[12 + i * 16 : 16 + i * 16].decode("ascii"): u32(20 + i * 16)
+    for i in range(u16(4))
+}
+units_per_em = u16(tables["head"] + 18)
+underline_thickness = i16(tables["post"] + 10)
+assert units_per_em > 0 and underline_thickness > 0
+
+
+def fixture(width, height, size, dpr, span=1):
+    return dict(
+        width=math.floor(width * dpr + 0.5),
+        height=math.floor(height * dpr + 0.5),
+        thickness=max(1, math.ceil(underline_thickness * (size * dpr / units_per_em))),
+        fontSize=size,
+        span=span,
+        dpr=dpr,
+    )
+
+
+cases = [
+    fixture(w, h, size, dpr)
+    for w, h, size in [(9, 18, 14), (13, 27, 20), (18, 36, 28)]
+    for dpr in [1, 1.25, 2]
+]
+cases.append(fixture(13, 27, 20, 1.25, 2))
+cases.extend(
+    fixture(18, 36, size, dpr)
+    for size in [14, 16, 18, 20, 24, 28, 32]
+    for dpr in [1, 1.25, 2]
+)
+font_provenance = dict(
+    file=font_path.name,
+    sha256=hashlib.sha256(font_bytes).hexdigest(),
+    unitsPerEm=units_per_em,
+    underlineThickness=underline_thickness,
+    source="@fontsource/jetbrains-mono@5.3.0, decompressed with woff2_decompress",
+)
 
 
 def source(path):
@@ -226,7 +270,12 @@ test "native sprite fixtures" {
         )
         image.save(output / c["file"])
     (output / "manifest.json").write_text(
-        json.dumps(dict(revision=PIN, codepoints=codepoints, cases=cases), indent=2)
+        json.dumps(
+            dict(
+                revision=PIN, font=font_provenance, codepoints=codepoints, cases=cases
+            ),
+            indent=2,
+        )
         + "\n"
     )
 
