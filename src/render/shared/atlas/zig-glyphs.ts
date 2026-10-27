@@ -12,17 +12,18 @@ export function buildZigFrame(
   atlas: GlyphAtlas,
   rasterizer: GlyphRasterizer,
   options: ZigFrameOptions,
+  owner?: object,
 ): number {
-  invalidateEvictedPages(builder, atlas)
+  invalidateEvictedPages(builder, atlas, owner)
   let status = builder.build(options)
   if (status !== 2 && !builder.hasDeferredGlyphs) return status
-  atlas.beginFrame()
+  atlas.beginFrame(owner)
   try {
     touchRetainedGlyphs(builder, atlas)
     if (builder.hasDeferredGlyphs && atlas.hasReclaimableSpace && builder.retryDeferredGlyphs())
       status = builder.build(options)
     for (let attempt = 0; attempt < 3 && status === 2; attempt += 1) {
-      registerMissingGlyphs(builder, atlas, rasterizer)
+      registerMissingGlyphs(builder, atlas, rasterizer, owner)
       status = builder.build(options)
     }
     return status
@@ -31,14 +32,19 @@ export function buildZigFrame(
   }
 }
 
-function invalidateEvictedPages(builder: ZigFrameBuilder, atlas: GlyphAtlas): void {
-  for (const page of atlas.consumeEvictedPages()) builder.invalidateGlyphPage(page)
+function invalidateEvictedPages(
+  builder: ZigFrameBuilder,
+  atlas: GlyphAtlas,
+  owner: object | undefined,
+): void {
+  for (const page of atlas.consumeEvictedPages(owner)) builder.invalidateGlyphPage(page)
 }
 
 function registerMissingGlyphs(
   builder: ZigFrameBuilder,
   atlas: GlyphAtlas,
   rasterizer: GlyphRasterizer,
+  owner: object | undefined,
 ): void {
   for (const key of builder.missingGlyphs) {
     const input = builder.glyphInput(key)
@@ -51,7 +57,7 @@ function registerMissingGlyphs(
     if (result) builder.registerGlyph(key, result.glyph)
     if (!result) builder.deferGlyph(key)
   }
-  invalidateEvictedPages(builder, atlas)
+  invalidateEvictedPages(builder, atlas, owner)
 }
 
 function touchRetainedGlyphs(builder: ZigFrameBuilder, atlas: GlyphAtlas): void {

@@ -77,6 +77,10 @@ class AtlasPage {
     this.shelfY = padding
   }
 
+  get hasPendingUpload(): boolean {
+    return this.dirty !== undefined
+  }
+
   consumeUpload(): AtlasPageUpload | undefined {
     const dirty = this.dirty
     if (!dirty) return undefined
@@ -190,8 +194,13 @@ export class GlyphAtlas {
   private readonly rowReferences = new Map<number, Map<number, number>>()
   private tick = 0
   private readonly pinnedPages = new Map<number, Set<string>>()
-  private readonly evictedPages = new Map<number, AtlasPageIdentity>()
+  // Shared atlases keep each owner's last visible set pinned and deliver evictions to every owner.
+  private readonly ownerPins = new Map<object, Map<number, Set<string>>>()
+  private readonly evictedPages = new Map<object, Map<number, AtlasPageIdentity>>([[this, new Map()]])
+  private framePins = new Map<number, Set<string>>()
+  private frameOwner: object = this
   private pinning = false
+  onEviction?: () => void
 
   constructor(options: GlyphAtlasOptions = {}) {
     this.pageWidth = validatePositiveInteger(
@@ -235,23 +244,41 @@ export class GlyphAtlas {
     }
   }
 
-  beginFrame(): void {
+  attachOwner(owner: object): void {
+    this.evictedPages.set(owner, new Map())
+  }
+
+  detachOwner(owner: object): void {
+    this.evictedPages.delete(owner)
+    this.ownerPins.delete(owner)
+  }
+
+  beginFrame(owner: object = this): void {
     this.pinnedPages.clear()
+    this.frameOwner = owner
+    this.framePins = new Map()
+    for (const [other, pins] of this.ownerPins) {
+      if (other !== owner) for (const [page, keys] of pins) this.addPins(this.pinnedPages, page, keys)
+    }
     this.pinning = true
   }
 
   endFrame(): void {
     this.pinning = false
     this.pinnedPages.clear()
+    if (this.frameOwner !== this) this.ownerPins.set(this.frameOwner, this.framePins)
+    this.frameOwner = this
   }
 
   get hasReclaimableSpace(): boolean {
     return this.pages.some((page) => (this.pinnedPages.get(page.id)?.size ?? 0) < page.entries.size)
   }
 
-  consumeEvictedPages(): readonly AtlasPageIdentity[] {
-    const pages = Array.from(this.evictedPages.values())
-    this.evictedPages.clear()
+  consumeEvictedPages(owner: object = this): readonly AtlasPageIdentity[] {
+    const evicted = this.evictedPages.get(owner)
+    if (!evicted || evicted.size === 0) return []
+    const pages = Array.from(evicted.values())
+    evicted.clear()
     return pages
   }
 
@@ -260,6 +287,10 @@ export class GlyphAtlas {
     if (!references) return
     for (const pageId of references.keys()) this.pageById(pageId)?.rows.delete(row)
     this.rowReferences.delete(row)
+  }
+
+  get hasPendingUploads(): boolean {
+    return this.pages.some((page) => page.hasPendingUpload)
   }
 
   consumeUploads(): readonly AtlasPageUpload[] {
@@ -321,6 +352,7 @@ export class GlyphAtlas {
     this.rowReferences.clear()
     for (const page of this.pages) page.reset()
     for (const page of this.pages) this.recordEviction(page)
+    if (this.pages.length > 0) this.onEviction?.()
     return rows
   }
 
@@ -414,6 +446,7 @@ export class GlyphAtlas {
     page.reset()
     this.recordEviction(page)
     this.evictionCountValue += 1
+    this.onEviction?.()
     return rows
   }
 
@@ -443,17 +476,24 @@ export class GlyphAtlas {
   }
 
   private recordEviction(page: AtlasPage): void {
-    this.evictedPages.set(page.id, {
-      kind: page.kind,
-      layer: page.layer,
-      generation: page.generation,
-    })
+    const identity = { kind: page.kind, layer: page.layer, generation: page.generation }
+    for (const evicted of this.evictedPages.values()) evicted.set(page.id, identity)
+    for (const pins of this.ownerPins.values()) pins.delete(page.id)
   }
 
   private pin(page: AtlasPage, cacheKey: string): void {
-    const keys = this.pinnedPages.get(page.id) ?? new Set<string>()
-    keys.add(cacheKey)
-    this.pinnedPages.set(page.id, keys)
+    this.addPins(this.pinnedPages, page.id, [cacheKey])
+    this.addPins(this.framePins, page.id, [cacheKey])
+  }
+
+  private addPins(
+    target: Map<number, Set<string>>,
+    page: number,
+    keys: Iterable<string>,
+  ): void {
+    const pinned = target.get(page) ?? new Set<string>()
+    for (const key of keys) pinned.add(key)
+    target.set(page, pinned)
   }
 
   private compactPage(

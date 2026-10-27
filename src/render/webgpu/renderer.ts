@@ -14,8 +14,9 @@ import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
 import { type RenderCursorSnapshot, type RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GlyphAtlas } from '../shared/atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import type { GlyphAtlas } from '../shared/atlas/atlas.js'
+import type { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import { acquireSharedAtlas, releaseSharedAtlas, type SharedGlyphAtlas } from './shared-atlas.js'
 import { AtlasGpuTextures } from './gpu-textures.js'
 import { renderCursorState, type InactiveCursorStyle } from '../shared/cursor.js'
 import {
@@ -139,7 +140,9 @@ function sharedFrameCoordinator(): FrameCoordinator {
 
 export class WebGpuTerminalRenderer {
   private zigBuilder?: ZigFrameBuilder
-  private atlas = new GlyphAtlas()
+  private sharedAtlas: SharedGlyphAtlas
+  private atlasVersion = -1
+  private buildingFrame = false
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
   private atlasTextures: AtlasGpuTextures
@@ -163,7 +166,6 @@ export class WebGpuTerminalRenderer {
   private needsFullRebuild = true
   private readonly frames: FrameObserver
   private readonly overlayRows = new Set<number>()
-  private rasterizer: CanvasGlyphRasterizer
   private readonly onError?: (cause: unknown) => void
   private readonly renderState: RenderStateSource
   private restorePromise?: Promise<void>
@@ -217,17 +219,18 @@ export class WebGpuTerminalRenderer {
     this.frames.resize(this.grid.rows)
     this.format = prepared.format
     this.resizeCanvas()
-    this.rasterizer = this.createRasterizer()
+    this.sharedAtlas = acquireSharedAtlas(this.font, this)
     let atlasTextures: AtlasGpuTextures | undefined
     let textPass: WebGpuTextPass | undefined
     let scheduler: RenderScheduler | undefined
     try {
       this.configureContext(device)
-      atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
+      atlasTextures = this.sharedAtlas.acquireTextures(device)
       this.atlasTextures = atlasTextures
       textPass = this.createTextPass()
       this.textPass = textPass
       this.textPass.syncAtlas(this.atlasTextures)
+      this.atlasVersion = this.sharedAtlas.textureVersion(device)
       scheduler = new RenderScheduler({
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
         onFrame: () => this.drawFrame(),
@@ -241,9 +244,22 @@ export class WebGpuTerminalRenderer {
     } catch (cause) {
       scheduler?.dispose()
       textPass?.destroy()
-      atlasTextures?.destroy()
+      if (atlasTextures) this.sharedAtlas.releaseTextures(device)
+      releaseSharedAtlas(this.sharedAtlas, this)
       throw cause
     }
+  }
+
+  private get atlas(): GlyphAtlas {
+    return this.sharedAtlas.atlas
+  }
+
+  private get rasterizer(): CanvasGlyphRasterizer {
+    return this.sharedAtlas.rasterizer
+  }
+
+  atlasEvicted(): void {
+    if (!this.disposed && !this.buildingFrame) this.scheduler?.schedule()
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
@@ -281,7 +297,6 @@ export class WebGpuTerminalRenderer {
   clearTextureAtlas(): void {
     this.resetAtlasResources()
     if (this.disposed) return
-    this.rasterizer = this.createRasterizer()
     this.invalidateAll()
   }
 
@@ -344,8 +359,7 @@ export class WebGpuTerminalRenderer {
     if (this.disposed) return
     this.font = next
     if (geometryChanged) this.rebuildGeometryResources()
-    this.rasterizer = this.createRasterizer()
-    this.resetAtlasResources()
+    this.switchSharedAtlas()
     this.invalidateAll()
   }
 
@@ -418,7 +432,8 @@ export class WebGpuTerminalRenderer {
       this.scheduler.dispose()
       this.zigBuilder?.dispose()
       this.textPass.destroy()
-      this.atlasTextures.destroy()
+      this.sharedAtlas.releaseTextures(this.device)
+      releaseSharedAtlas(this.sharedAtlas, this)
       this.unconfigureContext()
     }
     return Promise.all([this.deviceLease.release(), this.restorePromise])
@@ -435,8 +450,29 @@ export class WebGpuTerminalRenderer {
     })
   }
 
-  private createRasterizer(): CanvasGlyphRasterizer {
-    return new CanvasGlyphRasterizer({ font: this.font })
+  private switchSharedAtlas(): void {
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
+    const previous = this.sharedAtlas
+    const next = acquireSharedAtlas(this.font, this)
+    const textures = next.acquireTextures(this.device)
+    this.textPass.syncAtlas(textures)
+    previous.releaseTextures(this.device)
+    releaseSharedAtlas(previous, this)
+    this.sharedAtlas = next
+    this.atlasTextures = textures
+    this.atlasVersion = next.textureVersion(this.device)
+    this.zigBuilder?.clearGlyphs()
+  }
+
+  private syncSharedAtlas(): void {
+    // Shared atlas writes can overwrite pages other terminals' pending frames still sample.
+    if (this.sharedAtlas.hasPendingUploads()) this.coordinator?.flushPending()
+    this.sharedAtlas.sync()
+    const version = this.sharedAtlas.textureVersion(this.device)
+    if (version === this.atlasVersion) return
+    this.atlasVersion = version
+    this.textPass.syncAtlas(this.atlasTextures)
   }
 
   private createTextPass(device: GPUDevice = this.device): WebGpuTextPass {
@@ -513,7 +549,13 @@ export class WebGpuTerminalRenderer {
       stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
     }
-    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    this.buildingFrame = true
+    let status: number
+    try {
+      status = buildZigFrame(builder, this.atlas, this.rasterizer, options, this)
+    } finally {
+      this.buildingFrame = false
+    }
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
@@ -522,8 +564,7 @@ export class WebGpuTerminalRenderer {
     }
     const updates = builder.changedRanges()
     const rebuiltRows = builder.rowRebuilds
-    if (this.atlasTextures.sync(this.atlas.consumeUploads()))
-      this.textPass.syncAtlas(this.atlasTextures)
+    this.syncSharedAtlas()
     const operations = this.textPass.uploadFrame(builder, updates)
     if (!this.coordinator) {
       try {
@@ -793,7 +834,7 @@ export class WebGpuTerminalRenderer {
     }
     if (this.disposed || expectedGeneration !== this.deviceGeneration) {
       resources.textPass.destroy()
-      resources.atlasTextures.destroy()
+      this.sharedAtlas.releaseTextures(replacement.device)
       this.unconfigureContext()
       await replacement.release()
       return
@@ -802,11 +843,12 @@ export class WebGpuTerminalRenderer {
     this.atlasUploadedBytesOffset += this.atlasTextures.uploadBytes
     this.atlasUploadOperationsOffset += this.atlasTextures.uploadOperationCount
     this.textPass.destroy()
-    this.atlasTextures.destroy()
+    this.sharedAtlas.releaseTextures(this.device)
     this.atlas.markAllForUpload()
     this.device = replacement.device
     this.deviceLease = replacement
     this.textPass = resources.textPass
+    this.atlasVersion = this.sharedAtlas.textureVersion(replacement.device)
     this.atlasTextures = resources.atlasTextures
     this.deviceGeneration += 1
     this.deviceUnavailable = false
@@ -825,14 +867,14 @@ export class WebGpuTerminalRenderer {
     let atlasTextures: AtlasGpuTextures | undefined
     try {
       textPassGlyphCapacity(device, this.grid.columns * this.grid.rows)
-      atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
+      atlasTextures = this.sharedAtlas.acquireTextures(device)
       textPass = this.createTextPass(device)
       textPass.syncAtlas(atlasTextures)
       this.configureContext(device)
       return { atlasTextures, textPass }
     } catch (cause) {
       textPass?.destroy()
-      atlasTextures?.destroy()
+      if (atlasTextures) this.sharedAtlas.releaseTextures(device)
       this.unconfigureContext()
       throw cause
     }
