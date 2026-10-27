@@ -2231,6 +2231,7 @@ describe('terminal frame consumer demand in Chromium', () => {
       scheduler.flush()
       const updates = harness.updateCalls()
       const version = harness.renderState.snapshotVersion
+      const textReads = harness.readRetainedTextCalls()
       queued = () => {
         queued = undefined
         harness.terminal.write(`${escape}[2J${escape}[Hhttps://replacement.test`)
@@ -2248,7 +2249,7 @@ describe('terminal frame consumer demand in Chromium', () => {
         discovery,
         label: harness.host.querySelector('[role="link"]')?.getAttribute('aria-label'),
         textReads: harness.readRetainedTextCalls(),
-      }).toEqual({ discovery: false, label: undefined, textReads: harness.snapshots.length })
+      }).toEqual({ discovery: false, label: undefined, textReads })
       harness.renderer.setDocumentVisible(true)
       scheduler.flush()
       await expect(harness.terminal.focusNextLink()).resolves.toBe(true)
