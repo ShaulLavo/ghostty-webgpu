@@ -1,3 +1,4 @@
+import { RenderStateData } from '../src/core/abi.js'
 import { GhosttyRuntime } from '../src/core/runtime.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
 import { measuredRenderState } from './native-state.js'
@@ -8,8 +9,9 @@ import type {
   BenchmarkResult,
 } from './renderer-benchmark-types.js'
 
-const columns = 200
-const rows = 50
+const parameters = new URL(location.href).searchParams
+const columns = Number(parameters.get('columns') ?? 200)
+const rows = Number(parameters.get('rows') ?? 50)
 const backend = parseBenchmarkBackend(
   new URL(location.href).searchParams.get('backend') ?? 'webgpu',
 )
@@ -24,6 +26,34 @@ let writeMilliseconds: number[] = []
 let writtenBytes = 0
 let sequence = 0
 const decoded = { rows: 0, cells: 0 }
+let planningStarted = 0
+let planningIterators = 0
+let rowPlanMilliseconds = 0
+const instantiate = WebAssembly.instantiate
+WebAssembly.instantiate = new Proxy(instantiate, {
+  apply(target, receiver, args) {
+    const [module, imports] = args
+    const get = imports?.env?.ghostty_render_state_get
+    if (typeof get !== 'function') return Reflect.apply(target, receiver, args)
+    return Reflect.apply(target, receiver, [
+      module,
+      {
+        ...imports,
+        env: {
+          ...imports.env,
+          ghostty_render_state_get: (state: number, data: number, out: number) => {
+            if (planningStarted !== 0 && data === RenderStateData.RowIterator) {
+              planningIterators += 1
+              if (planningIterators === 2)
+                rowPlanMilliseconds += performance.now() - planningStarted
+            }
+            return get(state, data, out)
+          },
+        },
+      },
+    ])
+  },
+})
 let adapterInfo: unknown
 let rendererPath = 'ghostty-web'
 const drawErrors: string[] = []
@@ -56,7 +86,7 @@ const font = fitTerminalFont(
     family: 'monospace',
     letterSpacing: 0,
     lineHeight: 1.2,
-    size: 13,
+    size: Number(parameters.get('fontSize') ?? 13),
     weight: 400,
   },
   devicePixelRatio,
@@ -81,6 +111,26 @@ async function createNativeDriver(): Promise<Driver> {
     cellHeight: font.deviceCellHeight,
   })
   const state = runtime.createRenderState(terminal)
+  let bridgeMilliseconds = 0
+  let bridgeBuilds = 0
+  const renderState = measuredRenderState(state, decoded)
+  renderState.createFrameBuilder = (columns, rows) => {
+    const builder = state.createFrameBuilder(columns, rows)
+    const build = builder.build.bind(builder)
+    builder.build = (options) => {
+      const started = performance.now()
+      planningStarted = started
+      planningIterators = 0
+      try {
+        return build(options)
+      } finally {
+        planningStarted = 0
+        bridgeMilliseconds += performance.now() - started
+        bridgeBuilds += 1
+      }
+    }
+    return builder
+  }
   const options = {
     canvas,
     columns,
@@ -94,7 +144,7 @@ async function createNativeDriver(): Promise<Driver> {
     },
     needsFrameRows: () => false,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
-    renderState: measuredRenderState(state, decoded),
+    renderState,
   }
   if (backend === 'ghostty-web') throw new Error('Native renderer backend required')
   let created: Awaited<ReturnType<typeof createBenchmarkRenderer>>
@@ -119,6 +169,9 @@ async function createNativeDriver(): Promise<Driver> {
     },
     metrics: () => ({
       ...renderer.metrics,
+      rowPlanMilliseconds,
+      bridgeMilliseconds,
+      bridgeBuilds,
       decodedRows: decoded.rows,
       decodedCells: decoded.cells,
     }),
@@ -180,8 +233,10 @@ function assertSelectedRendererPath(): void {
 
 function outputLine(index: number): string {
   return (
-    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(12)}`.slice(0, columns - 2) +
-    '\r\n'
+    `${String(index).padStart(8, '0')} ${'terminal-output '.repeat(Math.ceil(columns / 16))}`.slice(
+      0,
+      columns - 2,
+    ) + '\r\n'
   )
 }
 
@@ -201,6 +256,14 @@ function writeLines(count: number): void {
 function advance(scenario: BenchmarkScenario, step: number): void {
   if (scenario === 'cursor-movement') {
     write(`\x1b[${(step % rows) + 1};${(step % columns) + 1}H`)
+    return
+  }
+  if (scenario === 'dense-redraw') {
+    write(
+      '\x1b[H' +
+        Array.from({ length: rows }, (_, y) => outputLine(sequence + y).slice(0, -2)).join('\r\n'),
+    )
+    sequence += rows
     return
   }
   if (scenario === 'burst-output') {
@@ -262,7 +325,7 @@ async function run(
   }
 }
 
-writeLines(200)
+writeLines(Math.max(200, rows * 2))
 await frame()
 await frame()
 assertNoDrawErrors()
