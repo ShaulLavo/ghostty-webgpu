@@ -206,8 +206,12 @@ immutable styled snapshot from the core. Cell geometry can be supplied through t
 `--ghostty-letter-spacing` CSS properties.
 
 `terminal.onFrame(({ rows }) => …)` reports the viewport rows painted by each frame across
-all backends. It returns a subscription with `dispose()`, like `onResize`; no damage array is
-allocated when there are no listeners.
+all backends. GPU backends also accept damage-bearing updates whose rebuilt records match the
+current image. These updates keep frame callbacks and displayed text current without a GPU
+submission. Submission counters count only actual GPU submissions.
+
+It returns a subscription with `dispose()`, like `onResize`; no damage array is allocated when
+there are no listeners.
 
 Resizing inside a frame callback repaints after that frame's callbacks finish, in the same turn.
 
@@ -231,8 +235,9 @@ inside the library.
 
 WebGL and WebGPU update retained text from native logical row damage. Grid or fitted-font
 changes and native full damage refresh the complete viewport. Capture stages the next retained
-frame. The renderer accepts it after submission, damage acknowledgement and frame commit finish;
-any failure discards that pending capture. The preceding accepted metadata, lazy text and styled
+frame. The renderer accepts it after submission, damage acknowledgement and frame commit finish.
+An identical-output update reuses the existing image and needs no new submission.
+Any failure discards that pending capture. The preceding accepted metadata, lazy text and styled
 snapshot stay readable until the next acceptance. Previously returned owned rows remain valid.
 
 Native retention owns at most three cell-array slots after a completed capture, plus frame and
@@ -243,6 +248,21 @@ spare. The three retained slots can have different historical grid sizes.
 Public renderer `onTextFrame` snapshots contain owned rows, with no native identities or
 reader functions, and remain readable after later captures and disposal. The terminal's private
 GPU publication channel keeps the no-demand path lazy.
+
+Both terminal entries pause painting when the document is hidden or the terminal root has no
+positive visible area in the viewport. The main and worker entries both default
+`renderWhenOffscreen` to `false`. Set it to `true` to keep painting panes
+with no viewport intersection, including collapsed panes. Document visibility still applies.
+Parsing, authoritative reads, layout, font and theme changes continue while painting is paused.
+`onFrame` and `onText` publish no frames for that hidden interval. `submittedFrame`,
+`visibleLines()` and the accessibility mirror retain the last submitted viewport until a new
+paint is accepted. On return, the renderer paints current state, including changes accumulated
+while hidden.
+
+Visibility follows asynchronous browser observer notifications. IntersectionObserver reports
+viewport and ancestor clipping; it does not detect opacity or another element covering a pane.
+A terminal that only touches the viewport boundary, or has zero width or height, has no visible
+area and pauses by default.
 
 Accessibility defaults to off. Pass `accessibility: {}` or configure its label and live-region
 limits to enable the mirror. `setAccessibilityEnabled(true)` enables it after opening. The

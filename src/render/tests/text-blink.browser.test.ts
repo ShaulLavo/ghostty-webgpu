@@ -1,5 +1,6 @@
 import { expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import { RenderStateDirty } from '../../core/abi.js'
 import { PackedCells } from '../../core/packed-cells.js'
 import { WebGpuTextPass } from '../webgpu/text-pass.js'
 import { WebGlTextPass } from '../webgl/text-pass.js'
@@ -93,7 +94,7 @@ async function setup(
   onTestFinished(() => renderer.dispose())
   renderer.setFocused(true)
   clock.flush()
-  return { renderer, terminal, clock, canvas, host, font }
+  return { renderer, terminal, state, clock, canvas, host, font }
 }
 
 function create(
@@ -231,3 +232,48 @@ it.each(
     expect(glPhase).not.toHaveBeenCalled()
   },
 )
+
+it('submits blink phase changes alongside identical damage and skips unchanged output without a phase change', async () => {
+  onTestFinished(() => {
+    vi.restoreAllMocks()
+  })
+  const fixture = await setup('webgpu', '\x1b[5;41mBLINK\x1b[0m')
+  const renderer = fixture.renderer
+  if (!(renderer instanceof WebGpuTerminalRenderer)) throw new Error('Expected WebGPU')
+  const visible = await pixels(fixture)
+  const submitted = renderer.metrics.submittedFrames
+  const uploads = renderer.metrics.instanceUploadOperations
+  const damage = vi.spyOn(fixture.state, 'update')
+  const identical = '\x1b[H\x1b[5;41mBLINK\x1b[0m'
+  fixture.terminal.write(identical)
+  renderer.notifyWrite()
+  fixture.clock.tick()
+  expect(damage.mock.results.at(-1)?.value).toBeOneOf([
+    RenderStateDirty.Partial,
+    RenderStateDirty.Full,
+  ])
+  expect.soft(await pixels(fixture)).not.toEqual(visible)
+  expect.soft(renderer.metrics.submittedFrames).toBe(submitted + 1)
+  expect(renderer.metrics.instanceUploadOperations).toBe(uploads)
+  fixture.terminal.write(identical)
+  renderer.notifyWrite()
+  fixture.clock.tick()
+  expect(damage.mock.results.at(-1)?.value).toBeOneOf([
+    RenderStateDirty.Partial,
+    RenderStateDirty.Full,
+  ])
+  expect.soft(await pixels(fixture)).toEqual(visible)
+  expect.soft(renderer.metrics.submittedFrames).toBe(submitted + 2)
+  expect(renderer.metrics.instanceUploadOperations).toBe(uploads)
+  const beforeUnchanged = renderer.metrics.submittedFrames
+  fixture.terminal.write(identical)
+  renderer.notifyWrite()
+  fixture.clock.flush()
+  expect(damage.mock.results.at(-1)?.value).toBeOneOf([
+    RenderStateDirty.Partial,
+    RenderStateDirty.Full,
+  ])
+  expect(await pixels(fixture)).toEqual(visible)
+  expect(renderer.metrics.submittedFrames).toBe(beforeUnchanged)
+  expect(renderer.metrics.instanceUploadOperations).toBe(uploads)
+})
