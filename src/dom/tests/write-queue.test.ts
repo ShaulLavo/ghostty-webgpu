@@ -167,6 +167,29 @@ describe('TerminalWriteQueue', () => {
     expect(queue.pendingBytes).toBe(0)
   })
 
+  it('drains older queued writes before a reentrant synchronous write', async () => {
+    const clock = new FakeClock()
+    const writes: string[] = []
+    const queue = new TerminalWriteQueue<void>(
+      (data) => {
+        const text = new TextDecoder().decode(data)
+        writes.push(text)
+        if (text !== 'A') return
+        queue.flush()
+        writes.push('C')
+      },
+      {},
+      clock,
+    )
+
+    const first = queue.write('A')
+    const second = queue.write('B')
+    queue.flush()
+    await first
+    await second
+    expect(writes).toEqual(['A', 'B', 'C'])
+  })
+
   it('rejects queued and active writes on disposal and ignores late acknowledgements', async () => {
     const clock = new FakeClock()
     const pending = deferred<void>()

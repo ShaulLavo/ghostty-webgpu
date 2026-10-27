@@ -54,7 +54,7 @@ export class TerminalWriteQueue<T> {
   private offset = 0
   private pendingBytesValue = 0
   private timer?: number
-  private running = false
+  private runDepth = 0
   private flushRequested = false
   private inputPending = false
   private disposed = false
@@ -123,7 +123,7 @@ export class TerminalWriteQueue<T> {
     if (this.disposed) return
     this.flushRequested = true
     this.clearTimer()
-    this.process()
+    this.process(true)
   }
 
   dispose(): void {
@@ -152,7 +152,7 @@ export class TerminalWriteQueue<T> {
   private schedule(): void {
     if (
       this.disposed ||
-      this.running ||
+      this.runDepth > 0 ||
       this.timer !== undefined ||
       this.offset >= this.entries.length
     )
@@ -163,9 +163,9 @@ export class TerminalWriteQueue<T> {
     })
   }
 
-  private process(): void {
-    if (this.disposed || this.running) return
-    this.running = true
+  private process(force = false): void {
+    if (this.disposed || (this.runDepth > 0 && !force)) return
+    this.runDepth += 1
     const started = this.clock.now()
     while (this.offset < this.entries.length) {
       const entry = this.entries[this.offset]!
@@ -176,6 +176,8 @@ export class TerminalWriteQueue<T> {
       entry.state = 'active'
       this.active.add(entry)
       const data = entry.data!
+      // Advance first so a nested flush starts with the next queued entry.
+      this.offset += 1
       try {
         const result = this.execute(data)
         if (result instanceof Promise) {
@@ -189,11 +191,10 @@ export class TerminalWriteQueue<T> {
       } catch (cause) {
         this.settle(entry, cause)
       }
-      this.offset += 1
       if (!this.flushRequested && this.clock.now() - started >= this.timeBudgetMs) break
     }
     this.flushRequested = false
-    this.running = false
+    this.runDepth -= 1
     this.compact()
     this.schedule()
   }

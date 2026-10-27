@@ -94,6 +94,23 @@ it('cancels queued output without parsing it', async () => {
   expect(text).not.toContain('cancelled')
 })
 
+it('serializes a data-callback write behind older batched output', async () => {
+  const terminal = await create()
+  let nested = false
+  terminal.onData(() => {
+    if (nested) return
+    nested = true
+    terminal.write('C')
+  })
+
+  const first = terminal.writeBatched('\x1b[c')
+  const second = terminal.writeBatched('B')
+  await first
+  await second
+  expect(nested).toBe(true)
+  expect((await terminal.readLines(0, 1))[0]?.text.trimEnd()).toBe('BC')
+})
+
 it('rejects every unparsed batched write on disposal', async () => {
   const terminal = await create()
   const writes = Array.from({ length: 8 }, () => terminal.writeBatched('queued output'))
