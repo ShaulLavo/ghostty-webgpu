@@ -173,13 +173,13 @@ async function route(page: Page, assets: Map<string, string | Buffer>): Promise<
     const pathname = new URL(request.request().url()).pathname
     const body = assets.get(pathname)
     if (!body) return request.abort()
-    const contentType = pathname.endsWith('.wasm')
-      ? 'application/wasm'
-      : pathname.endsWith('.woff2')
-        ? 'font/woff2'
-        : pathname.endsWith('.js')
-          ? 'text/javascript'
-          : 'text/html'
+    const types = new Map([
+      ['wasm', 'application/wasm'],
+      ['woff2', 'font/woff2'],
+      ['js', 'text/javascript'],
+      ['json', 'application/json'],
+    ])
+    const contentType = types.get(pathname.split('.').at(-1) ?? '') ?? 'text/html'
     await request.fulfill({ body, contentType })
   })
 }
