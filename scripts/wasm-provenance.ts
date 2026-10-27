@@ -8,6 +8,7 @@ import { ArtifactBuildError } from './ghostty-source.js'
 export const WASM_BUILD_INPUTS = [
   'scripts/build-wasm.ts',
   'scripts/bridge.zig',
+  'scripts/row-index.zig',
   'scripts/snapshot.zig',
   'scripts/retained-frame.zig',
   'scripts/glyph-index.zig',

@@ -13,6 +13,7 @@ const allowedScenarios: readonly BenchmarkScenario[] = [
   'settled-idle',
   'cursor-movement',
   'burst-output',
+  'dense-redraw',
   'sparse-edit',
   'sustained-scroll',
   'glyph-churn',
@@ -33,6 +34,9 @@ const steps = positiveInteger('BENCH_STEPS', 120)
 const repetitions = positiveInteger('BENCH_REPETITIONS', 3)
 const warmupSteps = positiveInteger('BENCH_WARMUP_STEPS', 20)
 const idleMilliseconds = positiveInteger('BENCH_SAMPLE_SECONDS', 2) * 1000
+const columns = positiveInteger('BENCH_COLUMNS', 200)
+const rows = positiveInteger('BENCH_ROWS', 50)
+const fontSize = positiveInteger('BENCH_FONT_SIZE', 13)
 const headless = process.env.BENCH_HEADLESS === '1'
 const output = resolve(process.env.BENCH_OUTPUT ?? join(root, '.artifacts/renderer-benchmark.json'))
 const origin = 'http://localhost:41799'
@@ -188,14 +192,16 @@ async function measure(
 ) {
   const page = await browser.newPage({
     viewport: { width: 1600, height: 1000 },
-    deviceScaleFactor: 2,
+    deviceScaleFactor: positiveInteger('BENCH_DPR', 2),
   })
   page.setDefaultTimeout(15_000)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   try {
     await routePage(page, bundle, source.root)
-    await page.goto(`${origin}/?backend=${backend}`)
+    await page.goto(
+      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}`,
+    )
     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
     await Promise.race([
