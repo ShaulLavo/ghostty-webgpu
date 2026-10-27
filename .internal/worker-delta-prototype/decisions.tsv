@@ -1,0 +1,4 @@
+when	decision	reason	evidence	result
+2026-10-27	Benchmark-only adapters around existing publication	Keep topology and public command semantics constant	TerminalWorkerRuntime.post and WorkerTerminalExecution.receive	No production source changes
+2026-10-27	Binary UTF-16 rows with every cell and continuation flag	Preserve exact JS strings including lone surrogates	RendererTextFrameRow	Metadata remains the existing structured clone
+2026-10-27	Retain original worker row materialization	Measure complete delta transport before further worker optimization	RowEncoder compares full rows	Worker CPU gate includes encoding and row comparison
