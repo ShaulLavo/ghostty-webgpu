@@ -346,6 +346,52 @@ it('coalesces damage, uploads only dirty rows, and leaves clean idle empty', asy
   canvas.remove()
 })
 
+it.each([false, true])(
+  'accepts identical damaged output without acquiring or submitting a texture, shared=%s',
+  async (shared) => {
+    const clock = new FakeClock()
+    const source = new FakeRenderState(2, 2)
+    const canvas = createCanvas()
+    const onFrame = vi.fn()
+    const onRowsChanged = vi.fn()
+    const renderer = await createRenderer({
+      canvas,
+      columns: 2,
+      rows: 2,
+      font: fittedFont(),
+      renderState: source,
+      schedulerClock: clock,
+      deviceFactory: shared ? undefined : createDevice,
+      onFrame,
+      onRowsChanged,
+    })
+    clock.flushFrame()
+    const metrics = { ...renderer.metrics }
+    const context = canvas.getContext('webgpu')!
+    const acquire = vi.spyOn(context, 'getCurrentTexture')
+    const submit = vi.spyOn(GPUQueue.prototype, 'submit')
+    const encode = vi.spyOn(GPUDevice.prototype, 'createCommandEncoder')
+    try {
+      source.dirtyRow(1)
+      renderer.notifyWrite()
+      clock.flushFrame()
+      expect(source.acknowledgements).toBe(2)
+      expect(onFrame).toHaveBeenCalledTimes(2)
+      expect(onFrame.mock.calls[1]![0]).toEqual(onFrame.mock.calls[0]![0])
+      expect(onRowsChanged.mock.calls.at(-1)).toEqual([[]])
+      expect(acquire).not.toHaveBeenCalled()
+      expect(encode).not.toHaveBeenCalled()
+      expect(submit).not.toHaveBeenCalled()
+      expect(renderer.metrics).toEqual(metrics)
+    } finally {
+      acquire.mockRestore()
+      submit.mockRestore()
+      encode.mockRestore()
+      canvas.remove()
+    }
+  },
+)
+
 it('schedules bounded row refreshes and texture-atlas clears without a standing loop', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 3)
