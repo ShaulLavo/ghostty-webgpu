@@ -86,9 +86,13 @@ function gpuSnapshot(renderer) {
       queue: identity(renderer.device.queue),
       coordinator: identity(renderer.coordinator),
       scheduler: identity(renderer.scheduler),
-      pipelines: [identity(pass.resources.cellPipeline), identity(pass.resources.glyphPipeline)],
+      pipelines: [
+        identity((pass.pipelines ?? pass.resources).cellPipeline),
+        identity((pass.pipelines ?? pass.resources).glyphPipeline),
+      ],
       buffers: pass.ownedBuffers.map((buffer) => buffer.size),
       textures: Object.values(renderer.atlasTextures.textures).map(({ texture }) => ({
+        id: identity(texture),
         width: texture.width,
         height: texture.height,
         layers: texture.depthOrArrayLayers,
