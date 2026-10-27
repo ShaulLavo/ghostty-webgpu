@@ -73,7 +73,7 @@ def main():
     rows = [row for path in paths for row in pairs(path)]
     assert rows
     with open(raw / 'pairs.csv', 'w') as target:
-        writer = csv.DictWriter(target, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(target, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     grouped = {}
