@@ -9,7 +9,8 @@ extern "env" fn ghostty_wasm_free(ptr: ?[*]u8, len: usize) void;
 
 const Decoration = struct { foreground: u32 = 0xffffffff, background: u32 = 0xffffffff, flags: u32 = 0 };
 const Grapheme = struct { pointer: ?[*]u32 = null, length: u32 = 0 };
-const RawRow = struct { selection: c.GhosttyRenderStateRowSelection, selected: bool = false, revision: u64 = 0 };
+// Text revisions follow upstream row identity while a row's text stays equal, including across scrolls.
+const RawRow = struct { selection: c.GhosttyRenderStateRowSelection, selected: bool = false, revision: u64 = 0, id: c.GhosttyRenderStateRowId = std.mem.zeroes(c.GhosttyRenderStateRowId), text_revision: u32 = 0 };
 pub const Frame = struct {
     columns: u32,
     rows: u32,
@@ -18,6 +19,7 @@ pub const Frame = struct {
     graphemes: [*]Grapheme,
     metadata: [*]RawRow,
     revision: u64 = 0,
+    text_revisions: u32 = 0,
 };
 
 fn allocate(comptime T: type, count: usize) ?[*]T {
@@ -164,11 +166,48 @@ fn captureRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: c
     return c.GHOSTTY_SUCCESS;
 }
 
+fn sameId(a: c.GhosttyRenderStateRowId, b: c.GhosttyRenderStateRowId) bool {
+    return a.bits[0] == b.bits[0] and a.bits[1] == b.bits[1];
+}
+
+fn sameText(frame: *const Frame, y: usize, baseline: *const Frame, source: usize, style_bits: u64) bool {
+    const start = y * frame.columns;
+    const from = source * frame.columns;
+    const same_raw = std.mem.eql(c.GhosttyCell, frame.raw[start .. start + frame.columns], baseline.raw[from .. from + frame.columns]);
+    for (0..frame.columns) |x| {
+        if (!same_raw and (frame.raw[start + x] & ~style_bits) != (baseline.raw[from + x] & ~style_bits)) return false;
+        const a = frame.graphemes[start + x];
+        const b = baseline.graphemes[from + x];
+        if (a.length != b.length) return false;
+        if (a.length > 0 and !std.mem.eql(u32, a.pointer.?[0..a.length], b.pointer.?[0..b.length])) return false;
+    }
+    return true;
+}
+
+fn textRevision(frame: *Frame, baseline: ?*const Frame, y: usize, style_bits: u64) u32 {
+    const id = frame.metadata[y].id;
+    if (baseline) |b| {
+        if (b.columns == frame.columns and !sameId(id, std.mem.zeroes(c.GhosttyRenderStateRowId))) {
+            for (0..b.rows) |offset| {
+                const source = (y + offset) % b.rows;
+                const old = b.metadata[source];
+                if (old.text_revision == 0 or !sameId(old.id, id)) continue;
+                if (sameText(frame, y, b, source, style_bits)) return old.text_revision;
+                break;
+            }
+        }
+    }
+    frame.text_revisions +%= 1;
+    if (frame.text_revisions == 0) frame.text_revisions = 1;
+    return frame.text_revisions;
+}
+
 fn copyRow(frame: *Frame, baseline: *const Frame, y: usize) c.GhosttyResult {
     const start = y * frame.columns;
     const end = start + frame.columns;
     // A failed copy must never leave a stale slot marked as matching its accepted baseline.
     frame.metadata[y].revision = 0;
+    frame.metadata[y].text_revision = 0;
     @memcpy(frame.raw[start..end], baseline.raw[start..end]);
     @memcpy(frame.decorations[start..end], baseline.decorations[start..end]);
     for (start..end) |slot| {
@@ -185,7 +224,7 @@ fn copyRow(frame: *Frame, baseline: *const Frame, y: usize) c.GhosttyResult {
     return c.GHOSTTY_SUCCESS;
 }
 
-pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, tag_shift: u32, style_shift: u32, style_width: u32) callconv(.c) c.GhosttyResult {
+pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, tag_shift: u32, style_shift: u32, style_width: u32, track_text: bool) callconv(.c) c.GhosttyResult {
     const previous = if (baseline) |b| (if (b.columns == frame.columns and b.rows == frame.rows) b else null) else null;
     var damage: c.GhosttyRenderStateDirty = undefined;
     var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_DIRTY, &damage);
@@ -193,6 +232,8 @@ pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.Ghos
     const capture_all = full or previous == null or damage == c.GHOSTTY_RENDER_STATE_DIRTY_FULL;
     // Revisions stay unique across grid changes and later reuse of an older-sized spare.
     const revision = if (baseline) |b| b.revision + 1 else 1;
+    frame.text_revisions = if (baseline) |b| b.text_revisions else 0;
+    const style_bits = ((@as(u64, 1) << @as(u6, @intCast(style_width))) - 1) << @as(u6, @intCast(style_shift));
     var it = iterator;
     result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
     if (result != c.GHOSTTY_SUCCESS) return result;
@@ -212,9 +253,13 @@ pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.Ghos
             continue;
         }
         frame.metadata[y].revision = 0;
+        frame.metadata[y].text_revision = 0;
+        result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_ID, &frame.metadata[y].id);
+        if (result != c.GHOSTTY_SUCCESS) return result;
         result = captureRow(frame, it, cells, y, @intCast(tag_shift), @intCast(style_shift), (@as(u64, 1) << @as(u6, @intCast(style_width))) - 1);
         if (result != c.GHOSTTY_SUCCESS) return result;
         frame.metadata[y].revision = revision;
+        frame.metadata[y].text_revision = textRevision(frame, if (track_text) baseline else null, y, style_bits);
     }
     if (y != frame.rows) return c.GHOSTTY_INVALID_VALUE;
     frame.revision = revision;
@@ -277,7 +322,7 @@ pub fn readText(frame: *Frame, _: u32, _: u32, mask: ?[*]const u8, mask_len: u32
     return read(true, frame, mask, mask_len, snapshot);
 }
 pub fn readRevisions(frame: *Frame, out: [*]u32) callconv(.c) void {
-    for (0..frame.rows) |y| out[y] = @truncate(frame.metadata[y].revision);
+    for (0..frame.rows) |y| out[y] = frame.metadata[y].text_revision;
 }
 pub fn readRows(frame: *Frame, _: u32, _: u32, mask: ?[*]const u8, mask_len: u32, _: bool, snapshot: *Snapshot) callconv(.c) c.GhosttyResult {
     return read(false, frame, mask, mask_len, snapshot);

@@ -119,7 +119,7 @@ async function measure(
       timeout: 60_000,
     })
     const failure = await page.evaluate(() => window.__x7Failure)
-    assert(!failure, failure)
+    if (failure) throw new Error(failure)
     await page.bringToFront()
     await page.evaluate((count) => window.__x7!.run(count), warmup)
     const pageSession = await page.context().newCDPSession(page)

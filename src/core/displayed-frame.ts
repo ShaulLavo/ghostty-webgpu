@@ -26,20 +26,31 @@ interface PackedDescriptor {
   readonly bits: Record<string, { readonly lsb: number; readonly width: number }>
 }
 
-interface CachedTextRow {
-  readonly revision: number
-  readonly row: RenderTextRow
+// Three rotating slots plus rows scrolled out of the newest frame stay addressable.
+const cachedRowsPerViewportRow = 4
+
+function movedRow(row: RenderTextRow, y: number): RenderTextRow {
+  if (row.y === y) return row
+  return Object.freeze({
+    y,
+    text: row.text,
+    get cells() {
+      return row.cells
+    },
+    get continuations() {
+      return row.continuations
+    },
+  })
 }
 
-// Three slots rotate, so a row revision can be wanted by at most three frames.
-const cachedRevisionsPerRow = 3
-
-/** Text rows memoized by native row revision; copied rows keep their revision. */
+/** Text rows memoized by native text revision, which follows row identity while text is equal. */
 class RevisionTextCache {
-  private rows: CachedTextRow[][] = []
+  private rows = new Map<number, RenderTextRow>()
   private revisions = 0
   private revisionsSize = 0
   extractedRows = 0
+  /** Identity matching costs a row compare per capture, so it starts with the first text read. */
+  observed = false
 
   constructor(
     private readonly runtime: GhosttyRuntime,
@@ -47,18 +58,27 @@ class RevisionTextCache {
   ) {}
 
   read(slot: NativeSlot): readonly RenderTextRow[] {
+    this.observed = true
     const revisions = this.readRevisions(slot)
     const result: RenderTextRow[] = Array.from({ length: slot.rows })
     const missing = new Set<number>()
     for (let y = 0; y < slot.rows; y += 1) {
-      const revision = revisions[y]!
-      const cached =
-        revision === 0 ? undefined : this.rows[y]?.find((entry) => entry.revision === revision)
-      if (cached) result[y] = cached.row
+      const cached = this.take(revisions[y]!)
+      if (cached) result[y] = movedRow(cached, y)
       else missing.add(y)
     }
     if (missing.size > 0) this.extract(slot, missing, revisions, result)
+    this.prune(slot.rows)
     return Object.freeze(result)
+  }
+
+  private take(revision: number): RenderTextRow | undefined {
+    if (revision === 0) return undefined
+    const row = this.rows.get(revision)
+    if (!row) return undefined
+    this.rows.delete(revision)
+    this.rows.set(revision, row)
+    return row
   }
 
   private extract(
@@ -70,16 +90,17 @@ class RevisionTextCache {
     const options = missing.size === slot.rows ? noOptions : { rows: missing }
     for (const row of this.reader.read(slot.handle, 0, 0, slot, options)) {
       result[row.y] = row
-      this.remember(row, revisions[row.y]!)
+      const revision = revisions[row.y]!
+      if (revision !== 0) this.rows.set(revision, row)
     }
     this.extractedRows += missing.size
   }
 
-  private remember(row: RenderTextRow, revision: number): void {
-    if (revision === 0) return
-    const entries = (this.rows[row.y] ??= [])
-    entries.push({ revision, row })
-    if (entries.length > cachedRevisionsPerRow) entries.shift()
+  private prune(rows: number): void {
+    const excess = this.rows.size - rows * cachedRowsPerViewportRow
+    if (excess <= 0) return
+    const keys = Array.from(this.rows.keys()).slice(0, excess)
+    for (const key of keys) this.rows.delete(key)
   }
 
   private readRevisions(slot: NativeSlot): number[] {
@@ -98,7 +119,7 @@ class RevisionTextCache {
   dispose(): void {
     if (this.revisions !== 0) this.runtime.memory.free(this.revisions, this.revisionsSize)
     this.revisions = 0
-    this.rows = []
+    this.rows.clear()
   }
 }
 
@@ -234,6 +255,7 @@ export class DisplayedFrameStore {
           tag.lsb,
           style.lsb,
           style.width,
+          Number(frames.textCache.observed),
         ),
       )
     } catch (cause) {
