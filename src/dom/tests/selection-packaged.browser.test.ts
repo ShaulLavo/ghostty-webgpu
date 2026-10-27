@@ -121,57 +121,70 @@ describe.each(['main', 'worker'] as const)('%s packaged native selection', (mode
   }, 15000)
 })
 
-it('starts the packaged worker default copy during activation before native readback', async () => {
-  const platform = Object.getOwnPropertyDescriptor(navigator, 'platform')
-  Object.defineProperty(navigator, 'platform', { configurable: true, value: 'MacIntel' })
-  cleanups.push(() => {
-    if (platform) Object.defineProperty(navigator, 'platform', platform)
-    else Reflect.deleteProperty(navigator, 'platform')
-  })
-  const terminal = await create('worker')
-  const errors: unknown[] = []
-  terminal.on('error', (error) => errors.push(error))
-  await terminal.write('activated selection')
-  await terminal.selectRange({ x: 0, y: 0 }, { x: 8, y: 0 })
-  await eventually(() => terminal.submittedFrame?.selection !== undefined)
-  const descriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
-  let active = false
-  let pendingAtWrite = false
-  let started = false
-  let duringDispatch = false
-  let trusted = false
-  let copied: string | undefined
-  Object.defineProperty(navigator, 'clipboard', {
-    configurable: true,
-    value: {
-      write: async (items: ClipboardItem[]) => {
-        started = true
-        active = navigator.userActivation.isActive
-        pendingAtWrite = copied === undefined
-        copied = await (await items[0]!.getType('text/plain')).text()
+it.each(['main', 'worker'] as const)(
+  'starts the packaged %s default copy during activation',
+  async (mode) => {
+    const platform = Object.getOwnPropertyDescriptor(navigator, 'platform')
+    Object.defineProperty(navigator, 'platform', { configurable: true, value: 'MacIntel' })
+    cleanups.push(() => {
+      if (platform) Object.defineProperty(navigator, 'platform', platform)
+      else Reflect.deleteProperty(navigator, 'platform')
+    })
+    const terminal = await create(mode)
+    const errors: unknown[] = []
+    terminal.on('error', (error) => errors.push(error))
+    await terminal.write('activated selection')
+    await terminal.selectRange({ x: 0, y: 0 }, { x: 8, y: 0 })
+    await eventually(() => terminal.submittedFrame?.selection !== undefined)
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+    let active = false
+    let pendingAtWrite = false
+    let started = false
+    let duringDispatch = false
+    let trusted = false
+    let copied: string | undefined
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: (value: string) => {
+          started = true
+          active = navigator.userActivation.isActive
+          copied = value
+          return Promise.resolve()
+        },
+        write: async (items: ClipboardItem[]) => {
+          started = true
+          active = navigator.userActivation.isActive
+          pendingAtWrite = copied === undefined
+          copied = await (await items[0]!.getType('text/plain')).text()
+        },
       },
-    },
-  })
-  cleanups.push(() => {
-    if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor)
-    else Reflect.deleteProperty(navigator, 'clipboard')
-  })
-  terminal.textarea!.addEventListener('keydown', (event) => {
-    if (event.code !== 'KeyC' || !event.metaKey) return
-    trusted = event.isTrusted
-    duringDispatch = started && copied === undefined
-  })
-  terminal.focus()
-  await userEvent.keyboard('{Meta>}c{/Meta}')
-  await eventually(() => copied !== undefined || errors.length > 0)
-  expect(errors).toEqual([])
-  expect(active).toBe(true)
-  expect(pendingAtWrite).toBe(true)
-  expect(trusted).toBe(true)
-  expect(duringDispatch).toBe(true)
-  expect(copied).toBe('activated')
-  await page.screenshot({ element: terminal.element!, path: 'packaged-worker-selection-copy.png' })
-}, 15000)
+    })
+    cleanups.push(() => {
+      if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor)
+      else Reflect.deleteProperty(navigator, 'clipboard')
+    })
+    terminal.textarea!.addEventListener('keydown', (event) => {
+      if (event.code !== 'KeyC' || !event.metaKey) return
+      trusted = event.isTrusted
+      duringDispatch = started
+    })
+    terminal.focus()
+    await userEvent.keyboard('{Meta>}c{/Meta}')
+    await eventually(() => copied !== undefined || errors.length > 0)
+    expect(errors).toEqual([])
+    expect(active).toBe(true)
+    expect(pendingAtWrite).toBe(mode === 'worker')
+    expect(trusted).toBe(true)
+    expect(duringDispatch).toBe(true)
+    expect(copied).toBe('activated')
+    await page.screenshot({
+      element: terminal.element!,
+      path: `packaged-${mode}-selection-copy.png`,
+    })
+  },
+  15000,
+)
 
 it.for(['main', 'worker'] as const)(
   'copies a %s selection through the real browser clipboard',
