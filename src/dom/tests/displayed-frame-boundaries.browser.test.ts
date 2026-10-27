@@ -1,4 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
+import { GhosttyRenderState } from '../../core/render-state.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { FrameCoordinator } from '../../render/shared/frame-coordinator.js'
 import { DomTerminalRenderer } from '../../render/dom/renderer.js'
@@ -8,6 +10,7 @@ import type { RendererTextFrameSnapshot } from '../../render/shared/types.js'
 import { WebGpuTerminalRenderer } from '../../render/webgpu/renderer.js'
 import type { RenderSchedulerClock } from '../../render/shared/scheduler.js'
 import { TerminalSession } from '../../term/session.js'
+import type { TerminalSubmittedText } from '../submitted-frame.js'
 import { createTerminalElements } from '../elements.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../terminal.js'
 
@@ -139,6 +142,48 @@ describe('review failure boundaries', () => {
     expect(errors).toHaveLength(1)
     expect(terminal.visibleLines()).toEqual(accepted)
   })
+
+  it.each(['webgl', 'webgpu'] as const)(
+    'recovers %s after acknowledgement fails with populated pending text',
+    async (backend) => {
+      const { terminal, session, clock, errors } = await fixture(backend)
+      terminal.write('accepted 界 é')
+      clock.flush()
+      const accepted = terminal.visibleLines()
+      const delivered: TerminalSubmittedText[] = []
+      terminal.onText((text) => delivered.push(text))
+      const state = session.renderState
+      if (!(state instanceof GhosttyRenderState)) throw new Error('Expected native state')
+      const retain = state[retainDisplayedFrame].bind(state)
+      const capture = vi.spyOn(state, retainDisplayedFrame).mockImplementation((options) => {
+        const pending = retain(options)
+        pending.readTextRows()
+        return pending
+      })
+      const acknowledge = vi.spyOn(state, 'acknowledge').mockImplementation(() => {
+        throw new TypeError('injected acknowledgement failure after extraction')
+      })
+      cleanups.push(() => {
+        capture.mockRestore()
+        acknowledge.mockRestore()
+      })
+      terminal.write('\r\x1b[2Kabandoned 🧑‍💻')
+      clock.flush()
+      expect(errors).toHaveLength(1)
+      expect(terminal.visibleLines()).toEqual(accepted)
+      expect(delivered).toEqual([])
+      acknowledge.mockRestore()
+      terminal.write('\r\x1b[2Kretry ☕️')
+      terminal.refresh(0, 3)
+      clock.flushTimers()
+      clock.flush()
+      const expected = state.readTextRows().map((row) => row.text)
+      expect(terminal.visibleLines()).toEqual(expected)
+      expect(delivered.at(-1)?.rows.map((row) => row.text)).toEqual(expected)
+      expect(delivered.at(-1)?.rowPatches[0]?.text).toContain('retry ☕️')
+      expect(terminal.frameSnapshot()?.rows.map((row) => row.text)).toEqual(expected)
+    },
+  )
 
   it.each([
     { backend: 'webgl', coordinated: false, failure: 'acknowledge' },
