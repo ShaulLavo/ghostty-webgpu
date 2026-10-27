@@ -1414,6 +1414,16 @@ describe('finite original input ownership', () => {
     },
   )
 
+  it('labels synchronous query replies and emits them before write returns', async () => {
+    const terminal = await openTerminal()
+    const events: string[] = []
+    terminal.onData(({ bytes, origin }) => events.push(`${origin}:${decoder.decode(bytes)}`))
+    events.push('before')
+    terminal.write('\x1b[5n')
+    events.push('after')
+    expect(events).toEqual(['before', 'reply:\x1b[0n', 'after'])
+  })
+
   it('claims original text, paste and composition while generated input and native replies bypass ownership', async () => {
     const terminal = await openTerminal()
     const seen: TerminalInputEvent[] = []

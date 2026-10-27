@@ -1878,6 +1878,40 @@ describe.each(['webgl', 'webgpu'] as const)('%s producer output accessibility', 
   )
 })
 
+it('uses host-selected worker DPR and reapplies it when the subscription changes', async () => {
+  vi.stubGlobal('devicePixelRatio', 2)
+  let ratio = 1
+  let notify = () => {}
+  let subscribed = true
+  try {
+    const terminal = await WorkerTerminal.create({
+      assets,
+      appearance: { font: { family, size: 16 } },
+      backend: 'webgl',
+      fitEnvironment: {
+        getPixelRatio: () => ratio,
+        subscribePixelRatio: (callback) => {
+          notify = callback
+          return () => {
+            subscribed = false
+          }
+        },
+      },
+      fonts: [{ family, source: { url: fontUrl } }],
+    })
+    active.push(terminal)
+    await terminal.open(container())
+    await eventually(() => terminal.submittedFrame?.font.pixelRatio === 1)
+    ratio = 1.5
+    notify()
+    await eventually(() => terminal.submittedFrame?.font.pixelRatio === 1.5)
+    await terminal.dispose()
+    expect(subscribed).toBe(false)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
 it.each([1, 2])('commits worker canvas CSS geometry at pixel ratio %s', async (ratio) => {
   vi.stubGlobal('devicePixelRatio', ratio)
   try {
