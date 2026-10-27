@@ -31,7 +31,12 @@ const { output, ref } = comparisonBuildArguments(
 )
 const require = createRequire(join(root, 'package.json'))
 await mkdir(output, { recursive: true })
-const benchmarkPatterns = ['bench', 'scripts/comparison*', 'scripts/build-comparison.ts']
+const benchmarkPatterns = [
+  'bench',
+  'scripts/comparison*',
+  'scripts/*study*',
+  'scripts/build-comparison.ts',
+]
 const benchmark = await sourceInventory(root, checkoutFiles(root, benchmarkPatterns))
 const runtime = await runtimeSource(root, ref)
 try {
@@ -44,7 +49,7 @@ try {
     minify: { whitespace: true, syntax: false, identifiers: false },
     outdir: output,
     naming: 'browser.js',
-    external: ['@xterm/xterm', '@xterm/addon-webgl', 'ghostty-web'],
+    external: ['@xterm/xterm', '@xterm/addon-webgl', 'ghostty-web', '/wraith-sdk.js', '/nm-sdk.js'],
     plugins: runtime.plugins,
   })
   assert(build.success, JSON.stringify(build.logs))
@@ -234,6 +239,7 @@ try {
 @font-face{font-family:'Bench Mono';src:url('/font.woff2');font-weight:400}
 @font-face{font-family:'Bench Mono';src:url('/font-bold.woff2');font-weight:700}
 body{margin:0;background:#000;color:#fff}main{display:grid;grid-template-columns:repeat(4,380px);gap:8px}section{width:380px;height:260px;overflow:hidden}
+body.study main{grid-template-columns:repeat(4,820px)}body.study section{width:820px;height:600px}
 </style><main></main><script type="module" src="/browser.js"></script>`,
   )
   hashes['index.html'] = hash(await readFile(join(output, 'index.html')))

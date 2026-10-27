@@ -8,6 +8,7 @@ import { isSoftwareWebGpuAdapter } from './adapter.js'
 import { FrameCoordinator } from '../shared/frame-coordinator.js'
 import { DeviceOwner, type DeviceLease } from './device-owner.js'
 import { createGhosttyError } from '../../core/error.js'
+import { captureRenderAcknowledgement } from '../shared/displayed-frame.js'
 import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
@@ -381,14 +382,20 @@ export class WebGpuTerminalRenderer {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     })
     let mapped = false
+    let texture: GPUTexture | undefined
     try {
-      const encoder = this.device.createCommandEncoder()
-      encoder.copyTextureToBuffer(
-        { texture: this.context.getCurrentTexture() },
-        { buffer: output, bytesPerRow },
-        [width, height],
-      )
-      this.device.queue.submit([encoder.finish()])
+      texture = this.device.createTexture({
+        format: this.format,
+        size: [width, height],
+        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+      })
+      const command = this.textPass.encode(texture.createView(), {
+        texture,
+        buffer: output,
+        bytesPerRow,
+        size: [width, height],
+      })
+      this.device.queue.submit([command])
       await output.mapAsync(GPUMapMode.READ)
       mapped = true
       const sourcePixels = new Uint8Array(output.getMappedRange())
@@ -402,6 +409,7 @@ export class WebGpuTerminalRenderer {
     } finally {
       if (mapped) output.unmap()
       output.destroy()
+      texture?.destroy()
     }
   }
 
@@ -480,6 +488,12 @@ export class WebGpuTerminalRenderer {
     if (!this.disposed) this.onError?.(cause)
   }
 
+  private retryCoordinatedFrame(cause: unknown): void {
+    const retry = !this.frameFailed
+    this.reportFrameFailure(cause)
+    if (retry && !this.disposed) this.scheduler.schedule()
+  }
+
   private drawZigFrame(damage: RenderStateDirty): void {
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
@@ -522,8 +536,22 @@ export class WebGpuTerminalRenderer {
     }
     const updates = builder.changedRanges()
     const rebuiltRows = builder.rowRebuilds
-    this.atlasTextures.sync(this.atlas.consumeUploads())
+    const atlasUploads = this.atlas.consumeUploads()
+    this.atlasTextures.sync(atlasUploads)
     const operations = this.textPass.uploadFrame(builder, updates)
+    if (
+      !options.full &&
+      this.overlayRows.size === 0 &&
+      atlasUploads.length === 0 &&
+      operations === 0 &&
+      this.textPass.frameUploadedBytes === 0
+    ) {
+      this.acceptUnchangedFrame(
+        damage,
+        updates.map((update) => update.row),
+      )
+      return
+    }
     if (!this.coordinator) {
       try {
         this.textPass.submit(this.context.getCurrentTexture().createView())
@@ -571,19 +599,30 @@ export class WebGpuTerminalRenderer {
     }
     const textPass = this.textPass
     let frame: PreparedFrame | undefined
+    try {
+      frame = this.captureFrame(
+        rows,
+        updates.map((update) => update.row),
+      )
+    } catch (cause) {
+      this.retryCoordinatedFrame(cause)
+      return
+    }
+    const acknowledge =
+      this.renderState[captureRenderAcknowledgement]?.() ??
+      this.renderState.acknowledge.bind(this.renderState)
     this.coordinator.submit({
       owner: this,
       device: this.device,
       command,
       commit: () => {
-        if (this.disposed) return
-        frame = this.captureFrame(
-          rows,
-          updates.map((update) => update.row),
-        )
+        if (this.disposed) {
+          frame?.discard()
+          return
+        }
         try {
           textPass.acceptFrame()
-          if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+          if (damage !== RenderStateDirty.False) acknowledge()
           this.recordFrame(rebuiltRows, operations)
           this.metrics.zigFrames += 1
           this.needsFullRebuild = false
@@ -598,11 +637,24 @@ export class WebGpuTerminalRenderer {
         if (!this.disposed) frame?.notify()
       },
       failed: (cause) => {
-        const retry = !this.frameFailed
-        this.reportFrameFailure(cause)
-        if (retry && !this.disposed) this.scheduler.schedule()
+        frame?.discard()
+        this.retryCoordinatedFrame(cause)
       },
     })
+  }
+
+  private acceptUnchangedFrame(damage: RenderStateDirty, changed: readonly number[]): void {
+    const rows = this.frames.requiresFullRows ? this.rowsToRebuild(damage) : undefined
+    const frame = this.captureFrame(rows, changed)
+    try {
+      if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+      frame?.accept()
+    } finally {
+      frame?.discard()
+    }
+    // Settle peer submissions before observers can mutate their native state.
+    this.coordinator?.flushPending()
+    if (!this.disposed) frame?.notify()
   }
 
   private get deviceCellHeight(): number {
@@ -623,7 +675,7 @@ export class WebGpuTerminalRenderer {
 
   private captureFrame(
     rows: readonly RenderRow[] | undefined,
-    changed = rows?.map((row) => row.y) ?? [],
+    changed: readonly number[] = rows?.map((row) => row.y) ?? [],
   ): PreparedFrame | undefined {
     if (!this.cursor) return
     return this.frames.capture(

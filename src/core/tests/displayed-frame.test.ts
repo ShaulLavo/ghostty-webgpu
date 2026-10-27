@@ -13,8 +13,9 @@ afterEach(() => {
 })
 
 function handles(state: GhosttyRenderState) {
+  const snapshot = Reflect.get(state, 'snapshotState')
   return ['state', 'iterator', 'cells'].map(
-    (key) => (Reflect.get(state, key) as { handle: number }).handle,
+    (key) => (Reflect.get(snapshot, key) as { handle: number }).handle,
   ) as [number, number, number]
 }
 

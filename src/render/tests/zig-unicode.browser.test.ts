@@ -124,6 +124,7 @@ async function nativeFixture(
     const source = await sourceFixture(content)
     const label = document.createElement('p')
     label.textContent = `${backend} / Zig`
+    label.style.lineHeight = '20px'
     const canvas = document.createElement('canvas')
     const background = options.theme?.background ?? defaultRendererTheme.background
     canvas.style.backgroundColor = `rgb(${background.r}, ${background.g}, ${background.b})`

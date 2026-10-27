@@ -1,3 +1,4 @@
+const row_index = @import("row-index.zig");
 const host = struct {
     extern "env" fn write_pty(terminal: u32, userdata: u32, data: u32, len: u32) void;
     extern "env" fn render_hold(terminal: u32, userdata: u32, held: u32) void;
@@ -77,6 +78,22 @@ const c = @cImport({
     @cInclude("ghostty/vt/screen.h");
     @cInclude("ghostty/vt/style.h");
 });
+
+export fn bridge_acknowledge(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, count: *u32) c.GhosttyResult {
+    var it = iterator;
+    var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    var dirty_rows: u32 = 0;
+    while (c.ghostty_render_state_row_iterator_next(it)) {
+        var dirty = false;
+        result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        dirty_rows += @intFromBool(dirty);
+    }
+    result = c.ghostty_render_state_clean(state);
+    if (result == c.GHOSTTY_SUCCESS) count.* = dirty_rows;
+    return result;
+}
 
 const TextRow = extern struct { y: u32, start: u32, len: u32 };
 // Unicode scalar values leave bit 31 available for the wide-tail continuation flag.
@@ -242,6 +259,7 @@ const FrameCache = struct {
     incoming: [*]c.GhosttyRenderStateRowId,
     sources: [*]u32,
     used: [*]bool,
+    row_index: [*]row_index.Entry,
     inputs: [*]CachedCell,
     rendered: [*]RenderedCell,
     cells: [*][16]f32,
@@ -276,6 +294,8 @@ fn createFrameCacheFallible(columns: u32, rows: u32) error{OutOfMemory}!*FrameCa
     errdefer frameFree(u32, sources, rows);
     const used = frameAllocate(bool, rows) orelse return error.OutOfMemory;
     errdefer frameFree(bool, used, rows);
+    const index = frameAllocate(row_index.Entry, row_index.capacity(rows)) orelse return error.OutOfMemory;
+    errdefer frameFree(row_index.Entry, index, row_index.capacity(rows));
     const inputs = frameAllocate(CachedCell, columns * rows) orelse return error.OutOfMemory;
     errdefer frameFree(CachedCell, inputs, columns * rows);
     const rendered = frameAllocate(RenderedCell, columns * rows) orelse return error.OutOfMemory;
@@ -286,7 +306,7 @@ fn createFrameCacheFallible(columns: u32, rows: u32) error{OutOfMemory}!*FrameCa
     for (0..rows) |y| previous[y] = .{ .id = std.mem.zeroes(c.GhosttyRenderStateRowId), .cells = inputs + y * columns };
     var default_style: c.GhosttyStyle = undefined;
     c.ghostty_style_default(&default_style);
-    memory[0] = .{ .columns = columns, .rows = rows, .previous = previous, .next = next, .incoming = incoming, .sources = sources, .used = used, .inputs = inputs, .rendered = rendered, .cells = cells, .glyphs = glyphs, .default_style = default_style };
+    memory[0] = .{ .columns = columns, .rows = rows, .previous = previous, .next = next, .incoming = incoming, .sources = sources, .used = used, .row_index = index, .inputs = inputs, .rendered = rendered, .cells = cells, .glyphs = glyphs, .default_style = default_style };
     return &memory[0];
 }
 
@@ -301,6 +321,7 @@ export fn bridge_destroy_frame_cache(cache: *FrameCache) void {
     frameFree(c.GhosttyRenderStateRowId, cache.incoming, cache.rows);
     frameFree(u32, cache.sources, cache.rows);
     frameFree(bool, cache.used, cache.rows);
+    frameFree(row_index.Entry, cache.row_index, row_index.capacity(cache.rows));
     frameFree(CachedCell, cache.inputs, cache.columns * cache.rows);
     frameFree(RenderedCell, cache.rendered, cache.columns * cache.rows);
     frameFree([16]f32, cache.cells, cache.columns * cache.rows);
@@ -320,6 +341,9 @@ fn planFrameRows(frame: *Frame, state: c.GhosttyRenderState, iterator: c.Ghostty
         frame.row_offset = 0;
     }
     @memset(cache.used[0..cache.rows], false);
+    const index = cache.row_index[0..row_index.capacity(cache.rows)];
+    row_index.reset(index, cache.rows);
+    for (0..cache.rows) |source| row_index.insert(index, cache.previous[source].id.bits, @intCast(source), cache.rows);
     cache.moved = false;
     cache.streaming = true;
     const contrast: u64 = @bitCast(frame.glyph_minimum_contrast);
@@ -338,20 +362,18 @@ fn planFrameRows(frame: *Frame, state: c.GhosttyRenderState, iterator: c.Ghostty
         if (y >= cache.rows) return c.GHOSTTY_OUT_OF_SPACE;
         result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_ID, &cache.incoming[y]);
         if (result != c.GHOSTTY_SUCCESS) return result;
-        cache.sources[y] = cache.rows;
-        for (0..cache.rows) |source| {
-            if (!sameRowId(cache.previous[source].id, cache.incoming[y])) continue;
-            cache.sources[y] = @intCast(source);
-            cache.used[source] = true;
-            break;
-        }
+        const source = row_index.lookup(index, cache.incoming[y].bits, cache.rows);
+        cache.sources[y] = source;
+        if (source != cache.rows) cache.used[source] = true;
     }
     if (y != cache.rows) return c.GHOSTTY_OUT_OF_SPACE;
+    var unused: u32 = 0;
     for (0..cache.rows) |destination| {
         if (cache.sources[destination] == cache.rows) {
-            const source = std.mem.indexOfScalar(bool, cache.used[0..cache.rows], false) orelse return c.GHOSTTY_OUT_OF_SPACE;
-            cache.sources[destination] = @intCast(source);
-            cache.used[source] = true;
+            while (unused < cache.rows and cache.used[unused]) : (unused += 1) {}
+            if (unused == cache.rows) return c.GHOSTTY_OUT_OF_SPACE;
+            cache.sources[destination] = unused;
+            cache.used[unused] = true;
         }
         const source = cache.sources[destination];
         cache.next[destination] = cache.previous[source];

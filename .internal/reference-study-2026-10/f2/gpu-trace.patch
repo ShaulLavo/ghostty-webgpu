@@ -1,0 +1,45 @@
+--- a/scripts/renderer-benchmark.ts
++++ b/scripts/renderer-benchmark.ts
+@@ -3,6 +3,7 @@
+ import { mkdir, readFile } from 'node:fs/promises'
+ import { basename, dirname, join, resolve } from 'node:path'
+ import { platform, release } from 'node:os'
++import { gzipSync } from 'node:zlib'
+ import { chromium, type CDPSession, type Page } from 'playwright'
+ import { displayedInk } from './displayed-ink'
+ import { measureCpu } from './comparison-guards.mjs'
+@@ -323,6 +324,14 @@
+         ({ scenario, warmupSteps }) => window.__rendererBench.run(scenario, warmupSteps, 100),
+         { scenario, warmupSteps },
+       )
++    const gpuTrace = process.env.BENCH_GPU_TRACE === '1'
++    const traceDone = gpuTrace
++      ? new Promise<{ stream?: string }>((resolve) => browserSession.once('Tracing.tracingComplete', resolve))
++      : undefined
++    if (gpuTrace) await browserSession.send('Tracing.start', {
++      categories: 'toplevel,gpu*,viz,cc,dawn*,disabled-by-default-gpu.*,disabled-by-default-dawn*',
++      transferMode: 'ReturnAsStream',
++    })
+     const before = await processes(browserSession)
+     const started = performance.now()
+     const operation = () => page.evaluate(
+@@ -336,6 +345,19 @@
+     const result = nativeMeasurement.sample
+     const after = await processes(browserSession)
+     const cpu = cpuDelta(before, after, performance.now() - started)
++    if (traceDone) {
++      await browserSession.send('Tracing.end')
++      const { stream } = await traceDone
++      assert(stream, 'GPU trace stream missing')
++      let traceText = ''
++      for (;;) {
++        const chunk = await browserSession.send('IO.read', { handle: stream })
++        traceText += chunk.base64Encoded ? Buffer.from(chunk.data, 'base64').toString() : chunk.data
++        if (chunk.eof) break
++      }
++      await browserSession.send('IO.close', { handle: stream })
++      await Bun.write(join(dirname(output), `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.trace.json.gz`), gzipSync(traceText))
++    }
+     const info = await page.evaluate(() => window.__rendererBench.getPageInfo())
+     if (!headless && backend.startsWith('webgpu')) {
+       assert(info && typeof info === 'object' && 'adapter' in info)

@@ -89,3 +89,16 @@ the npm package.
 - Source: <https://github.com/JetBrains/JetBrainsMono>
 - License: SIL Open Font License 1.1, reproduced in
   `src/render/shared/atlas/sprite-fixtures/FONT-LICENSE.txt`.
+
+## Noto Sans Mono
+
+`bench/fixtures/correctness/NotoSansMono-Regular.ttf` contains Noto Sans Mono version 2.007 for
+browser correctness fixtures. The font is not part of the published npm package.
+
+- Source: <https://github.com/notofonts/noto-fonts>, `hinted/ttf/NotoSansMono/NotoSansMono-Regular.ttf`, revision `ffebf8c1ee449e544955a7e813c54f9b73848eac`
+- License: SIL Open Font License 1.1
+
+Copyright 2015-2021 Google LLC. All Rights Reserved.
+
+The complete SIL Open Font License 1.1 text appears in
+`bench/fixtures/correctness/NotoSansMono-LICENSE.txt`.
