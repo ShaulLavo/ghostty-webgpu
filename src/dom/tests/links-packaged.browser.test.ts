@@ -945,7 +945,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
     const uris: string[] = []
     const input: string[] = []
     const { root, terminal } = await open(mode, (uri) => uris.push(uri))
-    terminal.onData(({ bytes }) => input.push(new TextDecoder().decode(bytes)))
+    terminal.onData((bytes) => input.push(new TextDecoder().decode(bytes)))
     await preparePointerLink(root, terminal, osc8Label())
     await terminal.write('\x1b[?1000h\x1b[?1006h')
     const frame = terminal.submittedFrame!
@@ -967,7 +967,7 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
     const uris: string[] = []
     const input: string[] = []
     const { root, terminal } = await open(mode, (uri) => uris.push(uri))
-    terminal.onData(({ bytes }) => input.push(new TextDecoder().decode(bytes)))
+    terminal.onData((bytes) => input.push(new TextDecoder().decode(bytes)))
     await preparePointerLink(root, terminal, osc8Label())
     await terminal.write('\x1b[?1000h\x1b[?1006h')
     await page.elementLocator(terminal.canvas!).click({ position: linkPosition(terminal) })

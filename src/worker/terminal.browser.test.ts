@@ -950,7 +950,7 @@ describe.each(['main', 'webgl', 'webgpu'] as const)('%s shared await-style termi
     await terminal.write('\x1b[?2004h\x1b[?1004h')
     expect(new TextDecoder().decode(await terminal.paste('paste'))).toBe('\x1b[200~paste\x1b[201~')
     const output: string[] = []
-    terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
+    terminal.onData((data) => output.push(new TextDecoder().decode(data)))
     terminal.focus()
     await eventually(() => output.includes('\x1b[I'))
     terminal.blur()
@@ -1226,7 +1226,7 @@ it('forwards release after a pending press when host input becomes disabled', as
   await terminal.open(container())
   await terminal.write('\x1b[>11u')
   const output: string[] = []
-  terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
+  terminal.onData((data) => output.push(new TextDecoder().decode(data)))
   terminal.textarea!.dispatchEvent(
     new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', bubbles: true, cancelable: true }),
   )
@@ -1369,7 +1369,7 @@ it.each(['pending', 'current', 'older'] as const)(
     await terminal.open(container())
     await terminal.write('\x1b[>11u')
     const output: string[] = []
-    terminal.onData(({ bytes: data }) => output.push(new TextDecoder().decode(data)))
+    terminal.onData((data) => output.push(new TextDecoder().decode(data)))
     const send = (type: 'keydown' | 'keyup') =>
       terminal.textarea!.dispatchEvent(
         new KeyboardEvent(type, { key: 'a', code: 'KeyA', bubbles: true, cancelable: true }),
@@ -1620,7 +1620,7 @@ it('preserves default worker browser paste keys and native clipboard encoding', 
   await terminal.open(container())
   await terminal.write('\x1b[?2004h')
   const output: string[] = []
-  terminal.onData(({ bytes }) => output.push(new TextDecoder().decode(bytes)))
+  terminal.onData((bytes) => output.push(new TextDecoder().decode(bytes)))
   const textarea = terminal.textarea!
   const modifier = /Mac/.test(navigator.platform) ? { metaKey: true } : { ctrlKey: true }
   const send = (type: 'keydown' | 'keyup', repeat = false) => {
@@ -1907,6 +1907,45 @@ it('uses host-selected worker DPR and reapplies it when the subscription changes
     await eventually(() => terminal.submittedFrame?.font.pixelRatio === 1.5)
     await terminal.dispose()
     expect(subscribed).toBe(false)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
+
+it('disconnects the worker resize observer when the DPR subscription throws', async () => {
+  const states: { observed: boolean; disconnected: boolean }[] = []
+  class TrackedResizeObserver extends ResizeObserver {
+    private readonly state = { observed: false, disconnected: false }
+    constructor(callback: ResizeObserverCallback) {
+      super(callback)
+      states.push(this.state)
+    }
+    override observe(target: Element, options?: ResizeObserverOptions): void {
+      this.state.observed = true
+      super.observe(target, options)
+    }
+    override disconnect(): void {
+      this.state.disconnected = true
+      super.disconnect()
+    }
+  }
+  vi.stubGlobal('ResizeObserver', TrackedResizeObserver)
+  try {
+    const terminal = await WorkerTerminal.create({
+      assets,
+      appearance: { font: { family, size: 16 } },
+      backend: 'webgl',
+      fitEnvironment: {
+        subscribePixelRatio: () => {
+          throw new Error('subscription failed')
+        },
+      },
+      fonts: [{ family, source: { url: fontUrl } }],
+    })
+    active.push(terminal)
+    await expect(terminal.open(container())).rejects.toThrow('subscription failed')
+    expect(states.length).toBeGreaterThan(0)
+    expect(states.filter((state) => state.observed && !state.disconnected)).toEqual([])
   } finally {
     vi.unstubAllGlobals()
   }

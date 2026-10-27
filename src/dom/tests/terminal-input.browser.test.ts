@@ -499,7 +499,7 @@ describe('Terminal DOM host', () => {
     expect(session.grid.cellWidth).toBe(recording.options?.font.cssCellWidth)
     expect(session.grid.cellHeight).toBe(recording.options?.font.cssCellHeight)
 
-    terminal.onData(({ bytes: data }) => inputOrder.push(`data:${decoder.decode(data)}`))
+    terminal.onData((data) => inputOrder.push(`data:${decoder.decode(data)}`))
     dispatchKey(elements.textarea, 'keydown', { code: 'KeyA', key: 'a' })
     expect(inputOrder).toEqual(['before', 'key:a', 'data:a'])
 
@@ -608,7 +608,7 @@ describe('Terminal DOM host', () => {
     await terminal.open(trackedHost())
     const textarea = terminal.textarea!
     const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.onData((bytes) => output.push(bytes))
 
     const plain = dispatchKey(textarea, 'keydown', { code: 'KeyA', key: 'a' })
     expect(plain.defaultPrevented).toBe(true)
@@ -842,7 +842,7 @@ describe('Terminal DOM host', () => {
     await terminal.open(trackedHost())
     const textarea = terminal.textarea!
     const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.onData((bytes) => output.push(bytes))
 
     dispatchComposition(textarea, 'compositionstart')
     dispatchInput(textarea, 'に', {
@@ -920,7 +920,7 @@ describe('Terminal DOM host', () => {
     const textarea = terminal.textarea!
     const preedit = root.querySelector<HTMLElement>('.ghostty-webgpu-composition')!
     const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.onData((bytes) => output.push(bytes))
     terminal.focus()
 
     const font = recording.renderer!.fonts.at(-1) ?? recording.options!.font
@@ -1028,7 +1028,7 @@ describe('Terminal DOM host', () => {
     await terminal.open(trackedHost())
     const textarea = terminal.textarea!
     const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.onData((bytes) => output.push(bytes))
     terminal.write('\u001b[>11u')
 
     dispatchComposition(textarea, 'compositionstart')
@@ -1054,7 +1054,7 @@ describe('Terminal DOM host', () => {
     await terminal.open(trackedHost())
     const textarea = terminal.textarea!
     const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.onData((bytes) => output.push(bytes))
 
     terminal.write('\u001b[?1004h')
     terminal.focus()
@@ -1114,7 +1114,7 @@ describe('Terminal DOM host', () => {
     await terminal.open(trackedHost())
     const textarea = terminal.textarea!
     const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.onData((bytes) => output.push(bytes))
 
     terminal.write('\u001b[?1004h')
     terminal.focus()

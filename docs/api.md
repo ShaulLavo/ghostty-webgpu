@@ -10,6 +10,27 @@ The default `TerminalApi` accepts both conventions for await-style common caller
 subscriptions, focus and displayed text stay synchronous; `open()` and `focusNextLink()` already
 return promises in the main entry.
 
+## data events and synchronous replies
+
+`onData(listener)` keeps the byte-callback contract. Its listener receives a `Uint8Array` suitable
+for forwarding to a PTY. Use `onDataEvent(listener)` or `on('dataEvent', listener)` when the
+application also needs the native origin classification. These listeners receive
+`{ bytes, origin }`, where `bytes` is an owned `Uint8Array` and `origin` is one of:
+
+- `input`: typing, pasting, mouse reports, focus reports or `sendInput`.
+- `reply`: the terminal answering a query, such as a device-status report.
+
+On the main thread, `write()` parses synchronously and emits a query reply through both callbacks
+before that `write()` returns. Observers can therefore reenter terminal operations. Worker calls
+return promises, but the worker's native session applies the same origin labels.
+
+```ts
+terminal.onData((bytes) => socket.send(bytes))
+terminal.onDataEvent(({ origin }) => {
+  if (origin === 'reply') console.debug('terminal query reply')
+})
+```
+
 ## batched output
 
 `writeBatched(data, { signal })` is an opt-in asynchronous producer path in both entries. It copies
@@ -66,6 +87,14 @@ const lines = await terminal.readLines(0, 1)
 terminal.focus()
 await terminal.dispose()
 ```
+
+Worker terminals support `fitEnvironment.getPixelRatio` and
+`fitEnvironment.subscribePixelRatio`. The getter returns a finite positive DPR for each host
+layout. The subscription calls its callback when that DPR changes and returns a dispose function.
+Terminal disposal invokes that function and disconnects layout observation. If subscription setup
+throws, `open()` rejects and disconnects the new resize observer before propagating the error.
+The other fit-environment hooks remain main-thread-only because the worker owns font measurement
+and scheduling.
 
 `backend` is an option of the worker entry only. It accepts `webgpu`, `webgl` or `auto`, and
 defaults to `auto`. The main-thread `Terminal.create` has no `backend` option. It takes

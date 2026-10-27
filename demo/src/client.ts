@@ -555,7 +555,7 @@ const createInstrumentedRenderer: GhosttyWebGpuRendererFactory = async (options,
 }
 
 function subscribeToTerminal(current: Terminal): void {
-  subscriptions.push(current.onData(({ bytes }) => sendInput(bytes)))
+  subscriptions.push(current.onData(sendInput))
   subscriptions.push(
     current.onResize(({ cols, rows }) => {
       lastResize = { type: 'resize', cols, rows }

@@ -113,7 +113,7 @@ it('reports a later burst separately once output pauses', async () => {
 it("pairs output with typed input, not with the terminal's own replies", async () => {
   const terminal = await openMain('canvas2d-fill-text', 'frame')
   const replies: Uint8Array[] = []
-  terminal.onData(({ bytes: data }) => replies.push(data))
+  terminal.onData((data) => replies.push(data))
   const first = nextTiming(terminal)
 
   terminal.write('\x1b[c')

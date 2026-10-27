@@ -97,9 +97,9 @@ Worker terminals accept the same `fitEnvironment.getPixelRatio` and `subscribePi
 
 ## Synchronous replies and reentrancy
 
-**Contract.** Main-thread `write()` parses synchronously. Native query replies are emitted through `onData` before that `write()` returns, on the same byte path as keystrokes. Applications must expect reentrant observers and must not treat every `onData` emission as human input. Worker calls return promises, but the worker's native session uses the same reply classification.
+**Contract.** Main-thread `write()` parses synchronously. Native query replies are emitted through `onData` and `onDataEvent` before that `write()` returns, on the same native path as keystrokes. Applications must expect reentrant observers and must not treat every emission as human input. Worker calls return promises, but the worker's native session uses the same reply classification.
 
-`TerminalSession` labels its data events with `origin: 'input' | 'reply'`. The DOM `Terminal` preserves that label and emits the same `TerminalDataEvent` shape from `onData`, with an owned copy of the bytes. Applications can forward `event.bytes` to a PTY and use `event.origin` when they need to exclude terminal replies from human-input handling. Tracking write depth is no longer needed to recover the library's classification.
+`TerminalSession` labels its data events with `origin: 'input' | 'reply'`. The DOM `Terminal` preserves its existing `onData` byte callback and emits the `TerminalDataEvent` shape through `onDataEvent` and `on('dataEvent', ...)`, with an owned copy of the bytes. Applications can keep forwarding `onData` bytes to a PTY and use the additive event when they need to exclude terminal replies from human-input handling. Tracking write depth is no longer needed to recover the library's classification.
 
 **Implementation.** Synchronous writes and effect flushing are in [`src/term/session.ts:1648`](../src/term/session.ts#L1648-L1660) and [`src/term/session.ts:1884`](../src/term/session.ts#L1884-L1912). Session origin metadata is defined in [`src/term/types.ts:236`](../src/term/types.ts#L236-L240). The DOM host preserves it in [`src/dom/terminal.ts:1236`](../src/dom/terminal.ts#L1236-L1249).
 

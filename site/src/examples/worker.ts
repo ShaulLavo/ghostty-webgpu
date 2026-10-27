@@ -8,7 +8,7 @@ export async function mountWorker(host: HTMLElement, fontUrl: string) {
   })
   await terminal.open(host)
   await terminal.writeln('The terminal core and GPU renderer run in a worker.')
-  terminal.onData(({ bytes }) => {
+  terminal.onData((bytes) => {
     void terminal.write(bytes)
   })
   terminal.focus()

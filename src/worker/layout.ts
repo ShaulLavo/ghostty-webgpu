@@ -32,7 +32,13 @@ export function observeWorkerLayout(
   observer.observe(elements.root)
   const subscribe = environment?.subscribePixelRatio
   if (subscribe) {
-    const dispose = subscribe.call(environment, onLayout)
+    let dispose: unknown
+    try {
+      dispose = subscribe.call(environment, onLayout)
+    } catch (cause) {
+      observer.disconnect()
+      throw cause
+    }
     if (typeof dispose !== 'function') {
       observer.disconnect()
       throw new TypeError('subscribePixelRatio must return a dispose function')

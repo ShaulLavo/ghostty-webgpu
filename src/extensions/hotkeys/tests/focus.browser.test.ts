@@ -47,7 +47,7 @@ async function fixture(entry: 'main', platform: KeymapPlatform = 'linux', observ
   const copies: string[] = []
   let claims = 0
   let generatedClaims = 0
-  terminal.onData(({ bytes }) => output.push(decoder.decode(bytes)))
+  terminal.onData((bytes) => output.push(decoder.decode(bytes)))
   terminal.on('error', (error) => errors.push(error))
   if (observe)
     terminal.use({

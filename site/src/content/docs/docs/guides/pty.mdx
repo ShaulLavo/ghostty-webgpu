@@ -18,7 +18,7 @@ Call `connectShell(host, socketUrl)`. Keep its disposer. Closing the page's term
 
 ## 2. Preserve the bytes
 
-Set `binaryType` to `arraybuffer`. Pass received frames to `write` as a `Uint8Array` and send each `onData` event's `bytes` directly. Ghostty parses UTF-8 across writes, including code points split between WebSocket frames.
+Set `binaryType` to `arraybuffer`. Pass received frames to `write` as a `Uint8Array` and send `onData` bytes directly. Ghostty parses UTF-8 across writes, including code points split between WebSocket frames.
 
 Send the initial grid on the socket's `open` event. Later `onResize` events update the PTY. Resize messages have `type: 'resize'`, `columns` and `rows`.
 

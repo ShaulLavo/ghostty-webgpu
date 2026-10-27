@@ -10,7 +10,7 @@ ghostty-webgpu has its own native API. Start with [a working terminal](https://g
 | ghostty-web                                       | ghostty-webgpu                                        |
 | ------------------------------------------------- | ----------------------------------------------------- |
 | Separate initialization and terminal construction | Await `Terminal.create`, then await `open`            |
-| String input callbacks                            | `onData` emits `{ bytes, origin }`                    |
+| String input callbacks                            | `onData` emits `Uint8Array` bytes                     |
 | Canvas renderer                                   | Automatic WebGPU, WebGL2, Canvas 2D and DOM selection |
 | Fit addon                                         | Fit to the sized host automatically                   |
 | Font size and family options                      | `appearance.font`, then `setFont`                     |
@@ -21,7 +21,7 @@ These mappings describe ghostty-web 0.4.0 and the current ghostty-webgpu checkou
 
 ## Keep input as bytes
 
-Send each `onData` event's `bytes` directly to your PTY. Set the socket to `arraybuffer` and pass binary output into `write`. The [PTY client](https://ghostty.shaulavo.dev/docs/guides/pty/) includes resize and disposal.
+Send `onData` bytes directly to your PTY. Set the socket to `arraybuffer` and pass binary output into `write`. The [PTY client](https://ghostty.shaulavo.dev/docs/guides/pty/) includes resize and disposal.
 
 ## Load fonts before fitting
 

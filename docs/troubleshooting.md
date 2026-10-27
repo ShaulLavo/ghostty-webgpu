@@ -26,9 +26,9 @@ Find your symptom, check the cause, apply the fix. Each entry names the source t
 
 ## Typing shows nothing
 
-**Cause.** The terminal does not echo. `onData` emits an event whose `bytes` a PTY expects, and a shell echoes them back. With no PTY, nothing writes the keys to the screen. The terminal also needs focus.
+**Cause.** The terminal does not echo. `onData` emits the bytes a PTY expects, and a shell echoes them back. With no PTY, nothing writes the keys to the screen. The terminal also needs focus.
 
-**Fix.** Call `terminal.focus()` after `open()`. Send `onData` event bytes to your PTY and `write()` its output back. For a quick local check, write the bytes back yourself, as the [first-terminal tutorial](https://ghostty.shaulavo.dev/docs/start/quick-start/) does.
+**Fix.** Call `terminal.focus()` after `open()`. Send `onData` bytes to your PTY and `write()` its output back. For a quick local check, write the bytes back yourself, as the [first-terminal tutorial](https://ghostty.shaulavo.dev/docs/start/quick-start/) does.
 
 ## A ZWJ emoji takes four or eight cells
 

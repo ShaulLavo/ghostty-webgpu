@@ -2585,7 +2585,7 @@ describe('integrated terminal UI host', () => {
       'Mouse-exclusive link did not resolve',
     )
     const data: string[] = []
-    harness.terminal.onData(({ bytes }) => data.push(decoder.decode(bytes)))
+    harness.terminal.onData((bytes) => data.push(decoder.decode(bytes)))
 
     const click = dispatchModifiedTerminalClick(harness.terminal, 5, 0)
     await waitForUi(() => activations.length === 1, 'Tracked modified link click did not activate')
@@ -2793,7 +2793,7 @@ describe('integrated terminal UI host', () => {
 
     await terminal.open(host)
     const data: string[] = []
-    terminal.onData(({ bytes }) => data.push(decoder.decode(bytes)))
+    terminal.onData((bytes) => data.push(decoder.decode(bytes)))
     terminal.write('copy me')
     terminal.selectAll()
     const apple = /^(Mac|iPhone|iPad|iPod)/iu.test(navigator.platform)

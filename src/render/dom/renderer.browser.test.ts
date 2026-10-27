@@ -631,7 +631,7 @@ describe('DOM terminal renderer', () => {
     await locator.wheel({ delta: { y: -100 } })
     await vi.waitFor(() => expect(terminal.visibleLines().join('')).toContain('first'))
     const data: string[] = []
-    terminal.onData(({ bytes }) => data.push(new TextDecoder().decode(bytes)))
+    terminal.onData((value) => data.push(new TextDecoder().decode(value)))
     terminal.write('\x1b[?1000h\x1b[?1006h')
     await locator.click({ position: { x: 2, y: 2 } })
     expect(data.join('')).toContain('\x1b[<0;1;1M')

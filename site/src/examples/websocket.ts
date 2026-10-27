@@ -13,7 +13,7 @@ export async function connectShell(host: HTMLElement, url: string) {
   }
   socket.addEventListener('open', sendSize)
   terminal.onResize(sendSize)
-  terminal.onData(({ bytes }) => {
+  terminal.onData((bytes) => {
     if (socket.readyState === WebSocket.OPEN) socket.send(new Uint8Array(bytes))
   })
   socket.addEventListener('message', ({ data }) => {
