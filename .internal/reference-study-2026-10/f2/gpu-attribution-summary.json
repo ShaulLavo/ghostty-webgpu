@@ -1,0 +1,291 @@
+{
+  "durationsAreInclusive": true,
+  "records": [
+    {
+      "trace": "mac-gpu-attribution-candidate-webgl2-burst-output-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 81.08999999999996,
+          "threadCpuMilliseconds": 72.948,
+          "count": 168
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 44.201000000000015,
+          "threadCpuMilliseconds": 32.842,
+          "count": 120
+        },
+        {
+          "name": "ImageTransportSurfaceOverlayMac::Present",
+          "milliseconds": 25.630999999999997,
+          "threadCpuMilliseconds": 24.14799999999999,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "mac-gpu-attribution-candidate-webgl2-burst-output-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 71.43799999999997,
+          "threadCpuMilliseconds": 68.51599999999999,
+          "count": 167
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 41.797,
+          "threadCpuMilliseconds": 32.151999999999994,
+          "count": 120
+        },
+        {
+          "name": "ImageTransportSurfaceOverlayMac::Present",
+          "milliseconds": 24.516999999999996,
+          "threadCpuMilliseconds": 23.662999999999993,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "mac-gpu-attribution-candidate-webgpu-burst-output-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "WebGPU",
+          "milliseconds": 67.94500000000004,
+          "threadCpuMilliseconds": 65.522,
+          "count": 245
+        },
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 67.615,
+          "threadCpuMilliseconds": 65.52400000000004,
+          "count": 247
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 37.253999999999984,
+          "threadCpuMilliseconds": 33.07900000000001,
+          "count": 120
+        },
+        {
+          "name": "ImageTransportSurfaceOverlayMac::Present",
+          "milliseconds": 26.663999999999994,
+          "threadCpuMilliseconds": 25.382999999999996,
+          "count": 120
+        },
+        {
+          "name": "IOSurfaceImageBacking::WaitForCommandsToBeScheduled::Dawn",
+          "milliseconds": 2.938999999999995,
+          "threadCpuMilliseconds": 0.9620000000000006,
+          "count": 121
+        }
+      ]
+    },
+    {
+      "trace": "mac-gpu-attribution-candidate-webgpu-burst-output-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "WebGPU",
+          "milliseconds": 62.318999999999996,
+          "threadCpuMilliseconds": 59.92400000000005,
+          "count": 246
+        },
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 62.07700000000003,
+          "threadCpuMilliseconds": 59.87600000000005,
+          "count": 248
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 36.45300000000001,
+          "threadCpuMilliseconds": 30.24000000000001,
+          "count": 120
+        },
+        {
+          "name": "ImageTransportSurfaceOverlayMac::Present",
+          "milliseconds": 24.67999999999999,
+          "threadCpuMilliseconds": 23.21700000000001,
+          "count": 120
+        },
+        {
+          "name": "IOSurfaceImageBacking::WaitForCommandsToBeScheduled::Dawn",
+          "milliseconds": 4.750999999999996,
+          "threadCpuMilliseconds": 0.8750000000000006,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "pc-ascii-attribution-before-webgpu-external-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 44.905,
+          "threadCpuMilliseconds": 42.279000000000025,
+          "count": 247
+        },
+        {
+          "name": "WebGPU",
+          "milliseconds": 43.72699999999997,
+          "threadCpuMilliseconds": 40.94600000000001,
+          "count": 245
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 27.983999999999998,
+          "threadCpuMilliseconds": 28.906,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "pc-ascii-attribution-before-webgpu-external-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 60.50800000000002,
+          "threadCpuMilliseconds": 57.38000000000004,
+          "count": 247
+        },
+        {
+          "name": "WebGPU",
+          "milliseconds": 58.81600000000003,
+          "threadCpuMilliseconds": 55.528000000000056,
+          "count": 245
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 33.85400000000001,
+          "threadCpuMilliseconds": 33.24700000000001,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "pc-ascii-attribution-candidate-webgl2-external-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 0.528,
+          "threadCpuMilliseconds": 0.512,
+          "count": 5
+        }
+      ]
+    },
+    {
+      "trace": "pc-ascii-attribution-candidate-webgl2-external-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 0.44100000000000006,
+          "threadCpuMilliseconds": 0.42200000000000004,
+          "count": 5
+        }
+      ]
+    },
+    {
+      "trace": "pc-ascii-attribution-candidate-webgpu-external-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 0.249,
+          "threadCpuMilliseconds": 0.243,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "trace": "pc-ascii-attribution-candidate-webgpu-external-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 0.254,
+          "threadCpuMilliseconds": 0.247,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "trace": "pc-gpu-attribution-candidate-webgl2-burst-output-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 15.894999999999998,
+          "threadCpuMilliseconds": 15.924000000000003,
+          "count": 164
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 6.535999999999996,
+          "threadCpuMilliseconds": 6.094000000000001,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "pc-gpu-attribution-candidate-webgl2-burst-output-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 13.423000000000004,
+          "threadCpuMilliseconds": 12.921999999999997,
+          "count": 164
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 6.077000000000001,
+          "threadCpuMilliseconds": 5.6499999999999995,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "pc-gpu-attribution-candidate-webgpu-burst-output-0.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 42.178,
+          "threadCpuMilliseconds": 42.702999999999946,
+          "count": 247
+        },
+        {
+          "name": "WebGPU",
+          "milliseconds": 41.138,
+          "threadCpuMilliseconds": 41.51499999999996,
+          "count": 245
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 27.141000000000005,
+          "threadCpuMilliseconds": 26.66100000000001,
+          "count": 120
+        }
+      ]
+    },
+    {
+      "trace": "pc-gpu-attribution-candidate-webgpu-burst-output-1.trace.json.gz",
+      "inclusiveScopes": [
+        {
+          "name": "CommandBuffer::Flush",
+          "milliseconds": 48.36499999999998,
+          "threadCpuMilliseconds": 48.732,
+          "count": 247
+        },
+        {
+          "name": "WebGPU",
+          "milliseconds": 47.10700000000001,
+          "threadCpuMilliseconds": 47.33699999999999,
+          "count": 245
+        },
+        {
+          "name": "SkiaOutputSurfaceImplOnGpu::SwapBuffers",
+          "milliseconds": 28.39200000000001,
+          "threadCpuMilliseconds": 29.362000000000002,
+          "count": 120
+        }
+      ]
+    }
+  ]
+}

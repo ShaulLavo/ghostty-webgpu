@@ -701,7 +701,7 @@ it('coalesces a runtime font change into one full repaint', async () => {
   canvas.remove()
 })
 
-it('publishes immutable copied frame state only after submitted frames', async () => {
+it('publishes immutable copied frame state after accepted updates', async () => {
   const clock = new FakeClock()
   const source = new FakeRenderState(2, 2)
   const frames: RendererFrameSnapshot[] = []

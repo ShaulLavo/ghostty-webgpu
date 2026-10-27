@@ -29,9 +29,9 @@ Selection, `readLines`, accessibility text, and every renderer read the same nat
 - **WebGPU and WebGL2** use a frame builder written in Zig and shipped as `bridge.wasm`. It keeps persistent cell and glyph records for the whole viewport. JavaScript rasterizes any glyph the browser font has not drawn yet, then uploads only the changed byte ranges.
 - **Canvas 2D and the DOM** read rows straight from the core and repaint changed rows with their own reuse strategies.
 
-A resize, font change, palette change, or lost GPU resource can need a full repaint. `onFrame` reports the rows each submitted frame painted.
+A resize, font change, palette change, or lost GPU resource can need a full repaint. `onFrame` reports accepted row changes. Identical GPU records can reuse the current image without another submission.
 
-Two reads answer different questions. `readLines` reads live native state, which can be ahead of the screen. `visibleLines` reads the last submitted viewport, which is what the user sees. See [damage tracking](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/) for observers.
+Two reads answer different questions. `readLines` reads live native state, which can be ahead of the screen. `visibleLines` reads the last accepted displayed viewport, which is what the user sees. See [damage tracking](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/) for observers.
 
 ## Four renderers and the order they are tried
 
