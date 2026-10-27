@@ -1,3 +1,5 @@
+import { createNm } from './study-nm.mjs'
+import { createWraith } from './study-wraith.mjs'
 import {
   expectedScreen,
   inputChunks,
@@ -34,7 +36,7 @@ import {
   rollingByteCount,
   rollingFixture,
   rollingInputs,
-  settings,
+  settings as baseSettings,
   spotCheck,
   type ComparisonCase,
   type FixtureName,
@@ -42,7 +44,18 @@ import {
   type RollingFixtureName,
 } from './comparison-fixtures.js'
 
-interface Driver {
+document.body.classList.toggle('study', new URL(location.href).searchParams.has('study'))
+
+const settings = {
+  ...baseSettings,
+  ...(new URL(location.href).searchParams.has('study') ? { columns: 100, rows: 30 } : {}),
+}
+
+export interface Driver {
+  complete?(): Promise<void>
+  asyncText?(): Promise<readonly string[]>
+  resize?(columns: number, rows: number): void
+  metadata?(): unknown
   write(data: string | Uint8Array): Promise<void>
   text(): readonly string[]
   history(): number
@@ -194,11 +207,22 @@ async function createNative(host: HTMLElement): Promise<Driver> {
       terminal.write(data)
     },
     text: () => terminal.visibleLines(),
+    complete: async () => {
+      let frames = 0
+      while (mountedRenderer?.hasPendingFrame && frames++ < 120) await frame()
+      if (mountedRenderer?.hasPendingFrame)
+        throw new Error('Render did not submit within 120 frames')
+      const device = mountedRenderer && Reflect.get(mountedRenderer, 'device')
+      if (device instanceof GPUDevice) await device.queue.onSubmittedWorkDone()
+    },
     frameMetrics: () => (mountedRenderer ? { ...mountedRenderer.metrics } : undefined),
     history: () => terminal.lineCount() - settings.rows,
     focus: () => terminal.focus(),
     onData: (listener) => {
       terminal.onData(listener)
+    },
+    resize: (columns, rows) => {
+      session.resize({ columns, rows })
     },
     dispose: () => terminal.dispose(),
   }
@@ -227,6 +251,7 @@ async function createLegacy(host: HTMLElement): Promise<Driver> {
     onData: (listener) => {
       terminal.onData(listener)
     },
+    resize: (columns, rows) => terminal.resize(columns, rows),
     dispose: () => terminal.dispose(),
   }
 }
@@ -267,6 +292,7 @@ function createXterm(host: HTMLElement): Driver {
     onData: (listener) => {
       terminal.onData(listener)
     },
+    resize: (columns, rows) => terminal.resize(columns, rows),
     dispose: () => terminal.dispose(),
   }
 }
@@ -286,6 +312,8 @@ async function createTerminals(): Promise<void> {
     if (current.variant !== 'ghostty-web' && current.variant.startsWith('ghostty-'))
       driver = await createNative(host)
     else if (current.variant === 'ghostty-web') driver = await createLegacy(host)
+    else if (current.variant === 'nm-webgpu') driver = await createNm(host, settings)
+    else if (current.variant === 'wraith-native') driver = await createWraith(host, settings)
     else driver = createXterm(host)
     drivers.push(driver)
   }
@@ -298,19 +326,31 @@ async function writeAll(text: string): Promise<void> {
   await Promise.all(drivers.map((driver) => driver.write(data)))
 }
 
+async function driverTexts() {
+  return Promise.all(drivers.map((driver) => driver.asyncText?.() ?? driver.text()))
+}
+
+function spotQualified(lines: readonly string[]): boolean {
+  return Boolean(
+    lines[0]?.includes('ASCII abc 123') &&
+    lines[1]?.includes('red green') &&
+    lines[2]?.includes('日本語') &&
+    lines[6]?.includes('overwrite new') &&
+    lines[2]?.includes('é') &&
+    lines[3]?.includes('👩‍💻') &&
+    lines[3]?.includes('👨‍👩‍👧‍👦'),
+  )
+}
+
 async function correctness(): Promise<unknown> {
   await writeAll(spotCheck)
-  await settle()
-  const output = drivers.map((driver) => driver.text())
-  for (const lines of output) {
-    if (!lines[0]?.includes('ASCII abc 123') || !lines[1]?.includes('red green'))
-      throw new Error('ASCII / SGR spot check failed')
-    if (!lines[2]?.includes('日本語') || !lines[6]?.includes('overwrite new'))
-      throw new Error('Wide text / cursor spot check failed')
-    if (!lines[2]?.includes('é') || !lines[3]?.includes('👩‍💻') || !lines[3]?.includes('👨‍👩‍👧‍👦'))
-      throw new TypeError('Combining text / ZWJ spot check failed')
+  let output = await driverTexts()
+  for (let attempt = 0; attempt < 120; attempt++) {
+    if (output.every(spotQualified)) return output
+    await frame()
+    output = await driverTexts()
   }
-  return output
+  throw new Error(`Submitted text spot check failed: ${JSON.stringify(output)}`)
 }
 
 async function initialize(testCase: ComparisonCase): Promise<void> {
@@ -750,7 +790,73 @@ function legacyMemoryBytes(): number {
   return memory.buffer.byteLength
 }
 
+let studyChunks: Uint8Array[] = []
+let studyFenced = false
+async function runStudy(steps: number) {
+  const samples: number[] = []
+  const completions: number[] = []
+  const started = performance.now()
+  let bytes = 0
+  const intervals = await pacedBurst(
+    async () => {
+      const chunk = studyChunks[samples.length % studyChunks.length]!
+      const at = performance.now()
+      await Promise.all(drivers.map((driver) => driver.write(chunk)))
+      samples.push(performance.now() - at)
+      if (studyFenced) {
+        await Promise.all(drivers.map((driver) => driver.complete?.()))
+        completions.push(performance.now() - at)
+      }
+      bytes += chunk.length * drivers.length
+    },
+    frame,
+    steps,
+  )
+  await settle()
+  return {
+    milliseconds: performance.now() - started,
+    bytes,
+    intervals,
+    writeMilliseconds: samples,
+    completionMilliseconds: completions,
+  }
+}
+
+function comparisonInfo() {
+  return {
+    settings,
+    adapter: adapterInfo,
+    metadata: drivers.map((driver) => driver.metadata?.()),
+    dpr: devicePixelRatio,
+    font: settings.fontFamily,
+    wasmBytes: native?.exports.memory.buffer.byteLength ?? legacyMemoryBytes(),
+    canvases: Array.from(mount.querySelectorAll('canvas'), (canvas) => ({
+      width: canvas.width,
+      height: canvas.height,
+      bounds: canvas.getBoundingClientRect().toJSON(),
+    })),
+    texts: drivers.map((driver) => driver.text()),
+    frameMetrics: drivers.map((driver) => driver.frameMetrics?.()),
+  }
+}
+
+async function studyInfo() {
+  return { ...comparisonInfo(), texts: await driverTexts() }
+}
+
 window.__compare = {
+  studyInfo,
+  studyPrepare: (chunks: number[][]) => {
+    studyChunks = chunks.map((chunk) => new Uint8Array(chunk))
+  },
+  studyRun: runStudy,
+  studyFence: (enabled: boolean) => {
+    studyFenced = enabled
+  },
+  studyWrite: writeAll,
+  studyResize: (columns: number, rows: number) => {
+    drivers.forEach((driver) => driver.resize?.(columns, rows))
+  },
   initialize,
   legacyEmptyWrite,
   legacyOriginalUnicode,
@@ -767,18 +873,7 @@ window.__compare = {
   writeMarker,
   refreshPeriod,
   keyTime: () => keyTime,
-  info: () => ({
-    adapter: adapterInfo,
-    dpr: devicePixelRatio,
-    font: settings.fontFamily,
-    wasmBytes: native?.exports.memory.buffer.byteLength ?? legacyMemoryBytes(),
-    canvases: Array.from(mount.querySelectorAll('canvas'), (canvas) => ({
-      width: canvas.width,
-      height: canvas.height,
-    })),
-    texts: drivers.map((driver) => driver.text()),
-    frameMetrics: drivers.map((driver) => driver.frameMetrics?.()),
-  }),
+  info: comparisonInfo,
   fixtureNames,
   cancelRefresh: refresh.cancel,
   traceBegin: () => tracing.begin(),
@@ -795,6 +890,12 @@ window.__compare = {
 declare global {
   interface Window {
     __compare: {
+      studyInfo: typeof studyInfo
+      studyRun: typeof runStudy
+      studyFence: (enabled: boolean) => void
+      studyPrepare: (chunks: number[][]) => void
+      studyWrite: typeof writeAll
+      studyResize: (columns: number, rows: number) => void
       initialize: typeof initialize
       legacyEmptyWrite: typeof legacyEmptyWrite
       legacyOriginalUnicode: typeof legacyOriginalUnicode
@@ -812,7 +913,7 @@ declare global {
       refreshPeriod: typeof refreshPeriod
       cancelRefresh: () => number[]
       keyTime: () => number
-      info: () => unknown
+      info: typeof comparisonInfo
       fixtureNames: typeof fixtureNames
       traceBegin: () => void
       traceEnd: () => unknown
