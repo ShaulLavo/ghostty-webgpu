@@ -216,16 +216,23 @@ async function browserResources() {
   )
   if (!headless) assert(freeMiB >= 2048, `only ${freeMiB} MiB VRAM free`)
   const browser = await chromium.launch({ channel: 'chromium', headless, args })
-  const raw = await RawCdp.connect()
-  const browserCdp = await browser.newBrowserCDPSession()
-  const gpuInfo = await browserCdp.send('SystemInfo.getInfo')
-  if (!headless)
-    assert(
-      typeof gpuInfo.gpu.auxAttributes?.glRenderer === 'string' &&
-        !/swiftshader|llvmpipe|software/iu.test(gpuInfo.gpu.auxAttributes.glRenderer),
-      'hardware adapter required',
-    )
-  return { browser, raw, browserCdp, gpuInfo, args, freeMiB, session: randomUUID() }
+  let raw: RawCdp | undefined
+  try {
+    raw = await RawCdp.connect()
+    const browserCdp = await browser.newBrowserCDPSession()
+    const gpuInfo = await browserCdp.send('SystemInfo.getInfo')
+    if (!headless)
+      assert(
+        typeof gpuInfo.gpu.auxAttributes?.glRenderer === 'string' &&
+          !/swiftshader|llvmpipe|software/iu.test(gpuInfo.gpu.auxAttributes.glRenderer),
+        'hardware adapter required',
+      )
+    return { browser, raw, browserCdp, gpuInfo, args, freeMiB, session: randomUUID() }
+  } catch (cause) {
+    raw?.close()
+    await browser.close()
+    throw cause
+  }
 }
 
 async function measure(
