@@ -2,7 +2,9 @@
 
 Decision: **REJECT** this WebGL2 prototype. Date: 2026-10-27. Plan item X4, study experiment E6.
 
-The pool cuts host work and worker CPU substantially, with equal text, pixels, and delivered updates. It does not meet the 16-terminal total-memory requirement. Five of six cases save only 12–14%; only 80×24 Unicode reaches 30%. A 4-terminal Unicode p99 case also exceeds the latency limit. Do not schedule a production pool PR from this result.
+The combined topology and publication change reduces host time per published frame by 65–93%. Text, pixels, and delivered updates match. This two-arm experiment cannot quantify the separate contributions of worker pooling and binary row-delta publication.
+
+The measured bundle does not meet the 16-terminal total-memory requirement. Five of six cases save only 12–14%; only 80×24 Unicode reaches 30%. A 4-terminal Unicode p99 case also exceeds the latency limit. Do not schedule a production pool PR from this result.
 
 The experiment leaves production source unchanged. The [prototype and reproducer](https://github.com/ShaulLavo/ghostty-webgpu/tree/research/worker-pool) stay on `research/worker-pool`. The measured source is `8ff7f602a7a708a8cbab43eede1aaba0c9e16e3f`. Both arms use the package source from `d2ed8989a`; the control runs its existing `WorkerTerminalExecution` and `TerminalWorkerRuntime` with WebGL2. No core, bridge, or renderer implementation was patched.
 
@@ -55,6 +57,8 @@ One pooled worker owns one `GhosttyRuntime` and one WebGL2 context. Every sessio
 
 The pool transfers binary UTF-8 row deltas. An eight-byte header precedes twelve bytes per changed row and the row text. The host retains unchanged rows. The control publishes its existing full structured-clone frame graph and restores readonly values through the existing host path.
 
+These changes have different mechanisms. Pooling removes worker-isolate and runtime duplication, while retaining per-terminal atlases and buffers and adding framebuffer/copy targets. Binary deltas avoid materializing and cloning the full snapshot graph and recursively freezing it on the host. That publication change is a candidate explanation for the host-time win, but its isolated effect was not measured. It can also reduce snapshot allocations, so the host-memory reduction cannot all be assigned to pooling.
+
 Each pair shares a browser session, source, input chunks, geometry, font, and DPR. Order is control/pool in repetition zero and pool/control in repetition one. Each pair closes its browser before the next opens. The shared PC runner grants a quiet benchmark slot; free VRAM is checked before every headed browser, with a 2 GiB minimum.
 
 The page performs eight warmup steps and sixty measured steps. Terminal zero writes at every step; each sibling writes every fourth step. Writes acknowledge parser acceptance. The instrument then waits for that step's frame before advancing, so every measured write produces one delivered update. This is a paced workload, not an unbounded backlog or presentation-latency measurement.
@@ -69,9 +73,36 @@ At both 4 and 16 sessions, the probe disposes the last session, writes through t
 
 The memory result is the decisive failure. Host PSS falls by 27–60% at 16 terminals, but the total also contains GPU resources. The pool keeps per-terminal atlases and buffers and adds framebuffer/copy targets. Counting only the worker heap or host PSS would conceal most of the memory retained by this prototype.
 
-Device-VRAM deltas can include compositor changes and driver caching. Counterbalanced pairs reduce order bias, and host PSS is reported separately. Worker CPU has 10 ms tick resolution, so the smallest CPU samples are descriptive. No confidence interval or energy claim is made. Each run has only sixty busiest-terminal acknowledgements, so its p99 is the largest observation. The isolated p99 miss is a tail warning, not proof of a persistent latency regression; the memory failure stands independently.
+Device-VRAM deltas can include compositor changes and driver caching. Counterbalanced pairs reduce order bias, and host PSS is reported separately. Worker CPU has 10 ms tick resolution, so the smallest CPU samples are descriptive. No confidence interval or energy claim is made. Each run has only sixty busiest-terminal acknowledgements, so its p99 is the largest observation.
+
+The cause of the Unicode p99 miss is unresolved and unattributed. It is not evidence against binary encoding or proof of pool contention. The pool posts the parse acknowledgement before the later renderer callback encodes its frame, and the instrument waits for that step's frames before the next step. That write's later encoding therefore cannot be directly charged to its parse acknowledgement. Scheduling, GC, or earlier shared-worker work remain possible causes. The packet has no queue/encode timings or separate topology/publication arms to distinguish them. The memory failure supports rejection independently of this unresolved tail observation.
 
 This sketch transports row text, not the complete public API. A production binary protocol would also have to retain cell boundaries, continuation flags, cursor and layout identities, selection, link semantics, and event ordering. The WebGPU variant, true compositor presentation, sustained-backlog fairness, and the full L6 workload set were not tested. This rejects the measured WebGL2 framebuffer/copy design, not every possible worker pool or binary publication scheme.
+
+## Delta-only follow-up
+
+Status: Approved for coordinator scheduling. Not started. The REJECT decision above applies to the measured pooling bundle; it does not decide the value of binary publication by itself.
+
+Compare today's full structured-clone publication with binary row deltas while keeping one worker, one runtime, and one direct WebGL2 renderer context per terminal in both arms. Keep the existing per-terminal resources and direct canvas presentation. Do not introduce the shared framebuffer/copy design. The hypothesis is that avoiding the snapshot graph preserves the host-time win without requiring a pool or reproducing its unresolved p99 miss.
+
+Use the same headed hardware PC cohort, with mixed-edit, sustained-logs, and unicode-varied workloads; 4 and 16 terminals; 200×50 and 80×24 grids; DPR 2; matched fonts and input. Use same-browser, counterbalanced pairs and the existing measurement endpoints. The busiest terminal keeps the same write schedule. Attach CDP to every live worker target and include all worker isolates in resident-memory accounting.
+
+All of these gates must pass before keeping the delta-only design:
+
+| Requirement                               | Gate                                                                                                                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Host main-thread time per published frame | At least 50% below the unchanged control in every cohort condition.                                                                                                                                                            |
+| Parsed input                              | Identical input bytes, ordering, byte counts, and parsed updates.                                                                                                                                                              |
+| Public snapshots and observers            | Complete existing snapshot contents, ownership, and observer behavior, including cell boundaries, continuation flags, cursor/layout identities, selection, links, and event ordering. A row-text-only shortcut cannot qualify. |
+| Acknowledgements                          | Unchanged public acknowledgement meaning, ordering, completion, and error behavior.                                                                                                                                            |
+| Output and delivery                       | Equal text and pixels, including wide, combining, overhanging, and color glyphs; equal delivered updates. Record parsed, submitted, and presented counts separately, identifying any unresolved presentation endpoint.         |
+| Busiest-terminal acknowledgement latency  | Both p95 and p99 at most 1.2× the control.                                                                                                                                                                                     |
+| Worker CPU                                | No regression against the control in any condition.                                                                                                                                                                            |
+| Total resident memory                     | No regression against the control, including worker isolates and GPU memory.                                                                                                                                                   |
+
+The pooling experiment's 30% memory-saving threshold does not apply to this publication-only experiment. Its memory gate is no regression.
+
+Record worker queue-entry, parse-acknowledgement, frame-encoding/publication, and host-receive timings joined by write/frame identity, plus available GC evidence. Test whether the host win survives and the Unicode latency miss disappears with independent workers. A causal p99 diagnosis requires that evidence; neither outcome can be inferred from this packet. The coordinator owns scheduling and execution of this follow-up.
 
 ## Reproduce and verify
 
