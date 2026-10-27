@@ -408,6 +408,9 @@ export class WorkerTerminalExecution {
   write(...args: Parameters<LocalTerminalExecution['write']>) {
     return this.request('write', args)
   }
+  writeOwned(data: Uint8Array) {
+    return this.request('write', [data], [data.buffer as ArrayBuffer])
+  }
   writeln(...args: Parameters<LocalTerminalExecution['writeln']>) {
     return this.request('writeln', args)
   }

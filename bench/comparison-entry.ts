@@ -50,6 +50,8 @@ document.body.classList.toggle('study', new URL(location.href).searchParams.has(
 
 const settings = {
   ...baseSettings,
+  columns: Number(new URL(location.href).searchParams.get('columns') ?? baseSettings.columns),
+  rows: Number(new URL(location.href).searchParams.get('rows') ?? baseSettings.rows),
   ...(new URL(location.href).searchParams.has('study') ? { columns: 100, rows: 30 } : {}),
 }
 
@@ -61,6 +63,7 @@ export interface Driver {
   write(data: string | Uint8Array): Promise<void>
   text(): readonly string[]
   history(): number
+  pendingWriteBytes?(): number
   focus(): void
   onData(listener: (data: string | Uint8Array) => void): void
   dispose(): void
@@ -72,6 +75,8 @@ export interface Driver {
 
 const accessibility = new URLSearchParams(location.search).get('accessibility') === 'on'
 const tracing = new ComparisonTracing()
+const writeMode = new URL(location.href).searchParams.get('writeMode') ?? 'sync'
+const sustained = new URL(location.href).searchParams.has('sustained')
 const mount = document.querySelector('main')!
 let drivers: Driver[] = []
 let native: GhosttyRuntime | undefined
@@ -86,6 +91,11 @@ interface PreparedBurst {
 }
 let preparedBursts = new Map<FixtureName, PreparedBurst>()
 let keyTime = 0
+let echoColor: 'red' | 'green' = 'red'
+let sustainedOutput: Promise<void> | undefined
+const sustainedWrites = new Set<Promise<void>>()
+let sustainedStarted = 0
+let sustainedMetrics: Record<string, number>[] = []
 let socket: WebSocket | undefined
 let adapterInfo: unknown
 const decoder = new TextDecoder()
@@ -203,9 +213,13 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     throw event.cause
   })
   await terminal.open(host)
-  tracing.wrap(terminal, 'write', drivers.length, 'js')
+  tracing.wrap(terminal, writeMode === 'batched' ? 'writeBatched' : 'write', drivers.length, 'js')
   return {
     write: async (data) => {
+      if (writeMode === 'batched') {
+        await terminal.writeBatched(data)
+        return
+      }
       terminal.write(data)
     },
     text: () => terminal.visibleLines(),
@@ -221,6 +235,7 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     },
     frameMetrics: () => (mountedRenderer ? { ...mountedRenderer.metrics } : undefined),
     history: () => terminal.lineCount() - settings.rows,
+    pendingWriteBytes: () => terminal.pendingWriteBytes,
     focus: () => terminal.focus(),
     onData: (listener) => {
       terminal.onData(listener)
@@ -330,6 +345,59 @@ async function createTerminals(): Promise<void> {
 async function writeAll(text: string): Promise<void> {
   const data = input(text)
   await Promise.all(drivers.map((driver) => driver.write(data)))
+}
+
+function sustainedChunk(sequence: number): InputChunk {
+  const line = `${String(sequence).padStart(8, '0')} ${'terminal-output '.repeat(Math.ceil(settings.columns / 16))}`
+  return input(`\x1b[${settings.rows};1H\x1b[2K${line.slice(0, settings.columns - 2)}`)
+}
+
+async function startSustainedOutput(chunks: number): Promise<void> {
+  await writeAll('\x1b[0m\x1b[2J\x1b[H')
+  await settle()
+  sustainedMetrics = drivers.map((driver) => ({ ...driver.frameMetrics?.() }))
+  sustainedStarted = performance.now()
+  sustainedOutput = (async () => {
+    for (let sequence = 0; sequence < chunks; sequence += 1) {
+      const chunk = sustainedChunk(sequence)
+      for (const driver of drivers) {
+        const write = driver.write(chunk)
+        sustainedWrites.add(write)
+        void write.then(
+          () => sustainedWrites.delete(write),
+          () => sustainedWrites.delete(write),
+        )
+        while ((driver.pendingWriteBytes?.() ?? 0) > 4 * 1024 * 1024)
+          await Promise.race(Array.from(sustainedWrites))
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+  })()
+}
+
+async function finishSustainedOutput(chunks: number, chunkBytes: number) {
+  await sustainedOutput
+  await Promise.all(Array.from(sustainedWrites))
+  await settle()
+  const elapsedMilliseconds = performance.now() - sustainedStarted
+  return {
+    elapsedMilliseconds,
+    parsedBytes: chunks * drivers.length * chunkBytes,
+    parsedWrites: chunks * drivers.length,
+    submittedFrames: drivers.reduce(
+      (total, driver) => total + (driver.frameMetrics?.()?.submittedFrames ?? 0),
+      0,
+    ),
+    submittedFrameDelta: drivers.reduce((total, driver, index) => {
+      const after = driver.frameMetrics?.()?.submittedFrames ?? 0
+      const before = sustainedMetrics[index]?.submittedFrames ?? 0
+      return total + after - before
+    }, 0),
+    pendingWriteBytes: drivers.reduce(
+      (total, driver) => total + (driver.pendingWriteBytes?.() ?? 0),
+      0,
+    ),
+  }
 }
 
 async function driverTexts() {
@@ -746,6 +814,10 @@ async function connectEcho(): Promise<void> {
   socket.binaryType = 'arraybuffer'
   socket.onmessage = (event: MessageEvent<ArrayBuffer>) => {
     tracing.mark('echo-received')
+    if (sustained) {
+      void drivers[0]!.write(input(marker(echoColor)))
+      return
+    }
     const bytes = new Uint8Array(event.data)
     void drivers[0]!.write(current.path === 'bytes' ? bytes : decoder.decode(bytes))
   }
@@ -764,6 +836,7 @@ async function connectEcho(): Promise<void> {
 }
 
 async function prepareInput(color: 'red' | 'green'): Promise<void> {
+  echoColor = color
   await drivers[0]!.write(
     input(`\x1b[H\x1b[K\x1b[38;2;${color === 'red' ? '255;0;0' : '0;255;0'}m`),
   )
@@ -885,6 +958,12 @@ window.__compare = {
   cancelRefresh: refresh.cancel,
   traceBegin: () => tracing.begin(),
   traceEnd: () => tracing.end(),
+  startSustainedOutput,
+  finishSustainedOutput,
+  sustainedChunkBytes: () => {
+    const chunk = sustainedChunk(0)
+    return typeof chunk === 'string' ? encoder.encode(chunk).byteLength : chunk.byteLength
+  },
   dispose: () => {
     socket?.close()
     drivers.forEach((driver) => driver.dispose())
@@ -924,6 +1003,9 @@ declare global {
       fixtureNames: typeof fixtureNames
       traceBegin: () => void
       traceEnd: () => unknown
+      startSustainedOutput: typeof startSustainedOutput
+      finishSustainedOutput: typeof finishSustainedOutput
+      sustainedChunkBytes: () => number
       dispose: () => void
     }
   }

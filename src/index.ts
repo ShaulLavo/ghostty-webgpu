@@ -66,6 +66,7 @@ export type {
 } from './dom/fit.js'
 export type { TerminalPointerOwner } from './dom/pointer.js'
 export type { TerminalApi, TerminalResult } from './dom/terminal-api.js'
+export type { TerminalBatchedWriteOptions, TerminalWriteQueueOptions } from './dom/write-queue.js'
 export type {
   Contributions,
   Extension,
