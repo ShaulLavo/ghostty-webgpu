@@ -10,7 +10,10 @@ import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
 import { ZigFrameBuilder } from './zig-frame.js'
 import { DisplayedFrameStore } from './displayed-frame.js'
-import { retainDisplayedFrame } from '../render/shared/displayed-frame.js'
+import {
+  captureRenderAcknowledgement,
+  retainDisplayedFrame,
+} from '../render/shared/displayed-frame.js'
 import { RowReader } from './row-reader.js'
 import { TextRowReader } from './text-row-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
@@ -280,7 +283,7 @@ class SharedRenderState {
 
   acknowledgeConsumer(consumer: GhosttyRenderState, version: number): number {
     const damage = this.damage?.get(consumer)
-    if (!damage) return this.acknowledge()
+    if (!damage) return version < this.snapshotRevision ? 0 : this.acknowledge()
     let count = 0
     for (const [row, changedAt] of damage.rows) {
       if (changedAt > version) continue
@@ -552,6 +555,7 @@ export class GhosttyRenderState {
   private readonly unsubscribeRenderRequest: () => void
   private displayedFrames?: DisplayedFrameStore
   private observedVersion = 0
+  private acknowledgingVersion?: number
   private disposed = false
 
   constructor(
@@ -638,7 +642,16 @@ export class GhosttyRenderState {
 
   acknowledge(): number {
     this.ensureActive()
-    return this.snapshotState.acknowledgeConsumer(this, this.observedVersion)
+    return this.snapshotState.acknowledgeConsumer(
+      this,
+      this.acknowledgingVersion ?? this.observedVersion,
+    )
+  }
+
+  [captureRenderAcknowledgement](): () => number {
+    this.ensureActive()
+    const version = this.observedVersion
+    return () => this.acknowledgeVersion(version)
   }
 
   dispose(): void {
@@ -649,6 +662,18 @@ export class GhosttyRenderState {
     this.snapshotState.release(this)
     this.runtime.releaseRenderState(this)
     this.disposed = true
+  }
+
+  private acknowledgeVersion(version: number): number {
+    this.ensureActive()
+    const previous = this.acknowledgingVersion
+    this.acknowledgingVersion = version
+    // Keep public acknowledgement decorators while binding this submission's version.
+    try {
+      return this.acknowledge()
+    } finally {
+      this.acknowledgingVersion = previous
+    }
   }
 
   private prepare(): void {

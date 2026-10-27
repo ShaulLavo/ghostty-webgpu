@@ -1,6 +1,9 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../runtime.js'
-import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
+import {
+  captureRenderAcknowledgement,
+  retainDisplayedFrame,
+} from '../../render/shared/displayed-frame.js'
 import { RenderStateDirty } from '../abi.js'
 import type { GhosttyRenderState } from '../render-state.js'
 
@@ -10,6 +13,7 @@ afterEach(() => {
   runtime?.dispose()
   runtime = undefined
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 function text(state: GhosttyRenderState): string | undefined {
@@ -211,7 +215,7 @@ it.each([
     const options = {
       cellWidth: 10,
       cellHeight: 20,
-      theme: canonicalRendererTheme(mergeRendererTheme()),
+      theme: canonicalRendererTheme(mergeRendererTheme(undefined)),
       full: true,
       overlayRows: new Set<number>(),
     }
@@ -234,4 +238,47 @@ it.each([
   } finally {
     builder.dispose()
   }
+})
+
+it.each([false, true])(
+  'binds deferred acknowledgement to the consumed version with another subscriber=%s',
+  async (anotherSubscriber) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 16, rows: 3 })
+    const first = runtime.createRenderState(terminal)
+    const second = anotherSubscriber ? runtime.createRenderState(terminal) : first
+    terminal.write('old')
+    first.update()
+    first.acknowledge()
+    second.update()
+    second.acknowledge()
+    terminal.write(' before')
+    first.update()
+    const acknowledge = first[captureRenderAcknowledgement]()
+    const publicAcknowledge = vi.spyOn(first, 'acknowledge')
+    terminal.write('\rNEW')
+    second.update()
+    expect(text(first)).toBe('NEW before')
+    expect(acknowledge()).toBe(0)
+    expect(publicAcknowledge).toHaveBeenCalledOnce()
+    expect(first.dirty).not.toBe(RenderStateDirty.False)
+    expect(first.acknowledge()).toBe(1)
+    expect(first.dirty).toBe(RenderStateDirty.False)
+  },
+)
+
+it('restores the current acknowledgement version after a deferred acknowledgement throws', async () => {
+  const { terminal, first, second } = await createPair()
+  terminal.write(' before')
+  first.update()
+  const acknowledge = first[captureRenderAcknowledgement]()
+  terminal.write('\rNEW')
+  second.update()
+  expect(text(first)).toBe('NEW before')
+  vi.spyOn(first, 'acknowledge').mockImplementationOnce(() => {
+    throw new Error('Rejected acknowledgement')
+  })
+  expect(acknowledge).toThrow('Rejected acknowledgement')
+  expect(first.acknowledge()).toBe(1)
+  expect(first.dirty).toBe(RenderStateDirty.False)
 })

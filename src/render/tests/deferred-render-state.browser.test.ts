@@ -1,9 +1,13 @@
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../../dist/core/runtime.js'
 import { WebGpuTerminalRenderer } from '../../../dist/render/webgpu/renderer.js'
 import { FrameCoordinator } from '../../../dist/render/shared/frame-coordinator.js'
-import { observeDisplayedFrame } from '../../../dist/render/shared/displayed-frame.js'
+import {
+  observeDisplayedFrame,
+  type DisplayedFrameOptions,
+} from '../../../dist/render/shared/displayed-frame.js'
+import type { WebGpuTerminalRendererOptions } from '../../../dist/render/shared/types.js'
 import type { GhosttyTerminal } from '../../../dist/core/terminal.js'
 import type { GhosttyRenderState } from '../../../dist/core/render-state.js'
 import { probeFont } from '../dom/tests/probe.js'
@@ -23,7 +27,7 @@ async function fixture() {
   document.body.append(host)
   let retained = ''
   try {
-    const renderer = await WebGpuTerminalRenderer.create({
+    const options = {
       canvas,
       columns: 16,
       rows: 3,
@@ -34,7 +38,8 @@ async function fixture() {
       [observeDisplayedFrame]: (frame) => {
         retained = frame.rows[0]?.text.trimEnd() ?? ''
       },
-    })
+    } satisfies WebGpuTerminalRendererOptions & DisplayedFrameOptions
+    const renderer = await WebGpuTerminalRenderer.create(options)
     return { runtime, terminal, first, second, host, renderer, readRetained: () => retained }
   } catch (cause) {
     runtime.dispose()
@@ -89,9 +94,37 @@ it.each([false, true])(
       await expect.poll(readRetained).toBe('NEW before')
       expect(first.dirty).toBe(0)
     } finally {
-      renderer.dispose()
+      await renderer.dispose()
       runtime.dispose()
       host.remove()
     }
   },
 )
+
+it('discards the staged retained frame when deferred submission fails and retries the damage', async () => {
+  const { runtime, terminal, first, host, renderer, readRetained } = await fixture()
+  let restore = () => {}
+  try {
+    terminal.write('old')
+    renderer.notifyWrite()
+    await expect.poll(readRetained).toBe('old')
+    const device: unknown = Reflect.get(renderer, 'device')
+    if (!(device instanceof GPUDevice)) throw new Error('Missing GPU device')
+    const submit = vi.spyOn(device.queue, 'submit').mockImplementationOnce(() => {
+      throw new Error('Injected submission failure')
+    })
+    restore = () => submit.mockRestore()
+    terminal.write(' before')
+    renderer.notifyWrite()
+    await nextFrame()
+    expect(readRetained()).toBe('old')
+    expect(first.dirty).not.toBe(0)
+    await expect.poll(readRetained).toBe('old before')
+    expect(first.dirty).toBe(0)
+  } finally {
+    restore()
+    await renderer.dispose()
+    runtime.dispose()
+    host.remove()
+  }
+})
