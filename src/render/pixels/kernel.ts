@@ -85,14 +85,27 @@ export class ComposeKernel implements StampStorage {
     )
   }
 
-  static async create(): Promise<ComposeKernel> {
+  static async create(
+    source: string | URL = runtimeWasmAssets.canvasCompose,
+  ): Promise<ComposeKernel> {
     try {
-      const response = await fetch(runtimeWasmAssets.canvasCompose)
-      if (!response.ok) throw createGhosttyError('canvas.load', 'Canvas compositor download failed')
-      const { instance } = await WebAssembly.instantiate(await response.arrayBuffer())
+      let bytes = await compositorBytes(source)
+      if (!WebAssembly.validate(bytes)) {
+        if (source !== runtimeWasmAssets.canvasCompose) {
+          throw createGhosttyError('canvas.load', 'Canvas compositor is not valid WebAssembly')
+        }
+        bytes = await compositorBytes(runtimeWasmAssets.canvasComposeScalar)
+      }
+      const { instance } = await WebAssembly.instantiate(bytes)
       return new ComposeKernel(instance.exports as unknown as ComposeExports)
     } catch (cause) {
       throw createGhosttyError('canvas.load', 'Canvas pixel composition is unavailable', cause)
     }
   }
+}
+
+async function compositorBytes(source: string | URL): Promise<ArrayBuffer> {
+  const response = await fetch(source)
+  if (!response.ok) throw createGhosttyError('canvas.load', 'Canvas compositor download failed')
+  return response.arrayBuffer()
 }

@@ -53,6 +53,7 @@ async function fixture(context, run) {
       await writeFile(join(root, 'bridge.wasm'), `${value}-bridge\0`)
       await writeFile(join(root, 'ghostty-vt.wasm'), `${value}-native\0`)
       await writeFile(join(root, 'canvas-compose.wasm'), `${value}-composer\0`)
+      await writeFile(join(root, 'canvas-compose-scalar.wasm'), `${value}-scalar-composer\0`)
       await writeFile(join(root, 'package.json'), JSON.stringify({ version: value }))
     }
     git(['init', '--quiet'])
@@ -487,6 +488,7 @@ test('missing ref, missing snapshot input and failed builds leave no staging dir
       'bridge.wasm',
       'ghostty-vt.wasm',
       'canvas-compose.wasm',
+      'canvas-compose-scalar.wasm',
       'package.json',
       'src/core/assets.ts',
       'src/runtime.ts',

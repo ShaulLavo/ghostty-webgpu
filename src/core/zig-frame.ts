@@ -6,7 +6,7 @@ import type {
   AtlasPageIdentity,
   GlyphRasterizationInput,
 } from '../render/shared/atlas/types.js'
-import { contrastAdjustedColor } from '../render/shared/contrast.js'
+import { contrastAdjustedColor } from './contrast.js'
 import type {
   CanonicalRendererTheme,
   CursorState,

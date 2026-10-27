@@ -333,7 +333,9 @@ terminal's mode-2027 grapheme spans.
 
 The explicit pixel mode is experimental with correctness coverage. Headed visual calibration
 and performance qualification are pending. It lazily loads
-`canvas-compose.wasm` into independent ordinary WASM memory. Browser rasterization runs on
+`canvas-compose.wasm` into independent ordinary WASM memory and falls back to
+`canvas-compose-scalar.wasm` when the browser rejects SIMD. Set `compositorAsset` on the
+main-thread terminal or renderer options to use an explicit compositor URL. Browser rasterization runs on
 stamp-cache misses: the existing glyph model supplies A8 coverage or intrinsic-color RGBA,
 and paths supply A8 coverage. The viewport-bounded cache retains offsets, and one straight
 RGBA8 framebuffer aliases the `ImageData` submitted for coalesced dirty rows. The default
@@ -348,8 +350,8 @@ output alpha is nearest-integer `denominator / 255`. Half ties round upward, zer
 alpha preserves all destination bytes, and clear writes RGBA zero. Scalar and SIMD tests
 compare this contract exactly; retained-f32 comparisons report quantization error separately.
 
-Rebuild the checked-in compositor with `bun run build:canvas-compose`, using Bun and Zig
-0.16.0 or newer. `--scalar --output <file>` builds the independent scalar test arm. This
+Rebuild the checked-in compositors with `bun run build:canvas-compose`, using Bun and Zig
+0.16.0 or newer. The command builds both SIMD and scalar artifacts. `--scalar --output <file>` builds an independent scalar test arm. This
 Canvas-local asset changes neither the pinned native Ghostty build nor its ABI.
 
 ## live geometry and text width

@@ -390,7 +390,7 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
       import('../pixels/kernel.js'),
       import('../pixels/stamp-target.js'),
     ])
-    const kernel = await ComposeKernel.create()
+    const kernel = await ComposeKernel.create(options.compositorAsset)
     return new CanvasTerminalRenderer(options, (_canvas, output) => new StampTarget(kernel, output))
   }
 }

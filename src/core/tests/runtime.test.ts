@@ -172,7 +172,7 @@ describe('runtime URL compilation', () => {
       .mockRejectedValue(new TypeError('MIME type is not application/wasm'))
     runtime = await GhosttyRuntime.create(assets)
     expect(streaming).toHaveBeenCalledTimes(2)
-    expect(runtime.memory.buffer.byteLength).toBeGreaterThan(0)
+    expect(runtime.exports.memory.buffer.byteLength).toBeGreaterThan(0)
   })
 })
 

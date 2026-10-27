@@ -49,7 +49,7 @@ import type {
   TerminalSelectionFormatOptions,
   TerminalSize,
 } from '../core/types.js'
-import { defaultRendererTheme } from '../render/shared/instances/types.js'
+import { defaultRendererTheme } from './theme.js'
 import type { RenderStateSource } from '../render/shared/types.js'
 import { EventEmitter } from './events.js'
 import {
