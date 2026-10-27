@@ -120,6 +120,7 @@
     "prepack": "bun run build",
     "prepublishOnly": "bun run verify",
     "test": "bun run test:unit && bun run test:browser",
+    "test:bridge": "zig test scripts/row-index.test.zig",
     "test:browser": "bun scripts/browser-tests.ts",
     "test:package": "bun scripts/package-smoke.ts --browser",
     "test:renderer-fallbacks": "bun scripts/browser-tests.ts src/render/webgl/ src/render/tests/selector.browser.test.ts src/render/tests/fallback.browser.test.ts src/render/canvas/renderer.browser.test.ts src/render/dom/renderer.browser.test.ts src/dom/tests/renderer-fallback.browser.test.ts",

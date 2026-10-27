@@ -1,0 +1,2287 @@
+{
+  "decision": "REJECT",
+  "source": "8ff7f602a7a708a8cbab43eede1aaba0c9e16e3f",
+  "environment": {
+    "host": "PC / Omarchy Linux / Intel Core i7-14700K / RTX 3060 Ti",
+    "browser": "153.0.8010.12",
+    "adapter": "ANGLE (NVIDIA Corporation, NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2, OpenGL ES 3.2 NVIDIA 615.78.08)",
+    "dpr": 2,
+    "sourceBase": "d2ed8989a",
+    "headless": false
+  },
+  "steps": 60,
+  "repetitions": 2,
+  "gates": {
+    "complete": true,
+    "correctness": true,
+    "hostPublication": true,
+    "memory16": false,
+    "ackLatency": false
+  },
+  "cases": [
+    {
+      "case": "mixed-edit/4/200x50",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 1.030247619047619,
+        "pool": 0.12561428571428573,
+        "ratio": 0.121926305280284
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.13857142903975078,
+        "pool": 0.012380952210653396
+      },
+      "totalResidentMiB": {
+        "control": 1158.025390625,
+        "pool": 1105.0595703125,
+        "ratio": 0.9542619525087324
+      },
+      "pssMiB": {
+        "control": 587.525390625,
+        "pool": 506.5595703125,
+        "ratio": 0.8621917935727512
+      },
+      "workerHeapMiB": {
+        "control": 30.94276523590088,
+        "pool": 17.433253288269043
+      },
+      "workerCpuSeconds": {
+        "control": 0.14,
+        "pool": 0.04,
+        "ratio": 0.2857142857142857
+      },
+      "ackP50": {
+        "control": 0.25,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 2.9000000059604645,
+        "pool": 0.20000000298023224,
+        "ratio": 0.06896551812729852
+      },
+      "ackP99": {
+        "control": 3.5,
+        "pool": 0.25,
+        "ratio": 0.07142857142857142
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "sustained-logs/4/200x50",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.8866619047619048,
+        "pool": 0.13284761904761905,
+        "ratio": 0.1498289464497661
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.09238095262220927,
+        "pool": 0.026666666567325595
+      },
+      "totalResidentMiB": {
+        "control": 1210.50634765625,
+        "pool": 1127.638671875,
+        "ratio": 0.9315429646926708
+      },
+      "pssMiB": {
+        "control": 612.00634765625,
+        "pool": 510.138671875,
+        "ratio": 0.8335512757811023
+      },
+      "workerHeapMiB": {
+        "control": 47.02143955230713,
+        "pool": 8.035221576690674
+      },
+      "workerCpuSeconds": {
+        "control": 0.21,
+        "pool": 0.08,
+        "ratio": 0.380952380952381
+      },
+      "ackP50": {
+        "control": 0.29999999701976776,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 0.6000000089406967,
+        "pool": 0.20000000298023224,
+        "ratio": 0.3333333333333333
+      },
+      "ackP99": {
+        "control": 0.9000000059604645,
+        "pool": 0.3999999985098839,
+        "ratio": 0.44444443984532067
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "unicode-varied/4/200x50",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 1.0024857142857144,
+        "pool": 0.15594285714285716,
+        "ratio": 0.15555618890187248
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.09952380926836105,
+        "pool": 0.039047618919894805
+      },
+      "totalResidentMiB": {
+        "control": 1224.6943359375,
+        "pool": 1140.62841796875,
+        "ratio": 0.9313576330828722
+      },
+      "pssMiB": {
+        "control": 651.6943359375,
+        "pool": 542.62841796875,
+        "ratio": 0.8326425258678175
+      },
+      "workerHeapMiB": {
+        "control": 29.65567684173584,
+        "pool": 16.227293968200684
+      },
+      "workerCpuSeconds": {
+        "control": 0.23,
+        "pool": 0.1,
+        "ratio": 0.43478260869565216
+      },
+      "ackP50": {
+        "control": 0.30000000447034836,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 0.75,
+        "pool": 0.30000000447034836,
+        "ratio": 0.4000000059604645
+      },
+      "ackP99": {
+        "control": 0.7500000074505806,
+        "pool": 1.5500000044703484,
+        "ratio": 2.0666666520966426
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "mixed-edit/16/200x50",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.8305473684210525,
+        "pool": 0.06169298245614035,
+        "ratio": 0.07427990840958827
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.09649122809631783,
+        "pool": 0.004561403524457362
+      },
+      "totalResidentMiB": {
+        "control": 2670.404296875,
+        "pool": 2357.3515625,
+        "ratio": 0.8827695361555008
+      },
+      "pssMiB": {
+        "control": 914.904296875,
+        "pool": 572.8515625,
+        "ratio": 0.6261327708883485
+      },
+      "workerHeapMiB": {
+        "control": 121.76585674285889,
+        "pool": 27.098588943481445
+      },
+      "workerCpuSeconds": {
+        "control": 0.435,
+        "pool": 0.09,
+        "ratio": 0.20689655172413793
+      },
+      "ackP50": {
+        "control": 0.25,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 0.5500000044703484,
+        "pool": 0.20000000298023224,
+        "ratio": 0.36363636609936545
+      },
+      "ackP99": {
+        "control": 0.7000000029802322,
+        "pool": 0.30000000447034836,
+        "ratio": 0.4285714331330085
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "sustained-logs/16/200x50",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.92799649122807,
+        "pool": 0.0770578947368421,
+        "ratio": 0.08303683846354531
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.09807017552748061,
+        "pool": 0.019298245404895983
+      },
+      "totalResidentMiB": {
+        "control": 2751.86669921875,
+        "pool": 2385.7255859375,
+        "ratio": 0.8669480925855905
+      },
+      "pssMiB": {
+        "control": 997.36669921875,
+        "pool": 600.7255859375,
+        "ratio": 0.6023116536857066
+      },
+      "workerHeapMiB": {
+        "control": 164.50316524505615,
+        "pool": 15.613910675048828
+      },
+      "workerCpuSeconds": {
+        "control": 0.83,
+        "pool": 0.2,
+        "ratio": 0.24096385542168677
+      },
+      "ackP50": {
+        "control": 0.3499999940395355,
+        "pool": 0.10000000149011612
+      },
+      "ackP95": {
+        "control": 2.4000000059604645,
+        "pool": 0.3499999940395355,
+        "ratio": 0.14583333048762548
+      },
+      "ackP99": {
+        "control": 3.1499999910593033,
+        "pool": 1.6999999955296516,
+        "ratio": 0.5396825397951713
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "unicode-varied/16/200x50",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.893082456140351,
+        "pool": 0.0885736842105263,
+        "ratio": 0.09917749878697275
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.08999999965492048,
+        "pool": 0.03491228065992656
+      },
+      "totalResidentMiB": {
+        "control": 2799.71044921875,
+        "pool": 2439.30126953125,
+        "ratio": 0.8712691236380994
+      },
+      "pssMiB": {
+        "control": 1036.21044921875,
+        "pool": 651.30126953125,
+        "ratio": 0.6285414994823668
+      },
+      "workerHeapMiB": {
+        "control": 126.6298475265503,
+        "pool": 42.12330436706543
+      },
+      "workerCpuSeconds": {
+        "control": 0.975,
+        "pool": 0.245,
+        "ratio": 0.2512820512820513
+      },
+      "ackP50": {
+        "control": 0.30000000447034836,
+        "pool": 0.10000000149011612
+      },
+      "ackP95": {
+        "control": 1.6999999955296516,
+        "pool": 0.5,
+        "ratio": 0.2941176478322402
+      },
+      "ackP99": {
+        "control": 2.7500000074505806,
+        "pool": 2.75,
+        "ratio": 0.999999997290698
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "mixed-edit/4/80x24",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.35730952380952374,
+        "pool": 0.10335238095238095,
+        "ratio": 0.2892516825481442
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.033809523923056466,
+        "pool": 0.003333333276567005
+      },
+      "totalResidentMiB": {
+        "control": 791.3994140625,
+        "pool": 754.74365234375,
+        "ratio": 0.9536823491811998
+      },
+      "pssMiB": {
+        "control": 521.8994140625,
+        "pool": 479.24365234375,
+        "ratio": 0.9182682322121907
+      },
+      "workerHeapMiB": {
+        "control": 29.36513328552246,
+        "pool": 16.735257148742676
+      },
+      "workerCpuSeconds": {
+        "control": 0.07,
+        "pool": 0.035,
+        "ratio": 0.5
+      },
+      "ackP50": {
+        "control": 0.25,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 0.3500000089406967,
+        "pool": 0.20000000298023224,
+        "ratio": 0.571428565346465
+      },
+      "ackP99": {
+        "control": 0.5499999970197678,
+        "pool": 0.25,
+        "ratio": 0.4545454570084564
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15],
+          "lifecycle": {
+            "disposedSession": 3,
+            "survivingSessions": 3,
+            "framesAfterRecovery": [1, 1, 1, 0],
+            "errors": []
+          }
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "sustained-logs/4/80x24",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.4224904761904762,
+        "pool": 0.10069047619047618,
+        "ratio": 0.23832602594592153
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.028571427861849467,
+        "pool": 0.013809523908864883
+      },
+      "totalResidentMiB": {
+        "control": 803.9501953125,
+        "pool": 764.6796875,
+        "ratio": 0.9511530589314238
+      },
+      "pssMiB": {
+        "control": 539.4501953125,
+        "pool": 496.6796875,
+        "ratio": 0.9207146309628763
+      },
+      "workerHeapMiB": {
+        "control": 35.20205593109131,
+        "pool": 22.172592163085938
+      },
+      "workerCpuSeconds": {
+        "control": 0.09,
+        "pool": 0.03,
+        "ratio": 0.3333333333333333
+      },
+      "ackP50": {
+        "control": 0.30000000447034836,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 0.6000000014901161,
+        "pool": 0.20000000298023224,
+        "ratio": 0.3333333374725448
+      },
+      "ackP99": {
+        "control": 0.6999999955296516,
+        "pool": 0.29999999701976776,
+        "ratio": 0.4285714270509019
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "unicode-varied/4/80x24",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.4234523809523809,
+        "pool": 0.1471047619047619,
+        "ratio": 0.34739387123980886
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.02333333329075859,
+        "pool": 0.01714285768213726
+      },
+      "totalResidentMiB": {
+        "control": 990.33544921875,
+        "pool": 766.96044921875,
+        "ratio": 0.7744451133439536
+      },
+      "pssMiB": {
+        "control": 715.33544921875,
+        "pool": 495.96044921875,
+        "ratio": 0.6933256974198758
+      },
+      "workerHeapMiB": {
+        "control": 184.8505573272705,
+        "pool": 15.95292854309082
+      },
+      "workerCpuSeconds": {
+        "control": 0.1,
+        "pool": 0.055,
+        "ratio": 0.5499999999999999
+      },
+      "ackP50": {
+        "control": 0.30000000447034836,
+        "pool": 0.10000000149011612
+      },
+      "ackP95": {
+        "control": 0.6999999955296516,
+        "pool": 0.20000000298023224,
+        "ratio": 0.28571429179639235
+      },
+      "ackP99": {
+        "control": 0.9000000059604645,
+        "pool": 0.30000000447034836,
+        "ratio": 0.33333333609280763
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "mixed-edit/16/80x24",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.28082456140350875,
+        "pool": 0.05300350877192983,
+        "ratio": 0.18874242518897985
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.023859649112350063,
+        "pool": 0.002982456119436967
+      },
+      "totalResidentMiB": {
+        "control": 1495.9111328125,
+        "pool": 1315.47119140625,
+        "ratio": 0.8793779005661918
+      },
+      "pssMiB": {
+        "control": 738.9111328125,
+        "pool": 537.47119140625,
+        "ratio": 0.7273827224127564
+      },
+      "workerHeapMiB": {
+        "control": 115.7566089630127,
+        "pool": 48.14269733428955
+      },
+      "workerCpuSeconds": {
+        "control": 0.235,
+        "pool": 0.060000000000000005,
+        "ratio": 0.25531914893617025
+      },
+      "ackP50": {
+        "control": 0.20000000298023224,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 0.3999999985098839,
+        "pool": 0.20000000298023224,
+        "ratio": 0.5000000093132257
+      },
+      "ackP99": {
+        "control": 0.5500000044703484,
+        "pool": 0.30000000447034836,
+        "ratio": 0.5454545491490482
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "lifecycle": {
+            "disposedSession": 15,
+            "survivingSessions": 15,
+            "framesAfterRecovery": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            "errors": []
+          }
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "sustained-logs/16/80x24",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.3551719298245614,
+        "pool": 0.06156491228070175,
+        "ratio": 0.1733383387338971
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.026491227876721767,
+        "pool": 0.011754386126995087
+      },
+      "totalResidentMiB": {
+        "control": 1490.26318359375,
+        "pool": 1283.29150390625,
+        "ratio": 0.8611173637206883
+      },
+      "pssMiB": {
+        "control": 782.76318359375,
+        "pool": 522.79150390625,
+        "ratio": 0.6678795258433821
+      },
+      "workerHeapMiB": {
+        "control": 134.7187795639038,
+        "pool": 9.484688758850098
+      },
+      "workerCpuSeconds": {
+        "control": 0.315,
+        "pool": 0.09,
+        "ratio": 0.2857142857142857
+      },
+      "ackP50": {
+        "control": 0.30000000447034836,
+        "pool": 0.10000000149011612
+      },
+      "ackP95": {
+        "control": 1.6499999985098839,
+        "pool": 0.25,
+        "ratio": 0.15151515165198495
+      },
+      "ackP99": {
+        "control": 2.5499999970197678,
+        "pool": 0.29999999701976776,
+        "ratio": 0.11764705779230718
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        }
+      ]
+    },
+    {
+      "case": "unicode-varied/16/80x24",
+      "repetitions": 2,
+      "hostTaskMillisecondsPerFrame": {
+        "control": 0.41364736842105265,
+        "pool": 0.06459473684210527,
+        "ratio": 0.15615894545315742
+      },
+      "handlerMillisecondsPerFrame": {
+        "control": 0.03421052621121992,
+        "pool": 0.015438596564426756
+      },
+      "totalResidentMiB": {
+        "control": 2164.7666015625,
+        "pool": 1346.6279296875,
+        "ratio": 0.6220661057480846
+      },
+      "pssMiB": {
+        "control": 1454.7666015625,
+        "pool": 579.1279296875,
+        "ratio": 0.3980899266352998
+      },
+      "workerHeapMiB": {
+        "control": 730.5959243774414,
+        "pool": 60.65468645095825
+      },
+      "workerCpuSeconds": {
+        "control": 0.375,
+        "pool": 0.095,
+        "ratio": 0.25333333333333335
+      },
+      "ackP50": {
+        "control": 0.3500000089406967,
+        "pool": 0.09999999403953552
+      },
+      "ackP95": {
+        "control": 2.5500000044703484,
+        "pool": 0.20000000298023224,
+        "ratio": 0.07843137358024184
+      },
+      "ackP99": {
+        "control": 4.750000007450581,
+        "pool": 0.29999999701976776,
+        "ratio": 0.0631578940103589
+      },
+      "pairs": [
+        {
+          "repetition": 0,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        },
+        {
+          "repetition": 1,
+          "sameBrowserSession": true,
+          "textEqual": true,
+          "pixelsEqual": true,
+          "updatesEqual": true,
+          "controlDeliveredAll": true,
+          "poolDeliveredAll": true,
+          "controlFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+          "poolFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15]
+        }
+      ]
+    }
+  ],
+  "rawReceiptSha256": "5148d4d4a153a4ce20396214fc42a4b62217d3e70101a2b476be8c151bb41e06",
+  "artifacts": {
+    "ghostty-vt.wasm": "de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426",
+    "bridge.wasm": "84e83353cbe38fb001f2470f0892cd559c22e11cf0fae095a798feb4e220f576",
+    "node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb"
+  },
+  "samples": [
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "ef43f6e0-20d9-4607-b169-a3ba601ef998",
+      "hostTaskMillisecondsPerFrame": 0.814847619047619,
+      "hostHandlerMilliseconds": 9.100000023841858,
+      "memory": {
+        "pssKiB": 580462,
+        "rssKiB": 1091040,
+        "gpuDeltaMiB": 521,
+        "hostPlusGpuMiB": 1087.857421875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.12,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 30.969977378845215,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.20000000298023224,
+        "p95": 0.30000001192092896,
+        "p99": 0.4000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "ef43f6e0-20d9-4607-b169-a3ba601ef998",
+      "hostTaskMillisecondsPerFrame": 0.13595238095238096,
+      "hostHandlerMilliseconds": 1,
+      "memory": {
+        "pssKiB": 540539,
+        "rssKiB": 1055588,
+        "gpuDeltaMiB": 652,
+        "hostPlusGpuMiB": 1179.8701171875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 23940,
+      "workerCpuSeconds": 0.04,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 17.42880916595459,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "88328cca-c91a-4f99-89f2-e62800ed9f60",
+      "hostTaskMillisecondsPerFrame": 0.834152380952381,
+      "hostHandlerMilliseconds": 9.700000047683716,
+      "memory": {
+        "pssKiB": 604957,
+        "rssKiB": 1115608,
+        "gpuDeltaMiB": 531,
+        "hostPlusGpuMiB": 1121.7783203125
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.21,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 47.101407051086426,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.6000000089406967,
+        "p99": 0.9000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "88328cca-c91a-4f99-89f2-e62800ed9f60",
+      "hostTaskMillisecondsPerFrame": 0.14730476190476188,
+      "hostHandlerMilliseconds": 2.800000011920929,
+      "memory": {
+        "pssKiB": 545225,
+        "rssKiB": 1062900,
+        "gpuDeltaMiB": 666,
+        "hostPlusGpuMiB": 1198.4462890625
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 1091580,
+      "workerCpuSeconds": 0.08,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 9.21020793914795,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.5
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "506ffc3f-ae87-473a-b169-9aea873f1ba1",
+      "hostTaskMillisecondsPerFrame": 0.9620000000000001,
+      "hostHandlerMilliseconds": 10.499999925494194,
+      "memory": {
+        "pssKiB": 635060,
+        "rssKiB": 1146368,
+        "gpuDeltaMiB": 528,
+        "hostPlusGpuMiB": 1148.17578125
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.23,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 31.17751693725586,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.7000000029802322,
+        "p99": 0.7000000029802322
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "506ffc3f-ae87-473a-b169-9aea873f1ba1",
+      "hostTaskMillisecondsPerFrame": 0.14716190476190477,
+      "hostHandlerMilliseconds": 4.799999982118607,
+      "memory": {
+        "pssKiB": 564201,
+        "rssKiB": 1079968,
+        "gpuDeltaMiB": 643,
+        "hostPlusGpuMiB": 1193.9775390625
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 1403056,
+      "workerCpuSeconds": 0.09,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 13.511558532714844,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.29999999701976776,
+        "p99": 0.30000001192092896
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "52d5548d-9fd8-4a4a-ba79-5df2ccdbb90b",
+      "hostTaskMillisecondsPerFrame": 0.8526701754385964,
+      "hostHandlerMilliseconds": 28.299999967217445,
+      "memory": {
+        "pssKiB": 917717,
+        "rssKiB": 1448316,
+        "gpuDeltaMiB": 1661,
+        "hostPlusGpuMiB": 2557.2080078125
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.43,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 121.60464000701904,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.20000000298023224,
+        "p95": 0.5,
+        "p99": 0.5
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "52d5548d-9fd8-4a4a-ba79-5df2ccdbb90b",
+      "hostTaskMillisecondsPerFrame": 0.0705438596491228,
+      "hostHandlerMilliseconds": 1.399999976158142,
+      "memory": {
+        "pssKiB": 612152,
+        "rssKiB": 1128728,
+        "gpuDeltaMiB": 1896,
+        "hostPlusGpuMiB": 2493.8046875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 64980,
+      "workerCpuSeconds": 0.1,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 27.0834903717041,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "8d8639dd-4c66-410e-94e3-2abee5ba9e43",
+      "hostTaskMillisecondsPerFrame": 0.9349473684210525,
+      "hostHandlerMilliseconds": 29.30000002682209,
+      "memory": {
+        "pssKiB": 1002137,
+        "rssKiB": 1534420,
+        "gpuDeltaMiB": 1661,
+        "hostPlusGpuMiB": 2639.6494140625
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.82,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 164.28209018707275,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.3999999910593033,
+        "p95": 2.2000000029802322,
+        "p99": 3.5999999940395355
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "8d8639dd-4c66-410e-94e3-2abee5ba9e43",
+      "hostTaskMillisecondsPerFrame": 0.06973333333333334,
+      "hostHandlerMilliseconds": 5.600000008940697,
+      "memory": {
+        "pssKiB": 640519,
+        "rssKiB": 1164860,
+        "gpuDeltaMiB": 1889,
+        "hostPlusGpuMiB": 2514.5068359375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 2962860,
+      "workerCpuSeconds": 0.2,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 15.60978889465332,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.29999999701976776,
+        "p99": 1.3999999910593033
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "01ff9803-f29a-4db9-a0f3-5e5ff677457b",
+      "hostTaskMillisecondsPerFrame": 0.9053263157894738,
+      "hostHandlerMilliseconds": 25.399999991059303,
+      "memory": {
+        "pssKiB": 1045363,
+        "rssKiB": 1570172,
+        "gpuDeltaMiB": 1661,
+        "hostPlusGpuMiB": 2681.8623046875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 1.01,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 126.38772010803223,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.30000001192092896,
+        "p95": 1.7000000029802322,
+        "p99": 2.6000000089406967
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 0,
+      "browserSession": "01ff9803-f29a-4db9-a0f3-5e5ff677457b",
+      "hostTaskMillisecondsPerFrame": 0.10058245614035087,
+      "hostHandlerMilliseconds": 10.799999982118607,
+      "memory": {
+        "pssKiB": 688332,
+        "rssKiB": 1206528,
+        "gpuDeltaMiB": 1896,
+        "hostPlusGpuMiB": 2568.19921875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 3809668,
+      "workerCpuSeconds": 0.25,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 42.14573669433594,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.10000000894069672,
+        "p95": 0.4000000059604645,
+        "p99": 1.1000000089406967
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "ec2c4f4b-bfb2-4c14-a43b-0c500d72f3a3",
+      "hostTaskMillisecondsPerFrame": 0.40088571428571423,
+      "hostHandlerMilliseconds": 4.300000011920929,
+      "memory": {
+        "pssKiB": 523878,
+        "rssKiB": 1031940,
+        "gpuDeltaMiB": 253,
+        "hostPlusGpuMiB": 764.599609375
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.08,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 29.350576400756836,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.4000000059604645,
+        "p99": 0.5
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "ec2c4f4b-bfb2-4c14-a43b-0c500d72f3a3",
+      "hostTaskMillisecondsPerFrame": 0.12694285714285714,
+      "hostHandlerMilliseconds": 0.29999999701976776,
+      "memory": {
+        "pssKiB": 502403,
+        "rssKiB": 1017208,
+        "gpuDeltaMiB": 291,
+        "hostPlusGpuMiB": 781.6279296875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 11340,
+      "lifecycle": {
+        "disposedSession": 3,
+        "survivingSessions": 3,
+        "framesAfterRecovery": [1, 1, 1, 0],
+        "errors": []
+      },
+      "workerCpuSeconds": 0.03,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 16.733363151550293,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.20000000298023224
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "17150bac-5c9a-4d17-9713-13f8e99dccd4",
+      "hostTaskMillisecondsPerFrame": 0.4380666666666666,
+      "hostHandlerMilliseconds": 2.799999922513962,
+      "memory": {
+        "pssKiB": 543737,
+        "rssKiB": 1050756,
+        "gpuDeltaMiB": 245,
+        "hostPlusGpuMiB": 775.9931640625
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.07,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 35.21876239776611,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.30000001192092896,
+        "p95": 0.6000000089406967,
+        "p99": 0.7999999970197678
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "17150bac-5c9a-4d17-9713-13f8e99dccd4",
+      "hostTaskMillisecondsPerFrame": 0.1263238095238095,
+      "hostHandlerMilliseconds": 1.800000011920929,
+      "memory": {
+        "pssKiB": 521598,
+        "rssKiB": 1034696,
+        "gpuDeltaMiB": 275,
+        "hostPlusGpuMiB": 784.373046875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 223020,
+      "workerCpuSeconds": 0.03,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 22.186038970947266,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "e903ff1a-3b83-4c8f-9708-9eb4eff89824",
+      "hostTaskMillisecondsPerFrame": 0.44775238095238096,
+      "hostHandlerMilliseconds": 2.2999999821186066,
+      "memory": {
+        "pssKiB": 720097,
+        "rssKiB": 1228176,
+        "gpuDeltaMiB": 253,
+        "hostPlusGpuMiB": 956.2197265625
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.1,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 184.95138359069824,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.30000001192092896,
+        "p95": 0.7999999970197678,
+        "p99": 0.9000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "e903ff1a-3b83-4c8f-9708-9eb4eff89824",
+      "hostTaskMillisecondsPerFrame": 0.17968571428571428,
+      "hostHandlerMilliseconds": 2.2000000178813934,
+      "memory": {
+        "pssKiB": 520731,
+        "rssKiB": 1036072,
+        "gpuDeltaMiB": 279,
+        "hostPlusGpuMiB": 787.5263671875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 369598,
+      "workerCpuSeconds": 0.06,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 16.099775314331055,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.10000000894069672,
+        "p95": 0.20000000298023224,
+        "p99": 0.4000000059604645
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "6f415aa0-cdfe-4c9c-971e-1ec0d1496fc6",
+      "hostTaskMillisecondsPerFrame": 0.2741719298245614,
+      "hostHandlerMilliseconds": 6.999999940395355,
+      "memory": {
+        "pssKiB": 736894,
+        "rssKiB": 1247696,
+        "gpuDeltaMiB": 716,
+        "hostPlusGpuMiB": 1435.623046875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.25,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 115.75137138366699,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.20000000298023224,
+        "p95": 0.4000000059604645,
+        "p99": 0.7000000029802322
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "6f415aa0-cdfe-4c9c-971e-1ec0d1496fc6",
+      "hostTaskMillisecondsPerFrame": 0.06018596491228071,
+      "hostHandlerMilliseconds": 0.9999999701976776,
+      "memory": {
+        "pssKiB": 554210,
+        "rssKiB": 1068072,
+        "gpuDeltaMiB": 835,
+        "hostPlusGpuMiB": 1376.220703125
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 30780,
+      "lifecycle": {
+        "disposedSession": 15,
+        "survivingSessions": 15,
+        "framesAfterRecovery": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        "errors": []
+      },
+      "workerCpuSeconds": 0.07,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 48.680752754211426,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.30000001192092896
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "61b3112c-cd25-4350-952c-97fbf0320c26",
+      "hostTaskMillisecondsPerFrame": 0.35550175438596493,
+      "hostHandlerMilliseconds": 7.700000032782555,
+      "memory": {
+        "pssKiB": 791504,
+        "rssKiB": 1302868,
+        "gpuDeltaMiB": 713,
+        "hostPlusGpuMiB": 1485.953125
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.32,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 134.80328845977783,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.30000001192092896,
+        "p95": 1.699999988079071,
+        "p99": 2.5
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "61b3112c-cd25-4350-952c-97fbf0320c26",
+      "hostTaskMillisecondsPerFrame": 0.08033684210526316,
+      "hostHandlerMilliseconds": 4.1000000685453415,
+      "memory": {
+        "pssKiB": 549535,
+        "rssKiB": 1064824,
+        "gpuDeltaMiB": 810,
+        "hostPlusGpuMiB": 1346.6552734375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 605340,
+      "workerCpuSeconds": 0.1,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 9.153067588806152,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.10000000894069672,
+        "p95": 0.29999999701976776,
+        "p99": 0.3999999910593033
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "48c2c051-86cc-4dd2-811c-7144492ecd51",
+      "hostTaskMillisecondsPerFrame": 0.40985964912280703,
+      "hostHandlerMilliseconds": 8.89999994635582,
+      "memory": {
+        "pssKiB": 1488696,
+        "rssKiB": 1998300,
+        "gpuDeltaMiB": 714,
+        "hostPlusGpuMiB": 2167.8046875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.37,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 730.5548191070557,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.4000000059604645,
+        "p95": 2.5,
+        "p99": 4.600000008940697
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 0,
+      "browserSession": "48c2c051-86cc-4dd2-811c-7144492ecd51",
+      "hostTaskMillisecondsPerFrame": 0.07018947368421054,
+      "hostHandlerMilliseconds": 4.699999988079071,
+      "memory": {
+        "pssKiB": 609727,
+        "rssKiB": 1125016,
+        "gpuDeltaMiB": 817,
+        "hostPlusGpuMiB": 1412.4365234375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 1003510,
+      "workerCpuSeconds": 0.1,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 61.865177154541016,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.3999999910593033
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "48040cb8-d0df-4530-9180-3e4bc0e9a93b",
+      "hostTaskMillisecondsPerFrame": 0.11527619047619049,
+      "hostHandlerMilliseconds": 1.5999999642372131,
+      "memory": {
+        "pssKiB": 496895,
+        "rssKiB": 1009208,
+        "gpuDeltaMiB": 545,
+        "hostPlusGpuMiB": 1030.2490234375
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 23940,
+      "workerCpuSeconds": 0.04,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 17.437697410583496,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.20000000298023224
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "48040cb8-d0df-4530-9180-3e4bc0e9a93b",
+      "hostTaskMillisecondsPerFrame": 1.2456476190476191,
+      "hostHandlerMilliseconds": 20.000000074505806,
+      "memory": {
+        "pssKiB": 622790,
+        "rssKiB": 1142052,
+        "gpuDeltaMiB": 620,
+        "hostPlusGpuMiB": 1228.193359375
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.16,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 30.915553092956543,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 5.5,
+        "p99": 6.5999999940395355
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "72861f8a-a93b-41ab-99f1-72c937462a80",
+      "hostTaskMillisecondsPerFrame": 0.11839047619047618,
+      "hostHandlerMilliseconds": 2.7999999672174454,
+      "memory": {
+        "pssKiB": 499539,
+        "rssKiB": 1009696,
+        "gpuDeltaMiB": 569,
+        "hostPlusGpuMiB": 1056.8310546875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 1091580,
+      "workerCpuSeconds": 0.08,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 6.860235214233398,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "72861f8a-a93b-41ab-99f1-72c937462a80",
+      "hostTaskMillisecondsPerFrame": 0.9391714285714285,
+      "hostHandlerMilliseconds": 9.700000002980232,
+      "memory": {
+        "pssKiB": 648432,
+        "rssKiB": 1166148,
+        "gpuDeltaMiB": 666,
+        "hostPlusGpuMiB": 1299.234375
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.21,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 46.94147205352783,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.6000000089406967,
+        "p99": 0.9000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "5d4c1ccd-1ef0-4e3d-aa1b-b3c0db624ccc",
+      "hostTaskMillisecondsPerFrame": 0.16472380952380955,
+      "hostHandlerMilliseconds": 3.3999999910593033,
+      "memory": {
+        "pssKiB": 547102,
+        "rssKiB": 1057600,
+        "gpuDeltaMiB": 553,
+        "hostPlusGpuMiB": 1087.279296875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 1403056,
+      "workerCpuSeconds": 0.11,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 18.943029403686523,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.30000001192092896,
+        "p99": 2.7999999970197678
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "5d4c1ccd-1ef0-4e3d-aa1b-b3c0db624ccc",
+      "hostTaskMillisecondsPerFrame": 1.0429714285714287,
+      "hostHandlerMilliseconds": 10.400000020861626,
+      "memory": {
+        "pssKiB": 699610,
+        "rssKiB": 1217572,
+        "gpuDeltaMiB": 618,
+        "hostPlusGpuMiB": 1301.212890625
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.23,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 28.13383674621582,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.30000001192092896,
+        "p95": 0.7999999970197678,
+        "p99": 0.800000011920929
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "76ba843a-c66f-4746-9520-5da10e151eb7",
+      "hostTaskMillisecondsPerFrame": 0.0528421052631579,
+      "hostHandlerMilliseconds": 1.2000000327825546,
+      "memory": {
+        "pssKiB": 561048,
+        "rssKiB": 1067108,
+        "gpuDeltaMiB": 1673,
+        "hostPlusGpuMiB": 2220.8984375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 64980,
+      "workerCpuSeconds": 0.08,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 27.11368751525879,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.30000001192092896
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "76ba843a-c66f-4746-9520-5da10e151eb7",
+      "hostTaskMillisecondsPerFrame": 0.8084245614035087,
+      "hostHandlerMilliseconds": 26.700000047683716,
+      "memory": {
+        "pssKiB": 956007,
+        "rssKiB": 1490228,
+        "gpuDeltaMiB": 1850,
+        "hostPlusGpuMiB": 2783.6005859375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.44,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 121.92707347869873,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.6000000089406967,
+        "p99": 0.9000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "9061d07a-ca15-4978-b6d4-08d662bdd082",
+      "hostTaskMillisecondsPerFrame": 0.08438245614035086,
+      "hostHandlerMilliseconds": 5.399999871850014,
+      "memory": {
+        "pssKiB": 589767,
+        "rssKiB": 1099348,
+        "gpuDeltaMiB": 1681,
+        "hostPlusGpuMiB": 2256.9443359375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 2962860,
+      "workerCpuSeconds": 0.2,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 15.618032455444336,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.10000000894069672,
+        "p95": 0.3999999910593033,
+        "p99": 2
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "9061d07a-ca15-4978-b6d4-08d662bdd082",
+      "hostTaskMillisecondsPerFrame": 0.9210456140350877,
+      "hostHandlerMilliseconds": 26.600000023841858,
+      "memory": {
+        "pssKiB": 1040470,
+        "rssKiB": 1571528,
+        "gpuDeltaMiB": 1848,
+        "hostPlusGpuMiB": 2864.083984375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.84,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 164.72424030303955,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 2.6000000089406967,
+        "p99": 2.699999988079071
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "e98066e6-4075-420d-b3f8-35533ff88b81",
+      "hostTaskMillisecondsPerFrame": 0.07656491228070175,
+      "hostHandlerMilliseconds": 9.099999994039536,
+      "memory": {
+        "pssKiB": 645533,
+        "rssKiB": 1159040,
+        "gpuDeltaMiB": 1680,
+        "hostPlusGpuMiB": 2310.4033203125
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 3809668,
+      "workerCpuSeconds": 0.24,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 42.10087203979492,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.5999999940395355,
+        "p99": 4.399999991059303
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 200,
+      "rows": 50,
+      "repetition": 1,
+      "browserSession": "e98066e6-4075-420d-b3f8-35533ff88b81",
+      "hostTaskMillisecondsPerFrame": 0.8808385964912281,
+      "hostHandlerMilliseconds": 25.89999981224537,
+      "memory": {
+        "pssKiB": 1076796,
+        "rssKiB": 1609088,
+        "gpuDeltaMiB": 1866,
+        "hostPlusGpuMiB": 2917.55859375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.94,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 126.87197494506836,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 1.699999988079071,
+        "p99": 2.9000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "59af737b-b615-4240-ba4a-7e8a50252ed9",
+      "hostTaskMillisecondsPerFrame": 0.07976190476190476,
+      "hostHandlerMilliseconds": 0.3999999910593033,
+      "memory": {
+        "pssKiB": 479088,
+        "rssKiB": 985364,
+        "gpuDeltaMiB": 260,
+        "hostPlusGpuMiB": 727.859375
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 11340,
+      "workerCpuSeconds": 0.04,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 16.73715114593506,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "59af737b-b615-4240-ba4a-7e8a50252ed9",
+      "hostTaskMillisecondsPerFrame": 0.3137333333333333,
+      "hostHandlerMilliseconds": 2.800000011920929,
+      "memory": {
+        "pssKiB": 544972,
+        "rssKiB": 1057568,
+        "gpuDeltaMiB": 286,
+        "hostPlusGpuMiB": 818.19921875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.06,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 29.379690170288086,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.20000000298023224,
+        "p95": 0.30000001192092896,
+        "p99": 0.5999999940395355
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "756edd20-b6bc-411f-b289-10cf1026fb0a",
+      "hostTaskMillisecondsPerFrame": 0.07505714285714285,
+      "hostHandlerMilliseconds": 1.1000000089406967,
+      "memory": {
+        "pssKiB": 495602,
+        "rssKiB": 1001140,
+        "gpuDeltaMiB": 261,
+        "hostPlusGpuMiB": 744.986328125
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 223020,
+      "workerCpuSeconds": 0.03,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 22.15914535522461,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "756edd20-b6bc-411f-b289-10cf1026fb0a",
+      "hostTaskMillisecondsPerFrame": 0.40691428571428573,
+      "hostHandlerMilliseconds": 3.1999999284744263,
+      "memory": {
+        "pssKiB": 561057,
+        "rssKiB": 1073432,
+        "gpuDeltaMiB": 284,
+        "hostPlusGpuMiB": 831.9072265625
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.11,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 35.185349464416504,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.5999999940395355,
+        "p99": 0.5999999940395355
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "e3321836-9787-4df2-b5c2-18efd3880627",
+      "hostTaskMillisecondsPerFrame": 0.11452380952380951,
+      "hostHandlerMilliseconds": 1.4000000953674316,
+      "memory": {
+        "pssKiB": 494996,
+        "rssKiB": 1000968,
+        "gpuDeltaMiB": 263,
+        "hostPlusGpuMiB": 746.39453125
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 369598,
+      "workerCpuSeconds": 0.05,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 15.806081771850586,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.20000000298023224
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 4,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "e3321836-9787-4df2-b5c2-18efd3880627",
+      "hostTaskMillisecondsPerFrame": 0.3991523809523809,
+      "hostHandlerMilliseconds": 2.6000000089406967,
+      "memory": {
+        "pssKiB": 744910,
+        "rssKiB": 1257052,
+        "gpuDeltaMiB": 297,
+        "hostPlusGpuMiB": 1024.451171875
+      },
+      "deliveredFrames": [60, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.1,
+      "workerTargetCount": 4,
+      "workerHeapMiB": 184.74973106384277,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 0.5999999940395355,
+        "p99": 0.9000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "cfd3eea9-53cf-4de5-ba66-d351475b08b4",
+      "hostTaskMillisecondsPerFrame": 0.04582105263157894,
+      "hostHandlerMilliseconds": 0.7000000178813934,
+      "memory": {
+        "pssKiB": 546531,
+        "rssKiB": 1053612,
+        "gpuDeltaMiB": 721,
+        "hostPlusGpuMiB": 1254.7216796875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 30780,
+      "workerCpuSeconds": 0.05,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 47.604641914367676,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.29999999701976776
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "mixed-edit",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "cfd3eea9-53cf-4de5-ba66-d351475b08b4",
+      "hostTaskMillisecondsPerFrame": 0.2874771929824561,
+      "hostHandlerMilliseconds": 6.60000005364418,
+      "memory": {
+        "pssKiB": 776396,
+        "rssKiB": 1293140,
+        "gpuDeltaMiB": 798,
+        "hostPlusGpuMiB": 1556.19921875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.22,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 115.7618465423584,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.20000000298023224,
+        "p95": 0.3999999910593033,
+        "p99": 0.4000000059604645
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "da975141-da8b-4216-b160-b7c8b7dbe109",
+      "hostTaskMillisecondsPerFrame": 0.04279298245614035,
+      "hostHandlerMilliseconds": 2.600000023841858,
+      "memory": {
+        "pssKiB": 521142,
+        "rssKiB": 1029832,
+        "gpuDeltaMiB": 711,
+        "hostPlusGpuMiB": 1219.927734375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 605340,
+      "workerCpuSeconds": 0.08,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 9.816309928894043,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.20000000298023224
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "sustained-logs",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "da975141-da8b-4216-b160-b7c8b7dbe109",
+      "hostTaskMillisecondsPerFrame": 0.3548421052631579,
+      "hostHandlerMilliseconds": 7.3999998569488525,
+      "memory": {
+        "pssKiB": 811595,
+        "rssKiB": 1330040,
+        "gpuDeltaMiB": 702,
+        "hostPlusGpuMiB": 1494.5732421875
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.31,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 134.63427066802979,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.29999999701976776,
+        "p95": 1.6000000089406967,
+        "p99": 2.5999999940395355
+      }
+    },
+    {
+      "mode": "pool",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "d48c945f-6d1b-426d-b6de-cba08ef10553",
+      "hostTaskMillisecondsPerFrame": 0.059000000000000004,
+      "hostHandlerMilliseconds": 4.10000005364418,
+      "memory": {
+        "pssKiB": 576327,
+        "rssKiB": 1084304,
+        "gpuDeltaMiB": 718,
+        "hostPlusGpuMiB": 1280.8193359375
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 1003510,
+      "workerCpuSeconds": 0.09,
+      "workerTargetCount": 1,
+      "workerHeapMiB": 59.44419574737549,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.09999999403953552,
+        "p95": 0.20000000298023224,
+        "p99": 0.20000000298023224
+      }
+    },
+    {
+      "mode": "control",
+      "fixture": "unicode-varied",
+      "count": 16,
+      "columns": 80,
+      "rows": 24,
+      "repetition": 1,
+      "browserSession": "d48c945f-6d1b-426d-b6de-cba08ef10553",
+      "hostTaskMillisecondsPerFrame": 0.4174350877192983,
+      "hostHandlerMilliseconds": 10.599999994039536,
+      "memory": {
+        "pssKiB": 1490666,
+        "rssKiB": 2006940,
+        "gpuDeltaMiB": 706,
+        "hostPlusGpuMiB": 2161.728515625
+      },
+      "deliveredFrames": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "writeCounts": [60, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      "bytes": 0,
+      "workerCpuSeconds": 0.38,
+      "workerTargetCount": 16,
+      "workerHeapMiB": 730.6370296478271,
+      "acknowledgement": {
+        "count": 60,
+        "p50": 0.30000001192092896,
+        "p95": 2.6000000089406967,
+        "p99": 4.9000000059604645
+      }
+    }
+  ]
+}

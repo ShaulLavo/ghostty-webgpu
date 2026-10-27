@@ -3,6 +3,7 @@ import type { InstanceByteRange } from './types.js'
 import {
   planSparseUploadRanges,
   planUploadRanges,
+  planWebglUploadRanges,
   planWrappedUploadRanges,
 } from './upload-ranges.js'
 
@@ -174,4 +175,47 @@ describe('sparse WebGPU upload ranges', () => {
     planSparseUploadRanges([update(range(0, 256), range(0, 384))])
     expect(first).toEqual({ cell: [range(4, 4), range(20, 4)], glyph: [range(12, 8)] })
   })
+})
+
+describe('clean upload gaps', () => {
+  it('merges gaps at the call-cost threshold and splits larger gaps independently', () => {
+    expect(
+      planUploadRanges([
+        update(range(0, 64), range(0, 96)),
+        update(range(4160, 64), range(4192, 96)),
+      ]),
+    ).toEqual({ cell: [range(0, 4224)], glyph: [range(0, 4288)] })
+    expect(
+      planUploadRanges([
+        update(range(0, 64), range(0, 96)),
+        update(range(4164, 64), range(4192, 96)),
+      ]),
+    ).toEqual({ cell: [range(0, 64), range(4164, 64)], glyph: [range(0, 4288)] })
+  })
+
+  it('sorts distant edits without changing borrowed inputs or uploading the clean middle', () => {
+    const input = Object.freeze([
+      update(range(639936, 64), range(959904, 96)),
+      update(range(0, 64), range(0, 96)),
+      update(range(64, 64), range(96, 96)),
+    ])
+    expect(planUploadRanges(input)).toEqual({
+      cell: [range(0, 128), range(639936, 64)],
+      glyph: [range(0, 192), range(959904, 96)],
+    })
+    expect(input[0]!.cell.byteOffset).toBe(639936)
+  })
+})
+
+it('uses the measured larger call-cost threshold for WebGL2', () => {
+  const edits = [update(range(0, 64)), update(range(8256, 64))]
+  expect(planUploadRanges(edits).cell).toEqual([range(0, 64), range(8256, 64)])
+  expect(planWebglUploadRanges(edits).cell).toEqual([range(0, 8320)])
+  expect(planWebglUploadRanges([update(range(0, 64)), update(range(16448, 64))]).cell).toEqual([
+    range(0, 16512),
+  ])
+  expect(planWebglUploadRanges([update(range(0, 64)), update(range(16452, 64))]).cell).toEqual([
+    range(0, 64),
+    range(16452, 64),
+  ])
 })

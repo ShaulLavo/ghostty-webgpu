@@ -10,7 +10,10 @@ import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
 import { ZigFrameBuilder } from './zig-frame.js'
 import { DisplayedFrameStore } from './displayed-frame.js'
-import { retainDisplayedFrame } from '../render/shared/displayed-frame.js'
+import {
+  captureRenderAcknowledgement,
+  retainDisplayedFrame,
+} from '../render/shared/displayed-frame.js'
 import { RowReader } from './row-reader.js'
 import { TextRowReader } from './text-row-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
@@ -153,10 +156,19 @@ function createOwnedHandle(
   }
 }
 
-export class GhosttyRenderState {
+interface PendingDamage {
+  fullVersion: number
+  rows: Map<number, number>
+}
+
+const sharedSnapshots = new WeakMap<GhosttyTerminal, SharedRenderState>()
+
+class SharedRenderState {
+  private readonly consumers = new Set<GhosttyRenderState>()
+  private damage?: Map<GhosttyRenderState, PendingDamage>
+  private preparedFor?: GhosttyRenderState
   private readonly renderRequestListeners = new Set<() => void>()
   private readonly unsubscribeRenderHold: () => void
-  private displayedFrames?: DisplayedFrameStore
   private readonly cells: OwnedHandle
   private readonly rowReader: RowReader
   private readonly textRowReader: TextRowReader
@@ -170,8 +182,8 @@ export class GhosttyRenderState {
   private readonly scalarPointer: number
   private readonly state: OwnedHandle
   private readonly terminal: GhosttyTerminal
-  private readonly zeroBooleanPointer: number
-  private readonly zeroDirtyPointer: number
+  private readonly booleanPointer: number
+  private readonly dirtyValuePointer: number
 
   constructor(runtime: GhosttyRuntime, terminal: GhosttyTerminal) {
     this.runtime = runtime
@@ -200,12 +212,113 @@ export class GhosttyRenderState {
     this.cursorReader = cursorReader
     this.scalarPointer = scalarPointer
     this.dirtyPointer = scalarPointer
-    this.zeroBooleanPointer = scalarPointer + 4
-    this.zeroDirtyPointer = scalarPointer + 8
+    this.booleanPointer = scalarPointer + 4
+    this.dirtyValuePointer = scalarPointer + 8
     this.unsubscribeRenderHold = terminal.subscribeRenderHold((held) => {
       if (held) this.captureUpdate()
       for (const listener of this.renderRequestListeners) listener()
     })
+  }
+
+  attach(consumer: GhosttyRenderState): void {
+    if (this.consumers.size === 1 && !this.damage) {
+      this.damage = new Map(Array.from(this.consumers, (state) => [state, this.readDamage()]))
+    }
+    this.consumers.add(consumer)
+    if (!this.damage) return
+    this.damage.set(consumer, {
+      fullVersion: this.hasSnapshot ? this.snapshotRevision : 0,
+      rows: new Map(
+        this.hasSnapshot
+          ? Array.from({ length: this.readGrid().rows }, (_, y) => [y, this.snapshotRevision])
+          : [],
+      ),
+    })
+  }
+
+  release(consumer: GhosttyRenderState): void {
+    this.consumers.delete(consumer)
+    this.damage?.delete(consumer)
+    if (this.preparedFor === consumer) this.preparedFor = undefined
+    if (this.consumers.size !== 0) return
+    this.dispose()
+    sharedSnapshots.delete(this.terminal)
+  }
+
+  consumerDirty(consumer: GhosttyRenderState, nativeDirty?: RenderStateDirty): RenderStateDirty {
+    const damage = this.damage?.get(consumer)
+    if (!damage) return nativeDirty ?? this.dirty
+    if (damage.fullVersion !== 0) return RenderStateDirty.Full
+    return damage.rows.size === 0 ? RenderStateDirty.False : RenderStateDirty.Partial
+  }
+
+  prepare(consumer: GhosttyRenderState): void {
+    const damage = this.damage?.get(consumer)
+    if (!damage || this.preparedFor === consumer) return
+    this.preparedFor = undefined
+    this.resetIterator()
+    let y = 0
+    while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
+      this.runtime.memory.view.setUint8(this.booleanPointer, Number(damage.rows.has(y++)))
+      assertGhosttyResult(
+        'ghostty_render_state_row_set(DIRTY)',
+        this.runtime.exports.ghostty_render_state_row_set(
+          this.iterator.handle,
+          RenderStateRowOption.Dirty,
+          this.booleanPointer,
+        ),
+      )
+    }
+    this.runtime.memory.view.setInt32(this.dirtyValuePointer, this.consumerDirty(consumer), true)
+    assertGhosttyResult(
+      'ghostty_render_state_set(DIRTY)',
+      this.runtime.exports.ghostty_render_state_set(
+        this.state.handle,
+        RenderStateOption.Dirty,
+        this.dirtyValuePointer,
+      ),
+    )
+    this.preparedFor = consumer
+  }
+
+  acknowledgeConsumer(consumer: GhosttyRenderState, version: number): number {
+    const damage = this.damage?.get(consumer)
+    if (!damage) return version < this.snapshotRevision ? 0 : this.acknowledge()
+    let count = 0
+    for (const [row, changedAt] of damage.rows) {
+      if (changedAt > version) continue
+      damage.rows.delete(row)
+      count += 1
+    }
+    if (damage.fullVersion <= version) damage.fullVersion = 0
+    if (this.preparedFor === consumer) this.preparedFor = undefined
+    return count
+  }
+
+  private readDamage(): PendingDamage {
+    const rows = new Map<number, number>()
+    this.resetIterator()
+    let y = 0
+    while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
+      if (this.readRowDirty()) rows.set(y, this.snapshotRevision)
+      y += 1
+    }
+    return { fullVersion: this.dirty === RenderStateDirty.Full ? this.snapshotRevision : 0, rows }
+  }
+
+  private distributeDamage(): void {
+    if (!this.damage) return
+    const incoming = this.readDamage()
+    for (const pending of this.damage.values()) this.mergeDamage(pending, incoming)
+    this.preparedFor = undefined
+  }
+
+  private mergeDamage(pending: PendingDamage, incoming: PendingDamage): void {
+    if (incoming.fullVersion !== 0) {
+      pending.fullVersion = incoming.fullVersion
+      pending.rows.clear()
+    }
+    for (const [y, version] of incoming.rows) pending.rows.set(y, version)
   }
 
   get renderHeld(): boolean {
@@ -248,6 +361,11 @@ export class GhosttyRenderState {
   }
 
   private captureUpdate(): RenderStateDirty {
+    // Native update consumes terminal damage; only this shared snapshot may call it.
+    if (this.damage) {
+      this.preparedFor = undefined
+      this.acknowledge()
+    }
     assertGhosttyResult(
       'ghostty_render_state_update',
       this.runtime.exports.ghostty_render_state_update(this.state.handle, this.terminal.handle),
@@ -255,10 +373,16 @@ export class GhosttyRenderState {
     const snapshot = this.cursorReader.read(this.state.handle)
     this.cursorSnapshot = snapshot.cursor
     if (snapshot.dirty !== RenderStateDirty.False) this.snapshotRevision += 1
+    this.distributeDamage()
     return snapshot.dirty
   }
 
-  createFrameBuilder(columns: number, rows: number): ZigFrameBuilder {
+  createFrameBuilder(
+    columns: number,
+    rows: number,
+    ensureOwnerActive: () => void,
+    prepare: () => void,
+  ): ZigFrameBuilder {
     this.ensureActive()
     return new ZigFrameBuilder(
       this.runtime,
@@ -267,13 +391,9 @@ export class GhosttyRenderState {
       this.cells.handle,
       columns,
       rows,
-      () => this.ensureActive(),
+      ensureOwnerActive,
+      prepare,
     )
-  }
-
-  snapshot(options: ReadRowsOptions = {}): DamageSnapshot {
-    const dirty = this.update()
-    return { dirty, rows: this.readRows(options) }
   }
 
   readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
@@ -299,15 +419,14 @@ export class GhosttyRenderState {
     )
   }
 
-  [retainDisplayedFrame](options: { full?: boolean } = {}) {
+  retainFrame(store: DisplayedFrameStore, full?: boolean) {
     this.ensureActive()
-    this.displayedFrames ??= new DisplayedFrameStore(this.runtime)
-    return this.displayedFrames.capture(
+    return store.capture(
       this.state.handle,
       this.iterator.handle,
       this.cells.handle,
       this.readGrid(),
-      options.full,
+      full,
     )
   }
 
@@ -319,42 +438,23 @@ export class GhosttyRenderState {
 
   acknowledge(): number {
     this.ensureActive()
-    this.resetIterator()
-    let acknowledgedRows = 0
-    while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
-      if (!this.readRowDirty()) continue
-      assertGhosttyResult(
-        'ghostty_render_state_row_set(DIRTY)',
-        this.runtime.exports.ghostty_render_state_row_set(
-          this.iterator.handle,
-          RenderStateRowOption.Dirty,
-          this.zeroBooleanPointer,
-        ),
-      )
-      acknowledgedRows += 1
-    }
+    this.preparedFor = undefined
     assertGhosttyResult(
-      'ghostty_render_state_set(DIRTY)',
-      this.runtime.exports.ghostty_render_state_set(
-        this.state.handle,
-        RenderStateOption.Dirty,
-        this.zeroDirtyPointer,
-      ),
+      'bridge_acknowledge',
+      this.runtime.bridge.acknowledge(this.state.handle, this.iterator.handle, this.dirtyPointer),
     )
-    return acknowledgedRows
+    return this.runtime.memory.view.getUint32(this.dirtyPointer, true)
   }
 
   dispose(): void {
     if (this.disposed) return
     this.unsubscribeRenderHold()
     this.renderRequestListeners.clear()
-    this.displayedFrames?.dispose()
     this.cursorReader.dispose()
     this.rowReader.dispose()
     this.textRowReader.dispose()
     this.runtime.memory.free(this.scalarPointer, 12)
     this.freeNativeHandles()
-    this.runtime.releaseRenderState(this)
     this.disposed = true
   }
 
@@ -439,6 +539,147 @@ export class GhosttyRenderState {
       ),
     )
     return this.runtime.memory.view.getUint8(this.dirtyPointer) !== 0
+  }
+
+  private ensureActive(): void {
+    this.runtime.ensureActive()
+    if (!this.disposed) return
+    throw createGhosttyError('render_state', 'The render state has been disposed')
+  }
+}
+
+/** A damage subscription to the terminal's shared native snapshot. */
+export class GhosttyRenderState {
+  private readonly snapshotState: SharedRenderState
+  private readonly renderRequestListeners = new Set<() => void>()
+  private readonly unsubscribeRenderRequest: () => void
+  private displayedFrames?: DisplayedFrameStore
+  private observedVersion = 0
+  private acknowledgingVersion?: number
+  private disposed = false
+
+  constructor(
+    private readonly runtime: GhosttyRuntime,
+    terminal: GhosttyTerminal,
+  ) {
+    const snapshot = sharedSnapshots.get(terminal) ?? new SharedRenderState(runtime, terminal)
+    this.snapshotState = snapshot
+    snapshot.attach(this)
+    sharedSnapshots.set(terminal, snapshot)
+    this.unsubscribeRenderRequest = snapshot.subscribeRenderRequest(() => {
+      for (const listener of this.renderRequestListeners) listener()
+    })
+  }
+
+  get renderHeld(): boolean {
+    return this.snapshotState.renderHeld
+  }
+
+  get hasSnapshot(): boolean {
+    return this.snapshotState.hasSnapshot
+  }
+
+  /** Advances when any subscription captures damaged terminal output. */
+  get snapshotVersion(): number {
+    return this.snapshotState.snapshotVersion
+  }
+
+  get dirty(): RenderStateDirty {
+    this.ensureActive()
+    return this.snapshotState.consumerDirty(this)
+  }
+
+  subscribeRenderRequest(listener: () => void): () => void {
+    this.renderRequestListeners.add(listener)
+    return () => {
+      this.renderRequestListeners.delete(listener)
+    }
+  }
+
+  update(): RenderStateDirty {
+    this.ensureActive()
+    const dirty = this.snapshotState.update()
+    this.observedVersion = this.snapshotVersion
+    return this.snapshotState.consumerDirty(this, dirty)
+  }
+
+  createFrameBuilder(columns: number, rows: number): ZigFrameBuilder {
+    this.ensureActive()
+    return this.snapshotState.createFrameBuilder(
+      columns,
+      rows,
+      () => this.ensureActive(),
+      () => this.prepare(),
+    )
+  }
+
+  snapshot(options: ReadRowsOptions = {}): DamageSnapshot {
+    const dirty = this.update()
+    return { dirty, rows: this.readRows(options) }
+  }
+
+  readRows(options: ReadRowsOptions = {}): readonly RenderRow[] {
+    this.prepare()
+    return this.snapshotState.readRows(options)
+  }
+
+  /** Reads the shared snapshot without updating or acknowledging damage. */
+  readTextRows(options: ReadTextRowsOptions = {}): readonly RenderTextRow[] {
+    this.prepare()
+    return this.snapshotState.readTextRows(options)
+  }
+
+  [retainDisplayedFrame](options: { full?: boolean } = {}) {
+    this.prepare()
+    this.displayedFrames ??= new DisplayedFrameStore(this.runtime)
+    return this.snapshotState.retainFrame(this.displayedFrames, options.full)
+  }
+
+  readCursor(): RenderCursorSnapshot {
+    this.ensureActive()
+    return this.snapshotState.readCursor()
+  }
+
+  acknowledge(): number {
+    this.ensureActive()
+    return this.snapshotState.acknowledgeConsumer(
+      this,
+      this.acknowledgingVersion ?? this.observedVersion,
+    )
+  }
+
+  [captureRenderAcknowledgement](): () => number {
+    this.ensureActive()
+    const version = this.observedVersion
+    return () => this.acknowledgeVersion(version)
+  }
+
+  dispose(): void {
+    if (this.disposed) return
+    this.unsubscribeRenderRequest()
+    this.renderRequestListeners.clear()
+    this.displayedFrames?.dispose()
+    this.snapshotState.release(this)
+    this.runtime.releaseRenderState(this)
+    this.disposed = true
+  }
+
+  private acknowledgeVersion(version: number): number {
+    this.ensureActive()
+    const previous = this.acknowledgingVersion
+    this.acknowledgingVersion = version
+    // Keep public acknowledgement decorators while binding this submission's version.
+    try {
+      return this.acknowledge()
+    } finally {
+      this.acknowledgingVersion = previous
+    }
+  }
+
+  private prepare(): void {
+    this.ensureActive()
+    this.snapshotState.prepare(this)
+    this.observedVersion = this.snapshotVersion
   }
 
   private ensureActive(): void {
