@@ -218,3 +218,21 @@ it.for(['canvas2d', 'worker-webgl2'] as const)(
     await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before pending')
   },
 )
+
+it.for(['canvas2d', 'worker-webgl2'] as const)(
+  'waits for the returning %s paint before publishing output timing',
+  async (backend) => {
+    const { terminal, host } = await fixture(backend)
+    host.style.top = '200vh'
+    await intersection(terminal.element!, false)
+    let delivered = 0
+    terminal.on('outputTiming', () => delivered++)
+    await terminal.write(' timed')
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(delivered).toBe(0)
+    host.style.top = '0'
+    await intersection(terminal.element!, true)
+    await expect.poll(() => delivered).toBe(1)
+    expect(terminal.visibleLines()[0]?.trimEnd()).toBe('before timed')
+  },
+)

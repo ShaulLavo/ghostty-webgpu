@@ -44,7 +44,7 @@ export interface OutputTimingOptions {
   readonly measuresPresentation: boolean
   renderHeld?(): boolean
   pendingFrame(): boolean
-  /** False while the page is hidden; a quiet burst then waits for `resume`. */
+  /** False while painting is paused; a quiet burst then waits for `resume`. */
   visible(): boolean
   describe(): Pick<TerminalOutputTiming, 'desynchronized' | 'presentation' | 'rendererBackend'>
   emit(timing: TerminalOutputTiming): void
@@ -143,7 +143,7 @@ export class OutputTimingTracker {
     else clock.requestFrame(settle)
   }
 
-  /** The page is visible again, so a burst that waited while hidden can be drawn and finish. */
+  /** Painting resumed, so a burst that waited while hidden can be drawn and finish. */
   resume(): void {
     const burst = this.burst
     if (!burst?.quiet || this.disposed) return

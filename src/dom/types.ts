@@ -65,7 +65,7 @@ export interface TerminalOutputTiming {
    */
   readonly presentedAt?: number
   readonly writes: number
-  /** No frame drew this output because the page was hidden when it ended. */
+  /** No frame drew this output because the terminal was hidden when it ended. */
   readonly hidden: boolean
   readonly presentation: NonNullable<GhosttyWebGpuTerminalOptions['presentation']>
   /** The canvas presents without waiting for the browser's compositor, as `diagnostics.desynchronized`. */
