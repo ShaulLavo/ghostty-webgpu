@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { chromium, type CDPSession, type Page } from 'playwright'
@@ -201,15 +201,7 @@ async function pixelHash(page: Page, png: Buffer): Promise<string> {
   }, png.toString('base64'))
 }
 
-async function measure(
-  mode: (typeof modes)[number],
-  fixture: string,
-  count: number,
-  columns: number,
-  rows: number,
-  repetition: number,
-  assets: Map<string, string | Buffer>,
-) {
+async function browserResources() {
   const args = [
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
@@ -224,20 +216,34 @@ async function measure(
   )
   if (!headless) assert(freeMiB >= 2048, `only ${freeMiB} MiB VRAM free`)
   const browser = await chromium.launch({ channel: 'chromium', headless, args })
-  let raw: RawCdp | undefined
+  const raw = await RawCdp.connect()
+  const browserCdp = await browser.newBrowserCDPSession()
+  const gpuInfo = await browserCdp.send('SystemInfo.getInfo')
+  if (!headless)
+    assert(
+      typeof gpuInfo.gpu.auxAttributes?.glRenderer === 'string' &&
+        !/swiftshader|llvmpipe|software/iu.test(gpuInfo.gpu.auxAttributes.glRenderer),
+      'hardware adapter required',
+    )
+  return { browser, raw, browserCdp, gpuInfo, args, freeMiB, session: randomUUID() }
+}
+
+async function measure(
+  resources: Awaited<ReturnType<typeof browserResources>>,
+  mode: (typeof modes)[number],
+  fixture: string,
+  count: number,
+  columns: number,
+  rows: number,
+  repetition: number,
+  assets: Map<string, string | Buffer>,
+) {
+  const { browser, raw, browserCdp, gpuInfo, args, freeMiB, session } = resources
+  const page = await browser.newPage({
+    viewport: { width: 2400, height: 1800 },
+    deviceScaleFactor: 2,
+  })
   try {
-    raw = await RawCdp.connect()
-    const browserCdp = await browser.newBrowserCDPSession()
-    const gpuInfo = await browserCdp.send('SystemInfo.getInfo')
-    if (!headless)
-      assert(
-        !/swiftshader|llvmpipe|software/iu.test(String(gpuInfo.gpu.auxAttributes?.glRenderer)),
-        'hardware adapter required',
-      )
-    const page = await browser.newPage({
-      viewport: { width: 2400, height: 1800 },
-      deviceScaleFactor: 2,
-    })
     const pageErrors: string[] = []
     page.on('pageerror', (error) => pageErrors.push(error.message))
     page.on('console', (message) => {
@@ -305,6 +311,7 @@ async function measure(
       repetition,
       steps,
       elapsedMilliseconds: elapsed,
+      browserSession: session,
       browser: browser.version(),
       gpuInfo,
       args,
@@ -342,8 +349,7 @@ async function measure(
     await page.evaluate(() => window.__workerPoolBench.dispose())
     return receipt
   } finally {
-    raw?.close()
-    await browser.close()
+    await page.close()
   }
 }
 
@@ -413,21 +419,28 @@ async function runPair(
   repetition: number,
   order: readonly (typeof modes)[number][],
 ) {
-  for (const mode of order) {
-    const { geometry, count, fixture } = sample
-    console.log(
-      `sample ${fixture} ${mode} ${count} ${geometry.columns}x${geometry.rows} r${repetition}`,
-    )
-    const result = await measure(
-      mode,
-      fixture,
-      count,
-      geometry.columns,
-      geometry.rows,
-      repetition,
-      assets,
-    )
-    results.push(result)
-    await Bun.write(output, JSON.stringify({ results }, null, 2))
+  const resources = await browserResources()
+  try {
+    for (const mode of order) {
+      const { geometry, count, fixture } = sample
+      console.log(
+        `sample ${fixture} ${mode} ${count} ${geometry.columns}x${geometry.rows} r${repetition}`,
+      )
+      const result = await measure(
+        resources,
+        mode,
+        fixture,
+        count,
+        geometry.columns,
+        geometry.rows,
+        repetition,
+        assets,
+      )
+      results.push(result)
+      await Bun.write(output, JSON.stringify({ results }, null, 2))
+    }
+  } finally {
+    resources.raw.close()
+    await resources.browser.close()
   }
 }

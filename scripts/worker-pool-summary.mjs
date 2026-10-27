@@ -27,6 +27,7 @@ function compare(key, group) {
     assert(after, `missing paired repetition ${key}`)
     return {
       repetition: before.repetition,
+      sameBrowserSession: before.browserSession === after.browserSession,
       textEqual: equals(before.rowHashes, after.rowHashes),
       pixelsEqual: equals(before.screenshots, after.screenshots),
       updatesEqual: equals(before.deliveredFrames, after.deliveredFrames),
@@ -101,6 +102,7 @@ const casesCompared = Array.from(cases, ([key, group]) => compare(key, group))
 const correctness = casesCompared.every((row) =>
   row.pairs.every(
     (pair) =>
+      pair.sameBrowserSession &&
       pair.textEqual &&
       pair.pixelsEqual &&
       pair.updatesEqual &&
