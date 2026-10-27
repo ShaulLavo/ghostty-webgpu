@@ -1,5 +1,5 @@
 import { testFontUrl } from '../tests/fonts.js'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import {
   Terminal as MainTerminal,
@@ -51,7 +51,11 @@ async function eventually(condition: () => boolean | Promise<boolean>): Promise<
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
-async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = false) {
+async function create(
+  mode: 'main' | 'webgpu' | 'webgl',
+  enableAccessibility = false,
+  textBlink?: boolean,
+) {
   const appearance = { font: { family, size: 16 }, cursor: { blink: false } }
   if (mode === 'main') {
     const face = await new FontFace(family, `url(${JSON.stringify(fontUrl)})`).load()
@@ -59,6 +63,7 @@ async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = f
     const terminal = await MainTerminal.create({
       accessibility: enableAccessibility ? {} : false,
       appearance,
+      textBlink,
       runtime: { kind: 'owned', options: assets },
       rendererFactory: (options) => WebGlTerminalRenderer.create(options),
     })
@@ -68,6 +73,7 @@ async function create(mode: 'main' | 'webgpu' | 'webgl', enableAccessibility = f
   const terminal = await WorkerTerminal.create({
     accessibility: enableAccessibility ? {} : false,
     appearance,
+    textBlink,
     backend: mode,
     fonts: [{ family, source: { url: fontUrl } }],
   })
