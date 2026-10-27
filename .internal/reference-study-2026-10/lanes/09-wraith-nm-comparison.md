@@ -1,16 +1,16 @@
 # M3 and M4 comparison
 
-Status: paced M3 complete; matched forced-completion follow-up pending. M4 complete with geometry rejection. Experimental results, 2026-10-27.
+Status: measurements complete with the qualification limits below; PR review pending. M4 stops at geometry rejection. Experimental results, 2026-10-27.
 
 ## Verdict
 
-Wraith's native worker pipeline has a real, workload-specific throughput advantage, with higher total CPU cost. For 16 terminals running OpenTUI plasma, the same 64 updates finish in 1097 ms versus our WebGPU's 1527 ms on PC, and 1347 ms versus 2275 ms on M1. That is 1.39x and 1.69x faster delivery. Total browser CPU time rises from 2.345 to 3.135 seconds on PC and from 2.555 to 3.649 seconds on M1, increases of 34% and 43%. This is an experimental delivery result, not physical display latency.
+Wraith's native worker pipeline has a conditional, workload-specific delivery advantage, with higher total CPU cost. For 16 terminals running OpenTUI plasma, the same 64 updates finish in 1097 ms versus our WebGPU's 1527 ms on PC, and 1347 ms versus 2275 ms on M1. That is 1.39x and 1.69x faster delivery. Total browser CPU time rises from 2.345 to 3.135 seconds on PC and from 2.555 to 3.649 seconds on M1, increases of 34% and 43%. This is an experimental delivery result, not physical display latency or a pixel-identical renderer speedup. The plasma painting differences below limit that claim.
 
 It is not a general dense-path win. For 16-terminal NTCharts heatmap, delivery times are similar and Wraith uses 55% more CPU time on PC and 65% more on M1. The apparent one-terminal logging benefit in raw CPU percentages disappears when normalized to the same delivered work. Longer measurement windows can make a CPU-rate percentage look better without reducing total CPU time.
 
 The plasma advantage is already visible at parse acknowledgement. In the PC forward arm, p50 acknowledgement for 16 terminals is 14.1 ms for ours and 2.4 ms for Wraith. GPU record size and font rasterization cannot explain a gain that occurs before rendering. Wraith has 16 dedicated workers and devices; our entry shares one main-thread runtime and device. The cohort compares whole pipelines and does not isolate harfrust/swash or the compact 20-byte record.
 
-- **X5/E7:** keep the bounded experiment and its 20% dense-CPU reduction gate. M3 finds a dense latency win, so the plan's blanket demotion condition is not met. It does not justify adopting compact records. Match parser/worker ownership before crediting the record layout. X4's worker-topology experiment has stronger evidence here.
+- **X5/E7:** give compact records lower priority than the worker-topology experiment, while retaining its bounded prototype and 20% dense-CPU reduction gate. The pixel-comparable heatmap has no demonstrated CPU win. Plasma has both ownership and painting confounds. Match parser/worker ownership before crediting the record layout; do not adopt compact records on this evidence.
 - **C2:** keep run shaping as the planned capability work. This cohort provides no qualified Unicode visual speed result and no reason to replace the browser font path for CPU performance.
 - **General row map:** do not port it on this evidence. Partial-region scrolling and insert/delete lines have no end-to-end CPU win after normalization. At 16 terminals, Wraith costs 1.78x/1.97x our WebGPU CPU time on PC and 2.85x/3.10x on M1 for those two fixtures. An isolated retained-row experiment could still identify a smaller benefit hidden by the worker/device ownership cost.
 
@@ -70,15 +70,40 @@ Each cell is the median of two counterbalanced repetitions. CPU seconds cover th
 
 All paced text groups agree after padding Wraith's omitted trailing blank rows to the known 30-row viewport, then trimming trailing U+0020 on each row. Leading/interior whitespace, row boundaries, combining text and ZWJ sequences remain unchanged. Each 16-terminal arm also checks every terminal against its peers.
 
-All matched entries have 700 by 570 physical backings, with 7 by 19 cells. The viewport is 3360 by 2560 CSS pixels, fitting all 16 sections without rescaling. On PC, the heatmap has 399000 painted pixels in every crop. Our WebGPU, our WebGL2 and xterm decoded crops are identical. Wraith differs at 13 pixels, with a maximum two-level color difference. Plasma is not pixel-identical at half-block edges: Wraith's procedural blocks and our browser-rasterized blocks differ there. All 6000 upper/lower half-cell interior color samples match exactly. Full-resolution crops were inspected. These limits are part of the experimental cadence result.
+All matched entries have 700 by 570 physical backings, with 7 by 19 cells. The viewport is 3360 by 2560 CSS pixels, fitting all 16 sections without rescaling. On PC, the heatmap has 399000 painted pixels in every crop. Our WebGPU, our WebGL2 and xterm decoded crops are identical. Wraith differs at 13 pixels, with a maximum two-level color difference. Plasma is not pixel-identical at half-block edges: Wraith's procedural blocks and our browser-rasterized blocks differ there. On PC, all 6000 upper/lower half-cell interior color samples match exactly. On Mac, only 3200 of 6000 match exactly, with a maximum 20-level channel difference. The Mac plasma comparison therefore has an additional rasterization confound. Mac heatmap differs at 14 of 399000 pixels, by at most two levels. Full-resolution crops were inspected. These limits are part of the experimental cadence result.
 
 Native submitted-frame counters and Wraith render-event counters are retained before/after every workload. In 16-terminal plasma, native records 64 submissions per terminal. Wraith's observed deltas are 64..65; they include the forced text-qualification draw outside timing, so approximately 63..64 are workload draws. Equal final output and delivered bytes do not prove every intermediate presented image. The counters rule out a large reduction in rendered work as the explanation for the plasma delivery gap.
 
-## Completion follow-up
+## Forced GPU completion
 
-Parse acknowledgements, frame intervals and GPU completion are separate endpoints. The initial `pc-fenced*` and `mac-fenced*` files are **scheduled-presentation diagnostics**, not a matched force-draw comparison. They wait for our next scheduled frame but invoke Wraith's immediate `flush()`. Their large readiness gap includes that policy difference and must not be reported as GPU execution time. The corrected follow-up will force our scheduler to draw and then await `GPUQueue.onSubmittedWorkDone()`, matching Wraith's force-draw-plus-fence endpoint. Its paired PC/Mac numbers will be added separately.
+The matched probe forces each native renderer's existing scheduler to draw, then awaits its actual `GPUQueue.onSubmittedWorkDone()`. Wraith uses its public `flush()`, which forces a draw and awaits its engine fence. All 32 input updates per terminal are acknowledged before each endpoint waits for drawing. The table shows median parse/API acknowledgement time, then write-start-to-GPU-completion p50 and p95, in milliseconds. These are browser/driver readiness endpoints, not timestamp-query GPU duration or physical display latency.
 
-One initial PC fenced 16-terminal Wraith arm was rejected by the existing 80% GPU-utilization guard before its first fixture was retained. The reverse arm passed. That failure remains in `pc-fenced-16/results.json`; it is not replaced with a faster sample. All paced arms passed.
+The native force hook runs per renderer outside the normal shared RAF coordinator's batching. It can issue separate submissions for each renderer. Use the paced table to assess normal production CPU cost; these forced endpoints do not isolate GPU algorithms or record size. Private access is confined to the benchmark and checked against the actual scheduler/device classes.
+
+| Host / terminals | Workload            | acknowledgement ours / Wraith | completion p50 ours / Wraith | completion p95 ours / Wraith |
+| ---------------- | ------------------- | ----------------------------: | ---------------------------: | ---------------------------: |
+| PC / 1           | ntcharts-heatmap    |                   0.40 / 0.50 |                  3.55 / 3.70 |                  4.00 / 4.10 |
+| PC / 1           | opentui-plasma      |                   0.85 / 0.90 |                  4.23 / 3.90 |                  5.00 / 4.45 |
+| PC / 1           | partial-scroll      |                   0.05 / 0.15 |                  3.22 / 3.70 |                  3.50 / 4.30 |
+| PC / 1           | insert-delete-lines |                   0.10 / 0.15 |                  3.18 / 3.65 |                  3.80 / 3.95 |
+| PC / 16          | ntcharts-heatmap    |                   5.10 / 1.10 |                17.20 / 13.40 |                19.45 / 26.80 |
+| PC / 16          | opentui-plasma      |                  13.27 / 2.35 |                27.65 / 16.15 |                38.80 / 39.50 |
+| PC / 16          | partial-scroll      |                   0.10 / 0.30 |                10.90 / 16.65 |                15.00 / 19.40 |
+| PC / 16          | insert-delete-lines |                   0.20 / 0.40 |                11.00 / 19.80 |                12.85 / 28.20 |
+| MAC / 1          | ntcharts-heatmap    |                   1.35 / 1.70 |                  4.17 / 3.80 |                  5.00 / 5.95 |
+| MAC / 1          | opentui-plasma      |                   2.10 / 2.85 |                  4.92 / 5.25 |                  6.65 / 7.00 |
+| MAC / 1          | partial-scroll      |                   0.10 / 0.40 |                  2.38 / 2.72 |                  3.35 / 4.10 |
+| MAC / 1          | insert-delete-lines |                   0.10 / 0.38 |                  1.70 / 2.78 |                  2.90 / 4.25 |
+| MAC / 16         | ntcharts-heatmap    |                   8.50 / 2.72 |                18.75 / 10.00 |                19.15 / 14.15 |
+| MAC / 16         | opentui-plasma      |                  16.40 / 5.17 |                30.58 / 15.85 |                33.05 / 28.25 |
+| MAC / 16         | partial-scroll      |                   0.10 / 0.80 |                 6.50 / 10.22 |                 7.95 / 14.90 |
+| MAC / 16         | insert-delete-lines |                   0.20 / 0.83 |                 6.55 / 10.60 |                 7.40 / 13.80 |
+
+All eight fixtures ran; representative endpoints are shown here and the full arrays remain in the packet. Each cell uses two counterbalanced windows except **PC Wraith with 16 terminals, n=1**. Its forward arm was rejected on the first heatmap window at 92% GPU utilization against the existing 80% guard. No new compute PID appeared and resident compute memory changed from 719 to 722 MiB; the cause of the utilization spike is not isolated. The reverse arm passed all fixtures. The failed arm and sampler evidence are retained, not replaced. The Mac forced cohort passed all eight arms.
+
+One-terminal forced completion is broadly comparable. At 16 terminals, dense acknowledgement/completion favors Wraith, while partial scrolling and insert/delete-line completion favor ours. The dense acknowledgement advantage exists before frame construction, reinforcing the worker-ownership explanation. These observations do not establish a compact-record or in-wasm font CPU win.
+
+The earlier `pc-fenced*` and `mac-fenced*` files are retained as **scheduled-presentation diagnostics**. They wait for our next scheduled frame while forcing Wraith's draw. Their large readiness gap includes that policy difference and is not a matched GPU-execution result. One initial PC scheduled 16-terminal arm also hit the utilization guard. Those cases are separate from the matched `*-forced-completion` datasets.
 
 ## Scope and method
 
@@ -92,7 +117,7 @@ The retained native-only smoke ran first, in headed Chromium 153.0.8010.12, on N
 
 Paced tests deliver identical chunks, in identical order, to every terminal. Counterbalanced repetitions alternate forward and reverse entry order. CPU counters cover the browser process family, including renderer and GPU processes. One CPU core is 100%. The six L6 workloads are retained without editing. The extra generated fixtures exercise a partial scroll region and insert/delete lines. Each timing result retains delivered byte counts, acknowledgement samples, frame intervals, output text, and before/after renderer metadata. `studyInfo()` and screenshot capture run outside the measured CPU window.
 
-Acknowledgement and GPU completion have separate meanings. Our `write()` changes the core synchronously. Wraith's write promise acknowledges worker parsing. In the initial scheduled diagnostics, Wraith's public `flush()` forces a draw and awaits its engine fence. Our endpoint waits for the scheduled frame to submit, then awaits `GPUQueue.onSubmittedWorkDone()`. The latter includes frame scheduling. Neither endpoint is physical display latency, and requestAnimationFrame intervals are not displayed frame counts. Wraith's render-event counter and our submitted-frame metrics are retained separately.
+Acknowledgement and GPU completion have separate meanings. Our `write()` changes the core synchronously. Wraith's write promise acknowledges worker parsing. In the matched forced cohort, both endpoints force drawing before waiting for their GPU queue. The retained initial scheduled diagnostics additionally include our frame scheduling delay and are labeled separately. Neither endpoint is physical display latency, and requestAnimationFrame intervals are not displayed frame counts. Wraith's render-event counter and our submitted-frame metrics are retained separately.
 
 Unicode text equality alone cannot qualify visible work. The Latin font lacks CJK and emoji coverage. Wraith needs explicit fallback font files, while browser rasterizers can choose system fallbacks. Unicode timings remain diagnostic unless those painted outputs qualify. Heatmap crops compare actual backing geometry and nonblack coverage, with exact pixel hashes retained where raster output is comparable.
 
@@ -112,4 +137,8 @@ Build with `WRAITH_SOURCE=/path/to/wraithterm NM_SOURCE=/path/to/nm-webgpu node 
 
 Passed `bun run build`, `bun run typecheck`, `bun run lint`, `bun run format:check`, `bun run test:unit`, and `bun run --cwd site docs:check`. Unit coverage is 1106 passed and one skipped. Benchmark-runner checks also pass. `bun run test:browser bench/comparison-legacy-text.browser.test.ts` passes both browser tests. The complete hardware smoke and paced matrix are the integration checks for the adapters.
 
-The temporary NimbleMarkets and upstream Ghostty worktrees, plus the 428 MiB Zig download/compiler scratch, were removed after their consumers stopped. The lane checkout and Mac staging remain while the separately requested forced-completion follow-up runs. The raw packet is retained by the study coordinator for review and archival; final cleanup will be checked in the follow-up. No server, route, service, container or image was created.
+The temporary NimbleMarkets and upstream Ghostty worktrees, plus the 428 MiB Zig download/compiler scratch, were removed after their consumers stopped. The Mac staging and task-created browser profiles have been removed after SHA-256 verification of all seven result directories. The lane checkout and its installed/build payloads are removed after the follow-up push. The raw packet is retained by the study coordinator for review and archival; removal condition is completion or archival of this wave. No server, route, service, container or image was created.
+
+The main paced bundle is immutable. The PC forced bundle has a fresh manifest and source/asset hashes. The Mac forced bundle was compiled from the retained source snapshot using the exact installed hotkeys/store packages; `mac-forced-bundle/mac-forced-provenance.json` identifies the actual browser/worker/wasm hashes and source archive. Its inherited manifest supplies baseline native assets and settings only, not the rebuilt browser hash. Worker-only adapter probes record NVIDIA Ampere on PC and Apple Metal 3 on Mac, both with `fallback: false`.
+
+The checked remote cleanup receipt is `cleanup-mac.json`: all seven result-directory hashes matched their collected copies, 73,308,144 bytes of staging were removed, and the interrupted 11,072,488-byte browser profile was removed. Other agents' locks and the pre-existing Playwright/package caches were preserved. Local compiler/reference cleanup and removed transient profiles are recorded in `cleanup-local*.json`. The retained packet is approximately 129 MiB, owned by the coordinator until this wave is reviewed and archived.

@@ -18,6 +18,7 @@ import { GhosttyTerminal } from '../src/core/terminal.js'
 import { TerminalOption } from '../src/core/abi.js'
 import { TerminalSession } from '../src/term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../src/dom/terminal.js'
+import { RenderScheduler } from '../src/render/shared/scheduler.js'
 import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
 import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
@@ -208,12 +209,14 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     },
     text: () => terminal.visibleLines(),
     complete: async () => {
-      let frames = 0
-      while (mountedRenderer?.hasPendingFrame && frames++ < 120) await frame()
-      if (mountedRenderer?.hasPendingFrame)
-        throw new Error('Render did not submit within 120 frames')
-      const device = mountedRenderer && Reflect.get(mountedRenderer, 'device')
-      if (device instanceof GPUDevice) await device.queue.onSubmittedWorkDone()
+      if (!(mountedRenderer instanceof WebGpuTerminalRenderer))
+        throw new Error('WebGPU completion requires the WebGPU renderer')
+      const scheduler: unknown = Reflect.get(mountedRenderer, 'scheduler')
+      if (!(scheduler instanceof RenderScheduler)) throw new Error('Renderer scheduler required')
+      scheduler.flush()
+      const device: unknown = Reflect.get(mountedRenderer, 'device')
+      if (!(device instanceof GPUDevice)) throw new Error('Renderer device required')
+      await device.queue.onSubmittedWorkDone()
     },
     frameMetrics: () => (mountedRenderer ? { ...mountedRenderer.metrics } : undefined),
     history: () => terminal.lineCount() - settings.rows,

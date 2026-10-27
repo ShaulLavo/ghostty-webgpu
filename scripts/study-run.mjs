@@ -15,6 +15,11 @@ const variants = (
   process.env.STUDY_VARIANTS ??
   'ghostty-webgpu,ghostty-webgl,xterm-webgl,ghostty-web,restty-webgpu,restty-webgl2'
 ).split(',')
+if (process.env.STUDY_FENCED === '1')
+  assert(
+    variants.every((variant) => ['ghostty-webgpu', 'wraith-native'].includes(variant)),
+    'GPU completion requires an instrumented WebGPU entry',
+  )
 const counts = (process.env.STUDY_COUNTS ?? '1').split(',').map(Number)
 const fixtures = (process.env.STUDY_FIXTURES ?? 'ascii,sgr,cursor,rolling-logs').split(',')
 const repetitions = mode === 'smoke' ? 1 : Number(process.env.STUDY_REPETITIONS ?? 4)
