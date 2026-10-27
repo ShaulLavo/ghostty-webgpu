@@ -62,7 +62,6 @@ const conditions = Array.from(groups, ([condition, arms]) => {
       'screenshots',
       'deliveredFrames',
       'parsedCounts',
-      'submittedCounts',
     ])
       assert.deepEqual(a[key], b[key], `${condition} ${key}`)
     for (const run of [a, b]) {
@@ -89,6 +88,11 @@ const conditions = Array.from(groups, ([condition, arms]) => {
         {
           timing: timingSummary(runs),
           hostMs: mean(runs, (r) => r.hostTaskMillisecondsPerFrame),
+          hostReceiverMsPerFrame: mean(
+            runs,
+            (r) =>
+              r.hostHandlerMilliseconds / r.deliveredFrames.reduce((sum, count) => sum + count, 0),
+          ),
           workerSeconds: mean(runs, (r) => r.cpu.workerSeconds),
           memoryMiB: mean(runs, (r) => r.memory.hostPlusGpuMiB),
           p95: mean(runs, (r) => r.acknowledgement.p95),
@@ -99,6 +103,12 @@ const conditions = Array.from(groups, ([condition, arms]) => {
   }
 })
 const summary = {
+  countEndpoints: {
+    parsed: 'Acknowledged native writes',
+    delivered: 'Host frame callbacks',
+    submitted: 'Not independently measured; inferred from host delivery only',
+    presented: 'Unresolved',
+  },
   decision: conditions.every((c) => Object.values(c.gates).every(Boolean))
     ? 'KEEP candidate, public API qualification still required'
     : 'REJECT',

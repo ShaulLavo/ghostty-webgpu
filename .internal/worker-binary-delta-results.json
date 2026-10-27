@@ -1,4 +1,10 @@
 {
+  "countEndpoints": {
+    "parsed": "Acknowledged native writes",
+    "delivered": "Host frame callbacks",
+    "submitted": "Not independently measured; inferred from host delivery only",
+    "presented": "Unresolved"
+  },
   "decision": "REJECT",
   "conditions": [
     {
@@ -53,6 +59,7 @@
             "gcEvents": 1388
           },
           "hostMs": 0.8513047619047619,
+          "hostReceiverMsPerFrame": 0.09619047570796241,
           "workerSeconds": 0.12,
           "memoryMiB": 1101.39892578125,
           "p95": 0.3999999985098839,
@@ -93,6 +100,7 @@
             "gcEvents": 703
           },
           "hostMs": 0.258452380952381,
+          "hostReceiverMsPerFrame": 0.03333333276567005,
           "workerSeconds": 0.12,
           "memoryMiB": 1117.3955078125,
           "p95": 0.3500000089406967,
@@ -152,6 +160,7 @@
             "gcEvents": 1860
           },
           "hostMs": 0.8912238095238094,
+          "hostReceiverMsPerFrame": 0.09095238064016614,
           "workerSeconds": 0.20500000000000002,
           "memoryMiB": 1148.86328125,
           "p95": 0.75,
@@ -192,6 +201,7 @@
             "gcEvents": 3116
           },
           "hostMs": 0.8991190476190476,
+          "hostReceiverMsPerFrame": 0.5938095229722204,
           "workerSeconds": 0.185,
           "memoryMiB": 1147.30029296875,
           "p95": 0.6000000014901161,
@@ -251,6 +261,7 @@
             "gcEvents": 4901
           },
           "hostMs": 1.0158809523809524,
+          "hostReceiverMsPerFrame": 0.10380952407916387,
           "workerSeconds": 0.24,
           "memoryMiB": 1218.90869140625,
           "p95": 0.7000000029802322,
@@ -291,6 +302,7 @@
             "gcEvents": 5536
           },
           "hostMs": 0.8796095238095238,
+          "hostReceiverMsPerFrame": 0.5728571424172038,
           "workerSeconds": 0.215,
           "memoryMiB": 1220.78466796875,
           "p95": 0.6000000089406967,
@@ -350,6 +362,7 @@
             "gcEvents": 3537
           },
           "hostMs": 0.796,
+          "hostReceiverMsPerFrame": 0.09315789454338844,
           "workerSeconds": 0.435,
           "memoryMiB": 2569.44921875,
           "p95": 0.4000000059604645,
@@ -390,6 +403,7 @@
             "gcEvents": 1791
           },
           "hostMs": 0.19191578947368423,
+          "hostReceiverMsPerFrame": 0.03017543870628926,
           "workerSeconds": 0.49,
           "memoryMiB": 2482.70849609375,
           "p95": 0.5,
@@ -449,6 +463,7 @@
             "gcEvents": 5023
           },
           "hostMs": 0.9102298245614036,
+          "hostReceiverMsPerFrame": 0.09824561377366384,
           "workerSeconds": 0.865,
           "memoryMiB": 2668.50927734375,
           "p95": 2.100000001490116,
@@ -489,6 +504,7 @@
             "gcEvents": 8214
           },
           "hostMs": 0.862757894736842,
+          "hostReceiverMsPerFrame": 0.5980701755013382,
           "workerSeconds": 0.8049999999999999,
           "memoryMiB": 2673.94921875,
           "p95": 2.0500000044703484,
@@ -548,6 +564,7 @@
             "gcEvents": 15218
           },
           "hostMs": 0.9161298245614036,
+          "hostReceiverMsPerFrame": 0.09929824578657484,
           "workerSeconds": 1.01,
           "memoryMiB": 2776.07080078125,
           "p95": 1.3499999940395355,
@@ -588,6 +605,7 @@
             "gcEvents": 16770
           },
           "hostMs": 0.8913473684210527,
+          "hostReceiverMsPerFrame": 0.625087719554441,
           "workerSeconds": 0.905,
           "memoryMiB": 2811.64111328125,
           "p95": 2.1500000059604645,
@@ -647,6 +665,7 @@
             "gcEvents": 746
           },
           "hostMs": 0.3303142857142857,
+          "hostReceiverMsPerFrame": 0.02857142800376529,
           "workerSeconds": 0.07,
           "memoryMiB": 777.51904296875,
           "p95": 0.3500000089406967,
@@ -687,6 +706,7 @@
             "gcEvents": 624
           },
           "hostMs": 0.21193809523809526,
+          "hostReceiverMsPerFrame": 0.020000000014191582,
           "workerSeconds": 0.07,
           "memoryMiB": 786.8740234375,
           "p95": 0.3500000089406967,
@@ -746,6 +766,7 @@
             "gcEvents": 1080
           },
           "hostMs": 0.36687142857142857,
+          "hostReceiverMsPerFrame": 0.02809523812362126,
           "workerSeconds": 0.07,
           "memoryMiB": 811.4794921875,
           "p95": 0.6499999985098839,
@@ -786,6 +807,7 @@
             "gcEvents": 1486
           },
           "hostMs": 0.38497142857142863,
+          "hostReceiverMsPerFrame": 0.11809523793913068,
           "workerSeconds": 0.09,
           "memoryMiB": 807.107421875,
           "p95": 0.6999999955296516,
@@ -845,6 +867,7 @@
             "gcEvents": 1300
           },
           "hostMs": 0.3783714285714286,
+          "hostReceiverMsPerFrame": 0.027619047533898128,
           "workerSeconds": 0.1,
           "memoryMiB": 975.11328125,
           "p95": 0.6499999985098839,
@@ -885,6 +908,7 @@
             "gcEvents": 1754
           },
           "hostMs": 0.3739571428571429,
+          "hostReceiverMsPerFrame": 0.1238095230999447,
           "workerSeconds": 0.1,
           "memoryMiB": 981.384765625,
           "p95": 0.6500000059604645,
@@ -944,6 +968,7 @@
             "gcEvents": 1818
           },
           "hostMs": 0.2676052631578948,
+          "hostReceiverMsPerFrame": 0.028596491510407968,
           "workerSeconds": 0.28,
           "memoryMiB": 1456.560546875,
           "p95": 0.45000000298023224,
@@ -984,6 +1009,7 @@
             "gcEvents": 1605
           },
           "hostMs": 0.14974035087719295,
+          "hostReceiverMsPerFrame": 0.015087719183219106,
           "workerSeconds": 0.24,
           "memoryMiB": 1479.23486328125,
           "p95": 0.4000000059604645,
@@ -1043,6 +1069,7 @@
             "gcEvents": 3190
           },
           "hostMs": 0.36921929824561406,
+          "hostReceiverMsPerFrame": 0.0261403509660771,
           "workerSeconds": 0.315,
           "memoryMiB": 1507.4189453125,
           "p95": 1.6500000059604645,
@@ -1083,6 +1110,7 @@
             "gcEvents": 3802
           },
           "hostMs": 0.35562456140350873,
+          "hostReceiverMsPerFrame": 0.12543859646508568,
           "workerSeconds": 0.325,
           "memoryMiB": 1562.0390625,
           "p95": 1.8999999910593033,
@@ -1142,6 +1170,7 @@
             "gcEvents": 3619
           },
           "hostMs": 0.4376526315789473,
+          "hostReceiverMsPerFrame": 0.027719298449524664,
           "workerSeconds": 0.39,
           "memoryMiB": 2184.951171875,
           "p95": 2.6999999955296516,
@@ -1182,6 +1211,7 @@
             "gcEvents": 4042
           },
           "hostMs": 0.37873508771929826,
+          "hostReceiverMsPerFrame": 0.13719298240908406,
           "workerSeconds": 0.38,
           "memoryMiB": 2193.38623046875,
           "p95": 2.4000000059604645,

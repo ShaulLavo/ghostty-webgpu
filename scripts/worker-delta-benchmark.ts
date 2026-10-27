@@ -443,7 +443,9 @@ async function measure(
         chunks.reduce((sum, chunk) => sum + Buffer.byteLength(chunk), 0),
       ),
       parsedCounts: report.writeCounts.map((value, index) => value - warm.writeCounts[index]!),
-      submittedCounts: delivered,
+      submittedCounts: null,
+      inferredSubmittedCounts: delivered,
+      submissionCountBasis: 'inferred-from-host-delivery',
       presentedCounts: null,
       snapshotHashes: snapshots.map((snapshot) =>
         createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'),

@@ -23,7 +23,7 @@ Each worker message records terminal identity, control watermark, queue arrival,
 
 Chromium GC trace events retain process/thread identity and trace timestamps. A clock-sync marker and surrounding epoch readings connect the trace clock to the message timestamps. All live worker CDP targets report their identity and heap. Worker CPU is the existing Linux dedicated-thread tick endpoint. Memory is Chrome-family PSS plus device-VRAM growth from the pair's pre-browser baseline.
 
-Parsed writes, renderer submissions and delivered updates are reported separately. The sample waits for a frame after every scheduled write. A delivered frame is not a compositor presentation receipt. Presented counts remain explicitly unresolved; decoded screenshots verify the final pixels.
+Parsed writes and delivered host callbacks are counted separately. Renderer submissions are not independently measured: the historical `submittedCounts` field is derived from delivered callbacks. New receipts leave `submittedCounts` unresolved and label the inferred values explicitly. The summary does not treat that derived field as an independent check. The sample waits for a frame after every scheduled write. A delivered frame is not a compositor presentation receipt. Presented counts remain explicitly unresolved; decoded screenshots verify the final pixels.
 
 ## Cleanup ownership
 
