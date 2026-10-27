@@ -108,7 +108,7 @@ See [versions and reproduction commands](https://github.com/ShaulLavo/ghostty-we
 
 Pre-1.0 and experimental. Breaking changes ship in patch releases, and the API is not frozen.
 
-- **Not on npm at this API.** npm's latest is 0.1.2. This README describes version 0.3.24 from source.
+- **Not on npm at this API.** npm's latest is 0.1.2. This README describes version 0.3.25 from source.
 - **Tested in Chromium.** CI runs the library's browser tests in Chromium only. Firefox and WebKit are not part of CI. The benchmarks come from one Mac.
 - **Open gaps.** Search, image protocols, and ligatures are not built. Accessibility has a text mirror, and a screen-reader audit is still open. The worker entry lacks Canvas modes and link providers. Canvas pixel mode is experimental.
 

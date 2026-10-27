@@ -1,6 +1,6 @@
 # Status and limits
 
-ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package version 0.3.24. Each item names where the claim comes from, so you can recheck it.
+ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package version 0.3.25. Each item names where the claim comes from, so you can recheck it.
 
 ## Stability
 

@@ -1,5 +1,11 @@
 # ghostty-webgpu
 
+## 0.3.25
+
+### Patch Changes
+
+- [#33](https://github.com/ShaulLavo/ghostty-webgpu/pull/33) [`e609ea8`](https://github.com/ShaulLavo/ghostty-webgpu/commit/e609ea88feb83b55e1a27c8ea3058d83db20bafc) - Fixed copying selected text in main-thread terminals and added Ctrl+Shift+C copy shortcuts on Linux and Windows.
+
 ## 0.3.24
 
 ### Patch Changes
