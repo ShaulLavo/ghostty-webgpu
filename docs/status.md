@@ -11,6 +11,7 @@ ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package 
 ## Entry points
 
 - `ghostty-webgpu` runs in the browser and exports `Terminal`, `TerminalSession`, `GhosttyTerminal`, and `GhosttyRuntime`.
+- `ghostty-webgpu/core` exports only the headless runtime, terminal, and session classes. Its runtime module graph contains no DOM or renderer modules.
 - `ghostty-webgpu/worker` runs in the browser and puts the emulator and GPU renderer in a dedicated worker.
 - `ghostty-webgpu/config-resolver` runs in Node and Bun only. It reads the user's Ghostty config, so keep it out of client bundles.
 

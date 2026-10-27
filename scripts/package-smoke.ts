@@ -22,7 +22,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { installedBytes, transferBytes } from './package-measurements'
 import { canonicalObjectBytes } from './config-resolver-native/canonical'
@@ -267,6 +267,7 @@ async function writeConsumerFiles(root: string, browserOnly = false): Promise<vo
   type TerminalTheme,
 } from 'ghostty-webgpu'
 import type { GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'
+import { GhosttyRuntime, GhosttyTerminal, TerminalSession } from 'ghostty-webgpu/core'
 ${browserOnly ? '' : "import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'"}
 // @ts-expect-error The package has no facade entry point.
 import type * as RemovedFacade from 'ghostty-webgpu/xterm'
@@ -323,6 +324,9 @@ ${
 void appearance`
 }
 void Terminal
+void GhosttyRuntime
+void GhosttyTerminal
+void TerminalSession
 void appearanceOptions
 void legacyAppearanceApi
 void rendererTheme
@@ -337,13 +341,17 @@ async function verifyBrowserFiles(packageRoot: string): Promise<void> {
   for (const path of [
     'dist/index.js',
     'dist/index.d.ts',
+    'dist/core/index.js',
+    'dist/core/index.d.ts',
     'dist/config-resolver/index.js',
     'dist/config-resolver/index.d.ts',
     'types/legacy/config-resolver.d.ts',
+    'types/legacy/core.d.ts',
     'types/legacy/index.d.ts',
     'ghostty-vt.wasm',
     'bridge.wasm',
     'canvas-compose.wasm',
+    'canvas-compose-scalar.wasm',
   ]) {
     await requirePath(join(packageRoot, path))
   }
@@ -535,7 +543,26 @@ async function verifyTypes(root: string): Promise<void> {
   }
 }
 
+async function verifyCoreModuleGraph(packageRoot: string): Promise<void> {
+  const pending = [join(packageRoot, 'dist/core/index.js')]
+  const visited = new Set<string>()
+  while (pending.length > 0) {
+    const current = pending.pop()!
+    if (visited.has(current)) continue
+    visited.add(current)
+    if (/\/(dom|render)\//.test(current)) {
+      throw new PackageSmokeError(`core entry contains renderer or DOM module ${current}`)
+    }
+    const source = await readFile(current, 'utf8')
+    const imports = source.matchAll(
+      /\b(?:import|export)\s+(?:[^;]*?\s+from\s+)?['"](\.[^'"]+)['"]/g,
+    )
+    for (const match of imports) pending.push(resolve(dirname(current), match[1]!))
+  }
+}
+
 async function verifyRootIsolation(root: string, packageRoot: string): Promise<void> {
+  await verifyCoreModuleGraph(packageRoot)
   const native = join(packageRoot, 'native')
   const hidden = join(packageRoot, 'native.package-smoke-hidden')
   const hasNative = existsSync(native)
@@ -548,8 +575,15 @@ async function verifyRootIsolation(root: string, packageRoot: string): Promise<v
         '--eval',
         `import { rejects } from 'node:assert/strict'
 import * as Native from 'ghostty-webgpu'
+import * as Core from 'ghostty-webgpu/core'
 const { Terminal } = Native
 if (typeof Terminal.create !== 'function') throw new Error('root Terminal is not the native API')
+if ('Terminal' in Core) throw new Error('core entry exports the DOM Terminal')
+const runtime = await Core.GhosttyRuntime.create()
+const terminal = runtime.createTerminal()
+terminal.write('core')
+terminal.dispose()
+runtime.dispose()
 if ('GhosttyWebGpuTerminal' in Native) throw new Error('root still exports the removed terminal name')
 for (const specifier of ['ghostty-webgpu/xterm', 'ghostty-webgpu/xterm.css']) {
   await rejects(() => import(specifier), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' })
@@ -841,7 +875,7 @@ async function verifyInstalledBrowserPackage(root: string, tarball: string): Pro
     { env: { ...process.env, GHOSTTY_PACKAGE_ROOT: packageRoot } },
   )
   console.log(
-    'Packed browser imports, types, bundling, all three WASM assets and both Canvas2D paint modes verified; native artifacts were not qualified',
+    'Packed browser imports, types, bundling, all four WASM assets and both Canvas2D paint modes verified; native artifacts were not qualified',
   )
 }
 
@@ -852,7 +886,12 @@ async function recordBrowserMeasurements(
   javascript: ReturnType<typeof transferBytes>,
 ): Promise<void> {
   const wasm = []
-  for (const file of ['ghostty-vt.wasm', 'bridge.wasm', 'canvas-compose.wasm']) {
+  for (const file of [
+    'ghostty-vt.wasm',
+    'bridge.wasm',
+    'canvas-compose.wasm',
+    'canvas-compose-scalar.wasm',
+  ]) {
     wasm.push({
       file,
       ...transferBytes(new Uint8Array(await Bun.file(join(packageRoot, file)).arrayBuffer())),

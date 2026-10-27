@@ -36,7 +36,7 @@ Set `GHOSTTY_BROWSER_ENGINE` to `firefox` or `webkit` to run the browser suite t
 
 ## Rebuild the wasm
 
-`ghostty-vt.wasm` and `bridge.wasm` are checked in. Rebuild them with `bun run build:wasm`. It needs Zig 0.16.0 or newer, and it builds the pinned upstream Ghostty revision from `ghostty-vt.provenance.json` without patches ([ADR 001](adr/001-unpatched-pinned-ghostty-core.md)). Rebuild `canvas-compose.wasm` with `bun run build:canvas-compose`.
+`ghostty-vt.wasm` and `bridge.wasm` are checked in. Rebuild them with `bun run build:wasm`. It needs Zig 0.16.0 or newer, and it builds the pinned upstream Ghostty revision from `ghostty-vt.provenance.json` without patches ([ADR 001](adr/001-unpatched-pinned-ghostty-core.md)). Rebuild `canvas-compose.wasm` and `canvas-compose-scalar.wasm` with `bun run build:canvas-compose`.
 
 ## Where things live
 

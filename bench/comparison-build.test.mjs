@@ -49,7 +49,12 @@ test('changing Canvas composer bytes or declarations changes the checkout invent
     await writeFile(declarations, manifest)
     await writeFile(join(runtimeRoot, 'src/runtime.ts'), 'export const value = 1\n')
     await writeFile(join(runtimeRoot, 'package.json'), '{"version":"0.1.1"}\n')
-    for (const path of ['ghostty-vt.wasm', 'bridge.wasm', 'canvas-compose.wasm'])
+    for (const path of [
+      'ghostty-vt.wasm',
+      'bridge.wasm',
+      'canvas-compose.wasm',
+      'canvas-compose-scalar.wasm',
+    ])
       await copyFile(join(root, path), join(runtimeRoot, path))
     git(['init', '--quiet'])
     git(['add', '.'])

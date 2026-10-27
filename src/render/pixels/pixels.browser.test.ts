@@ -1,3 +1,4 @@
+import { Terminal } from '../../index.js'
 import { afterEach, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -126,6 +127,55 @@ it('keeps default fillText free of compose downloads and explicit pixels on the 
   expect(fetches.mock.calls.filter(([url]) => String(url).includes('canvas-compose'))).toHaveLength(
     1,
   )
+})
+
+it('loads the compositor from the renderer asset override', async () => {
+  const { state } = await native('override')
+  const asset = new URL('../../../canvas-compose.wasm', import.meta.url)
+  asset.searchParams.set('override', 'renderer')
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  const renderer = await CanvasTerminalRenderer.create({
+    canvas: document.createElement('canvas'),
+    columns: 24,
+    rows: 4,
+    font: fittedFont(),
+    renderState: state,
+    rendererMode: 'canvas2d-pixels',
+    compositorAsset: asset,
+  })
+  cleanups.push(() => renderer.dispose())
+  expect(fetches).toHaveBeenCalledWith(asset)
+})
+
+it('forwards the public terminal compositor asset and renders through it', async () => {
+  const asset = new URL('../../../canvas-compose.wasm', import.meta.url)
+  asset.searchParams.set('override', 'public-terminal')
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    compositorAsset: asset,
+    rendererMode: 'canvas2d-pixels',
+  })
+  cleanups.push(() => terminal.dispose())
+  const host = document.createElement('div')
+  host.style.cssText = 'width:320px;height:120px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  await terminal.open(host)
+  await terminal.write('public override')
+  await vi.waitFor(() => expect(terminal.visibleLines().join('\n')).toContain('public override'))
+  expect(fetches).toHaveBeenCalledWith(asset)
+})
+
+it('loads the scalar compositor in Chromium when SIMD validation fails', async () => {
+  vi.spyOn(WebAssembly, 'validate').mockImplementationOnce(() => false)
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  const kernel = await ComposeKernel.create()
+  const requests = fetches.mock.calls.map(([url]) => String(url))
+  expect(requests).toHaveLength(2)
+  expect(requests[0]).toContain('canvas-compose.wasm')
+  expect(requests[1]).toContain('canvas-compose-scalar.wasm')
+  expect(kernel.memory.buffer.byteLength).toBe(131072)
 })
 
 it('matches a fresh packed repaint after scroll, cursor, theme, DPR and atlas invalidation', async () => {

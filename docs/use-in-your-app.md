@@ -57,14 +57,14 @@ By default the package finds its `.wasm` files with `new URL('../../ghostty-vt.w
 `bun build` needs the copy step. For an `index.html` built into `dist/`, this made the same page work:
 
 ```sh
-cp node_modules/ghostty-webgpu/{ghostty-vt,bridge,canvas-compose}.wasm dist/
+cp node_modules/ghostty-webgpu/{ghostty-vt,bridge,canvas-compose,canvas-compose-scalar}.wasm dist/
 ```
 
 That layout works only when the bundled JavaScript sits at the output root. For any other layout, give the terminal explicit URLs.
 
 ### Pass explicit URLs
 
-The package exports the three files, so a bundler can resolve them for you. With Vite's `?url` suffix:
+The package exports the four files, so a bundler can resolve them for you. With Vite's `?url` suffix:
 
 ```ts
 import { Terminal } from 'ghostty-webgpu'
@@ -79,7 +79,7 @@ const terminal = await Terminal.create({
 })
 ```
 
-The [local demo](../demo/src/client.ts) passes `runtime` the same way with fixed paths. A `WasmSource` is a `URL`, a string, an `ArrayBuffer`, a typed array, or a compiled `WebAssembly.Module`.
+The [local demo](../demo/src/client.ts) passes `runtime` the same way with fixed paths. A `WasmSource` is a `URL`, a string, an `ArrayBuffer`, a typed array, or a compiled `WebAssembly.Module`. URL loading uses streaming compilation when the browser and response support it, then falls back to byte compilation.
 
 The [worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/) takes `assets: { wasm, bridge }` and `workerUrl` as strings instead. It also needs `fonts`, because the worker cannot read the page's fonts. This worker run passed with Vite:
 
@@ -96,18 +96,20 @@ const terminal = await Terminal.create({
 
 Vite bundled the default worker file on its own, so `workerUrl` was not needed.
 
-`canvas-compose.wasm` loads only in `canvas2d-pixels` mode, which is experimental. Vite did not emit it for the runs above.
+`canvas-compose.wasm` loads only in `canvas2d-pixels` mode, which is experimental. Vite did not emit it for the runs above. The default loader fetches `canvas-compose-scalar.wasm` if the browser rejects SIMD. Set `compositorAsset` on the main-thread terminal to load a hosted compositor from an explicit URL.
 
 If you set a Content Security Policy, allow WebAssembly compilation with `'wasm-unsafe-eval'` in `script-src`. The demo's policy shows the full set (`demo/src/authorization.ts`).
 
 ## Package exports
 
 - `ghostty-webgpu` resolves to `dist/index.js`. The main-thread `Terminal`.
+- `ghostty-webgpu/core` resolves to `dist/core/index.js`. The headless runtime, terminal, and session classes.
 - `ghostty-webgpu/worker` resolves to `dist/worker/index.js`. The worker `Terminal`.
 - `ghostty-webgpu/config-resolver` resolves to `dist/config-resolver/index.js`. Reading a Ghostty config. Bun and Node only. See [config resolver](config-resolver.md).
 - `ghostty-webgpu/ghostty-vt.wasm` resolves to `ghostty-vt.wasm`. The terminal core.
 - `ghostty-webgpu/bridge.wasm` resolves to `bridge.wasm`. The frame builder for WebGPU and WebGL2.
-- `ghostty-webgpu/canvas-compose.wasm` resolves to `canvas-compose.wasm`. The Canvas 2D pixel mode.
+- `ghostty-webgpu/canvas-compose.wasm` resolves to `canvas-compose.wasm`. The SIMD Canvas 2D pixel compositor.
+- `ghostty-webgpu/canvas-compose-scalar.wasm` resolves to `canvas-compose-scalar.wasm`. The scalar fallback.
 
 The list comes from `exports` in `package.json`. Any other subpath fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 

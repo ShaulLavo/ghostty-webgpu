@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ComposeKernel, type ComposeExports } from './kernel.js'
 
 const root = resolve(import.meta.dirname, '../../..')
@@ -41,6 +41,10 @@ beforeAll(async () => {
 })
 afterAll(() => {
   if (directory) rmSync(directory, { recursive: true, force: true })
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 function buildZig(output: string, scalar: boolean): void {
@@ -185,6 +189,32 @@ function verifyMemoryEndMoves(kernel: ComposeKernel, width: number): void {
     expect(view(kernel, ptr, bytes)).toEqual(expected)
   }
 }
+
+describe('compositor asset loading', () => {
+  it('loads an explicit compositor URL', async () => {
+    const bytes = readFileSync(resolve(root, 'canvas-compose.wasm'))
+    const asset = new URL('https://assets.test/custom-compositor.wasm')
+    const fetchMock = vi.fn(async () => new Response(bytes))
+    vi.stubGlobal('fetch', fetchMock)
+    const kernel = await ComposeKernel.create(asset)
+    expect(fetchMock).toHaveBeenCalledWith(asset)
+    expect(kernel.memory.buffer.byteLength).toBe(131072)
+  })
+
+  it('uses the scalar artifact when the SIMD artifact fails validation', async () => {
+    const simd = readFileSync(resolve(root, 'canvas-compose.wasm'))
+    const scalar = readFileSync(resolve(root, 'canvas-compose-scalar.wasm'))
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) =>
+      String(input).includes('scalar') ? new Response(scalar) : new Response(simd),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.spyOn(WebAssembly, 'validate').mockImplementationOnce(() => false)
+    const kernel = await ComposeKernel.create()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(String(fetchMock.mock.calls[1]![0])).toContain('canvas-compose-scalar.wasm')
+    expect(kernel.memory.buffer.byteLength).toBe(131072)
+  })
+})
 
 describe.skipIf(!compilerAvailable)(
   'C and Zig scalar/SIMD composition (requires Zig compiler and bundled Clang)',
