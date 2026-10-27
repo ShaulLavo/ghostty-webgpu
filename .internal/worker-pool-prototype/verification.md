@@ -17,3 +17,5 @@ All passed. Unit tests reported 93 passing files and one skipped file, 1,106 pas
 The production source is unchanged from `d2ed8989a`. Later prototype edits also passed `bun run typecheck`, scoped oxlint, and scoped oxfmt. The custom browser cohort exercises those prototype edits directly.
 
 The binding brief prohibits delegated workers, so architecture and comment review were done locally. No prototype comments or lint suppressions were added. The referenced `verify-fregat` skill is absent from the installed skill catalog; verification uses the repository's worker browser suite and the X4 browser instrument.
+
+The corrected headless same-session mixed-edit cohort passed text, decoded RGBA pixels, and delivered-update equality at 4 and 16 terminals for 200×50 and 80×24. Both pooled lifecycle probes survived disposal of one session, a font/DPR change in terminal zero, and shared context loss/restoration. Surviving sessions published recovery frames; the disposed session published none. The receipt is `/work/reports/ghostty-webgpu-next-2026-10/x4-worker-pool/smoke-v3/smoke-v3.json`. These headless timings do not qualify performance.
