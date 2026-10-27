@@ -1,4 +1,3 @@
-import { emptyRenderCell } from '../../core/packed-cells.js'
 import type { RenderCell, RenderRow } from '../../core/types.js'
 import type { RenderSchedulerClock } from './scheduler.js'
 
@@ -9,12 +8,7 @@ export function cellNeedsTextBlink(cell: RenderCell): boolean {
 }
 
 export function rowNeedsTextBlink(row: RenderRow): boolean {
-  if (!row.packed) return row.cells.some(cellNeedsTextBlink)
-  const cell = emptyRenderCell()
-  for (let index = 0; index < row.packed.length; index += 1) {
-    if (cellNeedsTextBlink(row.packed.read(index, cell))) return true
-  }
-  return false
+  return row.packed ? row.packed.hasBlinkingText() : row.cells.some(cellNeedsTextBlink)
 }
 
 export class TextBlink {

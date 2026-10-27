@@ -27,7 +27,12 @@ export type RowThemeInvalidation = 'all' | 'cursor'
 export interface RowRendererSurface {
   beginFrame?(): void
   dispose(): void
-  paint(row: RenderRow, cursor: CursorState | undefined, textVisible: boolean): void
+  paint(
+    row: RenderRow,
+    cursor: CursorState | undefined,
+    textVisible: boolean,
+    blinking: boolean,
+  ): void
   resize(font: TerminalFittedFont, grid: RendererGridSize): void
   setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation
 }
@@ -297,9 +302,10 @@ export class RowTerminalRenderer {
 
   private paintRow(row: RenderRow, cursor: CursorState | undefined): void {
     if (row.y < 0 || row.y >= this.grid.rows) return
-    if (rowNeedsTextBlink(row)) this.blinkingRows.add(row.y)
+    const blinking = rowNeedsTextBlink(row)
+    if (blinking) this.blinkingRows.add(row.y)
     else this.blinkingRows.delete(row.y)
-    this.surface.paint(row, cursor, this.textPhaseVisible)
+    this.surface.paint(row, cursor, this.textPhaseVisible, blinking)
     this.metrics.paintedCells += row.packed?.length ?? row.cells.length
   }
 
