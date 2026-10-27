@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
 import { GhosttyRuntime } from '../runtime.js'
 
@@ -81,4 +81,39 @@ it('keeps independent accepted histories through overlapping captures, discard, 
   expect(() => secondPending.readTextRows()).toThrow('token has retired')
   second.dispose()
   expect(() => retry.readTextRows()).toThrow('token has retired')
+})
+
+it('discards text inserted before a pending read fails while pruning', async () => {
+  runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 20, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  terminal.write('accepted')
+  state.update()
+  const accepted = state[retainDisplayedFrame]()
+  accepted.accept()
+  state.acknowledge()
+  const owned = accepted.readTextRows()
+  terminal.write('\r\x1b[2Kabandoned 界')
+  state.update()
+  const pending = state[retainDisplayedFrame]()
+  const read = runtime.bridge.readRetainedRevisions.bind(runtime.bridge)
+  let calls = 0
+  const fail = vi.spyOn(runtime.bridge, 'readRetainedRevisions').mockImplementation((...args) => {
+    calls += 1
+    if (calls === 2) throw new Error('injected failure after text extraction')
+    read(...args)
+  })
+  try {
+    expect(() => pending.readTextRows()).toThrow('after text extraction')
+  } finally {
+    fail.mockRestore()
+    pending.discard()
+  }
+  terminal.write('\r\x1b[2Kretry é 🧑‍💻')
+  state.update()
+  const retry = state[retainDisplayedFrame]()
+  expect(retry.readTextRows()).toEqual(state.readTextRows())
+  retry.accept()
+  expect(retry.readPreviousTextRows()).toEqual(owned)
+  expect(owned[0]?.text.trimEnd()).toBe('accepted')
 })

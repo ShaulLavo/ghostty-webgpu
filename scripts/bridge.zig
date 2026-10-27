@@ -68,6 +68,7 @@ comptime {
     @export(&retained.destroy, .{ .name = "bridge_destroy_retained_frame" });
     @export(&retained.capture, .{ .name = "bridge_capture_retained_frame" });
     @export(&retained.readText, .{ .name = "bridge_read_retained_text" });
+    @export(&retained.readRevisions, .{ .name = "bridge_read_retained_revisions" });
     @export(&retained.readRows, .{ .name = "bridge_read_retained_rows" });
 }
 
