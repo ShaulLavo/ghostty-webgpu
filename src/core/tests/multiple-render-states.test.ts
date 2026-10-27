@@ -192,3 +192,46 @@ it('retains separate submitted-frame histories for each subscriber', async () =>
   expect(nextSecond.readTextRows()[0]?.text.trimEnd()).toBe('old before')
   expect(nextSecond.readPreviousTextRows()[0]?.text.trimEnd()).toBe('old')
 })
+
+it.each([
+  'cell data',
+  'glyph data',
+  'metadata',
+  'glyph input',
+  'glyph registration',
+  'glyph clearing',
+])('does not observe newer native damage through cached frame %s', async (operation) => {
+  const { terminal, first, second } = await createPair()
+  const { canonicalRendererTheme, mergeRendererTheme } =
+    await import('../../render/shared/config.js')
+  const builder = first.createFrameBuilder(16, 3)
+  try {
+    terminal.write(' before')
+    first.update()
+    const options = {
+      cellWidth: 10,
+      cellHeight: 20,
+      theme: canonicalRendererTheme(mergeRendererTheme()),
+      full: true,
+      overlayRows: new Set<number>(),
+    }
+    builder.build(options)
+    const keys = builder.missingGlyphs
+    for (const key of keys) builder.registerGlyph(key, undefined)
+    expect(builder.build(options)).toBe(0)
+    const built = builder.cellData.slice()
+    terminal.write('\rNEW')
+    second.update()
+    second.acknowledge()
+    if (operation === 'cell data') expect(builder.cellData).toEqual(built)
+    if (operation === 'glyph data') expect(builder.glyphData.length).toBeGreaterThan(0)
+    if (operation === 'metadata') expect(builder.rowRebuilds).toBeGreaterThan(0)
+    if (operation === 'glyph input') expect(builder.glyphInput(keys[0]!).text).not.toBe('')
+    if (operation === 'glyph registration') builder.registerGlyph(keys[0]!, undefined)
+    if (operation === 'glyph clearing') builder.clearGlyphs()
+    expect(first.acknowledge()).toBe(0)
+    expect(first.dirty).not.toBe(RenderStateDirty.False)
+  } finally {
+    builder.dispose()
+  }
+})
