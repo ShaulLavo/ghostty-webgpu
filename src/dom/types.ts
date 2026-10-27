@@ -86,8 +86,7 @@ export interface GhosttyWebGpuTerminalEventMap {
   readonly open: HTMLDivElement
   readonly appearance: TerminalAppearance
   readonly bell: void
-  readonly data: Uint8Array
-  readonly dataEvent: TerminalDataEvent
+  readonly data: TerminalDataEvent
   readonly frame: { readonly rows: readonly number[] }
   readonly error: TerminalErrorEvent
   /** Fires once per output burst after it is drawn. Timing is recorded only while someone listens. */

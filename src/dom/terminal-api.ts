@@ -64,9 +64,6 @@ export interface TerminalApi<Mode extends 'sync' | 'async' = 'sync' | 'async'> {
     listener: GhosttyWebGpuTerminalListener<Type>,
   ): GhosttyWebGpuTerminalSubscription
   onData(listener: GhosttyWebGpuTerminalListener<'data'>): GhosttyWebGpuTerminalSubscription
-  onDataEvent(
-    listener: GhosttyWebGpuTerminalListener<'dataEvent'>,
-  ): GhosttyWebGpuTerminalSubscription
   onResize(listener: GhosttyWebGpuTerminalListener<'resize'>): GhosttyWebGpuTerminalSubscription
   onFrame(listener: GhosttyWebGpuTerminalListener<'frame'>): GhosttyWebGpuTerminalSubscription
   focus(): void

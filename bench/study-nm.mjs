@@ -25,7 +25,7 @@ export async function createNm(host, settings) {
     history: () => terminal.buffer.active.baseY,
     focus: () => terminal.focus(),
     onData: (listener) => {
-      terminal.onData(listener)
+      terminal.onData(({ bytes }) => listener(bytes))
     },
     metadata: () => ({
       backend: terminal.renderer.backend,

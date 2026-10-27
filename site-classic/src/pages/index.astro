@@ -100,7 +100,7 @@ terminal.<span class="tk-f">focus</span><span class="tk-p">()</span></code></pre
           <pre class="example" aria-label="WebSocket PTY wiring"><code><span class="tk-k">const</span> socket <span class="tk-p">=</span> <span class="tk-k">new</span> <span class="tk-t">WebSocket</span><span class="tk-p">(</span><span class="tk-s">'wss://host/pty'</span><span class="tk-p">)</span>
 socket.binaryType <span class="tk-p">=</span> <span class="tk-s">'arraybuffer'</span>
 
-terminal.<span class="tk-f">onData</span><span class="tk-p">((</span>bytes<span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
+terminal.<span class="tk-f">onData</span><span class="tk-p">((</span><span class="tk-p">{'{'}</span> bytes <span class="tk-p">{'}'}</span><span class="tk-p">) =&gt;</span> <span class="tk-p">{'{'}</span>
   <span class="tk-k">if</span> <span class="tk-p">(</span>socket.readyState <span class="tk-p">!==</span> <span class="tk-t">WebSocket</span>.OPEN<span class="tk-p">)</span> <span class="tk-k">return</span>
   socket.<span class="tk-f">send</span><span class="tk-p">(</span><span class="tk-k">new</span> <span class="tk-t">Uint8Array</span><span class="tk-p">(</span>bytes<span class="tk-p">))</span>
 <span class="tk-p">{'}'})</span>

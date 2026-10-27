@@ -131,7 +131,6 @@ function createHostEmitters(): HostEmitters {
     appearance: new EventEmitter(sink('event.appearance')),
     bell: new EventEmitter(sink('event.bell')),
     data: new EventEmitter(sink('event.data')),
-    dataEvent: new EventEmitter(sink('event.dataEvent')),
     error,
     frame: new EventEmitter(sink('event.frame')),
     outputTiming: new EventEmitter(sink('event.outputTiming')),
@@ -147,7 +146,6 @@ function disposeHostEmitters(emitters: HostEmitters): void {
   emitters.appearance.dispose()
   emitters.bell.dispose()
   emitters.data.dispose()
-  emitters.dataEvent.dispose()
   emitters.frame.dispose()
   emitters.outputTiming.dispose()
   emitters.resize.dispose()
@@ -656,12 +654,6 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   onData(listener: GhosttyWebGpuTerminalListener<'data'>): GhosttyWebGpuTerminalSubscription {
     return this.on('data', listener)
-  }
-
-  onDataEvent(
-    listener: GhosttyWebGpuTerminalListener<'dataEvent'>,
-  ): GhosttyWebGpuTerminalSubscription {
-    return this.on('dataEvent', listener)
   }
 
   onResize(listener: GhosttyWebGpuTerminalListener<'resize'>): GhosttyWebGpuTerminalSubscription {
@@ -1243,8 +1235,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           this.writeQueue.noteInput()
           this.observedOutputTiming()?.input()
         }
-        this.emitHostEvent('data', Uint8Array.from(bytes))
-        this.emitHostEvent('dataEvent', Object.freeze({ bytes: Uint8Array.from(bytes), origin }))
+        this.emitHostEvent('data', Object.freeze({ bytes: Uint8Array.from(bytes), origin }))
       }),
     )
     this.trackSubscription(

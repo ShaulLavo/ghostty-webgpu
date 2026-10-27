@@ -196,7 +196,7 @@ describe('runtime renderer fallback in the DOM host', () => {
     expect(observations.frames).toBeGreaterThan(previousFrames)
 
     const data: string[] = []
-    terminal.onData((bytes) => data.push(decoder.decode(bytes)))
+    terminal.onData(({ bytes }) => data.push(decoder.decode(bytes)))
     typeInput(textarea, 'hello')
     expect(data).toEqual(['hello'])
     terminal.clearSelection()

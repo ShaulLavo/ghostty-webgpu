@@ -12,21 +12,19 @@ return promises in the main entry.
 
 ## data events and synchronous replies
 
-`onData(listener)` keeps the byte-callback contract. Its listener receives a `Uint8Array` suitable
-for forwarding to a PTY. Use `onDataEvent(listener)` or `on('dataEvent', listener)` when the
-application also needs the native origin classification. These listeners receive
-`{ bytes, origin }`, where `bytes` is an owned `Uint8Array` and `origin` is one of:
+`onData(listener)` delivers `{ bytes, origin }`. `bytes` is an owned `Uint8Array` suitable for
+forwarding to a PTY, and `origin` is one of:
 
 - `input`: typing, pasting, mouse reports, focus reports or `sendInput`.
 - `reply`: the terminal answering a query, such as a device-status report.
 
-On the main thread, `write()` parses synchronously and emits a query reply through both callbacks
-before that `write()` returns. Observers can therefore reenter terminal operations. Worker calls
+On the main thread, `write()` parses synchronously and emits a query reply through `onData` before
+that `write()` returns. Observers can therefore reenter terminal operations. Worker calls
 return promises, but the worker's native session applies the same origin labels.
 
 ```ts
-terminal.onData((bytes) => socket.send(bytes))
-terminal.onDataEvent(({ origin }) => {
+terminal.onData(({ bytes, origin }) => {
+  socket.send(bytes)
   if (origin === 'reply') console.debug('terminal query reply')
 })
 ```
