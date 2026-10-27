@@ -249,6 +249,17 @@ function canonicalPixelRatio(value: number): number {
   return positiveFinite('pixelRatio', value)
 }
 
+export function terminalPixelRatio(
+  element: HTMLElement,
+  environment: Partial<TerminalFitEnvironment> | undefined,
+): number {
+  const injected = environment?.getPixelRatio
+  const value = injected
+    ? injected.call(environment)
+    : element.ownerDocument.defaultView?.devicePixelRatio
+  return canonicalPixelRatio(value ?? Number.NaN)
+}
+
 function canonicalCssLength(name: string, value: number, pixelRatio: number): number {
   const devicePixels = Math.round(value * pixelRatio)
   if (Number.isSafeInteger(devicePixels) && devicePixels >= 0) {

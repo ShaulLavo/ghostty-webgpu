@@ -10,6 +10,25 @@ The default `TerminalApi` accepts both conventions for await-style common caller
 subscriptions, focus and displayed text stay synchronous; `open()` and `focusNextLink()` already
 return promises in the main entry.
 
+## data events and synchronous replies
+
+`onData(listener)` delivers `{ bytes, origin }`. `bytes` is an owned `Uint8Array` suitable for
+forwarding to a PTY, and `origin` is one of:
+
+- `input`: typing, pasting, mouse reports, focus reports or `sendInput`.
+- `reply`: the terminal answering a query, such as a device-status report.
+
+On the main thread, `write()` parses synchronously and emits a query reply through `onData` before
+that `write()` returns. Observers can therefore reenter terminal operations. Worker calls
+return promises, but the worker's native session applies the same origin labels.
+
+```ts
+terminal.onData(({ bytes, origin }) => {
+  socket.send(bytes)
+  if (origin === 'reply') console.debug('terminal query reply')
+})
+```
+
 ## headless core entry
 
 Import `GhosttyRuntime`, `GhosttyTerminal` and `TerminalSession` from `ghostty-webgpu/core` when
@@ -84,6 +103,14 @@ const lines = await terminal.readLines(0, 1)
 terminal.focus()
 await terminal.dispose()
 ```
+
+Worker terminals support `fitEnvironment.getPixelRatio` and
+`fitEnvironment.subscribePixelRatio`. The getter returns a finite positive DPR for each host
+layout. The subscription calls its callback when that DPR changes and returns a dispose function.
+Terminal disposal invokes that function and disconnects layout observation. If subscription setup
+throws, `open()` rejects and disconnects the new resize observer before propagating the error.
+The other fit-environment hooks remain main-thread-only because the worker owns font measurement
+and scheduling.
 
 `backend` is an option of the worker entry only. It accepts `webgpu`, `webgl` or `auto`, and
 defaults to `auto`. The main-thread `Terminal.create` has no `backend` option. It takes

@@ -13,7 +13,7 @@ export const migration = [
     'Synchronous result on the main entry; promise in the worker.',
   ],
   ['writeln(data)', 'writeln', 'Write a line through native parsing.'],
-  ['onData / onBinary', 'onData', 'The listener receives Uint8Array bytes.'],
+  ['onData / onBinary', 'onData', 'The listener receives { bytes, origin }.'],
   ['onResize', 'onResize', 'The event has cols and rows.'],
   ['onTitleChange / onBell', 'on', 'Subscribe to title and bell events.'],
   ['onRender', 'onFrame', 'Observe submitted rows.'],

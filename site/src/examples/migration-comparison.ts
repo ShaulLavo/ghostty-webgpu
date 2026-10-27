@@ -1,6 +1,6 @@
 export const migrationComparison = [
   { from: 'new Terminal(opts)', to: 'await Terminal.create(opts)' },
-  { from: 'term.onData(str => send(str))', to: 'term.onData(bytes => send(bytes))' },
+  { from: 'term.onData(str => send(str))', to: 'term.onData(({ bytes }) => send(bytes))' },
   { from: 'term.open(host)', to: 'await term.open(host)' },
   { from: 'term.resize(cols, rows)', to: 'term.setAppearance({ grid })' },
   { from: '@xterm/headless', to: 'await GhosttyRuntime.create()' },

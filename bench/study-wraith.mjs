@@ -49,7 +49,7 @@ export async function createWraith(host, settings) {
     history: () => 0,
     focus: () => terminal.focus(),
     onData: (listener) => {
-      terminal.onData(listener)
+      terminal.onData(({ bytes }) => listener(bytes))
     },
     resize: (columns, rows) => terminal.resize(columns, rows),
     metadata: () => ({

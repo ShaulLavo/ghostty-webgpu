@@ -238,7 +238,7 @@ async function createNative(host: HTMLElement): Promise<Driver> {
     pendingWriteBytes: () => terminal.pendingWriteBytes,
     focus: () => terminal.focus(),
     onData: (listener) => {
-      terminal.onData(listener)
+      terminal.onData(({ bytes }) => listener(bytes))
     },
     resize: (columns, rows) => {
       session.resize({ columns, rows })

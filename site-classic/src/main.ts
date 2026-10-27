@@ -245,7 +245,7 @@ async function boot(): Promise<void> {
   ui.window.dataset['ready'] = 'true'
 
   instance.onResize(() => active.resize())
-  instance.onData((bytes) => active.input?.(bytes))
+  instance.onData(({ bytes }) => active.input?.(bytes))
   syncTabs()
   const firstPaint = instance.onFrame(() => {
     firstPaint.dispose()

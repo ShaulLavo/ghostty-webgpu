@@ -70,6 +70,7 @@ import {
 import {
   createTerminalFitController,
   fitTerminalFont,
+  terminalPixelRatio,
   type TerminalFitController,
   type TerminalFitEnvironment,
   type TerminalFitResult,
@@ -234,16 +235,6 @@ function owningWindow(element: HTMLElement): Window {
   const view = element.ownerDocument.defaultView
   if (view) return view
   throw new TypeError('Terminal elements must belong to a document with a window')
-}
-
-function effectivePixelRatio(
-  element: HTMLElement,
-  environment: Partial<TerminalFitEnvironment> | undefined,
-): number {
-  const injected = environment?.getPixelRatio
-  const value = injected ? injected.call(environment) : owningWindow(element).devicePixelRatio
-  if (Number.isFinite(value) && value > 0) return value
-  throw new RangeError('pixelRatio must be a finite positive number')
 }
 
 function physicalPadding(value: number, pixelRatio: number): number {
@@ -1111,7 +1102,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.execution.setFrameListener((snapshot) => this.handleFrame(snapshot))
       this.fittedFont = await this.execution.open(
         elements,
-        workerLayout(elements, 1, this.scrollbarWidthValue, this.autoFit),
+        workerLayout(elements, 1, this.scrollbarWidthValue, this.autoFit, this.fitEnvironment),
       )
       this.layoutCommitted = true
       return undefined
@@ -1120,7 +1111,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     const font = fitTerminalFont(
       elements.canvas.ownerDocument,
       appearance.font,
-      effectivePixelRatio(elements.canvas, this.fitEnvironment),
+      terminalPixelRatio(elements.canvas, this.fitEnvironment),
     )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
@@ -1168,7 +1159,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     const font = fitTerminalFont(
       elements.canvas.ownerDocument,
       appearance.font,
-      effectivePixelRatio(elements.canvas, this.fitEnvironment),
+      terminalPixelRatio(elements.canvas, this.fitEnvironment),
     )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
@@ -1247,7 +1238,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           this.writeQueue.noteInput()
           this.observedOutputTiming()?.input()
         }
-        this.emitHostEvent('data', Uint8Array.from(bytes))
+        this.emitHostEvent('data', Object.freeze({ bytes: Uint8Array.from(bytes), origin }))
       }),
     )
     this.trackSubscription(
@@ -1489,11 +1480,17 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       const execution = this.execution
       let identity = 1
       const update = () => {
-        const layout = workerLayout(elements, ++identity, this.scrollbarWidthValue, this.autoFit)
+        const layout = workerLayout(
+          elements,
+          ++identity,
+          this.scrollbarWidthValue,
+          this.autoFit,
+          this.fitEnvironment,
+        )
         this.writeQueue.flush()
         void execution.layout(layout).catch((cause: unknown) => this.reportError(cause, 'layout'))
       }
-      this.cleanup.add(observeWorkerLayout(elements, update))
+      this.cleanup.add(observeWorkerLayout(elements, update, this.fitEnvironment))
       return
     }
     const refreshFontResources = (event: FontFaceSetLoadEvent) => {
@@ -1682,7 +1679,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     const font = fitTerminalFont(
       canvas.ownerDocument,
       settings,
-      effectivePixelRatio(canvas, this.fitEnvironment),
+      terminalPixelRatio(canvas, this.fitEnvironment),
     )
     this.commitFixedFont(font)
   }
