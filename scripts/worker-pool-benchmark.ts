@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { chromium, type CDPSession, type Page } from 'playwright'
+import { PNG } from 'pngjs'
 
 const root = join(import.meta.dirname, '..')
 const output = resolve(process.env.WORKER_POOL_OUTPUT ?? join(root, '.artifacts/worker-pool.json'))
@@ -253,7 +254,17 @@ async function measure(
     const report = await page.evaluate(() => window.__workerPoolBench.report())
     const liveHeaps = await workerHeaps(raw)
     const pageHeap = await pageCdp.send('Runtime.getHeapUsage')
-    const memory = await processMemory(after.map((process) => process.id))
+    const hostMemory = await processMemory(after.map((process) => process.id))
+    const sampleFreeMiB = Number(
+      Bun.spawnSync(['nvidia-smi', '--query-gpu=memory.free', '--format=csv,noheader,nounits'])
+        .stdout.toString()
+        .trim(),
+    )
+    const memory = {
+      ...hostMemory,
+      gpuDeltaMiB: freeMiB - sampleFreeMiB,
+      hostPlusGpuMiB: hostMemory.pssKiB / 1024 + Math.max(0, freeMiB - sampleFreeMiB),
+    }
     const prefix = `${fixture}-${mode}-${count}-${columns}x${rows}-${repetition}`
     const screenshots: string[] = []
     for (let index = 0; index < count; index += 1) {
@@ -261,7 +272,7 @@ async function measure(
         .locator('canvas')
         .nth(index)
         .screenshot({ path: join(dirname(output), `${prefix}-${index}.png`) })
-      screenshots.push(createHash('sha256').update(png).digest('hex'))
+      screenshots.push(createHash('sha256').update(PNG.sync.read(png).data).digest('hex'))
     }
     const metric = (name: string) =>
       (afterMetrics.metrics.find((metric) => metric.name === name)?.value ?? 0) -
