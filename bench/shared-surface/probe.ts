@@ -1,29 +1,27 @@
 // Shared-surface attribution probe: pure WebGPU, no terminal code. Extends X1's surface probe
 // with no-presentation and copy topologies, and an optional GPU-process trace per mode.
-import { chromium, type Browser, type CDPSession } from "playwright";
-import { writeFileSync } from "node:fs";
+import { chromium, type Browser, type CDPSession } from 'playwright'
+import { writeFileSync } from 'node:fs'
 
-const counts = (process.env.PROBE_COUNTS ?? "16").split(",").map(Number);
-const frames = Number(process.env.PROBE_FRAMES ?? 300);
-const tileWidth = Number(process.env.PROBE_TILE_WIDTH ?? 1280);
-const tileHeight = Number(process.env.PROBE_TILE_HEIGHT ?? 768);
-const instances = Number(process.env.PROBE_INSTANCES ?? 1920);
-const repetitions = Number(process.env.PROBE_REPETITIONS ?? 2);
-const traceDir = process.env.PROBE_TRACE_DIR;
-const traceCounts = (process.env.PROBE_TRACE_COUNTS ?? "16")
-  .split(",")
-  .map(Number);
+const counts = (process.env.PROBE_COUNTS ?? '16').split(',').map(Number)
+const frames = Number(process.env.PROBE_FRAMES ?? 300)
+const tileWidth = Number(process.env.PROBE_TILE_WIDTH ?? 1280)
+const tileHeight = Number(process.env.PROBE_TILE_HEIGHT ?? 768)
+const instances = Number(process.env.PROBE_INSTANCES ?? 1920)
+const repetitions = Number(process.env.PROBE_REPETITIONS ?? 2)
+const traceDir = process.env.PROBE_TRACE_DIR
+const traceCounts = (process.env.PROBE_TRACE_COUNTS ?? '16').split(',').map(Number)
 const allModes = [
-  "canvases",
-  "one-surface",
-  "offscreen",
-  "canvases-one-busy",
-  "surface-copies",
-  "canvas2d-copies",
-  "canvas2d-fill",
-] as const;
-type Mode = (typeof allModes)[number];
-const modes = (process.env.PROBE_MODES?.split(",") ?? allModes) as Mode[];
+  'canvases',
+  'one-surface',
+  'offscreen',
+  'canvases-one-busy',
+  'surface-copies',
+  'canvas2d-copies',
+  'canvas2d-fill',
+] as const
+type Mode = (typeof allModes)[number]
+const modes = (process.env.PROBE_MODES?.split(',') ?? allModes) as Mode[]
 
 const page = `<!doctype html><style>body{margin:0;background:black}main{width:1600px;height:900px;display:flex;flex-wrap:wrap;align-content:flex-start}canvas{object-fit:contain}</style><main></main>
 <script type="module">
@@ -151,70 +149,66 @@ window.runProbe = async ({ mode, count, frames, tileWidth, tileHeight, instances
   callbacks.sort((a, b) => a - b)
   return { p50: callbacks[Math.floor(callbacks.length * 0.5)], p95: callbacks[Math.floor(callbacks.length * 0.95)] }
 }
-</script>`;
+</script>`
 
 const traceCategories = [
-  "toplevel",
-  "gpu",
-  "gpu.service",
-  "gpu.dawn",
-  "disabled-by-default-gpu.dawn",
-  "gpu.angle",
-  "viz",
-  "cc",
-  "mojom",
-  "shared_image",
-  "disabled-by-default-gpu.service",
-  "gpu.decoder",
-  "disabled-by-default-gpu.decoder",
-  "skia",
-  "skia.gpu",
-  "disabled-by-default-skia.gpu",
-  "webgpu",
-  "disabled-by-default-webgpu",
-];
+  'toplevel',
+  'gpu',
+  'gpu.service',
+  'gpu.dawn',
+  'disabled-by-default-gpu.dawn',
+  'gpu.angle',
+  'viz',
+  'cc',
+  'mojom',
+  'shared_image',
+  'disabled-by-default-gpu.service',
+  'gpu.decoder',
+  'disabled-by-default-gpu.decoder',
+  'skia',
+  'skia.gpu',
+  'disabled-by-default-skia.gpu',
+  'webgpu',
+  'disabled-by-default-webgpu',
+]
 
 async function processCpu(
   session: CDPSession,
 ): Promise<Map<number, { type: string; cpu: number }>> {
-  const info = (await session.send("SystemInfo.getProcessInfo")) as {
-    processInfo: { id: number; type: string; cpuTime: number }[];
-  };
+  const info = (await session.send('SystemInfo.getProcessInfo')) as {
+    processInfo: { id: number; type: string; cpuTime: number }[]
+  }
   return new Map(
-    info.processInfo.map((entry) => [
-      entry.id,
-      { type: entry.type, cpu: entry.cpuTime },
-    ]),
-  );
+    info.processInfo.map((entry) => [entry.id, { type: entry.type, cpu: entry.cpuTime }]),
+  )
 }
 
 const args = [
-  "--enable-unsafe-webgpu",
-  "--disable-background-timer-throttling",
-  "--disable-backgrounding-occluded-windows",
-  "--disable-renderer-backgrounding",
-];
-if (process.platform === "linux" && process.env.WAYLAND_DISPLAY)
-  args.push("--ozone-platform=wayland");
+  '--enable-unsafe-webgpu',
+  '--disable-background-timer-throttling',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-renderer-backgrounding',
+]
+if (process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
+  args.push('--ozone-platform=wayland')
 const browser = await chromium.launch({
-  channel: "chromium",
+  channel: 'chromium',
   headless: false,
   args,
-});
-const session = await browser.newBrowserCDPSession();
-const results: unknown[] = [];
+})
+const session = await browser.newBrowserCDPSession()
+const results: unknown[] = []
 try {
   for (const count of counts) {
     for (let repetition = 0; repetition < repetitions; repetition += 1) {
-      const order = repetition % 2 === 0 ? modes : modes.toReversed();
-      for (const mode of order)
-        results.push(await measure(browser, mode, count, repetition, false));
+      const order = repetition % 2 === 0 ? modes : modes.toReversed()
+      for (const mode of order) results.push(await measure(browser, mode, count, repetition, false))
     }
-    if (!traceDir || !traceCounts.includes(count)) continue;
-    for (const mode of modes) await measure(browser, mode, count, 0, true);
+    if (!traceDir || !traceCounts.includes(count)) continue
+    for (const mode of modes) await measure(browser, mode, count, 0, true)
   }
 } finally {
-  await browser.close();
+  await browser.close()
 }
 console.log(
   JSON.stringify(
@@ -230,7 +224,7 @@ console.log(
     null,
     1,
   ),
-);
+)
 
 async function measure(
   browser: Browser,
@@ -242,47 +236,34 @@ async function measure(
   const tab = await browser.newPage({
     viewport: { width: 1600, height: 1000 },
     deviceScaleFactor: 2,
-  });
+  })
   try {
-    await tab.route("http://localhost:41891/surface-probe", (route) =>
-      route.fulfill({ contentType: "text/html", body: page }),
-    );
-    await tab.goto("http://localhost:41891/surface-probe");
+    await tab.route('http://localhost:41891/surface-probe', (route) =>
+      route.fulfill({ contentType: 'text/html', body: page }),
+    )
+    await tab.goto('http://localhost:41891/surface-probe')
     const run = tab.evaluate(
       (options) =>
-        (
-          window as never as { runProbe: (o: unknown) => Promise<unknown> }
-        ).runProbe(options),
+        (window as never as { runProbe: (o: unknown) => Promise<unknown> }).runProbe(options),
       { mode, count, frames, tileWidth, tileHeight, instances },
-    );
-    await tab.waitForFunction(
-      () => (window as never as { __ready?: boolean }).__ready === true,
-    );
-    if (trace) await browser.startTracing(tab, { categories: traceCategories });
-    const before = await processCpu(session);
-    const started = performance.now();
-    await tab.evaluate(() =>
-      (window as never as { __start: () => void }).__start(),
-    );
-    const callback = await run;
-    const seconds = (performance.now() - started) / 1000;
-    const after = await processCpu(session);
-    if (trace)
-      writeFileSync(
-        `${traceDir}/${count}-${mode}.json`,
-        await browser.stopTracing(),
-      );
-    const byType: Record<string, number> = {};
+    )
+    await tab.waitForFunction(() => (window as never as { __ready?: boolean }).__ready === true)
+    if (trace) await browser.startTracing(tab, { categories: traceCategories })
+    const before = await processCpu(session)
+    const started = performance.now()
+    await tab.evaluate(() => (window as never as { __start: () => void }).__start())
+    const callback = await run
+    const seconds = (performance.now() - started) / 1000
+    const after = await processCpu(session)
+    if (trace) writeFileSync(`${traceDir}/${count}-${mode}.json`, await browser.stopTracing())
+    const byType: Record<string, number> = {}
     for (const [id, entry] of after) {
-      const delta = Math.max(0, entry.cpu - (before.get(id)?.cpu ?? 0));
-      byType[entry.type] = (byType[entry.type] ?? 0) + delta;
+      const delta = Math.max(0, entry.cpu - (before.get(id)?.cpu ?? 0))
+      byType[entry.type] = (byType[entry.type] ?? 0) + delta
     }
     const percent = Object.fromEntries(
-      Object.entries(byType).map(([type, value]) => [
-        type,
-        +((value / seconds) * 100).toFixed(1),
-      ]),
-    );
+      Object.entries(byType).map(([type, value]) => [type, +((value / seconds) * 100).toFixed(1)]),
+    )
     const result = {
       mode,
       count,
@@ -291,10 +272,10 @@ async function measure(
       seconds: +seconds.toFixed(2),
       percent,
       callback,
-    };
-    console.error(JSON.stringify(result));
-    return result;
+    }
+    console.error(JSON.stringify(result))
+    return result
   } finally {
-    await tab.close();
+    await tab.close()
   }
 }
