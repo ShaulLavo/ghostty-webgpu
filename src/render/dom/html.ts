@@ -90,10 +90,13 @@ function cellStyle(
   theme: CanonicalRendererTheme,
   colors: CanvasColorCache,
   width: number,
+  textVisible = true,
 ): string {
   const resolved = resolveCanvasCellColors(cell, theme, cursor?.style === 'block')
   const style = cell.style
   const foreground = colors.foreground(resolved)
+  const blinkingHidden = style?.blink && !textVisible
+  const hidden = style?.invisible || blinkingHidden
   const decorations = [
     style?.underline ? 'underline' : '',
     style?.overline ? 'overline' : '',
@@ -105,13 +108,13 @@ function cellStyle(
   let css = `display:inline-block;flex:none;contain:size layout;direction:ltr;unicode-bidi:bidi-override;height:var(--ghostty-cell-height, ${font.cssCellHeight}px);vertical-align:top;`
   if (font.settings.lineHeight < 1) css += 'overflow:hidden;'
   if (width > 1) css += 'text-align:center;'
-  css += `color:${style?.invisible ? 'transparent' : foreground};`
-  if (style?.faint && !style.invisible)
+  css += `color:${hidden ? 'transparent' : foreground};`
+  if (style?.faint && !hidden)
     css += `color:${foreground.replace('rgb(', 'rgba(').replace(')', ', 0.5)')};`
   if (resolved.drawBackground) css += `background-color:${colors.css(resolved.background)};`
   css += `font-weight:${style?.bold ? font.settings.boldWeight : font.settings.weight};font-style:${style?.italic ? 'italic' : 'normal'};`
   css += `letter-spacing:var(--ghostty-letter-spacing, calc(var(--ghostty-cell-width, ${font.cssCellWidth}px) - 1ch));`
-  if (decorations)
+  if (decorations && !blinkingHidden)
     css += `text-decoration-line:${decorations};text-decoration-style:${underlineStyles[style?.underline ?? 0] ?? 'solid'};text-decoration-color:${foreground};`
   if (cursor?.style === 'block' && width > 1) {
     const tail = resolveCanvasCellColors(cell, theme, false)
@@ -186,6 +189,7 @@ export function renderRowRuns(
   font: TerminalFittedFont,
   theme: CanonicalRendererTheme,
   styles?: DefaultRowStyle,
+  textVisible = true,
 ): readonly RowRun[] {
   const packed = row.packed
   const columns = packed?.length ?? row.cells.length
@@ -264,6 +268,7 @@ export function renderRowRuns(
               theme,
               (colors ??= new CanvasColorCache(theme.minimumContrast)),
               width,
+              textVisible,
             )
     }
     previousCell = reusable ? cell : undefined

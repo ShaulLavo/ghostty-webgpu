@@ -148,6 +148,7 @@ export class WebGpuTerminalRenderer {
   private cursor?: RenderCursorSnapshot
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
+  private textPhaseVisible = true
   private device: GPUDevice
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
@@ -233,6 +234,7 @@ export class WebGpuTerminalRenderer {
         onFrame: () => this.drawFrame(),
       })
       this.scheduler = scheduler
+      this.setReducedMotion(options.reducedMotion ?? false)
       this.scheduler.schedule()
       this.watchDeviceLoss(device, this.deviceGeneration)
       this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
@@ -316,6 +318,10 @@ export class WebGpuTerminalRenderer {
     if (this.cursorBlinkPreference === enabled) return
     this.cursorBlinkPreference = enabled
     this.synchronizeCursorBlink()
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.scheduler.textBlink.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -481,12 +487,16 @@ export class WebGpuTerminalRenderer {
   }
 
   private drawZigFrame(damage: RenderStateDirty): void {
+    const phaseChanged = this.textPhaseVisible !== this.scheduler.textBlink.visible
+    const phaseOnly =
+      !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
       damage === RenderStateDirty.False &&
-      this.overlayRows.size === 0
+      this.overlayRows.size === 0 &&
+      !phaseChanged
     ) {
       this.coordinator?.flushPending()
       if (!this.disposed) this.frames.notifyCleanUpdate(this.renderState)
@@ -513,17 +523,20 @@ export class WebGpuTerminalRenderer {
       stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
     }
-    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
         `The native frame could not be built after atlas recovery (status ${status})`,
       )
     }
-    const updates = builder.changedRanges()
-    const rebuiltRows = builder.rowRebuilds
+    this.scheduler.textBlink.setNeeded(builder.blinkingRows > 0)
+    this.textPhaseVisible = this.scheduler.textBlink.visible
+    const updates = phaseOnly ? [] : builder.changedRanges()
+    const rebuiltRows = phaseOnly ? 0 : builder.rowRebuilds
     this.atlasTextures.sync(this.atlas.consumeUploads())
     const operations = this.textPass.uploadFrame(builder, updates)
+    this.textPass.setTextVisible(this.textPhaseVisible)
     if (!this.coordinator) {
       try {
         this.textPass.submit(this.context.getCurrentTexture().createView())

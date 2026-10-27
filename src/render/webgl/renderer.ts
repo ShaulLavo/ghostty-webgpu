@@ -96,6 +96,7 @@ export class WebGlTerminalRenderer {
   private cursor?: RenderCursorSnapshot
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
+  private textPhaseVisible = true
   private documentVisible = true
   private focused = false
   private font: TerminalFittedFont
@@ -142,6 +143,7 @@ export class WebGlTerminalRenderer {
       onFrame: () => this.drawFrame(),
       presentation: options.presentation,
     })
+    this.setReducedMotion(options.reducedMotion ?? false)
     this.canvas.addEventListener('webglcontextlost', this.handleContextLost)
     this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored)
     this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
@@ -224,6 +226,10 @@ export class WebGlTerminalRenderer {
     this.cursorBlinkPreference = enabled
     this.synchronizeCursorBlink()
     this.schedule()
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.scheduler.textBlink.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -386,12 +392,16 @@ export class WebGlTerminalRenderer {
   }
 
   private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): void {
+    const phaseChanged = this.textPhaseVisible !== this.scheduler.textBlink.visible
+    const phaseOnly =
+      !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
       damage === RenderStateDirty.False &&
-      this.overlayRows.size === 0
+      this.overlayRows.size === 0 &&
+      !phaseChanged
     ) {
       this.frames.notifyCleanUpdate(this.renderState)
       return
@@ -416,18 +426,21 @@ export class WebGlTerminalRenderer {
       full: this.needsFullRebuild,
       overlayRows: this.overlayRows,
     }
-    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
         `The native frame could not be built after atlas recovery (status ${status})`,
       )
     }
-    const updates = builder.changedRanges()
+    this.scheduler.textBlink.setNeeded(builder.blinkingRows > 0)
+    this.textPhaseVisible = this.scheduler.textBlink.visible
+    const updates = phaseOnly ? [] : builder.changedRanges()
     pass.syncAtlas(this.atlas.consumeUploads())
     const operations = pass.uploadFrame(builder, updates)
+    const blinkChanged = pass.setTextVisible(this.textPhaseVisible)
     // Persistent records can report terminal damage without changing either GPU buffer.
-    const draws = operations > 0 ? pass.submit() : 0
+    const draws = operations > 0 || blinkChanged ? pass.submit() : 0
     if (this.context.isContextLost()) {
       this.suspendContext()
       return
@@ -442,8 +455,8 @@ export class WebGlTerminalRenderer {
     )
     try {
       if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-      if (operations > 0) {
-        this.recordFrame(pass, builder.rowRebuilds, operations, draws)
+      if (operations > 0 || blinkChanged) {
+        this.recordFrame(pass, phaseOnly ? 0 : builder.rowRebuilds, operations, draws)
         this.metrics.zigFrames += 1
       }
       this.needsFullRebuild = false

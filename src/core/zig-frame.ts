@@ -58,6 +58,7 @@ export class ZigFrameBuilder {
       this.setUint(128, 0)
       this.setUint(132, 0)
       this.setUint(136, 0)
+      this.setUint(140, 0)
       this.cellPointer = this.allocate(columns * rows * 64)
       this.glyphPointer = this.allocate(columns * rows * 96)
       this.index = this.runtime.bridge.createGlyphIndex()
@@ -108,6 +109,11 @@ export class ZigFrameBuilder {
   }
 
   private physicalToLogicalRows?: number[]
+
+  get blinkingRows(): number {
+    this.ensureActive()
+    return this.runtime.memory.view.getUint32(this.frame + 140, true)
+  }
 
   get rowChanges(): number {
     this.ensureActive()

@@ -160,6 +160,7 @@ export interface GhosttyWebGpuRenderer {
   schedule(): void
   setCursorBlinkEnabled(enabled: boolean): void
   setDocumentVisible(visible: boolean): void
+  setReducedMotion?(reduced: boolean): void
   setFocused(focused: boolean): void
   setInactiveCursorStyle?(style: InactiveCursorStyle | undefined): void
   setFont(font: TerminalFittedFont): void

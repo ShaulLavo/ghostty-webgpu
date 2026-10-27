@@ -99,6 +99,7 @@ export interface WorkerCommands extends NativeCommands {
   layout(layout: WorkerLayout): void
   focused(focused: boolean): void
   visible(visible: boolean): void
+  reducedMotion(reduced: boolean): void
   inactiveCursor(style: InactiveCursorStyle | undefined): boolean
   refresh(start: number, end: number): void
   clearTextureAtlas(): void
@@ -207,6 +208,7 @@ export const workerCommandNames: ReadonlySet<string> = new Set([
   'layout',
   'focused',
   'visible',
+  'reducedMotion',
   'inactiveCursor',
   'refresh',
   'clearTextureAtlas',

@@ -70,6 +70,7 @@ void main() {
 `
 
 export const cellFragmentShader = `${fragmentHeader}
+uniform float textHidden;
 flat in vec4 v_foreground;
 flat in vec4 v_background;
 flat in vec4 v_metadata;
@@ -116,6 +117,7 @@ float cursorCoverage(uint flags, uint style, vec2 local, vec2 size) {
 void main() {
   uint flags = uint(v_metadata.x);
   float decoration = decorationCoverage(flags, uint(v_metadata.y), v_local, v_size);
+  if (hasFlag(flags, 8u) && textHidden > 0.5) decoration = 0.0;
   float cursor = cursorCoverage(flags, uint(v_metadata.z), v_local, v_size);
   float effectAlpha = max(decoration, cursor) * v_foreground.a;
   vec3 adjusted = contrastColor(v_foreground.rgb, v_background.rgb, v_metadata.w);
@@ -132,6 +134,7 @@ layout(location = 2) in vec4 uv;
 layout(location = 3) in vec4 background;
 layout(location = 4) in vec4 attributes;
 layout(location = 5) in vec4 atlas;
+uniform float textHidden;
 flat out vec4 v_color;
 out vec2 v_uv;
 flat out vec4 v_background;
@@ -140,7 +143,9 @@ flat out vec4 v_atlas;
 
 void main() {
   vec2 corner = corners[gl_VertexID];
-  gl_Position = clipPosition(rect.xy + corner * rect.zw);
+  bool hidden = (uint(attributes.x) & 2u) != 0u && textHidden > 0.5;
+  vec2 size = hidden ? vec2(0.0) : rect.zw;
+  gl_Position = clipPosition(rect.xy + corner * size);
   v_color = color;
   v_uv = mix(uv.xy, uv.zw, corner);
   v_background = background;

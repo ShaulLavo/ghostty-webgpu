@@ -81,6 +81,7 @@ export interface WebGpuTerminalRendererOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas
   columns: number
   cursorBlink?: boolean
+  reducedMotion?: boolean
   deviceFactory?: () => Promise<GPUDevice>
   font: TerminalFittedFont
   onError?: (cause: unknown) => void

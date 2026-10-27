@@ -18,7 +18,8 @@ struct Viewport {
   rowHeight: f32,
   rowOffset: u32,
   instanceCount: u32,
-  padding: vec2u,
+  textHidden: f32,
+  padding: u32,
 }
 
 struct VertexOutput {
@@ -158,7 +159,8 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   let underline = u32(input.metadata.y);
   let cursorStyle = u32(input.metadata.z);
   let minimumContrast = input.metadata.w;
-  let decoration = decorationCoverage(flags, underline, input.local, input.size);
+  let blinking = (flags & 8u) != 0u && viewport.textHidden > 0.5;
+  let decoration = select(decorationCoverage(flags, underline, input.local, input.size), 0.0, blinking);
   let cursor = cursorCoverage(flags, cursorStyle, input.local, input.size);
   let effectAlpha = max(decoration, cursor) * input.foreground.a;
   let adjusted = contrastColor(input.foreground.rgb, input.background.rgb, minimumContrast);

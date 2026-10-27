@@ -74,6 +74,7 @@ export class WebGlTextPass {
   private atlasUploadOperationsValue = 0
   private frameUploadedBytesValue = 0
   private disposed = false
+  private textVisible = true
 
   constructor(options: WebGlTextPassOptions) {
     validateOptions(options)
@@ -151,6 +152,17 @@ export class WebGlTextPass {
     this.instanceCount = options.instanceCount
     this.resizePipeline(this.cells, CELL_INSTANCE_BYTES)
     this.resizePipeline(this.glyphs, GLYPH_INSTANCE_BYTES)
+  }
+
+  setTextVisible(visible: boolean): boolean {
+    if (this.textVisible === visible) return false
+    this.textVisible = visible
+    const gl = this.context
+    for (const pipeline of [this.cells, this.glyphs]) {
+      gl.useProgram(pipeline.program)
+      gl.uniform1f(this.uniform(pipeline.program, 'textHidden'), visible ? 0 : 1)
+    }
+    return true
   }
 
   submit(): number {

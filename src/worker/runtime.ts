@@ -571,6 +571,8 @@ export class TerminalWorkerRuntime {
       case 'focused':
         native.focus.setFocused(...request.args)
         return this.renderer?.setFocused(...request.args)
+      case 'reducedMotion':
+        return this.renderer?.setReducedMotion?.(...request.args)
       case 'visible':
         return this.renderer?.setDocumentVisible(...request.args)
       case 'inactiveCursor': {

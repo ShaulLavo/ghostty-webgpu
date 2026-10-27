@@ -22,10 +22,12 @@ export const GlyphOffset = {
 
 export const GlyphFlag = {
   Glyph: 1 << 0,
+  Blink: 1 << 1,
 } as const
 
 export const CellFlag = {
   Cursor: 1 << 0,
   Overline: 1 << 1,
   Strikethrough: 1 << 2,
+  Blink: 1 << 3,
 } as const

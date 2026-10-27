@@ -1,3 +1,4 @@
+import { rowNeedsTextBlink } from './text-blink.js'
 import { FrameObserver } from './frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { ReadRowsOptions, RenderCursorSnapshot, RenderRow } from '../../core/types.js'
@@ -26,7 +27,7 @@ export type RowThemeInvalidation = 'all' | 'cursor'
 export interface RowRendererSurface {
   beginFrame?(): void
   dispose(): void
-  paint(row: RenderRow, cursor: CursorState | undefined): void
+  paint(row: RenderRow, cursor: CursorState | undefined, textVisible: boolean): void
   resize(font: TerminalFittedFont, grid: RendererGridSize): void
   setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation
 }
@@ -48,6 +49,8 @@ export class RowTerminalRenderer {
   private cursor?: RenderCursorSnapshot
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
+  private textPhaseVisible = true
+  private readonly blinkingRows = new Set<number>()
   private disposed = false
   private focused = false
   private font: TerminalFittedFont
@@ -93,6 +96,7 @@ export class RowTerminalRenderer {
       onFrame: () => this.drawFrame(),
       presentation: options.presentation,
     })
+    this.setReducedMotion(options.reducedMotion ?? false)
     this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
       this.scheduler.schedule(),
     )
@@ -152,6 +156,10 @@ export class RowTerminalRenderer {
     if (this.cursorBlinkPreference === enabled) return
     this.cursorBlinkPreference = enabled
     this.synchronizeCursorBlink()
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.scheduler.textBlink.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -228,6 +236,12 @@ export class RowTerminalRenderer {
     const phaseVisible = this.scheduler.cursorVisible
     if (this.cursorPhaseVisible !== phaseVisible) this.addCursorRow(cursor)
     this.cursorPhaseVisible = phaseVisible
+    const textVisible = this.scheduler.textBlink.visible
+    if (this.textPhaseVisible !== textVisible) {
+      for (const row of this.blinkingRows) this.overlayRows.add(row)
+    }
+    this.textPhaseVisible = textVisible
+    if (this.needsFullRebuild) this.blinkingRows.clear()
     const rows = this.rowsToPaint(damage)
     if (rows.length === 0) {
       if (damage === RenderStateDirty.False && !this.needsFullRebuild)
@@ -238,6 +252,7 @@ export class RowTerminalRenderer {
     const cursorState = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
     this.surface.beginFrame?.()
     for (const row of rows) this.paintRow(row, cursorState)
+    this.scheduler.textBlink.setNeeded(this.blinkingRows.size > 0)
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     this.metrics.paintedRows += rows.length
     this.metrics.submittedFrames += 1
@@ -282,7 +297,9 @@ export class RowTerminalRenderer {
 
   private paintRow(row: RenderRow, cursor: CursorState | undefined): void {
     if (row.y < 0 || row.y >= this.grid.rows) return
-    this.surface.paint(row, cursor)
+    if (rowNeedsTextBlink(row)) this.blinkingRows.add(row.y)
+    else this.blinkingRows.delete(row.y)
+    this.surface.paint(row, cursor, this.textPhaseVisible)
     this.metrics.paintedCells += row.packed?.length ?? row.cells.length
   }
 

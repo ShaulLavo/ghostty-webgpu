@@ -18,7 +18,8 @@ struct Viewport {
   rowHeight: f32,
   rowOffset: u32,
   instanceCount: u32,
-  padding: vec2u,
+  textHidden: f32,
+  padding: u32,
 }
 
 struct VertexOutput {
@@ -46,7 +47,9 @@ fn vertexMain(
   );
 ${rowRemapShader}
   let corner = corners[vertexIndex];
-  let pixel = origin + corner * instance.rect.zw;
+  let hidden = (u32(instance.metadata.x) & 2u) != 0u && viewport.textHidden > 0.5;
+  let size = select(instance.rect.zw, vec2f(0.0), hidden);
+  let pixel = origin + corner * size;
   var output: VertexOutput;
   output.position = vec4f(
     pixel.x / viewport.size.x * 2.0 - 1.0,

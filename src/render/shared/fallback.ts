@@ -148,6 +148,11 @@ export class FallbackTerminalRenderer {
     this.activeRenderer?.setDocumentVisible(visible)
   }
 
+  setReducedMotion(reduced: boolean): void {
+    this.options.reducedMotion = reduced
+    this.activeRenderer?.setReducedMotion(reduced)
+  }
+
   setFocused(focused: boolean): void {
     this.focused = focused
     this.activeRenderer?.setFocused(focused)

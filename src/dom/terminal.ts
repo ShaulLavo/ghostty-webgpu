@@ -1395,6 +1395,21 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.input = input
       this.cleanup.add(() => input?.dispose())
     }
+    const motion = elements.root.ownerDocument.defaultView?.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    )
+    const updateMotion = () => {
+      const reduced = motion?.matches ?? false
+      if (this.execution.kind === 'async') {
+        void this.execution
+          .request('reducedMotion', [reduced])
+          .catch((cause: unknown) => this.reportError(cause, 'motion'))
+        return
+      }
+      this.renderer?.setReducedMotion?.(reduced)
+    }
+    motion?.addEventListener('change', updateMotion, { signal: elements.signal })
+    updateMotion()
     const lifecycle = createDomInputLifecycleController({
       onDocumentVisible: (visible) => this.setDocumentVisible(visible),
       onError: (cause, operation) => this.reportError(cause, `input.${operation}`),

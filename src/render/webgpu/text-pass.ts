@@ -108,6 +108,7 @@ export class WebGpuTextPass {
   private readonly viewportBuffer: GPUBuffer
   private readonly rowData = new ArrayBuffer(24)
   private readonly rowView = new DataView(this.rowData)
+  private textVisible = true
   private rowOffset = 0
   private rowHeight = 0
   private rowColumns = 0
@@ -205,6 +206,13 @@ export class WebGpuTextPass {
     return operations
   }
 
+  setTextVisible(visible: boolean): boolean {
+    if (this.textVisible === visible) return false
+    this.textVisible = visible
+    this.device.queue.writeBuffer(this.viewportBuffer, 24, new Float32Array([visible ? 0 : 1]))
+    return true
+  }
+
   submit(view: GPUTextureView, copy?: TextPassCopy): void {
     this.device.queue.submit([this.encode(view, copy)])
     this.acceptFrame()
@@ -269,6 +277,7 @@ export class WebGpuTextPass {
     this.rowView.setFloat32(4, height, true)
     this.rowView.setUint32(8, offset, true)
     this.rowView.setUint32(12, this.instanceCount, true)
+    this.rowView.setFloat32(16, this.textVisible ? 0 : 1, true)
     this.device.queue.writeBuffer(this.viewportBuffer, 8, this.rowData)
     this.frameUploadedBytesValue += this.rowData.byteLength
     this.metrics.uploadedBytes += this.rowData.byteLength
