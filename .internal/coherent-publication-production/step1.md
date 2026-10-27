@@ -1,146 +1,108 @@
-# Failure-safe displayed text cache
+# Coherent publication step 1
 
-Status: Approved. Production step 1 of the [migration](../coherent-publication.md#production-migration).
+Status: Approved implementation, held before push on the PC ownership-cost gate.
 
-Each subscriber keeps its own native current, previous and pending frames and a map from native
-text revision to an owned text row. Only revisions in readable slots remain cached. Dirty rows
-receive new revisions; row-identity matching belongs to step 4. The current and previous reads
-share one native reader instead of maintaining a separate previous-frame scratch allocation.
-Discard clears this subscriber's cache before the accepted baseline can issue those revisions
-again. Selective invalidation belongs to step 2. Observer extraction stays unchanged until step 3.
+## Ownership model
 
-The new real-wasm test first fails on main because reading the next frame's previous rows makes
-two native text calls. It expects zero calls and unchanged rows to retain object identity. Other
-cases cover dense writes, scrolling, Unicode, style changes, resize, populated pending discard,
-different retry content, overlapping subscribers, unequal cadence, disposal and acknowledgement
-failure after an eager pending read. Existing capture and extraction failure tests remain.
+Each subscriber keeps its own native current, previous and pending slots and revision-keyed text
+cache. Native dirty rows receive fresh text revisions. Current and previous text share one reader;
+no previous-text reader remains. Discard clears only that subscriber's cache in this step.
+Selective discard invalidation remains step 2, observer rewiring step 3 and row-identity matching
+step 4. No shared displayed store or two-slot design is introduced.
 
-Raw evidence: `/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step1/`.
+Cached text owns its row-sized records and grapheme span at extraction. Grapheme offsets are
+rebased to the owned row. ASCII rows own their blank bitmap and decoded string. Live and painter
+readers keep their packet representation. There is no later compaction pass and no conditional
+paint-row text cache. Acceptance retires obsolete cache entries from already known revisions,
+without native reads or wasm allocation. Each capture has a distinct descriptor while native
+handles recycle. Owned rows remain readable after retirement and disposal.
 
-## Intermediate gate
+## Correctness
 
-The coordinator accepted a bounded intermediate cost on 2026-10-27. The standalone cache step raised normal-publication
-heap use on the Mac. At sixteen observed terminals, scroll JS heap rose from 7.99 to 8.67 MiB;
-wasm stayed 120.19 MiB. Dense heap rose from 7.15 to 7.40 MiB and wasm stayed 120.25 MiB.
-Scroll renderer CPU was 18.62 to 18.21 ms per loop and dense CPU 36.76 to 37.13 ms.
-These are experimental medians of two counterbalanced pairs, not precise regression estimates.
+The original memoization test fails on main because a previous-frame read repeats two native
+extractions. The lifetime regression fails on the initial cache because twelve rows remain after
+only eight are readable. Both pass after repair.
 
-The approved note's combined prototype has normal scroll CPU 17.81 to 10.24 ms on the Mac
-and two MiB lower wasm at sixteen terminals. This first step alone does not reproduce that
-result. It retains the observer cache and gives dirty rows fresh revisions, so normal publication
-still extracts previous text and adds the revision map. An instrumented parity run that forces
-native current and previous reads does save two MiB, illustrating why that run cannot stand in
-for normal publication.
+The A57-derived progressively frozen 40×100 Unicode viewport is the hard ownership gate. Main
+retains 50,000 copied bytes; the unsafe cache retained 2,525,000 bytes, or 50.5 packets. The row-owned
+reader now retains exactly 50,000 bytes and releases all copied buffers after the final viewport
+is dropped. The counter covers copied Uint32 records and graphemes, not strings, native/GPU
+memory or process RSS. The test also preserves immutable owned cells and continuations after
+native disposal. A separate ASCII case covers blank flags across bitmap words.
 
-Before was `31c493e8650cfdee551701f9e32602680b3267dc`; after was
-`2c6c62db73af3a4fcaffa9db9a79e606a87e8506`. The Mac used Chromium 153.0.8010.12,
-Apple M1 Metal, AC power and its agent lock. The harness used 200×50, DPR 2, one and sixteen
-terminals, dense and scroll, observers off and on, 180 steps after thirty warmup steps, two
-counterbalanced pairs per cell. All sixteen normal pairs had equal final text, parsed writes,
-text callback counts and submitted frames. All eight separate parity pairs also had equal
-observer digests. Parity used twenty-four steps after six warmup steps and one pair per cell.
-No presentation count or pixel-parity qualification is claimed.
+Independent histories, unequal cadence, overlapping captures, different discard/retry output,
+partial capture/extraction failure, eager-extraction acknowledgement failure, resize and disposal
+remain covered. Full browser qualification includes frame/text observers, displayed versus live
+reads, accessibility, links, selection, DEC 2026 holds, displayed snapshots and worker publication.
 
-The coordinator set the per-step gate to equal output for every observer, no normal-path CPU
-regression beyond pair noise, and at most one MiB additional JS heap at sixteen observed
-terminals against the main baseline. The Mac scroll increase of about 0.68 MiB passes that
-intermediate heap gate. Record that transient cost in this step's PR.
+The A55–A57 ledger and X7 mapping were read. Historical regression fixtures are reused. The
+rejected compaction implementation is not restored. The older supplied-row observer retention
+case remains distinct from the native text path repaired here.
 
-The cumulative gate is due at the end of step 3: JS heap must be at or below the main baseline,
-and normal scroll and dense CPU must both improve at sixteen terminals. Stop and report if
-that gate fails. The full prototype's KEEP decision remains intact.
+## Qualification
 
-The first run stopped before push while this gate was unresolved. PC pairs and the full browser
-suite were cancelled before starting. Work resumes from local checkpoint
-`febbe20217f6e76b9af2572966f0b8d6598a4de2` with the coordinator's explicit gate.
+Application source is `dc5a71aa2047fe2ae78ddc1eff0b77c28a5a8837`.
+Main baseline is `f8f927dabcb2c08bf621740c1b661ddf91722bb0`.
+The unsafe cache on the same main is `0e1994bfaf2f3ee80aea377b116c23a9fbe7ec9f`.
+The checked-in core wasm is unchanged; the bridge was generated against official pinned upstream
+with Zig 0.16.0. Feature versions remain unchanged.
 
-Verification already completed: expected red test on main, native build against pinned upstream
-with Zig 0.16.0, twenty-one focused real-wasm tests green, and the Mac hardware pairs above.
-Full qualification results follow after the resumed run finishes.
+Passed: build, typecheck, lint, format check, 1,185 unit tests with one skip, extension verification
+and package checks, docs checks, and the full browser suite with 1,145 passed and seven skipped
+across 67 files. Extension preparation completed before the browser suite.
 
-## Cache lifetime repair
+Fresh counterbalanced hardware pairs use 200×50, DPR 2, one and sixteen terminals, dense and
+scroll, 180 measured steps after thirty warmup steps, and two pairs per cell. Each arm gets a
+fresh page. PC uses headed Chromium 153.0.8010.12 on RTX 3060 Ti, WebGL2 and hardware WebGPU.
+Mac uses the same Chromium version on M1 Metal, AC power and the agent lock. PC uses quiet
+heavy-runner admission and checks two GiB free VRAM before each browser.
 
-The first PC matrix had one noisy dense WebGPU heap cell above the intermediate limit:
-+1.27 MiB. A bounded two-pair confirmation measured +0.62 MiB. Both packets remain in the
-raw evidence. Inspection then found a cache-lifetime gap: after the third eagerly read capture
-was accepted, the map still held twelve rows on a four-row grid, even though only eight rows
-belonged to readable native slots. Pruning had waited for the next text read.
+All 96 pairs match the checked final text, callback counts, parsed writes and submitted frames.
+Separate observer-parity cohorts also match full observer payload digests. Presentations and
+energy are unmeasured. CPU results are experimental two-pair medians.
 
-The failing-first lifetime test now requires retirement at acceptance. Each capture has a distinct
-JS descriptor, even when it reuses a native slot. Cache reads remember that descriptor's ordered
-revisions. Acceptance removes retired entries using those known revisions, without a bridge read
-or wasm allocation. Owned rows stay valid after eviction and disposal. Native capture and token
-lifetimes remain subscriber-local. This is cache lifetime bookkeeping, with no packet compaction
-and no conditional cache of materialized paint rows.
+The main-reference heap increase at sixteen observed terminals is below one MiB in every cell.
+Maximum measured increase is about 0.35 MiB on Mac scroll. Normal-path wasm stays at its baseline.
+The two-MiB reduction belongs to later representation removal and is not claimed for this step.
 
-The archaeology ledger's A55, A56, A57 and X7 mapping were read before the next production step.
-The existing displayed-frame, incremental-displayed-frame, multiple-render-states and failure-boundary
-cases descend from A55 and remain in qualification. A57's progressive-packet and held-row probes
-are controls for later owner changes, not approval to restore its rejected compaction algorithm.
+## Ownership cost and stop
 
-## A57 ownership blocker
+The isolated comparison changes only packet ownership, from unsafe cache to row-owned cache.
+Numbers are renderer CPU milliseconds per loop at sixteen observed terminals.
 
-Status: Blocked before push. The historical ownership test exposes a new retained-native-text
-regression even after the cache lifetime repair. The normal dense and scroll screens do not cover
-this case.
+| Host/backend | Workload | Before | After | Change |
+| ------------ | -------- | -----: | ----: | -----: |
+| PC WebGL2    | dense    |  36.69 | 37.78 |  +3.0% |
+| PC WebGL2    | scroll   |  16.64 | 18.81 | +13.0% |
+| PC WebGPU    | dense    |  27.25 | 27.53 |  +1.0% |
+| PC WebGPU    | scroll   |  14.28 | 14.69 |  +2.9% |
+| Mac WebGPU   | dense    |  36.79 | 37.95 |  +3.2% |
+| Mac WebGPU   | scroll   |  18.58 | 19.13 |  +3.0% |
 
-Adapt A57's progressively frozen rows to `NativeDisplayedFrame.readTextRows()`: start with a
-40×100 Unicode viewport, rewrite rows 0–99, then 1–99, and so on, accepting and reading each
-frame. Keep only the final owned viewport. Dispose the runtime, collect on separate V8 turns,
-and count retained copied Uint32 backing buffers, as in the historical probe.
+PC WebGL2 scroll rises in both pairs: 16.22 to 18.67 ms and 17.06 to 18.94 ms, about +15.1%
+and +11.1%. This exceeds the coordinator's roughly five percent ownership-cost stop threshold,
+so no branch is pushed, no PR is opened and no later step is started.
 
-- Main `31c493e8650cfdee551701f9e32602680b3267dc` retains 50,000 bytes, one complete packet.
-- Candidate `c7f6b7fa5e8a2b61a4463e7b7cbc1e6a8a30edc6` retains 2,525,000 bytes, 50.5 packets.
-- The same final text is asserted in both arms. Main passes the two-grid bound; the candidate fails.
-- This counts copied records and graphemes. It excludes strings, JS object overhead, native memory,
-  GPU memory and process RSS. It is an ownership counterexample, not a new energy measurement.
+A finite light-class React Router diagnostic was active during that PC cohort. The heavy runner
+permits light jobs inside a quiet reservation. Keep this limitation with the data; the result does
+not establish that the full thirteen percent is intrinsic to row ownership. The first admission
+expired before any samples, then the identical full cohort was requeued. No scored samples were
+replaced.
 
-The new regression is `src/core/tests/displayed-frame-ownership.test.ts`. The exact same test was
-copied to the baseline worktree and passes there. Run `bunx vitest run
-src/core/tests/displayed-frame-ownership.test.ts` in each source worktree. Both runs use the real
-checked-in wasm under Node. Raw logs and explicit byte counts are in
-`ownership-canonical-main.log`, `ownership-canonical-after-final.log` and
-`ownership-retained-{before,after}-metrics.json` under the evidence directory.
+Owner decisions: first repeat PC WebGL2, sixteen terminals, scroll, against the unsafe control
+in a window without a concurrent finite CPU workload. If the large loss repeats, profile the
+row-owned path before choosing a different representation. Do not silently restore the old
+compaction pass or discard the ownership guard. Source remains frozen until that decision.
 
-Cause: `RevisionTextCache.extract` keeps row objects from partial text reads. In
-`src/core/text-row-reader.ts`, each Unicode row's lazy cells close over a subarray of one copied
-packet and its grapheme array. A row that freezes early keeps its entire older packet alive.
-Pruning retired revisions cannot release a packet while a readable row still needs it. The final
-owned viewport retains the packets even after disposing the runtime and clearing the cache.
-The old supplied-row observer paths also reproduce A57 in both sources; those old failures are
-separate from this newly affected retained-native path.
+The previous intermediate gate allows up to one MiB extra JS heap at sixteen observed terminals.
+By the end of step 3, JS heap must be at or below main and both scroll and dense CPU must improve
+at sixteen terminals. Those later gates remain in force.
 
-Owner decisions: make row-packet ownership a prerequisite to this cache, or revise the production
-plan. A replacement must bound the bytes retained by a readable viewport and pass the historical
-ownership and hardware guards. Do not restore #1240's rejected compaction implementation or
-A56's rejected conditional text cache. No production fix for that representation is attempted in
-this checkpoint, following the coordinator's explicit stop rule.
+## Evidence
 
-The repaired code completed build, typecheck, lint, formatting, unit tests, extension verification,
-docs checks and the full browser suite before this new test was added. The browser result is
-66 files, 1,132 passed and seven skipped. Fresh hardware packets on both hosts have equal checked
-payloads and counts; the Mac's sixteen-terminal transient heap cost is about +0.02 MiB dense and
-+0.10 MiB scroll. Those normal-path results do not waive the ownership failure. The new regression
-is deliberately red on this local checkpoint. No branch is pushed, no PR is opened and no later
-production step is started.
-
-## Row-owned insertion
-
-The coordinator authorized a new ownership mechanism after A57 reproduced. Ownership is a hard
-gate. The final progressively frozen viewport must retain exactly 50,000 copied bytes, matching
-main. A small ownership cost is acceptable; more than about five percent additional normal-path
-CPU at sixteen terminals is a stop and report. The earlier +one MiB intermediate heap and
-step-3 cumulative gates still apply.
-
-Only the subscriber's retained-text reader uses row ownership. At extraction it copies each row's
-records and that row's graphemes, rebasing the grapheme offsets to the owned span. ASCII rows
-own their blank bitmap and decoded string. Live text and Canvas/DOM reads keep their original
-packet representation. There is no later compaction pass and no conditional paint-row text cache.
-The A57-derived test now requires exactly 50,000 bytes and zero bytes after releasing the final
-owned rows. The new representation passes that previously red test.
-
-Source baseline advances to main `f8f927dab` after its font-metric and symbol changes merged.
-The unsafe cache on that same main is isolated at `0e1994bfaf2f3ee80aea377b116c23a9fbe7ec9f`.
-Fresh same-session pairs against both controls will distinguish the total migration cost from
-row ownership's added cost. Neither earlier measurement packet is reused as qualification for
-this changed implementation.
+Raw packets, logs, scripts and the decision trail are retained at
+`/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step1/`.
+Main-reference packets are `pc-owned-main-{normal,parity}.json` and
+`mac-owned-{normal,parity}.json`. Isolated cost is `pc-owned-cost.json` and `mac-owned-cost.json`.
+The exact ownership red/green logs are `own-exact-red.log`, `own-green.log` and `own-checks.log`.
+All task-created execution resources are removed on both hosts after retaining this checkpoint.
