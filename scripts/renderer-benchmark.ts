@@ -33,6 +33,7 @@ const repetitions = positiveInteger('BENCH_REPETITIONS', 3)
 const warmupSteps = positiveInteger('BENCH_WARMUP_STEPS', 20)
 const idleMilliseconds = positiveInteger('BENCH_SAMPLE_SECONDS', 2) * 1000
 const headless = process.env.BENCH_HEADLESS === '1'
+const terminalVisibility = process.env.BENCH_TERMINALS === '16'
 const output = resolve(process.env.BENCH_OUTPUT ?? join(root, '.artifacts/renderer-benchmark.json'))
 const origin = 'http://localhost:41799'
 const candidates = [{ label: 'candidate', root }]
@@ -194,7 +195,7 @@ async function measure(
   page.on('pageerror', (error) => errors.push(error.message))
   try {
     await routePage(page, bundle, source.root)
-    await page.goto(`${origin}/?backend=${backend}`)
+    await page.goto(`${origin}/?backend=${backend}${terminalVisibility ? '&terminals=16' : ''}`)
     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
     await Promise.race([
@@ -239,12 +240,15 @@ async function measure(
     }
     const pageSession = await page.context().newCDPSession(page)
     const memory: unknown = await pageSession.send('Runtime.getHeapUsage')
-    await page.locator('main canvas').screenshot({
-      path: join(
-        dirname(output),
-        `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
-      ),
-    })
+    await page
+      .locator('main canvas')
+      .first()
+      .screenshot({
+        path: join(
+          dirname(output),
+          `${basename(output, '.json')}-${source.label}-${backend}-${scenario}-${repetition}.png`,
+        ),
+      })
     const terminalText = await page.evaluate(() => window.__rendererBench.output())
     const lateDrawFailure = await page.evaluate(() => window.__rendererBenchFailure)
     assert(!lateDrawFailure, `${backend} renderer draw failed: ${lateDrawFailure}`)

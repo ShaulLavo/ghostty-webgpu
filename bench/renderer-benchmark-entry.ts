@@ -1,4 +1,7 @@
 import { GhosttyRuntime } from '../src/core/runtime.js'
+import { Terminal } from '../src/dom/terminal.js'
+import type { RendererMetrics } from '../src/render/shared/types.js'
+import type { RowRendererMetrics } from '../src/render/shared/row-renderer.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
 import { measuredRenderState } from './native-state.js'
 import { createBenchmarkRenderer, parseBenchmarkBackend } from './renderer-factory.js'
@@ -13,6 +16,7 @@ const rows = 50
 const backend = parseBenchmarkBackend(
   new URL(location.href).searchParams.get('backend') ?? 'webgpu',
 )
+const terminalVisibility = new URL(location.href).searchParams.get('terminals') === '16'
 const mount = document.querySelector('main')
 if (!mount) throw new Error('Missing benchmark mount')
 const nativeRequestFrame = window.requestAnimationFrame.bind(window)
@@ -143,6 +147,75 @@ async function createNativeDriver(): Promise<Driver> {
   }
 }
 
+async function createTerminalVisibilityDriver(): Promise<Driver> {
+  if (backend === 'ghostty-web') throw new Error('Visibility benchmark requires native terminals')
+  const runtime = await GhosttyRuntime.create({ wasm: '/ghostty-vt.wasm', bridge: '/bridge.wasm' })
+  const terminals: Terminal[] = []
+  const renderers: Array<{ readonly metrics: RendererMetrics | RowRendererMetrics }> = []
+  let submittedFrames = 0
+  for (let index = 0; index < 16; index += 1) {
+    const host = document.createElement('div')
+    host.style.cssText = `position:absolute;left:${(index % 2) * 500}px;top:${index < 4 ? Math.floor(index / 2) * 160 : 10000 + index * 160}px;width:480px;height:150px`
+    mount!.append(host)
+    const terminal = await Terminal.create({
+      runtime: { kind: 'borrowed', runtime },
+      appearance: {
+        cursor: { blink: false },
+        font: { family: 'monospace', size: 13 },
+      },
+      rendererFactory: async (options) => {
+        const created = await createBenchmarkRenderer(backend, options)
+        adapterInfo = created.adapter
+        rendererPath = created.path
+        renderers.push(created.renderer)
+        return created.renderer
+      },
+    })
+    terminal.setTheme({
+      ...terminal.appearance.theme,
+      foreground: { r: 255, g: 0, b: 0 },
+      background: { r: 0, g: 0, b: 0 },
+    })
+    terminal.onFrame(() => submittedFrames++)
+    terminal.on('error', ({ cause }) => {
+      drawErrors.push(String(cause))
+      window.__rendererBenchFailure = String(cause)
+    })
+    terminals.push(terminal)
+    await terminal.open(host)
+  }
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  return {
+    async dispose() {
+      for (const terminal of terminals) await terminal.dispose()
+      runtime.dispose()
+    },
+    metrics() {
+      const metrics: Record<string, number> = { hostSubmittedFrames: submittedFrames }
+      for (const renderer of renderers) {
+        for (const [key, value] of Object.entries(renderer.metrics))
+          metrics[key] = (metrics[key] ?? 0) + value
+      }
+      return metrics
+    },
+    output: () =>
+      terminals
+        .map((terminal) =>
+          terminal
+            .readLines(0, terminal.lineCount())
+            .map((line) => line.text)
+            .join('\n'),
+        )
+        .join('\n---\n'),
+    scroll: (delta) => {
+      for (const terminal of terminals) terminal.scrollBy(delta)
+    },
+    write: (data) => {
+      for (const terminal of terminals) terminal.write(data)
+    },
+  }
+}
+
 async function createBaselineDriver(): Promise<Driver> {
   const { init, Terminal } = await import('ghostty-web')
   await init()
@@ -171,7 +244,12 @@ async function createBaselineDriver(): Promise<Driver> {
   }
 }
 
-const driver = backend === 'ghostty-web' ? await createBaselineDriver() : await createNativeDriver()
+async function createDriver(): Promise<Driver> {
+  if (terminalVisibility) return createTerminalVisibilityDriver()
+  if (backend === 'ghostty-web') return createBaselineDriver()
+  return createNativeDriver()
+}
+const driver = await createDriver()
 
 function assertSelectedRendererPath(): void {
   if (backend === 'canvas2d-pixels' && rendererPath !== 'pixels')
@@ -187,9 +265,10 @@ function outputLine(index: number): string {
 
 function write(data: string): void {
   const started = performance.now()
-  driver.write(data)
+  const delivered = terminalVisibility ? '\x1b[31m界 é 🧑‍💻 \x1b[3mf\x1b[0m ' + data : data
+  driver.write(delivered)
   writeMilliseconds.push(performance.now() - started)
-  writtenBytes += new TextEncoder().encode(data).byteLength
+  writtenBytes += new TextEncoder().encode(delivered).byteLength * (terminalVisibility ? 16 : 1)
 }
 
 function writeLines(count: number): void {
@@ -270,6 +349,7 @@ assertSelectedRendererPath()
 window.__rendererBench = {
   dispose: () => driver.dispose(),
   getPageInfo: () => ({
+    terminals: terminalVisibility ? { total: 16, offscreen: 12 } : undefined,
     adapter: adapterInfo,
     backend,
     rendererPath,
