@@ -2783,7 +2783,7 @@ describe('integrated terminal UI host', () => {
     expect(errors).toEqual([{ cause: failure, operation: 'clipboardWrite.completion' }])
   })
 
-  it('uses platform copy without stealing non-Apple Ctrl+C and removes UI state on disposal', async () => {
+  it('copies the main-thread selection and removes UI state on disposal', async () => {
     const host = appendRoot(420, 140)
     const clipboardWrites: string[] = []
     const navigatorObject = host.ownerDocument.defaultView!.navigator
@@ -2832,13 +2832,14 @@ describe('integrated terminal UI host', () => {
       ctrlKey: !apple,
       key: 'c',
       metaKey: apple,
+      shiftKey: !apple,
     })
     terminal.textarea!.dispatchEvent(copy)
     await Promise.resolve()
 
     expect(copy.defaultPrevented).toBe(true)
-    expect(clipboardWrites).toEqual(apple ? ['copy me'] : [])
-    expect(data).toEqual(apple ? [] : ['\u0003'])
+    expect(clipboardWrites).toEqual(['copy me'])
+    expect(data).toEqual([])
 
     renderer!.emit(frame(['copy me', '', ''], { x: 7, y: 0 }))
     await expect.poll(() => host.querySelectorAll('[role="listitem"]')).toHaveLength(3)
