@@ -43,9 +43,9 @@ try {
       Reflect.set(window, 'uploadSweep', sweep)
       return sweep.adapter
     }, backend)
-    const samples = []
-    for (let repetition = 0; repetition < 5; repetition += 1)
-      samples.push(...(await repetitionSamples(repetition)))
+    let samples = await repetitionSamples(0)
+    for (let repetition = 1; repetition < 5; repetition += 1)
+      samples = samples.concat(await repetitionSamples(repetition))
     await page.evaluate(() => Reflect.get(window, 'uploadSweep').dispose())
     results.push({ backend, adapter, samples })
   }
