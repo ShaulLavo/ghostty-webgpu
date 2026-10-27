@@ -4,6 +4,13 @@ import { GhosttyRuntime } from '../runtime.js'
 import { GhosttyTerminal } from '../terminal.js'
 import { TerminalSession } from '../../term/session.js'
 
+function dependencyUrl(specifier: string, current: URL): URL {
+  const dependency = new URL(specifier, current)
+  if (!dependency.pathname.endsWith('.js')) return dependency
+  dependency.pathname = dependency.pathname.replace(/\.js$/, '.ts')
+  return dependency
+}
+
 async function verifyRuntimeGraph(entry: URL): Promise<void> {
   const pending = [entry]
   const visited = new Set<string>()
@@ -16,13 +23,7 @@ async function verifyRuntimeGraph(entry: URL): Promise<void> {
     const imports = source.matchAll(
       /\b(?:import|export)\s+(?!type\b)(?:[^;]*?\s+from\s+)?['"](\.[^'"]+)['"]/g,
     )
-    for (const match of imports) {
-      const dependency = new URL(match[1]!, current)
-      if (dependency.pathname.endsWith('.js')) {
-        dependency.pathname = dependency.pathname.replace(/\.js$/, '.ts')
-      }
-      pending.push(dependency)
-    }
+    for (const match of imports) pending.push(dependencyUrl(match[1]!, current))
   }
 }
 

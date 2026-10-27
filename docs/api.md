@@ -10,6 +10,24 @@ The default `TerminalApi` accepts both conventions for await-style common caller
 subscriptions, focus and displayed text stay synchronous; `open()` and `focusNextLink()` already
 return promises in the main entry.
 
+## headless core entry
+
+Import `GhosttyRuntime`, `GhosttyTerminal` and `TerminalSession` from `ghostty-webgpu/core` when
+an application needs terminal state without a DOM host. The core entry's runtime module graph
+contains no DOM or renderer modules. The package root still exports these classes, but its graph
+also includes the DOM terminal and built-in renderers.
+
+```ts
+import { GhosttyRuntime } from 'ghostty-webgpu/core'
+
+const runtime = await GhosttyRuntime.create()
+const terminal = runtime.createTerminal({ columns: 80, rows: 24 })
+terminal.write('headless\r\n')
+console.log(terminal.readLines(0, 1))
+terminal.dispose()
+runtime.dispose()
+```
+
 ## batched output
 
 `writeBatched(data, { signal })` is an opt-in asynchronous producer path in both entries. It copies

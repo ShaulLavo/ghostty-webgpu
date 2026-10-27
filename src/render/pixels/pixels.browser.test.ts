@@ -1,3 +1,4 @@
+import { Terminal } from '../../index.js'
 import { afterEach, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -143,6 +144,26 @@ it('loads the compositor from the renderer asset override', async () => {
     compositorAsset: asset,
   })
   cleanups.push(() => renderer.dispose())
+  expect(fetches).toHaveBeenCalledWith(asset)
+})
+
+it('forwards the public terminal compositor asset and renders through it', async () => {
+  const asset = new URL('../../../canvas-compose.wasm', import.meta.url)
+  asset.searchParams.set('override', 'public-terminal')
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    compositorAsset: asset,
+    rendererMode: 'canvas2d-pixels',
+  })
+  cleanups.push(() => terminal.dispose())
+  const host = document.createElement('div')
+  host.style.cssText = 'width:320px;height:120px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  await terminal.open(host)
+  await terminal.write('public override')
+  await vi.waitFor(() => expect(terminal.visibleLines().join('\n')).toContain('public override'))
   expect(fetches).toHaveBeenCalledWith(asset)
 })
 
