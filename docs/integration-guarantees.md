@@ -12,9 +12,9 @@ Disposing an owned runtime makes its WASM instance and linear memory unreachable
 
 **Implementation.** Runtime ownership is selected in [`src/term/session.ts:909`](../src/term/session.ts#L909-L916). Session teardown releases native resources and an owned runtime in [`src/term/session.ts:1619`](../src/term/session.ts#L1619-L1640). The DOM host tears down its controllers in [`src/dom/terminal.ts:979`](../src/dom/terminal.ts#L979-L1009). Worker disposal terminates in a `finally` block in [`src/worker/execution.ts:508`](../src/worker/execution.ts#L508-L542). The cleanup deadline and abandonment path are in [`src/worker/runtime.ts:683`](../src/worker/runtime.ts#L683-L725). The shared device owner destroys a device after its last lease in [`src/render/webgpu/device-owner.ts:35`](../src/render/webgpu/device-owner.ts#L35-L43).
 
-**Tests.** Borrowed and owned session ownership is covered in [`src/term/tests/session.test.ts:1765`](../src/term/tests/session.test.ts#L1765-L1817). Worker device cleanup, including delayed queue fences and replacement devices, is covered in [`src/worker/terminal.browser.test.ts:416`](../src/worker/terminal.browser.test.ts#L416-L524). Deadline rejection and abandoned cleanup are covered in [`src/worker/terminal.browser.test.ts:636`](../src/worker/terminal.browser.test.ts#L636-L662) and [`src/worker/terminal.browser.test.ts:754`](../src/worker/terminal.browser.test.ts#L754-L774). Late WebGPU replacement during disposal is covered in [`src/render/tests/renderer.browser.test.ts:702`](../src/render/tests/renderer.browser.test.ts#L702-L745).
+**Tests.** Borrowed and owned session ownership is covered in [`src/term/tests/session.test.ts:1765`](../src/term/tests/session.test.ts#L1765-L1817). Repeated disposal and weak memory references are covered in [`src/core/tests/reclamation.test.ts`](../src/core/tests/reclamation.test.ts) and [`src/core/tests/fixtures/reclaim.ts`](../src/core/tests/fixtures/reclaim.ts). Worker device cleanup, including delayed queue fences and replacement devices, is covered in [`src/worker/terminal.browser.test.ts:416`](../src/worker/terminal.browser.test.ts#L416-L524). Deadline rejection and abandoned cleanup are covered in [`src/worker/terminal.browser.test.ts:636`](../src/worker/terminal.browser.test.ts#L636-L662) and [`src/worker/terminal.browser.test.ts:754`](../src/worker/terminal.browser.test.ts#L754-L774). Late WebGPU replacement during disposal is covered in [`src/render/tests/renderer.browser.test.ts:702`](../src/render/tests/renderer.browser.test.ts#L702-L745).
 
-**Gap.** No checked-in test repeatedly creates and destroys terminals while tracking WASM memory reclamation. The intended Node probe did not run, so this audit makes no measured reclamation claim. Source inspection establishes the ownership model, not collection timing across browsers.
+**Measured behavior.** The Bun fixture creates and disposes eight owned sessions, then forty borrowed sessions around one runtime. After eight warmup cycles, the next 32 borrowed cycles stay at or below the warmed linear-memory capacity while that runtime remains live. A weak reference confirms the borrowed memory is live before runtime teardown. Weak references to all eight owned memories clear after garbage collection, and the borrowed memory clears after the runtime is disposed and its scope returns. Removing session disposal from a fixture copy makes the live-memory assertion fail as native allocations accumulate. This is a Bun regression check, not a collection-time guarantee for Chromium, Firefox, or WebKit.
 
 ## Shared modules, runtimes, and devices
 
@@ -24,9 +24,9 @@ Built-in main-thread WebGPU renderers share devices through module-local leased 
 
 **Implementation.** Runtime creation accepts compiled modules and instantiates them in [`src/core/runtime.ts:38`](../src/core/runtime.ts#L38-L50) and [`src/core/runtime.ts:89`](../src/core/runtime.ts#L89-L112). Borrowed sessions are acquired in [`src/term/session.ts:909`](../src/term/session.ts#L909-L916). The default main-thread device owners are module-local in [`src/render/webgpu/renderer.ts:132`](../src/render/webgpu/renderer.ts#L132-L138). Worker options exclude `runtime` and `rendererFactory` in [`src/worker/index.ts:7`](../src/worker/index.ts#L7-L15).
 
-**Tests.** Device deduplication, last-lease destruction, and replacement generations are covered in [`src/render/tests/device-owner.test.ts:16`](../src/render/tests/device-owner.test.ts#L16-L110). Shared borrowed sessions are covered in [`src/term/tests/session.test.ts:1765`](../src/term/tests/session.test.ts#L1765-L1795). There is no focused checked-in test for reusing one compiled module across independent runtimes.
+**Tests.** Device deduplication, last-lease destruction, and replacement generations are covered in [`src/render/tests/device-owner.test.ts:16`](../src/render/tests/device-owner.test.ts#L16-L110). Shared borrowed sessions are covered in [`src/term/tests/session.test.ts:1765`](../src/term/tests/session.test.ts#L1765-L1795). Reusing one compiled native and bridge module across independent runtimes with isolated memories is covered in [`src/core/tests/runtime.test.ts:90`](../src/core/tests/runtime.test.ts#L90-L113).
 
-**Gap.** Multi-worker applications cannot opt into shared runtimes or devices through the public worker API.
+**Remaining gap and reason.** Multi-worker applications cannot opt into shared runtimes or devices through the public worker API. Closing this needs the X4 worker-pool design, not a reference-counting patch to the dedicated-worker actor. One worker must own several terminal generations, native sessions, output sequencing, renderer resources, and device teardown while preserving per-terminal acknowledgement and disposal behavior. That change also needs the X4 memory, host-publication, and busiest-terminal latency measurements before it becomes a public contract.
 
 ## Scrollback budgets
 
@@ -52,10 +52,10 @@ An omitted byte budget at creation preserves Ghostty's native default. Omitted o
 
 ## Headless core imports
 
-**Contract.** `GhosttyRuntime`, `GhosttyTerminal`, and `TerminalSession` can parse and read terminal state without creating a DOM terminal. The package root can be imported under Node, and core tests run without DOM globals. The package has no `ghostty-webgpu/core` export. Importing these classes currently means using the root entry, whose module graph also exports DOM and renderer code. Bundler tree shaking is not a core-only import contract.
+**Contract.** `GhosttyRuntime`, `GhosttyTerminal`, and `TerminalSession` can parse and read terminal state without creating a DOM terminal. Import them from `ghostty-webgpu/core` for a runtime module graph with no DOM or renderer modules. The package root also exports these classes, but its graph includes the DOM host and built-in renderers. Bundler tree shaking is not a core-only import contract.
 
 ```ts
-import { GhosttyRuntime } from 'ghostty-webgpu'
+import { GhosttyRuntime } from 'ghostty-webgpu/core'
 
 const runtime = await GhosttyRuntime.create()
 const terminal = runtime.createTerminal({ columns: 80, rows: 24 })
@@ -65,23 +65,23 @@ terminal.dispose()
 runtime.dispose()
 ```
 
-**Implementation.** Core exports share the root with DOM and renderer exports in [`src/index.ts:1`](../src/index.ts#L1-L10). Package subpath exports are limited to the root, worker, config resolver, and WASM assets in [`package.json:76`](../package.json#L76-L97).
+**Implementation.** The core entry exports the headless classes in [`src/core/index.ts`](../src/core/index.ts). Frame observer symbols, color contrast, and the default terminal theme live in core or term modules instead of renderer modules. The package subpath is declared in [`package.json`](../package.json) with current and legacy TypeScript declarations.
 
-**Tests.** Core runtime behavior runs under Node in [`src/core/tests/runtime.test.ts:34`](../src/core/tests/runtime.test.ts#L34-L115). The packed package's root import is checked under Node in [`scripts/package-smoke.ts:538`](../scripts/package-smoke.ts#L538-L559). Neither check proves a DOM-free core-only module graph.
+**Tests.** Core runtime behavior runs under Node in [`src/core/tests/runtime.test.ts:34`](../src/core/tests/runtime.test.ts#L34-L115). The source entry test in [`src/core/tests/entry.test.ts`](../src/core/tests/entry.test.ts) rejects runtime imports from DOM and renderer directories. The packed package check in [`scripts/package-smoke.ts`](../scripts/package-smoke.ts) repeats that graph check, imports `ghostty-webgpu/core`, and creates and disposes a native terminal.
 
-**Gap.** There is no documented core-only package subpath and no package test that rejects DOM or renderer imports from such an entry.
+**Documentation.** No gap remains in this guarantee.
 
 ## WASM assets and loading
 
-**Contract.** Releases ship raw `ghostty-vt.wasm`, `bridge.wasm`, and `canvas-compose.wasm` files. The package exports all three. Main-thread native and bridge assets accept URLs, strings, bytes, or compiled modules. Worker native and bridge assets accept explicit URL strings. The installation guide includes Vite and Bun layouts.
+**Contract.** Releases ship raw `ghostty-vt.wasm`, `bridge.wasm`, `canvas-compose.wasm`, and `canvas-compose-scalar.wasm` files. The package exports all four. Main-thread native and bridge assets accept URLs, strings, bytes, or compiled modules. Worker native and bridge assets accept explicit URL strings. The installation guide includes Vite and Bun layouts.
 
-URL loading currently fetches the complete response into an `ArrayBuffer` and calls `WebAssembly.compile`. It does not use `WebAssembly.compileStreaming`, so there is no streaming path with a byte fallback. The Canvas compositor always loads its default URL and has no public asset override. Its shipped artifact uses SIMD. Scalar and SIMD variants are compared in tests, but only the SIMD artifact ships.
+URL loading uses `WebAssembly.compileStreaming` when available. It clones the response before streaming and falls back to byte compilation if streaming rejects, including an incorrect MIME type. The Canvas compositor accepts a `compositorAsset` URL override on main-thread terminals and renderer options. Its default loader validates the SIMD artifact and fetches the scalar artifact when SIMD validation fails. An explicit override never falls back to a different asset.
 
-**Implementation.** Raw files and exports are declared in [`package.json:31`](../package.json#L31-L45) and [`package.json:89`](../package.json#L89-L91). The `WasmSource` union is in [`src/core/types.ts:9`](../src/core/types.ts#L9-L14). Byte compilation is in [`src/core/runtime.ts:38`](../src/core/runtime.ts#L38-L50). Compositor loading is in [`src/render/pixels/kernel.ts:88`](../src/render/pixels/kernel.ts#L88-L96). SIMD is selected for the shipped compositor in [`scripts/build-canvas-compose.ts:22`](../scripts/build-canvas-compose.ts#L22-L24).
+**Implementation.** Raw files and exports are declared in [`package.json`](../package.json). The `WasmSource` union is in [`src/core/types.ts:9`](../src/core/types.ts#L9-L14). Streaming and byte compilation are in [`src/core/runtime.ts:19`](../src/core/runtime.ts#L19-L65). Compositor loading and capability selection are in [`src/render/pixels/kernel.ts:88`](../src/render/pixels/kernel.ts#L88-L113). Main-thread renderer initialization passes the override through [`src/dom/terminal.ts`](../src/dom/terminal.ts) and [`src/render/canvas/renderer.ts`](../src/render/canvas/renderer.ts).
 
-**Tests.** Runtime export validation is covered in [`src/core/tests/runtime.test.ts:34`](../src/core/tests/runtime.test.ts#L34-L115). Bridge build-time export validation is in [`scripts/build-bridge.ts:36`](../scripts/build-bridge.ts#L36-L60). Scalar and SIMD compositor tests start in [`src/render/pixels/kernel.test.ts:189`](../src/render/pixels/kernel.test.ts#L189-L198). Package contents and raw WASM files are checked in [`scripts/package-smoke.ts:338`](../scripts/package-smoke.ts#L338-L346).
+**Tests.** Runtime export validation and streaming fallback are covered in [`src/core/tests/runtime.test.ts`](../src/core/tests/runtime.test.ts). Bridge build-time export validation is in [`scripts/build-bridge.ts:36`](../scripts/build-bridge.ts#L36-L60). Scalar and SIMD compositor tests start in [`src/render/pixels/kernel.test.ts:189`](../src/render/pixels/kernel.test.ts#L189-L230). Explicit URLs, scalar selection, and renderer override forwarding are covered in [`src/render/pixels/kernel.test.ts`](../src/render/pixels/kernel.test.ts) and [`src/render/pixels/pixels.browser.test.ts`](../src/render/pixels/pixels.browser.test.ts). Package contents and raw WASM files are checked in [`scripts/package-smoke.ts`](../scripts/package-smoke.ts).
 
-**Documentation.** Asset ownership, explicit URLs, and bundler recipes are in [the installation guide](use-in-your-app.md#ship-the-wasm-files). Streaming, compositor URL overrides, and a shipped non-SIMD compositor fallback remain gaps.
+**Documentation.** No gap remains in this guarantee.
 
 ## Host-owned geometry and DPR
 
@@ -109,12 +109,6 @@ Worker terminals accept the same `fitEnvironment.getPixelRatio` and `subscribePi
 
 ## Gaps and proposed fixes
 
-| Guarantee             | Gap                                                                                | One-line fix proposal                                                                                                               |
-| --------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Disposal              | No checked-in repeated-lifecycle test verifies WASM memory reclamation.            | Add an owned/borrowed create-dispose stress test with weak memory references, while leaving collection timing outside the contract. |
-| Shared modules        | No focused checked-in test reuses one compiled module across independent runtimes. | Add a test that creates two runtimes from the same native and bridge modules and verifies isolated memories.                        |
-| Shared workers        | Worker terminals cannot share a runtime or device.                                 | Add an opt-in shared worker execution and device owner with reference-counted teardown.                                             |
-| Headless imports      | No core-only package subpath or module-graph test exists.                          | Export `ghostty-webgpu/core` with the headless classes and test that its graph contains no DOM or renderer modules.                 |
-| WASM loading          | URL assets always buffer and compile bytes instead of streaming.                   | Use `compileStreaming` for HTTP responses and fall back to byte compilation when streaming is unavailable or rejected.              |
-| Compositor assets     | The compositor URL cannot be overridden.                                           | Add a compositor asset option and pass it through main-thread renderer initialization.                                              |
-| Compositor capability | No non-SIMD compositor artifact ships for browsers without SIMD.                   | Ship the scalar artifact, select it with `WebAssembly.validate`, and test both loading paths in Chromium.                           |
+| Guarantee      | Gap                                                | One-line fix proposal                                                                                        |
+| -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Shared workers | Worker terminals cannot share a runtime or device. | Implement and qualify the X4 worker pool with per-terminal lifecycle, output ordering, and latency coverage. |

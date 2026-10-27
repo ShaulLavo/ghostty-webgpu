@@ -178,6 +178,8 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly accessibility?: false | GhosttyWebGpuTerminalAccessibilityOptions
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy
+  /** URL for the Canvas 2D pixel compositor. Main-thread terminals only. */
+  readonly compositorAsset?: string | URL
   readonly copySelection?: GhosttyWebGpuTerminalCopy
   readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   readonly keyboard?: boolean

@@ -20,7 +20,7 @@ Four classes expose that state at different depths.
 - `TerminalSession` (browser or Node): the native session model, with selection and events.
 - `Terminal` (the page, or a page host around a worker): the DOM host, with fitting, focus, input, links, and a renderer.
 
-Selection, `readLines`, accessibility text, and every renderer read the same native state. That is why a resize or a renderer switch never loses the screen.
+Selection, `readLines`, accessibility text, and every renderer read the same native state. That is why a resize or a renderer switch never loses the screen. Import the three headless classes from `ghostty-webgpu/core` when the consumer must not load any DOM or renderer modules.
 
 ## From bytes to pixels
 

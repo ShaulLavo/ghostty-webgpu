@@ -40,6 +40,7 @@
     "ghostty-vt.provenance.json",
     "bridge.wasm",
     "canvas-compose.wasm",
+    "canvas-compose-scalar.wasm",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
@@ -54,6 +55,9 @@
       "config-resolver": [
         "dist/config-resolver/index.d.ts"
       ],
+      "core": [
+        "dist/core/index.d.ts"
+      ],
       "types/legacy/index.d.ts": [
         "dist/index.d.ts"
       ],
@@ -64,6 +68,9 @@
     "*": {
       "config-resolver": [
         "types/legacy/config-resolver.d.ts"
+      ],
+      "core": [
+        "types/legacy/core.d.ts"
       ],
       "types/legacy/index.d.ts": [
         "types/legacy/index.d.ts"
@@ -86,9 +93,16 @@
       "bun": "./dist/config-resolver/index.js",
       "node": "./dist/config-resolver/index.js"
     },
+    "./core": {
+      "types@>=7.0": "./dist/core/index.d.ts",
+      "types": "./types/legacy/core.d.ts",
+      "import": "./dist/core/index.js",
+      "default": "./dist/core/index.js"
+    },
     "./ghostty-vt.wasm": "./ghostty-vt.wasm",
     "./bridge.wasm": "./bridge.wasm",
     "./canvas-compose.wasm": "./canvas-compose.wasm",
+    "./canvas-compose-scalar.wasm": "./canvas-compose-scalar.wasm",
     "./worker": {
       "types@>=7.0": "./dist/worker/index.d.ts",
       "types": "./types/legacy/worker.d.ts",
@@ -101,7 +115,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build:canvas-compose": "bun scripts/build-canvas-compose.ts",
+    "build:canvas-compose": "bun scripts/build-canvas-compose.ts && bun scripts/build-canvas-compose.ts --scalar --output canvas-compose-scalar.wasm",
     "build": "bun run clean && tsc -p tsconfig.build.json && bun run build:worker",
     "build:worker": "bun run scripts/build-worker.ts",
     "build:bridge": "bun scripts/build-bridge.ts",

@@ -6,7 +6,7 @@ import type { WorkerAssets, WorkerBackend, WorkerFontFace } from './protocol.js'
 
 export interface WorkerTerminalOptions extends Omit<
   GhosttyWebGpuTerminalFromSessionOptions,
-  'elements' | 'rendererFactory' | 'runtime'
+  'elements' | 'compositorAsset' | 'rendererFactory' | 'runtime'
 > {
   readonly assets?: WorkerAssets
   readonly backend?: WorkerBackend

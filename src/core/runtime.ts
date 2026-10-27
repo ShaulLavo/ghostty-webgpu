@@ -16,18 +16,31 @@ async function readFileUrl(url: URL): Promise<ArrayBuffer> {
   }
 }
 
-async function fetchBytes(url: URL): Promise<ArrayBuffer> {
+async function fetchResponse(url: URL): Promise<Response> {
   let response: Response
   try {
     response = await fetch(url)
   } catch (cause) {
     throw createGhosttyError('wasm.fetch', `Unable to fetch wasm artifact at ${url.href}`, cause)
   }
-  if (response.ok) return response.arrayBuffer()
+  if (response.ok) return response
   throw createGhosttyError(
     'wasm.fetch',
     `Unable to fetch wasm artifact at ${url.href}: ${response.status} ${response.statusText}`,
   )
+}
+
+async function compileRemote(url: URL): Promise<WebAssembly.Module> {
+  const response = await fetchResponse(url)
+  if (typeof WebAssembly.compileStreaming !== 'function') {
+    return WebAssembly.compile(await response.arrayBuffer())
+  }
+  const fallback = response.clone()
+  try {
+    return await WebAssembly.compileStreaming(response)
+  } catch {
+    return WebAssembly.compile(await fallback.arrayBuffer())
+  }
 }
 
 function resolveUrl(source: URL | string): URL {
@@ -45,8 +58,8 @@ async function compileSource(source: WasmSource): Promise<WebAssembly.Module> {
     return WebAssembly.compile(bytes)
   }
   const url = resolveUrl(source)
-  const bytes = url.protocol === 'file:' ? await readFileUrl(url) : await fetchBytes(url)
-  return WebAssembly.compile(bytes)
+  if (url.protocol === 'file:') return WebAssembly.compile(await readFileUrl(url))
+  return compileRemote(url)
 }
 
 function validateExports(exports: WebAssembly.Exports): GhosttyWasmExports {

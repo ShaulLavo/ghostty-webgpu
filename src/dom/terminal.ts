@@ -288,6 +288,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly accessibilityOptions?: false | GhosttyWebGpuTerminalAccessibilityOptions
   private readonly autoFit: boolean
   private readonly cleanup = new CleanupStack()
+  private readonly compositorAsset?: string | URL
   private readonly copySelection
   private elementsValue?: TerminalElements
   private readonly emitters = createHostEmitters()
@@ -341,6 +342,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.cleanup.add(() => this.textSubscribers.dispose())
     this.accessibilityOptions = options.accessibility
     this.autoFit = options.autoFit !== false
+    this.compositorAsset = options.compositorAsset
     this.copySelection = options.copySelection
     this.fitEnvironment = options.fitEnvironment
     this.inputHooks = options.inputHooks
@@ -1118,6 +1120,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       this.rendererFactory,
       {
         canvas: elements.canvas,
+        compositorAsset: this.compositorAsset,
         columns: grid.columns,
         cursorBlink: appearance.cursor.blink,
         textBlink: this.textBlink,

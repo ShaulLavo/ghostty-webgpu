@@ -14,7 +14,7 @@ Find your symptom, check the cause, apply the fix. Each entry names the source t
 
 ## The browser fails to load a `.wasm` file
 
-**Cause.** The package resolves `ghostty-vt.wasm`, `bridge.wasm`, and `canvas-compose.wasm` relative to its own module URL (`src/core/assets.ts`). A bundler that does not copy those files leaves 404s in the network panel. The server must also send `application/wasm`.
+**Cause.** The package resolves `ghostty-vt.wasm`, `bridge.wasm`, `canvas-compose.wasm`, and `canvas-compose-scalar.wasm` relative to its own module URL (`src/core/assets.ts`). A bundler that does not copy those files leaves 404s in the network panel. The server must also send `application/wasm`.
 
 **Fix.** Make your bundler emit the asset files next to the package output, and serve `.wasm` as `application/wasm`. The worker entry can also load hosted copies through its `assets` and `workerUrl` options. `canvas-compose.wasm` loads only in `canvas2d-pixels` mode. The [worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/) lists the files, and [use in your own app](use-in-your-app.md#ship-the-wasm-files) shows the Vite and `bun build` results.
 

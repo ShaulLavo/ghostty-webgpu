@@ -81,6 +81,8 @@ export interface WebGpuTerminalRendererOptions {
   /** Eligibility for initial built-in acquisition; custom device factories own their policy. */
   adapterPolicy?: 'hardware' | 'any'
   canvas: HTMLCanvasElement | OffscreenCanvas
+  /** URL for the Canvas 2D pixel compositor. Defaults to the shipped SIMD/scalar pair. */
+  compositorAsset?: string | URL
   columns: number
   cursorBlink?: boolean
   /** Opt-in SGR 5/6 animation; native Ghostty renders this text steadily. */
