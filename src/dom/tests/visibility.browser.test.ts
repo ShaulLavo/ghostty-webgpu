@@ -236,3 +236,61 @@ it.for(['canvas2d', 'worker-webgl2'] as const)(
     expect(terminal.visibleLines()[0]?.trimEnd()).toBe('before timed')
   },
 )
+
+const areaCases = [
+  { name: 'zero size', width: '0px', height: '0px', top: '0' },
+  { name: 'zero width', width: '0px', height: '160px', top: '0' },
+  { name: 'zero height', width: '480px', height: '0px', top: '0' },
+  { name: 'viewport edge', width: '480px', height: '160px', top: '-160px' },
+]
+const areaBackends = backends.flatMap((backend) => areaCases.map((area) => ({ backend, area })))
+
+it.for(areaBackends)(
+  'pauses $backend with $area.name and repaints once when it has visible area',
+  { timeout: 20_000 },
+  async ({ backend, area }) => {
+    const { terminal, host, scheduled } = await fixture(backend)
+    const displayed = terminal.visibleLines()
+    Object.assign(host.style, { width: area.width, height: area.height, top: area.top })
+    await frames(5)
+    let painted = 0
+    let published = 0
+    terminal.onFrame(() => painted++)
+    terminal.onText(() => published++)
+    published = 0
+    const requestedBefore = scheduled()
+    await terminal.write('\r\x1b[2Kpending area 界 é')
+    await frames(5)
+    expect(painted).toBe(0)
+    expect(published).toBe(0)
+    expect(scheduled()).toBe(requestedBefore)
+    expect(terminal.visibleLines()).toEqual(displayed)
+    expect((await terminal.readLines(0, 1))[0]?.text).toContain('pending area 界 é')
+    Object.assign(host.style, {
+      width: '480px',
+      height: '160px',
+      top: area.name === 'viewport edge' ? '-159px' : '0',
+    })
+    await frames(5)
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('pending area 界 é')
+    expect(painted).toBe(1)
+    expect(published).toBe(1)
+  },
+)
+
+const areaOptOuts = (['canvas2d', 'worker-webgl2'] as const).flatMap((backend) =>
+  areaCases
+    .filter((area) => area.name === 'zero size' || area.name === 'viewport edge')
+    .map((area) => ({ backend, area })),
+)
+
+it.for(areaOptOuts)(
+  'keeps painting $backend with $area.name when opted out',
+  async ({ backend, area }) => {
+    const { terminal, host } = await fixture(backend, { renderWhenOffscreen: true })
+    Object.assign(host.style, { width: area.width, height: area.height, top: area.top })
+    await frames(5)
+    await terminal.write(' opted out')
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before opted out')
+  },
+)
