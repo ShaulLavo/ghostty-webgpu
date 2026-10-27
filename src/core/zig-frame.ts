@@ -262,6 +262,7 @@ export class ZigFrameBuilder {
     return {
       text,
       cellSpan: view.getUint32(key + 8, true),
+      constraintWidth: view.getUint32(key + 32, true) as 1 | 2,
       italic: (style & 2) !== 0,
       weight: (style & 1) !== 0 ? 'bold' : 'normal',
       foreground: contrastAdjustedColor(foreground, background, view.getFloat64(key + 24, true)),
