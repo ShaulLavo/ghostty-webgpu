@@ -374,7 +374,12 @@ class SharedRenderState {
     return snapshot.dirty
   }
 
-  createFrameBuilder(columns: number, rows: number, prepare: () => void): ZigFrameBuilder {
+  createFrameBuilder(
+    columns: number,
+    rows: number,
+    ensureOwnerActive: () => void,
+    prepare: () => void,
+  ): ZigFrameBuilder {
     this.ensureActive()
     return new ZigFrameBuilder(
       this.runtime,
@@ -383,6 +388,7 @@ class SharedRenderState {
       this.cells.handle,
       columns,
       rows,
+      ensureOwnerActive,
       prepare,
     )
   }
@@ -595,7 +601,12 @@ export class GhosttyRenderState {
 
   createFrameBuilder(columns: number, rows: number): ZigFrameBuilder {
     this.ensureActive()
-    return this.snapshotState.createFrameBuilder(columns, rows, () => this.prepare())
+    return this.snapshotState.createFrameBuilder(
+      columns,
+      rows,
+      () => this.ensureActive(),
+      () => this.prepare(),
+    )
   }
 
   snapshot(options: ReadRowsOptions = {}): DamageSnapshot {
