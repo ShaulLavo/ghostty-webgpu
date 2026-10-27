@@ -77,3 +77,49 @@ The archaeology ledger's A55, A56, A57 and X7 mapping were read before the next 
 The existing displayed-frame, incremental-displayed-frame, multiple-render-states and failure-boundary
 cases descend from A55 and remain in qualification. A57's progressive-packet and held-row probes
 are controls for later owner changes, not approval to restore its rejected compaction algorithm.
+
+## A57 ownership blocker
+
+Status: Blocked before push. The historical ownership test exposes a new retained-native-text
+regression even after the cache lifetime repair. The normal dense and scroll screens do not cover
+this case.
+
+Adapt A57's progressively frozen rows to `NativeDisplayedFrame.readTextRows()`: start with a
+40×100 Unicode viewport, rewrite rows 0–99, then 1–99, and so on, accepting and reading each
+frame. Keep only the final owned viewport. Dispose the runtime, collect on separate V8 turns,
+and count retained copied Uint32 backing buffers, as in the historical probe.
+
+- Main `31c493e8650cfdee551701f9e32602680b3267dc` retains 50,000 bytes, one complete packet.
+- Candidate `c7f6b7fa5e8a2b61a4463e7b7cbc1e6a8a30edc6` retains 2,525,000 bytes, 50.5 packets.
+- The same final text is asserted in both arms. Main passes the two-grid bound; the candidate fails.
+- This counts copied records and graphemes. It excludes strings, JS object overhead, native memory,
+  GPU memory and process RSS. It is an ownership counterexample, not a new energy measurement.
+
+The new regression is `src/core/tests/displayed-frame-ownership.test.ts`. The exact same test was
+copied to the baseline worktree and passes there. Run `bunx vitest run
+src/core/tests/displayed-frame-ownership.test.ts` in each source worktree. Both runs use the real
+checked-in wasm under Node. Raw logs and explicit byte counts are in
+`ownership-canonical-main.log`, `ownership-canonical-after-final.log` and
+`ownership-retained-{before,after}-metrics.json` under the evidence directory.
+
+Cause: `RevisionTextCache.extract` keeps row objects from partial text reads. In
+`src/core/text-row-reader.ts`, each Unicode row's lazy cells close over a subarray of one copied
+packet and its grapheme array. A row that freezes early keeps its entire older packet alive.
+Pruning retired revisions cannot release a packet while a readable row still needs it. The final
+owned viewport retains the packets even after disposing the runtime and clearing the cache.
+The old supplied-row observer paths also reproduce A57 in both sources; those old failures are
+separate from this newly affected retained-native path.
+
+Owner decisions: make row-packet ownership a prerequisite to this cache, or revise the production
+plan. A replacement must bound the bytes retained by a readable viewport and pass the historical
+ownership and hardware guards. Do not restore #1240's rejected compaction implementation or
+A56's rejected conditional text cache. No production fix for that representation is attempted in
+this checkpoint, following the coordinator's explicit stop rule.
+
+The repaired code completed build, typecheck, lint, formatting, unit tests, extension verification,
+docs checks and the full browser suite before this new test was added. The browser result is
+66 files, 1,132 passed and seven skipped. Fresh hardware packets on both hosts have equal checked
+payloads and counts; the Mac's sixteen-terminal transient heap cost is about +0.02 MiB dense and
++0.10 MiB scroll. Those normal-path results do not waive the ownership failure. The new regression
+is deliberately red on this local checkpoint. No branch is pushed, no PR is opened and no later
+production step is started.
