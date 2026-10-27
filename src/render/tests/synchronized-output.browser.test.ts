@@ -59,7 +59,15 @@ async function settle(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 120))
 }
 
-it.each(['canvas', 'canvas-pixels', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'worker-webgpu'] as const)(
+it.each([
+  'canvas',
+  'canvas-pixels',
+  'dom',
+  'webgl',
+  'webgpu',
+  'worker-webgl',
+  'worker-webgpu',
+] as const)(
   'holds displayed pixels, observers and accessibility with %s',
   async (backend) => {
     await page.viewport(800, 600)
@@ -114,7 +122,9 @@ it.each(['canvas', 'canvas-pixels', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'w
       await expect
         .poll(() => terminal.visibleLines()[0]?.trimEnd(), { timeout: 2500 })
         .toBe('timeout rendered')
-      await expect.poll(() => host.querySelector('.ghostty-webgpu-accessibility')?.textContent).toContain('timeout rendered')
+      await expect
+        .poll(() => host.querySelector('.ghostty-webgpu-accessibility')?.textContent)
+        .toContain('timeout rendered')
       await page.screenshot({ element: host, path: `.artifacts/dec2026-${backend}-timeout.png` })
     } finally {
       await terminal.dispose()
@@ -124,7 +134,6 @@ it.each(['canvas', 'canvas-pixels', 'dom', 'webgl', 'webgpu', 'worker-webgl', 'w
   },
   15_000,
 )
-
 
 it.each(['canvas', 'worker-webgl', 'worker-webgpu'] as const)(
   'acknowledges held output timing only after release with %s',
@@ -145,7 +154,9 @@ it.each(['canvas', 'worker-webgl', 'worker-webgpu'] as const)(
       await terminal.write('\x1b[?25lbefore')
       await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before')
       await settle()
-      terminal.on('outputTiming', (event) => { events.push(event) })
+      terminal.on('outputTiming', (event) => {
+        events.push(event)
+      })
       const start = performance.now()
       await terminal.write('\x1b[?2026h\rpartial')
       await new Promise((resolve) => setTimeout(resolve, 200))
@@ -154,7 +165,9 @@ it.each(['canvas', 'worker-webgl', 'worker-webgpu'] as const)(
       await terminal.clearTextureAtlas()
       await settle()
       expect(events).toEqual([])
-      await expect.poll(() => events.find((event) => event.drawnAt !== undefined), { timeout: 2500 }).toBeDefined()
+      await expect
+        .poll(() => events.find((event) => event.drawnAt !== undefined), { timeout: 2500 })
+        .toBeDefined()
       expect(events[0]?.drawnAt).toBeGreaterThanOrEqual(start + 950)
       await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('partial')
       events.length = 0
@@ -164,7 +177,11 @@ it.each(['canvas', 'worker-webgl', 'worker-webgpu'] as const)(
       const released = performance.now()
       await terminal.write('\x1b[?2026l')
       await expect.poll(() => events.find((event) => event.drawnAt !== undefined)).toBeDefined()
-      expect(events.filter((event) => event.drawnAt !== undefined).every((event) => event.drawnAt! >= released)).toBe(true)
+      expect(
+        events
+          .filter((event) => event.drawnAt !== undefined)
+          .every((event) => event.drawnAt! >= released),
+      ).toBe(true)
     } finally {
       await terminal.dispose()
       host.remove()

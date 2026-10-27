@@ -1248,7 +1248,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     if (!summary) return
     const previous = this.accessibilityFrame
     if (
-      previous?.nativeRevision === summary.nativeRevision &&
+      previous?.frame === summary.frame &&
+      previous.nativeRevision === summary.nativeRevision &&
       previous.layout === summary.layout &&
       previous.cursor.visible === summary.cursor.visible &&
       previous.cursor.viewport?.x === summary.cursor.viewport?.x &&
