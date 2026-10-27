@@ -564,13 +564,13 @@ export class WebGpuTerminalRenderer {
       frame?.notify()
       return
     }
-    let command: GPUCommandBuffer
+    let command: GPUCommandBuffer | undefined
     try {
-      command = this.textPass.encode(this.context.getCurrentTexture().createView())
+      command = this.encodeCoordinated(this.coordinator)
     } catch (cause) {
       this.reportFrameFailure(cause)
       if (this.disposed) return
-      command = this.textPass.encode(this.context.getCurrentTexture().createView())
+      command = this.encodeCoordinated(this.coordinator)
     }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
@@ -620,6 +620,14 @@ export class WebGpuTerminalRenderer {
         this.retryCoordinatedFrame(cause)
       },
     })
+  }
+
+  private encodeCoordinated(coordinator: FrameCoordinator): GPUCommandBuffer | undefined {
+    const view = this.context.getCurrentTexture().createView()
+    const shared = coordinator.sharedEncoder(this.device)
+    if (!shared) return this.textPass.encode(view)
+    this.textPass.encodePass(shared, view)
+    return undefined
   }
 
   private get deviceCellHeight(): number {
