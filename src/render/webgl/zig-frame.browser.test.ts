@@ -659,7 +659,7 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
   const insertions = vi.spyOn(GlyphAtlas.prototype, 'tryGetOrInsert')
   const native = await rendererFixture(nativeSource, { font })
   flushPendingFrames(native.clock)
-  const nativeM = atlasInsertion(insertions, 0, JSON.stringify([1, 'normal', false, 'M']))?.glyph
+  const nativeM = atlasInsertion(insertions, 0, JSON.stringify([1, 1, 'normal', false, 'M']))?.glyph
   if (!nativeM) expect.fail('The native renderer must register M')
   expect(nativeM.width).toBeGreaterThan(256)
   expect(nativeM.height).toBeGreaterThan(256)
@@ -709,6 +709,7 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
   for (; next < seed.length && !nativeFirstEviction; next++) {
     const cold = seed[next]!
     const coldKey = JSON.stringify([
+      1,
       1,
       cold.startsWith('\x1b[1m') ? 'bold' : 'normal',
       false,

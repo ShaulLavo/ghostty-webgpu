@@ -1,6 +1,12 @@
 import type { AtlasKind, GlyphBitmap, GlyphRasterizationInput, GlyphRasterizer } from './types.js'
 import type { TerminalFittedFont } from '../../../term/types.js'
-import { glyphKey } from './key.js'
+import { glyphConstraintWidth, glyphKey } from './key.js'
+import {
+  constrainGlyph,
+  glyphConstraint,
+  isEmojiPresentationText,
+  type GlyphConstraint,
+} from './glyph-constraints.js'
 import { drawSprite, spriteCodepoint } from './sprites.js'
 
 export interface CanvasGlyphRasterizerOptions {
@@ -25,6 +31,13 @@ const maxScratchAttempts = 3
 function validateInput(input: GlyphRasterizationInput): GlyphRasterizationInput {
   if (!Number.isSafeInteger(input.cellSpan) || input.cellSpan <= 0) {
     throw new RangeError('cellSpan must be a positive integer')
+  }
+  if (
+    input.constraintWidth !== undefined &&
+    input.constraintWidth !== 1 &&
+    input.constraintWidth !== 2
+  ) {
+    throw new RangeError('constraintWidth must be 1 or 2')
   }
   if (input.weight !== 'normal' && input.weight !== 'bold') {
     throw new TypeError('weight must be normal or bold')
@@ -180,6 +193,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
   private bitmapCacheBytes = 0
   private readonly bitmaps = new Map<string, GlyphBitmap | undefined>()
   private readonly canvas: ScratchCanvas
+  private readonly capHeight: number
   private readonly font: TerminalFittedFont
   private readonly initialPadding: number
 
@@ -189,6 +203,10 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
     this.initialPadding = Math.ceil(
       Math.max(this.font.deviceCellHeight, this.font.settings.size * this.font.pixelRatio),
     )
+    const context = requireContext(this.canvas)
+    context.font = fontString(this.font, { italic: false, weight: 'normal' })
+    this.capHeight =
+      context.measureText('H').actualBoundingBoxAscent || this.font.deviceCharHeight * 0.75
   }
 
   rasterize(rawInput: GlyphRasterizationInput): GlyphBitmap | undefined {
@@ -246,7 +264,14 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
   }
 
   private draw(input: GlyphRasterizationInput, padding: number, ink = '#ffffff'): ImageData {
-    const cellWidth = this.font.deviceCellWidth * input.cellSpan
+    const constraintWidth = glyphConstraintWidth(input)
+    const cp = spriteCodepoint(input.text, this.font)
+    const constraint =
+      cp === undefined && !isEmojiPresentationText(input.text)
+        ? glyphConstraint(input.text.codePointAt(0) ?? 0)
+        : undefined
+    const cells = constraint ? Math.max(input.cellSpan, constraintWidth) : input.cellSpan
+    const cellWidth = this.font.deviceCellWidth * cells
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
     const characterWidth = cellWidth - deviceSpacing
     this.canvas.width = Math.ceil(cellWidth + padding * 2)
@@ -259,7 +284,6 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       context.clip()
     }
     context.fillStyle = ink
-    const cp = spriteCodepoint(input.text, this.font)
     if (cp !== undefined) {
       context.strokeStyle = ink
       context.translate(padding, padding)
@@ -267,8 +291,65 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
     }
     const drawX = padding + this.font.charLeft + characterWidth / 2
-    context.fillText(input.text, drawX, padding + this.font.deviceBaseline)
+    const drawY = padding + this.font.deviceBaseline
+    if (constraint) {
+      this.drawConstrained(context, input, constraint, constraintWidth, drawX, drawY, padding)
+      return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+    }
+    context.fillText(input.text, drawX, drawY)
     return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+  }
+
+  private drawConstrained(
+    context: ScratchContext,
+    input: GlyphRasterizationInput,
+    constraint: GlyphConstraint,
+    constraintWidth: 1 | 2,
+    drawX: number,
+    drawY: number,
+    padding: number,
+  ): void {
+    const measured = context.measureText(input.text)
+    const left = drawX - measured.actualBoundingBoxLeft
+    const bottom = drawY + measured.actualBoundingBoxDescent
+    const cellHeight = this.font.deviceCellHeight
+    const original = {
+      height: measured.actualBoundingBoxAscent + measured.actualBoundingBoxDescent,
+      width: measured.actualBoundingBoxLeft + measured.actualBoundingBoxRight,
+      x: left - padding,
+      y: cellHeight - (bottom - padding),
+    }
+    if (original.width < 0.25 || original.height < 0.25) return
+    const constrained = constrainGlyph(
+      original,
+      constraint,
+      {
+        cellHeight,
+        cellWidth: this.font.deviceCellWidth,
+        faceHeight: this.font.deviceCharHeight,
+        faceWidth: this.font.deviceCharWidth,
+        faceY: cellHeight - this.font.charTop - this.font.deviceCharHeight,
+        iconHeight: this.font.deviceCharHeight,
+        iconHeightSingle: (2 * this.capHeight + this.font.deviceCharHeight) / 3,
+      },
+      constraintWidth,
+    )
+    if (constraint.size !== 'stretch' && this.font.deviceCharWidth < this.font.deviceCellWidth) {
+      constrained.x += Math.round((this.font.deviceCellWidth - this.font.deviceCharWidth) / 2)
+    }
+    if (constraint.size === 'stretch') {
+      context.beginPath()
+      context.rect(
+        padding + constrained.x,
+        padding + cellHeight - constrained.y - constrained.height,
+        constrained.width,
+        constrained.height,
+      )
+      context.clip()
+    }
+    context.translate(padding + constrained.x, padding + cellHeight - constrained.y)
+    context.scale(constrained.width / original.width, constrained.height / original.height)
+    context.fillText(input.text, drawX - left, drawY - bottom)
   }
 
   private rasterizeUncached(
