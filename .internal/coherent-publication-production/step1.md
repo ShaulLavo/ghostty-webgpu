@@ -17,9 +17,9 @@ failure after an eager pending read. Existing capture and extraction failure tes
 
 Raw evidence: `/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step1/`.
 
-## Measurement stop
+## Intermediate gate
 
-Do not push this step yet. On 2026-10-27 the standalone cache step raised normal-publication
+The coordinator accepted a bounded intermediate cost on 2026-10-27. The standalone cache step raised normal-publication
 heap use on the Mac. At sixteen observed terminals, scroll JS heap rose from 7.99 to 8.67 MiB;
 wasm stayed 120.19 MiB. Dense heap rose from 7.15 to 7.40 MiB and wasm stayed 120.25 MiB.
 Scroll renderer CPU was 18.62 to 18.21 ms per loop and dense CPU 36.76 to 37.13 ms.
@@ -41,14 +41,39 @@ text callback counts and submitted frames. All eight separate parity pairs also 
 observer digests. Parity used twenty-four steps after six warmup steps and one pair per cell.
 No presentation count or pixel-parity qualification is claimed.
 
-Owner decisions: retain separate PRs with an explicit intermediate memory allowance, then apply
-the full normal-path gate after the identity step; or change the production step boundaries.
-The KEEP decision for the full prototype remains intact. The user requires a stop when a step's
-measurement conflicts with the note, so the pending PC pairs and full gates were cancelled before
-starting. No branch was pushed, no PR opened and no later step started.
+The coordinator set the per-step gate to equal output for every observer, no normal-path CPU
+regression beyond pair noise, and at most one MiB additional JS heap at sixteen observed
+terminals against the main baseline. The Mac scroll increase of about 0.68 MiB passes that
+intermediate heap gate. Record that transient cost in this step's PR.
 
-Verification completed: the expected red test on main; `bun run build:wasm` against the pinned
-upstream with Zig 0.16.0; twenty-one focused real-wasm tests green. An early typecheck ran before
-`dist` existed and failed on missing built entry points. Build, final static checks, full unit
-suite, extension preparation and full browser qualification remain unrun. This commit is a
-reviewable checkpoint, not a completed production migration.
+The cumulative gate is due at the end of step 3: JS heap must be at or below the main baseline,
+and normal scroll and dense CPU must both improve at sixteen terminals. Stop and report if
+that gate fails. The full prototype's KEEP decision remains intact.
+
+The first run stopped before push while this gate was unresolved. PC pairs and the full browser
+suite were cancelled before starting. Work resumes from local checkpoint
+`febbe20217f6e76b9af2572966f0b8d6598a4de2` with the coordinator's explicit gate.
+
+Verification already completed: expected red test on main, native build against pinned upstream
+with Zig 0.16.0, twenty-one focused real-wasm tests green, and the Mac hardware pairs above.
+Full qualification results follow after the resumed run finishes.
+
+## Cache lifetime repair
+
+The first PC matrix had one noisy dense WebGPU heap cell above the intermediate limit:
++1.27 MiB. A bounded two-pair confirmation measured +0.62 MiB. Both packets remain in the
+raw evidence. Inspection then found a cache-lifetime gap: after the third eagerly read capture
+was accepted, the map still held twelve rows on a four-row grid, even though only eight rows
+belonged to readable native slots. Pruning had waited for the next text read.
+
+The failing-first lifetime test now requires retirement at acceptance. Each capture has a distinct
+JS descriptor, even when it reuses a native slot. Cache reads remember that descriptor's ordered
+revisions. Acceptance removes retired entries using those known revisions, without a bridge read
+or wasm allocation. Owned rows stay valid after eviction and disposal. Native capture and token
+lifetimes remain subscriber-local. This is cache lifetime bookkeeping, with no packet compaction
+and no conditional cache of materialized paint rows.
+
+The archaeology ledger's A55, A56, A57 and X7 mapping were read before the next production step.
+The existing displayed-frame, incremental-displayed-frame, multiple-render-states and failure-boundary
+cases descend from A55 and remain in qualification. A57's progressive-packet and held-row probes
+are controls for later owner changes, not approval to restore its rejected compaction algorithm.

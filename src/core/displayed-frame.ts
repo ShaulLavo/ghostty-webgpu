@@ -29,6 +29,7 @@ interface PackedDescriptor {
 /** Text rows shared by the readable native slots of one subscriber. */
 class RevisionTextCache {
   private readonly rows = new Map<number, RenderTextRow>()
+  private readonly slotRevisions = new Map<NativeSlot, readonly number[]>()
   private revisions = 0
   private revisionsSize = 0
 
@@ -53,6 +54,7 @@ class RevisionTextCache {
 
   invalidate(): void {
     this.rows.clear()
+    this.slotRevisions.clear()
   }
 
   private take(revision: number): RenderTextRow | undefined {
@@ -74,14 +76,21 @@ class RevisionTextCache {
     }
   }
 
-  // Only rows of frames that can still be read stay cached.
   private prune(readable: readonly (NativeSlot | undefined)[]): void {
+    for (const slot of readable) if (slot) this.readRevisions(slot)
+    this.retire(readable)
+  }
+
+  retire(readable: readonly (NativeSlot | undefined)[]): void {
+    if (this.slotRevisions.size === 0) return
     const keep = new Set<number>()
     for (const slot of readable) {
       if (!slot) continue
-      for (const revision of this.readRevisions(slot)) keep.add(revision)
+      for (const revision of this.slotRevisions.get(slot) ?? []) keep.add(revision)
     }
     for (const revision of this.rows.keys()) if (!keep.has(revision)) this.rows.delete(revision)
+    for (const slot of this.slotRevisions.keys())
+      if (!readable.includes(slot)) this.slotRevisions.delete(slot)
   }
 
   private readRevisions(slot: NativeSlot): number[] {
@@ -93,15 +102,18 @@ class RevisionTextCache {
       this.revisionsSize = size
     }
     this.runtime.bridge.readRetainedRevisions(slot.handle, this.revisions)
-    return Array.from(
+    const revisions = Array.from(
       new Uint32Array(this.runtime.exports.memory.buffer, this.revisions, slot.rows),
     )
+    this.slotRevisions.set(slot, revisions)
+    return revisions
   }
 
   dispose(): void {
     if (this.revisions !== 0) this.runtime.memory.free(this.revisions, this.revisionsSize)
     this.revisions = 0
     this.rows.clear()
+    this.slotRevisions.clear()
   }
 }
 
@@ -144,6 +156,7 @@ class DisplayedFrame implements NativeDisplayedFrame {
     frames.previous = frames.current
     frames.current = this.current
     frames.currentToken = this.token
+    frames.textCache.retire(readableSlots(frames))
   }
 
   discard(): void {
@@ -251,11 +264,13 @@ export class DisplayedFrameStore {
     }
     if (frames.spare && next !== frames.spare)
       this.runtime.bridge.destroyRetainedFrame(frames.spare.handle)
-    frames.spare = next
-    frames.pending = next
+    // Each capture has its own descriptor because native handles are recycled.
+    const captured = { ...next }
+    frames.spare = captured
+    frames.pending = captured
     const token = ++this.token
     frames.pendingToken = token
-    return Object.freeze(new DisplayedFrame(frames, next, frames.current, token))
+    return Object.freeze(new DisplayedFrame(frames, captured, frames.current, token))
   }
 
   dispose(): void {

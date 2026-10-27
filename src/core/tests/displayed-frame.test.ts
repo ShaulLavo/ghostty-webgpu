@@ -109,6 +109,39 @@ describe('retained native displayed frame', () => {
     }
   })
 
+  it('retires cached rows with their native slots without native reads during acceptance', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    const store = new DisplayedFrameStore(runtime)
+    const cache = Reflect.get(Reflect.get(store, 'frames'), 'textCache')
+    const retained: unknown = Reflect.get(cache, 'rows')
+    if (!(retained instanceof Map)) throw new Error('Expected revision cache')
+    const revisions = vi.spyOn(runtime.bridge, 'readRetainedRevisions')
+    let held = ''
+    let owned: ReturnType<ReturnType<typeof store.capture>['readTextRows']> = []
+    try {
+      for (let index = 0; index < 4; index += 1) {
+        terminal.write(`\x1b[H\x1b[2Jframe ${index} 界 é`)
+        state.update()
+        const frame = store.capture(...handles(state), { columns: 24, rows: 4 }, true)
+        const rows = frame.readTextRows()
+        owned = index === 0 ? rows : owned
+        held = index === 0 ? serialized(owned) : held
+        const reads = revisions.mock.calls.length
+        frame.accept()
+        expect(revisions.mock.calls.length).toBe(reads)
+        expect(retained.size).toBe(Math.min(index + 1, 2) * 4)
+        state.acknowledge()
+      }
+      expect(serialized(owned)).toBe(held)
+    } finally {
+      revisions.mockRestore()
+      store.dispose()
+    }
+    expect(serialized(owned)).toBe(held)
+  })
+
   it('retains selected cells after native selection is cleared', async () => {
     runtime = await GhosttyRuntime.create()
     const session = await TerminalSession.create<Event>({
