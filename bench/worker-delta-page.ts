@@ -142,10 +142,6 @@ function report() {
     timings: window.__deltaTimings,
     events: eventReports,
     inputs: reports.map((report) => report.inputs),
-    snapshots: executions.map((execution) => ({
-      summary: execution.submittedFrame,
-      snapshot: execution.textFrame(),
-    })),
     hostHandlerMilliseconds: handlerMilliseconds + window.__workerReceiveMilliseconds,
     acknowledgements,
     deliveredFrames: reports.map((value, index) => value.frames - frameStarts[index]!),
@@ -154,6 +150,13 @@ function report() {
     bytes: reports.reduce((sum, value) => sum + value.bytes, 0),
     errors,
   }
+}
+
+function snapshotReport() {
+  return executions.map((execution) => ({
+    summary: execution.submittedFrame,
+    snapshot: execution.textFrame(),
+  }))
 }
 
 async function dispose(): Promise<void> {
@@ -169,9 +172,10 @@ declare global {
       setup: typeof setup
       sample: typeof sample
       report: typeof report
+      snapshotReport: typeof snapshotReport
       dispose: typeof dispose
     }
   }
 }
 window.__workerReceiveMilliseconds = 0
-window.__workerDeltaBench = { setup, sample, report, dispose }
+window.__workerDeltaBench = { setup, sample, report, snapshotReport, dispose }

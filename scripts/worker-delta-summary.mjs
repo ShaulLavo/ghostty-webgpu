@@ -9,6 +9,30 @@ for (const run of packet.results) {
   groups.set(key, group)
 }
 const mean = (runs, read) => runs.reduce((sum, run) => sum + read(run), 0) / runs.length
+function quantiles(values) {
+  const sorted = values.filter(Number.isFinite).sort((a, b) => a - b)
+  const at = (p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))] ?? null
+  return { count: sorted.length, p50: at(0.5), p95: at(0.95), p99: at(0.99) }
+}
+function timingSummary(runs) {
+  const busy = runs.flatMap((run) => {
+    const terminals = new Map()
+    for (const t of run.timings)
+      if (t.kind === 'reply') terminals.set(t.terminal, (terminals.get(t.terminal) ?? 0) + 1)
+    const terminal = Array.from(terminals).sort((a, b) => b[1] - a[1])[0]?.[0]
+    return run.timings.filter((t) => t.terminal === terminal)
+  })
+  const replies = busy.filter((t) => t.kind === 'reply')
+  const frames = busy.filter((t) => t.kind === 'frame')
+  return {
+    queueMs: quantiles(replies.map((t) => t.execute - t.queue)),
+    parseReplyMs: quantiles(replies.map((t) => t.at - t.execute)),
+    encodeMs: quantiles(frames.map((t) => t.end - t.at)),
+    postToHostMs: quantiles(frames.map((t) => t.received - t.end)),
+    hostFrameMs: quantiles(frames.map((t) => t.completed - t.received)),
+    gcEvents: runs.reduce((sum, run) => sum + run.gc.events.length, 0),
+  }
+}
 const conditions = Array.from(groups, ([condition, arms]) => {
   assert(arms.control.length === packet.repetitions && arms.delta.length === packet.repetitions)
   const ratio = (read) => mean(arms.delta, read) / mean(arms.control, read)
@@ -63,6 +87,7 @@ const conditions = Array.from(groups, ([condition, arms]) => {
       Object.entries(arms).map(([name, runs]) => [
         name,
         {
+          timing: timingSummary(runs),
           hostMs: mean(runs, (r) => r.hostTaskMillisecondsPerFrame),
           workerSeconds: mean(runs, (r) => r.cpu.workerSeconds),
           memoryMiB: mean(runs, (r) => r.memory.hostPlusGpuMiB),

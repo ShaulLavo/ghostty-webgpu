@@ -19,6 +19,8 @@ test('complete row deltas preserve cell boundaries, continuations, metadata and 
       ),
       { top: 1, right: 2, bottom: 3, left: 4 },
     )
+    execution.write('abc def\r\nsecond')
+    execution.selectRange({ x: 0, y: 0 }, { x: 3, y: 0 })
     const encoder = new RowEncoder()
     const decoder = new RowDecoder()
     const retained: RendererTextFrameSnapshot[] = []
@@ -37,6 +39,7 @@ test('complete row deltas preserve cell boundaries, continuations, metadata and 
       row,
     ]
     for (const variant of variants) {
+      if (retained.length === 2) execution.clearSelection()
       const snapshot: RendererTextFrameSnapshot = {
         renderHeld: false,
         cursor: {

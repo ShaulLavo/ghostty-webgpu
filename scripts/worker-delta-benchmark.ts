@@ -375,6 +375,7 @@ async function measure(
       gpuDeltaMiB: freeMiB - sampleFreeMiB,
       hostPlusGpuMiB: hostMemory.pssKiB / 1024 + Math.max(0, freeMiB - sampleFreeMiB),
     }
+    const snapshots = await bounded(page.evaluate(() => window.__workerDeltaBench.snapshotReport()))
     const prefix = `${fixture}-${mode}-${count}-${columns}x${rows}-${repetition}`
     const screenshots: string[] = []
     for (let index = 0; index < count; index += 1) {
@@ -444,10 +445,10 @@ async function measure(
       parsedCounts: report.writeCounts.map((value, index) => value - warm.writeCounts[index]!),
       submittedCounts: delivered,
       presentedCounts: null,
-      snapshotHashes: report.snapshots.map((snapshot) =>
+      snapshotHashes: snapshots.map((snapshot) =>
         createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'),
       ),
-      snapshots: report.snapshots,
+      snapshots,
     }
     await bounded(page.evaluate(() => window.__workerDeltaBench.dispose()))
     return receipt
