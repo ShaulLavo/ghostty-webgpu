@@ -67,7 +67,10 @@ export class AtlasGpuTextures {
     this.layout = layout
     const color = createTexture(device, 'color', layout)
     try {
-      this.textures = { color, grayscale: createTexture(device, 'grayscale', layout) }
+      this.textures = {
+        color,
+        grayscale: createTexture(device, 'grayscale', layout),
+      }
     } catch (cause) {
       color.texture.destroy()
       throw cause
@@ -131,7 +134,8 @@ export class AtlasGpuTextures {
       },
     )
     this.device.queue.submit([encoder.finish()])
-    previous.texture.destroy()
+    // Peer terminals' pending frames in this coordinated frame may still bind the old texture.
+    setTimeout(() => previous.texture.destroy(), 0)
     this.textures[kind] = next
     this.textureCreationCountValue += 1
   }

@@ -3,9 +3,8 @@ import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { AtlasGpuTextures } from './gpu-textures.js'
 
-export interface SharedAtlasOwner {
-  atlasEvicted(): void
-}
+// Evictions reach each owner lazily: its next build consumes its own eviction queue first.
+export type SharedAtlasOwner = object
 
 interface DeviceTextures {
   readonly textures: AtlasGpuTextures
@@ -25,9 +24,6 @@ export class SharedGlyphAtlas {
     font: TerminalFittedFont,
   ) {
     this.rasterizer = new CanvasGlyphRasterizer({ font })
-    this.atlas.onEviction = () => {
-      for (const owner of this.owners) owner.atlasEvicted()
-    }
   }
 
   get ownerCount(): number {
@@ -68,10 +64,6 @@ export class SharedGlyphAtlas {
 
   textureVersion(device: GPUDevice): number {
     return this.devices.get(device)?.version ?? -1
-  }
-
-  hasPendingUploads(): boolean {
-    return this.atlas.hasPendingUploads
   }
 
   sync(): void {

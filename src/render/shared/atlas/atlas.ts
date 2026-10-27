@@ -77,10 +77,6 @@ class AtlasPage {
     this.shelfY = padding
   }
 
-  get hasPendingUpload(): boolean {
-    return this.dirty !== undefined
-  }
-
   consumeUpload(): AtlasPageUpload | undefined {
     const dirty = this.dirty
     if (!dirty) return undefined
@@ -89,7 +85,10 @@ class AtlasPage {
     return {
       bytesPerRow: this.width * pixelBytes,
       dataOffset: (dirty.top * this.width + dirty.left) * pixelBytes,
-      extent: { height: dirty.bottom - dirty.top, width: dirty.right - dirty.left },
+      extent: {
+        height: dirty.bottom - dirty.top,
+        width: dirty.right - dirty.left,
+      },
       kind: this.kind,
       layer: this.layer,
       origin: { x: dirty.left, y: dirty.top },
@@ -196,11 +195,12 @@ export class GlyphAtlas {
   private readonly pinnedPages = new Map<number, Set<string>>()
   // Shared atlases keep each owner's last visible set pinned and deliver evictions to every owner.
   private readonly ownerPins = new Map<object, Map<number, Set<string>>>()
-  private readonly evictedPages = new Map<object, Map<number, AtlasPageIdentity>>([[this, new Map()]])
+  private readonly evictedPages = new Map<object, Map<number, AtlasPageIdentity>>([
+    [this, new Map()],
+  ])
   private framePins = new Map<number, Set<string>>()
   private frameOwner: object = this
   private pinning = false
-  onEviction?: () => void
 
   constructor(options: GlyphAtlasOptions = {}) {
     this.pageWidth = validatePositiveInteger(
@@ -258,7 +258,8 @@ export class GlyphAtlas {
     this.frameOwner = owner
     this.framePins = new Map()
     for (const [other, pins] of this.ownerPins) {
-      if (other !== owner) for (const [page, keys] of pins) this.addPins(this.pinnedPages, page, keys)
+      if (other !== owner)
+        for (const [page, keys] of pins) this.addPins(this.pinnedPages, page, keys)
     }
     this.pinning = true
   }
@@ -287,10 +288,6 @@ export class GlyphAtlas {
     if (!references) return
     for (const pageId of references.keys()) this.pageById(pageId)?.rows.delete(row)
     this.rowReferences.delete(row)
-  }
-
-  get hasPendingUploads(): boolean {
-    return this.pages.some((page) => page.hasPendingUpload)
   }
 
   consumeUploads(): readonly AtlasPageUpload[] {
@@ -327,9 +324,15 @@ export class GlyphAtlas {
     this.cacheMissCountValue += 1
     const allocation = this.allocatePage(cacheKey, key, bitmap)
     if (!allocation) return undefined
-    this.cache.set(cacheKey, { glyph: allocation.glyph, page: allocation.page })
+    this.cache.set(cacheKey, {
+      glyph: allocation.glyph,
+      page: allocation.page,
+    })
     this.touch(allocation.page, row, cacheKey)
-    return { glyph: allocation.glyph, invalidatedRows: allocation.invalidatedRows }
+    return {
+      glyph: allocation.glyph,
+      invalidatedRows: allocation.invalidatedRows,
+    }
   }
 
   touchGlyph(
@@ -352,7 +355,6 @@ export class GlyphAtlas {
     this.rowReferences.clear()
     for (const page of this.pages) page.reset()
     for (const page of this.pages) this.recordEviction(page)
-    if (this.pages.length > 0) this.onEviction?.()
     return rows
   }
 
@@ -409,7 +411,11 @@ export class GlyphAtlas {
     key: string,
     bitmap: GlyphBitmap,
     layer: number,
-  ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } {
+  ): {
+    glyph: AtlasGlyph
+    invalidatedRows: readonly number[]
+    page: AtlasPage
+  } {
     const page = this.createPage(bitmap.kind, layer)
     const glyph = page.insert(cacheKey, key, bitmap)
     if (glyph) return { glyph, invalidatedRows: [], page }
@@ -423,7 +429,11 @@ export class GlyphAtlas {
     key: string,
     bitmap: GlyphBitmap,
     pages: readonly AtlasPage[],
-  ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } {
+  ): {
+    glyph: AtlasGlyph
+    invalidatedRows: readonly number[]
+    page: AtlasPage
+  } {
     const page = pages.reduce((oldest, candidate) =>
       candidate.lastUsed < oldest.lastUsed ? candidate : oldest,
     )
@@ -446,7 +456,6 @@ export class GlyphAtlas {
     page.reset()
     this.recordEviction(page)
     this.evictionCountValue += 1
-    this.onEviction?.()
     return rows
   }
 
@@ -476,7 +485,11 @@ export class GlyphAtlas {
   }
 
   private recordEviction(page: AtlasPage): void {
-    const identity = { kind: page.kind, layer: page.layer, generation: page.generation }
+    const identity = {
+      kind: page.kind,
+      layer: page.layer,
+      generation: page.generation,
+    }
     for (const evicted of this.evictedPages.values()) evicted.set(page.id, identity)
     for (const pins of this.ownerPins.values()) pins.delete(page.id)
   }
@@ -486,11 +499,14 @@ export class GlyphAtlas {
     this.addPins(this.framePins, page.id, [cacheKey])
   }
 
-  private addPins(
-    target: Map<number, Set<string>>,
-    page: number,
-    keys: Iterable<string>,
-  ): void {
+  private pinnedByOtherOwner(page: number): boolean {
+    for (const [owner, pins] of this.ownerPins) {
+      if (owner !== this.frameOwner && pins.has(page)) return true
+    }
+    return false
+  }
+
+  private addPins(target: Map<number, Set<string>>, page: number, keys: Iterable<string>): void {
     const pinned = target.get(page) ?? new Set<string>()
     for (const key of keys) pinned.add(key)
     target.set(page, pinned)
@@ -504,6 +520,8 @@ export class GlyphAtlas {
   ): { glyph: AtlasGlyph; invalidatedRows: readonly number[]; page: AtlasPage } | undefined {
     const pinned = this.pinnedPages.get(page.id)
     if (!pinned || pinned.size === page.entries.size) return undefined
+    // Moving another owner's visible glyphs would corrupt its pending or presented frame.
+    if (this.pinnedByOtherOwner(page.id)) return undefined
     const next = new AtlasPage(
       page.id,
       page.kind,

@@ -138,7 +138,6 @@ async function waitForDeviceCleanup(): Promise<void> {
   await new Promise<void>((resolve) => window.setTimeout(resolve, deviceCleanupDelayMs))
 }
 
-
 function createCanvas(): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   document.body.append(canvas)
@@ -223,12 +222,12 @@ async function repaint(terminal: Terminal): Promise<Uint8Array> {
 
 it('shares one atlas texture set between terminals with equal fonts and keeps their pixels', async () => {
   const alone = await openTerminal()
-  const reference = await alone.renderer.capturePixels()
+  const reference = await repaint(alone)
   expect(reference.some((value) => value !== 0)).toBe(true)
   const peer = await openTerminal()
   expect(texturesOf(peer.renderer)).toBe(texturesOf(alone.renderer))
   expect(deviceOf(peer.renderer)).toBe(deviceOf(alone.renderer))
-  expect(await peer.renderer.capturePixels()).toEqual(reference)
+  expect(await repaint(peer)).toEqual(reference)
   expect(await repaint(alone)).toEqual(reference)
   expect(peer.renderer.metrics.atlasCacheMisses).toBe(alone.renderer.metrics.atlasCacheMisses)
 })
@@ -236,47 +235,45 @@ it('shares one atlas texture set between terminals with equal fonts and keeps th
 it('moves only the terminal whose font changes and leaves its peers drawing the shared atlas', async () => {
   const serif = fittedFont(8, 16, 1, { family: 'serif', size: 15 })
   const solo = await openTerminal(serif)
-  const serifReference = await solo.renderer.capturePixels()
+  const serifReference = await repaint(solo)
   await solo.renderer.dispose()
   renderers.delete(solo.renderer)
   const first = await openTerminal()
   const second = await openTerminal()
-  const reference = await first.renderer.capturePixels()
+  const reference = await repaint(first)
   second.renderer.setFont(serif)
   second.clock.flushFrame()
   expect(texturesOf(second.renderer)).not.toBe(texturesOf(first.renderer))
-  expect(await second.renderer.capturePixels()).toEqual(serifReference)
+  expect(await repaint(second)).toEqual(serifReference)
   expect(await repaint(first)).toEqual(reference)
   second.renderer.setFont(fittedFont())
   second.clock.flushFrame()
   expect(texturesOf(second.renderer)).toBe(texturesOf(first.renderer))
-  expect(await second.renderer.capturePixels()).toEqual(reference)
+  expect(await repaint(second)).toEqual(reference)
 })
 
-it('schedules every sharing terminal when one terminal clears the shared atlas', async () => {
+it('rebuilds a sharing terminal from its own eviction queue after a peer clears the atlas', async () => {
   const first = await openTerminal()
   const second = await openTerminal()
-  const reference = await second.renderer.capturePixels()
-  expect(second.clock.frames.size).toBe(0)
+  const reference = await repaint(second)
   first.renderer.clearTextureAtlas()
-  expect(second.clock.frames.size).toBe(1)
   first.clock.flushFrame()
-  second.clock.flushFrame()
-  expect(await second.renderer.capturePixels()).toEqual(reference)
-  expect(await first.renderer.capturePixels()).toEqual(reference)
+  const rebuilt = second.renderer.metrics.rebuiltRows
+  expect(await repaint(second)).toEqual(reference)
+  expect(second.renderer.metrics.rebuiltRows).toBeGreaterThan(rebuilt)
+  expect(await repaint(first)).toEqual(reference)
 })
 
 it('restores one terminal on a replacement device while its peer keeps the original device', async () => {
   const first = await openTerminal()
   const second = await openTerminal()
-  const reference = await first.renderer.capturePixels()
+  const reference = await repaint(first)
   const original = deviceOf(first.renderer)
   await first.renderer.simulateDeviceLoss()
-  first.clock.flushFrame()
   expect(deviceOf(first.renderer)).not.toBe(original)
   expect(deviceOf(second.renderer)).toBe(original)
   expect(texturesOf(first.renderer)).not.toBe(texturesOf(second.renderer))
-  expect(await first.renderer.capturePixels()).toEqual(reference)
+  expect(await repaint(first)).toEqual(reference)
   expect(await repaint(second)).toEqual(reference)
   const destroy = vi.spyOn(original, 'destroy')
   await second.renderer.dispose()

@@ -2,10 +2,16 @@ import { expect, it } from 'vitest'
 import { AtlasGpuTextures } from './gpu-textures.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
 
-const layout: AtlasTextureLayout = { layerCount: 2, pageHeight: 5, pageWidth: 7 }
+const layout: AtlasTextureLayout = {
+  layerCount: 2,
+  pageHeight: 5,
+  pageWidth: 7,
+}
 
 async function createDevice(): Promise<GPUDevice> {
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
+  const adapter = await navigator.gpu.requestAdapter({
+    powerPreference: 'high-performance',
+  })
   if (!adapter) throw new Error('WebGPU requestAdapter returned null')
   return adapter.requestDevice()
 }
@@ -90,7 +96,10 @@ it('uploads odd-stride dirty rectangles to two layers of each growing texture ar
 
 it('rejects a layer capacity above the adapter limit before allocating textures', async () => {
   const device = await createDevice()
-  const oversized = { ...layout, layerCount: device.limits.maxTextureArrayLayers + 1 }
+  const oversized = {
+    ...layout,
+    layerCount: device.limits.maxTextureArrayLayers + 1,
+  }
 
   expect(() => new AtlasGpuTextures(device, oversized)).toThrow(/exceeds adapter limit/u)
   device.destroy()

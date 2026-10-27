@@ -39,7 +39,11 @@ function createPipeline(
 ): GPURenderPipeline {
   const module = device.createShaderModule({ code })
   return device.createRenderPipeline({
-    fragment: { entryPoint: 'fragmentMain', module, targets: [{ blend: blendState(), format }] },
+    fragment: {
+      entryPoint: 'fragmentMain',
+      module,
+      targets: [{ blend: blendState(), format }],
+    },
     layout: 'auto',
     primitive: { topology: 'triangle-list' },
     vertex: { entryPoint: 'vertexMain', module },

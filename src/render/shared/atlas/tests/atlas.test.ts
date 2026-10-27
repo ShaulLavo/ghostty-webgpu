@@ -20,7 +20,12 @@ function transferBytes(upload: AtlasPageUpload): number {
 
 describe('GlyphAtlas', () => {
   it('caches identical glyphs while grayscale and color use separate layer sequences', () => {
-    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageHeight: 8, pageWidth: 8 })
+    const atlas = new GlyphAtlas({
+      maxLayersPerKind: 1,
+      padding: 0,
+      pageHeight: 8,
+      pageWidth: 8,
+    })
     const first = atlas.getOrInsert('A', bitmap('grayscale', 1), 0)
     const cached = atlas.getOrInsert('A', bitmap('grayscale', 2), 1)
     const color = atlas.getOrInsert('A', bitmap('color', 3), 2)
@@ -35,7 +40,12 @@ describe('GlyphAtlas', () => {
   })
 
   it('allocates three fixed layers before recycling', () => {
-    const atlas = new GlyphAtlas({ maxLayersPerKind: 3, padding: 0, pageHeight: 4, pageWidth: 4 })
+    const atlas = new GlyphAtlas({
+      maxLayersPerKind: 3,
+      padding: 0,
+      pageHeight: 4,
+      pageWidth: 4,
+    })
     const layers = ['A', 'B', 'C'].map(
       (key, row) => atlas.getOrInsert(key, bitmap('grayscale', row + 1, 4), row).glyph.layer,
     )
@@ -75,7 +85,11 @@ describe('GlyphAtlas', () => {
   })
 
   it('coalesces adjacent and distant insertions into one bounded region per dirty layer', () => {
-    const adjacent = new GlyphAtlas({ padding: 0, pageHeight: 8, pageWidth: 8 })
+    const adjacent = new GlyphAtlas({
+      padding: 0,
+      pageHeight: 8,
+      pageWidth: 8,
+    })
     adjacent.getOrInsert('A', bitmap('grayscale', 1), 0)
     adjacent.getOrInsert('B', bitmap('grayscale', 2), 0)
     expect(adjacent.consumeUploads()[0]).toMatchObject({
@@ -103,7 +117,12 @@ describe('GlyphAtlas', () => {
   })
 
   it('increments a recycled layer generation, invalidates references, and clears the full layer', () => {
-    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageHeight: 4, pageWidth: 4 })
+    const atlas = new GlyphAtlas({
+      maxLayersPerKind: 1,
+      padding: 0,
+      pageHeight: 4,
+      pageWidth: 4,
+    })
     const first = atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 2)
     atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 5)
     atlas.consumeUploads()
@@ -123,7 +142,12 @@ describe('GlyphAtlas', () => {
   })
 
   it('recycles the deterministic least-recently-used layer at capacity', () => {
-    const atlas = new GlyphAtlas({ maxLayersPerKind: 2, padding: 0, pageHeight: 4, pageWidth: 4 })
+    const atlas = new GlyphAtlas({
+      maxLayersPerKind: 2,
+      padding: 0,
+      pageHeight: 4,
+      pageWidth: 4,
+    })
     atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 1)
     atlas.getOrInsert('B', bitmap('grayscale', 2, 4), 2)
     atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 3)
@@ -134,7 +158,12 @@ describe('GlyphAtlas', () => {
   })
 
   it('does not invalidate a row after its old layer references are released', () => {
-    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageHeight: 4, pageWidth: 4 })
+    const atlas = new GlyphAtlas({
+      maxLayersPerKind: 1,
+      padding: 0,
+      pageHeight: 4,
+      pageWidth: 4,
+    })
     atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 1)
     atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 2)
     atlas.beginRow(1)
@@ -144,7 +173,12 @@ describe('GlyphAtlas', () => {
   })
 
   it('survives repeated CJK and emoji eviction without stale row generations', () => {
-    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageHeight: 4, pageWidth: 4 })
+    const atlas = new GlyphAtlas({
+      maxLayersPerKind: 1,
+      padding: 0,
+      pageHeight: 4,
+      pageWidth: 4,
+    })
     const glyphs = ['界', '語', '文', '字', '🙂', '🚀', '🧭', '🫠']
     for (let index = 0; index < 128; index += 1) {
       const text = glyphs[index % glyphs.length]!
@@ -186,7 +220,12 @@ describe('GlyphAtlas', () => {
 })
 
 it('compacts a fragmented page while retaining its pinned glyphs and the other page', () => {
-  const atlas = new GlyphAtlas({ maxLayersPerKind: 2, padding: 0, pageWidth: 8, pageHeight: 4 })
+  const atlas = new GlyphAtlas({
+    maxLayersPerKind: 2,
+    padding: 0,
+    pageWidth: 8,
+    pageHeight: 4,
+  })
   const entries = Array.from(
     'ABCD',
     (key, index) => atlas.getOrInsert(key, bitmap('grayscale', index + 1, 4), 0).glyph,
@@ -205,4 +244,37 @@ it('compacts a fragmented page while retaining its pinned glyphs and the other p
   expect(uploads).toHaveLength(1)
   expect(uploads[0]?.layer).toBe(1)
   expect(uploads[0]?.pixels.slice(0, 8)).toEqual(Uint8Array.from([3, 3, 3, 3, 5, 5, 5, 5]))
+})
+
+it('keeps a peer owner visible page and delivers each eviction to every owner', () => {
+  const atlas = new GlyphAtlas({
+    maxLayersPerKind: 2,
+    padding: 0,
+    pageHeight: 4,
+    pageWidth: 4,
+  })
+  const peer = {}
+  const owner = {}
+  atlas.attachOwner(peer)
+  atlas.attachOwner(owner)
+  atlas.beginFrame(peer)
+  const visible = atlas.tryGetOrInsert('peer', bitmap('grayscale', 1, 4), -1)!
+  atlas.endFrame()
+  atlas.beginFrame(owner)
+  atlas.tryGetOrInsert('first', bitmap('grayscale', 2, 4), -1)
+  atlas.endFrame()
+  atlas.beginFrame(owner)
+  const recycled = atlas.tryGetOrInsert('second', bitmap('grayscale', 3, 4), -1)!
+  atlas.endFrame()
+
+  expect(recycled.glyph.layer).not.toBe(visible.glyph.layer)
+  expect(atlas.consumeEvictedPages(peer)).toEqual([
+    { kind: 'grayscale', layer: recycled.glyph.layer, generation: 2 },
+  ])
+  expect(atlas.consumeEvictedPages(owner)).toHaveLength(1)
+  expect(atlas.consumeEvictedPages(owner)).toEqual([])
+  atlas.beginFrame(owner)
+  atlas.tryGetOrInsert('second', bitmap('grayscale', 3, 4), -1)
+  expect(atlas.tryGetOrInsert('third', bitmap('grayscale', 4, 4), -1)).toBeUndefined()
+  atlas.endFrame()
 })

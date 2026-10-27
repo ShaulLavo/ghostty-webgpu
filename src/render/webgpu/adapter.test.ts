@@ -20,8 +20,15 @@ describe('automatic WebGPU adapter eligibility', () => {
     { info: { description: 'Software Vulkan implementation' } },
     { info: { vendor: 'Example Software', description: 'Hardware GPU' } },
     { isFallbackAdapter: false, info: { isFallbackAdapter: false } },
-    { info: { vendor: 'apple', architecture: 'metal', description: 'Apple M1' } },
-    { info: { vendor: 'nvidia', description: 'NVIDIA GeForce RTX 3070, Vulkan' } },
+    {
+      info: { vendor: 'apple', architecture: 'metal', description: 'Apple M1' },
+    },
+    {
+      info: {
+        vendor: 'nvidia',
+        description: 'NVIDIA GeForce RTX 3070, Vulkan',
+      },
+    },
     { info: { vendor: 'intel', description: 'Intel Iris Xe Graphics' } },
     { info: { vendor: 'amd', description: 'AMD Radeon RX 6800 XT' } },
   ])('keeps hardware and unidentified adapters eligible (%j)', (adapter) => {

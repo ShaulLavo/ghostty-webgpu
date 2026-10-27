@@ -142,7 +142,6 @@ export class WebGpuTerminalRenderer {
   private zigBuilder?: ZigFrameBuilder
   private sharedAtlas: SharedGlyphAtlas
   private atlasVersion = -1
-  private buildingFrame = false
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
   private atlasTextures: AtlasGpuTextures
@@ -256,10 +255,6 @@ export class WebGpuTerminalRenderer {
 
   private get rasterizer(): CanvasGlyphRasterizer {
     return this.sharedAtlas.rasterizer
-  }
-
-  atlasEvicted(): void {
-    if (!this.disposed && !this.buildingFrame) this.scheduler?.schedule()
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
@@ -466,8 +461,6 @@ export class WebGpuTerminalRenderer {
   }
 
   private syncSharedAtlas(): void {
-    // Shared atlas writes can overwrite pages other terminals' pending frames still sample.
-    if (this.sharedAtlas.hasPendingUploads()) this.coordinator?.flushPending()
     this.sharedAtlas.sync()
     const version = this.sharedAtlas.textureVersion(this.device)
     if (version === this.atlasVersion) return
@@ -549,13 +542,7 @@ export class WebGpuTerminalRenderer {
       stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
     }
-    this.buildingFrame = true
-    let status: number
-    try {
-      status = buildZigFrame(builder, this.atlas, this.rasterizer, options, this)
-    } finally {
-      this.buildingFrame = false
-    }
+    const status = buildZigFrame(builder, this.atlas, this.rasterizer, options, this)
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
