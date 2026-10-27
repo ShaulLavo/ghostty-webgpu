@@ -164,7 +164,11 @@ The main and worker entries honor holds on every supported renderer.
 
 `readLines()` continues to read live terminal state during a hold. `visibleLines()`, accessibility,
 `onFrame` and `onText` describe submitted frames and never expose the unfinished held output.
-The renderer can repaint the captured pre-hold frame during the hold.
+The renderer can repaint the captured pre-hold frame during the hold. Output timing acknowledges
+held output only after release, including when release comes from the timeout.
+
+A render state created after a hold begins exposes an empty viewport and hidden cursor until
+release. Renderers defer its first submission until it has a snapshot.
 
 ## first frames and damage
 

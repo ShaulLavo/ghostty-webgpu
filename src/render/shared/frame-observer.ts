@@ -56,7 +56,8 @@ export class FrameObserver {
     this.textRows = []
   }
 
-  notifyCleanUpdate(): void {
+  notifyCleanUpdate(state: RenderStateSource): void {
+    if (state.renderHeld) return
     this.options.onCleanUpdate?.()
   }
 
@@ -97,6 +98,7 @@ export class FrameObserver {
         : undefined
     const viewport = cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined
     const snapshot = {
+      renderHeld: state.renderHeld ?? false,
       cursor: Object.freeze({ ...cursor, viewport }),
       paintedCursor: paintedCursor ? Object.freeze({ ...paintedCursor }) : undefined,
     }

@@ -231,7 +231,7 @@ export class RowTerminalRenderer {
     const rows = this.rowsToPaint(damage)
     if (rows.length === 0) {
       if (damage === RenderStateDirty.False && !this.needsFullRebuild)
-        this.frames.notifyCleanUpdate()
+        this.frames.notifyCleanUpdate(this.renderState)
       return
     }
     const style = this.focused ? undefined : this.inactiveCursorStyle

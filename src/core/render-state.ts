@@ -208,6 +208,10 @@ export class GhosttyRenderState {
     })
   }
 
+  get renderHeld(): boolean {
+    return this.terminal.renderHeld
+  }
+
   get hasSnapshot(): boolean {
     return this.cursorSnapshot !== undefined
   }

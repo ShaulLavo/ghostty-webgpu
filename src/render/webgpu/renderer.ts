@@ -489,7 +489,7 @@ export class WebGpuTerminalRenderer {
       this.overlayRows.size === 0
     ) {
       this.coordinator?.flushPending()
-      if (!this.disposed) this.frames.notifyCleanUpdate()
+      if (!this.disposed) this.frames.notifyCleanUpdate(this.renderState)
       return
     }
     let builder = this.zigBuilder

@@ -42,6 +42,7 @@ export interface OutputTimingOptions {
   readonly limits: OutputTimingLimits
   /** False when frames are drawn on another thread, whose page updates this window cannot see. */
   readonly measuresPresentation: boolean
+  renderHeld?(): boolean
   pendingFrame(): boolean
   /** False while the page is hidden; a quiet burst then waits for `resume`. */
   visible(): boolean
@@ -119,14 +120,14 @@ export class OutputTimingTracker {
     return sequence
   }
 
-  /** The native terminal has taken the write, so frames drawn from now on hold it. */
+  /** Native parsing has taken the write; a render hold can still delay its drawn frame. */
   applied(sequence: number): void {
     if (sequence > this.appliedSequence) this.appliedSequence = sequence
   }
 
   drawn(): void {
     const burst = this.burst
-    if (!burst || burst.drawnAt !== undefined) return
+    if (!burst || burst.drawnAt !== undefined || this.options.renderHeld?.()) return
     if (this.appliedSequence < burst.sequence) return
     const clock = this.options.clock
     burst.drawnAt = clock.now()
@@ -185,6 +186,11 @@ export class OutputTimingTracker {
       return
     }
     burst.quiet = true
+    if (this.options.renderHeld?.()) {
+      burst.hidden = !this.options.visible()
+      if (!burst.hidden) this.armTimer(this.quietMs)
+      return
+    }
     if (this.finishIfSettled()) return
     burst.hidden = !this.options.visible()
     if (burst.hidden) return

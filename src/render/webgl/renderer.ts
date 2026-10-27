@@ -393,7 +393,7 @@ export class WebGlTerminalRenderer {
       damage === RenderStateDirty.False &&
       this.overlayRows.size === 0
     ) {
-      this.frames.notifyCleanUpdate()
+      this.frames.notifyCleanUpdate(this.renderState)
       return
     }
     let builder = this.zigBuilder

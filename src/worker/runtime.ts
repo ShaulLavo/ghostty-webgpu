@@ -255,8 +255,12 @@ export class TerminalWorkerRuntime {
       onRowsChanged: () => {},
       onCleanUpdate: () => {
         const before = execution.submittedFrame?.nativeRevision
+        const held = execution.textFrame()?.renderHeld
         execution.confirmCleanUpdate()
-        if (before !== execution.submittedFrame?.nativeRevision)
+        if (
+          before !== execution.submittedFrame?.nativeRevision ||
+          held !== execution.textFrame()?.renderHeld
+        )
           this.submitFrame(execution.textFrame()!)
       },
       onError: (cause: unknown) => this.fail(cause),
@@ -647,6 +651,7 @@ export class TerminalWorkerRuntime {
     const backend = this.renderer?.backend
     return {
       appearance: execution.appearance,
+      renderHeld: execution.renderHeld,
       scrollbar: execution.scrollbar,
       revision: execution.revision,
       mouseTracking: execution.mouseTracking,
