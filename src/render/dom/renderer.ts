@@ -109,11 +109,11 @@ class DomSurface implements RowRendererSurface {
     this.position()
   }
 
-  paint(row: RenderRow, cursor: CursorState | undefined): boolean {
+  paint(row: RenderRow, cursor: CursorState | undefined, textVisible: boolean): boolean {
     const mounted = this.rows[row.y]
     if (!mounted) return false
     let changed = false
-    const runs = renderRowRuns(row, cursor, this.font, this.theme, this.defaultStyle)
+    const runs = renderRowRuns(row, cursor, this.font, this.theme, this.defaultStyle, textVisible)
     for (let index = 0; index < runs.length; index += 1) {
       const run = runs[index]!
       const previous = mounted.runs[index]

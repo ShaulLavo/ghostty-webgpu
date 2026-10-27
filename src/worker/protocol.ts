@@ -99,6 +99,7 @@ export interface WorkerCommands extends NativeCommands {
   layout(layout: WorkerLayout): void
   focused(focused: boolean): void
   visible(visible: boolean): void
+  reducedMotion(reduced: boolean): void
   inactiveCursor(style: InactiveCursorStyle | undefined): boolean
   refresh(start: number, end: number): void
   clearTextureAtlas(): void
@@ -151,6 +152,7 @@ export interface WorkerInitialize extends WorkerIdentity {
   readonly faces: readonly WorkerFontFace[]
   readonly appearance?: TerminalAppearanceOptions
   readonly backend: WorkerBackend
+  readonly textBlink?: boolean
 }
 
 /** A producer transfers only buffers it owns. Its sequence starts at one per attached port. */
@@ -207,6 +209,7 @@ export const workerCommandNames: ReadonlySet<string> = new Set([
   'layout',
   'focused',
   'visible',
+  'reducedMotion',
   'inactiveCursor',
   'refresh',
   'clearTextureAtlas',

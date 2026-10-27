@@ -391,3 +391,13 @@ describe('RenderScheduler', () => {
     },
   )
 })
+
+it('does not allocate text phase state unless text blink is explicitly enabled', () => {
+  const clock = new FakeClock()
+  const frames: RenderFrameState[] = []
+  const scheduler = createScheduler(clock, frames)
+  expect(scheduler.textBlink).toBeUndefined()
+  expect(clock.timers.size).toBe(0)
+  expect(clock.frames.size).toBe(0)
+  scheduler.dispose()
+})

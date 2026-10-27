@@ -54,7 +54,8 @@ export function plainRowText(row: RenderRow): string | undefined {
     const style = cell.style
     if (
       style &&
-      (style.bold ||
+      (style.blink ||
+        style.bold ||
         style.italic ||
         style.faint ||
         style.invisible ||
@@ -79,6 +80,7 @@ export class CanvasRowPainter {
   private readonly cellColors: CanvasCellColors[] = []
   private readonly cells: RenderCell[] = []
   private colors: CanvasColorCache
+  private textVisible = true
   private currentAlpha = 1
   private currentFill?: string
   private currentFont?: string
@@ -144,7 +146,9 @@ export class CanvasRowPainter {
     allowCellDamage = true,
     capturedPlainText?: string | null,
     clearRow = true,
+    textVisible = true,
   ): void {
+    this.textVisible = textVisible
     const damage = allowCellDamage
       ? this.plainDamage(row, cursor, width, capturedPlainText)
       : undefined
@@ -310,6 +314,7 @@ export class CanvasRowPainter {
 
   private paintDecorations(cell: RenderCell, colors: CanvasCellColors, x: number, y: number): void {
     const style = cell.style
+    if (!this.textVisible && style?.blink) return
     if (!style || (!style.overline && !style.strikethrough && style.underline <= 0)) return
     this.flushBackground(y)
     this.setFill(this.colors.foreground(colors))
@@ -347,6 +352,7 @@ export class CanvasRowPainter {
   private paintGlyph(row: RenderRow, index: number): number {
     const cell = row.cells[index]!
     if (cell.continuation || !cell.text || cell.style?.invisible) return 1
+    if (!this.textVisible && cell.style?.blink) return cellSpan(row.cells, index)
     const span = cellSpan(row.cells, index)
     const text = cell.text
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth

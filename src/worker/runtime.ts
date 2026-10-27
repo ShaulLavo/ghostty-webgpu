@@ -248,6 +248,7 @@ export class TerminalWorkerRuntime {
       font,
       schedulerClock: workerClock,
       cursorBlink: execution.appearance.cursor.blink,
+      textBlink: this.initialize.textBlink,
       theme: execution.appearance.rendererTheme,
       needsFrameRows: () => true,
       onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>
@@ -571,6 +572,8 @@ export class TerminalWorkerRuntime {
       case 'focused':
         native.focus.setFocused(...request.args)
         return this.renderer?.setFocused(...request.args)
+      case 'reducedMotion':
+        return this.renderer?.setReducedMotion?.(...request.args)
       case 'visible':
         return this.renderer?.setDocumentVisible(...request.args)
       case 'inactiveCursor': {
