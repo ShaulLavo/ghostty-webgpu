@@ -94,6 +94,7 @@ export class WebGlTerminalRenderer {
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
   private readonly context: WebGL2RenderingContext
   private cursor?: RenderCursorSnapshot
+  private readonly textBlinkEnabled: boolean
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
   private textPhaseVisible = true
@@ -130,6 +131,7 @@ export class WebGlTerminalRenderer {
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.frames = new FrameObserver(options)
+    this.textBlinkEnabled = options.textBlink ?? false
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
@@ -139,6 +141,7 @@ export class WebGlTerminalRenderer {
     this.state = { kind: 'ready', pass: this.createTextPass() }
     this.desynchronized = context.getContextAttributes()?.desynchronized === true
     this.scheduler = new RenderScheduler({
+      textBlink: options.textBlink,
       clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
       presentation: options.presentation,
@@ -229,7 +232,7 @@ export class WebGlTerminalRenderer {
   }
 
   setReducedMotion(reduced: boolean): void {
-    this.scheduler.textBlink.setReducedMotion(reduced)
+    this.scheduler.textBlink?.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -337,6 +340,7 @@ export class WebGlTerminalRenderer {
   private createTextPass(): WebGlTextPass {
     return new WebGlTextPass({
       atlasLayout: this.atlas.textureLayout,
+      textBlink: this.textBlinkEnabled,
       context: this.context,
       height: this.canvas.height,
       instanceCount: this.grid.columns * this.grid.rows,
@@ -392,7 +396,8 @@ export class WebGlTerminalRenderer {
   }
 
   private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): void {
-    const phaseChanged = this.textPhaseVisible !== this.scheduler.textBlink.visible
+    const textBlink = this.scheduler.textBlink
+    const phaseChanged = textBlink !== undefined && this.textPhaseVisible !== textBlink.visible
     const phaseOnly =
       !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
@@ -433,12 +438,14 @@ export class WebGlTerminalRenderer {
         `The native frame could not be built after atlas recovery (status ${status})`,
       )
     }
-    this.scheduler.textBlink.setNeeded(builder.blinkingRows > 0)
-    this.textPhaseVisible = this.scheduler.textBlink.visible
+    if (textBlink) {
+      textBlink.setNeeded(builder.blinkingRows > 0)
+      this.textPhaseVisible = textBlink.visible
+    }
     const updates = phaseOnly ? [] : builder.changedRanges()
     pass.syncAtlas(this.atlas.consumeUploads())
     const operations = pass.uploadFrame(builder, updates)
-    const blinkChanged = pass.setTextVisible(this.textPhaseVisible)
+    const blinkChanged = textBlink ? pass.setTextVisible(this.textPhaseVisible) : false
     // Persistent records can report terminal damage without changing either GPU buffer.
     const draws = operations > 0 || blinkChanged ? pass.submit() : 0
     if (this.context.isContextLost()) {

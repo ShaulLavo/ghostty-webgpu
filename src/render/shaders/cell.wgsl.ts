@@ -1,6 +1,7 @@
 import { rowRemapShader } from './row-remap.wgsl.js'
 
 export const cellShader = /* wgsl */ `
+override ENABLE_TEXT_BLINK: bool = false;
 const FLAG_CURSOR: u32 = 1u;
 const FLAG_OVERLINE: u32 = 2u;
 const FLAG_STRIKETHROUGH: u32 = 4u;
@@ -159,7 +160,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
   let underline = u32(input.metadata.y);
   let cursorStyle = u32(input.metadata.z);
   let minimumContrast = input.metadata.w;
-  let blinking = (flags & 8u) != 0u && viewport.textHidden > 0.5;
+  let blinking = ENABLE_TEXT_BLINK && (flags & 8u) != 0u && viewport.textHidden > 0.5;
   let decoration = select(decorationCoverage(flags, underline, input.local, input.size), 0.0, blinking);
   let cursor = cursorCoverage(flags, cursorStyle, input.local, input.size);
   let effectAlpha = max(decoration, cursor) * input.foreground.a;

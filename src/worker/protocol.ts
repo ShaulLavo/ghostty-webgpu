@@ -152,6 +152,7 @@ export interface WorkerInitialize extends WorkerIdentity {
   readonly faces: readonly WorkerFontFace[]
   readonly appearance?: TerminalAppearanceOptions
   readonly backend: WorkerBackend
+  readonly textBlink?: boolean
 }
 
 /** A producer transfers only buffers it owns. Its sequence starts at one per attached port. */

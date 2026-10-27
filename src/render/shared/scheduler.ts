@@ -16,6 +16,7 @@ export type TerminalPresentation = 'frame' | 'immediate'
 
 export interface RenderSchedulerOptions {
   blinkIntervalMs?: number
+  textBlink?: boolean
   clock: RenderSchedulerClock
   onFrame(state: RenderFrameState): void
   presentation?: TerminalPresentation
@@ -29,7 +30,7 @@ function validateBlinkInterval(value: number): number {
 }
 
 export class RenderScheduler {
-  readonly textBlink: TextBlink
+  readonly textBlink?: TextBlink
   private blinkEnabled = false
   private readonly blinkIntervalMs: number
   private blinkTimerHandle?: number
@@ -49,7 +50,7 @@ export class RenderScheduler {
 
   constructor(options: RenderSchedulerOptions) {
     this.clock = options.clock
-    this.textBlink = new TextBlink(this.clock, () => this.schedule())
+    if (options.textBlink) this.textBlink = new TextBlink(this.clock, () => this.schedule())
     this.onFrame = options.onFrame
     this.immediate = options.presentation === 'immediate'
     this.blinkIntervalMs = validateBlinkInterval(options.blinkIntervalMs ?? defaultBlinkIntervalMs)
@@ -68,7 +69,7 @@ export class RenderScheduler {
   }
 
   get hasPendingTimer(): boolean {
-    return this.blinkTimerHandle !== undefined || this.textBlink.hasPendingTimer
+    return this.blinkTimerHandle !== undefined || (this.textBlink?.hasPendingTimer ?? false)
   }
 
   schedule(): void {
@@ -141,7 +142,7 @@ export class RenderScheduler {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
-    this.textBlink.dispose()
+    this.textBlink?.dispose()
     this.cancelFrame()
     this.cancelBlinkTimer()
     if (this.immediateResetHandle === undefined) return
@@ -224,7 +225,7 @@ export class RenderScheduler {
   }
 
   private synchronizeBlinkTimer(): void {
-    this.textBlink.setActive(this.documentVisible && this.focused)
+    this.textBlink?.setActive(this.documentVisible && this.focused)
     if (this.blinkEligible) {
       this.armBlinkTimer()
       return

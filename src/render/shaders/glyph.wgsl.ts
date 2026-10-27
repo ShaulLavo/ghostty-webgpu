@@ -1,6 +1,7 @@
 import { rowRemapShader } from './row-remap.wgsl.js'
 
 export const glyphShader = /* wgsl */ `
+override ENABLE_TEXT_BLINK: bool = false;
 const FLAG_GLYPH: u32 = 1u;
 
 struct Instance {
@@ -47,7 +48,7 @@ fn vertexMain(
   );
 ${rowRemapShader}
   let corner = corners[vertexIndex];
-  let hidden = (u32(instance.metadata.x) & 2u) != 0u && viewport.textHidden > 0.5;
+  let hidden = ENABLE_TEXT_BLINK && (u32(instance.metadata.x) & 2u) != 0u && viewport.textHidden > 0.5;
   let size = select(instance.rect.zw, vec2f(0.0), hidden);
   let pixel = origin + corner * size;
   var output: VertexOutput;

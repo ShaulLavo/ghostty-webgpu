@@ -83,6 +83,23 @@ Publication, full interaction parity and presentation acceptance wait for their 
 Packaged-entry Chromium software-GPU checks qualify correctness only.
 OSC 52 remains denied by default.
 
+## optional text blink
+
+Native Ghostty draws SGR 5 and SGR 6 text steadily. This library preserves that default.
+The attributes remain available in cell styles, but they do not start a text timer, schedule
+animation frames, scan for blinking rows or run GPU phase logic.
+
+Set `textBlink: true` in the main-thread or worker `Terminal.create` options to opt into text
+animation. The same default-off option is available in renderer options for direct renderer
+users and custom renderer factories. It is a creation option, independent of
+`appearance.cursor.blink`.
+
+The extension alternates foreground glyphs and decorations every 600 ms while blinking text
+is visible, the terminal is focused, the document is visible and reduced motion is disabled.
+Backgrounds, cursors, terminal text and accessibility text remain unchanged. Losing eligibility
+restores visible text and stops its timer. A replacement renderer inherits the current
+reduced-motion preference, including changes received while it is being created.
+
 ## scrollback retention
 
 `appearance.scrollbackLimit` sets a page-granular budget for physical history rows, excluding the

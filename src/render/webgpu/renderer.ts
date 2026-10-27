@@ -146,6 +146,7 @@ export class WebGpuTerminalRenderer {
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
   private readonly context: GPUCanvasContext
   private cursor?: RenderCursorSnapshot
+  private readonly textBlinkEnabled: boolean
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
   private textPhaseVisible = true
@@ -213,6 +214,7 @@ export class WebGpuTerminalRenderer {
     this.font = prepared.font
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
+    this.textBlinkEnabled = options.textBlink ?? false
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.frames = new FrameObserver(options)
     this.frames.resize(this.grid.rows)
@@ -230,6 +232,7 @@ export class WebGpuTerminalRenderer {
       this.textPass = textPass
       this.textPass.syncAtlas(this.atlasTextures)
       scheduler = new RenderScheduler({
+        textBlink: options.textBlink,
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
         onFrame: () => this.drawFrame(),
       })
@@ -321,7 +324,7 @@ export class WebGpuTerminalRenderer {
   }
 
   setReducedMotion(reduced: boolean): void {
-    this.scheduler.textBlink.setReducedMotion(reduced)
+    this.scheduler.textBlink?.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -447,6 +450,7 @@ export class WebGpuTerminalRenderer {
 
   private createTextPass(device: GPUDevice = this.device): WebGpuTextPass {
     return new WebGpuTextPass({
+      textBlink: this.textBlinkEnabled,
       device,
       format: this.format,
       height: this.canvas.height,
@@ -487,7 +491,8 @@ export class WebGpuTerminalRenderer {
   }
 
   private drawZigFrame(damage: RenderStateDirty): void {
-    const phaseChanged = this.textPhaseVisible !== this.scheduler.textBlink.visible
+    const textBlink = this.scheduler.textBlink
+    const phaseChanged = textBlink !== undefined && this.textPhaseVisible !== textBlink.visible
     const phaseOnly =
       !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
@@ -530,13 +535,15 @@ export class WebGpuTerminalRenderer {
         `The native frame could not be built after atlas recovery (status ${status})`,
       )
     }
-    this.scheduler.textBlink.setNeeded(builder.blinkingRows > 0)
-    this.textPhaseVisible = this.scheduler.textBlink.visible
+    if (textBlink) {
+      textBlink.setNeeded(builder.blinkingRows > 0)
+      this.textPhaseVisible = textBlink.visible
+    }
     const updates = phaseOnly ? [] : builder.changedRanges()
     const rebuiltRows = phaseOnly ? 0 : builder.rowRebuilds
     this.atlasTextures.sync(this.atlas.consumeUploads())
     const operations = this.textPass.uploadFrame(builder, updates)
-    this.textPass.setTextVisible(this.textPhaseVisible)
+    if (textBlink) this.textPass.setTextVisible(this.textPhaseVisible)
     if (!this.coordinator) {
       try {
         this.textPass.submit(this.context.getCurrentTexture().createView())

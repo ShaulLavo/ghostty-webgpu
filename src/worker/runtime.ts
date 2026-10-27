@@ -248,6 +248,7 @@ export class TerminalWorkerRuntime {
       font,
       schedulerClock: workerClock,
       cursorBlink: execution.appearance.cursor.blink,
+      textBlink: this.initialize.textBlink,
       theme: execution.appearance.rendererTheme,
       needsFrameRows: () => true,
       onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>

@@ -19,6 +19,7 @@ export interface TextPassMetrics {
 }
 
 export interface WebGpuTextPassOptions {
+  textBlink?: boolean
   device: GPUDevice
   format: GPUTextureFormat
   height: number
@@ -108,6 +109,7 @@ export class WebGpuTextPass {
   private readonly viewportBuffer: GPUBuffer
   private readonly rowData = new ArrayBuffer(24)
   private readonly rowView = new DataView(this.rowData)
+  private readonly textBlinkEnabled: boolean
   private textVisible = true
   private rowOffset = 0
   private rowHeight = 0
@@ -118,6 +120,7 @@ export class WebGpuTextPass {
     planUploadRanges
 
   constructor(options: WebGpuTextPassOptions) {
+    this.textBlinkEnabled = options.textBlink ?? false
     this.device = options.device
     this.instanceCount = options.instanceCount
     const capacity = textPassGlyphCapacity(this.device, this.instanceCount)
@@ -207,7 +210,7 @@ export class WebGpuTextPass {
   }
 
   setTextVisible(visible: boolean): boolean {
-    if (this.textVisible === visible) return false
+    if (!this.textBlinkEnabled || this.textVisible === visible) return false
     this.textVisible = visible
     this.device.queue.writeBuffer(this.viewportBuffer, 24, new Float32Array([visible ? 0 : 1]))
     return true
@@ -287,6 +290,7 @@ export class WebGpuTextPass {
   private createPipelines(format: GPUTextureFormat): PipelineResources {
     const cellPipeline = this.device.createRenderPipeline({
       fragment: {
+        constants: { ENABLE_TEXT_BLINK: this.textBlinkEnabled ? 1 : 0 },
         entryPoint: 'fragmentMain',
         module: this.device.createShaderModule({ code: cellShader }),
         targets: [{ blend: blendState(), format }],
@@ -307,6 +311,7 @@ export class WebGpuTextPass {
       layout: 'auto',
       primitive: { topology: 'triangle-list' },
       vertex: {
+        constants: { ENABLE_TEXT_BLINK: this.textBlinkEnabled ? 1 : 0 },
         entryPoint: 'vertexMain',
         module: this.device.createShaderModule({ code: glyphShader }),
       },

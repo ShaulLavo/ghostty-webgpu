@@ -324,6 +324,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
+  private readonly textBlink: boolean
   private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
   private readonly presentation: GhosttyWebGpuTerminalOptions['presentation']
   private readonly outputTimingLimits: OutputTimingLimits
@@ -350,6 +351,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
+    this.textBlink = options.textBlink ?? false
     this.rendererMode = options.rendererMode
     this.presentation = options.presentation
     this.outputTimingLimits = outputTimingLimits(options.outputTiming)
@@ -1082,6 +1084,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         canvas: elements.canvas,
         columns: grid.columns,
         cursorBlink: appearance.cursor.blink,
+        textBlink: this.textBlink,
         font,
         onError: (cause) => this.reportError(cause, 'renderer.restore'),
         onCleanUpdate: () => {

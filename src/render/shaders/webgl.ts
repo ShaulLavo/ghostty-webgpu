@@ -1,6 +1,7 @@
 const vertexHeader = `#version 300 es
 precision highp float;
 precision highp int;
+const bool ENABLE_TEXT_BLINK = false;
 uniform vec2 viewport;
 const vec2 corners[6] = vec2[6](
   vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0),
@@ -15,6 +16,7 @@ vec4 clipPosition(vec2 pixel) {
 const fragmentHeader = `#version 300 es
 precision highp float;
 precision highp int;
+const bool ENABLE_TEXT_BLINK = false;
 out vec4 outputColor;
 
 float srgbChannelToLinear(float value) {
@@ -117,7 +119,7 @@ float cursorCoverage(uint flags, uint style, vec2 local, vec2 size) {
 void main() {
   uint flags = uint(v_metadata.x);
   float decoration = decorationCoverage(flags, uint(v_metadata.y), v_local, v_size);
-  if (hasFlag(flags, 8u) && textHidden > 0.5) decoration = 0.0;
+  if (ENABLE_TEXT_BLINK && hasFlag(flags, 8u) && textHidden > 0.5) decoration = 0.0;
   float cursor = cursorCoverage(flags, uint(v_metadata.z), v_local, v_size);
   float effectAlpha = max(decoration, cursor) * v_foreground.a;
   vec3 adjusted = contrastColor(v_foreground.rgb, v_background.rgb, v_metadata.w);
@@ -143,7 +145,7 @@ flat out vec4 v_atlas;
 
 void main() {
   vec2 corner = corners[gl_VertexID];
-  bool hidden = (uint(attributes.x) & 2u) != 0u && textHidden > 0.5;
+  bool hidden = ENABLE_TEXT_BLINK && (uint(attributes.x) & 2u) != 0u && textHidden > 0.5;
   vec2 size = hidden ? vec2(0.0) : rect.zw;
   gl_Position = clipPosition(rect.xy + corner * size);
   v_color = color;

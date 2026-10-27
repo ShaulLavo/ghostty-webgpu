@@ -185,6 +185,8 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly outputTiming?: GhosttyWebGpuTerminalOutputTimingOptions
   readonly padding?: TerminalElementPaddingInput
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
+  /** Opt-in SGR 5/6 animation; false by default, matching native Ghostty. */
+  readonly textBlink?: boolean
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
   /** `immediate` paints a write before the next display frame; main-thread terminals only. */
   readonly presentation?: WebGpuTerminalRendererOptions['presentation']

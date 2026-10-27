@@ -55,7 +55,7 @@ export class RowTerminalRenderer {
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
   private textPhaseVisible = true
-  private readonly blinkingRows = new Set<number>()
+  private blinkingRows?: Set<number>
   private disposed = false
   private focused = false
   private font: TerminalFittedFont
@@ -97,6 +97,7 @@ export class RowTerminalRenderer {
     this.frames.resize(this.grid.rows)
     this.resizeCanvas()
     this.scheduler = new RenderScheduler({
+      textBlink: options.textBlink,
       clock: options.schedulerClock ?? browserRenderClock(),
       onFrame: () => this.drawFrame(),
       presentation: options.presentation,
@@ -164,7 +165,7 @@ export class RowTerminalRenderer {
   }
 
   setReducedMotion(reduced: boolean): void {
-    this.scheduler.textBlink.setReducedMotion(reduced)
+    this.scheduler.textBlink?.setReducedMotion(reduced)
   }
 
   setDocumentVisible(visible: boolean): void {
@@ -241,12 +242,8 @@ export class RowTerminalRenderer {
     const phaseVisible = this.scheduler.cursorVisible
     if (this.cursorPhaseVisible !== phaseVisible) this.addCursorRow(cursor)
     this.cursorPhaseVisible = phaseVisible
-    const textVisible = this.scheduler.textBlink.visible
-    if (this.textPhaseVisible !== textVisible) {
-      for (const row of this.blinkingRows) this.overlayRows.add(row)
-    }
-    this.textPhaseVisible = textVisible
-    if (this.needsFullRebuild) this.blinkingRows.clear()
+    if (this.scheduler.textBlink) this.updateTextBlinkPhase(this.scheduler.textBlink.visible)
+    if (this.needsFullRebuild) this.blinkingRows?.clear()
     const rows = this.rowsToPaint(damage)
     if (rows.length === 0) {
       if (damage === RenderStateDirty.False && !this.needsFullRebuild)
@@ -257,7 +254,7 @@ export class RowTerminalRenderer {
     const cursorState = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
     this.surface.beginFrame?.()
     for (const row of rows) this.paintRow(row, cursorState)
-    this.scheduler.textBlink.setNeeded(this.blinkingRows.size > 0)
+    this.scheduler.textBlink?.setNeeded((this.blinkingRows?.size ?? 0) > 0)
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     this.metrics.paintedRows += rows.length
     this.metrics.submittedFrames += 1
@@ -302,11 +299,22 @@ export class RowTerminalRenderer {
 
   private paintRow(row: RenderRow, cursor: CursorState | undefined): void {
     if (row.y < 0 || row.y >= this.grid.rows) return
-    const blinking = rowNeedsTextBlink(row)
-    if (blinking) this.blinkingRows.add(row.y)
-    else this.blinkingRows.delete(row.y)
+    let blinking = false
+    if (this.scheduler.textBlink) {
+      blinking = rowNeedsTextBlink(row)
+      if (blinking) (this.blinkingRows ??= new Set()).add(row.y)
+      else this.blinkingRows?.delete(row.y)
+    }
     this.surface.paint(row, cursor, this.textPhaseVisible, blinking)
     this.metrics.paintedCells += row.packed?.length ?? row.cells.length
+  }
+
+  private updateTextBlinkPhase(visible: boolean): void {
+    if (this.textPhaseVisible === visible) return
+    if (this.blinkingRows) {
+      for (const row of this.blinkingRows) this.overlayRows.add(row)
+    }
+    this.textPhaseVisible = visible
   }
 
   private resetCursorBlink(): void {

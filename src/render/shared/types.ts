@@ -81,6 +81,8 @@ export interface WebGpuTerminalRendererOptions {
   canvas: HTMLCanvasElement | OffscreenCanvas
   columns: number
   cursorBlink?: boolean
+  /** Opt-in SGR 5/6 animation; native Ghostty renders this text steadily. */
+  textBlink?: boolean
   reducedMotion?: boolean
   deviceFactory?: () => Promise<GPUDevice>
   font: TerminalFittedFont
