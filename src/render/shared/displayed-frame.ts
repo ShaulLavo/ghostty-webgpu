@@ -6,6 +6,7 @@ import type {
 } from './types.js'
 
 export const retainDisplayedFrame = Symbol('retainDisplayedFrame')
+export const captureRenderAcknowledgement = Symbol('captureRenderAcknowledgement')
 export const observeDisplayedFrame = Symbol('observeDisplayedFrame')
 
 export interface DisplayedTextFrame extends RendererTextFrameSnapshot {

@@ -11,6 +11,7 @@ export type BenchmarkScenario =
   | 'settled-idle'
   | 'cursor-movement'
   | 'burst-output'
+  | 'dense-redraw'
   | 'sparse-edit'
   | 'sustained-scroll'
   | 'glyph-churn'

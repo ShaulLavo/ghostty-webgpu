@@ -8,6 +8,7 @@ import { isSoftwareWebGpuAdapter } from './adapter.js'
 import { FrameCoordinator } from '../shared/frame-coordinator.js'
 import { DeviceOwner, type DeviceLease } from './device-owner.js'
 import { createGhosttyError } from '../../core/error.js'
+import { captureRenderAcknowledgement } from '../shared/displayed-frame.js'
 import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
@@ -480,6 +481,12 @@ export class WebGpuTerminalRenderer {
     if (!this.disposed) this.onError?.(cause)
   }
 
+  private retryCoordinatedFrame(cause: unknown): void {
+    const retry = !this.frameFailed
+    this.reportFrameFailure(cause)
+    if (retry && !this.disposed) this.scheduler.schedule()
+  }
+
   private drawZigFrame(damage: RenderStateDirty): void {
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
@@ -572,19 +579,30 @@ export class WebGpuTerminalRenderer {
     }
     const textPass = this.textPass
     let frame: PreparedFrame | undefined
+    try {
+      frame = this.captureFrame(
+        rows,
+        updates.map((update) => update.row),
+      )
+    } catch (cause) {
+      this.retryCoordinatedFrame(cause)
+      return
+    }
+    const acknowledge =
+      this.renderState[captureRenderAcknowledgement]?.() ??
+      this.renderState.acknowledge.bind(this.renderState)
     this.coordinator.submit({
       owner: this,
       device: this.device,
       command,
       commit: () => {
-        if (this.disposed) return
-        frame = this.captureFrame(
-          rows,
-          updates.map((update) => update.row),
-        )
+        if (this.disposed) {
+          frame?.discard()
+          return
+        }
         try {
           textPass.acceptFrame()
-          if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+          if (damage !== RenderStateDirty.False) acknowledge()
           this.recordFrame(rebuiltRows, operations)
           this.metrics.zigFrames += 1
           this.needsFullRebuild = false
@@ -599,9 +617,8 @@ export class WebGpuTerminalRenderer {
         if (!this.disposed) frame?.notify()
       },
       failed: (cause) => {
-        const retry = !this.frameFailed
-        this.reportFrameFailure(cause)
-        if (retry && !this.disposed) this.scheduler.schedule()
+        frame?.discard()
+        this.retryCoordinatedFrame(cause)
       },
     })
   }
