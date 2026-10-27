@@ -1,0 +1,6 @@
+when	decision	reason	evidence	result
+2026-10-27	Isolate prototype from src	Production changes require KEEP first	X4 brief	Only bench/scripts/.internal additions
+2026-10-27	Replace synthetic control	A copied protocol cannot qualify current worker overhead	First smoke used a minimal control	Current WorkerTerminalExecution and TerminalWorkerRuntime used directly
+2026-10-27	Share one WebGL2 context	One worker with separate contexts loses early contexts at 16 sessions	Exploratory headless receipts	Per-session framebuffers with canvas copy presentation
+2026-10-27	Use direct CDP WebSocket	Playwright cannot address flattened worker sessions via send	Protocol error from Target.sendMessageToTarget	Attach live targets and send Runtime.getHeapUsage with sessionId
+2026-10-27	Read Linux worker thread ticks	Renderer process CPU alone mixes host and worker time	/proc task stat	DedicatedWorker thread time, 100 ticks per second
