@@ -1,3 +1,4 @@
+import { fontMetricsEqual } from '../term/font-metrics.js'
 import { createGhosttyError } from '../core/error.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
 import { createExtensionDispatch, ExtensionManager } from '../extensions/manager.js'
@@ -260,6 +261,7 @@ function fittedFontSettingsEqual(
   if (!fitted) return false
   const current = fitted.settings
   return (
+    fontMetricsEqual(current.metrics, settings.metrics) &&
     current.boldWeight === settings.boldWeight &&
     current.family === settings.family &&
     current.letterSpacing === settings.letterSpacing &&

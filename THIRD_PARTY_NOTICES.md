@@ -79,3 +79,13 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## JetBrains Mono sprite reference font
+
+The sprite regression fixture includes a decompressed copy of the Latin regular
+font from `@fontsource/jetbrains-mono` 5.3.0. It is test data and is not included in
+the npm package.
+
+- Source: <https://github.com/JetBrains/JetBrainsMono>
+- License: SIL Open Font License 1.1, reproduced in
+  `src/render/shared/atlas/sprite-fixtures/FONT-LICENSE.txt`.

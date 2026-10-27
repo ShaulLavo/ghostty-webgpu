@@ -1,6 +1,6 @@
 {
   "experiment": "X3 / E4",
-  "decision": "keep; native parity passed, warm cost within bounded measurement noise; +1.9% unicode CPU medians retained as a finding",
+  "decision": "Historical timing packet only. Original unconditional geometry keep decision withdrawn; revision-1 gates thickness-dependent sprites on verified font post metadata.",
   "pin": "7b11f3dca034d8d24369ad3856afe57946d7902a",
   "before": "d2ed8989a745f016188e0a2e749009b3e1450f33",
   "runtimeCandidate": "abe63a8c023d42c77bcfb0eaea09deb40dbf7662",
@@ -373,5 +373,17 @@
         }
       ]
     }
-  ]
+  ],
+  "revision1": {
+    "font": "JetBrainsMono-Regular.ttf",
+    "fontSha256": "473c93ad62d89abd8431c8f5d744c83fe2e3f87d05b2f80c06355f240058d813",
+    "nativeMetricSource": "FreeType 2.15.0 FT_Get_Sfnt_Table(post), FT_Size_Metrics.y_ppem; independently checked against raw head/post",
+    "unitsPerEm": 1000,
+    "underlineThickness": 50,
+    "referenceCases": 37,
+    "glyphSamples": 18204,
+    "pixelGateDevicePixels": 1,
+    "missingFontMetadata": "font text for thickness-dependent glyphs",
+    "freshHardwareQualification": false
+  }
 }

@@ -1,3 +1,5 @@
+import { readSfntFontMetrics } from '../term/font-metrics.js'
+import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
 import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
@@ -63,6 +65,7 @@ export class TerminalWorkerRuntime {
   private renderer?: GhosttyWebGpuRenderer
   private inactiveCursorStyle?: InactiveCursorStyle
   private readonly faces: FontFace[] = []
+  private readonly faceMetrics = new Map<FontFace, TerminalFontMetrics>()
   private readonly subscriptions: TerminalSessionSubscription[] = []
   private readonly abort = new AbortController()
   private outputPort?: MessagePort
@@ -155,11 +158,28 @@ export class TerminalWorkerRuntime {
           ? `url(${JSON.stringify(source.source.url)})`
           : new Uint8Array(source.source.bytes).buffer
       const face = new FontFace(source.family, data, source.descriptors)
+      const metrics =
+        typeof data === 'string' ? undefined : readSfntFontMetrics(new Uint8Array(data))
+      if (metrics) this.faceMetrics.set(face, metrics)
       this.faces.push(face)
       await face.load()
       if (this.disposed) return
       scope.fonts.add(face)
     }
+  }
+
+  private measuredFontSettings(settings: TerminalFontSettings): TerminalFontSettings {
+    const matching = this.faces.filter(
+      (face) =>
+        face.family === settings.family &&
+        face.style === 'normal' &&
+        (face.weight === String(settings.weight) ||
+          (face.weight === 'normal' && settings.weight === 400)),
+    )
+    const [face, ...others] = matching
+    if (!face || others.length > 0) return settings
+    const metrics = this.faceMetrics.get(face)
+    return metrics ? { ...settings, metrics } : settings
   }
 
   private native(): LocalTerminalExecution {
@@ -168,7 +188,7 @@ export class TerminalWorkerRuntime {
   }
 
   private fit(layout: WorkerLayout): TerminalFittedFont {
-    const settings = this.native().appearance.font
+    const settings = this.measuredFontSettings(this.native().appearance.font)
     if (!this.initialize.faces.some((face) => face.family === settings.family))
       throw workerError('capability', 'font.family', { faceCount: this.faces.length })
     const context = new OffscreenCanvas(1, 1).getContext('2d')
@@ -710,6 +730,7 @@ export class TerminalWorkerRuntime {
     this.execution?.dispose()
     for (const face of this.faces) scope.fonts.delete(face)
     this.faces.length = 0
+    this.faceMetrics.clear()
     await this.prefetchedAcquisition?.then(
       () => {},
       () => {},

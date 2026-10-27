@@ -17,6 +17,7 @@ import sys
 import tarfile
 import tempfile
 from PIL import Image
+from font_metrics import NativeFont
 
 PIN = "7b11f3dca034d8d24369ad3856afe57946d7902a"
 repo, zig, z2d_archive, destination = sys.argv[1:]
@@ -57,32 +58,41 @@ assert units_per_em > 0 and underline_thickness > 0
 
 
 def fixture(width, height, size, dpr, span=1):
+    ppem = native_font.ppem(size, dpr)
     return dict(
+        ppem=ppem,
         width=math.floor(width * dpr + 0.5),
         height=math.floor(height * dpr + 0.5),
-        thickness=max(1, math.ceil(underline_thickness * (size * dpr / units_per_em))),
+        thickness=max(1, math.ceil(underline_thickness * (ppem / units_per_em))),
         fontSize=size,
         span=span,
         dpr=dpr,
     )
 
 
-cases = [
-    fixture(w, h, size, dpr)
-    for w, h, size in [(9, 18, 14), (13, 27, 20), (18, 36, 28)]
-    for dpr in [1, 1.25, 2]
-]
-cases.append(fixture(13, 27, 20, 1.25, 2))
-cases.extend(
-    fixture(18, 36, size, dpr)
-    for size in [14, 16, 18, 20, 24, 28, 32]
-    for dpr in [1, 1.25, 2]
-)
+with NativeFont(font_path) as native_font:
+    assert native_font.units_per_em == units_per_em
+    assert native_font.underline_thickness == underline_thickness
+    freetype_version = native_font.version
+    cases = [
+        fixture(w, h, size, dpr)
+        for w, h, size in [(9, 18, 14), (13, 27, 20), (18, 36, 28)]
+        for dpr in [1, 1.25, 2]
+    ]
+    cases.append(fixture(13, 27, 20, 1.25, 2))
+    cases.extend(
+        fixture(18, 36, size, dpr)
+        for size in [14, 16, 16.1, 18, 20, 20.1, 24, 28, 32]
+        for dpr in [1, 1.25, 2]
+    )
+
 font_provenance = dict(
     file=font_path.name,
     sha256=hashlib.sha256(font_bytes).hexdigest(),
     unitsPerEm=units_per_em,
     underlineThickness=underline_thickness,
+    freetypeVersion=freetype_version,
+    metricSource="FT_Get_Sfnt_Table(post), FT_Size_Metrics.y_ppem",
     source="@fontsource/jetbrains-mono@5.3.0, decompressed with woff2_decompress",
 )
 

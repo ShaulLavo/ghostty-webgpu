@@ -1,9 +1,38 @@
-import { expect, it } from 'vitest'
+import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import type { TerminalFittedFont } from '../../../term/types.js'
 import { CanvasGlyphRasterizer } from './canvas-rasterizer.js'
+import { readSfntFontMetrics } from '../../../term/font-metrics.js'
+import type { TerminalFontMetrics } from '../../../term/types.js'
+import { spriteCodepoint, spriteThickness } from './sprites.js'
 
-function font(width: number, height: number, pixelRatio: number): TerminalFittedFont {
+let fontMetrics: TerminalFontMetrics
+let fixtureFace: FontFace | undefined
+let fontSha256: string
+beforeAll(async () => {
+  const response = await fetch(
+    new URL('./sprite-fixtures/JetBrainsMono-Regular.ttf', import.meta.url),
+  )
+  const bytes = await response.arrayBuffer()
+  fontSha256 = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), (value) =>
+    value.toString(16).padStart(2, '0'),
+  ).join('')
+  const metrics = readSfntFontMetrics(new Uint8Array(bytes))
+  if (!metrics) throw new Error('Fixture font has no positive post metric')
+  fontMetrics = metrics
+  fixtureFace = await new FontFace('SpriteMetricFixture', bytes).load()
+  document.fonts.add(fixtureFace)
+})
+afterAll(() => {
+  if (fixtureFace) document.fonts.delete(fixtureFace)
+})
+
+function font(
+  width: number,
+  height: number,
+  pixelRatio: number,
+  size = height / 1.2,
+): TerminalFittedFont {
   const deviceCellWidth = Math.round(width * pixelRatio)
   const deviceCellHeight = Math.round(height * pixelRatio)
   return {
@@ -18,8 +47,9 @@ function font(width: number, height: number, pixelRatio: number): TerminalFitted
     deviceBaseline: Math.round(deviceCellHeight * 0.8),
     pixelRatio,
     settings: {
-      family: 'monospace',
-      size: height / 1.2,
+      family: 'SpriteMetricFixture',
+      metrics: fontMetrics,
+      size,
       weight: 400,
       boldWeight: 700,
       lineHeight: 1.2,
@@ -58,6 +88,7 @@ interface FixtureCase {
   width: number
   height: number
   thickness: number
+  fontSize: number
   span: number
   dpr: number
   tileWidth: number
@@ -65,6 +96,7 @@ interface FixtureCase {
   file: string
 }
 interface Manifest {
+  font: { sha256: string; unitsPerEm: number; underlineThickness: number }
   revision: string
   codepoints: number[]
   cases: FixtureCase[]
@@ -91,7 +123,13 @@ function candidatePixels(
   fixture: FixtureCase,
   codepoints: readonly number[],
 ): ImageData {
-  const fitted = font(fixture.width / fixture.dpr, fixture.height / fixture.dpr, fixture.dpr)
+  const fitted = font(
+    fixture.width / fixture.dpr,
+    fixture.height / fixture.dpr,
+    fixture.dpr,
+    fixture.fontSize,
+  )
+  expect(spriteThickness(fitted)).toBe(fixture.thickness)
   const rasterizer = new CanvasGlyphRasterizer({ font: fitted })
   const result = new ImageData(reference.width, reference.height)
   codepoints.forEach((cp, index) => {
@@ -213,16 +251,21 @@ function pixelMismatch(
 it('matches native Ghostty sprite contact sheets within one device pixel', async () => {
   const manifest = await referenceManifest()
   expect(manifest.revision).toBe('7b11f3dca034d8d24369ad3856afe57946d7902a')
+  expect(manifest.font.sha256).toBe(fontSha256)
+  expect(fontMetrics).toEqual({
+    unitsPerEm: manifest.font.unitsPerEm,
+    underlineThickness: manifest.font.underlineThickness,
+  })
   const failures: string[] = []
   for (const [index, fixture] of manifest.cases.entries()) {
     const reference = await referencePixels(index)
     const candidate = candidatePixels(reference, fixture, manifest.codepoints)
-    await screenshotSheet(reference, candidate, index)
+    if (index < 10) await screenshotSheet(reference, candidate, index)
     const different = mismatches(reference, candidate, fixture, manifest.codepoints)
     if (different.length) failures.push(`case ${index}: ${different.join(', ')}`)
   }
   expect(failures).toEqual([])
-}, 30_000)
+}, 60_000)
 
 async function screenshotSheet(
   reference: ImageData,
@@ -278,4 +321,27 @@ it('keeps sprite geometry independent of font family, bold and italic', () => {
     const expected = first.rasterize(input)
     expect(second.rasterize({ ...input, weight: 'bold', italic: true })).toEqual(expected)
   }
+})
+
+it('keeps thickness-dependent sprites on the font path when post metrics are unavailable', () => {
+  const fitted = font(9, 18, 1)
+  const { metrics: _metrics, ...settings } = fitted.settings
+  const unknown = { ...fitted, settings }
+  expect(spriteThickness(unknown)).toBeUndefined()
+  const fill = vi.spyOn(OffscreenCanvasRenderingContext2D.prototype, 'fillText')
+  try {
+    new CanvasGlyphRasterizer({ font: unknown }).rasterize({
+      text: '║',
+      cellSpan: 1,
+      weight: 'normal',
+      italic: false,
+      foreground: { r: 255, g: 255, b: 255 },
+    })
+    expect(fill).toHaveBeenCalled()
+  } finally {
+    fill.mockRestore()
+  }
+  for (const text of ['─', '║', '\ue0b1', '\ue0b5'])
+    expect(spriteCodepoint(text, unknown)).toBeUndefined()
+  for (const text of ['█', '⣿', '🬀', '\ue0b0']) expect(spriteCodepoint(text, unknown)).toBeDefined()
 })

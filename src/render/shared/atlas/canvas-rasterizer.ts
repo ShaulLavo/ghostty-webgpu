@@ -259,7 +259,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       context.clip()
     }
     context.fillStyle = ink
-    const cp = spriteCodepoint(input.text)
+    const cp = spriteCodepoint(input.text, this.font)
     if (cp !== undefined) {
       context.strokeStyle = ink
       context.translate(padding, padding)
@@ -288,7 +288,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       // Intrinsically gray glyphs need RGBA too; the black probe also identifies white color glyphs.
       const bitmapKind =
         kind ??
-        (spriteCodepoint(input.text) !== undefined ? 'grayscale' : undefined) ??
+        (spriteCodepoint(input.text, this.font) !== undefined ? 'grayscale' : undefined) ??
         (hasIntrinsicColor(image, bounds, 255) ||
         hasIntrinsicColor(this.draw(input, padding, '#000000'), bounds, 0)
           ? 'color'

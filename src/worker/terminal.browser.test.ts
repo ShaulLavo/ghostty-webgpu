@@ -1976,3 +1976,25 @@ it.each([1.5, 2.25])(
     }
   },
 )
+
+it('derives procedural sprite metrics from an owned TrueType font', async () => {
+  const url = new URL(
+    '../render/shared/atlas/sprite-fixtures/JetBrainsMono-Regular.ttf',
+    import.meta.url,
+  ).href
+  const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer())
+  const terminal = await WorkerTerminal.create({
+    backend: 'webgl',
+    assets,
+    fonts: [{ family: 'WorkerPostFont', source: { bytes }, descriptors: { weight: '400' } }],
+    appearance: { font: { size: 14 } },
+  })
+  active.push(terminal)
+  await terminal.open(container())
+  await terminal.write('║─┼')
+  await eventually(() => terminal.visibleLines()[0]?.trimEnd() === '║─┼')
+  expect(terminal.submittedFrame?.font.settings.metrics).toEqual({
+    unitsPerEm: 1000,
+    underlineThickness: 50,
+  })
+})

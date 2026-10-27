@@ -1,3 +1,4 @@
+import { fontMetricsEqual, normalizeFontMetrics } from '../term/font-metrics.js'
 import type { TerminalFittedFont, TerminalFontSettings } from '../term/types.js'
 import {
   normalizeTerminalElementPadding,
@@ -83,7 +84,9 @@ function nonEmptyString(name: string, value: string): string {
 }
 
 function normalizeFont(font: TerminalFitFont): TerminalFitFont {
+  const metrics = normalizeFontMetrics(font.metrics)
   return Object.freeze({
+    ...(metrics ? { metrics } : {}),
     boldWeight: fontWeight('font.boldWeight', font.boldWeight),
     family: nonEmptyString('font.family', font.family),
     letterSpacing: finite('font.letterSpacing', font.letterSpacing),
@@ -276,6 +279,7 @@ function canonicalScrollbarWidth(value: number, pixelRatio: number): number {
 
 function fontEquals(left: TerminalFitFont, right: TerminalFitFont): boolean {
   return (
+    fontMetricsEqual(left.metrics, right.metrics) &&
     left.boldWeight === right.boldWeight &&
     left.family === right.family &&
     left.letterSpacing === right.letterSpacing &&

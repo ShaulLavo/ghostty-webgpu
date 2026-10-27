@@ -1,3 +1,5 @@
+import { readSfntFontMetrics } from '../../term/font-metrics.js'
+import type { TerminalFontMetrics } from '../../term/types.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
@@ -24,6 +26,7 @@ const disposables: (() => void)[] = []
 const devices: GPUDevice[] = []
 const devicePool: GPUDevice[] = []
 const resourceChecks: (() => void)[] = []
+let fontMetrics: TerminalFontMetrics
 let sentinel: GPUDevice
 const viewport = { width: window.innerWidth, height: window.innerHeight }
 const unicodeFont = new FontFace('Zig Unicode Test', `url(${testFontUrl})`)
@@ -33,6 +36,14 @@ const intrinsicFont = new FontFace(
 )
 
 beforeAll(async () => {
+  const bytes = await (
+    await fetch(
+      new URL('../shared/atlas/sprite-fixtures/JetBrainsMono-Regular.ttf', import.meta.url),
+    )
+  ).arrayBuffer()
+  const metrics = readSfntFontMetrics(new Uint8Array(bytes))
+  if (!metrics) throw new Error('Native fixture font has no post metric')
+  fontMetrics = metrics
   await page.viewport(900, 650)
   document.fonts.add(await intrinsicFont.load())
   document.fonts.add(await unicodeFont.load())
@@ -123,7 +134,11 @@ async function nativeFixture(
     const fitted = fittedFont()
     const font = {
       ...fitted,
-      settings: { ...fitted.settings, family: '"Zig Unicode Test", monospace' },
+      settings: {
+        ...fitted.settings,
+        family: '"Zig Unicode Test", monospace',
+        metrics: fontMetrics,
+      },
     }
     const renderer = await Renderer.create({
       canvas,
@@ -223,7 +238,7 @@ function expectGlyphInk(
     const center = font.charLeft + (font.deviceCellWidth * input.cellSpan - spacing) / 2
     const drawX = padding + x * font.deviceCellWidth + center
     const drawY = padding + y * font.deviceCellHeight + font.deviceBaseline
-    const cp = spriteCodepoint(input.text)
+    const cp = spriteCodepoint(input.text, font)
     if (cp === undefined) inkContext.fillText(input.text, drawX, drawY)
     if (cp !== undefined) {
       inkContext.save()

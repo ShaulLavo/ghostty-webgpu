@@ -17,9 +17,10 @@ interface StrokeBounds {
 }
 
 // Geometry adapted from Ghostty 7b11f3d, src/font/sprite/draw. MIT, see THIRD_PARTY_NOTICES.md.
-export function spriteCodepoint(text: string): number | undefined {
+export function spriteCodepoint(text: string, font: TerminalFittedFont): number | undefined {
   const cp = text.codePointAt(0)
   if (cp === undefined || text.length !== (cp > 0xffff ? 2 : 1)) return undefined
+  if (needsThickness(cp) && spriteThickness(font) === undefined) return undefined
   if (
     (cp >= 0x2500 && cp <= 0x259f) ||
     (cp >= 0x2800 && cp <= 0x28ff) ||
@@ -30,9 +31,16 @@ export function spriteCodepoint(text: string): number | undefined {
   return undefined
 }
 
-export function spriteThickness(font: TerminalFittedFont): number {
-  // Canvas exposes no underline thickness; use Ghostty Metrics.FaceMetrics' ascent-based estimate.
-  return Math.max(1, Math.ceil(0.15 * 0.75 * 0.75 * (font.deviceBaseline - font.charTop)))
+function needsThickness(cp: number): boolean {
+  return (cp >= 0x2500 && cp <= 0x257f) || (cp >= 0xe0b0 && cp <= 0xe0bf && (cp & 1) !== 0)
+}
+
+export function spriteThickness(font: TerminalFittedFont): number | undefined {
+  const metrics = font.settings.metrics
+  if (!metrics) return undefined
+  // Pinned FreeType scales post metrics with integer FT_Size_Metrics.y_ppem.
+  const ppem = Math.max(1, Math.round(font.settings.size * font.pixelRatio))
+  return Math.max(1, Math.ceil(metrics.underlineThickness * (ppem / metrics.unitsPerEm)))
 }
 
 export function drawSprite(
@@ -41,10 +49,13 @@ export function drawSprite(
   font: TerminalFittedFont,
   span: number,
 ): void {
+  const thickness = spriteThickness(font)
+  if (needsThickness(cp) && thickness === undefined)
+    throw new Error('Font post metrics are required for this sprite')
   const metrics = {
     width: font.deviceCellWidth,
     height: font.deviceCellHeight,
-    thickness: spriteThickness(font),
+    thickness: thickness ?? 1,
   }
   if (cp < 0x2580) return box(context, cp, metrics)
   if (cp < 0x25a0) return block(context, cp, metrics)

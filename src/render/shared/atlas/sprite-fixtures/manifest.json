@@ -5,6 +5,8 @@
     "sha256": "473c93ad62d89abd8431c8f5d744c83fe2e3f87d05b2f80c06355f240058d813",
     "unitsPerEm": 1000,
     "underlineThickness": 50,
+    "freetypeVersion": "2.15.0",
+    "metricSource": "FT_Get_Sfnt_Table(post), FT_Size_Metrics.y_ppem",
     "source": "@fontsource/jetbrains-mono@5.3.0, decompressed with woff2_decompress"
   },
   "codepoints": [
@@ -47,6 +49,7 @@
   ],
   "cases": [
     {
+      "ppem": 14,
       "width": 9,
       "height": 18,
       "thickness": 1,
@@ -58,6 +61,7 @@
       "file": "case-0.png"
     },
     {
+      "ppem": 18,
       "width": 11,
       "height": 23,
       "thickness": 1,
@@ -69,6 +73,7 @@
       "file": "case-1.png"
     },
     {
+      "ppem": 28,
       "width": 18,
       "height": 36,
       "thickness": 2,
@@ -80,6 +85,7 @@
       "file": "case-2.png"
     },
     {
+      "ppem": 20,
       "width": 13,
       "height": 27,
       "thickness": 1,
@@ -91,6 +97,7 @@
       "file": "case-3.png"
     },
     {
+      "ppem": 25,
       "width": 16,
       "height": 34,
       "thickness": 2,
@@ -102,6 +109,7 @@
       "file": "case-4.png"
     },
     {
+      "ppem": 40,
       "width": 26,
       "height": 54,
       "thickness": 2,
@@ -113,6 +121,7 @@
       "file": "case-5.png"
     },
     {
+      "ppem": 28,
       "width": 18,
       "height": 36,
       "thickness": 2,
@@ -124,6 +133,7 @@
       "file": "case-6.png"
     },
     {
+      "ppem": 35,
       "width": 23,
       "height": 45,
       "thickness": 2,
@@ -135,6 +145,7 @@
       "file": "case-7.png"
     },
     {
+      "ppem": 56,
       "width": 36,
       "height": 72,
       "thickness": 3,
@@ -146,6 +157,7 @@
       "file": "case-8.png"
     },
     {
+      "ppem": 25,
       "width": 16,
       "height": 34,
       "thickness": 2,
@@ -157,6 +169,7 @@
       "file": "case-9.png"
     },
     {
+      "ppem": 14,
       "width": 18,
       "height": 36,
       "thickness": 1,
@@ -168,6 +181,7 @@
       "file": "case-10.png"
     },
     {
+      "ppem": 18,
       "width": 23,
       "height": 45,
       "thickness": 1,
@@ -179,6 +193,7 @@
       "file": "case-11.png"
     },
     {
+      "ppem": 28,
       "width": 36,
       "height": 72,
       "thickness": 2,
@@ -190,6 +205,7 @@
       "file": "case-12.png"
     },
     {
+      "ppem": 16,
       "width": 18,
       "height": 36,
       "thickness": 1,
@@ -201,6 +217,7 @@
       "file": "case-13.png"
     },
     {
+      "ppem": 20,
       "width": 23,
       "height": 45,
       "thickness": 1,
@@ -212,6 +229,7 @@
       "file": "case-14.png"
     },
     {
+      "ppem": 32,
       "width": 36,
       "height": 72,
       "thickness": 2,
@@ -223,10 +241,11 @@
       "file": "case-15.png"
     },
     {
+      "ppem": 16,
       "width": 18,
       "height": 36,
       "thickness": 1,
-      "fontSize": 18,
+      "fontSize": 16.1,
       "span": 1,
       "dpr": 1,
       "tileWidth": 26,
@@ -234,6 +253,43 @@
       "file": "case-16.png"
     },
     {
+      "ppem": 20,
+      "width": 23,
+      "height": 45,
+      "thickness": 1,
+      "fontSize": 16.1,
+      "span": 1,
+      "dpr": 1.25,
+      "tileWidth": 33,
+      "tileHeight": 67,
+      "file": "case-17.png"
+    },
+    {
+      "ppem": 32,
+      "width": 36,
+      "height": 72,
+      "thickness": 2,
+      "fontSize": 16.1,
+      "span": 1,
+      "dpr": 2,
+      "tileWidth": 54,
+      "tileHeight": 108,
+      "file": "case-18.png"
+    },
+    {
+      "ppem": 18,
+      "width": 18,
+      "height": 36,
+      "thickness": 1,
+      "fontSize": 18,
+      "span": 1,
+      "dpr": 1,
+      "tileWidth": 26,
+      "tileHeight": 54,
+      "file": "case-19.png"
+    },
+    {
+      "ppem": 23,
       "width": 23,
       "height": 45,
       "thickness": 2,
@@ -242,9 +298,10 @@
       "dpr": 1.25,
       "tileWidth": 33,
       "tileHeight": 67,
-      "file": "case-17.png"
+      "file": "case-20.png"
     },
     {
+      "ppem": 36,
       "width": 36,
       "height": 72,
       "thickness": 2,
@@ -253,9 +310,10 @@
       "dpr": 2,
       "tileWidth": 54,
       "tileHeight": 108,
-      "file": "case-18.png"
+      "file": "case-21.png"
     },
     {
+      "ppem": 20,
       "width": 18,
       "height": 36,
       "thickness": 1,
@@ -264,46 +322,14 @@
       "dpr": 1,
       "tileWidth": 26,
       "tileHeight": 54,
-      "file": "case-19.png"
-    },
-    {
-      "width": 23,
-      "height": 45,
-      "thickness": 2,
-      "fontSize": 20,
-      "span": 1,
-      "dpr": 1.25,
-      "tileWidth": 33,
-      "tileHeight": 67,
-      "file": "case-20.png"
-    },
-    {
-      "width": 36,
-      "height": 72,
-      "thickness": 2,
-      "fontSize": 20,
-      "span": 1,
-      "dpr": 2,
-      "tileWidth": 54,
-      "tileHeight": 108,
-      "file": "case-21.png"
-    },
-    {
-      "width": 18,
-      "height": 36,
-      "thickness": 2,
-      "fontSize": 24,
-      "span": 1,
-      "dpr": 1,
-      "tileWidth": 26,
-      "tileHeight": 54,
       "file": "case-22.png"
     },
     {
+      "ppem": 25,
       "width": 23,
       "height": 45,
       "thickness": 2,
-      "fontSize": 24,
+      "fontSize": 20,
       "span": 1,
       "dpr": 1.25,
       "tileWidth": 33,
@@ -311,6 +337,79 @@
       "file": "case-23.png"
     },
     {
+      "ppem": 40,
+      "width": 36,
+      "height": 72,
+      "thickness": 2,
+      "fontSize": 20,
+      "span": 1,
+      "dpr": 2,
+      "tileWidth": 54,
+      "tileHeight": 108,
+      "file": "case-24.png"
+    },
+    {
+      "ppem": 20,
+      "width": 18,
+      "height": 36,
+      "thickness": 1,
+      "fontSize": 20.1,
+      "span": 1,
+      "dpr": 1,
+      "tileWidth": 26,
+      "tileHeight": 54,
+      "file": "case-25.png"
+    },
+    {
+      "ppem": 25,
+      "width": 23,
+      "height": 45,
+      "thickness": 2,
+      "fontSize": 20.1,
+      "span": 1,
+      "dpr": 1.25,
+      "tileWidth": 33,
+      "tileHeight": 67,
+      "file": "case-26.png"
+    },
+    {
+      "ppem": 40,
+      "width": 36,
+      "height": 72,
+      "thickness": 2,
+      "fontSize": 20.1,
+      "span": 1,
+      "dpr": 2,
+      "tileWidth": 54,
+      "tileHeight": 108,
+      "file": "case-27.png"
+    },
+    {
+      "ppem": 24,
+      "width": 18,
+      "height": 36,
+      "thickness": 2,
+      "fontSize": 24,
+      "span": 1,
+      "dpr": 1,
+      "tileWidth": 26,
+      "tileHeight": 54,
+      "file": "case-28.png"
+    },
+    {
+      "ppem": 30,
+      "width": 23,
+      "height": 45,
+      "thickness": 2,
+      "fontSize": 24,
+      "span": 1,
+      "dpr": 1.25,
+      "tileWidth": 33,
+      "tileHeight": 67,
+      "file": "case-29.png"
+    },
+    {
+      "ppem": 48,
       "width": 36,
       "height": 72,
       "thickness": 3,
@@ -319,9 +418,10 @@
       "dpr": 2,
       "tileWidth": 54,
       "tileHeight": 108,
-      "file": "case-24.png"
+      "file": "case-30.png"
     },
     {
+      "ppem": 28,
       "width": 18,
       "height": 36,
       "thickness": 2,
@@ -330,9 +430,10 @@
       "dpr": 1,
       "tileWidth": 26,
       "tileHeight": 54,
-      "file": "case-25.png"
+      "file": "case-31.png"
     },
     {
+      "ppem": 35,
       "width": 23,
       "height": 45,
       "thickness": 2,
@@ -341,9 +442,10 @@
       "dpr": 1.25,
       "tileWidth": 33,
       "tileHeight": 67,
-      "file": "case-26.png"
+      "file": "case-32.png"
     },
     {
+      "ppem": 56,
       "width": 36,
       "height": 72,
       "thickness": 3,
@@ -352,9 +454,10 @@
       "dpr": 2,
       "tileWidth": 54,
       "tileHeight": 108,
-      "file": "case-27.png"
+      "file": "case-33.png"
     },
     {
+      "ppem": 32,
       "width": 18,
       "height": 36,
       "thickness": 2,
@@ -363,9 +466,10 @@
       "dpr": 1,
       "tileWidth": 26,
       "tileHeight": 54,
-      "file": "case-28.png"
+      "file": "case-34.png"
     },
     {
+      "ppem": 40,
       "width": 23,
       "height": 45,
       "thickness": 2,
@@ -374,9 +478,10 @@
       "dpr": 1.25,
       "tileWidth": 33,
       "tileHeight": 67,
-      "file": "case-29.png"
+      "file": "case-35.png"
     },
     {
+      "ppem": 64,
       "width": 36,
       "height": 72,
       "thickness": 4,
@@ -385,7 +490,7 @@
       "dpr": 2,
       "tileWidth": 54,
       "tileHeight": 108,
-      "file": "case-30.png"
+      "file": "case-36.png"
     }
   ]
 }

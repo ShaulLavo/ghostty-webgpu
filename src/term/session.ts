@@ -1,3 +1,4 @@
+import { normalizeFontMetrics } from './font-metrics.js'
 import {
   ClipboardLocation,
   ClipboardWriteResult,
@@ -638,6 +639,13 @@ function nativeGrid(grid: TerminalGrid): TerminalSize {
   }
 }
 
+function updatedFontMetrics(current: TerminalFontSettings, next: Partial<TerminalFontSettings>) {
+  if ('metrics' in next) return normalizeFontMetrics(next.metrics)
+  if (next.family !== undefined && next.family !== current.family) return undefined
+  if (next.weight !== undefined && next.weight !== current.weight) return undefined
+  return current.metrics
+}
+
 function normalizeFont(
   current: TerminalFontSettings,
   next: Partial<TerminalFontSettings> = {},
@@ -646,7 +654,9 @@ function normalizeFont(
   if (typeof family !== 'string' || family.length === 0) {
     throw new TypeError('font.family must be a non-empty string')
   }
+  const metrics = updatedFontMetrics(current, next)
   return Object.freeze({
+    ...(metrics ? { metrics } : {}),
     boldWeight: validateFontWeight('font.boldWeight', next.boldWeight ?? current.boldWeight),
     family: family.slice(),
     letterSpacing: validateFinite(
