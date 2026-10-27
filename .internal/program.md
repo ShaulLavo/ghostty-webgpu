@@ -2,7 +2,7 @@
 
 Start with one instruction:
 
-> Run ghostty-webgpu/.internal/program.md autonomously. Resume the current autoresearch checkpoint using the host's research binding. Research for at most four experiments or 60 elapsed minutes. Continue after each KEEP or REJECT without asking me to choose the next experiment.
+> Run .internal/program.md in ghostty-webgpu autonomously. Resume the current autoresearch checkpoint using the host's research binding. Research for at most four experiments or 60 elapsed minutes. Continue after each KEEP or REJECT without asking me to choose the next experiment.
 
 The agent performs the loop. The checkpoint helper saves continuation state. It does not launch agents, schedule hardware, benchmark, or decide acceptance.
 
@@ -10,9 +10,9 @@ If the current checkpoint is a stopped setup dry run, read it as prior evidence.
 
 ## Load the current research
 
-1. Read root `AGENTS.md`, `ghostty-webgpu/AGENTS.md`, and applicable skills. On the owner's host, load `fregat-local` and the current research standing orders. Use the existing coordinator and hardware executor when that programme owns resources. Autoresearch grants no new permissions.
+1. Read `AGENTS.md` and applicable skills. On the owner's host, also read the current research standing orders and the latest study, `.internal/reference-study-2026-10/` (its `next-steps.md` is the active plan). Use the existing coordinator and hardware executor when that programme owns resources. Autoresearch grants no new permissions.
 2. Read the host's research binding and this run's checkpoint. Resolve the latest authoritative research checkpoint, results, renderer/realm status matrix, counterpart policy, decision log, and experiment closures. Inspect their contents and update times. An experiment's later final report can supersede a stale summary's "not yet measured" status. Preserve both records.
-3. Read recent Fregat commits, open PRs/issues and their comments, and relevant experiment worktrees. Development belongs in this monorepo. Its current source is authoritative. The standalone mirror supplies no development baseline.
+3. Read recent ghostty-webgpu commits, open PRs and their comments, and relevant experiment worktrees. Development happens in this standalone repository; its current `main` is authoritative. Fregat history before 2026-10-26 is background evidence only.
 4. Resolve the current source commit, runtime inputs, benchmark driver, dependencies, WASM and font assets. Check source applicability against each acquisition pin. Record applicability separately. Never relabel an older acquired source with today's commit.
 5. Recover unfinished work before creating an experiment. Inspect the exact worktree, diff, owned processes, hardware admission, original output directory, and recorded window identity. A live owned job is observed, not relaunched. A completed window is analyzed, not measured again.
 
@@ -31,7 +31,7 @@ Prefer material improvements with little additional state or complexity. Keep a 
 ## Register, isolate, and measure
 
 1. Create a unique experiment ID and evidence directory under the existing research root. Record the hypothesis in the existing decision log. Save the `implement` checkpoint before changing source.
-2. Use an owned Fregat worktree under the host's approved worktree root. Record branch and full base SHA. Keep peer worktrees and the shared checkout untouched. Claim an open issue before working on it. A retained candidate can be recovered from its recorded patch and source overlay, after applicability checks.
+2. Use an owned ghostty-webgpu worktree under the host's approved worktree root. Record branch and full base SHA. Keep peer worktrees and the shared checkout untouched. Claim an open issue before working on it. A retained candidate can be recovered from its recorded patch and source overlay, after applicability checks.
 3. Freeze the protocol before launching a window. Reuse its existing registration, runner, comparison, analyzer, qualification, and evidence machinery. Record exact commands, source/bundle/driver pins, assets, workload, arms, order, thresholds, host/backend/realm, CPU accounting, endpoint, replacement policy, and output identities. Preserve the original protocol file and digest.
 4. Change only the runtime files required by the hypothesis. Commit the isolated candidate by path so its source can be recovered. Existing benchmark files, workload bodies, counterpart implementations, acceptance thresholds, scoring, and acquisition guards are outside experiment edit scope. A benchmark defect requires separate work and a new prospective protocol. Its fix cannot rescue old results.
 5. Run the narrowest existing correctness or benchmark check first. Use a small schema/mechanics screen when the existing procedure calls for one. Record `screen`, the command, owned job/process IDs, output path, and window ID before launch. Preserve stdout, stderr, exit code, partial output, and cleanup evidence, including failed admission.
@@ -67,7 +67,7 @@ Use the original noise and resolution rules. The comparison reporter leaves CPU 
 
 A rejected acquisition remains a rejection. Only the existing prospectively registered invalid-window replacement policy permits a replacement, under a new identity with the original failure linked. Never waive, reinterpret, rescore, stitch, improperly repeat, or silently drop a failed result. A crash fix changes source and experiment identity. It does not overwrite the original failure.
 
-**KEEP** requires the existing qualification and correctness gates, a material supported improvement, and acceptable regressions under the original policy. Record the exact scope that won. Retain a qualified commit on its owned branch or integrate it through Fregat's existing patch-changeset, independent review, CI, merge, and deployment procedure. Respect existing owner/coordinator boundaries. No speculative merge demonstrates this loop.
+**KEEP** requires the existing qualification and correctness gates, a material supported improvement, and acceptable regressions under the original policy. Record the exact scope that won. Retain a qualified commit on its owned branch or integrate it through this repository's PR, independent review, CI and merge procedure. Respect existing owner/coordinator boundaries. No speculative merge demonstrates this loop.
 
 An exploratory win remains a candidate in `qualify`. It cannot be promoted by wording its limitations away. If a qualified candidate stays on a research branch, call it retained and unmerged. Record that exact branch as the accepted research source.
 
@@ -81,11 +81,11 @@ Stop for a genuine blocker, a current authorization/safety boundary, exhaustion 
 
 Keep continuation state in `autoresearch-checkpoint.json` inside the existing research evidence directory, owned by this run. Keep measurement records in their existing experiment packets, and decisions in the existing decision log. The root research matrix and coordinator state remain with their established writer. This file points to those authorities and carries the agent's next action.
 
-Use the helper from the Fregat root:
+Use the helper from the repository root:
 
 ```sh
-node ghostty-webgpu/scripts/autoresearch-checkpoint.mjs read "$checkpoint"
-node ghostty-webgpu/scripts/autoresearch-checkpoint.mjs write "$checkpoint" new "$input"
+node scripts/autoresearch-checkpoint.mjs read "$checkpoint"
+node scripts/autoresearch-checkpoint.mjs write "$checkpoint" new "$input"
 # Subsequent writes use the sha256 returned by read, in place of new.
 ```
 
@@ -126,10 +126,10 @@ On resume, recover the current experiment first. Verify outputs and process stat
 
 ## Methodology source and setup proof
 
-This loop adapts [Karpathy's program.md at 228791f](https://github.com/karpathy/autoresearch/blob/228791fb499afffb54b46200aca536f79142f117/program.md), read on 2026-10-06. It retains an agent-facing programme, bounded isolated experiments, fixed evaluation, baseline advancement, negative-result records, and autonomous continuation. Fregat's metrics, resource rules, qualification, stop conditions, and worktree discipline govern execution.
+This loop adapts [Karpathy's program.md at 228791f](https://github.com/karpathy/autoresearch/blob/228791fb499afffb54b46200aca536f79142f117/program.md), read on 2026-10-06. It retains an agent-facing programme, bounded isolated experiments, fixed evaluation, baseline advancement, negative-result records, and autonomous continuation. This repository's metrics, resource rules, qualification, stop conditions, and worktree discipline govern execution.
 
 The [setup proof](autoresearch-setup.md) records the bounded dry run. Run the checkpoint regression check with:
 
 ```sh
-node --test ghostty-webgpu/scripts/autoresearch-checkpoint.test.mjs
+node --test scripts/autoresearch-checkpoint.test.mjs
 ```

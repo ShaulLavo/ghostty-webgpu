@@ -74,7 +74,7 @@ These are product choices more than speed work. Each starts with a correctness t
 | B2  | Upstream proposal: a freestanding `font/sprite` module with explicit I/O, so native sprites need no patch               | Write it ready to file in `/work/reports/ghostty-upstream/README.md`, with lane 08's exact errors and shape        |
 | B3  | coder/ghostty-web 0.4.0 crashes the renderer process on the 13th ZWJ-heavy write; empty writes reject with `RangeError` | Add a ready-to-file entry to `/work/reports/upstream-bugs/README.md` from lane 07b's `base-smoke` packet           |
 | B4  | xterm.js 6.0.0 drops ZWJ joiners on the one-byte parser path                                                            | Same file, from the same packet                                                                                    |
-| B5  | `.internal/program.md` still says development happens in the Fregat monorepo, with Fregat-root commands                 | Rewrite for the standalone repo, folded into the first Phase 1 PR                                                  |
+| B5  | `.internal/program.md` still said development happens in the Fregat monorepo, with Fregat-root commands                 | Done in the plan's PR                                                                                              |
 | B6  | `docs/concepts.md` says GPU renderers upload changed ranges without saying only WebGPU reuses rows on scroll            | One-line fix, folded into F4's PR                                                                                  |
 | B7  | Untracked 19 MB `references/xterm.js` left in the shared checkout from a removed submodule                              | Delete after confirming nothing references it                                                                      |
 
@@ -87,7 +87,7 @@ These are product choices more than speed work. Each starts with a correctness t
 - **X5** waits for M3. If wraithterm doesn't beat our dense path end to end, X5 drops to Phase 3.
 - **X4** waits for M2's WebGPU worker numbers.
 
-## Owner decisions
+## Decisions
 
-- **Product priority of C2 (ligatures) and C3 (BiDi):** schedule them now, or after Phase 2. Without an answer they run after Phase 2.
-- **Global instructions:** `~/.agents/AGENTS.md` still calls ghostty-webgpu a read-only mirror of Fregat. Should an agent correct it?
+- **Ligatures (C2) and BiDi (C3) run after Phase 2** (owner left it to the coordinator, 2026-10-27). Neither is a gap against the ghostty-web baseline, and Phase 1 and 2 address measured costs. Their correctness test sets start during Phase 2, so the prototypes can begin as soon as Phase 2 ends.
+- **Global instructions corrected** (owner, 2026-10-27): `~/.agents/AGENTS.md` now describes ghostty-webgpu, singapore and hotkeys as standalone repos.
