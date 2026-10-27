@@ -33,11 +33,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 ## Procedural terminal sprites
 
-The procedural atlas glyphs and native comparison fixtures adapt Ghostty's sprite
-geometry at revision `7b11f3dca034d8d24369ad3856afe57946d7902a`, specifically
-`src/font/sprite/draw/{box,block,braille,powerline,symbols_for_legacy_computing,common}.zig`.
-The native fixture generator uses the same revision's sprite canvas and the pinned
-z2d dependency. Ghostty's MIT license and copyright notice appear above.
+The procedural atlas glyphs, native comparison fixtures, and glyph constraint rules adapt Ghostty's
+geometry and layout behavior at revision `7b11f3dca034d8d24369ad3856afe57946d7902a`, specifically
+`src/font/sprite/draw/{box,block,braille,powerline,symbols_for_legacy_computing,common}.zig`,
+`src/font/Glyph.zig`, `src/font/nerd_font_tables.zig`, and `src/renderer/cell.zig`.
+The native fixture generators use the same revision's sources. Ghostty's MIT license and copyright
+notice appear above.
 
 ## ghostty.org home animation
 
@@ -89,6 +90,16 @@ the npm package.
 - Source: <https://github.com/JetBrains/JetBrainsMono>
 - License: SIL Open Font License 1.1, reproduced in
   `src/render/shared/atlas/sprite-fixtures/FONT-LICENSE.txt`.
+
+## JetBrains Mono Nerd Font constraint reference font
+
+The glyph constraint regression fixture includes the unmodified JetBrains Mono Nerd Font regular
+face bundled by Ghostty at revision `7b11f3dca034d8d24369ad3856afe57946d7902a`. It is test data and
+is not included in the npm package.
+
+- Source: <https://github.com/ryanoasis/nerd-fonts>, `patched-fonts/JetBrainsMono`
+- License: SIL Open Font License 1.1, reproduced in
+  `src/render/shared/atlas/constraint-fixtures/FONT-LICENSE.txt`.
 
 ## Noto Sans Mono
 

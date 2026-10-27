@@ -731,6 +731,35 @@ describe('WASM frame records', () => {
         .reduce((bytes, range) => bytes + range.cell.byteLength + range.glyph.byteLength, 0),
     ).toBe(2 * 12 * (64 + 96))
   })
+
+  it('rerasterizes symbols when neighbor changes alter their available width', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 4, rows: 1 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25l')
+    state.update()
+    builder = state.createFrameBuilder(4, 1)
+    expect(builder.build(options)).toBe(2)
+    expect(
+      builder.missingGlyphs
+        .map((key) => builder!.glyphInput(key))
+        .filter((input) => input.text === '')
+        .map((input) => input.constraintWidth),
+    ).toEqual([2])
+    for (const key of builder.missingGlyphs) builder.registerGlyph(key, glyph)
+    expect(builder.build(options)).toBe(0)
+    state.acknowledge()
+
+    terminal.write('\x1b[1;2Hz')
+    state.update()
+    expect(builder.build({ ...options, full: false })).toBe(2)
+    expect(
+      builder.missingGlyphs
+        .map((key) => builder!.glyphInput(key))
+        .filter((input) => input.text === '')
+        .map((input) => input.constraintWidth),
+    ).toEqual([1])
+  })
 })
 
 function expectGlyphDescriptors(

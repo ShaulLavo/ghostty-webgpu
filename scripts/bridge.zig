@@ -616,10 +616,52 @@ fn missingGlyph(frame: *Frame, key: *glyph_index.Entry) c.GhosttyResult {
     return c.GHOSTTY_SUCCESS;
 }
 
+fn isSymbol(cp: u32) bool {
+    return (cp >= 0xe000 and cp <= 0xf8ff) or
+        (cp >= 0xf0000 and cp <= 0xffffd) or
+        (cp >= 0x100000 and cp <= 0x10fffd) or
+        (cp >= 0x2190 and cp <= 0x21ff) or
+        (cp >= 0x2700 and cp <= 0x27bf) or
+        (cp >= 0x1f600 and cp <= 0x1f64f) or
+        (cp >= 0x2600 and cp <= 0x26ff) or
+        (cp >= 0x2460 and cp <= 0x24ff) or
+        (cp >= 0x1f100 and cp <= 0x1f1ff) or
+        (cp >= 0x1f300 and cp <= 0x1f5ff) or
+        (cp >= 0x1f680 and cp <= 0x1f6ff);
+}
+
+fn isGraphicsElement(cp: u32) bool {
+    return (cp >= 0x2500 and cp <= 0x259f) or
+        (cp >= 0x1fb00 and cp <= 0x1fbff) or
+        (cp >= 0x1cc00 and cp <= 0x1cebf) or
+        (cp >= 0xe0b0 and cp <= 0xe0d7);
+}
+
+fn constraintWidth(raws: []const c.GhosttyCell, x: u32, span: u32, cp: u32, out: *u32) c.GhosttyResult {
+    out.* = 1;
+    if (span > 1) {
+        out.* = 2;
+        return c.GHOSTTY_SUCCESS;
+    }
+    if (!isSymbol(cp) or x + 1 >= raws.len) return c.GHOSTTY_SUCCESS;
+    if (x > 0) {
+        var previous: u32 = 0;
+        const result = c.ghostty_cell_get(raws[x - 1], c.GHOSTTY_CELL_DATA_CODEPOINT, &previous);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (isSymbol(previous) and !isGraphicsElement(previous)) return c.GHOSTTY_SUCCESS;
+    }
+    var next: u32 = 0;
+    const result = c.ghostty_cell_get(raws[x + 1], c.GHOSTTY_CELL_DATA_CODEPOINT, &next);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (next == 0 or next == 0x20 or next == 0x2002) out.* = 2;
+    return c.GHOSTTY_SUCCESS;
+}
+
 const CellContent = struct {
     codepoint: u32,
     continuation: bool,
     span: u32,
+    constraint_width: u32,
     tag: c.GhosttyCellContentTag,
 };
 
@@ -683,6 +725,7 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
         .foreground = foreground,
         .background = background,
         .minimum_contrast = frame.glyph_minimum_contrast,
+        .constraint_width = content.constraint_width,
     }) orelse return c.GHOSTTY_OUT_OF_MEMORY;
     frame.row_cache.?.next[y].cells[x].key = key;
     frame.row_cache.?.next[y].cells[x].registration = key.registration;
@@ -742,6 +785,9 @@ fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, 
         if (result != c.GHOSTTY_SUCCESS) return result;
         if (next_wide != c.GHOSTTY_CELL_WIDE_SPACER_TAIL) break;
     }
+    var constraint_width: u32 = 1;
+    result = constraintWidth(raws, x, span, codepoint, &constraint_width);
+    if (result != c.GHOSTTY_SUCCESS) return result;
     frame.row_cache.?.next[y].cells[x] = .{
         .raw = raw,
         .foreground = fg,
@@ -755,16 +801,18 @@ fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, 
         .codepoint = codepoint,
         .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL,
         .span = span,
+        .constraint_width = constraint_width,
         .tag = tag,
     }, style, fg, bg, selected);
 }
 
 fn rememberRenderedCell(cache: *FrameCache, slot: usize, input: CachedCell) void {
+    const symbol = if (input.key) |key| key.key.text_len > 0 and isSymbol(key.key.text[0]) else false;
     cache.rendered[slot] = .{
         .raw = input.raw,
         .key = input.key,
         .registration = input.registration,
-        .reusable = !input.styled and input.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT and
+        .reusable = !symbol and !input.styled and input.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT and
             (input.key == null or input.key.?.key.span == 1),
     };
 }
