@@ -39,6 +39,8 @@ export default defineConfig({
       ui: false,
       instances: [{ browser: engine }],
       provider: playwright({
+        contextOptions:
+          engine === 'chromium' ? { permissions: ['clipboard-read', 'clipboard-write'] } : {},
         launchOptions:
           engine === 'chromium'
             ? {
