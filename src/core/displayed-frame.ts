@@ -43,7 +43,6 @@ function movedRow(row: RenderTextRow, y: number): RenderTextRow {
 /** Text rows memoized by native text revision, which follows row identity while text is equal. */
 class RevisionTextCache {
   private rows = new Map<number, RenderTextRow>()
-  private lastRead: readonly number[] = []
   private revisions = 0
   private revisionsSize = 0
   extractedRows = 0
@@ -55,7 +54,7 @@ class RevisionTextCache {
     private readonly reader: TextRowReader,
   ) {}
 
-  read(slot: NativeSlot): readonly RenderTextRow[] {
+  read(slot: NativeSlot, readable: readonly (NativeSlot | undefined)[]): readonly RenderTextRow[] {
     this.observed = true
     const revisions = this.readRevisions(slot)
     const result: RenderTextRow[] = Array.from({ length: slot.rows })
@@ -66,7 +65,7 @@ class RevisionTextCache {
       else missing.add(y)
     }
     if (missing.size > 0) this.extract(slot, missing, revisions, result)
-    this.prune(revisions)
+    this.prune(readable)
     return Object.freeze(result)
   }
 
@@ -90,11 +89,11 @@ class RevisionTextCache {
     this.extractedRows += missing.size
   }
 
-  // Readers ask for the current frame and the one before it, so two reads bound the working set.
-  private prune(revisions: readonly number[]): void {
-    const keep = new Set(revisions)
-    for (const revision of this.lastRead) keep.add(revision)
-    this.lastRead = revisions
+  // Only rows of frames that can still be read stay cached.
+  private prune(readable: readonly (NativeSlot | undefined)[]): void {
+    const keep = new Set<number>()
+    for (const slot of readable)
+      if (slot) for (const revision of this.readRevisions(slot)) keep.add(revision)
     if (this.rows.size <= keep.size) return
     for (const revision of this.rows.keys()) if (!keep.has(revision)) this.rows.delete(revision)
   }
@@ -116,7 +115,6 @@ class RevisionTextCache {
     if (this.revisions !== 0) this.runtime.memory.free(this.revisions, this.revisionsSize)
     this.revisions = 0
     this.rows.clear()
-    this.lastRead = []
   }
 }
 
@@ -135,6 +133,10 @@ interface DisplayedFrames {
 
 const noOptions = Object.freeze({})
 const emptyTextRows: readonly RenderTextRow[] = Object.freeze([])
+
+function readableSlots(frames: DisplayedFrames): readonly (NativeSlot | undefined)[] {
+  return [frames.current, frames.previous, frames.pending]
+}
 
 class DisplayedFrame implements NativeDisplayedFrame {
   #rows: readonly RenderTextRow[] | undefined
@@ -170,13 +172,16 @@ class DisplayedFrame implements NativeDisplayedFrame {
     this.active()
     if (options.rows)
       return this.frames.textReader.read(this.current.handle, 0, 0, this.current, options)
-    return (this.#rows ??= this.frames.textCache.read(this.current))
+    return (this.#rows ??= this.frames.textCache.read(this.current, readableSlots(this.frames)))
   }
 
   readPreviousTextRows(): readonly RenderTextRow[] {
     this.active()
     if (!this.previous) return emptyTextRows
-    return (this.#previousRows ??= this.frames.textCache.read(this.previous))
+    return (this.#previousRows ??= this.frames.textCache.read(
+      this.previous,
+      readableSlots(this.frames),
+    ))
   }
 
   private pending(): boolean {
