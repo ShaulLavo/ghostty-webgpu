@@ -5,6 +5,7 @@ import type { ReadTextRowsOptions, RenderTextRow, TerminalSize } from './types.j
 const rowWords = 3
 const cellWords = 3
 const continuationFlag = 0x80000000
+const emptyGraphemes = new Uint32Array(0)
 
 function cellText(words: Uint32Array, offset: number, graphemes: Uint32Array): string {
   const length = words[offset + 2]!
@@ -104,12 +105,63 @@ function copiedTextRow(y: number, words: Uint32Array, graphemes: Uint32Array): R
   })
 }
 
+function ownedAsciiRow(
+  y: number,
+  words: Uint32Array,
+  bytes: Uint8Array,
+  decoder: TextDecoder,
+): RenderTextRow {
+  const length = words.length / cellWords
+  const blanks = new Uint32Array(Math.ceil(length / 32))
+  for (let index = 0; index < length; index += 1) {
+    const codepoint = words[index * cellWords]!
+    bytes[index] = codepoint || 0x20
+    if (codepoint === 0) blanks[index >>> 5]! |= 1 << (index & 31)
+  }
+  return copiedAsciiRow(y, decoder.decode(bytes.subarray(0, length)), 0, blanks)
+}
+
+function ownedTextRow(y: number, words: Uint32Array, graphemes: Uint32Array): RenderTextRow {
+  const records = words.slice()
+  // Native snapshot graphemes are contiguous within each row.
+  const base = records[1] ?? 0
+  const end = (records.at(-2) ?? 0) + (records.at(-1) ?? 0)
+  for (let offset = 1; offset < records.length; offset += cellWords) records[offset]! -= base
+  const owned = base === end ? emptyGraphemes : graphemes.slice(base, end)
+  return copiedTextRow(y, records, owned)
+}
+
+function ownedRows(
+  metadata: Uint32Array,
+  words: Uint32Array,
+  graphemes: Uint32Array,
+  ascii: { bytes: Uint8Array; decoder: TextDecoder } | undefined,
+): readonly RenderTextRow[] {
+  const rows: RenderTextRow[] = []
+  for (let offset = 0; offset < metadata.length; offset += rowWords) {
+    const y = metadata[offset]!
+    const start = metadata[offset + 1]! * cellWords
+    const end = start + metadata[offset + 2]! * cellWords
+    const cells = words.subarray(start, end)
+    rows.push(
+      ascii
+        ? ownedAsciiRow(y, cells, ascii.bytes, ascii.decoder)
+        : ownedTextRow(y, cells, graphemes),
+    )
+  }
+  return Object.freeze(rows)
+}
+
 export class TextRowReader {
   private readonly snapshots: SnapshotReader
   private readonly decoder = new TextDecoder()
   private asciiBytes: Uint8Array = new Uint8Array(0)
 
-  constructor(runtime: GhosttyRuntime, extract?: ExtractSnapshot) {
+  constructor(
+    runtime: GhosttyRuntime,
+    extract?: ExtractSnapshot,
+    private readonly ownership: 'packet' | 'row' = 'packet',
+  ) {
     this.snapshots = new SnapshotReader(runtime, {
       rowWords,
       cellWords,
@@ -130,8 +182,15 @@ export class TextRowReader {
     if (snapshot.graphemes.length === 0 && (this.snapshots.codepointMask & ~0x7f) === 0) {
       const length = snapshot.cells.length / cellWords
       if (this.asciiBytes.length < length) this.asciiBytes = new Uint8Array(length)
+      if (this.ownership === 'row')
+        return ownedRows(snapshot.rows, snapshot.cells, snapshot.graphemes, {
+          bytes: this.asciiBytes,
+          decoder: this.decoder,
+        })
       return copiedAsciiRows(snapshot.rows, snapshot.cells, this.asciiBytes, this.decoder)
     }
+    if (this.ownership === 'row')
+      return ownedRows(snapshot.rows, snapshot.cells, snapshot.graphemes, undefined)
     const records = snapshot.cells.slice()
     const graphemes = snapshot.graphemes.slice()
     const rows: RenderTextRow[] = []

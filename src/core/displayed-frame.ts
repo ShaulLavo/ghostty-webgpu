@@ -206,8 +206,10 @@ export class DisplayedFrameStore {
   private readonly frames: DisplayedFrames
 
   constructor(private readonly runtime: GhosttyRuntime) {
-    const textReader = new TextRowReader(runtime, (...args) =>
-      runtime.bridge.readRetainedText(...args),
+    const textReader = new TextRowReader(
+      runtime,
+      (...args) => runtime.bridge.readRetainedText(...args),
+      'row',
     )
     this.frames = {
       disposed: false,

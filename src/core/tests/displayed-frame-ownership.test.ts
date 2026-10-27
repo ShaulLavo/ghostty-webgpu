@@ -68,7 +68,7 @@ function expectOwnedRows(rows: readonly RenderTextRow[]): void {
   }
 }
 
-it('bounds progressively frozen retained text by two live grid packets', async () => {
+it('retains exactly one grid of copied bytes while displayed rows freeze', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal(grid)
   const state = runtime.createRenderState(terminal)
@@ -93,7 +93,7 @@ it('bounds progressively frozen retained text by two live grid packets', async (
       Array.from({ length: grid.rows }, (_, y) => ({ y, text: rowText(y, y) })),
     )
     runtime.dispose()
-    expect(await payload.bytes()).toBeLessThanOrEqual(2 * grid.rows * (grid.columns * 12 + 64))
+    expect(await payload.bytes()).toBe(50_000)
     expectOwnedRows(latest!)
     latest = undefined
     expect(await payload.bytes()).toBe(0)

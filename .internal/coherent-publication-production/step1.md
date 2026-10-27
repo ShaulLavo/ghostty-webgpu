@@ -123,3 +123,24 @@ payloads and counts; the Mac's sixteen-terminal transient heap cost is about +0.
 +0.10 MiB scroll. Those normal-path results do not waive the ownership failure. The new regression
 is deliberately red on this local checkpoint. No branch is pushed, no PR is opened and no later
 production step is started.
+
+## Row-owned insertion
+
+The coordinator authorized a new ownership mechanism after A57 reproduced. Ownership is a hard
+gate. The final progressively frozen viewport must retain exactly 50,000 copied bytes, matching
+main. A small ownership cost is acceptable; more than about five percent additional normal-path
+CPU at sixteen terminals is a stop and report. The earlier +one MiB intermediate heap and
+step-3 cumulative gates still apply.
+
+Only the subscriber's retained-text reader uses row ownership. At extraction it copies each row's
+records and that row's graphemes, rebasing the grapheme offsets to the owned span. ASCII rows
+own their blank bitmap and decoded string. Live text and Canvas/DOM reads keep their original
+packet representation. There is no later compaction pass and no conditional paint-row text cache.
+The A57-derived test now requires exactly 50,000 bytes and zero bytes after releasing the final
+owned rows. The new representation passes that previously red test.
+
+Source baseline advances to main `f8f927dab` after its font-metric and symbol changes merged.
+The unsafe cache on that same main is isolated at `0e1994bfaf2f3ee80aea377b116c23a9fbe7ec9f`.
+Fresh same-session pairs against both controls will distinguish the total migration cost from
+row ownership's added cost. Neither earlier measurement packet is reused as qualification for
+this changed implementation.

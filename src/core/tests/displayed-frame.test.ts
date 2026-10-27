@@ -142,6 +142,24 @@ describe('retained native displayed frame', () => {
     expect(serialized(owned)).toBe(held)
   })
 
+  it('owns ASCII blank flags across bitmap words after native disposal', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 40, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[1;33HX\x1b[2;32H Y')
+    state.update()
+    const expected = serialized(state.readTextRows())
+    const frame = state[retainDisplayedFrame]()
+    frame.accept()
+    const owned = frame.readTextRows()
+    runtime.dispose()
+    expect(serialized(owned)).toBe(expected)
+    expect(owned[0]?.cells[31]).toBe('')
+    expect(owned[0]?.cells[32]).toBe('X')
+    expect(owned[1]?.cells[31]).toBe(' ')
+    expect(owned[1]?.cells[32]).toBe('Y')
+  })
+
   it('retains selected cells after native selection is cleared', async () => {
     runtime = await GhosttyRuntime.create()
     const session = await TerminalSession.create<Event>({
