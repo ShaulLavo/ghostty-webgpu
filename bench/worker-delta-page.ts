@@ -5,7 +5,6 @@ import type { RendererTextFrameSnapshot } from '../src/render/shared/types.js'
 
 interface Report {
   frames: number
-  bytes: number
   sequence: number
   writeSequence: number
   rows: string[]
@@ -56,7 +55,6 @@ async function setup(
   rows = height
   reports = Array.from({ length: count }, () => ({
     frames: 0,
-    bytes: 0,
     sequence: 0,
     writeSequence: 0,
     rows: Array.from({ length: rows }, () => ''),
@@ -67,6 +65,7 @@ async function setup(
   executions = []
   eventReports = []
   window.__deltaTimings = []
+  window.__deltaBytes = 0
   sequence = 0
   for (let index = 0; index < count; index += 1) await addControl(mode, index)
   await waitFrames(Array.from({ length: count }, () => 1))
@@ -147,7 +146,7 @@ function report() {
     deliveredFrames: reports.map((value, index) => value.frames - frameStarts[index]!),
     writeCounts,
     rows: reports.map((value) => value.rows),
-    bytes: reports.reduce((sum, value) => sum + value.bytes, 0),
+    bytes: window.__deltaBytes,
     errors,
   }
 }

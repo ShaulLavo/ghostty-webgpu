@@ -69,6 +69,7 @@ export class Reception {
     const start = now()
     let decoded: WorkerMessage
     if ('buffer' in message) {
+      window.__deltaBytes += message.buffer.byteLength
       if (!this.binary) throw new Error('binary packet delivered to control')
       let decoder = this.decoders.get(message.terminal)
       if (!decoder) {
@@ -83,6 +84,7 @@ export class Reception {
 }
 declare global {
   interface Window {
+    __deltaBytes: number
     __deltaTimings: (Timing & { received: number; completed: number })[]
   }
 }
