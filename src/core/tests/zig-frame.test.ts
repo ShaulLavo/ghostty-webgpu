@@ -1177,20 +1177,41 @@ describe('atlas pressure', () => {
         : { ...bitmap, width: 4, height: 4, pixels: new Uint8Array(16).fill(255) },
   }
 
-  it.each([false, true])(
-    'keeps a clean visible glyph resident during eviction, stableRows=%s',
-    async (stableRows) => {
+  it.each([
+    { stableRows: false, kind: 'grayscale' },
+    { stableRows: true, kind: 'grayscale' },
+    { stableRows: false, kind: 'color' },
+    { stableRows: true, kind: 'color' },
+  ] as const)(
+    'keeps a clean visible $kind glyph resident during eviction, stableRows=$stableRows',
+    async ({ stableRows, kind }) => {
+      const rasterizer: GlyphRasterizer = {
+        rasterize: () => ({
+          ...bitmap,
+          kind,
+          width: 4,
+          height: 4,
+          pixels: new Uint8Array(16 * (kind === 'color' ? 4 : 1)).fill(255),
+        }),
+      }
       runtime = await GhosttyRuntime.create()
       const terminal = runtime.createTerminal({ columns: 2, rows: 2 })
       const state = runtime.createRenderState(terminal)
       builder = state.createFrameBuilder(2, 2)
       const atlas = new GlyphAtlas({ pageWidth: 4, pageHeight: 4, padding: 0, maxLayersPerKind: 2 })
       const frameOptions = { ...options, stableRows }
-      terminal.write('\x1b[?25lM\x1b[2;1HA')
+      terminal.write('\x1b[?25l\x1b[2;1HM')
       state.update()
       expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
       state.acknowledge()
-      const retained = builder.glyphData.slice(0, 24)
+      frameOptions.full = false
+      terminal.write('\r\nA')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+      state.acknowledge()
+      expect(builder.stableRows).toBe(stableRows)
+      const retainedOffset = builder.rowOffset * builder.columns * 24
+      const retained = builder.glyphData.slice(retainedOffset, retainedOffset + 24)
       const clear = vi.spyOn(builder, 'clearGlyphs')
       const invalidate = vi.spyOn(atlas, 'invalidateAll')
       frameOptions.full = false
@@ -1200,7 +1221,7 @@ describe('atlas pressure', () => {
         terminal.write(`\x1b[2;1H${text}`)
         state.update()
         expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
-        expect(builder.glyphData.slice(0, 24)).toEqual(retained)
+        expect(builder.glyphData.slice(retainedOffset, retainedOffset + 24)).toEqual(retained)
         expect(atlas.cacheMissCount).toBe(atlas.evictionCount + 2)
         expect(builder.rowRebuilds).toBe(1)
         state.acknowledge()
