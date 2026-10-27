@@ -117,3 +117,51 @@ it('discards text inserted before a pending read fails while pruning', async () 
   expect(retry.readPreviousTextRows()).toEqual(owned)
   expect(owned[0]?.text.trimEnd()).toBe('accepted')
 })
+
+it.each([false, true])(
+  'keeps accepted cache entries when a populated attempt is discarded, failure=%s',
+  async (failure) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 20, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('accepted 界 é')
+    state.update()
+    const accepted = state[retainDisplayedFrame]()
+    accepted.accept()
+    state.acknowledge()
+    const owned = accepted.readTextRows()
+    terminal.write('\r\x1b[2Kabandoned 🧑‍💻')
+    state.update()
+    const pending = state[retainDisplayedFrame]()
+    const revisions = runtime.bridge.readRetainedRevisions.bind(runtime.bridge)
+    let calls = 0
+    const fail = vi.spyOn(runtime.bridge, 'readRetainedRevisions').mockImplementation((...args) => {
+      calls += 1
+      if (failure && calls === 2) throw new Error('injected failure after insertion')
+      revisions(...args)
+    })
+    try {
+      if (failure) expect(() => pending.readTextRows()).toThrow('after insertion')
+      if (!failure) expect(pending.readTextRows()[0]?.text).toContain('abandoned')
+    } finally {
+      fail.mockRestore()
+      pending.discard()
+    }
+    terminal.write('\r\x1b[2Kretry ☕️')
+    state.update()
+    const retry = state[retainDisplayedFrame]()
+    const extract = vi.spyOn(runtime.bridge, 'readRetainedText')
+    try {
+      const previous = retry.readPreviousTextRows()
+      expect(previous).toEqual(owned)
+      expect(previous[0]).toBe(owned[0])
+      expect(extract).not.toHaveBeenCalled()
+      expect(retry.readTextRows()).toEqual(state.readTextRows())
+      retry.accept()
+      expect(retry.readPreviousTextRows()).toEqual(owned)
+      expect(owned[0]?.text).toContain('accepted')
+    } finally {
+      extract.mockRestore()
+    }
+  },
+)
