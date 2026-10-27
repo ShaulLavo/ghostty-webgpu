@@ -1,6 +1,6 @@
 # Coherent publication step 1
 
-Status: Approved implementation, held before push on the PC ownership-cost gate.
+Status: Approved layer 1 of the cumulative-qualified three-step publication stack.
 
 ## Ownership model
 
@@ -122,3 +122,13 @@ Step 1 therefore remains unpublished by itself. Per the coordinator's next instr
 and 3 are carried locally. All three will be published as a stack only if the cumulative
 sixteen-terminal heap and CPU gate passes on both hosts. The stack must state this layer's
 transient ownership cost.
+
+## Stack qualification
+
+The coordinator authorized carrying the transient ownership cost until step 3. The combined
+three-step implementation passes the normal sixteen-terminal CPU and heap gate on PC WebGL2,
+PC WebGPU and M1 WebGPU, with equal observer payloads. Dense CPU improves about 15–18% and
+scroll about 20–23%; normal heap is below main in all six cells and wasm is two MiB lower.
+This layer remains individually reviewable and functionally green. Its measured standalone
+ownership cost is about +8.8% dense and +7.5% scroll in the light-excluding PC repeat. It is
+published as part of the verified stack, rather than as a standalone performance improvement.
