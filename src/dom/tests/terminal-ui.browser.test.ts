@@ -377,7 +377,7 @@ async function createIntegratedHarness(
 }
 
 function countedTextFrame(frame: NativeDisplayedFrame, read: () => void): NativeDisplayedFrame {
-  return Object.freeze({
+  const observed: NativeDisplayedFrame = {
     token: frame.token,
     accept: () => frame.accept(),
     discard: () => frame.discard(),
@@ -387,7 +387,8 @@ function countedTextFrame(frame: NativeDisplayedFrame, read: () => void): Native
       return frame.readTextRows(options)
     },
     readPreviousTextRows: () => frame.readPreviousTextRows(),
-  })
+  }
+  return Object.freeze(observed)
 }
 
 async function createObservedRendererHarness(
