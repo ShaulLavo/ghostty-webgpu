@@ -221,6 +221,7 @@ const Frame = extern struct {
     stable_rows: u32,
     stable_allowed: u32,
     row_changes: u32,
+    blinking_rows: u32,
 };
 
 extern "env" fn ghostty_wasm_alloc(len: usize) ?[*]u8;
@@ -246,6 +247,7 @@ const CachedRow = struct {
     id: c.GhosttyRenderStateRowId,
     cells: [*]CachedCell,
     selected: bool = false,
+    blinking: bool = false,
     selection_start: u32 = 0,
     selection_end: u32 = 0,
     cursor: bool = false,
@@ -410,7 +412,7 @@ fn visualStyle(style: c.GhosttyStyle) u32 {
     return @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1) |
         (@as(u32, @intFromBool(style.faint)) << 2) | (@as(u32, @intFromBool(style.inverse)) << 3) |
         (@as(u32, @intFromBool(style.invisible)) << 4) | (@as(u32, @intFromBool(style.strikethrough)) << 5) |
-        (@as(u32, @intFromBool(style.overline)) << 6) | (@as(u32, @intCast(style.underline)) << 8);
+        (@as(u32, @intFromBool(style.overline)) << 6) | (@as(u32, @intFromBool(style.blink)) << 7) | (@as(u32, @intCast(style.underline)) << 8);
 }
 
 fn matchingFrameRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, matches: *bool) c.GhosttyResult {
@@ -655,7 +657,8 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     writeColor(cell[8..12], background, if (draw_background) 1 else 0);
     const flags: u32 = @as(u32, @intFromBool(cursor)) | (@as(u32, @intFromBool(style.overline)) << 1) |
         (@as(u32, @intFromBool(style.strikethrough)) << 2);
-    cell[12] = @floatFromInt(flags);
+    cell[12] = @floatFromInt(flags | (@as(u32, @intFromBool(style.blink)) << 3));
+    if (style.blink and !style.invisible and (style.underline > 0 or style.strikethrough or style.overline)) frame.row_cache.?.next[y].blinking = true;
     cell[13] = @floatFromInt(style.underline);
     cell[14] = if (cursor) @floatFromInt(frame.cursor_style) else 0;
     cell[15] = frame.minimum_contrast;
@@ -689,7 +692,8 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     writeColor(glyph[4..8], foreground, if (style.faint) 0.5 else 1);
     glyph[8..12].* = .{ entry.u0, entry.v0, entry.u1, entry.v1 };
     writeColor(glyph[12..16], background, 1);
-    glyph[16] = 1;
+    glyph[16] = if (style.blink) 3 else 1;
+    if (style.blink) frame.row_cache.?.next[y].blinking = true;
     glyph[18] = frame.minimum_contrast;
     glyph[20] = entry.layer;
     glyph[21] = entry.generation;
@@ -803,6 +807,7 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     if (!has_selection and result != c.GHOSTTY_NO_VALUE) return result;
     const cached = &frame.row_cache.?.next[y];
     cached.appearance = frame.row_cache.?.appearance;
+    cached.blinking = false;
     cached.selected = has_selection;
     cached.selection_start = if (has_selection) selection.start_x else 0;
     cached.selection_end = if (has_selection) selection.end_x else 0;
@@ -896,7 +901,9 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
     result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
     if (result != c.GHOSTTY_SUCCESS) return result;
     var y: u32 = 0;
+    frame.blinking_rows = 0;
     while (c.ghostty_render_state_row_iterator_next(it)) : (y += 1) {
+        defer frame.blinking_rows += @intFromBool(cache.next[y].blinking);
         var dirty = false;
         result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_DIRTY, &dirty);
         if (result != c.GHOSTTY_SUCCESS) return result;

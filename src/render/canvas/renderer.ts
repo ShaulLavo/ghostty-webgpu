@@ -181,12 +181,17 @@ class CanvasSurface implements RowRendererSurface {
     this.plan = undefined
   }
 
-  paint(row: RenderRow, cursor: CursorState | undefined): void {
+  paint(
+    row: RenderRow,
+    cursor: CursorState | undefined,
+    textVisible: boolean,
+    blinking: boolean,
+  ): void {
     if (this.contextLost)
       throw createGhosttyError('canvas.context', 'Canvas 2D context is awaiting restoration')
     try {
       if (!this.plan) this.prepare(cursor)
-      if (!this.canReuse(row.y, cursor)) {
+      if (blinking || !this.canReuse(row.y, cursor)) {
         this.pixelTarget?.beginRow(row.y)
         const key = this.pending.get(row.y)
         const text = key?.startsWith('plain:') ? key.slice(6) : null
@@ -199,6 +204,7 @@ class CanvasSurface implements RowRendererSurface {
             this.plan!.offset === 0,
           text,
           !this.clearedFrame,
+          textVisible,
         )
         this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1

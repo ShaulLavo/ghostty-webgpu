@@ -13,6 +13,7 @@ import {
 } from '../shaders/webgl.js'
 
 export interface WebGlTextPassOptions {
+  readonly textBlink?: boolean
   readonly atlasLayout: AtlasTextureLayout
   readonly context: WebGL2RenderingContext
   readonly height: number
@@ -85,9 +86,12 @@ export class WebGlTextPass {
   private rowHeight = 0
   private rowOffset = 0
   private disposed = false
+  private readonly textBlinkEnabled: boolean
+  private textVisible = true
 
   constructor(options: WebGlTextPassOptions) {
     validateOptions(options)
+    this.textBlinkEnabled = options.textBlink ?? false
     this.context = options.context
     this.width = options.width
     this.height = options.height
@@ -173,6 +177,17 @@ export class WebGlTextPass {
     this.uploadRows({ stableRows: false })
   }
 
+  setTextVisible(visible: boolean): boolean {
+    if (!this.textBlinkEnabled || this.textVisible === visible) return false
+    this.textVisible = visible
+    const gl = this.context
+    for (const pipeline of [this.cells, this.glyphs]) {
+      gl.useProgram(pipeline.program)
+      gl.uniform1f(this.uniform(pipeline.program, 'textHidden'), visible ? 0 : 1)
+    }
+    return true
+  }
+
   submit(): number {
     this.ensureActive()
     const gl = this.context
@@ -236,7 +251,13 @@ export class WebGlTextPass {
   private createShader(type: number, source: string): WebGLShader {
     const gl = this.context
     const shader = this.own(gl.createShader(type), (resource) => gl.deleteShader(resource))
-    gl.shaderSource(shader, source)
+    const code = this.textBlinkEnabled
+      ? source.replace(
+          'const bool ENABLE_TEXT_BLINK = false;',
+          'const bool ENABLE_TEXT_BLINK = true;',
+        )
+      : source
+    gl.shaderSource(shader, code)
     gl.compileShader(shader)
     if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader
     throw new Error(`WebGL shader compilation failed: ${gl.getShaderInfoLog(shader) ?? ''}`)
