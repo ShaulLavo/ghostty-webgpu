@@ -72,7 +72,11 @@ function receive(message: WorkerPoolMessage): void {
     pending.delete(key)
     return
   }
-  if (message.type === 'failure') reportError(message.message)
+  if (message.type === 'failure') {
+    reportError(message.message)
+    for (const reply of pending.values()) reply.reject(new Error(message.message))
+    pending.clear()
+  }
 }
 
 async function createPool(canvases: HTMLCanvasElement[]): Promise<void> {
@@ -85,6 +89,7 @@ async function createPool(canvases: HTMLCanvasElement[]): Promise<void> {
   }
   pool.onmessage = ({ data }: MessageEvent<WorkerPoolMessage>) => {
     const started = performance.now()
+    if (data.type === 'failure') ready.reject(new Error(data.message))
     if (data.type === 'ready') {
       for (const canvas of canvases) {
         canvas.style.width = `${columns * data.cellWidth}px`

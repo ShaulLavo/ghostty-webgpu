@@ -86,9 +86,9 @@ class RawCdp {
     }
   }
   static async connect(): Promise<RawCdp> {
-    const discovery = await fetch(`http://127.0.0.1:${port}/json/version`).then((response) =>
-      response.json(),
-    )
+    const discovery = await fetch(`http://127.0.0.1:${port}/json/version`, {
+      signal: AbortSignal.timeout(10_000),
+    }).then((response) => response.json())
     assert(typeof discovery.webSocketDebuggerUrl === 'string')
     const socket = new WebSocket(discovery.webSocketDebuggerUrl)
     await new Promise<void>((resolveReady, reject) => {
@@ -201,6 +201,23 @@ async function pixelHash(page: Page, png: Buffer): Promise<string> {
   }, png.toString('base64'))
 }
 
+async function bounded<Value>(promise: Promise<Value>): Promise<Value> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error('X4 browser operation exceeded 60 seconds')),
+          60_000,
+        )
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function browserResources() {
   const args = [
     '--disable-background-timer-throttling',
@@ -259,28 +276,30 @@ async function measure(
     })
     await route(page, assets)
     await page.goto(`${origin}/?fixture=${fixture}`)
-    await page.evaluate(
-      ({ mode, count, columns, rows }) =>
-        window.__workerPoolBench.setup(mode, count, columns, rows),
-      { mode, count, columns, rows },
+    await bounded(
+      page.evaluate(
+        ({ mode, count, columns, rows }) =>
+          window.__workerPoolBench.setup(mode, count, columns, rows),
+        { mode, count, columns, rows },
+      ),
     )
     const workerHeap = await workerHeaps(raw)
     assert.equal(workerHeap.length, mode === 'pool' ? 1 : count, 'worker target count')
     const pageCdp = await page.context().newCDPSession(page)
     await pageCdp.send('Performance.enable', { timeDomain: 'threadTicks' })
-    await page.evaluate(() => window.__workerPoolBench.sample(8))
-    const warm = await page.evaluate(() => window.__workerPoolBench.report())
+    await bounded(page.evaluate(() => window.__workerPoolBench.sample(8)))
+    const warm = await bounded(page.evaluate(() => window.__workerPoolBench.report()))
     const before = await processes(browserCdp)
     const processIds = before.map((process) => process.id)
     const beforeTicks = await workerCpuTicks(processIds)
     const beforeMetrics = await pageCdp.send('Performance.getMetrics')
     const started = performance.now()
-    await page.evaluate((count) => window.__workerPoolBench.sample(count), steps)
+    await bounded(page.evaluate((count) => window.__workerPoolBench.sample(count), steps))
     const elapsed = performance.now() - started
     const afterMetrics = await pageCdp.send('Performance.getMetrics')
     const afterTicks = await workerCpuTicks(processIds)
     const after = await processes(browserCdp)
-    const report = await page.evaluate(() => window.__workerPoolBench.report())
+    const report = await bounded(page.evaluate(() => window.__workerPoolBench.report()))
     const liveHeaps = await workerHeaps(raw)
     const pageHeap = await pageCdp.send('Runtime.getHeapUsage')
     const hostMemory = await processMemory(after.map((process) => process.id))
@@ -353,7 +372,7 @@ async function measure(
               }))
           : undefined,
     }
-    await page.evaluate(() => window.__workerPoolBench.dispose())
+    await bounded(page.evaluate(() => window.__workerPoolBench.dispose()))
     return receipt
   } finally {
     await page.close()
