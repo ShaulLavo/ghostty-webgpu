@@ -10,7 +10,10 @@ import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { requireLayout } from './memory.js'
 import { ZigFrameBuilder } from './zig-frame.js'
 import { DisplayedFrameStore } from './displayed-frame.js'
-import { retainDisplayedFrame } from '../render/shared/displayed-frame.js'
+import {
+  captureRenderAcknowledgement,
+  retainDisplayedFrame,
+} from '../render/shared/displayed-frame.js'
 import { RowReader } from './row-reader.js'
 import { TextRowReader } from './text-row-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
@@ -280,7 +283,7 @@ class SharedRenderState {
 
   acknowledgeConsumer(consumer: GhosttyRenderState, version: number): number {
     const damage = this.damage?.get(consumer)
-    if (!damage) return this.acknowledge()
+    if (!damage) return version < this.snapshotRevision ? 0 : this.acknowledge()
     let count = 0
     for (const [row, changedAt] of damage.rows) {
       if (changedAt > version) continue
@@ -374,7 +377,12 @@ class SharedRenderState {
     return snapshot.dirty
   }
 
-  createFrameBuilder(columns: number, rows: number, prepare: () => void): ZigFrameBuilder {
+  createFrameBuilder(
+    columns: number,
+    rows: number,
+    ensureOwnerActive: () => void,
+    prepare: () => void,
+  ): ZigFrameBuilder {
     this.ensureActive()
     return new ZigFrameBuilder(
       this.runtime,
@@ -383,6 +391,7 @@ class SharedRenderState {
       this.cells.handle,
       columns,
       rows,
+      ensureOwnerActive,
       prepare,
     )
   }
@@ -429,31 +438,12 @@ class SharedRenderState {
 
   acknowledge(): number {
     this.ensureActive()
-    this.runtime.memory.view.setUint8(this.booleanPointer, 0)
-    this.runtime.memory.view.setInt32(this.dirtyValuePointer, RenderStateDirty.False, true)
-    this.resetIterator()
-    let acknowledgedRows = 0
-    while (this.runtime.exports.ghostty_render_state_row_iterator_next(this.iterator.handle)) {
-      if (!this.readRowDirty()) continue
-      assertGhosttyResult(
-        'ghostty_render_state_row_set(DIRTY)',
-        this.runtime.exports.ghostty_render_state_row_set(
-          this.iterator.handle,
-          RenderStateRowOption.Dirty,
-          this.booleanPointer,
-        ),
-      )
-      acknowledgedRows += 1
-    }
+    this.preparedFor = undefined
     assertGhosttyResult(
-      'ghostty_render_state_set(DIRTY)',
-      this.runtime.exports.ghostty_render_state_set(
-        this.state.handle,
-        RenderStateOption.Dirty,
-        this.dirtyValuePointer,
-      ),
+      'bridge_acknowledge',
+      this.runtime.bridge.acknowledge(this.state.handle, this.iterator.handle, this.dirtyPointer),
     )
-    return acknowledgedRows
+    return this.runtime.memory.view.getUint32(this.dirtyPointer, true)
   }
 
   dispose(): void {
@@ -565,6 +555,7 @@ export class GhosttyRenderState {
   private readonly unsubscribeRenderRequest: () => void
   private displayedFrames?: DisplayedFrameStore
   private observedVersion = 0
+  private acknowledgingVersion?: number
   private disposed = false
 
   constructor(
@@ -614,7 +605,12 @@ export class GhosttyRenderState {
 
   createFrameBuilder(columns: number, rows: number): ZigFrameBuilder {
     this.ensureActive()
-    return this.snapshotState.createFrameBuilder(columns, rows, () => this.prepare())
+    return this.snapshotState.createFrameBuilder(
+      columns,
+      rows,
+      () => this.ensureActive(),
+      () => this.prepare(),
+    )
   }
 
   snapshot(options: ReadRowsOptions = {}): DamageSnapshot {
@@ -646,7 +642,16 @@ export class GhosttyRenderState {
 
   acknowledge(): number {
     this.ensureActive()
-    return this.snapshotState.acknowledgeConsumer(this, this.observedVersion)
+    return this.snapshotState.acknowledgeConsumer(
+      this,
+      this.acknowledgingVersion ?? this.observedVersion,
+    )
+  }
+
+  [captureRenderAcknowledgement](): () => number {
+    this.ensureActive()
+    const version = this.observedVersion
+    return () => this.acknowledgeVersion(version)
   }
 
   dispose(): void {
@@ -657,6 +662,18 @@ export class GhosttyRenderState {
     this.snapshotState.release(this)
     this.runtime.releaseRenderState(this)
     this.disposed = true
+  }
+
+  private acknowledgeVersion(version: number): number {
+    this.ensureActive()
+    const previous = this.acknowledgingVersion
+    this.acknowledgingVersion = version
+    // Keep public acknowledgement decorators while binding this submission's version.
+    try {
+      return this.acknowledge()
+    } finally {
+      this.acknowledgingVersion = previous
+    }
   }
 
   private prepare(): void {
