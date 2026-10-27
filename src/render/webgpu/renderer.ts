@@ -382,14 +382,20 @@ export class WebGpuTerminalRenderer {
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     })
     let mapped = false
+    let texture: GPUTexture | undefined
     try {
-      const encoder = this.device.createCommandEncoder()
-      encoder.copyTextureToBuffer(
-        { texture: this.context.getCurrentTexture() },
-        { buffer: output, bytesPerRow },
-        [width, height],
-      )
-      this.device.queue.submit([encoder.finish()])
+      texture = this.device.createTexture({
+        format: this.format,
+        size: [width, height],
+        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+      })
+      const command = this.textPass.encode(texture.createView(), {
+        texture,
+        buffer: output,
+        bytesPerRow,
+        size: [width, height],
+      })
+      this.device.queue.submit([command])
       await output.mapAsync(GPUMapMode.READ)
       mapped = true
       const sourcePixels = new Uint8Array(output.getMappedRange())
@@ -403,6 +409,7 @@ export class WebGpuTerminalRenderer {
     } finally {
       if (mapped) output.unmap()
       output.destroy()
+      texture?.destroy()
     }
   }
 
@@ -529,8 +536,22 @@ export class WebGpuTerminalRenderer {
     }
     const updates = builder.changedRanges()
     const rebuiltRows = builder.rowRebuilds
-    this.atlasTextures.sync(this.atlas.consumeUploads())
+    const atlasUploads = this.atlas.consumeUploads()
+    this.atlasTextures.sync(atlasUploads)
     const operations = this.textPass.uploadFrame(builder, updates)
+    if (
+      !options.full &&
+      this.overlayRows.size === 0 &&
+      atlasUploads.length === 0 &&
+      operations === 0 &&
+      this.textPass.frameUploadedBytes === 0
+    ) {
+      this.acceptUnchangedFrame(
+        damage,
+        updates.map((update) => update.row),
+      )
+      return
+    }
     if (!this.coordinator) {
       try {
         this.textPass.submit(this.context.getCurrentTexture().createView())
@@ -622,6 +643,20 @@ export class WebGpuTerminalRenderer {
     })
   }
 
+  private acceptUnchangedFrame(damage: RenderStateDirty, changed: readonly number[]): void {
+    const rows = this.frames.requiresFullRows ? this.rowsToRebuild(damage) : undefined
+    const frame = this.captureFrame(rows, changed)
+    try {
+      if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
+      frame?.accept()
+    } finally {
+      frame?.discard()
+    }
+    // Settle peer submissions before observers can mutate their native state.
+    this.coordinator?.flushPending()
+    if (!this.disposed) frame?.notify()
+  }
+
   private get deviceCellHeight(): number {
     return this.font.deviceCellHeight
   }
@@ -640,7 +675,7 @@ export class WebGpuTerminalRenderer {
 
   private captureFrame(
     rows: readonly RenderRow[] | undefined,
-    changed = rows?.map((row) => row.y) ?? [],
+    changed: readonly number[] = rows?.map((row) => row.y) ?? [],
   ): PreparedFrame | undefined {
     if (!this.cursor) return
     return this.frames.capture(

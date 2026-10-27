@@ -189,8 +189,12 @@ immutable styled snapshot from the core. Cell geometry can be supplied through t
 `--ghostty-letter-spacing` CSS properties.
 
 `terminal.onFrame(({ rows }) => …)` reports the viewport rows painted by each frame across
-all backends. It returns a subscription with `dispose()`, like `onResize`; no damage array is
-allocated when there are no listeners.
+all backends. GPU backends also accept damage-bearing updates whose rebuilt records match the
+current image. These updates keep frame callbacks and displayed text current without a GPU
+submission. Submission counters count only actual GPU submissions.
+
+It returns a subscription with `dispose()`, like `onResize`; no damage array is allocated when
+there are no listeners.
 
 Resizing inside a frame callback repaints after that frame's callbacks finish, in the same turn.
 
@@ -214,8 +218,9 @@ inside the library.
 
 WebGL and WebGPU update retained text from native logical row damage. Grid or fitted-font
 changes and native full damage refresh the complete viewport. Capture stages the next retained
-frame. The renderer accepts it after submission, damage acknowledgement and frame commit finish;
-any failure discards that pending capture. The preceding accepted metadata, lazy text and styled
+frame. The renderer accepts it after submission, damage acknowledgement and frame commit finish.
+An identical-output update reuses the existing image and needs no new submission.
+Any failure discards that pending capture. The preceding accepted metadata, lazy text and styled
 snapshot stay readable until the next acceptance. Previously returned owned rows remain valid.
 
 Native retention owns at most three cell-array slots after a completed capture, plus frame and
