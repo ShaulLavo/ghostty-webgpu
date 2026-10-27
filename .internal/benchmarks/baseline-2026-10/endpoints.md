@@ -1,0 +1,43 @@
+# Timing endpoints and remaining channels
+
+M1 is recorded on both hosts. M2 remains partial. The scope added by the coordinator is separated below so a completed acknowledgement probe does not close a missing presentation channel.
+
+## Completion, acknowledgement and GPU passes
+
+`completion.csv` keeps `queue.onSubmittedWorkDone` wall time and GPU timestamp-query pass duration in different columns. Timestamp queries were supported and explicitly enabled on both hardware adapters. This is a separate diagnostic device and pacing experiment. The ordinary completion window uses the production-default device. Per-frame awaiting and query resolve/readback perturb pacing, so these values do not estimate uninstrumented throughput.
+
+The completion endpoint covers all ten M1 workloads at 200×50 on each host. Timestamp-query windows cover the seven built-in workloads, including rolling logs, viewport scrolling, cursor, sparse edits, dense redraw, glyph churn and forced cold cache. Timestamp durations for repeated ASCII and the two captured applications, completion at 80×24, and worker queue completion remain unmeasured. Hosted `write_ack_p95_ms` measures API completion and worker publication, not GPU completion.
+
+The ABBA controls average 31.47% control versus 33.32% traced CPU for PC WebGPU, 26.56% versus 27.88% for PC WebGL2, 46.27% versus 48.10% for Mac WebGPU, and 42.45% versus 42.92% for Mac WebGL2 across the three registered workloads. Raw per-workload pairs are in `overhead.csv`. These few samples do not justify subtracting a fixed observer cost.
+
+## Input to presented echo
+
+`checks.mjs` drives real key events, echoes through the terminal input callback, confirms submitted echo text and records a screenshot boundary. It calls the existing `tracePhase` and `presentationLatency` functions. The join follows the echo receipt to its parse span, its render command, the submitted command-buffer identity, the containing Chrome animation-frame identity and `AnimationFrame::Presentation` feedback. Screenshot time is not used as presentation time. This is a local echo callback, without network or server latency.
+
+On the Mac, both main-entry arms pass all six input joins. The twelve samples range from 38.37 to 55.89 ms. Worker arms run in the balanced main/worker/worker/main order but fail the existing join with `Terminal render requires a containing animation frame`. Their raw traces and command identities are retained. No worker presentation latency is substituted from write acknowledgement or screenshot capture. The initial main-entry attempt also failed because lane 07a wrapped `encode` twice, leaving the outer boundary without a command identity. Removing that redundant diagnostic wrapper made both main-entry arms join. Production renderer source is unchanged.
+
+On the PC, the twelve main-entry input attempts have containing animation-frame identities, but none has matching `AnimationFrame::Presentation` feedback. Their windows contain 17 and 14 presentation events for other identities. Both main arms fail with `Terminal frame requires positive Chrome presentation feedback; capture timing is not a fallback`. Both worker arms fail with the same missing-containing-frame error as the Mac. The PC checks also retain worker-target heap responses after the backlog and font-change probes.
+
+Named channels still unresolved are PC main-entry key-event-to-presented echo, worker key-event-to-presented echo, worker write-to-presented frame, ordinary write-to-presented latency in this new acquisition, per-workload input presentation for the ten-workload matrix, input presentation during sustained output, baseline presented-update counts, and 80×24 presentation timing. The measured input probe is an isolated echo rather than each matrix workload. `summary.json` leaves baseline presented counts `null`. Parsed calls and submitted frames are recorded separately for every M1 row. One logical viewport-scroll update has no parser call; one rolling-log update writes ten lines in one parser call.
+
+## Font, loss and sustained output
+
+The Mac main/worker ABBA checks measure font-change and `GPUDevice.destroy` recovery through the next actual terminal `onFrame` event. This is submitted-frame rebuild latency, not presentation. Raw `mac-checks.json` retains the operation, before/after resource snapshots, process-local JS heap endpoints and errors. Font changes take 10.2–30.4 ms and device rebuilds take 6.9–14.0 ms in the first completed ABBA window. The later input-join window remains separately archived.
+
+A 16,002-byte write every 4 ms runs alongside eight real key events. The first Mac window reaches a maximum of one outstanding write on the main entry and two on the worker entry. Acknowledgement counts and individual key-to-echo-ack times are retained. This offered load does not create a growing backlog, so it cannot establish behavior under overload. It measures responsiveness at the recorded load. It does not join those busy-window echoes to presentation.
+
+Peak resident memory, DPR rebuild latency, and WebGL context-loss rebuild latency are still unresolved. The new probes record JS heap endpoints and GPU allocation descriptors, not the maximum resident footprint during a rebuild. Endpoint heap values must not be reported as peak memory. PC font changes take 5.9–13.3 ms and device rebuilds take 72.6–75.2 ms through submission in this ABBA window. These cross-host differences are not a hardware-controlled comparison.
+
+The worker-isolate heap is measured by attaching to its CDP target and calling `Runtime.getHeapUsage`, independently of the main-page heap. The Mac worker samples cover rolling logs, glyph churn and dense redraw; the raw worker target response includes used heap, total heap, embedder heap and backing storage.
+
+## Real display and tab attempts on the Mac
+
+The host exposes one built-in Retina LCD. The native helper enumerated display modes and requested mode 7, 1280×800 with 1280×800 backing pixels, then restored original mode 8. CoreGraphics returned success. The benchmark still reported DPR 2, the same 1440×900 screen and 3000×2000 terminal backing buffer. No real DPR transition was observed. No emulated DPR or synthetic resize is claimed as a substitute.
+
+The headed tests created another page and brought it forward, first in a disposable browser context and then in a persistent context. In both attempts the terminal's actual `document.visibilityState` stayed `visible`. Twenty writes parsed and one extra frame submitted, and the final screenshot contains `hidden-19-parsed`. That demonstrates the probe did not create a hidden tab. It does not establish hidden-tab policy. The probes removed the three Playwright background-throttling switches. A native-target placement probe confirmed both targets were in the same browser window, but both still reported `visible`. Explicitly disabling focus emulation did not change that observation. Playwright's own initialization sends `Emulation.setFocusEmulationEnabled(true)`, so a separate native Chromium launch connected with `noDefaults:true` was attempted. It timed out twice navigating to the local probe, first waiting for `load` and then for `commit`, both at 30 seconds. Those runs did not reach a terminal observation. These are automation blockers, not a measured terminal failure.
+
+[Foreground cover](images/mac-m5-webgpu-background.png) and [returned terminal](images/mac-m5-webgpu-returned.png) are screenshots from the visible-page attempts. The before, foreground-cover and returned screenshots also remain in the raw Mac directory. The returned screenshot was inspected at original resolution. Its visible update is correct, but it is evidence from a visible page. A physical second display or a successful native tab-selection procedure is still required for M5's missing observations. Display state was restored after every attempt.
+
+## Owner decisions
+
+Keep M2 and M5 open for their named channels. The next useful work is a worker-aware Chrome trace join and a native browser session that can navigate without Playwright's focus overrides. The baseline controls, native energy, queue completion, GPU pass durations and worker heap do not need to wait for those investigations. Completing peak resident memory needs interval sampling or an allocator/native high-water probe around each recovery operation. Context-loss recovery, actual DPR rebuild timing and overload presentation still need separate acquisition windows. No additional host or credentials are required by the completed measurements.
