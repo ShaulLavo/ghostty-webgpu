@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict'
+import { PNG } from 'pngjs'
+import { studyCanvases, qualifyStudyPaint } from './study-qualification.mjs'
 import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { join, resolve, extname } from 'node:path'
@@ -12,8 +14,7 @@ const bundle = resolve(process.argv[2])
 const output = resolve(process.argv[3])
 const mode = process.argv[4] ?? 'smoke'
 const variants = (
-  process.env.STUDY_VARIANTS ??
-  'ghostty-webgpu,ghostty-webgl,xterm-webgl,ghostty-web,restty-webgpu,restty-webgl2'
+  process.env.STUDY_VARIANTS ?? 'ghostty-webgpu,ghostty-webgl,xterm-webgl,wraith-native'
 ).split(',')
 if (process.env.STUDY_FENCED === '1')
   assert(
@@ -126,7 +127,8 @@ try {
 
 async function repetitionRun(repetition) {
   const ordered = repetition % 2 ? variants.toReversed() : variants
-  for (const count of counts) {
+  const orderedCounts = repetition % 2 ? counts.toReversed() : counts
+  for (const count of orderedCounts) {
     for (const variant of ordered) await run({ variant, count, path: 'bytes', repetition })
   }
 }
@@ -176,6 +178,7 @@ function installContextObserver() {
   HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
     const context = original.call(this, kind, ...args)
     if (!context) return context
+    this.dataset.studyContext = kind
     let renderer
     if (kind === 'webgl2' || kind === 'webgl') {
       const debug = context.getExtension('WEBGL_debug_renderer_info')
@@ -239,7 +242,10 @@ async function run(testCase) {
     )
     run.correctness = await page.evaluate(() => window.__compare.correctness())
     run.info = await page.evaluate(() => window.__compare.studyInfo())
+    run.info.canvases = await page.evaluate(studyCanvasInfo)
+    assert.equal(run.info.dpr, dpr, 'Configured DPR required')
     run.contexts = await page.evaluate(() => window.__contexts)
+    await qualifyPaint(page, run)
     if (repetition === 0 && process.env.STUDY_FENCED !== '1')
       await page.screenshot({ path: join(output, `${variant}-${count}.png`), timeout: 5000 })
     if (mode === 'smoke') {
@@ -271,6 +277,47 @@ async function run(testCase) {
   }
 }
 
+function studyCanvasInfo() {
+  return Array.from(document.querySelectorAll('main canvas'), (canvas) => ({
+    context: canvas.dataset.studyContext,
+    width: canvas.width,
+    height: canvas.height,
+    bounds: canvas.getBoundingClientRect().toJSON(),
+  }))
+}
+
+async function qualifyPaint(page, run) {
+  const canvases = studyCanvases(run.info, run.variant, run.count)
+  await page.evaluate(() =>
+    window.__compare.studyWrite('\x1bc\x1b[?1049h\x1b[?25l\x1b[48;2;25;100;200m\x1b[2J'),
+  )
+  await page.evaluate(async () => {
+    await window.__compare.studyInfo()
+    await new Promise(requestAnimationFrame)
+    await new Promise(requestAnimationFrame)
+  })
+  const image = PNG.sync.read(
+    await page.screenshot({
+      path: join(output, `${run.variant}-${run.count}-r${run.repetition}-qualification.png`),
+    }),
+  )
+  run.paintQualification = canvases.map((canvas) => {
+    const crop = new PNG({ width: canvas.width, height: canvas.height })
+    PNG.bitblt(
+      image,
+      crop,
+      Math.round(canvas.bounds.x * dpr),
+      Math.round(canvas.bounds.y * dpr),
+      crop.width,
+      crop.height,
+      0,
+      0,
+    )
+    return qualifyStudyPaint(crop.data)
+  })
+  studyCanvases(await page.evaluate(() => window.__compare.studyInfo()), run.variant, run.count)
+}
+
 async function measureWorkload(page, run, fixture, repetition, variant, count) {
   if (workloadRoot) {
     await page.evaluate(
@@ -282,6 +329,7 @@ async function measureWorkload(page, run, fixture, repetition, variant, count) {
     await page.evaluate((name) => window.__compare.burst(name, 3), fixture)
   }
   const beforeInfo = await page.evaluate(() => window.__compare.studyInfo())
+  studyCanvases(beforeInfo, variant, count)
   const idle = await gate.waitForIdle()
   const window = await gate.monitorWindow(
     () =>

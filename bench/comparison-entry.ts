@@ -1,3 +1,4 @@
+import { pinXtermStudyGeometry } from './study-xterm.mjs'
 import { createNm } from './study-nm.mjs'
 import { createWraith } from './study-wraith.mjs'
 import {
@@ -275,6 +276,8 @@ function createXterm(host: HTMLElement): Driver {
   if (current.variant === 'xterm-webgl') {
     const addon = new WebglAddon()
     terminal.loadAddon(addon)
+    if (new URL(location.href).searchParams.has('study'))
+      pinXtermStudyGeometry(addon, settings.columns, settings.rows)
     tracing.xterm(drivers.length, terminal, addon)
   } else {
     tracing.xtermDom(drivers.length, terminal)
@@ -834,6 +837,7 @@ function comparisonInfo() {
     font: settings.fontFamily,
     wasmBytes: native?.exports.memory.buffer.byteLength ?? legacyMemoryBytes(),
     canvases: Array.from(mount.querySelectorAll('canvas'), (canvas) => ({
+      context: canvas.dataset.studyContext,
       width: canvas.width,
       height: canvas.height,
       bounds: canvas.getBoundingClientRect().toJSON(),

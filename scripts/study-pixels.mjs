@@ -1,4 +1,5 @@
 import { PNG } from 'pngjs'
+import { studyCanvases } from './study-qualification.mjs'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
@@ -43,7 +44,7 @@ console.log(checks)
 async function readCrop(run, fixture) {
   const path = join(root, `${run.variant}-1-${fixture}.png`)
   const png = PNG.sync.read(await readFile(path))
-  const canvas = run.info.canvases[0]
+  const canvas = studyCanvases(run.info, run.variant, run.count)[0]
   const crop = new PNG({ width: canvas.width, height: canvas.height })
   const bounds = canvas.bounds ?? { x: 0, y: 0 }
   PNG.bitblt(
