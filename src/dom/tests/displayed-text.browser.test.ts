@@ -111,6 +111,31 @@ function extractionCount() {
 }
 
 describe('main-thread displayed-text demand', () => {
+  it('drops eagerly cached pending text after acknowledgement fails before a different retry', async () => {
+    const { terminal, session, clock, errors } = await fixture()
+    const events: TerminalSubmittedText[] = []
+    terminal.onText((event) => events.push(event))
+    terminal.write('accepted')
+    clock.flush()
+    const accepted = terminal.visibleLines()
+    const count = events.length
+    const acknowledge = vi.spyOn(session.renderState, 'acknowledge')
+    cleanups.push(() => acknowledge.mockRestore())
+    acknowledge.mockImplementationOnce(() => {
+      throw new Error('injected acknowledgement failure after extraction')
+    })
+    terminal.write('\r\x1b[2Kdiscarded 界 é')
+    clock.flush()
+    expect(errors).toHaveLength(1)
+    expect(terminal.visibleLines()).toEqual(accepted)
+    expect(events).toHaveLength(count)
+    terminal.write('\r\x1b[2Kcorrect 🧑‍💻')
+    clock.flush()
+    expect(terminal.visibleLines()[0]).toContain('correct 🧑‍💻')
+    expect(events.at(-1)?.rows[0]?.text).toContain('correct 🧑‍💻')
+    expect(events.at(-1)?.rowPatches[0]?.text).toContain('correct 🧑‍💻')
+  })
+
   it('uses dirty retention until font or row-height changes invalidate the layout', async () => {
     const retain = vi.spyOn(runtime.bridge, 'captureRetainedFrame')
     cleanups.push(() => retain.mockRestore())
