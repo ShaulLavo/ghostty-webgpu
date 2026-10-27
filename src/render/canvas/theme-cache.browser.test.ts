@@ -14,7 +14,7 @@ function targetFor(renderer: CanvasTerminalRenderer): StampTarget {
   return target
 }
 
-it('repaints cursor-only appearance changes while retaining warm glyph stamps in17 public terminals', async () => {
+it('repaints cursor-only appearance changes while retaining warm glyph stamps in 17 public terminals', async () => {
   const runtime = await GhosttyRuntime.create()
   const host = document.createElement('main')
   document.body.append(host)
@@ -49,6 +49,7 @@ it('repaints cursor-only appearance changes while retaining warm glyph stamps in
       })
       const terminal = createGhosttyWebGpuTerminalFromSession(session, {
         autoFit: false,
+        renderWhenOffscreen: true,
         accessibility: false,
         rendererFactory: async (options) => {
           const renderer = await CanvasTerminalRenderer.create({

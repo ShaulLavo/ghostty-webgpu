@@ -55,3 +55,13 @@ The failing-first matrix adds zero width, zero height, zero size, and viewport-e
 Review-fix gates passed build, typecheck, lint, formatting, the site docs check, 1,106 Vitest tests, 482 benchmark-tool tests, and four checkpoint tests. The seven companion browser suites passed 219 tests, for 265 browser cases total with the visibility suite.
 
 `docs/api.md` now states the default and opt-out for both entries beside the submitted-frame/accessibility contract. It covers continued parsing and layout changes, retained submitted text and accessibility, suppressed frame notifications, repaint on return, and asynchronous intersection limits. Review-fix logs are retained under `/work/reports/ghostty-webgpu-next-2026-10/f8/review-fixes/`. This correctness follow-up adds no new performance claim; the audited hardware result above remains the original measured checkpoint.
+
+## CI integration follow-up
+
+Merged `origin/main` at `46b13c56409d0022c8ff95bde33917aee0517d9f` through merge commit `0b44b338b38835bb405be0c0db73479d5f5ae682`, without rebasing. The two conflicts were in the benchmark entry and runner. Resolution retains main's configurable geometry, font size, dynamic line width and measurement additions alongside the 16-terminal visibility mode and pixel comparison. The visibility driver uses the requested font size.
+
+The unchanged Canvas cache test reproduced CI run `40502630132` exactly with `expected 14 to be greater than 14`. Its 17 vertically stacked panes extend outside the viewport, but its cache-retention assertions require every pane to repaint. The fixture now sets `renderWhenOffscreen: true`, preserving every rasterization, cache-hit, row, frame and callback assertion. Default production visibility behavior remains covered by the visibility suite.
+
+A fresh full-suite run also needs built optional packages. The first local attempt omitted these, so the shaders test import failed and Vite's error overlay contaminated pixel and pointer checks. The corrected preparation runs `bun run verify:extensions` before the unfiltered `bun run test:browser`, matching CI. Raw CI output, the focused reproduction, preparation diagnostics and full-suite logs are retained under `/work/reports/ghostty-webgpu-next-2026-10/f8/ci-fixes/`.
+
+After preparing extensions, the unfiltered browser suite passed all 64 files with 1,084 tests passed and seven skipped. Build, typecheck, lint, formatting, site docs, 1,132 Vitest unit tests, 482 benchmark-tool tests, four checkpoint tests, and extension verification also passed. The prepared full run completed in 224.46 seconds.
