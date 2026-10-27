@@ -3,6 +3,16 @@ precision highp float;
 precision highp int;
 const bool ENABLE_TEXT_BLINK = false;
 uniform vec2 viewport;
+uniform vec4 rowLayout;
+uniform int firstInstance;
+vec2 rowOrigin(vec4 rect) {
+  if (rowLayout.x == 0.0 || rect.w == 0.0) return rect.xy;
+  int columns = int(rowLayout.x);
+  int rows = int(rowLayout.w);
+  int physicalRow = (gl_InstanceID + firstInstance) / columns;
+  int logicalRow = (physicalRow + rows - int(rowLayout.z)) % rows;
+  return vec2(rect.x, float(logicalRow) * rowLayout.y + rect.y);
+}
 const vec2 corners[6] = vec2[6](
   vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0),
   vec2(0.0, 1.0), vec2(1.0, 0.0), vec2(1.0, 1.0)
@@ -62,7 +72,7 @@ flat out vec2 v_size;
 
 void main() {
   vec2 local = corners[gl_VertexID] * rect.zw;
-  gl_Position = clipPosition(rect.xy + local);
+  gl_Position = clipPosition(rowOrigin(rect) + local);
   v_foreground = foreground;
   v_background = background;
   v_metadata = metadata;
@@ -147,7 +157,7 @@ void main() {
   vec2 corner = corners[gl_VertexID];
   bool hidden = ENABLE_TEXT_BLINK && (uint(attributes.x) & 2u) != 0u && textHidden > 0.5;
   vec2 size = hidden ? vec2(0.0) : rect.zw;
-  gl_Position = clipPosition(rect.xy + corner * size);
+  gl_Position = clipPosition(rowOrigin(rect) + corner * size);
   v_color = color;
   v_uv = mix(uv.xy, uv.zw, corner);
   v_background = background;
