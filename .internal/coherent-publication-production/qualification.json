@@ -1,9 +1,9 @@
 {
   "status": "Approved; cumulative gate passed",
-  "baseline": "e64d6b0f917c607e3169cc993a7d5a864376fcbd",
-  "applicationSource": "15756c3921504f0292677833ae670cffd4d5ec9d",
-  "pcMeasuredSource": "6d21e90a326f6536a10d33145060105678d4ba5c",
-  "macMeasuredSource": "15756c3921504f0292677833ae670cffd4d5ec9d",
+  "baseline": "cf6994fbc6402258a46333c67af7c6560ce24ad5",
+  "applicationSource": "2ae8e558670efe86453ef7c88672a0d928d64a8c",
+  "pcMeasuredSource": "2ae8e558670efe86453ef7c88672a0d928d64a8c",
+  "macMeasuredSource": "2ae8e558670efe86453ef7c88672a0d928d64a8c",
   "protocol": {
     "columns": 200,
     "rows": 50,
@@ -23,13 +23,15 @@
       "backend": "webgl2",
       "workload": "dense",
       "before": {
-        "rendererMs": 26.36111111111111,
-        "jsHeapMiB": 7.355863571166992,
+        "rendererMs": 25.944444444444443,
+        "gpuMs": 5.861111111111112,
+        "jsHeapMiB": 7.5434722900390625,
         "wasmMiB": 120.25
       },
       "after": {
-        "rendererMs": 21.72222222222222,
-        "jsHeapMiB": 7.093845367431641,
+        "rendererMs": 23.111111111111107,
+        "gpuMs": 5.611111111111111,
+        "jsHeapMiB": 7.219963073730469,
         "wasmMiB": 118.25
       }
     },
@@ -38,13 +40,15 @@
       "backend": "webgl2",
       "workload": "scroll",
       "before": {
-        "rendererMs": 13.63888888888889,
-        "jsHeapMiB": 7.606899261474609,
+        "rendererMs": 12.583333333333334,
+        "gpuMs": 1.5277777777777772,
+        "jsHeapMiB": 7.430089950561523,
         "wasmMiB": 120.1875
       },
       "after": {
-        "rendererMs": 10.75,
-        "jsHeapMiB": 6.914592742919922,
+        "rendererMs": 9.61111111111111,
+        "gpuMs": 1.3611111111111118,
+        "jsHeapMiB": 7.116645812988281,
         "wasmMiB": 118.1875
       }
     },
@@ -53,13 +57,15 @@
       "backend": "webgpu",
       "workload": "dense",
       "before": {
-        "rendererMs": 25.833333333333336,
-        "jsHeapMiB": 7.085201263427734,
+        "rendererMs": 35.16666666666667,
+        "gpuMs": 20.916666666666668,
+        "jsHeapMiB": 7.408929824829102,
         "wasmMiB": 120.25
       },
       "after": {
-        "rendererMs": 22.083333333333336,
-        "jsHeapMiB": 6.728752136230469,
+        "rendererMs": 33.47222222222222,
+        "gpuMs": 23.833333333333336,
+        "jsHeapMiB": 7.210382461547852,
         "wasmMiB": 118.25
       }
     },
@@ -68,13 +74,15 @@
       "backend": "webgpu",
       "workload": "scroll",
       "before": {
-        "rendererMs": 13.555555555555555,
-        "jsHeapMiB": 8.025733947753906,
+        "rendererMs": 14.11111111111111,
+        "gpuMs": 6.694444444444445,
+        "jsHeapMiB": 7.931375503540039,
         "wasmMiB": 120.1875
       },
       "after": {
-        "rendererMs": 10.472222222222223,
-        "jsHeapMiB": 7.608179092407227,
+        "rendererMs": 10.388888888888888,
+        "gpuMs": 6.305555555555564,
+        "jsHeapMiB": 7.8630523681640625,
         "wasmMiB": 118.1875
       }
     },
@@ -83,13 +91,15 @@
       "backend": "webgpu",
       "workload": "dense",
       "before": {
-        "rendererMs": 36.75709722222222,
-        "jsHeapMiB": 7.04719352722168,
+        "rendererMs": 46.0715,
+        "gpuMs": 6.54921111111111,
+        "jsHeapMiB": 6.985795974731445,
         "wasmMiB": 120.25
       },
       "after": {
-        "rendererMs": 31.291763888888887,
-        "jsHeapMiB": 6.500019073486328,
+        "rendererMs": 41.418405555555566,
+        "gpuMs": 6.59335,
+        "jsHeapMiB": 6.899990081787109,
         "wasmMiB": 118.25
       }
     },
@@ -98,16 +108,114 @@
       "backend": "webgpu",
       "workload": "scroll",
       "before": {
-        "rendererMs": 18.798266666666667,
-        "jsHeapMiB": 7.751508712768555,
+        "rendererMs": 23.229705555555554,
+        "gpuMs": 5.271736111111111,
+        "jsHeapMiB": 8.0023193359375,
         "wasmMiB": 120.1875
       },
       "after": {
-        "rendererMs": 14.97795,
-        "jsHeapMiB": 7.637058258056641,
+        "rendererMs": 18.422402777777776,
+        "gpuMs": 5.2877555555555595,
+        "jsHeapMiB": 7.767885208129883,
         "wasmMiB": 118.1875
       }
     }
   ],
-  "evidence": "/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step3"
+  "evidence": "/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step3",
+  "previousQualification": {
+    "baseline": "e64d6b0f917c607e3169cc993a7d5a864376fcbd",
+    "applicationSource": "15756c3921504f0292677833ae670cffd4d5ec9d",
+    "normal": [
+      {
+        "host": "PC",
+        "backend": "webgl2",
+        "workload": "dense",
+        "before": {
+          "rendererMs": 26.36111111111111,
+          "jsHeapMiB": 7.355863571166992,
+          "wasmMiB": 120.25
+        },
+        "after": {
+          "rendererMs": 21.72222222222222,
+          "jsHeapMiB": 7.093845367431641,
+          "wasmMiB": 118.25
+        }
+      },
+      {
+        "host": "PC",
+        "backend": "webgl2",
+        "workload": "scroll",
+        "before": {
+          "rendererMs": 13.63888888888889,
+          "jsHeapMiB": 7.606899261474609,
+          "wasmMiB": 120.1875
+        },
+        "after": {
+          "rendererMs": 10.75,
+          "jsHeapMiB": 6.914592742919922,
+          "wasmMiB": 118.1875
+        }
+      },
+      {
+        "host": "PC",
+        "backend": "webgpu",
+        "workload": "dense",
+        "before": {
+          "rendererMs": 25.833333333333336,
+          "jsHeapMiB": 7.085201263427734,
+          "wasmMiB": 120.25
+        },
+        "after": {
+          "rendererMs": 22.083333333333336,
+          "jsHeapMiB": 6.728752136230469,
+          "wasmMiB": 118.25
+        }
+      },
+      {
+        "host": "PC",
+        "backend": "webgpu",
+        "workload": "scroll",
+        "before": {
+          "rendererMs": 13.555555555555555,
+          "jsHeapMiB": 8.025733947753906,
+          "wasmMiB": 120.1875
+        },
+        "after": {
+          "rendererMs": 10.472222222222223,
+          "jsHeapMiB": 7.608179092407227,
+          "wasmMiB": 118.1875
+        }
+      },
+      {
+        "host": "Mac M1",
+        "backend": "webgpu",
+        "workload": "dense",
+        "before": {
+          "rendererMs": 36.75709722222222,
+          "jsHeapMiB": 7.04719352722168,
+          "wasmMiB": 120.25
+        },
+        "after": {
+          "rendererMs": 31.291763888888887,
+          "jsHeapMiB": 6.500019073486328,
+          "wasmMiB": 118.25
+        }
+      },
+      {
+        "host": "Mac M1",
+        "backend": "webgpu",
+        "workload": "scroll",
+        "before": {
+          "rendererMs": 18.798266666666667,
+          "jsHeapMiB": 7.751508712768555,
+          "wasmMiB": 120.1875
+        },
+        "after": {
+          "rendererMs": 14.97795,
+          "jsHeapMiB": 7.637058258056641,
+          "wasmMiB": 118.1875
+        }
+      }
+    ]
+  }
 }

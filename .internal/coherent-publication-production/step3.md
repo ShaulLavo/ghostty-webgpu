@@ -53,3 +53,28 @@ The 38 initial browser failures were old live-read counters. The demand probe no
 current text projections from both live and retained sources. All 88 demand tests pass with
 the output, hold, link and lifetime assertions preserved. The probe is typed at its native-frame
 boundary. Full per-layer pre-push qualification is recorded in the PRs.
+
+## Current-main bridge requalification
+
+Main advanced to `cf6994fbc6402258a46333c67af7c6560ce24ad5`, changing the glyph bridge.
+The bridge source was merged and both wasm artifacts rebuilt against pinned official upstream
+with Zig 0.16.0. Core wasm is unchanged. The combined application was remeasured at
+`2ae8e558670efe86453ef7c88672a0d928d64a8c` on both hosts.
+
+| Host/backend  | Workload | Renderer CPU ms before → after | JS heap MiB before → after |
+| ------------- | -------- | -----------------------------: | -------------------------: |
+| PC webgl2     | dense    |                  25.94 → 23.11 |                7.54 → 7.22 |
+| PC webgl2     | scroll   |                   12.58 → 9.61 |                7.43 → 7.12 |
+| PC webgpu     | dense    |                  35.17 → 33.47 |                7.41 → 7.21 |
+| PC webgpu     | scroll   |                  14.11 → 10.39 |                7.93 → 7.86 |
+| Mac M1 webgpu | dense    |                  46.07 → 41.42 |                6.99 → 6.90 |
+| Mac M1 webgpu | scroll   |                  23.23 → 18.42 |                8.00 → 7.77 |
+
+All six normal cells pass again. Wasm remains two MiB lower. GPU-process CPU is also retained
+in the JSON and raw packets; the dense PC WebGPU packet rises from 20.92 to 23.83 ms there,
+while renderer CPU improves. These two-pair measurements are experimental.
+
+The PC recheck again excluded light work with the owned drain and all slot/admission locks.
+Both host rechecks retain equal text, callback, write, submission and observer digests. Raw
+packets are `pc-cf-{normal,parity,stress}.json` and `mac-cf-{normal,parity,stress}.json` in
+the report directory. Earlier source packets remain historical evidence, not the final gate.
