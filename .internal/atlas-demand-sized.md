@@ -4,7 +4,7 @@ F3 of the 2026-10 reference-study plan. Baseline `d2ed8989a`.
 
 ## Residency
 
-Each GPU texture kind starts with one 512×512 layer. It grows geometrically up to the CPU atlas's existing limit of 16 layers per kind. WebGPU copies existing layers before replacing its texture views and glyph bind groups. WebGL2 copies layers through a read framebuffer. Existing glyph coordinates and generations survive growth. The grayscale and color arrays grow independently.
+Each GPU texture kind starts with one 512×512 layer. It grows geometrically up to the CPU atlas's existing limit of 16 layers per kind. WebGPU copies existing layers before replacing its texture views and glyph bind groups. WebGL2 copies layers through a read framebuffer. Fixed page dimensions keep the normalized UV coordinates in native records valid. Existing glyph coordinates and generations survive growth. The grayscale and color arrays grow independently.
 
 A registration sweep pins the glyphs present in retained native records, then pins each newly inserted glyph. It first fills existing pages, then allocates a page, then recycles an unpinned page. If every page has visible glyphs, it can compact one page around its pinned glyphs. Compaction commits only if the retained glyphs and the new glyph fit. A failed attempt leaves the old page untouched.
 
@@ -34,7 +34,7 @@ Texture bytes are logical allocated texel storage calculated from live hardware 
 
 ## PC results
 
-Host `pc`, Omarchy Linux x86_64, Intel i7-14700K, NVIDIA RTX 3060 Ti, driver 615.78.08, headed Chromium 153.0.8010.12. WebGPU reports vendor `nvidia`, architecture `ampere`, and `fallback: false`. WebGL2 reports ANGLE on the NVIDIA OpenGL driver. Both use DPR 2 and the production default device ownership path. The measured runtime commits are `d2ed8989a745f016188e0a2e749009b3e1450f33` and `069ee7de993d9b87f86372d1950a6497e83e7f45`. Later commits add tests, the generated provenance receipt, and this report.
+Host `pc`, Omarchy Linux x86_64, Intel i7-14700K, NVIDIA RTX 3060 Ti, driver 615.78.08, headed Chromium 153.0.8010.12. WebGPU reports vendor `nvidia`, architecture `ampere`, and `fallback: false`. WebGL2 reports ANGLE on the NVIDIA OpenGL driver. Both use DPR 2 and the production default device ownership path. The measured runtime commits are `d2ed8989a745f016188e0a2e749009b3e1450f33` and `069ee7de993d9b87f86372d1950a6497e83e7f45`. Later commits add tests, the generated provenance receipt, and this report. They also remove an unused registration helper that was already absent from the frozen benchmark bundle.
 
 Actual allocated texture storage for the ASCII allocation cohorts is consistent across both repetitions:
 
@@ -71,3 +71,13 @@ The measured CPU costs increased. These experimental pairs do not establish a sp
 | WebGL2  | Cold cache  |                   48.19 → 49.53 |           7.422 → 7.456 |              1.167 → 1.400 |
 
 Cold-cache WebGPU callback p95 is 7.3 and 8.0 ms before, versus 8.5 and 11.9 ms after. The trace attributes most of the added stage time to glyph rasterization. This two-sample run does not establish its cause. The memory reduction and removal of whole-atlas recovery are directly observed; timing regressions remain visible for review.
+
+## Final verification
+
+`run-gates.sh` records the full build, typecheck, lint, formatting, and unit checks. Vitest passes 1,113 tests with one existing skip, the benchmark tests pass 482 tests, and the checkpoint tests pass four tests.
+
+The broad browser run passes 206 tests with two software-adapter skips and one stale call-count assertion. The assertion expected collection to discard a visible glyph. `run-final-browser.sh` updates that expectation and passes all 28 tests in the affected file, giving 207 passing software-browser tests across the combined runs. Its focused native, atlas, and provenance rerun passes 127 tests.
+
+The same final script runs the grown-atlas WebGPU device-loss and WebGL context-loss tests in headed hardware Chromium. Both tests pass, with 6,795 MiB free VRAM checked before launch. The official full WASM build reproduces both measured binary hashes. Site docs and formatting checks pass.
+
+The worker stops after opening the PR. Independent review, CI, and merge belong to the wave coordinator.

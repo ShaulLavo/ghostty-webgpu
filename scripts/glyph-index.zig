@@ -18,7 +18,7 @@ pub const Glyph = extern struct {
     valid: f32,
 };
 
-// Text is owned by the index; keys remain stable until clear or disposal.
+// Text is owned by the index; frame references keep keys alive during collection.
 pub const Key = extern struct {
     text: [*]const u32,
     text_len: u32,

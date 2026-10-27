@@ -12,7 +12,7 @@ import type { RenderRow } from '../../core/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import type { AtlasInsertResult } from '../shared/atlas/types.js'
-import { buildZigFrame, registerZigGlyphs, zigGlyphRow } from '../shared/atlas/zig-glyphs.js'
+import { buildZigFrame, zigGlyphRow } from '../shared/atlas/zig-glyphs.js'
 import { canonicalRendererTheme } from '../shared/config.js'
 import { defaultRendererTheme } from '../shared/instances/types.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../shared/types.js'
@@ -525,16 +525,13 @@ describe('WebGL native atlas residency', () => {
       theme,
     }
     expect(builder.build(options)).toBe(2)
-    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(true)
-    expect(builder.build(options)).toBe(0)
+    expect(buildZigFrame(builder, atlas, rasterizer, options)).toBe(0)
     atlas.beginRow(0)
     const replacement = atlas.getOrInsert('replacement', bitmap, 0)
     expect(replacement.invalidatedRows).toEqual([zigGlyphRow])
     expect(atlas.evictionCount).toBe(1)
     const clearGlyphs = vi.spyOn(builder, 'clearGlyphs')
-    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(true)
-    expect(builder.build(options)).toBe(2)
-    expect(registerZigGlyphs(builder, atlas, rasterizer)).toBe(true)
+    expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
     expect(clearGlyphs).not.toHaveBeenCalled()
     expect(builder.build(options)).toBe(0)
     expect(builder.missingGlyphs).toEqual([])
@@ -702,7 +699,7 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
   expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(
     512 * 512,
   )
-  expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0, 0, 0, 2, 0])
+  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2, 0])
   expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
   expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches.mock.calls).toEqual([

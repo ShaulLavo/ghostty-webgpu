@@ -31,22 +31,6 @@ export function buildZigFrame(
   }
 }
 
-export function registerZigGlyphs(
-  builder: ZigFrameBuilder,
-  atlas: GlyphAtlas,
-  rasterizer: GlyphRasterizer,
-): boolean {
-  invalidateEvictedPages(builder, atlas)
-  atlas.beginFrame()
-  try {
-    touchRetainedGlyphs(builder, atlas)
-    registerMissingGlyphs(builder, atlas, rasterizer)
-    return true
-  } finally {
-    atlas.endFrame()
-  }
-}
-
 function invalidateEvictedPages(builder: ZigFrameBuilder, atlas: GlyphAtlas): void {
   for (const page of atlas.consumeEvictedPages()) builder.invalidateGlyphPage(page)
 }

@@ -43,10 +43,10 @@
     ],
     "inputs": {
       "scripts/build-wasm.ts": "91442f6b080a347aed96e61a7c592576102e9a82851d93013aba30f050847302",
-      "scripts/bridge.zig": "890a96b9194205db7f00c2821a8aea430afaea374cbb568f6ef6958fb6898bce",
+      "scripts/bridge.zig": "507a6ecf5c289447927aa9169c4425241f4b4b2a331c99857c08f8a367a4ed73",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
       "scripts/retained-frame.zig": "1fb304d94a0ee7fb346af3f26c8c25e969c2d28c68bf1304bc9e0eb55cf67c24",
-      "scripts/glyph-index.zig": "f34cf29a9cb11923b35d027b2f93fac017485d6abd43352cc27ef0fc89d524b3",
+      "scripts/glyph-index.zig": "75e21633f90894c081b5b723c683369393137056b9f0a5df9cfb8010ddc2cc50",
       "scripts/unknown-osc.zig": "99b6aa177a66bb6df934a8c16d17ebcb5488f15946600e1df52bf6d10a77b5d7",
       "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
       "scripts/wasm-provenance.ts": "d80276ceba1f05b74fbc1099041163278635b97fabfcae93b96b9e8b019ef14f",
@@ -60,8 +60,8 @@
       "nameSectionSha256": []
     },
     "bridge.wasm": {
-      "bytes": 20965,
-      "sha256": "84e83353cbe38fb001f2470f0892cd559c22e11cf0fae095a798feb4e220f576",
+      "bytes": 21842,
+      "sha256": "83461820414478ca9e94e6605edd453cfee61d8f3ca15728f1c0d5488a06ce3b",
       "nameSectionSha256": []
     }
   }
