@@ -658,7 +658,9 @@ async function main(): Promise<void> {
       JSON.stringify(
         {
           recordedAt: new Date().toISOString(),
-          source: Bun.spawnSync(['git', 'rev-parse', 'HEAD']).stdout.toString().trim(),
+          source:
+            process.env.WORKER_DELTA_SOURCE ??
+            Bun.spawnSync(['git', 'rev-parse', 'HEAD']).stdout.toString().trim(),
           headless,
           steps,
           repetitions,
