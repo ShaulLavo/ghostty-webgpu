@@ -508,3 +508,31 @@ it.each(['growth', 'invalidation'] as const)(
     }
   },
 )
+
+it.each(['submitted', 'failed', 'detached'] as const)(
+  'keeps the final device lease alive until its encoded owner is %s',
+  async (settlement) => {
+    const device = await openDevice()
+    const shared = new SharedGlyphAtlas('last-device-lease', fittedFont())
+    const owner = {}
+    shared.attach(owner)
+    const textures = shared.acquireTextures(device)
+    const destroy = vi.spyOn(textures, 'destroy')
+    try {
+      const command = device.createCommandEncoder().finish()
+      shared.beginFrame(owner, device)
+      shared.releaseTextures(device)
+      expect(destroy).not.toHaveBeenCalled()
+      if (settlement === 'submitted') {
+        device.queue.submit([command])
+        shared.frameSubmitted(owner, device)
+      }
+      if (settlement === 'failed') shared.frameFailed(owner, device)
+      if (settlement === 'detached') shared.detach(owner)
+      expect(destroy).toHaveBeenCalledOnce()
+    } finally {
+      shared.releaseTextures(device)
+      shared.detach(owner)
+    }
+  },
+)

@@ -56,7 +56,9 @@ export class SharedGlyphAtlas {
   detach(owner: SharedAtlasOwner): boolean {
     if (!this.owners.delete(owner)) return false
     this.atlas.detachOwner(owner)
+    const frames = this.inFlight.get(owner) ?? []
     this.inFlight.delete(owner)
+    for (const frame of frames) this.collectRetired(frame.device)
     return true
   }
 
@@ -80,10 +82,11 @@ export class SharedGlyphAtlas {
     const entry = this.devices.get(device)
     if (!entry) return
     entry.references -= 1
-    if (entry.references > 0) return
-    this.devices.delete(device)
-    entry.textures.destroy()
-    this.releaseRetired(device)
+    if (entry.references === 0) {
+      this.devices.delete(device)
+      this.retire({ device, version: entry.version, release: () => entry.textures.destroy() })
+    }
+    this.collectRetired(device)
   }
 
   textureVersion(device: GPUDevice): number {
@@ -101,7 +104,7 @@ export class SharedGlyphAtlas {
     let textureChanged = false
     for (const [targetDevice, entry] of this.devices) {
       const changed = entry.textures.sync(uploads, (release) => {
-        this.retired.push({ device: targetDevice, release, version: entry.version })
+        this.retire({ device: targetDevice, release, version: entry.version })
       })
       if (!changed) continue
       entry.version += 1
@@ -120,9 +123,10 @@ export class SharedGlyphAtlas {
     for (const [device, entry] of this.devices) {
       const previous = entry.textures
       const replacement = this.createTextures(device)
-      this.retired.push({ device, version: entry.version, release: () => previous.destroy() })
+      const version = entry.version
       entry.textures = replacement
       entry.version += 1
+      this.retire({ device, version, release: () => previous.destroy() })
     }
   }
 
@@ -175,11 +179,20 @@ export class SharedGlyphAtlas {
     this.removeRetired(safe)
   }
 
+  private retire(texture: RetiredTexture): void {
+    if (this.isRetired(texture)) {
+      texture.release()
+      return
+    }
+    this.retired.push(texture)
+  }
+
   private isRetired(retired: RetiredTexture): boolean {
     for (const frames of this.inFlight.values()) {
-      for (const frame of frames) {
-        if (frame.device === retired.device && frame.version <= retired.version) return false
-      }
+      if (
+        frames.some((frame) => frame.device === retired.device && frame.version <= retired.version)
+      )
+        return false
     }
     return true
   }
@@ -189,11 +202,5 @@ export class SharedGlyphAtlas {
       const index = this.retired.indexOf(retired)
       if (index >= 0) this.retired.splice(index, 1)
     }
-  }
-
-  private releaseRetired(device: GPUDevice): void {
-    const released = this.retired.filter((retired) => retired.device === device)
-    for (const retired of released) retired.release()
-    this.removeRetired(released)
   }
 }

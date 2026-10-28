@@ -38,3 +38,11 @@ Focused browser controls cover equal shared output, font changes and rejoining, 
 The full gate sequence runs `build`, `typecheck`, `lint`, `format:check`, `test:unit`, `verify:extensions`, and then the complete `test:browser` suite. The first full run exposed the old DOM test's direct private-atlas injection. Its fixture now installs its tiny atlas through shared ownership and still exercises real eviction recovery.
 
 Final results: 72 browser files pass, with 1,195 tests passed and five skipped. The unit Vitest project passes 1,217 tests with one skipped; its additional comparison, checkpoint, and worker-codec checks pass. Build, typecheck, lint, formatting, extension verification, and site documentation checks pass.
+
+## Review follow-up: retirement without a later paint
+
+The independent review reproduced a retained texture set after one sharer cleared the atlas, disposed before repaint, and left its peer idle. Retirement had been queued regardless of encoded references; only a later frame callback or final device release collected it. An idle second GPU device had the same problem after growth or invalidation.
+
+Retirement now releases versions immediately when no encoded frame references them. Referenced versions remain queued until submission, failure, or owner detachment removes the final reference. Device-lease release follows that same rule, including its last lease. The reviewed peer-pin and encoded-frame searches also use flat control flow.
+
+The failing-first ownership probe reports `owners=1, pendingFrames=0, retiredTextureSets=1, destroyed=0` before the fix and `owners=1, pendingFrames=0, retiredTextureSets=0, destroyed=1` after it. The frozen browser regression commit is `a1c1df9c7`. Browser controls cover clear/dispose with an idle peer, idle-device growth and invalidation alongside an active encoded frame, and final device-lease release followed by submission, failure, or detachment. Existing coordinator-submit readbacks remain the pending-texture safety control. This follow-up uses only PC SwiftShader; the reserved Mac is untouched. Logs are under the existing evidence root's `retirement-fix/` directory.

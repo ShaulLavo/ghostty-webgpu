@@ -315,8 +315,8 @@ export class GlyphAtlas {
     this.pinning = true
     if (!collectPeerPins) return
     for (const [other, pins] of this.ownerPins) {
-      if (other !== owner)
-        for (const [page, keys] of pins) this.addPins(this.pinnedPages, page, keys)
+      if (other === owner) continue
+      for (const [page, keys] of pins) this.addPins(this.pinnedPages, page, keys)
     }
   }
 
