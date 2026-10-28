@@ -1,3 +1,4 @@
+import type { BidiSelectionGesture } from '../bidi/selection.js'
 import { normalizeFontMetrics } from './font-metrics.js'
 import {
   ClipboardLocation,
@@ -510,6 +511,7 @@ interface NativeResources {
   readonly key: GhosttyKeyEncoder
   readonly mouse: GhosttyMouseEncoder
   readonly renderState: GhosttyRenderState
+  readonly bidiSelection?: BidiSelectionGesture
   readonly selection: GhosttySelectionGesture
   readonly terminal: GhosttyTerminal
 }
@@ -1105,6 +1107,7 @@ export class TerminalSession<TEvent = unknown> {
   private readonly ownsRuntime: boolean
   private revisionValue = 0
   private readonly runtimeValue: GhosttyRuntime
+  private readonly bidiSelection?: BidiSelectionGesture
   private readonly selection: GhosttySelectionGesture
   private scrollValue: TerminalScrollEvent
   private readonly terminal: GhosttyTerminal
@@ -1123,6 +1126,7 @@ export class TerminalSession<TEvent = unknown> {
     this.nativeRenderState = resources.renderState
     this.keyEncoder = resources.key
     this.mouseEncoder = resources.mouse
+    this.bidiSelection = resources.bidiSelection
     this.selection = resources.selection
     this.appearanceValue = appearance
     this.effectState = effectState
@@ -1157,14 +1161,18 @@ export class TerminalSession<TEvent = unknown> {
       partial.key = key
       const mouse = new GhosttyMouseEncoder(terminal)
       partial.mouse = mouse
-      const selection = new GhosttySelectionGesture(terminal)
+      const bidiModule = options.bidi ? await import('../bidi/selection.js') : undefined
+      const bidiSelection = bidiModule
+        ? new bidiModule.BidiSelectionGesture(terminal, renderState)
+        : undefined
+      const selection = bidiSelection ?? new GhosttySelectionGesture(terminal)
       partial.selection = selection
       const links = createLinkResolver(options.links, emitters)
       partial.links = links as LinkResolver<unknown>
       effectState.pending.length = 0
       return new TerminalSession(
         lease,
-        { key, mouse, renderState, selection, terminal },
+        { key, mouse, renderState, selection, bidiSelection, terminal },
         appearance,
         effectState,
         emitters,
@@ -1219,7 +1227,31 @@ export class TerminalSession<TEvent = unknown> {
 
   get renderState(): RenderStateSource {
     this.ensureActive()
-    return this.nativeRenderState
+    if (!this.bidiSelection) return this.nativeRenderState
+    const source = this.nativeRenderState
+    const selection = this.bidiSelection
+    return {
+      get snapshotVersion() {
+        return source.snapshotVersion
+      },
+      get hasSnapshot() {
+        return source.hasSnapshot
+      },
+      get renderHeld() {
+        return source.renderHeld
+      },
+      subscribeRenderRequest: source.subscribeRenderRequest.bind(source),
+      createFrameBuilder: source.createFrameBuilder.bind(source),
+      acknowledge: source.acknowledge.bind(source),
+      readCursor: source.readCursor.bind(source),
+      readRows: (options) => selection.selectedRows(source.readRows(options)),
+      readTextRows: source.readTextRows.bind(source),
+      update: source.update.bind(source),
+    }
+  }
+
+  get bidi(): boolean {
+    return this.bidiSelection !== undefined
   }
 
   get revision(): number {
@@ -1361,9 +1393,34 @@ export class TerminalSession<TEvent = unknown> {
 
   mouse(input: TerminalMouseInput): TerminalInputResult {
     return this.runOperation(() => {
+      if (this.bidiSelection !== undefined) input = this.bidiMouse(input)
       const normalized = normalizeTerminalMouseInput(input)
       return this.publishInput(this.mouseEncoder.encode(normalized.event, normalized.state), false)
     })
+  }
+
+  private bidiMouse(input: TerminalMouseInput): TerminalMouseInput {
+    if (!this.bidiSelection) return input
+    const { geometry } = input.state
+    const x = Math.max(
+      0,
+      Math.min(
+        this.grid.columns - 1,
+        Math.floor((input.event.x - geometry.paddingLeft) / geometry.cellWidth),
+      ),
+    )
+    const y = Math.max(
+      0,
+      Math.min(
+        this.grid.rows - 1,
+        Math.floor((input.event.y - geometry.paddingTop) / geometry.cellHeight),
+      ),
+    )
+    const logical = this.bidiSelection.logical({ x, y })
+    return {
+      ...input,
+      event: { ...input.event, x: input.event.x + (logical.x - x) * geometry.cellWidth },
+    }
   }
 
   resetMouseTracking(): void {

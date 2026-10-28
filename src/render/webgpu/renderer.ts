@@ -1,3 +1,5 @@
+import type { RowBidiMapper } from '../../bidi/row.js'
+import { loadBidiMapper, paintedBidiCursor } from '../../bidi/loader.js'
 import type {
   RenderStateSource,
   RendererMetrics,
@@ -141,6 +143,7 @@ function sharedFrameCoordinator(): FrameCoordinator {
 }
 
 export class WebGpuTerminalRenderer {
+  private readonly bidi?: RowBidiMapper
   private zigBuilder?: ZigFrameBuilder
   private sharedAtlas: SharedGlyphAtlas
   private atlasUploadedBytesValue = 0
@@ -203,6 +206,7 @@ export class WebGpuTerminalRenderer {
     lease: DeviceLease,
     replacementDeviceOwner: DeviceOwner,
     prepared: PreparedRenderer,
+    bidi?: RowBidiMapper,
   ) {
     this.canvas = options.canvas
     this.context = prepared.context
@@ -212,6 +216,7 @@ export class WebGpuTerminalRenderer {
     this.replacementDeviceOwner = replacementDeviceOwner
     if (!options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
+    this.bidi = bidi
     this.renderState = options.renderState
     this.onError = options.onError
     this.grid = prepared.grid
@@ -266,6 +271,7 @@ export class WebGpuTerminalRenderer {
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
+    const bidi = options.bidi ? await loadBidiMapper() : undefined
     const validated = validateRenderer(options)
     let owner = options.adapterPolicy === 'hardware' ? hardwareDeviceOwner : defaultDeviceOwner
     if (options.deviceFactory) owner = new DeviceOwner(options.deviceFactory)
@@ -275,7 +281,7 @@ export class WebGpuTerminalRenderer {
     try {
       textPassGlyphCapacity(lease.device, validated.grid.columns * validated.grid.rows)
       prepared = prepareRenderer(options, validated)
-      return new WebGpuTerminalRenderer(options, lease, replacementOwner, prepared)
+      return new WebGpuTerminalRenderer(options, lease, replacementOwner, prepared, bidi)
     } catch (cause) {
       try {
         prepared?.context.unconfigure()
@@ -584,6 +590,10 @@ export class WebGpuTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.bidi) {
+        const mapper = this.bidi
+        builder.setBidiProjection(() => mapper.projection(this.renderState.readRows()))
+      }
       this.zigBuilder = builder
       this.needsFullRebuild = true
     }
@@ -789,10 +799,14 @@ export class WebGpuTerminalRenderer {
     return this.frames.capture(
       this.renderState,
       this.cursor,
-      renderCursorState(
-        this.cursor,
-        this.cursorPhaseVisible,
-        this.focused ? undefined : this.inactiveCursorStyle,
+      paintedBidiCursor(
+        this.bidi,
+        this.renderState,
+        renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
       ),
       changed,
       rows,

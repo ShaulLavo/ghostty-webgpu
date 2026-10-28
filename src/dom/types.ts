@@ -175,6 +175,8 @@ export type GhosttyWebGpuRendererFactory = (
 ) => Promise<GhosttyWebGpuRenderer>
 
 export interface GhosttyWebGpuTerminalOptions {
+  /** Reorder cells with Unicode 13.0 BiDi tables. Defaults to false. */
+  readonly bidi?: boolean
   readonly accessibility?: false | GhosttyWebGpuTerminalAccessibilityOptions
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy

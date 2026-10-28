@@ -1,3 +1,5 @@
+import type { RowBidiMapper } from '../../bidi/row.js'
+import { loadBidiMapper, paintedBidiCursor } from '../../bidi/loader.js'
 import { createGhosttyError } from '../../core/error.js'
 import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
@@ -87,6 +89,7 @@ export class WebGlTerminalRenderer {
     submittedFrames: 0,
     uploadedBytes: 0,
   }
+  private readonly bidi?: RowBidiMapper
   private zigBuilder?: ZigFrameBuilder
   private readonly atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
@@ -122,11 +125,13 @@ export class WebGlTerminalRenderer {
     font: TerminalFittedFont,
     grid: RendererGridSize,
     context: WebGL2RenderingContext,
+    bidi?: RowBidiMapper,
   ) {
     this.canvas = options.canvas
     this.context = context
     this.font = font
     this.grid = grid
+    this.bidi = bidi
     this.renderState = options.renderState
     this.onError = options.onError
     this.onContextLost = options.onContextLost
@@ -156,6 +161,7 @@ export class WebGlTerminalRenderer {
   }
 
   static async create(options: WebGlTerminalRendererOptions): Promise<WebGlTerminalRenderer> {
+    const bidi = options.bidi ? await loadBidiMapper() : undefined
     const font = copyFittedFont(options.font)
     const grid = normalizeRendererGrid({
       columns: options.columns,
@@ -163,7 +169,7 @@ export class WebGlTerminalRenderer {
     })
     const context = requireContext(options.canvas, options.presentation)
     try {
-      return new WebGlTerminalRenderer(options, font, grid, context)
+      return new WebGlTerminalRenderer(options, font, grid, context, bidi)
     } catch (cause) {
       context.getExtension('WEBGL_lose_context')?.loseContext()
       throw cause
@@ -416,6 +422,10 @@ export class WebGlTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.bidi) {
+        const mapper = this.bidi
+        builder.setBidiProjection(() => mapper.projection(this.renderState.readRows()))
+      }
       this.zigBuilder = builder
       this.needsFullRebuild = true
     }
@@ -568,10 +578,14 @@ export class WebGlTerminalRenderer {
     return this.frames.capture(
       this.renderState,
       this.cursor,
-      renderCursorState(
-        this.cursor,
-        this.cursorPhaseVisible,
-        this.focused ? undefined : this.inactiveCursorStyle,
+      paintedBidiCursor(
+        this.bidi,
+        this.renderState,
+        renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
       ),
       changed,
       rows,

@@ -7,6 +7,7 @@ const result = await Bun.build({
   outdir: resolve(root, 'dist/worker'),
   target: 'browser',
   format: 'esm',
+  splitting: true,
   sourcemap: 'external',
 })
 if (!result.success) {
