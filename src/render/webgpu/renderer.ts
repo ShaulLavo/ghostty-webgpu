@@ -364,9 +364,9 @@ export class WebGpuTerminalRenderer {
     const geometryChanged = !fittedFontGeometryEquals(this.font, next)
     this.coordinator?.flushOwner(this)
     if (this.disposed) return
+    this.switchSharedAtlas(next)
     this.font = next
     if (geometryChanged) this.rebuildGeometryResources()
-    this.switchSharedAtlas()
     this.invalidateAll()
   }
 
@@ -475,13 +475,20 @@ export class WebGpuTerminalRenderer {
     })
   }
 
-  private switchSharedAtlas(): void {
+  private switchSharedAtlas(font: TerminalFittedFont): void {
     this.coordinator?.flushOwner(this)
     if (this.disposed) return
     const previous = this.sharedAtlas
-    const next = acquireSharedAtlas(this.font, this, this.canvas)
-    const textures = next.acquireTextures(this.device)
-    this.textPass.syncAtlas(textures)
+    const next = acquireSharedAtlas(font, this, this.canvas)
+    let textures: AtlasGpuTextures | undefined
+    try {
+      textures = next.acquireTextures(this.device)
+      this.textPass.syncAtlas(textures)
+    } catch (cause) {
+      if (textures) next.releaseTextures(this.device)
+      releaseSharedAtlas(next, this)
+      throw cause
+    }
     const counts = previous.metrics(this)
     this.previousAtlasMetrics.cacheHits += counts.cacheHits
     this.previousAtlasMetrics.cacheMisses += counts.cacheMisses

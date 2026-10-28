@@ -17,7 +17,7 @@ export function buildZigFrame(
   invalidateEvictedPages(builder, atlas, owner)
   let status = builder.build(options)
   if (status !== 2 && !builder.hasDeferredGlyphs && owner === undefined) return status
-  atlas.beginFrame(owner)
+  atlas.beginFrame(owner, status === 2 || builder.hasDeferredGlyphs)
   try {
     touchRetainedGlyphs(builder, atlas)
     if (builder.hasDeferredGlyphs && atlas.hasReclaimableSpace && builder.retryDeferredGlyphs())

@@ -411,3 +411,21 @@ it('restores all sharing terminals after real device loss with one fresh texture
   expect(await repaint(first)).toEqual(reference)
   expect(await repaint(peer)).toEqual(reference)
 })
+
+it('keeps the prior font and releases a new owner when font texture allocation fails', async () => {
+  const first = await openTerminal()
+  const reference = await repaint(first)
+  const changed = fittedFont(8, 16, 1, { family: 'serif' })
+  vi.spyOn(deviceOf(first.renderer), 'createTexture').mockImplementationOnce(() => {
+    throw new Error('font atlas allocation failed')
+  })
+  expect(() => first.renderer.setFont(changed)).toThrow('font atlas allocation failed')
+  const peer = await openTerminal(changed)
+  const shared = Reflect.get(peer.renderer, 'sharedAtlas') as SharedGlyphAtlas
+  expect(shared.ownerCount).toBe(1)
+  expect(await repaint(first)).toEqual(reference)
+  first.renderer.setFont(changed)
+  first.clock.flushFrame()
+  expect(texturesOf(first.renderer)).toBe(texturesOf(peer.renderer))
+  expect(await repaint(first)).toEqual(await repaint(peer))
+})

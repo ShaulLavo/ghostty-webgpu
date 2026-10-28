@@ -194,6 +194,9 @@ class AtlasPage {
 
 export class GlyphAtlas {
   private readonly cache = new Map<string, { glyph: AtlasGlyph; page: AtlasPage }>()
+  private cacheHitCountValue = 0
+  private cacheMissCountValue = 0
+  private evictionCountValue = 0
   private maxLayersPerKindValue: number
   private nextPageId = 1
   private readonly padding: number
@@ -242,15 +245,15 @@ export class GlyphAtlas {
   }
 
   get cacheHitCount(): number {
-    return this.ownerMetrics.get(this)?.cacheHits ?? 0
+    return this.cacheHitCountValue
   }
 
   get cacheMissCount(): number {
-    return this.ownerMetrics.get(this)?.cacheMisses ?? 0
+    return this.cacheMissCountValue
   }
 
   get evictionCount(): number {
-    return this.ownerMetrics.get(this)?.evictions ?? 0
+    return this.evictionCountValue
   }
 
   get pageCount(): number {
@@ -303,17 +306,18 @@ export class GlyphAtlas {
     )
   }
 
-  beginFrame(owner: object = this): void {
+  beginFrame(owner: object = this, collectPeerPins = true): void {
     this.ensureOwner(owner)
     this.ownerPages.get(owner)!.clear()
     this.pinnedPages.clear()
     this.frameOwner = owner
     this.framePins = new Map()
+    this.pinning = true
+    if (!collectPeerPins) return
     for (const [other, pins] of this.ownerPins) {
       if (other !== owner)
         for (const [page, keys] of pins) this.addPins(this.pinnedPages, page, keys)
     }
-    this.pinning = true
   }
 
   endFrame(): void {
@@ -378,11 +382,13 @@ export class GlyphAtlas {
     const cacheKey = bitmapCacheKey(key, bitmap.kind)
     const cached = this.cache.get(cacheKey)
     if (cached) {
+      this.cacheHitCountValue += 1
       this.ensureOwner(this.currentOwner())
       this.ownerMetrics.get(this.currentOwner())!.cacheHits += 1
       this.touch(cached.page, row, cacheKey)
       return { glyph: cached.glyph, invalidatedRows: [] }
     }
+    this.cacheMissCountValue += 1
     this.ensureOwner(this.currentOwner())
     this.ownerMetrics.get(this.currentOwner())!.cacheMisses += 1
     const allocation = this.allocatePage(cacheKey, key, bitmap)
@@ -519,6 +525,7 @@ export class GlyphAtlas {
     for (const row of rows) this.removePageReference(row, page.id)
     page.reset()
     this.recordEviction(page)
+    this.evictionCountValue += 1
     this.ensureOwner(this.currentOwner())
     this.ownerMetrics.get(this.currentOwner())!.evictions += 1
     return rows
