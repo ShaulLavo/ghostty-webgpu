@@ -15,6 +15,7 @@ import type { TerminalScrollbar } from '../../core/types.js'
 import { GlyphAtlas } from '../../render/shared/atlas/atlas.js'
 import type { CanvasGlyphRasterizer } from '../../render/shared/atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from '../../render/webgpu/gpu-textures.js'
+import type { SharedGlyphAtlas } from '../../render/webgpu/shared-atlas.js'
 import { WebGpuTerminalRenderer } from '../../render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../../render/webgl/renderer.js'
 import { WebGlTextPass } from '../../render/webgl/text-pass.js'
@@ -1897,8 +1898,8 @@ describe('terminal frame consumer demand in Chromium', () => {
         pageHeight: Math.max(...bitmaps.map((bitmap) => bitmap.height)) + 2,
         pageWidth: Math.max(initialWidth, retryWidth),
       })
-      Reflect.set(renderer, 'atlas', atlas)
       if (renderer instanceof WebGlTerminalRenderer) {
+        Reflect.set(renderer, 'atlas', atlas)
         const previousState = Reflect.get(renderer, 'state') as { pass: WebGlTextPass }
         const canvas = harness.terminal.canvas!
         const pass = new WebGlTextPass({
@@ -1912,11 +1913,17 @@ describe('terminal frame consumer demand in Chromium', () => {
         Reflect.set(renderer, 'state', { kind: 'ready', pass })
         previousState.pass.destroy()
       } else {
+        const shared = Reflect.get(renderer, 'sharedAtlas') as SharedGlyphAtlas
+        Reflect.set(shared, 'atlas', atlas)
+        atlas.attachOwner(renderer)
         const previousTextures = Reflect.get(renderer, 'atlasTextures') as AtlasGpuTextures
-        const textures = new AtlasGpuTextures(
-          Reflect.get(renderer, 'device') as GPUDevice,
-          atlas.textureLayout,
-        )
+        const device = Reflect.get(renderer, 'device') as GPUDevice
+        const textures = new AtlasGpuTextures(device, atlas.textureLayout)
+        const devices = Reflect.get(shared, 'devices') as Map<
+          GPUDevice,
+          { textures: AtlasGpuTextures }
+        >
+        devices.get(device)!.textures = textures
         Reflect.set(renderer, 'atlasTextures', textures)
         const textPass = Reflect.get(renderer, 'textPass') as WebGpuTextPass
         textPass.syncAtlas(textures)

@@ -86,7 +86,7 @@ export class AtlasGpuTextures {
     return this.uploadOperationCountValue
   }
 
-  sync(uploads: readonly AtlasPageUpload[]): boolean {
+  sync(uploads: readonly AtlasPageUpload[], retire?: (release: () => void) => void): boolean {
     let changed = false
     for (const kind of ['grayscale', 'color'] as const) {
       const required = uploads.reduce(
@@ -94,7 +94,7 @@ export class AtlasGpuTextures {
         1,
       )
       if (required <= this.textures[kind].layers) continue
-      this.grow(kind, required)
+      this.grow(kind, required, retire)
       changed = true
     }
     for (const upload of uploads) this.syncPage(upload)
@@ -114,7 +114,7 @@ export class AtlasGpuTextures {
     this.textures.color.texture.destroy()
   }
 
-  private grow(kind: AtlasKind, required: number): void {
+  private grow(kind: AtlasKind, required: number, retire?: (release: () => void) => void): void {
     if (required > this.layout.layerCount)
       throw new RangeError('atlas upload layer is outside texture-array capacity')
     const previous = this.textures[kind]
@@ -131,7 +131,9 @@ export class AtlasGpuTextures {
       },
     )
     this.device.queue.submit([encoder.finish()])
-    previous.texture.destroy()
+    const release = () => previous.texture.destroy()
+    if (retire) retire(release)
+    else release()
     this.textures[kind] = next
     this.textureCreationCountValue += 1
   }
