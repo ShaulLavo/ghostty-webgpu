@@ -42,8 +42,9 @@ const server = Bun.serve({
     if (!current) return new Response('No active arm', { status: 503 })
     if (url.pathname === '/') {
       const source = url.searchParams.get('source')
+      const xtermCss = url.searchParams.has('xterm') ? current.roots[source].xtermCss : ''
       return new Response(
-        `<!doctype html><style>body{margin:0;background:black}main{width:900px;height:500px}</style><main></main><script type="module" src="/bundle.js?source=${source}"></script>`,
+        `<!doctype html><style>body{margin:0;background:black}main{width:900px;height:500px}${xtermCss}</style><main></main><script type="module" src="/bundle.js?source=${source}"></script>`,
         { headers: { 'content-type': 'text/html' } },
       )
     }
@@ -65,6 +66,7 @@ const conditions = [
   { backend: 'webgpu', worker: true },
   { backend: 'webgl2', worker: true },
   { backend: 'webgl2', worker: false },
+  { backend: 'webgl2', worker: false, xterm: true },
 ]
 try {
   for (let repetition = 0; repetition < repetitions; repetition += 1) {
@@ -82,8 +84,11 @@ try {
 }
 
 async function runCondition(condition, index, repetition) {
-  const conditionName = `${condition.backend}-${condition.worker ? 'worker' : 'main'}`
-  if (process.env.C5_ONLY && process.env.C5_ONLY !== conditionName) return
+  const conditionName = condition.xterm
+    ? 'xterm-webgl-main'
+    : `${condition.backend}-${condition.worker ? 'worker' : 'main'}`
+  const only = process.env.C5_ONLY?.split(',')
+  if (only && !only.includes(conditionName)) return
   const order =
     (repetition + index) % 2 === 0 ? ['baseline', 'candidate'] : ['candidate', 'baseline']
   for (const label of order) {
@@ -93,7 +98,10 @@ async function runCondition(condition, index, repetition) {
 }
 
 async function runArm(label, condition, repetition) {
-  const name = `${condition.backend}-${condition.worker ? 'worker' : 'main'}-${label}-r${repetition}`
+  const conditionName = condition.xterm
+    ? 'xterm-webgl-main'
+    : `${condition.backend}-${condition.worker ? 'worker' : 'main'}`
+  const name = `${conditionName}-${label}-r${repetition}`
   console.log(`C5 ${name}`)
   current = { label, roots, files: roots[label].files }
   const arm = { name, label, ...condition, repetition, errors: [] }
@@ -115,7 +123,7 @@ async function runArm(label, condition, repetition) {
     const page = await context.newPage()
     page.on('pageerror', (error) => pageErrors.push(String(error)))
     page.on('console', (message) => consoleMessages.push(`${message.type()}: ${message.text()}`))
-    const query = `source=${label}&backend=${condition.backend}&trace${condition.worker ? '&worker' : ''}${label === 'candidate' ? '&adaptive' : ''}`
+    const query = `source=${label}&backend=${condition.backend}&trace${condition.worker ? '&worker' : ''}${condition.xterm ? '&xterm' : ''}${label === 'candidate' ? '&adaptive' : ''}`
     await page.goto(`http://127.0.0.1:${port}/?${query}`)
     await page
       .waitForFunction(() => !!globalThis.__c5, null, { timeout: 30000 })
@@ -177,7 +185,8 @@ async function prepare(page) {
       },
       true,
     )
-    globalThis.__c5.terminal.onData(async ({ bytes: data }) => {
+    globalThis.__c5.terminal.onData(async (event) => {
+      const data = typeof event === 'string' ? event : event.bytes
       const started = globalThis.__c5KeyTime
       await globalThis.__c5.markEcho()
       await globalThis.__c5.terminal.write(data)
@@ -284,7 +293,7 @@ function qualifyHardware(info) {
 }
 
 async function buildSource(root) {
-  const [bundle, worker, wasm, bridge, compose, font] = await Promise.all([
+  const [bundle, worker, wasm, bridge, compose, font, xtermCss] = await Promise.all([
     build(root, '.internal/c5-idle-immediate/entry.mjs'),
     build(root, '.internal/c5-idle-immediate/worker.mjs'),
     readFile(join(root, 'ghostty-vt.wasm')),
@@ -296,10 +305,12 @@ async function buildSource(root) {
         'node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2',
       ),
     ),
+    readFile(join(root, 'node_modules/@xterm/xterm/css/xterm.css'), 'utf8'),
   ])
   return {
     bundle,
     worker,
+    xtermCss,
     files: new Map([
       ['/ghostty-vt.wasm', wasm],
       ['/bridge.wasm', bridge],

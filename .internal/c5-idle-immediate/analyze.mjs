@@ -129,5 +129,6 @@ function countSummary(arms) {
 }
 
 function conditionKey(arm) {
+  if (arm.xterm) return 'xterm-webgl-main'
   return `${arm.backend}-${arm.worker ? 'worker' : 'main'}`
 }
