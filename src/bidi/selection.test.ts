@@ -107,6 +107,15 @@ describe('BiDi native selection', () => {
     try {
       roundTrip.write(vt)
       expect(roundTrip.readLines(0, 1)[0]!.text).toBe(plain)
+      const state = session.runtime.createRenderState(roundTrip)
+      try {
+        state.update()
+        expect(state.readRows()[0]!.cells[0]!.foreground).toEqual(
+          session.appearance.theme.palette[1],
+        )
+      } finally {
+        state.dispose()
+      }
     } finally {
       roundTrip.dispose()
     }
@@ -136,5 +145,15 @@ describe('BiDi native selection', () => {
     session.selectionRelease({ x: 2, y: 1 })
     expect(session.selectionCoordinates()?.rectangle).toBe(true)
     expect(session.getSelection()).toBe('bc\nfg')
+    expect((session.getSelection({ format: 'html' })!.match(/<style>/g) ?? []).length).toBe(1)
+    const vt = session.getSelection({ format: 'vt' })!
+    expect((vt.match(/\x1b\]4;0;/g) ?? []).length).toBe(1)
+    const copy = session.runtime.createTerminal({ columns: 4, rows: 8 })
+    try {
+      copy.write(vt)
+      expect(copy.readLines(0, 2).map((line) => line.text)).toEqual(['bc', 'fg'])
+    } finally {
+      copy.dispose()
+    }
   })
 })

@@ -1,6 +1,7 @@
 import { mkdtemp, rm, symlink } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { resolve, join } from 'node:path'
+import { bundleGraph } from '../../scripts/bundle-graph.mjs'
 import { gzipSync } from 'node:zlib'
 
 function command(name, args, input) {
@@ -15,11 +16,24 @@ async function bundle(root, entry) {
     target: 'browser',
     format: 'esm',
     minify: true,
+    splitting: true,
     write: false,
   })
   if (!result.success) throw new AggregateError(result.logs, 'Bundle failed')
-  const bytes = new Uint8Array(await result.outputs[0].arrayBuffer())
-  return { bytes: bytes.length, gzipBytes: gzipSync(bytes, { level: 9 }).length }
+  const graph = await bundleGraph(result.outputs)
+  const initial = sizes(graph.initial)
+  return {
+    ...initial,
+    deferred: sizes(graph.deferred),
+    initialContainsBidi: graph.initial.some((bytes) => bytes.includes('getEmbeddingLevels')),
+  }
+}
+
+function sizes(files) {
+  return {
+    bytes: files.reduce((sum, bytes) => sum + bytes.length, 0),
+    gzipBytes: files.reduce((sum, bytes) => sum + gzipSync(bytes, { level: 9 }).length, 0),
+  }
 }
 
 const baseline = process.argv[2]
@@ -31,7 +45,7 @@ try {
   command('tar', ['-x', '-C', scratch], command('git', ['archive', baseline, 'src']))
   await symlink(join(root, 'node_modules'), join(scratch, 'node_modules'), 'dir')
   const entries = {}
-  for (const entry of ['index.ts', 'worker/entry.ts']) {
+  for (const entry of ['index.ts', 'worker/index.ts', 'worker/entry.ts']) {
     const before = await bundle(scratch, entry)
     const after = await bundle(root, entry)
     entries[entry] = {

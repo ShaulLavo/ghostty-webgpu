@@ -67,3 +67,34 @@ delegation were skipped because the binding lane brief forbids child agents.
 
 Raw receipts belong to `/work/reports/ghostty-webgpu-next-2026-10/c3/`.
 Re-run bundle measurements with `bun .internal/reference-study-2026-10/bidi-bundle.mjs BASE_REF`.
+
+## Review corrections
+
+The independent review at `b437bad1` found eager dependency loading, repeated document envelopes
+in formatted copy, and lost rectangle metadata. Failing-first tests reproduced all three.
+
+The BiDi implementation now lives behind dynamic imports. The build emits self-contained optional
+BiDi modules and split worker modules. `bidi-js` is a build dependency, not a production dependency.
+The initial main, core, worker-host and worker-runtime graphs contain no BiDi implementation or
+tables. An independent bundle-graph probe follows all static imports, including shared chunks.
+
+The split initial graphs still contain option-routing code. Against `58a090d56` with Bun 1.4.4,
+initial main code adds 4,241 raw / 2,167 gzip bytes, worker host adds 4,269 / 1,951, and worker
+runtime adds 2,952 / 2,130. The 19,682-byte BiDi implementation is deferred, about 8,754 gzip bytes.
+These replace the earlier single-file bundle measurements; summing only the entry file would
+incorrectly hide shared static chunks. Raw measurements are in the C3 review receipt directory.
+
+Formatted copy stages contiguous selected logical runs in a temporary headless terminal, then
+uses the native formatter once. This preserves escaping, styles, palettes and line boundaries
+without parsing native HTML or concatenating document envelopes. Rectangle shape lives with the
+selected-cell mask and is passed into native range installation.
+
+The changed worker module graph exposed a Vitest dynamic-import failure in the opaque default
+worker constructor. A standard static `new Worker(new URL(...), {type: 'module'})` default lets
+Vite prepare that worker. Custom worker URLs keep their explicit constructor path. No test-runner
+code or fallback was added to production modules.
+
+PC checks: all 26 BiDi Node tests passed, the 24 worker/main interaction tests passed, and the raw
+built-package smoke passed all 12 disabled/enabled main and worker scenarios. A focused combined
+browser run initially passed 161 and failed the 16 worker cases before the constructor fix.
+Full canonical Linux CI follows the pushed correction. No Mac resources were used in this review.

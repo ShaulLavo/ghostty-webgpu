@@ -175,8 +175,9 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
     options: TerminalSelectionFormatOptions,
   ): string | undefined {
     const scratch = this.vt.runtime.createTerminal(this.vt.size)
-    const selection = new GhosttySelectionGesture(scratch)
+    let selection: GhosttySelectionGesture | undefined
     try {
+      selection = new GhosttySelectionGesture(scratch)
       scratch.setScrollbackLimit(undefined)
       scratch.write('\x1b[?2027h')
       let previous: SelectionPoint | undefined
@@ -195,7 +196,7 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
       selection.selectRange({ x: 0, y: 0 }, end)
       return selection.getSelection(options)
     } finally {
-      selection.dispose()
+      selection?.dispose()
       scratch.dispose()
     }
   }
