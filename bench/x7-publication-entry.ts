@@ -11,6 +11,12 @@ import { createGhosttyWebGpuTerminalFromSession } from '../src/dom/terminal.js'
 import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
 import { DomTerminalRenderer } from '../src/render/dom/renderer.js'
+import type { TerminalSubmittedText } from '../src/dom/submitted-frame.js'
+import {
+  publicationColumns as columns,
+  publicationRows as rows,
+  publicationOutput,
+} from './x7-publication-workload.js'
 
 declare global {
   interface Window {
@@ -23,6 +29,7 @@ declare global {
         presented: null
         observerDigest: string | null
       }>
+      trace(): unknown
       digest(): Promise<string>
       info(): { wasmBytes: number; adapter?: unknown }
     }
@@ -37,23 +44,7 @@ const workload = params.get('workload') ?? 'dense'
 const observers = params.get('observers') === 'on'
 const parity = params.get('parity') === 'on'
 const discard = params.get('discard') === 'on'
-const columns = 200
-const rows = 50
-const words = 'alpha beta gamma delta 界 é epsilon zeta eta theta iota kappa lambda mu '
-
-function line(seed: number): string {
-  let text = ''
-  while (text.length < columns - 12) text += words.slice(seed % 13) + seed + ' '
-  return text.slice(0, columns - 12)
-}
-
-function output(step: number, index: number): string {
-  if (workload === 'scroll') return `\r\n${line(step * 31 + index)}`
-  let out = ''
-  for (let y = 0; y < rows; y += 1) out += `\x1b[${y + 1};1H\x1b[2K${line(step * 7 + y + index)}`
-  return out
-}
-
+const trace = params.get('trace') === 'on'
 type Created = Awaited<ReturnType<typeof create>>
 let adapter: unknown
 
@@ -97,11 +88,16 @@ async function create(runtime: GhosttyRuntime, host: HTMLElement) {
     window.__x7Failure = String(event.cause)
   })
   await terminal.open(host)
+  while (!terminal.submittedFrame) await nextFrame()
+  const registrationFrame = terminal.submittedFrame?.frame ?? 0
+  const textEvents: TerminalSubmittedText[] = []
+  const writes: { step: number; rows: readonly string[] }[] = []
   let texts = 0
   let chars = 0
   if (observers) {
     terminal.onText((text) => {
       texts += 1
+      if (trace) textEvents.push(text)
       record(text)
       for (const row of text.rowPatches) chars += row.text.length
     })
@@ -114,6 +110,19 @@ async function create(runtime: GhosttyRuntime, host: HTMLElement) {
       const pending = renderState[retainDisplayedFrame]()
       pending.readTextRows()
       pending.discard()
+    },
+    trace: () => ({
+      registrationFrame,
+      acceptedFrame: terminal.submittedFrame?.frame ?? 0,
+      events: textEvents,
+      writes,
+    }),
+    recordWrite(step: number) {
+      const end = terminal.lineCount()
+      writes.push({
+        step,
+        rows: terminal.readLines(Math.max(0, end - rows), end).map((line) => line.text.trimEnd()),
+      })
     },
     texts: () => texts,
     chars: () => chars,
@@ -145,7 +154,8 @@ function writeStep(terminals: readonly Created[], step: number): number {
       parsedWrites += 1
       entry.abandon()
     }
-    entry.terminal.write(output(step, index))
+    entry.terminal.write(publicationOutput(workload, step, index))
+    if (trace) entry.recordWrite(step)
     parsedWrites += 1
   }
   return parsedWrites
@@ -192,6 +202,7 @@ async function main(): Promise<void> {
         observerDigest: parity ? terminals.map((entry) => entry.payloadHash()).join(',') : null,
       }
     },
+    trace: () => terminals.map((entry) => entry.trace()),
     async digest() {
       await nextFrame()
       await nextFrame()
