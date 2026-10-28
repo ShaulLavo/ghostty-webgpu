@@ -35,13 +35,16 @@ function inkKey(cell: RenderCell, splitBackgrounds: boolean): string {
 
 /**
  * Joined runs as half-open cell ranges. Segments break at ink changes, wide or non-joinable cells
- * and Latin pairs; a range containing the visible cursor stays separate.
+ * and Latin pairs; a range containing the visible cursor stays separate. For a BiDi visual row,
+ * `logicalColumns` also breaks wherever screen order leaves logical order or a cell is mirrored,
+ * so runs never join across a reordering boundary.
  */
 export function ligatureRuns(
   cells: readonly RenderCell[],
   finder: LigatureFinder,
   cursorColumn: number | undefined,
   splitBackgrounds = false,
+  logicalColumns?: readonly number[],
 ): LigatureRange[] {
   const runs: LigatureRange[] = []
   const codepoints: number[] = []
@@ -54,14 +57,21 @@ export function ligatureRuns(
   }
   for (let index = 0; index < cells.length; index += 1) {
     const cell = cells[index]!
-    const codepoint = joinableCodepoint(cell, cells[index + 1])
+    const logical = logicalColumns?.[index]
+    const codepoint = logical === -1 ? undefined : joinableCodepoint(cell, cells[index + 1])
     if (codepoint === undefined) {
       flush(index + 1)
       continue
     }
     const cellKey = inkKey(cell, splitBackgrounds)
     const previous = codepoints.at(-1)
-    if (cellKey !== key || (previous !== undefined && latinPairBreak(previous, codepoint)))
+    const reordered =
+      logical !== undefined && index > 0 && logical !== (logicalColumns?.[index - 1] ?? -2) + 1
+    if (
+      cellKey !== key ||
+      reordered ||
+      (previous !== undefined && latinPairBreak(previous, codepoint))
+    )
       flush(index)
     key = cellKey
     codepoints.push(codepoint)

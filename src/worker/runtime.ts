@@ -129,6 +129,7 @@ export class TerminalWorkerRuntime {
       this.execution = await LocalTerminalExecution.create(
         {
           appearance: this.initialize.appearance,
+          bidi: this.initialize.bidi,
           runtime: { kind: 'owned', options: this.initialize.assets },
         },
         this.initialize.generation,

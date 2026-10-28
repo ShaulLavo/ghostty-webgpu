@@ -675,8 +675,10 @@ const CellContent = struct {
     joined: ?[]const u32 = null,
 };
 
-fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, fg: u32, bg: u32, selected: bool) c.GhosttyResult {
-    const index = if (stable) slot else y * frame.columns + x;
+const BidiCell = extern struct { visual: u32, mirror: u32, selected: u32 };
+
+fn writeInstances(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, fg: u32, bg: u32, selected: bool) c.GhosttyResult {
+    const index = if (stable or bidi) slot else y * frame.columns + x;
     const cell = &frame.cell_data[index];
     const glyph = &frame.glyph_data[index];
     cell.* = @splat(0);
@@ -701,7 +703,8 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
         background = frame.cursor;
         draw_background = true;
     }
-    const left = @as(f32, @floatFromInt(x)) * frame.cell_width;
+    const painted = if (bidi) projection.?[y * frame.columns + x].visual else x;
+    const left = @as(f32, @floatFromInt(painted)) * frame.cell_width;
     const top = if (stable) 0 else @as(f32, @floatFromInt(y)) * frame.cell_height;
     if (draw_background or cursor or style.underline > 0 or style.strikethrough or style.overline) {
         cell[0..4].* = .{ left, top, frame.cell_width, frame.cell_height };
@@ -726,6 +729,15 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
         result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, scratch.ptr);
         if (result != c.GHOSTTY_SUCCESS) return result;
         text = scratch;
+    }
+    if (bidi) {
+        const mirror = projection.?[y * frame.columns + x].mirror;
+        if (mirror != 0) {
+            const scratch = glyph_index.scratch(frame.glyph_index, @intCast(text.len)) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+            @memmove(scratch, text);
+            scratch[0] = mirror;
+            text = scratch;
+        }
     }
     const key = glyph_index.resolve(frame.glyph_index, .{
         .text = text.ptr,
@@ -755,7 +767,7 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     return c.GHOSTTY_SUCCESS;
 }
 
-fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, selected: bool, joined: u32) c.GhosttyResult {
+fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, selected: bool, joined: u32) c.GhosttyResult {
     const raw = raws[x];
     var codepoint: u32 = 0;
     var wide: c.GhosttyCellWide = 0;
@@ -818,7 +830,7 @@ fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, 
         .tag = tag,
         .key = null,
     };
-    return writeInstances(stable, frame, cells, slot, x, y, .{
+    return writeInstances(stable, bidi, projection, frame, cells, slot, x, y, .{
         .codepoint = codepoint,
         .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL or joined == ligature_interior,
         .span = span,
@@ -915,7 +927,18 @@ fn latinPairBreak(previous: u32, next: u32) bool {
     return previous == 's' and next == 't';
 }
 
-fn flushLigatures(frame: *Frame, spans: []u32, codepoints: []u32, out: []u32, start: u32, len: u32, y: u32) void {
+// With BiDi, a run joins only where its cells keep logical order on screen, unmirrored.
+fn visualOrderKept(frame: *Frame, projection: ?[*]const BidiCell, y: u32, start: u32, end: u32) bool {
+    const cells = projection orelse return true;
+    const row = cells + y * frame.columns;
+    for (start..end) |x| {
+        if (row[x].mirror != 0) return false;
+        if (x > start and row[x].visual != row[x - 1].visual + 1) return false;
+    }
+    return true;
+}
+
+fn flushLigatures(frame: *Frame, projection: ?[*]const BidiCell, spans: []u32, codepoints: []u32, out: []u32, start: u32, len: u32, y: u32) void {
     if (len < 2) return;
     const count = ligature_ranges(frame.ligatures, codepoints.ptr, len, out.ptr);
     const cursor = frame.ligature_cursor_visible != 0 and frame.ligature_cursor_y == y;
@@ -926,12 +949,13 @@ fn flushLigatures(frame: *Frame, spans: []u32, codepoints: []u32, out: []u32, st
         const run_start = start + first;
         const run_end = start + last;
         if (cursor and frame.ligature_cursor_x >= run_start and frame.ligature_cursor_x < run_end) continue;
+        if (!visualOrderKept(frame, projection, y, run_start, run_end)) continue;
         spans[run_start] = last - first;
         @memset(spans[run_start + 1 .. run_end], ligature_interior);
     }
 }
 
-fn planLigatures(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, y: u32, has_selection: bool, selection: c.GhosttyRenderStateRowSelection) c.GhosttyResult {
+fn planLigatures(frame: *Frame, projection: ?[*]const BidiCell, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, y: u32, has_selection: bool, selection: c.GhosttyRenderStateRowSelection) c.GhosttyResult {
     const columns = frame.columns;
     const scratch = frame.ligature_scratch.?;
     const spans = scratch[0..columns];
@@ -943,18 +967,18 @@ fn planLigatures(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRen
     var ink: LigatureInk = undefined;
     for (raws, 0..) |raw, index| {
         const x: u32 = @intCast(index);
-        const selected = has_selection and x >= selection.start_x and x <= selection.end_x;
+        const selected = if (projection) |cells_order| cells_order[y * frame.columns + x].selected != 0 else has_selection and x >= selection.start_x and x <= selection.end_x;
         var point: u32 = 0;
         var cell_ink: LigatureInk = undefined;
         const result = ligatureCell(frame, raw, cells, x, selected, &point, &cell_ink);
         if (result != c.GHOSTTY_SUCCESS) return result;
         if (point == 0) {
-            flushLigatures(frame, spans, codepoints, out, start, len, y);
+            flushLigatures(frame, projection, spans, codepoints, out, start, len, y);
             len = 0;
             continue;
         }
         if (len > 0 and (!std.meta.eql(cell_ink, ink) or latinPairBreak(codepoints[len - 1], point))) {
-            flushLigatures(frame, spans, codepoints, out, start, len, y);
+            flushLigatures(frame, projection, spans, codepoints, out, start, len, y);
             len = 0;
         }
         if (len == 0) start = x;
@@ -962,11 +986,11 @@ fn planLigatures(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRen
         codepoints[len] = point;
         len += 1;
     }
-    flushLigatures(frame, spans, codepoints, out, start, len, y);
+    flushLigatures(frame, projection, spans, codepoints, out, start, len, y);
     return c.GHOSTTY_SUCCESS;
 }
 
-fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, force: bool) c.GhosttyResult {
+fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, force: bool) c.GhosttyResult {
     var raw: c.GhosttyCellsView = undefined;
     var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raw);
     if (result != c.GHOSTTY_SUCCESS) return result;
@@ -986,7 +1010,7 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     if (result != c.GHOSTTY_SUCCESS) return result;
     const spans: ?[*]u32 = if (frame.ligatures != 0) frame.ligature_scratch else null;
     if (spans != null) {
-        result = planLigatures(frame, raw.ptr[0..raw.len], cells.*, y, has_selection, selection);
+        result = planLigatures(frame, if (bidi) projection else null, raw.ptr[0..raw.len], cells.*, y, has_selection, selection);
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     frame.rows_built += 1;
@@ -997,13 +1021,14 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     const start = if (stable) frame.row_cache.?.row_starts.?[y] else y * frame.columns;
     const previous = if (stable) &frame.row_cache.?.previous[previousLogicalRow(frame, y)] else undefined;
     for (0..raw.len) |x| {
-        const selected = has_selection and x >= selection.start_x and x <= selection.end_x;
-        const slot = start + @as(u32, @intCast(x));
+        const selected = if (bidi) projection.?[y * frame.columns + x].selected != 0 else has_selection and x >= selection.start_x and x <= selection.end_x;
+        const visual = if (bidi) projection.?[y * frame.columns + x].visual else @as(u32, @intCast(x));
+        const slot = start + visual;
         if (!force and reuseRenderedCell(stable, frame, previous, slot, raw.ptr[x], @intCast(x), y, selected)) continue;
         const previous_cell = frame.cell_data[slot];
         const previous_glyph = frame.glyph_data[slot];
         const joined = if (spans) |values| values[x] else 0;
-        result = buildCell(stable, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined);
+        result = buildCell(stable, bidi, projection, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined);
         if (result != c.GHOSTTY_SUCCESS) return result;
         rememberRenderedCell(frame.row_cache.?, slot, cached.cells[x]);
         if (force or !std.mem.eql(u8, std.mem.asBytes(&previous_cell), std.mem.asBytes(&frame.cell_data[slot]))) {
@@ -1038,7 +1063,7 @@ fn collectFrameGlyphs(frame: *Frame) bool {
     return glyph_index.collect(frame.glyph_index);
 }
 
-export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {
+fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {
     // Grayscale brushes share entries; color histories get eight viewports of headroom.
     const recycle = frame.status != 2 and frame.glyph_index.count >= frame.columns * frame.rows * 8;
     if (recycle) {
@@ -1096,9 +1121,9 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
             if (result != c.GHOSTTY_SUCCESS) return result;
         }
         if (frame.stable_rows != 0) {
-            result = if (matches) reuseFrameRow(true, frame, y) else buildRow(true, frame, it, &row_cells, y, force);
+            result = if (matches) reuseFrameRow(true, frame, y) else buildRow(true, bidi, projection, frame, it, &row_cells, y, force);
         } else {
-            result = if (matches) reuseFrameRow(false, frame, y) else buildRow(false, frame, it, &row_cells, y, force);
+            result = if (matches) reuseFrameRow(false, frame, y) else buildRow(false, bidi, projection, frame, it, &row_cells, y, force);
         }
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
@@ -1108,4 +1133,13 @@ export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRen
         frame.glyph_index.residency_changed = 0;
     }
     return c.GHOSTTY_SUCCESS;
+}
+
+export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {
+    return buildFrame(false, null, state, iterator, cells, mask, mask_len, dirty_only, frame);
+}
+
+export fn bridge_build_bidi_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, frame: *Frame, projection: [*]const BidiCell) c.GhosttyResult {
+    frame.stable_allowed = 0;
+    return buildFrame(true, projection, state, iterator, cells, null, 0, false, frame);
 }

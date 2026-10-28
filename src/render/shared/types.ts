@@ -85,6 +85,7 @@ export interface WebGpuTerminalRendererOptions {
   /** URL for the Canvas 2D pixel compositor. Defaults to the shipped SIMD/scalar pair. */
   compositorAsset?: string | URL
   columns: number
+  bidi?: boolean
   cursorBlink?: boolean
   /** Opt-in SGR 5/6 animation; native Ghostty renders this text steadily. */
   textBlink?: boolean

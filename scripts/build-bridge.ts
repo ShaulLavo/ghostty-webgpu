@@ -52,6 +52,7 @@ async function validateWasm(path: string): Promise<void> {
     'bridge_read_retained_rows',
     'bridge_read_retained_revisions',
     'bridge_build_frame',
+    'bridge_build_bidi_frame',
     'bridge_register_glyph',
     'bridge_create_glyph_index',
     'bridge_destroy_glyph_index',

@@ -43,6 +43,11 @@ export type WorkerExecutionOptions = Omit<
   readonly links?: LinkResolverOptions<Event>
 }
 
+function createWorker(url: string | URL | undefined): Worker {
+  if (url !== undefined) return new Worker(url, { type: 'module' })
+  return new Worker(new URL('./entry.js', import.meta.url), { type: 'module' })
+}
+
 /** Host mirror contains acknowledged metadata and owned submitted text, never a native session. */
 export class WorkerTerminalExecution {
   readonly kind = 'async' as const
@@ -105,9 +110,7 @@ export class WorkerTerminalExecution {
     })
     this.terminal = crypto.randomUUID()
     try {
-      this.worker = new Worker(options.workerUrl ?? new URL('./entry.js', import.meta.url), {
-        type: 'module',
-      })
+      this.worker = createWorker(options.workerUrl)
     } catch (cause) {
       throw workerError('startup', 'worker.create', {
         causeType: cause instanceof Error ? cause.name : typeof cause,
@@ -136,6 +139,7 @@ export class WorkerTerminalExecution {
       backend: options.backend,
       textBlink: options.textBlink,
       ligatures: options.ligatures,
+      ...(options.bidi ? { bidi: true } : {}),
     }
     try {
       this.worker.postMessage(initialize, [channel.port2])

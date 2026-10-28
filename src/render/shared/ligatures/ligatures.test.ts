@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { CellStyle, RenderCell } from '../../../core/types.js'
 import { loadGsubLigatureFinder, type LigatureFinder } from './finder.js'
 import { ligatureRuns } from './runs.js'
+import { RowBidiMapper } from '../../../bidi/row.js'
 
 const root = join(import.meta.dirname, '../../../..')
 const fontFile = (path: string) => readFile(join(root, path))
@@ -133,6 +134,17 @@ describe('ligature run policy', async () => {
     expect(ligatureRuns(cells('→→'), always, undefined)).toEqual([])
     expect(ligatureRuns(cells('──'), always, undefined)).toEqual([])
     expect(ligatureRuns(cells('ab'), always, undefined)).toEqual([[0, 2]])
+  })
+
+  it('joins only where BiDi keeps logical order on screen', () => {
+    const bidi = new RowBidiMapper()
+    const visual = (text: string) => {
+      const painted = bidi.paint({ y: 0, dirty: true, cells: cells(text) })
+      return ligatureRuns(painted.cells, finder, undefined, false, painted.logicalColumns)
+    }
+    expect(visual('a=>b')).toEqual([[1, 3]])
+    expect(visual('שלום => עולם')).toEqual([])
+    expect(visual('שלום =>')).toEqual([[5, 7]])
   })
 
   it('keeps fi, fl and st apart', () => {

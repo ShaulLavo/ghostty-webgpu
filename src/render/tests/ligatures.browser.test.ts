@@ -23,6 +23,7 @@ import {
   type LigatureRange,
 } from '../shared/ligatures/finder.js'
 import { ligatureRuns } from '../shared/ligatures/runs.js'
+import { RowBidiMapper } from '../../bidi/row.js'
 import type { WebGpuTerminalRendererOptions } from '../shared/types.js'
 import { WebGlTerminalRenderer } from '../webgl/renderer.js'
 import { displayedPixels, fittedFont, TestClock } from '../webgl/tests/fixture.js'
@@ -105,6 +106,8 @@ interface Mounted {
   renderer: Renderer
   state: GhosttyRenderState
   terminal: GhosttyTerminal
+  /** An independent BiDi mapper that turns logical rows into the expected screen order. */
+  visual?: RowBidiMapper
 }
 
 async function createRenderer(backend: Backend, options: WebGpuTerminalRendererOptions) {
@@ -121,6 +124,7 @@ async function mount(
   ligatures: LigatureFinder | undefined,
   columns = 40,
   rows = 8,
+  bidi = false,
 ): Promise<Mounted> {
   const runtime = await GhosttyRuntime.create()
   disposables.push(() => runtime.dispose())
@@ -142,6 +146,7 @@ async function mount(
     rows,
     font,
     ligatures,
+    bidi,
     renderState: state,
     schedulerClock: clock,
   })
@@ -151,7 +156,8 @@ async function mount(
       canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext()
   })
   renderer.setFocused(true)
-  const mounted = { backend, canvas, clock, font, renderer, state, terminal }
+  const visual = bidi ? new RowBidiMapper() : undefined
+  const mounted = { backend, canvas, clock, font, renderer, state, terminal, visual }
   flush(mounted)
   return mounted
 }
@@ -173,6 +179,12 @@ function logicalRows(mounted: Mounted): readonly RenderRow[] {
     ...row,
     cells: Array.from(row.cells, (cell) => ({ ...cell })),
   }))
+}
+
+function paintedRows(mounted: Mounted): readonly RenderRow[] {
+  const rows = logicalRows(mounted)
+  const visual = mounted.visual
+  return visual ? rows.map((row) => visual.paint(row)) : rows
 }
 
 function rowText(row: RenderRow): string {
@@ -200,11 +212,13 @@ function expectRuns(
   minimumContrast = 1,
 ): void {
   const cursor = cursorOf(mounted)
-  const rows = logicalRows(mounted)
+  const rows = paintedRows(mounted)
   const split = splitsBackgrounds(mounted.backend, minimumContrast)
   for (const [y, ranges] of expected.entries()) {
     const column = cursor?.y === y ? cursor.x : undefined
-    expect(ligatureRuns(rows[y]!.cells, finder, column, split), `row ${y} ranges`).toEqual(ranges)
+    const order = rows[y]!.logicalColumns
+    const runs = ligatureRuns(rows[y]!.cells, finder, column, split, order)
+    expect(runs, `row ${y} ranges`).toEqual(ranges)
   }
 }
 
@@ -235,7 +249,7 @@ function oracle(mounted: Mounted, expected: LigatureRange[][]): Uint8ClampedArra
   context.fillStyle = css(theme.background)
   context.fillRect(0, 0, reference.width, reference.height)
   const cursor = cursorOf(mounted)
-  const rows = logicalRows(mounted)
+  const rows = paintedRows(mounted)
   for (const row of rows) {
     for (const cell of row.cells) {
       const colors = cellColors(cell, cursor?.x === cell.x && cursor.y === row.y)
@@ -350,7 +364,7 @@ function domOracle(mounted: Mounted, expected: LigatureRange[][]): HTMLElement {
     `font-family:${font.settings.family};font-size:${font.settings.size}px;white-space:pre;` +
     `line-height:${font.cssCellHeight}px;font-variant-ligatures:none;letter-spacing:0`
   const cursor = cursorOf(mounted)
-  const rows = logicalRows(mounted).slice(0, expected.length)
+  const rows = paintedRows(mounted).slice(0, expected.length)
   for (const row of rows) {
     for (const cell of row.cells) {
       const colors = cellColors(cell, cursor?.x === cell.x && cursor.y === row.y)
@@ -484,7 +498,7 @@ function joinedSpans(mounted: Mounted): string[][] {
 }
 
 function expectDomRuns(mounted: Mounted, expected: LigatureRange[][]): void {
-  const rows = logicalRows(mounted)
+  const rows = paintedRows(mounted)
   const spans = joinedSpans(mounted)
   for (const [y, ranges] of expected.entries()) {
     const texts = ranges.map(([start, end]) =>
@@ -775,6 +789,21 @@ for (const backend of backends) {
         expect(ink, `contrasting ink in the white cell, ligatures ${arm}`).toBeGreaterThan(0)
         expectRuns(mounted, jetBrains, [[]], 7)
       }
+    })
+
+    it('joins only where BiDi keeps logical order on screen', async (context) => {
+      if (!available()) context.skip()
+      const records = recordRasterInputs()
+      const texts = recordFillText()
+      const font = testFont(16, 24, 20, '"Ligature Test"')
+      const content = '\x1b[?25l\x1b[?2027ha=>b\r\nשלום => עולם\r\nשלום =>'
+      const mounted = await mount(backend, content, font, jetBrains, 40, 8, true)
+      // Row 1's => sits between right-to-left words, so BiDi reverses and mirrors it.
+      const expected: LigatureRange[][] = [[[1, 3]], [], [[5, 7]]]
+      expect(rowText(paintedRows(mounted)[1]!)).toBe('םלוע <= םולש')
+      expectRuns(mounted, jetBrains, expected)
+      expectRasterInputs(backend, ['=>'], records, texts)
+      await expectPixels(mounted, expected, context)
     })
 
     it('draws the existing per-cell path when ligatures are off', async (context) => {

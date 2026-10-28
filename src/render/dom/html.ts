@@ -199,7 +199,7 @@ function joinedRanges(row: RenderRow, ligatures: LigatureJoin | undefined): Liga
     : row.cells
   const cursor = ligatures.cursor?.y === row.y ? ligatures.cursor.x : undefined
   // One span has one background, so a background change keeps its cells separate here.
-  return ligatureRuns(cells, ligatures.finder, cursor, true)
+  return ligatureRuns(cells, ligatures.finder, cursor, true, row.logicalColumns)
 }
 
 export function renderRowRuns(
@@ -209,6 +209,7 @@ export function renderRowRuns(
   theme: CanonicalRendererTheme,
   styles?: DefaultRowStyle,
   textVisible = true,
+  isolateCells = false,
   ligatures?: LigatureJoin,
 ): readonly RowRun[] {
   const packed = row.packed
@@ -283,7 +284,7 @@ export function renderRowRuns(
     const paintedCursor =
       cursor?.visible && cursor.y === row.y && cursor.x === cell.x ? cursor : undefined
     // Cursor and wide-cell paint stays isolated; font, theme and contrast are fixed for this row.
-    const reusable = width === 1 && !paintedCursor
+    const reusable = width === 1 && !paintedCursor && !isolateCells
     let style = currentStyle
     if (!(reusable && previousCell && sameAppearance(previousCell, cell))) {
       const defaultAppearance =
@@ -313,7 +314,7 @@ export function renderRowRuns(
     currentText += cell.text || ' '
     currentWidth += width
     // Wide glyphs occupy two cells but one character; their following run must start at its own cell.
-    if (width > 1 || paintedCursor || font.settings.lineHeight < 1) flush()
+    if (width > 1 || paintedCursor || font.settings.lineHeight < 1 || isolateCells) flush()
   }
   if (length > 0 && length < columns) {
     const style =
