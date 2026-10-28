@@ -8,7 +8,8 @@ function seedCounter(
   value: bigint,
 ): void {
   const store = Reflect.get(state, 'displayedFrames')
-  const slot = Reflect.get(Reflect.get(store, 'frames'), 'current')
+  const current = Reflect.get(Reflect.get(store, 'frames'), 'current')
+  const slot = Reflect.get(current, 'slot')
   const handle: unknown = Reflect.get(slot, 'handle')
   if (typeof handle !== 'number') throw new Error('Expected native retained slot')
   // The pinned wasm32 Frame puts its text counter after the u64 revision at byte 24.

@@ -23,7 +23,7 @@ interface NativeSlot {
 }
 
 interface PendingCapture {
-  readonly slot: NativeSlot
+  readonly history: DisplayedHistory
   readonly token: number
   readonly insertedRevisions: Set<number>
 }
@@ -80,7 +80,8 @@ class RevisionTextCache {
 
   discard(pending: PendingCapture): void {
     for (const revision of pending.insertedRevisions) this.rows.delete(revision)
-    this.slotRevisions.delete(pending.slot)
+    const slot = pending.history.slot
+    if (slot) this.slotRevisions.delete(slot)
   }
 
   private take(revision: number): RenderTextRow | undefined {
@@ -122,6 +123,10 @@ class RevisionTextCache {
       if (!readable.includes(slot)) this.slotRevisions.delete(slot)
   }
 
+  rowRevisions(slot: NativeSlot): readonly number[] {
+    return this.slotRevisions.get(slot) ?? this.readRevisions(slot)
+  }
+
   private readRevisions(slot: NativeSlot): number[] {
     const size = slot.rows * Float64Array.BYTES_PER_ELEMENT
     if (size > this.revisionsSize) {
@@ -146,9 +151,61 @@ class RevisionTextCache {
   }
 }
 
+type HistoryContent =
+  | { kind: 'native'; slot: NativeSlot; rows?: readonly RenderTextRow[] }
+  | { kind: 'owned'; rows: readonly RenderTextRow[]; revisions: readonly number[] }
+  | { kind: 'retired' }
+
+class DisplayedHistory {
+  private content: HistoryContent
+
+  constructor(slot: NativeSlot) {
+    this.content = { kind: 'native', slot }
+  }
+
+  get slot(): NativeSlot | undefined {
+    return this.content.kind === 'native' ? this.content.slot : undefined
+  }
+
+  native(): NativeSlot {
+    const slot = this.slot
+    if (!slot)
+      throw createGhosttyError('read_displayed_frame', 'Displayed-frame history has retired')
+    return slot
+  }
+
+  read(
+    cache: RevisionTextCache,
+    readable: readonly (NativeSlot | undefined)[],
+    inserted?: Set<number>,
+  ): readonly RenderTextRow[] {
+    const content = this.content
+    if (content.kind === 'owned') return content.rows
+    if (content.kind === 'retired')
+      throw createGhosttyError('read_displayed_frame', 'Displayed-frame history has retired')
+    return (content.rows ??= cache.read(content.slot, readable, inserted))
+  }
+
+  materialize(
+    cache: RevisionTextCache,
+    readable: readonly (NativeSlot | undefined)[],
+  ): NativeSlot | undefined {
+    const slot = this.slot
+    if (!slot) return undefined
+    const rows = this.read(cache, readable)
+    const revisions = cache.rowRevisions(slot)
+    this.content = { kind: 'owned', rows, revisions }
+    return slot
+  }
+
+  retire(): void {
+    this.content = { kind: 'retired' }
+  }
+}
+
 interface DisplayedFrames {
-  current?: NativeSlot
-  previous?: NativeSlot
+  current?: DisplayedHistory
+  previous?: DisplayedHistory
   spare?: NativeSlot
   pending?: PendingCapture
   disposed: boolean
@@ -162,17 +219,14 @@ const noOptions = Object.freeze({})
 const emptyTextRows: readonly RenderTextRow[] = Object.freeze([])
 
 function readableSlots(frames: DisplayedFrames): readonly (NativeSlot | undefined)[] {
-  return [frames.current, frames.previous, frames.pending?.slot]
+  return [frames.current?.slot, frames.previous?.slot, frames.pending?.history.slot]
 }
 
 class DisplayedFrame implements NativeDisplayedFrame {
-  #rows: readonly RenderTextRow[] | undefined
-  #previousRows: readonly RenderTextRow[] | undefined
-
   constructor(
     private readonly frames: DisplayedFrames,
-    private readonly current: NativeSlot,
-    private readonly previous: NativeSlot | undefined,
+    private readonly current: DisplayedHistory,
+    private readonly previous: DisplayedHistory | undefined,
     readonly token: number,
   ) {}
 
@@ -180,7 +234,8 @@ class DisplayedFrame implements NativeDisplayedFrame {
     if (!this.pending()) return
     const frames = this.frames
     frames.pending = undefined
-    frames.spare = frames.previous
+    frames.previous?.retire()
+    frames.spare = undefined
     frames.previous = frames.current
     frames.current = this.current
     frames.currentToken = this.token
@@ -192,38 +247,39 @@ class DisplayedFrame implements NativeDisplayedFrame {
     if (!pending) return
     this.frames.pending = undefined
     this.frames.textCache.discard(pending)
+    pending.history.retire()
   }
 
   readRows(options: DisplayedRowsOptions = noOptions): readonly RenderRow[] {
     this.active()
-    return this.frames.rowReader.read(this.current.handle, 0, 0, this.current, options)
+    const slot = this.current.native()
+    return this.frames.rowReader.read(slot.handle, 0, 0, slot, options)
   }
 
   readTextRows(options: DisplayedTextOptions = noOptions): readonly RenderTextRow[] {
     this.active()
     if (options.rows) {
       this.frames.textCache.observed = true
-      return this.frames.textReader.read(this.current.handle, 0, 0, this.current, options)
+      const slot = this.current.native()
+      return this.frames.textReader.read(slot.handle, 0, 0, slot, options)
     }
-    return (this.#rows ??= this.frames.textCache.read(
-      this.current,
+    return this.current.read(
+      this.frames.textCache,
       readableSlots(this.frames),
       this.pending()?.insertedRevisions,
-    ))
+    )
   }
 
   readPreviousTextRows(): readonly RenderTextRow[] {
     this.active()
     if (!this.previous) return emptyTextRows
-    return (this.#previousRows ??= this.frames.textCache.read(
-      this.previous,
-      readableSlots(this.frames),
-    ))
+    return this.previous.read(this.frames.textCache, readableSlots(this.frames))
   }
 
   private pending(): PendingCapture | undefined {
     const pending = this.frames.pending
-    if (!pending || pending.slot !== this.current || pending.token !== this.token) return undefined
+    if (!pending || pending.history !== this.current || pending.token !== this.token)
+      return undefined
     return pending
   }
 
@@ -273,8 +329,17 @@ export class DisplayedFrameStore {
     const style = descriptor.bits.style_id
     if (!tag || tag.width !== 2 || !style || style.width < 1 || style.width > 32)
       throw createGhosttyError('retain_frame', 'Native cell layout cannot be retained')
+    if (!frames.spare && frames.previous) {
+      const recycled = frames.previous.materialize(frames.textCache, readableSlots(frames))
+      if (recycled) frames.spare = recycled
+    }
     let next = frames.spare
-    if (!next || next.columns !== grid.columns || next.rows !== grid.rows) {
+    if (next && (next.columns !== grid.columns || next.rows !== grid.rows)) {
+      this.runtime.bridge.destroyRetainedFrame(next.handle)
+      frames.spare = undefined
+      next = undefined
+    }
+    if (!next) {
       const handle = this.runtime.bridge.createRetainedFrame(grid.columns, grid.rows)
       if (!handle)
         throw createGhosttyError('retain_frame', 'Native displayed-frame allocation failed')
@@ -285,7 +350,7 @@ export class DisplayedFrameStore {
         'retain_frame',
         this.runtime.bridge.captureRetainedFrame(
           next.handle,
-          frames.current?.handle ?? 0,
+          frames.current?.native().handle ?? 0,
           Number(full),
           state,
           iterator,
@@ -305,9 +370,10 @@ export class DisplayedFrameStore {
     // Each capture has its own descriptor because native handles are recycled.
     const captured = { ...next }
     const token = ++this.token
+    const history = new DisplayedHistory(captured)
     frames.spare = captured
-    frames.pending = { slot: captured, token, insertedRevisions: new Set() }
-    return Object.freeze(new DisplayedFrame(frames, captured, frames.current, token))
+    frames.pending = { history, token, insertedRevisions: new Set() }
+    return Object.freeze(new DisplayedFrame(frames, history, frames.current, token))
   }
 
   dispose(): void {
@@ -315,9 +381,11 @@ export class DisplayedFrameStore {
     if (frames.disposed) return
     frames.disposed = true
     this.token += 1
-    if (frames.current) this.runtime.bridge.destroyRetainedFrame(frames.current.handle)
-    if (frames.previous) this.runtime.bridge.destroyRetainedFrame(frames.previous.handle)
-    if (frames.spare) this.runtime.bridge.destroyRetainedFrame(frames.spare.handle)
+    for (const slot of [frames.current?.slot, frames.previous?.slot, frames.spare])
+      if (slot) this.runtime.bridge.destroyRetainedFrame(slot.handle)
+    frames.current?.retire()
+    frames.previous?.retire()
+    frames.pending?.history.retire()
     frames.pending = undefined
     frames.spare = undefined
     frames.current = undefined

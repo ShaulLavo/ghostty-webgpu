@@ -313,10 +313,12 @@ An identical-output update reuses the existing image and needs no new submission
 Any failure discards that pending capture. The preceding accepted metadata, lazy text and styled
 snapshot stay readable until the next acceptance. Previously returned owned rows remain valid.
 
-Native retention owns at most three cell-array slots after a completed capture, plus frame and
-row metadata, separately allocated grapheme data, and reader scratch storage. A grid-size
-replacement can briefly own four frames because allocation precedes freeing the mismatched
-spare. The three retained slots can have different historical grid sizes.
+Native retention owns at most two cell-array slots, plus frame and row metadata, separately
+allocated grapheme data, and reader scratch storage. Before reusing an older slot, retention pins
+its previous text as owned rows with ordered revisions. Those pins retire with that subscriber's
+history. A grid-size replacement frees the mismatched scratch slot before allocating its
+replacement, preserving accepted current paint and owned previous text if allocation fails.
+The two native slots and owned previous text can describe different historical grid sizes.
 
 Public renderer `onTextFrame` snapshots contain owned rows, with no native identities or
 reader functions, and remain readable after later captures and disposal. The terminal's private

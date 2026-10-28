@@ -333,7 +333,7 @@ describe('accessibility from real submitted native frames', () => {
     expect(errors).toEqual([])
   })
 
-  it('coalesces paints, keeps native text lazy and announces the latest Unicode output', async () => {
+  it('coalesces paints, materializes the retired native slot once and announces the latest Unicode output', async () => {
     const harness = await fixture(false, true)
     const { terminal, clock } = harness
     const accessibility = controller(terminal)
@@ -352,7 +352,7 @@ describe('accessibility from real submitted native frames', () => {
     terminal.write(' latest')
     clock.flush()
     expect(update).not.toHaveBeenCalled()
-    expect(extraction).not.toHaveBeenCalled()
+    expect(extraction).toHaveBeenCalledTimes(1)
     expect(timers.mock.calls.filter(([, delay]) => delay === 100)).toHaveLength(1)
     expect(accessibility.rowElements[0]?.textContent).toBe('')
     await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('first 界😀 latest')
