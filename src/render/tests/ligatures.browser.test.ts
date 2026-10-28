@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import woffUrl from '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff?url'
 import notoFontUrl from '../../../bench/fixtures/correctness/NotoSansMono-Regular.ttf?url'
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi, type TestContext } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { GhosttySelectionGesture } from '../../core/selection.js'
@@ -30,6 +30,7 @@ import { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
 
 type Backend = 'webgpu' | 'webgl2' | 'canvas2d-fill-text' | 'canvas2d-pixels' | 'dom'
 interface Renderer {
+  setTheme(theme: Partial<CanonicalRendererTheme>): void
   dispose(): void
   notifySelectionChange(): void
   notifyWrite(): void
@@ -187,12 +188,23 @@ function cursorOf(mounted: Mounted): { x: number; y: number } | undefined {
   return { x: cursor.viewport.x, y: cursor.viewport.y }
 }
 
-function expectRuns(mounted: Mounted, finder: LigatureFinder, expected: LigatureRange[][]): void {
+// The DOM gives one span one background; contrast adjustment lets a background change ink.
+function splitsBackgrounds(backend: Backend, minimumContrast: number): boolean {
+  return backend === 'dom' || minimumContrast > 1
+}
+
+function expectRuns(
+  mounted: Mounted,
+  finder: LigatureFinder,
+  expected: LigatureRange[][],
+  minimumContrast = 1,
+): void {
   const cursor = cursorOf(mounted)
   const rows = logicalRows(mounted)
+  const split = splitsBackgrounds(mounted.backend, minimumContrast)
   for (const [y, ranges] of expected.entries()) {
     const column = cursor?.y === y ? cursor.x : undefined
-    expect(ligatureRuns(rows[y]!.cells, finder, column), `row ${y} ranges`).toEqual(ranges)
+    expect(ligatureRuns(rows[y]!.cells, finder, column, split), `row ${y} ranges`).toEqual(ranges)
   }
 }
 
@@ -247,6 +259,7 @@ function oracle(mounted: Mounted, expected: LigatureRange[][]): Uint8ClampedArra
 interface OracleGlyph {
   readonly bold: boolean
   readonly foreground: RgbColor
+  readonly joined: boolean
   readonly span: number
   readonly text: string
   readonly x: number
@@ -274,6 +287,7 @@ function oracleGlyphs(
     glyphs.push({
       bold: cell.style?.bold ?? false,
       foreground: colors.foreground,
+      joined: range !== undefined,
       span,
       text,
       x: cell.x,
@@ -324,18 +338,115 @@ function drawOracleGlyph(
   context.drawImage(ink, 0, 0)
 }
 
-function pixelsCheckable(mounted: Mounted): boolean {
-  if (mounted.backend === 'dom') return false
-  return mounted.backend !== 'webgl2' || webglInk
+// The DOM contract drawn with explicit boxes: per-cell text starts at its cell, wide text and
+// joined runs are centered across their cells, and only joined runs enable browser ligatures.
+function domOracle(mounted: Mounted, expected: LigatureRange[][]): HTMLElement {
+  const { font } = mounted
+  const columns = mounted.canvas.width / font.deviceCellWidth
+  const root = document.createElement('div')
+  root.style.cssText =
+    `position:relative;overflow:hidden;width:${columns * font.cssCellWidth}px;` +
+    `height:${expected.length * font.cssCellHeight}px;background:${css(theme.background)};` +
+    `font-family:${font.settings.family};font-size:${font.settings.size}px;white-space:pre;` +
+    `line-height:${font.cssCellHeight}px;font-variant-ligatures:none;letter-spacing:0`
+  const cursor = cursorOf(mounted)
+  const rows = logicalRows(mounted).slice(0, expected.length)
+  for (const row of rows) {
+    for (const cell of row.cells) {
+      const colors = cellColors(cell, cursor?.x === cell.x && cursor.y === row.y)
+      root.append(oracleBox(font, cell.x, row.y, 1, `background:${css(colors.background)}`))
+    }
+  }
+  for (const row of rows) {
+    for (const glyph of oracleGlyphs(row, expected[row.y] ?? [], cursor)) {
+      const weight = glyph.bold ? font.settings.boldWeight : font.settings.weight
+      let layout = 'text-align:left'
+      if (glyph.span > 1)
+        layout = `text-align:center;letter-spacing:calc(${font.cssCellWidth}px - 1ch)`
+      if (glyph.joined) layout = 'text-align:center;font-variant-ligatures:normal'
+      const box = oracleBox(
+        font,
+        glyph.x,
+        glyph.y,
+        glyph.span,
+        `color:${css(glyph.foreground)};font-weight:${weight};${layout}`,
+      )
+      box.textContent = glyph.text
+      root.append(box)
+    }
+  }
+  document.body.append(root)
+  disposables.push(() => root.remove())
+  return root
 }
 
-async function capture(mounted: Mounted): Promise<Uint8Array> {
-  return displayedPixels(mounted.canvas)
+function oracleBox(
+  font: TerminalFittedFont,
+  x: number,
+  y: number,
+  span: number,
+  style: string,
+): HTMLElement {
+  const box = document.createElement('span')
+  box.style.cssText =
+    `position:absolute;left:${x * font.cssCellWidth}px;top:${y * font.cssCellHeight}px;` +
+    `width:${span * font.cssCellWidth}px;height:${font.cssCellHeight}px;${style}`
+  return box
+}
+
+const linuxWebKit =
+  /AppleWebKit/.test(navigator.userAgent) &&
+  !/Chrome|Chromium|Firefox/.test(navigator.userAgent) &&
+  /Linux/.test(navigator.platform)
+
+// Only the known capture gap may omit a pixel layer, and it does so as a visible skip.
+function requirePixelLayer(mounted: Mounted, context: TestContext): void {
+  if (mounted.backend !== 'webgl2' || webglInk) return
+  if (linuxWebKit)
+    context.skip(
+      'pixel layer omitted: headless WebKit on Linux screenshots WebGL2 canvases without ink',
+    )
+  expect.fail('the WebGL2 control frame showed no glyph ink in a screenshot')
+}
+
+async function elementPixels(element: Element): Promise<Uint8Array> {
+  const bounds = element.getBoundingClientRect()
+  const screenshot = await page.screenshot({ element, save: false, scale: 'css' })
+  const image = new Image()
+  image.src = `data:image/png;base64,${screenshot}`
+  await image.decode()
+  expect([image.naturalWidth, image.naturalHeight]).toEqual([
+    Math.round(bounds.width),
+    Math.round(bounds.height),
+  ])
+  const decoded = document.createElement('canvas')
+  decoded.width = image.naturalWidth
+  decoded.height = image.naturalHeight
+  const context = decoded.getContext('2d')!
+  context.drawImage(image, 0, 0)
+  return new Uint8Array(context.getImageData(0, 0, decoded.width, decoded.height).data)
+}
+
+function domFrame(mounted: Mounted): Element {
+  return mounted.canvas.nextElementSibling!.firstElementChild!
+}
+
+async function capturePixels(mounted: Mounted): Promise<Uint8Array> {
+  if (mounted.backend !== 'dom') return displayedPixels(mounted.canvas)
+  return elementPixels(domFrame(mounted))
+}
+
+async function referencePixels(
+  mounted: Mounted,
+  expected: LigatureRange[][],
+): Promise<ArrayLike<number>> {
+  if (mounted.backend !== 'dom') return oracle(mounted, expected)
+  return elementPixels(domOracle(mounted, expected))
 }
 
 function differingPixels(
-  actual: Uint8Array,
-  expected: Uint8ClampedArray,
+  actual: ArrayLike<number>,
+  expected: ArrayLike<number>,
   rows: number,
   font: TerminalFittedFont,
   width: number,
@@ -349,25 +460,18 @@ function differingPixels(
   return count
 }
 
-async function expectPixels(mounted: Mounted, expected: LigatureRange[][]): Promise<void> {
-  if (mounted.backend === 'dom') {
-    expectDomRuns(mounted, expected)
-    return
-  }
-  if (!pixelsCheckable(mounted)) return
-  const actual = await capture(mounted)
-  const reference = oracle(mounted, expected)
-  const differences = differingPixels(
-    actual,
-    reference,
-    expected.length,
-    mounted.font,
-    mounted.canvas.width,
-  )
-  let maximum = 0
-  for (let index = 0; index < reference.length; index += 1)
-    if (index % 4 !== 3) maximum = Math.max(maximum, Math.abs(actual[index]! - reference[index]!))
-  expect(differences, `${mounted.backend} matches the explicit run oracle (max ${maximum})`).toBe(0)
+async function expectPixels(
+  mounted: Mounted,
+  expected: LigatureRange[][],
+  context: TestContext,
+): Promise<void> {
+  if (mounted.backend === 'dom') expectDomRuns(mounted, expected)
+  requirePixelLayer(mounted, context)
+  const actual = await capturePixels(mounted)
+  const reference = await referencePixels(mounted, expected)
+  const width = mounted.canvas.width
+  const differences = differingPixels(actual, reference, expected.length, mounted.font, width)
+  expect(differences, `${mounted.backend} matches the explicit run oracle`).toBe(0)
 }
 
 function joinedSpans(mounted: Mounted): string[][] {
@@ -449,8 +553,8 @@ function expectRasterInputs(
 
 const backends: Backend[] = ['webgpu', 'webgl2', 'canvas2d-fill-text', 'canvas2d-pixels', 'dom']
 const scales = [
-  { name: '1x', width: 16, height: 24, size: 20 },
-  { name: '2x', width: 32, height: 48, size: 40 },
+  { name: 'base cells', width: 16, height: 24, size: 20 },
+  { name: 'doubled cells', width: 32, height: 48, size: 40 },
 ]
 
 for (const backend of backends) {
@@ -482,7 +586,7 @@ for (const backend of backends) {
         ]
         expectRuns(mounted, jetBrains, expected)
         expectRasterInputs(backend, ['=>', '!=', '->', '===', '<=>'], records, texts)
-        await expectPixels(mounted, expected)
+        await expectPixels(mounted, expected, context)
       })
 
       it(`keeps fallback, wide and color glyphs out of runs at ${scale.name}`, async (context) => {
@@ -500,12 +604,12 @@ for (const backend of backends) {
           ],
         ]
         expectRuns(fallback, jetBrains, expected)
-        await expectPixels(fallback, expected)
+        await expectPixels(fallback, expected, context)
         const wide = await mount(backend, await fixture('ligature-wide.vt'), font(), jetBrains)
         expect(logicalRows(wide)[0]!.cells[2]!.continuation).toBe(true)
         const wideExpected: LigatureRange[][] = [[[3, 5]], []]
         expectRuns(wide, jetBrains, wideExpected)
-        await expectPixels(wide, wideExpected)
+        await expectPixels(wide, wideExpected, context)
       })
     }
 
@@ -520,7 +624,7 @@ for (const backend of backends) {
         const mounted = await mount(backend, await fixture('ligature-overhang.vt'), font, jetBrains)
         const expected: LigatureRange[][] = [[[1, 4]]]
         expectRuns(mounted, jetBrains, expected)
-        await expectPixels(mounted, expected)
+        await expectPixels(mounted, expected, context)
       })
     }
 
@@ -539,7 +643,7 @@ for (const backend of backends) {
         expect(mounted.state.readCursor().viewport?.x).toBe(column)
         const ranges: LigatureRange[][] = [expected.map(([start, end]) => [start, end] as const)]
         expectRuns(mounted, jetBrains, ranges)
-        await expectPixels(mounted, ranges)
+        await expectPixels(mounted, ranges, context)
       }
     })
 
@@ -560,12 +664,12 @@ for (const backend of backends) {
         expect(mounted.terminal.getSelection()).toBe(copied)
         const ranges: LigatureRange[][] = [expected.map(([first, last]) => [first, last] as const)]
         expectRuns(mounted, jetBrains, ranges)
-        await expectPixels(mounted, ranges)
+        await expectPixels(mounted, ranges, context)
       }
       mounted.terminal.clearSelection()
       mounted.renderer.notifySelectionChange()
       flush(mounted)
-      await expectPixels(mounted, [[[1, 3]]])
+      await expectPixels(mounted, [[[1, 3]]], context)
     })
 
     it('splits at foreground and weight changes and joins across a background change', async (context) => {
@@ -577,23 +681,19 @@ for (const backend of backends) {
       expect(rows[1]!.cells[2]!.style?.bold).toBe(true)
       expect(rows[2]!.cells[2]!.style?.underline).toBe(1)
       expect(rows[3]!.cells[2]!.background).toBeDefined()
-      expectRuns(mounted, jetBrains, [[], [], [], [[1, 3]]])
-      // Underline geometry belongs to each backend; row 2 is checked through its run topology.
-      if (backend === 'dom') {
-        expectDomRuns(mounted, [[], [], [], []])
-        return
-      }
-      if (!pixelsCheckable(mounted)) return
-      const actual = await capture(mounted)
-      const reference = oracle(mounted, [[], [], [], [[1, 3]]])
+      const joined: LigatureRange[][] = [[], [], [], backend === 'dom' ? [] : [[1, 3]]]
+      expectRuns(mounted, jetBrains, joined)
+      if (backend === 'dom') expectDomRuns(mounted, joined)
+      requirePixelLayer(mounted, context)
+      const actual = await capturePixels(mounted)
+      const reference = await referencePixels(mounted, joined)
       const rowBytes = mounted.canvas.width * font.deviceCellHeight * 4
+      // Underline geometry belongs to each backend; row 2 is checked through its run topology.
       for (const y of [0, 1, 3]) {
         const slice = (pixels: ArrayLike<number>) =>
           Array.prototype.slice.call(pixels, y * rowBytes, (y + 1) * rowBytes) as number[]
-        const actualRow = Uint8Array.from(slice(actual))
-        const expectedRow = Uint8ClampedArray.from(slice(reference))
         expect(
-          differingPixels(actualRow, expectedRow, 1, font, mounted.canvas.width),
+          differingPixels(slice(actual), slice(reference), 1, font, mounted.canvas.width),
           `row ${y}`,
         ).toBe(0)
       }
@@ -609,7 +709,7 @@ for (const backend of backends) {
         noto,
       )
       expectRuns(mounted, noto, [[]])
-      await expectPixels(mounted, [[]])
+      await expectPixels(mounted, [[]], context)
     })
 
     it('keeps fi, fl and st in separate cells', async (context) => {
@@ -623,7 +723,7 @@ for (const backend of backends) {
       )
       const expected: LigatureRange[][] = [[[16, 18]]]
       expectRuns(mounted, jetBrains, expected)
-      await expectPixels(mounted, expected)
+      await expectPixels(mounted, expected, context)
     })
 
     it('keeps color glyphs intrinsic beside joined runs', async (context) => {
@@ -638,7 +738,7 @@ for (const backend of backends) {
         ],
       ]
       expectRuns(mounted, jetBrains, expected)
-      await expectPixels(mounted, expected)
+      await expectPixels(mounted, expected, context)
       const runs = records.filter(
         (record) => record.input.cellSpan > 1 && record.input.text !== '🙂',
       )
@@ -649,7 +749,32 @@ for (const backend of backends) {
       mounted.renderer.notifySelectionChange()
       flush(mounted)
       expectRuns(mounted, jetBrains, expected)
-      await expectPixels(mounted, expected)
+      await expectPixels(mounted, expected, context)
+    })
+
+    it('keeps contrast-adjusted ink per cell when a background changes it', async (context) => {
+      if (!available()) context.skip()
+      const font = testFont(16, 24, 20, '"Ligature Test"')
+      const white = { r: 255, g: 255, b: 255 }
+      for (const ligatures of [jetBrains, undefined]) {
+        const mounted = await mount(backend, '\x1b[?25l=\x1b[48;2;255;255;255m>', font, ligatures)
+        mounted.renderer.setTheme({
+          foreground: white,
+          background: { r: 0, g: 0, b: 0 },
+          minimumContrast: 7,
+        })
+        flush(mounted)
+        requirePixelLayer(mounted, context)
+        const pixels = await capturePixels(mounted)
+        let ink = 0
+        for (let y = 0; y < font.deviceCellHeight; y += 1) {
+          for (let x = font.deviceCellWidth; x < font.deviceCellWidth * 2; x += 1)
+            if (pixels[(y * mounted.canvas.width + x) * 4]! < 200) ink += 1
+        }
+        const arm = ligatures ? 'on' : 'off'
+        expect(ink, `contrasting ink in the white cell, ligatures ${arm}`).toBeGreaterThan(0)
+        expectRuns(mounted, jetBrains, [[]], 7)
+      }
     })
 
     it('draws the existing per-cell path when ligatures are off', async (context) => {
@@ -663,13 +788,7 @@ for (const backend of backends) {
         undefined,
       )
       expect(records.some((record) => record.input.text.length > 1)).toBe(false)
-      if (backend === 'dom') {
-        expect(joinedSpans(mounted)[0]).toEqual([])
-        return
-      }
-      if (!pixelsCheckable(mounted)) return
-      const actual = await capture(mounted)
-      expect(differingPixels(actual, oracle(mounted, [[]]), 1, font, mounted.canvas.width)).toBe(0)
+      await expectPixels(mounted, [[]], context)
     })
   })
 }
