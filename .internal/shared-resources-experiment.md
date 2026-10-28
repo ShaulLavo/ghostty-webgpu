@@ -10,7 +10,7 @@ Status: decided. Date: 2026-10-27. Plan: [next steps](reference-study-2026-10/ne
 | 2. One atlas set per font key                | **KEEP** (memory gate), production work below | At 16 terminals atlas textures fall from 20 to 1.25 MiB (−94%) on both hosts, at 32 from 40 to 1.25 MiB; CPU atlas backing at 32 falls from 9.5 to 1.6 MiB. CPU is unchanged. Output equal for all 16 terminals (fleet check). |
 | 3. One command encoder per coordinated frame | **REJECT**                                    | CPU unchanged on both hosts (16 terminals −2.9% PC, −2.1% Mac, inside noise); callback cost flat, latency gate not measured. Rejected for no gain, failure coupling and a reentrant-ordering test regression.                  |
 
-The CPU growth with terminal count is not in the resources sharing removes; it is canvas-count-dependent overhead in Chrome's GPU process. On the PC at 16 terminals the GPU process uses 47–50% of a core and the renderer 8–10%. A pure-WebGPU probe reproduces that with no terminal code: 16 canvases cost 52% GPU-process CPU, 16 command buffers merged into one encoder cost the same 52%, and the same 16 tiles drawn into **one shared canvas cost 9%**, the cost of one terminal. The one-canvas arm changes canvas and current-texture count, render-pass count and attachment topology together, so which of those (presentation, compositing, Dawn or driver resource handling) carries the cost is a hypothesis, not attributed by trace. None of steps 1–3 can reach it; a shared surface can, on this NVIDIA/Wayland/Chromium setup. On the Mac total Chrome CPU at 16 terminals is 44% (GPU process about 29%), and one canvas saves only 16% of GPU-process CPU. That is the next experiment ([below](#next-shared-surface)).
+The CPU growth with terminal count is not in the resources sharing removes; it is canvas-count-dependent overhead in Chrome's GPU process. On the PC at 16 terminals the GPU process uses 47–50% of a core and the renderer 8–10%. A pure-WebGPU probe reproduces that with no terminal code: 16 canvases cost 52% GPU-process CPU, 16 command buffers merged into one encoder cost the same 52%, and the same 16 tiles drawn into **one shared canvas cost 9%**, the cost of one terminal. The one-canvas arm changes canvas and current-texture count, render-pass count and attachment topology together, so this probe alone does not attribute the cost. [PR #39](https://github.com/ShaulLavo/ghostty-webgpu/pull/39) ([shared drawing surface](shared-surface-experiment.md)) settled it with controls and a GPU-process trace: on this Linux setup the cost follows active WebGPU canvas presentation, meaning canvases presented per frame, on the GPU process main thread. Compositor involvement is plausible but not ruled out. None of steps 1–3 can reach it; a shared surface can, on this NVIDIA/Wayland/Chromium setup. On the Mac total Chrome CPU at 16 terminals is 44% (GPU process about 29%), and one canvas saves only 16% of GPU-process CPU. That is the next experiment ([below](#next-shared-surface)).
 
 ## Method
 
@@ -81,7 +81,7 @@ Atlas memory meets the keep gate (≥50% less at 16 terminals) on both hosts: on
 | 16    | 52.2             | 52.0              | 9.0              | 4.1 → 2.4                            |
 | 32    | 89.2             | 87.7              | 8.0              | 4.8 → 1.8                            |
 
-Same counter and formula as above (GPU-process host CPU). The probe's 16-canvas GPU-process cost (52%) matches the terminal benchmark's (47–50%), so the terminal's own per-frame work is not where that cost comes from. The one-encoder control rules out encoder and command-buffer count; it does not separate presentation and compositing from Dawn or driver per-texture work, and no GPU-process trace was taken. On the Mac the same probe gives 34.3 / 33.5 / 28.7% at 16 tiles and 43.1 / 42.8 / 37.5% at 32. A plausible reading, not measured, is that Core Animation composites separate canvases cheaply and one large canvas adds its own cost. The shared-canvas reduction is large on this PC (−83% at 16) and small on the Mac (−16%).
+Same counter and formula as above (GPU-process host CPU). The probe's 16-canvas GPU-process cost (52%) matches the terminal benchmark's (47–50%), so the terminal's own per-frame work is not where that cost comes from. The one-encoder control rules out encoder and command-buffer count; it does not separate presentation and compositing from Dawn or driver per-texture work, and this PR took no GPU-process trace; PR #39's controls and trace do (see above). On the Mac the same probe gives 34.3 / 33.5 / 28.7% at 16 tiles and 43.1 / 42.8 / 37.5% at 32. A plausible reading, not measured, is that Core Animation composites separate canvases cheaply and one large canvas adds its own cost. The shared-canvas reduction is large on this PC (−83% at 16) and small on the Mac (−16%).
 
 ## Correctness qualification (step 2)
 
@@ -109,19 +109,11 @@ Not shipped from this experiment: the items below change public metrics and atla
 6. **WebGL2.** One context per terminal cannot share textures, so WebGL2 could share only the CPU atlas and rasterizer, with per-context upload cursors. Measure that separately; the GPU saving is WebGPU-only.
 7. **Tests to add.** Cross-owner compaction refusal; invalidation and growth while another owner's frame is encoded but not yet submitted under the coordinator; real loss of the device every owner shares (the prototype test uses `simulateDeviceLoss()`, which replaces one renderer's device while its peer keeps the original); thrash under shared pressure; dispose of the last owner releasing all device texture sets; per-terminal output and pixels for every sharing terminal.
 
-## Next: shared surface
+## Next: shared surface (since decided)
 
-Recommendation: build a shared presentation canvas next, one canvas or swap chain behind several terminals, with wraithterm's `feat/fleet-surface` (study lane 03) as a design reference. The probe measured only drawing tiles into one canvas; the experiment must measure the complete terminal path: placing or copying tiles into each terminal's DOM position (one overlay canvas positioned over the terminals versus per-terminal copies), clipping and z-order inside scrolling containers, scroll, opacity and resize.
+X1 recommended a shared presentation canvas next, with these gates: ≥30% less GPU-process CPU at 16 × 80×24 terminals on the PC, no material Mac regression, equal output for every terminal with unchanged acknowledgements and frame observers, busiest-terminal write-to-acknowledgement and write-to-presented latency measured directly, and attribution of the saving.
 
-Gates, all required:
-
-- GPU-process CPU (the counter above) at 16 × 80×24 terminals on the PC falls by at least 30%. The probe's 83% is not promised for the finished path.
-- No material regression on the Mac, measured the same way.
-- Equal fleet output: every terminal's text, delivered bytes, submitted frames and pixels, plus unchanged acknowledgements and frame-observer behavior.
-- Busiest-terminal latency, measured directly rather than as callback duration: write-to-acknowledgement p95/p99 for the busiest terminal, and write-to-presented through the plan's trace-joined presentation endpoint (baseline packet `endpoints.md`), each no worse than the paired control.
-- Attribute the GPU-process saving with a GPU-process trace or a no-presentation control, so the result states which cost it removed.
-
-Its natural home is the terminal-pool work (E6), which already groups terminals.
+[PR #39](https://github.com/ShaulLavo/ghostty-webgpu/pull/39) ran it ([shared drawing surface](shared-surface-experiment.md)). It retained the surface as a Linux WebGPU experiment with production deferred (16 busy terminals 58.1 → 22.2% total CPU, acknowledgement latency unchanged) and rejected it on macOS. Per-pane copies were rejected everywhere. Busiest-terminal latency for X1's own step 3 remains unmeasured; that step is rejected on other grounds.
 
 ## Evidence
 
