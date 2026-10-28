@@ -113,6 +113,21 @@ const deleteCodepoint = 0x7f
 const macosFunctionKeyMinimum = 0xf700
 const macosFunctionKeyMaximum = 0xf8ff
 
+function macDefaultKeybinding(event: KeyboardEvent): string | undefined {
+  if (event.ctrlKey || event.shiftKey || event.getModifierState('AltGraph')) return undefined
+  // Ghostty's macOS natural text editing defaults bypass VT protocol encoding.
+  if (event.metaKey && !event.altKey) {
+    if (event.code === 'ArrowLeft') return '\x01'
+    if (event.code === 'ArrowRight') return '\x05'
+    if (event.code === 'Backspace') return '\x15'
+  }
+  if (event.altKey && !event.metaKey) {
+    if (event.code === 'ArrowLeft') return '\x1bb'
+    if (event.code === 'ArrowRight') return '\x1bf'
+  }
+  return undefined
+}
+
 function modifierDefinition(code: string): ModifierDefinition | undefined {
   return modifierDefinitions.find(
     (definition) => code === definition.left || code === definition.right,
@@ -419,6 +434,7 @@ class BrowserInputController implements DomInputController {
       this.deferredMacCommandPresses.clear()
       return
     }
+    if (this.applyMacDefaultKeybinding(event)) return
     if (!isSupportedTerminalKeyCode(event.code)) {
       this.deferredMacCommandPresses.clear()
       return
@@ -653,6 +669,34 @@ class BrowserInputController implements DomInputController {
       if (event.type === 'keyup') this.forwardedKeyPresses.delete(event.code)
       this.options.onError(cause, 'key')
     }
+  }
+
+  private applyMacDefaultKeybinding(event: KeyboardEvent): boolean {
+    if (this.platform !== 'mac' || event.type !== 'keydown') return false
+    if (isComposingKey(event, this.composing)) return false
+    const data = macDefaultKeybinding(event)
+    if (data === undefined) return false
+    this.deferredMacCommandPresses.clear()
+    event.preventDefault()
+    this.beforeUserInput()
+    try {
+      const encoding = this.options.encoding
+      if (!encoding) {
+        this.notifyKey(event, this.options.session!.sendInput(data))
+        return true
+      }
+      const generation = this.encodingGeneration
+      void encoding
+        .sendInput(data)
+        .then((bytes) => {
+          if (this.disposed || generation !== this.encodingGeneration) return
+          this.notifyKey(event, bytes)
+        })
+        .catch((cause: unknown) => this.options.onError(cause, 'key'))
+    } catch (cause) {
+      this.options.onError(cause, 'key')
+    }
+    return true
   }
 
   private screenReaderUsesBrowserDefault(event: KeyboardEvent): boolean {
