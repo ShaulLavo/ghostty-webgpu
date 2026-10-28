@@ -4,6 +4,10 @@ export interface FontTables {
 }
 
 const wantedTables = new Set(['cmap', 'GSUB'])
+// Bounds for hostile or broken files: input size, one table, and a whole WOFF2 stream.
+const maxFontBytes = 32 * 1024 * 1024
+const maxTableBytes = 16 * 1024 * 1024
+const maxStreamBytes = 64 * 1024 * 1024
 // WOFF2 known-table indices from the specification, in order.
 const woff2KnownTags = [
   'cmap', 'head', 'hhea', 'hmtx', 'maxp', 'name', 'OS/2', 'post', 'cvt ', 'fpgm', 'glyf', 'loca',
@@ -28,11 +32,32 @@ function slice(view: DataView, offset: number, length: number): DataView {
   return new DataView(view.buffer, view.byteOffset + offset, length)
 }
 
-async function decompress(bytes: Uint8Array, format: CompressionFormat): Promise<Uint8Array> {
-  const stream = new Blob([bytes as Uint8Array<ArrayBuffer>])
+function checkTableLength(length: number): void {
+  if (length > maxTableBytes) throw new RangeError('font table exceeds the ligature size limit')
+}
+
+// Stops reading as soon as the stream passes the declared length, so a bomb never inflates.
+async function decompress(
+  bytes: Uint8Array,
+  format: CompressionFormat,
+  expected: number,
+): Promise<Uint8Array> {
+  const reader = new Blob([bytes as Uint8Array<ArrayBuffer>])
     .stream()
     .pipeThrough(new DecompressionStream(format))
-  return new Uint8Array(await new Response(stream).arrayBuffer())
+    .getReader()
+  const output = new Uint8Array(expected)
+  let written = 0
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    if (written + chunk.value.byteLength > expected) {
+      await reader.cancel()
+      throw new RangeError('compressed font data is longer than declared')
+    }
+    output.set(chunk.value, written)
+    written += chunk.value.byteLength
+  }
+  if (written !== expected) throw new RangeError('compressed font data is shorter than declared')
+  return output
 }
 
 // Collection table offsets are relative to the file, not to the face header.
@@ -43,6 +68,7 @@ function sfntTables(view: DataView, header = 0): FontTables {
     const record = header + 12 + index * 16
     const name = tag(view, record)
     if (!wantedTables.has(name)) continue
+    checkTableLength(view.getUint32(record + 12))
     const table = slice(view, view.getUint32(record + 8), view.getUint32(record + 12))
     if (name === 'cmap') tables.cmap = table
     if (name === 'GSUB') tables.gsub = table
@@ -60,10 +86,16 @@ async function woffTables(view: DataView): Promise<FontTables> {
     const offset = view.getUint32(record + 4)
     const compressed = view.getUint32(record + 8)
     const length = view.getUint32(record + 12)
+    checkTableLength(length)
+    if (compressed > length) throw new RangeError('WOFF table is larger compressed than plain')
     const source = slice(view, offset, compressed)
     const bytes =
       compressed < length
-        ? await decompress(new Uint8Array(source.buffer, source.byteOffset, compressed), 'deflate')
+        ? await decompress(
+            new Uint8Array(source.buffer, source.byteOffset, compressed),
+            'deflate',
+            length,
+          )
         : new Uint8Array(source.buffer, source.byteOffset, compressed)
     const table = new DataView(bytes.buffer, bytes.byteOffset, length)
     if (name === 'cmap') tables.cmap = table
@@ -100,14 +132,17 @@ async function woff2Tables(view: DataView): Promise<FontTables> {
     const glyphTable = name === 'glyf' || name === 'loca'
     const transformed = glyphTable ? version === 0 : version !== 0
     const stored = transformed ? base128(view, cursor) : length
+    if (wantedTables.has(name)) checkTableLength(length)
     entries.push({ name, offset: streamOffset, length })
     streamOffset += stored
   }
   if (!entries.some((entry) => wantedTables.has(entry.name))) return {}
+  if (streamOffset > maxStreamBytes) throw new RangeError('WOFF2 data exceeds the size limit')
   const source = slice(view, cursor.offset, compressedLength)
   const stream = await decompress(
     new Uint8Array(source.buffer, source.byteOffset, compressedLength),
     'brotli' as CompressionFormat,
+    streamOffset,
   )
   const decoded = new DataView(stream.buffer, stream.byteOffset, stream.byteLength)
   const tables: { cmap?: DataView; gsub?: DataView } = {}
@@ -120,6 +155,7 @@ async function woff2Tables(view: DataView): Promise<FontTables> {
 
 /** Reads cmap and GSUB from TrueType, OpenType, the first face of a collection, WOFF or WOFF2. */
 export async function readFontTables(bytes: Uint8Array): Promise<FontTables> {
+  if (bytes.byteLength > maxFontBytes) throw new RangeError('font file exceeds the size limit')
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   if (view.byteLength < 12) throw new RangeError('font file is too short')
   const signature = tag(view, 0)

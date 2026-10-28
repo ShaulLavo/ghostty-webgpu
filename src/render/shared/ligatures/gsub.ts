@@ -17,7 +17,7 @@ interface Application {
   contextEnd: number
 }
 
-type Subtable = (glyphs: Glyph[], index: number) => Application | undefined
+type Subtable = (glyphs: Glyph[], index: number, depth: number) => Application | undefined
 
 interface Lookup {
   readonly reverse: boolean
@@ -29,45 +29,68 @@ interface Lookup {
 // Features a browser applies by default to horizontal Latin text and that can join glyphs.
 const joiningFeatures = new Set(['calt', 'clig', 'liga', 'rlig'])
 const maxNestedDepth = 8
+// Bounds for hostile or broken fonts: parsed coverage entries per font, subtable calls per segment.
+const maxExpandedEntries = 1_000_000
+const maxSegmentWork = 100_000
+
+class ExpansionBudget {
+  private remaining = maxExpandedEntries
+
+  spend(entries: number): void {
+    this.remaining -= entries
+    if (this.remaining < 0) throw new RangeError('GSUB tables exceed the ligature parsing budget')
+  }
+}
+
+const workExhausted = new Error('GSUB segment work budget exhausted')
 
 type Coverage = ReadonlyMap<number, number>
 type ClassDef = (glyph: number) => number
 
-function readCoverage(view: DataView, offset: number): Coverage {
+function readCoverage(view: DataView, offset: number, budget: ExpansionBudget): Coverage {
   const map = new Map<number, number>()
   const format = view.getUint16(offset)
   const count = view.getUint16(offset + 2)
   if (format === 1) {
+    budget.spend(count)
     for (let index = 0; index < count; index += 1)
       map.set(view.getUint16(offset + 4 + index * 2), index)
     return map
   }
+  if (format !== 2) throw new RangeError(`unsupported GSUB coverage format ${format}`)
   for (let range = 0; range < count; range += 1) {
     const record = offset + 4 + range * 6
     const first = view.getUint16(record)
     const last = view.getUint16(record + 2)
     const base = view.getUint16(record + 4)
+    if (last < first) throw new RangeError('GSUB coverage range ends before it starts')
+    budget.spend(last - first + 1)
     for (let glyph = first; glyph <= last; glyph += 1) map.set(glyph, base + glyph - first)
   }
   return map
 }
 
-function readClassDef(view: DataView, offset: number): ClassDef {
+function readClassDef(view: DataView, offset: number, budget: ExpansionBudget): ClassDef {
   const map = new Map<number, number>()
   const format = view.getUint16(offset)
   if (format === 1) {
     const first = view.getUint16(offset + 2)
     const count = view.getUint16(offset + 4)
+    budget.spend(count)
     for (let index = 0; index < count; index += 1)
       map.set(first + index, view.getUint16(offset + 6 + index * 2))
     return (glyph) => map.get(glyph) ?? 0
   }
+  if (format !== 2) throw new RangeError(`unsupported GSUB class definition format ${format}`)
   const count = view.getUint16(offset + 2)
   for (let range = 0; range < count; range += 1) {
     const record = offset + 4 + range * 6
+    const first = view.getUint16(record)
+    const last = view.getUint16(record + 2)
     const value = view.getUint16(record + 4)
-    for (let glyph = view.getUint16(record); glyph <= view.getUint16(record + 2); glyph += 1)
-      map.set(glyph, value)
+    if (last < first) throw new RangeError('GSUB class range ends before it starts')
+    budget.spend(last - first + 1)
+    for (let glyph = first; glyph <= last; glyph += 1) map.set(glyph, value)
   }
   return (glyph) => map.get(glyph) ?? 0
 }
@@ -102,6 +125,9 @@ interface ContextRule {
 class GsubTable {
   private readonly lookups: (Lookup | undefined)[] = []
   private readonly lookupOffsets: number[]
+  private readonly budget = new ExpansionBudget()
+  private readonly referenced = new Set<number>()
+  private work = 0
   readonly active: readonly number[]
 
   constructor(private readonly view: DataView) {
@@ -149,6 +175,36 @@ class GsubTable {
     return offset === 0 ? undefined : script.offset + offset
   }
 
+  /** Parses every lookup reachable from the active features, so bad data fails at load time. */
+  validate(): void {
+    const pending = Array.from(this.active)
+    const seen = new Set<number>()
+    for (let index = pending.pop(); index !== undefined; index = pending.pop()) {
+      if (seen.has(index)) continue
+      seen.add(index)
+      this.lookup(index)
+      for (const nested of this.referenced) if (!seen.has(nested)) pending.push(nested)
+    }
+  }
+
+  startSegment(): void {
+    this.work = maxSegmentWork
+  }
+
+  private coverage(offset: number): Coverage {
+    return readCoverage(this.view, offset, this.budget)
+  }
+
+  private classDef(offset: number): ClassDef {
+    return readClassDef(this.view, offset, this.budget)
+  }
+
+  private records(offset: number, count: number): SequenceRecord[] {
+    const records = readRecords(this.view, offset, count)
+    for (const record of records) this.referenced.add(record.lookup)
+    return records
+  }
+
   lookup(index: number): Lookup | undefined {
     if (index in this.lookups) return this.lookups[index]
     const offset = this.lookupOffsets[index]
@@ -172,7 +228,11 @@ class GsubTable {
       }
       const parsed = this.readSubtable(type, subtable)
       if (!parsed) continue
-      subtables.push(parsed)
+      subtables.push((glyphs, position, depth) => {
+        this.work -= 1
+        if (this.work < 0) throw workExhausted
+        return parsed(glyphs, position, depth)
+      })
       for (const glyph of this.firstCoverage(type, subtable).keys()) starts.add(glyph)
     }
     return { reverse: type === 8, starts, subtables }
@@ -181,10 +241,10 @@ class GsubTable {
   private firstCoverage(type: number, offset: number): Coverage {
     const view = this.view
     const format = view.getUint16(offset)
-    if (type === 5 && format === 3) return readCoverage(view, offset + view.getUint16(offset + 6))
-    if (type !== 6 || format !== 3) return readCoverage(view, offset + view.getUint16(offset + 2))
+    if (type === 5 && format === 3) return this.coverage(offset + view.getUint16(offset + 6))
+    if (type !== 6 || format !== 3) return this.coverage(offset + view.getUint16(offset + 2))
     const backtrack = view.getUint16(offset + 2)
-    return readCoverage(view, offset + view.getUint16(offset + 6 + backtrack * 2))
+    return this.coverage(offset + view.getUint16(offset + 6 + backtrack * 2))
   }
 
   private readSubtable(type: number, offset: number): Subtable | undefined {
@@ -199,7 +259,7 @@ class GsubTable {
 
   private single(offset: number, format: number): Subtable {
     const view = this.view
-    const coverage = readCoverage(view, offset + view.getUint16(offset + 2))
+    const coverage = this.coverage(offset + view.getUint16(offset + 2))
     const delta = format === 1 ? view.getInt16(offset + 4) : 0
     const substitutes =
       format === 2 ? readUint16s(view, offset + 6, view.getUint16(offset + 4)) : []
@@ -217,7 +277,7 @@ class GsubTable {
 
   private multiple(offset: number): Subtable {
     const view = this.view
-    const coverage = readCoverage(view, offset + view.getUint16(offset + 2))
+    const coverage = this.coverage(offset + view.getUint16(offset + 2))
     const sequences = readUint16s(view, offset + 6, view.getUint16(offset + 4)).map((relative) =>
       readUint16s(view, offset + relative + 2, view.getUint16(offset + relative)),
     )
@@ -239,7 +299,7 @@ class GsubTable {
 
   private ligature(offset: number): Subtable {
     const view = this.view
-    const coverage = readCoverage(view, offset + view.getUint16(offset + 2))
+    const coverage = this.coverage(offset + view.getUint16(offset + 2))
     const sets = readUint16s(view, offset + 6, view.getUint16(offset + 4)).map((relative) => {
       const set = offset + relative
       return readUint16s(view, set + 2, view.getUint16(set)).map((ligature) => {
@@ -274,17 +334,22 @@ class GsubTable {
   private context(chained: boolean, offset: number, format: number): Subtable | undefined {
     const rules = chained ? this.chainedRules(offset, format) : this.contextRules(offset, format)
     if (!rules) return undefined
-    return (glyphs, index) => {
+    return (glyphs, index, depth) => {
       const candidates = rules.candidates(glyphs[index]!.id)
       for (const rule of candidates) {
-        const applied = this.applyRule(rule, glyphs, index)
+        const applied = this.applyRule(rule, glyphs, index, depth)
         if (applied) return applied
       }
       return undefined
     }
   }
 
-  private applyRule(rule: ContextRule, glyphs: Glyph[], index: number): Application | undefined {
+  private applyRule(
+    rule: ContextRule,
+    glyphs: Glyph[],
+    index: number,
+    depth: number,
+  ): Application | undefined {
     const first = index - rule.backtrack.length
     const last = index + rule.input.length + rule.lookahead.length
     if (first < 0 || last > glyphs.length) return undefined
@@ -304,7 +369,7 @@ class GsubTable {
     for (const record of rule.records) {
       const position = index + record.sequence
       if (position >= glyphs.length) continue
-      const nested = this.applyNested(record.lookup, glyphs, position, 0)
+      const nested = this.applyNested(record.lookup, glyphs, position, depth + 1)
       changed = changed || nested
     }
     const advance = Math.max(1, rule.input.length + glyphs.length - before)
@@ -316,7 +381,7 @@ class GsubTable {
     const lookup = this.lookup(lookupIndex)
     if (!lookup) return false
     for (const subtable of lookup.subtables) {
-      const applied = subtable(glyphs, position)
+      const applied = subtable(glyphs, position, depth)
       if (applied) return applied.changed
     }
     return false
@@ -328,20 +393,19 @@ class GsubTable {
       const count = view.getUint16(offset + 2)
       const records = view.getUint16(offset + 4)
       const coverages = readUint16s(view, offset + 6, count).map((value) =>
-        readCoverage(view, offset + value),
+        this.coverage(offset + value),
       )
       const rule: ContextRule = {
         backtrack: [],
         input: coverages.map((coverage) => (glyph: number) => coverage.has(glyph)),
         lookahead: [],
-        records: readRecords(view, offset + 6 + count * 2, records),
+        records: this.records(offset + 6 + count * 2, records),
       }
       const firstCoverage = coverages[0]
       return { candidates: (glyph) => (firstCoverage?.has(glyph) ? [rule] : []) }
     }
-    const coverage = readCoverage(view, offset + view.getUint16(offset + 2))
-    const classDef =
-      format === 2 ? readClassDef(view, offset + view.getUint16(offset + 4)) : undefined
+    const coverage = this.coverage(offset + view.getUint16(offset + 2))
+    const classDef = format === 2 ? this.classDef(offset + view.getUint16(offset + 4)) : undefined
     const setsOffset = offset + (format === 2 ? 6 : 4)
     const sets = readUint16s(view, setsOffset + 2, view.getUint16(setsOffset)).map((relative) =>
       relative === 0 ? [] : this.contextRuleSet(offset + relative, classDef),
@@ -366,7 +430,7 @@ class GsubTable {
         backtrack: [],
         input: [coveredGlyph].concat(values.map((value) => valueMatcher(value, classDef))),
         lookahead: [],
-        records: readRecords(view, rule + 4 + (glyphCount - 1) * 2, recordCount),
+        records: this.records(rule + 4 + (glyphCount - 1) * 2, recordCount),
       }
     })
   }
@@ -374,10 +438,10 @@ class GsubTable {
   private chainedRules(offset: number, format: number): RuleIndex | undefined {
     const view = this.view
     if (format === 3) return this.chainedCoverageRule(offset)
-    const coverage = readCoverage(view, offset + view.getUint16(offset + 2))
+    const coverage = this.coverage(offset + view.getUint16(offset + 2))
     const classes =
       format === 2
-        ? [4, 6, 8].map((field) => readClassDef(view, offset + view.getUint16(offset + field)))
+        ? [4, 6, 8].map((field) => this.classDef(offset + view.getUint16(offset + field)))
         : undefined
     const setsOffset = offset + (format === 2 ? 10 : 4)
     const sets = readUint16s(view, setsOffset + 2, view.getUint16(setsOffset)).map((relative) =>
@@ -409,7 +473,7 @@ class GsubTable {
         backtrack: backtrack.map((value) => valueMatcher(value, classes?.[0])),
         input: [coveredGlyph].concat(input.map((value) => valueMatcher(value, classes?.[1]))),
         lookahead: lookahead.map((value) => valueMatcher(value, classes?.[2])),
-        records: readRecords(view, cursor + 2, view.getUint16(cursor)),
+        records: this.records(cursor + 2, view.getUint16(cursor)),
       }
     })
   }
@@ -420,9 +484,7 @@ class GsubTable {
     const lists: Coverage[][] = []
     for (let list = 0; list < 3; list += 1) {
       const count = view.getUint16(cursor)
-      lists.push(
-        readUint16s(view, cursor + 2, count).map((value) => readCoverage(view, offset + value)),
-      )
+      lists.push(readUint16s(view, cursor + 2, count).map((value) => this.coverage(offset + value)))
       cursor += 2 + count * 2
     }
     const [backtrack, input, lookahead] = lists as [Coverage[], Coverage[], Coverage[]]
@@ -431,7 +493,7 @@ class GsubTable {
       backtrack: backtrack.map(matcher),
       input: input.map(matcher),
       lookahead: lookahead.map(matcher),
-      records: readRecords(view, cursor + 2, view.getUint16(cursor)),
+      records: this.records(cursor + 2, view.getUint16(cursor)),
     }
     const first = input[0]
     return { candidates: (glyph) => (first?.has(glyph) ? [rule] : []) }
@@ -439,14 +501,12 @@ class GsubTable {
 
   private reverseChain(offset: number): Subtable {
     const view = this.view
-    const coverage = readCoverage(view, offset + view.getUint16(offset + 2))
+    const coverage = this.coverage(offset + view.getUint16(offset + 2))
     let cursor = offset + 4
     const lists: Coverage[][] = []
     for (let list = 0; list < 2; list += 1) {
       const count = view.getUint16(cursor)
-      lists.push(
-        readUint16s(view, cursor + 2, count).map((value) => readCoverage(view, offset + value)),
-      )
+      lists.push(readUint16s(view, cursor + 2, count).map((value) => this.coverage(offset + value)))
       cursor += 2 + count * 2
     }
     const [backtrack, lookahead] = lists as [Coverage[], Coverage[]]
@@ -561,12 +621,15 @@ export interface GsubShaper {
   ranges(codepoints: readonly number[]): LigatureRange[]
 }
 
+/** Parses every reachable lookup up front; malformed or oversized tables throw here, not later. */
 export function createGsubShaper(tables: FontTables): GsubShaper | undefined {
   if (!tables.cmap || !tables.gsub) return undefined
   const glyphOf = readCmap(tables.cmap)
   const gsub = new GsubTable(tables.gsub)
-  const active = gsub.active
-  if (active.length === 0) return undefined
+  if (gsub.active.length === 0) return undefined
+  gsub.validate()
+  const lookups = gsub.active.flatMap((index) => gsub.lookup(index) ?? [])
+  const starters = new Set(lookups.flatMap((lookup) => Array.from(lookup.starts)))
   return {
     ranges(codepoints) {
       const glyphs = codepoints.map((codepoint, index) => ({
@@ -574,10 +637,15 @@ export function createGsubShaper(tables: FontTables): GsubShaper | undefined {
         start: index,
         end: index + 1,
       }))
+      if (!glyphs.some((glyph) => starters.has(glyph.id))) return []
       const ranges: [number, number][] = []
-      for (const lookupIndex of active) {
-        const lookup = gsub.lookup(lookupIndex)
-        if (lookup) applyLookup(lookup, glyphs, ranges)
+      gsub.startSegment()
+      try {
+        for (const lookup of lookups) applyLookup(lookup, glyphs, ranges)
+      } catch (cause) {
+        // A segment that exhausts its work budget draws per cell.
+        if (cause === workExhausted) return []
+        throw cause
       }
       return ranges
         .filter(([start, end]) => end - start > 1)
@@ -609,7 +677,7 @@ function applyLookup(lookup: Lookup, glyphs: Glyph[], ranges: [number, number][]
 
 function firstApplication(lookup: Lookup, glyphs: Glyph[], index: number): Application | undefined {
   for (const subtable of lookup.subtables) {
-    const applied = subtable(glyphs, index)
+    const applied = subtable(glyphs, index, 0)
     if (applied) return applied
   }
   return undefined
