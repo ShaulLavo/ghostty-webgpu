@@ -195,7 +195,8 @@ its cells. The GPU and Canvas pixel backends store it as one multi-cell atlas gl
 fill-text draws the string directly, and the DOM puts it in its own span with browser ligatures
 enabled.
 
-Runs never cross a space, a wide or fallback-font glyph, a grapheme cluster, invisible text or a
+Runs never cross a space, a character from U+2000 up (symbols, box drawing, icons and emoji
+keep their per-cell drawing), a wide or fallback-font glyph, a grapheme cluster, invisible text or a
 change of foreground, weight, slant, faint, underline, overline, strikethrough, inverse or
 selection state. A background change alone keeps the run joined, except in the DOM, where one
 span has one background. `fi`, `fl` and `st` stay in separate cells. A run that contains the

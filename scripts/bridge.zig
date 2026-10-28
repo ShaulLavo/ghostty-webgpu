@@ -884,7 +884,8 @@ fn ligatureCell(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRo
     if (wide != c.GHOSTTY_CELL_WIDE_NARROW or tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT) return c.GHOSTTY_SUCCESS;
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CODEPOINT, &point);
     if (result != c.GHOSTTY_SUCCESS) return result;
-    if (point <= 0x20) return c.GHOSTTY_SUCCESS;
+    // Symbols, box drawing and icons from U+2000 keep their per-cell sprites and constraints.
+    if (point <= 0x20 or point >= 0x2000) return c.GHOSTTY_SUCCESS;
     result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_HAS_STYLING, &styled);
     if (result != c.GHOSTTY_SUCCESS) return result;
     ink.* = .{ .style = 0, .foreground = 0xffffffff, .background = 0xffffffff, .selected = selected };

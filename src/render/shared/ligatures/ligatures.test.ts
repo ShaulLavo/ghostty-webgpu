@@ -114,6 +114,13 @@ describe('ligature run policy', async () => {
     ])
   })
 
+  it('keeps symbols and box drawing per cell', () => {
+    const always: LigatureFinder = { find: (codepoints) => [[0, codepoints.length]] }
+    expect(ligatureRuns(cells('→→'), always, undefined)).toEqual([])
+    expect(ligatureRuns(cells('──'), always, undefined)).toEqual([])
+    expect(ligatureRuns(cells('ab'), always, undefined)).toEqual([[0, 2]])
+  })
+
   it('keeps fi, fl and st apart', () => {
     expect(ligatureRuns(cells('office float st =>'), finder, undefined)).toEqual([[16, 18]])
   })

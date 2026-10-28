@@ -10,7 +10,8 @@ export function latinPairBreak(previous: number, next: number): boolean {
 function joinableCodepoint(cell: RenderCell, next: RenderCell | undefined): number | undefined {
   if (cell.continuation || next?.continuation || cell.style?.invisible) return undefined
   const codepoint = cell.text.codePointAt(0)
-  if (codepoint === undefined || codepoint <= 0x20) return undefined
+  // Symbols, box drawing and icons from U+2000 keep their per-cell sprites and constraints.
+  if (codepoint === undefined || codepoint <= 0x20 || codepoint >= 0x2000) return undefined
   if (cell.text.length !== (codepoint > 0xffff ? 2 : 1)) return undefined
   return codepoint
 }

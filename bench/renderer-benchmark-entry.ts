@@ -91,7 +91,8 @@ window.cancelAnimationFrame = (handle) => {
 
 const servedFont = parameters.get('font') === '1'
 if (servedFont) document.fonts.add(await new FontFace('BenchFont', 'url(/font)').load())
-const ligatures = parameters.get('ligatures') === '1' ? await loadGsubLigatureFinder('/font') : undefined
+const ligatures =
+  parameters.get('ligatures') === '1' ? await loadGsubLigatureFinder('/font') : undefined
 const font = fitTerminalFont(
   document,
   {
@@ -396,7 +397,9 @@ function advance(scenario: BenchmarkScenario, step: number): void {
     return
   }
   if (scenario === 'ligature-redraw') {
-    write('\x1b[H' + Array.from({ length: rows }, (_, y) => ligatureLine(sequence + y)).join('\r\n'))
+    write(
+      '\x1b[H' + Array.from({ length: rows }, (_, y) => ligatureLine(sequence + y)).join('\r\n'),
+    )
     sequence += 1
     return
   }

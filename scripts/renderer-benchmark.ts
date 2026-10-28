@@ -166,7 +166,8 @@ async function routePage(page: Page, bundle: string, sourceRoot: string): Promis
       return route.fulfill({ body: bridge, contentType: 'application/wasm' })
     if (url.pathname === '/canvas-compose.wasm')
       return route.fulfill({ body: canvasCompose, contentType: 'application/wasm' })
-    if (url.pathname === '/font' && font) return route.fulfill({ body: font, contentType: 'font/ttf' })
+    if (url.pathname === '/font' && font)
+      return route.fulfill({ body: font, contentType: 'font/ttf' })
     if (url.pathname !== '/') return route.abort()
     await route.fulfill({
       contentType: 'text/html',
