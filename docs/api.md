@@ -302,8 +302,8 @@ row included after a layout change. The data is structured-cloneable and remains
 later frames and terminal disposal. The last listener's disposal stops text publication.
 
 `terminal.visibleLines()` pulls the displayed viewport's text once. WebGL and WebGPU retain
-native displayed state and materialize owned text on demand. Canvas and DOM keep eager owned
-rows internally. All renderers expose the same text API. Internal native frame identities stay
+native current state and materialize its text on demand. Older previous text can be materialized
+when its native slot is recycled. Canvas and DOM keep eager owned rows internally. All renderers expose the same text API. Internal native frame identities stay
 inside the library.
 
 WebGL and WebGPU update retained text from native logical row damage. Grid or fitted-font

@@ -355,9 +355,10 @@ describe('accessibility from real submitted native frames', () => {
     expect(extraction).toHaveBeenCalledTimes(1)
     expect(timers.mock.calls.filter(([, delay]) => delay === 100)).toHaveLength(1)
     expect(accessibility.rowElements[0]?.textContent).toBe('')
+    const beforeMirror = extraction.mock.calls.length
     await expect.poll(() => accessibility.rowElements[0]?.textContent).toBe('first 界😀 latest')
     expect(update).toHaveBeenCalledTimes(1)
-    expect(extraction).toHaveBeenCalled()
+    expect(extraction.mock.calls.length).toBeGreaterThan(beforeMirror)
     expect(accessibility.liveRegion.textContent).toBe('first 界😀 latest')
     expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
     expect(harness.errors).toEqual([])
