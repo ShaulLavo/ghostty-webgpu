@@ -135,6 +135,7 @@ export class WorkerTerminalExecution {
       appearance: options.appearance,
       backend: options.backend,
       textBlink: options.textBlink,
+      bidi: options.bidi,
     }
     try {
       this.worker.postMessage(initialize, [channel.port2])

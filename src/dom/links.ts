@@ -1,3 +1,4 @@
+import { RowBidiMapper } from '../bidi/row.js'
 import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/shared/types.js'
 import type { LinkCell, LinkHit, LinkResolution } from '../term/links.js'
 import type { TerminalLinkRequest } from '../term/types.js'
@@ -22,6 +23,7 @@ export interface DomLinkSession {
 }
 
 export interface DomLinkControllerOptions {
+  readonly bidi?: boolean
   readonly activationModifier?: (event: MouseEvent) => boolean
   readonly canvas: HTMLCanvasElement
   readonly getFrame?: () => RendererTextFrameSnapshot | undefined
@@ -212,7 +214,7 @@ function accessibleHitLabel(hit: LinkHit<Event>): string {
   return 'Terminal link'
 }
 
-function applyOverlayStyles(overlay: HTMLDivElement): void {
+function applyOverlayStyles(overlay: HTMLElement): void {
   overlay.style.borderBottom = '1px solid currentColor'
   overlay.style.boxSizing = 'border-box'
   overlay.style.pointerEvents = 'none'
@@ -701,13 +703,27 @@ class BrowserLinkController implements DomLinkController {
     return defaultActivationModifier(this.view, event)
   }
 
+  private bidiMapper?: RowBidiMapper
+
+  private logicalColumn(column: number, y: number): number {
+    if (!this.options.bidi) return column
+    const snapshot = this.options.getFrame ? this.options.getFrame() : this.readFrame()
+    const row = snapshot && frameRow(snapshot, y)
+    if (!row) return column
+    const cells = row.cells.map((text, x) => ({
+      text,
+      continuation: row.continuations[x] === true,
+    }))
+    return (this.bidiMapper ??= new RowBidiMapper()).getMap(cells).visualToLogical[column] ?? column
+  }
+
   private cellAt(point: PointerPoint): ResolvedCell | undefined {
     const layout = this.options.getLayout()
     if (!layout) return undefined
     const projection = projectPointerPosition(point, layout)
     if (!physicalPointInsideGrid(projection.raw, layout)) return undefined
     return {
-      column: projection.selection.viewport.x,
+      column: this.logicalColumn(projection.selection.viewport.x, projection.selection.viewport.y),
       row: projection.selection.viewport.y,
     }
   }
@@ -910,11 +926,48 @@ class BrowserLinkController implements DomLinkController {
     this.options.onHitChange?.(hit)
   }
 
+  private positionBidiOverlay(hit: LinkHit<Event>, layout: CommittedPointerLayout): void {
+    const snapshot = this.options.getFrame ? this.options.getFrame() : this.readFrame()
+    const row = snapshot && frameRow(snapshot, hit.row)
+    if (!row) return
+    const cells = row.cells.map((text, x) => ({
+      text,
+      continuation: row.continuations[x] === true,
+    }))
+    const map = (this.bidiMapper ??= new RowBidiMapper()).getMap(cells)
+    this.overlay.replaceChildren()
+    const columns = Array.from(
+      { length: hit.range.end - hit.range.start + 1 },
+      (_, i) => map.logicalToVisual[hit.range.start + i]!,
+    )
+    const first = Math.min(...columns)
+    const last = Math.max(...columns)
+    this.overlay.style.borderBottom = 'none'
+    this.overlay.style.left = `${layout.physical.paddingLeft / layout.grid.pixelRatio + first * layout.grid.cellWidth}px`
+    this.overlay.style.top = `${layout.physical.paddingTop / layout.grid.pixelRatio + hit.row * layout.grid.cellHeight}px`
+    this.overlay.style.width = `${(last - first + 1) * layout.grid.cellWidth}px`
+    this.overlay.style.height = `${layout.grid.cellHeight}px`
+    for (let logical = hit.range.start; logical <= hit.range.end; logical += 1) {
+      const span = this.overlay.ownerDocument.createElement('span')
+      applyOverlayStyles(span)
+      span.style.left = `${(map.logicalToVisual[logical]! - first) * layout.grid.cellWidth}px`
+      span.style.width = `${layout.grid.cellWidth}px`
+      span.style.height = '100%'
+      this.overlay.append(span)
+    }
+    this.overlay.setAttribute('aria-label', accessibleHitLabel(hit))
+    if (this.overlay.parentElement !== this.options.root) this.options.root.append(this.overlay)
+  }
+
   private positionOverlay(hit: LinkHit<Event>, layout: CommittedPointerLayout): void {
     const ratio = layout.grid.pixelRatio
     const left = layout.physical.paddingLeft / ratio + hit.range.start * layout.grid.cellWidth
     const top = layout.physical.paddingTop / ratio + hit.row * layout.grid.cellHeight
     const cells = hit.range.end - hit.range.start + 1
+    if (this.options.bidi) {
+      this.positionBidiOverlay(hit, layout)
+      return
+    }
     this.overlay.style.height = `${layout.grid.cellHeight}px`
     this.overlay.style.left = `${left}px`
     this.overlay.style.top = `${top}px`

@@ -163,7 +163,8 @@
   },
   "dependencies": {
     "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
-    "@webgpu/types": "0.1.74"
+    "@webgpu/types": "0.1.74",
+    "bidi-js": "1.0.3"
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "1.1.0",

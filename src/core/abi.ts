@@ -802,6 +802,13 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     dirtyOnly: number,
     frame: number,
   ): number
+  bridge_build_bidi_frame(
+    state: number,
+    iterator: number,
+    cells: number,
+    frame: number,
+    projection: number,
+  ): number
   bridge_destroy_frame_cache(cache: number): void
   bridge_create_glyph_index(): number
   bridge_destroy_glyph_index(index: number): void

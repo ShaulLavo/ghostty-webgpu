@@ -1,3 +1,4 @@
+import { BidiSelectionGesture } from '../bidi/selection.js'
 import { normalizeFontMetrics } from './font-metrics.js'
 import {
   ClipboardLocation,
@@ -1157,7 +1158,9 @@ export class TerminalSession<TEvent = unknown> {
       partial.key = key
       const mouse = new GhosttyMouseEncoder(terminal)
       partial.mouse = mouse
-      const selection = new GhosttySelectionGesture(terminal)
+      const selection = options.bidi
+        ? new BidiSelectionGesture(terminal, renderState)
+        : new GhosttySelectionGesture(terminal)
       partial.selection = selection
       const links = createLinkResolver(options.links, emitters)
       partial.links = links as LinkResolver<unknown>
@@ -1219,7 +1222,31 @@ export class TerminalSession<TEvent = unknown> {
 
   get renderState(): RenderStateSource {
     this.ensureActive()
-    return this.nativeRenderState
+    if (!(this.selection instanceof BidiSelectionGesture)) return this.nativeRenderState
+    const source = this.nativeRenderState
+    const selection = this.selection
+    return {
+      get snapshotVersion() {
+        return source.snapshotVersion
+      },
+      get hasSnapshot() {
+        return source.hasSnapshot
+      },
+      get renderHeld() {
+        return source.renderHeld
+      },
+      subscribeRenderRequest: source.subscribeRenderRequest.bind(source),
+      createFrameBuilder: source.createFrameBuilder.bind(source),
+      acknowledge: source.acknowledge.bind(source),
+      readCursor: source.readCursor.bind(source),
+      readRows: (options) => selection.selectedRows(source.readRows(options)),
+      readTextRows: source.readTextRows.bind(source),
+      update: source.update.bind(source),
+    }
+  }
+
+  get bidi(): boolean {
+    return this.selection instanceof BidiSelectionGesture
   }
 
   get revision(): number {
@@ -1361,9 +1388,34 @@ export class TerminalSession<TEvent = unknown> {
 
   mouse(input: TerminalMouseInput): TerminalInputResult {
     return this.runOperation(() => {
+      if (this.selection instanceof BidiSelectionGesture) input = this.bidiMouse(input)
       const normalized = normalizeTerminalMouseInput(input)
       return this.publishInput(this.mouseEncoder.encode(normalized.event, normalized.state), false)
     })
+  }
+
+  private bidiMouse(input: TerminalMouseInput): TerminalMouseInput {
+    if (!(this.selection instanceof BidiSelectionGesture)) return input
+    const { geometry } = input.state
+    const x = Math.max(
+      0,
+      Math.min(
+        this.grid.columns - 1,
+        Math.floor((input.event.x - geometry.paddingLeft) / geometry.cellWidth),
+      ),
+    )
+    const y = Math.max(
+      0,
+      Math.min(
+        this.grid.rows - 1,
+        Math.floor((input.event.y - geometry.paddingTop) / geometry.cellHeight),
+      ),
+    )
+    const logical = this.selection.logical({ x, y })
+    return {
+      ...input,
+      event: { ...input.event, x: input.event.x + (logical.x - x) * geometry.cellWidth },
+    }
   }
 
   resetMouseTracking(): void {

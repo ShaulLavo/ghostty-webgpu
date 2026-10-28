@@ -68,6 +68,7 @@ interface MountedRow {
 
 class DomSurface implements RowRendererSurface {
   private readonly container: HTMLDivElement
+  private readonly bidi: boolean
   private readonly canvas: HTMLCanvasElement
   private canvasStyle: CSSStyleDeclaration
   private styleDocument: Document
@@ -82,6 +83,7 @@ class DomSurface implements RowRendererSurface {
     if (!('ownerDocument' in options.canvas) || !options.canvas.parentElement) {
       throw new TypeError('The DOM renderer requires a canvas mounted in a terminal host')
     }
+    this.bidi = options.bidi ?? false
     this.canvas = options.canvas
     this.styleDocument = this.canvas.ownerDocument
     this.canvasStyle = this.styleDocument.defaultView!.getComputedStyle(this.canvas)
@@ -113,7 +115,15 @@ class DomSurface implements RowRendererSurface {
     const mounted = this.rows[row.y]
     if (!mounted) return false
     let changed = false
-    const runs = renderRowRuns(row, cursor, this.font, this.theme, this.defaultStyle, textVisible)
+    const runs = renderRowRuns(
+      row,
+      cursor,
+      this.font,
+      this.theme,
+      this.defaultStyle,
+      textVisible,
+      this.bidi,
+    )
     for (let index = 0; index < runs.length; index += 1) {
       const run = runs[index]!
       const previous = mounted.runs[index]

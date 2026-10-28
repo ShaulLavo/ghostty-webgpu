@@ -1,3 +1,4 @@
+import { RowBidiMapper, bidiProjection, paintedBidiCursor } from '../../bidi/row.js'
 import type {
   RenderStateSource,
   RendererMetrics,
@@ -139,6 +140,7 @@ function sharedFrameCoordinator(): FrameCoordinator {
 }
 
 export class WebGpuTerminalRenderer {
+  private readonly bidi?: RowBidiMapper
   private zigBuilder?: ZigFrameBuilder
   private atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
@@ -209,6 +211,7 @@ export class WebGpuTerminalRenderer {
     this.replacementDeviceOwner = replacementDeviceOwner
     if (!options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
+    this.bidi = options.bidi ? new RowBidiMapper() : undefined
     this.renderState = options.renderState
     this.onError = options.onError
     this.grid = prepared.grid
@@ -526,6 +529,10 @@ export class WebGpuTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.bidi) {
+        const mapper = this.bidi
+        builder.setBidiProjection(() => bidiProjection(this.renderState.readRows(), mapper))
+      }
       this.zigBuilder = builder
       this.needsFullRebuild = true
     }
@@ -703,10 +710,14 @@ export class WebGpuTerminalRenderer {
     return this.frames.capture(
       this.renderState,
       this.cursor,
-      renderCursorState(
-        this.cursor,
-        this.cursorPhaseVisible,
-        this.focused ? undefined : this.inactiveCursorStyle,
+      paintedBidiCursor(
+        this.bidi,
+        this.renderState,
+        renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
       ),
       changed,
       rows,

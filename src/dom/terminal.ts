@@ -322,6 +322,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
+  private readonly bidi: boolean
   private readonly textBlink: boolean
   private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
   private readonly presentation: GhosttyWebGpuTerminalOptions['presentation']
@@ -351,6 +352,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
+    this.bidi = options.bidi ?? false
     this.textBlink = options.textBlink ?? false
     this.renderWhenOffscreen = options.renderWhenOffscreen === true
     this.rendererMode = options.rendererMode
@@ -502,6 +504,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       appearance: options.appearance,
       links: options.links,
       runtime: options.runtime,
+      bidi: options.bidi,
     })
     try {
       return new Terminal(execution, options)
@@ -1577,6 +1580,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private installLinks(elements: TerminalElements): void {
     const links = createDomLinkController({
+      bidi: this.bidi,
       getFrame: () => (this.execution.linkProjection ? this.readFrame() : undefined),
       getProjection: () => this.execution.linkProjection,
       activationModifier: this.linkActivationModifier,

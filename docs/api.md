@@ -473,3 +473,28 @@ Terminal bindings and hosted focus setup use the [hotkeys input connection](hotk
 `attachTerminalHotkeys` owns one synchronous main-host input lease and constructs no general
 manager. Its claim stops forwarding; its pass reaches explicitly installed general input
 contributions, then native once. The public extension APIs above retain their separate ownership.
+
+## Bidirectional text
+
+`bidi: true` opts `Terminal.create()` and the worker entry into per-row Unicode bidirectional
+cell ordering. The default is `false`. Disabled terminals allocate no row mapper, initialize no
+BiDi tables, and use the existing native GPU frame builder. `TerminalSession.create()` accepts
+the same option for selection and input mapping. Direct renderer factories accept `bidi` too.
+
+Each row has a fixed left-to-right paragraph direction. Hebrew and Arabic runs reorder in place;
+numbers retain their internal order. A wide glyph and its continuation move together. Brackets
+mirror only while painting. Cursor positions, styles, colors, selection and link decorations
+follow the same mapping on WebGPU, WebGL2, Canvas, pixels and DOM renderers.
+
+Pointer selection uses visual columns. Copy sorts the selected cells into logical order, including
+when a visual drag selects disjoint logical columns. Double-click word finding and `selectRange()`
+use logical buffer columns. Selected cells follow native reflow. Mouse reports translate visual
+cell positions into logical columns before native encoding, including both halves of wide cells.
+`readLines()`, `visibleLines()`, accessibility text and frame row text remain in logical order.
+Frame snapshots keep a logical `cursor` and expose its visual position through `paintedCursor`.
+Link providers receive logical cells and logical ranges.
+
+BiDi classification and mirroring use **Unicode 13.0**, from `bidi-js` 1.0.3. Ghostty's grapheme
+and width tables remain Unicode 15.1. Reordering adds no Arabic joining across cells. Arabic
+letters keep their isolated cell rasterization. Explicit BiDi controls, automatic paragraph
+direction and cross-cell shaping are outside this option's contract.

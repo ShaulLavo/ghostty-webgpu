@@ -1,3 +1,4 @@
+import { RowBidiMapper, paintedBidiCursor } from '../../bidi/row.js'
 import { rowNeedsTextBlink } from './text-blink.js'
 import { FrameObserver } from './frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
@@ -51,6 +52,7 @@ function cursorSnapshotsEqual(left: RenderCursorSnapshot, right: RenderCursorSna
 }
 
 export class RowTerminalRenderer {
+  private readonly bidi?: RowBidiMapper
   private cursor?: RenderCursorSnapshot
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
@@ -79,6 +81,7 @@ export class RowTerminalRenderer {
     options: WebGpuTerminalRendererOptions,
     private readonly surface: RowRendererSurface,
   ) {
+    this.bidi = options.bidi ? new RowBidiMapper() : undefined
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.font = copyFittedFont(options.font)
     this.grid = normalizeRendererGrid({
@@ -251,7 +254,11 @@ export class RowTerminalRenderer {
       return
     }
     const style = this.focused ? undefined : this.inactiveCursorStyle
-    const cursorState = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
+    const cursorState = paintedBidiCursor(
+      this.bidi,
+      this.renderState,
+      renderCursorState(this.cursor, this.cursorPhaseVisible, style),
+    )
     this.surface.beginFrame?.()
     for (const row of rows) this.paintRow(row, cursorState)
     this.scheduler.textBlink?.setNeeded((this.blinkingRows?.size ?? 0) > 0)
@@ -271,10 +278,14 @@ export class RowTerminalRenderer {
     this.frames.emit(
       this.renderState,
       this.cursor,
-      renderCursorState(
-        this.cursor,
-        this.cursorPhaseVisible,
-        this.focused ? undefined : this.inactiveCursorStyle,
+      paintedBidiCursor(
+        this.bidi,
+        this.renderState,
+        renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
       ),
       changed,
       rows,
@@ -305,7 +316,8 @@ export class RowTerminalRenderer {
       if (blinking) (this.blinkingRows ??= new Set()).add(row.y)
       else this.blinkingRows?.delete(row.y)
     }
-    this.surface.paint(row, cursor, this.textPhaseVisible, blinking)
+    const painted = this.bidi ? this.bidi.paint(row) : row
+    this.surface.paint(painted, cursor, this.textPhaseVisible, blinking)
     this.metrics.paintedCells += row.packed?.length ?? row.cells.length
   }
 
