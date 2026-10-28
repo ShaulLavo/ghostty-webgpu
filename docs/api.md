@@ -173,6 +173,46 @@ Backgrounds, cursors, terminal text and accessibility text remain unchanged. Los
 restores visible text and stops its timer. A replacement renderer inherits the current
 reduced-motion preference, including changes received while it is being created.
 
+## optional ligatures
+
+Programming ligatures such as `=>`, `!=` and `<=>` are off by default. With them off, every
+backend keeps its per-cell path, and the font reader and probe are never loaded. Set `ligatures`
+in the main-thread or worker `Terminal.create` options to opt in:
+
+- `ligatures: { font }` reads the joining features (`calt`, `liga`, `clig`, `rlig`) from the
+  OpenType `GSUB` table of the primary regular face. `font` is a URL or the font bytes in
+  TrueType, OpenType, WOFF or WOFF2 format. WOFF2 needs `DecompressionStream('brotli')`. The
+  reader parses every lookup it can reach when it loads and bounds the file (32 MiB), each table
+  (16 MiB), decompressed WOFF2 data (64 MiB) and table expansion. A load, parse or limit failure
+  rejects `open()`. While painting, nested lookups stop at depth 8, and a segment that exhausts
+  its work budget draws per cell.
+- `ligatures: true` in the worker entry reads the same table from the matching regular face in
+  `fonts`. Without usable bytes, and always in the main entry, it uses the probe fallback.
+- The probe fallback checks a fixed list of about 70 common programming ligatures. It keeps a
+  sequence only when the browser draws it differently from its separate characters in the
+  regular face. Fonts with other contextual alternates draw them per cell.
+
+The terminal's text, selection, copy and accessibility output never change. A joined run is a
+paint-time unit: the renderer draws the run's original characters as one string centered across
+its cells. The GPU and Canvas pixel backends store it as one multi-cell atlas glyph, Canvas
+fill-text draws the string directly, and the DOM puts it in its own span with browser ligatures
+enabled.
+
+Runs never cross a space, a character from U+2000 up (symbols, box drawing, icons and emoji
+keep their per-cell drawing), a wide or fallback-font glyph, a grapheme cluster, invisible text or a
+change of foreground, weight, slant, faint, underline, overline, strikethrough, inverse or
+selection state. A background change alone keeps the run joined, except where it changes the
+glyph's color: with `minimumContrast` above 1, and in the DOM, where one span has one background. `fi`, `fl` and `st` stay in separate cells. A run that contains the
+visible cursor draws per cell, whatever the cursor's blink phase, so typing inside `=>` shows
+both characters. Ligature ranges come from the regular face; bold and italic runs reuse them.
+Changing the font family after `open()` keeps the table read at open.
+
+With `bidi: true` as well, BiDi applies first. Ligature ranges are still found on the logical
+text, but a run joins only if its cells appear on screen at consecutive columns in logical order
+with no mirrored character. Runs never join across a reordering boundary, so a `=>` between
+right-to-left words draws as its reversed, mirrored cells, while one in a left-to-right stretch
+of the same row still joins.
+
 ## scrollback retention
 
 `appearance.scrollbackLimit` sets a page-granular budget for physical history rows, excluding the
@@ -502,4 +542,5 @@ Link providers receive logical cells and logical ranges.
 BiDi classification and mirroring use **Unicode 13.0**, from `bidi-js` 1.0.3. Ghostty's grapheme
 and width tables remain Unicode 15.1. Reordering adds no Arabic joining across cells. Arabic
 letters keep their isolated cell rasterization. Explicit BiDi controls, automatic paragraph
-direction and cross-cell shaping are outside this option's contract.
+direction and cross-cell shaping are outside this option's contract. With `ligatures`, runs join only
+inside unreordered stretches; see [optional ligatures](#optional-ligatures).

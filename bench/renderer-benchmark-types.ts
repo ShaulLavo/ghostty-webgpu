@@ -15,6 +15,7 @@ export type BenchmarkScenario =
   | 'sparse-edit'
   | 'sustained-scroll'
   | 'glyph-churn'
+  | 'ligature-redraw'
 
 export interface BenchmarkResult {
   callbackMilliseconds: readonly number[]
