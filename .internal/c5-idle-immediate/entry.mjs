@@ -1,11 +1,14 @@
 import { Terminal as MainTerminal } from '../../src/dom/terminal.ts'
 import { Terminal as WorkerTerminal } from '../../src/worker/index.ts'
+import { Terminal as XtermTerminal } from '@xterm/xterm'
+import { WebglAddon } from '@xterm/addon-webgl'
 import { createBenchmarkRenderer } from '../../bench/renderer-factory.ts'
 import { ComparisonTracing } from '../../bench/comparison-tracing.ts'
 
 const parameters = new URL(location.href).searchParams
 const backend = parameters.get('backend') ?? 'webgpu'
 const worker = parameters.has('worker')
+const xterm = parameters.has('xterm')
 const adaptive = parameters.has('adaptive')
 const tracing = new ComparisonTracing()
 const channels = []
@@ -58,11 +61,33 @@ function adapterInfo(renderer) {
     }
   }
   const gl = renderer.state.pass.context
+  return webglInfo(gl)
+}
+
+function xtermAdapterInfo(addon) {
+  return webglInfo(addon._renderer._gl)
+}
+
+function webglInfo(gl) {
   const extension = gl.getExtension('WEBGL_debug_renderer_info')
   return {
     vendor: gl.getParameter(extension.UNMASKED_VENDOR_WEBGL),
     description: gl.getParameter(extension.UNMASKED_RENDERER_WEBGL),
     fallback: false,
+  }
+}
+
+function xtermDriver(instance) {
+  return {
+    focus: () => instance.focus(),
+    onData: (listener) => instance.onData(listener),
+    onFrame: (listener) => instance.onRender(listener),
+    open: (host) => instance.open(host),
+    visibleLines: () =>
+      Array.from({ length: instance.rows }, (_, row) =>
+        instance.buffer.active.getLine(row + instance.buffer.active.baseY)?.translateToString(true),
+      ),
+    write: (data) => new Promise((resolve) => instance.write(data, resolve)),
   }
 }
 
@@ -81,8 +106,29 @@ let renderer
 let runtime
 let core
 let state
+let xtermAddon
 globalThis.__c5Stage = 'creating'
-if (worker) {
+if (xterm) {
+  const face = await new FontFace('Bench Mono', 'url(/font.woff2)').load()
+  document.fonts.add(face)
+  const instance = new XtermTerminal({
+    allowProposedApi: true,
+    cols: 80,
+    rows: 24,
+    fontFamily: 'Bench Mono',
+    fontSize: 13,
+    cursorBlink: false,
+    theme: { foreground: '#ffffff', background: '#000000' },
+  })
+  terminal = xtermDriver(instance)
+  const open = terminal.open
+  terminal.open = (host) => {
+    open(host)
+    xtermAddon = new WebglAddon()
+    instance.loadAddon(xtermAddon)
+    tracing.xterm(0, instance, xtermAddon)
+  }
+} else if (worker) {
   try {
     terminal = await WorkerTerminal.create({
       ...options,
@@ -125,9 +171,11 @@ port?.addEventListener('message', ({ data }) => {
   if (data.c5OpenError) globalThis.__c5WorkerOpenError = data.c5OpenError
 })
 port?.start()
-terminal.on('error', ({ cause }) => {
-  window.__rendererBenchFailure = String(cause)
-})
+if (!xterm) {
+  terminal.on('error', ({ cause }) => {
+    window.__rendererBenchFailure = String(cause)
+  })
+}
 globalThis.__c5Stage = 'created'
 const host = document.createElement('div')
 host.style.cssText = 'width:900px;height:500px;position:relative'
@@ -145,20 +193,26 @@ try {
   throw error
 }
 globalThis.__c5Stage = 'opened'
-const info = port ? await request(port, 'info') : { adapter: adapterInfo(renderer) }
+let adapter
+if (!port) adapter = xterm ? xtermAdapterInfo(xtermAddon) : adapterInfo(renderer)
+const info = port ? await request(port, 'info') : { adapter }
 globalThis.__c5Stage = 'ready'
 
 globalThis.__c5 = {
   terminal,
   info: () => ({
     ...info,
-    backend,
+    backend: xterm ? 'xterm-webgl' : backend,
     worker,
+    xterm,
     adaptive,
     dpr: devicePixelRatio,
     visibility: document.visibilityState,
   }),
-  metrics: async () => (port ? (await request(port, 'info')).metrics : { ...renderer.metrics }),
+  metrics: async () => {
+    if (port) return (await request(port, 'info')).metrics
+    return xterm ? {} : { ...renderer.metrics }
+  },
   begin: async () => {
     if (port) await request(port, 'begin')
     else tracing.begin()
