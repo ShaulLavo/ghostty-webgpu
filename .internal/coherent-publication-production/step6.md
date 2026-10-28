@@ -55,10 +55,18 @@ CPU is renderer process milliseconds per iteration.
 
 Dense recovery CPU falls 14–15%; line recovery falls 64–75%. The largest recovery heap increase
 is +0.708 MiB for PC WebGPU dense, within the +1 MiB bound; line recovery heap falls everywhere.
-No normal Mac CPU regression exceeds repeat noise. The largest normal sixteen-terminal heap
-increase is +0.012 MiB. PC WebGL2 dense without observers reads +3.6% amid peers; the matching Mac cell is
-−0.5%. This is a non-quiet diagnostic finding, not an isolated timing claim, and is not chased.
-The normal path never invokes either discard implementation.
+At sixteen terminals, no normal Mac CPU regression exceeds repeat noise. The largest normal
+heap increase at sixteen terminals is +0.012 MiB.
+
+With one terminal and text observers, Mac dense renderer CPU rises beyond its recorded repeat
+spread. Before samples are 6.214744 and 6.264272 ms per iteration. After samples are 6.562456 and
+6.503161 ms. Medians rise 6.239508 to 6.532808 ms (+4.70%). The 0.293300 ms increase exceeds the
+maximum recorded repeat range of 0.059294 ms, and both after samples exceed both before samples.
+This is disclosed as a finding, not a blocker. The normal path calls neither discard
+implementation, so these samples alone do not establish a causal code regression.
+
+PC WebGL2 dense without observers reads +3.6% amid peers; the matching Mac cell is −0.5%. This is
+a non-quiet diagnostic finding, not an isolated timing claim, and is not chased.
 
 All 84 pairs pass their endpoint checks: 60 timing pairs and 24 separately instrumented parity
 pairs. Final text, cumulative text events, parsed writes and submissions match, as do every

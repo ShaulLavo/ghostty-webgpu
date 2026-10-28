@@ -509,8 +509,15 @@ Replacing the ledger with all-clear fails both cases; restoring production passe
 
 Paired all-clear versus selective recovery CPU improves 14–15% for dense payloads and 64–75% for
 line payloads across the quiet Mac and both non-quiet PC GPU backends. Recovery line heap falls;
-the largest dense heap increase is +0.708 MiB, within the +1 MiB gate. No normal Mac CPU regression
-exceeds repeat noise, and the largest normal sixteen-terminal heap increase is +0.012 MiB.
+the largest dense heap increase is +0.708 MiB, within the +1 MiB gate. At sixteen terminals,
+no normal Mac CPU regression exceeds repeat noise, and the largest normal heap increase is
++0.012 MiB.
+
+With one terminal and text observers, Mac dense renderer CPU rises 6.239508 to 6.532808 ms per
+iteration (+4.70%, +0.293300 ms), exceeding the maximum recorded repeat range of 0.059294 ms.
+This is a reported finding, not a blocker. The normal path calls neither discard implementation,
+so these samples alone do not establish a causal code regression.
+
 The non-quiet PC WebGL2 dense no-observer cell reads +3.6% with peers, a recorded diagnostic
 finding; the Mac counterpart is −0.5%. No PC timing isolation or energy claim is made.
 
