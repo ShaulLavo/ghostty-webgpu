@@ -21,6 +21,8 @@ type Subtable = (glyphs: Glyph[], index: number) => Application | undefined
 
 interface Lookup {
   readonly reverse: boolean
+  /** Glyphs at which any subtable can match; other positions skip the lookup. */
+  readonly starts: ReadonlySet<number>
   readonly subtables: readonly Subtable[]
 }
 
@@ -157,19 +159,32 @@ class GsubTable {
 
   private readLookup(offset: number): Lookup {
     const view = this.view
-    let type = view.getUint16(offset)
+    const lookupType = view.getUint16(offset)
     const count = view.getUint16(offset + 4)
     const subtables: Subtable[] = []
+    const starts = new Set<number>()
+    let type = lookupType
     for (const relative of readUint16s(view, offset + 6, count)) {
       let subtable = offset + relative
-      if (type === 7) {
+      if (lookupType === 7) {
         type = view.getUint16(subtable + 2)
         subtable += view.getUint32(subtable + 4)
       }
       const parsed = this.readSubtable(type, subtable)
-      if (parsed) subtables.push(parsed)
+      if (!parsed) continue
+      subtables.push(parsed)
+      for (const glyph of this.firstCoverage(type, subtable).keys()) starts.add(glyph)
     }
-    return { reverse: type === 8, subtables }
+    return { reverse: type === 8, starts, subtables }
+  }
+
+  private firstCoverage(type: number, offset: number): Coverage {
+    const view = this.view
+    const format = view.getUint16(offset)
+    if (type === 5 && format === 3) return readCoverage(view, offset + view.getUint16(offset + 6))
+    if (type !== 6 || format !== 3) return readCoverage(view, offset + view.getUint16(offset + 2))
+    const backtrack = view.getUint16(offset + 2)
+    return readCoverage(view, offset + view.getUint16(offset + 6 + backtrack * 2))
   }
 
   private readSubtable(type: number, offset: number): Subtable | undefined {
@@ -572,14 +587,20 @@ export function createGsubShaper(tables: FontTables): GsubShaper | undefined {
 }
 
 function applyLookup(lookup: Lookup, glyphs: Glyph[], ranges: [number, number][]): void {
+  if (!glyphs.some((glyph) => lookup.starts.has(glyph.id))) return
   if (lookup.reverse) {
     for (let index = glyphs.length - 1; index >= 0; index -= 1) {
+      if (!lookup.starts.has(glyphs[index]!.id)) continue
       const applied = firstApplication(lookup, glyphs, index)
       if (applied?.changed) mergeRange(ranges, applied.contextStart, applied.contextEnd)
     }
     return
   }
   for (let index = 0; index < glyphs.length;) {
+    if (!lookup.starts.has(glyphs[index]!.id)) {
+      index += 1
+      continue
+    }
     const applied = firstApplication(lookup, glyphs, index)
     if (applied?.changed) mergeRange(ranges, applied.contextStart, applied.contextEnd)
     index += applied ? applied.advance : 1
