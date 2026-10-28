@@ -171,6 +171,15 @@ export class ZigFrameBuilder {
     return Array.from(new Uint32Array(this.runtime.memory.bytes.buffer, this.missing, count))
   }
 
+  private bidiRows?: () => Uint32Array
+  private bidiPointer = 0
+
+  setBidiProjection(rows: () => Uint32Array): void {
+    this.ensureActive()
+    this.bidiRows = rows
+    if (!this.bidiPointer) this.bidiPointer = this.allocate(this.columns * this.rows * 12)
+  }
+
   build(options: ZigFrameOptions): number {
     this.ensureActive()
     this.prepareSnapshot()
@@ -202,18 +211,33 @@ export class ZigFrameBuilder {
     this.setUint(88, cursor ? styles.indexOf(cursor.style) : 0)
     this.setUint(92, packedColor(options.theme.selectionForeground))
     this.setUint(96, packedColor(options.theme.selectionBackground))
-    assertGhosttyResult(
-      'bridge_build_frame',
-      this.runtime.bridge.buildFrame(
-        this.state,
-        this.iterator,
-        this.cells,
-        full ? 0 : this.mask,
-        this.rows,
-        full ? 0 : 1,
-        this.frame,
-      ),
-    )
+    if (this.bidiRows) {
+      const projection = this.bidiRows()
+      this.runtime.memory.bytes.set(new Uint8Array(projection.buffer), this.bidiPointer)
+      assertGhosttyResult(
+        'bridge_build_bidi_frame',
+        this.runtime.bridge.buildBidiFrame(
+          this.state,
+          this.iterator,
+          this.cells,
+          this.frame,
+          this.bidiPointer,
+        ),
+      )
+    } else {
+      assertGhosttyResult(
+        'bridge_build_frame',
+        this.runtime.bridge.buildFrame(
+          this.state,
+          this.iterator,
+          this.cells,
+          full ? 0 : this.mask,
+          this.rows,
+          full ? 0 : 1,
+          this.frame,
+        ),
+      )
+    }
     if (this.rowChanges !== 0) {
       const offset = this.rowOffset
       if (offset === 0) this.physicalToLogicalRows = undefined

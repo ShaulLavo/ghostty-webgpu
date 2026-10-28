@@ -51,6 +51,12 @@ export async function createBenchmarkRenderer(
     description: adapter.info.description,
     fallback: adapter.info.isFallbackAdapter,
   }
+  if (new URL(location.href).searchParams.has('defaultGpu'))
+    return {
+      renderer: await WebGpuTerminalRenderer.create(options),
+      adapter: info,
+      path: 'instanced',
+    }
   const device = await adapter.requestDevice()
   return {
     renderer: await WebGpuTerminalRenderer.create({

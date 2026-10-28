@@ -316,6 +316,14 @@ export class GhosttySelectionGesture {
   selectRange(start: SelectionPoint, end: SelectionPoint): SelectionGestureUpdate {
     this.ensureActive()
     this.reset()
+    return this.installRange(start, end)
+  }
+
+  protected installRange(
+    start: SelectionPoint,
+    end: SelectionPoint,
+    rectangle = false,
+  ): SelectionGestureUpdate {
     this.initializeSized(this.selectionPointer, this.layouts.selection)
     const startRef = this.selectionPointer + fieldOffset(this.layouts.selection, 'start')
     const endRef = this.selectionPointer + fieldOffset(this.layouts.selection, 'end')
@@ -323,7 +331,7 @@ export class GhosttySelectionGesture {
     this.writeScreenRef(endRef, end)
     this.runtime.memory.view.setUint8(
       this.selectionPointer + fieldOffset(this.layouts.selection, 'rectangle'),
-      0,
+      Number(rectangle),
     )
     return this.selectionUpdate(this.installCandidate(), true)
   }
@@ -419,7 +427,10 @@ export class GhosttySelectionGesture {
     return row < this.historyBoundaryRow
   }
 
-  readRangeText(coordinates: SelectionCoordinates): string | undefined {
+  readRangeText(
+    coordinates: SelectionCoordinates,
+    options: TerminalSelectionFormatOptions = {},
+  ): string | undefined {
     this.ensureActive()
     this.initializeSized(this.currentSelectionPointer, this.layouts.selection)
     this.writeScreenRef(
@@ -434,7 +445,7 @@ export class GhosttySelectionGesture {
       this.currentSelectionPointer + fieldOffset(this.layouts.selection, 'rectangle'),
       Number(coordinates.rectangle),
     )
-    return readSelectionText(this.terminal, {}, this.currentSelectionPointer)
+    return readSelectionText(this.terminal, options, this.currentSelectionPointer)
   }
 
   coordinates(): SelectionCoordinates | undefined {

@@ -152,6 +152,7 @@ export interface WorkerInitialize extends WorkerIdentity {
   readonly faces: readonly WorkerFontFace[]
   readonly appearance?: TerminalAppearanceOptions
   readonly backend: WorkerBackend
+  readonly bidi?: boolean
   readonly textBlink?: boolean
 }
 

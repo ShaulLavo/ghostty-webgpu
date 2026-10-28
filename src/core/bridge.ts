@@ -272,6 +272,10 @@ export class CallbackBridge {
     )
   }
 
+  buildBidiFrame(...args: Parameters<BridgeWasmExports['bridge_build_bidi_frame']>): number {
+    return this.bridgeExports!.bridge_build_bidi_frame(...args)
+  }
+
   destroyFrameCache(cache: number): void {
     this.bridgeExports!.bridge_destroy_frame_cache(cache)
   }

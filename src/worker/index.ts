@@ -32,6 +32,7 @@ export const Terminal = Object.freeze({
       },
       backend: options.backend ?? 'auto',
       textBlink: options.textBlink,
+      bidi: options.bidi,
       faces: options.fonts,
       appearance,
       links: options.links,
