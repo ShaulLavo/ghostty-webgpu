@@ -1,0 +1,274 @@
+diff --git a/src/render/shared/backend-order.ts b/src/render/shared/backend-order.ts
+index e48cd0fb9..42fd63596 100644
+--- a/src/render/shared/backend-order.ts
++++ b/src/render/shared/backend-order.ts
+@@ -1,3 +1,5 @@
++import type { TerminalPresentation } from './scheduler.js'
++
+ export type GpuBackend = 'webgpu' | 'webgl'
+ 
+ export function isDesktopLinux(platform: string, userAgent: string): boolean {
+@@ -5,7 +7,7 @@ export function isDesktopLinux(platform: string, userAgent: string): boolean {
+ }
+ 
+ export function automaticGpuBackends(
+-  presentation: 'frame' | 'immediate' = 'frame',
++  presentation: TerminalPresentation = 'frame',
+ ): readonly [GpuBackend, GpuBackend] {
+   // Only WebGL2 and Canvas 2D contexts accept `desynchronized`.
+   if (presentation === 'immediate') return ['webgl', 'webgpu']
+diff --git a/src/render/shared/scheduler.ts b/src/render/shared/scheduler.ts
+index ef6281e66..c87ac8848 100644
+--- a/src/render/shared/scheduler.ts
++++ b/src/render/shared/scheduler.ts
+@@ -3,6 +3,7 @@ import { TextBlink } from './text-blink.js'
+ export interface RenderSchedulerClock {
+   cancelFrame(handle: number): void
+   clearTimer(handle: number): void
++  now?(): number
+   requestFrame(callback: () => void): number
+   setTimer(callback: () => void, delayMs: number): number
+ }
+@@ -11,8 +12,8 @@ export interface RenderFrameState {
+   cursorVisible: boolean
+ }
+ 
+-/** `immediate` paints a write synchronously unless a paint already landed this display frame; those writes join the next one. */
+-export type TerminalPresentation = 'frame' | 'immediate'
++/** `immediate` paints once per display frame; `adaptive` paints after two idle display frames. */
++export type TerminalPresentation = 'frame' | 'immediate' | 'adaptive'
+ 
+ export interface RenderSchedulerOptions {
+   blinkIntervalMs?: number
+@@ -44,15 +45,18 @@ export class RenderScheduler {
+   private frameHandle?: number
+   private frameToken = 0
+   private flushRequested = false
++  private frameIntervalMs = 1000 / 60
+   private immediateResetHandle?: number
+-  private readonly immediate: boolean
++  private lastAnimationFrameAt?: number
++  private lastPaintAt = -Infinity
+   private readonly onFrame: (state: RenderFrameState) => void
++  private readonly presentation: TerminalPresentation
+ 
+   constructor(options: RenderSchedulerOptions) {
+     this.clock = options.clock
+     if (options.textBlink) this.textBlink = new TextBlink(this.clock, () => this.schedule())
+     this.onFrame = options.onFrame
+-    this.immediate = options.presentation === 'immediate'
++    this.presentation = options.presentation ?? 'frame'
+     this.blinkIntervalMs = validateBlinkInterval(options.blinkIntervalMs ?? defaultBlinkIntervalMs)
+   }
+ 
+@@ -85,12 +89,20 @@ export class RenderScheduler {
+     this.frameHandle = handle
+   }
+ 
+-  /** Schedules output; immediate presentation paints now unless a paint already landed this display frame. */
++  /** Schedules output; adaptive presentation paints only after two idle display intervals. */
+   scheduleWrite(): void {
+-    if (!this.immediate || this.immediateResetHandle !== undefined) {
++    if (this.presentation === 'adaptive' && this.idle) {
++      this.paintNow()
++      return
++    }
++    if (this.presentation !== 'immediate' || this.immediateResetHandle !== undefined) {
+       this.schedule()
+       return
+     }
++    this.paintNow()
++  }
++
++  private paintNow(): void {
+     if (!this.canPaint) return
+     this.armImmediateReset()
+     try {
+@@ -196,12 +208,28 @@ export class RenderScheduler {
+     if (this.disposed) return
+     if (token !== this.frameToken) return
+     this.frameHandle = undefined
++    const now = this.now()
++    if (this.lastAnimationFrameAt !== undefined) {
++      const interval = now - this.lastAnimationFrameAt
++      // Consecutive frames only: skipped frames would overestimate the display interval.
++      if (interval > 2 && interval < this.frameIntervalMs * 1.5)
++        this.frameIntervalMs += (interval - this.frameIntervalMs) * 0.2
++    }
++    this.lastAnimationFrameAt = now
+     this.armImmediateReset()
+     this.deliverFrames()
+   }
+ 
++  private get idle(): boolean {
++    return this.canPaint && this.now() - this.lastPaintAt >= this.frameIntervalMs * 2
++  }
++
++  private now(): number {
++    return this.clock.now?.() ?? performance.now()
++  }
++
+   private armImmediateReset(): void {
+-    if (!this.immediate || this.immediateResetHandle !== undefined) return
++    if (this.presentation !== 'immediate' || this.immediateResetHandle !== undefined) return
+     this.immediateResetHandle = this.clock.requestFrame(() => {
+       this.immediateResetHandle = undefined
+     })
+@@ -222,6 +250,7 @@ export class RenderScheduler {
+       this.frameActive = false
+       if (this.flushRequested) this.schedule()
+     }
++    this.lastPaintAt = this.now()
+   }
+ 
+   private synchronizeBlinkTimer(): void {
+diff --git a/src/render/shared/types.ts b/src/render/shared/types.ts
+index 9b60e8e7c..ee6ef6347 100644
+--- a/src/render/shared/types.ts
++++ b/src/render/shared/types.ts
+@@ -102,7 +102,7 @@ export interface WebGpuTerminalRendererOptions {
+   /** Painted row IDs without requesting cell data. */
+   onRowsChanged?: (rows: readonly number[]) => void
+   onRowsPainted?: (rows: readonly RenderRow[]) => void
+-  /** `immediate` prefers WebGL2 with a desynchronized canvas; WebGPU always presents per frame. */
++  /** `immediate` prefers desynchronized WebGL2; `adaptive` paints the first write after two idle frames. */
+   presentation?: TerminalPresentation
+   replaceCanvas?: () => HTMLCanvasElement | OffscreenCanvas
+   renderState: GhosttyRenderState | RenderStateSource
+diff --git a/src/render/tests/scheduler.test.ts b/src/render/tests/scheduler.test.ts
+index 97388e0b3..059a00742 100644
+--- a/src/render/tests/scheduler.test.ts
++++ b/src/render/tests/scheduler.test.ts
+@@ -7,9 +7,14 @@ import {
+ 
+ class FakeClock implements RenderSchedulerClock {
+   private nextHandle = 1
++  nowMs = 0
+   readonly frames = new Map<number, () => void>()
+   readonly timers = new Map<number, () => void>()
+ 
++  now(): number {
++    return this.nowMs
++  }
++
+   cancelFrame(handle: number): void {
+     this.frames.delete(handle)
+   }
+@@ -69,6 +74,40 @@ describe('RenderScheduler', () => {
+     expect(clock.frames.size).toBe(1)
+   })
+ 
++  it('paints an idle write immediately and keeps busy writes on animation frames', () => {
++    const clock = new FakeClock()
++    const frames: RenderFrameState[] = []
++    const scheduler = new RenderScheduler({
++      clock,
++      onFrame: (state) => frames.push(state),
++      presentation: 'adaptive',
++    })
++
++    scheduler.scheduleWrite()
++    expect(frames).toHaveLength(1)
++    expect(scheduler.hasPendingFrame).toBe(false)
++
++    scheduler.scheduleWrite()
++    expect(frames).toHaveLength(1)
++    expect(scheduler.hasPendingFrame).toBe(true)
++    clock.nowMs = 1000 / 60
++    clock.takeFrame()()
++    expect(frames).toHaveLength(2)
++
++    clock.nowMs += 1000 / 60
++    scheduler.scheduleWrite()
++    expect(frames).toHaveLength(2)
++    expect(scheduler.hasPendingFrame).toBe(true)
++
++    clock.nowMs += 1000 / 60
++    clock.takeFrame()()
++    expect(frames).toHaveLength(3)
++    clock.nowMs += (1000 / 60) * 2 + 1
++    scheduler.scheduleWrite()
++    expect(frames).toHaveLength(4)
++    expect(scheduler.hasPendingFrame).toBe(false)
++  })
++
+   it('paints the first write of a frame immediately and batches the rest', () => {
+     const clock = new FakeClock()
+     const frames: RenderFrameState[] = []
+diff --git a/src/render/webgpu/renderer.ts b/src/render/webgpu/renderer.ts
+index 90d64d8e5..c61677819 100644
+--- a/src/render/webgpu/renderer.ts
++++ b/src/render/webgpu/renderer.ts
+@@ -236,6 +236,7 @@ export class WebGpuTerminalRenderer {
+         textBlink: options.textBlink,
+         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
+         onFrame: () => this.drawFrame(),
++        presentation: options.presentation,
+       })
+       this.scheduler = scheduler
+       this.setReducedMotion(options.reducedMotion ?? false)
+@@ -301,7 +302,7 @@ export class WebGpuTerminalRenderer {
+ 
+   notifyWrite(): void {
+     this.resetCursorBlink()
+-    this.scheduler.schedule()
++    this.scheduler.scheduleWrite()
+   }
+ 
+   refreshRows(startRow: number, endRow: number): void {
+diff --git a/src/worker/execution.ts b/src/worker/execution.ts
+index 973ca9dfd..7d0e1cdf8 100644
+--- a/src/worker/execution.ts
++++ b/src/worker/execution.ts
+@@ -134,6 +134,7 @@ export class WorkerTerminalExecution {
+       faces: options.faces,
+       appearance: options.appearance,
+       backend: options.backend,
++      presentation: options.presentation,
+       textBlink: options.textBlink,
+     }
+     try {
+diff --git a/src/worker/index.ts b/src/worker/index.ts
+index 995213b23..9e0bc5234 100644
+--- a/src/worker/index.ts
++++ b/src/worker/index.ts
+@@ -35,6 +35,7 @@ export const Terminal = Object.freeze({
+       faces: options.fonts,
+       appearance,
+       links: options.links,
++      presentation: options.presentation,
+       workerUrl: options.workerUrl,
+     })
+     try {
+diff --git a/src/worker/protocol.ts b/src/worker/protocol.ts
+index bb24d0447..2ee85289f 100644
+--- a/src/worker/protocol.ts
++++ b/src/worker/protocol.ts
+@@ -3,6 +3,7 @@ import type { TerminalElementPadding } from '../dom/elements.js'
+ import type { TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
+ import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
+ import type { InactiveCursorStyle } from '../render/shared/cursor.js'
++import type { TerminalPresentation } from '../render/shared/scheduler.js'
+ import type {
+   TerminalAppearance,
+   TerminalAppearanceOptions,
+@@ -152,6 +153,7 @@ export interface WorkerInitialize extends WorkerIdentity {
+   readonly faces: readonly WorkerFontFace[]
+   readonly appearance?: TerminalAppearanceOptions
+   readonly backend: WorkerBackend
++  readonly presentation?: TerminalPresentation
+   readonly textBlink?: boolean
+ }
+ 
+diff --git a/src/worker/runtime.ts b/src/worker/runtime.ts
+index d59705e06..9122cf7af 100644
+--- a/src/worker/runtime.ts
++++ b/src/worker/runtime.ts
+@@ -274,6 +274,7 @@ export class TerminalWorkerRuntime {
+       onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>
+         this.submitFrame(snapshot),
+       onRowsChanged: () => {},
++      presentation: this.initialize.presentation,
+       onCleanUpdate: () => {
+         const before = execution.submittedFrame?.nativeRevision
+         const held = execution.textFrame()?.renderHeld
