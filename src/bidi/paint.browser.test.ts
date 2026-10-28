@@ -53,6 +53,11 @@ async function pixels(element: Element): Promise<Uint8Array> {
   const image = new Image()
   image.src = `data:image/png;base64,${await page.screenshot({ element, save: false, scale: 'css' })}`
   await image.decode()
+  const bounds = element.getBoundingClientRect()
+  expect(
+    [image.naturalWidth, image.naturalHeight],
+    'Screenshot matches the element geometry',
+  ).toEqual([bounds.width, bounds.height])
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth
   canvas.height = image.naturalHeight
