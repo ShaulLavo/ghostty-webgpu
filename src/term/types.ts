@@ -148,6 +148,8 @@ export type TerminalClipboardWritePolicy = (
 ) => TerminalClipboardWriteResult
 
 export interface TerminalSessionOptions<TEvent = unknown> {
+  /** Reorder cells with Unicode 13.0 BiDi tables. Defaults to false. */
+  readonly bidi?: boolean
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: TerminalClipboardWritePolicy
   readonly links?: LinkResolverOptions<TEvent>

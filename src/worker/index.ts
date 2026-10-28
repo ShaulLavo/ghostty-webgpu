@@ -2,7 +2,7 @@ import { runtimeWasmAssets } from '../core/assets.js'
 import { Terminal as TerminalHost } from '../dom/terminal.js'
 import type { GhosttyWebGpuTerminalFromSessionOptions } from '../dom/types.js'
 import { WorkerTerminalExecution } from './execution.js'
-import type { WorkerAssets, WorkerBackend, WorkerFontFace } from './protocol.js'
+import type { WorkerAssets, WorkerBackend, WorkerFontFace, WorkerInitialize } from './protocol.js'
 
 export interface WorkerTerminalOptions extends Omit<
   GhosttyWebGpuTerminalFromSessionOptions,
@@ -14,6 +14,15 @@ export interface WorkerTerminalOptions extends Omit<
   readonly workerUrl?: string | URL
 }
 export type Terminal = TerminalHost<'async'>
+
+// URL objects do not survive structured cloning.
+function workerLigatures(
+  option: WorkerTerminalOptions['ligatures'],
+): WorkerInitialize['ligatures'] {
+  if (typeof option !== 'object') return option
+  const font = option.font
+  return { font: font instanceof URL ? font.href : font }
+}
 
 /** The same DOM host, with asynchronous native authority in one dedicated execution actor. */
 export const Terminal = Object.freeze({
@@ -32,6 +41,8 @@ export const Terminal = Object.freeze({
       },
       backend: options.backend ?? 'auto',
       textBlink: options.textBlink,
+      ligatures: workerLigatures(options.ligatures),
+      bidi: options.bidi,
       faces: options.fonts,
       appearance,
       links: options.links,

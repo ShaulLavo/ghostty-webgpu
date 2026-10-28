@@ -1,3 +1,5 @@
+import type { RowBidiMapper } from '../bidi/row.js'
+import { loadBidiMapper } from '../bidi/loader.js'
 import { fontMetricsEqual } from '../term/font-metrics.js'
 import { createGhosttyError } from '../core/error.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
@@ -83,6 +85,7 @@ import {
   type DomInputLifecycleController,
 } from './input.js'
 import { createDomLinkController, type DomLinkController } from './links.js'
+import type { LigatureFinder, TerminalLigatures } from '../render/shared/ligatures/finder.js'
 import {
   createTerminalPointerController,
   projectPointerPosition,
@@ -322,7 +325,11 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
+  private bidiMapper?: RowBidiMapper
+  private readonly bidi: boolean
   private readonly textBlink: boolean
+  private readonly ligatures: TerminalLigatures | undefined
+  private ligatureFinder?: Promise<LigatureFinder | undefined>
   private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
   private readonly presentation: GhosttyWebGpuTerminalOptions['presentation']
   private readonly outputTimingLimits: OutputTimingLimits
@@ -351,7 +358,9 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
+    this.bidi = options.bidi ?? false
     this.textBlink = options.textBlink ?? false
+    this.ligatures = options.ligatures
     this.renderWhenOffscreen = options.renderWhenOffscreen === true
     this.rendererMode = options.rendererMode
     this.presentation = options.presentation
@@ -502,6 +511,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       appearance: options.appearance,
       links: options.links,
       runtime: options.runtime,
+      bidi: options.bidi,
     })
     try {
       return new Terminal(execution, options)
@@ -587,6 +597,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     try {
       const elements = this.installElements(parent)
       if (this.execution.kind === 'async') this.subscribeToSession()
+      if (this.bidi) this.bidiMapper = await loadBidiMapper()
       const initialAppearance = this.execution.appearance
       renderer = await this.createRenderer(elements, initialAppearance)
       if (!this.isOpening(generation)) {
@@ -1116,6 +1127,14 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
     this.updatePreeditAppearance(font, appearance.rendererTheme)
+    // One finder per terminal survives renderer restores and fallbacks.
+    // The font reader loads only when ligatures are on.
+    this.ligatureFinder ??= this.ligatures
+      ? import('../render/shared/ligatures/finder.js').then((module) =>
+          module.resolveLigatureFinder(this.ligatures, font),
+        )
+      : Promise.resolve(undefined)
+    const ligatures = await this.ligatureFinder
     return this.execution.createRenderer(
       this.rendererFactory,
       {
@@ -1125,6 +1144,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         cursorBlink: appearance.cursor.blink,
         textBlink: this.textBlink,
         font,
+        ligatures,
         onError: (cause) => this.reportError(cause, 'renderer.restore'),
         onCleanUpdate: () => {
           this.noteDrawn()
@@ -1577,6 +1597,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private installLinks(elements: TerminalElements): void {
     const links = createDomLinkController({
+      bidiMapper: this.bidiMapper,
       getFrame: () => (this.execution.linkProjection ? this.readFrame() : undefined),
       getProjection: () => this.execution.linkProjection,
       activationModifier: this.linkActivationModifier,

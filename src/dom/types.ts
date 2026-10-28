@@ -26,6 +26,7 @@ import type {
   WebGpuTerminalRendererOptions,
 } from '../render/shared/types.js'
 import type { TerminalWriteQueueOptions } from './write-queue.js'
+import type { TerminalLigatures } from '../render/shared/ligatures/finder.js'
 import type { TerminalAccessibilityOptions } from './accessibility.js'
 import type { DomClipboardWritePolicy } from './clipboard.js'
 import type { TerminalElementPaddingInput, TerminalElements } from './elements.js'
@@ -175,6 +176,8 @@ export type GhosttyWebGpuRendererFactory = (
 ) => Promise<GhosttyWebGpuRenderer>
 
 export interface GhosttyWebGpuTerminalOptions {
+  /** Reorder cells with Unicode 13.0 BiDi tables. Defaults to false. */
+  readonly bidi?: boolean
   readonly accessibility?: false | GhosttyWebGpuTerminalAccessibilityOptions
   readonly appearance?: TerminalAppearanceOptions
   readonly clipboardWrite?: DomClipboardWritePolicy
@@ -193,6 +196,8 @@ export interface GhosttyWebGpuTerminalOptions {
   readonly rendererFactory?: GhosttyWebGpuRendererFactory
   /** Opt-in SGR 5/6 animation; false by default, matching native Ghostty. */
   readonly textBlink?: boolean
+  /** Opt-in programming ligatures, off by default. See docs/api.md for run splitting rules. */
+  readonly ligatures?: TerminalLigatures
   readonly rendererMode?: WebGpuTerminalRendererOptions['rendererMode']
   /** `immediate` paints a write before the next display frame; main-thread terminals only. */
   readonly presentation?: WebGpuTerminalRendererOptions['presentation']

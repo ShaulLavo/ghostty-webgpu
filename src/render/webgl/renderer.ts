@@ -1,9 +1,12 @@
+import type { RowBidiMapper } from '../../bidi/row.js'
+import { loadBidiMapper, paintedBidiCursor } from '../../bidi/loader.js'
 import { createGhosttyError } from '../../core/error.js'
 import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
+import type { LigatureFinder } from '../shared/ligatures/finder.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
@@ -17,7 +20,7 @@ import {
   normalizeRendererGrid,
   safeRendererInteger,
 } from '../shared/config.js'
-import { renderCursorState, type InactiveCursorStyle } from '../shared/cursor.js'
+import { renderCursorState, type InactiveCursorStyle, ligatureCursor } from '../shared/cursor.js'
 import type { CanonicalRendererTheme, RendererTheme } from '../shared/instances/types.js'
 import type {
   RendererGridSize,
@@ -87,7 +90,9 @@ export class WebGlTerminalRenderer {
     submittedFrames: 0,
     uploadedBytes: 0,
   }
+  private readonly bidi?: RowBidiMapper
   private zigBuilder?: ZigFrameBuilder
+  private readonly ligatures?: LigatureFinder
   private readonly atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
@@ -122,12 +127,15 @@ export class WebGlTerminalRenderer {
     font: TerminalFittedFont,
     grid: RendererGridSize,
     context: WebGL2RenderingContext,
+    bidi?: RowBidiMapper,
   ) {
     this.canvas = options.canvas
     this.context = context
     this.font = font
     this.grid = grid
+    this.bidi = bidi
     this.renderState = options.renderState
+    this.ligatures = options.ligatures
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.frames = new FrameObserver(options)
@@ -156,6 +164,7 @@ export class WebGlTerminalRenderer {
   }
 
   static async create(options: WebGlTerminalRendererOptions): Promise<WebGlTerminalRenderer> {
+    const bidi = options.bidi ? await loadBidiMapper() : undefined
     const font = copyFittedFont(options.font)
     const grid = normalizeRendererGrid({
       columns: options.columns,
@@ -163,7 +172,7 @@ export class WebGlTerminalRenderer {
     })
     const context = requireContext(options.canvas, options.presentation)
     try {
-      return new WebGlTerminalRenderer(options, font, grid, context)
+      return new WebGlTerminalRenderer(options, font, grid, context, bidi)
     } catch (cause) {
       context.getExtension('WEBGL_lose_context')?.loseContext()
       throw cause
@@ -416,6 +425,11 @@ export class WebGlTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.ligatures) builder.setLigatures(this.ligatures)
+      if (this.bidi) {
+        const mapper = this.bidi
+        builder.setBidiProjection(() => mapper.projection(this.renderState.readRows()))
+      }
       this.zigBuilder = builder
       this.needsFullRebuild = true
     }
@@ -431,6 +445,9 @@ export class WebGlTerminalRenderer {
       full: this.needsFullRebuild,
       stableRows: true,
       overlayRows: this.overlayRows,
+      ligatureCursor: this.ligatures
+        ? ligatureCursor(this.cursor, this.focused ? undefined : this.inactiveCursorStyle)
+        : undefined,
     }
     const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {
@@ -568,10 +585,14 @@ export class WebGlTerminalRenderer {
     return this.frames.capture(
       this.renderState,
       this.cursor,
-      renderCursorState(
-        this.cursor,
-        this.cursorPhaseVisible,
-        this.focused ? undefined : this.inactiveCursorStyle,
+      paintedBidiCursor(
+        this.bidi,
+        this.renderState,
+        renderCursorState(
+          this.cursor,
+          this.cursorPhaseVisible,
+          this.focused ? undefined : this.inactiveCursorStyle,
+        ),
       ),
       changed,
       rows,

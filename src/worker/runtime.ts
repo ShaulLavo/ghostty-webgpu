@@ -129,6 +129,7 @@ export class TerminalWorkerRuntime {
       this.execution = await LocalTerminalExecution.create(
         {
           appearance: this.initialize.appearance,
+          bidi: this.initialize.bidi,
           runtime: { kind: 'owned', options: this.initialize.assets },
         },
         this.initialize.generation,
@@ -180,6 +181,19 @@ export class TerminalWorkerRuntime {
     if (!face || others.length > 0) return settings
     const metrics = this.faceMetrics.get(face)
     return metrics ? { ...settings, metrics } : settings
+  }
+
+  private regularFaceSource(settings: TerminalFontSettings): string | Uint8Array | undefined {
+    const index = this.faces.findIndex(
+      (face) =>
+        face.family === settings.family &&
+        face.style === 'normal' &&
+        (face.weight === String(settings.weight) ||
+          (face.weight === 'normal' && settings.weight === 400)),
+    )
+    const source = this.initialize.faces[index]?.source
+    if (!source) return undefined
+    return 'url' in source ? source.url : source.bytes
   }
 
   private native(): LocalTerminalExecution {
@@ -261,8 +275,17 @@ export class TerminalWorkerRuntime {
     this.applyLayout(layout)
     const execution = this.native()
     const font = this.fit(layout)
+    const option = this.initialize.ligatures
+    // The font reader loads only when ligatures are on.
+    const ligatures = option
+      ? await (
+          await import('../render/shared/ligatures/finder.js')
+        ).resolveLigatureFinder(option, font, this.regularFaceSource(font.settings))
+      : undefined
+    if (this.disposed) throw workerError('disposed', 'open', { disposed: true })
     const options = {
       canvas,
+      ligatures,
       columns: execution.grid.columns,
       rows: execution.grid.rows,
       font,

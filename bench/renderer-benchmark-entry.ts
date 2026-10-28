@@ -4,8 +4,11 @@ import { Terminal } from '../src/dom/terminal.js'
 import type { RendererMetrics } from '../src/render/shared/types.js'
 import type { RowRendererMetrics } from '../src/render/shared/row-renderer.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
+import { loadGsubLigatureFinder } from '../src/render/shared/ligatures/finder.js'
 import { measuredRenderState } from './native-state.js'
 import { createBenchmarkRenderer, parseBenchmarkBackend } from './renderer-factory.js'
+import type { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
+import type { AtlasGpuTextures } from '../src/render/webgpu/gpu-textures.js'
 import type {
   RendererBenchmark,
   BenchmarkScenario,
@@ -15,6 +18,8 @@ import type {
 const parameters = new URL(location.href).searchParams
 const columns = Number(parameters.get('columns') ?? 200)
 const rows = Number(parameters.get('rows') ?? 50)
+const terminalCount = Number(parameters.get('count') ?? 1)
+const gpuRenderers: WebGpuTerminalRenderer[] = []
 const backend = parseBenchmarkBackend(
   new URL(location.href).searchParams.get('backend') ?? 'webgpu',
 )
@@ -88,11 +93,15 @@ window.cancelAnimationFrame = (handle) => {
   nativeCancelFrame(handle)
 }
 
+const servedFont = parameters.get('font') === '1'
+if (servedFont) document.fonts.add(await new FontFace('BenchFont', 'url(/font)').load())
+const ligatures =
+  parameters.get('ligatures') === '1' ? await loadGsubLigatureFinder('/font') : undefined
 const font = fitTerminalFont(
   document,
   {
     boldWeight: 700,
-    family: 'monospace',
+    family: servedFont ? 'BenchFont' : 'monospace',
     letterSpacing: 0,
     lineHeight: 1.2,
     size: Number(parameters.get('fontSize') ?? 13),
@@ -163,6 +172,7 @@ async function createNativeDriver(): Promise<Driver> {
       window.__rendererBenchFailure = message
     },
     needsFrameRows: () => false,
+    ligatures,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
     renderState,
   }
@@ -177,6 +187,7 @@ async function createNativeDriver(): Promise<Driver> {
   adapterInfo = created.adapter
   rendererPath = created.path
   const renderer = created.renderer
+  if (renderer.backend === 'webgpu') gpuRenderers.push(renderer)
   renderer.setCursorBlinkEnabled(false)
   renderer.setFocused(false)
   return {
@@ -320,7 +331,29 @@ async function createBaselineDriver(): Promise<Driver> {
 async function createDriver(): Promise<Driver> {
   if (terminalVisibility) return createTerminalVisibilityDriver()
   if (backend === 'ghostty-web') return createBaselineDriver()
-  return createNativeDriver()
+  if (terminalCount === 1) return createNativeDriver()
+  const drivers: Driver[] = []
+  for (let index = 0; index < terminalCount; index += 1) drivers.push(await createNativeDriver())
+  return {
+    async dispose() {
+      for (const driver of drivers) await driver.dispose()
+    },
+    metrics() {
+      const totals: Record<string, number> = {}
+      for (const driver of drivers) {
+        for (const [key, value] of Object.entries(driver.metrics()))
+          totals[key] = (totals[key] ?? 0) + value
+      }
+      return totals
+    },
+    output: () => drivers.map((driver) => driver.output()).join('\n---\n'),
+    scroll: (delta) => {
+      for (const driver of drivers) driver.scroll(delta)
+    },
+    write: (data) => {
+      for (const driver of drivers) driver.write(data)
+    },
+  }
 }
 const driver = await createDriver()
 
@@ -338,6 +371,16 @@ function outputLine(index: number): string {
   )
 }
 
+const ligatureTokens = ['=>', '!=', '===', '<=>', '->', '|>', '::', '<!--', '>>=', 'x']
+
+// Every frame shifts the token sequence so each row's runs change.
+function ligatureLine(index: number): string {
+  let line = ''
+  for (let token = index; line.length < columns - 2; token += 1)
+    line += `${ligatureTokens[token % ligatureTokens.length]} `
+  return line.slice(0, columns - 2)
+}
+
 function write(data: string): void {
   const started = performance.now()
   const delivered = terminalVisibility
@@ -345,7 +388,8 @@ function write(data: string): void {
     : data
   driver.write(delivered)
   writeMilliseconds.push(performance.now() - started)
-  writtenBytes += new TextEncoder().encode(delivered).byteLength * (terminalVisibility ? 16 : 1)
+  writtenBytes +=
+    new TextEncoder().encode(delivered).byteLength * (terminalVisibility ? 16 : terminalCount)
 }
 
 function writeLines(count: number): void {
@@ -378,6 +422,13 @@ function advance(scenario: BenchmarkScenario, step: number): void {
   }
   if (scenario === 'sustained-scroll') {
     driver.scroll(step % 40 < 20 ? -1 : 1)
+    return
+  }
+  if (scenario === 'ligature-redraw') {
+    write(
+      '\x1b[H' + Array.from({ length: rows }, (_, y) => ligatureLine(sequence + y)).join('\r\n'),
+    )
+    sequence += 1
     return
   }
   if (scenario === 'glyph-churn') {
@@ -439,7 +490,8 @@ assertNoDrawErrors()
 assertSelectedRendererPath()
 window.__rendererBench = {
   dispose: () => driver.dispose(),
-  getPageInfo: () => ({
+  getPageInfo: async () => ({
+    atlas: await atlasDiagnostics(),
     terminals: terminalVisibility ? { total: 16, offscreen: 12 } : undefined,
     adapter: adapterInfo,
     backend,
@@ -459,3 +511,22 @@ window.__rendererBench = {
   output: () => driver.output(),
   run,
 } satisfies RendererBenchmark
+
+async function atlasDiagnostics() {
+  const textures = new Set<GPUTexture>()
+  const pixels: string[] = []
+  for (const renderer of gpuRenderers) {
+    const atlas = Reflect.get(renderer, 'atlasTextures') as AtlasGpuTextures
+    textures.add(atlas.texture('grayscale'))
+    textures.add(atlas.texture('color'))
+    const bytes = await renderer.capturePixels()
+    const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array(bytes)))
+    pixels.push(Array.from(hash, (byte) => byte.toString(16).padStart(2, '0')).join(''))
+  }
+  let textureBytes = 0
+  for (const texture of textures) {
+    const channels = texture.format === 'r8unorm' ? 1 : 4
+    textureBytes += texture.width * texture.height * texture.depthOrArrayLayers * channels
+  }
+  return { textureBytes, textureCount: textures.size, pixels }
+}

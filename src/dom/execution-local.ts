@@ -525,7 +525,10 @@ export class LocalTerminalExecution {
     options: Omit<WebGpuTerminalRendererOptions, 'renderState'> & DisplayedFrameOptions,
     signal: AbortSignal,
   ): Promise<GhosttyWebGpuRenderer> {
-    const renderer = await factory({ ...options, renderState: this.session.renderState }, signal)
+    const renderer = await factory(
+      { ...options, bidi: this.session.bidi, renderState: this.session.renderState },
+      signal,
+    )
     if (this.disposed) {
       renderer.dispose()
       signal.throwIfAborted()

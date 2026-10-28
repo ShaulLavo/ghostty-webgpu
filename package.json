@@ -116,7 +116,8 @@
   },
   "scripts": {
     "build:canvas-compose": "bun scripts/build-canvas-compose.ts && bun scripts/build-canvas-compose.ts --scalar --output canvas-compose-scalar.wasm",
-    "build": "bun run clean && tsc -p tsconfig.build.json && bun run build:worker",
+    "build": "bun run clean && tsc -p tsconfig.build.json && bun run build:bidi && bun run build:worker",
+    "build:bidi": "bun scripts/build-bidi.ts",
     "build:worker": "bun run scripts/build-worker.ts",
     "build:bridge": "bun scripts/build-bridge.ts",
     "build:config-resolver": "bun scripts/build-config-resolver.ts",
@@ -173,6 +174,7 @@
     "@vitest/browser-playwright": "5.0.2",
     "@xterm/addon-webgl": "0.19.0",
     "@xterm/xterm": "6.0.0",
+    "bidi-js": "1.0.3",
     "ghostty-web": "0.4.0",
     "oxc-parser": "0.151.0",
     "oxfmt": "0.70.0",

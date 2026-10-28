@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { mkdir, readFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { platform, release } from 'node:os'
@@ -17,6 +18,7 @@ const allowedScenarios: readonly BenchmarkScenario[] = [
   'sparse-edit',
   'sustained-scroll',
   'glyph-churn',
+  'ligature-redraw',
 ]
 const scenarioNames = (process.env.BENCH_SCENARIOS ?? allowedScenarios.join(',')).split(',')
 const scenarios = allowedScenarios.filter((scenario) => scenarioNames.includes(scenario))
@@ -36,14 +38,28 @@ const warmupSteps = positiveInteger('BENCH_WARMUP_STEPS', 20)
 const idleMilliseconds = positiveInteger('BENCH_SAMPLE_SECONDS', 2) * 1000
 const columns = positiveInteger('BENCH_COLUMNS', 200)
 const rows = positiveInteger('BENCH_ROWS', 50)
+const terminalCount = positiveInteger('BENCH_COUNT', 1)
 const fontSize = positiveInteger('BENCH_FONT_SIZE', 13)
 const headless = process.env.BENCH_HEADLESS === '1'
 const terminalVisibility = process.env.BENCH_TERMINALS === '16'
 const output = resolve(process.env.BENCH_OUTPUT ?? join(root, '.artifacts/renderer-benchmark.json'))
 const origin = 'http://localhost:41799'
-const candidates = [{ label: 'candidate', root }]
+// BENCH_FONT_FILE serves one face to both arms; BENCH_LIGATURE_ARMS=1 pairs ligatures off and on.
+const fontFile = process.env.BENCH_FONT_FILE ? resolve(process.env.BENCH_FONT_FILE) : undefined
+const ligatureArms = process.env.BENCH_LIGATURE_ARMS === '1'
+assert(!ligatureArms || fontFile, 'BENCH_LIGATURE_ARMS requires BENCH_FONT_FILE')
+const candidates: { label: string; root: string; query: string }[] = ligatureArms
+  ? [
+      { label: 'ligatures-off', root, query: '&font=1' },
+      { label: 'ligatures-on', root, query: '&font=1&ligatures=1' },
+    ]
+  : [{ label: 'candidate', root, query: fontFile ? '&font=1' : '' }]
 if (process.env.BENCH_BASELINE_ROOT)
-  candidates.unshift({ label: 'before', root: resolve(process.env.BENCH_BASELINE_ROOT) })
+  candidates.unshift({
+    label: 'before',
+    root: resolve(process.env.BENCH_BASELINE_ROOT),
+    query: fontFile ? '&font=1' : '',
+  })
 
 function positiveInteger(name: string, fallback: number): number {
   const value = Number(process.env[name] ?? fallback)
@@ -120,9 +136,12 @@ async function buildBrowserBundle(sourceRoot: string): Promise<string> {
       {
         name: 'benchmark-source',
         setup(build) {
-          build.onResolve({ filter: /^\.\.\/src\// }, (args) => ({
-            path: join(sourceRoot, args.path.slice(3).replace(/\.js$/u, '.ts')),
-          }))
+          // A baseline without a module the entry imports only behind a flag takes the candidate's.
+          build.onResolve({ filter: /^\.\.\/src\// }, (args) => {
+            const path = args.path.slice(3).replace(/\.js$/u, '.ts')
+            const source = join(sourceRoot, path)
+            return { path: existsSync(source) ? source : join(root, path) }
+          })
         },
       },
     ],
@@ -132,10 +151,11 @@ async function buildBrowserBundle(sourceRoot: string): Promise<string> {
 }
 
 async function routePage(page: Page, bundle: string, sourceRoot: string): Promise<void> {
-  const [wasm, bridge, canvasCompose] = await Promise.all([
+  const [wasm, bridge, canvasCompose, font] = await Promise.all([
     readFile(join(sourceRoot, 'ghostty-vt.wasm')),
     readFile(join(sourceRoot, 'bridge.wasm')),
     readFile(join(sourceRoot, 'canvas-compose.wasm')),
+    fontFile ? readFile(fontFile) : undefined,
   ])
   await page.route(`${origin}/**`, async (route) => {
     const url = new URL(route.request().url())
@@ -147,6 +167,8 @@ async function routePage(page: Page, bundle: string, sourceRoot: string): Promis
       return route.fulfill({ body: bridge, contentType: 'application/wasm' })
     if (url.pathname === '/canvas-compose.wasm')
       return route.fulfill({ body: canvasCompose, contentType: 'application/wasm' })
+    if (url.pathname === '/font' && font)
+      return route.fulfill({ body: font, contentType: 'font/ttf' })
     if (url.pathname !== '/') return route.abort()
     await route.fulfill({
       contentType: 'text/html',
@@ -201,7 +223,7 @@ async function measure(
   try {
     await routePage(page, bundle, source.root)
     await page.goto(
-      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}${terminalVisibility ? '&terminals=16' : ''}`,
+      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}&count=${terminalCount}${process.env.BENCH_DEFAULT_GPU === '1' ? '&defaultGpu=1' : ''}${terminalVisibility ? '&terminals=16' : ''}${source.query}`,
     )
     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))

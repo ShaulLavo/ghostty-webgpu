@@ -18,3 +18,12 @@ export function renderCursorState(
     y: viewport.y,
   }
 }
+
+/** The cursor cell that splits joined runs; the blink phase must not join and split text. */
+export function ligatureCursor(
+  cursor: RenderCursorSnapshot | undefined,
+  styleOverride?: InactiveCursorStyle,
+): CursorState | undefined {
+  const state = renderCursorState(cursor, true, styleOverride)
+  return state?.visible ? state : undefined
+}

@@ -1,3 +1,5 @@
+import type { RowBidiMapper } from '../../bidi/row.js'
+import { loadBidiMapper } from '../../bidi/loader.js'
 import { createGhosttyError } from '../../core/error.js'
 import type { RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
@@ -106,6 +108,7 @@ class CanvasSurface implements RowRendererSurface {
       this.pixelTarget?.context ?? this.context,
       options.font,
       canonicalRendererTheme(mergeRendererTheme(options.theme)),
+      options.ligatures,
     )
   }
 
@@ -186,6 +189,7 @@ class CanvasSurface implements RowRendererSurface {
     cursor: CursorState | undefined,
     textVisible: boolean,
     blinking: boolean,
+    joinCursor?: CursorState,
   ): void {
     if (this.contextLost)
       throw createGhosttyError('canvas.context', 'Canvas 2D context is awaiting restoration')
@@ -205,6 +209,7 @@ class CanvasSurface implements RowRendererSurface {
           text,
           !this.clearedFrame,
           textVisible,
+          joinCursor,
         )
         this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1
@@ -338,6 +343,7 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
   protected constructor(
     options: WebGpuTerminalRendererOptions,
     targetFactory?: PixelTargetFactory,
+    bidi?: RowBidiMapper,
   ) {
     const mode = options.rendererMode === 'canvas2d-pixels' ? 'pixels' : 'fill-text'
     if (mode === 'pixels' && !targetFactory)
@@ -347,7 +353,7 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
       options,
       mode === 'pixels' ? targetFactory : undefined,
     )
-    super({ ...options, renderState: surface.source(options.renderState) }, surface)
+    super({ ...options, renderState: surface.source(options.renderState) }, surface, bidi)
     this.canvas = options.canvas
     this.canvasSurface = surface
     this.canvas.addEventListener('contextlost', this.onContextLost)
@@ -385,12 +391,18 @@ export class CanvasTerminalRenderer extends RowTerminalRenderer {
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<CanvasTerminalRenderer> {
-    if (options.rendererMode !== 'canvas2d-pixels') return new CanvasTerminalRenderer(options)
+    const bidi = options.bidi ? await loadBidiMapper() : undefined
+    if (options.rendererMode !== 'canvas2d-pixels')
+      return new CanvasTerminalRenderer(options, undefined, bidi)
     const [{ ComposeKernel }, { StampTarget }] = await Promise.all([
       import('../pixels/kernel.js'),
       import('../pixels/stamp-target.js'),
     ])
     const kernel = await ComposeKernel.create(options.compositorAsset)
-    return new CanvasTerminalRenderer(options, (_canvas, output) => new StampTarget(kernel, output))
+    return new CanvasTerminalRenderer(
+      options,
+      (_canvas, output) => new StampTarget(kernel, output),
+      bidi,
+    )
   }
 }
