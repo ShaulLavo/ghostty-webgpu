@@ -18,6 +18,7 @@ const warmup = Number(env('X7_WARMUP', '30'))
 const headless = env('X7_HEADLESS', '0') === '1'
 const parity = env('X7_PARITY', 'off')
 const discard = env('X7_DISCARD', 'off')
+const trace = env('X7_TRACE', 'off')
 const output = resolve(env('X7_OUTPUT', join(root, '.artifacts/x7-publication.json')))
 const arms = [
   {
@@ -148,6 +149,7 @@ async function measure(
     return {
       arm: arm.label,
       ...cell,
+      trace: trace === 'on' ? await page.evaluate(() => window.__x7!.trace()) : undefined,
       elapsedMs: elapsed,
       frames: run.frames,
       texts: run.texts,
@@ -192,7 +194,15 @@ await mkdir(dirname(output), { recursive: true })
 function cellsFor(backend: string): Record<string, string | number>[] {
   return counts.flatMap((count) =>
     workloads.flatMap((workload) =>
-      observerModes.map((observers) => ({ backend, count, workload, observers, parity, discard })),
+      observerModes.map((observers) => ({
+        backend,
+        count,
+        workload,
+        observers,
+        parity,
+        discard,
+        trace,
+      })),
     ),
   )
 }
@@ -221,11 +231,11 @@ async function measurePair(
     const result = await measure(browser, browserSession, arm, codes.get(arm.label)!, cell)
     pair.push(result)
     results.push({ ...result, repetition, glRenderer: renderer })
-    console.log(JSON.stringify({ ...result, repetition }))
+    console.log(JSON.stringify({ ...result, trace: undefined, repetition }))
   }
+  await writeFile(output, JSON.stringify(packet(), null, 2))
   assert.equal(pair[0]!.digest, pair[1]!.digest, `text differs for ${JSON.stringify(cell)}`)
   assertPair(pair)
-  await writeFile(output, JSON.stringify(packet(), null, 2))
 }
 
 async function measureBackend(backend: string): Promise<void> {

@@ -11,7 +11,7 @@ const Decoration = struct { foreground: u32 = 0xffffffff, background: u32 = 0xff
 const Grapheme = struct { pointer: ?[*]u32 = null, length: u32 = 0 };
 // Native revisions must remain exact when exposed as JavaScript number keys.
 const max_text_revision: u64 = (1 << 53) - 1;
-const RawRow = struct { selection: c.GhosttyRenderStateRowSelection, selected: bool = false, revision: u64 = 0, text_revision: u64 = 0 };
+const RawRow = struct { selection: c.GhosttyRenderStateRowSelection, selected: bool = false, revision: u64 = 0, text_revision: u64 = 0, id: c.GhosttyRenderStateRowId = std.mem.zeroes(c.GhosttyRenderStateRowId) };
 pub const Frame = extern struct {
     columns: u32,
     rows: u32,
@@ -167,6 +167,49 @@ fn captureRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: c
     return c.GHOSTTY_SUCCESS;
 }
 
+fn sameId(a: c.GhosttyRenderStateRowId, b: c.GhosttyRenderStateRowId) bool {
+    return a.bits[0] == b.bits[0] and a.bits[1] == b.bits[1];
+}
+
+fn sameText(frame: *const Frame, y: usize, baseline: *const Frame, source: usize, style_bits: u64) bool {
+    const start = y * frame.columns;
+    const from = source * frame.columns;
+    const same_raw = std.mem.eql(c.GhosttyCell, frame.raw[start .. start + frame.columns], baseline.raw[from .. from + frame.columns]);
+    for (0..frame.columns) |x| {
+        if (!same_raw and (frame.raw[start + x] & ~style_bits) != (baseline.raw[from + x] & ~style_bits)) return false;
+        const a = frame.graphemes[start + x];
+        const b = baseline.graphemes[from + x];
+        if (a.length != b.length) return false;
+        if (a.length > 0 and !std.mem.eql(u32, a.pointer.?[0..a.length], b.pointer.?[0..b.length])) return false;
+    }
+    return true;
+}
+
+fn matchingTextRevision(frame: *const Frame, baseline: ?*const Frame, y: usize, style_bits: u64) u64 {
+    const b = baseline orelse return 0;
+    const id = frame.metadata[y].id;
+    if (b.columns != frame.columns or sameId(id, std.mem.zeroes(c.GhosttyRenderStateRowId))) return 0;
+    for (0..b.rows) |offset| {
+        const source = (y + offset) % b.rows;
+        const old = b.metadata[source];
+        if (old.text_revision == 0 or !sameId(old.id, id)) continue;
+        return if (sameText(frame, y, b, source, style_bits)) old.text_revision else 0;
+    }
+    return 0;
+}
+
+fn assignTextRevision(frame: *Frame, baseline: ?*const Frame, y: usize, style_bits: u64) c.GhosttyResult {
+    const matching = matchingTextRevision(frame, baseline, y, style_bits);
+    if (matching != 0) {
+        frame.metadata[y].text_revision = matching;
+        return c.GHOSTTY_SUCCESS;
+    }
+    if (frame.text_revisions >= max_text_revision) return c.GHOSTTY_OUT_OF_SPACE;
+    frame.text_revisions += 1;
+    frame.metadata[y].text_revision = frame.text_revisions;
+    return c.GHOSTTY_SUCCESS;
+}
+
 fn copyRow(frame: *Frame, baseline: *const Frame, y: usize) c.GhosttyResult {
     const start = y * frame.columns;
     const end = start + frame.columns;
@@ -189,7 +232,7 @@ fn copyRow(frame: *Frame, baseline: *const Frame, y: usize) c.GhosttyResult {
     return c.GHOSTTY_SUCCESS;
 }
 
-pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, tag_shift: u32, style_shift: u32, style_width: u32) callconv(.c) c.GhosttyResult {
+pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, tag_shift: u32, style_shift: u32, style_width: u32, track_text: bool) callconv(.c) c.GhosttyResult {
     const previous = if (baseline) |b| (if (b.columns == frame.columns and b.rows == frame.rows) b else null) else null;
     var damage: c.GhosttyRenderStateDirty = undefined;
     var result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_DIRTY, &damage);
@@ -198,6 +241,7 @@ pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.Ghos
     // Revisions stay unique across grid changes and later reuse of an older-sized spare.
     const revision = if (baseline) |b| b.revision + 1 else 1;
     frame.text_revisions = if (baseline) |b| b.text_revisions else 0;
+    const style_bits = ((@as(u64, 1) << @as(u6, @intCast(style_width))) - 1) << @as(u6, @intCast(style_shift));
     var it = iterator;
     result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
     if (result != c.GHOSTTY_SUCCESS) return result;
@@ -216,14 +260,18 @@ pub fn capture(frame: *Frame, baseline: ?*const Frame, full: bool, state: c.Ghos
             if (result != c.GHOSTTY_SUCCESS) return result;
             continue;
         }
-        if (frame.text_revisions >= max_text_revision) return c.GHOSTTY_OUT_OF_SPACE;
         frame.metadata[y].revision = 0;
         frame.metadata[y].text_revision = 0;
+        frame.metadata[y].id = std.mem.zeroes(c.GhosttyRenderStateRowId);
+        if (track_text) {
+            result = c.ghostty_render_state_row_get(it, c.GHOSTTY_RENDER_STATE_ROW_DATA_ID, &frame.metadata[y].id);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+        }
         result = captureRow(frame, it, cells, y, @intCast(tag_shift), @intCast(style_shift), (@as(u64, 1) << @as(u6, @intCast(style_width))) - 1);
         if (result != c.GHOSTTY_SUCCESS) return result;
+        result = assignTextRevision(frame, if (track_text) baseline else null, y, style_bits);
+        if (result != c.GHOSTTY_SUCCESS) return result;
         frame.metadata[y].revision = revision;
-        frame.text_revisions += 1;
-        frame.metadata[y].text_revision = frame.text_revisions;
     }
     if (y != frame.rows) return c.GHOSTTY_INVALID_VALUE;
     frame.revision = revision;

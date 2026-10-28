@@ -120,6 +120,7 @@ describe('retained native displayed frame', () => {
     const revisions = vi.spyOn(runtime.bridge, 'readRetainedRevisions')
     let held = ''
     let owned: ReturnType<ReturnType<typeof store.capture>['readTextRows']> = []
+    let previous: typeof owned = []
     try {
       for (let index = 0; index < 4; index += 1) {
         terminal.write(`\x1b[H\x1b[2Jframe ${index} 界 é`)
@@ -131,7 +132,9 @@ describe('retained native displayed frame', () => {
         const reads = revisions.mock.calls.length
         frame.accept()
         expect(revisions.mock.calls.length).toBe(reads)
-        expect(retained.size).toBe(Math.min(index + 1, 2) * 4)
+        expect(retained.size).toBe(new Set(previous.concat(rows)).size)
+        expect(new Set(retained.values())).toEqual(new Set(previous.concat(rows)))
+        previous = rows
         state.acknowledge()
       }
       expect(serialized(owned)).toBe(held)

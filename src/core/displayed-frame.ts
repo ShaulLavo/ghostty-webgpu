@@ -32,8 +32,23 @@ interface PackedDescriptor {
   readonly bits: Record<string, { readonly lsb: number; readonly width: number }>
 }
 
+function movedRow(row: RenderTextRow, y: number): RenderTextRow {
+  if (row.y === y) return row
+  return Object.freeze({
+    y,
+    text: row.text,
+    get cells() {
+      return row.cells
+    },
+    get continuations() {
+      return row.continuations
+    },
+  })
+}
+
 /** Text rows shared by the readable native slots of one subscriber. */
 class RevisionTextCache {
+  observed = false
   private readonly rows = new Map<number, RenderTextRow>()
   private readonly slotRevisions = new Map<NativeSlot, readonly number[]>()
   private revisions = 0
@@ -49,12 +64,13 @@ class RevisionTextCache {
     readable: readonly (NativeSlot | undefined)[],
     inserted?: Set<number>,
   ): readonly RenderTextRow[] {
+    this.observed = true
     const revisions = this.readRevisions(slot)
     const result: RenderTextRow[] = Array.from({ length: slot.rows })
     const missing = new Set<number>()
     for (let y = 0; y < slot.rows; y += 1) {
       const cached = this.take(revisions[y]!)
-      if (cached) result[y] = cached
+      if (cached) result[y] = movedRow(cached, y)
       else missing.add(y)
     }
     if (missing.size > 0) this.extract(slot, missing, revisions, result, inserted)
@@ -185,8 +201,10 @@ class DisplayedFrame implements NativeDisplayedFrame {
 
   readTextRows(options: DisplayedTextOptions = noOptions): readonly RenderTextRow[] {
     this.active()
-    if (options.rows)
+    if (options.rows) {
+      this.frames.textCache.observed = true
       return this.frames.textReader.read(this.current.handle, 0, 0, this.current, options)
+    }
     return (this.#rows ??= this.frames.textCache.read(
       this.current,
       readableSlots(this.frames),
@@ -275,6 +293,7 @@ export class DisplayedFrameStore {
           tag.lsb,
           style.lsb,
           style.width,
+          Number(frames.textCache.observed),
         ),
       )
     } catch (cause) {

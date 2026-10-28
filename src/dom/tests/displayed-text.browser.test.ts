@@ -1,3 +1,8 @@
+import {
+  publicationColumns,
+  publicationRows,
+  publicationOutput,
+} from '../../../bench/x7-publication-workload.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
@@ -57,7 +62,10 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
 
-async function fixture(backend: 'webgl' | 'webgpu' | 'canvas' | 'dom' = 'webgl') {
+async function fixture(
+  backend: 'webgl' | 'webgpu' | 'canvas' | 'dom' = 'webgl',
+  { flushInitial = true, grid = { columns: 30, rows: 4, pixelRatio: 1 } } = {},
+) {
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:160px;position:relative'
   document.body.append(host)
@@ -66,7 +74,7 @@ async function fixture(backend: 'webgl' | 'webgpu' | 'canvas' | 'dom' = 'webgl')
     appearance: {
       cursor: { blink: false },
       font: { family: 'monospace', size: 16 },
-      grid: { columns: 30, rows: 4, pixelRatio: 1 },
+      grid,
     },
     runtime: { kind: 'borrowed', runtime },
   })
@@ -86,7 +94,7 @@ async function fixture(backend: 'webgl' | 'webgpu' | 'canvas' | 'dom' = 'webgl')
   const errors: unknown[] = []
   terminal.on('error', (event) => errors.push(event))
   await terminal.open(host)
-  clock.flush()
+  if (flushInitial) clock.flush()
   return { terminal, session, clock, errors, host }
 }
 
@@ -442,3 +450,37 @@ describe('WebGPU retained displayed-text acceptance', () => {
     expect(terminal.frameSnapshot()?.rows.map((row) => row.text)).toEqual(terminal.visibleLines())
   })
 })
+
+it.each(['before-subscribe', 'after-subscribe', 'first-write'])(
+  'delivers all 210 DOM scroll updates with initial acceptance at %s',
+  async (initialAcceptance) => {
+    const { terminal, clock, errors } = await fixture('dom', {
+      flushInitial: initialAcceptance === 'before-subscribe',
+      grid: { columns: publicationColumns, rows: publicationRows, pixelRatio: 2 },
+    })
+    const boundary = terminal.submittedFrame?.frame ?? 0
+    const events: TerminalSubmittedText[] = []
+    let painted = 0
+    terminal.onText((event) => events.push(event))
+    terminal.onFrame(() => {
+      painted += 1
+    })
+    if (initialAcceptance !== 'first-write') clock.flush()
+    const initial = initialAcceptance === 'after-subscribe' ? 1 : 0
+    expect(events).toHaveLength(initial)
+    if (initial) expect(events[0]!.rows.every((row) => row.text.trimEnd() === '')).toBe(true)
+    for (let step = 0; step < 210; step += 1) {
+      terminal.write(publicationOutput('scroll', step, 0))
+      clock.flush()
+      expect(events).toHaveLength(initial + step + 1)
+      expect(painted).toBe(events.length)
+      const event = events.at(-1)!
+      const end = terminal.lineCount()
+      const expected = terminal.readLines(end - publicationRows, end).map((line) => line.text)
+      expect(event.rows.map((row) => row.text.trimEnd())).toEqual(expected)
+      expect(event.frame).toBe(boundary + events.length)
+    }
+    expect(errors).toEqual([])
+  },
+  60_000,
+)

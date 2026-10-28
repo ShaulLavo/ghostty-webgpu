@@ -774,6 +774,7 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
     tagShift: number,
     styleShift: number,
     styleWidth: number,
+    trackText: number,
   ): number
   bridge_read_retained_text(
     state: number,

@@ -261,6 +261,7 @@ export class CallbackBridge {
     tagShift: number,
     styleShift: number,
     styleWidth: number,
+    trackText: number,
   ): number {
     return this.bridgeExports!.bridge_capture_retained_frame(
       handle,
@@ -272,6 +273,7 @@ export class CallbackBridge {
       tagShift,
       styleShift,
       styleWidth,
+      trackText,
     )
   }
 

@@ -46,7 +46,7 @@
       "scripts/bridge.zig": "4306c042731e7eee50dce174cb2e05885bd983c82f23b921f96c8d0b5e03053a",
       "scripts/row-index.zig": "9d09589b7091bd22447503e24a5642d87575c99aed9ac89f5f91205f0578bf44",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
-      "scripts/retained-frame.zig": "953477f2937e1c421e00ee818706c80d50bfcc6dab129c614084553fbedc5344",
+      "scripts/retained-frame.zig": "2191d227e9794d02f0de4f0453355b4972858e4028fa03da2cabba252e699dd3",
       "scripts/glyph-index.zig": "794a84519609363599996105634f5e7cdc3554cbb2abac74a2e859b370dd0ee2",
       "scripts/unknown-osc.zig": "99b6aa177a66bb6df934a8c16d17ebcb5488f15946600e1df52bf6d10a77b5d7",
       "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
@@ -61,8 +61,8 @@
       "nameSectionSha256": []
     },
     "bridge.wasm": {
-      "bytes": 32433,
-      "sha256": "d466e16139392f16015e38bb0de3928c46f13211fa3a0d577287b03157dadb81",
+      "bytes": 32802,
+      "sha256": "3629e4a60d5404a4ebab476e488fe8834074e838c85c9ab488ffca8501a7ede0",
       "nameSectionSha256": []
     }
   }
