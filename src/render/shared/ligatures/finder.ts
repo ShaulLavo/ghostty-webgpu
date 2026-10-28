@@ -61,16 +61,15 @@ const probeTokens = Array.from(
 
 type ProbeContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
+function probeCanvas(): OffscreenCanvas | HTMLCanvasElement | undefined {
+  if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(1, 1)
+  if (typeof document === 'undefined') return undefined
+  return document.createElement('canvas')
+}
+
 function probeContext(): ProbeContext | undefined {
-  const canvas =
-    typeof OffscreenCanvas !== 'undefined'
-      ? new OffscreenCanvas(1, 1)
-      : typeof document !== 'undefined'
-        ? document.createElement('canvas')
-        : undefined
-  return (canvas?.getContext('2d', { willReadFrequently: true }) ?? undefined) as
-    | ProbeContext
-    | undefined
+  const context = probeCanvas()?.getContext('2d', { willReadFrequently: true })
+  return (context ?? undefined) as ProbeContext | undefined
 }
 
 function drawProbe(

@@ -83,11 +83,7 @@ import {
   type DomInputLifecycleController,
 } from './input.js'
 import { createDomLinkController, type DomLinkController } from './links.js'
-import {
-  resolveLigatureFinder,
-  type LigatureFinder,
-  type TerminalLigatures,
-} from '../render/shared/ligatures/finder.js'
+import type { LigatureFinder, TerminalLigatures } from '../render/shared/ligatures/finder.js'
 import {
   createTerminalPointerController,
   projectPointerPosition,
@@ -1125,7 +1121,12 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     this.execution.commitLayout(font, elements.padding)
     this.updatePreeditAppearance(font, appearance.rendererTheme)
     // One finder per terminal survives renderer restores and fallbacks.
-    this.ligatureFinder ??= resolveLigatureFinder(this.ligatures, font)
+    // The font reader loads only when ligatures are on.
+    this.ligatureFinder ??= this.ligatures
+      ? import('../render/shared/ligatures/finder.js').then((module) =>
+          module.resolveLigatureFinder(this.ligatures, font),
+        )
+      : Promise.resolve(undefined)
     const ligatures = await this.ligatureFinder
     return this.execution.createRenderer(
       this.rendererFactory,

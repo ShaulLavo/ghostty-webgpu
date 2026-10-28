@@ -176,13 +176,16 @@ reduced-motion preference, including changes received while it is being created.
 ## optional ligatures
 
 Programming ligatures such as `=>`, `!=` and `<=>` are off by default. With them off, every
-backend keeps its per-cell path and pays nothing. Set `ligatures` in the main-thread or worker
-`Terminal.create` options to opt in:
+backend keeps its per-cell path, and the font reader and probe are never loaded. Set `ligatures`
+in the main-thread or worker `Terminal.create` options to opt in:
 
 - `ligatures: { font }` reads the joining features (`calt`, `liga`, `clig`, `rlig`) from the
   OpenType `GSUB` table of the primary regular face. `font` is a URL or the font bytes in
-  TrueType, OpenType, WOFF or WOFF2 format. WOFF2 needs `DecompressionStream('brotli')`; a load
-  or parse failure rejects `open()`.
+  TrueType, OpenType, WOFF or WOFF2 format. WOFF2 needs `DecompressionStream('brotli')`. The
+  reader parses every lookup it can reach when it loads and bounds the file (32 MiB), each table
+  (16 MiB), decompressed WOFF2 data (64 MiB) and table expansion. A load, parse or limit failure
+  rejects `open()`. While painting, nested lookups stop at depth 8, and a segment that exhausts
+  its work budget draws per cell.
 - `ligatures: true` in the worker entry reads the same table from the matching regular face in
   `fonts`. Without usable bytes, and always in the main entry, it uses the probe fallback.
 - The probe fallback checks a fixed list of about 70 common programming ligatures. It keeps a
@@ -198,8 +201,8 @@ enabled.
 Runs never cross a space, a character from U+2000 up (symbols, box drawing, icons and emoji
 keep their per-cell drawing), a wide or fallback-font glyph, a grapheme cluster, invisible text or a
 change of foreground, weight, slant, faint, underline, overline, strikethrough, inverse or
-selection state. A background change alone keeps the run joined, except in the DOM, where one
-span has one background. `fi`, `fl` and `st` stay in separate cells. A run that contains the
+selection state. A background change alone keeps the run joined, except where it changes the
+glyph's color: with `minimumContrast` above 1, and in the DOM, where one span has one background. `fi`, `fl` and `st` stay in separate cells. A run that contains the
 visible cursor draws per cell, whatever the cursor's blink phase, so typing inside `=>` shows
 both characters. Ligature ranges come from the regular face; bold and italic runs reuse them.
 Changing the font family after `open()` keeps the table read at open.

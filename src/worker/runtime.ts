@@ -1,5 +1,4 @@
 import { readSfntFontMetrics } from '../term/font-metrics.js'
-import { resolveLigatureFinder } from '../render/shared/ligatures/finder.js'
 import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
 import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
@@ -275,11 +274,13 @@ export class TerminalWorkerRuntime {
     this.applyLayout(layout)
     const execution = this.native()
     const font = this.fit(layout)
-    const ligatures = await resolveLigatureFinder(
-      this.initialize.ligatures,
-      font,
-      this.regularFaceSource(font.settings),
-    )
+    const option = this.initialize.ligatures
+    // The font reader loads only when ligatures are on.
+    const ligatures = option
+      ? await (
+          await import('../render/shared/ligatures/finder.js')
+        ).resolveLigatureFinder(option, font, this.regularFaceSource(font.settings))
+      : undefined
     if (this.disposed) throw workerError('disposed', 'open', { disposed: true })
     const options = {
       canvas,
