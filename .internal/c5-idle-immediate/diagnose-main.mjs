@@ -16,12 +16,9 @@ for (const arm of report.arms) {
   const events = JSON.parse(
     gunzipSync(await readFile(join(directory, arm.tracePhase.trace))),
   ).traceEvents
-  const begin = events.find((event) => event.name === 'compare/begin')
-  assert(begin, 'Trace begin marker required')
-  const offset = begin.ts / 1000 - begin.args.data.startTime
   const latency = presentationLatency(arm.tracePhase, events)
   const echoes = arm.tracePhase.sample.captures.map((capture, index) =>
-    echoTimeline(arm, capture, index, events, offset, latency),
+    echoTimeline(arm, capture, index, latency),
   )
   arms.push({
     name: arm.name,
@@ -33,67 +30,26 @@ for (const arm of report.arms) {
   })
 }
 const output = {
-  schema: 1,
+  schema: 2,
   baselineSha: report.baselineSha,
   endpoint:
-    'Strict containing AnimationFrame join plus compositor surface_frame_trace_id/display_trace_id and first following display vsync',
+    "Strict containing AnimationFrame join; AnimationFrame::Presentation supplies Chrome's reported presentation timestamp, not callback delivery or physical scanout",
   arms,
 }
 await writeFile(join(directory, 'main-analysis.json'), JSON.stringify(output, null, 2) + '\n')
 
-function echoTimeline(arm, capture, index, events, offset, latency) {
+function echoTimeline(arm, capture, index, latency) {
   const selected = renderedFrame(arm.tracePhase.records, capture)
-  const submitted = pipelineEvent(
-    events,
-    selected.boundary.end + offset,
-    'STEP_SUBMIT_COMPOSITOR_FRAME',
-  )
-  const surface = submitted.args.chrome_graphics_pipeline.surface_frame_trace_id
-  const swap = events.find(
-    (event) =>
-      event.ts >= submitted.ts &&
-      event.name === 'Graphics.Pipeline' &&
-      pipelineStep(event) === 'STEP_FINISH_BUFFER_SWAP' &&
-      event.args.chrome_graphics_pipeline.display_trace_id === surface,
-  )
-  assert(swap, 'Echo compositor frame requires a completed buffer swap')
-  const vsync = events.find(
-    (event) =>
-      event.ts >= swap.ts + (swap.dur ?? 0) &&
-      event.pid === swap.pid &&
-      event.name === 'OnVSyncPresentation',
-  )
-  assert(vsync, 'Echo buffer swap requires following display vsync')
-  const relative = (event) => event.ts / 1000 - offset - selected.started
-  const relativeEnd = (event) => relative(event) + (event.dur ?? 0) / 1000
-  const feedback = latency.presentations[index].milliseconds
+  const presentationTimestamp = latency.presentations[index].milliseconds
   return {
     index,
     parseEnd: selected.parse.end - selected.started,
     frameStart: selected.frame.start - selected.started,
     frameEnd: selected.frame.end - selected.started,
     renderBoundaryEnd: selected.boundary.end - selected.started,
-    compositorSubmitEnd: relativeEnd(submitted),
-    swapEnd: relativeEnd(swap),
-    displayVsync: relative(vsync),
-    feedback,
-    feedbackAfterVsync: feedback - relative(vsync),
+    presentationTimestamp,
+    afterRender: presentationTimestamp - (selected.boundary.end - selected.started),
   }
-}
-
-function pipelineEvent(events, start, step) {
-  const event = events.find(
-    (candidate) =>
-      candidate.ts >= start * 1000 &&
-      candidate.name === 'Graphics.Pipeline' &&
-      pipelineStep(candidate) === step,
-  )
-  assert(event, `Echo requires ${step}`)
-  return event
-}
-
-function pipelineStep(event) {
-  return event.args?.chrome_graphics_pipeline?.step
 }
 
 function summarize(echoes) {
@@ -101,11 +57,8 @@ function summarize(echoes) {
     'parseEnd',
     'frameStart',
     'renderBoundaryEnd',
-    'compositorSubmitEnd',
-    'swapEnd',
-    'displayVsync',
-    'feedback',
-    'feedbackAfterVsync',
+    'presentationTimestamp',
+    'afterRender',
   ]
   return Object.fromEntries(
     fields.map((field) => {
