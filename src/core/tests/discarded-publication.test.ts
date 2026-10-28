@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
 import { GhosttyRuntime } from '../runtime.js'
+import type { NativeDisplayedFrame } from '../displayed-frame.js'
+import type { RenderTextRow } from '../types.js'
 
 let runtime: GhosttyRuntime | undefined
 
@@ -162,6 +164,106 @@ it.each([false, true])(
       expect(owned[0]?.text).toContain('accepted')
     } finally {
       extract.mockRestore()
+    }
+  },
+)
+
+function readAndDiscard(
+  runtime: GhosttyRuntime,
+  state: ReturnType<GhosttyRuntime['createRenderState']>,
+  pending: NativeDisplayedFrame,
+  partial: boolean,
+): void {
+  const read = runtime.bridge.readRetainedRevisions.bind(runtime.bridge)
+  let calls = 0
+  const failure = vi
+    .spyOn(runtime.bridge, 'readRetainedRevisions')
+    .mockImplementation((...args) => {
+      calls += 1
+      if (partial && calls === 2) throw new Error('after pending insertion')
+      read(...args)
+    })
+  try {
+    if (partial) {
+      expect(() => pending.readTextRows()).toThrow('after pending insertion')
+      return
+    }
+    expect(pending.readTextRows()).toEqual(state.readTextRows())
+  } finally {
+    failure.mockRestore()
+    pending.discard()
+  }
+}
+
+function expectCachedRows(rows: readonly RenderTextRow[], owned: readonly RenderTextRow[]): void {
+  expect(rows).toEqual(owned)
+  for (let y = 0; y < rows.length; y += 1) {
+    expect(rows[y]!.cells).toBe(owned[y]!.cells)
+    expect(rows[y]!.continuations).toBe(owned[y]!.continuations)
+  }
+}
+
+it.each([false, true])(
+  'retains accepted rows across repeated moved-row discard/retry, partial=%s',
+  async (partial) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 24, rows: 6 })
+    const first = runtime.createRenderState(terminal)
+    const second = runtime.createRenderState(terminal)
+    const accept = (state: typeof first) => {
+      state.update()
+      const frame = state[retainDisplayedFrame]()
+      frame.readTextRows()
+      state.acknowledge()
+      frame.accept()
+      return frame
+    }
+    terminal.write(Array.from({ length: 6 }, (_, y) => `row ${y} 界 é`).join('\r\n'))
+    let firstFrame = accept(first)
+    let secondFrame = accept(second)
+    terminal.write('\r\nprime 🧑‍💻')
+    firstFrame = accept(first)
+    secondFrame = accept(second)
+    for (let index = 0; index < 32; index += 1) {
+      const firstOwned = firstFrame.readTextRows()
+      let secondOwned = secondFrame.readTextRows()
+      const held = JSON.stringify(firstOwned)
+      terminal.write(`\r\nabandoned ${index} 🧑‍💻`)
+      first.update()
+      second.update()
+      const firstPending = first[retainDisplayedFrame]()
+      const secondPending = second[retainDisplayedFrame]()
+      readAndDiscard(runtime, first, firstPending, partial)
+      secondPending.readTextRows()
+      if (index % 3 === 0) {
+        second.acknowledge()
+        secondPending.accept()
+        secondOwned = secondPending.readTextRows()
+      } else secondPending.discard()
+      terminal.write(`\x1b[6;1H\x1b[2Kretry ${index} ☕️ è`)
+      first.update()
+      second.update()
+      const firstRetry = first[retainDisplayedFrame]()
+      const secondRetry = second[retainDisplayedFrame]()
+      const extraction = vi.spyOn(runtime.bridge, 'readRetainedText')
+      try {
+        const previous = firstRetry.readPreviousTextRows()
+        const secondPrevious = secondRetry.readPreviousTextRows()
+        expect(extraction).not.toHaveBeenCalled()
+        expectCachedRows(previous, firstOwned)
+        expectCachedRows(secondPrevious, secondOwned)
+      } finally {
+        extraction.mockRestore()
+      }
+      expect(firstRetry.readTextRows()).toEqual(first.readTextRows())
+      expect(secondRetry.readTextRows()).toEqual(second.readTextRows())
+      first.acknowledge()
+      second.acknowledge()
+      firstRetry.accept()
+      secondRetry.accept()
+      expect(JSON.stringify(firstOwned)).toBe(held)
+      firstFrame = firstRetry
+      secondFrame = secondRetry
     }
   },
 )
