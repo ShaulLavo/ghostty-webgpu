@@ -25,6 +25,7 @@ import { TestClock } from '../render/webgl/tests/fixture.js'
 import { fittedFont } from '../render/canvas/tests/font.js'
 import { testFontUrl } from '../tests/fonts.js'
 import { RowBidiMapper } from './row.js'
+import { webglScreenshotSkipReason } from './tests/browser-capabilities.js'
 
 const fixtures = [
   { name: 'mixed', input: mixed, map: [0, 1, 2, 6, 5, 4, 3, 7, 8, 9] },
@@ -35,10 +36,12 @@ const fixtures = [
 ]
 const cleanups: (() => void)[] = []
 const font = new FontFace('BidiTest', `url(${testFontUrl})`)
+let webglSkipReason: string | undefined
 const initialViewport = { width: window.innerWidth, height: window.innerHeight }
 beforeAll(async () => {
   document.fonts.add(await font.load())
   await page.viewport(1800, 1000)
+  webglSkipReason = await webglScreenshotSkipReason()
 })
 afterEach(() => {
   for (const dispose of cleanups.splice(0).reverse()) dispose()
@@ -249,7 +252,7 @@ async function assertPaint(backend: string, fixture: PaintFixture): Promise<void
   const reference = document.createElement('canvas')
   reference.width = f.canvas.width
   reference.height = f.canvas.height
-  reference.style.backgroundColor = 'rgb(17,17,17)'
+  reference.style.cssText = 'display:block;background:rgb(17,17,17)'
   document.body.append(reference)
   cleanups.push(() => reference.remove())
   const painter = new CanvasRowPainter(
@@ -352,12 +355,14 @@ async function assertResize(backend: string): Promise<void> {
 const paintCases = fixtures.flatMap((fixture) => [1, 2].map((ratio) => ({ ...fixture, ratio })))
 describe.each(['canvas', 'pixels', 'dom', 'webgl', 'webgpu'])('BiDi %s', (backend) => {
   const test = it.skipIf(backend === 'webgpu' && !navigator.gpu)
-  test.each(paintCases)('maps and paints $name at DPR $ratio', (fixture) =>
-    assertPaint(backend, fixture),
-  )
-  test.each(['block', 'bar', 'underline'] as const)('maps %s cursor cells', (style) =>
-    assertCursor(backend, style),
-  )
+  test.for(paintCases)('maps and paints $name at DPR $ratio', (fixture, { skip }) => {
+    if (backend === 'webgl' && webglSkipReason) skip(webglSkipReason)
+    return assertPaint(backend, fixture)
+  })
+  test.for(['block', 'bar', 'underline'] as const)('maps %s cursor cells', (style, { skip }) => {
+    if (backend === 'webgl' && webglSkipReason) skip(webglSkipReason)
+    return assertCursor(backend, style)
+  })
   test('recomputes row maps after reflow', () => assertResize(backend))
   test('does no row mapping with the option disabled', async () => {
     const maps = vi.spyOn(RowBidiMapper.prototype, 'getMap')
