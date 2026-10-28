@@ -1,5 +1,5 @@
 import { page } from 'vitest/browser'
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import selection from '../../bench/fixtures/correctness/bidi-selection.vt?raw'
 import word from '../../bench/fixtures/correctness/bidi-word-selection.vt?raw'
 import link from '../../bench/fixtures/correctness/bidi-link.vt?raw'
@@ -10,13 +10,16 @@ import { CanvasTerminalRenderer } from '../render/canvas/renderer.js'
 import { Terminal as WorkerTerminal, TerminalWorkerError } from '../../dist/worker/index.js'
 import type { TerminalApi } from '../dom/terminal-api.js'
 import { testFontUrl } from '../tests/fonts.js'
+import { workerWebglSkipReason } from './tests/browser-capabilities.js'
 
 const family = 'BidiInteractionTest'
 const face = new FontFace(family, `url(${testFontUrl})`)
 const active: TerminalApi[] = []
 const roots: HTMLElement[] = []
+let webglSkipReason: string | undefined
 beforeAll(async () => {
   document.fonts.add(await face.load())
+  webglSkipReason = await workerWebglSkipReason()
 })
 afterEach(async () => {
   for (const terminal of active.splice(0)) await terminal.dispose()
@@ -126,6 +129,9 @@ function selectedColumns(text: string): number[] {
 
 describe.each(['main', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
   const test = it.skipIf(mode === 'webgpu' && !navigator.gpu)
+  beforeEach(({ skip }) => {
+    if (mode === 'webgl' && webglSkipReason) skip(webglSkipReason)
+  })
   test.each([
     [1, 8, 'b שלום c'],
     [8, 1, 'b שלום c'],
