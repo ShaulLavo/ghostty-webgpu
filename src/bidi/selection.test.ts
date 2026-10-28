@@ -25,6 +25,23 @@ beforeEach(async () => {
   session.write('\x1b[?25lab שלום cd')
 })
 afterEach(() => session.dispose())
+function expectCopiedStyle(vt: string, plain: string | undefined): void {
+  const roundTrip = session.runtime.createTerminal({ columns: 40, rows: 8 })
+  try {
+    roundTrip.write(vt)
+    expect(roundTrip.readLines(0, 1)[0]!.text).toBe(plain)
+    const state = session.runtime.createRenderState(roundTrip)
+    try {
+      state.update()
+      expect(state.readRows()[0]!.cells[0]!.foreground).toEqual(session.appearance.theme.palette[1])
+    } finally {
+      state.dispose()
+    }
+  } finally {
+    roundTrip.dispose()
+  }
+}
+
 describe('BiDi native selection', () => {
   it.each([
     [1, 8, 'b שלום c'],
@@ -103,22 +120,7 @@ describe('BiDi native selection', () => {
     expect(html).toContain('&lt;')
     expect(html).toContain('&amp;')
     expect((vt.match(/\x1b\]4;0;/g) ?? []).length).toBe(1)
-    const roundTrip = session.runtime.createTerminal({ columns: 40, rows: 8 })
-    try {
-      roundTrip.write(vt)
-      expect(roundTrip.readLines(0, 1)[0]!.text).toBe(plain)
-      const state = session.runtime.createRenderState(roundTrip)
-      try {
-        state.update()
-        expect(state.readRows()[0]!.cells[0]!.foreground).toEqual(
-          session.appearance.theme.palette[1],
-        )
-      } finally {
-        state.dispose()
-      }
-    } finally {
-      roundTrip.dispose()
-    }
+    expectCopiedStyle(vt, plain)
   })
   it('uses one format envelope for a selection with logical holes', () => {
     press(3)

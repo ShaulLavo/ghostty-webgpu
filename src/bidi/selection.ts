@@ -180,14 +180,7 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
       selection = new GhosttySelectionGesture(scratch)
       scratch.setScrollbackLimit(undefined)
       scratch.write('\x1b[?2027h')
-      let previous: SelectionPoint | undefined
-      for (const run of this.runs(points)) {
-        if (previous && this.lineBreak(previous, run.start, options)) scratch.write('\r\n')
-        scratch.write(
-          super.readRangeText({ ...run, rectangle: false }, { format: 'vt', trim: false }) ?? '',
-        )
-        previous = run.end
-      }
+      this.writeFormattedRuns(scratch, points, options)
       const cursor = scratch.cursor
       const end = {
         x: Math.max(0, cursor.x - Number(!cursor.pendingWrap)),
@@ -198,6 +191,21 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
     } finally {
       selection?.dispose()
       scratch.dispose()
+    }
+  }
+
+  private writeFormattedRuns(
+    scratch: GhosttyTerminal,
+    points: readonly SelectionPoint[],
+    options: TerminalSelectionFormatOptions,
+  ): void {
+    let previous: SelectionPoint | undefined
+    for (const run of this.runs(points)) {
+      if (previous && this.lineBreak(previous, run.start, options)) scratch.write('\r\n')
+      scratch.write(
+        super.readRangeText({ ...run, rectangle: false }, { format: 'vt', trim: false }) ?? '',
+      )
+      previous = run.end
     }
   }
 
