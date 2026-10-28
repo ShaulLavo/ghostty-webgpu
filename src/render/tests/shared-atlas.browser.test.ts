@@ -429,3 +429,82 @@ it('keeps the prior font and releases a new owner when font texture allocation f
   expect(texturesOf(first.renderer)).toBe(texturesOf(peer.renderer))
   expect(await repaint(first)).toEqual(await repaint(peer))
 })
+
+it('releases retired textures when the invalidating sharer disposes before repaint and its peer stays idle', async () => {
+  const first = await openTerminal()
+  const peer = await openTerminal()
+  const reference = await repaint(peer)
+  const textures = Reflect.get(first.renderer, 'atlasTextures') as AtlasGpuTextures
+  const destroy = vi.spyOn(textures, 'destroy')
+  const submissions = peer.renderer.metrics.submittedFrames
+  expect(peer.clock.frames.size).toBe(0)
+
+  first.renderer.clearTextureAtlas()
+  await first.renderer.dispose()
+  renderers.delete(first.renderer)
+
+  expect(peer.clock.frames.size).toBe(0)
+  expect(peer.renderer.metrics.submittedFrames).toBe(submissions)
+  expect(destroy).toHaveBeenCalledOnce()
+  expect(await repaint(peer)).toEqual(reference)
+})
+
+async function openDevice(): Promise<GPUDevice> {
+  const adapter = await navigator.gpu.requestAdapter()
+  if (!adapter) throw new Error('No WebGPU adapter')
+  const device = await adapter.requestDevice()
+  devices.add(device)
+  return device
+}
+
+it.each(['growth', 'invalidation'] as const)(
+  'releases idle-device textures during %s while another device has an encoded frame',
+  async (change) => {
+    const active = await openDevice()
+    const idle = await openDevice()
+    const shared = new SharedGlyphAtlas('idle-device', fittedFont())
+    const owner = {}
+    const peer = {}
+    shared.attach(owner)
+    shared.attach(peer)
+    shared.acquireTextures(active)
+    shared.acquireTextures(idle)
+    const buffer = active.createBuffer({
+      size: 256,
+      usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    })
+    try {
+      shared.atlas.getOrInsert('first', fullPage(71), -1)
+      shared.sync(active)
+      const activeTexture = shared.textures(active).texture('grayscale')
+      const idleTexture = shared.textures(idle).texture('grayscale')
+      const activeDestroy = vi.spyOn(activeTexture, 'destroy')
+      const idleDestroy = vi.spyOn(idleTexture, 'destroy')
+      const encoder = active.createCommandEncoder()
+      encoder.copyTextureToBuffer(
+        { texture: activeTexture, origin: { x: 1, y: 1 } },
+        { buffer, bytesPerRow: 256 },
+        { width: 1, height: 1 },
+      )
+      shared.beginFrame(owner, active)
+      if (change === 'invalidation') shared.invalidate()
+      shared.atlas.getOrInsert('second', fullPage(182), -1)
+      shared.sync(active)
+
+      expect(activeDestroy).not.toHaveBeenCalled()
+      expect(idleDestroy).toHaveBeenCalledOnce()
+      active.queue.submit([encoder.finish()])
+      shared.frameSubmitted(owner, active)
+      expect(activeDestroy).toHaveBeenCalledOnce()
+      await buffer.mapAsync(GPUMapMode.READ)
+      expect(new Uint8Array(buffer.getMappedRange())[0]).toBe(71)
+      buffer.unmap()
+    } finally {
+      buffer.destroy()
+      shared.releaseTextures(active)
+      shared.releaseTextures(idle)
+      shared.detach(owner)
+      shared.detach(peer)
+    }
+  },
+)
