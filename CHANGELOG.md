@@ -16,6 +16,14 @@
 
 - [#36](https://github.com/ShaulLavo/ghostty-webgpu/pull/36) [`6511178`](https://github.com/ShaulLavo/ghostty-webgpu/commit/65111787236a1a9b444a772a0d4c478dbc25fcb1) - Reduced duplicate text work for `onText` and `onTextFrame` subscribers by reading from the same retained screen history as displayed reads.
 
+- [#41](https://github.com/ShaulLavo/ghostty-webgpu/pull/41) [`57b4301`](https://github.com/ShaulLavo/ghostty-webgpu/commit/57b4301df29d33d974ff6120a17cc38a2ebd86e3) - Reduced WebGPU glyph-atlas storage by sharing rasterized glyphs between terminals that use the same font on one device while preserving per-terminal eviction and recovery.
+
+- [#42](https://github.com/ShaulLavo/ghostty-webgpu/pull/42) [`04a97af`](https://github.com/ShaulLavo/ghostty-webgpu/commit/04a97afc39b74b7c4ee5dcd23b0682123e44e8b8) - Added opt-in bidirectional text rendering with `bidi: true`. Selection, links, cursors, and mouse input follow the displayed cells while stored text, copy, and accessibility preserve logical text.
+
+- [#43](https://github.com/ShaulLavo/ghostty-webgpu/pull/43) [`b896d85`](https://github.com/ShaulLavo/ghostty-webgpu/commit/b896d85518961da3ee0e02fa2d52c353b8c8dfd9) - Added opt-in programming ligatures with `ligatures`, joining supported font features across WebGPU, WebGL2, Canvas, pixel, and DOM renderers while keeping text, selection, and copy unchanged.
+
+- [#44](https://github.com/ShaulLavo/ghostty-webgpu/pull/44) [`f6a409c`](https://github.com/ShaulLavo/ghostty-webgpu/commit/f6a409c29c81b09ee7e61f697ac6b47de2ce4940), [#48](https://github.com/ShaulLavo/ghostty-webgpu/pull/48) [`bab315b`](https://github.com/ShaulLavo/ghostty-webgpu/commit/bab315b65c177c3178b558f809189971ccce98f9) - Improved terminal text publication by reusing unchanged rows when they move and preserving accepted text and cached rows when a frame is discarded and retried.
+
 ## 0.3.25
 
 ### Patch Changes
