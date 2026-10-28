@@ -488,7 +488,8 @@ follow the same mapping on WebGPU, WebGL2, Canvas, pixels and DOM renderers.
 
 Pointer selection uses visual columns. Copy sorts the selected cells into logical order, including
 when a visual drag selects disjoint logical columns. Double-click word finding and `selectRange()`
-use logical buffer columns. Selected cells follow native reflow. Mouse reports translate visual
+use logical buffer columns. `selectionCoordinates()` reports logical bounds; frame cells carry
+the exact selected cells when those bounds contain holes. Selected cells follow native reflow. Mouse reports translate visual
 cell positions into logical columns before native encoding, including both halves of wide cells.
 `readLines()`, `visibleLines()`, accessibility text and frame row text remain in logical order.
 Frame snapshots keep a logical `cursor` and expose its visual position through `paintedCursor`.

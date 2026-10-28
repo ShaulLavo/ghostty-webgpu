@@ -35,6 +35,7 @@ const fixtures = [
 ]
 const cleanups: (() => void)[] = []
 const font = new FontFace('BidiTest', `url(${testFontUrl})`)
+const initialViewport = { width: window.innerWidth, height: window.innerHeight }
 beforeAll(async () => {
   document.fonts.add(await font.load())
   await page.viewport(1800, 1000)
@@ -43,8 +44,9 @@ afterEach(() => {
   for (const dispose of cleanups.splice(0).reverse()) dispose()
   vi.restoreAllMocks()
 })
-afterAll(() => {
+afterAll(async () => {
   document.fonts.delete(font)
+  await page.viewport(initialViewport.width, initialViewport.height)
 })
 
 async function pixels(element: Element): Promise<Uint8Array> {

@@ -1,6 +1,6 @@
 # C3 bidirectional cell rendering
 
-Status: Approved. Implementation and verification in progress.
+Status: Approved. Implementation complete; awaiting review and canonical Linux CI.
 
 The public `bidi` option defaults to false. A row mapper initializes `bidi-js` only for enabled
 terminals. Each logical row supplies a permutation, its inverse and paint-only bracket mirrors.
@@ -46,5 +46,24 @@ mouse bytes including both columns of a wide emoji. Accessibility and displayed 
 
 ## Receipts
 
-Pending final gates. Raw receipts belong to `/work/reports/ghostty-webgpu-next-2026-10/c3/`.
+The focused Chromium run passed 99 tests. Linux Firefox passed 76 with 23 unsupported WebGPU
+cases skipped. WebKit on the M1 Mac passed all 99, including both worker backends. The normal
+build, typecheck, lint, format, unit, extension and docs gates passed. The full Mac Chromium suite ran after `verify:extensions`: 69 files passed, three failed;
+1,267 tests passed, ten failed and one was skipped. Both C3 files passed all 99 tests.
+
+One failure caught an added undefined `bidi` key in default worker initialization. The key is now
+omitted when disabled, preserving the original wire shape. That fix awaits canonical Linux CI.
+The other nine Mac failures are **not yet compared against base**: four copy-modifier cases,
+four packaged link Ctrl-click cases and the xterm held-output pixel case. The coordinator owns
+that base comparison and the canonical Linux full-suite gate. The PC browser queue was cancelled
+after waiting without starting. The Mac lock was released and handed to the Shell track as requested.
+
+The final minified browser bundles add 22,504 bytes / 9,174 gzip bytes for the main entry and
+20,695 bytes / 8,959 gzip bytes for the worker, against base `12d910c03` with Bun 1.4.4.
+
+Model the Domain led to explicit permutations and tracked selected cells. Prove It Works led
+to native record, per-cell pixel and raw mouse byte assertions. Architect exploration and nested
+delegation were skipped because the binding lane brief forbids child agents.
+
+Raw receipts belong to `/work/reports/ghostty-webgpu-next-2026-10/c3/`.
 Re-run bundle measurements with `bun .internal/reference-study-2026-10/bidi-bundle.mjs BASE_REF`.
