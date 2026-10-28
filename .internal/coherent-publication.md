@@ -498,6 +498,28 @@ No step moves a single-current store into `SharedRenderState`.
    backends, retaining equal per-observer payloads, parsed writes and submitted frames. This step
    has no dependency on the rejected two-slot experiment.
 
+### Final selective-discard gate (2026-10-28)
+
+The final qualification uses main after #44 and keeps three native slots. Selective invalidation
+already shipped in #35; this closes its guard after row-identity reuse rather than adding another
+cache or depending on the rejected two-slot design. The new 32-cycle regression covers moved
+rows, populated discard, post-insertion failure, different retry output and unequal subscriber
+cadence. It requires accepted cell/continuation identity and zero previous-text re-extraction.
+Replacing the ledger with all-clear fails both cases; restoring production passes.
+
+Paired all-clear versus selective recovery CPU improves 14–15% for dense payloads and 64–75% for
+line payloads across the quiet Mac and both non-quiet PC GPU backends. Recovery line heap falls;
+the largest dense heap increase is +0.708 MiB, within the +1 MiB gate. No normal Mac CPU regression
+exceeds repeat noise, and the largest normal sixteen-terminal heap increase is +0.012 MiB.
+The non-quiet PC WebGL2 dense no-observer cell reads +3.6% with peers, a recorded diagnostic
+finding; the Mac counterpart is −0.5%. No PC timing isolation or energy claim is made.
+
+All 84 normal, recovery and parity pairs retain equal endpoints, including observer payloads,
+parsed writes and submissions. The committed all-clear control is `1d156c5bb`, the selective
+application `ea9718ff1`, both based on merged #44 at `f6a409c29`. Detailed tables and verification
+are in `.internal/coherent-publication-production/step6.md`; raw packets and sampled PC overlap
+records are under `/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step6/`.
+
 ### Separate successors outside this lane
 
 - **Worker publication by revision.** Historical research slice 6 remains a new experiment after
