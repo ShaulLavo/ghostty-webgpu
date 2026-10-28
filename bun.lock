@@ -7,7 +7,6 @@
       "dependencies": {
         "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
         "@webgpu/types": "0.1.74",
-        "bidi-js": "1.0.3",
       },
       "devDependencies": {
         "@discoveryjs/json-ext": "1.1.0",
@@ -17,6 +16,7 @@
         "@vitest/browser-playwright": "5.0.2",
         "@xterm/addon-webgl": "0.19.0",
         "@xterm/xterm": "6.0.0",
+        "bidi-js": "1.0.3",
         "ghostty-web": "0.4.0",
         "oxc-parser": "0.151.0",
         "oxfmt": "0.70.0",

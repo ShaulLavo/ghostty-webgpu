@@ -319,7 +319,11 @@ export class GhosttySelectionGesture {
     return this.installRange(start, end)
   }
 
-  protected installRange(start: SelectionPoint, end: SelectionPoint): SelectionGestureUpdate {
+  protected installRange(
+    start: SelectionPoint,
+    end: SelectionPoint,
+    rectangle = false,
+  ): SelectionGestureUpdate {
     this.initializeSized(this.selectionPointer, this.layouts.selection)
     const startRef = this.selectionPointer + fieldOffset(this.layouts.selection, 'start')
     const endRef = this.selectionPointer + fieldOffset(this.layouts.selection, 'end')
@@ -327,7 +331,7 @@ export class GhosttySelectionGesture {
     this.writeScreenRef(endRef, end)
     this.runtime.memory.view.setUint8(
       this.selectionPointer + fieldOffset(this.layouts.selection, 'rectangle'),
-      0,
+      Number(rectangle),
     )
     return this.selectionUpdate(this.installCandidate(), true)
   }

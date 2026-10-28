@@ -91,34 +91,50 @@ describe('BiDi native selection', () => {
   })
   it('formats a disjoint selection as one HTML and VT document', () => {
     session.write('\r\x1b[2K\x1b[31mb\x1b[0m<א&ב')
-    press(4); drag(0); session.selectionRelease({x:0,y:0})
+    press(4)
+    drag(0)
+    session.selectionRelease({ x: 0, y: 0 })
     const plain = session.getSelection()
-    const html = session.getSelection({format:'html'})!
-    const vt = session.getSelection({format:'vt'})!
+    const html = session.getSelection({ format: 'html' })!
+    const vt = session.getSelection({ format: 'vt' })!
     expect((html.match(/<style>/g) ?? []).length).toBe(1)
-    expect((html.match(/<div/g) ?? []).length).toBe(1)
+    expect((html.match(/<div style="font-family:/g) ?? []).length).toBe(1)
+    expect(html).toContain('color: var(--vt-palette-1)')
     expect(html).toContain('&lt;')
     expect(html).toContain('&amp;')
     expect((vt.match(/\x1b\]4;0;/g) ?? []).length).toBe(1)
-    const roundTrip = session.runtime.createTerminal({columns:40,rows:8})
-    try { roundTrip.write(vt); expect(roundTrip.readLines(0,1)[0]!.text).toBe(plain) }
-    finally { roundTrip.dispose() }
+    const roundTrip = session.runtime.createTerminal({ columns: 40, rows: 8 })
+    try {
+      roundTrip.write(vt)
+      expect(roundTrip.readLines(0, 1)[0]!.text).toBe(plain)
+    } finally {
+      roundTrip.dispose()
+    }
   })
   it('uses one format envelope for a selection with logical holes', () => {
-    press(3); drag(1); session.selectionRelease({x:1,y:0})
+    press(3)
+    drag(1)
+    session.selectionRelease({ x: 1, y: 0 })
     expect(session.getSelection()).toBe('b ם')
-    expect((session.getSelection({format:'html'})!.match(/<div/g) ?? []).length).toBe(1)
-    expect((session.getSelection({format:'vt'})!.match(/\x1b\]4;0;/g) ?? []).length).toBe(1)
+    expect((session.getSelection({ format: 'html' })!.match(/<div/g) ?? []).length).toBe(1)
+    expect((session.getSelection({ format: 'vt' })!.match(/\x1b\]4;0;/g) ?? []).length).toBe(1)
   })
   it('reports the native rectangle shape for rectangular visual drags', async () => {
     session.dispose()
-    session = await TerminalSession.create({bidi:true,appearance:{grid:{columns:4,rows:8}}})
+    session = await TerminalSession.create({
+      bidi: true,
+      appearance: { grid: { columns: 4, rows: 8 } },
+    })
     session.write('abcdefgh')
     press(1)
-    session.selectionDrag({viewport:{x:2,y:1},position:{x:25,y:25},geometry:{columns:4,cellWidth:10,paddingLeft:0,screenHeight:160},rectangle:true})
-    session.selectionRelease({x:2,y:1})
+    session.selectionDrag({
+      viewport: { x: 2, y: 1 },
+      position: { x: 25, y: 25 },
+      geometry: { columns: 4, cellWidth: 10, paddingLeft: 0, screenHeight: 160 },
+      rectangle: true,
+    })
+    session.selectionRelease({ x: 2, y: 1 })
     expect(session.selectionCoordinates()?.rectangle).toBe(true)
     expect(session.getSelection()).toBe('bc\nfg')
   })
-
 })

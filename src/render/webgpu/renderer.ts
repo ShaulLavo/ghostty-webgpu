@@ -1,4 +1,5 @@
-import { RowBidiMapper, bidiProjection, paintedBidiCursor } from '../../bidi/row.js'
+import type { RowBidiMapper } from '../../bidi/row.js'
+import { loadBidiMapper, paintedBidiCursor } from '../../bidi/loader.js'
 import type {
   RenderStateSource,
   RendererMetrics,
@@ -202,6 +203,7 @@ export class WebGpuTerminalRenderer {
     lease: DeviceLease,
     replacementDeviceOwner: DeviceOwner,
     prepared: PreparedRenderer,
+    bidi?: RowBidiMapper,
   ) {
     this.canvas = options.canvas
     this.context = prepared.context
@@ -211,7 +213,7 @@ export class WebGpuTerminalRenderer {
     this.replacementDeviceOwner = replacementDeviceOwner
     if (!options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
-    this.bidi = options.bidi ? new RowBidiMapper() : undefined
+    this.bidi = bidi
     this.renderState = options.renderState
     this.onError = options.onError
     this.grid = prepared.grid
@@ -256,6 +258,7 @@ export class WebGpuTerminalRenderer {
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
+    const bidi = options.bidi ? await loadBidiMapper() : undefined
     const validated = validateRenderer(options)
     let owner = options.adapterPolicy === 'hardware' ? hardwareDeviceOwner : defaultDeviceOwner
     if (options.deviceFactory) owner = new DeviceOwner(options.deviceFactory)
@@ -265,7 +268,7 @@ export class WebGpuTerminalRenderer {
     try {
       textPassGlyphCapacity(lease.device, validated.grid.columns * validated.grid.rows)
       prepared = prepareRenderer(options, validated)
-      return new WebGpuTerminalRenderer(options, lease, replacementOwner, prepared)
+      return new WebGpuTerminalRenderer(options, lease, replacementOwner, prepared, bidi)
     } catch (cause) {
       try {
         prepared?.context.unconfigure()
@@ -531,7 +534,7 @@ export class WebGpuTerminalRenderer {
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
       if (this.bidi) {
         const mapper = this.bidi
-        builder.setBidiProjection(() => bidiProjection(this.renderState.readRows(), mapper))
+        builder.setBidiProjection(() => mapper.projection(this.renderState.readRows()))
       }
       this.zigBuilder = builder
       this.needsFullRebuild = true

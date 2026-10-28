@@ -1,4 +1,5 @@
-import { RowBidiMapper, paintedBidiCursor } from '../../bidi/row.js'
+import type { RowBidiMapper } from '../../bidi/row.js'
+import { paintedBidiCursor } from '../../bidi/loader.js'
 import { rowNeedsTextBlink } from './text-blink.js'
 import { FrameObserver } from './frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
@@ -80,8 +81,9 @@ export class RowTerminalRenderer {
   constructor(
     options: WebGpuTerminalRendererOptions,
     private readonly surface: RowRendererSurface,
+    bidi?: RowBidiMapper,
   ) {
-    this.bidi = options.bidi ? new RowBidiMapper() : undefined
+    this.bidi = bidi
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.font = copyFittedFont(options.font)
     this.grid = normalizeRendererGrid({

@@ -1,3 +1,5 @@
+import type { RowBidiMapper } from '../bidi/row.js'
+import { loadBidiMapper } from '../bidi/loader.js'
 import { fontMetricsEqual } from '../term/font-metrics.js'
 import { createGhosttyError } from '../core/error.js'
 import type { SelectionCoordinates, SelectionPoint } from '../core/selection.js'
@@ -322,6 +324,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory: GhosttyWebGpuRendererFactory
+  private bidiMapper?: RowBidiMapper
   private readonly bidi: boolean
   private readonly textBlink: boolean
   private readonly rendererMode: GhosttyWebGpuTerminalOptions['rendererMode']
@@ -590,6 +593,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     try {
       const elements = this.installElements(parent)
       if (this.execution.kind === 'async') this.subscribeToSession()
+      if (this.bidi) this.bidiMapper = await loadBidiMapper()
       const initialAppearance = this.execution.appearance
       renderer = await this.createRenderer(elements, initialAppearance)
       if (!this.isOpening(generation)) {
@@ -1580,7 +1584,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private installLinks(elements: TerminalElements): void {
     const links = createDomLinkController({
-      bidi: this.bidi,
+      bidiMapper: this.bidiMapper,
       getFrame: () => (this.execution.linkProjection ? this.readFrame() : undefined),
       getProjection: () => this.execution.linkProjection,
       activationModifier: this.linkActivationModifier,

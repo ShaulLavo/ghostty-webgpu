@@ -47,6 +47,17 @@ export class RowBidiMapper {
     return { ...cursor, x: this.getMap(row.cells).logicalToVisual[cursor.x] ?? cursor.x }
   }
 
+  projection(rows: readonly RenderRow[]): Uint32Array {
+    return bidiProjection(rows, this)
+  }
+
+  paintedCursor(
+    source: { readRows(options: { rows: ReadonlySet<number> }): readonly RenderRow[] },
+    cursor: CursorState | undefined,
+  ): CursorState | undefined {
+    return paintedBidiCursor(this, source, cursor)
+  }
+
   private compute(cells: readonly Pick<RenderCell, 'text' | 'continuation'>[]): RowBidiMap {
     let text = ''
     const owners: number[] = []

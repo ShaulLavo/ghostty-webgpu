@@ -27,17 +27,17 @@ if (swiftShader) args.push(...swiftShaderArgs)
 if (hardware && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
   args.push('--ozone-platform=wayland')
 
-const openScenario = `(async (backend) => {
+const openScenario = `(async (backend, bidi) => {
   const { Terminal, WebGpuTerminalRenderer } = await import('/dist/index.js');
   const rendererFactory = backend === 'webgpu'
     ? (options) => WebGpuTerminalRenderer.create(options)
     : undefined;
   const rendererMode = backend === 'canvas2d-pixels' ? backend : undefined;
-  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererFactory, rendererMode });
+  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererFactory, rendererMode, bidi });
   globalThis.rendererSmokeTerminal = terminal;
   await terminal.open(document.querySelector('main'));
   terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 255, g: 0, b: 0 } });
-  terminal.write('\\x1b[?25lbuilt-fallback-ok');
+  terminal.write('\\x1b[?25lbuilt-fallback-ok' + (bidi ? ' ab שלום cd' : ''));
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   return { backend: terminal.diagnostics.rendererBackend, text: terminal.visibleLines().join('\\n') };
 })`
@@ -66,20 +66,25 @@ const channel = swiftShader ? undefined : 'chromium'
 const env = swiftShader ? swiftShaderEnv() : undefined
 const browser = await chromium.launch({ args, channel, env, headless: !hardware })
 try {
-  for (const backend of selected) await checkBackend(backend)
+  for (const backend of selected) {
+    await checkBackend(backend, false)
+    await checkBackend(backend, true)
+  }
 } finally {
   await browser.close()
 }
 
-async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
-  console.log(`Checking built package with ${backend}`)
+async function checkBackend(backend: (typeof backends)[number], bidi: boolean): Promise<void> {
+  console.log(`Checking built package with ${backend}, bidi=${bidi}`)
   const page = await browser.newPage()
   page.setDefaultTimeout(15_000)
   const errors: string[] = []
   const composeRequests: string[] = []
+  const bidiRequests: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.route(`${origin}/**`, async (route) => {
     const path = new URL(route.request().url()).pathname
+    if (path.startsWith('/dist/bidi/')) bidiRequests.push(path)
     if (path === '/canvas-compose.wasm') composeRequests.push(path)
     if (path === '/') {
       await route.fulfill({
@@ -120,7 +125,7 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
   try {
     await page.goto(origin)
     const result: unknown = await page.evaluate(
-      `Promise.race([${openScenario}(${JSON.stringify(backend)}), new Promise((_, reject) => setTimeout(() => reject(new Error('Terminal smoke timed out')), 15000))])`,
+      `Promise.race([${openScenario}(${JSON.stringify(backend)},${JSON.stringify(bidi)}), new Promise((_, reject) => setTimeout(() => reject(new Error('Terminal smoke timed out')), 15000))])`,
     )
     assert(result && typeof result === 'object')
     assert('backend' in result && 'text' in result)
@@ -128,6 +133,12 @@ async function checkBackend(backend: (typeof backends)[number]): Promise<void> {
     assert.equal(composeRequests.length, backend === 'canvas2d-pixels' ? 1 : 0)
     assert.equal(typeof result.text, 'string')
     assert(String(result.text).includes('built-fallback-ok'))
+    assert.equal(
+      bidiRequests.some((path) => /\/(row|selection)\.js$/.test(path)),
+      bidi,
+      'Optional BiDi implementation loads only when enabled',
+    )
+    if (bidi) assert(String(result.text).includes('ab שלום cd'))
     await checkPresentation(page, backend)
     const selection: unknown = await page.evaluate(`(() => {
       const terminal = globalThis.rendererSmokeTerminal;

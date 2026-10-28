@@ -1,4 +1,4 @@
-import { RowBidiMapper } from '../bidi/row.js'
+import type { RowBidiMapper } from '../bidi/row.js'
 import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/shared/types.js'
 import type { LinkCell, LinkHit, LinkResolution } from '../term/links.js'
 import type { TerminalLinkRequest } from '../term/types.js'
@@ -23,7 +23,7 @@ export interface DomLinkSession {
 }
 
 export interface DomLinkControllerOptions {
-  readonly bidi?: boolean
+  readonly bidiMapper?: RowBidiMapper
   readonly activationModifier?: (event: MouseEvent) => boolean
   readonly canvas: HTMLCanvasElement
   readonly getFrame?: () => RendererTextFrameSnapshot | undefined
@@ -703,10 +703,8 @@ class BrowserLinkController implements DomLinkController {
     return defaultActivationModifier(this.view, event)
   }
 
-  private bidiMapper?: RowBidiMapper
-
   private logicalColumn(column: number, y: number): number {
-    if (!this.options.bidi) return column
+    if (!this.options.bidiMapper) return column
     const snapshot = this.options.getFrame ? this.options.getFrame() : this.readFrame()
     const row = snapshot && frameRow(snapshot, y)
     if (!row) return column
@@ -714,7 +712,7 @@ class BrowserLinkController implements DomLinkController {
       text,
       continuation: row.continuations[x] === true,
     }))
-    return (this.bidiMapper ??= new RowBidiMapper()).getMap(cells).visualToLogical[column] ?? column
+    return this.options.bidiMapper.getMap(cells).visualToLogical[column] ?? column
   }
 
   private cellAt(point: PointerPoint): ResolvedCell | undefined {
@@ -934,7 +932,9 @@ class BrowserLinkController implements DomLinkController {
       text,
       continuation: row.continuations[x] === true,
     }))
-    const map = (this.bidiMapper ??= new RowBidiMapper()).getMap(cells)
+    const mapper = this.options.bidiMapper
+    if (!mapper) return
+    const map = mapper.getMap(cells)
     this.overlay.replaceChildren()
     const columns = Array.from(
       { length: hit.range.end - hit.range.start + 1 },
@@ -964,7 +964,7 @@ class BrowserLinkController implements DomLinkController {
     const left = layout.physical.paddingLeft / ratio + hit.range.start * layout.grid.cellWidth
     const top = layout.physical.paddingTop / ratio + hit.row * layout.grid.cellHeight
     const cells = hit.range.end - hit.range.start + 1
-    if (this.options.bidi) {
+    if (this.options.bidiMapper) {
       this.positionBidiOverlay(hit, layout)
       return
     }

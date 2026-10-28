@@ -1,4 +1,4 @@
-import { BidiSelectionGesture } from '../bidi/selection.js'
+import type { BidiSelectionGesture } from '../bidi/selection.js'
 import { normalizeFontMetrics } from './font-metrics.js'
 import {
   ClipboardLocation,
@@ -511,6 +511,7 @@ interface NativeResources {
   readonly key: GhosttyKeyEncoder
   readonly mouse: GhosttyMouseEncoder
   readonly renderState: GhosttyRenderState
+  readonly bidiSelection?: BidiSelectionGesture
   readonly selection: GhosttySelectionGesture
   readonly terminal: GhosttyTerminal
 }
@@ -1106,6 +1107,7 @@ export class TerminalSession<TEvent = unknown> {
   private readonly ownsRuntime: boolean
   private revisionValue = 0
   private readonly runtimeValue: GhosttyRuntime
+  private readonly bidiSelection?: BidiSelectionGesture
   private readonly selection: GhosttySelectionGesture
   private scrollValue: TerminalScrollEvent
   private readonly terminal: GhosttyTerminal
@@ -1124,6 +1126,7 @@ export class TerminalSession<TEvent = unknown> {
     this.nativeRenderState = resources.renderState
     this.keyEncoder = resources.key
     this.mouseEncoder = resources.mouse
+    this.bidiSelection = resources.bidiSelection
     this.selection = resources.selection
     this.appearanceValue = appearance
     this.effectState = effectState
@@ -1158,16 +1161,18 @@ export class TerminalSession<TEvent = unknown> {
       partial.key = key
       const mouse = new GhosttyMouseEncoder(terminal)
       partial.mouse = mouse
-      const selection = options.bidi
-        ? new BidiSelectionGesture(terminal, renderState)
-        : new GhosttySelectionGesture(terminal)
+      const bidiModule = options.bidi ? await import('../bidi/selection.js') : undefined
+      const bidiSelection = bidiModule
+        ? new bidiModule.BidiSelectionGesture(terminal, renderState)
+        : undefined
+      const selection = bidiSelection ?? new GhosttySelectionGesture(terminal)
       partial.selection = selection
       const links = createLinkResolver(options.links, emitters)
       partial.links = links as LinkResolver<unknown>
       effectState.pending.length = 0
       return new TerminalSession(
         lease,
-        { key, mouse, renderState, selection, terminal },
+        { key, mouse, renderState, selection, bidiSelection, terminal },
         appearance,
         effectState,
         emitters,
@@ -1222,9 +1227,9 @@ export class TerminalSession<TEvent = unknown> {
 
   get renderState(): RenderStateSource {
     this.ensureActive()
-    if (!(this.selection instanceof BidiSelectionGesture)) return this.nativeRenderState
+    if (!this.bidiSelection) return this.nativeRenderState
     const source = this.nativeRenderState
-    const selection = this.selection
+    const selection = this.bidiSelection
     return {
       get snapshotVersion() {
         return source.snapshotVersion
@@ -1246,7 +1251,7 @@ export class TerminalSession<TEvent = unknown> {
   }
 
   get bidi(): boolean {
-    return this.selection instanceof BidiSelectionGesture
+    return this.bidiSelection !== undefined
   }
 
   get revision(): number {
@@ -1388,14 +1393,14 @@ export class TerminalSession<TEvent = unknown> {
 
   mouse(input: TerminalMouseInput): TerminalInputResult {
     return this.runOperation(() => {
-      if (this.selection instanceof BidiSelectionGesture) input = this.bidiMouse(input)
+      if (this.bidiSelection !== undefined) input = this.bidiMouse(input)
       const normalized = normalizeTerminalMouseInput(input)
       return this.publishInput(this.mouseEncoder.encode(normalized.event, normalized.state), false)
     })
   }
 
   private bidiMouse(input: TerminalMouseInput): TerminalMouseInput {
-    if (!(this.selection instanceof BidiSelectionGesture)) return input
+    if (!this.bidiSelection) return input
     const { geometry } = input.state
     const x = Math.max(
       0,
@@ -1411,7 +1416,7 @@ export class TerminalSession<TEvent = unknown> {
         Math.floor((input.event.y - geometry.paddingTop) / geometry.cellHeight),
       ),
     )
-    const logical = this.selection.logical({ x, y })
+    const logical = this.bidiSelection.logical({ x, y })
     return {
       ...input,
       event: { ...input.event, x: input.event.x + (logical.x - x) * geometry.cellWidth },
