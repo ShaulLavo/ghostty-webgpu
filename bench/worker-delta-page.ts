@@ -30,7 +30,9 @@ let sequence = 0
 let fixtureChunks: string[] = []
 
 function reportError(error: unknown): void {
-  errors.push(error instanceof Error ? error.message : String(error))
+  const message = error instanceof Error ? error.message : String(error)
+  const detail = error && typeof error === 'object' ? JSON.stringify(error) : ''
+  errors.push(`${message} ${detail}`)
 }
 
 function consumeSnapshot(index: number, snapshot: RendererTextFrameSnapshot): void {
@@ -77,7 +79,7 @@ async function setup(
 }
 
 async function addControl(mode: WorkerDeltaMode, index: number): Promise<void> {
-  const control = await createControl(mode, columns, rows, (snapshot) =>
+  const control = await createControl(mode, columns, rows, index, (snapshot) =>
     consumeSnapshot(index, snapshot),
   )
   executions.push(control.execution)

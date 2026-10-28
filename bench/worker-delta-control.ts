@@ -6,18 +6,21 @@ export async function createControl(
   mode: 'control' | 'delta',
   columns: number,
   rows: number,
+  ordinal: number,
   onFrame: (snapshot: RendererTextFrameSnapshot) => void,
 ) {
+  const backend =
+    new URL(location.href).searchParams.get('backend') === 'webgpu' ? 'webgpu' : 'webgl'
   const execution = await WorkerTerminalExecution.create({
     assets: { wasm: '/ghostty-vt.wasm', bridge: '/bridge.wasm' },
-    backend: 'webgl',
+    backend,
     faces: [{ family: 'JetBrains Mono', source: { url: '/fonts/JetBrainsMono-Regular.woff2' } }],
     appearance: {
       grid: { columns, rows },
       font: { family: 'JetBrains Mono', size: 13 },
       cursor: { blink: false },
     },
-    workerUrl: `/${mode}-worker.js`,
+    workerUrl: `/${mode}-worker.js?ordinal=${ordinal}`,
   })
   const events: unknown[] = []
   for (const name of [

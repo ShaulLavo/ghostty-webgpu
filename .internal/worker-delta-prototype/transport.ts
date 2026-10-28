@@ -12,6 +12,9 @@ type Timing = {
   readonly execute?: number
 }
 type Instrumented = WorkerMessage & { readonly experimentTiming: Timing }
+type FrameSnapshotWithRevisions = Extract<WorkerMessage, { type: 'frame' }>['snapshot'] & {
+  readonly nativeFrame?: { readTextRevisions(): readonly number[] }
+}
 const now = () => performance.timeOrigin + performance.now()
 export class Publication {
   private readonly encoder = new RowEncoder()
@@ -42,12 +45,14 @@ export class Publication {
       ...request,
     }
     if (this.binary && message.type === 'frame') {
-      const delta = this.encoder.encode(message)
+      const { nativeFrame, ...snapshot } = message.snapshot as FrameSnapshotWithRevisions
+      if (!nativeFrame) throw new Error('revision transport requires a retained native frame')
+      const delta = this.encoder.encode(message, nativeFrame.readTextRevisions())
       if (this.verifier) {
         const decoded = this.verifier.decode(structuredClone(delta))
         if (
           JSON.stringify({ summary: decoded.summary, snapshot: decoded.snapshot }) !==
-          JSON.stringify({ summary: message.summary, snapshot: message.snapshot })
+          JSON.stringify({ summary: message.summary, snapshot })
         )
           throw new Error('complete frame roundtrip diverged')
       }

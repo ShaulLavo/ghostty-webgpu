@@ -1,5 +1,6 @@
 import type { WorkerMessage } from '../../src/worker/protocol.js'
 import type { RendererTextFrameRow } from '../../src/render/shared/types.js'
+import type { TerminalSubmittedRow } from '../../src/dom/submitted-frame.js'
 import { freezeWorkerValue } from '../../src/worker/owned.js'
 
 type Frame = Extract<WorkerMessage, { type: 'frame' }>
@@ -7,18 +8,9 @@ export interface DeltaFrame extends Omit<Frame, 'snapshot' | 'summary'> {
   readonly snapshot: Omit<Frame['snapshot'], 'rows'>
   readonly summary: Omit<Frame['summary'], 'rows' | 'rowPatches'>
   readonly order: readonly number[]
+  readonly ys: readonly number[]
   readonly patches: readonly number[]
   readonly buffer: ArrayBuffer
-}
-
-function equalRow(left: RendererTextFrameRow | undefined, right: RendererTextFrameRow): boolean {
-  return (
-    left?.text === right.text &&
-    left.cells.length === right.cells.length &&
-    left.continuations.length === right.continuations.length &&
-    left.cells.every((cell, index) => cell === right.cells[index]) &&
-    left.continuations.every((flag, index) => flag === right.continuations[index])
-  )
 }
 
 class BinaryWriter {
@@ -39,6 +31,7 @@ class BinaryWriter {
     }
   }
 }
+
 class BinaryReader {
   private offset = 0
   private readonly view: DataView
@@ -61,14 +54,34 @@ class BinaryReader {
   }
 }
 
+function movedRow(row: RendererTextFrameRow, y: number): RendererTextFrameRow {
+  if (row.y === y) return row
+  return freezeWorkerValue({
+    y,
+    text: row.text,
+    get cells() {
+      return row.cells
+    },
+    get continuations() {
+      return row.continuations
+    },
+  })
+}
+
 export class RowEncoder {
-  private readonly rows = new Map<number, RendererTextFrameRow>()
-  encode(frame: Frame): DeltaFrame {
-    const changed = frame.snapshot.rows.filter((row) => !equalRow(this.rows.get(row.y), row))
+  private readonly revisions = new Set<number>()
+  private previousOrder: readonly number[] = []
+
+  encode(frame: Frame, revisions: readonly number[]): DeltaFrame {
+    const rows = frame.snapshot.rows
+    if (revisions.length !== rows.length || revisions.some((revision) => revision <= 0))
+      throw new Error('native text revisions do not match frame rows')
+    const changed = rows.filter((_, index) => !this.revisions.has(revisions[index]!))
+    const changedRevisions = revisions.filter((revision) => !this.revisions.has(revision))
     const size = changed.reduce(
       (total, row) =>
         total +
-        16 +
+        20 +
         row.text.length * 2 +
         row.cells.reduce((bytes, cell) => bytes + 4 + cell.length * 2, 0) +
         row.continuations.length * 4,
@@ -76,65 +89,107 @@ export class RowEncoder {
     )
     const writer = new BinaryWriter(new ArrayBuffer(size))
     writer.number(changed.length)
-    for (const row of changed) {
+    for (const [index, row] of changed.entries()) {
+      writer.number(changedRevisions[index]!)
       writer.number(row.y)
       writer.text(row.text)
       writer.number(row.cells.length)
       for (const cell of row.cells) writer.text(cell)
       writer.number(row.continuations.length)
       for (const flag of row.continuations) writer.number(Number(flag))
-      this.rows.set(row.y, row)
     }
-    const { rows, ...snapshot } = frame.snapshot
+    for (const revision of revisions) this.revisions.add(revision)
+    this.prune(revisions)
+    const {
+      rows: snapshotRows,
+      nativeFrame: _nativeFrame,
+      ...snapshot
+    } = frame.snapshot as Frame['snapshot'] & { nativeFrame?: unknown }
     const { rows: summaryRows, rowPatches, ...summary } = frame.summary
     if (
-      summaryRows.length !== rows.length ||
-      summaryRows.some((row, index) => row.y !== rows[index]?.y || row.text !== rows[index]?.text)
+      summaryRows.length !== snapshotRows.length ||
+      summaryRows.some(
+        (row, index) => row.y !== snapshotRows[index]?.y || row.text !== snapshotRows[index]?.text,
+      )
     )
       throw new Error('summary and renderer rows diverged')
     return {
       ...frame,
       snapshot,
       summary,
-      order: rows.map((row) => row.y),
+      order: revisions,
+      ys: snapshotRows.map((row) => row.y),
       patches: rowPatches.map((row) => row.y),
       buffer: writer.buffer,
     }
+  }
+
+  private prune(current: readonly number[]): void {
+    const keep = new Set(current.concat(this.previousOrder))
+    for (const revision of this.revisions) if (!keep.has(revision)) this.revisions.delete(revision)
+    this.previousOrder = current
   }
 }
 
 export class RowDecoder {
   private readonly rows = new Map<number, RendererTextFrameRow>()
-  private readonly textRows = new Map<number, { readonly y: number; readonly text: string }>()
+  private readonly textRows = new Map<number, TerminalSubmittedRow>()
+  private previousOrder: readonly number[] = []
+
   decode(frame: DeltaFrame): Frame {
     const reader = new BinaryReader(frame.buffer)
     const count = reader.number()
-    for (let index = 0; index < count; index += 1) {
-      const y = reader.number()
-      const text = reader.text()
-      const cells = Array.from({ length: reader.number() }, () => reader.text())
-      const continuations = Array.from({ length: reader.number() }, () => Boolean(reader.number()))
-      this.rows.set(y, freezeWorkerValue({ y, text, cells, continuations }))
-      this.textRows.set(y, Object.freeze({ y, text }))
-    }
-    const rows = frame.order.map((y) => {
-      const row = this.rows.get(y)
-      if (!row) throw new Error(`missing binary row ${y}`)
+    for (let index = 0; index < count; index += 1) this.readRow(reader)
+    const rows = frame.order.map((revision, index) => this.takeRow(revision, frame.ys[index]!))
+    const summaryRows = frame.order.map((revision, index) =>
+      this.takeTextRow(revision, frame.ys[index]!),
+    )
+    const byY = new Map(summaryRows.map((row) => [row.y, row]))
+    const rowPatches = frame.patches.map((y) => {
+      const row = byY.get(y)
+      if (!row) throw new Error(`missing summary patch ${y}`)
       return row
     })
-    const textRow = (y: number) => {
-      const row = this.textRows.get(y)
-      if (!row) throw new Error(`missing summary row ${y}`)
-      return row
-    }
+    this.prune(frame.order)
     return {
       ...frame,
       snapshot: { ...frame.snapshot, rows },
-      summary: {
-        ...frame.summary,
-        rows: frame.order.map(textRow),
-        rowPatches: frame.patches.map(textRow),
-      },
+      summary: { ...frame.summary, rows: summaryRows, rowPatches },
     }
+  }
+
+  private readRow(reader: BinaryReader): void {
+    const revision = reader.number()
+    const y = reader.number()
+    const text = reader.text()
+    const cells = Array.from({ length: reader.number() }, () => reader.text())
+    const continuations = Array.from({ length: reader.number() }, () => Boolean(reader.number()))
+    this.rows.set(revision, freezeWorkerValue({ y, text, cells, continuations }))
+    this.textRows.set(revision, Object.freeze({ y, text }))
+  }
+
+  private takeRow(revision: number, y: number): RendererTextFrameRow {
+    const cached = this.rows.get(revision)
+    if (!cached) throw new Error(`missing revision ${revision}`)
+    const row = movedRow(cached, y)
+    this.rows.set(revision, row)
+    return row
+  }
+
+  private takeTextRow(revision: number, y: number): TerminalSubmittedRow {
+    const cached = this.textRows.get(revision)
+    if (!cached) throw new Error(`missing summary revision ${revision}`)
+    if (cached.y === y) return cached
+    const row = Object.freeze({ y, text: cached.text })
+    this.textRows.set(revision, row)
+    return row
+  }
+
+  private prune(current: readonly number[]): void {
+    const keep = new Set(current.concat(this.previousOrder))
+    for (const revision of this.rows.keys()) if (!keep.has(revision)) this.rows.delete(revision)
+    for (const revision of this.textRows.keys())
+      if (!keep.has(revision)) this.textRows.delete(revision)
+    this.previousOrder = current
   }
 }

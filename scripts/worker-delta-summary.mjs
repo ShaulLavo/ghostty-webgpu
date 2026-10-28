@@ -39,7 +39,7 @@ const conditions = Array.from(groups, ([condition, arms]) => {
   const ratios = {
     host: ratio((r) => r.hostTaskMillisecondsPerFrame),
     worker: ratio((r) => r.cpu.workerSeconds),
-    memory: ratio((r) => r.memory.hostPlusGpuMiB),
+    memory: ratio((r) => r.memory.totalResidentMiB),
     p95: ratio((r) => r.acknowledgement.p95),
     p99: ratio((r) => r.acknowledgement.p99),
   }
@@ -62,10 +62,12 @@ const conditions = Array.from(groups, ([condition, arms]) => {
       'screenshots',
       'deliveredFrames',
       'parsedCounts',
+      'submittedCounts',
     ])
       assert.deepEqual(a[key], b[key], `${condition} ${key}`)
     for (const run of [a, b]) {
       assert.deepEqual(run.parsedCounts, run.deliveredFrames)
+      assert.deepEqual(run.submittedCounts, run.deliveredFrames)
       assert.equal(run.errors.length + run.pageErrors.length, 0)
       assert.equal(run.workerHeaps.length, run.count)
       assert(
@@ -94,7 +96,7 @@ const conditions = Array.from(groups, ([condition, arms]) => {
               r.hostHandlerMilliseconds / r.deliveredFrames.reduce((sum, count) => sum + count, 0),
           ),
           workerSeconds: mean(runs, (r) => r.cpu.workerSeconds),
-          memoryMiB: mean(runs, (r) => r.memory.hostPlusGpuMiB),
+          memoryMiB: mean(runs, (r) => r.memory.totalResidentMiB),
           p95: mean(runs, (r) => r.acknowledgement.p95),
           p99: mean(runs, (r) => r.acknowledgement.p99),
         },
@@ -106,7 +108,7 @@ const summary = {
   countEndpoints: {
     parsed: 'Acknowledged native writes',
     delivered: 'Host frame callbacks',
-    submitted: 'Not independently measured; inferred from host delivery only',
+    submitted: 'Renderer metrics read independently through worker CDP targets',
     presented: 'Unresolved',
   },
   decision: conditions.every((c) => Object.values(c.gates).every(Boolean))

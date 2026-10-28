@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { chromium, type CDPSession, type Page } from 'playwright'
+import { createCounterReader } from './comparison-counters.mjs'
 
 const root = join(import.meta.dirname, '..')
 const output = resolve(
@@ -11,6 +12,8 @@ const output = resolve(
 const steps = Number(process.env.WORKER_DELTA_STEPS ?? 60)
 const repetitions = Number(process.env.WORKER_DELTA_REPETITIONS ?? 2)
 const headless = process.env.WORKER_DELTA_HEADLESS === '1'
+const backend =
+  process.env.WORKER_DELTA_BACKEND ?? (process.platform === 'darwin' ? 'webgpu' : 'webgl')
 const origin = 'http://localhost:41917'
 const port = 41918
 const fixtures = process.env.WORKER_DELTA_FIXTURES?.split(',') ?? [
@@ -57,12 +60,48 @@ async function bundle(entrypoint: string, binary = false): Promise<string> {
             const experimentReception = new Reception(new URL(location.href).searchParams.get('mode') === 'delta')\n`
             return { contents: prefix + source.replace(before, after), loader: 'ts' }
           })
+          build.onLoad({ filter: /src\/dom\/execution-local\.ts$/u }, async ({ path }) => {
+            const source = await readFile(path, 'utf8')
+            const before =
+              'get canPaint() {\n        return execution.rendererValue?.canPaint\n      },'
+            const after = `${before}\n      get metrics() {\n        return execution.rendererValue?.metrics\n      },`
+            assert(source.includes(before), 'renderer metrics patch no longer matches')
+            return { contents: source.replace(before, after), loader: 'ts' }
+          })
+          build.onLoad({ filter: /src\/worker\/structured-errors\.ts$/u }, async ({ path }) => {
+            const source = await readFile(path, 'utf8')
+            const before = 'causeType: cause instanceof Error ? cause.name : typeof cause,'
+            const after = `${before}\n      causeStack: cause instanceof Error ? cause.stack : undefined,`
+            assert(source.includes(before), 'error patch no longer matches')
+            return { contents: source.replace(before, after), loader: 'ts' }
+          })
+          build.onLoad({ filter: /src\/core\/displayed-frame\.ts$/u }, async ({ path }) => {
+            let source = await readFile(path, 'utf8')
+            const changes = [
+              [
+                '  private readRevisions(slot: NativeSlot): number[] {',
+                '  revisionList(slot: NativeSlot): readonly number[] {\n    return this.slotRevisions.get(slot) ?? this.readRevisions(slot)\n  }\n\n  private readRevisions(slot: NativeSlot): number[] {',
+              ],
+              [
+                '  readTextRows(options: DisplayedTextOptions = noOptions): readonly RenderTextRow[] {',
+                '  readTextRevisions(): readonly number[] {\n    this.active()\n    return this.frames.textCache.revisionList(this.current)\n  }\n\n  readTextRows(options: DisplayedTextOptions = noOptions): readonly RenderTextRow[] {',
+              ],
+            ]
+            for (const [before, after] of changes) {
+              assert(
+                before && after && source.includes(before),
+                'displayed-frame patch no longer matches',
+              )
+              source = source.replace(before, after)
+            }
+            return { contents: source, loader: 'ts' }
+          })
           build.onLoad({ filter: /src\/worker\/runtime\.ts$/u }, async ({ path }) => {
             let source = await readFile(path, 'utf8')
             const changes = [
               [
                 'async start(): Promise<void> {',
-                'async start(): Promise<void> {\n    globalThis.__deltaIdentity = this.initialize.terminal',
+                'async start(): Promise<void> {\n    globalThis.__deltaIdentity = this.initialize.terminal\n    globalThis.__deltaSubmitted = 0',
               ],
               [
                 'const request = event.data',
@@ -73,6 +112,14 @@ async function bundle(entrypoint: string, binary = false): Promise<string> {
                 'private async execute(request: WorkerRequest): Promise<void> {\n    experimentPublication.execute(request)',
               ],
               [
+                "private submitFrame(snapshot: Parameters<LocalTerminalExecution['submit']>[0]): void {",
+                "private submitFrame(snapshot: Parameters<LocalTerminalExecution['submit']>[0]): void {\n    globalThis.__deltaSubmitted = (this.renderer as unknown as {metrics?: {submittedFrames: number}} | undefined)?.metrics?.submittedFrames ?? 0",
+              ],
+              [
+                'const device = await adapter.requestDevice()',
+                'globalThis.__deltaAdapter = {fallback: adapter.isFallbackAdapter, info: adapter.info}\n      const device = await adapter.requestDevice()',
+              ],
+              [
                 'this.initialize.port.postMessage(message)',
                 'experimentPublication.post(this.initialize.port, message)',
               ],
@@ -81,7 +128,29 @@ async function bundle(entrypoint: string, binary = false): Promise<string> {
               assert(before && after && source.includes(before), 'runtime patch no longer matches')
               source = source.replace(before, after)
             }
-            const prefix = `import { Publication } from '${join(root, '.internal/worker-delta-prototype/transport.ts')}'
+            if (binary) {
+              const retained = [
+                [
+                  'needsFrameRows: () => true,',
+                  'needsFrameRows: () => true,\n      retainDisplayedText: true,',
+                ],
+                [
+                  "onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>",
+                  "[observeDisplayedFrame]: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>",
+                ],
+              ]
+              for (const [before, after] of retained) {
+                assert(
+                  before && after && source.includes(before),
+                  'retained observer patch no longer matches',
+                )
+                source = source.replace(before, after)
+              }
+            }
+            const revisionImport = binary
+              ? `import { observeDisplayedFrame } from '${join(root, 'src/render/shared/displayed-frame.ts')}'\n`
+              : ''
+            const prefix = `${revisionImport}import { Publication } from '${join(root, '.internal/worker-delta-prototype/transport.ts')}'
             const experimentPublication = new Publication(${binary}, ${process.env.WORKER_DELTA_PARITY === '1'})\n`
             return { contents: prefix + source, loader: 'ts' }
           })
@@ -149,7 +218,7 @@ class RawCdp {
     this.trace.length = 0
     this.traceComplete = Promise.withResolvers<void>()
     await this.send('Tracing.start', {
-      categories: '-*,v8,disabled-by-default-v8.gc',
+      categories: '-*,toplevel,v8,disabled-by-default-v8.gc',
       transferMode: 'ReportEvents',
     })
   }
@@ -162,10 +231,29 @@ class RawCdp {
   }
 }
 
-async function workerHeaps(cdp: RawCdp) {
+function workerTrace(trace: Record<string, unknown>[]) {
+  const workers = new Set<string>()
+  for (const event of trace) {
+    if (event.ph !== 'M' || event.name !== 'thread_name') continue
+    const args = event.args as { name?: string }
+    if (args.name?.includes('DedicatedWorker')) workers.add(`${event.pid}:${event.tid}`)
+  }
+  const taskNames: Record<string, number> = {}
+  let seconds = 0
+  for (const event of trace) {
+    if (!workers.has(`${event.pid}:${event.tid}`) || event.ph !== 'X') continue
+    const duration = Number(event.dur ?? 0) / 1_000_000
+    const name = String(event.name)
+    taskNames[name] = (taskNames[name] ?? 0) + duration
+    if (name === 'ThreadControllerImpl::RunTask') seconds += duration
+  }
+  return { seconds, taskNames, threads: workers.size }
+}
+
+async function workerStates(cdp: RawCdp) {
   const targets = await cdp.send('Target.getTargets')
   assert(Array.isArray(targets.targetInfos))
-  const heaps: Record<string, unknown>[] = []
+  const states: Record<string, unknown>[] = []
   for (const target of targets.targetInfos) {
     if (target.type !== 'worker') continue
     const attached = await cdp.send('Target.attachToTarget', {
@@ -178,15 +266,45 @@ async function workerHeaps(cdp: RawCdp) {
       'Runtime.evaluate',
       {
         expression:
-          '({terminal:globalThis.__deltaIdentity,epoch:performance.timeOrigin+performance.now()})',
+          '({terminal:globalThis.__deltaIdentity,epoch:performance.timeOrigin+performance.now(),submitted:globalThis.__deltaSubmitted,adapter:globalThis.__deltaAdapter,ordinal:Number(new URL(location.href).searchParams.get("ordinal"))})',
         returnByValue: true,
       },
       attached.sessionId,
     )
-    heaps.push({ targetId: target.targetId, url: target.url, identity, ...heap })
+    states.push({ targetId: target.targetId, url: target.url, identity, ...heap })
     await cdp.send('Target.detachFromTarget', { sessionId: attached.sessionId })
   }
-  return heaps
+  return states
+}
+
+interface WorkerIdentity {
+  terminal: string
+  ordinal: number
+  submitted: number
+  adapter?: { fallback: boolean }
+}
+
+function workerIdentity(state: Record<string, unknown>): WorkerIdentity {
+  const identity = state.identity as { result: { value: WorkerIdentity } }
+  return identity.result.value
+}
+
+function workerDeltas(
+  before: Record<string, unknown>[],
+  after: Record<string, unknown>[],
+): number[] {
+  const prior = new Map(before.map((state) => [workerIdentity(state).terminal, state]))
+  const submittedCounts: number[] = []
+  const ordered = after.toSorted(
+    (left, right) => workerIdentity(left).ordinal - workerIdentity(right).ordinal,
+  )
+  for (const state of ordered) {
+    const identity = workerIdentity(state)
+    const previous = prior.get(identity.terminal)
+    assert(previous, `missing warm worker ${identity.terminal}`)
+    submittedCounts.push(identity.submitted - workerIdentity(previous).submitted)
+  }
+  return submittedCounts
 }
 
 async function processes(
@@ -194,24 +312,6 @@ async function processes(
 ): Promise<{ id: number; type: string; cpuTime: number }[]> {
   const result = await cdp.send('SystemInfo.getProcessInfo')
   return result.processInfo
-}
-
-async function workerCpuTicks(processIds: number[]): Promise<number> {
-  let ticks = 0
-  for (const pid of processIds) ticks += await processWorkerTicks(pid)
-  return ticks
-}
-
-async function processWorkerTicks(pid: number): Promise<number> {
-  const tasks = await readdir(`/proc/${pid}/task`).catch(() => [])
-  let ticks = 0
-  for (const tid of tasks) {
-    const text = await readFile(`/proc/${pid}/task/${tid}/stat`, 'utf8').catch(() => '')
-    if (!text.includes('(DedicatedWorker')) continue
-    const fields = text.slice(text.lastIndexOf(')') + 2).split(' ')
-    ticks += Number(fields[11]) + Number(fields[12])
-  }
-  return ticks
 }
 
 async function processMemory(processIds: number[]) {
@@ -223,6 +323,24 @@ async function processMemory(processIds: number[]) {
     rssKiB += Number(/^Rss:\s+(\d+)/mu.exec(text)?.[1] ?? 0)
   }
   return { pssKiB, rssKiB }
+}
+
+async function macMemory(
+  counters: Awaited<ReturnType<typeof createCounterReader>>,
+  running: { id: number; type: string; cpuTime: number }[],
+) {
+  assert(!counters.skipped, counters.reason ?? 'native process counters unavailable')
+  const snapshot = (await counters.snapshot(running)) as {
+    processes: Record<string, { values: { ri_phys_footprint?: string; error?: unknown } }>
+  }
+  let bytes = 0n
+  for (const process of Object.values(snapshot.processes)) {
+    assert(!process.values.error, String(process.values.error))
+    const footprint = process.values.ri_phys_footprint
+    assert(typeof footprint === 'string', 'physical footprint missing')
+    bytes += BigInt(footprint)
+  }
+  return { totalResidentMiB: Number(bytes) / 1024 / 1024, physicalFootprint: snapshot }
 }
 
 async function route(page: Page, assets: Map<string, string | Buffer>): Promise<void> {
@@ -277,23 +395,34 @@ async function bounded<Value>(promise: Promise<Value>): Promise<Value> {
 
 async function browserResources() {
   const args = [
+    '--enable-unsafe-webgpu',
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
     `--remote-debugging-port=${port}`,
   ]
   if (!headless && process.env.WAYLAND_DISPLAY) args.push('--ozone-platform=wayland')
-  const freeMiB = Number(
-    Bun.spawnSync(['nvidia-smi', '--query-gpu=memory.free', '--format=csv,noheader,nounits'])
-      .stdout.toString()
-      .trim(),
-  )
-  if (!headless) assert(freeMiB >= 2048, `only ${freeMiB} MiB VRAM free`)
+  if (!headless) assert(process.platform === 'darwin', 'timing runs require the M1 Mac')
+  const freeMiB =
+    process.platform === 'linux'
+      ? Number(
+          Bun.spawnSync(['nvidia-smi', '--query-gpu=memory.free', '--format=csv,noheader,nounits'])
+            .stdout.toString()
+            .trim(),
+        )
+      : 0
+  if (!headless && process.platform === 'linux')
+    assert(freeMiB >= 2048, `only ${freeMiB} MiB VRAM free`)
   const browser = await chromium.launch({ channel: 'chromium', headless, args })
   let raw: RawCdp | undefined
+  let counters: Awaited<ReturnType<typeof createCounterReader>> | undefined
   try {
     raw = await RawCdp.connect()
     const browserCdp = await browser.newBrowserCDPSession()
+    if (process.platform === 'darwin') {
+      counters = await createCounterReader(browserCdp)
+      assert(!counters.skipped, counters.reason ?? 'native process counters unavailable')
+    }
     const gpuInfo = await browserCdp.send('SystemInfo.getInfo')
     if (!headless)
       assert(
@@ -301,9 +430,10 @@ async function browserResources() {
           !/swiftshader|llvmpipe|software/iu.test(gpuInfo.gpu.auxAttributes.glRenderer),
         'hardware adapter required',
       )
-    return { browser, raw, browserCdp, gpuInfo, args, freeMiB, session: randomUUID() }
+    return { browser, raw, browserCdp, counters, gpuInfo, args, freeMiB, session: randomUUID() }
   } catch (cause) {
     raw?.close()
+    await counters?.close?.()
     await browser.close()
     throw cause
   }
@@ -319,7 +449,7 @@ async function measure(
   repetition: number,
   assets: Map<string, string | Buffer>,
 ) {
-  const { browser, raw, browserCdp, gpuInfo, args, freeMiB, session } = resources
+  const { browser, raw, browserCdp, counters, gpuInfo, args, freeMiB, session } = resources
   const page = await browser.newPage({
     viewport: { width: 2400, height: 1800 },
     deviceScaleFactor: 2,
@@ -332,7 +462,7 @@ async function measure(
         pageErrors.push(message.text())
     })
     await route(page, assets)
-    await page.goto(`${origin}/?fixture=${fixture}&mode=${mode}`)
+    await page.goto(`${origin}/?fixture=${fixture}&mode=${mode}&backend=${backend}`)
     await bounded(
       page.evaluate(
         ({ mode, count, columns, rows }) =>
@@ -340,41 +470,62 @@ async function measure(
         { mode, count, columns, rows },
       ),
     )
-    const workerHeap = await workerHeaps(raw)
-    assert.equal(workerHeap.length, count, 'worker target count')
+    const initialWorkers = await workerStates(raw)
+    assert.equal(initialWorkers.length, count, 'worker target count')
+    if (backend === 'webgpu') {
+      for (const state of initialWorkers)
+        assert(
+          workerIdentity(state).adapter?.fallback === false,
+          'hardware WebGPU adapter required',
+        )
+    }
     const pageCdp = await page.context().newCDPSession(page)
     await pageCdp.send('Performance.enable', { timeDomain: 'threadTicks' })
     await bounded(page.evaluate(() => window.__workerDeltaBench.sample(8)))
     const warm = await bounded(page.evaluate(() => window.__workerDeltaBench.report()))
+    const warmWorkers = await workerStates(raw)
     await raw.startTrace()
     const clockSync = { id: randomUUID(), beforeEpoch: Date.now(), afterEpoch: 0 }
     await raw.send('Tracing.recordClockSyncMarker', { syncId: clockSync.id })
     clockSync.afterEpoch = Date.now()
     const before = await processes(browserCdp)
-    const processIds = before.map((process) => process.id)
-    const beforeTicks = await workerCpuTicks(processIds)
     const beforeMetrics = await pageCdp.send('Performance.getMetrics')
     const started = performance.now()
     await bounded(page.evaluate((count) => window.__workerDeltaBench.sample(count), steps))
     const elapsed = performance.now() - started
     const afterMetrics = await pageCdp.send('Performance.getMetrics')
-    const afterTicks = await workerCpuTicks(processIds)
     await raw.endTrace()
+    const workerTiming = workerTrace(raw.trace)
+    assert(workerTiming.threads > 0, 'dedicated-worker trace threads missing')
+    assert(workerTiming.seconds > 0, 'dedicated-worker task duration missing')
     const after = await processes(browserCdp)
     const report = await bounded(page.evaluate(() => window.__workerDeltaBench.report()))
-    const liveHeaps = await workerHeaps(raw)
+    const liveWorkers = await workerStates(raw)
+    const submittedCounts = workerDeltas(warmWorkers, liveWorkers)
     const pageHeap = await pageCdp.send('Runtime.getHeapUsage')
-    const hostMemory = await processMemory(after.map((process) => process.id))
-    const sampleFreeMiB = Number(
-      Bun.spawnSync(['nvidia-smi', '--query-gpu=memory.free', '--format=csv,noheader,nounits'])
-        .stdout.toString()
-        .trim(),
-    )
-    const memory = {
-      ...hostMemory,
-      gpuDeltaMiB: freeMiB - sampleFreeMiB,
-      hostPlusGpuMiB: hostMemory.pssKiB / 1024 + Math.max(0, freeMiB - sampleFreeMiB),
-    }
+    const hostMemory =
+      process.platform === 'linux'
+        ? await processMemory(after.map((process) => process.id))
+        : { pssKiB: 0, rssKiB: 0 }
+    const sampleFreeMiB =
+      process.platform === 'linux'
+        ? Number(
+            Bun.spawnSync([
+              'nvidia-smi',
+              '--query-gpu=memory.free',
+              '--format=csv,noheader,nounits',
+            ])
+              .stdout.toString()
+              .trim(),
+          )
+        : 0
+    const memory = counters
+      ? await macMemory(counters, after)
+      : {
+          ...hostMemory,
+          gpuDeltaMiB: freeMiB - sampleFreeMiB,
+          totalResidentMiB: hostMemory.pssKiB / 1024 + Math.max(0, freeMiB - sampleFreeMiB),
+        }
     const snapshots = await bounded(page.evaluate(() => window.__workerDeltaBench.snapshotReport()))
     const prefix = `${fixture}-${mode}-${count}-${columns}x${rows}-${repetition}`
     const screenshots: string[] = []
@@ -393,6 +544,7 @@ async function measure(
     )
     const receipt = {
       mode,
+      backend,
       fixture,
       count,
       columns,
@@ -407,14 +559,16 @@ async function measure(
       freeMiB,
       pageErrors,
       cpu: {
-        workerSeconds: (afterTicks - beforeTicks) / 100,
+        workerSeconds: workerTiming.seconds,
+        workerCpuBasis: 'top-level task duration on dedicated-worker trace threads',
         hostTaskSeconds: metric('TaskDuration'),
         hostScriptSeconds: metric('ScriptDuration'),
         before,
         after,
       },
       pageHeap,
-      workerHeaps: liveHeaps,
+      workerHeaps: liveWorkers,
+      workerTrace: workerTiming,
       memory,
       hostHandlerMilliseconds: report.hostHandlerMilliseconds - warm.hostHandlerMilliseconds,
       hostTaskMillisecondsPerFrame:
@@ -443,9 +597,8 @@ async function measure(
         chunks.reduce((sum, chunk) => sum + Buffer.byteLength(chunk), 0),
       ),
       parsedCounts: report.writeCounts.map((value, index) => value - warm.writeCounts[index]!),
-      submittedCounts: null,
-      inferredSubmittedCounts: delivered,
-      submissionCountBasis: 'inferred-from-host-delivery',
+      submittedCounts,
+      submissionCountBasis: 'renderer metrics read through each worker CDP target',
       presentedCounts: null,
       snapshotHashes: snapshots.map((snapshot) =>
         createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'),
@@ -558,13 +711,17 @@ async function main(): Promise<void> {
       assert.deepEqual(pair[0]?.screenshots, pair[1]?.screenshots, 'pixel parity')
       assert.deepEqual(pair[0]?.snapshotHashes, pair[1]?.snapshotHashes, 'complete snapshot parity')
       assert.deepEqual(pair[0]?.deliveredFrames, pair[1]?.deliveredFrames, 'delivery parity')
+      assert.deepEqual(pair[0]?.submittedCounts, pair[1]?.submittedCounts, 'submission parity')
     } finally {
       resources.raw.close()
+      await resources.counters?.close?.()
       await resources.browser.close()
     }
   }
 }
-const scratch = await mkdtemp('/work/tmp/x4b-')
+const scratchBase = process.platform === 'darwin' ? join(process.env.HOME!, 'tmp') : '/work/tmp'
+await mkdir(scratchBase, { recursive: true })
+const scratch = await mkdtemp(join(scratchBase, 'x4r-'))
 process.env.TMPDIR = scratch
 try {
   await main()
