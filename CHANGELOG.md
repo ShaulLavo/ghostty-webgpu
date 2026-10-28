@@ -1,5 +1,36 @@
 # ghostty-webgpu
 
+## 0.3.26
+
+### Patch Changes
+
+- [#31](https://github.com/ShaulLavo/ghostty-webgpu/pull/31) [`12d910c`](https://github.com/ShaulLavo/ghostty-webgpu/commit/12d910c03986ee5eb7fa429bfedc8f6f607d8e9f) - Breaking: `onData` now delivers `{ bytes, origin }` instead of a bare `Uint8Array`, with `origin` set to `input` or `reply`. Worker terminals can follow host pixel-ratio changes through `fitEnvironment.getPixelRatio` and `fitEnvironment.subscribePixelRatio`.
+  Migration: change `terminal.onData((bytes) => …)` to `terminal.onData(({ bytes, origin }) => …)`.
+
+- [#32](https://github.com/ShaulLavo/ghostty-webgpu/pull/32) [`690f3ca`](https://github.com/ShaulLavo/ghostty-webgpu/commit/690f3ca0e5dcc2a555f1234485b35185dbd16742) - Added `ghostty-webgpu/core` for importing `GhosttyRuntime`, `GhosttyTerminal`, and `TerminalSession` without DOM or renderer code. URL-based WASM loads now use streaming compilation when available, and the experimental Canvas pixel compositor supports custom URLs and browsers without SIMD.
+  To use the headless entry, import these classes from `ghostty-webgpu/core` instead of the package root.
+
+- [#34](https://github.com/ShaulLavo/ghostty-webgpu/pull/34) [`26a0aa0`](https://github.com/ShaulLavo/ghostty-webgpu/commit/26a0aa0bbc3b7fb31226fcd4f10a767fa5e11935) - Improved displayed-text reads by reusing unchanged rows within each view while releasing superseded screen packets.
+
+- [#35](https://github.com/ShaulLavo/ghostty-webgpu/pull/35) [`da97119`](https://github.com/ShaulLavo/ghostty-webgpu/commit/da971191e76ce37c6a18d47bdc24a157f15a4183) - Fixed discarded frame captures to preserve accepted text and remove only rows cached by the abandoned attempt.
+
+- [#36](https://github.com/ShaulLavo/ghostty-webgpu/pull/36) [`6511178`](https://github.com/ShaulLavo/ghostty-webgpu/commit/65111787236a1a9b444a772a0d4c478dbc25fcb1) - Reduced duplicate text work for frame observers by reading from the same retained screen history as displayed reads.
+
+## 0.3.25
+
+### Patch Changes
+
+- [#12](https://github.com/ShaulLavo/ghostty-webgpu/pull/12) [`f69ae37`](https://github.com/ShaulLavo/ghostty-webgpu/commit/f69ae37ba33b2c8bb369b693e94a513a49ba29f3) - Breaking: Offscreen and collapsed terminals now pause painting by default while parsing and layout continue. Frame and text callbacks also pause until the terminal returns to view.
+  Migration: set `renderWhenOffscreen: true` to keep painting and receiving frame callbacks while the terminal is offscreen.
+
+- [#19](https://github.com/ShaulLavo/ghostty-webgpu/pull/19) [`6348f66`](https://github.com/ShaulLavo/ghostty-webgpu/commit/6348f661bf860ea64efeec6fac4609115c59d083) - Breaking: Blinking text is steady by default, matching native Ghostty.
+  Migration: set `textBlink: true` in the terminal or renderer creation options to animate blinking text.
+
+- [#29](https://github.com/ShaulLavo/ghostty-webgpu/pull/29) [`e64d6b0`](https://github.com/ShaulLavo/ghostty-webgpu/commit/e64d6b0f917c607e3169cc993a7d5a864376fcbd) - Added opt-in `writeBatched()` for asynchronous terminal output with parse acknowledgements and cancellation. `pendingWriteBytes` reports queued and worker-inflight bytes, with configurable queue limits. Existing synchronous `write()` behavior is unchanged.
+  Await `writeBatched()` before using a read as a read-after-write barrier for that batched output.
+
+- [#33](https://github.com/ShaulLavo/ghostty-webgpu/pull/33) [`e609ea8`](https://github.com/ShaulLavo/ghostty-webgpu/commit/e609ea88feb83b55e1a27c8ea3058d83db20bafc) - Fixed copying selected text in main-thread terminals and added Ctrl+Shift+C copy shortcuts on Linux and Windows.
+
 ## 0.3.24
 
 ### Patch Changes
