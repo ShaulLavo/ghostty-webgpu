@@ -206,3 +206,104 @@ it('compacts a fragmented page while retaining its pinned glyphs and the other p
   expect(uploads[0]?.layer).toBe(1)
   expect(uploads[0]?.pixels.slice(0, 8)).toEqual(Uint8Array.from([3, 3, 3, 3, 5, 5, 5, 5]))
 })
+
+it('keeps a peer owner visible page and delivers every eviction to every owner', () => {
+  const atlas = new GlyphAtlas({
+    maxLayersPerKind: 2,
+    padding: 0,
+    pageHeight: 4,
+    pageWidth: 4,
+  })
+  const peer = {}
+  const owner = {}
+  atlas.attachOwner(peer)
+  atlas.attachOwner(owner)
+
+  atlas.beginFrame(peer)
+  const visible = atlas.tryGetOrInsert('peer', bitmap('grayscale', 1, 4), -1)!
+  atlas.endFrame()
+  atlas.beginFrame(owner)
+  atlas.tryGetOrInsert('first', bitmap('grayscale', 2, 4), -1)
+  atlas.endFrame()
+  atlas.beginFrame(owner)
+  const recycled = atlas.tryGetOrInsert('second', bitmap('grayscale', 3, 4), -1)!
+  atlas.endFrame()
+
+  expect(recycled.glyph.layer).not.toBe(visible.glyph.layer)
+  expect(atlas.consumeEvictedPages(peer)).toEqual([
+    { kind: 'grayscale', layer: recycled.glyph.layer, generation: 2 },
+  ])
+  expect(atlas.consumeEvictedPages(owner)).toHaveLength(1)
+  expect(atlas.consumeEvictedPages(owner)).toEqual([])
+  atlas.beginFrame(owner)
+  atlas.tryGetOrInsert('second', bitmap('grayscale', 3, 4), -1)
+  expect(atlas.tryGetOrInsert('third', bitmap('grayscale', 4, 4), -1)).toBeUndefined()
+  atlas.endFrame()
+})
+
+it('records cache and page metrics for each owner independently', () => {
+  const atlas = new GlyphAtlas({ padding: 0, pageHeight: 4, pageWidth: 4 })
+  const first = {}
+  const second = {}
+  atlas.attachOwner(first)
+  atlas.attachOwner(second)
+
+  atlas.beginFrame(first)
+  atlas.getOrInsert('A', bitmap('grayscale', 1, 4), -1)
+  atlas.getOrInsert('A', bitmap('grayscale', 2, 4), -1)
+  atlas.endFrame()
+  atlas.beginFrame(second)
+  atlas.getOrInsert('A', bitmap('grayscale', 2, 4), -1)
+  atlas.endFrame()
+
+  expect(atlas.metrics(first)).toEqual({ cacheHits: 1, cacheMisses: 1, evictions: 0, pages: 1 })
+  expect(atlas.metrics(second)).toEqual({ cacheHits: 1, cacheMisses: 0, evictions: 0, pages: 1 })
+})
+
+it('refuses compaction of a peer-pinned page and releases its pins when the peer detaches', () => {
+  const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageWidth: 8, pageHeight: 4 })
+  const peer = {}
+  const owner = {}
+  atlas.attachOwner(peer)
+  atlas.attachOwner(owner)
+  const glyph = atlas.getOrInsert('A', bitmap('grayscale', 1, 4), -1).glyph
+  atlas.getOrInsert('B', bitmap('grayscale', 2, 4), -1)
+  atlas.beginFrame(peer)
+  atlas.touchGlyph(glyph, -1)
+  atlas.endFrame()
+  atlas.beginFrame(owner)
+  atlas.touchGlyph(glyph, -1)
+  expect(atlas.hasReclaimableSpace).toBe(false)
+  expect(atlas.tryGetOrInsert('C', bitmap('grayscale', 3, 4), -1)).toBeUndefined()
+  atlas.endFrame()
+  atlas.detachOwner(peer)
+  atlas.beginFrame(owner)
+  atlas.touchGlyph(glyph, -1)
+  expect(atlas.hasReclaimableSpace).toBe(true)
+  expect(atlas.tryGetOrInsert('C', bitmap('grayscale', 3, 4), -1)).toBeDefined()
+  atlas.endFrame()
+})
+
+it('fits the union of two owners after growing the cap without eviction or repeated misses', () => {
+  const atlas = new GlyphAtlas({ maxLayersPerKind: 2, padding: 0, pageWidth: 4, pageHeight: 4 })
+  const first = {}
+  const peer = {}
+  atlas.attachOwner(first)
+  atlas.attachOwner(peer)
+  atlas.growCapacity(4)
+  for (let frame = 0; frame < 4; frame += 1) {
+    for (const [owner, keys] of [
+      [first, 'AB'],
+      [peer, 'CD'],
+    ] as const) {
+      atlas.beginFrame(owner)
+      Array.from(keys, (key) => atlas.getOrInsert(key, bitmap('grayscale', 1, 4), -1))
+      atlas.endFrame()
+    }
+  }
+  expect(atlas.pageCount).toBe(4)
+  expect(atlas.metrics(first)).toEqual({ cacheHits: 6, cacheMisses: 2, evictions: 0, pages: 2 })
+  expect(atlas.metrics(peer)).toEqual({ cacheHits: 6, cacheMisses: 2, evictions: 0, pages: 2 })
+  expect(atlas.consumeEvictedPages(first)).toEqual([])
+  expect(atlas.consumeEvictedPages(peer)).toEqual([])
+})

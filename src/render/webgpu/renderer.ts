@@ -16,8 +16,10 @@ import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
 import type { LigatureFinder } from '../shared/ligatures/finder.js'
 import { type RenderCursorSnapshot, type RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { GlyphAtlas } from '../shared/atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import type { GlyphAtlas } from '../shared/atlas/atlas.js'
+import type { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import type { SharedAtlasSync, SharedGlyphAtlas } from './shared-atlas.js'
+import { acquireSharedAtlas, releaseSharedAtlas } from './atlas-registry.js'
 import { AtlasGpuTextures } from './gpu-textures.js'
 import { renderCursorState, type InactiveCursorStyle, ligatureCursor } from '../shared/cursor.js'
 import {
@@ -32,7 +34,7 @@ import {
 } from '../shared/config.js'
 import { type CanonicalRendererTheme, type RendererTheme } from '../shared/instances/types.js'
 import { RenderScheduler } from '../shared/scheduler.js'
-import { textPassGlyphCapacity, WebGpuTextPass } from './text-pass.js'
+import { textPassGlyphCapacity, WebGpuTextPass, type TextPassCopy } from './text-pass.js'
 
 interface PreparedRenderer {
   readonly context: GPUCanvasContext
@@ -142,9 +144,11 @@ function sharedFrameCoordinator(): FrameCoordinator {
 export class WebGpuTerminalRenderer {
   private zigBuilder?: ZigFrameBuilder
   private readonly ligatures?: LigatureFinder
-  private atlas = new GlyphAtlas()
-  private atlasUploadedBytesOffset = 0
-  private atlasUploadOperationsOffset = 0
+  private sharedAtlas: SharedGlyphAtlas
+  private atlasUploadedBytesValue = 0
+  private atlasUploadOperationsValue = 0
+  private atlasVersion = -1
+  private readonly previousAtlasMetrics = { cacheHits: 0, cacheMisses: 0, evictions: 0 }
   private atlasTextures: AtlasGpuTextures
   private readonly canvas: HTMLCanvasElement | OffscreenCanvas
   private readonly context: GPUCanvasContext
@@ -168,7 +172,6 @@ export class WebGpuTerminalRenderer {
   private needsFullRebuild = true
   private readonly frames: FrameObserver
   private readonly overlayRows = new Set<number>()
-  private rasterizer: CanvasGlyphRasterizer
   private readonly onError?: (cause: unknown) => void
   private readonly renderState: RenderStateSource
   private restorePromise?: Promise<void>
@@ -224,17 +227,18 @@ export class WebGpuTerminalRenderer {
     this.frames.resize(this.grid.rows)
     this.format = prepared.format
     this.resizeCanvas()
-    this.rasterizer = this.createRasterizer()
+    this.sharedAtlas = acquireSharedAtlas(this.font, this, this.canvas)
     let atlasTextures: AtlasGpuTextures | undefined
     let textPass: WebGpuTextPass | undefined
     let scheduler: RenderScheduler | undefined
     try {
       this.configureContext(device)
-      atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
+      atlasTextures = this.sharedAtlas.acquireTextures(device)
       this.atlasTextures = atlasTextures
       textPass = this.createTextPass()
       this.textPass = textPass
       this.textPass.syncAtlas(this.atlasTextures)
+      this.atlasVersion = this.sharedAtlas.textureVersion(device)
       scheduler = new RenderScheduler({
         textBlink: options.textBlink,
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
@@ -250,9 +254,18 @@ export class WebGpuTerminalRenderer {
     } catch (cause) {
       scheduler?.dispose()
       textPass?.destroy()
-      atlasTextures?.destroy()
+      if (atlasTextures) this.sharedAtlas.releaseTextures(device)
+      releaseSharedAtlas(this.sharedAtlas, this)
       throw cause
     }
+  }
+
+  private get atlas(): GlyphAtlas {
+    return this.sharedAtlas.atlas
+  }
+
+  private get rasterizer(): CanvasGlyphRasterizer {
+    return this.sharedAtlas.rasterizer
   }
 
   static async create(options: WebGpuTerminalRendererOptions): Promise<WebGpuTerminalRenderer> {
@@ -290,7 +303,6 @@ export class WebGpuTerminalRenderer {
   clearTextureAtlas(): void {
     this.resetAtlasResources()
     if (this.disposed) return
-    this.rasterizer = this.createRasterizer()
     this.invalidateAll()
   }
 
@@ -355,10 +367,9 @@ export class WebGpuTerminalRenderer {
     const geometryChanged = !fittedFontGeometryEquals(this.font, next)
     this.coordinator?.flushOwner(this)
     if (this.disposed) return
+    this.switchSharedAtlas(next)
     this.font = next
     if (geometryChanged) this.rebuildGeometryResources()
-    this.rasterizer = this.createRasterizer()
-    this.resetAtlasResources()
     this.invalidateAll()
   }
 
@@ -386,6 +397,11 @@ export class WebGpuTerminalRenderer {
 
   async capturePixels(): Promise<Uint8Array> {
     this.coordinator?.flushOwner(this)
+    if (this.atlas.hasEvictions(this)) {
+      this.needsFullRebuild = true
+      this.scheduler.flush()
+    }
+    this.syncSharedAtlas()
     const width = this.canvas.width
     const height = this.canvas.height
     const bytesPerRow = alignedBytesPerRow(width)
@@ -401,13 +417,19 @@ export class WebGpuTerminalRenderer {
         size: [width, height],
         usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
       })
-      const command = this.textPass.encode(texture.createView(), {
+      const command = this.encodeAtlasFrame(texture.createView(), {
         texture,
         buffer: output,
         bytesPerRow,
         size: [width, height],
       })
-      this.device.queue.submit([command])
+      try {
+        this.device.queue.submit([command])
+        this.sharedAtlas.frameSubmitted(this, this.device)
+      } catch (cause) {
+        this.sharedAtlas.frameFailed(this, this.device)
+        throw cause
+      }
       await output.mapAsync(GPUMapMode.READ)
       mapped = true
       const sourcePixels = new Uint8Array(output.getMappedRange())
@@ -438,7 +460,8 @@ export class WebGpuTerminalRenderer {
       this.scheduler.dispose()
       this.zigBuilder?.dispose()
       this.textPass.destroy()
-      this.atlasTextures.destroy()
+      this.sharedAtlas.releaseTextures(this.device)
+      releaseSharedAtlas(this.sharedAtlas, this)
       this.unconfigureContext()
     }
     return Promise.all([this.deviceLease.release(), this.restorePromise])
@@ -455,8 +478,42 @@ export class WebGpuTerminalRenderer {
     })
   }
 
-  private createRasterizer(): CanvasGlyphRasterizer {
-    return new CanvasGlyphRasterizer({ font: this.font })
+  private switchSharedAtlas(font: TerminalFittedFont): void {
+    this.coordinator?.flushOwner(this)
+    if (this.disposed) return
+    const previous = this.sharedAtlas
+    const next = acquireSharedAtlas(font, this, this.canvas)
+    let textures: AtlasGpuTextures | undefined
+    try {
+      textures = next.acquireTextures(this.device)
+      this.textPass.syncAtlas(textures)
+    } catch (cause) {
+      if (textures) next.releaseTextures(this.device)
+      releaseSharedAtlas(next, this)
+      throw cause
+    }
+    const counts = previous.metrics(this)
+    this.previousAtlasMetrics.cacheHits += counts.cacheHits
+    this.previousAtlasMetrics.cacheMisses += counts.cacheMisses
+    this.previousAtlasMetrics.evictions += counts.evictions
+    previous.releaseTextures(this.device)
+    releaseSharedAtlas(previous, this)
+    this.sharedAtlas = next
+    this.atlasTextures = textures
+    this.atlasVersion = next.textureVersion(this.device)
+    this.zigBuilder?.clearGlyphs()
+  }
+
+  private syncSharedAtlas(): SharedAtlasSync {
+    const sync = this.sharedAtlas.sync(this.device)
+    this.atlasUploadedBytesValue += sync.uploadedBytes
+    this.atlasUploadOperationsValue += sync.uploadOperations
+    const version = this.sharedAtlas.textureVersion(this.device)
+    if (version === this.atlasVersion) return sync
+    this.atlasVersion = version
+    this.atlasTextures = this.sharedAtlas.textures(this.device)
+    this.textPass.syncAtlas(this.atlasTextures)
+    return sync
   }
 
   private createTextPass(device: GPUDevice = this.device): WebGpuTextPass {
@@ -472,6 +529,7 @@ export class WebGpuTerminalRenderer {
 
   private drawFrame(): void {
     if (this.disposed) return
+    if (this.atlas.hasEvictions(this)) this.needsFullRebuild = true
     this.coordinator?.flushOwner(this)
     if (this.disposed) return
     if (this.deviceUnavailable) {
@@ -549,7 +607,9 @@ export class WebGpuTerminalRenderer {
         ? ligatureCursor(this.cursor, this.focused ? undefined : this.inactiveCursorStyle)
         : undefined,
     }
-    const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
+    const status = phaseOnly
+      ? 0
+      : buildZigFrame(builder, this.atlas, this.rasterizer, options, this)
     if (status !== 0) {
       throw createGhosttyError(
         'frame_builder',
@@ -562,15 +622,15 @@ export class WebGpuTerminalRenderer {
     }
     const updates = phaseOnly ? [] : builder.changedRanges()
     const rebuiltRows = phaseOnly ? 0 : builder.rowRebuilds
-    const atlasUploads = this.atlas.consumeUploads()
-    if (this.atlasTextures.sync(atlasUploads)) this.textPass.syncAtlas(this.atlasTextures)
+    const atlasSync = this.syncSharedAtlas()
     const operations = this.textPass.uploadFrame(builder, updates)
     const textPhaseChanged = textBlink ? this.textPass.setTextVisible(this.textPhaseVisible) : false
     if (
       !textPhaseChanged &&
       !options.full &&
       this.overlayRows.size === 0 &&
-      atlasUploads.length === 0 &&
+      !atlasSync.textureChanged &&
+      atlasSync.uploadedBytes === 0 &&
       operations === 0 &&
       this.textPass.frameUploadedBytes === 0
     ) {
@@ -583,12 +643,12 @@ export class WebGpuTerminalRenderer {
 
     if (!this.coordinator) {
       try {
-        this.textPass.submit(this.context.getCurrentTexture().createView())
+        this.submitAtlasFrame(this.context.getCurrentTexture().createView())
       } catch (cause) {
         this.reportFrameFailure(cause)
         if (this.disposed) return
         // Retry once in this turn; an acquired canvas texture presents empty after an abandoned submit.
-        this.textPass.submit(this.context.getCurrentTexture().createView())
+        this.submitAtlasFrame(this.context.getCurrentTexture().createView())
       }
       let rows: readonly RenderRow[] | undefined
       if (this.frames.requiresFullRows) {
@@ -616,17 +676,19 @@ export class WebGpuTerminalRenderer {
     }
     let command: GPUCommandBuffer
     try {
-      command = this.textPass.encode(this.context.getCurrentTexture().createView())
+      command = this.encodeAtlasFrame(this.context.getCurrentTexture().createView())
     } catch (cause) {
       this.reportFrameFailure(cause)
       if (this.disposed) return
-      command = this.textPass.encode(this.context.getCurrentTexture().createView())
+      command = this.encodeAtlasFrame(this.context.getCurrentTexture().createView())
     }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
       rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
     }
     const textPass = this.textPass
+    const frameDevice = this.device
+    const frameAtlas = this.sharedAtlas
     let frame: PreparedFrame | undefined
     try {
       frame = this.captureFrame(
@@ -634,6 +696,7 @@ export class WebGpuTerminalRenderer {
         updates.map((update) => update.row),
       )
     } catch (cause) {
+      frameAtlas.frameFailed(this, frameDevice)
       this.retryCoordinatedFrame(cause)
       return
     }
@@ -642,9 +705,10 @@ export class WebGpuTerminalRenderer {
       this.renderState.acknowledge.bind(this.renderState)
     this.coordinator.submit({
       owner: this,
-      device: this.device,
+      device: frameDevice,
       command,
       commit: () => {
+        frameAtlas.frameSubmitted(this, frameDevice)
         if (this.disposed) {
           frame?.discard()
           return
@@ -666,10 +730,32 @@ export class WebGpuTerminalRenderer {
         if (!this.disposed) frame?.notify()
       },
       failed: (cause) => {
+        frameAtlas.frameFailed(this, frameDevice)
         frame?.discard()
         this.retryCoordinatedFrame(cause)
       },
     })
+  }
+
+  private encodeAtlasFrame(view: GPUTextureView, copy?: TextPassCopy): GPUCommandBuffer {
+    this.sharedAtlas.beginFrame(this, this.device)
+    try {
+      return this.textPass.encode(view, copy)
+    } catch (cause) {
+      this.sharedAtlas.frameFailed(this, this.device)
+      throw cause
+    }
+  }
+
+  private submitAtlasFrame(view: GPUTextureView): void {
+    this.sharedAtlas.beginFrame(this, this.device)
+    try {
+      this.textPass.submit(view)
+      this.sharedAtlas.frameSubmitted(this, this.device)
+    } catch (cause) {
+      this.sharedAtlas.frameFailed(this, this.device)
+      throw cause
+    }
   }
 
   private acceptUnchangedFrame(damage: RenderStateDirty, changed: readonly number[]): void {
@@ -763,7 +849,7 @@ export class WebGpuTerminalRenderer {
     this.coordinator?.flushOwner(this)
     if (this.disposed) return
     this.zigBuilder?.clearGlyphs()
-    this.atlas.invalidateAll()
+    this.sharedAtlas.invalidate()
   }
 
   private rebuildGeometryResources(): void {
@@ -776,13 +862,13 @@ export class WebGpuTerminalRenderer {
   }
 
   private recordFrame(rebuiltRows: number, instanceUploadOperations: number): void {
-    this.metrics.atlasCacheHits = this.atlas.cacheHitCount
-    this.metrics.atlasCacheMisses = this.atlas.cacheMissCount
-    this.metrics.atlasEvictions = this.atlas.evictionCount
-    this.metrics.atlasPages = this.atlas.pageCount
-    this.metrics.atlasUploadedBytes = this.atlasUploadedBytesOffset + this.atlasTextures.uploadBytes
-    this.metrics.atlasUploadOperations =
-      this.atlasUploadOperationsOffset + this.atlasTextures.uploadOperationCount
+    const atlasMetrics = this.sharedAtlas.metrics(this)
+    this.metrics.atlasCacheHits = this.previousAtlasMetrics.cacheHits + atlasMetrics.cacheHits
+    this.metrics.atlasCacheMisses = this.previousAtlasMetrics.cacheMisses + atlasMetrics.cacheMisses
+    this.metrics.atlasEvictions = this.previousAtlasMetrics.evictions + atlasMetrics.evictions
+    this.metrics.atlasPages = atlasMetrics.pages
+    this.metrics.atlasUploadedBytes = this.atlasUploadedBytesValue
+    this.metrics.atlasUploadOperations = this.atlasUploadOperationsValue
     this.metrics.draws += this.textPass.drawCount
     this.metrics.instanceUploadOperations += instanceUploadOperations
     this.metrics.rebuiltRows += rebuiltRows
@@ -865,20 +951,18 @@ export class WebGpuTerminalRenderer {
     }
     if (this.disposed || expectedGeneration !== this.deviceGeneration) {
       resources.textPass.destroy()
-      resources.atlasTextures.destroy()
+      this.sharedAtlas.releaseTextures(replacement.device)
       this.unconfigureContext()
       await replacement.release()
       return
     }
     const previous = this.deviceLease
-    this.atlasUploadedBytesOffset += this.atlasTextures.uploadBytes
-    this.atlasUploadOperationsOffset += this.atlasTextures.uploadOperationCount
     this.textPass.destroy()
-    this.atlasTextures.destroy()
-    this.atlas.markAllForUpload()
+    this.sharedAtlas.releaseTextures(this.device)
     this.device = replacement.device
     this.deviceLease = replacement
     this.textPass = resources.textPass
+    this.atlasVersion = this.sharedAtlas.textureVersion(replacement.device)
     this.atlasTextures = resources.atlasTextures
     this.deviceGeneration += 1
     this.deviceUnavailable = false
@@ -897,14 +981,14 @@ export class WebGpuTerminalRenderer {
     let atlasTextures: AtlasGpuTextures | undefined
     try {
       textPassGlyphCapacity(device, this.grid.columns * this.grid.rows)
-      atlasTextures = new AtlasGpuTextures(device, this.atlas.textureLayout)
+      atlasTextures = this.sharedAtlas.acquireTextures(device)
       textPass = this.createTextPass(device)
       textPass.syncAtlas(atlasTextures)
       this.configureContext(device)
       return { atlasTextures, textPass }
     } catch (cause) {
       textPass?.destroy()
-      atlasTextures?.destroy()
+      if (atlasTextures) this.sharedAtlas.releaseTextures(device)
       this.unconfigureContext()
       throw cause
     }
