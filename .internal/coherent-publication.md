@@ -103,9 +103,9 @@ rows) serves Canvas and DOM painting, a different requirement from text.
 
 **What goes.** The frame observer's y-indexed text cache (row 9) for retained consumers, the
 per-frame previous-text re-extraction (row 10) and its reader scratch, the live text read on the
-observer path, and, in the worker, the full-graph clone (row 13), replaced by revision patches. A
-later step can drop the previous native slot (6) to two slots: once text has revisions, the
-previous frame needs its revision list and materialized text rows pinned in that subscriber's cache. Unread text must be extracted before recycling its native slot.
+observer path. Worker full-graph replacement remains a separate successor. The proposed two-slot
+reduction required pinning materialized previous text before recycling its native slot; the
+2026-10-28 experiment below rejected that tradeoff. Production keeps three native slots.
 
 ## Prototype
 
@@ -396,7 +396,7 @@ following the owner's rule that gates are means, not ends. The KEEP decision doe
 that recovery costs improve. Production step 2 targets the cost by tracking cache entries first
 inserted by a pending attempt and invalidating only those entries on discard.
 
-The seven steps below preserve independent accepted histories and their token lifetimes.
+The production slices below preserve independent accepted histories and their token lifetimes.
 Each remains a separate PR with its own tests and measurement gate. This decision keeps the
 corrected design for production migration; it does not merge the research prototype wholesale.
 No production code changes are part of this PR.
@@ -418,9 +418,39 @@ Historical findings:
   across the final cells. It falls 1.0 to 1.4 MB on scroll with GPU backends at 16 terminals with observers
   on. Dense savings are smaller in several cohorts. Wasm memory is 2 MiB lower at 16 terminals.
 
-Not decided here: the worker step (6) needs X4's delta-only run, and the two-slot step (5) needs
-its own measurement. The corrected prototype stays on the research branch; this decision does
-not authorize merging that prototype into production.
+Production update, 2026-10-28: steps 1–4 shipped in #34, #35, #36 and #44. Step 5 is rejected
+by the measurement below. The current lane's step 6 closes selective-discard qualification after
+row-identity reuse; its implementation already shipped in #35 and does not depend on step 5.
+Historical research slice 6, worker revision publication, is a separate successor outside this
+lane. The corrected prototype remains research code, not a wholesale production merge.
+
+## Two-slot rejection (2026-10-28)
+
+**REJECTED. Keep three native slots.** The coordinator rejected eager previous-text pinning as a
+way to remove one native slot. Lifetime, owned-row, rollover and observer equality tests passed;
+the default no-observer path paid too much CPU and JS heap for the native memory saving.
+
+The quiet AC-powered M1 Mac run used Chromium 153.0.8010.12 on a non-fallback Metal adapter,
+200×50 at DPR 2, 30 warmup plus 180 measured iterations, and two counterbalanced pairs per cell.
+Before: `a5840a57d7d0de0e4a58106ad0bd87f67281a667`. Two-slot application:
+`c5e3b39923a874de36d7121661a058747c786dff`. The rejected checkpoint remains on
+[`feat/coherent-publication-5`](https://github.com/ShaulLavo/ghostty-webgpu/tree/feat/coherent-publication-5).
+All rows below use sixteen terminals. CPU is renderer process milliseconds per iteration.
+
+| Payload | Text observers | Renderer CPU before → after | JS heap before → after MiB | Wasm before → after MiB |
+| ------- | -------------- | --------------------------- | -------------------------- | ----------------------- |
+| dense   | off            | 22.787 → 33.942             | 4.439 → 4.561              | 118.3750 → 112.3125     |
+| dense   | on             | 34.642 → 34.255             | 7.224 → 6.625              | 118.3750 → 112.3125     |
+| scroll  | off            | 6.113 → 7.744               | 4.495 → 7.846              | 118.3125 → 112.2500     |
+| scroll  | on             | 12.052 → 10.940             | 6.913 → 6.618              | 118.3125 → 112.2500     |
+
+Dense CPU without observers rose 49.0%, and scroll rose 26.7%; scroll JS heap rose 3.350 MiB.
+Wasm memory fell 6.0625 MiB. The observed paths were flat or faster, including a 9.2% scroll
+CPU gain, but those gains did not justify the default-path regression. Normal, observer-parity
+and repeated-discard pairs retained equal payloads, parsed writes and submitted frames. No
+presentation or energy claim is made. Receipts are under
+`/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step5/`. The checkpoint is reference code and
+must not be merged. Selective invalidation continues with the three-slot implementation.
 
 ## Production migration
 
@@ -454,22 +484,63 @@ No step moves a single-current store into `SharedRenderState`.
    match the subscriber's accepted baseline, ignoring style bits. Enable matching after the first
    text read. Test N-row scroll extraction, same-id text mutations, combining changes, independent
    stores with overlapping local tokens, and failure followed by a different retry.
-5. **Two native slots per subscriber.** Before recycling a previous native slot, materialize
-   every previously unread text row and pin the rows plus ordered revisions in that subscriber's
-   history. Release pins only when that subscriber's history retires. Test 3+ submissions without
-   intervening text reads, resize, lazy previous reads, unequal cadence, pending discard and
-   disposal. Measure the JS rows added against the native memory removed before keeping this step.
-6. **Worker publication by revision.** This remains a new experiment after X4b's rejected pooled
-   WebGL2 prototype. Use a `(runtime, source store, revision)` namespace and independent host subscriber histories, including
-   current, previous and pending revision pins. Send ordered revisions and missing rows containing
-   text, cell boundaries and continuation flags. Define release acknowledgements before evicting
-   shared content. Compare every API and observer payload, links, accessibility, delivered updates,
-   latency and memory against the current worker. Retain all X4b gates. A one-line scroll sending
-   one row alone does not qualify it.
-7. **`rowPatches` from revisions.** Skip string comparisons only for equal revisions in the same
-   runtime and subscriber-store namespace. When revisions differ, compare strings because identical output can receive
-   fresh revisions. Test style changes, identical rewrites, discard/retry, resize and each
-   subscriber's independent previous frame. Measure the affected summary work.
+5. **Two native slots per subscriber: REJECTED.** The tested design materializes unread previous
+   rows and pins ordered revisions before reusing their native slot. It preserves correctness,
+   but the quiet Mac result above shows +49% dense and +27% scroll CPU without observers, with
+   +3.350 MiB scroll JS heap. Keep three native slots. The checkpoint is retained for reference.
+6. **Selective discard after row-identity reuse: final qualification.** This is the coordinator's
+   final lane step, not another implementation of slice 2. The pending-attempt ledger already
+   shipped in #35 and remains on #44's three-slot branch. Verify repeated populated discard and
+   partial extraction failure while rows move, retries change output, and subscribers accept at
+   unequal cadences. Accepted rows must retain their cached cells and continuations without a
+   native re-extraction. An all-clear negative control must fail the regression. Gate the existing
+   implementation with the repeated discard-and-retry cohort on both hosts and both PC GPU
+   backends, retaining equal per-observer payloads, parsed writes and submitted frames. This step
+   has no dependency on the rejected two-slot experiment.
+
+### Final selective-discard gate (2026-10-28)
+
+The final qualification uses main after #44 and keeps three native slots. Selective invalidation
+already shipped in #35; this closes its guard after row-identity reuse rather than adding another
+cache or depending on the rejected two-slot design. The new 32-cycle regression covers moved
+rows, populated discard, post-insertion failure, different retry output and unequal subscriber
+cadence. It requires accepted cell/continuation identity and zero previous-text re-extraction.
+Replacing the ledger with all-clear fails both cases; restoring production passes.
+
+Paired all-clear versus selective recovery CPU improves 14–15% for dense payloads and 64–75% for
+line payloads across the quiet Mac and both non-quiet PC GPU backends. Recovery line heap falls;
+the largest dense heap increase is +0.708 MiB, within the +1 MiB gate. At sixteen terminals,
+no normal Mac CPU regression exceeds repeat noise, and the largest normal heap increase is
++0.012 MiB.
+
+With one terminal and text observers, Mac dense renderer CPU rises 6.239508 to 6.532808 ms per
+iteration (+4.70%, +0.293300 ms), exceeding the maximum recorded repeat range of 0.059294 ms.
+This is a reported finding, not a blocker. The normal path calls neither discard implementation,
+so these samples alone do not establish a causal code regression.
+
+The non-quiet PC WebGL2 dense no-observer cell reads +3.6% with peers, a recorded diagnostic
+finding; the Mac counterpart is −0.5%. No PC timing isolation or energy claim is made.
+
+All 84 normal, recovery and parity pairs retain equal endpoints, including observer payloads,
+parsed writes and submissions. The committed all-clear control is `1d156c5bb`, the selective
+application `ea9718ff1`, both based on merged #44 at `f6a409c29`. Detailed tables and verification
+are in `.internal/coherent-publication-production/step6.md`; raw packets and sampled PC overlap
+records are under `/work/reports/ghostty-webgpu-next-2026-10/x7-prod/step6/`.
+
+### Separate successors outside this lane
+
+- **Worker publication by revision.** Historical research slice 6 remains a new experiment after
+  X4b's rejected pooled WebGL2 prototype. Use a `(runtime, source store, revision)` namespace and
+  independent host subscriber histories with current, previous and pending revision pins. Send
+  ordered revisions and missing rows containing text, cell boundaries and continuation flags.
+  Define release acknowledgements before evicting content. Compare every API and observer payload,
+  links, accessibility, delivered updates, latency and memory against the current worker. Retain
+  every X4b gate. A one-line scroll sending one row alone does not qualify it.
+- **`rowPatches` from revisions.** Historical research slice 7 can skip string comparisons only
+  for equal revisions in the same runtime and subscriber-store namespace. Different revisions
+  still require string comparison because identical output can receive fresh revisions. Test
+  styles, identical rewrites, discard/retry, resize and independent previous frames, then measure
+  the actual summary work.
 
 Out of scope here and owned elsewhere: scratch records (X5, X6), the bridge row cache's O(R²)
 matching (X6), and the upstream projection (ADR 001).
