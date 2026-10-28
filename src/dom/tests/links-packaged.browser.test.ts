@@ -400,12 +400,14 @@ describe('packaged worker link authority transport', () => {
       'backend',
       'faces',
       'generation',
+      'ligatures',
       'port',
       'terminal',
       'textBlink',
       'type',
     ])
     expect(payload.textBlink).toBeUndefined()
+    expect(payload.ligatures).toBeUndefined()
   }, 20_000)
 
   it.each(['generation', 'layout', 'revision'] as const)(

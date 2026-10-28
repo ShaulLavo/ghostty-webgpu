@@ -207,6 +207,8 @@ export interface RenderRow {
   packed?: PackedCells
   cells: readonly RenderCell[]
   dirty: boolean
+  /** BiDi visual rows: each cell's logical column, or -1 for a mirrored character. */
+  logicalColumns?: readonly number[]
   y: number
 }
 

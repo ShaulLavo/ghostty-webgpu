@@ -154,6 +154,7 @@ export interface WorkerInitialize extends WorkerIdentity {
   readonly backend: WorkerBackend
   readonly bidi?: boolean
   readonly textBlink?: boolean
+  readonly ligatures?: boolean | { readonly font: string | ArrayBuffer | ArrayBufferView }
 }
 
 /** A producer transfers only buffers it owns. Its sequence starts at one per attached port. */

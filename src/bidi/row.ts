@@ -28,6 +28,9 @@ export class RowBidiMapper {
     return {
       dirty: row.dirty,
       y: row.y,
+      logicalColumns: map.visualToLogical.map((logical) =>
+        map.mirror.has(logical) ? -1 : logical,
+      ),
       cells: map.visualToLogical.map((logical, x) => {
         const cell = cells[logical]!
         const mirror = map.mirror.get(logical)

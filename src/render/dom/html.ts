@@ -14,6 +14,8 @@ import type {
   RendererTheme,
 } from '../shared/instances/types.js'
 import type { RendererFrameSnapshot, RendererGridSize } from '../shared/types.js'
+import type { LigatureFinder, LigatureRange } from '../shared/ligatures/finder.js'
+import { ligatureRuns } from '../shared/ligatures/runs.js'
 
 export interface RenderFrameHtmlOptions extends RendererGridSize {
   readonly font: TerminalFittedFont
@@ -183,6 +185,23 @@ export function defaultRowStyle(
   return { cell, run: rowRunStyle(cell, columns, font), columns }
 }
 
+export interface LigatureJoin {
+  readonly finder: LigatureFinder
+  /** Cursor cell that splits runs regardless of the blink phase. */
+  readonly cursor: CursorState | undefined
+}
+
+function joinedRanges(row: RenderRow, ligatures: LigatureJoin | undefined): LigatureRange[] {
+  if (!ligatures) return []
+  const packed = row.packed
+  const cells = packed
+    ? Array.from({ length: packed.length }, (_, index) => packed.read(index, emptyRenderCell()))
+    : row.cells
+  const cursor = ligatures.cursor?.y === row.y ? ligatures.cursor.x : undefined
+  // One span has one background, so a background change keeps its cells separate here.
+  return ligatureRuns(cells, ligatures.finder, cursor, true, row.logicalColumns)
+}
+
 export function renderRowRuns(
   row: RenderRow,
   cursor: CursorState | undefined,
@@ -191,12 +210,15 @@ export function renderRowRuns(
   styles?: DefaultRowStyle,
   textVisible = true,
   isolateCells = false,
+  ligatures?: LigatureJoin,
 ): readonly RowRun[] {
   const packed = row.packed
   const columns = packed?.length ?? row.cells.length
   const defaultStyle = styles?.cell
   const defaultRunStyle = styles?.columns === columns ? styles.run : undefined
+  const joined = joinedRanges(row, ligatures)
   if (
+    joined.length === 0 &&
     font.settings.lineHeight >= 1 &&
     packed &&
     defaultRunStyle !== undefined &&
@@ -209,7 +231,10 @@ export function renderRowRuns(
   const scratchA = emptyRenderCell()
   const scratchB = emptyRenderCell()
   let length = columns
-  const cursorEnd = cursor?.visible && cursor.y === row.y ? cursor.x + 1 : 0
+  const cursorEnd = Math.max(
+    cursor?.visible && cursor.y === row.y ? cursor.x + 1 : 0,
+    joined.at(-1)?.[1] ?? 0,
+  )
   // The fixed-grid frame paints the default background; empty tails need no glyph layout.
   while (length > cursorEnd) {
     const cell = packed ? packed.read(length - 1, scratchB) : row.cells[length - 1]!
@@ -227,6 +252,7 @@ export function renderRowRuns(
   let currentWidth = 0
   let currentCursor: CursorState['style'] | undefined
   let previousCell: RenderCell | undefined
+  let nextJoin = 0
   function flush(): void {
     if (currentWidth === 0) return
     runs.push({
@@ -244,6 +270,15 @@ export function renderRowRuns(
     const target = previousCell === scratchA ? scratchB : scratchA
     const cell = packed ? packed.read(index, target) : row.cells[index]!
     if (cell.continuation) continue
+    const join = joined[nextJoin]
+    if (join?.[0] === index) {
+      flush()
+      runs.push(joinedRun(row, join, font, theme, textVisible))
+      nextJoin += 1
+      previousCell = undefined
+      index = join[1] - 1
+      continue
+    }
     let width = packed?.span(index) ?? 1
     while (!packed && row.cells[index + width]?.continuation) width += 1
     const paintedCursor =
@@ -300,6 +335,28 @@ export function renderRowRuns(
   }
   flush()
   return runs
+}
+
+// The frame disables browser ligatures; a joined run is its own span that re-enables them.
+function joinedRun(
+  row: RenderRow,
+  range: LigatureRange,
+  font: TerminalFittedFont,
+  theme: CanonicalRendererTheme,
+  textVisible: boolean,
+): RowRun {
+  const width = range[1] - range[0]
+  const packed = row.packed
+  const cells = Array.from({ length: width }, (_, offset) =>
+    packed ? packed.read(range[0] + offset, emptyRenderCell()) : row.cells[range[0] + offset]!,
+  )
+  const colors = new CanvasColorCache(theme.minimumContrast)
+  const style = cellStyle(cells[0]!, undefined, font, theme, colors, width, textVisible)
+  return {
+    cursor: undefined,
+    style: rowRunStyle(`${style}font-variant-ligatures:normal;letter-spacing:0;`, width, font),
+    text: cells.map((cell) => cell.text).join(''),
+  }
 }
 
 function renderRowToHtml(

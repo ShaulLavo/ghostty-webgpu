@@ -4,6 +4,7 @@ import { Terminal } from '../src/dom/terminal.js'
 import type { RendererMetrics } from '../src/render/shared/types.js'
 import type { RowRendererMetrics } from '../src/render/shared/row-renderer.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
+import { loadGsubLigatureFinder } from '../src/render/shared/ligatures/finder.js'
 import { measuredRenderState } from './native-state.js'
 import { createBenchmarkRenderer, parseBenchmarkBackend } from './renderer-factory.js'
 import type { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
@@ -92,11 +93,15 @@ window.cancelAnimationFrame = (handle) => {
   nativeCancelFrame(handle)
 }
 
+const servedFont = parameters.get('font') === '1'
+if (servedFont) document.fonts.add(await new FontFace('BenchFont', 'url(/font)').load())
+const ligatures =
+  parameters.get('ligatures') === '1' ? await loadGsubLigatureFinder('/font') : undefined
 const font = fitTerminalFont(
   document,
   {
     boldWeight: 700,
-    family: 'monospace',
+    family: servedFont ? 'BenchFont' : 'monospace',
     letterSpacing: 0,
     lineHeight: 1.2,
     size: Number(parameters.get('fontSize') ?? 13),
@@ -167,6 +172,7 @@ async function createNativeDriver(): Promise<Driver> {
       window.__rendererBenchFailure = message
     },
     needsFrameRows: () => false,
+    ligatures,
     theme: { foreground: { r: 255, g: 0, b: 0 }, background: { r: 0, g: 0, b: 0 } },
     renderState,
   }
@@ -365,6 +371,16 @@ function outputLine(index: number): string {
   )
 }
 
+const ligatureTokens = ['=>', '!=', '===', '<=>', '->', '|>', '::', '<!--', '>>=', 'x']
+
+// Every frame shifts the token sequence so each row's runs change.
+function ligatureLine(index: number): string {
+  let line = ''
+  for (let token = index; line.length < columns - 2; token += 1)
+    line += `${ligatureTokens[token % ligatureTokens.length]} `
+  return line.slice(0, columns - 2)
+}
+
 function write(data: string): void {
   const started = performance.now()
   const delivered = terminalVisibility
@@ -406,6 +422,13 @@ function advance(scenario: BenchmarkScenario, step: number): void {
   }
   if (scenario === 'sustained-scroll') {
     driver.scroll(step % 40 < 20 ? -1 : 1)
+    return
+  }
+  if (scenario === 'ligature-redraw') {
+    write(
+      '\x1b[H' + Array.from({ length: rows }, (_, y) => ligatureLine(sequence + y)).join('\r\n'),
+    )
+    sequence += 1
     return
   }
   if (scenario === 'glyph-churn') {

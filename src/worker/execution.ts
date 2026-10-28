@@ -138,6 +138,7 @@ export class WorkerTerminalExecution {
       appearance: options.appearance,
       backend: options.backend,
       textBlink: options.textBlink,
+      ligatures: options.ligatures,
       ...(options.bidi ? { bidi: true } : {}),
     }
     try {

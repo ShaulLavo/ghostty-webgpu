@@ -33,7 +33,8 @@ WebGPU needs a secure context and a hardware adapter. Without one, the terminal 
 - Worker entry: partial. No Canvas modes, no link providers, no keyboard link discovery. Hotkeys are main-entry only.
 - Accessibility: opt-in text mirror and live region (`accessibility: {}`). No screen-reader audit yet.
 - Clipboard: OSC 52 writes are denied unless the host sets a `clipboardWrite` policy. OSC 52 reads get no reply.
-- Search, image protocols, ligatures: not built.
+- Search and image protocols: not built.
+- Ligatures: opt-in `ligatures` option; see [optional ligatures](api.md#optional-ligatures).
 - VT conformance: 167 of 169 selected cases pass. Full conformance is not claimed. See [correctness](correctness.md).
 - Config resolver: the source checkout holds only `native/config-resolver/bootstrap.json`. Native binaries exist only in assembled host distributions. See [config resolver](config-resolver.md).
 

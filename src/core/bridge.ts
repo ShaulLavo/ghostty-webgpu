@@ -19,6 +19,7 @@ import type {
   TerminalEffects,
   TerminalSize,
 } from './types.js'
+import type { LigatureFinder } from '../render/shared/ligatures/finder.js'
 
 const bridgeNames = [
   'bridge_write_pty',
@@ -110,6 +111,8 @@ export class CallbackBridge {
   private readonly stringLayout: AbiLayout
   private readonly sysImageLayout: AbiLayout
   private readonly targets = new Map<number, TerminalTarget>()
+  private readonly ligatureFinders = new Map<number, LigatureFinder>()
+  private nextLigatureFinder = 1
   private indexes?: BridgeIndexes
   private stackPointer = 0
   private bridgeExports?: BridgeWasmExports
@@ -143,12 +146,42 @@ export class CallbackBridge {
         ) => this.customOsc(terminal, number, pointer, length, terminator, truncated),
         decode_png: (...args: number[]) => this.decodePng(...args),
         device_attributes: (...args: number[]) => this.deviceAttributes(...args),
+        ligature_ranges: (finder: number, codepoints: number, length: number, out: number) =>
+          this.ligatureRanges(finder, codepoints, length, out),
         size: (...args: number[]) => this.size(...args),
         title_changed: (...args: number[]) => this.titleChanged(...args),
         write_pty: (...args: number[]) => this.writePty(...args),
         xtversion: (...args: number[]) => this.xtversion(...args),
       },
     }
+  }
+
+  registerLigatureFinder(finder: LigatureFinder): number {
+    const handle = this.nextLigatureFinder
+    this.nextLigatureFinder += 1
+    this.ligatureFinders.set(handle, finder)
+    return handle
+  }
+
+  unregisterLigatureFinder(handle: number): void {
+    this.ligatureFinders.delete(handle)
+  }
+
+  // Runs inside bridge_build_frame, so it must not allocate wasm memory.
+  private ligatureRanges(handle: number, codepoints: number, length: number, out: number): number {
+    const finder = this.ligatureFinders.get(handle)
+    if (!finder) return 0
+    const view = this.memory.view
+    const points = Array.from({ length }, (_, index) =>
+      view.getUint32(codepoints + index * 4, true),
+    )
+    const ranges = finder.find(points)
+    const count = Math.min(ranges.length, Math.floor(length / 2))
+    for (let index = 0; index < count; index += 1) {
+      view.setUint32(out + index * 8, ranges[index]![0], true)
+      view.setUint32(out + index * 8 + 4, ranges[index]![1], true)
+    }
+    return count
   }
 
   get terminalCount(): number {

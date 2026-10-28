@@ -13,6 +13,7 @@ import type { RenderStateDirty } from '../../core/abi.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import type { CursorState, RendererTheme } from './instances/types.js'
 import type { RenderSchedulerClock, TerminalPresentation } from './scheduler.js'
+import type { LigatureFinder } from './ligatures/finder.js'
 
 export interface RenderStateSource {
   readonly snapshotVersion?: number
@@ -91,6 +92,8 @@ export interface WebGpuTerminalRendererOptions {
   reducedMotion?: boolean
   deviceFactory?: () => Promise<GPUDevice>
   font: TerminalFittedFont
+  /** Joins programming ligatures in the primary font; absent keeps the per-cell path. */
+  ligatures?: LigatureFinder
   onError?: (cause: unknown) => void
   /** Called after a clean render-state update needs no painting or row notification. */
   onCleanUpdate?: () => void

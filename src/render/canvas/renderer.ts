@@ -108,6 +108,7 @@ class CanvasSurface implements RowRendererSurface {
       this.pixelTarget?.context ?? this.context,
       options.font,
       canonicalRendererTheme(mergeRendererTheme(options.theme)),
+      options.ligatures,
     )
   }
 
@@ -188,6 +189,7 @@ class CanvasSurface implements RowRendererSurface {
     cursor: CursorState | undefined,
     textVisible: boolean,
     blinking: boolean,
+    joinCursor?: CursorState,
   ): void {
     if (this.contextLost)
       throw createGhosttyError('canvas.context', 'Canvas 2D context is awaiting restoration')
@@ -207,6 +209,7 @@ class CanvasSurface implements RowRendererSurface {
           text,
           !this.clearedFrame,
           textVisible,
+          joinCursor,
         )
         this.pixelTarget?.finishRow(row.y)
         this.reuseMetrics.repaintedRows += 1

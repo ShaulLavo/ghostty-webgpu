@@ -15,6 +15,7 @@ import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
+import type { LigatureFinder } from '../shared/ligatures/finder.js'
 import { type RenderCursorSnapshot, type RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import type { GlyphAtlas } from '../shared/atlas/atlas.js'
@@ -22,7 +23,7 @@ import type { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js
 import type { SharedAtlasSync, SharedGlyphAtlas } from './shared-atlas.js'
 import { acquireSharedAtlas, releaseSharedAtlas } from './atlas-registry.js'
 import { AtlasGpuTextures } from './gpu-textures.js'
-import { renderCursorState, type InactiveCursorStyle } from '../shared/cursor.js'
+import { renderCursorState, type InactiveCursorStyle, ligatureCursor } from '../shared/cursor.js'
 import {
   browserRenderClock,
   canonicalRendererTheme,
@@ -145,6 +146,7 @@ function sharedFrameCoordinator(): FrameCoordinator {
 export class WebGpuTerminalRenderer {
   private readonly bidi?: RowBidiMapper
   private zigBuilder?: ZigFrameBuilder
+  private readonly ligatures?: LigatureFinder
   private sharedAtlas: SharedGlyphAtlas
   private atlasUploadedBytesValue = 0
   private atlasUploadOperationsValue = 0
@@ -218,6 +220,7 @@ export class WebGpuTerminalRenderer {
       this.coordinator = sharedFrameCoordinator()
     this.bidi = bidi
     this.renderState = options.renderState
+    this.ligatures = options.ligatures
     this.onError = options.onError
     this.grid = prepared.grid
     this.font = prepared.font
@@ -590,6 +593,7 @@ export class WebGpuTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.ligatures) builder.setLigatures(this.ligatures)
       if (this.bidi) {
         const mapper = this.bidi
         builder.setBidiProjection(() => mapper.projection(this.renderState.readRows()))
@@ -609,6 +613,9 @@ export class WebGpuTerminalRenderer {
       full: this.needsFullRebuild,
       stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
+      ligatureCursor: this.ligatures
+        ? ligatureCursor(this.cursor, this.focused ? undefined : this.inactiveCursorStyle)
+        : undefined,
     }
     const status = phaseOnly
       ? 0
