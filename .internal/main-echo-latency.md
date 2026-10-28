@@ -6,7 +6,7 @@ The main entry's ~28.5 ms p50 is not high for the C5 endpoint. xterm.js WebGL ha
 
 The scheduler is not adding a frame. Parsing finishes in under 1 ms at the median, the animation-frame draw starts about 1.5 ms after input, and the render boundary ends about 2 ms after input. No production scheduling change is justified by these traces.
 
-The current C5 main-versus-worker comparison is not a presentation comparison. The worker join can select feedback for a page animation frame that does not contain the worker's OffscreenCanvas frame. The adaptive-presentation experiment needs a causal worker endpoint before it can support a keep-or-reject decision.
+The current C5 main-versus-worker comparison is not a presentation comparison. The worker join can select feedback for a page animation frame that does not contain the worker's OffscreenCanvas frame. Worker results cannot support worker latency claims. The main-entry adaptive comparison remains causal because both arms use the containing main animation frame.
 
 ## Trace evidence
 
@@ -26,7 +26,7 @@ The original 80-sample main traces tell the same renderer-side story. Strict cau
 
 ## Next measurement
 
-Use the compositor surface trace IDs and following display vsync for both main and OffscreenCanvas frames, or use the comparison runner's screencast pixel marker. Then rerun the adaptive-presentation comparison. `diagnose-main.mjs` implements the main-thread join and leaves worker arms out deliberately.
+Use the compositor surface trace IDs and following display vsync for both main and OffscreenCanvas frames, or use the comparison runner's screencast pixel marker, before making worker presentation claims. `diagnose-main.mjs` implements the main-thread join and leaves worker arms out deliberately. The main-entry adaptive rejection does not depend on this worker measurement.
 
 Raw traces, screenshots, the measurement log, and `main-analysis.json` are in `/work/reports/ghostty-webgpu-next-2026-10/c5-idle-immediate/main-echo-diagnosis/`. Regenerate the summary with:
 
