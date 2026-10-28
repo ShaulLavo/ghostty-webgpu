@@ -677,12 +677,13 @@ class BrowserInputController implements DomInputController {
     const data = macDefaultKeybinding(event)
     if (data === undefined) return false
     this.deferredMacCommandPresses.clear()
-    event.preventDefault()
+    if (!this.screenReaderUsesBrowserDefault(event)) event.preventDefault()
     this.beforeUserInput()
     try {
       const encoding = this.options.encoding
       if (!encoding) {
-        this.notifyKey(event, this.options.session!.sendInput(data))
+        this.notifyKey(event, new TextEncoder().encode(data))
+        this.options.session!.sendInput(data)
         return true
       }
       const generation = this.encodingGeneration

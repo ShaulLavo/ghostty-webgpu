@@ -5,6 +5,7 @@ import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
 import type { TerminalApi } from '../terminal-api.js'
 import { createDomInputController } from '../input.js'
 import { testFontUrl } from '../../tests/fonts.js'
+import { TerminalSession } from '../../term/session.js'
 
 const bindings = [
   { code: 'ArrowLeft', metaKey: true, text: '\x01' },
@@ -26,6 +27,37 @@ afterEach(async () => {
   vi.restoreAllMocks()
 })
 afterAll(() => runtime.dispose())
+
+it('preserves synchronous key hook ordering and screen-reader browser defaults', async () => {
+  const session = await TerminalSession.create({ runtime: { kind: 'borrowed', runtime } })
+  const textarea = document.createElement('textarea')
+  const order: string[] = []
+  session.on('data', () => order.push('data'))
+  const controller = createDomInputController({
+    platform: 'mac',
+    textarea,
+    session,
+    signal: new AbortController().signal,
+    hooks: {
+      beforeUserInput: () => order.push('before'),
+      onKey: () => order.push('key'),
+      screenReaderMode: () => true,
+    },
+    onError: (cause) => {
+      throw cause
+    },
+  })
+  try {
+    const command = key(textarea, 'keydown', bindings[0]!)
+    expect(command.defaultPrevented).toBe(false)
+    expect(order).toEqual(['before', 'key', 'data'])
+    const option = key(textarea, 'keydown', bindings[3]!)
+    expect(option.defaultPrevented).toBe(true)
+  } finally {
+    controller.dispose()
+    session.dispose()
+  }
+})
 
 function key(textarea: HTMLTextAreaElement, type: string, init: KeyboardEventInit) {
   const event = new KeyboardEvent(type, { bubbles: true, cancelable: true, ...init })
