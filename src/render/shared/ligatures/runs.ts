@@ -20,15 +20,16 @@ function colorKey(color: RenderCell['foreground']): string {
   return color ? `${color.r},${color.g},${color.b}` : ''
 }
 
-// Everything that changes glyph ink; background color alone does not, unless inverse swaps it in.
-function inkKey(cell: RenderCell): string {
+// Everything that changes glyph ink. A background changes it under inverse, and under minimum
+// contrast, where the glyph color is adjusted against each cell's own background.
+function inkKey(cell: RenderCell, splitBackgrounds: boolean): string {
   const style = cell.style
   // An all-default style object paints like no style, as for a background-only SGR.
   const flags = style
     ? `${+style.bold}${+style.italic}${+style.faint}${+style.blink}${+style.inverse}` +
       `${+style.overline}${+style.strikethrough}${style.underline}`
     : '00000000'
-  const background = style?.inverse ? colorKey(cell.background) : ''
+  const background = style?.inverse || splitBackgrounds ? colorKey(cell.background) : ''
   return `${flags}|${colorKey(cell.foreground)}|${background}|${+cell.selected}`
 }
 
@@ -40,6 +41,7 @@ export function ligatureRuns(
   cells: readonly RenderCell[],
   finder: LigatureFinder,
   cursorColumn: number | undefined,
+  splitBackgrounds = false,
 ): LigatureRange[] {
   const runs: LigatureRange[] = []
   const codepoints: number[] = []
@@ -57,7 +59,7 @@ export function ligatureRuns(
       flush(index + 1)
       continue
     }
-    const cellKey = inkKey(cell)
+    const cellKey = inkKey(cell, splitBackgrounds)
     const previous = codepoints.at(-1)
     if (cellKey !== key || (previous !== undefined && latinPairBreak(previous, codepoint)))
       flush(index)

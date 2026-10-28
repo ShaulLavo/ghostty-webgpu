@@ -365,7 +365,7 @@ export class CanvasRowPainter {
     ligatures: LigatureFinder,
   ): void {
     const cursorColumn = cursor?.visible && cursor.y === row.y ? cursor.x : undefined
-    const runs = ligatureRuns(row.cells, ligatures, cursorColumn)
+    const runs = ligatureRuns(row.cells, ligatures, cursorColumn, this.theme.minimumContrast > 1)
     let run = 0
     for (let index = 0; index < row.cells.length;) {
       const range = runs[run]

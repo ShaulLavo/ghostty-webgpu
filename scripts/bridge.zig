@@ -899,7 +899,8 @@ fn ligatureCell(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRo
         ink.style = visualStyle(style);
         result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_FG_COLOR, &ink.foreground);
         if (result != c.GHOSTTY_SUCCESS) return result;
-        if (style.inverse) {
+        // Minimum contrast adjusts each glyph against its own background, so it changes ink too.
+        if (style.inverse or frame.glyph_minimum_contrast > 1) {
             result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &ink.background);
             if (result != c.GHOSTTY_SUCCESS) return result;
         }

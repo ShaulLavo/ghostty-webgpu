@@ -199,11 +199,7 @@ function joinedRanges(row: RenderRow, ligatures: LigatureJoin | undefined): Liga
     : row.cells
   const cursor = ligatures.cursor?.y === row.y ? ligatures.cursor.x : undefined
   // One span has one background, so a background change keeps its cells separate here.
-  return ligatureRuns(cells, ligatures.finder, cursor).filter(([start, end]) =>
-    cells
-      .slice(start + 1, end)
-      .every((cell) => sameColor(cell.background, cells[start]!.background)),
-  )
+  return ligatureRuns(cells, ligatures.finder, cursor, true)
 }
 
 export function renderRowRuns(

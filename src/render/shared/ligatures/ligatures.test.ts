@@ -101,6 +101,20 @@ describe('ligature run policy', async () => {
     ])
   })
 
+  it('breaks at a background change when backgrounds adjust ink', () => {
+    const white = { r: 255, g: 255, b: 255 }
+    const row = cells('a=>b', { 2: { background: white, style: plain } })
+    expect(ligatureRuns(row, finder, undefined, true)).toEqual([])
+    expect(
+      ligatureRuns(
+        cells('a=>b', { 1: { background: white }, 2: { background: white } }),
+        finder,
+        undefined,
+        true,
+      ),
+    ).toEqual([[1, 3]])
+  })
+
   it('keeps fallback, wide and color glyphs out of runs', () => {
     expect(ligatureRuns(cells('a=>🙂!=b'), finder, undefined)).toEqual([
       [1, 3],
