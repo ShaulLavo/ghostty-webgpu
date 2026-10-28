@@ -36,6 +36,7 @@ const warmupSteps = positiveInteger('BENCH_WARMUP_STEPS', 20)
 const idleMilliseconds = positiveInteger('BENCH_SAMPLE_SECONDS', 2) * 1000
 const columns = positiveInteger('BENCH_COLUMNS', 200)
 const rows = positiveInteger('BENCH_ROWS', 50)
+const terminalCount = positiveInteger('BENCH_COUNT', 1)
 const fontSize = positiveInteger('BENCH_FONT_SIZE', 13)
 const headless = process.env.BENCH_HEADLESS === '1'
 const terminalVisibility = process.env.BENCH_TERMINALS === '16'
@@ -201,7 +202,7 @@ async function measure(
   try {
     await routePage(page, bundle, source.root)
     await page.goto(
-      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}${terminalVisibility ? '&terminals=16' : ''}`,
+      `${origin}/?backend=${backend}&columns=${columns}&rows=${rows}&fontSize=${fontSize}&count=${terminalCount}${process.env.BENCH_DEFAULT_GPU === '1' ? '&defaultGpu=1' : ''}${terminalVisibility ? '&terminals=16' : ''}`,
     )
     assert.deepEqual(errors, [], `${backend} failed during page initialization`)
     const startupError = new Promise<never>((_, reject) => page.once('pageerror', reject))
