@@ -1,5 +1,11 @@
 # ghostty-webgpu
 
+## 0.3.27
+
+### Patch Changes
+
+- [#50](https://github.com/ShaulLavo/ghostty-webgpu/pull/50) [`07fcc06`](https://github.com/ShaulLavo/ghostty-webgpu/commit/07fcc06c52deb54c7aedc25192c3859c7dfc69fc) - Fixed macOS Command+Left, Command+Right, and Command+Backspace editing shortcuts to move to line boundaries and delete to the line start or end.
+
 ## 0.3.26
 
 ### Patch Changes
