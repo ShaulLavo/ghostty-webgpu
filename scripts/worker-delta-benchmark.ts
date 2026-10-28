@@ -637,7 +637,9 @@ async function main(): Promise<void> {
   for (const fixture of fixtures) await addFixture(fixture)
   async function addFixture(fixture: string): Promise<void> {
     if (fixture === 'mixed-edit') return
-    const directory = '/work/reports/ghostty-webgpu-reference-study-2026-10-27/bench/workloads'
+    const directory =
+      process.env.WORKER_DELTA_FIXTURE_DIR ??
+      '/work/reports/ghostty-webgpu-reference-study-2026-10-27/bench/workloads'
     const metadata = JSON.parse(await readFile(join(directory, `${fixture}.json`), 'utf8'))
     const bytes = await readFile(join(directory, `${fixture}.bin`))
     assert.equal(createHash('sha256').update(bytes).digest('hex'), metadata.sha256)
