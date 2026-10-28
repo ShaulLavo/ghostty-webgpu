@@ -12,7 +12,7 @@ import {
   normalizeRendererGrid,
   safeRendererInteger,
 } from './config.js'
-import { renderCursorState, type InactiveCursorStyle } from './cursor.js'
+import { ligatureCursor, renderCursorState, type InactiveCursorStyle } from './cursor.js'
 import type { CanonicalRendererTheme, CursorState, RendererTheme } from './instances/types.js'
 import type { RendererGridSize, RenderStateSource, WebGpuTerminalRendererOptions } from './types.js'
 import { RenderScheduler } from './scheduler.js'
@@ -32,6 +32,7 @@ export interface RowRendererSurface {
     cursor: CursorState | undefined,
     textVisible: boolean,
     blinking: boolean,
+    joinCursor?: CursorState,
   ): void
   resize(font: TerminalFittedFont, grid: RendererGridSize): void
   setTheme(theme: CanonicalRendererTheme): RowThemeInvalidation
@@ -252,8 +253,9 @@ export class RowTerminalRenderer {
     }
     const style = this.focused ? undefined : this.inactiveCursorStyle
     const cursorState = renderCursorState(this.cursor, this.cursorPhaseVisible, style)
+    const joinCursor = ligatureCursor(this.cursor, style)
     this.surface.beginFrame?.()
-    for (const row of rows) this.paintRow(row, cursorState)
+    for (const row of rows) this.paintRow(row, cursorState, joinCursor)
     this.scheduler.textBlink?.setNeeded((this.blinkingRows?.size ?? 0) > 0)
     if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
     this.metrics.paintedRows += rows.length
@@ -297,7 +299,11 @@ export class RowTerminalRenderer {
     this.scheduler.flush()
   }
 
-  private paintRow(row: RenderRow, cursor: CursorState | undefined): void {
+  private paintRow(
+    row: RenderRow,
+    cursor: CursorState | undefined,
+    joinCursor: CursorState | undefined,
+  ): void {
     if (row.y < 0 || row.y >= this.grid.rows) return
     let blinking = false
     if (this.scheduler.textBlink) {
@@ -305,7 +311,7 @@ export class RowTerminalRenderer {
       if (blinking) (this.blinkingRows ??= new Set()).add(row.y)
       else this.blinkingRows?.delete(row.y)
     }
-    this.surface.paint(row, cursor, this.textPhaseVisible, blinking)
+    this.surface.paint(row, cursor, this.textPhaseVisible, blinking, joinCursor)
     this.metrics.paintedCells += row.packed?.length ?? row.cells.length
   }
 

@@ -21,6 +21,7 @@ import {
   type DefaultRowStyle,
   type RowRun,
 } from './html.js'
+import type { LigatureFinder } from '../shared/ligatures/finder.js'
 
 export { renderFrameToHtml } from './html.js'
 export type { RenderFrameHtmlOptions } from './html.js'
@@ -77,8 +78,10 @@ class DomSurface implements RowRendererSurface {
   private theme: CanonicalRendererTheme
   private rows: MountedRow[] = []
   private defaultStyle: DefaultRowStyle
+  private readonly ligatures?: LigatureFinder
 
   constructor(options: WebGpuTerminalRendererOptions) {
+    this.ligatures = options.ligatures
     if (!('ownerDocument' in options.canvas) || !options.canvas.parentElement) {
       throw new TypeError('The DOM renderer requires a canvas mounted in a terminal host')
     }
@@ -109,11 +112,26 @@ class DomSurface implements RowRendererSurface {
     this.position()
   }
 
-  paint(row: RenderRow, cursor: CursorState | undefined, textVisible: boolean): boolean {
+  paint(
+    row: RenderRow,
+    cursor: CursorState | undefined,
+    textVisible: boolean,
+    _blinking?: boolean,
+    joinCursor?: CursorState,
+  ): boolean {
     const mounted = this.rows[row.y]
     if (!mounted) return false
     let changed = false
-    const runs = renderRowRuns(row, cursor, this.font, this.theme, this.defaultStyle, textVisible)
+    const ligatures = this.ligatures ? { finder: this.ligatures, cursor: joinCursor } : undefined
+    const runs = renderRowRuns(
+      row,
+      cursor,
+      this.font,
+      this.theme,
+      this.defaultStyle,
+      textVisible,
+      ligatures,
+    )
     for (let index = 0; index < runs.length; index += 1) {
       const run = runs[index]!
       const previous = mounted.runs[index]

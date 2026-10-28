@@ -13,12 +13,13 @@ import { FrameObserver, type PreparedFrame } from '../shared/frame-observer.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
+import type { LigatureFinder } from '../shared/ligatures/finder.js'
 import { type RenderCursorSnapshot, type RenderRow } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from './gpu-textures.js'
-import { renderCursorState, type InactiveCursorStyle } from '../shared/cursor.js'
+import { renderCursorState, type InactiveCursorStyle, ligatureCursor } from '../shared/cursor.js'
 import {
   browserRenderClock,
   canonicalRendererTheme,
@@ -140,6 +141,7 @@ function sharedFrameCoordinator(): FrameCoordinator {
 
 export class WebGpuTerminalRenderer {
   private zigBuilder?: ZigFrameBuilder
+  private readonly ligatures?: LigatureFinder
   private atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
@@ -210,6 +212,7 @@ export class WebGpuTerminalRenderer {
     if (!options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
     this.renderState = options.renderState
+    this.ligatures = options.ligatures
     this.onError = options.onError
     this.grid = prepared.grid
     this.font = prepared.font
@@ -526,6 +529,7 @@ export class WebGpuTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.ligatures) builder.setLigatures(this.ligatures)
       this.zigBuilder = builder
       this.needsFullRebuild = true
     }
@@ -541,6 +545,9 @@ export class WebGpuTerminalRenderer {
       full: this.needsFullRebuild,
       stableRows: this.textPass.drawCount === 2,
       overlayRows: this.overlayRows,
+      ligatureCursor: this.ligatures
+        ? ligatureCursor(this.cursor, this.focused ? undefined : this.inactiveCursorStyle)
+        : undefined,
     }
     const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {

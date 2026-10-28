@@ -223,7 +223,16 @@ const Frame = extern struct {
     stable_allowed: u32,
     row_changes: u32,
     blinking_rows: u32,
+    // Nonzero selects a JS ligature finder; scratch holds spans, segment text and ranges per column.
+    ligatures: u32,
+    ligature_scratch: ?[*]u32,
+    ligature_cursor_x: u32,
+    ligature_cursor_y: u32,
+    ligature_cursor_visible: u32,
 };
+
+extern "env" fn ligature_ranges(finder: u32, codepoints: [*]const u32, len: u32, out: [*]u32) u32;
+const ligature_interior: u32 = 0xffffffff;
 
 extern "env" fn ghostty_wasm_alloc(len: usize) ?[*]u8;
 extern "env" fn ghostty_wasm_free(ptr: ?[*]u8, len: usize) void;
@@ -663,6 +672,7 @@ const CellContent = struct {
     span: u32,
     constraint_width: u32,
     tag: c.GhosttyCellContentTag,
+    joined: ?[]const u32 = null,
 };
 
 fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, fg: u32, bg: u32, selected: bool) c.GhosttyResult {
@@ -707,8 +717,8 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     cell[15] = frame.minimum_contrast;
     if (content.continuation or content.codepoint == 0 or style.invisible) return c.GHOSTTY_SUCCESS;
     var scalar = content.codepoint;
-    var text: []const u32 = @as(*const [1]u32, &scalar);
-    if (content.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
+    var text: []const u32 = content.joined orelse @as(*const [1]u32, &scalar);
+    if (content.joined == null and content.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
         var length: u32 = 0;
         var result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
         if (result != c.GHOSTTY_SUCCESS) return result;
@@ -745,7 +755,7 @@ fn writeInstances(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderSt
     return c.GHOSTTY_SUCCESS;
 }
 
-fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, selected: bool) c.GhosttyResult {
+fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, selected: bool, joined: u32) c.GhosttyResult {
     const raw = raws[x];
     var codepoint: u32 = 0;
     var wide: c.GhosttyCellWide = 0;
@@ -788,6 +798,17 @@ fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, 
     var constraint_width: u32 = 1;
     result = constraintWidth(raws, x, span, codepoint, &constraint_width);
     if (result != c.GHOSTTY_SUCCESS) return result;
+    var joined_text: ?[]const u32 = null;
+    if (joined != 0 and joined != ligature_interior) {
+        const text = glyph_index.scratch(frame.glyph_index, joined) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+        for (text, 0..) |*point, offset| {
+            result = c.ghostty_cell_get(raws[x + offset], c.GHOSTTY_CELL_DATA_CODEPOINT, point);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+        }
+        joined_text = text;
+        span = joined;
+        constraint_width = 1;
+    }
     frame.row_cache.?.next[y].cells[x] = .{
         .raw = raw,
         .foreground = fg,
@@ -799,10 +820,11 @@ fn buildCell(comptime stable: bool, frame: *Frame, raws: []const c.GhosttyCell, 
     };
     return writeInstances(stable, frame, cells, slot, x, y, .{
         .codepoint = codepoint,
-        .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL,
+        .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL or joined == ligature_interior,
         .span = span,
         .constraint_width = constraint_width,
         .tag = tag,
+        .joined = joined_text,
     }, style, fg, bg, selected);
 }
 
@@ -819,6 +841,8 @@ fn rememberRenderedCell(cache: *FrameCache, slot: usize, input: CachedCell) void
 
 fn reuseRenderedCell(comptime stable: bool, frame: *Frame, owner: *const CachedRow, address: u32, raw: c.GhosttyCell, x: u32, y: u32, selected: bool) bool {
     const cache = frame.row_cache.?;
+    // A joined run depends on its neighbors, which per-cell reuse does not compare.
+    if (frame.ligatures != 0) return false;
     const previous = if (stable) owner else &cache.previous[y];
     const slot = if (stable) address else y * frame.columns + x;
     if (!std.mem.eql(u32, &previous.appearance, &cache.appearance)) return false;
@@ -844,6 +868,102 @@ fn reuseRenderedCell(comptime stable: bool, frame: *Frame, owner: *const CachedR
     return true;
 }
 
+const LigatureInk = struct { style: u32, foreground: u32, background: u32, selected: bool };
+
+// Matches runs.ts: one code point per narrow visible cell, keyed by everything that changes ink.
+fn ligatureCell(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, selected: bool, codepoint: *u32, ink: *LigatureInk) c.GhosttyResult {
+    codepoint.* = 0;
+    var wide: c.GhosttyCellWide = 0;
+    var tag: c.GhosttyCellContentTag = 0;
+    var styled = false;
+    var point: u32 = 0;
+    var result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_WIDE, &wide);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &tag);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (wide != c.GHOSTTY_CELL_WIDE_NARROW or tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT) return c.GHOSTTY_SUCCESS;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CODEPOINT, &point);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (point <= 0x20) return c.GHOSTTY_SUCCESS;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_HAS_STYLING, &styled);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    ink.* = .{ .style = 0, .foreground = 0xffffffff, .background = 0xffffffff, .selected = selected };
+    if (styled) {
+        var style = frame.row_cache.?.default_style;
+        result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_STYLE, &style);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (style.invisible) return c.GHOSTTY_SUCCESS;
+        ink.style = visualStyle(style);
+        result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_FG_COLOR, &ink.foreground);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (style.inverse) {
+            result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &ink.background);
+            if (result != c.GHOSTTY_SUCCESS) return result;
+        }
+    }
+    codepoint.* = point;
+    return c.GHOSTTY_SUCCESS;
+}
+
+// Native Ghostty and Rio keep fi, fl and st apart to protect the cell grid.
+fn latinPairBreak(previous: u32, next: u32) bool {
+    if (previous == 'f') return next == 'i' or next == 'l';
+    return previous == 's' and next == 't';
+}
+
+fn flushLigatures(frame: *Frame, spans: []u32, codepoints: []u32, out: []u32, start: u32, len: u32, y: u32) void {
+    if (len < 2) return;
+    const count = ligature_ranges(frame.ligatures, codepoints.ptr, len, out.ptr);
+    const cursor = frame.ligature_cursor_visible != 0 and frame.ligature_cursor_y == y;
+    for (0..@min(count, len / 2)) |index| {
+        const first = out[index * 2];
+        const last = out[index * 2 + 1];
+        if (first >= last or last > len or last - first < 2) continue;
+        const run_start = start + first;
+        const run_end = start + last;
+        if (cursor and frame.ligature_cursor_x >= run_start and frame.ligature_cursor_x < run_end) continue;
+        spans[run_start] = last - first;
+        @memset(spans[run_start + 1 .. run_end], ligature_interior);
+    }
+}
+
+fn planLigatures(frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, y: u32, has_selection: bool, selection: c.GhosttyRenderStateRowSelection) c.GhosttyResult {
+    const columns = frame.columns;
+    const scratch = frame.ligature_scratch.?;
+    const spans = scratch[0..columns];
+    const codepoints = scratch[columns .. columns * 2];
+    const out = scratch[columns * 2 .. columns * 3];
+    @memset(spans, 0);
+    var start: u32 = 0;
+    var len: u32 = 0;
+    var ink: LigatureInk = undefined;
+    for (raws, 0..) |raw, index| {
+        const x: u32 = @intCast(index);
+        const selected = has_selection and x >= selection.start_x and x <= selection.end_x;
+        var point: u32 = 0;
+        var cell_ink: LigatureInk = undefined;
+        const result = ligatureCell(frame, raw, cells, x, selected, &point, &cell_ink);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        if (point == 0) {
+            flushLigatures(frame, spans, codepoints, out, start, len, y);
+            len = 0;
+            continue;
+        }
+        if (len > 0 and (!std.meta.eql(cell_ink, ink) or latinPairBreak(codepoints[len - 1], point))) {
+            flushLigatures(frame, spans, codepoints, out, start, len, y);
+            len = 0;
+        }
+        if (len == 0) start = x;
+        ink = cell_ink;
+        codepoints[len] = point;
+        len += 1;
+    }
+    flushLigatures(frame, spans, codepoints, out, start, len, y);
+    return c.GHOSTTY_SUCCESS;
+}
+
 fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, force: bool) c.GhosttyResult {
     var raw: c.GhosttyCellsView = undefined;
     var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raw);
@@ -862,6 +982,11 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
     cached.selection_end = if (has_selection) selection.end_x else 0;
     result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, @ptrCast(cells));
     if (result != c.GHOSTTY_SUCCESS) return result;
+    const spans: ?[*]u32 = if (frame.ligatures != 0) frame.ligature_scratch else null;
+    if (spans != null) {
+        result = planLigatures(frame, raw.ptr[0..raw.len], cells.*, y, has_selection, selection);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+    }
     frame.rows_built += 1;
     var cell_first = frame.columns;
     var cell_end: u32 = 0;
@@ -875,7 +1000,8 @@ fn buildRow(comptime stable: bool, frame: *Frame, iterator: c.GhosttyRenderState
         if (!force and reuseRenderedCell(stable, frame, previous, slot, raw.ptr[x], @intCast(x), y, selected)) continue;
         const previous_cell = frame.cell_data[slot];
         const previous_glyph = frame.glyph_data[slot];
-        result = buildCell(stable, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected);
+        const joined = if (spans) |values| values[x] else 0;
+        result = buildCell(stable, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined);
         if (result != c.GHOSTTY_SUCCESS) return result;
         rememberRenderedCell(frame.row_cache.?, slot, cached.cells[x]);
         if (force or !std.mem.eql(u8, std.mem.asBytes(&previous_cell), std.mem.asBytes(&frame.cell_data[slot]))) {

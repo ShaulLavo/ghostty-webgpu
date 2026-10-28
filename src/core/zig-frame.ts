@@ -12,8 +12,9 @@ import type {
   CursorState,
   RowInstanceUpdate,
 } from '../render/shared/instances/types.js'
+import type { LigatureFinder } from '../render/shared/ligatures/finder.js'
 
-const frameBytes = 144
+const frameBytes = 168
 
 function packedColor(color: RgbColor): number {
   return color.r | (color.g << 8) | (color.b << 16)
@@ -31,6 +32,8 @@ export interface ZigFrameOptions {
   full: boolean
   overlayRows: ReadonlySet<number>
   stableRows?: boolean
+  /** Cursor cell that splits joined runs, independent of the blink phase. */
+  ligatureCursor?: { readonly x: number; readonly y: number }
 }
 
 // The bridge owns instance construction; views are recreated after calls that may grow memory.
@@ -46,6 +49,8 @@ export class ZigFrameBuilder {
   private readonly entry: number
   private disposed = false
   private deferredGlyphs = false
+  private ligatureHandle = 0
+  private ligatureScratch = 0
 
   get hasDeferredGlyphs(): boolean {
     return this.deferredGlyphs
@@ -68,7 +73,7 @@ export class ZigFrameBuilder {
       this.setUint(128, 0)
       this.setUint(132, 0)
       this.setUint(136, 0)
-      this.setUint(140, 0)
+      for (let offset = 140; offset <= 160; offset += 4) this.setUint(offset, 0)
       this.cellPointer = this.allocate(columns * rows * 64)
       this.glyphPointer = this.allocate(columns * rows * 96)
       this.index = this.runtime.bridge.createGlyphIndex()
@@ -194,6 +199,10 @@ export class ZigFrameBuilder {
       options.theme.cursorText,
     ]
     for (const [index, color] of colors.entries()) this.setUint(60 + index * 4, packedColor(color))
+    const ligatureCursor = options.ligatureCursor
+    this.setUint(152, ligatureCursor?.x ?? 0)
+    this.setUint(156, ligatureCursor?.y ?? 0)
+    this.setUint(160, ligatureCursor ? 1 : 0)
     const cursor = options.cursor
     this.setUint(76, cursor?.x ?? 0)
     this.setUint(80, cursor?.y ?? 0)
@@ -292,6 +301,16 @@ export class ZigFrameBuilder {
     this.runtime.bridge.registerGlyph(key, this.entry)
   }
 
+  /** Joined runs need a full rebuild because cell reuse ignores neighboring cells. */
+  setLigatures(finder: LigatureFinder | undefined): void {
+    this.ensureActive()
+    if (this.ligatureHandle) this.runtime.bridge.unregisterLigatureFinder(this.ligatureHandle)
+    this.ligatureHandle = finder ? this.runtime.bridge.registerLigatureFinder(finder) : 0
+    if (finder && !this.ligatureScratch) this.ligatureScratch = this.allocate(this.columns * 12)
+    this.setUint(144, this.ligatureHandle)
+    this.setUint(148, this.ligatureScratch)
+  }
+
   clearGlyphs(): void {
     this.ensureActive()
     this.runtime.bridge.clearGlyphs(this.index)
@@ -330,6 +349,8 @@ export class ZigFrameBuilder {
       const cache = this.runtime.memory.view.getUint32(this.frame + 112, true)
       if (cache) this.runtime.bridge.destroyFrameCache(cache)
     }
+    if (this.ligatureHandle) this.runtime.bridge.unregisterLigatureFinder(this.ligatureHandle)
+    this.ligatureHandle = 0
     if (this.index) this.runtime.bridge.destroyGlyphIndex(this.index)
     this.index = 0
     for (const allocation of this.allocations)

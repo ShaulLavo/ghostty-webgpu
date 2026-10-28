@@ -5,6 +5,8 @@ import { emptyRenderCell } from '../../core/packed-cells.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import type { CanonicalRendererTheme, CursorState } from '../shared/instances/types.js'
 import { CanvasColorCache, resolveCanvasCellColors, type CanvasCellColors } from './colors.js'
+import type { LigatureFinder } from '../shared/ligatures/finder.js'
+import { ligatureRuns } from '../shared/ligatures/runs.js'
 
 export type Canvas2dContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
@@ -93,6 +95,7 @@ export class CanvasRowPainter {
     private readonly context: PaintTarget,
     private font: TerminalFittedFont,
     private theme: CanonicalRendererTheme,
+    private readonly ligatures?: LigatureFinder,
   ) {
     this.colors = new CanvasColorCache(theme.minimumContrast)
   }
@@ -147,8 +150,11 @@ export class CanvasRowPainter {
     capturedPlainText?: string | null,
     clearRow = true,
     textVisible = true,
+    joinCursor?: CursorState,
   ): void {
     this.textVisible = textVisible
+    // A changed cell can join or split its neighbors' runs.
+    if (this.ligatures) allowCellDamage = false
     const damage = allowCellDamage
       ? this.plainDamage(row, cursor, width, capturedPlainText)
       : undefined
@@ -187,6 +193,10 @@ export class CanvasRowPainter {
         return
       }
       this.paintBackgrounds(row, cursor, y)
+      if (this.ligatures) {
+        this.paintJoinedGlyphs(row, joinCursor, this.ligatures)
+        return
+      }
       for (let index = 0; index < row.cells.length;) index += this.paintGlyph(row, index)
     } catch (cause) {
       this.invalidate()
@@ -349,12 +359,35 @@ export class CanvasRowPainter {
     drawOutlineCursor(this.context, x, y, this.font)
   }
 
-  private paintGlyph(row: RenderRow, index: number): number {
+  private paintJoinedGlyphs(
+    row: RenderRow,
+    cursor: CursorState | undefined,
+    ligatures: LigatureFinder,
+  ): void {
+    const cursorColumn = cursor?.visible && cursor.y === row.y ? cursor.x : undefined
+    const runs = ligatureRuns(row.cells, ligatures, cursorColumn)
+    let run = 0
+    for (let index = 0; index < row.cells.length;) {
+      const range = runs[run]
+      if (range?.[0] !== index) {
+        index += this.paintGlyph(row, index)
+        continue
+      }
+      const text = row.cells
+        .slice(range[0], range[1])
+        .map((cell) => cell.text)
+        .join('')
+      index += this.paintGlyph(row, index, text, range[1] - range[0])
+      run += 1
+    }
+  }
+
+  private paintGlyph(row: RenderRow, index: number, joined?: string, joinedSpan?: number): number {
     const cell = row.cells[index]!
     if (cell.continuation || !cell.text || cell.style?.invisible) return 1
-    if (!this.textVisible && cell.style?.blink) return cellSpan(row.cells, index)
-    const span = cellSpan(row.cells, index)
-    const text = cell.text
+    const span = joinedSpan ?? cellSpan(row.cells, index)
+    if (!this.textVisible && cell.style?.blink) return span
+    const text = joined ?? cell.text
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
     const characterWidth = this.font.deviceCellWidth * span - deviceSpacing
     const x = cell.x * this.font.deviceCellWidth + this.font.charLeft + characterWidth / 2

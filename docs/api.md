@@ -173,6 +173,36 @@ Backgrounds, cursors, terminal text and accessibility text remain unchanged. Los
 restores visible text and stops its timer. A replacement renderer inherits the current
 reduced-motion preference, including changes received while it is being created.
 
+## optional ligatures
+
+Programming ligatures such as `=>`, `!=` and `<=>` are off by default. With them off, every
+backend keeps its per-cell path and pays nothing. Set `ligatures` in the main-thread or worker
+`Terminal.create` options to opt in:
+
+- `ligatures: { font }` reads the joining features (`calt`, `liga`, `clig`, `rlig`) from the
+  OpenType `GSUB` table of the primary regular face. `font` is a URL or the font bytes in
+  TrueType, OpenType, WOFF or WOFF2 format. WOFF2 needs `DecompressionStream('brotli')`; a load
+  or parse failure rejects `open()`.
+- `ligatures: true` in the worker entry reads the same table from the matching regular face in
+  `fonts`. Without usable bytes, and always in the main entry, it uses the probe fallback.
+- The probe fallback checks a fixed list of about 70 common programming ligatures. It keeps a
+  sequence only when the browser draws it differently from its separate characters in the
+  regular face. Fonts with other contextual alternates draw them per cell.
+
+The terminal's text, selection, copy and accessibility output never change. A joined run is a
+paint-time unit: the renderer draws the run's original characters as one string centered across
+its cells. The GPU and Canvas pixel backends store it as one multi-cell atlas glyph, Canvas
+fill-text draws the string directly, and the DOM puts it in its own span with browser ligatures
+enabled.
+
+Runs never cross a space, a wide or fallback-font glyph, a grapheme cluster, invisible text or a
+change of foreground, weight, slant, faint, underline, overline, strikethrough, inverse or
+selection state. A background change alone keeps the run joined, except in the DOM, where one
+span has one background. `fi`, `fl` and `st` stay in separate cells. A run that contains the
+visible cursor draws per cell, whatever the cursor's blink phase, so typing inside `=>` shows
+both characters. Ligature ranges come from the regular face; bold and italic runs reuse them.
+Changing the font family after `open()` keeps the table read at open.
+
 ## scrollback retention
 
 `appearance.scrollbackLimit` sets a page-granular budget for physical history rows, excluding the

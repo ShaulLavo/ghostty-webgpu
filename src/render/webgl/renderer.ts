@@ -4,6 +4,7 @@ import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
+import type { LigatureFinder } from '../shared/ligatures/finder.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
@@ -17,7 +18,7 @@ import {
   normalizeRendererGrid,
   safeRendererInteger,
 } from '../shared/config.js'
-import { renderCursorState, type InactiveCursorStyle } from '../shared/cursor.js'
+import { renderCursorState, type InactiveCursorStyle, ligatureCursor } from '../shared/cursor.js'
 import type { CanonicalRendererTheme, RendererTheme } from '../shared/instances/types.js'
 import type {
   RendererGridSize,
@@ -88,6 +89,7 @@ export class WebGlTerminalRenderer {
     uploadedBytes: 0,
   }
   private zigBuilder?: ZigFrameBuilder
+  private readonly ligatures?: LigatureFinder
   private readonly atlas = new GlyphAtlas()
   private atlasUploadedBytesOffset = 0
   private atlasUploadOperationsOffset = 0
@@ -128,6 +130,7 @@ export class WebGlTerminalRenderer {
     this.font = font
     this.grid = grid
     this.renderState = options.renderState
+    this.ligatures = options.ligatures
     this.onError = options.onError
     this.onContextLost = options.onContextLost
     this.frames = new FrameObserver(options)
@@ -416,6 +419,7 @@ export class WebGlTerminalRenderer {
       this.zigBuilder = undefined
       builder?.dispose()
       builder = this.renderState.createFrameBuilder(this.grid.columns, this.grid.rows)
+      if (this.ligatures) builder.setLigatures(this.ligatures)
       this.zigBuilder = builder
       this.needsFullRebuild = true
     }
@@ -431,6 +435,9 @@ export class WebGlTerminalRenderer {
       full: this.needsFullRebuild,
       stableRows: true,
       overlayRows: this.overlayRows,
+      ligatureCursor: this.ligatures
+        ? ligatureCursor(this.cursor, this.focused ? undefined : this.inactiveCursorStyle)
+        : undefined,
     }
     const status = phaseOnly ? 0 : buildZigFrame(builder, this.atlas, this.rasterizer, options)
     if (status !== 0) {

@@ -1,4 +1,5 @@
 import { readSfntFontMetrics } from '../term/font-metrics.js'
+import { resolveLigatureFinder } from '../render/shared/ligatures/finder.js'
 import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
 import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
@@ -182,6 +183,19 @@ export class TerminalWorkerRuntime {
     return metrics ? { ...settings, metrics } : settings
   }
 
+  private regularFaceSource(settings: TerminalFontSettings): string | Uint8Array | undefined {
+    const index = this.faces.findIndex(
+      (face) =>
+        face.family === settings.family &&
+        face.style === 'normal' &&
+        (face.weight === String(settings.weight) ||
+          (face.weight === 'normal' && settings.weight === 400)),
+    )
+    const source = this.initialize.faces[index]?.source
+    if (!source) return undefined
+    return 'url' in source ? source.url : source.bytes
+  }
+
   private native(): LocalTerminalExecution {
     if (this.execution && !this.disposed) return this.execution
     throw workerError('disposed', 'native', { disposed: this.disposed })
@@ -261,8 +275,15 @@ export class TerminalWorkerRuntime {
     this.applyLayout(layout)
     const execution = this.native()
     const font = this.fit(layout)
+    const ligatures = await resolveLigatureFinder(
+      this.initialize.ligatures,
+      font,
+      this.regularFaceSource(font.settings),
+    )
+    if (this.disposed) throw workerError('disposed', 'open', { disposed: true })
     const options = {
       canvas,
+      ligatures,
       columns: execution.grid.columns,
       rows: execution.grid.rows,
       font,
