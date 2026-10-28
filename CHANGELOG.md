@@ -14,20 +14,40 @@
 
 - [#35](https://github.com/ShaulLavo/ghostty-webgpu/pull/35) [`da97119`](https://github.com/ShaulLavo/ghostty-webgpu/commit/da971191e76ce37c6a18d47bdc24a157f15a4183) - Fixed discarded frame captures to preserve accepted text and remove only rows cached by the abandoned attempt.
 
-- [#36](https://github.com/ShaulLavo/ghostty-webgpu/pull/36) [`6511178`](https://github.com/ShaulLavo/ghostty-webgpu/commit/65111787236a1a9b444a772a0d4c478dbc25fcb1) - Reduced duplicate text work for frame observers by reading from the same retained screen history as displayed reads.
+- [#36](https://github.com/ShaulLavo/ghostty-webgpu/pull/36) [`6511178`](https://github.com/ShaulLavo/ghostty-webgpu/commit/65111787236a1a9b444a772a0d4c478dbc25fcb1) - Reduced duplicate text work for `onText` and `onTextFrame` subscribers by reading from the same retained screen history as displayed reads.
 
 ## 0.3.25
 
 ### Patch Changes
 
+- [#6](https://github.com/ShaulLavo/ghostty-webgpu/pull/6) [`a56a075`](https://github.com/ShaulLavo/ghostty-webgpu/commit/a56a075c3b204f4185bbdc67d5a8d6229d6d8c68) - Fixed synchronized output so the previous screen stays visible until the application finishes updating, with a one-second timeout for stalled updates.
+
+- [#9](https://github.com/ShaulLavo/ghostty-webgpu/pull/9) [`46b13c5`](https://github.com/ShaulLavo/ghostty-webgpu/commit/46b13c56409d0022c8ff95bde33917aee0517d9f) - Fixed multiple views of one terminal showing different text by giving each view its own pending changes and acknowledgement.
+
+- [#10](https://github.com/ShaulLavo/ghostty-webgpu/pull/10) [`a95c183`](https://github.com/ShaulLavo/ghostty-webgpu/commit/a95c183ee003db8a7b39ff8f9e1a69b1fa9b8446) - Improved row matching between frames in tall terminals while preserving row reuse and scrolling behavior.
+
+- [#11](https://github.com/ShaulLavo/ghostty-webgpu/pull/11) [`7b5fd81`](https://github.com/ShaulLavo/ghostty-webgpu/commit/7b5fd818f99487ca4b8700448b880a0d8aa1e5c0) - Improved frame acknowledgements by counting dirty rows and cleaning native damage in one WebAssembly call while preserving failed-frame retries.
+
 - [#12](https://github.com/ShaulLavo/ghostty-webgpu/pull/12) [`f69ae37`](https://github.com/ShaulLavo/ghostty-webgpu/commit/f69ae37ba33b2c8bb369b693e94a513a49ba29f3) - Breaking: Offscreen and collapsed terminals now pause painting by default while parsing and layout continue. Frame and text callbacks also pause until the terminal returns to view.
   Migration: set `renderWhenOffscreen: true` to keep painting and receiving frame callbacks while the terminal is offscreen.
+
+- [#13](https://github.com/ShaulLavo/ghostty-webgpu/pull/13) [`46ea40a`](https://github.com/ShaulLavo/ghostty-webgpu/commit/46ea40a71c5c58707c46ef28245af08040f81fb4) - Improved sparse terminal updates by uploading distant edits as separate ranges instead of copying clean gaps.
+
+- [#16](https://github.com/ShaulLavo/ghostty-webgpu/pull/16) [`31c493e`](https://github.com/ShaulLavo/ghostty-webgpu/commit/31c493e8650cfdee551701f9e32602680b3267dc) - Reduced terminal graphics memory use by growing glyph textures as needed. Cache eviction preserves visible text, and graphics recovery works after texture growth.
 
 - [#19](https://github.com/ShaulLavo/ghostty-webgpu/pull/19) [`6348f66`](https://github.com/ShaulLavo/ghostty-webgpu/commit/6348f661bf860ea64efeec6fac4609115c59d083) - Breaking: Blinking text is steady by default, matching native Ghostty.
   Migration: set `textBlink: true` in the terminal or renderer creation options to animate blinking text.
 
+- [#20](https://github.com/ShaulLavo/ghostty-webgpu/pull/20) [`f8f927d`](https://github.com/ShaulLavo/ghostty-webgpu/commit/f8f927dabcb2c08bf621740c1b661ddf91722bb0) - Added cell-fitted shapes for blocks, braille, sextants, and filled powerline symbols. Box drawing and outlined powerline symbols use the font's underline metrics when available.
+
+- [#24](https://github.com/ShaulLavo/ghostty-webgpu/pull/24) [`474ca67`](https://github.com/ShaulLavo/ghostty-webgpu/commit/474ca675357dc548ec7f002031997232d82c17a5) - Improved repeated WebGPU output by skipping redraws when the terminal image is unchanged while keeping cursor, selection, resize, and recovery updates.
+
+- [#25](https://github.com/ShaulLavo/ghostty-webgpu/pull/25) [`4fe209d`](https://github.com/ShaulLavo/ghostty-webgpu/commit/4fe209d30f82d09afd92e335c6220ac8c24531c1) - Improved WebGL2 scrolling by reusing unchanged rows in GPU memory and uploading only changed rows.
+
 - [#29](https://github.com/ShaulLavo/ghostty-webgpu/pull/29) [`e64d6b0`](https://github.com/ShaulLavo/ghostty-webgpu/commit/e64d6b0f917c607e3169cc993a7d5a864376fcbd) - Added opt-in `writeBatched()` for asynchronous terminal output with parse acknowledgements and cancellation. `pendingWriteBytes` reports queued and worker-inflight bytes, with configurable queue limits. Existing synchronous `write()` behavior is unchanged.
   Await `writeBatched()` before using a read as a read-after-write barrier for that batched output.
+
+- [#30](https://github.com/ShaulLavo/ghostty-webgpu/pull/30) [`cf6994f`](https://github.com/ShaulLavo/ghostty-webgpu/commit/cf6994fbc6402258a46333c67af7c6560ce24ad5) - Improved Nerd Font icons and terminal symbols so they fit the available one- or two-cell space while preserving ordinary text and emoji rendering.
 
 - [#33](https://github.com/ShaulLavo/ghostty-webgpu/pull/33) [`e609ea8`](https://github.com/ShaulLavo/ghostty-webgpu/commit/e609ea88feb83b55e1a27c8ea3058d83db20bafc) - Fixed copying selected text in main-thread terminals and added Ctrl+Shift+C copy shortcuts on Linux and Windows.
 
