@@ -191,3 +191,14 @@ it('preserves an alternate screen entered by queued output before clear', async 
   expect(f.terminal.readLines(0, 1)[0]?.text.trim()).toBe('alt')
   expect(f.terminal.geometry().cursor.y).toBe(1)
 })
+
+it('matches the default clear binding after a queued alternate-screen exit', async () => {
+  const f = await fixture()
+  f.terminal.write('old\r\nprompt> \x1b[?1049happlication')
+  const queued = f.terminal.writeBatched('\x1b[?1049l')
+  f.stroke({ key: 'k', code: 'KeyK', metaKey: true })
+  await queued
+  expect(f.terminal.inputModes.alternateScreen).toBe(false)
+  expect(f.terminal.geometry().cursor.y).toBe(0)
+  expect(f.terminal.readLines(0, 1)[0]?.text.trim()).toBe('prompt>')
+})

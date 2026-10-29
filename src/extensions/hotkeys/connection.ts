@@ -22,10 +22,13 @@ export function attachTerminalHotkeys(
   terminal: TerminalApi<'sync'>,
   options: TerminalHotkeysOptions = { mode: 'standalone' },
 ): TerminalHotkeyConnection {
-  const readState = () => ({
-    ...terminal.inputModes,
-    screenReader: options.screenReaderMode?.() === true,
-  })
+  const readState = () => {
+    if (terminal.pendingWriteBytes > 0) terminal.writeAndReadGeometry('')
+    return {
+      ...terminal.inputModes,
+      screenReader: options.screenReaderMode?.() === true,
+    }
+  }
   readState()
   let registration: TerminalHotkeyRegistration | undefined
   const connection = terminal.connectInput((input) => {
