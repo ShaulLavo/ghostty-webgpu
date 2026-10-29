@@ -6,6 +6,10 @@ const commandIds = [
   'terminal.paste',
   'terminal.selectAll',
   'terminal.clear',
+  'terminal.scrollToTop',
+  'terminal.scrollToBottom',
+  'terminal.scrollPageUp',
+  'terminal.scrollPageDown',
   'terminal.fontSizeIncrease',
   'terminal.fontSizeDecrease',
   'terminal.fontSizeReset',
@@ -15,8 +19,20 @@ const commandIds = [
 export type TerminalCommandId = (typeof commandIds)[number]
 
 type TerminalCommandTarget = Pick<
-  TerminalApi,
-  'appearance' | 'getSelection' | 'selectAll' | 'write' | 'setFont' | 'sendGeneratedInput'
+  TerminalApi<'sync'>,
+  | 'appearance'
+  | 'inputModes'
+  | 'geometry'
+  | 'writeAndReadGeometry'
+  | 'getSelection'
+  | 'selectAll'
+  | 'clearSelection'
+  | 'write'
+  | 'setFont'
+  | 'sendGeneratedInput'
+  | 'scrollToTop'
+  | 'scrollToBottom'
+  | 'scrollBy'
 >
 
 export interface TerminalClipboard {
@@ -71,6 +87,14 @@ export function createTerminalCommands(
     if (options.signal.aborted || text === undefined) return
     await terminal.sendGeneratedInput({ type: 'paste', data: text })
   }
+  function clear(): void {
+    const { cursor } = terminal.writeAndReadGeometry('')
+    if (terminal.inputModes.alternateScreen) return
+    const row = cursor.y
+    terminal.clearSelection()
+    const move = row > 0 ? `\x1b[${row}S\x1b[${row}A` : ''
+    terminal.write(`${move}\x1b[3J`)
+  }
   const copyAction = once('terminal.copy', copy)
   return {
     'terminal.copy': (event) => {
@@ -79,7 +103,15 @@ export function createTerminalCommands(
     },
     'terminal.paste': options.clipboard ? once('terminal.paste', paste) : () => false,
     'terminal.selectAll': action('terminal.selectAll', () => terminal.selectAll()),
-    'terminal.clear': action('terminal.clear', () => terminal.write('\u001b[3J\u001b[2J\u001b[H')),
+    'terminal.clear': action('terminal.clear', clear),
+    'terminal.scrollToTop': action('terminal.scrollToTop', () => terminal.scrollToTop()),
+    'terminal.scrollToBottom': action('terminal.scrollToBottom', () => terminal.scrollToBottom()),
+    'terminal.scrollPageUp': action('terminal.scrollPageUp', () =>
+      terminal.scrollBy(-terminal.geometry().rows),
+    ),
+    'terminal.scrollPageDown': action('terminal.scrollPageDown', () =>
+      terminal.scrollBy(terminal.geometry().rows),
+    ),
     'terminal.fontSizeIncrease': action('terminal.fontSizeIncrease', () =>
       fontSize(() => terminal.appearance.font.size + 1),
     ),

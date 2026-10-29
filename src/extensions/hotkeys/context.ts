@@ -3,6 +3,7 @@ import type { KeyContextInit } from '@fregat/hotkeys'
 export interface TerminalKeyContextState {
   readonly alternateScreen: boolean
   readonly mouseReporting: boolean
+  readonly screenReader: boolean
 }
 
 export function terminalKeyContext(state: TerminalKeyContextState): KeyContextInit {
@@ -11,6 +12,7 @@ export function terminalKeyContext(state: TerminalKeyContextState): KeyContextIn
     values: {
       mode: state.alternateScreen ? 'alternate' : 'normal',
       mouse: state.mouseReporting ? 'on' : 'off',
+      screenReader: state.screenReader ? 'on' : 'off',
     },
   }
 }

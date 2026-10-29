@@ -1,4 +1,5 @@
-import { Terminal, attachTerminalHotkeys } from 'ghostty-webgpu'
+import { Terminal } from 'ghostty-webgpu'
+import { attachTerminalHotkeys } from 'ghostty-webgpu/hotkeys'
 
 export async function mountEcho(host: HTMLElement) {
   const terminal = await Terminal.create({ accessibility: {} })

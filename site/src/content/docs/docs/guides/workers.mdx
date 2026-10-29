@@ -26,7 +26,7 @@ Your CSP must allow the worker URL in `worker-src`, WebAssembly compilation, and
 
 The main entry updates native state synchronously. Worker writes, reads, appearance changes and disposal return promises. Await a write before a read that depends on it. Host operations such as `focus` keep their synchronous shape.
 
-The worker's `backend` accepts `auto`, `webgpu` and `webgl`. Its current API has capability limits for Canvas modes, link providers, keyboard link discovery and finite synchronous input connections. `attachTerminalHotkeys` belongs to the main entry. Keep those boundaries in mind when migrating an interactive host.
+The worker's `backend` accepts `auto`, `webgpu` and `webgl`. Its current API has capability limits for Canvas modes, link providers, keyboard link discovery and finite synchronous input connections. `attachTerminalHotkeys` is an optional `ghostty-webgpu/hotkeys` add-on for the synchronous main-thread terminal. Keep those boundaries in mind when migrating an interactive host.
 
 ## If it doesn't work
 

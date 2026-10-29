@@ -7,12 +7,6 @@ import type {
   TerminalModifierSide,
   TerminalModifiers,
 } from '../term/types.js'
-import {
-  detectPlatform,
-  normalizeHotkey,
-  normalizeHotkeyFromEvent,
-  type KeymapPlatform,
-} from '@fregat/hotkeys'
 import type { GhosttyWebGpuTerminalInputHooks } from './types.js'
 
 type InputSession = Pick<
@@ -34,7 +28,7 @@ interface DomInputControllerBaseOptions {
   readonly hooks?: GhosttyWebGpuTerminalInputHooks
   readonly onError: (cause: unknown, operation: string) => void
   readonly onPreedit?: (value: string) => void
-  readonly platform?: KeymapPlatform
+  readonly platform?: InputPlatform
   readonly signal: AbortSignal
   readonly textarea: HTMLTextAreaElement
 }
@@ -113,19 +107,20 @@ const deleteCodepoint = 0x7f
 const macosFunctionKeyMinimum = 0xf700
 const macosFunctionKeyMaximum = 0xf8ff
 
-function macDefaultKeybinding(event: KeyboardEvent): string | undefined {
-  if (event.ctrlKey || event.shiftKey || event.getModifierState('AltGraph')) return undefined
-  // Ghostty's macOS natural text editing defaults bypass VT protocol encoding.
-  if (event.metaKey && !event.altKey) {
-    if (event.code === 'ArrowLeft') return '\x01'
-    if (event.code === 'ArrowRight') return '\x05'
-    if (event.code === 'Backspace') return '\x15'
-  }
-  if (event.altKey && !event.metaKey) {
-    if (event.code === 'ArrowLeft') return '\x1bb'
-    if (event.code === 'ArrowRight') return '\x1bf'
-  }
-  return undefined
+type InputPlatform = 'mac' | 'linux' | 'windows'
+
+function inputPlatform(): InputPlatform {
+  if (typeof navigator === 'undefined') return 'linux'
+  const platform = `${navigator.platform} ${navigator.userAgent}`.toLowerCase()
+  if (platform.includes('mac')) return 'mac'
+  if (platform.includes('win')) return 'windows'
+  return 'linux'
+}
+
+function isCopyShortcut(event: KeyboardEvent, platform: InputPlatform): boolean {
+  if (event.key.toLowerCase() !== 'c' || event.altKey) return false
+  if (platform === 'mac') return event.metaKey && !event.ctrlKey && !event.shiftKey
+  return event.ctrlKey && event.shiftKey && !event.metaKey
 }
 
 function modifierDefinition(code: string): ModifierDefinition | undefined {
@@ -284,13 +279,13 @@ class BrowserInputController implements DomInputController {
   private readonly deferredMacCommandPresses = new Map<string, KeyboardEvent>()
   private disposed = false
   private readonly forwardedMacCommandPresses = new Set<string>()
-  private readonly platform: KeymapPlatform
+  private readonly platform: InputPlatform
   private readonly forwardedKeyPresses = new Map<string, KeyboardEvent>()
   private readonly pressedModifierCodes = new Set<string>()
   private readonly suppressedShortcuts = new Map<string, SuppressedShortcutPolicy>()
 
   constructor(private readonly options: DomInputControllerOptions) {
-    this.platform = options.platform ?? detectPlatform()
+    this.platform = options.platform ?? inputPlatform()
     try {
       this.installListeners()
     } catch (cause) {
@@ -434,7 +429,6 @@ class BrowserInputController implements DomInputController {
       this.deferredMacCommandPresses.clear()
       return
     }
-    if (this.applyMacDefaultKeybinding(event)) return
     if (!isSupportedTerminalKeyCode(event.code)) {
       this.deferredMacCommandPresses.clear()
       return
@@ -553,19 +547,14 @@ class BrowserInputController implements DomInputController {
     if (event.getModifierState('AltGraph')) return false
     // ClipboardEvent/input carries browser paste; its physical key must not also encode.
     const modifier = this.platform === 'mac' ? event.metaKey : event.ctrlKey
-    if (modifier && !event.altKey && !event.shiftKey && event.code === 'KeyV') {
+    const pasteModifiers =
+      this.platform === 'mac' ? !event.ctrlKey && !event.shiftKey : !event.metaKey
+    if (modifier && !event.altKey && pasteModifiers && event.code === 'KeyV') {
       this.claimShortcut(event, pastePressPolicy, pasteRepeatPolicy)
       return true
     }
     const readback = this.options.selectionReadback
-    const copyShortcut = this.platform === 'mac' ? 'Mod+C' : 'Ctrl+Shift+C'
-    if (
-      !readback ||
-      normalizeHotkeyFromEvent(event, this.platform) !==
-        normalizeHotkey(copyShortcut, this.platform) ||
-      !readback.hasSelection()
-    )
-      return false
+    if (!readback || !isCopyShortcut(event, this.platform) || !readback.hasSelection()) return false
     const result = readback.copy()
     if (result)
       void Promise.resolve(result).catch((cause: unknown) => this.options.onError(cause, 'copy'))
@@ -669,35 +658,6 @@ class BrowserInputController implements DomInputController {
       if (event.type === 'keyup') this.forwardedKeyPresses.delete(event.code)
       this.options.onError(cause, 'key')
     }
-  }
-
-  private applyMacDefaultKeybinding(event: KeyboardEvent): boolean {
-    if (this.platform !== 'mac' || event.type !== 'keydown') return false
-    if (isComposingKey(event, this.composing)) return false
-    const data = macDefaultKeybinding(event)
-    if (data === undefined) return false
-    this.deferredMacCommandPresses.clear()
-    if (!this.screenReaderUsesBrowserDefault(event)) event.preventDefault()
-    this.beforeUserInput()
-    try {
-      const encoding = this.options.encoding
-      if (!encoding) {
-        this.notifyKey(event, new TextEncoder().encode(data))
-        this.options.session!.sendInput(data)
-        return true
-      }
-      const generation = this.encodingGeneration
-      void encoding
-        .sendInput(data)
-        .then((bytes) => {
-          if (this.disposed || generation !== this.encodingGeneration) return
-          this.notifyKey(event, bytes)
-        })
-        .catch((cause: unknown) => this.options.onError(cause, 'key'))
-    } catch (cause) {
-      this.options.onError(cause, 'key')
-    }
-    return true
   }
 
   private screenReaderUsesBrowserDefault(event: KeyboardEvent): boolean {

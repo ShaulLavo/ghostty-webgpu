@@ -1,26 +1,42 @@
 # Terminal hotkeys
 
-`attachTerminalHotkeys(terminal, options)` owns a finite original-input connection. It uses `@fregat/hotkeys` with the main terminal native owner. Load it explicitly for an interactive standalone terminal:
+Core supports custom input ownership but ships no keymap. Install the optional `@fregat/hotkeys` peer and import the add-on explicitly:
 
 ```ts
-import { Terminal, attachTerminalHotkeys } from 'ghostty-webgpu'
+import { Terminal } from 'ghostty-webgpu'
+import { attachTerminalHotkeys } from 'ghostty-webgpu/hotkeys'
 
 const terminal = await Terminal.create()
 const connection = attachTerminalHotkeys(terminal)
 await terminal.open(container)
 ```
 
-The connection attaches when the host opens, or synchronously when it is already open.
-Its disposer removes the registration. Terminal disposal aborts the connection and pending
-clipboard work. A second finite connection is rejected while the first owns original input.
+The connection attaches when the terminal opens, or immediately if it is already open. Its disposer removes the registration. Terminal disposal aborts the connection and pending clipboard work. One finite original-input connection owns a terminal at a time. The add-on requires the synchronous main-thread terminal. Worker terminals use native VT encoding without these bindings.
 
-## Standalone bindings
+## Ghostty keymap
 
-`terminalDefaultPack` exports platform-indexed binding data. macOS uses Cmd+C/V/A/K for copy,
-paste, select all and clear. Linux and Windows use Ctrl+Shift+C/V/A/K. Font size uses Cmd on
-macOS and Ctrl elsewhere: `=`, `Shift++`, `-` and `0`.
+`ghosttyKeymap` exports binding data indexed by `mac`, `linux`, and `windows`. The add-on detects the platform unless `platform` is supplied.
 
-Overrides follow the library's binding format:
+| Action                  | macOS                      | Linux and Windows              |
+| ----------------------- | -------------------------- | ------------------------------ |
+| Copy                    | Cmd+C                      | Ctrl+Shift+C                   |
+| Select all              | Cmd+A                      | Ctrl+Shift+A                   |
+| Clear above the prompt  | Cmd+K                      | Ctrl+Shift+K                   |
+| Increase font size      | Cmd+= or Cmd+Shift++       | Ctrl+= or Ctrl+Shift++         |
+| Decrease font size      | Cmd+-                      | Ctrl+-                         |
+| Reset font size         | Cmd+0                      | Ctrl+0                         |
+| Scroll to top or bottom | Cmd+Home or Cmd+End        | Shift+Home or Shift+End        |
+| Scroll one page         | Cmd+PageUp or Cmd+PageDown | Shift+PageUp or Shift+PageDown |
+
+On Mac, Cmd+Left, Cmd+Right, and Cmd+Backspace send `\x01`, `\x05`, and `\x15`. Option+Left and Option+Right send `\x1bb` and `\x1bf`. These text actions bypass VT key protocols. Option+letters still compose characters through native input. Option+Backspace remains a native encoded key.
+
+Clear removes the selection, scrollback, and rows above the cursor. The prompt row stays at the top, and protocol modes remain active. Clear does nothing on the alternate screen.
+
+Paste uses the browser's `paste` event and core's bracketed-paste path. The keymap has no paste binding, so it does not request clipboard-read permission. `terminal.paste` remains available to hosts that can read the clipboard silently. Copy uses the owning window's Clipboard API and declines an empty selection. Supply `clipboard: { readText, writeText }` and `onError(cause, operation)` for a different clipboard policy. Clipboard completions and queued font changes stop on disposal.
+
+## Override or replace bindings
+
+`bindings` appends to the selected keymap. User bindings can override defaults:
 
 ```ts
 attachTerminalHotkeys(terminal, {
@@ -29,16 +45,15 @@ attachTerminalHotkeys(terminal, {
 })
 ```
 
-Clipboard commands use the owning window's Clipboard API. An embedder can supply
-`clipboard: { readText, writeText }` and `onError(cause, operation)`. Copy declines when the
-selection is empty. Paste completion and queued font changes stop on disposal.
-Clear erases the display and scrollback while preserving native protocol modes.
+`keymap: []` replaces the defaults with an empty map. `bindings` still appends to that replacement.
 
-## Hosted focus adapter
+For screen-reader integration, pass `screenReaderMode: () => enabled`. Share the same predicate with `inputHooks.screenReaderMode` when constructing a host from a session. The five Mac text bindings match only while that predicate is false. Browser defaults remain governed by core's screen-reader input hook.
 
-Pass the existing window dispatcher and the Workspace parent:
+## Share a host dispatcher
 
 ```ts
+import { ghosttyKeymap, terminalShellKeysPack } from 'ghostty-webgpu/hotkeys'
+
 attachTerminalHotkeys(terminal, {
   mode: 'hosted',
   dispatcher: windowKeymap.hotkeys,
@@ -47,48 +62,16 @@ attachTerminalHotkeys(terminal, {
 })
 ```
 
-The connection adds a `Terminal` focus node and its commands. The host owns all binding data
-and the single matcher/listener. `terminalShellKeysPack` is exported opt-in data for Ctrl+A–Z
-and readline Alt keys. `terminalDefaultPack` is also available to hosted presets.
+The connection adds a `Terminal` focus node and its commands. The host owns all binding data and the single matcher. Add `ghosttyKeymap[platform]` to the host's keymap to use the same defaults. `terminalShellKeysPack` is opt-in data for Ctrl+A through Ctrl+Z and readline Alt keys.
 
-The node reads `terminal.inputModes` synchronously before matching. It publishes `Terminal`,
-`mode: normal | alternate`, and `mouse: off | on`. The main entry reads existing native screen and mouse state before matching.
+The focus node reads native input modes and the screen-reader predicate before each match. It publishes `Terminal`, `mode: normal | alternate`, `mouse: off | on`, and `screenReader: off | on`.
 
 ## Native input ownership
 
-An unbound key reaches native encoding once. A shallower application binding claims its key;
-a deeper `terminal.sendKeystroke` binding sends it to the shell. Arguments are exactly
-`{ keystroke: string }` or `{ text: string }`. Keystrokes accept the library's `Ctrl+B` notation
-and Zed's `ctrl-b` notation. Invalid arguments decline the command.
+An unbound key reaches native encoding once. A shallower application binding claims its key. A deeper `terminal.sendKeystroke` binding sends it to the shell. Arguments are exactly `{ keystroke: string }` or `{ text: string }`. Keystrokes accept `Ctrl+B` and Zed's `ctrl-b` notation. Invalid arguments decline the command.
 
-Original DOM events arbitrate through the finite synchronous claim/pass owner
-before native encoding. Resolved commands use `sendGeneratedInput`, which sends a
-typed key, text or paste directly to the native execution owner. Native terminal replies bypass
-original-input owners. Composition remains native text input. Programmatic original key, text and paste calls use the
-same claim boundary. A finite claim stops there; a pass reaches any explicitly installed general
-input contribution and then native encoding. Hotkeys attachment creates no general manager.
-The peer-owned `Terminal.use` surface retains its own registration and event semantics.
+Original DOM events arbitrate through the synchronous claim/pass owner before native encoding. Resolved commands use `sendGeneratedInput`, which sends a typed key, text, or paste directly to the native owner. Native terminal replies bypass original-input owners. Composition remains native text input. A finite claim stops forwarding. A pass reaches any installed general input contribution and then native encoding. Hotkeys attachment creates no general extension manager.
 
-A finite handler must be a function returning exactly `claim` or `pass` synchronously.
-Invalid decisions report a contract error and continue through the pass path. Rejected
-thenables are observed for diagnostics; their completion never changes that input decision.
-Immediate and deferred hotkeys setup failures release the lease and its open subscription,
-so a replacement can attach to the same native terminal.
+The finite handler must return exactly `claim` or `pass` synchronously. Invalid decisions report an error and continue through the pass path. Rejected thenables are observed for diagnostics. Their completion never changes the input decision. Setup failures release the lease and open subscription so a replacement can attach.
 
-The hotkeys helper checks immediate native-mode authority before acquiring its lease. A JavaScript
-worker attachment fails with its native-mode capability error. The finite connection requires
-the synchronous main entry. Worker `connectInput` returns a
-rejected Promise with a capability error; disposed calls also reject asynchronously. Existing
-worker input and general extension APIs retain their own actor conventions.
-
-The adapter subscribes directly to `dispatcher.observeKeys({ beforeKey, reset })`. It remembers
-native-selected physical presses and forwards their matching release once before the dispatcher
-consumes it. Focus movement retains the original terminal owner. Blur, hidden, `releaseAll`,
-dispatcher disposal and connection disposal clear that ownership. Disposal removes the node,
-commands and observer; the terminal execution owner remains in place.
-
-## Packaging
-
-The consumer uses `catalog:`. The root workspace supplies the reviewed exact hotkeys version. The standalone family catalog
-resolves its pinned artifact. Pack with Bun so the published manifest
-contains the resolved version. Publication and mirror cutover follow the root roadmap.
+The adapter remembers native-selected physical presses and forwards each matching release once. Focus movement retains the original owner. Blur, hidden documents, dispatcher resets, and disposal clear ownership. Disposal removes the node, commands, and observer while leaving the terminal alive.
