@@ -1378,7 +1378,7 @@ export class TerminalSession<TEvent = unknown> {
     options: TerminalSessionSendInputOptions = {},
   ): TerminalInputResult {
     return this.runOperation(() =>
-      this.publishInput(copyInput(data), options.preserveSelection !== true),
+      this.publishUserInput(copyInput(data), options.preserveSelection !== true),
     )
   }
 
@@ -1387,7 +1387,7 @@ export class TerminalSession<TEvent = unknown> {
       const event = normalizeTerminalKeyInput(input)
       const bytes = this.keyEncoder.encode(event)
       if (bytes.length > 0) options.onEncoded?.(Uint8Array.from(bytes))
-      return this.publishInput(bytes, true)
+      return this.publishUserInput(bytes, true)
     })
   }
 
@@ -1429,7 +1429,10 @@ export class TerminalSession<TEvent = unknown> {
 
   paste(data: TerminalInputData, options: TerminalSessionPasteOptions = {}): TerminalInputResult {
     return this.runOperation(() =>
-      this.publishInput(encodePaste(this.terminal, data, { bracketed: options.bracketed }), true),
+      this.publishUserInput(
+        encodePaste(this.terminal, data, { bracketed: options.bracketed }),
+        true,
+      ),
     )
   }
 
@@ -1885,6 +1888,11 @@ export class TerminalSession<TEvent = unknown> {
     this.revisionValue += 1
     this.emitState(this.emitters.scroll, () => this.scrollValue)
     return this.emitRenderRequest()
+  }
+
+  private publishUserInput(bytes: Uint8Array, clearSelection: boolean): TerminalInputResult {
+    if (bytes.length > 0) this.scroll(() => this.terminal.scrollToBottom())
+    return this.publishInput(bytes, clearSelection)
   }
 
   private publishInput(
