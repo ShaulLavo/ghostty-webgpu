@@ -230,9 +230,13 @@ function sameState(left: FileState, right: FileState): boolean {
 }
 
 async function writeConsumerFiles(root: string, browserOnly = false): Promise<void> {
+  const manifest = manifestRecord(
+    JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8')),
+  )
+  const hotkeys = manifestRecord(manifest.devDependencies)['@fregat/hotkeys']
   await writeFile(
     join(root, 'package.json'),
-    `${JSON.stringify({ name: 'ghostty-webgpu-package-smoke', private: true, type: 'module' }, null, 2)}\n`,
+    `${JSON.stringify({ name: 'ghostty-webgpu-package-smoke', private: true, type: 'module', dependencies: { '@fregat/hotkeys': hotkeys } }, null, 2)}\n`,
   )
   await writeFile(
     join(root, 'tsconfig.json'),
@@ -268,6 +272,7 @@ async function writeConsumerFiles(root: string, browserOnly = false): Promise<vo
 } from 'ghostty-webgpu'
 import type { GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'
 import { GhosttyRuntime, GhosttyTerminal, TerminalSession } from 'ghostty-webgpu/core'
+import { attachTerminalHotkeys, ghosttyKeymap, terminalShellKeysPack } from 'ghostty-webgpu/hotkeys'
 ${browserOnly ? '' : "import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'"}
 // @ts-expect-error The package has no facade entry point.
 import type * as RemovedFacade from 'ghostty-webgpu/xterm'
@@ -327,6 +332,9 @@ void Terminal
 void GhosttyRuntime
 void GhosttyTerminal
 void TerminalSession
+void attachTerminalHotkeys
+void ghosttyKeymap
+void terminalShellKeysPack
 void appearanceOptions
 void legacyAppearanceApi
 void rendererTheme
@@ -343,10 +351,13 @@ async function verifyBrowserFiles(packageRoot: string): Promise<void> {
     'dist/index.d.ts',
     'dist/core/index.js',
     'dist/core/index.d.ts',
+    'dist/extensions/hotkeys/index.js',
+    'dist/extensions/hotkeys/index.d.ts',
     'dist/config-resolver/index.js',
     'dist/config-resolver/index.d.ts',
     'types/legacy/config-resolver.d.ts',
     'types/legacy/core.d.ts',
+    'types/legacy/hotkeys.d.ts',
     'types/legacy/index.d.ts',
     'ghostty-vt.wasm',
     'bridge.wasm',
@@ -561,8 +572,34 @@ async function verifyCoreModuleGraph(packageRoot: string): Promise<void> {
   }
 }
 
+async function verifyHotkeysIsolation(packageRoot: string): Promise<void> {
+  const pending = [join(packageRoot, 'dist/index.js')]
+  const visited = new Set<string>()
+  while (pending.length > 0) {
+    const current = pending.pop()!
+    if (visited.has(current)) continue
+    visited.add(current)
+    const source = await readFile(current, 'utf8')
+    if (source.includes('@fregat/hotkeys') || current.includes('/extensions/hotkeys/'))
+      throw new PackageSmokeError(`main entry contains a hotkeys dependency: ${current}`)
+    const imports = source.matchAll(
+      /\b(?:import|export)\s+(?:[^;]*?\s+from\s+)?['"](\.[^'"]+)['"]/g,
+    )
+    for (const match of imports) pending.push(resolve(dirname(current), match[1]!))
+  }
+  const manifest = manifestRecord(
+    JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8')),
+  )
+  if (manifestRecord(manifest.dependencies)['@fregat/hotkeys'])
+    throw new PackageSmokeError('hotkeys must not be a required dependency')
+  const peer = manifestRecord(manifestRecord(manifest.peerDependenciesMeta)['@fregat/hotkeys'])
+  if (!manifestRecord(manifest.peerDependencies)['@fregat/hotkeys'] || peer.optional !== true)
+    throw new PackageSmokeError('hotkeys must be an optional peer dependency')
+}
+
 async function verifyRootIsolation(root: string, packageRoot: string): Promise<void> {
   await verifyCoreModuleGraph(packageRoot)
+  await verifyHotkeysIsolation(packageRoot)
   const native = join(packageRoot, 'native')
   const hidden = join(packageRoot, 'native.package-smoke-hidden')
   const hasNative = existsSync(native)
@@ -576,6 +613,9 @@ async function verifyRootIsolation(root: string, packageRoot: string): Promise<v
         `import { rejects } from 'node:assert/strict'
 import * as Native from 'ghostty-webgpu'
 import * as Core from 'ghostty-webgpu/core'
+import * as Hotkeys from 'ghostty-webgpu/hotkeys'
+if (typeof Hotkeys.attachTerminalHotkeys !== 'function' || !Hotkeys.ghosttyKeymap.mac.length) throw new Error('hotkeys subpath is unavailable')
+if ('attachTerminalHotkeys' in Native || 'ghosttyKeymap' in Native || 'terminalShellKeysPack' in Native) throw new Error('main entry exports a keymap add-on')
 const { Terminal } = Native
 if (typeof Terminal.create !== 'function') throw new Error('root Terminal is not the native API')
 if ('Terminal' in Core) throw new Error('core entry exports the DOM Terminal')

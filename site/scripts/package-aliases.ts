@@ -7,6 +7,10 @@ export const packageAliases = [
     replacement: fileURLToPath(new URL('../../dist/index.js', import.meta.url)),
   },
   {
+    find: /^ghostty-webgpu\/hotkeys$/,
+    replacement: fileURLToPath(new URL('../../dist/extensions/hotkeys/index.js', import.meta.url)),
+  },
+  {
     find: /^ghostty-webgpu\/worker$/,
     replacement: fileURLToPath(new URL('../../dist/worker/index.js', import.meta.url)),
   },

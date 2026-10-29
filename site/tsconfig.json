@@ -7,7 +7,8 @@
     "types": ["bun", "@webgpu/types", "astro/client"],
     "paths": {
       "ghostty-webgpu": ["../dist/index.d.ts"],
-      "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"]
+      "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"],
+      "ghostty-webgpu/hotkeys": ["../dist/extensions/hotkeys/index.d.ts"]
     }
   },
   "include": ["src/**/*.ts", "astro.config.ts", "scripts/**/*.ts"],

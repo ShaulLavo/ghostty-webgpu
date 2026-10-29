@@ -1,4 +1,5 @@
-import { fitTerminalFont, Terminal, attachTerminalHotkeys } from '../../dist/index.js'
+import { fitTerminalFont, Terminal } from '../../dist/index.js'
+import { attachTerminalHotkeys } from '../../dist/extensions/hotkeys/index.js'
 import { GhostDemo } from './demos/ghost.js'
 import { MatrixDemo } from './demos/matrix.js'
 import { ShellDemo } from './demos/shell.js'

@@ -9,6 +9,7 @@ import type { TerminalClipboard, TerminalCommandId } from './commands.js'
 
 export type TerminalHotkeysOptions = TerminalHotkeyOwnership & {
   readonly clipboard?: TerminalClipboard
+  readonly screenReaderMode?: () => boolean
   readonly onError?: (cause: unknown, operation: TerminalCommandId) => void
 }
 
@@ -21,7 +22,10 @@ export function attachTerminalHotkeys(
   terminal: TerminalApi<'sync'>,
   options: TerminalHotkeysOptions = { mode: 'standalone' },
 ): TerminalHotkeyConnection {
-  const readState = () => terminal.inputModes
+  const readState = () => ({
+    ...terminal.inputModes,
+    screenReader: options.screenReaderMode?.() === true,
+  })
   readState()
   let registration: TerminalHotkeyRegistration | undefined
   const connection = terminal.connectInput((input) => {

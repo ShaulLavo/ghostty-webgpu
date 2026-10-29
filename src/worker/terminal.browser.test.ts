@@ -1,11 +1,8 @@
 import { testFontUrl } from '../tests/fonts.js'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
-import {
-  Terminal as MainTerminal,
-  attachTerminalHotkeys,
-  type GhosttyWebGpuRendererFactory,
-} from '../../dist/index.js'
+import { Terminal as MainTerminal, type GhosttyWebGpuRendererFactory } from '../../dist/index.js'
+import { attachTerminalHotkeys } from '../../dist/extensions/hotkeys/index.js'
 import { Terminal as WorkerTerminal, TerminalWorkerError } from '../../dist/worker/index.js'
 import type { TerminalApi } from '../../dist/dom/terminal-api.js'
 import { WebGlTerminalRenderer } from '../../dist/render/webgl/renderer.js'

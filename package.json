@@ -63,6 +63,9 @@
       ],
       "worker": [
         "dist/worker/index.d.ts"
+      ],
+      "hotkeys": [
+        "dist/extensions/hotkeys/index.d.ts"
       ]
     },
     "*": {
@@ -77,6 +80,9 @@
       ],
       "worker": [
         "types/legacy/worker.d.ts"
+      ],
+      "hotkeys": [
+        "types/legacy/hotkeys.d.ts"
       ]
     }
   },
@@ -108,6 +114,12 @@
       "types": "./types/legacy/worker.d.ts",
       "import": "./dist/worker/index.js",
       "default": "./dist/worker/index.js"
+    },
+    "./hotkeys": {
+      "types@>=7.0": "./dist/extensions/hotkeys/index.d.ts",
+      "types": "./types/legacy/hotkeys.d.ts",
+      "import": "./dist/extensions/hotkeys/index.js",
+      "default": "./dist/extensions/hotkeys/index.js"
     }
   },
   "publishConfig": {
@@ -163,12 +175,12 @@
     "sites:verify": "bash scripts/verify-sites.sh"
   },
   "dependencies": {
-    "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
     "@webgpu/types": "0.1.74"
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "1.1.0",
     "@fontsource/jetbrains-mono": "5.3.0",
+    "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
     "@types/bun": "1.4.2",
     "@types/node": "26.6.3",
     "@vitest/browser-playwright": "5.0.2",
@@ -186,6 +198,14 @@
     "vitest": "5.0.2",
     "wrangler": "4.149.0",
     "ws": "8.22.0"
+  },
+  "peerDependencies": {
+    "@fregat/hotkeys": "^0.0.3"
+  },
+  "peerDependenciesMeta": {
+    "@fregat/hotkeys": {
+      "optional": true
+    }
   },
   "engines": {
     "node": ">=20"

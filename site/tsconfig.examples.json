@@ -5,7 +5,8 @@
     "rootDir": "..",
     "paths": {
       "ghostty-webgpu": ["../dist/index.d.ts"],
-      "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"]
+      "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"],
+      "ghostty-webgpu/hotkeys": ["../dist/extensions/hotkeys/index.d.ts"]
     }
   },
   "include": [
