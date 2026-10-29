@@ -1,6 +1,6 @@
 import { load, type Piece, type PieceName } from 'ascii.rest'
 import { fitTerminalFont, Terminal } from '../../../dist/index.js'
-import { coverMap, sceneGrid, SCROLLBAR } from './grid.js'
+import { coverScene, sceneGrid, SCROLLBAR } from './grid.js'
 import type { SceneTheme } from './theme'
 
 export const SCENE_FONT = '"Paper Mono", ui-monospace, monospace'
@@ -11,6 +11,9 @@ const font = (size: number, lineHeight: number, letterSpacing = 0) =>
     { boldWeight: 600, family: SCENE_FONT, letterSpacing, lineHeight, size, weight: 400 },
     devicePixelRatio,
   )
+
+// ascii.rest's scene dots, smallest to largest, after the blank.
+const DOTS = ' ·•●'
 
 const int = (hex: string) => Number.parseInt(hex.slice(1, 7), 16)
 const rgb = (hex: string) => {
@@ -42,15 +45,16 @@ function fitHost(host: HTMLElement, cols: number, rows: number) {
 }
 
 interface Grid {
-  readonly mapX: Int32Array
-  readonly mapY: Int32Array
+  readonly cover: ReturnType<typeof coverScene>
+  readonly sceneDots: Uint8Array
   readonly sentCh: Int32Array
   readonly sentFg: Int32Array
 }
 
 function coverGrid(columns: number, rows: number, cols: number, sceneRows: number): Grid {
   return {
-    ...coverMap(columns, rows, cols, sceneRows),
+    cover: coverScene(columns, rows, cols, sceneRows),
+    sceneDots: new Uint8Array(cols * sceneRows),
     sentCh: new Int32Array(columns * rows).fill(-1),
     sentFg: new Int32Array(columns * rows).fill(-1),
   }
@@ -58,28 +62,35 @@ function coverGrid(columns: number, rows: number, cols: number, sceneRows: numbe
 
 /** One frame's changed cells as terminal output. */
 function frameOutput(
-  lines: readonly string[],
+  frame: string,
   color: Uint8Array,
   cols: number,
   inks: readonly number[],
   grid: Grid,
 ) {
-  const columns = grid.mapX.length
+  const { cover, sceneDots } = grid
+  frame.split('\n').forEach((line, y) => {
+    for (let x = 0; x < cols; x++)
+      sceneDots[y * cols + x] = Math.max(0, DOTS.indexOf(line[x] ?? ' '))
+  })
+  cover.sample(sceneDots, color)
   let out = ''
-  for (let y = 0; y < grid.mapY.length; y++) {
-    const sy = grid.mapY[y]!
-    const line = lines[sy] ?? ''
+  let pen = -1
+  for (let y = 0; y < cover.rows; y++) {
     let at = -1
-    for (let x = 0; x < columns; x++) {
-      const sx = grid.mapX[x]!
-      const ch = line.charCodeAt(sx) || 32
-      const fg = ch === 32 ? -1 : (inks[color[sy * cols + sx]!] ?? inks[0]!)
-      const k = y * columns + x
+    for (let x = 0; x < cover.columns; x++) {
+      const k = y * cover.columns + x
+      const ch = DOTS.charCodeAt(cover.dots[k]!)
+      const fg = ch === 32 ? -1 : (inks[cover.inks[k]!] ?? inks[0]!)
       if (grid.sentCh[k] === ch && grid.sentFg[k] === fg) continue
       grid.sentCh[k] = ch
       grid.sentFg[k] = fg
       if (at !== x) out += `\x1b[${y + 1};${x + 1}H`
-      if (fg >= 0) out += sgr(38, fg)
+      // Runs of one colour share one pen change; a blank leaves the pen as it was.
+      if (fg >= 0 && fg !== pen) {
+        out += sgr(38, fg)
+        pen = fg
+      }
       out += String.fromCharCode(ch)
       at = x + 1
     }
@@ -164,13 +175,13 @@ export async function mountScene(
   let grid: Grid | undefined
   const draw = (t: number) => {
     const { columns, rows: height } = terminal.appearance.grid
-    if (grid?.mapX.length !== columns || grid.mapY.length !== height) {
+    if (grid?.cover.columns !== columns || grid.cover.rows !== height) {
       grid = coverGrid(columns, height, cols, rows)
       // Beside the first frame's data-grid: the two must agree for the hand-over to keep its picture.
       host.dataset.terminalGrid = `${columns}x${height}`
       terminal.write('\x1b[2J')
     }
-    const out = frameOutput(frame(t, { paper: false, color }).split('\n'), color, cols, inks, grid)
+    const out = frameOutput(frame(t, { paper: false, color }), color, cols, inks, grid)
     if (out) terminal.write(out)
   }
 

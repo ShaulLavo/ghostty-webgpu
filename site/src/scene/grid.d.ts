@@ -1,4 +1,5 @@
 export declare const MIN_CELL: number
+export declare const MAX_CELL: number
 export declare const SCROLLBAR: number
 export declare function sceneGrid(
   width: number,
@@ -11,9 +12,15 @@ export declare function sceneGrid(
   readonly rows: number
   readonly height: number
 }
-export declare function coverMap(
+export declare function coverScene(
   columns: number,
   rows: number,
   sceneCols: number,
   sceneRows: number,
-): { readonly mapX: Int32Array; readonly mapY: Int32Array }
+): {
+  readonly columns: number
+  readonly rows: number
+  readonly dots: Uint8Array
+  readonly inks: Uint8Array
+  sample(sceneDots: Uint8Array, sceneInks: Uint8Array): void
+}
