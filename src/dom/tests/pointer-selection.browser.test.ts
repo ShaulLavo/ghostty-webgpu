@@ -527,6 +527,17 @@ describe('native mouse routing', () => {
 })
 
 describe('wheel routing', () => {
+  it('sends cursor arrows for alternate-screen scrolling with DECSET 1007', async () => {
+    const harness = await createHarness()
+    harness.session.write(`${escape}[?1049h${escape}[?1007h`)
+    const point = cellPosition(harness.layout, 0, 0)
+
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: -1 })
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: 1 })
+
+    expect(harness.data).toEqual([`${escape}[A`, `${escape}[B`])
+  })
+
   it('accumulates pixel residuals for viewport scrolling and emits native wheel pairs when tracked', async () => {
     const harness = await createHarness()
     harness.session.write('0\r\n1\r\n2\r\n3\r\n4\r\n5')
