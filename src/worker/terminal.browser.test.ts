@@ -955,11 +955,11 @@ it.each(['main', 'webgl', 'webgpu'] as const)(
     const history = Array.from({ length: 60 }, (_, index) => `history ${index}`).join('\r\n')
     await terminal.write(history)
     await eventually(() => terminal.visibleLines().some((line) => line.includes('history 59')))
-    await wheelUp(terminal)
+    const scrolled = await wheelUp(terminal)
 
     const output = await terminal.write('\r\noutput while scrolled')
     await eventually(() => terminal.submittedFrame!.nativeRevision >= output.revision)
-    const scrolled = terminal.submittedFrame!.scrollbar.offset
+    expect(terminal.submittedFrame!.scrollbar.offset).toBe(scrolled)
     await terminal.selectAll()
     const modifier = /Mac/.test(navigator.platform)
       ? { metaKey: true }
