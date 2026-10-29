@@ -1,4 +1,5 @@
-import { Terminal, attachTerminalHotkeys } from '../../dist/index.js'
+import { Terminal } from '../../dist/index.js'
+import { attachTerminalHotkeys } from '../../dist/extensions/hotkeys/index.js'
 import type {
   GhosttyWebGpuRendererFactory,
   GhosttyWebGpuTerminalDiagnostics,

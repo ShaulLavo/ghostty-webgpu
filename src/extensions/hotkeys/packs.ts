@@ -1,22 +1,42 @@
 import type { Binding, KeymapPlatform } from '@fregat/hotkeys'
 
-function defaults(modifier: string, clipboardModifier: string): readonly Binding[] {
-  return [
+function defaults(
+  modifier: string,
+  clipboardModifier: string,
+  scrollModifier: string,
+): readonly Binding[] {
+  const bindings: readonly Binding[] = [
     { keys: `${clipboardModifier}+C`, command: 'terminal.copy' },
-    { keys: `${clipboardModifier}+V`, command: 'terminal.paste' },
     { keys: `${clipboardModifier}+A`, command: 'terminal.selectAll' },
-    { keys: `${clipboardModifier}+K`, command: 'terminal.clear' },
+    {
+      keys: `${clipboardModifier}+K`,
+      command: 'terminal.clear',
+      context: 'Terminal && mode == normal',
+    },
     { keys: `${modifier}+=`, command: 'terminal.fontSizeIncrease' },
     { keys: `${modifier}+Shift++`, command: 'terminal.fontSizeIncrease' },
     { keys: `${modifier}+-`, command: 'terminal.fontSizeDecrease' },
     { keys: `${modifier}+0`, command: 'terminal.fontSizeReset' },
-  ].map((binding) => ({ ...binding, context: 'Terminal', source: 'default' }))
+    { keys: `${scrollModifier}+Home`, command: 'terminal.scrollToTop' },
+    { keys: `${scrollModifier}+End`, command: 'terminal.scrollToBottom' },
+    { keys: `${scrollModifier}+PageUp`, command: 'terminal.scrollPageUp' },
+    { keys: `${scrollModifier}+PageDown`, command: 'terminal.scrollPageDown' },
+  ]
+  return bindings.map((binding) => ({ context: 'Terminal', source: 'default', ...binding }))
 }
 
-export const terminalDefaultPack: Readonly<Record<KeymapPlatform, readonly Binding[]>> = {
-  mac: defaults('Meta', 'Meta'),
-  linux: defaults('Ctrl', 'Ctrl+Shift'),
-  windows: defaults('Ctrl', 'Ctrl+Shift'),
+const macTextBindings: readonly Binding[] = [
+  { keys: 'Meta+ArrowLeft', command: 'terminal.sendKeystroke', args: { text: '\x01' } },
+  { keys: 'Meta+ArrowRight', command: 'terminal.sendKeystroke', args: { text: '\x05' } },
+  { keys: 'Meta+Backspace', command: 'terminal.sendKeystroke', args: { text: '\x15' } },
+  { keys: 'Alt+ArrowLeft', command: 'terminal.sendKeystroke', args: { text: '\x1bb' } },
+  { keys: 'Alt+ArrowRight', command: 'terminal.sendKeystroke', args: { text: '\x1bf' } },
+].map((binding) => ({ ...binding, context: 'Terminal && screenReader == off', source: 'default' }))
+
+export const ghosttyKeymap: Record<KeymapPlatform, readonly Binding[]> = {
+  mac: defaults('Meta', 'Meta', 'Meta').concat(macTextBindings),
+  linux: defaults('Ctrl', 'Ctrl+Shift', 'Shift'),
+  windows: defaults('Ctrl', 'Ctrl+Shift', 'Shift'),
 }
 
 const controlLetters = Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZ', (letter) => `Ctrl+${letter}`)

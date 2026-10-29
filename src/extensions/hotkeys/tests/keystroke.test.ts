@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { createKeyInput, createDispatcher } from '@fregat/hotkeys'
 import { terminalKeyContext } from '../context.js'
 import { readSendKeystrokeArgs, terminalKeystroke } from '../keystroke.js'
-import { terminalDefaultPack, terminalShellKeysPack } from '../packs.js'
+import { ghosttyKeymap, terminalShellKeysPack } from '../packs.js'
 import { TerminalSession } from '../../../term/session.js'
 
 it('native encoding covers Ctrl letters and readline keys from the exported pack', async () => {
@@ -75,7 +75,7 @@ it.each(['mac', 'linux', 'windows'] as const)('defaults are overridable on %s', 
   const calls: string[] = []
   const dispatcher = createDispatcher<null>({
     platform,
-    keymap: terminalDefaultPack[platform].concat([
+    keymap: ghosttyKeymap[platform].concat([
       {
         keys: platform === 'mac' ? 'Meta+C' : 'Ctrl+Shift+C',
         command: 'terminal.clear',
@@ -88,6 +88,7 @@ it.each(['mac', 'linux', 'windows'] as const)('defaults are overridable on %s', 
     context: terminalKeyContext({
       alternateScreen: false,
       mouseReporting: false,
+      screenReader: false,
     }),
     commands: {
       'terminal.copy': () => void calls.push('copy'),
@@ -110,3 +111,59 @@ it.each(['mac', 'linux', 'windows'] as const)('defaults are overridable on %s', 
   expect(calls).toEqual(['clear'])
   dispatcher.dispose()
 })
+
+it('exports Ghostty text actions only on Mac and leaves browser paste unbound', () => {
+  expect(
+    ghosttyKeymap.mac.filter((binding) => binding.command === 'terminal.sendKeystroke'),
+  ).toEqual(
+    [
+      ['Meta+ArrowLeft', '\x01'],
+      ['Meta+ArrowRight', '\x05'],
+      ['Meta+Backspace', '\x15'],
+      ['Alt+ArrowLeft', '\x1bb'],
+      ['Alt+ArrowRight', '\x1bf'],
+    ].map(([keys, text]) => ({
+      keys,
+      command: 'terminal.sendKeystroke',
+      args: { text },
+      context: 'Terminal && screenReader == off',
+      source: 'default',
+    })),
+  )
+  for (const platform of ['mac', 'linux', 'windows'] as const) {
+    expect(ghosttyKeymap[platform].some((binding) => binding.command === 'terminal.paste')).toBe(
+      false,
+    )
+    expect(
+      ghosttyKeymap[platform].find((binding) => binding.command === 'terminal.clear')?.context,
+    ).toBe('Terminal && mode == normal')
+  }
+  expect(ghosttyKeymap.linux.some((binding) => binding.command === 'terminal.sendKeystroke')).toBe(
+    false,
+  )
+  expect(
+    ghosttyKeymap.windows.some((binding) => binding.command === 'terminal.sendKeystroke'),
+  ).toBe(false)
+})
+
+it.each(['mac', 'linux', 'windows'] as const)(
+  'exports native scroll bindings on %s',
+  (platform) => {
+    const modifier = platform === 'mac' ? 'Meta' : 'Shift'
+    expect(
+      ghosttyKeymap[platform].filter((binding) => binding.command?.startsWith('terminal.scroll')),
+    ).toEqual(
+      [
+        ['Home', 'terminal.scrollToTop'],
+        ['End', 'terminal.scrollToBottom'],
+        ['PageUp', 'terminal.scrollPageUp'],
+        ['PageDown', 'terminal.scrollPageDown'],
+      ].map(([key, command]) => ({
+        keys: `${modifier}+${key}`,
+        command,
+        context: 'Terminal',
+        source: 'default',
+      })),
+    )
+  },
+)

@@ -181,14 +181,6 @@ export { DomTerminalRenderer, renderFrameToHtml } from './render/dom/renderer.js
 export type { RenderFrameHtmlOptions } from './render/dom/renderer.js'
 export { snapshotRenderState } from './render/shared/frame.js'
 
-export { attachTerminalHotkeys } from './extensions/hotkeys/connection.js'
-export { terminalDefaultPack, terminalShellKeysPack } from './extensions/hotkeys/packs.js'
-export type {
-  TerminalHotkeysOptions,
-  TerminalHotkeyConnection,
-} from './extensions/hotkeys/connection.js'
-export type { TerminalClipboard, TerminalCommandId } from './extensions/hotkeys/commands.js'
-export type { TerminalHotkeyOwnership } from './extensions/hotkeys/focus.js'
 export type {
   TerminalGeneratedInput,
   TerminalInputModes,

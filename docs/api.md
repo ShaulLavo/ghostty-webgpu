@@ -509,7 +509,8 @@ synchronous-main and Promise-worker return conventions. Setup closures stay on t
 
 ## hotkeys
 
-Terminal bindings and hosted focus setup use the [hotkeys input connection](hotkeys.md).
+Core supports input ownership but ships no keymap. Import the optional add-on from
+`ghostty-webgpu/hotkeys` for the [Ghostty keymap and hosted focus setup](hotkeys.md).
 `attachTerminalHotkeys` owns one synchronous main-host input lease and constructs no general
 manager. Its claim stops forwarding; its pass reaches explicitly installed general input
 contributions, then native once. The public extension APIs above retain their separate ownership.

@@ -25,7 +25,7 @@ bun install --frozen-lockfile
 bun run build
 ```
 
-`build` compiles `src/` to `dist/` and bundles the worker. The pinned `@fregat/hotkeys` dependency arrives already built. The three wasm files are checked in. See [development](development.md#rebuild-the-wasm) to rebuild them.
+`build` compiles `src/` to `dist/` and bundles the worker. The optional `ghostty-webgpu/hotkeys` add-on uses the `@fregat/hotkeys` peer, which development installs from a pinned built artifact. The three wasm files are checked in. See [development](development.md#rebuild-the-wasm) to rebuild them.
 
 From your app, link the checkout with an absolute path:
 

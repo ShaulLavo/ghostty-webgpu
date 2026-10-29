@@ -16,13 +16,14 @@ import {
   terminalKeyFromEvent,
   terminalKeystroke,
 } from './keystroke.js'
-import { terminalDefaultPack } from './packs.js'
+import { ghosttyKeymap } from './packs.js'
 import type { TerminalKeyInput } from '../../term/types.js'
 
 export type TerminalHotkeyOwnership =
   | {
       readonly mode: 'standalone'
       readonly bindings?: readonly KeymapEntry[]
+      readonly keymap?: readonly KeymapEntry[]
       readonly platform?: KeymapPlatform
     }
   | {
@@ -48,7 +49,7 @@ export function registerTerminalHotkeys(
   options: TerminalHotkeyRegistrationOptions,
 ): TerminalHotkeyRegistration {
   const platform = options.platform ?? detectPlatform()
-  const defaults: readonly KeymapEntry[] = terminalDefaultPack[platform]
+  const defaults: readonly KeymapEntry[] = ghosttyKeymap[platform]
   const lifetime = new AbortController()
   let disposed = false
   const nativePresses = new Map<
@@ -62,7 +63,7 @@ export function registerTerminalHotkeys(
       : createBrowserDispatcher({
           root: options.element,
           platform,
-          keymap: defaults.concat(options.bindings ?? []),
+          keymap: (options.keymap ?? defaults).concat(options.bindings ?? []),
           replay: (_input, event) =>
             send(() =>
               options.terminal.sendGeneratedInput({

@@ -1,12 +1,12 @@
 import { testFontUrl } from '../../../tests/fonts.js'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createBrowserDispatcher, type KeymapEntry, type KeymapPlatform } from '@fregat/hotkeys'
+import { Terminal as MainTerminal } from '../../../../dist/index.js'
 import {
-  Terminal as MainTerminal,
   attachTerminalHotkeys,
-  terminalDefaultPack,
+  ghosttyKeymap,
   terminalShellKeysPack,
-} from '../../../../dist/index.js'
+} from '../../../../dist/extensions/hotkeys/index.js'
 import { page } from 'vitest/browser'
 import type { TerminalApi } from '../../../../dist/dom/terminal-api.js'
 import type { TerminalClipboard } from '../commands.js'
@@ -24,6 +24,7 @@ beforeAll(async () => {
 })
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
+  vi.restoreAllMocks()
 })
 async function settle(terminal: TerminalApi): Promise<void> {
   await Promise.resolve()
@@ -31,6 +32,12 @@ async function settle(terminal: TerminalApi): Promise<void> {
   await Promise.resolve()
 }
 async function fixture(entry: 'main', platform: KeymapPlatform = 'linux', observe = true) {
+  const platforms: Record<KeymapPlatform, typeof navigator.platform> = {
+    mac: 'MacIntel',
+    linux: 'Linux x86_64',
+    windows: 'Win32',
+  }
+  vi.spyOn(navigator, 'platform', 'get').mockReturnValue(platforms[platform])
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:160px;position:relative'
   document.body.append(host)
@@ -458,10 +465,15 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
       await expect.poll(() => f.copies.length).toBe(1)
       expect(f.copies[0]).toContain('selection')
       await f.terminal.write('\x1b[?2004h')
-      f.key('keydown', { key: 'v', code: 'KeyV', ...clipboardModifiers })
-      f.key('keydown', { key: 'v', code: 'KeyV', repeat: true, ...clipboardModifiers })
+      const pastePress = f.key('keydown', { key: 'v', code: 'KeyV', ...clipboardModifiers })
       f.key('keyup', { key: 'v', code: 'KeyV', ...clipboardModifiers })
-      await expect.poll(() => f.output).toEqual(['\x1b[200~clipboard\x1b[201~'])
+      expect(pastePress.defaultPrevented).toBe(false)
+      const clipboardData = new DataTransfer()
+      clipboardData.setData('text/plain', 'browser paste')
+      f.terminal.textarea!.dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }),
+      )
+      await expect.poll(() => f.output).toEqual(['\x1b[200~browser paste\x1b[201~'])
       const modifier = platform === 'mac' ? { metaKey: true } : { ctrlKey: true }
       f.key('keydown', { key: '=', code: 'Equal', ...modifier })
       f.key('keydown', { key: '=', code: 'Equal', repeat: true, ...modifier })
@@ -477,7 +489,7 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
       f.key('keydown', { key: 'k', code: 'KeyK', ...clipboardModifiers })
       f.key('keyup', { key: 'k', code: 'KeyK', ...clipboardModifiers })
       await settle(f.terminal)
-      expect((await f.terminal.readLines(0, 1))[0]?.text.trim()).toBe('')
+      expect((await f.terminal.readLines(0, 1))[0]?.text.trim()).toBe('selection')
       expect(f.terminal.inputModes.mouseReporting).toBe(true)
       handle.dispose()
       attachTerminalHotkeys(f.terminal, {
@@ -501,7 +513,7 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
       f.key('keyup', { key: 'q', code: 'KeyQ', ctrlKey: true })
       await settle(f.terminal)
       expect(f.output.at(-1)).toBe('\x11')
-      expect(terminalDefaultPack[platform]).toHaveLength(8)
+      expect(ghosttyKeymap[platform]).toHaveLength(platform === 'mac' ? 16 : 11)
       expect(f.errors).toEqual([])
     },
   )
@@ -517,6 +529,9 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
       mode: 'standalone',
       platform: 'linux',
       clipboard: { readText: () => pending, writeText: async () => {} },
+      bindings: [
+        { keys: 'Ctrl+Shift+V', command: 'terminal.paste', context: 'Terminal', source: 'user' },
+      ],
     })
     f.terminal.focus()
     f.key('keydown', { key: 'v', code: 'KeyV', ctrlKey: true, shiftKey: true })

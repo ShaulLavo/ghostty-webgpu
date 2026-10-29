@@ -89,30 +89,31 @@ async function createTerminal(mode: 'main' | 'worker') {
   return { terminal, textarea: host.querySelector('textarea')! }
 }
 
-describe.each(['main', 'worker'] as const)('%s macOS defaults', (mode) => {
+describe.each(['main', 'worker'] as const)('%s macOS core without a keymap', (mode) => {
   it.each(['legacy', 'kitty'] as const)(
-    'sends native text bindings in %s mode, including repeats without releases',
+    'encodes Cmd+Left through VT in %s mode',
     async (protocol) => {
       vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel')
       const { terminal, textarea } = await createTerminal(mode)
       const output: string[] = []
       terminal.onData(({ bytes }) => output.push(new TextDecoder().decode(bytes)))
       if (protocol === 'kitty') await terminal.write('\x1b[>11u')
-      for (const binding of bindings) {
-        const start = output.length
-        const press = key(textarea, 'keydown', binding)
-        const repeat = key(textarea, 'keydown', { ...binding, repeat: true })
-        key(textarea, 'keyup', binding)
-        await expect.poll(() => output.slice(start)).toEqual([binding.text, binding.text])
-        expect(press.defaultPrevented).toBe(true)
-        expect(repeat.defaultPrevented).toBe(true)
-      }
-      const start = output.length
-      key(textarea, 'keydown', { code: 'MetaLeft', metaKey: true })
-      key(textarea, 'keydown', bindings[0]!)
-      key(textarea, 'keyup', bindings[0]!)
-      key(textarea, 'keyup', { code: 'MetaLeft' })
-      await expect.poll(() => output.slice(start)).toEqual(['\x01'])
+      const expected = new TextDecoder().decode(
+        await terminal.sendGeneratedInput({
+          type: 'key',
+          input: {
+            action: 'press',
+            code: 'ArrowLeft',
+            text: '',
+            composing: false,
+            modifiers: { super: 'unknown' },
+          },
+        }),
+      )
+      output.length = 0
+      key(textarea, 'keydown', { key: 'ArrowLeft', code: 'ArrowLeft', metaKey: true })
+      await expect.poll(() => output).toEqual([expected])
+      expect(expected).not.toBe('\x01')
     },
   )
 })
@@ -200,8 +201,8 @@ it('honors claims, disabled input, composition, extra modifiers, and key hooks',
     notifications.length = 0
     key(textarea, 'keydown', left)
     key(textarea, 'keyup', left)
-    expect(sent).toEqual(['\x01'])
-    expect(notifications).toEqual(['before', 'ArrowLeft:1'])
+    expect(sent).toEqual([])
+    expect(notifications).toEqual(['before', 'before'])
   } finally {
     controller.dispose()
   }
