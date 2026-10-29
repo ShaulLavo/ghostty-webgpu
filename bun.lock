@@ -61,7 +61,7 @@
         "vitest": "5.0.2",
       },
       "peerDependencies": {
-        "ghostty-webgpu": "^0.3.27",
+        "ghostty-webgpu": "^0.3.28",
       },
       "optionalPeers": [
         "ghostty-webgpu",
@@ -78,7 +78,7 @@
         "vitest": "5.0.2",
       },
       "peerDependencies": {
-        "ghostty-webgpu": "^0.3.27",
+        "ghostty-webgpu": "^0.3.28",
       },
     },
     "site": {

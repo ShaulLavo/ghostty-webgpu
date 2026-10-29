@@ -1,5 +1,14 @@
 # ghostty-webgpu
 
+## 0.3.28
+
+### Patch Changes
+
+- [#53](https://github.com/ShaulLavo/ghostty-webgpu/pull/53) [`47ffa12`](https://github.com/ShaulLavo/ghostty-webgpu/commit/47ffa122f0d2c96a658ddb516f1feaee2a5a1d0d) - Breaking: terminal key bindings now live in the optional `ghostty-webgpu/hotkeys` add-on. It provides the Ghostty keymap, including macOS line and word editing shortcuts, while core input uses native VT encoding.
+  Migration: install the optional `@fregat/hotkeys` peer and import `attachTerminalHotkeys` from `ghostty-webgpu/hotkeys` instead of the package root.
+
+- [#52](https://github.com/ShaulLavo/ghostty-webgpu/pull/52) [`3befe2b`](https://github.com/ShaulLavo/ghostty-webgpu/commit/3befe2bcf5144d2d96061ae12cc796222646d57d) - Fixed vertical wheel input on the alternate screen to send cursor arrows when alternate scrolling is enabled and mouse tracking is off. Local and worker terminals follow the active cursor-key mode.
+
 ## 0.3.27
 
 ### Patch Changes

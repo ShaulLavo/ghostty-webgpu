@@ -21,5 +21,5 @@ it('includes the optional line editor in the standalone workspace', () => {
   expect(family.workspaces.packages).toContain('packages/*')
   expect(editor.name).toBe('ghostty-webgpu-line-editor')
   expect(editor.peerDependenciesMeta['ghostty-webgpu'].optional).toBe(true)
-  expect(editor.peerDependencies['ghostty-webgpu']).toBe('^0.3.27')
+  expect(editor.peerDependencies['ghostty-webgpu']).toBe('^0.3.28')
 })
