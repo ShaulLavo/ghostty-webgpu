@@ -1,5 +1,11 @@
 # ghostty-webgpu
 
+## 0.3.29
+
+### Patch Changes
+
+- [#55](https://github.com/ShaulLavo/ghostty-webgpu/pull/55) [`5ae7932`](https://github.com/ShaulLavo/ghostty-webgpu/commit/5ae7932179de20432d6f14b00fd3d681b33d0163) - Fixed accepted keyboard input and pasted text to return the terminal viewport to the bottom after scrolling through history.
+
 ## 0.3.28
 
 ### Patch Changes
