@@ -931,6 +931,78 @@ it('reacquires a live device and repaints after public worker device loss', asyn
   }
 }, 15_000)
 
+async function expectBottom(terminal: TerminalApi): Promise<void> {
+  await eventually(() => {
+    const scrollbar = terminal.submittedFrame?.scrollbar
+    return scrollbar !== undefined && scrollbar.offset === scrollbar.total - scrollbar.length
+  })
+}
+
+async function wheelUp(terminal: TerminalApi): Promise<number> {
+  const previous = terminal.submittedFrame!.scrollbar.offset
+  terminal.canvas!.dispatchEvent(
+    new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaMode: 1, deltaY: -6 }),
+  )
+  await eventually(() => terminal.submittedFrame!.scrollbar.offset < previous)
+  return terminal.submittedFrame!.scrollbar.offset
+}
+
+it.each(['main', 'webgl', 'webgpu'] as const)(
+  '%s returns to the bottom for terminal-owned input only',
+  async (mode) => {
+    const terminal = await create(mode)
+    await terminal.open(container())
+    const history = Array.from({ length: 60 }, (_, index) => `history ${index}`).join('\r\n')
+    await terminal.write(history)
+    await eventually(() => terminal.visibleLines().some((line) => line.includes('history 59')))
+    await wheelUp(terminal)
+
+    const output = await terminal.write('\r\noutput while scrolled')
+    await eventually(() => terminal.submittedFrame!.nativeRevision >= output.revision)
+    const scrolled = terminal.submittedFrame!.scrollbar.offset
+    await terminal.selectAll()
+    const modifier = /Mac/.test(navigator.platform)
+      ? { metaKey: true }
+      : { ctrlKey: true, shiftKey: true }
+    terminal.textarea!.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        ...modifier,
+        bubbles: true,
+        cancelable: true,
+        code: 'KeyC',
+        key: 'c',
+      }),
+    )
+    expect(terminal.submittedFrame!.scrollbar.offset).toBe(scrolled)
+
+    terminal.textarea!.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        code: 'KeyA',
+        key: 'a',
+      }),
+    )
+    await expectBottom(terminal)
+
+    await wheelUp(terminal)
+    terminal.textarea!.value = 'text input'
+    terminal.textarea!.dispatchEvent(
+      new InputEvent('input', { bubbles: true, data: 'text input', inputType: 'insertText' }),
+    )
+    await expectBottom(terminal)
+
+    await wheelUp(terminal)
+    const clipboard = new DataTransfer()
+    clipboard.setData('text/plain', 'pasted input')
+    terminal.textarea!.dispatchEvent(
+      new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: clipboard }),
+    )
+    await expectBottom(terminal)
+  },
+  20_000,
+)
+
 describe.each(['main', 'webgl', 'webgpu'] as const)('%s shared await-style terminal', (mode) => {
   it('runs real native output, fitted layout, input, reset and captures through the packaged entry', async () => {
     const terminal = await create(mode)
