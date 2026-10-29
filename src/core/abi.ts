@@ -291,12 +291,14 @@ export const enum FocusEvent {
 }
 
 export const enum TerminalMode {
+  CursorKeys = 1,
   Autowrap = 7,
   GraphemeClustering = 2027,
   SynchronizedOutput = 2026,
   Origin = 6,
   LeftRightMargin = 69,
   FocusEvent = 1004,
+  MouseAlternateScroll = 1007,
   BracketedPaste = 2004,
   ColorSchemeReport = 2031,
 }

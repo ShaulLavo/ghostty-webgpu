@@ -498,7 +498,8 @@ export class WorkerTerminalExecution {
       this.request('mouse', [input, this.selectionIdentity]),
     mouseTracking: () => this.confirmed().mouseTracking,
     resetMouseTracking: () => this.request('resetMouseTracking', []),
-    scrollBy: (delta: number) => this.scrollBy(delta),
+    scrollWheel: (delta: number, horizontal: boolean) =>
+      this.request('scrollWheel', [delta, horizontal]),
   }
 
   readonly focus = {

@@ -237,7 +237,8 @@ export class LocalTerminalExecution {
     mouse: (input: TerminalMouseInput) => this.session.mouse(input),
     mouseTracking: () => this.session.mouseTracking,
     resetMouseTracking: () => this.session.resetMouseTracking(),
-    scrollBy: (delta: number) => this.session.scrollBy(delta),
+    scrollWheel: (delta: number, horizontal: boolean) =>
+      this.session.scrollWheel(delta, horizontal),
   }
   readonly selectionGesture = {
     resetSelectionGesture: () => this.resetSelectionGesture(),
@@ -329,6 +330,9 @@ export class LocalTerminalExecution {
   }
   scrollBy(delta: number) {
     return this.session.scrollBy(delta)
+  }
+  scrollWheel(delta: number, horizontal: boolean) {
+    return this.session.scrollWheel(delta, horizontal)
   }
   scrollToRow(row: number) {
     return this.session.scrollToRow(row)

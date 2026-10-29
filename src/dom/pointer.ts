@@ -47,7 +47,7 @@ export interface TerminalPointerSession {
   mouse(input: TerminalMouseInput): Uint8Array | PromiseLike<Uint8Array>
   mouseTracking(): boolean
   resetMouseTracking(): void | PromiseLike<void>
-  scrollBy(delta: number): unknown
+  scrollWheel(delta: number, horizontal: boolean): unknown
 }
 
 export interface TerminalPointerControllerOptions {
@@ -393,11 +393,12 @@ class PointerRoutingController implements TerminalPointerController {
     const projection = projectPointerPosition(event, layout)
     const owner: WheelOwner = this.routesToMouse(event) ? 'mouse' : 'viewport'
     this.alignActiveOwnerForWheel(owner)
-    this.prepareWheelOwner(owner, layout)
+    this.prepareWheelOwner(owner, layout, event.deltaY === 0)
     const total = this.wheelResidualValue + wheelLineDelta(event, layout)
     const lines = wholeWheelLines(total)
     this.wheelResidualValue = total - lines
-    if (lines !== 0) this.routeWheelLines(lines, owner, projection, terminalModifiers(event))
+    if (lines !== 0)
+      this.routeWheelLines(lines, owner, projection, terminalModifiers(event), event.deltaY === 0)
     event.preventDefault()
   }
 
@@ -655,8 +656,12 @@ class PointerRoutingController implements TerminalPointerController {
     )
   }
 
-  private prepareWheelOwner(owner: WheelOwner, layout: CommittedPointerLayout): void {
-    const signature = wheelLayoutSignature(layout)
+  private prepareWheelOwner(
+    owner: WheelOwner,
+    layout: CommittedPointerLayout,
+    horizontal: boolean,
+  ): void {
+    const signature = `${wheelLayoutSignature(layout)}:${horizontal}`
     if (this.wheelLayout !== signature) {
       this.wheelLayout = signature
       this.wheelResidualValue = 0
@@ -678,9 +683,10 @@ class PointerRoutingController implements TerminalPointerController {
     owner: WheelOwner,
     projection: TerminalPointerProjection,
     modifiers: TerminalModifiers | undefined,
+    horizontal: boolean,
   ): void {
     if (owner === 'viewport') {
-      this.observe(this.session.scrollBy(lines), 'pointer.scroll')
+      this.observe(this.session.scrollWheel(lines, horizontal), 'pointer.scroll')
       return
     }
     const button: TerminalMouseButton = lines < 0 ? 'four' : 'five'

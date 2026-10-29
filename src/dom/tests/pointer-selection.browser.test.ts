@@ -192,7 +192,7 @@ async function createHarness(
         mouse: (input) => session.mouse(input),
         mouseTracking: () => session.mouseTracking,
         resetMouseTracking: () => session.resetMouseTracking(),
-        scrollBy: (delta) => session.scrollBy(delta),
+        scrollWheel: (delta, horizontal) => session.scrollWheel(delta, horizontal),
       } satisfies TerminalPointerSession),
   })
   const data: string[] = []
@@ -503,7 +503,7 @@ describe('native mouse routing', () => {
           },
           mouseTracking: () => session.mouseTracking,
           resetMouseTracking: () => session.resetMouseTracking(),
-          scrollBy: (delta) => session.scrollBy(delta),
+          scrollWheel: (delta, horizontal) => session.scrollWheel(delta, horizontal),
         }),
       },
     )
@@ -536,6 +536,63 @@ describe('wheel routing', () => {
     dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: 1 })
 
     expect(harness.data).toEqual([`${escape}[A`, `${escape}[B`])
+  })
+
+  it('defaults alternate scroll on and follows live alternate-scroll and cursor-key modes', async () => {
+    const harness = await createHarness()
+    const point = cellPosition(harness.layout, 0, 0)
+    harness.session.write(`${escape}[?1049h`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: -1 })
+    harness.session.write(`${escape}[?1h`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: -1 })
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: 2 })
+    harness.session.write(`${escape}[?1007l`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: -1 })
+    harness.session.write(`${escape}[?1007h${escape}[?1l`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: 1 })
+    harness.session.write(`${escape}[?1049l`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: -1 })
+
+    expect(harness.data).toEqual([
+      `${escape}[A`,
+      `${escape}OA`,
+      `${escape}OB${escape}OB`,
+      `${escape}[B`,
+    ])
+  })
+
+  it('gives mouse tracking priority and does not turn Shift override into arrows', async () => {
+    const harness = await createHarness()
+    const point = cellPosition(harness.layout, 0, 0)
+    harness.session.write(`${escape}[?1049h${escape}[?1000h${escape}[?1006h`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: -1 })
+    dispatchWheel(harness.layout, point.x, point.y, {
+      deltaMode: 1,
+      deltaY: 1,
+      shiftKey: true,
+    })
+    expect(harness.data).toEqual([`${escape}[<64;1;1M`, `${escape}[<64;1;1m`])
+    harness.session.write(`${escape}[?1000l`)
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaY: 1 })
+    expect(harness.data.at(-1)).toBe(`${escape}[B`)
+  })
+
+  it('accumulates alternate-scroll pixels, clears selection, and ignores horizontal wheel', async () => {
+    const harness = await createHarness()
+    const point = cellPosition(harness.layout, 0, 0)
+    harness.session.write(`${escape}[?1049halpha beta`)
+    harness.session.selectAll()
+    expect(harness.session.getSelection()).toContain('alpha beta')
+    dispatchWheel(harness.layout, point.x, point.y, { deltaY: -10 })
+    expect(harness.data).toEqual([])
+    expect(harness.session.getSelection()).toContain('alpha beta')
+    dispatchWheel(harness.layout, point.x, point.y, { deltaY: -10 })
+    expect(harness.data).toEqual([`${escape}[A`])
+    expect(harness.session.getSelection()).toBeUndefined()
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 1, deltaX: 1 })
+    expect(harness.data).toEqual([`${escape}[A`])
+    dispatchWheel(harness.layout, point.x, point.y, { deltaMode: 2, deltaY: 1 })
+    expect(harness.data.at(-1)).toBe(`${escape}[B`.repeat(harness.layout.grid.rows))
   })
 
   it('accumulates pixel residuals for viewport scrolling and emits native wheel pairs when tracked', async () => {
