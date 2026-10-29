@@ -15,9 +15,9 @@ const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => 
  * rounds its gutter to whole device pixels and measures its host in whole CSS pixels; the grid does the same.
  */
 export function sceneGrid(width, ratio, sceneCols, sceneRows) {
-  const fit = Math.floor((width / sceneCols) * ratio)
-  const cell =
-    Math.min(Math.floor(MAX_CELL * ratio), Math.max(Math.ceil(MIN_CELL * ratio), fit)) / ratio
+  const least = Math.ceil(MIN_CELL * ratio)
+  const most = Math.max(least, Math.floor(MAX_CELL * ratio))
+  const cell = Math.min(most, Math.max(least, Math.floor((width / sceneCols) * ratio))) / ratio
   const gutter = Math.max(1, Math.round(SCROLLBAR * ratio)) / ratio
   const columns = Math.floor((width - gutter) / cell)
   const rows = Math.max(1, Math.round((width * sceneRows) / sceneCols / cell))
@@ -35,8 +35,9 @@ function axis(length, sceneLength, scale) {
   const next = new Int32Array(length)
   const along = new Float32Array(length)
   for (let i = 0; i < length; i++) {
-    const exact = Math.max(0, (i + 0.5 + start) / scale - 0.5)
-    at[i] = Math.min(sceneLength - 1, Math.floor(scale > 1 ? exact : (i + start) / scale))
+    // Rounding can put the first cell a hair before the scene's edge.
+    const exact = Math.max(0, scale > 1 ? (i + 0.5 + start) / scale - 0.5 : (i + start) / scale)
+    at[i] = Math.min(sceneLength - 1, Math.floor(exact))
     next[i] = Math.min(sceneLength - 1, at[i] + 1)
     along[i] = scale > 1 ? Math.min(1, exact - at[i]) : 0
   }
