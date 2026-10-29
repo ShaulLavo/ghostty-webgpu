@@ -121,6 +121,8 @@ try {
   await page.setViewportSize({ width: 1440, height: 960 })
   // The first frame and the terminal that replaces it draw the same grid, at fractional pixel ratios too.
   for (const [width, deviceScaleFactor] of [
+    [2560, 1],
+    [1850, 2],
     [1024, 1.5],
     [1023, 1.5],
     [321, 1.5],
