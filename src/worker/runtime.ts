@@ -574,6 +574,8 @@ export class TerminalWorkerRuntime {
         return native.scrollToBottom()
       case 'scrollBy':
         return native.scrollBy(...request.args)
+      case 'scrollWheel':
+        return native.scrollWheel(...request.args)
       case 'scrollToRow':
         return native.scrollToRow(...request.args)
       case 'getSelection':

@@ -73,6 +73,7 @@ type NativeCommands = Pick<
   | 'scrollToTop'
   | 'scrollToBottom'
   | 'scrollBy'
+  | 'scrollWheel'
   | 'scrollToRow'
   | 'getSelection'
   | 'selectionCoordinates'
@@ -187,6 +188,7 @@ export const workerCommandNames: ReadonlySet<string> = new Set([
   'scrollToTop',
   'scrollToBottom',
   'scrollBy',
+  'scrollWheel',
   'scrollToRow',
   'getSelection',
   'selectionCoordinates',

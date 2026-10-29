@@ -1519,6 +1519,23 @@ export class TerminalSession<TEvent = unknown> {
     return this.runOperation(() => this.scroll(() => this.terminal.scrollBy(delta)))
   }
 
+  scrollWheel(delta: number, horizontal = false): TerminalMutationResult | TerminalInputResult {
+    return this.runOperation(() => {
+      const alternateScroll =
+        this.alternateScreen &&
+        !this.mouseTracking &&
+        this.terminal.isModeEnabled(TerminalMode.MouseAlternateScroll)
+      if (!alternateScroll) return this.scroll(() => this.terminal.scrollBy(delta))
+      if (horizontal || delta === 0) return this.mutationResult()
+      const prefix = this.terminal.isModeEnabled(TerminalMode.CursorKeys) ? '\u001bO' : '\u001b['
+      const direction = delta < 0 ? 'A' : 'B'
+      return this.publishInput(
+        encoder.encode(`${prefix}${direction}`.repeat(Math.abs(delta))),
+        true,
+      )
+    })
+  }
+
   scrollToRow(row: number): TerminalMutationResult {
     return this.runOperation(() => this.scroll(() => this.terminal.scrollToRow(row)))
   }

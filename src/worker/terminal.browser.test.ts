@@ -86,6 +86,30 @@ interface WorkerPlatformCase {
   unavailableWebGl: boolean
 }
 
+it.each(['main', 'webgl'] as const)(
+  '%s routes alternate-screen wheel through live core modes',
+  async (mode) => {
+    const terminal = await create(mode)
+    const host = container()
+    await terminal.open(host)
+    await eventually(() => terminal.submittedFrame !== undefined)
+    const canvas = host.querySelector('canvas')
+    if (!canvas) throw new Error('Terminal canvas is missing')
+    const output: string[] = []
+    terminal.onData(({ bytes }) => output.push(new TextDecoder().decode(bytes)))
+    await terminal.write('\x1b[?1049h')
+    canvas.dispatchEvent(new WheelEvent('wheel', { cancelable: true, deltaMode: 1, deltaY: -1 }))
+    await eventually(() => output.length === 1)
+    await terminal.write('\x1b[?1h')
+    canvas.dispatchEvent(new WheelEvent('wheel', { cancelable: true, deltaMode: 1, deltaY: 1 }))
+    await eventually(() => output.length === 2)
+    await terminal.write('\x1b[?1007l')
+    canvas.dispatchEvent(new WheelEvent('wheel', { cancelable: true, deltaMode: 1, deltaY: -1 }))
+    await terminal.readLines(0, 1)
+    expect(output).toEqual(['\x1b[A', '\x1bOB'])
+  },
+)
+
 it.each(
   rendererPlatforms
     .map<WorkerPlatformCase>((platform) => ({
