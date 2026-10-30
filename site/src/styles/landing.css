@@ -469,13 +469,17 @@ footer {
     gap: 2px;
   }
 
+  .facts {
+    gap: 8px;
+  }
+
   .facts article {
     flex-basis: 100%;
   }
 
-  /* A card is 34 columns; on a phone it fills the width so its text reads at body size. */
+  /* Stacked on a phone, three body-size cards fill the screen; a smaller face keeps them a glance. */
   .facts .ascii {
-    font-size: calc(100cqi / var(--cols) / 0.62);
+    font-size: min(12px, calc(100cqi / var(--cols) / 0.62));
   }
 
   /* Four narrow columns wrap badly on a phone; the bar's [ docs ] link leads there instead. */
