@@ -173,18 +173,45 @@ export function maximumAlpha(pixels: readonly number[][]): number {
 }
 
 export async function displayedPixels(canvas: HTMLCanvasElement): Promise<Uint8Array> {
-  const screenshot = await page.screenshot({ element: canvas, save: false, scale: 'css' })
+  const screenshot = await page.screenshot({ element: canvas, save: false, scale: 'device' })
   const image = new Image()
   image.src = `data:image/png;base64,${screenshot}`
   await image.decode()
-  expect([image.naturalWidth, image.naturalHeight]).toEqual([canvas.width, canvas.height])
+  // Screenshots enclose the CSS border box; callers index the returned backing-pixel grid.
+  const bounds = canvas.getBoundingClientRect()
+  expect([image.naturalWidth, image.naturalHeight]).toEqual([
+    Math.round(
+      (Math.ceil(bounds.right + window.scrollX) - Math.floor(bounds.left + window.scrollX)) *
+        window.devicePixelRatio,
+    ),
+    Math.round(
+      (Math.ceil(bounds.bottom + window.scrollY) - Math.floor(bounds.top + window.scrollY)) *
+        window.devicePixelRatio,
+    ),
+  ])
 
   // Decode the browser screenshot separately so reading pixels cannot redraw the WebGL canvas.
   const decoded = document.createElement('canvas')
-  decoded.width = image.naturalWidth
-  decoded.height = image.naturalHeight
+  decoded.width = canvas.width
+  decoded.height = canvas.height
   const context = decoded.getContext('2d')
   if (!context) throw new Error('Screenshot decoding requires Canvas2D')
-  context.drawImage(image, 0, 0)
+  const style = getComputedStyle(canvas)
+  const left = Number.parseFloat(style.borderLeftWidth) + Number.parseFloat(style.paddingLeft)
+  const top = Number.parseFloat(style.borderTopWidth) + Number.parseFloat(style.paddingTop)
+  const right = Number.parseFloat(style.borderRightWidth) + Number.parseFloat(style.paddingRight)
+  const bottom = Number.parseFloat(style.borderBottomWidth) + Number.parseFloat(style.paddingBottom)
+  const ratio = window.devicePixelRatio
+  context.drawImage(
+    image,
+    (bounds.left + window.scrollX - Math.floor(bounds.left + window.scrollX) + left) * ratio,
+    (bounds.top + window.scrollY - Math.floor(bounds.top + window.scrollY) + top) * ratio,
+    (bounds.width - left - right) * ratio,
+    (bounds.height - top - bottom) * ratio,
+    0,
+    0,
+    decoded.width,
+    decoded.height,
+  )
   return new Uint8Array(context.getImageData(0, 0, decoded.width, decoded.height).data)
 }
