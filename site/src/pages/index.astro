@@ -126,8 +126,10 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
         </div>
         {measured.map(({ tab, data }, index) => (
           <div class="bench" role="tabpanel" id={`bench-panel-${tab.id}`} aria-labelledby={`bench-tab-${tab.id}`} hidden={index !== 0}>
-            <p class="status">{tab.title} · {tab.status}</p>
-            <p class="muted">{tab.method}</p>
+            <div>
+              <p class="status">{tab.title} · {tab.status}</p>
+              <p class="muted">{tab.method}</p>
+            </div>
             {data ? (
               <Fragment>
                 <pre class="ascii" data-chart={index} aria-hidden="true" style={`--cols:${columns(chart(data, measured[index]!.max))}`} set:html={serverHtml(chart(data, measured[index]!.max))} />
@@ -148,17 +150,21 @@ const firstFrameScript = ['(() => {', gridSource.replace(/^export /gm, ''), firs
 
       <section class="panel" aria-labelledby="correct-heading">
         <h2 id="correct-heading"><span>correct because it is ghostty</span></h2>
-        <p>Parsing, modes, wrapping, reflow, selection text and Unicode widths come from Ghostty's own core, libghostty-vt <a href={core.revisionUrl}>{core.revision}</a>, unpatched and built with Zig {core.zig}. The renderer and input path are ours, tested in real browsers.</p>
-        <p class="muted">{total} cases: {correctness.upstreamCases} from esctest2, {correctness.localCases} Unicode and delivery cases. <a href={correctness.doc}>Every case and failure</a>.</p>
-        <ul class="scores">
-          {scores.map(({ label, text }, index) => (
-            <li>
-              <span class="sr-only">{label}: {text}</span>
-              <pre class="ascii" data-score={index} aria-hidden="true" style={`--cols:${columns(score(label, scores[index]!.value, scores[index]!.ours))}`} set:html={serverHtml(score(label, scores[index]!.value, scores[index]!.ours))} />
-            </li>
-          ))}
-        </ul>
-        <p class="muted">Not there yet: images (Sixel, Kitty graphics), ligatures, search, synchronized output.</p>
+        <div class="split">
+          <div>
+            <p>Parsing, modes, wrapping, reflow, selection text and Unicode widths come from Ghostty's own core, libghostty-vt <a href={core.revisionUrl}>{core.revision}</a>, unpatched and built with Zig {core.zig}. The renderer and input path are ours, tested in real browsers.</p>
+            <p class="muted">{total} cases: {correctness.upstreamCases} from esctest2, {correctness.localCases} Unicode and delivery cases. <a href={correctness.doc}>Every case and failure</a>.</p>
+            <p class="muted">Not there yet: images (Sixel, Kitty graphics), ligatures, search, synchronized output.</p>
+          </div>
+          <ul class="scores">
+            {scores.map(({ label, text }, index) => (
+              <li>
+                <span class="sr-only">{label}: {text}</span>
+                <pre class="ascii" data-score={index} aria-hidden="true" style={`--cols:${columns(score(label, scores[index]!.value, scores[index]!.ours))}`} set:html={serverHtml(score(label, scores[index]!.value, scores[index]!.ours))} />
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <hr />

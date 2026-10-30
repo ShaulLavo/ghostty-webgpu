@@ -6,6 +6,7 @@ export declare function sceneGrid(
   ratio: number,
   sceneCols: number,
   sceneRows: number,
+  viewport: number,
 ): {
   readonly cell: number
   readonly columns: number

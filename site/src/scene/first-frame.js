@@ -24,8 +24,10 @@ const paintFrame = (text) => {
     }
   })
   const ratio = devicePixelRatio || 1
-  const grid = sceneGrid(host.clientWidth, ratio, sceneCols, sceneRows)
+  const grid = sceneGrid(host.clientWidth, ratio, sceneCols, sceneRows, innerHeight)
   host.style.height = `${grid.height}px`
+  // The stylesheet's cap only holds the space until now; the grid's whole rows can run a pixel past it.
+  host.style.maxHeight = 'none'
   host.dataset.grid = `${grid.columns}x${grid.rows}`
   const cover = coverScene(grid.columns, grid.rows, sceneCols, sceneRows)
   cover.sample(dots, ink)
