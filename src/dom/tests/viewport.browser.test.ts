@@ -56,6 +56,12 @@ function pixels(canvas: HTMLCanvasElement) {
   return context.getImageData(0, 0, canvas.width, canvas.height).data
 }
 
+function expectPixels(canvas: HTMLCanvasElement, expected: Uint8ClampedArray): void {
+  const actual = pixels(canvas)
+  expect(actual.length).toBe(expected.length)
+  expect(actual.findIndex((value, index) => value !== expected[index])).toBe(-1)
+}
+
 describe('saved terminal viewport', () => {
   it('repaints native colors, attributes, wide cells and cursor without a terminal', async () => {
     const { terminal } = await fixture()
@@ -73,7 +79,7 @@ describe('saved terminal viewport', () => {
     expect(previewHost.querySelector('textarea')).toBeNull()
     const canvas = previewHost.querySelector('canvas')
     if (!canvas) throw new Error('Missing preview canvas')
-    expect(pixels(canvas)).toEqual(expected)
+    expectPixels(canvas, expected)
     preview?.dispose()
     preview?.dispose()
     expect(previewHost.children).toHaveLength(0)
@@ -94,7 +100,7 @@ describe('saved terminal viewport', () => {
     expect(canvas.getBoundingClientRect().left - previewHost.getBoundingClientRect().left).toBe(
       offset,
     )
-    expect(pixels(canvas)).toEqual(expected)
+    expectPixels(canvas, expected)
   })
 
   it('captures only submitted revisions and reports the frame after writes', async () => {

@@ -1,5 +1,4 @@
 import { expect, it, vi } from 'vitest'
-import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { Terminal } from '../../dom/terminal.js'
 import type { WebGpuTerminalRendererOptions } from '../shared/types.js'
@@ -25,23 +24,29 @@ async function expectFullRepaint(
   options: WebGpuTerminalRendererOptions,
 ): Promise<void> {
   const canvas = document.createElement('canvas')
+  canvas.style.position = 'fixed'
+  canvas.style.left = '-10000px'
+  document.body.append(canvas)
   const clock = new TestClock()
-  const reference = await CanvasTerminalRenderer.create({
-    ...options,
-    canvas,
-    schedulerClock: clock,
-  })
+  let reference: CanvasTerminalRenderer | undefined
   try {
+    reference = await CanvasTerminalRenderer.create({
+      ...options,
+      canvas,
+      schedulerClock: clock,
+    })
     clock.flushFrame()
     const actual = options.canvas.getContext('2d')
     const expected = canvas.getContext('2d')
     if (!actual || !expected) throw new TypeError('Expected Canvas 2D contexts')
-    expect(actual.getImageData(0, 0, canvas.width, canvas.height).data).toEqual(
-      expected.getImageData(0, 0, canvas.width, canvas.height).data,
-    )
+    const actualBytes = actual.getImageData(0, 0, canvas.width, canvas.height).data
+    const expectedBytes = expected.getImageData(0, 0, canvas.width, canvas.height).data
+    expect(actualBytes.length).toBe(expectedBytes.length)
+    expect(actualBytes.findIndex((value, index) => value !== expectedBytes[index])).toBe(-1)
     expect(reference.canvasPaintMode).toBe(renderer.canvasPaintMode)
   } finally {
-    reference.dispose()
+    reference?.dispose()
+    canvas.remove()
   }
 }
 
@@ -98,10 +103,6 @@ it.each(['canvas2d-fill-text', 'canvas2d-pixels'] as const)(
         expectScrollReuse(renderer, before)
         await expectFullRepaint(renderer, options)
       }
-      await page.screenshot({
-        element: host,
-        path: `../../../.artifacts/canvas-mounted-scroll-${rendererMode}-parity0.png`,
-      })
     } finally {
       terminal.dispose()
       runtime.dispose()

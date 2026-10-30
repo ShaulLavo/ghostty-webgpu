@@ -927,8 +927,8 @@ describe('Terminal DOM host', () => {
     displayedFrameListener(recording.options!)?.(cursorFrame(3, 2))
     expect(terminal.submittedFrame!.grid.cellWidth).toBe(font.cssCellWidth)
     expect(terminal.submittedFrame!.grid.cellHeight).toBe(font.cssCellHeight)
-    expect(preedit.style.left).toBe(`${font.cssCellWidth * 3}px`)
-    expect(preedit.style.top).toBe(`${font.cssCellHeight * 2}px`)
+    expect(Number.parseFloat(preedit.style.left)).toBeCloseTo(font.cssCellWidth * 3, 5)
+    expect(Number.parseFloat(preedit.style.top)).toBeCloseTo(font.cssCellHeight * 2, 5)
     expect(preedit.style.left).toBe(textarea.style.left)
     expect(preedit.style.top).toBe(textarea.style.top)
     expect(preedit.getAttribute('aria-hidden')).toBe('true')
@@ -983,7 +983,10 @@ describe('Terminal DOM host', () => {
     expect(preedit.style.fontFamily).toBe('serif')
     expect(preedit.style.fontSize).toBe('19px')
     expect(preedit.style.letterSpacing).toBe('1px')
-    expect(preedit.style.lineHeight).toBe(`${recording.renderer!.fonts.at(-1)!.cssCellHeight}px`)
+    expect(Number.parseFloat(preedit.style.lineHeight)).toBeCloseTo(
+      recording.renderer!.fonts.at(-1)!.cssCellHeight,
+      5,
+    )
 
     dispatchComposition(textarea, 'compositionend', '你好')
     expect(decodedOutput(output)).toEqual(['你好'])

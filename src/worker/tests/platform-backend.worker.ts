@@ -8,9 +8,13 @@ for (const key of ['platform', 'userAgent', 'userAgentData'] as const) {
   Object.defineProperty(navigator, key, { configurable: true, value: platform.navigator[key] })
 }
 
+const channelName = parameters.get('capabilityChannel')
+const channel = channelName ? new BroadcastChannel(channelName) : undefined
+
 const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu)
 navigator.gpu.requestAdapter = async (options) => {
   const adapter = await requestAdapter(options)
+  channel?.postMessage(adapter !== null)
   if (!adapter) return null
   return {
     isFallbackAdapter: false,

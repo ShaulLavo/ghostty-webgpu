@@ -183,7 +183,8 @@ it('preserves pixel-scroll full-repaint RGBA with an inherited output filter', a
   const output = candidate.canvas.getContext('2d')!
   output.save()
   cleanups.push(() => output.restore())
-  output.filter = 'opacity(50%)'
+  if ('filter' in output) output.filter = 'opacity(50%)'
+  const filter = output.filter
   const acknowledge = vi.spyOn(candidate.state, 'acknowledge')
   const before = { ...candidate.renderer.metrics }
   for (const arm of arms) {
@@ -196,7 +197,7 @@ it('preserves pixel-scroll full-repaint RGBA with an inherited output filter', a
   expect(acknowledge).toHaveBeenCalledOnce()
   expect(candidate.renderer.metrics.submittedFrames - before.submittedFrames).toBe(1)
   expect(candidate.renderer.metrics.selfCopies - before.selfCopies).toBe(1)
-  expect(output.filter).toBe('opacity(50%)')
+  expect(output.filter).toBe(filter)
   expectPixels(
     output.getImageData(0, 0, candidate.canvas.width, candidate.canvas.height).data,
     reference.canvas

@@ -100,7 +100,7 @@ export class CanvasRowPainter {
     this.colors = new CanvasColorCache(theme.minimumContrast)
   }
 
-  resetContext(font: TerminalFittedFont): void {
+  resetContext(font: TerminalFittedFont, fontResourcesChanged = false): void {
     this.font = font
     this.fonts = [
       fontString(font, false, false),
@@ -108,6 +108,8 @@ export class CanvasRowPainter {
       fontString(font, false, true),
       fontString(font, true, true),
     ]
+    // WebKit keeps a resolved face when the same font string is assigned after a font load.
+    if (fontResourcesChanged) this.context.font = '10px sans-serif'
     this.context.font = this.fonts[0]!
     this.context.textAlign = 'center'
     this.context.textBaseline = 'alphabetic'

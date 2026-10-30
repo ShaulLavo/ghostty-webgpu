@@ -56,7 +56,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
     uploadedRegions: 0,
     uploadedPixelBytes: 0,
   }
-  font = ''
+  private fontValue = ''
   textAlign: CanvasTextAlign = 'center'
   textBaseline: CanvasTextBaseline = 'alphabetic'
   private state: State = {
@@ -88,6 +88,14 @@ export class StampTarget implements PixelTarget, PaintTarget {
   ) {
     this.cache = new StampCache(kernel)
     this.frame = new PixelFrame(kernel.memory, output)
+  }
+
+  get font(): string {
+    return this.fontValue
+  }
+  set font(value: string) {
+    this.fontValue = value
+    this.output.font = value
   }
 
   get fillStyle(): Brush {
