@@ -17,7 +17,7 @@ afterEach(() => {
   cleanups.length = 0
 })
 
-function squareFont(lineHeight = 0.6): TerminalFittedFont {
+function squareFont(lineHeight = 0.6, pixelRatio = 1): TerminalFittedFont {
   const settings = {
     boldWeight: 700,
     family: 'monospace',
@@ -26,20 +26,20 @@ function squareFont(lineHeight = 0.6): TerminalFittedFont {
     size: 40,
     weight: 400,
   }
-  const measured = fitTerminalFont(document, settings, 1)
+  const measured = fitTerminalFont(document, settings, pixelRatio)
   return fitTerminalFont(
     document,
     {
       ...settings,
-      letterSpacing: measured.deviceCellHeight - measured.deviceCharWidth,
+      letterSpacing: (measured.deviceCellHeight - measured.deviceCharWidth) / pixelRatio,
     },
-    1,
+    pixelRatio,
   )
 }
 
 async function pixels(element: Element): Promise<ImageData> {
   const image = new Image()
-  image.src = `data:image/png;base64,${await page.screenshot({ element, save: false, scale: 'css' })}`
+  image.src = `data:image/png;base64,${await page.screenshot({ element, save: false, scale: 'device' })}`
   await image.decode()
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth
@@ -49,7 +49,7 @@ async function pixels(element: Element): Promise<ImageData> {
   return context.getImageData(0, 0, canvas.width, canvas.height)
 }
 
-it.each([1, 1.25, 2])(
+it.each([1, 1.25, 2, 3])(
   'clips oversized atlas ink to its complete cell span at DPR %s',
   (pixelRatio) => {
     const measured = squareFont()
@@ -94,7 +94,7 @@ describe.each(backends)('$name short-line cells', ({ name, create }) => {
     host.append(canvas)
     document.body.append(host)
     cleanups.push(() => host.remove())
-    const font = squareFont()
+    const font = squareFont(0.6, window.devicePixelRatio)
     expect(font.deviceCellWidth).toBe(font.deviceCellHeight)
     expect(font.charTop).toBeLessThan(0)
     const renderer = await create({
