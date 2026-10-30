@@ -689,6 +689,11 @@ function normalizeColorScheme(value: TerminalColorScheme): TerminalColorScheme {
   throw new TypeError(`Unknown color scheme: ${String(value)}`)
 }
 
+function normalizeBackgroundOpacity(value: number): number {
+  if (Number.isFinite(value) && value >= 0 && value <= 1) return value
+  throw new TypeError(`backgroundOpacity must be between 0 and 1: ${String(value)}`)
+}
+
 function createDefaultTheme(terminal: GhosttyTerminal): TerminalTheme {
   return copyTheme({ ...defaultRendererTheme, palette: terminal.defaultPalette })
 }
@@ -700,6 +705,7 @@ function createAppearance(
 ): TerminalAppearance {
   const theme = options.theme ? copyTheme(options.theme) : createDefaultTheme(terminal)
   return freezeAppearance({
+    backgroundOpacity: normalizeBackgroundOpacity(options.backgroundOpacity ?? 1),
     colorScheme: normalizeColorScheme(options.colorScheme ?? 'dark'),
     cursor: normalizeCursor(defaultCursor, options.cursor),
     font: normalizeFont(defaultFont, options.font),
@@ -732,6 +738,9 @@ function mergeAppearance(
 ): TerminalAppearance {
   const theme = options.theme ? copyTheme(options.theme) : current.theme
   return freezeAppearance({
+    backgroundOpacity: normalizeBackgroundOpacity(
+      options.backgroundOpacity ?? current.backgroundOpacity,
+    ),
     colorScheme: normalizeColorScheme(options.colorScheme ?? current.colorScheme),
     cursor: normalizeCursor(current.cursor, options.cursor),
     font: normalizeFont(current.font, options.font),
@@ -810,6 +819,7 @@ function cursorsEqual(first: TerminalCursorSettings, second: TerminalCursorSetti
 
 function appearancesEqual(first: TerminalAppearance, second: TerminalAppearance): boolean {
   return (
+    first.backgroundOpacity === second.backgroundOpacity &&
     first.colorScheme === second.colorScheme &&
     first.scrollbackByteLimit === second.scrollbackByteLimit &&
     first.scrollbackLimit === second.scrollbackLimit &&

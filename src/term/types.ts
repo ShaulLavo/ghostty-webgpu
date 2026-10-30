@@ -89,6 +89,8 @@ export type TerminalTheme = TerminalRendererTheme & {
 }
 
 export interface TerminalAppearance {
+  /** Alpha of the default background, from 0 to 1. Explicit cell backgrounds stay opaque. */
+  readonly backgroundOpacity: number
   readonly colorScheme: TerminalColorScheme
   readonly cursor: TerminalCursorSettings
   readonly font: TerminalFontSettings
@@ -102,6 +104,8 @@ export interface TerminalAppearance {
 }
 
 export interface TerminalAppearanceOptions {
+  /** Defaults to 1. Lower values let the host page show through, like Ghostty's background-opacity. */
+  readonly backgroundOpacity?: number
   readonly colorScheme?: TerminalColorScheme
   readonly cursor?: Partial<TerminalCursorSettings>
   readonly font?: Partial<TerminalFontSettings>

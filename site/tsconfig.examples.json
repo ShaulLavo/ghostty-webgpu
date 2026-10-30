@@ -6,7 +6,8 @@
     "paths": {
       "ghostty-webgpu": ["../dist/index.d.ts"],
       "ghostty-webgpu/worker": ["../dist/worker/index.d.ts"],
-      "ghostty-webgpu/hotkeys": ["../dist/extensions/hotkeys/index.d.ts"]
+      "ghostty-webgpu/hotkeys": ["../dist/extensions/hotkeys/index.d.ts"],
+      "ghostty-webgpu-line-editor": ["../packages/line-editor/dist/index.d.ts"]
     }
   },
   "include": [

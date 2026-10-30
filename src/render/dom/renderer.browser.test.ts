@@ -3,7 +3,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { RenderRow } from '../../core/types.js'
-import type { CursorState, RendererTheme } from '../shared/instances/types.js'
+import {
+  defaultRendererTheme,
+  type CursorState,
+  type RendererTheme,
+} from '../shared/instances/types.js'
 import type { RendererFrameSnapshot } from '../shared/types.js'
 import { Terminal } from '../../dom/terminal.js'
 import { CanvasTerminalRenderer } from '../canvas/renderer.js'
@@ -45,6 +49,9 @@ class ProbeClock implements RenderSchedulerClock {
 function mountedCanvas(): HTMLCanvasElement {
   const host = document.createElement('div')
   host.style.position = 'relative'
+  // Stands in for the terminal root, which paints the default background.
+  const { r, g, b } = defaultRendererTheme.background
+  host.style.backgroundColor = `rgb(${r} ${g} ${b})`
   const canvas = document.createElement('canvas')
   canvas.style.display = 'block'
   canvas.style.padding = '7px'

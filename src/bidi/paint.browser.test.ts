@@ -112,6 +112,7 @@ async function create(backend: string, ratio: number, input: string, columns = 4
     style.transform = `scale(${ratio})`
     style.transformOrigin = 'top left'
     host.style.height = `${8 * font.deviceCellHeight}px`
+    host.style.width = `${columns * font.deviceCellWidth}px`
   } else {
     canvas.style.width = `${canvas.width}px`
     canvas.style.height = `${canvas.height}px`

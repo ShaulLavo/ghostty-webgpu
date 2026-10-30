@@ -34,7 +34,7 @@ Built-in main-thread WebGPU renderers share devices through module-local leased 
 
 An omitted byte budget at creation preserves Ghostty's native default. Omitted or explicitly undefined budgets in `setAppearance()` preserve the current values. Only the dedicated `TerminalSession` and `GhosttyTerminal` setters treat `undefined` as removing a budget. For main-thread and worker `Terminal.setAppearance()`, pass the native unlimited sentinel `0xffffffff` to remove either budget.
 
-**Implementation.** Public options are defined in [`src/term/types.ts:84`](../src/term/types.ts#L84-L106). Creation defaults and appearance-update preservation are in [`src/term/session.ts:684`](../src/term/session.ts#L684-L730). Native getters and dedicated setters are implemented in [`src/core/terminal.ts:288`](../src/core/terminal.ts#L288-L310) and [`src/core/terminal.ts:422`](../src/core/terminal.ts#L422-L457).
+**Implementation.** Public options are defined in [`src/term/types.ts:91`](../src/term/types.ts#L91-L118). Creation defaults and appearance-update preservation are in [`src/term/session.ts:701`](../src/term/session.ts#L701-L753). Native getters and dedicated setters are implemented in [`src/core/terminal.ts:288`](../src/core/terminal.ts#L288-L310) and [`src/core/terminal.ts:422`](../src/core/terminal.ts#L422-L457).
 
 **Tests.** Native byte-budget behavior is covered in [`src/core/tests/history.test.ts:54`](../src/core/tests/history.test.ts#L54-L77). Session creation, updates, pruning, and actual row counts are covered in [`src/term/tests/session.test.ts:1002`](../src/term/tests/session.test.ts#L1002-L1050). Unlimited sentinel and independent-budget behavior continue through [`src/term/tests/session.test.ts:1101`](../src/term/tests/session.test.ts#L1101-L1115).
 

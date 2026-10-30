@@ -107,8 +107,6 @@ it('retains cursor appearance rows while publishing frames and observing current
   await settle()
   subscription.dispose()
   expect(frames).toBe(reentrantFrames + 2)
-  expect(getComputedStyle(host.querySelector('.ghostty-webgpu-frame')!).backgroundColor).toBe(
-    'rgb(33, 44, 55)',
-  )
+  expect(getComputedStyle(terminal.element!).backgroundColor).toBe('rgb(33, 44, 55)')
   expect(JSON.stringify(snapshot.rows.map((row) => row.renderCells))).toBe(retained)
 })

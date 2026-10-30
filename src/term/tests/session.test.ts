@@ -770,6 +770,25 @@ describe('TerminalSession', () => {
     expect(session.appearance.rendererTheme.cursorText).toEqual(background)
   })
 
+  it('defaults to an opaque background and validates opacity updates', async () => {
+    const session = await createSession({ appearance: { grid: grid() } })
+    expect(session.appearance.backgroundOpacity).toBe(1)
+    const appearances: number[] = []
+    session.on('appearance', ({ appearance }) => appearances.push(appearance.backgroundOpacity))
+
+    expect(session.setAppearance({ backgroundOpacity: 0.5 })).toEqual({ revision: 1 })
+    expect(session.setAppearance({ backgroundOpacity: 0.5 })).toEqual({ revision: 1 })
+    session.setAppearance({ font: { size: 15 } })
+    expect(appearances).toEqual([0.5, 0.5])
+    for (const invalid of [-0.1, 1.1, Number.NaN]) {
+      expect(() => session.setAppearance({ backgroundOpacity: invalid })).toThrow(TypeError)
+    }
+    expect(session.appearance.backgroundOpacity).toBe(0.5)
+
+    const transparent = await createSession({ appearance: { backgroundOpacity: 0, grid: grid() } })
+    expect(transparent.appearance.backgroundOpacity).toBe(0)
+  })
+
   it('normalizes complete font defaults, numeric weights, line height, and letter spacing', async () => {
     const session = await createSession()
     const appearances: unknown[] = []

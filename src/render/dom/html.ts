@@ -57,7 +57,7 @@ export function frameStyle(
   theme: CanonicalRendererTheme,
 ): string {
   const colors = new CanvasColorCache(theme.minimumContrast)
-  return `width:calc(${grid.columns} * var(--ghostty-cell-width, ${font.cssCellWidth}px));height:calc(${grid.rows} * var(--ghostty-cell-height, ${font.cssCellHeight}px));contain:layout paint;overflow:hidden;white-space:pre;direction:ltr;unicode-bidi:bidi-override;text-align:left;font-variant-ligatures:none;font-family:${cssFontFamily(font.settings.family)};font-size:var(--ghostty-font-size, ${font.settings.size}px);font-weight:${font.settings.weight};line-height:var(--ghostty-cell-height, ${font.cssCellHeight}px);color:${colors.css(theme.foreground)};background-color:${colors.css(theme.background)}`
+  return `width:calc(${grid.columns} * var(--ghostty-cell-width, ${font.cssCellWidth}px));height:calc(${grid.rows} * var(--ghostty-cell-height, ${font.cssCellHeight}px));contain:layout paint;overflow:hidden;white-space:pre;direction:ltr;unicode-bidi:bidi-override;text-align:left;font-variant-ligatures:none;font-family:${cssFontFamily(font.settings.family)};font-size:var(--ghostty-font-size, ${font.settings.size}px);font-weight:${font.settings.weight};line-height:var(--ghostty-cell-height, ${font.cssCellHeight}px);color:${colors.css(theme.foreground)}`
 }
 
 function cursorDecoration(
@@ -235,7 +235,7 @@ export function renderRowRuns(
     cursor?.visible && cursor.y === row.y ? cursor.x + 1 : 0,
     joined.at(-1)?.[1] ?? 0,
   )
-  // The fixed-grid frame paints the default background; empty tails need no glyph layout.
+  // The terminal root paints the default background; empty tails need no glyph layout.
   while (length > cursorEnd) {
     const cell = packed ? packed.read(length - 1, scratchB) : row.cells[length - 1]!
     // Retain trailing cells after wide glyphs to preserve their browser paint.
