@@ -1,5 +1,14 @@
 # ghostty-webgpu
 
+## 0.3.30
+
+### Patch Changes
+
+- [#60](https://github.com/ShaulLavo/ghostty-webgpu/pull/60) [`d5e5ac3`](https://github.com/ShaulLavo/ghostty-webgpu/commit/d5e5ac3ff64ed0389d9849433af03ef71488a82c) - Breaking: the terminal now fills its element with the theme background by default, including padding and the pixels past the last full cell. The new `appearance.backgroundOpacity` (0 to 1, default 1) sets that fill's alpha; explicit cell backgrounds stay opaque. The DOM renderer no longer paints its own grid background.
+  Migration: hosts that draw their own backdrop behind the terminal set `appearance: { backgroundOpacity: 0 }`. Hosts that copied `theme.background` onto the container can remove that code.
+
+- [#60](https://github.com/ShaulLavo/ghostty-webgpu/pull/60) [`d5e5ac3`](https://github.com/ShaulLavo/ghostty-webgpu/commit/d5e5ac3ff64ed0389d9849433af03ef71488a82c) - Fixed the scrollbar appearing on wheel or focus when there is no history to scroll. Added `scrollbar: false` to remove the scrollbar and its reserved width.
+
 ## 0.3.29
 
 ### Patch Changes
