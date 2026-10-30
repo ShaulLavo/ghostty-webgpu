@@ -255,11 +255,14 @@ starlight-toc a {
   color: var(--muted);
 }
 
-starlight-toc a[aria-current='true'] {
+/* Starlight marks the current link from script; until it runs, mark Overview as it would at the top. */
+starlight-toc a[aria-current='true'],
+starlight-toc:not(:has([aria-current='true'])) a[href='#_top'] {
   color: var(--accent);
 }
 
-starlight-toc a[aria-current='true']::before {
+starlight-toc a[aria-current='true']::before,
+starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
   content: '▸ ';
 }
 

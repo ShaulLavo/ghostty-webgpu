@@ -133,8 +133,9 @@ async function mount(
   terminal.write(content)
   const host = document.createElement('div')
   host.style.position = 'relative'
+  // Stands in for the terminal root, which paints the default background.
+  host.style.backgroundColor = css(theme.background)
   const canvas = document.createElement('canvas')
-  canvas.style.backgroundColor = css(theme.background)
   canvas.style.display = 'block'
   host.append(canvas)
   document.body.append(host)

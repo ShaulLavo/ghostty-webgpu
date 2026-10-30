@@ -202,7 +202,8 @@ export interface GhosttyWebGpuTerminalOptions {
   /** `immediate` paints a write before the next display frame; main-thread terminals only. */
   readonly presentation?: WebGpuTerminalRendererOptions['presentation']
   readonly runtime?: TerminalSessionRuntime
-  readonly scrollbar?: GhosttyWebGpuTerminalScrollbarOptions
+  /** `false` removes the scrollbar and its reserved width; wheel and keyboard scrolling still work. */
+  readonly scrollbar?: GhosttyWebGpuTerminalScrollbarOptions | false
   readonly writeQueue?: TerminalWriteQueueOptions
 }
 

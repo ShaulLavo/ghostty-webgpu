@@ -932,6 +932,26 @@ describe('terminal scrollbar in Chromium', () => {
     expect(resizedThumb.top - resizedTrack.top).toBeCloseTo((160 / 180) * 80, 1)
   })
 
+  it('stays hidden on activity until there is history to scroll', () => {
+    const root = appendRoot(48, 200)
+    const controller = createTerminalScrollbar({
+      actions: scrollbarActions().controller,
+      clock: new FakeScrollbarClock(),
+      root,
+      snapshot: scrollbar(0, 20, 20),
+    })
+    cleanups.push(() => controller.dispose())
+
+    controller.notifyActivity()
+    controller.consumeWheel(new WheelEvent('wheel', { deltaY: -40 }))
+    expect(controller.visible).toBe(false)
+    expect(controller.element.style.opacity).toBe('0')
+
+    controller.update(scrollbar(10, 30, 20))
+    controller.notifyActivity()
+    expect(controller.visible).toBe(true)
+  })
+
   it('restores a hidden updated thumb before deciding between paging and dragging', () => {
     const root = appendRoot(48, 200)
     const actions = scrollbarActions()
@@ -2463,6 +2483,42 @@ describe('terminal frame consumer demand in Chromium', () => {
 })
 
 describe('integrated terminal UI host', () => {
+  it('omits the scrollbar but keeps press focus when scrollbar is false', async () => {
+    const { terminal } = await createIntegratedHarness({ scrollbar: false })
+    terminal.write(Array.from({ length: 12 }, (_, line) => `line ${line}`).join('\r\n'))
+    await settleTerminal(terminal)
+    const root = terminal.element!
+    expect(root.querySelector('[role=scrollbar]')).toBeNull()
+
+    const canvas = terminal.canvas!
+    const bounds = canvas.getBoundingClientRect()
+    canvas.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        clientX: bounds.left + 4,
+        clientY: bounds.top + 4,
+        pointerId: 1,
+      }),
+    )
+    expect(root.ownerDocument.activeElement).toBe(root.querySelector('textarea'))
+  })
+
+  it('fills the root with the theme background at the configured opacity', async () => {
+    const { terminal } = await createIntegratedHarness()
+    const root = terminal.element!
+    const { r, g, b } = terminal.appearance.theme.background
+    expect(getComputedStyle(root).backgroundColor).toBe(`rgb(${r}, ${g}, ${b})`)
+
+    terminal.setAppearance({
+      backgroundOpacity: 0.5,
+      theme: { ...terminal.appearance.theme, background: { r: 10, g: 20, b: 30 } },
+    })
+    expect(getComputedStyle(root).backgroundColor).toBe('rgba(10, 20, 30, 0.5)')
+
+    terminal.setAppearance({ backgroundOpacity: 0 })
+    expect(getComputedStyle(root).backgroundColor).toBe('rgba(10, 20, 30, 0)')
+  })
+
   it('accepts a pre-fit frame and resolves links after the post-fit repaint', async () => {
     const context = document.createElement('canvas').getContext('2d')
     if (!context) throw new TypeError('Expected a 2D canvas context')
@@ -2848,6 +2904,8 @@ describe('integrated terminal UI host', () => {
     expect(clipboardWrites).toEqual(['copy me'])
     expect(data).toEqual([])
 
+    // History makes the scrollbar show on focus and start its fade timer.
+    terminal.write('\r\n1\r\n2\r\n3\r\n4')
     renderer!.emit(frame(['copy me', '', ''], { x: 7, y: 0 }))
     await expect.poll(() => host.querySelectorAll('[role="listitem"]')).toHaveLength(3)
     const scrollbarElement = host.querySelector<HTMLElement>('[role="scrollbar"]')

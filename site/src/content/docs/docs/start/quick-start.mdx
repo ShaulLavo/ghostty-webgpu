@@ -1,17 +1,17 @@
 ---
 title: First terminal in a minute
-description: Install, open a terminal, echo input and dispose it.
+description: Install, open a terminal, edit and echo lines, and dispose it.
 ---
 
 import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/quick-start.ts?raw'
 
-You will have a terminal that prints a greeting and echoes your keyboard input. Start with a browser TypeScript project, such as Vite's vanilla TypeScript template.
+You will have a terminal that prints a greeting, lets you edit a line at a prompt, and echoes each line you submit. Start with a browser TypeScript project, such as Vite's vanilla TypeScript template.
 
 ## 1. Install
 
 ```sh
-npm install ghostty-webgpu
+npm install ghostty-webgpu ghostty-webgpu-line-editor
 ```
 
 These docs follow the repository API. npm's current release predates it; use the current source checkout until the publishing update lands. In Fregat, build `packages/hotkeys/packages/hotkeys` and `packages/ghostty-webgpu` first, then import the workspace package. [Use ghostty-webgpu in your own app](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/use-in-your-app.md) shows how to link the built package and ship its `.wasm` files.
@@ -24,21 +24,21 @@ Put this element in your page. The terminal measures it and fits the grid automa
 <div id="terminal" style="height: 20rem; width: 100%"></div>
 ```
 
-## 3. Mount and echo
+## 3. Mount, edit and echo
 
 Save the example as `terminal.ts`. Call `mountEcho` with your terminal element from your app's entry point. Keep the returned function and call it when removing the terminal.
 
 <Code code={sample} lang='ts' title='terminal.ts' />
 
-The example enables the screen-reader text mirror with `accessibility: {}`. It sets the host background to the terminal theme's color so text stays readable on a light page.
+The example enables the screen-reader text mirror with `accessibility: {}`.
 
-`create` loads the wasm core. `open` mounts the host. `onData` emits an event whose `bytes` are ready for a PTY; this example writes them back to show input immediately.
+`create` loads the wasm core. `open` mounts the host. `readline()` from `ghostty-webgpu-line-editor` handles input with no PTY attached. It draws the prompt and handles Enter, Backspace, arrow keys, history and Ctrl-C. `read` resolves with each submitted line, and `print` writes output without breaking the prompt.
 
 import EchoTerminal from '../../../../components/EchoTerminal.astro'
 
 <EchoTerminal />
 
-You built a fitted terminal with a greeting, input and a cleanup function. [Connect a real shell](https://ghostty.shaulavo.dev/docs/start/real-shell/) to send those bytes to a PTY.
+You built a fitted terminal with a greeting, a line editor and a cleanup function. To run a real program, [connect a shell](https://ghostty.shaulavo.dev/docs/start/real-shell/). The PTY then handles line editing, and you send it the `bytes` from `onData`.
 
 ## If it doesn't work
 
@@ -52,4 +52,4 @@ Keep the package's asset files in your bundler output. Serve them over HTTP with
 
 ### Typed keys do nothing
 
-Focus the terminal after opening it. This example installs `attachTerminalHotkeys` from `ghostty-webgpu/hotkeys` for the Ghostty keymap. Paste uses the browser event. The `onData` handler provides the echo.
+Focus the terminal after opening it. This example installs `attachTerminalHotkeys` from `ghostty-webgpu/hotkeys` for the Ghostty keymap. Paste uses the browser event. The line editor claims input only while a `read` is pending.

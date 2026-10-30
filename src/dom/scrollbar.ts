@@ -307,6 +307,8 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
 
   notifyActivity(): void {
     if (this.disposed) return
+    // Without scrollback the thumb fills the track and reads as a stray scrollbar.
+    if (maximumOffset(this.snapshotValue) <= 0) return
     this.setVisible(true)
     if (!this.clearFadeTimer()) return
     if (this.dragPointer !== undefined) return

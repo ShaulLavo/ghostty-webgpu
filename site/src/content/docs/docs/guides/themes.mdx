@@ -20,7 +20,13 @@ You will change terminal colors while preserving the current palette. Start with
 
 Use `setAppearance` when a theme, font and cursor should change in one update. Use `setTheme`, `setFont` or `setCursor` for individual changes. Worker appearance operations return promises.
 
-## 3. Resolve a Ghostty config on the host
+## 3. Choose the background opacity
+
+The terminal fills its whole element with the theme background, including the padding and the pixels past the last full cell. `backgroundOpacity` sets the alpha of that fill and defaults to 1, like Ghostty's `background-opacity`. Pass `setAppearance({ backgroundOpacity: 0.85 })` to let the page show through, or `0` to draw your own backdrop. Cells with an explicit background color stay opaque.
+
+The config resolver returns Ghostty's value as `surface.backgroundOpacity`.
+
+## 4. Resolve a Ghostty config on the host
 
 The `ghostty-webgpu/config-resolver` entry runs in Node or Bun. It resolves appearance through a native helper on supported macOS and Linux architectures. Keep it on the server, and return only the resolved appearance your client needs.
 

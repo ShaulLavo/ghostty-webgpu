@@ -297,6 +297,7 @@ const terminalTheme: TerminalTheme = {
   palette: Array.from({ length: 256 }, () => color),
 }
 const terminalAppearance: TerminalAppearance = {
+  backgroundOpacity: 1,
   colorScheme: 'dark',
   cursor: { blink: false, style: 'block' },
   font: {

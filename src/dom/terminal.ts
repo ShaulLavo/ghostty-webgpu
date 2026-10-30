@@ -218,6 +218,12 @@ function cssRgb(color: TerminalRendererTheme['foreground']): string {
   return `rgb(${color.r} ${color.g} ${color.b})`
 }
 
+// Renderers leave default cells transparent; the root fills the grid, padding and fit remainder.
+function applyRootBackground(root: HTMLElement, appearance: TerminalAppearance): void {
+  const { r, g, b } = appearance.rendererTheme.background
+  root.style.backgroundColor = `rgb(${r} ${g} ${b} / ${appearance.backgroundOpacity})`
+}
+
 function applyPreeditAppearance(
   element: HTMLElement,
   font: TerminalFittedFont,
@@ -336,7 +342,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   private outputTimingTracker?: OutputTimingTracker
   private timedWorkerWrite?: { readonly sequence: number; readonly control: number }
   private scrollbar?: TerminalScrollbarController
-  private readonly scrollbarOptions?: GhosttyWebGpuTerminalScrollbarOptions
+  private readonly scrollbarOptions?: GhosttyWebGpuTerminalScrollbarOptions | false
   private readonly scrollbarWidthValue: number
   private selection?: TerminalSelectionController
   private stateValue: GhosttyWebGpuTerminalLifecycle = 'created'
@@ -370,7 +376,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
       options.writeQueue,
     )
     this.scrollbarOptions = options.scrollbar
-    this.scrollbarWidthValue = scrollbarWidth(options.scrollbar?.width)
+    this.scrollbarWidthValue =
+      options.scrollbar === false ? 0 : scrollbarWidth(options.scrollbar?.width)
 
     const elements = options.elements
     if (elements) {
@@ -596,6 +603,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     let renderer: GhosttyWebGpuRenderer | undefined
     try {
       const elements = this.installElements(parent)
+      applyRootBackground(elements.root, this.execution.appearance)
       if (this.execution.kind === 'async') this.subscribeToSession()
       if (this.bidi) this.bidiMapper = await loadBidiMapper()
       const initialAppearance = this.execution.appearance
@@ -1393,6 +1401,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
 
   private installScrollbar(elements: TerminalElements): void {
     const options = this.scrollbarOptions
+    // These capture listeners also focus input on canvas presses, so they stay without a scrollbar.
+    if (options === false) return this.installScrollbarFirstRefusal(elements)
     const scrollbar = createTerminalScrollbar({
       actions: this.execution.scroll,
       clock: options?.clock,
@@ -1706,6 +1716,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
   }
 
   private handleAppearance(appearance: TerminalAppearance): void {
+    const root = this.elementsValue?.root
+    if (root) applyRootBackground(root, appearance)
     if (this.execution.kind === 'async') {
       this.emitHostEvent('appearance', appearance)
       return

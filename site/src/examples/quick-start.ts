@@ -1,20 +1,22 @@
 import { Terminal } from 'ghostty-webgpu'
 import { attachTerminalHotkeys } from 'ghostty-webgpu/hotkeys'
+import { readline, type ReadlineApi } from 'ghostty-webgpu-line-editor'
 
 export async function mountEcho(host: HTMLElement) {
   const terminal = await Terminal.create({ accessibility: {} })
-  const { r, g, b } = terminal.appearance.theme.background
-  host.style.backgroundColor = `rgb(${r}, ${g}, ${b})`
   attachTerminalHotkeys(terminal)
+  const editor = terminal.use(readline())
   await terminal.open(host)
-  terminal.writeln('Hello from Ghostty. Type here to echo your keys.')
-  // A PTY turns Enter into a new line and Backspace into an erase; with no PTY, the echo does it.
-  const decoder = new TextDecoder()
-  terminal.onData(({ bytes }) =>
-    terminal.write(
-      decoder.decode(bytes, { stream: true }).replaceAll('\r', '\r\n').replaceAll('\x7f', '\b \b'),
-    ),
-  )
+  terminal.writeln('Hello from Ghostty. Type a line and press Enter.')
   terminal.focus()
+  // Disposing the terminal rejects the pending read, which ends the loop.
+  echoLines(editor.api).catch(() => undefined)
   return () => terminal.dispose()
+}
+
+async function echoLines(editor: ReadlineApi) {
+  for (;;) {
+    const result = await editor.read({ prompt: '$ ' })
+    if (result.kind === 'submit' && result.text) editor.print(result.text)
+  }
 }
