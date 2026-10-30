@@ -37,10 +37,11 @@ function exactCell(cell: number) {
   return { letterSpacing, lineHeight, size }
 }
 
-/** The grid for the host's width; sets the host's height to its whole rows. */
+/** The grid for the host's width and the viewport's height; sets the host's height to its whole rows. */
 function fitHost(host: HTMLElement, cols: number, rows: number) {
-  const grid = sceneGrid(host.clientWidth, devicePixelRatio, cols, rows)
+  const grid = sceneGrid(host.clientWidth, devicePixelRatio, cols, rows, innerHeight)
   host.style.height = `${grid.height}px`
+  host.style.maxHeight = 'none'
   return exactCell(grid.cell)
 }
 
@@ -193,14 +194,20 @@ export async function mountScene(
   })
   let t = piece.meta.still ?? 0
   draw(t)
-  // A new width (a resized window, a turned phone) needs a new grid; the terminal's resize redraws the scene.
+  // A new width or viewport height (a resized window, a turned phone) needs a new grid; the terminal's resize
+  // redraws the scene.
   terminal.onResize(() => draw(t))
-  let width = host.clientWidth
-  new ResizeObserver(() => {
-    if (host.clientWidth === width) return
-    width = host.clientWidth
+  // Keyed on rows, not the viewport, so a phone's toolbar sliding away leaves an uncropped scene alone.
+  const fit = () =>
+    `${host.clientWidth}x${sceneGrid(host.clientWidth, devicePixelRatio, cols, rows, innerHeight).rows}`
+  let size = fit()
+  const refit = () => {
+    if (fit() === size) return
+    size = fit()
     terminal.setFont(fitHost(host, cols, rows))
-  }).observe(host)
+  }
+  new ResizeObserver(refit).observe(host)
+  addEventListener('resize', refit)
   if (reducedMotion || !fps) return terminal
 
   const interval = 1000 / fps

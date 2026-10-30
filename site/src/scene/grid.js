@@ -7,30 +7,42 @@ export const MIN_CELL = 3
 export const MAX_CELL = 4
 // The terminal keeps a 1px scrollbar gutter on the right; the grid leaves it out too.
 export const SCROLLBAR = 1
+// A wide window crops the 2:1 picture to this share of the viewport's height, so the page starts above the fold.
+const VIEWPORT_SHARE = 0.72
+// Short windows (a phone on its side) keep at least this many CSS pixels of scene.
+const MIN_HEIGHT = 320
+// A cropped scene loses its bottom (under the wordmark's fade) three times faster than its sky.
+const CROP_TOP = 0.25
 // A 4 by 4 ordered dither's thresholds, from 0 to under 1.
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16)
 
 /**
- * Square cells in whole device pixels, a 2:1 picture `width` CSS pixels wide, rows rounded to whole cells. The terminal
- * rounds its gutter to whole device pixels and measures its host in whole CSS pixels; the grid does the same.
+ * Square cells in whole device pixels, a 2:1 picture `width` CSS pixels wide, no taller than its share of a viewport
+ * `viewport` CSS pixels tall, rows rounded to whole cells. The terminal rounds its gutter to whole device pixels and
+ * measures its host in whole CSS pixels; the grid does the same.
  */
-export function sceneGrid(width, ratio, sceneCols, sceneRows) {
+export function sceneGrid(width, ratio, sceneCols, sceneRows, viewport) {
   const least = Math.ceil(MIN_CELL * ratio)
   const most = Math.max(least, Math.floor(MAX_CELL * ratio))
   const cell = Math.min(most, Math.max(least, Math.floor((width / sceneCols) * ratio))) / ratio
   const gutter = Math.max(1, Math.round(SCROLLBAR * ratio)) / ratio
   const columns = Math.floor((width - gutter) / cell)
-  const rows = Math.max(1, Math.round((width * sceneRows) / sceneCols / cell))
+  const picture = Math.min(
+    (width * sceneRows) / sceneCols,
+    Math.max(MIN_HEIGHT, viewport * VIEWPORT_SHARE),
+  )
+  const rows = Math.max(1, Math.round(picture / cell))
   // Less than a cell taller than its rows, so the host's whole-pixel height still holds exactly `rows`.
   return { cell, columns, rows, height: Math.ceil(rows * cell) }
 }
 
 /**
- * Where each grid cell along one axis falls in the scene, which covers the grid cropped at its middle: the scene cell
- * at or before it, the one after, and how far toward the after one. A shrunk scene takes its nearest cell instead.
+ * Where each grid cell along one axis falls in the scene, which covers the grid cropped `crop` of the way from its
+ * start: the scene cell at or before it, the one after, and how far toward the after one. A shrunk scene takes its
+ * nearest cell instead.
  */
-function axis(length, sceneLength, scale) {
-  const start = (sceneLength * scale - length) / 2
+function axis(length, sceneLength, scale, crop) {
+  const start = (sceneLength * scale - length) * crop
   const at = new Int32Array(length)
   const next = new Int32Array(length)
   const along = new Float32Array(length)
@@ -51,8 +63,8 @@ function axis(length, sceneLength, scale) {
  */
 export function coverScene(columns, rows, sceneCols, sceneRows) {
   const scale = Math.max(columns / sceneCols, rows / sceneRows)
-  const xs = axis(columns, sceneCols, scale)
-  const ys = axis(rows, sceneRows, scale)
+  const xs = axis(columns, sceneCols, scale, 0.5)
+  const ys = axis(rows, sceneRows, scale, CROP_TOP)
   const dots = new Uint8Array(columns * rows)
   const inks = new Uint8Array(columns * rows)
   const corner = new Int32Array(4)
