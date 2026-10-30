@@ -6,7 +6,7 @@ Safari retained an old resolved canvas font after a web font loaded. Resource in
 
 Tests keep exact pixels but use a named font or equally connected canvases. Byte comparisons avoid expensive deep inspection of million-byte arrays. Geometry checks allow CSS serialization precision or one physical pixel of layout rounding. Clipboard fixtures replace both platform and user agent. Worker selection checks its real adapter result and asserts fallback or capability rejection. No platform skip was added.
 
-Native Safari 26.5 on iOS Simulator 26.5 build 23F77 passed 81 selected cases in 10 files at 402 by 714 CSS pixels and DPR 3. The other 290 registrations were filtered out. Chromium first passed 370 of 371 affected cases. The remaining font-assignment count was corrected, and the final three-file run passed all 48 cases. Typechecking, lint, formatting and the build passed.
+Native Safari 26.5 on iOS Simulator 26.5 build 23F77 passed 81 selected cases in 10 files at 402 by 714 CSS pixels and DPR 3. The other 290 registrations were filtered out. Chromium first passed 370 of 371 affected cases. The remaining font-assignment count was corrected, and the final three-file run passed all 48 cases. Independent review found that pixel mode also needed to forward font assignments to its real measurement context. That fix and cleanup on failed reference creation passed five further native cases, including both actual Canvas modes. Chromium then passed all 77 cases across the six affected Canvas and pixel files. Typechecking, lint, formatting and the build passed.
 
 ## Original failure accounting
 

@@ -28,12 +28,13 @@ async function expectFullRepaint(
   canvas.style.left = '-10000px'
   document.body.append(canvas)
   const clock = new TestClock()
-  const reference = await CanvasTerminalRenderer.create({
-    ...options,
-    canvas,
-    schedulerClock: clock,
-  })
+  let reference: CanvasTerminalRenderer | undefined
   try {
+    reference = await CanvasTerminalRenderer.create({
+      ...options,
+      canvas,
+      schedulerClock: clock,
+    })
     clock.flushFrame()
     const actual = options.canvas.getContext('2d')
     const expected = canvas.getContext('2d')
@@ -44,7 +45,7 @@ async function expectFullRepaint(
     expect(actualBytes.findIndex((value, index) => value !== expectedBytes[index])).toBe(-1)
     expect(reference.canvasPaintMode).toBe(renderer.canvasPaintMode)
   } finally {
-    reference.dispose()
+    reference?.dispose()
     canvas.remove()
   }
 }
