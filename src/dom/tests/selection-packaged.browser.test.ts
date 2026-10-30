@@ -1,3 +1,4 @@
+import { stubRendererNavigator, restoreRendererNavigator } from '../../render/tests/navigator.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { page, userEvent } from 'vitest/browser'
@@ -275,12 +276,8 @@ const copyPlatforms = [
 ]
 
 function stubPlatform(value: string): void {
-  const descriptor = Object.getOwnPropertyDescriptor(navigator, 'platform')
-  Object.defineProperty(navigator, 'platform', { configurable: true, value })
-  cleanups.push(() => {
-    if (descriptor) Object.defineProperty(navigator, 'platform', descriptor)
-    else Reflect.deleteProperty(navigator, 'platform')
-  })
+  stubRendererNavigator({ platform: value, userAgent: '' })
+  cleanups.push(restoreRendererNavigator)
 }
 
 function copyKey(terminal: TerminalApi, modifiers: KeyboardEventInit): KeyboardEvent {

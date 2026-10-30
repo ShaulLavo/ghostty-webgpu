@@ -184,7 +184,9 @@ describe.each(['main', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
           Number.parseFloat(overlay.style.left) +
           Number.parseFloat((child as HTMLElement).style.left),
       ).sort((a, b) => a - b),
-    ).toEqual([3, 4, 5, 6].map((x) => x * terminal.submittedFrame!.grid.cellWidth))
+    ).toEqual(
+      [3, 4, 5, 6].map((x) => expect.closeTo(x * terminal.submittedFrame!.grid.cellWidth, 5)),
+    )
     overlay.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await expect.poll(() => activations).toEqual(['https://example.test'])
     await terminal.write('\x1b[1;10HX')

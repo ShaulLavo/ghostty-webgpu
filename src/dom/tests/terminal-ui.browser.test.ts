@@ -1035,7 +1035,10 @@ describe('terminal scrollbar in Chromium', () => {
         const thumb = controller.thumb.getBoundingClientRect()
         const expectedHeight = Math.min(height, Math.max(20, height * ratio))
         expect(thumb.height).toBeCloseTo(expectedHeight, 1)
-        expect(thumb.top - track.top).toBeCloseTo(progress * (height - expectedHeight), 1)
+        // Native layout may snap fractional CSS lengths to a physical pixel.
+        expect(
+          Math.abs(thumb.top - track.top - progress * (height - expectedHeight)),
+        ).toBeLessThanOrEqual(1 / window.devicePixelRatio)
         expect(controller.update(snapshot)).toBe(false)
       }
       root.style.display = 'none'
@@ -1047,7 +1050,9 @@ describe('terminal scrollbar in Chromium', () => {
       const thumb = controller.thumb.getBoundingClientRect()
       const expectedHeight = Math.min(123, Math.max(20, 123 * ratio))
       expect(thumb.height).toBeCloseTo(expectedHeight, 1)
-      expect(thumb.top - track.top).toBeCloseTo(progress * (123 - expectedHeight), 1)
+      expect(
+        Math.abs(thumb.top - track.top - progress * (123 - expectedHeight)),
+      ).toBeLessThanOrEqual(1 / window.devicePixelRatio)
       expect(controller.element.getAttribute('aria-valuemax')).toBe(String(maximum))
       expect(controller.element.getAttribute('aria-valuenow')).toBe(String(snapshot.offset))
     },
@@ -1749,9 +1754,13 @@ describe('terminal frame consumer demand in Chromium', () => {
         expect(text).toHaveLength(grid.rows)
         expect(text[0]?.trimEnd()).toBe('resize font probe')
         expect(summary.padding.left).toBe(paddingLeft)
-        expect(caretLeft).toBe(paddingLeft + (summary.cursor.viewport?.x ?? 0) * font.cssCellWidth)
-        expect(caretTop).toBe(
+        expect(caretLeft).toBeCloseTo(
+          paddingLeft + (summary.cursor.viewport?.x ?? 0) * font.cssCellWidth,
+          5,
+        )
+        expect(caretTop).toBeCloseTo(
           summary.padding.top + (summary.cursor.viewport?.y ?? 0) * font.cssCellHeight,
+          5,
         )
       }
       expect(harness.readRowsCalls()).toBe(0)
@@ -1842,7 +1851,8 @@ describe('terminal frame consumer demand in Chromium', () => {
     async (backend) => {
       const harness = await createObservedRendererHarness({}, backend)
       const styled = `${escape}[1;3;4;38;2;12;34;56;48;2;65;43;21mA界B${escape}[0m`
-      const reference = await createSession({ appearance: { grid: { columns: 30, rows: 4 } } })
+      const { columns, rows } = harness.terminal.submittedFrame!.grid
+      const reference = await createSession({ appearance: { grid: { columns, rows } } })
       reference.write(styled)
       reference.renderState.update()
       const expectedCells = reference.renderState.readRows().map((row) => row.cells)

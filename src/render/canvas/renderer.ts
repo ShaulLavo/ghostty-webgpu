@@ -243,7 +243,7 @@ class CanvasSurface implements RowRendererSurface {
   }
 
   refreshFontResources(): void {
-    this.painter.resetContext(this.font)
+    this.painter.resetContext(this.font, true)
     this.pixelTarget?.invalidate?.()
   }
 
@@ -301,7 +301,7 @@ class CanvasSurface implements RowRendererSurface {
       // Source-over would retain destination pixels beneath transparent source pixels.
       this.context.globalCompositeOperation = 'copy'
       this.context.imageSmoothingEnabled = false
-      this.context.filter = 'none'
+      if ('filter' in this.context) this.context.filter = 'none'
       this.context.drawImage(
         this.canvas,
         0,

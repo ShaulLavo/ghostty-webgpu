@@ -136,7 +136,14 @@ it.each(
       },
     ]),
 )('selects the worker renderer for $name', async (test) => {
+  const channel = new BroadcastChannel(`platform-capability-${test.name}`)
+  onTestFinished(() => channel.close())
+  let adapterAvailable: boolean | undefined
+  channel.onmessage = ({ data }: MessageEvent<unknown>) => {
+    if (typeof data === 'boolean') adapterAvailable = data
+  }
   const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
+  url.searchParams.set('capabilityChannel', channel.name)
   url.searchParams.set('platform', test.platform)
   if (test.unavailableWebGl) url.searchParams.set('unavailableWebGl', '1')
   const terminal = await WorkerTerminal.create({
@@ -147,12 +154,28 @@ it.each(
     fonts: [{ family, source: { url: fontUrl } }],
   })
   active.push(terminal)
-  await terminal.open(container())
+  let failure: unknown
+  try {
+    await terminal.open(container())
+  } catch (cause) {
+    failure = cause
+  }
+  let expected = test.expected
+  if (expected === 'webgpu') {
+    await expect.poll(() => adapterAvailable).toBeTypeOf('boolean')
+    if (!adapterAvailable) expected = 'webgl2'
+  }
+  if (expected !== test.expected && (test.backend === 'webgpu' || test.unavailableWebGl)) {
+    expect(failure).toMatchObject({ code: 'capability', operation: 'renderer.webgpu' })
+    expect(terminal.diagnostics.rendererBackend).toBeUndefined()
+    return
+  }
+  expect(failure).toBeUndefined()
   await terminal.write('platform renderer selection')
   await eventually(
     () => terminal.visibleLines()[0]?.includes('platform renderer selection') === true,
   )
-  expect(terminal.diagnostics.rendererBackend).toBe(test.expected)
+  expect(terminal.diagnostics.rendererBackend).toBe(expected)
 })
 
 it.each(['createShader', 'createProgram', 'createBuffer', 'createVertexArray', 'createTexture'])(
@@ -961,7 +984,7 @@ it.each(['main', 'webgl', 'webgpu'] as const)(
     await eventually(() => terminal.submittedFrame!.nativeRevision >= output.revision)
     expect(terminal.submittedFrame!.scrollbar.offset).toBe(scrolled)
     await terminal.selectAll()
-    const modifier = /Mac/.test(navigator.platform)
+    const modifier = /^(Mac|iPhone|iPad|iPod)/iu.test(navigator.platform)
       ? { metaKey: true }
       : { ctrlKey: true, shiftKey: true }
     terminal.textarea!.dispatchEvent(
@@ -1715,7 +1738,9 @@ it('preserves default worker browser paste keys and native clipboard encoding', 
   const output: string[] = []
   terminal.onData(({ bytes }) => output.push(new TextDecoder().decode(bytes)))
   const textarea = terminal.textarea!
-  const modifier = /Mac/.test(navigator.platform) ? { metaKey: true } : { ctrlKey: true }
+  const modifier = /^(Mac|iPhone|iPad|iPod)/iu.test(navigator.platform)
+    ? { metaKey: true }
+    : { ctrlKey: true }
   const send = (type: 'keydown' | 'keyup', repeat = false) => {
     const event = new KeyboardEvent(type, {
       code: 'KeyV',

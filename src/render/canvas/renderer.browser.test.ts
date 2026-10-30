@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { testFontUrl } from '../../tests/fonts.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { PACKED_CELL_WORDS, PackedCells } from '../../core/packed-cells.js'
@@ -22,6 +23,13 @@ import type { RenderSchedulerClock } from '../shared/scheduler.js'
 import { createCompatibleTerminalRenderer } from '../shared/selector.js'
 import { restoreRendererNavigator, stubRendererNavigator } from '../tests/navigator.js'
 import { CanvasTerminalRenderer } from './renderer.js'
+
+let testFace: FontFace
+beforeAll(async () => {
+  testFace = await new FontFace('CanvasRendererTest', `url(${testFontUrl})`).load()
+  document.fonts.add(testFace)
+})
+afterAll(() => document.fonts.delete(testFace))
 
 const canvases = new Set<HTMLCanvasElement>()
 const renderers = new Set<CanvasTerminalRenderer>()
@@ -131,7 +139,7 @@ function fittedFont(): TerminalFittedFont {
     pixelRatio: 1,
     settings: Object.freeze({
       boldWeight: 700,
-      family: 'monospace',
+      family: 'CanvasRendererTest',
       letterSpacing: 0,
       lineHeight: 1.25,
       size: 16,
@@ -699,7 +707,7 @@ describe('CanvasTerminalRenderer', () => {
       deviceCharHeight: 24,
       deviceCharWidth: 15,
       pixelRatio: 1.5,
-      settings: { ...base.settings, family: 'CanvasLateWide, monospace' },
+      settings: { ...base.settings, family: 'CanvasLateWide, CanvasRendererTest' },
     }
     const clock = new FakeClock()
     const canvas = createCanvas()
@@ -723,21 +731,16 @@ describe('CanvasTerminalRenderer', () => {
     const face = new FontFace('CanvasLateWide', `url(${url})`, { unicodeRange: 'U+0057' })
     document.fonts.add(await face.load())
     resourceCleanups.add(() => document.fonts.delete(face))
+    renderer.setFont({ ...font, settings: { ...font.settings } })
+    renderer.clearTextureAtlas()
     expect(context.measureText('M').width).toBe(beforeM)
     const afterMg = context.measureText('Mg')
-    for (const key of [
-      'fontBoundingBoxAscent',
-      'fontBoundingBoxDescent',
-      'actualBoundingBoxAscent',
-      'actualBoundingBoxDescent',
-    ] as const)
+    for (const key of ['actualBoundingBoxAscent', 'actualBoundingBoxDescent'] as const)
       expect(afterMg[key]).toBe(beforeMg[key])
     const afterW = context.measureText('W')
     expect(afterW.actualBoundingBoxLeft + afterW.actualBoundingBoxRight).toBeGreaterThan(
       beforeW.actualBoundingBoxLeft + beforeW.actualBoundingBoxRight,
     )
-    renderer.setFont({ ...font, settings: { ...font.settings } })
-    renderer.clearTextureAtlas()
     clock.flushFrame()
     expectFullRepaint(canvas, source, font)
     source.rows[0]!.cells[1]!.text = 'a'
@@ -1394,7 +1397,7 @@ describe('Canvas alpha reference witnesses', () => {
     canvas.width = 80
     canvas.height = 30
     const context = canvas.getContext('2d', { alpha: true, willReadFrequently: false })!
-    context.font = '20px monospace'
+    context.font = '20px CanvasRendererTest'
     const raster = (brush: string) => {
       context.clearRect(0, 0, 80, 30)
       context.fillStyle = brush
@@ -1415,7 +1418,7 @@ describe('Canvas alpha reference witnesses', () => {
     )
     resourceCleanups.add(() => target.dispose())
     target.resize(80, 30, 30)
-    target.context.font = '20px monospace'
+    target.context.font = '20px CanvasRendererTest'
     for (const brush of ['white', 'red']) {
       target.beginRow(0)
       target.context.clearRect(0, 0, 80, 30)

@@ -1,3 +1,4 @@
+import { restoreRendererNavigator, stubRendererNavigator } from '../../../render/tests/navigator.js'
 import { testFontUrl } from '../../../tests/fonts.js'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createBrowserDispatcher, type KeymapEntry, type KeymapPlatform } from '@fregat/hotkeys'
@@ -25,6 +26,7 @@ beforeAll(async () => {
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
   vi.restoreAllMocks()
+  restoreRendererNavigator()
 })
 async function settle(terminal: TerminalApi): Promise<void> {
   await Promise.resolve()
@@ -37,7 +39,7 @@ async function fixture(entry: 'main', platform: KeymapPlatform = 'linux', observ
     linux: 'Linux x86_64',
     windows: 'Win32',
   }
-  vi.spyOn(navigator, 'platform', 'get').mockReturnValue(platforms[platform])
+  stubRendererNavigator({ platform: platforms[platform], userAgent: '' })
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:160px;position:relative'
   document.body.append(host)

@@ -323,19 +323,29 @@ export function paintTerminalViewport(
   canvas.setAttribute('aria-hidden', 'true')
   const context = canvas.getContext('2d')
   if (!context) return undefined
-  const painter = new CanvasRowPainter(context, saved.font, canonicalRendererTheme(saved.theme))
-  painter.resetContext(saved.font)
-  const cursor = renderCursorState(saved.cursor, true)
-  const rows = saved.rows.map((row, y) => unpackRow(row, y, saved.columns))
-  for (const row of rows) painter.paint(row, cursor, canvas.width)
-  const lines = Object.freeze(
-    rows.map((row) =>
-      row.cells
-        .filter((cell) => !cell.continuation)
-        .map((cell) => cell.text || ' ')
-        .join(''),
-    ),
-  )
+  // WebKit resolves generic fonts against the document only for a connected canvas.
   host.append(canvas)
-  return { lines, scrollbar: Object.freeze({ ...saved.scrollbar }), dispose: () => canvas.remove() }
+  try {
+    const painter = new CanvasRowPainter(context, saved.font, canonicalRendererTheme(saved.theme))
+    painter.resetContext(saved.font)
+    const cursor = renderCursorState(saved.cursor, true)
+    const rows = saved.rows.map((row, y) => unpackRow(row, y, saved.columns))
+    for (const row of rows) painter.paint(row, cursor, canvas.width)
+    const lines = Object.freeze(
+      rows.map((row) =>
+        row.cells
+          .filter((cell) => !cell.continuation)
+          .map((cell) => cell.text || ' ')
+          .join(''),
+      ),
+    )
+    return {
+      lines,
+      scrollbar: Object.freeze({ ...saved.scrollbar }),
+      dispose: () => canvas.remove(),
+    }
+  } catch (cause) {
+    canvas.remove()
+    throw cause
+  }
 }
