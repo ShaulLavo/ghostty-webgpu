@@ -1,6 +1,11 @@
 import { displayedFrameListener } from '../../render/shared/displayed-frame.js'
 import { detectPlatform } from '@fregat/hotkeys'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { commands, userEvent } from 'vitest/browser'
+import {
+  DomTerminalRenderer as PackagedDomRenderer,
+  Terminal as PackagedTerminal,
+} from '../../../dist/index.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import type { RendererTheme } from '../../render/shared/instances/types.js'
 import type {
@@ -18,6 +23,12 @@ import type {
   GhosttyWebGpuRendererFactory,
   GhosttyWebGpuTerminalOptions,
 } from '../types.js'
+
+declare module 'vitest/internal/browser' {
+  interface BrowserCommands {
+    insertText: (text: string) => Promise<void>
+  }
+}
 
 const decoder = new TextDecoder()
 
@@ -909,6 +920,110 @@ describe('Terminal DOM host', () => {
       'same',
       'same',
     ])
+    expect(textarea.value).toBe('')
+  })
+
+  it.each([
+    { name: 'empty', initial: '', start: 0, end: 0, expected: 'A Ω世界🙂\nsecond' },
+    { name: 'selected', initial: 'replace-me', start: 0, end: 10, expected: 'A Ω世界🙂\nsecond' },
+    {
+      name: 'middle',
+      initial: 'leftRIGHT',
+      start: 4,
+      end: 4,
+      expected: 'leftA Ω世界🙂\nsecondRIGHT',
+    },
+  ])('publishes Playwright insertText once for multiline Unicode input ($name)', async (test) => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    terminal.onData(({ bytes }) => output.push(bytes))
+    textarea.value = test.initial
+    textarea.setSelectionRange(test.start, test.end)
+    textarea.focus()
+
+    await commands.insertText('A Ω世界🙂\nsecond')
+
+    expect(output).toEqual([new TextEncoder().encode(test.expected)])
+    expect(textarea.value).toBe('')
+  })
+
+  it.each(['', 'replace-me'])(
+    'publishes packaged multiline Unicode bytes once from %j',
+    async (initial) => {
+      const terminal = await PackagedTerminal.create({
+        rendererFactory: PackagedDomRenderer.create,
+      })
+      try {
+        await terminal.open(trackedHost())
+        const textarea = terminal.textarea!
+        const output: Uint8Array[] = []
+        terminal.onData(({ bytes }) => output.push(bytes))
+        textarea.value = initial
+        textarea.select()
+        textarea.focus()
+
+        const text = 'A Ω世界🙂\nsecond'
+        await commands.insertText(text)
+        await commands.insertText(text)
+
+        expect(output).toEqual([new TextEncoder().encode(text), new TextEncoder().encode(text)])
+        expect(textarea.value).toBe('')
+      } finally {
+        terminal.dispose()
+      }
+    },
+  )
+
+  it('preserves new text, key and composition boundaries after a consumed browser edit', async () => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    terminal.onData(({ bytes }) => output.push(bytes))
+    textarea.focus()
+
+    await commands.insertText('same')
+    await commands.insertText('same')
+    await userEvent.keyboard('a')
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchInput(textarea, '中', {
+      data: '中',
+      inputType: 'insertCompositionText',
+      isComposing: true,
+    })
+    dispatchComposition(textarea, 'compositionend', '中')
+    dispatchInput(textarea, '', { data: '中', inputType: 'insertCompositionText' })
+    await commands.insertText('中')
+    dispatchInput(textarea, 'replacement', { data: null, inputType: 'insertReplacementText' })
+
+    expect(decodedOutput(output)).toEqual(['same', 'same', 'a', '中', '中', 'replacement'])
+    expect(textarea.value).toBe('')
+  })
+
+  it('claims one browser edit and leaves the next identical edit available to its new owner', async () => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    const claimed: string[] = []
+    terminal.onData(({ bytes }) => output.push(bytes))
+    const connection = terminal.connectInput((input) => {
+      if (input.type !== 'text' || typeof input.data !== 'string') return 'pass'
+      claimed.push(input.data)
+      expect(textarea.value).toBe('')
+      return 'claim'
+    })
+    textarea.focus()
+    const text = 'A Ω世界🙂\nsecond'
+    await commands.insertText(text)
+    expect(claimed).toEqual([text])
+    expect(output).toEqual([])
+    connection.dispose()
+
+    await commands.insertText(text)
+    expect(output).toEqual([new TextEncoder().encode(text)])
     expect(textarea.value).toBe('')
   })
 
