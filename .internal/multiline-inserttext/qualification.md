@@ -27,3 +27,17 @@ The chosen private `InputSequence` is `idle | pending | consumed`. Only a sequen
 No frame, renderer, WASM, native producer, version, release or package pin changes. No Mac, device, GUI window or deployed app was used. The task forbids children, so architecture exploration and code review are local. The parent owns fresh independent review, hosted checks and guarded merge.
 
 The source browser regression uses the repository's existing real runtime and recording renderer. Package behavior is checked against a normal build because consumers execute dist. No new observer is accepted as an oracle.
+
+## Verification receipts
+
+The failing-test commit is `e77c0c21e`. A baseline rebuild produced six focused failures in each engine, including the built-package path. The correction makes all 32 input tests pass on WebKit. Chromium passes all 113 tests across the input, extension and hotkeys-focus files.
+
+The wider WebKit run passes 111 tests and fails two worker-renderer cases before text input can run. Rebuilding the untouched base reproduces both failures with `The browser cannot run the requested terminal worker.` No assertion, engine admission or baseline was changed. The actual insertText regressions remain green on WebKit.
+
+Normal build, typecheck, lint, formatting, extension package checks and docs examples pass. Unit validation passes 1,276 Vitest tests, 485 comparison tests, four checkpoint tests and two codec tests. One pre-existing Vitest test remains skipped. The existing lint warnings are outside the changed input files.
+
+The source test controls cover exact command text, Unicode middle insertion, independent identical edits, keyboard input, composition completion, event-data fallback boundaries, clipboard paste, reset, extension claims and synchronous textarea clearing. Package tests repeat identical multiline input twice and compare the actual public Uint8Array chunks without normalization.
+
+## Principles applied
+
+Fix Root Causes kept the change at textarea payload ownership rather than text matching. Model the Domain made the edit lifetime an explicit three-state value. Laziness Protocol kept production changes in one existing input file. Prove It Works required both actual Playwright insertion and built-package byte assertions. Sequence Work into Verifiable Units put the failing tests before the fix in history.

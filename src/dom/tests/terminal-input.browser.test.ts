@@ -949,6 +949,30 @@ describe('Terminal DOM host', () => {
     expect(textarea.value).toBe('')
   })
 
+  it.each([
+    {
+      text: "printf 'fresh-worker\\n'",
+      initial: '',
+      start: 0,
+      expected: "printf 'fresh-worker\\n'",
+    },
+    { text: 'Ω🙂', initial: 'leftRIGHT', start: 4, expected: 'leftΩ🙂RIGHT' },
+  ])('preserves the single-line insertText control $text', async (test) => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    terminal.onData(({ bytes }) => output.push(bytes))
+    textarea.value = test.initial
+    textarea.setSelectionRange(test.start, test.start)
+    textarea.focus()
+
+    await commands.insertText(test.text)
+
+    expect(output).toEqual([new TextEncoder().encode(test.expected)])
+    expect(textarea.value).toBe('')
+  })
+
   it.each(['', 'replace-me'])(
     'publishes packaged multiline Unicode bytes once from %j',
     async (initial) => {
@@ -998,7 +1022,33 @@ describe('Terminal DOM host', () => {
     await commands.insertText('中')
     dispatchInput(textarea, 'replacement', { data: null, inputType: 'insertReplacementText' })
 
-    expect(decodedOutput(output)).toEqual(['same', 'same', 'a', '中', '中', 'replacement'])
+    for (let index = 0; index < 2; index += 1) {
+      textarea.dispatchEvent(
+        new InputEvent('beforeinput', { data: 'fallback', inputType: 'insertText' }),
+      )
+      dispatchInput(textarea, '', { data: 'fallback', inputType: 'insertText' })
+    }
+    const clipboardData = new DataTransfer()
+    clipboardData.setData('text/plain', 'paste\ntext')
+    const paste = new ClipboardEvent('paste', { clipboardData, cancelable: true })
+    Object.defineProperty(paste, 'clipboardData', { value: clipboardData })
+    textarea.dispatchEvent(paste)
+    terminal.reset()
+    dispatchInput(textarea, '', { data: 'after reset', inputType: 'insertText' })
+
+    expect(decodedOutput(output)).toEqual([
+      'same',
+      'same',
+      'a',
+      '中',
+      '中',
+      'replacement',
+      'fallback',
+      'fallback',
+      'paste\rtext',
+      'after reset',
+    ])
+    expect(paste.defaultPrevented).toBe(true)
     expect(textarea.value).toBe('')
   })
 

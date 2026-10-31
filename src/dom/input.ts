@@ -322,9 +322,8 @@ class BrowserInputController implements DomInputController {
     this.resetTransientState()
   }
 
-  private readonly handleBeforeInput = (event: Event): void => {
+  private readonly handleBeforeInput = (input: InputEvent): void => {
     if (this.disposed) return
-    const input = event as InputEvent
     if (this.composing || input.isComposing || input.inputType.includes('Composition')) {
       this.inputSequence = 'idle'
       return
