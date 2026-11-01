@@ -139,6 +139,21 @@ it('keeps exact-width pending wrap and earlier output through the next edit', as
   expectCursor(terminal, 1, 2)
 })
 
+it('clears pending wrap when moving before the last printed unit', async () => {
+  const { terminal, session, edit } = await editor(6)
+  const direct = await native(6)
+  direct.write('KEEP\r\n$ abcd\x1b[6G')
+  await edit({ kind: 'insert', text: 'abcd' })
+  await edit({ kind: 'left' })
+  expectSame(terminal, direct)
+  expectCursor(terminal, 5, 1)
+  await edit({ kind: 'insert', text: 'X' })
+  expect(session.model.snapshot).toMatchObject({ text: 'abcXd', cursor: 4 })
+  direct.write('\r\x1b[J$ abcXd\x1b[1A\x1b[6G')
+  expectSame(terminal, direct)
+  expectCursor(terminal, 5, 1)
+})
+
 it('pre-wraps a wide native printing unit instead of splitting its cells', async () => {
   const { terminal, edit } = await editor(4, '', '', '')
   const direct = await native(4)

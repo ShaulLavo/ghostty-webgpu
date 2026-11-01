@@ -15,6 +15,15 @@ async function settled(terminal: Terminal, before: number): Promise<void> {
     .poll(() => terminal.submittedFrame?.nativeRevision)
     .toBe(terminal.geometry().revision)
   await expect.poll(() => terminal.hasPendingFrame).toBe(false)
+  const geometry = terminal.geometry()
+  expect(terminal.submittedFrame?.grid).toMatchObject({
+    columns: geometry.columns,
+    rows: geometry.rows,
+  })
+  expect(terminal.submittedFrame?.cursor.viewport).toMatchObject({
+    x: geometry.cursor.x,
+    y: geometry.cursor.y,
+  })
 }
 
 async function fixture(columns: number) {
@@ -22,11 +31,12 @@ async function fixture(columns: number) {
   host.style.cssText = 'width:320px;height:160px'
   document.body.append(host)
   cleanups.push(() => host.remove())
-  const terminal = await Terminal.create({
+  const options: Parameters<typeof Terminal.create>[0] & { readonly autoFit: false } = {
     rendererMode: 'canvas2d-fill-text',
     autoFit: false,
     appearance: { grid: { columns, rows: 6 }, cursor: { blink: false } },
-  })
+  }
+  const terminal = await Terminal.create(options)
   cleanups.push(() => terminal.dispose())
   const errors: unknown[] = []
   terminal.on('error', (cause) => errors.push(cause))
