@@ -1,4 +1,10 @@
-import type { Extension, TerminalApi, TerminalKeyInput, TerminalInputEvent } from 'ghostty-webgpu'
+import type {
+  Extension,
+  TerminalApi,
+  TerminalKeyInput,
+  TerminalInputEvent,
+  TerminalMeasuredText,
+} from 'ghostty-webgpu'
 import { History } from './history.js'
 import { keyCommand, type EditCommand, type KeyStroke } from './keymap.js'
 import {
@@ -34,6 +40,7 @@ interface DisplayText {
 interface Position {
   readonly row: number
   readonly column: number
+  readonly pendingWrap: boolean
 }
 
 interface RenderedLine {
@@ -69,7 +76,7 @@ function displayText(prompt: Prompt, text: string, cursor: number): DisplayText 
   for (let index = 0; index < text.length; index += 1) {
     const character = text[index]
     if (character === '\n') {
-      content += `\n${secondary}`
+      content += `\r\n${secondary}`
       visible += `\n${stripAnsi(secondary)}`
     } else {
       content += character
@@ -83,38 +90,38 @@ function displayText(prompt: Prompt, text: string, cursor: number): DisplayText 
 }
 
 function advance(position: Position, cells: number, columns: number): Position {
-  const total = position.column + cells
+  if (cells === 0) return position
+  const width = Math.min(cells, columns)
+  const wrap = position.pendingWrap || position.column + width > columns
+  const row = position.row + Number(wrap)
+  const column = (wrap ? 0 : position.column) + width
   return {
-    row: position.row + Math.floor(total / columns),
-    column: total % columns,
+    row,
+    column: Math.min(column, columns - 1),
+    pendingWrap: column >= columns,
   }
 }
 
 function positionForLines(
-  lines: readonly string[],
-  cells: readonly number[],
+  measurements: readonly TerminalMeasuredText[],
   columns: number,
 ): Position {
-  let position: Position = { row: 0, column: 0 }
-  for (let index = 0; index < lines.length; index += 1) {
-    position = advance(position, cells[index] ?? 0, columns)
-    if (index < lines.length - 1) position = { row: position.row + 1, column: 0 }
+  let position: Position = { row: 0, column: 0, pendingWrap: false }
+  for (const [index, measurement] of measurements.entries()) {
+    if (index > 0) position = { row: position.row + 1, column: 0, pendingWrap: false }
+    for (const unit of measurement.units) position = advance(position, unit.cells, columns)
   }
   return position
 }
 
 function layout(
-  display: DisplayText,
-  measurements: readonly number[],
+  measurements: readonly TerminalMeasuredText[],
+  lineCount: number,
   columns: number,
 ): RenderLayout {
-  const lines = display.visible.split('\n')
-  const cursorLines = display.visible.slice(0, display.cursor).split('\n')
-  const lineCells = measurements.slice(0, lines.length)
-  const cursorCells = measurements.slice(lines.length)
   return {
-    cursor: positionForLines(cursorLines, cursorCells, columns),
-    end: positionForLines(lines, lineCells, columns),
+    cursor: positionForLines(measurements.slice(lineCount), columns),
+    end: positionForLines(measurements.slice(0, lineCount), columns),
   }
 }
 
@@ -176,6 +183,14 @@ function commandFromInput(event: TerminalInputEvent): EditCommand | undefined {
 }
 
 function movement(end: Position, cursor: Position): string {
+  // A horizontal cursor command would cancel native delayed wrap at the printed end.
+  if (
+    end.pendingWrap &&
+    cursor.pendingWrap &&
+    end.row === cursor.row &&
+    end.column === cursor.column
+  )
+    return ''
   const up = end.row - cursor.row
   const moveUp = up > 0 ? `\u001b[${up}A` : ''
   return `${moveUp}\u001b[${cursor.column + 1}G`
@@ -265,11 +280,7 @@ export class ReadlineRenderer {
     }
     if (this.disposed) return
     const columns = Math.max(1, measurements.geometry.columns)
-    const layoutValue = layout(
-      display,
-      measurements.texts.map((value) => value.cells),
-      columns,
-    )
+    const layoutValue = layout(measurements.texts, lines.length, columns)
     await this.write(
       `${this.clearPrefix()}${display.content}${movement(layoutValue.end, layoutValue.cursor)}`,
     )

@@ -22,7 +22,10 @@ const geometry: TerminalGeometry = {
 function measureTexts(texts: readonly string[]): TerminalTextMeasurement {
   return {
     geometry,
-    texts: texts.map((text) => ({ cells: Array.from(text).length, units: [] })),
+    texts: texts.map((text) => ({
+      cells: text.length,
+      units: Array.from(text, (_, index) => ({ start: index, end: index + 1, cells: 1 })),
+    })),
   }
 }
 
@@ -268,6 +271,27 @@ test('keeps queued prints and finish in FIFO order while the renderer is active'
     expect(onError).not.toHaveBeenCalled()
   } finally {
     mutation.resolve({ revision: 1 })
+    dispose()
+  }
+})
+
+test('emits CRLF for model newlines in live and submitted content', async () => {
+  const { writes, session, renderer, dispose } = fixture()
+  try {
+    const pending = session.read({ prompt: '$ ', secondaryPrompt: '> ' })
+    void pending.catch(() => {})
+    await settle()
+    await session.dispatch({ kind: 'insert', text: 'ab\ncd' })
+    await settle()
+    expect(writes.at(-1)).toContain('$ ab\r\n> cd')
+    expect(session.model.snapshot.text).toBe('ab\ncd')
+    await session.dispatch({ kind: 'submit' })
+    const result = await pending
+    renderer.finish(result)
+    await settle()
+    expect(result).toEqual({ kind: 'submit', text: 'ab\ncd' })
+    expect(writes.at(-1)).toContain('$ ab\r\n> cd\r\n')
+  } finally {
     dispose()
   }
 })
