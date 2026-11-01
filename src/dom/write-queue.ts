@@ -45,6 +45,29 @@ function positive(name: string, value: number): number {
   throw new RangeError(`${name} must be greater than zero`)
 }
 
+function utf8ByteLength(text: string): number {
+  let bytes = 0
+  for (let index = 0; index < text.length; index += 1) {
+    const unit = text.charCodeAt(index)
+    if (unit < 0x80) {
+      bytes += 1
+      continue
+    }
+    if (unit < 0x800) {
+      bytes += 2
+      continue
+    }
+    const next = text.charCodeAt(index + 1)
+    if (unit >= 0xd800 && unit <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) {
+      bytes += 4
+      index += 1
+      continue
+    }
+    bytes += 3
+  }
+  return bytes
+}
+
 export class TerminalWriteQueue<T> {
   private readonly entries: WriteEntry<T>[] = []
   private readonly active = new Set<WriteEntry<T>>()
@@ -82,15 +105,16 @@ export class TerminalWriteQueue<T> {
   write(data: string | Uint8Array, options: TerminalBatchedWriteOptions = {}): Promise<T> {
     if (this.disposed) return Promise.reject(this.disposedError())
     if (options.signal?.aborted) return Promise.reject(options.signal.reason)
+    const availableBytes = this.maxBytes - this.pendingBytesValue
+    let incomingBytes = typeof data === 'string' ? data.length : data.byteLength
+    // Three bytes per UTF-16 unit bounds even lone-surrogate replacement.
+    if (typeof data === 'string' && incomingBytes * 3 > availableBytes)
+      incomingBytes = utf8ByteLength(data)
+    if (incomingBytes > availableBytes) return Promise.reject(this.overflowError(incomingBytes))
+
     const owned = typeof data === 'string' ? this.encoder.encode(data) : Uint8Array.from(data)
     if (owned.byteLength > this.maxBytes - this.pendingBytesValue)
-      return Promise.reject(
-        createGhosttyError('writeQueue.write', 'Batched write queue byte limit exceeded', {
-          incomingBytes: owned.byteLength,
-          maxBytes: this.maxBytes,
-          pendingBytes: this.pendingBytesValue,
-        }),
-      )
+      return Promise.reject(this.overflowError(owned.byteLength))
 
     let entry!: WriteEntry<T>
     const result = new Promise<T>((resolve, reject) => {
@@ -235,6 +259,14 @@ export class TerminalWriteQueue<T> {
     if (this.timer === undefined) return
     this.clock.clearTimeout(this.timer)
     this.timer = undefined
+  }
+
+  private overflowError(incomingBytes: number) {
+    return createGhosttyError('writeQueue.write', 'Batched write queue byte limit exceeded', {
+      incomingBytes,
+      maxBytes: this.maxBytes,
+      pendingBytes: this.pendingBytesValue,
+    })
   }
 
   private disposedError() {
