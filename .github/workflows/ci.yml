@@ -46,7 +46,7 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       # The same checks as `bun run verify`, minus the browser suite and the sites, which have their own jobs.
       - name: Build and check all packages
-        run: bun run build && bun run typecheck && bun run lint && bun run format:check && bun run verify:extensions
+        run: bun run build && bun run verify:extensions && bun run typecheck && bun run lint && bun run format:check
       - name: Unit tests
         run: bun run test:unit
       - name: Renderer fallback smoke
