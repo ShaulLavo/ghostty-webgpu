@@ -223,6 +223,7 @@ export class ReadlineRenderer {
       } else {
         await this.write(this.clearPrefix())
       }
+      if (this.disposed) return
       this.rendered = undefined
       this.prompt = undefined
     })
@@ -240,7 +241,10 @@ export class ReadlineRenderer {
   }
 
   private enqueue(task: () => Promise<void>): void {
-    const next = this.queue.then(task)
+    const next = this.queue.then(() => {
+      if (this.disposed) return
+      return task()
+    })
     this.queue = next.catch((cause: unknown) => this.onError?.(cause, 'readline.render'))
   }
 
@@ -252,7 +256,14 @@ export class ReadlineRenderer {
     const display = displayText(prompt, snapshot.text, snapshot.cursor)
     const lines = display.visible.split('\n')
     const cursorLines = display.visible.slice(0, display.cursor).split('\n')
-    const measurements = await this.terminal.measureTexts(lines.concat(cursorLines))
+    let measurements: Awaited<ReturnType<ReadlineTerminal['measureTexts']>>
+    try {
+      measurements = await this.terminal.measureTexts(lines.concat(cursorLines))
+    } catch (cause) {
+      if (this.disposed) return
+      throw cause
+    }
+    if (this.disposed) return
     const columns = Math.max(1, measurements.geometry.columns)
     const layoutValue = layout(
       display,
@@ -262,17 +273,20 @@ export class ReadlineRenderer {
     await this.write(
       `${this.clearPrefix()}${display.content}${movement(layoutValue.end, layoutValue.cursor)}`,
     )
+    if (this.disposed) return
     this.rendered = { cursorRow: layoutValue.cursor.row }
   }
 
   private async clearScreen(): Promise<void> {
     await this.write(`${this.clearPrefix()}\u001b[2J\u001b[H`)
+    if (this.disposed) return
     this.rendered = undefined
     await this.render()
   }
 
   private async printNow(text: string): Promise<void> {
     await this.write(`${this.clearPrefix()}${normalizedPrint(text)}`)
+    if (this.disposed) return
     this.rendered = undefined
     await this.render()
   }
@@ -285,6 +299,7 @@ export class ReadlineRenderer {
   }
 
   private async write(text: string): Promise<void> {
+    if (this.disposed) return
     await Promise.resolve(this.terminal.write(text))
   }
 }
