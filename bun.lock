@@ -50,7 +50,7 @@
     },
     "packages/line-editor": {
       "name": "ghostty-webgpu-line-editor",
-      "version": "0.0.3",
+      "version": "0.0.4",
       "dependencies": {
         "evlog": "2.29.0",
       },
