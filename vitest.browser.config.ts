@@ -1,4 +1,4 @@
-import { playwright } from '@vitest/browser-playwright'
+import { defineBrowserCommand, playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import { browserFileRoots, counterpartWasmServing } from './scripts/browser-file-roots.ts'
@@ -8,6 +8,10 @@ const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const engine = process.env.GHOSTTY_BROWSER_ENGINE ?? 'chromium'
 if (engine !== 'chromium' && engine !== 'firefox' && engine !== 'webkit')
   throw new Error(`Unsupported GHOSTTY_BROWSER_ENGINE: ${engine}`)
+
+const insertText = defineBrowserCommand(async ({ page }, text: string) => {
+  await page.keyboard.insertText(text)
+})
 
 const launchArgs = engine === 'chromium' ? ['--enable-unsafe-webgpu'] : []
 // Headed Retina Chromium otherwise reports native pixels to ResizeObserver at emulated DPR 1.
@@ -51,6 +55,7 @@ export default defineConfig({
             : {},
       }),
       screenshotFailures: false,
+      commands: { insertText },
     },
     // SwiftShader can lose adapters when browser files churn WebGPU devices concurrently.
     fileParallelism: false,

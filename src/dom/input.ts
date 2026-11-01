@@ -261,6 +261,8 @@ const pastePressPolicy = Object.freeze({ preventDefault: false, stopPropagation:
 const pasteRepeatPolicy = Object.freeze({ preventDefault: true, stopPropagation: false })
 const refusedKeyPolicy = Object.freeze({ preventDefault: false, stopPropagation: false })
 
+type InputSequence = 'idle' | 'pending' | 'consumed'
+
 type CompositionState =
   | { readonly phase: 'idle' }
   | { readonly phase: 'cancelled' }
@@ -270,6 +272,7 @@ type CompositionState =
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
   private composition: CompositionState = { phase: 'idle' }
+  private inputSequence: InputSequence = 'idle'
 
   private get composing(): boolean {
     return this.composition.phase === 'active'
@@ -301,6 +304,7 @@ class BrowserInputController implements DomInputController {
     const listenerOptions = { signal: this.abortController.signal }
     textarea.addEventListener('keydown', this.handleKey, listenerOptions)
     textarea.addEventListener('keyup', this.handleKey, listenerOptions)
+    textarea.addEventListener('beforeinput', this.handleBeforeInput, listenerOptions)
     textarea.addEventListener('compositionstart', this.handleCompositionStart, listenerOptions)
     textarea.addEventListener('compositionend', this.handleCompositionEnd, listenerOptions)
     textarea.addEventListener('input', this.handleInput, listenerOptions)
@@ -318,8 +322,18 @@ class BrowserInputController implements DomInputController {
     this.resetTransientState()
   }
 
+  private readonly handleBeforeInput = (input: InputEvent): void => {
+    if (this.disposed) return
+    if (this.composing || input.isComposing || input.inputType.includes('Composition')) {
+      this.inputSequence = 'idle'
+      return
+    }
+    this.inputSequence = 'pending'
+  }
+
   private readonly handleCompositionStart = (): void => {
     if (this.disposed) return
+    this.inputSequence = 'idle'
     this.composition = { phase: 'active', value: '', committed: false }
     this.setCompositionValue('')
   }
@@ -366,7 +380,10 @@ class BrowserInputController implements DomInputController {
       this.setCompositionValue(this.inputValue(input.data))
       return
     }
-    const value = this.takeInputValue(input.data)
+    // One edit may report several input fragments after its full textarea value was consumed.
+    const fallback = this.inputSequence === 'consumed' ? null : input.data
+    if (this.inputSequence === 'pending') this.inputSequence = 'consumed'
+    const value = this.takeInputValue(fallback)
     if (value.length === 0) return
     if (this.composition.phase === 'ended') {
       const duplicate = value === this.composition.value
@@ -393,6 +410,7 @@ class BrowserInputController implements DomInputController {
 
   private readonly handlePaste = (event: ClipboardEvent): void => {
     if (this.disposed) return
+    this.inputSequence = 'idle'
     if (!event.clipboardData) return
     const value = event.clipboardData.getData('text/plain')
     event.preventDefault()
@@ -685,6 +703,7 @@ class BrowserInputController implements DomInputController {
 
   resetTransientState(): void {
     this.encodingGeneration += 1
+    this.inputSequence = 'idle'
     if (this.composition.phase !== 'idle') {
       this.composition = { phase: 'cancelled' }
     }
