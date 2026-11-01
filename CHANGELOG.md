@@ -1,5 +1,13 @@
 # ghostty-webgpu
 
+## 0.3.31
+
+### Patch Changes
+
+- [#66](https://github.com/ShaulLavo/ghostty-webgpu/pull/66) - Fixed multiline browser text input being sent more than once.
+- [#67](https://github.com/ShaulLavo/ghostty-webgpu/pull/67) - Reject over-budget batched writes before copying their input.
+- [#68](https://github.com/ShaulLavo/ghostty-webgpu/pull/68), [#69](https://github.com/ShaulLavo/ghostty-webgpu/pull/69) - Release `ghostty-webgpu-line-editor` 0.0.4. Stop output after disposal and preserve cursor placement and earlier output when editing multiline, full-width, or wide-character input.
+
 ## 0.3.30
 
 ### Patch Changes
