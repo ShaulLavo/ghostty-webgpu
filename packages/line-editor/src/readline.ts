@@ -91,9 +91,10 @@ function displayText(prompt: Prompt, text: string, cursor: number): DisplayText 
 
 function advance(position: Position, cells: number, columns: number): Position {
   if (cells === 0) return position
-  const wrap = position.pendingWrap || position.column + cells > columns
+  const width = Math.min(cells, columns)
+  const wrap = position.pendingWrap || position.column + width > columns
   const row = position.row + Number(wrap)
-  const column = (wrap ? 0 : position.column) + cells
+  const column = (wrap ? 0 : position.column) + width
   return {
     row,
     column: Math.min(column, columns - 1),

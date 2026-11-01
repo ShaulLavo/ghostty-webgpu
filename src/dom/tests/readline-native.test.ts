@@ -167,6 +167,20 @@ it('pre-wraps a wide native printing unit instead of splitting its cells', async
   expectCursor(terminal, 2, 1)
 })
 
+it('keeps earlier output when a printing unit exceeds the one-column grid', async () => {
+  const { terminal, edit } = await editor(1, '', '', 'K\r\n')
+  const direct = await native(1)
+  direct.write('K\r\n界')
+  await edit({ kind: 'insert', text: '界' })
+  expectSame(terminal, direct)
+  expectCursor(terminal, 0, 1, true)
+  await edit({ kind: 'insert', text: 'x' })
+  direct.write('\r\x1b[J界x')
+  expect(terminal.readLines(0, 1)[0]?.text).toBe('K')
+  expectSame(terminal, direct)
+  expectCursor(terminal, 0, 2, true)
+})
+
 it('does not consume pending wrap for a zero-width combining unit', async () => {
   const { terminal, edit } = await editor(6, '$ ', '\x1b[?2027l')
   const direct = await native(6, '\x1b[?2027l')
