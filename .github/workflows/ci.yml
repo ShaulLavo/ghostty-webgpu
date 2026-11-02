@@ -33,6 +33,7 @@ jobs:
           started_ms="$(date +%s%3N)"
           apt-get update
           apt-get install -y --no-install-recommends unzip xz-utils
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
@@ -145,6 +146,7 @@ jobs:
           started_ms="$(date +%s%3N)"
           apt-get update
           apt-get install -y --no-install-recommends unzip xz-utils
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
@@ -216,6 +218,7 @@ jobs:
           started_ms="$(date +%s%3N)"
           apt-get update
           apt-get install -y --no-install-recommends unzip xz-utils
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
