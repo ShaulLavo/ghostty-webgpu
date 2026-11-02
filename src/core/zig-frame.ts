@@ -36,6 +36,12 @@ export interface ZigFrameOptions {
   ligatureCursor?: { readonly x: number; readonly y: number }
 }
 
+export interface BidiProjectionOptions {
+  readonly full: boolean
+  readonly overlayRows: ReadonlySet<number>
+  target(): Uint32Array
+}
+
 // The bridge owns instance construction; views are recreated after calls that may grow memory.
 export class ZigFrameBuilder {
   private readonly allocations: { pointer: number; length: number }[] = []
@@ -176,10 +182,10 @@ export class ZigFrameBuilder {
     return Array.from(new Uint32Array(this.runtime.memory.bytes.buffer, this.missing, count))
   }
 
-  private bidiRows?: () => Uint32Array
+  private bidiRows?: (options: BidiProjectionOptions) => void
   private bidiPointer = 0
 
-  setBidiProjection(rows: () => Uint32Array): void {
+  setBidiProjection(rows: (options: BidiProjectionOptions) => void): void {
     this.ensureActive()
     this.bidiRows = rows
     if (!this.bidiPointer) this.bidiPointer = this.allocate(this.columns * this.rows * 12)
@@ -221,8 +227,12 @@ export class ZigFrameBuilder {
     this.setUint(92, packedColor(options.theme.selectionForeground))
     this.setUint(96, packedColor(options.theme.selectionBackground))
     if (this.bidiRows) {
-      const projection = this.bidiRows()
-      this.runtime.memory.bytes.set(new Uint8Array(projection.buffer), this.bidiPointer)
+      this.bidiRows({
+        full,
+        overlayRows: options.overlayRows,
+        target: () =>
+          new Uint32Array(memory.bytes.buffer, this.bidiPointer, this.columns * this.rows * 3),
+      })
       assertGhosttyResult(
         'bridge_build_bidi_frame',
         this.runtime.bridge.buildBidiFrame(

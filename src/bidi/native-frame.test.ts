@@ -28,7 +28,9 @@ describe('native projected frame', () => {
     source.update()
     const logical = source.readRows()
     const builder = source.createFrameBuilder(40, 8)
-    const projection = vi.fn(() => bidiProjection(logical, new RowBidiMapper()))
+    const projection = vi.fn(({ target }) =>
+      target().set(bidiProjection(logical, new RowBidiMapper())),
+    )
     builder.setBidiProjection(projection)
     const options = {
       cellWidth: 10,

@@ -54,6 +54,10 @@ export class RowBidiMapper {
     return bidiProjection(rows, this)
   }
 
+  writeProjection(rows: readonly RenderRow[], target: Uint32Array, columns: number): void {
+    writeBidiProjection(rows, this, target, columns)
+  }
+
   paintedCursor(
     source: { readRows(options: { rows: ReadonlySet<number> }): readonly RenderRow[] },
     cursor: CursorState | undefined,
@@ -100,12 +104,37 @@ export function bidiProjection(rows: readonly RenderRow[], mapper: RowBidiMapper
   for (const row of rows) {
     const map = mapper.getMap(row.cells)
     for (const cell of row.cells) {
-      result[offset++] = map.logicalToVisual[cell.x]!
-      result[offset++] = map.mirror.get(cell.x)?.codePointAt(0) ?? 0
-      result[offset++] = Number(cell.selected)
+      writeBidiCell(result, offset, map, cell)
+      offset += 3
     }
   }
   return result
+}
+
+export function writeBidiProjection(
+  rows: readonly RenderRow[],
+  mapper: RowBidiMapper,
+  target: Uint32Array,
+  columns: number,
+): void {
+  for (const row of rows) {
+    const map = mapper.getMap(row.cells)
+    for (const cell of row.cells) {
+      const offset = (row.y * columns + cell.x) * 3
+      writeBidiCell(target, offset, map, cell)
+    }
+  }
+}
+
+function writeBidiCell(
+  target: Uint32Array,
+  offset: number,
+  map: RowBidiMap,
+  cell: RenderRow['cells'][number],
+): void {
+  target[offset] = map.logicalToVisual[cell.x]!
+  target[offset + 1] = map.mirror.get(cell.x)?.codePointAt(0) ?? 0
+  target[offset + 2] = Number(cell.selected)
 }
 
 export function paintedBidiCursor(
