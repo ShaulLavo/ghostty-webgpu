@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           started_ms="$(date +%s%3N)"
           apt-get update
-          apt-get install -y --no-install-recommends unzip
+          apt-get install -y --no-install-recommends unzip xz-utils
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
@@ -144,7 +144,7 @@ jobs:
           set -euo pipefail
           started_ms="$(date +%s%3N)"
           apt-get update
-          apt-get install -y --no-install-recommends unzip
+          apt-get install -y --no-install-recommends unzip xz-utils
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
@@ -215,7 +215,7 @@ jobs:
           set -euo pipefail
           started_ms="$(date +%s%3N)"
           apt-get update
-          apt-get install -y --no-install-recommends unzip
+          apt-get install -y --no-install-recommends unzip xz-utils
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
