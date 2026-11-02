@@ -113,6 +113,14 @@ jobs:
             bootstrap) echo 'Native resolver is source-only; browser package checks passed.' ;;
             *) echo 'Invalid native resolver state' >&2; exit 1 ;;
           esac
+      - name: Package the verified browser and site build
+        run: bun scripts/verified-build-artifact.ts pack
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: verified-build
+          path: .artifacts/verified-build
+          include-hidden-files: true
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: packages
@@ -126,6 +134,7 @@ jobs:
 
   # The browser suite runs files one at a time per runner (SwiftShader), so it is sharded across runners.
   browser:
+    needs: verify
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 # v1.63.0-noble, amd64
@@ -156,6 +165,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: verified-build
+          path: .artifacts/verified-build
+      - name: Verify the build artifact identity and outputs
+        run: bun scripts/verified-build-artifact.ts verify
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: dependency-cache
         with:
@@ -198,11 +213,11 @@ jobs:
           bunx playwright install chromium
           finished_ms="$(date +%s%3N)"
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
-      - run: bun run build && bun run --cwd packages/line-editor build && bun run --cwd packages/shaders build
       - name: Browser tests
         run: bun run test:browser --shard=${{ matrix.shard }}/4
 
   sites:
+    needs: verify
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 # v1.63.0-noble, amd64
@@ -228,6 +243,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: verified-build
+          path: .artifacts/verified-build
+      - name: Verify the build artifact identity and outputs
+        run: bun scripts/verified-build-artifact.ts verify
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: dependency-cache
         with:
@@ -270,7 +291,6 @@ jobs:
           bunx playwright install chromium
           finished_ms="$(date +%s%3N)"
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
-      - run: bun run build && bun run --cwd packages/line-editor build && bun run --cwd packages/shaders build
       - name: Build the scene site from the verified packages
         working-directory: site
         run: bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /
