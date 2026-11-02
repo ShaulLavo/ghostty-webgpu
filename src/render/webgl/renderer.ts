@@ -428,7 +428,14 @@ export class WebGlTerminalRenderer {
       if (this.ligatures) builder.setLigatures(this.ligatures)
       if (this.bidi) {
         const mapper = this.bidi
-        builder.setBidiProjection(() => mapper.projection(this.renderState.readRows()))
+        builder.setBidiProjection(({ full, overlayRows, target }) => {
+          const rows = full
+            ? this.renderState.readRows()
+            : this.renderState.readRows({ dirtyOnly: true })
+          const overlays =
+            full || overlayRows.size === 0 ? [] : this.renderState.readRows({ rows: overlayRows })
+          mapper.writeProjection(rows.concat(overlays), target(), this.grid.columns)
+        })
       }
       this.zigBuilder = builder
       this.needsFullRebuild = true

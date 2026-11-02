@@ -353,6 +353,44 @@ async function assertResize(backend: string): Promise<void> {
   }
 }
 
+async function assertDamageBound(backend: string): Promise<void> {
+  for (const enabled of [false, true]) {
+    const f = await create(backend, 1, mixed, 40, enabled)
+    const reads = vi.spyOn(f.state, 'readRows')
+    const maps = vi.spyOn(RowBidiMapper.prototype, 'getMap')
+    f.terminal.write('\x1b[2;1HX')
+    f.renderer.notifyWrite()
+    f.clock.flushFrame()
+    const partial = reads.mock.calls.some(([options]) => options?.dirtyOnly === true)
+    expect(partial).toBe(true)
+    if (enabled) expect(maps).toHaveBeenCalled()
+    else expect(maps).not.toHaveBeenCalled()
+
+    reads.mockClear()
+    maps.mockClear()
+    f.terminal.selectAll()
+    f.renderer.notifySelectionChange()
+    f.clock.flushFrame()
+    if (enabled) expect(maps).toHaveBeenCalled()
+    else expect(maps).not.toHaveBeenCalled()
+
+    reads.mockClear()
+    f.terminal.scrollBy(-1)
+    f.renderer.notifyScroll()
+    f.clock.flushFrame()
+    if (backend === 'webgl' || backend === 'webgpu')
+      expect(reads.mock.calls.some(([options]) => options?.rows instanceof Set)).toBe(true)
+
+    reads.mockClear()
+    maps.mockClear()
+    f.terminal.resize({ columns: 41, rows: 8 })
+    f.renderer.resize({ columns: 41, rows: 8 })
+    if (f.clock.frames.size) f.clock.flushFrame()
+    if (enabled) expect(maps).toHaveBeenCalled()
+    else expect(maps).not.toHaveBeenCalled()
+  }
+}
+
 const paintCases = fixtures.flatMap((fixture) => [1, 2].map((ratio) => ({ ...fixture, ratio })))
 describe.each(['canvas', 'pixels', 'dom', 'webgl', 'webgpu'])('BiDi %s', (backend) => {
   const test = it.skipIf(backend === 'webgpu' && !navigator.gpu)
@@ -365,6 +403,7 @@ describe.each(['canvas', 'pixels', 'dom', 'webgl', 'webgpu'])('BiDi %s', (backen
     return assertCursor(backend, style)
   })
   test('recomputes row maps after reflow', () => assertResize(backend))
+  test('bounds BiDi projection reads to damaged rows', () => assertDamageBound(backend))
   test('does no row mapping with the option disabled', async () => {
     const maps = vi.spyOn(RowBidiMapper.prototype, 'getMap')
     const f = await create(backend, 1, mixed, 40, false)
