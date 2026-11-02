@@ -27,6 +27,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Bun archive extractor
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -54,6 +55,7 @@ jobs:
           CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
         run: echo "Dependency cache hit=${CACHE_HIT:-false}"
       - name: Install JavaScript dependencies
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -66,6 +68,7 @@ jobs:
       - name: Test bridge row identity index
         run: bun run test:bridge
       - name: Validate Playwright system dependencies
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -76,6 +79,7 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
       - name: Install Playwright Chromium
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -135,6 +139,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Bun archive extractor
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -162,6 +167,7 @@ jobs:
           CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
         run: echo "Dependency cache hit=${CACHE_HIT:-false}"
       - name: Install JavaScript dependencies
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -172,6 +178,7 @@ jobs:
         with:
           version: '0.16.0'
       - name: Validate Playwright system dependencies
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -182,6 +189,7 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
       - name: Install Playwright Chromium
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -202,6 +210,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Install Bun archive extractor
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -229,6 +238,7 @@ jobs:
           CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
         run: echo "Dependency cache hit=${CACHE_HIT:-false}"
       - name: Install JavaScript dependencies
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -239,6 +249,7 @@ jobs:
         with:
           version: '0.16.0'
       - name: Validate Playwright system dependencies
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
@@ -249,6 +260,7 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
       - name: Install Playwright Chromium
+        shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
