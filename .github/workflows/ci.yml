@@ -19,11 +19,24 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 # v1.63.0-noble, amd64
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Bun archive extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          apt-get update
+          apt-get install -y --no-install-recommends unzip xz-utils
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rm -rf /var/lib/apt/lists/*
+          finished_ms="$(date +%s%3N)"
+          echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
@@ -31,19 +44,49 @@ jobs:
         with:
           node-version: '24'
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: dependency-cache
         with:
           path: |
             ~/.bun/install/cache
             ~/.npm
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
-      - run: bun install --frozen-lockfile
+      - name: Log dependency cache result
+        env:
+          CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
+        run: echo "Dependency cache hit=${CACHE_HIT:-false}"
+      - name: Install JavaScript dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          bun install --frozen-lockfile
+          finished_ms="$(date +%s%3N)"
+          echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: '0.16.0'
       - name: Test bridge row identity index
         run: bun run test:bridge
-      - run: bunx playwright install --with-deps chromium
+      - name: Validate Playwright system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          if ! bunx playwright install-deps --dry-run chromium; then
+            echo 'Playwright system dependency validation failed; the pinned runner image contract is incomplete.' >&2
+            exit 1
+          fi
+          finished_ms="$(date +%s%3N)"
+          echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          bunx playwright install chromium
+          finished_ms="$(date +%s%3N)"
+          echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       # The same checks as `bun run verify`, minus the browser suite and the sites, which have their own jobs.
       - name: Build and check all packages
         run: bun run build && bun run verify:extensions && bun run typecheck && bun run lint && bun run format:check
@@ -84,6 +127,8 @@ jobs:
   # The browser suite runs files one at a time per runner (SwiftShader), so it is sharded across runners.
   browser:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 # v1.63.0-noble, amd64
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -94,6 +139,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Bun archive extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          apt-get update
+          apt-get install -y --no-install-recommends unzip xz-utils
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rm -rf /var/lib/apt/lists/*
+          finished_ms="$(date +%s%3N)"
+          echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
@@ -101,28 +157,71 @@ jobs:
         with:
           node-version: '24'
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: dependency-cache
         with:
           path: |
             ~/.bun/install/cache
             ~/.npm
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
-      - run: bun install --frozen-lockfile
+      - name: Log dependency cache result
+        env:
+          CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
+        run: echo "Dependency cache hit=${CACHE_HIT:-false}"
+      - name: Install JavaScript dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          bun install --frozen-lockfile
+          finished_ms="$(date +%s%3N)"
+          echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: '0.16.0'
-      - run: bunx playwright install --with-deps chromium
+      - name: Validate Playwright system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          if ! bunx playwright install-deps --dry-run chromium; then
+            echo 'Playwright system dependency validation failed; the pinned runner image contract is incomplete.' >&2
+            exit 1
+          fi
+          finished_ms="$(date +%s%3N)"
+          echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          bunx playwright install chromium
+          finished_ms="$(date +%s%3N)"
+          echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       - run: bun run build && bun run --cwd packages/line-editor build && bun run --cwd packages/shaders build
       - name: Browser tests
         run: bun run test:browser --shard=${{ matrix.shard }}/4
 
   sites:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 # v1.63.0-noble, amd64
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Bun archive extractor
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          apt-get update
+          apt-get install -y --no-install-recommends unzip xz-utils
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rm -rf /var/lib/apt/lists/*
+          finished_ms="$(date +%s%3N)"
+          echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.4
@@ -130,17 +229,47 @@ jobs:
         with:
           node-version: '24'
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: dependency-cache
         with:
           path: |
             ~/.bun/install/cache
             ~/.npm
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
-      - run: bun install --frozen-lockfile
+      - name: Log dependency cache result
+        env:
+          CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
+        run: echo "Dependency cache hit=${CACHE_HIT:-false}"
+      - name: Install JavaScript dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          bun install --frozen-lockfile
+          finished_ms="$(date +%s%3N)"
+          echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: '0.16.0'
-      - run: bunx playwright install --with-deps chromium
+      - name: Validate Playwright system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          if ! bunx playwright install-deps --dry-run chromium; then
+            echo 'Playwright system dependency validation failed; the pinned runner image contract is incomplete.' >&2
+            exit 1
+          fi
+          finished_ms="$(date +%s%3N)"
+          echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          started_ms="$(date +%s%3N)"
+          bunx playwright install chromium
+          finished_ms="$(date +%s%3N)"
+          echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       - run: bun run build && bun run --cwd packages/line-editor build && bun run --cwd packages/shaders build
       - name: Build the scene site from the verified packages
         working-directory: site
