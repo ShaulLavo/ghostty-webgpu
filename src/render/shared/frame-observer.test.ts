@@ -2,7 +2,17 @@ import { expect, it, vi } from 'vitest'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { RenderStateSource } from './types.js'
 import { FrameObserver } from './frame-observer.js'
-import { attachCanvasImage, observeDisplayedFrame } from './displayed-frame.js'
+import type { NativeDisplayedFrame } from '../../core/displayed-frame.js'
+import type { DisplayedFrameSource, DisplayedTextFrame } from './displayed-frame.js'
+import {
+  captureDisplayedRows,
+  displayedRows,
+  capturedSubmission,
+  captureSubmission,
+  retainDisplayedFrame,
+  attachCanvasImage,
+  observeDisplayedFrame,
+} from './displayed-frame.js'
 import { CanvasImageRelay } from '../../dom/canvas-image.js'
 
 const state: RenderStateSource = {
@@ -202,4 +212,135 @@ it('adopts a promise-like listener result once and preserves a falsy rejection',
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(onError.mock.calls).toEqual([[false]])
   expect(reads).toBe(1)
+})
+
+it('captures private readers and submission before demand and native retention', () => {
+  const calls: string[] = []
+  const reader = Object.freeze({ readRows: () => [] })
+  const record = Object.freeze({ value: 'captured' })
+  const native: NativeDisplayedFrame = {
+    token: 1,
+    accept: () => calls.push('accept'),
+    discard: () => calls.push('discard'),
+    readRows: () => [],
+    readTextRows: () => [],
+    readPreviousTextRows: () => [],
+  }
+  const source: RenderStateSource & DisplayedFrameSource = {
+    ...state,
+    [captureDisplayedRows]() {
+      expect(this).toBe(source)
+      calls.push('reader')
+      return reader
+    },
+    [retainDisplayedFrame]() {
+      calls.push('retain')
+      return native
+    },
+  }
+  const frames: DisplayedTextFrame[] = []
+  const observer = new FrameObserver({
+    rows: 1,
+    retainDisplayedText: true,
+    [captureSubmission]: () => {
+      calls.push('submission')
+      return record
+    },
+    needsFrameRows: () => {
+      calls.push('demand')
+      return false
+    },
+    onFrame: (snapshot) => {
+      expect(Object.getOwnPropertySymbols(snapshot)).toEqual([])
+      calls.push('public')
+    },
+    [observeDisplayedFrame]: (snapshot) => {
+      frames.push(snapshot)
+      calls.push('displayed')
+    },
+  })
+  const prepared = observer.capture(source, source.readCursor(), undefined, [0])
+  expect(calls).toEqual(['reader', 'submission', 'demand', 'retain'])
+  prepared.accept()
+  expect(calls).not.toContain('accept')
+  prepared.notify()
+  expect(calls).toEqual([
+    'reader',
+    'submission',
+    'demand',
+    'retain',
+    'public',
+    'accept',
+    'displayed',
+  ])
+  expect(frames[0]![displayedRows]).toBe(reader)
+  expect(frames[0]![capturedSubmission]).toBe(record)
+  observer.dispose()
+})
+
+it('carries private metadata on text callbacks only when a capability exists', () => {
+  const record = Object.freeze({})
+  const reader = Object.freeze({ readRows: () => [] })
+  const source: RenderStateSource & DisplayedFrameSource = {
+    ...state,
+    [captureDisplayedRows]: () => reader,
+  }
+  const snapshots: DisplayedTextFrame[] = []
+  const observer = new FrameObserver({
+    rows: 1,
+    onTextFrame: (snapshot) => snapshots.push(snapshot),
+    [captureSubmission]: () => record,
+  })
+  observer.emit(source, source.readCursor(), undefined, [0])
+  expect(snapshots[0]![displayedRows]).toBe(reader)
+  expect(snapshots[0]![capturedSubmission]).toBe(record)
+  const plain = new FrameObserver({ rows: 1, onTextFrame: (snapshot) => snapshots.push(snapshot) })
+  plain.emit(state, state.readCursor(), undefined, [0])
+  expect(Object.getOwnPropertySymbols(snapshots[1]!)).toEqual([])
+  const capture = vi.fn(() => record)
+  const rowsOnly = new FrameObserver({ rows: 1, onFrame: () => {}, [captureSubmission]: capture })
+  rowsOnly.emit(source, source.readCursor(), undefined, [0])
+  expect(capture).not.toHaveBeenCalled()
+  observer.dispose()
+  plain.dispose()
+  rowsOnly.dispose()
+})
+
+it('discards an unpublished native capture when onFrame throws and recovers with a full capture', () => {
+  const accept = vi.fn()
+  const discard = vi.fn()
+  const options: Array<{ full?: boolean } | undefined> = []
+  const source: RenderStateSource & DisplayedFrameSource = {
+    ...state,
+    [retainDisplayedFrame]: (input) => {
+      options.push(input)
+      return {
+        token: options.length,
+        accept,
+        discard,
+        readRows: () => [],
+        readTextRows: () => [],
+        readPreviousTextRows: () => [],
+      }
+    },
+  }
+  let fail = true
+  const observer = new FrameObserver({
+    rows: 1,
+    retainDisplayedText: true,
+    [observeDisplayedFrame]: () => {},
+    onFrame: () => {
+      if (fail) throw new Error('before publication')
+    },
+  })
+  expect(() => observer.emit(source, source.readCursor(), undefined, [0])).toThrow(
+    'before publication',
+  )
+  expect(accept).not.toHaveBeenCalled()
+  expect(discard).toHaveBeenCalledTimes(1)
+  fail = false
+  observer.emit(source, source.readCursor(), undefined, [0])
+  expect(options).toEqual([{ full: true }, { full: true }])
+  expect(accept).toHaveBeenCalledTimes(1)
+  observer.dispose()
 })

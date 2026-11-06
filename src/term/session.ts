@@ -1,3 +1,5 @@
+import { captureDisplayedRows } from '../core/frame-observers.js'
+import type { DisplayedFrameSource } from '../render/shared/displayed-frame.js'
 import type { BidiSelectionGesture } from '../bidi/selection.js'
 import { normalizeFontMetrics } from './font-metrics.js'
 import {
@@ -1241,7 +1243,7 @@ export class TerminalSession<TEvent = unknown> {
     if (!this.bidiSelection) return this.nativeRenderState
     const source = this.nativeRenderState
     const selection = this.bidiSelection
-    return {
+    const wrapped: RenderStateSource & DisplayedFrameSource = {
       get snapshotVersion() {
         return source.snapshotVersion
       },
@@ -1255,10 +1257,12 @@ export class TerminalSession<TEvent = unknown> {
       createFrameBuilder: source.createFrameBuilder.bind(source),
       acknowledge: source.acknowledge.bind(source),
       readCursor: source.readCursor.bind(source),
+      [captureDisplayedRows]: () => selection.captureDisplayedRows(),
       readRows: (options) => selection.selectedRows(source.readRows(options)),
       readTextRows: source.readTextRows.bind(source),
       update: source.update.bind(source),
     }
+    return wrapped
   }
 
   get bidi(): boolean {

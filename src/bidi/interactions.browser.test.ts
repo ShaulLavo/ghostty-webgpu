@@ -215,14 +215,33 @@ describe.each(['main', 'main-webgl', 'webgl', 'webgpu'])('BiDi %s interactions',
     if (mode === 'webgl') expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
     if (mode === 'webgpu') expect(terminal.diagnostics.rendererBackend).toBe('webgpu')
     await drag(terminal, 3, 1)
-    await expect.poll(async () => snapshotColumns(await terminal.frameSnapshot())).toEqual([1, 2, 6])
+    await expect
+      .poll(async () => snapshotColumns(await terminal.frameSnapshot()))
+      .toEqual([1, 2, 6])
     await assertHighlight(terminal, [1, 2, 3])
-    const frame = terminal instanceof MainTerminal
-      ? clearBeforeMainFrame(terminal)
-      : await clearBeforeWorkerFrame(terminal)
+    const frame =
+      terminal instanceof MainTerminal
+        ? clearBeforeMainFrame(terminal)
+        : await clearBeforeWorkerFrame(terminal)
     await expect.poll(() => terminal.submittedFrame!.frame).toBeGreaterThan(frame)
     await expect.poll(async () => snapshotColumns(await terminal.frameSnapshot())).toEqual([])
     await assertHighlight(terminal, [])
+  })
+  test('refreshes an empty hold without changing captured membership or version', async () => {
+    const { terminal } = await create(mode, selection)
+    await drag(terminal, 3, 1)
+    await expect
+      .poll(async () => snapshotColumns(await terminal.frameSnapshot()))
+      .toEqual([1, 2, 6])
+    await terminal.write('\x1b[?2026h')
+    await terminal.refresh(0, terminal.submittedFrame!.grid.rows - 1)
+    await expect.poll(async () => (await terminal.frameSnapshot())?.renderHeld).toBe(true)
+    const version = terminal.submittedFrame!.snapshotVersion
+    await terminal.write('\x1b[?2026l')
+    await expect.poll(async () => (await terminal.frameSnapshot())?.renderHeld).toBe(false)
+    expect(terminal.submittedFrame!.snapshotVersion).toBe(version)
+    expect(snapshotColumns(await terminal.frameSnapshot())).toEqual([1, 2, 6])
+    await assertHighlight(terminal, [1, 2, 3])
   })
   test('keeps held selection paint and releases to the current selection', async () => {
     const { terminal } = await create(mode, selection)

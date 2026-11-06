@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { captureSubmission, displayedRows } from '../../core/frame-observers.js'
 import { CellPin } from '../../bidi/pin.js'
 import { CanvasImageRelay } from '../canvas-image.js'
 import { attachCanvasImage } from '../../render/shared/displayed-frame.js'
@@ -107,6 +108,12 @@ it.each([
   },
 )
 
+function nativeVersion(state: TerminalSession['renderState']): number {
+  const version = state.snapshotVersion
+  if (version === undefined) throw new Error('Missing native snapshot version')
+  return version
+}
+
 async function submittedFixture(entry = 'main', bidi = true) {
   const session = await TerminalSession.create<Event>({
     bidi,
@@ -115,11 +122,16 @@ async function submittedFixture(entry = 'main', bidi = true) {
   const execution = new LocalTerminalExecution(session)
   cleanups.push(() => execution.dispose())
   execution.commitLayout(
-    calculateTerminalFittedFont(session.appearance.font,
-      { advanceWidth: 8, fontAscent: 10, fontDescent: 3 }, 1),
+    calculateTerminalFittedFont(
+      session.appearance.font,
+      { advanceWidth: 8, fontAscent: 10, fontDescent: 3 },
+      1,
+    ),
     { top: 0, right: 0, bottom: 0, left: 0 },
   )
-  const relay = new CanvasImageRelay((cause) => { throw cause })
+  const relay = new CanvasImageRelay((cause) => {
+    throw cause
+  })
   const publications: Parameters<LocalTerminalExecution['submit']>[0][] = []
   const publish = (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) => {
     publications.push(snapshot)
@@ -127,13 +139,17 @@ async function submittedFixture(entry = 'main', bidi = true) {
   }
   const observer = new FrameObserver({
     rows: 4,
+    [captureSubmission]: () => execution.sampleSubmission(),
     [attachCanvasImage]: () => relay.attach(),
     ...(entry === 'main'
       ? { [observeDisplayedFrame]: publish, retainDisplayedText: true }
       : { onTextFrame: publish, needsFrameRows: () => true }),
   })
   observer.activateCanvasImage()
-  cleanups.push(() => { observer.dispose(); relay.dispose() })
+  cleanups.push(() => {
+    observer.dispose()
+    relay.dispose()
+  })
   execution.write('\x1b[?25lab שלום cd')
   const state = session.renderState
   const capture = () => observer.capture(state, state.readCursor(), undefined, [0, 1, 2, 3])
@@ -149,11 +165,15 @@ async function submittedFixture(entry = 'main', bidi = true) {
 
 function visualDrag(execution: LocalTerminalExecution, start = 3, end = 1, y = 0) {
   execution.selectionPress({
-    viewport: { x: start, y }, position: { x: start * 10 + 5, y: y * 20 + 5 },
-    repeatDistance: 10, repeatIntervalNanoseconds: 500_000_000n, timeNanoseconds: 1_000_000_000n,
+    viewport: { x: start, y },
+    position: { x: start * 10 + 5, y: y * 20 + 5 },
+    repeatDistance: 10,
+    repeatIntervalNanoseconds: 500_000_000n,
+    timeNanoseconds: 1_000_000_000n,
   })
   execution.selectionDrag({
-    viewport: { x: end, y }, position: { x: end * 10 + 5, y: y * 20 + 5 },
+    viewport: { x: end, y },
+    position: { x: end * 10 + 5, y: y * 20 + 5 },
     geometry: { columns: 20, cellWidth: 10, paddingLeft: 0, screenHeight: 80 },
   })
   execution.selectionRelease({ x: end, y })
@@ -169,7 +189,7 @@ function snapshotSelection(execution: LocalTerminalExecution) {
 it('captures before a reentrant canvas-image listener clears selection', async () => {
   const f = await submittedFixture()
   f.publishFrame()
-  const versionA = f.state.snapshotVersion
+  const versionA = nativeVersion(f.state)
   visualDrag(f.execution)
   f.state.update()
   expect(f.state.snapshotVersion).toBeGreaterThan(versionA)
@@ -207,7 +227,7 @@ it.each(['main', 'worker'])('owns the nonzero captured offset through %s', async
   f.execution.scrollToRow(1)
   f.publishFrame()
   expect(f.session.scrollbar.offset).toBe(1)
-  const version = f.state.snapshotVersion
+  const version = nativeVersion(f.state)
   f.execution.scrollToBottom()
   expect(f.session.scrollbar.offset).toBe(4)
   expect(f.state.snapshotVersion).toBe(version)
@@ -236,7 +256,7 @@ it('reuses held membership until output advances the native snapshot', async () 
   f.execution.write('\x1b[?2026l')
   expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
   const cached = f.execution.frameSnapshot()
-  const version = f.state.snapshotVersion
+  const version = nativeVersion(f.state)
   f.state.update()
   expect(f.state.snapshotVersion).toBeGreaterThan(version)
   expect(f.execution.frameSnapshot()).toBe(cached)
@@ -313,7 +333,7 @@ it('keeps the native captured grid after resize without update', async () => {
   const f = await submittedFixture()
   visualDrag(f.execution)
   f.publishFrame()
-  const version = f.state.snapshotVersion
+  const version = nativeVersion(f.state)
   f.execution.resize({ columns: 12 })
   expect(f.state.snapshotVersion).toBe(version)
   const snapshot = f.execution.frameSnapshot()
@@ -332,14 +352,72 @@ it('keeps captured membership after a programmatic replacement', async () => {
   expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
 })
 
-it.each([false, true])('preserves availability after native advancement, cached %s', async (cached) => {
+it.each([false, true])(
+  'preserves availability after native advancement, cached %s',
+  async (cached) => {
+    const f = await submittedFixture()
+    visualDrag(f.execution)
+    f.publishFrame()
+    const previous = cached ? f.execution.frameSnapshot() : undefined
+    const version = nativeVersion(f.state)
+    f.execution.write('changed')
+    f.state.update()
+    expect(f.state.snapshotVersion).toBeGreaterThan(version)
+    expect(f.execution.frameSnapshot()).toBe(previous)
+  },
+)
+
+it('does not decorate a newer native snapshot with an older submitted mask', async () => {
   const f = await submittedFixture()
   visualDrag(f.execution)
   f.publishFrame()
-  const previous = cached ? f.execution.frameSnapshot() : undefined
-  const version = f.state.snapshotVersion
-  f.execution.write('changed')
+  f.execution.write('\r\nB')
   f.state.update()
+  const version = nativeVersion(f.state)
+  const frame = f.capture()
+  f.relay.subscribe(() => {
+    f.execution.write('\r\nthree')
+    f.execution.mouse({
+      event: { action: 'press', button: 'left', x: 45, y: 35 },
+      state: {
+        anyButtonPressed: false,
+        geometry: {
+          cellHeight: 10,
+          cellWidth: 10,
+          paddingBottom: 0,
+          paddingLeft: 0,
+          paddingRight: 0,
+          paddingTop: 0,
+          screenHeight: 40,
+          screenWidth: 200,
+        },
+      },
+    })
+  })
+  f.state.acknowledge()
+  frame.accept()
+  frame.notify('drawn')
   expect(f.state.snapshotVersion).toBeGreaterThan(version)
-  expect(f.execution.frameSnapshot()).toBe(previous)
+  expect(f.execution.submittedFrame?.snapshotVersion).toBe(version)
+  expect(f.execution.frameSnapshot()).toBeUndefined()
+  expect(f.execution.textFrame()?.rows[0]?.text.trimEnd()).toBe('ab שלום cd')
+})
+
+it('shares the native no-mask reader and preserves packed rows', async () => {
+  const f = await submittedFixture()
+  f.execution.selectRange({ x: 0, y: 0 }, { x: 2, y: 0 })
+  f.publishFrame()
+  const first = f.publications.at(-1)![displayedRows]
+  expect(first).toBeDefined()
+  expect(first!.readRows({ packed: true })[0]!.packed).toBeDefined()
+  f.publishFrame()
+  expect(f.publications.at(-1)![displayedRows]).toBe(first)
+})
+
+it('keeps non-BiDi submissions free of captured membership', async () => {
+  const f = await submittedFixture('main', false)
+  f.publishFrame()
+  expect(Object.getOwnPropertySymbols(f.publications.at(-1)!)).not.toContain(displayedRows)
+  expect(snapshotSelection(f.execution)).toEqual([])
+  expect(f.execution.frameSnapshot()?.rows[0]?.text.trimEnd()).toBe('ab שלום cd')
 })

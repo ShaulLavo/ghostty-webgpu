@@ -21,12 +21,12 @@ afterEach(async () => {
 
 type Backend = 'webgl2' | 'webgpu-direct' | 'webgpu-coordinated' | 'canvas2d' | 'pixels' | 'dom'
 
-async function fixture(backend: Backend) {
+async function fixture(backend: Backend, controlled = false) {
   const host = document.createElement('div')
   host.style.cssText = 'width:340px;height:160px'
   document.body.append(host)
   cleanups.push(() => host.remove())
-  const clock = backend === 'webgpu-coordinated' ? undefined : new TestClock()
+  const clock = backend === 'webgpu-coordinated' && !controlled ? undefined : new TestClock()
   let renderer:
     | WebGpuTerminalRenderer
     | WebGlTerminalRenderer
@@ -51,6 +51,11 @@ async function fixture(backend: Backend) {
           ...prepared,
           rendererMode: backend === 'pixels' ? 'canvas2d-pixels' : 'canvas2d-fill-text',
         })
+      if (backend === 'webgpu-coordinated' && clock) {
+        const coordinator = new FrameCoordinator(clock)
+        Reflect.set(renderer, 'coordinator', coordinator)
+        Reflect.set(Reflect.get(renderer, 'scheduler'), 'clock', coordinator)
+      }
       return renderer
     },
   })
@@ -312,3 +317,90 @@ it('reports a foreign-realm listener rejection once without an unhandled rejecti
     child.removeEventListener('unhandledrejection', preventUnhandled)
   }
 })
+
+function snapshotText(snapshot: ReturnType<Terminal['frameSnapshot']>) {
+  return snapshot?.rows.map((row) => row.text.trimEnd())
+}
+
+it.each(
+  (['webgl2', 'webgpu-direct', 'webgpu-coordinated', 'canvas2d'] satisfies Backend[]).flatMap(
+    (backend) =>
+      [false, true].flatMap((damaged) =>
+        [false, true].map((cached) => ({ backend, damaged, cached })),
+      ),
+  ),
+)(
+  'reads the previous published image on $backend, damaged $damaged, cached $cached',
+  async ({ backend, damaged, cached }) => {
+    const f = await fixture(backend, true)
+    expect(f.terminal.diagnostics.rendererBackend).toBe(
+      backend.startsWith('webgpu') ? 'webgpu' : backend,
+    )
+    f.terminal.write('\x1b[?25lone')
+    await f.flush()
+    const expected = Array.from({ length: f.terminal.submittedFrame!.grid.rows }, (_, y) =>
+      y === 0 ? 'one' : '',
+    )
+    const first = cached ? f.terminal.frameSnapshot() : undefined
+    const seen: { snapshot: ReturnType<Terminal['frameSnapshot']>; text: string[] }[] = []
+    cleanups.push(
+      subscribeCanvasImage(f.terminal, () => {
+        seen.push({
+          snapshot: f.terminal.frameSnapshot(),
+          text: f.terminal.visibleLines().map((line) => line.trimEnd()),
+        })
+      }),
+    )
+    if (damaged) f.terminal.write('\r\ntwo')
+    else f.terminal.clearTextureAtlas()
+    await f.flush()
+    expect(f.errors).toEqual([])
+    expect(seen).toHaveLength(1)
+    expect(seen[0]!.text).toEqual(expected)
+    if (backend === 'canvas2d' && damaged && !cached) expect(seen[0]!.snapshot).toBeUndefined()
+    else expect(snapshotText(seen[0]!.snapshot)).toEqual(expected)
+    if (cached && damaged) expect(seen[0]!.snapshot).toBe(first)
+  },
+)
+
+function liveRevision(terminal: Terminal): number {
+  const execution: unknown = Reflect.get(terminal, 'execution')
+  if (
+    typeof execution !== 'object' ||
+    execution === null ||
+    !('revision' in execution) ||
+    typeof execution.revision !== 'number'
+  )
+    throw new Error('Missing live execution revision')
+  return execution.revision
+}
+
+it.each(['webgl2', 'webgpu-direct', 'webgpu-coordinated', 'canvas2d'] satisfies Backend[])(
+  'records metadata before listener writes through built dist on %s',
+  async (backend) => {
+    const f = await fixture(backend, true)
+    f.terminal.write('\x1b[?25lone')
+    await f.flush()
+    let captured = -1
+    let once = true
+    cleanups.push(
+      subscribeCanvasImage(f.terminal, () => {
+        if (!once) return
+        once = false
+        captured = liveRevision(f.terminal)
+        f.terminal.write('X')
+      }),
+    )
+    f.terminal.write('B')
+    await f.flush()
+    expect(captured).toBeGreaterThan(0)
+    expect(f.terminal.submittedFrame!.nativeRevision).toBe(captured)
+    expect(f.terminal.captureViewport()).toBeUndefined()
+    expect(f.terminal.visibleLines()[0]!.trimEnd()).toBe('oneB')
+    await f.flush()
+    const viewport = f.terminal.captureViewport()
+    expect(viewport).toEqual(expect.any(String))
+    expect(f.terminal.visibleLines()[0]!.trimEnd()).toBe('oneBX')
+    expect(f.errors).toEqual([])
+  },
+)

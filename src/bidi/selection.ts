@@ -1,3 +1,4 @@
+import type { DisplayedRows } from '../core/frame-observers.js'
 import { GhosttySelectionGesture } from '../core/selection.js'
 import type {
   SelectionPoint,
@@ -15,7 +16,35 @@ function order(a: SelectionPoint, b: SelectionPoint): number {
   return a.y - b.y || a.x - b.x
 }
 
+export function selectedRowsFrom(
+  rows: readonly RenderRow[],
+  selected: ReadonlySet<string>,
+): readonly RenderRow[] {
+  return rows.map((row) => ({
+    ...row,
+    packed: undefined,
+    cells: row.cells.map((cell) => ({
+      ...cell,
+      selected:
+        selected.has(`${row.y}:${cell.x}`) ||
+        (cell.continuation && selected.has(`${row.y}:${cell.x - 1}`)),
+    })),
+  }))
+}
+
+export function capturedRowsReader(
+  source: DisplayedRows,
+  selected: ReadonlySet<string> | undefined,
+  nativeRows: DisplayedRows,
+): DisplayedRows {
+  if (selected === undefined) return nativeRows
+  return Object.freeze<DisplayedRows>({
+    readRows: (options) => selectedRowsFrom(source.readRows(options), selected),
+  })
+}
+
 export class BidiSelectionGesture extends GhosttySelectionGesture {
+  private readonly nativeRows: DisplayedRows
   private readonly mapper = new RowBidiMapper()
   private readonly unsubscribeRenderHold: () => void
   private heldSelection?: {
@@ -34,6 +63,9 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
     private readonly source: GhosttyRenderState,
   ) {
     super(vt)
+    this.nativeRows = Object.freeze<DisplayedRows>({
+      readRows: (options) => source.readRows(options),
+    })
     this.unsubscribeRenderHold = vt.subscribeRenderHold((held) => {
       if (!held) return
       this.heldSelection = {
@@ -150,24 +182,27 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
       return undefined
     }
     const offset = this.vt.scrollbar.offset
-    return new Set(this.points().map((point) => `${point.y - offset}:${point.x}`))
+    const selected = new Set<string>()
+    for (const pin of this.mask.pins) {
+      const point = pin.point()
+      if (point) selected.add(`${point.y - offset}:${point.x}`)
+    }
+    return selected
+  }
+
+  private displayedCells(): ReadonlySet<string> | undefined {
+    if (this.heldSelection?.version !== this.source.snapshotVersion) this.heldSelection = undefined
+    // A released hold still owns these coordinates until the native snapshot advances.
+    return this.heldSelection ? this.heldSelection.selected : this.selectedCells()
   }
 
   selectedRows(rows: readonly RenderRow[]): readonly RenderRow[] {
-    if (this.heldSelection?.version !== this.source.snapshotVersion) this.heldSelection = undefined
-    // A released hold still owns these coordinates until the native snapshot advances.
-    const selected = this.heldSelection ? this.heldSelection.selected : this.selectedCells()
-    if (!selected) return rows
-    return rows.map((row) => ({
-      ...row,
-      packed: undefined,
-      cells: row.cells.map((cell) => ({
-        ...cell,
-        selected:
-          selected.has(`${row.y}:${cell.x}`) ||
-          (cell.continuation && selected.has(`${row.y}:${cell.x - 1}`)),
-      })),
-    }))
+    const selected = this.displayedCells()
+    return selected ? selectedRowsFrom(rows, selected) : rows
+  }
+
+  captureDisplayedRows(): DisplayedRows {
+    return capturedRowsReader(this.source, this.displayedCells(), this.nativeRows)
   }
 
   override getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {

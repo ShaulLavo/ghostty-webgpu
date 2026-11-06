@@ -1,6 +1,10 @@
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import {
   attachCanvasImage,
+  captureDisplayedRows,
+  displayedRows,
+  captureSubmission,
+  capturedSubmission,
   observeDisplayedFrame,
   type CanvasImagePublisher,
   retainDisplayedFrame,
@@ -38,6 +42,7 @@ export interface PreparedFrame {
 }
 
 export class FrameObserver {
+  private unpublished?: NativeDisplayedFrame
   private publisher?: CanvasImagePublisher
   private disposed = false
   private generation = 0
@@ -64,6 +69,7 @@ export class FrameObserver {
   dispose(): void {
     this.disposed = true
     this.invalidate()
+    this.dropUnpublished()
     this.publisher?.dispose()
   }
 
@@ -113,12 +119,17 @@ export class FrameObserver {
     changed: readonly number[],
     rows?: readonly RenderRow[],
   ): PreparedFrame {
+    this.dropUnpublished()
     const generation = ++this.generation
     const { onFrame, onTextFrame, onRowsChanged, onRowsPainted } = this.options
     const changedRows = Object.freeze([...changed])
     const onDisplayedFrame = this.options[observeDisplayedFrame]
     const observesFrame = Boolean(onFrame || onTextFrame || onDisplayedFrame)
-    const retain = (state as DisplayedFrameSource)[retainDisplayedFrame]
+    const internalSource: RenderStateSource & DisplayedFrameSource = state
+    const publishes = Boolean(onDisplayedFrame || onTextFrame)
+    const rowsReader = publishes ? internalSource[captureDisplayedRows]?.() : undefined
+    const submission = publishes ? this.options[captureSubmission]?.() : undefined
+    const retain = internalSource[retainDisplayedFrame]
     const needsRows =
       observesFrame &&
       (this.rowsNeeded ||
@@ -138,6 +149,14 @@ export class FrameObserver {
       cursor: Object.freeze({ ...cursor, viewport }),
       paintedCursor: paintedCursor ? Object.freeze({ ...paintedCursor }) : undefined,
     }
+    const published =
+      rowsReader || submission
+        ? {
+            ...snapshot,
+            ...(rowsReader ? { [displayedRows]: rowsReader } : {}),
+            ...(submission ? { [capturedSubmission]: submission } : {}),
+          }
+        : snapshot
     const fullFrame = onFrame
       ? Object.freeze({
           ...snapshot,
@@ -149,7 +168,7 @@ export class FrameObserver {
       : derivedRows
     const displayedFrame: DisplayedTextFrame | undefined = onDisplayedFrame
       ? Object.freeze({
-          ...snapshot,
+          ...published,
           nativeFrame,
           previousTextRows,
           get rows() {
@@ -157,7 +176,9 @@ export class FrameObserver {
           },
         })
       : undefined
-    const textFrame = onTextFrame ? Object.freeze({ ...snapshot, rows: ownedTextRows! }) : undefined
+    const textFrame = onTextFrame
+      ? Object.freeze({ ...published, rows: ownedTextRows! })
+      : undefined
     let settled = false
     let accepted = false
     const isCurrent = () => !this.disposed && generation === this.generation
@@ -169,11 +190,7 @@ export class FrameObserver {
           nativeFrame?.discard()
           return
         }
-        nativeFrame?.accept()
-        if (nativeFrame) {
-          this.retained = true
-          this.displayedFrame = nativeFrame
-        }
+        this.unpublished = nativeFrame
         this.current = Boolean(preparedRows)
         this.fullRows = preparedRows?.fullRows ?? []
         this.textRows = preparedRows?.textRows ?? []
@@ -185,20 +202,42 @@ export class FrameObserver {
         nativeFrame?.discard()
       },
       notify: (image = 'retained') => {
-        if (!accepted || !isCurrent()) return
-        if (image === 'drawn') this.publisher?.notify(isCurrent)
-        if (!isCurrent()) return
-        if (fullFrame) onFrame?.(fullFrame)
-        if (!isCurrent()) return
-        if (displayedFrame) onDisplayedFrame?.(displayedFrame)
-        if (!isCurrent()) return
-        if (textFrame) onTextFrame?.(textFrame)
-        if (!isCurrent()) return
-        if (rows) onRowsPainted?.(rows)
-        if (!isCurrent()) return
-        onRowsChanged?.(changedRows)
+        try {
+          if (!accepted || !isCurrent()) return
+          if (image === 'drawn') this.publisher?.notify(isCurrent)
+          if (!isCurrent()) return
+          if (fullFrame) onFrame?.(fullFrame)
+          if (!isCurrent()) return
+          this.publish(nativeFrame)
+          if (displayedFrame) onDisplayedFrame?.(displayedFrame)
+          if (!isCurrent()) return
+          if (textFrame) onTextFrame?.(textFrame)
+          if (!isCurrent()) return
+          if (rows) onRowsPainted?.(rows)
+          if (!isCurrent()) return
+          onRowsChanged?.(changedRows)
+        } finally {
+          if (nativeFrame && this.unpublished === nativeFrame) this.dropUnpublished()
+        }
       },
     }
+  }
+
+  private publish(frame: NativeDisplayedFrame | undefined): void {
+    if (!frame || this.unpublished !== frame) return
+    this.unpublished = undefined
+    frame.accept()
+    this.retained = true
+    this.displayedFrame = frame
+  }
+
+  private dropUnpublished(): void {
+    const frame = this.unpublished
+    if (!frame) return
+    this.unpublished = undefined
+    frame.discard()
+    // Acknowledged damage from a dropped image must be included in the next publication.
+    this.retained = false
   }
 
   private updateRows(
