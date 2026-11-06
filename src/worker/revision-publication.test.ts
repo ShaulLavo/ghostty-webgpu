@@ -552,3 +552,33 @@ it('keeps two retained stores on the same native terminal independent through un
     state.dispose()
   }
 })
+
+it('retains the BiDi render-state wrapper and owns its selected-cell projection', async () => {
+  const runtime = await GhosttyRuntime.create()
+  runtimes.push(runtime)
+  const session = await TerminalSession.create<Event>({
+    bidi: true,
+    runtime: { kind: 'borrowed', runtime },
+    appearance: { grid: { columns: 20, rows: 3 } },
+  })
+  const execution = new LocalTerminalExecution(session)
+  executions.push(execution)
+  execution.write('abc שלום xyz')
+  execution.selectRange({ x: 1, y: 0 }, { x: 6, y: 0 })
+  const source = session.renderState
+  source.update()
+  const retain = Reflect.get(source, retainDisplayedFrame)
+  expect(typeof retain).toBe('function')
+  if (typeof retain !== 'function') throw new Error('BiDi wrapper must forward retained frames')
+  const frame: NativeDisplayedFrame = retain.call(source, { full: true })
+  const expected = structuredClone(
+    source.readRows().map((row) => row.cells.map((cell) => cell.selected)),
+  )
+  frame.accept()
+  const revisions = frame.readTextRevisions()
+  execution.clearSelection()
+  source.update()
+  expect(frame.readRows().map((row) => row.cells.map((cell) => cell.selected))).toEqual(expected)
+  expect(frame.readTextRevisions()).toBe(revisions)
+  source.acknowledge()
+})

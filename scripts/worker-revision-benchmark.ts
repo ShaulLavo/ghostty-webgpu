@@ -150,8 +150,13 @@ function instrumentWorker(source: string): string {
   )
   source = replace(
     source,
+    "private submitFrame(snapshot: Parameters<LocalTerminalExecution['submit']>[0]): void {",
+    "private submitFrame(snapshot: Parameters<LocalTerminalExecution['submit']>[0]): void {\n    globalThis.__revisionPublicationStart = now()",
+  )
+  source = replace(
+    source,
     'this.initialize.port.postMessage(message)',
-    `const at=now()
+    `const at=message.type==='frame'?globalThis.__revisionPublicationStart:now()
     const entry=requests.get(message.control)
     const timing={...entry,terminal:message.terminal,control:message.control,kind:message.type,at,end:now()}
     this.initialize.port.postMessage({...message,experimentTiming:timing})`,
