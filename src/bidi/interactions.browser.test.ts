@@ -6,6 +6,7 @@ import link from '../../bench/fixtures/correctness/bidi-link.vt?raw'
 import mouse from '../../bench/fixtures/correctness/bidi-mouse.vt?raw'
 import wide from '../../bench/fixtures/correctness/bidi-wide-emoji.vt?raw'
 import { Terminal as MainTerminal } from '../dom/terminal.js'
+import { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
 import { CanvasTerminalRenderer } from '../render/canvas/renderer.js'
 import { Terminal as WorkerTerminal, TerminalWorkerError } from '../../dist/worker/index.js'
 import type { TerminalApi } from '../dom/terminal-api.js'
@@ -42,10 +43,13 @@ async function create(mode: string, input: string) {
     },
   }
   let terminal: TerminalApi
-  if (mode === 'main')
+  if (mode === 'main' || mode === 'main-webgl')
     terminal = await MainTerminal.create({
       ...options,
-      rendererFactory: (options) => CanvasTerminalRenderer.create(options),
+      rendererFactory: (options) =>
+        mode === 'main'
+          ? CanvasTerminalRenderer.create(options)
+          : WebGlTerminalRenderer.create(options),
     })
   else
     terminal = await WorkerTerminal.create({
@@ -69,6 +73,7 @@ async function create(mode: string, input: string) {
       throw new Error(`${cause.operation}: ${JSON.stringify(cause.internal)}`, { cause })
     throw cause
   }
+  if (mode === 'main-webgl') expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
   terminal.canvas!.style.backgroundColor = 'rgb(17,17,17)'
   await terminal.write(input)
   await expect.poll(() => terminal.submittedFrame).not.toBeUndefined()
@@ -127,7 +132,7 @@ function selectedColumns(text: string): number[] {
   return [1, 2, 3, 4, 5, 6, 7, 8]
 }
 
-describe.each(['main', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
+describe.each(['main', 'main-webgl', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
   const test = it.skipIf(mode === 'webgpu' && !navigator.gpu)
   beforeEach(({ skip }) => {
     if (mode === 'webgl' && webglSkipReason) skip(webglSkipReason)
@@ -156,6 +161,43 @@ describe.each(['main', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
       terminal,
       Array.from({ length: Math.abs(end - start) + 1 }, (_, i) => Math.min(start, end) + i),
     )
+  })
+  test('keeps held selection paint and releases to the current selection', async () => {
+    const { terminal } = await create(mode, selection)
+    await drag(terminal, 3, 1)
+    await expect
+      .poll(async () =>
+        (await terminal.frameSnapshot())?.rows[0]?.renderCells
+          .filter((cell) => cell.selected)
+          .map((cell) => cell.x),
+      )
+      .toEqual([1, 2, 6])
+    await assertHighlight(terminal, [1, 2, 3])
+    const visible = terminal.visibleLines()
+    const rows = terminal.submittedFrame!.grid.rows
+    await terminal.write('\x1b[?2026h' + '\r\n'.repeat(rows + 1))
+    await terminal.refresh(0, rows - 1)
+    expect(terminal.visibleLines()).toEqual(visible)
+    expect(
+      (await terminal.frameSnapshot())?.rows[0]?.renderCells
+        .filter((cell) => cell.selected)
+        .map((cell) => cell.x),
+    ).toEqual([1, 2, 6])
+    expect(await terminal.getSelection()).toBe('b ם')
+    await assertHighlight(terminal, [1, 2, 3])
+    await terminal.clearSelection()
+    expect(await terminal.getSelection()).toBeUndefined()
+    await assertHighlight(terminal, [1, 2, 3])
+    await terminal.write('\x1b[?2026l')
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('')
+    await expect
+      .poll(async () =>
+        (await terminal.frameSnapshot())?.rows.flatMap((row) =>
+          row.renderCells.filter((cell) => cell.selected).map((cell) => cell.x),
+        ),
+      )
+      .toEqual([])
+    await assertHighlight(terminal, [])
   })
   test('uses logical word boundaries and programmatic ranges', async () => {
     const { terminal } = await create(mode, word)

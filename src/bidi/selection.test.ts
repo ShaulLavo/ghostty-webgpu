@@ -1,19 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { CellPin } from './pin.js'
 import { TerminalSession } from '../term/session.js'
 
 let session: TerminalSession
-const press = (x: number, time = 1_000_000_000n) =>
+const press = (x: number, time = 1_000_000_000n, y = 0) =>
   session.selectionPress({
-    viewport: { x, y: 0 },
-    position: { x: x * 10 + 5, y: 5 },
+    viewport: { x, y },
+    position: { x: x * 10 + 5, y: y * 20 + 5 },
     repeatDistance: 10,
     repeatIntervalNanoseconds: 500_000_000n,
     timeNanoseconds: time,
   })
-const drag = (x: number) =>
+const drag = (x: number, y = 0) =>
   session.selectionDrag({
-    viewport: { x, y: 0 },
-    position: { x: x * 10 + 5, y: 5 },
+    viewport: { x, y },
+    position: { x: x * 10 + 5, y: y * 20 + 5 },
     geometry: { columns: 40, cellWidth: 10, paddingLeft: 0, screenHeight: 160 },
   })
 
@@ -24,7 +25,10 @@ beforeEach(async () => {
   })
   session.write('\x1b[?25lab שלום cd')
 })
-afterEach(() => session.dispose())
+afterEach(() => {
+  session.dispose()
+  vi.restoreAllMocks()
+})
 function expectCopiedStyle(vt: string, plain: string | undefined): void {
   const roundTrip = session.runtime.createTerminal({ columns: 40, rows: 8 })
   try {
@@ -158,4 +162,187 @@ describe('BiDi native selection', () => {
       copy.dispose()
     }
   })
+})
+
+it('keeps the visual selection on the frozen row when held output scrolls the live screen', () => {
+  session.resize({ columns: 20, rows: 4 })
+  session.write('\x1b[2J\x1b[3;1Hab שלום cd')
+  press(3, 1_000_000_000n, 2)
+  drag(1, 2)
+  session.selectionRelease({ x: 1, y: 2 })
+  const state = session.renderState
+  state.update()
+  const selected = () =>
+    state.readRows().flatMap((row) => {
+      const columns = row.cells.filter((cell) => cell.selected).map((cell) => cell.x)
+      return columns.length ? [{ y: row.y, columns }] : []
+    })
+  expect(selected()).toEqual([{ y: 2, columns: [1, 2, 6] }])
+  expect(session.getSelection()).toBe('b ם')
+  state.acknowledge()
+  session.write('\x1b[?2026h')
+  const version = state.snapshotVersion
+  session.write('\r\n'.repeat(5))
+  state.update()
+  expect(state.renderHeld).toBe(true)
+  expect(state.snapshotVersion).toBe(version)
+  expect(session.scrollbar.offset).toBe(4)
+  expect(selected()).toEqual([{ y: 2, columns: [1, 2, 6] }])
+  expect(session.getSelection()).toBe('b ם')
+  session.write('\x1b[?2026l')
+  state.update()
+  expect(state.snapshotVersion).not.toBe(version)
+  expect(selected()).toEqual([])
+  session.scrollToTop()
+  state.update()
+  expect(selected()).toEqual([{ y: 2, columns: [1, 2, 6] }])
+})
+
+function selectedRows() {
+  return session.renderState.readRows().flatMap((row) => {
+    const columns = row.cells.filter((cell) => cell.selected).map((cell) => cell.x)
+    return columns.length ? [{ y: row.y, columns }] : []
+  })
+}
+
+function visualSelection(start = 3, end = 1, y = 0): void {
+  press(start, 1_000_000_000n, y)
+  drag(end, y)
+  session.selectionRelease({ x: end, y })
+  session.renderState.update()
+  session.renderState.acknowledge()
+}
+
+it('does not borrow live pins for a held row or a released snapshot awaiting update', () => {
+  visualSelection()
+  session.write('\x1b[?2026h')
+  const pinRead = vi.spyOn(CellPin.prototype, 'point')
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(pinRead).not.toHaveBeenCalled()
+  session.write('\r\n'.repeat(10) + '\x1b[?2026l')
+  pinRead.mockClear()
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(pinRead).not.toHaveBeenCalled()
+  session.renderState.update()
+  expect(selectedRows()).toEqual([])
+})
+
+it.each(['clear', 'range', 'bounds', 'drag'] as const)(
+  'keeps held paint while a user changes the live selection with %s',
+  (change) => {
+    visualSelection()
+    session.write('\x1b[?2026h')
+    if (change === 'clear') session.clearSelection()
+    if (change === 'range') session.selectRange({ x: 3, y: 0 }, { x: 6, y: 0 })
+    if (change === 'bounds') session.selectRange({ x: 1, y: 0 }, { x: 6, y: 0 })
+    if (change === 'drag') visualSelection(7, 8)
+    const expectedText = { clear: undefined, range: 'שלום', bounds: 'b שלום', drag: ' c' }[change]
+    expect(session.getSelection()).toBe(expectedText)
+    session.renderState.update()
+    expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+    session.write('\x1b[?2026l')
+    expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+    session.renderState.update()
+    const columns = { clear: [], range: [3, 4, 5, 6], bounds: [1, 2, 3, 4, 5, 6], drag: [7, 8] }[
+      change
+    ]
+    expect(selectedRows()).toEqual(columns.length ? [{ y: 0, columns }] : [])
+  },
+)
+
+it('keeps an unselected hold unselected when a new visual selection is made', () => {
+  session.renderState.update()
+  session.renderState.acknowledge()
+  session.write('\x1b[?2026h')
+  visualSelection()
+  expect(session.getSelection()).toBe('b ם')
+  expect(selectedRows()).toEqual([])
+  session.write('\x1b[?2026l')
+  session.renderState.update()
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+})
+
+it('captures a nonzero viewport offset before held scrolling', () => {
+  session.resize({ columns: 20, rows: 4 })
+  session.write('\x1b[2J\x1b[3;1Hab שלום cd')
+  visualSelection(3, 1, 2)
+  session.write('\r\n'.repeat(5))
+  session.scrollToRow(1)
+  session.renderState.update()
+  expect(session.scrollbar.offset).toBe(1)
+  expect(selectedRows()).toEqual([{ y: 1, columns: [1, 2, 6] }])
+  session.write('\x1b[?2026h')
+  session.scrollToBottom()
+  session.renderState.update()
+  expect(session.scrollbar.offset).toBe(4)
+  expect(selectedRows()).toEqual([{ y: 1, columns: [1, 2, 6] }])
+  session.write('\x1b[?2026l')
+  session.renderState.update()
+  expect(selectedRows()).toEqual([])
+})
+
+it('preserves wide lead and tail selection through a hold and clears on release', () => {
+  session.write('\r\x1b[2Ka界b שלום cd')
+  visualSelection(1, 2)
+  expect(session.getSelection()).toBe('界')
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2] }])
+  session.write('\x1b[?2026h')
+  session.clearSelection()
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2] }])
+  session.write('\x1b[?2026l')
+  session.renderState.update()
+  expect(selectedRows()).toEqual([])
+})
+
+it('uses reflowed pins when resize releases held output', () => {
+  session.write('\r\x1b[2Kab שלום 123 cd')
+  session.resize({ columns: 10, rows: 8 })
+  visualSelection(6, 9)
+  expect(selectedRows()).toEqual([{ y: 0, columns: [3, 4, 5, 6] }])
+  session.write('\x1b[?2026h')
+  session.resize({ columns: 14, rows: 8 })
+  session.renderState.update()
+  expect(session.renderState.renderHeld).toBe(false)
+  expect(session.getSelection()).toBe('שלום')
+  expect(selectedRows()).toEqual([{ y: 0, columns: [3, 4, 5, 6] }])
+})
+
+it('captures each hold even without a draw or a previous overlay read', () => {
+  visualSelection()
+  session.write('\x1b[?2026h')
+  session.clearSelection()
+  session.write('\x1b[?2026l\x1b[?2026h')
+  expect(selectedRows()).toEqual([])
+  session.write('\x1b[?2026l')
+  visualSelection(3, 6)
+  session.write('\x1b[?2026h')
+  expect(selectedRows()).toEqual([{ y: 0, columns: [3, 4, 5, 6] }])
+})
+
+it('retires held selection reads on disposal', () => {
+  visualSelection()
+  session.write('\x1b[?2026h')
+  const state = session.renderState
+  session.dispose()
+  expect(() => state.readRows()).toThrow('disposed')
+})
+
+it('leaves held programmatic selection and unselected output to the native snapshot', () => {
+  session.selectRange({ x: 3, y: 0 }, { x: 6, y: 0 })
+  session.renderState.update()
+  expect(selectedRows()).toEqual([{ y: 0, columns: [3, 4, 5, 6] }])
+  session.write('\x1b[?2026h' + '\r\n'.repeat(10))
+  session.renderState.update()
+  expect(selectedRows()).toEqual([{ y: 0, columns: [3, 4, 5, 6] }])
+  session.write('\x1b[?2026l')
+  session.renderState.update()
+  expect(selectedRows()).toEqual([])
+  session.clearSelection()
+  session.write('\x1b[?2026h' + '\r\n'.repeat(10))
+  session.renderState.update()
+  expect(selectedRows()).toEqual([])
+  session.write('\x1b[?2026l')
+  session.renderState.update()
+  expect(selectedRows()).toEqual([])
 })
