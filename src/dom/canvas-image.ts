@@ -56,7 +56,8 @@ export class CanvasImageRelay {
   private deliver(listener: Listener): void {
     try {
       const result = listener()
-      if (result instanceof Promise) void result.catch((cause: unknown) => this.report(cause))
+      if (result === null || (typeof result !== 'object' && typeof result !== 'function')) return
+      void Promise.resolve(result).catch((cause: unknown) => this.report(cause))
     } catch (cause) {
       this.report(cause)
     }
