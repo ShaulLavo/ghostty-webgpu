@@ -251,12 +251,14 @@ export class WebGpuTerminalRenderer {
       })
       this.scheduler = scheduler
       this.setReducedMotion(options.reducedMotion ?? false)
+      this.frames.activateCanvasImage()
       this.scheduler.schedule()
       this.watchDeviceLoss(device, this.deviceGeneration)
       this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
         this.scheduler.schedule(),
       )
     } catch (cause) {
+      this.frames.dispose()
       scheduler?.dispose()
       textPass?.destroy()
       if (atlasTextures) this.sharedAtlas.releaseTextures(device)
@@ -460,6 +462,7 @@ export class WebGpuTerminalRenderer {
   dispose(): Promise<void> {
     if (!this.disposed) {
       this.disposed = true
+      this.frames.dispose()
       this.coordinator?.flushOwner(this)
       this.deviceGeneration += 1
       this.unsubscribeRenderRequest?.()
@@ -688,7 +691,7 @@ export class WebGpuTerminalRenderer {
       } finally {
         frame?.discard()
       }
-      frame?.notify()
+      frame?.notify('drawn')
       return
     }
     let command: GPUCommandBuffer
@@ -744,7 +747,7 @@ export class WebGpuTerminalRenderer {
         }
       },
       notify: () => {
-        if (!this.disposed) frame?.notify()
+        if (!this.disposed) frame?.notify('drawn')
       },
       failed: (cause) => {
         frameAtlas.frameFailed(this, frameDevice)
@@ -786,7 +789,7 @@ export class WebGpuTerminalRenderer {
     }
     // Settle peer submissions before observers can mutate their native state.
     this.coordinator?.flushPending()
-    if (!this.disposed) frame?.notify()
+    if (!this.disposed) frame?.notify('retained')
   }
 
   private get deviceCellHeight(): number {
@@ -850,6 +853,7 @@ export class WebGpuTerminalRenderer {
   }
 
   private invalidateAll(): void {
+    this.frames.invalidate()
     this.needsFullRebuild = true
     this.scheduler.schedule()
   }
@@ -945,6 +949,7 @@ export class WebGpuTerminalRenderer {
     if (this.disposed) return Promise.resolve()
     if (expectedGeneration !== this.deviceGeneration) return Promise.resolve()
     if (this.restorePromise) return this.restorePromise
+    this.frames.invalidate()
     this.deviceUnavailable = true
     const attempt = this.performDeviceRestore(expectedGeneration)
     this.restorePromise = attempt

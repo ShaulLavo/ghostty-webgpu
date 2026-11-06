@@ -21,7 +21,8 @@ import type {
 import type { RendererFrameSnapshot, RendererTextFrameSnapshot } from '../render/shared/types.js'
 import { createCompatibleTerminalRenderer } from '../render/shared/selector.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
-import { observeDisplayedFrame } from '../render/shared/displayed-frame.js'
+import { bindCanvasImage, CanvasImageRelay } from './canvas-image.js'
+import { attachCanvasImage, observeDisplayedFrame } from '../render/shared/displayed-frame.js'
 import { EventEmitter } from '../term/events.js'
 import {
   browserOutputTimingClock,
@@ -311,6 +312,9 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     readonly width: number
     readonly height: number
   }
+  private readonly canvasImages = new CanvasImageRelay((cause) =>
+    this.reportError(cause, 'renderer.canvasImage'),
+  )
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   private extensions?: ExtensionManager
   private readonly extensionDispatch = createExtensionDispatch()
@@ -352,6 +356,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     private readonly execution: LocalTerminalExecution | WorkerTerminalExecution,
     options: GhosttyWebGpuTerminalFromSessionOptions,
   ) {
+    bindCanvasImage(this, this.canvasImages)
     this.cleanup.add(() => this.textSubscribers.dispose())
     this.accessibilityOptions = options.accessibility
     this.autoFit = options.autoFit !== false
@@ -1038,6 +1043,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
     if (this.stateValue === 'disposed' || this.stateValue === 'disposing')
       return this.result(this.execution.kind === 'async' ? this.execution.dispose() : undefined)
     this.stateValue = 'disposing'
+    this.canvasImages.dispose()
     this.writeQueue.dispose()
     this.nextGeneration()
     this.pendingEvents.length = 0
@@ -1158,6 +1164,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
           this.noteDrawn()
           this.handleCleanUpdate()
         },
+        [attachCanvasImage]: () => this.canvasImages.attach(),
         [observeDisplayedFrame]: (snapshot) => this.handleFrame(snapshot),
         retainDisplayedText: true,
         needsFrameRows: () => Boolean(this.links?.needsFrame || this.textSubscribers.hasListeners),

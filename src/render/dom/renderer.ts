@@ -70,6 +70,7 @@ interface MountedRow {
 }
 
 class DomSurface implements RowRendererSurface {
+  readonly paintsCanvas = false
   private readonly container: HTMLDivElement
   private readonly bidi: boolean
   private readonly canvas: HTMLCanvasElement
