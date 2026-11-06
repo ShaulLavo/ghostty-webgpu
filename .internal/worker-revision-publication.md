@@ -1,49 +1,63 @@
-# Revision-keyed worker publication research
+# Revision-keyed worker publication: REJECT
 
-Status: research checkpoint awaiting a reviewed BiDi retention ownership correction. No hardware screen has started. This candidate is not ready for production.
+The qualified fixed screen rejects this candidate. Do not ship its transport, retained-frame accessor or BiDi selection seam. Keep experimental source on `research/worker-revision-publication`. No tuning rerun, full twelve-condition cohort, production PR or merge follows this result.
 
-Both arms use base `46399e3f0a3ce5f5ce216eb6fdf474822851c720`. This branch changes only the reviewed internal retained-frame accessor, dedicated-worker publication/reception, their tests and the paired research instrument. The native wasm, bridge, public APIs, acknowledgements, event order and three native slots are unchanged.
+## Fixed comparison
 
-The publisher posts immutable full-cell structured-clone deltas synchronously. Reception commits a validated store epoch and one current revision pin atomically, restores deep frozen metadata ownership, and reconstructs eager summaries against the last host summary. There is no host release message or bounded outstanding queue. The publisher retains its last result and frame; each queued message owns its payload. The paced cohort does not qualify sustained-backlog memory.
+- Candidate: `5f2df6b7609e8a171335ac74f09553a195f3b38c`.
+- Unchanged control and common base: `46399e3f0a3ce5f5ce216eb6fdf474822851c720`. Both arms preserve audit fixes 002 and 003; neither was rebased alone.
+- PC: Linux, i7-14700K, physical RTX 3060 Ti. Headed `/usr/bin/chromium` 155.0.8059.84 on a task-owned private Xvfb display, with the demonstrated ANGLE Vulkan flags. Both arms in each pair share the same browser. Actual command lines, physical-adapter identities and real WebGL/WebGPU draw/readback controls are retained.
+- All original eight conditions, two counterbalanced repetitions, eight warmup steps and sixty measured steps. Grids are 200 × 50 and 80 × 24, at DPR 2, four and sixteen terminals, JetBrains Mono 13. Terminal zero writes every step; siblings write every fourth step. Hash-checked original sustained-logs and Unicode fixtures are unchanged.
+- Host endpoint: CDP thread-tick TaskDuration per delivered frame. Worker endpoint: all expected dedicated-worker Linux user/system ticks at 100 Hz. Memory endpoint: all enumerated Chrome-family PSS plus device-VRAM growth. Each live worker has independent identity, ordinal, heap, adapter/backend and renderer submission readings. No missing endpoint became zero.
 
-## Development evidence
+The analyzer reports no qualification problems and no correctness mismatch across 32 samples. Private virtual display capability is not physical presentation proof. Presented counts remain unresolved. Native wasm, bridge, public APIs and acknowledgements are unchanged. The three-slot native store remains unchanged.
 
-The real-wasm suite checks an eager live-row shadow, an independent never-pruning reference decoder, frozen ownership and current-pin bounds. It includes moved Unicode rows, equal-text cell edits, resizing, interleaved namespaces, discarded retry, delayed delivery, exact integer exhaustion and malformed packets. An initial sparse-array boundary defect was reproduced with two failing tests and fixed by validating every iterated entry, including holes.
+## Original gates and result
 
-All six temporary mutations of the actual candidate modules were detected and restored: disabled store invalidation, shared reception, never-pruned publisher history, no host pin, text-keyed content and a stale summary predecessor. The retained script and logs are in the external audit evidence directory. The wrong-predecessor mutation models the native-previous mistake by supplying the prior predecessor through the eager constructor; it does not claim that the host has a native token.
+Ratios below are candidate mean divided by control mean over the two runs, including mean per-run p95 and p99. Lower is better. Limits are host ≤ 0.5, worker CPU ≤ 1, resident memory ≤ 1, p95 ≤ 1.2 and p99 ≤ 1.2. Decisions use unrounded values in the compact result, with no tolerance.
 
-The rejected positional prototype is unchanged in behavior. Its local frame type is pinned to the historical full-frame shape so importing its research tests does not add a production compatibility branch.
+| Condition                |    Host | Worker CPU | Resident memory |     p95 |     p99 |
+| ------------------------ | ------: | ---------: | --------------: | ------: | ------: |
+| sustained-logs/4/200x50  | 0.75140 |    0.91489 |         1.03438 | 0.88889 | 0.77419 |
+| sustained-logs/4/80x24   | 0.94836 |    0.95238 |         1.00036 | 0.66667 | 0.50000 |
+| sustained-logs/16/200x50 | 0.83719 |    0.89474 |         0.98728 | 1.12281 | 1.39474 |
+| sustained-logs/16/80x24  | 1.03054 |    0.98649 |         1.01705 | 1.20000 | 1.39583 |
+| unicode-varied/4/200x50  | 0.65028 |    0.72881 |         0.97340 | 0.65217 | 0.55000 |
+| unicode-varied/4/80x24   | 1.09704 |    1.18182 |         1.02180 | 1.06667 | 1.11111 |
+| unicode-varied/16/200x50 | 0.66392 |    0.76214 |         0.97032 | 0.79630 | 0.32984 |
+| unicode-varied/16/80x24  | 0.99682 |    1.04762 |         1.00826 | 1.16667 | 0.79710 |
 
-## Instrument and qualification
+All eight conditions miss the required 50 percent host-time reduction. Two regress worker CPU, five regress resident memory, and two regress p99. This is a decisive rejection, not setup invalidation. No valid condition was rerun or excluded. The full twelve-condition cohort and later hardware integration matrix were not run after rejection.
 
-`worker-revision-benchmark.ts` requires an explicit unchanged control root, checks the common base and scoped source difference, builds the same page/instrumentation against both roots, checks original fixture bytes, and records independent renderer submission counts. Per-frame hashing and held-output query probes run only in correctness mode. Timing uses the original PC thread-tick page endpoint, Linux dedicated-worker ticks and Chrome-family PSS plus VRAM growth. Presentation is unresolved.
+Each arm parsed and delivered 3,120 measured updates. Independently read renderer submissions also total 3,120 per arm and match by terminal and run. That observed equality is recorded, not added as a gate. Inputs, byte counts, event ordering, full final snapshots, text, decoded pixels and delivered counts match. The earlier eight-condition headless per-frame parity run also matched complete projections, eager summaries and host state; it remains correctness-only.
 
-The TypeScript analyzer has explicit CI discovery. Missing conditions, repetitions, steps, workers, submissions, CPU/PSS or actual headed hardware controls cannot yield KEEP. Headless output is correctness-only regardless of ratios. The unchanged fixed screen requires all eight conditions, two repetitions, eight warmups and sixty measured steps, followed by the original twelve-condition cohort only on pass. Every numerical gate remains unchanged.
+## Correctness and negative controls
 
-## Correctness result and required design correction
+At the measured source, `bun run verify` exits zero: 1,664 unit tests passed with one skipped, all 80 browser files passed with 1,459 tests and five skipped, plus extension, renderer-smoke, docs, packing and built-consumer checks. The existing native configuration-resolver artifact check remains explicitly unqualified by the package command; no native release is claimed.
 
-The full eight-condition headless comparison passed against the unchanged worker control. It includes every delivered projection, summary and host-state sequence, complete final snapshots, held-output query probes, text, decoded pixels, native events, inputs and counts. Independent submissions were measured, not copied from delivery. The result is correctness-only.
+All six actual transport mutations were detected and restored. Seven BiDi variants were detected and restored: forward-only, live borrowing, offset zero, missing continuation propagation, skipping an empty wrapper, skipping empty decoration and fresh wrapper source identity. Forward-only also failed explicit main-GPU browser coverage. The independent old-formula oracle and literal logical `[1, 2, 6]` versus visual `[1, 2, 3]` checks prevent shared paint/capture code from proving itself. The empty-overlay fixture first proves stale native bits against an empty visible mask. Retirement checks use the actual native error operation.
 
-The single full verification run found a real integration gap. All sixteen worker BiDi interaction cases fail because the session's BiDi selection wrapper does not expose retained native frames. A forwarding-only change would also affect the main-entry retained branch and could lose the captured selection overlay in full-frame queries. The coordinator is obtaining a narrow ownership-design correction and independent review. No seam or full-frame fallback is implemented here, and no hardware screen may run before this is resolved.
+Held-only browser selection uses ordinary execution commands with optional expected identity omitted, on both the Canvas reference and workers. It proves command-level held/released publication, not DOM pointer behavior while held. The genuine non-held pointer/pixel case remains separate. No pointer guard or transport bypass changed.
 
-The new failing real-wasm test first proves a disjoint visual selection at logical columns 1, 2 and 6, then requires the retained projection to survive selection clearing. The current failure is the missing retention function. This test stays failing on the research branch deliberately. It is not a knowingly failing product PR.
+## Diagnostic joins and limits
 
-The full gate otherwise passed 1,647 unit tests and 1,408 browser tests before a separate Vite iframe initialization/reload error interrupted completion. That affected file passed both tests in one bounded isolated rerun. This does not turn the full gate green or establish the Vite error's cause. The six real mutations, including a stale predecessor that fails specifically on clean resubmission, were detected and restored. Typecheck, lint and formatting pass.
+Across the screen's 3,120 frame joins per arm, mean publication preparation is 0.048 ms for control and 0.401 ms for candidate. Mean post-to-host interval is 4.138 versus 2.770 ms. Mean receiver handler time is 0.061 versus 0.079 ms. These pooled diagnostics are not the per-condition acceptance endpoint. Preparation includes the worker summary/capture-publication work; post-to-host includes clone, dispatch and scheduling. The data does not isolate serialization or prove a GC cause. Clock-sync and GC traces remain with the raw joins.
 
-The runner's owned hardware-display path is implemented and statically checked, but has not run a screen. The supplied hardware preflight is capability evidence only. No timing win or rejection is claimed.
+Sixty busiest-terminal observations make p99 the largest observation under the original rule, not a precise population-tail estimate. Memory is the original resident endpoint, not peak memory. The paced cohort does not qualify sustained-backlog or active-selection memory. D2 establishes ordered content availability without host release messages; outstanding queue memory remains proportional to queued messages and is not bounded by three native slots.
 
-External reports and receipts belong to `/work/reports/wave-20261106/audits2/ghostty-webgpu/007-evidence/`. The coordinator owns the read-only control and its retained dependencies until this task releases that consumer. T3 owns this candidate worktree. Shared caches are not cleanup targets.
+X4r's old headless four-step binary smokes remain unqualified prior art, not the hardware rejection reported here. Pools, positional binary deltas and two native slots remain rejected. This result rejects the measured implementation, not every possible future use of revisions.
 
-## Reviewed BiDi continuation
+## Separate BiDi ownership observation
 
-The coordinator reconciled the independent BiDi addendum review. The stable session source now forwards retention through a capture-time selection wrapper. Its private overlay owns numeric row/column sets, never pins or a live gesture. Native tokens, text revisions, source identity and retirement pass through unchanged. No mask returns the original native frame without row extraction. An empty mask still wraps and clears stale native bits. Capture cost is O(mask pins), and retained coordinates include pins below the viewport; this is not a visible-cell bound.
+The confirmed pre-existing `frameSnapshot` selection-ownership observation is retained separately in `/work/reports/wave-20261106/audits2/ghostty-webgpu/007-bidi-ownership-observation.md`, with exact base/checkpoint probe evidence. It must not silently bring this rejected experimental seam into production. Main GPU BiDi would newly allocate the existing three native viewport slots lazily; active masks add O(mask pins) coordinates, including pins below the viewport. Canvas and DOM retain their prior policy. F1 is separately owned and unchanged here. F2 was not reproduced and receives no fix.
 
-Main GPU BiDi now enters the same lazy three-native-slot retained path as main GPU without BiDi. Canvas and DOM keep their existing owned-row policy. Active-selection memory is outside the unselected performance cohort. The held-offset F1 behavior is deliberately unchanged and separately owned; F2 was not reproduced and is not patched.
+## Receipt and cleanup
 
-The real-Wasm tests use an independent copy of the checkpoint membership formula over raw native rows, copied pin coordinates and copied offset. Literal disjoint columns, nonzero-offset rows and wide lead/tail bits prevent shared helper code from proving itself. A held fixture first proves an empty visible mask alongside stale selected native bits, then requires the empty overlay to clear them. Wrapped/plain/wrapped publication and clean resubmission keep epoch 1 and agree with both eager shadow and reference decoder.
+Compressed raw receipt: `/work/reports/wave-20261106/audits2/ghostty-webgpu/007-screen-evidence/screen.json.gz`.
 
-Actual mutations were detected for forwarding without overlay, live pin borrowing, offset zero, missing continuation propagation, skipping empty wrapper creation, skipping empty decoration and fresh wrapper store identity. Live borrowing failed both held-token stability and the post-capture pin-call spy. Forward-only also failed the explicit main-GPU browser case. The original six transport mutations were rerun and detected. Every mutation was restored.
+- Raw SHA-256: `a85f6a2f4ea93c94ff0f069c23613e27d7dff7d85bbab46be51d21fae767cd31`.
+- Gzip SHA-256: `38f76f2c8c71e2083e5ba9c185d860c2639e91424dc14e7c937da85d65bdb343`.
+- Per-file raw/gzip hashes: `/work/reports/wave-20261106/audits2/ghostty-webgpu/007-screen-evidence/manifest.json`.
+- Qualification, ratios, raw hardware controls, independent counters, mean values, timing joins, PNGs and actual-host cleanup are retained in that report directory. Correctness/mutation logs are in `007-bidi-evidence/` and earlier `007-evidence/`.
 
-All 24 original BiDi browser cases remain. New genuine pointer/pixel coverage asserts logical `[1, 2, 6]` against independently painted visual `[1, 2, 3]`, explicitly proves main-GPU backend and native token, and checks clear selection only on a later accepted frame. The held-only test uses normal selection commands with the optional expected identity omitted, on both Canvas reference and workers. It checks accepted native selection, unchanged held text and released snapshot/pixels. It is command-level publication coverage, not a claim about DOM pointer behavior during hold. No DOM guard or transport bypass was added.
-
-Focused real-Wasm and lazy tests passed 70 cases. All 32 BiDi interaction browser cases passed after the bounded held-test stimulus correction. Full verification and hardware qualification remain the next gates. The earlier failure records above are preserved history, not current failures of the implemented seam.
+The task-owned display, browser, all 176 measured Chrome-family process IDs and all 320 measured dedicated-worker threads are absent on the PC. The display socket/lock, scratch root and debug listener are gone. Both comparison consumers are released after analysis. Candidate-owned build/dependency payloads are removed; the coordinator receives exact unchanged-control cleanup paths and no-consumer proof. Shared caches and pre-existing services are preserved. No PR, watch or merge was created. Only this note and its compact result are eligible for a separately reviewed decision-record change; experimental source stays on its research branch.
