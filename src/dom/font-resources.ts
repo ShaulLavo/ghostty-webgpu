@@ -35,33 +35,28 @@ export function observeFontResources({
   refresh: () => void
   signal: AbortSignal
 }): void {
-  const known = new WeakSet<FontFace>(fonts)
-  const refreshed = new WeakSet<FontFace>()
+  const settled = new WeakSet<FontFace>()
+  for (const face of fonts) {
+    if (face.status === 'loaded' || face.status === 'error') settled.add(face)
+  }
   const complete = (faces: readonly FontFace[]) => {
     if (signal.aborted) return
     const requested = family()
-    const changed = faces.filter(
-      (face) => !refreshed.has(face) && fontResourcesMatch(requested, [face]),
-    )
-    if (changed.length === 0) return
-    for (const face of changed) refreshed.add(face)
-    refresh()
+    let changed = false
+    for (const face of faces) {
+      if (face.status === 'unloaded' || face.status === 'loading' || settled.has(face)) continue
+      settled.add(face)
+      if (fontResourcesMatch(requested, [face])) changed = true
+    }
+    if (changed) refresh()
   }
   const completed = (event: FontFaceSetLoadEvent) => complete(event.fontfaces)
   const loading = () => {
-    const requested = family()
-    const current = Array.from(fonts)
-    const pending = current.filter(
-      (face) =>
-        (face.status === 'loading' || !known.has(face)) && fontResourcesMatch(requested, [face]),
-    )
-    for (const face of current) known.add(face)
-    if (pending.length === 0) return
-    // Cached Safari faces can already be loaded when their loading event arrives.
-    void fonts.ready.then(() => complete(pending))
+    // A matching load can join this cycle or settle before its loading event arrives.
+    void fonts.ready.then(() => complete(Array.from(fonts)))
   }
   fonts.addEventListener('loading', loading, { signal })
   fonts.addEventListener('loadingdone', completed, { signal })
   fonts.addEventListener('loadingerror', completed, { signal })
-  loading()
+  if (fonts.status === 'loading') loading()
 }
