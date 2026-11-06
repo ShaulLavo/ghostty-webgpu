@@ -1,4 +1,7 @@
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
+import { CellPin } from '../../bidi/pin.js'
+import { CanvasImageRelay } from '../canvas-image.js'
+import { attachCanvasImage } from '../../render/shared/displayed-frame.js'
 import type { RenderCell } from '../../core/types.js'
 import { observeDisplayedFrame } from '../../render/shared/displayed-frame.js'
 import { FrameObserver } from '../../render/shared/frame-observer.js'
@@ -10,6 +13,7 @@ const cleanups: Array<() => void> = []
 
 afterEach(() => {
   for (const cleanup of cleanups.splice(0).reverse()) cleanup()
+  vi.restoreAllMocks()
 })
 
 function selectedColumns(cells: readonly Pick<RenderCell, 'x' | 'selected'>[] | undefined) {
@@ -102,3 +106,240 @@ it.each([
     expect(selectedColumns(snapshot?.rows[0]?.renderCells)).toEqual([1, 2, 6])
   },
 )
+
+async function submittedFixture(entry = 'main', bidi = true) {
+  const session = await TerminalSession.create<Event>({
+    bidi,
+    appearance: { grid: { columns: 20, rows: 4 } },
+  })
+  const execution = new LocalTerminalExecution(session)
+  cleanups.push(() => execution.dispose())
+  execution.commitLayout(
+    calculateTerminalFittedFont(session.appearance.font,
+      { advanceWidth: 8, fontAscent: 10, fontDescent: 3 }, 1),
+    { top: 0, right: 0, bottom: 0, left: 0 },
+  )
+  const relay = new CanvasImageRelay((cause) => { throw cause })
+  const publications: Parameters<LocalTerminalExecution['submit']>[0][] = []
+  const publish = (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) => {
+    publications.push(snapshot)
+    execution.submit(snapshot)
+  }
+  const observer = new FrameObserver({
+    rows: 4,
+    [attachCanvasImage]: () => relay.attach(),
+    ...(entry === 'main'
+      ? { [observeDisplayedFrame]: publish, retainDisplayedText: true }
+      : { onTextFrame: publish, needsFrameRows: () => true }),
+  })
+  observer.activateCanvasImage()
+  cleanups.push(() => { observer.dispose(); relay.dispose() })
+  execution.write('\x1b[?25lab שלום cd')
+  const state = session.renderState
+  const capture = () => observer.capture(state, state.readCursor(), undefined, [0, 1, 2, 3])
+  const publishFrame = () => {
+    state.update()
+    const frame = capture()
+    state.acknowledge()
+    frame.accept()
+    frame.notify('drawn')
+  }
+  return { session, execution, state, observer, relay, publications, capture, publishFrame }
+}
+
+function visualDrag(execution: LocalTerminalExecution, start = 3, end = 1, y = 0) {
+  execution.selectionPress({
+    viewport: { x: start, y }, position: { x: start * 10 + 5, y: y * 20 + 5 },
+    repeatDistance: 10, repeatIntervalNanoseconds: 500_000_000n, timeNanoseconds: 1_000_000_000n,
+  })
+  execution.selectionDrag({
+    viewport: { x: end, y }, position: { x: end * 10 + 5, y: y * 20 + 5 },
+    geometry: { columns: 20, cellWidth: 10, paddingLeft: 0, screenHeight: 80 },
+  })
+  execution.selectionRelease({ x: end, y })
+}
+
+function snapshotSelection(execution: LocalTerminalExecution) {
+  return execution.frameSnapshot()?.rows.flatMap((row) => {
+    const columns = selectedColumns(row.renderCells)!
+    return columns.length ? [{ y: row.y, columns }] : []
+  })
+}
+
+it('captures before a reentrant canvas-image listener clears selection', async () => {
+  const f = await submittedFixture()
+  f.publishFrame()
+  const versionA = f.state.snapshotVersion
+  visualDrag(f.execution)
+  f.state.update()
+  expect(f.state.snapshotVersion).toBeGreaterThan(versionA)
+  let during: ReturnType<LocalTerminalExecution['frameSnapshot']>
+  let notifications = 0
+  f.relay.subscribe(() => {
+    f.execution.clearSelection()
+    during = f.execution.frameSnapshot()
+    notifications += 1
+  })
+  const frame = f.capture()
+  f.state.acknowledge()
+  frame.accept()
+  frame.notify('drawn')
+  expect(notifications).toBe(1)
+  expect(during).toBeUndefined()
+  expect(f.publications).toHaveLength(2)
+  expect(f.execution.getSelection()).toBeUndefined()
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+})
+
+it.each(['main', 'worker'])('preserves native programmatic selection through %s', async (entry) => {
+  const f = await submittedFixture(entry)
+  f.execution.selectRange({ x: 0, y: 0 }, { x: 2, y: 0 })
+  f.publishFrame()
+  f.execution.clearSelection()
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [0, 1, 2] }])
+})
+
+it.each(['main', 'worker'])('owns the nonzero captured offset through %s', async (entry) => {
+  const f = await submittedFixture(entry)
+  f.execution.write('\x1b[2J\x1b[3;1Hab שלום cd')
+  visualDrag(f.execution, 3, 1, 2)
+  f.execution.write('\r\n'.repeat(5))
+  f.execution.scrollToRow(1)
+  f.publishFrame()
+  expect(f.session.scrollbar.offset).toBe(1)
+  const version = f.state.snapshotVersion
+  f.execution.scrollToBottom()
+  expect(f.session.scrollbar.offset).toBe(4)
+  expect(f.state.snapshotVersion).toBe(version)
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 1, columns: [1, 2, 6] }])
+})
+
+it('keeps a submitted wide lead and its tail after clear', async () => {
+  const f = await submittedFixture()
+  f.execution.write('\r\x1b[2Ka界b שלום cd')
+  visualDrag(f.execution, 1, 2)
+  f.publishFrame()
+  f.execution.clearSelection()
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2] }])
+})
+
+it('reuses held membership until output advances the native snapshot', async () => {
+  const f = await submittedFixture()
+  visualDrag(f.execution)
+  f.publishFrame()
+  f.execution.write('\x1b[?2026h\r\noutput')
+  f.publishFrame()
+  f.execution.clearSelection()
+  const held = f.execution.frameSnapshot()
+  expect(held?.renderHeld).toBe(true)
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  f.execution.write('\x1b[?2026l')
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  const cached = f.execution.frameSnapshot()
+  const version = f.state.snapshotVersion
+  f.state.update()
+  expect(f.state.snapshotVersion).toBeGreaterThan(version)
+  expect(f.execution.frameSnapshot()).toBe(cached)
+  f.publishFrame()
+  expect(snapshotSelection(f.execution)).toEqual([])
+})
+
+it('reads captured membership twice without borrowing live pins', async () => {
+  const f = await submittedFixture()
+  const point = vi.spyOn(CellPin.prototype, 'point')
+  f.state.update()
+  point.mockClear()
+  f.publishFrame()
+  expect(point).not.toHaveBeenCalled()
+  visualDrag(f.execution)
+  f.state.update()
+  point.mockClear()
+  const frame = f.capture()
+  expect(point).toHaveBeenCalledTimes(3)
+  f.state.acknowledge()
+  frame.accept()
+  frame.notify()
+  point.mockClear()
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(point).not.toHaveBeenCalled()
+  f.execution.clearSelection()
+  point.mockClear()
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(point).not.toHaveBeenCalled()
+})
+
+it('does not publish discarded or superseded captured membership', async () => {
+  const f = await submittedFixture()
+  f.publishFrame()
+  const previous = f.execution.textFrame()
+  visualDrag(f.execution)
+  f.state.update()
+  f.capture().discard()
+  const superseded = f.capture()
+  f.observer.invalidate()
+  superseded.accept()
+  superseded.notify()
+  expect(f.publications).toHaveLength(1)
+  expect(f.execution.textFrame()).toBe(previous)
+  f.execution.clearSelection()
+  f.publishFrame()
+  expect(f.publications).toHaveLength(2)
+  expect(snapshotSelection(f.execution)).toEqual([])
+})
+
+it('preserves worker resubmission and structured cloning', async () => {
+  const f = await submittedFixture('worker')
+  visualDrag(f.execution)
+  f.publishFrame()
+  f.execution.clearSelection()
+  f.execution.submit(f.execution.textFrame()!)
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  const clone = structuredClone(f.execution.textFrame())
+  expect(Object.getOwnPropertySymbols(clone!)).toEqual([])
+  expect(structuredClone(f.execution.frameSnapshot())).toEqual(f.execution.frameSnapshot())
+})
+
+it('does not invoke the captured reader after disposal', async () => {
+  const f = await submittedFixture()
+  visualDrag(f.execution)
+  f.publishFrame()
+  f.execution.dispose()
+  expect(f.execution.frameSnapshot()).toBeUndefined()
+})
+
+it('keeps the native captured grid after resize without update', async () => {
+  const f = await submittedFixture()
+  visualDrag(f.execution)
+  f.publishFrame()
+  const version = f.state.snapshotVersion
+  f.execution.resize({ columns: 12 })
+  expect(f.state.snapshotVersion).toBe(version)
+  const snapshot = f.execution.frameSnapshot()
+  expect(snapshot?.rows[0]?.cells).toHaveLength(20)
+  expect(snapshot?.rows[0]?.text.trimEnd()).toBe('ab שלום cd')
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  expect(f.execution.captureViewport(800, 400)).toBeUndefined()
+})
+
+it('keeps captured membership after a programmatic replacement', async () => {
+  const f = await submittedFixture()
+  visualDrag(f.execution)
+  f.publishFrame()
+  f.execution.selectRange({ x: 0, y: 0 }, { x: 0, y: 0 })
+  expect(f.execution.getSelection()).toBe('a')
+  expect(snapshotSelection(f.execution)).toEqual([{ y: 0, columns: [1, 2, 6] }])
+})
+
+it.each([false, true])('preserves availability after native advancement, cached %s', async (cached) => {
+  const f = await submittedFixture()
+  visualDrag(f.execution)
+  f.publishFrame()
+  const previous = cached ? f.execution.frameSnapshot() : undefined
+  const version = f.state.snapshotVersion
+  f.execution.write('changed')
+  f.state.update()
+  expect(f.state.snapshotVersion).toBeGreaterThan(version)
+  expect(f.execution.frameSnapshot()).toBe(previous)
+})
