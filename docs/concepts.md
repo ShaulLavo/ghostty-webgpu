@@ -55,7 +55,7 @@ Automatic selection skips software WebGPU adapters. `backend` is an option of th
 
 ## The worker entry
 
-`ghostty-webgpu/worker` puts the wasm core, the frame builder, and a GPU renderer in a dedicated worker. The DOM host stays on the page and owns focus, pointer input, and layout. Operations that need the worker's answer return promises. The worker supports WebGPU and WebGL2. It has no Canvas modes and no link providers yet. See [status](status.md) and the [worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/).
+`ghostty-webgpu/worker` puts the wasm core, the frame builder, and a GPU renderer in a dedicated worker. The DOM host stays on the page and owns focus, pointer input, and layout. Operations that need the worker's answer return promises. The worker supports WebGPU and WebGL2. It has no Canvas modes. Link providers run on the host against the worker's projected rows. See [status](status.md) and the [worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/).
 
 ## Where to go next
 
