@@ -5,7 +5,7 @@ export interface FontTables {
 
 const wantedTables = new Set(['cmap', 'GSUB'])
 // Bounds for hostile or broken files: input size, one table, and a whole WOFF2 stream.
-const maxFontBytes = 32 * 1024 * 1024
+export const maxFontBytes = 32 * 1024 * 1024
 const maxTableBytes = 16 * 1024 * 1024
 const maxStreamBytes = 64 * 1024 * 1024
 // WOFF2 known-table indices from the specification, in order.
