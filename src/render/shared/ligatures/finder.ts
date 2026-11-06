@@ -58,7 +58,10 @@ async function sourceBytes(source: LigatureFontSource): Promise<Uint8Array> {
   if (ArrayBuffer.isView(source))
     return new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
   const response = await fetch(source)
-  if (!response.ok) throw new Error(`Unable to load the ligature font: HTTP ${response.status}`)
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {})
+    throw new Error(`Unable to load the ligature font: HTTP ${response.status}`)
+  }
   const length = response.headers.get('Content-Length')
   if (length !== null && /^\d+$/.test(length) && Number(length) > maxFontBytes) {
     await response.body?.cancel().catch(() => {})
