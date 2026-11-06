@@ -346,18 +346,28 @@ it('stages malformed store increments atomically, then accepts overlapping revis
   const pin = Reflect.get(stream.reception, 'pin')
   const before = Array.from(pin)
   const malformed = structuredClone(increment.message)
-  const malformedRow = malformed.content[0]!
-  Reflect.set(malformedRow, 'cells', malformedRow.cells.slice(1))
+  Reflect.set(malformed, 'content', [])
   expect(() =>
     receiveRevisionFrame(stream.reception, Reflect.get(stream, 'previous'), malformed),
   ).toThrow(TerminalWorkerError)
   expect(Reflect.get(stream.reception, 'store')).toBe(store)
   expect(Reflect.get(stream.reception, 'pin')).toBe(pin)
   expect(Array.from(pin)).toEqual(before)
+  expect(increment.message.revisions).toEqual(Array.from(pin.keys()))
   expect(increment.message.store).toBe(2)
   stream.apply(increment)
   expect(Reflect.get(stream.reception, 'store')).toBe(2)
 })
+
+function rejectedOperation(name: string): string {
+  if (name.includes('store')) return 'frame.store'
+  if (name === 'wrong terminal' || name === 'wrong generation') return 'frame.identity'
+  if (name === 'wrong base' || name === 'wrong frame') return 'frame.base'
+  if (name === 'bad font' || name === 'bad theme' || name === 'bad cursor') return 'frame.metadata'
+  if (name.includes('content') && name !== 'missing content') return 'frame.content'
+  if (name.includes('cells') || name.includes('continuations')) return 'frame.content'
+  return 'frame.revision'
+}
 
 function sparse(length: number): unknown[] {
   const values = Array.from({ length }, () => undefined)
@@ -429,6 +439,9 @@ it.each([
   const pin = Reflect.get(stream.reception, 'pin')
   expect(() => receiveRevisionFrame(stream.reception, undefined, mutate(encoded.message))).toThrow(
     TerminalWorkerError,
+  )
+  expect(() => receiveRevisionFrame(stream.reception, undefined, mutate(encoded.message))).toThrow(
+    expect.objectContaining({ operation: rejectedOperation(_name), code: 'protocol' }),
   )
   expect(Reflect.get(stream.reception, 'pin')).toBe(pin)
   expect(Reflect.get(stream.reception, 'store')).toBe(0)
@@ -510,4 +523,32 @@ it('rejects publisher epoch exhaustion and clears every retained reference', asy
   stream.publisher.clear()
   expect(Reflect.get(stream.publisher, 'source')).toBeUndefined()
   expect(Reflect.get(stream.publisher, 'last')).toBeUndefined()
+})
+
+it('keeps two retained stores on the same native terminal independent through unequal cadence', async () => {
+  const a = await actor()
+  const state = a.runtime.createRenderState(a.terminal)
+  const b = { ...a, state }
+  const first = new Stream({ terminal: 'subscriber-a', generation: 1 })
+  const second = new Stream({ terminal: 'subscriber-b', generation: 1 })
+  try {
+    a.execution.write('same terminal')
+    const initialA = first.encode(a)
+    const initialB = second.encode(b)
+    expect(initialA.message.revisions).toEqual(initialB.message.revisions)
+    expect(initialA.frame.revisionSource).not.toBe(initialB.frame.revisionSource)
+    first.apply(initialA)
+    second.apply(initialB)
+    for (let i = 0; i < 6; i += 1) {
+      a.execution.write(`\rsubscriber update ${i}`)
+      first.publish(a)
+      if (i % 2 === 0) second.publish(b)
+    }
+    first.reception.clear()
+    first.publisher.clear()
+    second.publish(b)
+    expect(second.reception.size).toBeGreaterThan(0)
+  } finally {
+    state.dispose()
+  }
 })

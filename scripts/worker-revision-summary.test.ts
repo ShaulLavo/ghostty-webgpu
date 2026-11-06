@@ -155,6 +155,9 @@ it.each([
   'thread',
   'order',
   'base',
+  'readback',
+  'headless-argument',
+  'process-coverage',
 ])('fails qualification closed for missing %s', (failure) => {
   const packet = receipt()
   const first = packet.results[0]!
@@ -174,6 +177,11 @@ it.each([
   if (failure === 'thread') first.workerThreads.pop()
   if (failure === 'order') packet.results.reverse()
   if (failure === 'base') packet.control = 'old-main'
+  if (failure === 'readback' && first.hardware?.result.webgl2.available)
+    first.hardware.result.webgl2.positiveControl = false
+  if (failure === 'headless-argument')
+    Reflect.set(first.hardware!.commandLine, 'arguments', ['--headless'])
+  if (failure === 'process-coverage') first.expectedProcesses.push(2)
   expect(analyze(packet).decision).toBe('unqualified')
 })
 it('reports independent submission differences without adding a submission equality gate', () => {

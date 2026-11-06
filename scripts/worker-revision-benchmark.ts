@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { createHash, randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
-import { chromium, type CDPSession, type Page } from 'playwright'
+import { spawn, type ChildProcess } from 'node:child_process'
+import { chromium, type CDPSession, type Page, type Browser } from 'playwright'
 import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.mjs'
 import {
   analyze,
@@ -14,6 +15,17 @@ import {
   qualifyHardware,
 } from './worker-revision-summary.js'
 import type {} from '../bench/worker-revision-page.js'
+
+let activeBrowser: Browser | undefined
+let activeDisplay: ChildProcess | undefined
+let stopping = false
+function interrupt(): void {
+  stopping = true
+  void activeBrowser?.close()
+  activeDisplay?.kill('SIGTERM')
+}
+process.once('SIGINT', interrupt)
+process.once('SIGTERM', interrupt)
 
 const root = resolve(import.meta.dirname, '..')
 const control = process.env.WORKER_REVISION_CONTROL_ROOT
@@ -291,7 +303,7 @@ async function workerState(cdp: RawCdp, target: Record<string, unknown>): Promis
       'Runtime.evaluate',
       {
         expression:
-          '({terminal:globalThis.__revisionRuntime?.initialize.terminal,submitted:globalThis.__revisionRuntime?.renderer?.metrics?.submittedFrames,ordinal:Number(new URL(location.href).searchParams.get("ordinal"))})',
+          '({terminal:globalThis.__revisionRuntime?.initialize.terminal,submitted:globalThis.__revisionRuntime?.execution?.rendererValue?.metrics?.submittedFrames,ordinal:Number(new URL(location.href).searchParams.get("ordinal"))})',
         returnByValue: true,
       },
       attached.sessionId,
@@ -426,6 +438,11 @@ async function browserResources() {
     args,
     env: headless ? swiftShaderEnv() : undefined,
   })
+  activeBrowser = browser
+  if (stopping) {
+    await browser.close()
+    throw new Error('007 interrupted')
+  }
   let raw: RawCdp | undefined
   try {
     raw = await RawCdp.connect()
@@ -794,14 +811,83 @@ async function runPair(
       pair.map((run) => run.submittedCounts),
     )
 }
+async function privateDisplay(scratch: string): Promise<void> {
+  const selected = Bun.spawnSync(['pacman', '-Sp', '--print-format', '%l', 'xorg-server-xvfb'])
+  assert.equal(selected.exitCode, 0, 'Xvfb package discovery failed')
+  const url = selected.stdout.toString().trim()
+  assert(
+    /^https:\/\//u.test(url) && !url.includes('\n'),
+    'expected one configured HTTPS package URL',
+  )
+  const response = await fetch(url, { signal: AbortSignal.timeout(120_000) })
+  assert(response.ok, 'task-owned Xvfb download failed')
+  const archive = join(scratch, 'xvfb.pkg.tar.zst')
+  await Bun.write(archive, await response.arrayBuffer())
+  const unpack = Bun.spawnSync(['bsdtar', '-xf', archive, '-C', scratch, 'usr/bin/Xvfb'])
+  assert.equal(unpack.exitCode, 0, 'task-owned Xvfb extraction failed')
+  const binary = join(scratch, 'usr/bin/Xvfb')
+  const libraries = Bun.spawnSync(['ldd', binary])
+  assert(
+    libraries.exitCode === 0 && !libraries.stdout.toString().includes('not found'),
+    'Xvfb library prerequisites missing',
+  )
+  activeDisplay = spawn(
+    binary,
+    ['-displayfd', '3', '-screen', '0', '2400x1800x24', '-nolisten', 'tcp', '-ac'],
+    { detached: true, stdio: ['ignore', 'ignore', 'ignore', 'pipe'] },
+  )
+  const display = await bounded(
+    new Promise<string>((ready, reject) => {
+      const stream = activeDisplay!.stdio[3]
+      assert(stream, 'Xvfb display pipe missing')
+      let text = ''
+      stream.on('data', (chunk: Buffer) => {
+        text += chunk.toString()
+        if (text.includes('\n')) ready(text.trim())
+      })
+      activeDisplay!.once('error', reject)
+      activeDisplay!.once('exit', (code) =>
+        reject(new Error(`Xvfb exited before display readiness: ${code}`)),
+      )
+    }),
+  )
+  assert(/^\d+$/u.test(display), 'invalid auto-selected Xvfb display')
+  assert(!stopping, '007 interrupted')
+  process.env.DISPLAY = `:${display}`
+  delete process.env.WAYLAND_DISPLAY
+  await Bun.write(
+    join(dirname(output), 'private-display.json'),
+    JSON.stringify({
+      display: process.env.DISPLAY,
+      pid: activeDisplay.pid,
+      binary,
+      libraries: libraries.stdout.toString(),
+      headless: false,
+      physicalScanout: false,
+    }),
+  )
+}
+async function stopDisplay(): Promise<void> {
+  const display = activeDisplay
+  if (!display || display.exitCode !== null || display.signalCode !== null) return
+  const exited = new Promise<void>((done) => display.once('exit', () => done()))
+  display.kill('SIGTERM')
+  await bounded(exited)
+}
 const scratch = await mkdtemp('/work/tmp/g007-')
 process.env.TMPDIR = scratch
 process.env.TMP = scratch
 process.env.TEMP = scratch
 try {
+  await mkdir(dirname(output), { recursive: true })
+  if (!headless) await privateDisplay(scratch)
   await main()
 } finally {
+  await activeBrowser?.close()
+  await stopDisplay()
   await rm(scratch, { recursive: true, force: true })
+  process.off('SIGINT', interrupt)
+  process.off('SIGTERM', interrupt)
 }
 
 async function probePage() {
