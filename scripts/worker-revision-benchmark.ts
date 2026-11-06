@@ -160,7 +160,7 @@ async function bundle(armRoot: string, worker: boolean): Promise<string> {
         setup(build) {
           build.onResolve({ filter: /^\.\.\/src\//u }, ({ path, importer }) =>
             importer === join(root, 'bench/worker-revision-page.ts')
-              ? { path: resolve(armRoot, 'bench', path) }
+              ? { path: resolve(armRoot, 'bench', path.replace(/\.js$/u, '.ts')) }
               : undefined,
           )
           build.onLoad({ filter: /src\/worker\/(execution|runtime)\.ts$/u }, async ({ path }) => ({
