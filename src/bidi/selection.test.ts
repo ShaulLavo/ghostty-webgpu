@@ -213,6 +213,21 @@ function visualSelection(start = 3, end = 1, y = 0): void {
   session.renderState.acknowledge()
 }
 
+it('retires an empty hold when the visual selection is replaced by its native bounds', () => {
+  visualSelection()
+  const state = session.renderState
+  const version = state.snapshotVersion
+  session.write('\x1b[?2026h\x1b[?2026l')
+  state.update()
+  state.acknowledge()
+  expect(state.snapshotVersion).toBe(version)
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 6] }])
+  session.selectRange({ x: 1, y: 0 }, { x: 6, y: 0 })
+  state.update()
+  expect(state.snapshotVersion).not.toBe(version)
+  expect(selectedRows()).toEqual([{ y: 0, columns: [1, 2, 3, 4, 5, 6] }])
+})
+
 it('does not borrow live pins for a held row or a released snapshot awaiting update', () => {
   visualSelection()
   session.write('\x1b[?2026h')
