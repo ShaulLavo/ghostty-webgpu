@@ -516,6 +516,32 @@ describe('bounded keyboard discovery', () => {
     expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual([2, 2])
   })
 
+  it('keeps OSC8 before providers and providers before built-in URLs during discovery', async () => {
+    const native = nativeHarness('\u001b]8;;https://osc.test\u0007O\u001b]8;;\u0007 http://u')
+    const host = createProjectedLinkSession({
+      getProjection: native.getProjection,
+      resolveLinkSnapshot: native.snapshot,
+      resolveLinkDiscovery: native.discovery,
+    })
+    cleanups.push(() => host.dispose())
+    let calls = 0
+    const registration = host.registerLinkProvider({
+      provideLinks: () => {
+        calls += 1
+        return [{ range: { start: 0, end: 9 }, activate: () => {}, text: 'provided' }]
+      },
+    })
+    const osc = await host.findNextLink([{ column: 0, row: 0 }])
+    expect(osc?.resolution.hit?.source).toBe('osc8')
+    expect(calls).toBe(0)
+    const provided = await host.findNextLink([{ column: 2, row: 0 }])
+    expect(provided?.resolution.hit?.source).toBe('provider')
+    expect(calls).toBe(1)
+    registration.dispose()
+    const url = await host.findNextLink([{ column: 2, row: 0 }])
+    expect(url?.resolution.hit).toMatchObject({ source: 'url', uri: 'http://u' })
+  })
+
   it('owns only requested rows and distinct native OSC runs', () => {
     const native = nativeHarness(
       '\u001b]8;;https://same.test\u0007界A\u001b]8;;\u0007 plain \u001b]8;;https://same.test\u0007Z\u001b]8;;\u0007',

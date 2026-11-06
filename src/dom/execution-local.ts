@@ -8,7 +8,7 @@ import type {
   RendererTextFrameSnapshot,
   WebGpuTerminalRendererOptions,
 } from '../render/shared/types.js'
-import type { LinkProvider, LinkResolution } from '../term/links.js'
+import type { LinkLineSnapshot, LinkProvider, LinkResolution } from '../term/links.js'
 import {
   linkProjectionEquals,
   type LinkProjection,
@@ -264,12 +264,17 @@ export class LocalTerminalExecution {
       this.linkEpoch += 1
     },
     isLinkCurrent: (resolution: LinkResolution<Event>) => this.session.isLinkCurrent(resolution),
-    resolveLink: (request: TerminalLinkRequest) => {
+    resolveLink: (
+      request: TerminalLinkRequest,
+      _isRequestCurrent?: () => boolean,
+      ownedLine?: LinkLineSnapshot,
+    ) => {
       const projection = this.linkProjection
       const epoch = ++this.linkEpoch
       return this.session.resolveLink(
         request,
         () => epoch === this.linkEpoch && linkProjectionEquals(projection, this.linkProjection),
+        ownedLine,
       )
     },
   }

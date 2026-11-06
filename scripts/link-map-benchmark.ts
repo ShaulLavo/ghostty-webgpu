@@ -8,7 +8,7 @@ interface MeasuredMapper {
 }
 
 async function measure(source: string, name: string): Promise<MeasuredMapper> {
-  const instrumented = source.replaceAll(/((?:for|while) \([^\n]+\) \{)/gu, '$1 work += 1;')
+  const instrumented = source.replaceAll(/((?:for|while) \([^{}]+?\) \{)/gu, '$1 work += 1;')
   const javascript = new Bun.Transpiler({ loader: 'ts' }).transformSync(
     `export const measurementName = ${JSON.stringify(name)}; let work = 0; export function readWork() { return work }; ${instrumented}`,
   )
@@ -25,19 +25,30 @@ const after = await measure(
 )
 const results = []
 for (const columns of [80, 200, 1000, 4000]) {
-  const cells = Array.from({ length: columns }, () => ({ text: 'a' }))
-  const beforeStart = before.readWork()
-  const afterStart = after.readWork()
-  const expected = before.createLinkLineSnapshot(cells)
-  const actual = after.createLinkLineSnapshot(cells)
-  deepStrictEqual(actual, expected)
-  results.push({
-    columns,
-    textLength: actual.text.length,
-    before: before.readWork() - beforeStart,
-    after: after.readWork() - afterStart,
-  })
+  for (const kind of ['ascii', 'utf16', 'wide-tail'] as const) {
+    const cells = benchmarkCells(columns, kind)
+    const beforeStart = before.readWork()
+    const afterStart = after.readWork()
+    const expected = before.createLinkLineSnapshot(cells)
+    const actual = after.createLinkLineSnapshot(cells)
+    deepStrictEqual(actual, expected)
+    results.push({
+      columns,
+      kind,
+      textLength: actual.text.length,
+      before: before.readWork() - beforeStart,
+      after: after.readWork() - afterStart,
+    })
+  }
 }
+
+function benchmarkCells(columns: number, kind: 'ascii' | 'utf16' | 'wide-tail'): LinkCell[] {
+  if (kind === 'ascii') return Array.from({ length: columns }, () => ({ text: 'a' }))
+  if (kind === 'utf16') return Array.from({ length: columns }, () => ({ text: 'e\u0301🙂' }))
+  const head: LinkCell[] = [{ text: '🙂' }]
+  return head.concat(Array.from({ length: columns - 1 }, () => ({ continuation: true, text: '' })))
+}
+
 console.log(
   JSON.stringify({
     baseline: 'independent scan reference',
