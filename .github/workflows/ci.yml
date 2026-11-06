@@ -5,6 +5,7 @@ on:
   schedule:
     - cron: '17 3 * * *'
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
     tags: ['v*']
@@ -13,19 +14,40 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ github.event_name != 'pull_request' || steps.paths.outputs.code == 'true' }}
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright@sha256:bc6ab0d6d44ff4826e4cb8c1e6d801e185bfc42bb0753f8e2a30efc70db054c7 # v1.63.0-noble, amd64
     timeout-minutes: 30
     steps:
+      - name: Require a ready PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft
+        run: |
+          echo '::error::Mark this PR ready for review to run the required checks.'
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: dorny/paths-filter@v3
+        id: paths
+        with:
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!docs/**/*.md'
+              - '!README.md'
+              - '!AGENTS.md'
+              - '!LICENSE'
       - name: Install Bun archive extractor
         shell: bash
         run: |
@@ -134,6 +156,7 @@ jobs:
 
   # The browser suite runs files one at a time per runner (SwiftShader), so it is sharded across runners.
   browser:
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     needs: verify
     runs-on: ubuntu-latest
     container:
@@ -145,10 +168,15 @@ jobs:
         shard: [1, 2, 3, 4]
     name: browser (${{ matrix.shard }}/4)
     steps:
+      - name: Documentation-only PR has no browser inputs
+        if: needs.verify.outputs.code != 'true'
+        run: echo 'Browser checks report for every ready PR; browser inputs did not change.'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.verify.outputs.code == 'true'
         with:
           persist-credentials: false
       - name: Install Bun archive extractor
+        if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -160,18 +188,23 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "Bun archive extractor setup duration_ms=$((finished_ms - started_ms))"
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: needs.verify.outputs.code == 'true'
         with:
           bun-version: 1.4.4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: needs.verify.outputs.code == 'true'
         with:
           node-version: '24'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.verify.outputs.code == 'true'
         with:
           name: verified-build
           path: .artifacts/verified-build
       - name: Verify the build artifact identity and outputs
+        if: needs.verify.outputs.code == 'true'
         run: bun scripts/verified-build-artifact.ts verify
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: needs.verify.outputs.code == 'true'
         id: dependency-cache
         with:
           path: |
@@ -180,10 +213,12 @@ jobs:
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
       - name: Log dependency cache result
+        if: needs.verify.outputs.code == 'true'
         env:
           CACHE_HIT: ${{ steps.dependency-cache.outputs.cache-hit }}
         run: echo "Dependency cache hit=${CACHE_HIT:-false}"
       - name: Install JavaScript dependencies
+        if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -192,9 +227,11 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        if: needs.verify.outputs.code == 'true'
         with:
           version: '0.16.0'
       - name: Validate Playwright system dependencies
+        if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -206,6 +243,7 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
       - name: Install Playwright Chromium
+        if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -214,9 +252,11 @@ jobs:
           finished_ms="$(date +%s%3N)"
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       - name: Browser tests
+        if: needs.verify.outputs.code == 'true'
         run: bun run test:browser --shard=${{ matrix.shard }}/4
 
   sites:
+    if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     needs: verify
     runs-on: ubuntu-latest
     container:
