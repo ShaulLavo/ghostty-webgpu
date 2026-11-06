@@ -11,7 +11,7 @@ import {
   type NativeLinkDiscoveryRequest,
   type NativeLinkDiscoverySnapshot,
 } from '../link-snapshot.js'
-import type { ProvidedLink } from '../links.js'
+import type { LinkLineSnapshot, ProvidedLink } from '../links.js'
 
 let runtime: GhosttyRuntime
 const cleanups: Array<() => void> = []
@@ -488,6 +488,33 @@ describe('bounded keyboard discovery', () => {
       }
     },
   )
+
+  it('normalizes each owned row once per discovery without reusing across discoveries', async () => {
+    const native = nativeHarness('plain text')
+    const host = createProjectedLinkSession({
+      getProjection: native.getProjection,
+      resolveLinkSnapshot: native.snapshot,
+      resolveLinkDiscovery: native.discovery,
+    })
+    cleanups.push(() => host.dispose())
+    const seen = new Map<number, Set<LinkLineSnapshot>>()
+    let calls = 0
+    host.registerLinkProvider({
+      provideLinks: (line, row) => {
+        calls += 1
+        const snapshots = seen.get(row) ?? new Set<LinkLineSnapshot>()
+        snapshots.add(line)
+        seen.set(row, snapshots)
+        return []
+      },
+    })
+    await expect(host.findNextLink(cells)).resolves.toBeUndefined()
+    expect(calls).toBe(80)
+    expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual([1, 1])
+    await expect(host.findNextLink(cells)).resolves.toBeUndefined()
+    expect(calls).toBe(160)
+    expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual([2, 2])
+  })
 
   it('owns only requested rows and distinct native OSC runs', () => {
     const native = nativeHarness(
