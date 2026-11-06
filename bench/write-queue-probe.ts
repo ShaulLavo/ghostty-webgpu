@@ -1,3 +1,5 @@
+import { queueProbeInputCount } from './write-queue-input.js'
+
 export interface QueueProbeSample {
   readonly elapsedMs: number
   readonly sent: number
@@ -35,7 +37,8 @@ export function inspectQueueProbe(result: QueueProbeResult) {
   if (end.sent * result.chunkBytes > result.byteLimit) issues.push('Offered byte bound exceeded')
   if (result.pendingPeak > result.maxBytes) issues.push('Queue byte limit exceeded')
   if (end.submitted === 0) issues.push('No actual GPU queue submission')
-  if (result.inputAckMs.length === 0) issues.push('No input acknowledgement')
+  if (result.inputAckMs.length !== queueProbeInputCount)
+    issues.push('Input acknowledgement count differs')
   if (result.heartbeatDelayMs.length === 0) issues.push('No event-loop heartbeat')
   // Separate producer tasks must observe growth, not just one synchronous enqueue burst.
   const growth = result.samples.filter((sample, index, samples) => {

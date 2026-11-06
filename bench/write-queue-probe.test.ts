@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { QueueProbeInputs } from './write-queue-input.js'
 import { inspectQueueProbe, type QueueProbeResult } from './write-queue-probe.js'
 
 function fixture(): QueueProbeResult {
@@ -33,7 +34,7 @@ function fixture(): QueueProbeResult {
     },
     stopMs: 16,
     drainMs: 34,
-    inputAckMs: [4],
+    inputAckMs: [4, 4, 4, 4],
     heartbeatDelayMs: [2],
     errors: [],
   }
@@ -116,8 +117,33 @@ describe('bounded write queue evidence', () => {
     expect(inspectQueueProbe(invalid).issues).toEqual([
       'Offered byte bound exceeded',
       'Queue byte limit exceeded',
-      'No input acknowledgement',
+      'Input acknowledgement count differs',
       'No event-loop heartbeat',
     ])
+  })
+})
+
+describe('queue probe delayed worker input', () => {
+  it('pairs each callback with its own keydown and waits for all echo acknowledgements', async () => {
+    const inputs = new QueueProbeInputs()
+    for (const at of [0, 40, 80, 120]) inputs.keydown(at)
+    let now = 140
+    let release: (() => void) | undefined
+    const delayedEcho = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const pending = Array.from({ length: 4 }, () =>
+      inputs.acknowledge(
+        () => now,
+        () => delayedEcho,
+      ),
+    )
+    expect(inputs.recorded).toBe(4)
+    expect(inputs.settled).toBe(0)
+    now = 150
+    release?.()
+    await Promise.all(pending)
+    expect(inputs.acknowledgementMs).toEqual([150, 110, 70, 30])
+    expect(inputs.settled).toBe(4)
   })
 })

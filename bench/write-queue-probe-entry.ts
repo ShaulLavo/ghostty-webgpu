@@ -3,6 +3,7 @@ import { Terminal } from '../src/dom/terminal.js'
 import { Terminal as WorkerTerminal } from '../src/worker/index.js'
 import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 import { observeGpuSubmissions } from './write-queue-observer.js'
+import { QueueProbeInputs, queueProbeInputCount } from './write-queue-input.js'
 import type { QueueProbeResult, QueueProbeSample } from './write-queue-probe.js'
 
 const parameters = new URL(location.href).searchParams
@@ -76,8 +77,7 @@ interface RunState {
   pendingPeak: number
   start: number
   submissionsAtStart: number
-  inputAt: number
-  inputAckMs: number[]
+  inputs: QueueProbeInputs
   errors: string[]
   producerTimer?: ReturnType<typeof setTimeout>
 }
@@ -88,7 +88,7 @@ terminal.on('error', ({ cause }) => {
 document.addEventListener(
   'keydown',
   (event) => {
-    if (state && event.key === 'z') state.inputAt = performance.now()
+    if (state && event.key === 'z') state.inputs.keydown(performance.now())
   },
   { capture: true },
 )
@@ -102,15 +102,14 @@ terminal.onData(({ bytes }) => {
   }
   if (data !== 'z') return
   const current = state
-  const at = current.inputAt
-  void Promise.resolve(terminal.write('z')).then(
-    () => {
-      current.inputAckMs.push(performance.now() - at)
-    },
-    (cause: unknown) => {
+  void current.inputs
+    .acknowledge(
+      () => performance.now(),
+      () => terminal.write('z'),
+    )
+    .catch((cause: unknown) => {
       current.errors.push(`Input echo failed: ${String(cause)}`)
-    },
-  )
+    })
 })
 
 function sample(
@@ -150,7 +149,11 @@ function offer(current: RunState, payload: string): void {
 
 async function waitForDrain(current: RunState): Promise<void> {
   const deadline = performance.now() + 15_000
-  while (terminal.pendingWriteBytes > 0 || current.acknowledged + current.rejected < current.sent) {
+  while (
+    terminal.pendingWriteBytes > 0 ||
+    current.acknowledged + current.rejected < current.sent ||
+    current.inputs.settled < queueProbeInputCount
+  ) {
     if (performance.now() > deadline) throw new Error('Queue drain exceeded 15 seconds')
     await new Promise((resolve) => setTimeout(resolve, 5))
   }
@@ -203,8 +206,7 @@ export async function run(intervalMs: number, writesPerTick: number): Promise<Qu
     pendingPeak: 0,
     start: performance.now(),
     submissionsAtStart: submitted,
-    inputAt: 0,
-    inputAckMs: [],
+    inputs: new QueueProbeInputs(),
     errors: [],
   }
   state = current
@@ -251,7 +253,7 @@ export async function run(intervalMs: number, writesPerTick: number): Promise<Qu
       final,
       stopMs,
       drainMs: drainedAt - current.start - stopMs,
-      inputAckMs: current.inputAckMs,
+      inputAckMs: current.inputs.acknowledgementMs,
       heartbeatDelayMs,
       errors: current.errors,
     }

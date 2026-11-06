@@ -1,3 +1,4 @@
+import { queueProbeInputCount } from '../bench/write-queue-input.js'
 import assert from 'node:assert/strict'
 import { mkdir, readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
@@ -123,7 +124,7 @@ async function measure(realm: string, rate: (typeof rates)[number]): Promise<voi
       rate,
     )
     await page.waitForFunction(() => window.__queueProbe.running())
-    for (let index = 0; index < 4; index += 1) {
+    for (let index = 0; index < queueProbeInputCount; index += 1) {
       await page.keyboard.press('z')
       await page.waitForTimeout(40)
     }
