@@ -10,6 +10,8 @@ export interface WorkerReading {
   target: string
   terminal: string
   ordinal: number
+  renderer?: string | null
+  backend?: string
   submitted: number | null
   heap: number | null
 }
@@ -109,7 +111,8 @@ function qualifyWorkers(run: Sample): boolean {
       !!worker.terminal &&
       !!worker.target &&
       finite(worker.submitted) &&
-      finite(worker.heap),
+      finite(worker.heap) &&
+      (run.headless || (worker.backend === 'webgl2' && !software(worker.renderer ?? null))),
   )
 }
 function qualifyEndpoints(run: Sample): boolean {

@@ -302,8 +302,13 @@ async function workerState(cdp: RawCdp, target: Record<string, unknown>): Promis
     const reading = await cdp.send(
       'Runtime.evaluate',
       {
-        expression:
-          '({terminal:globalThis.__revisionRuntime?.initialize.terminal,submitted:globalThis.__revisionRuntime?.execution?.rendererValue?.metrics?.submittedFrames,ordinal:Number(new URL(location.href).searchParams.get("ordinal"))})',
+        expression: `(()=>{
+          const runtime=globalThis.__revisionRuntime
+          const renderer=runtime?.execution?.rendererValue
+          const gl=renderer?.context
+          const debug=gl?.getExtension('WEBGL_debug_renderer_info')
+          return {terminal:runtime?.initialize.terminal,submitted:renderer?.metrics?.submittedFrames,ordinal:Number(new URL(location.href).searchParams.get('ordinal')),backend:renderer?.backend,renderer:debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):null}
+        })()`,
         returnByValue: true,
       },
       attached.sessionId,
@@ -314,6 +319,8 @@ async function workerState(cdp: RawCdp, target: Record<string, unknown>): Promis
       target: target.targetId,
       terminal: value.terminal,
       ordinal: numeric(value.ordinal),
+      backend: typeof value.backend === 'string' ? value.backend : undefined,
+      renderer: typeof value.renderer === 'string' ? value.renderer : null,
       submitted: typeof value.submitted === 'number' ? numeric(value.submitted) : null,
       heap: numeric(heap.usedSize),
     }
@@ -404,6 +411,11 @@ function quantile(samples: number[], fraction: number) {
 }
 async function browserResources() {
   assert.equal(process.platform, 'linux', 'original PC endpoints require Linux')
+  assert.equal(
+    Bun.spawnSync(['getconf', 'CLK_TCK']).stdout.toString().trim(),
+    '100',
+    'original 100 Hz worker endpoint required',
+  )
   if (!headless)
     assert(
       process.env.DISPLAY || process.env.WAYLAND_DISPLAY,

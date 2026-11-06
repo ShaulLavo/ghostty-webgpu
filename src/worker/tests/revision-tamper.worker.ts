@@ -18,6 +18,18 @@ scope.onmessage = ({ data }) => {
   globalThis.close = () => {
     closing = true
   }
+  const send = transport.port2.postMessage.bind(transport.port2)
+  Reflect.set(
+    transport.port2,
+    'postMessage',
+    (message: WorkerMessage, transfer: Transferable[] = []) => {
+      if (mode === 'post' && armed && message.type === 'frame') {
+        armed = false
+        throw new Error('injected synchronous frame post failure')
+      }
+      send(message, transfer)
+    },
+  )
   data.port.onmessage = ({ data: request }: MessageEvent<WorkerRequest>) => {
     const transfer: Transferable[] = []
     if (request.command === 'open' || request.command === 'attachOutput')

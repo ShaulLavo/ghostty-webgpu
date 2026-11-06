@@ -110,6 +110,8 @@ function sample(
       target: `target-${ordinal}`,
       terminal: `terminal-${ordinal}`,
       ordinal,
+      renderer: 'NVIDIA RTX 3060 Ti',
+      backend: 'webgl2',
       submitted: 60,
       heap: 100,
     })),

@@ -2311,6 +2311,7 @@ it.each([
   ['epoch', 'frame.store'],
   ['missing', 'frame.revision'],
   ['drop', 'frame.base'],
+  ['post', 'worker'],
 ])('fails and clears reception after a %s packet', async (mode, operation) => {
   const { terminal, reception, arm } = await revisionTamper(mode!)
   const errors: unknown[] = []
@@ -2390,4 +2391,41 @@ it('keeps interleaved scrolling terminals isolated at unequal cadence and matche
     )
     expect(observations[index]).toEqual(observations[index + 2])
   }
+})
+
+it('drains bounded queued output after a stalled page without losing ordered owned frames', async () => {
+  const terminal = await create('webgl')
+  const main = await create('main')
+  await terminal.open(container())
+  await main.open(container())
+  await eventually(
+    () =>
+      !!terminal.submittedFrame &&
+      !terminal.hasPendingFrame &&
+      !!main.submittedFrame &&
+      !main.hasPendingFrame,
+  )
+  const frames: number[] = []
+  const payloads: unknown[] = []
+  terminal.onText((text) => {
+    frames.push(text.frame)
+    payloads.push(structuredClone(text))
+  })
+  const writes = Array.from({ length: 5 }, (_, i) => `\r\nqueued ${i} 界 é`)
+  const pending = writes.flatMap((input) => [terminal.write(input), main.write(input)])
+  const until = performance.now() + 100
+  while (performance.now() < until) {
+    /* Deliberately hold delivery, not the worker. */
+  }
+  await Promise.all(pending)
+  await eventually(() => terminal.visibleLines().some((line) => line.includes('queued 4')))
+  await eventually(
+    () => JSON.stringify(terminal.visibleLines()) === JSON.stringify(main.visibleLines()),
+  )
+  expect(payloads.length).toBeGreaterThan(0)
+  for (let i = 1; i < frames.length; i += 1) expect(frames[i]).toBe(frames[i - 1]! + 1)
+  const retained = structuredClone(payloads)
+  await terminal.write('\r\nnext publication')
+  await eventually(() => terminal.visibleLines().some((line) => line.includes('next publication')))
+  expect(payloads.slice(0, retained.length)).toEqual(retained)
 })
