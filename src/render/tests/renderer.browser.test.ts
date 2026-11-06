@@ -1211,7 +1211,7 @@ it('keeps native frame callbacks current for DOM text and cursor consumers', asy
   }
 })
 
-it('delivers both paint callbacks before a nested resize repaint', async () => {
+it('drops stale paint callbacks after a nested resize invalidates the image', async () => {
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
   const state = runtime.createRenderState(terminal)
@@ -1237,7 +1237,7 @@ it('delivers both paint callbacks before a nested resize repaint', async () => {
   })
   try {
     clock.flushFrame()
-    expect(events).toEqual(['frame:0,1,2,3', 'rows:0,1,2,3', 'frame:0,1', 'rows:0,1'])
+    expect(events).toEqual(['frame:0,1,2,3', 'frame:0,1', 'rows:0,1'])
     expect(renderer.metrics.submittedFrames).toBe(2)
     expect(renderer.metrics.zigFrames).toBe(2)
     expect(renderer.hasPendingFrame).toBe(false)

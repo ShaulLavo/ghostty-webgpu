@@ -5,6 +5,7 @@ import {
   Terminal,
   WebGpuTerminalRenderer,
   type GhosttyWebGpuRendererFactory,
+  type GhosttyWebGpuTerminalOptions,
 } from '../../../../dist/index.js'
 import { WebGlTerminalRenderer } from '../../../../dist/render/webgl/renderer.js'
 import { FallbackTerminalRenderer } from '../../../../dist/render/shared/fallback.js'
@@ -25,7 +26,9 @@ afterEach(async () => {
 })
 afterAll(() => runtime.dispose())
 
-function factory(backend: 'webgpu' | 'webgl2' | 'canvas2d'): GhosttyWebGpuRendererFactory {
+type SourceBackend = 'webgpu' | 'webgl2' | 'canvas2d' | 'pixels'
+
+function factory(backend: SourceBackend): GhosttyWebGpuRendererFactory {
   if (backend === 'webgpu')
     return (options) => WebGpuTerminalRenderer.create({ ...options, adapterPolicy: 'any' })
   if (backend === 'webgl2')
@@ -33,16 +36,21 @@ function factory(backend: 'webgpu' | 'webgl2' | 'canvas2d'): GhosttyWebGpuRender
       options.replaceCanvas
         ? FallbackTerminalRenderer.create(options, options.replaceCanvas)
         : WebGlTerminalRenderer.create(options)
-  return (options) => CanvasTerminalRenderer.create(options)
+  return (options) =>
+    CanvasTerminalRenderer.create({
+      ...options,
+      rendererMode: backend === 'pixels' ? 'canvas2d-pixels' : 'canvas2d-fill-text',
+    })
 }
 
 async function fixture(
-  backend: 'webgpu' | 'webgl2' | 'canvas2d',
+  backend: SourceBackend,
   shader: CompiledShader = copyShader,
   beforeOpen = false,
   output?: 'webgpu' | 'webgl2',
   existing = false,
   content = '\x1b[?25l\x1b[48;2;255;0;0m          \r\n\x1b[48;2;0;255;0m          \r\n\x1b[48;2;0;0;255m          ',
+  overrides: Pick<GhosttyWebGpuTerminalOptions, 'rendererFactory'> = {},
 ) {
   const host = document.createElement('div')
   host.style.cssText = 'width:340px;height:180px'
@@ -62,7 +70,7 @@ async function fixture(
       subscribePixelRatio: () => () => {},
       createResizeObserver: () => ({ observe: () => {}, disconnect: () => {} }),
     },
-    rendererFactory: factory(backend),
+    rendererFactory: overrides.rendererFactory ?? factory(backend),
     runtime: { kind: 'borrowed', runtime },
   })
   cleanups.push(() => terminal.dispose())
@@ -558,3 +566,196 @@ it('disposes safely while a WebGPU replacement pipeline is compiling', async () 
   expect(f.terminal.lifecycle).toBe('open')
   expect(f.errors).toEqual([])
 })
+
+function alphaArtifact(): CompiledShader {
+  if (!copyShader.wgsl || !copyShader.glsl) throw new Error('Missing copy shader languages')
+  return {
+    ...copyShader,
+    wgsl: copyShader.wgsl.replace(
+      '(*color) = _e66;',
+      '(*color) = vec4<f32>(vec3<f32>(_e66.a), 1.0);',
+    ),
+    glsl: copyShader.glsl.replace('color = _e66;', 'color = vec4(vec3(_e66.a), 1.0);'),
+  }
+}
+const alphaShader = alphaArtifact()
+
+it.each(captureBackends)(
+  'observes source alpha independently and erases to fresh blank on $source with $output',
+  async ({ source, output }) => {
+    const actual = await fixture(source, alphaShader, false, output, false, transparentGlyphs)
+    const blank = await fixture(source, alphaShader, false, output, false, transparentBlank)
+    const background = { r: 29, g: 71, b: 113 }
+    actual.terminal.setTheme({ ...actual.terminal.appearance.theme, background })
+    blank.terminal.setTheme({ ...blank.terminal.appearance.theme, background })
+    await frames(3)
+    const glyph = await pixels(actual.canvas)
+    const reference = await pixels(blank.canvas)
+    expect(glyph.data.some((v, i) => i % 4 === 0 && v > 0)).toBe(true)
+    expect(glyph.data.some((v, i) => i % 4 === 0 && v > 0 && v < 255)).toBe(true)
+    expect(reference.data.every((v, i) => i % 4 === 3 || v === 0)).toBe(true)
+    await afterFrame(actual.terminal, () => actual.terminal.write(transparentBlank))
+    expect(differentPixels(await pixels(actual.canvas), reference)).toBe(0)
+    expect(actual.canvas.style.display).toBe('block')
+    expect(actual.errors.concat(blank.errors)).toEqual([])
+  },
+)
+
+it.each(captureBackends)(
+  'matches fresh overwrite, cursor movement and selection removal on $source with $output',
+  async ({ source, output }) => {
+    const actual = await transparentFixture({ source, output }, transparentGlyphs)
+    const finalText = `${transparentBlank}\x1b[38;2;255;255;255mHi`
+    await afterFrame(actual.terminal, () => actual.terminal.write(finalText))
+    const expected = await transparentFixture({ source, output }, finalText)
+    expect(differentPixels(await pixels(actual.canvas), await pixels(expected.canvas))).toBe(0)
+    await afterFrame(actual.terminal, () => actual.terminal.selectAll())
+    await afterFrame(actual.terminal, () => actual.terminal.clearSelection())
+    expect(differentPixels(await pixels(actual.canvas), await pixels(expected.canvas))).toBe(0)
+    const cursor = '\x1b[?25h\x1b[2;3H'
+    await afterFrame(actual.terminal, () => actual.terminal.write(cursor))
+    const moved = await transparentFixture({ source, output }, finalText + cursor)
+    expect(differentPixels(await pixels(actual.canvas), await pixels(moved.canvas))).toBe(0)
+    expect(actual.errors.concat(expected.errors, moved.errors)).toEqual([])
+  },
+)
+
+it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
+  'captures pixels-mode erase and already-presented blank installation with %s output',
+  async (output) => {
+    const actual = await fixture('pixels', alphaShader, false, output, false, transparentGlyphs)
+    const expected = await fixture('pixels', alphaShader, false, output, false, transparentBlank)
+    await frames(3)
+    expect(
+      differentPixels(await pixels(actual.canvas), await pixels(expected.canvas)),
+    ).toBeGreaterThan(0)
+    await afterFrame(actual.terminal, () => actual.terminal.write(transparentBlank))
+    expect(differentPixels(await pixels(actual.canvas), await pixels(expected.canvas))).toBe(0)
+    actual.handle.dispose()
+    await frames(2)
+    const handle = actual.terminal.use(createShaderAddon(alphaShader, { backend: output }))
+    cleanups.push(() => handle.dispose())
+    await handle.api.ready
+    await frames(3)
+    const overlay =
+      actual.terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+    if (!overlay) throw new Error('Missing blank overlay')
+    expect(overlay.style.display).toBe('block')
+    expect(differentPixels(await pixels(overlay), await pixels(expected.canvas))).toBe(0)
+  },
+)
+
+it.each([false, true])('removes the overlay on actual DOM fallback, paused=%s', async (paused) => {
+  const sourceFactory: GhosttyWebGpuRendererFactory = (options, signal) => {
+    const replace = options.replaceCanvas
+    if (!replace) throw new Error('Missing replacement factory')
+    return FallbackTerminalRenderer.create(
+      options,
+      () => {
+        const canvas = replace()
+        if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Expected HTML canvas')
+        const getContext = canvas.getContext.bind(canvas)
+        Object.defineProperty(canvas, 'getContext', {
+          value: (kind: string, options?: unknown) =>
+            kind === '2d' ? null : getContext(kind, options),
+        })
+        return canvas
+      },
+      signal,
+      [],
+    )
+  }
+  const f = await fixture('webgl2', copyShader, false, 'webgl2', false, transparentGlyphs, {
+    rendererFactory: sourceFactory,
+  })
+  f.handle.api.setPaused(paused)
+  const original = f.terminal.canvas
+  const lose = original?.getContext('webgl2')?.getExtension('WEBGL_lose_context')
+  if (!lose) throw new Error('Missing source context-loss control')
+  const backends: unknown[] = []
+  f.terminal.on('frame', () => backends.push(f.terminal.diagnostics.rendererBackend))
+  lose.loseContext()
+  await expect.poll(() => f.terminal.diagnostics.rendererBackend).toBe('dom')
+  await expect.poll(() => backends.includes('dom')).toBe(true)
+  await expect.poll(() => f.canvas.isConnected).toBe(false)
+  expect(f.errors).toMatchObject([{ code: 'backend' }])
+  expect(f.terminal.lifecycle).toBe('open')
+  await afterFrame(f.terminal, () => f.terminal.write('\rDOM alive'))
+  expect(f.terminal.visibleLines()[0]).toContain('DOM alive')
+  expect(f.terminal.element?.textContent).toContain('DOM alive')
+  expect(f.errors).toHaveLength(1)
+})
+
+it('fails a public-options-only factory explicitly while keeping its terminal usable', async () => {
+  const independent: GhosttyWebGpuRendererFactory = (options) =>
+    CanvasTerminalRenderer.create({
+      canvas: options.canvas,
+      columns: options.columns,
+      rows: options.rows,
+      font: options.font,
+      renderState: options.renderState,
+      onRowsChanged: options.onRowsChanged,
+      onError: options.onError,
+    })
+  const host = document.createElement('div')
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    rendererFactory: independent,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  const source = terminal
+  cleanups.push(() => source.dispose())
+  await source.open(host)
+  const errors: unknown[] = []
+  const handle = source.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => handle.dispose())
+  await expect(handle.api.ready).rejects.toMatchObject({ code: 'backend' })
+  expect(errors).toMatchObject([{ code: 'backend' }])
+  expect(source.element?.querySelector('[data-ghostty-shader]')).toBeNull()
+  source.write('alive')
+  expect(source.readLines(0, 1)[0]?.text).toContain('alive')
+  expect(source.lifecycle).toBe('open')
+  source.dispose()
+  expect(source.lifecycle).toBe('disposed')
+})
+
+it('erases correctly after canvas-to-canvas source recovery', async () => {
+  const f = await transparentFixture({ source: 'webgl2', output: 'webgl2' }, transparentGlyphs)
+  const original = f.terminal.canvas
+  const lose = original?.getContext('webgl2')?.getExtension('WEBGL_lose_context')
+  if (!lose) throw new Error('Missing source loss extension')
+  lose.loseContext()
+  await expect.poll(() => f.terminal.diagnostics.rendererBackend).toBe('canvas2d')
+  await afterFrame(f.terminal, () => f.terminal.write(transparentGlyphs))
+  const reference = await transparentFixture(
+    { source: 'canvas2d', output: 'webgl2' },
+    transparentBlank,
+  )
+  await afterFrame(f.terminal, () => f.terminal.write(transparentBlank))
+  expect(differentPixels(await pixels(f.canvas), await pixels(reference.canvas))).toBe(0)
+  expect(f.canvas.style.display).toBe('block')
+  expect(f.errors.concat(reference.errors)).toEqual([])
+})
+
+it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
+  'installs visibly on an already-presented blank WebGL source with %s output',
+  async (output) => {
+    const f = await fixture('webgl2', alphaShader, false, output, false, transparentBlank)
+    f.handle.dispose()
+    await frames(2)
+    const handle = f.terminal.use(createShaderAddon(alphaShader, { backend: output }))
+    cleanups.push(() => handle.dispose())
+    await handle.api.ready
+    await frames(3)
+    const overlay = f.terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+    if (!overlay) throw new Error('Missing blank output')
+    expect(overlay.style.display).toBe('block')
+    expect(
+      (await pixels(overlay)).data.every((value, index) => index % 4 === 3 || value === 0),
+    ).toBe(true)
+    expect(f.errors).toEqual([])
+  },
+)

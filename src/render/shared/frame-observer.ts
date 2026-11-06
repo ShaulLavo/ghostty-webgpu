@@ -1,6 +1,8 @@
 import type { RenderCursorSnapshot, RenderRow } from '../../core/types.js'
 import {
+  attachCanvasImage,
   observeDisplayedFrame,
+  type CanvasImagePublisher,
   retainDisplayedFrame,
   type DisplayedFrameOptions,
   type DisplayedFrameSource,
@@ -32,10 +34,12 @@ type FrameObserverOptions = Pick<
 export interface PreparedFrame {
   accept(): void
   discard(): void
-  notify(): void
+  notify(image?: 'drawn' | 'retained'): void
 }
 
 export class FrameObserver {
+  private publisher?: CanvasImagePublisher
+  private disposed = false
   private generation = 0
   private current = false
   private retained = false
@@ -49,6 +53,20 @@ export class FrameObserver {
     this.rowCount = options.rows
   }
 
+  activateCanvasImage(): void {
+    this.publisher = this.options[attachCanvasImage]?.()
+  }
+
+  invalidate(): void {
+    this.generation += 1
+  }
+
+  dispose(): void {
+    this.disposed = true
+    this.invalidate()
+    this.publisher?.dispose()
+  }
+
   get requiresFullRows(): boolean {
     return Boolean(this.options.onRowsPainted || (this.options.onFrame && this.rowsNeeded))
   }
@@ -58,6 +76,7 @@ export class FrameObserver {
   }
 
   resize(rows = this.rowCount): void {
+    this.invalidate()
     this.rowCount = rows
     this.retained = false
     this.clearRows()
@@ -80,10 +99,11 @@ export class FrameObserver {
     paintedCursor: Readonly<CursorState> | undefined,
     changed: readonly number[],
     rows?: readonly RenderRow[],
+    image: 'drawn' | 'retained' = 'retained',
   ): void {
     const frame = this.capture(state, cursor, paintedCursor, changed, rows)
     frame.accept()
-    frame.notify()
+    frame.notify(image)
   }
 
   capture(
@@ -140,11 +160,12 @@ export class FrameObserver {
     const textFrame = onTextFrame ? Object.freeze({ ...snapshot, rows: ownedTextRows! }) : undefined
     let settled = false
     let accepted = false
+    const isCurrent = () => !this.disposed && generation === this.generation
     return {
       accept: () => {
         if (settled) return
         settled = true
-        if (generation !== this.generation) {
+        if (!isCurrent()) {
           nativeFrame?.discard()
           return
         }
@@ -163,16 +184,18 @@ export class FrameObserver {
         settled = true
         nativeFrame?.discard()
       },
-      notify: () => {
-        if (!accepted || generation !== this.generation) return
+      notify: (image = 'retained') => {
+        if (!accepted || !isCurrent()) return
+        if (image === 'drawn') this.publisher?.notify(isCurrent)
+        if (!isCurrent()) return
         if (fullFrame) onFrame?.(fullFrame)
-        if (generation !== this.generation) return
+        if (!isCurrent()) return
         if (displayedFrame) onDisplayedFrame?.(displayedFrame)
-        if (generation !== this.generation) return
+        if (!isCurrent()) return
         if (textFrame) onTextFrame?.(textFrame)
-        if (generation !== this.generation) return
+        if (!isCurrent()) return
         if (rows) onRowsPainted?.(rows)
-        if (generation !== this.generation) return
+        if (!isCurrent()) return
         onRowsChanged?.(changedRows)
       },
     }

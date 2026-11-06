@@ -1,6 +1,11 @@
 import type { NativeDisplayedFrame } from '../../core/displayed-frame.js'
-import { observeDisplayedFrame, retainDisplayedFrame } from '../../core/frame-observers.js'
+import {
+  attachCanvasImage,
+  observeDisplayedFrame,
+  retainDisplayedFrame,
+} from '../../core/frame-observers.js'
 export {
+  attachCanvasImage,
   captureRenderAcknowledgement,
   observeDisplayedFrame,
   retainDisplayedFrame,
@@ -20,7 +25,13 @@ export interface DisplayedFrameSource {
   [retainDisplayedFrame]?(options?: { full?: boolean }): NativeDisplayedFrame
 }
 
+export interface CanvasImagePublisher {
+  notify(isCurrent: () => boolean): void
+  dispose(): void
+}
+
 export interface DisplayedFrameOptions {
+  [attachCanvasImage]?: () => CanvasImagePublisher
   [observeDisplayedFrame]?: (snapshot: DisplayedTextFrame) => void
 }
 
