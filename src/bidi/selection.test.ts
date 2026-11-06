@@ -2,18 +2,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { TerminalSession } from '../term/session.js'
 
 let session: TerminalSession
-const press = (x: number, time = 1_000_000_000n) =>
+const press = (x: number, time = 1_000_000_000n, y = 0) =>
   session.selectionPress({
-    viewport: { x, y: 0 },
-    position: { x: x * 10 + 5, y: 5 },
+    viewport: { x, y },
+    position: { x: x * 10 + 5, y: y * 20 + 5 },
     repeatDistance: 10,
     repeatIntervalNanoseconds: 500_000_000n,
     timeNanoseconds: time,
   })
-const drag = (x: number) =>
+const drag = (x: number, y = 0) =>
   session.selectionDrag({
-    viewport: { x, y: 0 },
-    position: { x: x * 10 + 5, y: 5 },
+    viewport: { x, y },
+    position: { x: x * 10 + 5, y: y * 20 + 5 },
     geometry: { columns: 40, cellWidth: 10, paddingLeft: 0, screenHeight: 160 },
   })
 
@@ -158,4 +158,38 @@ describe('BiDi native selection', () => {
       copy.dispose()
     }
   })
+})
+
+it('keeps the visual selection on the frozen row when held output scrolls the live screen', () => {
+  session.resize({ columns: 20, rows: 4 })
+  session.write('\x1b[2J\x1b[3;1Hab שלום cd')
+  press(3, 1_000_000_000n, 2)
+  drag(1, 2)
+  session.selectionRelease({ x: 1, y: 2 })
+  const state = session.renderState
+  state.update()
+  const selected = () =>
+    state.readRows().flatMap((row) => {
+      const columns = row.cells.filter((cell) => cell.selected).map((cell) => cell.x)
+      return columns.length ? [{ y: row.y, columns }] : []
+    })
+  expect(selected()).toEqual([{ y: 2, columns: [1, 2, 6] }])
+  expect(session.getSelection()).toBe('b ם')
+  state.acknowledge()
+  session.write('\x1b[?2026h')
+  const version = state.snapshotVersion
+  session.write('\r\n'.repeat(5))
+  state.update()
+  expect(state.renderHeld).toBe(true)
+  expect(state.snapshotVersion).toBe(version)
+  expect(session.scrollbar.offset).toBe(4)
+  expect(selected()).toEqual([{ y: 2, columns: [1, 2, 6] }])
+  expect(session.getSelection()).toBe('b ם')
+  session.write('\x1b[?2026l')
+  state.update()
+  expect(state.snapshotVersion).not.toBe(version)
+  expect(selected()).toEqual([])
+  session.scrollToTop()
+  state.update()
+  expect(selected()).toEqual([{ y: 2, columns: [1, 2, 6] }])
 })
