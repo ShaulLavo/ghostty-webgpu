@@ -1,6 +1,6 @@
 # Own BiDi selection in submitted full-frame snapshots
 
-Status: Resolved by [PR 82](https://github.com/ShaulLavo/ghostty-webgpu/pull/82), subject to merge and release. Its reviewed fix captures readers and selection records at capture time and preserves them for the publication lifetime. This is separate from the rejected revision-publication optimization and the held-output selection fix. The rejected transport and its new accessors were not adopted.
+Status: Resolved by [PR 82](https://github.com/ShaulLavo/ghostty-webgpu/pull/82), merged as `f30e81b0f552afa7de81430b751972acfe8b3007`. Its reviewed fix captures readers and selection records at capture time and preserves them for the publication lifetime. This is separate from the rejected revision-publication optimization and the held-output selection fix. The rejected transport and its new accessors were not adopted.
 
 ## Confirmed problem
 
