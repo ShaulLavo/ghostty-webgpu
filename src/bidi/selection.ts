@@ -17,6 +17,11 @@ function order(a: SelectionPoint, b: SelectionPoint): number {
 
 export class BidiSelectionGesture extends GhosttySelectionGesture {
   private readonly mapper = new RowBidiMapper()
+  private readonly unsubscribeRenderHold: () => void
+  private heldSelection?: {
+    readonly version: number
+    readonly selected: ReadonlySet<string> | undefined
+  }
   private mask?: { readonly pins: CellPin[]; readonly rectangle: boolean }
   private gesture?: {
     readonly anchor: SelectionPoint
@@ -29,6 +34,13 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
     private readonly source: GhosttyRenderState,
   ) {
     super(vt)
+    this.unsubscribeRenderHold = vt.subscribeRenderHold((held) => {
+      if (!held) return
+      this.heldSelection = {
+        version: source.snapshotVersion,
+        selected: this.selectedCells(),
+      }
+    })
   }
 
   logical(point: SelectionPoint): SelectionPoint {
@@ -131,20 +143,29 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
     return super.selectAll()
   }
 
-  selectedRows(rows: readonly RenderRow[]): readonly RenderRow[] {
-    if (!this.mask) return rows
-    if (!this.hasSelection) this.clearPins()
-    if (!this.mask) return rows
-    const selected = new Set(this.points().map((point) => `${point.y}:${point.x}`))
+  private selectedCells(): ReadonlySet<string> | undefined {
+    if (!this.mask) return undefined
+    if (!this.hasSelection) {
+      this.clearPins()
+      return undefined
+    }
     const offset = this.vt.scrollbar.offset
+    return new Set(this.points().map((point) => `${point.y - offset}:${point.x}`))
+  }
+
+  selectedRows(rows: readonly RenderRow[]): readonly RenderRow[] {
+    if (this.heldSelection?.version !== this.source.snapshotVersion) this.heldSelection = undefined
+    // A released hold still owns these coordinates until the native snapshot advances.
+    const selected = this.heldSelection ? this.heldSelection.selected : this.selectedCells()
+    if (!selected) return rows
     return rows.map((row) => ({
       ...row,
       packed: undefined,
       cells: row.cells.map((cell) => ({
         ...cell,
         selected:
-          selected.has(`${row.y + offset}:${cell.x}`) ||
-          (cell.continuation && selected.has(`${row.y + offset}:${cell.x - 1}`)),
+          selected.has(`${row.y}:${cell.x}`) ||
+          (cell.continuation && selected.has(`${row.y}:${cell.x - 1}`)),
       })),
     }))
   }
@@ -225,6 +246,8 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
   }
 
   override dispose(): void {
+    this.unsubscribeRenderHold()
+    this.heldSelection = undefined
     this.clearPins()
     this.clearGesture()
     super.dispose()
