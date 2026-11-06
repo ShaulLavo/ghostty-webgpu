@@ -2277,3 +2277,117 @@ it.each(['main', 'webgpu', 'webgl'] as const)(
   },
   15_000,
 )
+
+async function revisionTamper(mode: string) {
+  const channel = new BroadcastChannel(`revision-${crypto.randomUUID()}`)
+  onTestFinished(() => channel.close())
+  const url = new URL('./tests/revision-tamper.worker.ts', import.meta.url)
+  url.searchParams.set('channel', channel.name)
+  url.searchParams.set('mode', mode)
+  const terminal = await WorkerTerminal.create({
+    assets,
+    backend: 'webgl',
+    workerUrl: url,
+    appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+    fonts: [{ family, source: { url: fontUrl } }],
+  })
+  active.push(terminal)
+  await terminal.open(container())
+  await eventually(() => terminal.submittedFrame !== undefined)
+  const execution = Reflect.get(terminal, 'execution')
+  const reception = Reflect.get(execution, 'reception')
+  let armed = false
+  channel.onmessage = ({ data }) => {
+    if (data === 'armed') armed = true
+  }
+  async function arm() {
+    channel.postMessage('arm')
+    await eventually(() => armed)
+  }
+  return { terminal, execution, reception, channel, arm }
+}
+
+it.each([
+  ['epoch', 'frame.store'],
+  ['missing', 'frame.revision'],
+  ['drop', 'frame.base'],
+])('fails and clears reception after a %s packet', async (mode, operation) => {
+  const { terminal, reception, arm } = await revisionTamper(mode!)
+  const errors: unknown[] = []
+  terminal.on('error', (error) => errors.push(error))
+  await arm()
+  await terminal.write('changed contents').catch(() => {})
+  if (mode === 'drop') {
+    await new Promise((resolve) => setTimeout(resolve, 80))
+    await terminal.write('\rnext contents').catch(() => {})
+  }
+  await eventually(() => errors.length > 0)
+  expect(errors).toContainEqual(
+    expect.objectContaining({ cause: expect.objectContaining({ operation }) }),
+  )
+  expect(reception.size).toBe(0)
+  expect(Reflect.get(reception, 'store')).toBe(0)
+})
+
+it('drops an additional foreign copy, decodes the genuine frame and clears on disposal', async () => {
+  const { terminal, reception, arm } = await revisionTamper('foreign')
+  const errors: unknown[] = []
+  terminal.on('error', (error) => errors.push(error))
+  await arm()
+  await terminal.write('genuine content')
+  await eventually(() => terminal.visibleLines().some((line) => line.includes('genuine content')))
+  expect(errors).toEqual([])
+  expect(reception.size).toBeGreaterThan(0)
+  await terminal.dispose()
+  expect(reception.size).toBe(0)
+})
+
+it('stops promptly on a malformed frame with no outstanding public request', async () => {
+  const { terminal, execution, reception, channel } = await revisionTamper('malformed')
+  const errors: unknown[] = []
+  terminal.on('error', (error) => errors.push(error))
+  await eventually(() => !execution.hasPendingRequest)
+  channel.postMessage('malformed')
+  await eventually(() => execution.failed)
+  expect(errors).toHaveLength(1)
+  expect(reception.size).toBe(0)
+  expect(Reflect.get(execution, 'projection')).toBeUndefined()
+  expect(Reflect.get(execution, 'summary')).toBeUndefined()
+})
+
+it('keeps interleaved scrolling terminals isolated at unequal cadence and matches main-entry snapshots', async () => {
+  const terminals = await Promise.all([
+    create('webgl'),
+    create('webgl'),
+    create('main'),
+    create('main'),
+  ])
+  for (const terminal of terminals) await terminal.open(container())
+  for (const terminal of terminals)
+    await eventually(() => !!terminal.submittedFrame && !terminal.hasPendingFrame)
+  const observations = terminals.map(() => [] as unknown[])
+  terminals.forEach((terminal, index) =>
+    terminal.onText((text) =>
+      observations[index]!.push(structuredClone({ rows: text.rows, rowPatches: text.rowPatches })),
+    ),
+  )
+  for (let step = 0; step < 8; step += 1) {
+    const index = step % 2
+    const input = `\r\n${index}:${step} 界 é 🧑‍💻`
+    await Promise.all([terminals[index]!.write(input), terminals[index + 2]!.write(input)])
+    await eventually(() =>
+      terminals[index]!.visibleLines().some((line) => line.includes(`${index}:${step}`)),
+    )
+  }
+  for (const index of [0, 1]) {
+    await eventually(
+      () =>
+        JSON.stringify(terminals[index]!.visibleLines()) ===
+        JSON.stringify(terminals[index + 2]!.visibleLines()),
+    )
+    expect(await terminals[index]!.frameSnapshot()).toEqual(
+      await terminals[index + 2]!.frameSnapshot(),
+    )
+    expect(observations[index]).toEqual(observations[index + 2])
+  }
+})

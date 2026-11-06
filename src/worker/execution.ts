@@ -28,6 +28,7 @@ import { TerminalWorkerError, workerError } from './structured-errors.js'
 import { freezeWorkerValue } from './owned.js'
 import { readOpeningFont } from './opening-font.js'
 import { workerOperationTimeout } from './protocol.js'
+import { RevisionReception, receiveRevisionFrame } from './revision-reception.js'
 
 interface Pending {
   readonly operation: string
@@ -58,6 +59,7 @@ export class WorkerTerminalExecution {
   private readonly emitters = new Map<TerminalSessionEventType, EventEmitter<unknown>>()
   private readonly terminal: string
   private readonly generation = 1
+  private readonly reception: RevisionReception
   private control = 0
   private output = 0
   private readonly outputControls = new Set<number>()
@@ -109,6 +111,7 @@ export class WorkerTerminalExecution {
       resolveLinkDiscovery: (request) => this.request('resolveLinkDiscovery', [request]),
     })
     this.terminal = crypto.randomUUID()
+    this.reception = new RevisionReception({ terminal: this.terminal, generation: this.generation })
     try {
       this.worker = createWorker(options.workerUrl)
     } catch (cause) {
@@ -271,13 +274,13 @@ export class WorkerTerminalExecution {
       return
     }
     if (message.type === 'frame') {
-      if (this.disposed || message.summary.frame <= (this.summary?.frame ?? 0)) return
-      if (message.base !== (this.summary?.frame ?? 0)) {
+      if (this.disposed) return
+      let received: ReturnType<typeof receiveRevisionFrame>
+      try {
+        received = receiveRevisionFrame(this.reception, this.summary, message)
+      } catch (cause) {
         this.fail(
-          workerError('protocol', 'frame.base', {
-            base: message.base,
-            frame: this.summary?.frame ?? 0,
-          }),
+          cause instanceof TerminalWorkerError ? cause : workerError('protocol', 'frame.shape', {}),
         )
         return
       }
@@ -286,10 +289,10 @@ export class WorkerTerminalExecution {
         this.state = freezeWorkerValue({
           ...this.state,
           mouseTracking: message.mouseTracking,
-          renderHeld: message.snapshot.renderHeld ?? false,
+          renderHeld: received.projection.renderHeld ?? false,
         })
-      this.summary = freezeWorkerValue(message.summary)
-      this.projection = freezeWorkerValue(message.snapshot)
+      this.summary = received.summary
+      this.projection = received.projection
       this.frameListener?.(this.textFrame()!)
       return
     }
@@ -540,6 +543,7 @@ export class WorkerTerminalExecution {
     this.stop()
   }
   private stop(): void {
+    this.reception.clear()
     this.links.dispose()
     this.worker.terminate()
     this.port.close()

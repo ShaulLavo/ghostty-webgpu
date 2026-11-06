@@ -380,6 +380,8 @@ async function createIntegratedHarness(
 function countedTextFrame(frame: NativeDisplayedFrame, read: () => void): NativeDisplayedFrame {
   const observed: NativeDisplayedFrame = {
     token: frame.token,
+    revisionSource: frame.revisionSource,
+    readTextRevisions: () => frame.readTextRevisions(),
     accept: () => frame.accept(),
     discard: () => frame.discard(),
     readRows: (options) => frame.readRows(options),

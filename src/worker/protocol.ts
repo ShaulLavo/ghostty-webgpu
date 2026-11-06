@@ -1,6 +1,6 @@
 import type { LocalTerminalExecution } from '../dom/execution-local.js'
 import type { TerminalElementPadding } from '../dom/elements.js'
-import type { TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
+import type { TerminalSubmission } from '../dom/submitted-frame.js'
 import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
 import type {
@@ -48,12 +48,22 @@ export interface WorkerState {
   readonly mouseTracking: boolean
   readonly backend?: 'webgpu' | 'webgl2'
 }
+export interface WorkerRevisionRow {
+  readonly revision: number
+  readonly text: string
+  readonly cells: readonly string[]
+  readonly continuations: readonly boolean[]
+}
 interface WorkerSubmission extends WorkerWatermarks {
   readonly type: 'frame'
   readonly mouseTracking: boolean
   readonly base: number
-  readonly summary: TerminalSubmittedSnapshot
-  readonly snapshot: RendererTextFrameSnapshot
+  readonly frame: number
+  readonly submission: Omit<TerminalSubmission, 'snapshot' | 'previousTextRows'>
+  readonly snapshot: Omit<RendererTextFrameSnapshot, 'rows'>
+  readonly store: number
+  readonly revisions: readonly number[]
+  readonly content: readonly WorkerRevisionRow[]
 }
 
 type NativeCommands = Pick<

@@ -1,4 +1,5 @@
-import type { WorkerMessage, WorkerRequest } from '../../src/worker/protocol.js'
+import type { WorkerRequest } from '../../src/worker/protocol.js'
+import type { WorkerMessage } from './codec.js'
 import { RowEncoder, RowDecoder, type DeltaFrame } from './codec.js'
 
 type Timing = {

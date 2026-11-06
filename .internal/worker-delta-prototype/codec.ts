@@ -1,8 +1,18 @@
-import type { WorkerMessage } from '../../src/worker/protocol.js'
+import type { WorkerMessage as CurrentWorkerMessage } from '../../src/worker/protocol.js'
 import type { RendererTextFrameRow } from '../../src/render/shared/types.js'
 import { freezeWorkerValue } from '../../src/worker/owned.js'
 
-type Frame = Extract<WorkerMessage, { type: 'frame' }>
+import type { TerminalSubmittedSnapshot } from '../../src/dom/submitted-frame.js'
+import type { RendererTextFrameSnapshot } from '../../src/render/shared/types.js'
+
+type Frame = Pick<
+  Extract<CurrentWorkerMessage, { type: 'frame' }>,
+  'type' | 'terminal' | 'generation' | 'control' | 'output' | 'base' | 'mouseTracking'
+> & {
+  readonly summary: TerminalSubmittedSnapshot
+  readonly snapshot: RendererTextFrameSnapshot
+}
+export type WorkerMessage = Exclude<CurrentWorkerMessage, { type: 'frame' }> | Frame
 export interface DeltaFrame extends Omit<Frame, 'snapshot' | 'summary'> {
   readonly snapshot: Omit<Frame['snapshot'], 'rows'>
   readonly summary: Omit<Frame['summary'], 'rows' | 'rowPatches'>

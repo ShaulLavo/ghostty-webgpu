@@ -9,6 +9,8 @@ type DisplayedTextOptions = Pick<ReadTextRowsOptions, 'rows'>
 
 export interface NativeDisplayedFrame {
   readonly token: number
+  readonly revisionSource: object
+  readTextRevisions(): readonly number[]
   accept(): void
   discard(): void
   readRows(options?: DisplayedRowsOptions): readonly RenderRow[]
@@ -122,7 +124,11 @@ class RevisionTextCache {
       if (!readable.includes(slot)) this.slotRevisions.delete(slot)
   }
 
-  private readRevisions(slot: NativeSlot): number[] {
+  textRevisions(slot: NativeSlot): readonly number[] {
+    return this.slotRevisions.get(slot) ?? this.readRevisions(slot)
+  }
+
+  private readRevisions(slot: NativeSlot): readonly number[] {
     const size = slot.rows * Float64Array.BYTES_PER_ELEMENT
     if (size > this.revisionsSize) {
       const revisions = this.runtime.memory.allocate(size)
@@ -131,8 +137,8 @@ class RevisionTextCache {
       this.revisionsSize = size
     }
     this.runtime.bridge.readRetainedRevisions(slot.handle, this.revisions)
-    const revisions = Array.from(
-      new Float64Array(this.runtime.exports.memory.buffer, this.revisions, slot.rows),
+    const revisions = Object.freeze(
+      Array.from(new Float64Array(this.runtime.exports.memory.buffer, this.revisions, slot.rows)),
     )
     this.slotRevisions.set(slot, revisions)
     return revisions
@@ -166,6 +172,7 @@ function readableSlots(frames: DisplayedFrames): readonly (NativeSlot | undefine
 }
 
 class DisplayedFrame implements NativeDisplayedFrame {
+  #revisions: readonly number[] | undefined
   #rows: readonly RenderTextRow[] | undefined
   #previousRows: readonly RenderTextRow[] | undefined
 
@@ -174,6 +181,7 @@ class DisplayedFrame implements NativeDisplayedFrame {
     private readonly current: NativeSlot,
     private readonly previous: NativeSlot | undefined,
     readonly token: number,
+    readonly revisionSource: object,
   ) {}
 
   accept(): void {
@@ -192,6 +200,11 @@ class DisplayedFrame implements NativeDisplayedFrame {
     if (!pending) return
     this.frames.pending = undefined
     this.frames.textCache.discard(pending)
+  }
+
+  readTextRevisions(): readonly number[] {
+    this.active()
+    return (this.#revisions ??= this.frames.textCache.textRevisions(this.current))
   }
 
   readRows(options: DisplayedRowsOptions = noOptions): readonly RenderRow[] {
@@ -238,6 +251,7 @@ class DisplayedFrame implements NativeDisplayedFrame {
 }
 
 export class DisplayedFrameStore {
+  private readonly revisionSource = Object.freeze({})
   private token = 0
   private readonly frames: DisplayedFrames
 
@@ -307,7 +321,9 @@ export class DisplayedFrameStore {
     const token = ++this.token
     frames.spare = captured
     frames.pending = { slot: captured, token, insertedRevisions: new Set() }
-    return Object.freeze(new DisplayedFrame(frames, captured, frames.current, token))
+    return Object.freeze(
+      new DisplayedFrame(frames, captured, frames.current, token, this.revisionSource),
+    )
   }
 
   dispose(): void {

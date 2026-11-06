@@ -32,6 +32,8 @@ import type {
 } from './protocol.js'
 import { workerCommandNames, workerOperationTimeout } from './protocol.js'
 import { serializeWorkerFailure, TerminalWorkerError, workerError } from './structured-errors.js'
+import { RevisionPublisher } from './revision-publisher.js'
+import { observeDisplayedFrame, type DisplayedTextFrame } from '../render/shared/displayed-frame.js'
 
 interface WorkerScope {
   readonly fonts: FontFaceSet
@@ -61,6 +63,8 @@ function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
 }
 
 export class TerminalWorkerRuntime {
+  private readonly publisher = new RevisionPublisher()
+  private displayedFrame?: DisplayedTextFrame
   private execution?: LocalTerminalExecution
   private renderer?: GhosttyWebGpuRenderer
   private inactiveCursorStyle?: InactiveCursorStyle
@@ -294,8 +298,8 @@ export class TerminalWorkerRuntime {
       textBlink: this.initialize.textBlink,
       theme: execution.appearance.rendererTheme,
       needsFrameRows: () => true,
-      onTextFrame: (snapshot: Parameters<LocalTerminalExecution['submit']>[0]) =>
-        this.submitFrame(snapshot),
+      retainDisplayedText: true,
+      [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => this.submitFrame(snapshot),
       onRowsChanged: () => {},
       onCleanUpdate: () => {
         const before = execution.submittedFrame?.nativeRevision
@@ -305,7 +309,10 @@ export class TerminalWorkerRuntime {
           before !== execution.submittedFrame?.nativeRevision ||
           held !== execution.textFrame()?.renderHeld
         )
-          this.submitFrame(execution.textFrame()!)
+          this.submitFrame({
+            ...execution.textFrame()!,
+            nativeFrame: this.displayedFrame?.nativeFrame,
+          })
       },
       onError: (cause: unknown) => this.fail(cause),
     }
@@ -425,14 +432,38 @@ export class TerminalWorkerRuntime {
     execution.submit(snapshot)
     const summary = execution.submittedFrame
     if (!summary || this.disposed) return
-    this.post({
-      ...this.watermarks(),
-      type: 'frame',
-      base: summary.frame - 1,
-      mouseTracking: execution.mouseTracking,
-      summary,
-      snapshot: execution.textFrame()!,
-    })
+    try {
+      if (!snapshot.nativeFrame)
+        throw workerError('protocol', 'frame.revision', { nativeFrame: false })
+      const content = this.publisher.encode(snapshot.nativeFrame)
+      this.displayedFrame = snapshot
+      this.post({
+        ...this.watermarks(),
+        type: 'frame',
+        base: summary.frame - 1,
+        frame: summary.frame,
+        mouseTracking: execution.mouseTracking,
+        submission: {
+          nativeRevision: summary.nativeRevision,
+          snapshotVersion: summary.snapshotVersion,
+          layout: summary.layout,
+          grid: summary.grid,
+          font: summary.font,
+          padding: summary.padding,
+          theme: summary.theme,
+          selection: summary.selection,
+          scrollbar: summary.scrollbar,
+        },
+        snapshot: {
+          renderHeld: snapshot.renderHeld,
+          cursor: snapshot.cursor,
+          paintedCursor: snapshot.paintedCursor,
+        },
+        ...content,
+      })
+    } catch (cause) {
+      this.fail(cause)
+    }
   }
 
   private subscribe(): void {
@@ -749,6 +780,8 @@ export class TerminalWorkerRuntime {
 
   private async performCleanup(): Promise<void> {
     this.disposed = true
+    this.publisher.clear()
+    this.displayedFrame = undefined
     this.abort.abort()
     this.canvasReplacement?.reject(workerError('disposed', 'renderer.canvas', { disposed: true }))
     this.canvasReplacement = undefined
