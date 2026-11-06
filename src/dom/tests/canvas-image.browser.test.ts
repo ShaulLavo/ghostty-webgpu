@@ -7,6 +7,7 @@ import { WebGpuTextPass } from '../../../dist/render/webgpu/text-pass.js'
 import { FrameCoordinator } from '../../../dist/render/shared/frame-coordinator.js'
 import { TestClock } from '../../render/webgl/tests/fixture.js'
 import { subscribeCanvasImage } from '../../../packages/shaders/src/canvas-image.js'
+import { CanvasImageRelay } from '../canvas-image.js'
 
 const cleanups: (() => unknown)[] = []
 let runtime: GhosttyRuntime
@@ -276,3 +277,38 @@ it.each([false, true])(
     expect(events).toEqual(['text', 'frame:0'])
   },
 )
+
+it('reports a foreign-realm listener rejection once without an unhandled rejection', async () => {
+  const iframe = document.createElement('iframe')
+  document.body.append(iframe)
+  const child = iframe.contentWindow
+  if (!child) throw new Error('Missing foreign realm')
+  const evaluate: unknown = Reflect.get(child, 'eval')
+  if (typeof evaluate !== 'function') throw new Error('Missing foreign evaluator')
+  const rejected: unknown = evaluate.call(child, 'Promise.reject("foreign capture")')
+  expect(rejected instanceof Promise).toBe(false)
+  const unhandled: unknown[] = []
+  const preventUnhandled = (event: PromiseRejectionEvent) => {
+    event.preventDefault()
+    unhandled.push(event.reason)
+  }
+  child.addEventListener('unhandledrejection', preventUnhandled)
+  const reported: unknown[] = []
+  const relay = new CanvasImageRelay((cause) => reported.push(cause))
+  const publisher = relay.attach()
+  cleanups.push(
+    () => iframe.remove(),
+    () => relay.dispose(),
+  )
+  try {
+    relay.subscribe(() => rejected)
+    expect(() => publisher.notify(() => true)).not.toThrow()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(reported).toEqual(['foreign capture'])
+    expect(unhandled).toEqual([])
+  } finally {
+    await Promise.resolve(rejected).catch(() => {})
+    child.removeEventListener('unhandledrejection', preventUnhandled)
+  }
+})

@@ -187,3 +187,19 @@ it('tracks participation by live publisher, including replacement and failed acq
   next.dispose()
   expect(relay.subscribe(image).kind).toBe('unsupported')
 })
+
+it('adopts a promise-like listener result once and preserves a falsy rejection', async () => {
+  let reads = 0
+  const onError = vi.fn()
+  const f = fixture(onError)
+  f.relay.subscribe(() => ({
+    get then() {
+      reads += 1
+      return (_resolve: (value: unknown) => void, reject: (cause: unknown) => void) => reject(false)
+    },
+  }))
+  expect(f.publish).not.toThrow()
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(onError.mock.calls).toEqual([[false]])
+  expect(reads).toBe(1)
+})
