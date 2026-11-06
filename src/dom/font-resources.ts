@@ -24,12 +24,17 @@ export function fontResourcesMatch(
   return faces.some((face) => requested.has(decodedFamily(face.family)))
 }
 
-export function observeFontResources(
-  fonts: FontFaceSet,
-  family: () => string,
-  refresh: () => void,
-  signal: AbortSignal,
-): void {
+export function observeFontResources({
+  fonts,
+  family,
+  refresh,
+  signal,
+}: {
+  fonts: FontFaceSet
+  family: () => string
+  refresh: () => void
+  signal: AbortSignal
+}): void {
   const known = new WeakSet<FontFace>(fonts)
   const refreshed = new WeakSet<FontFace>()
   const complete = (faces: readonly FontFace[]) => {

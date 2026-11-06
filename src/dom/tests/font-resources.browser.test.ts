@@ -18,7 +18,12 @@ it.each(['dispose', 'family-change'] as const)(
     const events = new AbortController()
     const refresh = vi.fn()
     const face = new FontFace(family, `url("${resource}")`)
-    observeFontResources(document.fonts, () => requested, refresh, lifecycle.signal)
+    observeFontResources({
+      fonts: document.fonts,
+      family: () => requested,
+      refresh,
+      signal: lifecycle.signal,
+    })
     const started = vi.fn(() => {
       expect(face.status).toBe('loading')
       if (retire === 'dispose') lifecycle.abort()
@@ -48,7 +53,12 @@ it('refreshes a failed matching load when completion events are missing', async 
   document.fonts.addEventListener('loadingdone', suppress, { signal: events.signal })
   document.fonts.addEventListener('loadingerror', suppress, { signal: events.signal })
   const face = new FontFace(family, 'url(data:font/woff2;base64,AAECAw==)')
-  observeFontResources(document.fonts, () => family, refresh, lifecycle.signal)
+  observeFontResources({
+    fonts: document.fonts,
+    family: () => family,
+    refresh,
+    signal: lifecycle.signal,
+  })
   try {
     document.fonts.add(face)
     await expect(face.load()).rejects.toThrow()
@@ -67,7 +77,12 @@ it('recognizes a cached face that settled before its loading event was delivered
   const family = 'CachedResource'
   const face = new FontFace(family, `url("${resource}")`)
   const refresh = vi.fn()
-  observeFontResources(document.fonts, () => family, refresh, lifecycle.signal)
+  observeFontResources({
+    fonts: document.fonts,
+    family: () => family,
+    refresh,
+    signal: lifecycle.signal,
+  })
   try {
     // Safari can deliver a cached start event after this load has resolved.
     await face.load()
@@ -92,7 +107,12 @@ it('does not rediscover a known family after an ordinary family change', async (
   const refresh = vi.fn()
   try {
     document.fonts.add(await face.load())
-    observeFontResources(document.fonts, () => requested, refresh, lifecycle.signal)
+    observeFontResources({
+      fonts: document.fonts,
+      family: () => requested,
+      refresh,
+      signal: lifecycle.signal,
+    })
     requested = face.family
     document.fonts.add(await unrelated.load())
     document.fonts.dispatchEvent(new Event('loading'))

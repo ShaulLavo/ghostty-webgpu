@@ -1530,12 +1530,12 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> implements Termina
         this.renderer?.clearTextureAtlas?.()
       })
     }
-    observeFontResources(
-      elements.root.ownerDocument.fonts,
-      () => this.execution.appearance.font.family,
-      refreshFontResources,
-      elements.signal,
-    )
+    observeFontResources({
+      fonts: elements.root.ownerDocument.fonts,
+      family: () => this.execution.appearance.font.family,
+      refresh: refreshFontResources,
+      signal: elements.signal,
+    })
     if (!this.autoFit) {
       const font = this.fittedFont
       if (!font) throw new Error('Fixed terminal layout requires a measured font')
