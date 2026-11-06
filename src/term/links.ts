@@ -130,77 +130,58 @@ function cellText(cell: LinkCell): string {
   return ' '
 }
 
-function findStartCell(
-  textStartByCell: readonly number[],
-  textEndByCell: readonly number[],
-  boundary: number,
-): number | undefined {
-  for (let column = 0; column < textEndByCell.length; column += 1) {
-    if (textEndByCell[column]! <= boundary) continue
-    if (textStartByCell[column]! > boundary) continue
-    return column
-  }
-  return undefined
-}
-
-function findEndCell(
-  cells: readonly LinkCell[],
-  textStartByCell: readonly number[],
-  textEndByCell: readonly number[],
-  boundary: number,
-): number | undefined {
-  for (let column = textStartByCell.length - 1; column >= 0; column -= 1) {
-    if (textStartByCell[column]! >= boundary) continue
-    if (textEndByCell[column]! < boundary) continue
-    let end = column
-    while (cells[end + 1]?.continuation) end += 1
-    return end
-  }
-  return undefined
-}
-
-function buildBoundaryMap(
-  textLength: number,
-  findCell: (boundary: number) => number | undefined,
-): readonly (number | undefined)[] {
-  const result: (number | undefined)[] = []
-  for (let boundary = 0; boundary <= textLength; boundary += 1) {
-    result.push(findCell(boundary))
-  }
-  return Object.freeze(result)
-}
-
 export function createLinkLineSnapshot(line: readonly LinkCell[]): LinkLineSnapshot {
   if (!Array.isArray(line)) throw new TypeError('line must be an array of terminal cells')
   const cells = line.map(copyCell)
   const textStartByCell: number[] = []
   const textEndByCell: number[] = []
-  let text = ''
+  const textParts: string[] = []
+  let textLength = 0
   for (const cell of cells) {
-    textStartByCell.push(text.length)
-    text += cellText(cell)
-    textEndByCell.push(text.length)
+    textStartByCell.push(textLength)
+    const part = cellText(cell)
+    textParts.push(part)
+    textLength += part.length
+    textEndByCell.push(textLength)
   }
-  const startCellByTextBoundary = buildBoundaryMap(text.length, (boundary) =>
-    findStartCell(textStartByCell, textEndByCell, boundary),
+  const text = textParts.join('')
+  const startCellByTextBoundary: (number | undefined)[] = Array.from(
+    { length: textLength + 1 },
+    () => undefined,
   )
-  const endCellByTextBoundary = buildBoundaryMap(text.length, (boundary) =>
-    findEndCell(cells, textStartByCell, textEndByCell, boundary),
+  const endCellByTextBoundary: (number | undefined)[] = Array.from(
+    { length: textLength + 1 },
+    () => undefined,
   )
+  for (let column = 0; column < cells.length; column += 1) {
+    if (cells[column]!.continuation) continue
+    let end = column
+    while (cells[end + 1]?.continuation) {
+      end += 1
+    }
+    for (
+      let boundary = textStartByCell[column]!;
+      boundary < textEndByCell[column]!;
+      boundary += 1
+    ) {
+      startCellByTextBoundary[boundary] = column
+      endCellByTextBoundary[boundary + 1] = end
+    }
+  }
   return Object.freeze({
     cells: Object.freeze(cells),
-    endCellByTextBoundary,
-    startCellByTextBoundary,
+    endCellByTextBoundary: Object.freeze(endCellByTextBoundary),
+    startCellByTextBoundary: Object.freeze(startCellByTextBoundary),
     text,
     textEndByCell: Object.freeze(textEndByCell),
     textStartByCell: Object.freeze(textStartByCell),
   })
 }
 
-function normalizeRequest(request: LinkRequest): NormalizedRequest {
+function normalizeRequest(request: LinkRequest, ownedLine?: LinkLineSnapshot): NormalizedRequest {
   const row = validateIndex('row', request.row)
   const column = validateIndex('column', request.column)
-  const line = createLinkLineSnapshot(request.line)
+  const line = ownedLine?.cells === request.line ? ownedLine : createLinkLineSnapshot(request.line)
   if (column >= line.cells.length) {
     throw new RangeError(`column ${column} is outside a ${line.cells.length}-cell line`)
   }
@@ -371,9 +352,10 @@ export class LinkResolver<TEvent = unknown> {
   async resolve(
     requestValue: LinkRequest,
     isRequestCurrent?: () => boolean,
+    ownedLine?: LinkLineSnapshot,
   ): Promise<LinkResolution<TEvent>> {
     this.ensureActive('resolve')
-    const request = normalizeRequest(requestValue)
+    const request = normalizeRequest(requestValue, ownedLine)
     const generation = this.invalidate()
     if (!this.canContinue(generation, isRequestCurrent)) return { generation }
     const osc8 = resolveOsc8<TEvent>(request)

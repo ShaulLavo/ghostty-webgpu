@@ -65,6 +65,7 @@ import {
   type LinkProvider,
   type LinkProviderRegistration,
   type LinkRange,
+  type LinkLineSnapshot,
   type LinkResolution,
   type LinkResolverError,
   type LinkResolverOptions,
@@ -1661,11 +1662,12 @@ export class TerminalSession<TEvent = unknown> {
   resolveLink(
     request: TerminalLinkRequest,
     isRequestCurrent?: () => boolean,
+    ownedLine?: LinkLineSnapshot,
   ): Promise<LinkResolution<TEvent>> {
     return this.runOperation(() => {
       const osc8Uri = this.selection.linkAt({ x: request.column, y: request.row })
       const osc8Range = osc8Uri ? this.osc8Range(request, osc8Uri) : undefined
-      return this.links.resolve({ ...request, osc8Range, osc8Uri }, isRequestCurrent)
+      return this.links.resolve({ ...request, osc8Range, osc8Uri }, isRequestCurrent, ownedLine)
     })
   }
 

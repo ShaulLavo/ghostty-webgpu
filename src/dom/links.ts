@@ -1,6 +1,12 @@
 import type { RowBidiMapper } from '../bidi/row.js'
 import type { RendererTextFrameSnapshot, RendererTextFrameRow } from '../render/shared/types.js'
-import type { LinkCell, LinkHit, LinkResolution } from '../term/links.js'
+import {
+  createLinkLineSnapshot,
+  type LinkCell,
+  type LinkHit,
+  type LinkLineSnapshot,
+  type LinkResolution,
+} from '../term/links.js'
 import type { TerminalLinkRequest } from '../term/types.js'
 import {
   linkProjectionEquals,
@@ -19,7 +25,11 @@ export interface DomLinkSession {
   cancelLinkResolution?(): void
   findNextLink?(cells: readonly LinkDiscoveryCell[]): Promise<LinkDiscoveryHit<Event> | undefined>
   isLinkCurrent(resolution: LinkResolution<Event>): boolean | Promise<boolean>
-  resolveLink(request: TerminalLinkRequest): LinkResolution<Event> | Promise<LinkResolution<Event>>
+  resolveLink(
+    request: TerminalLinkRequest,
+    isRequestCurrent?: () => boolean,
+    ownedLine?: LinkLineSnapshot,
+  ): LinkResolution<Event> | Promise<LinkResolution<Event>>
 }
 
 export interface DomLinkControllerOptions {
@@ -329,8 +339,14 @@ class BrowserLinkController implements DomLinkController {
     this.lastQuery = undefined
     this.clearVisibleHit()
     if (this.options.session.findNextLink) return this.discoverBatch(cells, scope)
+    const lines = new Map<RendererTextFrameRow, LinkLineSnapshot>()
     for (const cell of cells) {
-      const resolution = await this.resolveForCell(cell.frameRow, cell, scope)
+      let line = lines.get(cell.frameRow)
+      if (!line) {
+        line = createLinkLineSnapshot(linkCells(cell.frameRow))
+        lines.set(cell.frameRow, line)
+      }
+      const resolution = await this.resolveForCell(cell.frameRow, cell, scope, line)
       if (!resolution || !this.isScopeCurrent(scope)) {
         this.finishResolution(scope)
         return false
@@ -806,17 +822,22 @@ class BrowserLinkController implements DomLinkController {
     row: RendererTextFrameRow,
     cell: ResolvedCell,
     scope: LinkScope,
+    ownedLine?: LinkLineSnapshot,
   ): Promise<LinkResolution<Event> | undefined> {
     if (!this.isScopeCurrent(scope)) {
       this.finishResolution(scope)
       return undefined
     }
     try {
-      const resolution = await this.options.session.resolveLink({
-        column: cell.column,
-        line: linkCells(row),
-        row: cell.row,
-      })
+      const resolution = await this.options.session.resolveLink(
+        {
+          column: cell.column,
+          line: ownedLine?.cells ?? linkCells(row),
+          row: cell.row,
+        },
+        undefined,
+        ownedLine,
+      )
       if (!this.isScopeCurrent(scope)) {
         this.finishResolution(scope)
         return undefined

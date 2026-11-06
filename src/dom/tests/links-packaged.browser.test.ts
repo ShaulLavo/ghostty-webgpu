@@ -1,6 +1,6 @@
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ProvidedLink } from '../../term/links.js'
+import type { LinkLineSnapshot, ProvidedLink } from '../../term/links.js'
 import type {
   WorkerInitialize,
   WorkerMessage,
@@ -80,6 +80,33 @@ describe.each(['main', 'worker'] as const)('packaged links %s', (mode) => {
     overlay.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await expect.poll(() => activations).toEqual(['https://native-only.test/owned'])
     await page.screenshot({ element: root, path: `.artifacts/packaged-links-${mode}.png` })
+  }, 20_000)
+
+  it('shares one normalized row per discovery through the packaged adapter', async () => {
+    const { terminal } = await open(mode, () => {})
+    await writeLabel(terminal, 'No links here')
+    const seen = new Map<number, Set<LinkLineSnapshot>>()
+    let calls = 0
+    terminal.registerLinkProvider({
+      provideLinks: (line, row) => {
+        calls += 1
+        const snapshots = seen.get(row) ?? new Set<LinkLineSnapshot>()
+        snapshots.add(line)
+        seen.set(row, snapshots)
+        return []
+      },
+    })
+    await expect(terminal.focusNextLink()).resolves.toBe(false)
+    const firstCalls = calls
+    expect(firstCalls).toBeGreaterThan(seen.size)
+    expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual(
+      Array.from(seen.values(), () => 1),
+    )
+    await expect(terminal.focusNextLink()).resolves.toBe(false)
+    expect(calls).toBe(firstCalls * 2)
+    expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual(
+      Array.from(seen.values(), () => 2),
+    )
   }, 20_000)
 
   it('registers, discovers and activates a provider closure held on the host', async () => {
@@ -265,32 +292,37 @@ describe.each(['main', 'worker'] as const)('packaged links lifecycle %s', (mode)
     expect(root.querySelector('[role="link"]')).toBeNull()
   }, 20_000)
 
-  it('drops a disposed pending discovery before later providers', async () => {
-    const { root, terminal } = await open(mode, () => {})
-    const pending = deferred<readonly ProvidedLink<Event>[]>()
-    let callsA = 0
-    let callsB = 0
-    terminal.registerLinkProvider({
-      provideLinks: () => {
-        callsA += 1
-        return pending.promise
-      },
-    })
-    terminal.registerLinkProvider({
-      provideLinks: () => {
-        callsB += 1
-        return []
-      },
-    })
-    await writeLabel(terminal)
-    const discovery = terminal.focusNextLink()
-    await expect.poll(() => callsA).toBe(1)
-    await terminal.dispose()
-    pending.resolve([])
-    await expect(discovery).resolves.toBe(false)
-    expect(callsB).toBe(0)
-    expect(root.querySelector('[role="link"]')).toBeNull()
-  }, 20_000)
+  it.each(['dispose', 'unregister'] as const)(
+    'drops pending discovery after %s before later providers',
+    async (change) => {
+      const { root, terminal } = await open(mode, () => {})
+      const pending = deferred<readonly ProvidedLink<Event>[]>()
+      let callsA = 0
+      let callsB = 0
+      const registration = terminal.registerLinkProvider({
+        provideLinks: () => {
+          callsA += 1
+          return pending.promise
+        },
+      })
+      terminal.registerLinkProvider({
+        provideLinks: () => {
+          callsB += 1
+          return []
+        },
+      })
+      await writeLabel(terminal)
+      const discovery = terminal.focusNextLink()
+      await expect.poll(() => callsA).toBe(1)
+      if (change === 'dispose') await terminal.dispose()
+      else registration.dispose()
+      pending.resolve([])
+      await expect(discovery).resolves.toBe(false)
+      expect(callsB).toBe(0)
+      expect(root.querySelector('[role="link"]')).toBeNull()
+    },
+    20_000,
+  )
 
   it('keeps a newer discovery current when an obsolete provider finishes', async () => {
     const { root, terminal } = await open(mode, () => {})

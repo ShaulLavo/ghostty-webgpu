@@ -30,7 +30,7 @@ WebGPU needs a secure context and a hardware adapter. Without one, the terminal 
 - WebGPU, WebGL2, DOM renderers: implemented. Compared with xterm.js in [benchmarks](benchmarks.md) on one Mac.
 - Canvas 2D `canvas2d-fill-text`: implemented. This is the Canvas default.
 - Canvas 2D `canvas2d-pixels`: experimental. Correctness tests exist. Visual calibration and performance qualification are pending.
-- Worker entry: partial. No Canvas modes. Link providers and keyboard link discovery use the host projection. Hotkeys are main-entry only.
+- Worker entry: WebGPU and WebGL2 rendering, host-side link providers, and keyboard link discovery are implemented. No Canvas modes. Hotkeys are main-entry only.
 - Accessibility: opt-in text mirror and live region (`accessibility: {}`). No screen-reader audit yet.
 - Clipboard: OSC 52 writes are denied unless the host sets a `clipboardWrite` policy. OSC 52 reads get no reply.
 - Search and image protocols: not built.

@@ -1,5 +1,5 @@
 import type { TerminalFittedFont } from '../../../term/types.js'
-import { readFontTables } from './font-tables.js'
+import { maxFontBytes, readFontTables } from './font-tables.js'
 import { createGsubShaper, type LigatureRange } from './gsub.js'
 
 export type { LigatureRange } from './gsub.js'
@@ -32,13 +32,51 @@ class CachedFinder implements LigatureFinder {
   }
 }
 
+async function readFontStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+): Promise<Uint8Array> {
+  let output = new Uint8Array(0)
+  let written = 0
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    const required = written + chunk.value.byteLength
+    if (required > maxFontBytes) throw new RangeError('font file exceeds the size limit')
+    if (required > output.byteLength) {
+      const grown = new Uint8Array(
+        Math.min(maxFontBytes, Math.max(required, output.byteLength * 2)),
+      )
+      grown.set(output.subarray(0, written))
+      output = grown
+    }
+    output.set(chunk.value, written)
+    written = required
+  }
+  return output.subarray(0, written)
+}
+
 async function sourceBytes(source: LigatureFontSource): Promise<Uint8Array> {
   if (source instanceof ArrayBuffer) return new Uint8Array(source)
   if (ArrayBuffer.isView(source))
     return new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
   const response = await fetch(source)
-  if (!response.ok) throw new Error(`Unable to load the ligature font: HTTP ${response.status}`)
-  return new Uint8Array(await response.arrayBuffer())
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {})
+    throw new Error(`Unable to load the ligature font: HTTP ${response.status}`)
+  }
+  const length = response.headers.get('Content-Length')
+  if (length !== null && /^\d+$/.test(length) && Number(length) > maxFontBytes) {
+    await response.body?.cancel().catch(() => {})
+    throw new RangeError('font file exceeds the size limit')
+  }
+  if (!response.body) throw new Error('Unable to load the ligature font: missing response body')
+  const reader = response.body.getReader()
+  try {
+    return await readFontStream(reader)
+  } catch (error) {
+    await reader.cancel().catch(() => {})
+    throw error
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 /** Reads the primary font's GSUB joining features; a font without them finds no ranges. */
