@@ -847,49 +847,70 @@ it.each(['release', 'deadline'] as const)(
   10_000,
 )
 
-it('rejects unfinished worker cleanup at the shared shutdown deadline', async () => {
-  const channel = new BroadcastChannel('packaged-worker-device-lifecycle')
-  const observations: DeviceLifecycleObservation[] = []
-  channel.onmessage = ({ data }: MessageEvent<DeviceLifecycleObservation>) =>
-    observations.push(data)
-  const url = new URL('./tests/device-lifecycle.worker.ts', import.meta.url)
-  url.searchParams.set('lifecycle', 'held')
-  const terminal = await WorkerTerminal.create({
-    assets,
-    appearance: { font: { family, size: 16 }, cursor: { blink: false } },
-    backend: 'webgpu',
-    workerUrl: url,
-    fonts: [{ family, source: { url: fontUrl } }],
-  })
-  const terminate = vi.spyOn(Worker.prototype, 'terminate')
-  try {
-    await terminal.open(container())
-    await terminal.write('known-good lifecycle')
-    await eventually(() => terminal.visibleLines()[0]?.includes('known-good lifecycle') === true)
-    const disposal = terminal.dispose().then(
-      () => undefined,
-      (cause: unknown) => cause,
-    )
-    await eventually(() => observations.some((value) => value.type === 'waiting'))
-    channel.postMessage('inspect')
-    await eventually(() => observations.some((value) => value.type === 'inspected'))
-    expect(observations.find((value) => value.type === 'inspected')).toEqual({
-      type: 'inspected',
-      devices: [{ device: 0, waits: 1, destroys: 0 }],
+it.each(['dispose', 'cleanup'] as const)(
+  'rejects unfinished worker cleanup at the shared shutdown deadline (%s)',
+  async (operation) => {
+    const channel = new BroadcastChannel('packaged-worker-device-lifecycle')
+    const observations: DeviceLifecycleObservation[] = []
+    channel.onmessage = ({ data }: MessageEvent<DeviceLifecycleObservation>) =>
+      observations.push(data)
+    const url = new URL('./tests/device-lifecycle.worker.ts', import.meta.url)
+    url.searchParams.set('lifecycle', 'held')
+    url.searchParams.set('clock', 'manual')
+    const terminal = await WorkerTerminal.create({
+      assets,
+      appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+      backend: 'webgpu',
+      workerUrl: url,
+      fonts: [{ family, source: { url: fontUrl } }],
     })
-    expect(await disposal).toMatchObject({
-      code: 'timeout',
-      operation: expect.stringMatching(/^(dispose|cleanup)$/),
-    })
-    expect(terminate).toHaveBeenCalled()
-    expect(observations.some((value) => value.type === 'completed')).toBe(false)
-  } finally {
-    channel.postMessage('release')
-    await terminal.dispose().catch(() => {})
-    channel.close()
-    terminate.mockRestore()
-  }
-}, 20_000)
+    const terminate = vi.spyOn(Worker.prototype, 'terminate')
+    const timeout = vi.spyOn(globalThis, 'setTimeout')
+    try {
+      await terminal.open(container())
+      await terminal.write('known-good lifecycle')
+      await eventually(() => terminal.visibleLines()[0]?.includes('known-good lifecycle') === true)
+      timeout.mockClear()
+      const disposal = terminal.dispose().then(
+        () => undefined,
+        (cause: unknown) => cause,
+      )
+      await eventually(() => observations.some((value) => value.type === 'waiting'))
+      channel.postMessage('inspect')
+      await eventually(() => observations.some((value) => value.type === 'inspected'))
+      expect(observations.find((value) => value.type === 'inspected')).toEqual({
+        type: 'inspected',
+        devices: [{ device: 0, waits: 1, destroys: 0 }],
+      })
+      await eventually(() => observations.some((value) => value.type === 'deadline-armed'))
+      expect(observations.filter((value) => value.type === 'deadline-armed')).toEqual([
+        { type: 'deadline-armed', delay: 15_000 },
+      ])
+      const deadlines = timeout.mock.calls.filter(([, delay]) => delay === 15_000)
+      expect(deadlines).toHaveLength(1)
+      expect(terminate).not.toHaveBeenCalled()
+      if (operation === 'cleanup') channel.postMessage('deadline')
+      else {
+        const callback = deadlines[0]?.[0]
+        if (typeof callback !== 'function') throw new Error('Host disposal deadline is missing')
+        callback()
+      }
+      expect(await disposal).toMatchObject({
+        code: 'timeout',
+        operation: expect.stringMatching(/^(dispose|cleanup)$/),
+      })
+      expect(await disposal).toMatchObject({ operation })
+      expect(terminate).toHaveBeenCalled()
+      expect(observations.some((value) => value.type === 'completed')).toBe(false)
+    } finally {
+      channel.postMessage('release')
+      await terminal.dispose().catch(() => {})
+      channel.close()
+      terminate.mockRestore()
+      timeout.mockRestore()
+    }
+  },
+)
 
 it('reacquires a live device and repaints after public worker device loss', async () => {
   const channel = new BroadcastChannel('packaged-worker-device-loss')
