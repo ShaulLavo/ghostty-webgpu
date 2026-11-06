@@ -138,6 +138,7 @@
     "build:wasm": "bun scripts/build-wasm.ts",
     "bench:compare": "bun scripts/comparison.ts",
     "bench:compare:test": "bun test ./bench/comparison-*.test.mjs ./scripts/comparison-*.test.mjs",
+    "bench:queue": "bun scripts/write-queue-probe.ts",
     "bench:renderer": "bun scripts/renderer-benchmark.ts",
     "clean": "bun scripts/clean-dist.ts",
     "demo": "bun run --cwd demo start",

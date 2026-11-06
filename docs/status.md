@@ -6,7 +6,7 @@ ghostty-webgpu is pre-1.0 and experimental. The facts below are true at package 
 
 - Breaking changes ship in patch releases. The [changelog](../CHANGELOG.md) marks them "Breaking".
 - npm's latest release is 0.1.2 (published 2026-09-28). It predates the current API. Check with `npm view ghostty-webgpu version`.
-- The docs and the site describe the source checkout. Run it from Fregat's workspace, as the [README quick start](../README.md#quick-start) shows.
+- The docs and the site describe the source checkout. Run it from this standalone repository, as the [development guide](development.md) shows.
 
 ## Entry points
 
