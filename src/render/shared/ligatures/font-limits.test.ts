@@ -126,7 +126,7 @@ const points = (text: string) => Array.from(text, (character) => character.codeP
 const fontByteLimit = 32 * 1024 * 1024
 const fontUrl = 'https://font.invalid/font.ttf'
 
-function streamedFont(chunks: readonly Uint8Array[], contentLength?: string) {
+function streamedFont(chunks: readonly Uint8Array[], contentLength?: string, status = 200) {
   let index = 0
   const cancel = vi.fn()
   const pull = vi.fn((controller: ReadableStreamDefaultController<Uint8Array>) => {
@@ -137,7 +137,7 @@ function streamedFont(chunks: readonly Uint8Array[], contentLength?: string) {
   const body = new ReadableStream({ cancel, pull }, { highWaterMark: 0 })
   const headers = new Headers()
   if (contentLength !== undefined) headers.set('Content-Length', contentLength)
-  const response = new Response(body, { headers })
+  const response = new Response(body, { headers, status })
   const arrayBuffer = vi.spyOn(response, 'arrayBuffer')
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
   return { arrayBuffer, body, cancel, pull }
@@ -208,13 +208,22 @@ describe('ligature font downloads', () => {
     expect(stream.body.locked).toBe(false)
   })
 
-  it('rejects a non-OK response without buffering its body', async () => {
-    const response = new Response(null, { status: 404 })
-    const arrayBuffer = vi.spyOn(response, 'arrayBuffer')
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
-    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('HTTP 404')
-    expect(arrayBuffer).not.toHaveBeenCalled()
-  })
+  it.each([false, true])(
+    'cancels a non-OK body without reading it when cancellation rejects: %s',
+    async (cancelRejects) => {
+      const stream = streamedFont([emptyFont()], undefined, 404)
+      if (cancelRejects) stream.cancel.mockRejectedValue(new Error('cancel failed'))
+      try {
+        await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('HTTP 404')
+        expect(stream.pull).not.toHaveBeenCalled()
+        expect(stream.arrayBuffer).not.toHaveBeenCalled()
+        expect(stream.cancel).toHaveBeenCalledOnce()
+        expect(stream.body.locked).toBe(false)
+      } finally {
+        await stream.body.cancel().catch(() => {})
+      }
+    },
+  )
 
   it('never uses arrayBuffer when there is no readable body', async () => {
     const response = new Response(null)
