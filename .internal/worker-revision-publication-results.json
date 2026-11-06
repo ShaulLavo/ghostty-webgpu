@@ -1,0 +1,210 @@
+{
+  "decision": "REJECT",
+  "scope": "This structured-clone revision-keyed dedicated-worker candidate only; no production adoption",
+  "candidate": "5f2df6b7609e8a171335ac74f09553a195f3b38c",
+  "control": "46399e3f0a3ce5f5ce216eb6fdf474822851c720",
+  "base": "46399e3f0a3ce5f5ce216eb6fdf474822851c720",
+  "qualification": {
+    "problems": [],
+    "headless": false,
+    "conditions": 8,
+    "repetitions": 2,
+    "warmup": 8,
+    "measuredSteps": 60,
+    "samples": 32,
+    "browser": "155.0.8059.84",
+    "executable": "/usr/bin/chromium",
+    "display": "task-owned private Xvfb, no physical scanout claim",
+    "adapter": "ANGLE (NVIDIA, Vulkan 1.4.351 (NVIDIA NVIDIA GeForce RTX 3060 Ti (0x00002489)), NVIDIA-615.78.8.0)",
+    "endpoints": {
+      "host": "CDP threadTicks TaskDuration",
+      "worker": "Linux /proc DedicatedWorker utime+stime at 100 Hz",
+      "memory": "Chrome-family PSS plus device VRAM growth"
+    }
+  },
+  "correctnessProblems": [],
+  "countEndpoints": {
+    "parsedPerArm": 3120,
+    "deliveredPerArm": 3120,
+    "independentSubmissionsPerArm": 3120,
+    "submissionDifferences": [],
+    "presented": "unresolved",
+    "submissionEqualityIsNotAGate": true
+  },
+  "conditions": [
+    {
+      "condition": "sustained-logs/4/200x50",
+      "ratios": {
+        "host": 0.7514028844502492,
+        "worker": 0.9148936170212765,
+        "memory": 1.0343772366924564,
+        "p95": 0.8888888796906413,
+        "p99": 0.7741935517983928
+      },
+      "gates": {
+        "host": false,
+        "worker": true,
+        "memory": false,
+        "p95": true,
+        "p99": true
+      }
+    },
+    {
+      "condition": "sustained-logs/4/80x24",
+      "ratios": {
+        "host": 0.948358633859973,
+        "worker": 0.9523809523809523,
+        "memory": 1.000357881320626,
+        "p95": 0.6666666887424609,
+        "p99": 0.5
+      },
+      "gates": {
+        "host": false,
+        "worker": true,
+        "memory": false,
+        "p95": true,
+        "p99": true
+      }
+    },
+    {
+      "condition": "sustained-logs/16/200x50",
+      "ratios": {
+        "host": 0.8371858983669828,
+        "worker": 0.894736842105263,
+        "memory": 0.9872772703424796,
+        "p95": 1.1228070209377836,
+        "p99": 1.394736847884107
+      },
+      "gates": {
+        "host": false,
+        "worker": true,
+        "memory": true,
+        "p95": true,
+        "p99": false
+      }
+    },
+    {
+      "condition": "sustained-logs/16/80x24",
+      "ratios": {
+        "host": 1.0305378453490275,
+        "worker": 0.9864864864864865,
+        "memory": 1.017051239688134,
+        "p95": 1.1999999955296516,
+        "p99": 1.3958333273832169
+      },
+      "gates": {
+        "host": false,
+        "worker": true,
+        "memory": false,
+        "p95": true,
+        "p99": false
+      }
+    },
+    {
+      "condition": "unicode-varied/4/200x50",
+      "ratios": {
+        "host": 0.6502766619253795,
+        "worker": 0.7288135593220338,
+        "memory": 0.9734012391348641,
+        "p95": 0.6521739310713482,
+        "p99": 0.550000000372529
+      },
+      "gates": {
+        "host": false,
+        "worker": true,
+        "memory": true,
+        "p95": true,
+        "p99": true
+      }
+    },
+    {
+      "condition": "unicode-varied/4/80x24",
+      "ratios": {
+        "host": 1.0970383513033983,
+        "worker": 1.1818181818181817,
+        "memory": 1.021799097622482,
+        "p95": 1.0666666825612385,
+        "p99": 1.111111103752513
+      },
+      "gates": {
+        "host": false,
+        "worker": false,
+        "memory": false,
+        "p95": true,
+        "p99": true
+      }
+    },
+    {
+      "condition": "unicode-varied/16/200x50",
+      "ratios": {
+        "host": 0.6639166401882813,
+        "worker": 0.7621359223300969,
+        "memory": 0.9703153691107261,
+        "p95": 0.7962962921059835,
+        "p99": 0.3298429331789022
+      },
+      "gates": {
+        "host": false,
+        "worker": true,
+        "memory": true,
+        "p95": true,
+        "p99": true
+      }
+    },
+    {
+      "condition": "unicode-varied/16/80x24",
+      "ratios": {
+        "host": 0.9968216756341274,
+        "worker": 1.0476190476190477,
+        "memory": 1.0082610278776813,
+        "p95": 1.1666666631187712,
+        "p99": 0.7971014520296202
+      },
+      "gates": {
+        "host": false,
+        "worker": false,
+        "memory": false,
+        "p95": true,
+        "p99": true
+      }
+    }
+  ],
+  "receipt": {
+    "file": "/work/reports/wave-20261106/audits2/ghostty-webgpu/007-screen-evidence/screen.json.gz",
+    "rawSha256": "a85f6a2f4ea93c94ff0f069c23613e27d7dff7d85bbab46be51d21fae767cd31",
+    "rawBytes": 890206,
+    "gzipSha256": "38f76f2c8c71e2083e5ba9c185d860c2639e91424dc14e7c937da85d65bdb343",
+    "gzipBytes": 98854,
+    "manifest": "/work/reports/wave-20261106/audits2/ghostty-webgpu/007-screen-evidence/manifest.json"
+  },
+  "verification": {
+    "command": "bun run verify",
+    "exitCode": 0,
+    "source": "5f2df6b7609e8a171335ac74f09553a195f3b38c",
+    "unitPassed": 1664,
+    "unitSkipped": 1,
+    "browserFilesPassed": 80,
+    "browserTestsPassed": 1459,
+    "browserTestsSkipped": 5,
+    "log": "/work/reports/wave-20261106/audits2/ghostty-webgpu/007-bidi-evidence/verify.log"
+  },
+  "mutationControls": {
+    "transportDetected": 6,
+    "bidiVariantsDetected": 7,
+    "forwardOnlyMainGpuBrowserDetected": true,
+    "allRestored": true
+  },
+  "bidiOwnershipObservation": {
+    "separateFromRejectedOptimization": true,
+    "productionAdoption": false,
+    "report": "/work/reports/wave-20261106/audits2/ghostty-webgpu/007-bidi-ownership-observation.md",
+    "mainGpuCost": "Lazy three-slot native store plus O(mask pins) captured overlay; hidden-below pins are retained",
+    "canvasDomRetentionPolicy": "unchanged",
+    "F1": "separately owned, not changed",
+    "F2": "not reproduced, not changed"
+  },
+  "fullTwelveConditionCohort": "not run after decisive screen rejection",
+  "tuningReruns": 0,
+  "queueMemory": "unbounded outstanding-message queue; three native slots do not bound it",
+  "comparisonConsumers": "released after analysis; exact cleanup recorded externally"
+}

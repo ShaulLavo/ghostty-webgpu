@@ -69,7 +69,7 @@
     },
     "packages/shaders": {
       "name": "ghostty-webgpu-shaders",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "devDependencies": {
         "@webgpu/types": "0.1.74",
         "oxfmt": "0.70.0",
@@ -78,7 +78,7 @@
         "vitest": "5.0.2",
       },
       "peerDependencies": {
-        "ghostty-webgpu": "^0.3.30",
+        "ghostty-webgpu": "^0.3.32",
       },
     },
     "site": {
