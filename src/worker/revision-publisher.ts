@@ -19,7 +19,11 @@ export class RevisionPublisher {
 
   encode(frame: NativeDisplayedFrame): RevisionContent {
     if (frame === this.last?.frame)
-      return { store: this.store, revisions: this.last.result.revisions, content: emptyContent }
+      return Object.freeze({
+        store: this.store,
+        revisions: this.last.result.revisions,
+        content: emptyContent,
+      })
     if (frame.revisionSource !== this.source) this.nextStore(frame.revisionSource)
     const revisions = frame.readTextRevisions()
     const rows = frame.readTextRows()

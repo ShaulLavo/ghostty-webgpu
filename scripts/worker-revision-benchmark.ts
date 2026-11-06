@@ -400,6 +400,7 @@ async function browserResources() {
   const freeMiB = freeVram()
   if (!headless) assert(freeMiB >= 2048, 'unqualified setup: less than 2 GiB free VRAM')
   const args = [
+    '--enable-automation',
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
