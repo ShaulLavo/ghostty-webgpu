@@ -42,6 +42,7 @@ async function fixture(
   beforeOpen = false,
   output?: 'webgpu' | 'webgl2',
   existing = false,
+  content = '\x1b[?25l\x1b[48;2;255;0;0m          \r\n\x1b[48;2;0;255;0m          \r\n\x1b[48;2;0;0;255m          ',
 ) {
   const host = document.createElement('div')
   host.style.cssText = 'width:340px;height:180px'
@@ -71,9 +72,10 @@ async function fixture(
     backend: output,
     onError: (error) => errors.push(error),
   })
-  if (!beforeOpen) await terminal.open(host)
-  const content =
-    '\x1b[?25l\x1b[48;2;255;0;0m          \r\n\x1b[48;2;0;255;0m          \r\n\x1b[48;2;0;0;255m          '
+  if (!beforeOpen) {
+    await terminal.open(host)
+    terminal.write('\x1b[?25l')
+  }
   if (existing) {
     terminal.write(content)
     const source = terminal.canvas
@@ -117,6 +119,116 @@ function pixel(image: ImageData, x: number, y: number): number[] {
 async function color(canvas: HTMLCanvasElement): Promise<number[]> {
   return pixel(await pixels(canvas), 0.5, 0.5)
 }
+
+const captureBackends = [
+  { source: 'webgpu', output: 'webgpu' },
+  { source: 'webgpu', output: 'webgl2' },
+  { source: 'webgl2', output: 'webgpu' },
+  { source: 'webgl2', output: 'webgl2' },
+  { source: 'canvas2d', output: 'webgpu' },
+  { source: 'canvas2d', output: 'webgl2' },
+] satisfies { source: 'webgpu' | 'webgl2' | 'canvas2d'; output: 'webgpu' | 'webgl2' }[]
+
+const transparentBlank = '\x1b[?25l\x1b[0m\x1b[2J\x1b[H'
+const transparentGlyphs = `${transparentBlank}\x1b[38;2;255;255;255mAgjmW`
+
+async function transparentFixture(backend: (typeof captureBackends)[number], content: string) {
+  const f = await fixture(backend.source, copyShader, false, backend.output, false, content)
+  await frames(3)
+  expect(f.terminal.diagnostics.rendererBackend).toBe(backend.source)
+  expect(f.canvas.dataset['backend']).toBe(backend.output)
+  return f
+}
+
+function differentPixels(actual: ImageData, expected: ImageData): number {
+  expect([actual.width, actual.height]).toEqual([expected.width, expected.height])
+  let count = 0
+  for (let offset = 0; offset < actual.data.length; offset += 4) {
+    if (
+      actual.data[offset] !== expected.data[offset] ||
+      actual.data[offset + 1] !== expected.data[offset + 1] ||
+      actual.data[offset + 2] !== expected.data[offset + 2] ||
+      actual.data[offset + 3] !== expected.data[offset + 3]
+    )
+      count += 1
+  }
+  return count
+}
+
+async function afterFrame(terminal: Terminal, action: () => void): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const subscription = terminal.on('frame', () => {
+      subscription.dispose()
+      resolve()
+    })
+    action()
+  })
+  await frames(3)
+}
+
+it.each(captureBackends)(
+  'replaces erased transparent pixels from $source with $output output',
+  async ({ source, output }) => {
+    const actual = await transparentFixture({ source, output }, transparentGlyphs)
+    const expected = await transparentFixture({ source, output }, transparentBlank)
+    const reference = await pixels(expected.canvas)
+    expect(differentPixels(await pixels(actual.canvas), reference)).toBeGreaterThan(0)
+    const dimensions = [actual.canvas.width, actual.canvas.height]
+    await afterFrame(actual.terminal, () => actual.terminal.write(transparentBlank))
+    expect([actual.canvas.width, actual.canvas.height]).toEqual(dimensions)
+    expect(actual.terminal.visibleLines()).toEqual(expected.terminal.visibleLines())
+    expect(actual.errors.concat(expected.errors)).toEqual([])
+    await page.screenshot({
+      element: actual.canvas,
+      path: `../../.artifacts/erase-${source}-${output}-actual.png`,
+    })
+    await page.screenshot({
+      element: expected.canvas,
+      path: `../../.artifacts/erase-${source}-${output}-expected.png`,
+    })
+    expect(differentPixels(await pixels(actual.canvas), reference)).toBe(0)
+  },
+)
+
+it.each(captureBackends)(
+  'keeps repeated antialiased glyphs equal to a fresh $source frame with $output output',
+  async ({ source, output }) => {
+    const actual = await transparentFixture({ source, output }, transparentGlyphs)
+    const first = await pixels(actual.canvas)
+    expect(first.data.some((value, i) => i % 4 === 0 && value > 0 && value < 255)).toBe(true)
+    for (let repeat = 0; repeat < 4; repeat += 1)
+      await afterFrame(actual.terminal, () => actual.terminal.clearTextureAtlas())
+    const expected = await transparentFixture({ source, output }, transparentGlyphs)
+    const reference = await pixels(expected.canvas)
+    expect(reference.data.some((value, i) => i % 4 === 0 && value > 0 && value < 255)).toBe(true)
+    expect(actual.errors.concat(expected.errors)).toEqual([])
+    await page.screenshot({
+      element: actual.canvas,
+      path: `../../.artifacts/repeated-${source}-${output}-actual.png`,
+    })
+    await page.screenshot({
+      element: expected.canvas,
+      path: `../../.artifacts/repeated-${source}-${output}-expected.png`,
+    })
+    expect(differentPixels(await pixels(actual.canvas), reference)).toBe(0)
+  },
+)
+
+it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
+  'retains transparent glyph snapshots through a no-draw WebGL publication with %s output',
+  async (output) => {
+    const f = await transparentFixture({ source: 'webgl2', output }, transparentGlyphs)
+    const reference = await pixels(f.canvas)
+    const context = f.terminal.canvas?.getContext('webgl2')
+    if (!context) throw new TypeError('Missing source WebGL context')
+    const draws = vi.spyOn(context, 'drawArraysInstanced')
+    cleanups.push(() => draws.mockRestore())
+    await afterFrame(f.terminal, () => f.terminal.refresh(0, 2))
+    expect(draws).not.toHaveBeenCalled()
+    expect(differentPixels(await pixels(f.canvas), reference)).toBe(0)
+    expect(f.errors).toEqual([])
+  },
+)
 
 it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
   'captures top and bottom source colors with default full artifacts on %s',
