@@ -331,8 +331,10 @@ Resizing inside a frame callback repaints after that frame's callbacks finish, i
 `terminal.submittedFrame` describes the last accepted displayed frame. Its frame, native
 revision, snapshot version and layout identity accompany the grid, fitted font, padding,
 theme, cursor, selection coordinates and scrollbar. The value appears after the first
-submission and holds together while new output or layout is pending. Reading this metadata
-keeps text publication idle.
+submission and holds together while new output or layout is pending. Metadata is recorded with
+the captured image. Changes after capture, including image-listener writes, appear in the next
+frame. A clean update may confirm a newer native revision for the same image. Reading this
+metadata keeps text publication idle.
 
 `terminal.onText(({ frame, rows, rowPatches }) => …)` publishes owned text after every accepted
 frame while a listener is registered. It returns a subscription with `dispose()`, like
@@ -348,19 +350,22 @@ inside the library.
 
 WebGL and WebGPU update retained text from native logical row damage. Grid or fitted-font
 changes and native full damage refresh the complete viewport. Capture stages the next retained
-frame. The renderer accepts it after submission, damage acknowledgement and frame commit finish.
+frame. The renderer accepts the image after submission, damage acknowledgement and frame commit
+finish. Retained text becomes current just before the submission callback publishes that frame.
 An identical-output update reuses the existing image and needs no new submission.
-Any failure discards that pending capture. The preceding accepted metadata, lazy text and styled
-snapshot stay readable until the next acceptance. Previously returned owned rows remain valid.
+Failures before publication discard the pending capture. Until publication, or if publication is
+cancelled, the preceding submitted metadata and lazy native text stay readable. Previously
+returned owned rows remain valid.
 
 Native retention owns at most three cell-array slots after a completed capture, plus frame and
 row metadata, separately allocated grapheme data, and reader scratch storage. A grid-size
 replacement can briefly own four frames because allocation precedes freeing the mismatched
 spare. The three retained slots can have different historical grid sizes.
 
-Public renderer `onTextFrame` snapshots contain owned rows, with no native identities or
-reader functions, and remain readable after later captures and disposal. The terminal's private
-GPU publication channel keeps the no-demand path lazy.
+The documented fields of public renderer `onTextFrame` snapshots contain owned rows, not native
+identities or reader functions. Those rows remain readable after later captures and disposal.
+Raw callback objects may also carry private symbol metadata, which is not a public reader or
+lifetime contract. The terminal's private GPU publication channel keeps the no-demand path lazy.
 
 Both terminal entries pause painting when the document is hidden or the terminal root has no
 positive visible area in the viewport. The main and worker entries both default
@@ -389,6 +394,11 @@ refreshes until visible again. Disabling accessibility or disposing the terminal
 scheduled mirror work.
 
 Styled cells remain an on-demand read through `frameSnapshot()` and `captureViewport()`.
+An available `frameSnapshot()` describes the last submitted image, including its text, styles
+and selection even when live selection has changed. Without native retention, advancing the
+native render snapshot before another publication leaves a previously materialized full snapshot
+readable; an unread full snapshot may be unavailable. Live writes alone need not advance that
+native snapshot. `captureViewport()` instead requires the displayed image to match current state.
 Canvas resizing and context replacement can invalidate the displayed pixels independently of
 the retained submitted state.
 

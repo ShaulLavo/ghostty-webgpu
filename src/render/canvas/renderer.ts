@@ -1,3 +1,4 @@
+import { captureDisplayedRows, type DisplayedFrameSource } from '../shared/displayed-frame.js'
 import type { RowBidiMapper } from '../../bidi/row.js'
 import { loadBidiMapper } from '../../bidi/loader.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -118,8 +119,10 @@ class CanvasSurface implements RowRendererSurface {
     if (this.pixelTarget) this.pixelTarget.metrics = this.reuseMetrics
   }
 
-  source(source: RenderStateSource): RenderStateSource {
+  source(source: RenderStateSource): RenderStateSource & DisplayedFrameSource {
+    const internalSource: RenderStateSource & DisplayedFrameSource = source
     return {
+      [captureDisplayedRows]: internalSource[captureDisplayedRows]?.bind(source),
       get renderHeld() {
         return source.renderHeld
       },

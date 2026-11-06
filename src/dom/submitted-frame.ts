@@ -4,6 +4,58 @@ import type { RendererTextFrameSnapshot } from '../render/shared/types.js'
 import type { TerminalFittedFont, TerminalGrid, TerminalRendererTheme } from '../term/types.js'
 import type { TerminalElementPadding } from './elements.js'
 
+export interface SubmittedLayout {
+  readonly identity: number
+  readonly font: TerminalFittedFont
+  readonly padding: TerminalElementPadding
+}
+
+export interface SubmissionFields {
+  readonly snapshotVersion: number | undefined
+  readonly nativeRevision: number
+  readonly layout: SubmittedLayout | undefined
+  readonly grid: TerminalGrid
+  readonly theme: TerminalRendererTheme
+  readonly selection: TerminalSubmittedFrame['selection']
+  readonly scrollbar: Readonly<TerminalScrollbar>
+}
+
+/** Execution state recorded with the image it describes. */
+export class CapturedSubmission implements SubmissionFields {
+  readonly snapshotVersion: number | undefined
+  readonly nativeRevision: number
+  readonly layout: SubmittedLayout | undefined
+  readonly grid: TerminalGrid
+  readonly theme: TerminalRendererTheme
+  readonly selection: TerminalSubmittedFrame['selection']
+  readonly scrollbar: Readonly<TerminalScrollbar>
+
+  constructor(fields: SubmissionFields) {
+    this.snapshotVersion = fields.snapshotVersion
+    this.nativeRevision = fields.nativeRevision
+    this.layout = fields.layout
+    this.grid = fields.grid
+    this.theme = fields.theme
+    this.selection = fields.selection
+    this.scrollbar = fields.scrollbar
+    if (this.selection) {
+      Object.freeze(this.selection.start)
+      Object.freeze(this.selection.end)
+      Object.freeze(this.selection)
+    }
+    Object.freeze(this)
+  }
+
+  withRevision(nativeRevision: number): CapturedSubmission {
+    if (nativeRevision === this.nativeRevision) return this
+    return new CapturedSubmission({ ...this, nativeRevision })
+  }
+
+  withLayout(layout: SubmittedLayout): CapturedSubmission {
+    return new CapturedSubmission({ ...this, layout })
+  }
+}
+
 export interface TerminalSubmittedRow {
   readonly y: number
   readonly text: string

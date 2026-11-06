@@ -1,3 +1,4 @@
+import { captureSubmission, capturedSubmission, displayedRows } from '../core/frame-observers.js'
 import { createGhosttyError } from '../core/error.js'
 import type { DisplayedTextFrame, DisplayedFrameOptions } from '../render/shared/displayed-frame.js'
 import { copiedFrameRow } from '../render/shared/frame-row.js'
@@ -40,13 +41,37 @@ import type {
 } from '../term/types.js'
 import type { TerminalElementPadding } from './elements.js'
 import type { GhosttyWebGpuRenderer, GhosttyWebGpuRendererFactory } from './types.js'
-import { submittedFrame, type TerminalSubmittedSnapshot } from './submitted-frame.js'
+import {
+  CapturedSubmission,
+  submittedFrame,
+  type SubmittedLayout,
+  type TerminalSubmittedSnapshot,
+} from './submitted-frame.js'
 import { encodeTerminalViewport } from './viewport.js'
 
-interface SubmittedLayout {
-  readonly identity: number
-  readonly font: TerminalFittedFont
-  readonly padding: TerminalElementPadding
+type SubmittedTextFrame = DisplayedTextFrame & {
+  readonly [capturedSubmission]: CapturedSubmission
+}
+
+function refreshedFrame(
+  frame: SubmittedTextFrame,
+  renderHeld: boolean,
+  submission: CapturedSubmission,
+): SubmittedTextFrame {
+  const copy: SubmittedTextFrame = {
+    [capturedSubmission]: submission,
+    cursor: frame.cursor,
+    get rows() {
+      return frame.rows
+    },
+  }
+  return Object.freeze(
+    Object.defineProperties(copy, {
+      ...Object.getOwnPropertyDescriptors(frame),
+      renderHeld: { enumerable: true, value: renderHeld },
+      [capturedSubmission]: { enumerable: true, value: submission },
+    }),
+  )
 }
 
 function copiedFrame(snapshot: RendererFrameSnapshot): RendererFrameSnapshot {
@@ -73,9 +98,8 @@ export class LocalTerminalExecution {
   readonly kind = 'sync' as const
   private disposed = false
   private layout?: SubmittedLayout
-  private lastFrame?: DisplayedTextFrame
+  private lastFrame?: SubmittedTextFrame
   private lastFullFrame?: RendererFrameSnapshot
-  private lastFrameVersion?: number
   private rendererValue?: GhosttyWebGpuRenderer
   private summaryValue?: TerminalSubmittedSnapshot
   private linkEpoch = 0
@@ -372,7 +396,10 @@ export class LocalTerminalExecution {
   }
 
   private get canReadSubmittedState(): boolean {
-    return this.lastFrameVersion === this.session.renderState.snapshotVersion
+    return (
+      this.lastFrame?.[capturedSubmission].snapshotVersion ===
+      this.session.renderState.snapshotVersion
+    )
   }
 
   textFrame(): RendererTextFrameSnapshot | undefined {
@@ -395,9 +422,8 @@ export class LocalTerminalExecution {
       return this.lastFullFrame
     }
     if (!this.canReadSubmittedState) return this.lastFullFrame
-    const rows = Object.freeze(
-      this.session.renderState.readRows({ packed: true }).map(copiedFrameRow),
-    )
+    const source = this.lastFrame[displayedRows] ?? this.session.renderState
+    const rows = Object.freeze(source.readRows({ packed: true }).map(copiedFrameRow))
     this.lastFullFrame = copiedFrame(Object.freeze({ ...this.lastFrame, rows }))
     return this.lastFullFrame
   }
@@ -442,11 +468,23 @@ export class LocalTerminalExecution {
   }
 
   submit(snapshot: DisplayedTextFrame): RendererTextFrameSnapshot {
-    this.lastFrameVersion = this.session.renderState.snapshotVersion
+    const captured = snapshot[capturedSubmission]
+    let submission = captured instanceof CapturedSubmission ? captured : this.sampleSubmission()
+    let layout = submission.layout
+    const previous = this.summaryValue
+    const grid = submission.grid
+    const gridChanged =
+      previous && (previous.grid.columns !== grid.columns || previous.grid.rows !== grid.rows)
+    if (layout && layout === this.layout && gridChanged && previous.layout === layout.identity) {
+      layout = Object.freeze({ ...layout, identity: layout.identity + 1 })
+      this.layout = layout
+      submission = submission.withLayout(layout)
+    }
     this.lastFullFrame = undefined
     const nativeFrame = snapshot.nativeFrame
     if (nativeFrame) {
       this.lastFrame = Object.freeze({
+        [capturedSubmission]: submission,
         renderHeld: snapshot.renderHeld,
         cursor: snapshot.cursor,
         paintedCursor: snapshot.paintedCursor,
@@ -464,21 +502,12 @@ export class LocalTerminalExecution {
                 ? this.session.renderState.readTextRows()
                 : this.session.renderState.readRows({ packed: true }).map(copiedFrameRow),
             )
-      this.lastFrame = Object.freeze({ ...snapshot, rows })
+      this.lastFrame = Object.freeze({ ...snapshot, rows, [capturedSubmission]: submission })
     }
-    let layout = this.layout
     if (!layout) return this.lastFrame
-    const grid = this.session.grid
-    const previous = this.summaryValue
-    const gridChanged =
-      previous && (previous.grid.columns !== grid.columns || previous.grid.rows !== grid.rows)
-    if (gridChanged && previous.layout === layout.identity) {
-      layout = Object.freeze({ ...layout, identity: layout.identity + 1 })
-      this.layout = layout
-    }
     this.summaryValue = submittedFrame(previous, {
-      nativeRevision: this.session.revision,
-      snapshotVersion: this.lastFrameVersion,
+      nativeRevision: submission.nativeRevision,
+      snapshotVersion: submission.snapshotVersion,
       layout: layout.identity,
       grid: {
         ...grid,
@@ -488,9 +517,9 @@ export class LocalTerminalExecution {
       },
       font: layout.font,
       padding: layout.padding,
-      theme: this.session.appearance.rendererTheme,
-      selection: this.session.selectionCoordinates(),
-      scrollbar: this.session.scrollbar,
+      theme: submission.theme,
+      selection: submission.selection,
+      scrollbar: submission.scrollbar,
       snapshot: this.lastFrame,
       previousTextRows: nativeFrame
         ? () =>
@@ -512,10 +541,14 @@ export class LocalTerminalExecution {
       this.rendererValue.hasPendingFrame
     )
       return
-    if (this.lastFrame && this.lastFrame.renderHeld !== this.renderHeld)
-      this.lastFrame = Object.freeze({ ...this.lastFrame, renderHeld: this.renderHeld })
+    const frame = this.lastFrame
+    if (!frame) return
+    const submitted = frame[capturedSubmission]
+    const refreshed = submitted.withRevision(this.session.revision)
+    if (refreshed !== submitted || frame.renderHeld !== this.renderHeld)
+      this.lastFrame = refreshedFrame(frame, this.renderHeld, refreshed)
     if (!this.lastFrame?.nativeFrame) {
-      this.summaryValue = Object.freeze({ ...summary, nativeRevision: this.session.revision })
+      this.summaryValue = Object.freeze({ ...summary, nativeRevision: refreshed.nativeRevision })
       return
     }
     this.summaryValue = Object.freeze(
@@ -523,10 +556,22 @@ export class LocalTerminalExecution {
         {},
         {
           ...Object.getOwnPropertyDescriptors(summary),
-          nativeRevision: { enumerable: true, value: this.session.revision },
+          nativeRevision: { enumerable: true, value: refreshed.nativeRevision },
         },
       ),
     ) as TerminalSubmittedSnapshot
+  }
+
+  sampleSubmission(): CapturedSubmission {
+    return new CapturedSubmission({
+      snapshotVersion: this.session.renderState.snapshotVersion,
+      nativeRevision: this.session.revision,
+      layout: this.layout,
+      grid: this.session.grid,
+      theme: this.session.appearance.rendererTheme,
+      selection: this.session.selectionCoordinates(),
+      scrollbar: this.session.scrollbar,
+    })
   }
 
   async createRenderer(
@@ -534,10 +579,13 @@ export class LocalTerminalExecution {
     options: Omit<WebGpuTerminalRendererOptions, 'renderState'> & DisplayedFrameOptions,
     signal: AbortSignal,
   ): Promise<GhosttyWebGpuRenderer> {
-    const renderer = await factory(
-      { ...options, bidi: this.session.bidi, renderState: this.session.renderState },
-      signal,
-    )
+    const rendererOptions: WebGpuTerminalRendererOptions & DisplayedFrameOptions = {
+      ...options,
+      bidi: this.session.bidi,
+      renderState: this.session.renderState,
+      [captureSubmission]: () => this.sampleSubmission(),
+    }
+    const renderer = await factory(rendererOptions, signal)
     if (this.disposed) {
       renderer.dispose()
       signal.throwIfAborted()

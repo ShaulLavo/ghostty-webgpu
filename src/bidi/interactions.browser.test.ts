@@ -132,6 +132,54 @@ function selectedColumns(text: string): number[] {
   return [1, 2, 3, 4, 5, 6, 7, 8]
 }
 
+function snapshotColumns(snapshot: Awaited<ReturnType<TerminalApi['frameSnapshot']>>) {
+  return snapshot?.rows[0]?.renderCells.filter((cell) => cell.selected).map((cell) => cell.x)
+}
+
+function clearBeforeMainFrame(terminal: MainTerminal): number {
+  const submitted = terminal.submittedFrame!
+  terminal.clearSelection()
+  expect(terminal.getSelection()).toBeUndefined()
+  const snapshot = terminal.frameSnapshot()
+  expect(snapshot).toBeDefined()
+  expect(terminal.submittedFrame!.frame).toBe(submitted.frame)
+  expect(snapshot!.rows[0]!.text.trimEnd()).toBe('ab שלום cd')
+  expect(snapshotColumns(snapshot)).toEqual([1, 2, 6])
+  return submitted.frame
+}
+
+async function workerVisibility(terminal: TerminalApi, visible: boolean): Promise<void> {
+  const execution: unknown = Reflect.get(terminal, 'execution')
+  if (typeof execution !== 'object' || execution === null || !('request' in execution))
+    throw new Error('Worker execution request is missing')
+  const request = execution.request
+  if (typeof request !== 'function') throw new Error('Worker execution request is not callable')
+  await request.call(execution, 'visible', [visible])
+}
+
+async function clearBeforeWorkerFrame(terminal: TerminalApi): Promise<number> {
+  await workerVisibility(terminal, false)
+  try {
+    const submitted = terminal.submittedFrame!
+    const before = await terminal.frameSnapshot()
+    expect(before).toBeDefined()
+    expect(before!.rows[0]!.text.trimEnd()).toBe('ab שלום cd')
+    expect(snapshotColumns(before)).toEqual([1, 2, 6])
+    await terminal.clearSelection()
+    expect(await terminal.getSelection()).toBeUndefined()
+    const snapshot = await terminal.frameSnapshot()
+    expect(snapshot).toBeDefined()
+    expect(terminal.submittedFrame!.frame).toBe(submitted.frame)
+    expect(terminal.submittedFrame!.snapshotVersion).toBe(submitted.snapshotVersion)
+    expect(snapshot!.cursor).toEqual(before!.cursor)
+    expect(snapshot!.rows[0]!.text.trimEnd()).toBe('ab שלום cd')
+    expect(snapshotColumns(snapshot), 'paused submitted membership').toEqual([1, 2, 6])
+    return submitted.frame
+  } finally {
+    await workerVisibility(terminal, true)
+  }
+}
+
 describe.each(['main', 'main-webgl', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
   const test = it.skipIf(mode === 'webgpu' && !navigator.gpu)
   beforeEach(({ skip }) => {
@@ -161,6 +209,39 @@ describe.each(['main', 'main-webgl', 'webgl', 'webgpu'])('BiDi %s interactions',
       terminal,
       Array.from({ length: Math.abs(end - start) + 1 }, (_, i) => Math.min(start, end) + i),
     )
+  })
+  test('keeps the submitted selection between clear and the next frame', async () => {
+    const { terminal } = await create(mode, selection)
+    if (mode === 'webgl') expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
+    if (mode === 'webgpu') expect(terminal.diagnostics.rendererBackend).toBe('webgpu')
+    await drag(terminal, 3, 1)
+    await expect
+      .poll(async () => snapshotColumns(await terminal.frameSnapshot()))
+      .toEqual([1, 2, 6])
+    await assertHighlight(terminal, [1, 2, 3])
+    const frame =
+      terminal instanceof MainTerminal
+        ? clearBeforeMainFrame(terminal)
+        : await clearBeforeWorkerFrame(terminal)
+    await expect.poll(() => terminal.submittedFrame!.frame).toBeGreaterThan(frame)
+    await expect.poll(async () => snapshotColumns(await terminal.frameSnapshot())).toEqual([])
+    await assertHighlight(terminal, [])
+  })
+  test('refreshes an empty hold without changing captured membership or version', async () => {
+    const { terminal } = await create(mode, selection)
+    await drag(terminal, 3, 1)
+    await expect
+      .poll(async () => snapshotColumns(await terminal.frameSnapshot()))
+      .toEqual([1, 2, 6])
+    await terminal.write('\x1b[?2026h')
+    await terminal.refresh(0, terminal.submittedFrame!.grid.rows - 1)
+    await expect.poll(async () => (await terminal.frameSnapshot())?.renderHeld).toBe(true)
+    const version = terminal.submittedFrame!.snapshotVersion
+    await terminal.write('\x1b[?2026l')
+    await expect.poll(async () => (await terminal.frameSnapshot())?.renderHeld).toBe(false)
+    expect(terminal.submittedFrame!.snapshotVersion).toBe(version)
+    expect(snapshotColumns(await terminal.frameSnapshot())).toEqual([1, 2, 6])
+    await assertHighlight(terminal, [1, 2, 3])
   })
   test('keeps held selection paint and releases to the current selection', async () => {
     const { terminal } = await create(mode, selection)

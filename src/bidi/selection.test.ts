@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { GhosttySelectionGesture } from '../core/selection.js'
+import { capturedRowsReader, selectedRowsFrom } from './selection.js'
 import { CellPin } from './pin.js'
 import { TerminalSession } from '../term/session.js'
 
@@ -360,4 +362,45 @@ it('leaves held programmatic selection and unselected output to the native snaps
   session.write('\x1b[?2026l')
   session.renderState.update()
   expect(selectedRows()).toEqual([])
+})
+
+it('captures empty-present membership through the gesture reader decision over real selected rows', () => {
+  const vt = session.runtime.createTerminal({ columns: 20, rows: 4 })
+  const state = session.runtime.createRenderState(vt)
+  const selection = new GhosttySelectionGesture(vt)
+  try {
+    vt.write('abcdef')
+    selection.selectRange({ x: 0, y: 0 }, { x: 5, y: 0 })
+    state.update()
+    const rows = state.readRows({ packed: true })
+    expect(rows[0]!.cells.filter((cell) => cell.selected).map((cell) => cell.x)).toEqual([
+      0, 1, 2, 3, 4, 5,
+    ])
+    const nativeRows = Object.freeze({ readRows: state.readRows.bind(state) })
+    const absent = capturedRowsReader(state, undefined, nativeRows)
+    expect(absent).toBe(nativeRows)
+    expect(absent.readRows({ packed: true })[0]!.packed).toBeDefined()
+    const captured = capturedRowsReader(state, new Set(), nativeRows)
+    expect(captured).not.toBe(nativeRows)
+    const empty = captured.readRows({ packed: true })
+    expect(empty.every((row) => row.cells.every((cell) => !cell.selected))).toBe(true)
+    expect(empty[0]!.packed).toBeUndefined()
+    expect(selectedRowsFrom(rows, new Set())[0]!.cells.every((cell) => !cell.selected)).toBe(true)
+  } finally {
+    selection.dispose()
+    state.dispose()
+    vt.dispose()
+  }
+})
+
+it('decorates a real wide tail from only its lead membership key', () => {
+  session.write('\r\x1b[2Ka界b שלום cd')
+  session.renderState.update()
+  const rows = session.renderState.readRows({ packed: true })
+  expect(rows[0]!.cells[2]!.continuation).toBe(true)
+  expect(
+    selectedRowsFrom(rows, new Set(['0:1']))[0]!
+      .cells.filter((cell) => cell.selected)
+      .map((cell) => cell.x),
+  ).toEqual([1, 2])
 })

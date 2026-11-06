@@ -1,3 +1,4 @@
+import { subscribeCanvasImage } from '../../../packages/shaders/src/canvas-image.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
 import { GhosttyRenderState } from '../../core/render-state.js'
@@ -62,6 +63,7 @@ async function fixture(
   coordinated = false,
   deferOpen = false,
   publicFrames?: RendererTextFrameSnapshot[],
+  shared?: { clock: DeferredClock; coordinator: FrameCoordinator },
 ) {
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:160px;position:relative'
@@ -75,7 +77,7 @@ async function fixture(
     },
     runtime: { kind: 'borrowed', runtime },
   })
-  const clock = new DeferredClock()
+  const clock = shared?.clock ?? new DeferredClock()
   let renderer:
     | WebGlTerminalRenderer
     | WebGpuTerminalRenderer
@@ -100,7 +102,7 @@ async function fixture(
         dom: DomTerminalRenderer,
       }[backend].create(capturedOptions)
       if (coordinated) {
-        const coordinator = new FrameCoordinator(clock)
+        const coordinator = shared?.coordinator ?? new FrameCoordinator(clock)
         Reflect.set(renderer, 'coordinator', coordinator)
         Reflect.set(Reflect.get(renderer, 'scheduler'), 'clock', coordinator)
       }
@@ -405,4 +407,34 @@ describe('review text publication reentrancy and device recovery', () => {
       )
       .toEqual(terminal.visibleLines().map((row) => row.trimEnd()))
   })
+})
+
+it('keeps Y submitted while X notifies with both coordinated WebGPU images committed', async () => {
+  const clock = new DeferredClock()
+  const shared = { clock, coordinator: new FrameCoordinator(clock) }
+  const x = await fixture('webgpu', true, false, undefined, shared)
+  const y = await fixture('webgpu', true, false, undefined, shared)
+  x.terminal.write('\x1b[?25lX old')
+  y.terminal.write('\x1b[?25lY old')
+  clock.flush()
+  const oldFrame = y.terminal.submittedFrame!.frame
+  const oldDraws = y.renderer!.metrics.submittedFrames
+  const seen: string[][] = []
+  cleanups.push(
+    subscribeCanvasImage(x.terminal, () => {
+      expect(y.renderer!.metrics.submittedFrames).toBeGreaterThan(oldDraws)
+      expect(y.terminal.submittedFrame!.frame).toBe(oldFrame)
+      expect(y.terminal.frameSnapshot()).toBeDefined()
+      expect(y.terminal.frameSnapshot()!.rows[0]!.text.trimEnd()).toBe('Y old')
+      seen.push(y.terminal.visibleLines().map((row) => row.trimEnd()))
+    }),
+  )
+  x.terminal.write('\rX new')
+  y.terminal.write('\rY new')
+  clock.flush()
+  expect(seen).toEqual([['Y old', '', '', '']])
+  expect(x.errors).toEqual([])
+  expect(y.errors).toEqual([])
+  expect(y.terminal.submittedFrame!.frame).toBeGreaterThan(oldFrame)
+  expect(y.terminal.visibleLines()[0]!.trimEnd()).toBe('Y new')
 })

@@ -15,6 +15,9 @@ import { CanvasTerminalRenderer } from '../../render/canvas/renderer.js'
 import { WebGpuTerminalRenderer } from '../../render/webgpu/renderer.js'
 import type { TerminalSubmittedSnapshot, TerminalSubmittedText } from '../submitted-frame.js'
 import type { RenderSchedulerClock } from '../../render/shared/scheduler.js'
+import { observeDisplayedFrame } from '../../render/shared/displayed-frame.js'
+import { calculateTerminalFittedFont } from '../fit.js'
+import { LocalTerminalExecution } from '../execution-local.js'
 import { TerminalSession } from '../../term/session.js'
 import { createTerminalElements } from '../elements.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../terminal.js'
@@ -483,4 +486,128 @@ it.each(['before-subscribe', 'after-subscribe', 'first-write'])(
     expect(errors).toEqual([])
   },
   60_000,
+)
+
+it('refreshes a native held flag without extracting lazy text', async () => {
+  const { terminal, session, clock, errors } = await fixture('webgl')
+  terminal.write('\x1b[?25lone')
+  clock.flush()
+  const reads = extractionCount()
+  terminal.write('\x1b[?2026h')
+  terminal.clearTextureAtlas()
+  clock.flush()
+  const execution: unknown = Reflect.get(terminal, 'execution')
+  if (!(execution instanceof LocalTerminalExecution)) throw new Error('Missing local execution')
+  expect(execution.textFrame()?.renderHeld).toBe(true)
+  expect(reads()).toBe(0)
+  const version = session.renderState.snapshotVersion
+  terminal.write('\x1b[?2026l')
+  clock.flush()
+  expect(session.renderState.snapshotVersion).toBe(version)
+  expect(execution.textFrame()?.renderHeld).toBe(false)
+  expect(reads()).toBe(0)
+  expect(terminal.visibleLines()[0]?.trimEnd()).toBe('one')
+  expect(reads()).toBeGreaterThan(0)
+  expect(errors).toEqual([])
+})
+
+it.each([false, true])(
+  'keeps an effective resize layout through real clean confirmation %s and resubmission',
+  async (clean) => {
+    const canvas = document.createElement('canvas')
+    document.body.append(canvas)
+    cleanups.push(() => canvas.remove())
+    const session = await TerminalSession.create<Event>({
+      appearance: { grid: { columns: 20, rows: 4 }, cursor: { blink: false } },
+      runtime: { kind: 'borrowed', runtime },
+    })
+    const execution = new LocalTerminalExecution(session)
+    cleanups.push(() => execution.dispose())
+    const font = calculateTerminalFittedFont(
+      session.appearance.font,
+      { advanceWidth: 8, fontAscent: 10, fontDescent: 3 },
+      1,
+    )
+    execution.commitLayout(font, { top: 0, right: 0, bottom: 0, left: 0 })
+    const clock = new DeferredClock()
+    const errors: unknown[] = []
+    const renderer = await execution.createRenderer(
+      WebGlTerminalRenderer.create,
+      {
+        canvas,
+        columns: 20,
+        rows: 4,
+        font,
+        schedulerClock: clock,
+        retainDisplayedText: true,
+        needsFrameRows: () => false,
+        [observeDisplayedFrame]: (snapshot) => execution.submit(snapshot),
+        onCleanUpdate: () => execution.confirmCleanUpdate(),
+        onError: (cause) => errors.push(cause),
+      },
+      new AbortController().signal,
+    )
+    const resize = session.on('resize', ({ grid }) => renderer.resize(grid))
+    cleanups.push(() => resize.dispose())
+    execution.write('\x1b[?25lone')
+    clock.flush()
+    const layouts = [execution.submittedFrame!.layout]
+    execution.resize({ columns: 12 })
+    clock.flush()
+    layouts.push(execution.submittedFrame!.layout)
+    expect(execution.submittedFrame!.rowPatches).toHaveLength(4)
+    if (clean) {
+      execution.write('\x1b[?1000h')
+      renderer.notifyWrite()
+      clock.flush()
+      expect(execution.submittedFrame!.nativeRevision).toBe(execution.revision)
+    }
+    execution.submit(execution.textFrame()!)
+    layouts.push(execution.submittedFrame!.layout)
+    expect(layouts).toEqual([1, 2, 2])
+    expect(execution.captureViewport(800, 400)).toEqual(expect.any(String))
+    expect(execution.linkProjection?.layout).toBe(2)
+    expect(execution.textFrame()!.rows[0]!.text.trimEnd()).toBe('one')
+    expect(errors).toEqual([])
+  },
+)
+
+it.each(['webgl', 'webgpu'] as const)(
+  'confirms worker %s mode-only revisions without publishing private fields',
+  async (backend) => {
+    const host = document.createElement('div')
+    host.style.cssText = 'width:400px;height:120px;position:relative'
+    document.body.append(host)
+    cleanups.push(() => host.remove())
+    const family = 'DisplayedTextWorkerClean'
+    const terminal = await WorkerTerminal.create({
+      backend,
+      appearance: { cursor: { blink: false }, font: { family, size: 16 } },
+      fonts: [{ family, source: { url: testFontUrl } }],
+    })
+    cleanups.push(() => terminal.dispose())
+    await terminal.open(host)
+    expect(terminal.diagnostics.rendererBackend).toBe(backend === 'webgl' ? 'webgl2' : 'webgpu')
+    await terminal.write('\x1b[?25lworker clean')
+    await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('worker clean')
+    const revision = terminal.submittedFrame!.nativeRevision
+    const frame = terminal.submittedFrame!.frame
+    await terminal.write('\x1b[?1000h')
+    await expect.poll(() => terminal.submittedFrame!.nativeRevision).toBe(revision + 1)
+    expect(terminal.submittedFrame!.frame).toBeGreaterThan(frame)
+    expect(await terminal.captureViewport()).toEqual(expect.any(String))
+    const execution: unknown = Reflect.get(terminal, 'execution')
+    if (
+      typeof execution !== 'object' ||
+      execution === null ||
+      !('textFrame' in execution) ||
+      typeof execution.textFrame !== 'function'
+    )
+      throw new Error('Missing worker text-frame reader')
+    const snapshot: unknown = execution.textFrame.call(execution)
+    if (typeof snapshot !== 'object' || snapshot === null)
+      throw new Error('Missing worker text frame')
+    expect(Object.getOwnPropertySymbols(snapshot)).toEqual([])
+    expect(Object.keys(snapshot).sort()).toEqual(['cursor', 'paintedCursor', 'renderHeld', 'rows'])
+  },
 )
