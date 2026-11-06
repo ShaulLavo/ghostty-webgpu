@@ -1,7 +1,9 @@
 import type { RendererTextFrameRow, RenderStateSource } from '../render/shared/types.js'
 import {
   LinkResolver,
+  createLinkLineSnapshot,
   type LinkCell,
+  type LinkLineSnapshot,
   type LinkProvider,
   type LinkProviderRegistration,
   type LinkRange,
@@ -252,20 +254,27 @@ class HostLinkSession<TEvent> implements ProjectedLinkSession<TEvent> {
     if (!snapshot || !this.isCurrentRequest(epoch, projection)) return undefined
     if (!linkProjectionEquals(snapshot.projection, projection)) return undefined
     const rows = new Map(snapshot.rows.map((row) => [row.row, row]))
+    const lines = new Map<number, LinkLineSnapshot>()
     for (const cell of cells) {
       const row = rows.get(cell.row)
       if (!row || cell.column < 0 || cell.column >= row.line.length) continue
+      let line = lines.get(cell.row)
+      if (!line) {
+        line = createLinkLineSnapshot(row.line)
+        lines.set(cell.row, line)
+      }
       const osc8 = row.osc8Links.find(
         ({ range }) => cell.column >= range.start && cell.column <= range.end,
       )
       const resolution = await this.resolver.resolve(
         {
           ...cell,
-          line: row.line,
+          line: line.cells,
           osc8Range: osc8?.range,
           osc8Uri: osc8?.uri,
         },
         () => this.isCurrentRequest(epoch, projection),
+        line,
       )
       if (!this.isCurrentRequest(epoch, projection)) return undefined
       if (!resolution.hit) continue

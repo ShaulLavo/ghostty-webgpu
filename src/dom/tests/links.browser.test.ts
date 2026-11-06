@@ -10,7 +10,7 @@ import {
   type LinkProjection,
   type NativeLinkSnapshotSource,
 } from '../../term/link-snapshot.js'
-import type { ProvidedLink } from '../../term/links.js'
+import type { LinkLineSnapshot, ProvidedLink } from '../../term/links.js'
 import { TerminalSession } from '../../term/session.js'
 import { createDomLinkController, type DomLinkSession } from '../links.js'
 import type { CommittedPointerLayout } from '../pointer.js'
@@ -615,3 +615,24 @@ it.each(['link-free', 'late-link'] as const)(
       expect(view.root.querySelector('[role="link"]')?.getAttribute('aria-label')).toBe('last cell')
   },
 )
+
+it('normalizes each main-entry discovery row once and retires it after the operation', async () => {
+  const view = await harness()
+  const seen = new Map<number, Set<LinkLineSnapshot>>()
+  let calls = 0
+  view.session.registerLinkProvider({
+    provideLinks: (line, row) => {
+      calls += 1
+      const snapshots = seen.get(row) ?? new Set<LinkLineSnapshot>()
+      snapshots.add(line)
+      seen.set(row, snapshots)
+      return []
+    },
+  })
+  await expect(view.controller.focusNextLink()).resolves.toBe(false)
+  expect(calls).toBe(60)
+  expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual([1, 1])
+  await expect(view.controller.focusNextLink()).resolves.toBe(false)
+  expect(calls).toBe(120)
+  expect(Array.from(seen.values(), (snapshots) => snapshots.size)).toEqual([2, 2])
+})
