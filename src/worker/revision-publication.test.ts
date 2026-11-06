@@ -399,6 +399,17 @@ it.each([
     'unused content',
     (m: Frame) => ({ ...m, content: m.content.concat([{ ...m.content[0]!, revision: 999 }]) }),
   ],
+  [
+    'unreferenced revision',
+    (m: Frame) => ({
+      ...m,
+      content: [{ ...m.content[0]!, revision: 999 }].concat(m.content.slice(1)),
+    }),
+  ],
+  [
+    'duplicate revision',
+    (m: Frame) => ({ ...m, content: [m.content[0]!, m.content[0]!].concat(m.content.slice(2)) }),
+  ],
   ['malformed content', (m: Frame) => ({ ...m, content: [null] })],
   [
     'bad continuations',
@@ -563,10 +574,29 @@ it('retains the BiDi render-state wrapper and owns its selected-cell projection'
   })
   const execution = new LocalTerminalExecution(session)
   executions.push(execution)
-  execution.write('abc שלום xyz')
-  execution.selectRange({ x: 1, y: 0 }, { x: 6, y: 0 })
+  execution.write('ab שלום cd')
+  session.selectionPress({
+    viewport: { x: 3, y: 0 },
+    position: { x: 35, y: 5 },
+    repeatDistance: 10,
+    repeatIntervalNanoseconds: 500_000_000n,
+    timeNanoseconds: 1_000_000_000n,
+  })
+  session.selectionDrag({
+    viewport: { x: 1, y: 0 },
+    position: { x: 15, y: 5 },
+    geometry: { columns: 20, cellWidth: 10, paddingLeft: 0, screenHeight: 160 },
+  })
+  session.selectionRelease({ x: 1, y: 0 })
+  expect(session.getSelection()).toBe('b ם')
   const source = session.renderState
   source.update()
+  expect(
+    source
+      .readRows()[0]!
+      .cells.filter((cell) => cell.selected)
+      .map((cell) => cell.x),
+  ).toEqual([1, 2, 6])
   const retain = Reflect.get(source, retainDisplayedFrame)
   expect(typeof retain).toBe('function')
   if (typeof retain !== 'function') throw new Error('BiDi wrapper must forward retained frames')

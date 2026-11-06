@@ -1,0 +1,43 @@
+{
+  "status": "awaiting a reviewed BiDi retention ownership correction",
+  "decision": "unqualified",
+  "hardwareScreen": "not started",
+  "commonBase": "46399e3f0a3ce5f5ce216eb6fdf474822851c720",
+  "parity": {
+    "candidate": "cf6b1a51c4abe6a9acebebd4bf0edd36f865986b",
+    "conditions": 8,
+    "repetitions": 1,
+    "warmupSteps": 8,
+    "measuredSteps": 8,
+    "samples": 16,
+    "decision": "correctness-only",
+    "mismatches": [],
+    "receipt": "/work/reports/wave-20261106/audits2/ghostty-webgpu/007-evidence/parity.json.gz",
+    "manifest": "/work/reports/wave-20261106/audits2/ghostty-webgpu/007-evidence/receipt-manifest.json"
+  },
+  "negativeControlsKilled": [
+    "store invalidation removed",
+    "shared reception, including the browser test",
+    "publisher never prunes",
+    "host retains no pin",
+    "content keyed by text",
+    "clean summary uses cached native predecessor"
+  ],
+  "knownCandidateFailure": {
+    "test": "retains the BiDi render-state wrapper and owns its selected-cell projection",
+    "browserFailures": 16,
+    "cause": "BiDi render-state wrapper does not expose native retention; forwarding also requires retained selection ownership",
+    "resolution": "Coordinator obtaining a narrow design correction and independent review; no seam or fallback implemented"
+  },
+  "fullVerification": {
+    "passed": false,
+    "unitTestsPassed": 1647,
+    "unitTestsSkipped": 1,
+    "browserTestsPassed": 1408,
+    "browserTestsFailed": 16,
+    "browserTestsSkipped": 5,
+    "additionalError": "Vite iframe initialization/reload failure; isolated file subsequently passed both tests"
+  },
+  "presented": "unresolved",
+  "queueMemory": "Not bounded by native slots; proportional to outstanding immutable messages"
+}
