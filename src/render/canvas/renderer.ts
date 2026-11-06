@@ -66,6 +66,7 @@ function cursorKey(cursor: CursorState | undefined, y: number): string {
 }
 
 class CanvasSurface implements RowRendererSurface {
+  readonly paintsCanvas = true
   private readonly context: Canvas2dContext
   readonly desynchronized: boolean
   private readonly painter: CanvasRowPainter

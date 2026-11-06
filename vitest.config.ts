@@ -6,6 +6,7 @@ export default defineConfig({
     exclude: ['src/**/*.browser.test.ts'],
     include: [
       'src/**/*.test.ts',
+      'bench/write-queue-probe.test.ts',
       'scripts/ghostty-source.test.ts',
       'scripts/layout.test.ts',
       'scripts/wasm-provenance.test.ts',

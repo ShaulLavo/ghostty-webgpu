@@ -27,6 +27,7 @@ export interface RowRendererMetrics {
 export type RowThemeInvalidation = 'all' | 'cursor'
 
 export interface RowRendererSurface {
+  readonly paintsCanvas: boolean
   beginFrame?(): void
   dispose(): void
   paint(
@@ -112,6 +113,7 @@ export class RowTerminalRenderer {
     this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
       this.scheduler.schedule(),
     )
+    if (surface.paintsCanvas) this.frames.activateCanvasImage()
     this.scheduler.schedule()
   }
 
@@ -225,6 +227,7 @@ export class RowTerminalRenderer {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    this.frames.dispose()
     this.unsubscribeRenderRequest?.()
     this.scheduler.dispose()
     this.surface.dispose()
@@ -297,6 +300,7 @@ export class RowTerminalRenderer {
       ),
       changed,
       rows,
+      this.surface.paintsCanvas ? 'drawn' : 'retained',
     )
   }
 
@@ -305,6 +309,7 @@ export class RowTerminalRenderer {
   }
 
   private invalidateAll(): void {
+    this.frames.invalidate()
     this.needsFullRebuild = true
     this.scheduler.schedule()
   }

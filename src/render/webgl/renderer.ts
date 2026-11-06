@@ -160,6 +160,7 @@ export class WebGlTerminalRenderer {
     this.unsubscribeRenderRequest = this.renderState.subscribeRenderRequest?.(() =>
       this.scheduler.schedule(),
     )
+    this.frames.activateCanvasImage()
     this.scheduler.schedule()
   }
 
@@ -299,6 +300,7 @@ export class WebGlTerminalRenderer {
 
   dispose(): void {
     if (this.state.kind === 'disposed') return
+    this.frames.dispose()
     this.unsubscribeRenderRequest?.()
     this.scheduler.dispose()
     this.zigBuilder?.dispose()
@@ -335,6 +337,7 @@ export class WebGlTerminalRenderer {
   }
 
   private suspendContext(): void {
+    this.frames.invalidate()
     if (this.state.kind === 'disposed' || this.state.kind === 'lost') return
     if (this.state.kind === 'ready') {
       this.atlasUploadedBytesOffset += this.state.pass.atlasUploadedBytes
@@ -472,7 +475,8 @@ export class WebGlTerminalRenderer {
     const operations = pass.uploadFrame(builder, updates)
     const blinkChanged = textBlink ? pass.setTextVisible(this.textPhaseVisible) : false
     // Persistent records can report terminal damage without changing either GPU buffer.
-    const draws = operations > 0 || blinkChanged ? pass.submit() : 0
+    const drawn = Boolean(options.full || operations > 0 || blinkChanged)
+    const draws = drawn ? pass.submit() : 0
     if (this.context.isContextLost()) {
       this.suspendContext()
       return
@@ -487,7 +491,7 @@ export class WebGlTerminalRenderer {
     )
     try {
       if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
-      if (operations > 0 || blinkChanged) {
+      if (drawn) {
         this.recordFrame(pass, phaseOnly ? 0 : builder.rowRebuilds, operations, draws)
         this.metrics.zigFrames += 1
       }
@@ -498,7 +502,7 @@ export class WebGlTerminalRenderer {
     } finally {
       frame?.discard()
     }
-    frame?.notify()
+    frame?.notify(drawn ? 'drawn' : 'retained')
   }
 
   private rowsToRebuild(damage: RenderStateDirty): readonly RenderRow[] {
@@ -550,6 +554,7 @@ export class WebGlTerminalRenderer {
   }
 
   private invalidateAll(): void {
+    this.frames.invalidate()
     this.needsFullRebuild = true
     this.schedule()
   }

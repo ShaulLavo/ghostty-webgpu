@@ -1,4 +1,5 @@
 import type { ExtensionScope, TerminalApi } from 'ghostty-webgpu'
+import { subscribeCanvasImage } from './canvas-image.js'
 import { FrameSchedule, type ShaderFrame } from './frame-schedule.js'
 import { WebGlShaderPass, WebGpuShaderPass, type ShaderPass } from './pass.js'
 import { packShaderUniforms, SHADER_UNIFORM_BYTE_LENGTH } from './uniforms.js'
@@ -113,7 +114,7 @@ class Controller implements ShaderAddonApi {
     this.#paused = options.paused ?? false
     scope.own(() => this.dispose())
     this.#cleanup.push(this.#terminal.on('open', () => this.start()).dispose)
-    this.#cleanup.push(this.#terminal.on('frame', () => this.capture()).dispose)
+    this.#cleanup.push(this.#terminal.on('frame', () => this.frame()).dispose)
     this.#cleanup.push(this.#terminal.on('appearance', () => this.invalidate()).dispose)
     if (this.#terminal.lifecycle === 'open') this.start()
     void this.setShader(shader).catch(() => {})
@@ -144,6 +145,7 @@ class Controller implements ShaderAddonApi {
         'backend',
         'Shader capture requires a WebGPU, WebGL2, or Canvas2D terminal renderer.',
       )
+    this.#cleanup.push(subscribeCanvasImage(terminal, () => this.capture()))
     const view = root.ownerDocument.defaultView
     if (!view) throw new ShaderAddonError('capture', 'The terminal must belong to a window.')
     this.#view = view
@@ -291,6 +293,17 @@ class Controller implements ShaderAddonApi {
     this.#pass?.resize({ width: source.width, height: source.height })
   }
 
+  frame(): void {
+    if (this.#disposed) return
+    if (this.#terminal.diagnostics.rendererBackend === 'dom') {
+      this.fail(
+        new ShaderAddonError('backend', 'The terminal renderer no longer publishes canvas images.'),
+      )
+      return
+    }
+    this.invalidate()
+  }
+
   capture(): void {
     if (this.#disposed || !this.#capture || !this.#pass) return
     const source = this.#terminal.canvas
@@ -303,8 +316,8 @@ class Controller implements ShaderAddonApi {
       const context = copy.getContext('2d')
       if (!context)
         throw new ShaderAddonError('capture', 'A Canvas2D snapshot context is unavailable.')
-      // WebGL's non-preserved drawing buffer must be copied inside the frame callback.
-      // A no-draw WebGL notification exposes transparent pixels; retain the last opaque snapshot.
+      // Replace transparent pixels while the newly drawn source buffer is still available.
+      context.globalCompositeOperation = 'copy'
       context.drawImage(source, 0, 0)
       this.#captured = true
       this.#upload = true
