@@ -1,6 +1,6 @@
 # Own BiDi selection in submitted full-frame snapshots
 
-Status: Approved, queued correctness follow-up. This is separate from the rejected revision-publication optimization and the held-output selection fix. Do not import the rejected transport or its new accessors to close it.
+Status: Resolved by [PR 82](https://github.com/ShaulLavo/ghostty-webgpu/pull/82), merged as `f30e81b0f552afa7de81430b751972acfe8b3007`. Its reviewed fix captures readers and selection records at capture time and preserves them for the publication lifetime. This is separate from the rejected revision-publication optimization and the held-output selection fix. The rejected transport and its new accessors were not adopted.
 
 ## Confirmed problem
 
@@ -25,7 +25,7 @@ bun /work/reports/wave-20261106/audits2/ghostty-webgpu/ADDENDUM007-BIDI-probe.ts
 
 The `viewportWindow` collection creates a real BiDi session and local execution, submits the disjoint drag, clears selection before another submission, and records both full-frame selection and the correctly rejected captureViewport query. Use that sequence to add a discovered regression with literal columns, not only equality between two new helpers.
 
-## Execution
+## Original execution plan
 
 1. Recheck current main and reproduce the between-publication mismatch without the experimental transport. Keep the separate held-output fix intact.
 2. Have the tech lead choose the smallest ownership correction for main and worker full-frame reads. Compare a cheap captured selection projection against native retention; do not assume the rejected candidate's three-slot adoption is the only answer. Independent design review precedes a new shared frame-ownership contract.

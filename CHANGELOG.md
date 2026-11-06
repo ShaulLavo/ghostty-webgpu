@@ -1,5 +1,22 @@
 # ghostty-webgpu
 
+## 0.3.33
+
+### Patch Changes
+
+- [#82](https://github.com/ShaulLavo/ghostty-webgpu/pull/82) - Keep submitted frame snapshots coherent when BiDi selection changes before the next frame.
+
+## 0.3.32
+
+### Patch Changes
+
+- [#78](https://github.com/ShaulLavo/ghostty-webgpu/pull/78) - Clear stale pixels after shader erasure and capture the drawn terminal image.
+- [#77](https://github.com/ShaulLavo/ghostty-webgpu/pull/77) - Refresh cached Safari fonts when font loading starts.
+- [#79](https://github.com/ShaulLavo/ghostty-webgpu/pull/79) - Keep BiDi selection highlighted during held output.
+- [#74](https://github.com/ShaulLavo/ghostty-webgpu/pull/74) - Limit ligature font downloads to 32 MiB.
+- [#75](https://github.com/ShaulLavo/ghostty-webgpu/pull/75) - Reuse row maps during link discovery.
+- Release `ghostty-webgpu-shaders` 0.0.2 with a `ghostty-webgpu` ^0.3.32 peer minimum. The line editor remains at 0.0.4.
+
 ## 0.3.31
 
 ### Patch Changes
