@@ -854,6 +854,7 @@ it('rejects unfinished worker cleanup at the shared shutdown deadline', async ()
     observations.push(data)
   const url = new URL('./tests/device-lifecycle.worker.ts', import.meta.url)
   url.searchParams.set('lifecycle', 'held')
+  url.searchParams.set('clock', 'manual')
   const terminal = await WorkerTerminal.create({
     assets,
     appearance: { font: { family, size: 16 }, cursor: { blink: false } },
@@ -862,14 +863,18 @@ it('rejects unfinished worker cleanup at the shared shutdown deadline', async ()
     fonts: [{ family, source: { url: fontUrl } }],
   })
   const terminate = vi.spyOn(Worker.prototype, 'terminate')
+  const timeout = vi.spyOn(globalThis, 'setTimeout')
   try {
     await terminal.open(container())
     await terminal.write('known-good lifecycle')
     await eventually(() => terminal.visibleLines()[0]?.includes('known-good lifecycle') === true)
+    timeout.mockClear()
     const disposal = terminal.dispose().then(
       () => undefined,
       (cause: unknown) => cause,
     )
+    const hostDeadline = timeout.mock.calls.at(-1)
+    expect(hostDeadline?.[1]).toBe(15_000)
     await eventually(() => observations.some((value) => value.type === 'waiting'))
     channel.postMessage('inspect')
     await eventually(() => observations.some((value) => value.type === 'inspected'))
@@ -877,6 +882,14 @@ it('rejects unfinished worker cleanup at the shared shutdown deadline', async ()
       type: 'inspected',
       devices: [{ device: 0, waits: 1, destroys: 0 }],
     })
+    await eventually(() => observations.some((value) => value.type === 'deadline-armed'))
+    expect(observations.filter((value) => value.type === 'deadline-armed')).toEqual([
+      { type: 'deadline-armed', delay: 15_000 },
+    ])
+    expect(terminate).not.toHaveBeenCalled()
+    const callback = hostDeadline?.[0]
+    if (typeof callback !== 'function') throw new Error('Host disposal deadline is missing')
+    callback()
     expect(await disposal).toMatchObject({
       code: 'timeout',
       operation: expect.stringMatching(/^(dispose|cleanup)$/),
@@ -888,6 +901,7 @@ it('rejects unfinished worker cleanup at the shared shutdown deadline', async ()
     await terminal.dispose().catch(() => {})
     channel.close()
     terminate.mockRestore()
+    timeout.mockRestore()
   }
 }, 20_000)
 
