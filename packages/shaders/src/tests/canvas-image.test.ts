@@ -51,3 +51,27 @@ it('preserves binding and disposal receivers without a terminal type assertion',
   expect(listener).toHaveBeenCalledTimes(1)
   dispose()
 })
+
+it.each(['getter', 'call', 'result-getter'] as const)(
+  'classifies a throwing %s capability as a capture error',
+  (failure) => {
+    const cause = new TypeError('malformed capability')
+    const fail = () => {
+      throw cause
+    }
+    const terminal = {}
+    if (failure === 'getter') Object.defineProperty(terminal, key, { get: fail })
+    if (failure === 'call') Object.defineProperty(terminal, key, { value: fail })
+    if (failure === 'result-getter')
+      Object.defineProperty(terminal, key, {
+        value: () => Object.defineProperty({ kind: 'subscription' }, 'dispose', { get: fail }),
+      })
+    let error: unknown
+    try {
+      subscribeCanvasImage(terminal, () => {})
+    } catch (caught) {
+      error = caught
+    }
+    expect(error).toMatchObject({ code: 'capture', cause })
+  },
+)
