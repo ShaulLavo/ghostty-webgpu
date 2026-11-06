@@ -1,5 +1,5 @@
 import { deflateSync } from 'node:zlib'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { TerminalFittedFont } from '../../../term/types.js'
 import { loadGsubLigatureFinder, resolveLigatureFinder } from './finder.js'
 
@@ -123,6 +123,137 @@ function rangeSingle(first: number, last: number): Uint8Array {
 
 const points = (text: string) => Array.from(text, (character) => character.codePointAt(0)!)
 
+const fontByteLimit = 32 * 1024 * 1024
+const fontUrl = 'https://font.invalid/font.ttf'
+
+function streamedFont(chunks: readonly Uint8Array[], contentLength?: string) {
+  let index = 0
+  const cancel = vi.fn()
+  const pull = vi.fn((controller: ReadableStreamDefaultController<Uint8Array>) => {
+    const chunk = chunks[index++]
+    if (chunk === undefined) return controller.close()
+    controller.enqueue(chunk)
+  })
+  const body = new ReadableStream({ cancel, pull }, { highWaterMark: 0 })
+  const headers = new Headers()
+  if (contentLength !== undefined) headers.set('Content-Length', contentLength)
+  const response = new Response(body, { headers })
+  const arrayBuffer = vi.spyOn(response, 'arrayBuffer')
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+  return { arrayBuffer, body, cancel, pull }
+}
+
+function emptyFont(length = 12): Uint8Array {
+  const bytes = new Uint8Array(length)
+  bytes.set([0, 1, 0, 0])
+  return bytes
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
+describe('ligature font downloads', () => {
+  it('rejects an oversized declared body without reading it', async () => {
+    const stream = streamedFont([emptyFont()], String(fontByteLimit + 1))
+    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('size limit')
+    expect(stream.pull).not.toHaveBeenCalled()
+    expect(stream.arrayBuffer).not.toHaveBeenCalled()
+    expect(stream.cancel).toHaveBeenCalledOnce()
+    expect(stream.body.locked).toBe(false)
+  })
+
+  it.each([undefined, '12', 'unknown', '-1', '1e9', '33554433.5'])(
+    'stops an oversized stream with Content-Length %s at its first excess byte',
+    async (length) => {
+      const block = emptyFont(1024 * 1024)
+      const chunks = Array.from({ length: 32 }, () => block).concat([
+        new Uint8Array(1),
+        new Uint8Array(1024),
+      ])
+      const stream = streamedFont(chunks, length)
+      await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('size limit')
+      expect(stream.pull).toHaveBeenCalledTimes(33)
+      expect(stream.arrayBuffer).not.toHaveBeenCalled()
+      expect(stream.cancel).toHaveBeenCalledOnce()
+      expect(stream.body.locked).toBe(false)
+    },
+  )
+
+  it('rejects a single oversized chunk without requesting another', async () => {
+    const stream = streamedFont([emptyFont(fontByteLimit + 1), new Uint8Array(1)])
+    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('size limit')
+    expect(stream.pull).toHaveBeenCalledOnce()
+    expect(stream.cancel).toHaveBeenCalledOnce()
+    expect(stream.body.locked).toBe(false)
+  })
+
+  it('accepts a valid font at exactly 32 MiB', async () => {
+    const stream = streamedFont([emptyFont(fontByteLimit)], String(fontByteLimit))
+    const finder = await loadGsubLigatureFinder(fontUrl)
+    expect(finder.find(points('ab'))).toEqual([])
+    expect(stream.arrayBuffer).not.toHaveBeenCalled()
+    expect(stream.cancel).not.toHaveBeenCalled()
+    expect(stream.body.locked).toBe(false)
+  })
+
+  it('reads chunk views, empty chunks and a short final chunk without padding', async () => {
+    const bytes = new Uint8Array(30).fill(255)
+    bytes.set(emptyFont(), 5)
+    const stream = streamedFont([bytes.subarray(5, 10), new Uint8Array(0), bytes.subarray(10, 17)])
+    const finder = await loadGsubLigatureFinder(fontUrl)
+    expect(finder.find(points('ab'))).toEqual([])
+    expect(stream.arrayBuffer).not.toHaveBeenCalled()
+    expect(stream.body.locked).toBe(false)
+  })
+
+  it('rejects a non-OK response without buffering its body', async () => {
+    const response = new Response(null, { status: 404 })
+    const arrayBuffer = vi.spyOn(response, 'arrayBuffer')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('HTTP 404')
+    expect(arrayBuffer).not.toHaveBeenCalled()
+  })
+
+  it('never uses arrayBuffer when there is no readable body', async () => {
+    const response = new Response(null)
+    const arrayBuffer = vi.spyOn(response, 'arrayBuffer')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('body')
+    expect(arrayBuffer).not.toHaveBeenCalled()
+  })
+
+  it('propagates stream errors and releases the reader', async () => {
+    const failure = new Error('font connection failed')
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.error(failure)
+      },
+    })
+    const response = new Response(body)
+    const arrayBuffer = vi.spyOn(response, 'arrayBuffer')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toBe(failure)
+    expect(arrayBuffer).not.toHaveBeenCalled()
+    expect(body.locked).toBe(false)
+  })
+
+  it('preserves the size error if cancellation fails', async () => {
+    const stream = streamedFont([emptyFont()], String(fontByteLimit + 1))
+    stream.cancel.mockRejectedValue(new Error('cancel failed'))
+    await expect(loadGsubLigatureFinder(fontUrl)).rejects.toThrow('size limit')
+    expect(stream.body.locked).toBe(false)
+  })
+
+  it('preserves caller array-view offsets', async () => {
+    const bytes = new Uint8Array(30).fill(255)
+    bytes.set(emptyFont(), 5)
+    await expect(loadGsubLigatureFinder(bytes.subarray(5, 17))).resolves.toBeDefined()
+    await expect(loadGsubLigatureFinder(new DataView(bytes.buffer, 5, 12))).resolves.toBeDefined()
+  })
+})
+
 describe('ligature font limits', () => {
   it('stops self-recursive contextual lookups', async () => {
     const finder = await loadGsubLigatureFinder(
@@ -198,5 +329,9 @@ describe('ligature font limits', () => {
     }
     await expect(resolveLigatureFinder(true, font, bad)).resolves.toBeDefined()
     await expect(resolveLigatureFinder({ font: bad }, font)).rejects.toThrow(RangeError)
+    streamedFont([emptyFont()], String(fontByteLimit + 1))
+    await expect(resolveLigatureFinder(true, font, fontUrl)).resolves.toBeDefined()
+    streamedFont([emptyFont()], String(fontByteLimit + 1))
+    await expect(resolveLigatureFinder({ font: fontUrl }, font)).rejects.toThrow('size limit')
   })
 })
