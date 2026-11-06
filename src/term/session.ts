@@ -1,4 +1,6 @@
 import type { BidiSelectionGesture } from '../bidi/selection.js'
+import { retainDisplayedFrame } from '../core/frame-observers.js'
+import type { DisplayedFrameSource } from '../render/shared/displayed-frame.js'
 import { normalizeFontMetrics } from './font-metrics.js'
 import {
   ClipboardLocation,
@@ -1098,6 +1100,32 @@ export interface TerminalSessionKeyOptions {
   readonly onEncoded?: (data: Uint8Array) => void
 }
 
+function bidiRenderState(
+  source: GhosttyRenderState,
+  selection: BidiSelectionGesture,
+): RenderStateSource & DisplayedFrameSource {
+  return {
+    get snapshotVersion() {
+      return source.snapshotVersion
+    },
+    get hasSnapshot() {
+      return source.hasSnapshot
+    },
+    get renderHeld() {
+      return source.renderHeld
+    },
+    subscribeRenderRequest: source.subscribeRenderRequest.bind(source),
+    createFrameBuilder: source.createFrameBuilder.bind(source),
+    acknowledge: source.acknowledge.bind(source),
+    readCursor: source.readCursor.bind(source),
+    readRows: (options) => selection.selectedRows(source.readRows(options)),
+    readTextRows: source.readTextRows.bind(source),
+    update: source.update.bind(source),
+    [retainDisplayedFrame]: (options) =>
+      selection.retainFrame(() => source[retainDisplayedFrame](options)),
+  }
+}
+
 export class TerminalSession<TEvent = unknown> {
   private activeOperations = 0
   private customOscGeneration = 0
@@ -1114,6 +1142,7 @@ export class TerminalSession<TEvent = unknown> {
   private readonly links: LinkResolver<TEvent>
   private readonly mouseEncoder: GhosttyMouseEncoder
   private readonly nativeRenderState: GhosttyRenderState
+  private readonly bidiRenderSource?: RenderStateSource & DisplayedFrameSource
   private osc8RangeCache?: Osc8RangeCache
   private readonly ownsRuntime: boolean
   private revisionValue = 0
@@ -1138,6 +1167,9 @@ export class TerminalSession<TEvent = unknown> {
     this.keyEncoder = resources.key
     this.mouseEncoder = resources.mouse
     this.bidiSelection = resources.bidiSelection
+    this.bidiRenderSource = resources.bidiSelection
+      ? bidiRenderState(resources.renderState, resources.bidiSelection)
+      : undefined
     this.selection = resources.selection
     this.appearanceValue = appearance
     this.effectState = effectState
@@ -1238,27 +1270,7 @@ export class TerminalSession<TEvent = unknown> {
 
   get renderState(): RenderStateSource {
     this.ensureActive()
-    if (!this.bidiSelection) return this.nativeRenderState
-    const source = this.nativeRenderState
-    const selection = this.bidiSelection
-    return {
-      get snapshotVersion() {
-        return source.snapshotVersion
-      },
-      get hasSnapshot() {
-        return source.hasSnapshot
-      },
-      get renderHeld() {
-        return source.renderHeld
-      },
-      subscribeRenderRequest: source.subscribeRenderRequest.bind(source),
-      createFrameBuilder: source.createFrameBuilder.bind(source),
-      acknowledge: source.acknowledge.bind(source),
-      readCursor: source.readCursor.bind(source),
-      readRows: (options) => selection.selectedRows(source.readRows(options)),
-      readTextRows: source.readTextRows.bind(source),
-      update: source.update.bind(source),
-    }
+    return this.bidiRenderSource ?? this.nativeRenderState
   }
 
   get bidi(): boolean {

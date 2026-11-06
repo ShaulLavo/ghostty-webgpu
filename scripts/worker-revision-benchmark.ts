@@ -62,6 +62,11 @@ function git(directory: string, args: string[]): string {
   return result.stdout.toString().trim()
 }
 const allowed = new Set([
+  'src/bidi/selected-frame.ts',
+  'src/bidi/selection.ts',
+  'src/term/session.ts',
+  'src/bidi/selection.test.ts',
+  'src/bidi/interactions.browser.test.ts',
   'src/core/displayed-frame.ts',
   'src/worker/protocol.ts',
   'src/worker/revision-publisher.ts',

@@ -2,7 +2,13 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../core/runtime.js'
 import { GhosttyRenderState } from '../core/render-state.js'
 import { GhosttyTerminal } from '../core/terminal.js'
-import { retainDisplayedFrame } from '../render/shared/displayed-frame.js'
+import {
+  retainDisplayedFrame,
+  type DisplayedFrameSource,
+} from '../render/shared/displayed-frame.js'
+import { CellPin } from '../bidi/pin.js'
+import { SelectedDisplayedFrame } from '../bidi/selected-frame.js'
+import { copiedFrameRow } from '../render/shared/frame-row.js'
 
 const runtimes: GhosttyRuntime[] = []
 afterEach(() => {
@@ -61,11 +67,12 @@ import { TerminalWorkerError } from './structured-errors.js'
 type Frame = Extract<WorkerMessage, { type: 'frame' }>
 const executions: LocalTerminalExecution[] = []
 
-async function actor(columns = 20, rows = 10, runtime?: GhosttyRuntime) {
+async function actor(columns = 20, rows = 10, runtime?: GhosttyRuntime, bidi = false) {
   runtime ??= await GhosttyRuntime.create()
   if (!runtimes.includes(runtime)) runtimes.push(runtime)
   const session = await TerminalSession.create<Event>({
     runtime: { kind: 'borrowed', runtime },
+    bidi,
     appearance: { grid: { columns, rows } },
   })
   const execution = new LocalTerminalExecution(session)
@@ -78,11 +85,17 @@ async function actor(columns = 20, rows = 10, runtime?: GhosttyRuntime) {
     ),
     { top: 1, right: 2, bottom: 3, left: 4 },
   )
-  const state = session.renderState
+  const state: unknown = Reflect.get(session, 'nativeRenderState')
   const terminal: unknown = Reflect.get(session, 'terminal')
   if (!(state instanceof GhosttyRenderState) || !(terminal instanceof GhosttyTerminal))
     throw new Error('Expected real native state')
-  return { runtime, session, state, terminal, execution }
+  const retain = () => {
+    const source = session.renderState as DisplayedFrameSource
+    const capture = source[retainDisplayedFrame]
+    if (!capture) throw new Error('Expected retained source')
+    return capture.call(source)
+  }
+  return { runtime, session, state, terminal, execution, retain }
 }
 type Actor = Awaited<ReturnType<typeof actor>>
 
@@ -109,7 +122,7 @@ class Stream {
     const { state, execution } = actor
     state.update()
     const liveRows = structuredClone(state.readTextRows())
-    const frame = nativeFrame ?? state[retainDisplayedFrame]()
+    const frame = nativeFrame ?? actor.retain()
     frame.readTextRows()
     state.acknowledge()
     frame.accept()
@@ -539,7 +552,7 @@ it('rejects publisher epoch exhaustion and clears every retained reference', asy
 it('keeps two retained stores on the same native terminal independent through unequal cadence', async () => {
   const a = await actor()
   const state = a.runtime.createRenderState(a.terminal)
-  const b = { ...a, state }
+  const b = { ...a, state, retain: () => state[retainDisplayedFrame]() }
   const first = new Stream({ terminal: 'subscriber-a', generation: 1 })
   const second = new Stream({ terminal: 'subscriber-b', generation: 1 })
   try {
@@ -564,51 +577,95 @@ it('keeps two retained stores on the same native terminal independent through un
   }
 })
 
-it('retains the BiDi render-state wrapper and owns its selected-cell projection', async () => {
-  const runtime = await GhosttyRuntime.create()
-  runtimes.push(runtime)
-  const session = await TerminalSession.create<Event>({
-    bidi: true,
-    runtime: { kind: 'borrowed', runtime },
-    appearance: { grid: { columns: 20, rows: 3 } },
-  })
-  const execution = new LocalTerminalExecution(session)
-  executions.push(execution)
-  execution.write('ab שלום cd')
-  session.selectionPress({
-    viewport: { x: 3, y: 0 },
-    position: { x: 35, y: 5 },
+function bidiDrag(a: Actor, start: number, end: number): void {
+  a.session.selectionPress({
+    viewport: { x: start, y: 0 },
+    position: { x: start * 10 + 5, y: 5 },
     repeatDistance: 10,
     repeatIntervalNanoseconds: 500_000_000n,
     timeNanoseconds: 1_000_000_000n,
   })
-  session.selectionDrag({
-    viewport: { x: 1, y: 0 },
-    position: { x: 15, y: 5 },
+  a.session.selectionDrag({
+    viewport: { x: end, y: 0 },
+    position: { x: end * 10 + 5, y: 5 },
     geometry: { columns: 20, cellWidth: 10, paddingLeft: 0, screenHeight: 160 },
   })
-  session.selectionRelease({ x: 1, y: 0 })
-  expect(session.getSelection()).toBe('b ם')
-  const source = session.renderState
-  source.update()
-  expect(
-    source
-      .readRows()[0]!
-      .cells.filter((cell) => cell.selected)
-      .map((cell) => cell.x),
-  ).toEqual([1, 2, 6])
-  const retain = Reflect.get(source, retainDisplayedFrame)
-  expect(typeof retain).toBe('function')
-  if (typeof retain !== 'function') throw new Error('BiDi wrapper must forward retained frames')
-  const frame: NativeDisplayedFrame = retain.call(source, { full: true })
-  const expected = structuredClone(
-    source.readRows().map((row) => row.cells.map((cell) => cell.selected)),
+  a.session.selectionRelease({ x: end, y: 0 })
+}
+
+/** Test-only checkpoint membership formula, independent of the captured-overlay helpers. */
+function selectionOracle(a: Actor) {
+  const mask = Reflect.get(Reflect.get(a.session, 'bidiSelection'), 'mask')
+  const points = mask?.pins.flatMap((pin: unknown) => {
+    if (!(pin instanceof CellPin)) throw new Error('Expected real pin')
+    const point = pin.point()
+    return point ? [{ ...point }] : []
+  })
+  const keys = new Set<string>(
+    points?.map((point: { x: number; y: number }) => `${point.y}:${point.x}`),
   )
-  frame.accept()
-  const revisions = frame.readTextRevisions()
-  execution.clearSelection()
-  source.update()
-  expect(frame.readRows().map((row) => row.cells.map((cell) => cell.selected))).toEqual(expected)
-  expect(frame.readTextRevisions()).toBe(revisions)
-  source.acknowledge()
+  const offset = a.terminal.scrollbar.offset
+  return a.state.readRows().map((row) =>
+    copiedFrameRow({
+      ...row,
+      packed: undefined,
+      cells: row.cells.map((cell) => ({
+        ...cell,
+        selected: mask
+          ? keys.has(`${row.y + offset}:${cell.x}`) ||
+            (cell.continuation && keys.has(`${row.y + offset}:${cell.x - 1}`))
+          : cell.selected,
+      })),
+    }),
+  )
+}
+
+it('keeps wrapped/plain/wrapped BiDi publication in one epoch with owned selection and clean summaries', async () => {
+  const a = await actor(20, 3, undefined, true)
+  a.execution.write('ab שלום cd')
+  a.state.update()
+  const warm = a.state[retainDisplayedFrame]()
+  warm.readTextRows()
+  warm.accept()
+  a.state.acknowledge()
+  bidiDrag(a, 3, 1)
+  a.state.update()
+  const oracle = selectionOracle(a)
+  const stream = new Stream()
+  const first = stream.encode(a)
+  expect(first.frame).toBeInstanceOf(SelectedDisplayedFrame)
+  expect(first.message.store).toBe(1)
+  const revisions = first.frame.readTextRevisions()
+  expect(first.frame.readTextRevisions()).toBe(revisions)
+  stream.apply(first)
+  expect(a.execution.frameSnapshot()?.rows).toStrictEqual(oracle)
+  expect(oracle[0]!.renderCells.filter((cell) => cell.selected).map((cell) => cell.x)).toEqual([
+    1, 2, 6,
+  ])
+  a.execution.clearSelection()
+  expect(first.frame.readTextRevisions()).toBe(revisions)
+  expect(a.execution.frameSnapshot()?.rows).toStrictEqual(oracle)
+  const plain = stream.encode(a)
+  expect(plain.frame).not.toBeInstanceOf(SelectedDisplayedFrame)
+  expect(plain.message.store).toBe(1)
+  expect(plain.message.content).toHaveLength(0)
+  stream.apply(plain)
+  expect(a.execution.frameSnapshot()?.rows).toStrictEqual(selectionOracle(a))
+  bidiDrag(a, 1, 8)
+  a.state.update()
+  const selected = selectionOracle(a)
+  const wrapped = stream.encode(a)
+  expect(wrapped.frame).toBeInstanceOf(SelectedDisplayedFrame)
+  expect(wrapped.message.store).toBe(1)
+  expect(wrapped.frame.revisionSource).toBe(first.frame.revisionSource)
+  expect(wrapped.message.content).toHaveLength(0)
+  stream.apply(wrapped)
+  expect(a.execution.frameSnapshot()?.rows).toStrictEqual(selected)
+  const clean = stream.encode(a, wrapped.frame)
+  expect(clean.frame).toBe(wrapped.frame)
+  expect(clean.message.store).toBe(1)
+  expect(clean.message.content).toHaveLength(0)
+  expect(stream.apply(clean).summary.rowPatches).toHaveLength(0)
+  a.execution.clearSelection()
+  expect(a.execution.frameSnapshot()?.rows).toStrictEqual(selected)
 })

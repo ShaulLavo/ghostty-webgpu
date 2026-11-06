@@ -6,6 +6,9 @@ import link from '../../bench/fixtures/correctness/bidi-link.vt?raw'
 import mouse from '../../bench/fixtures/correctness/bidi-mouse.vt?raw'
 import wide from '../../bench/fixtures/correctness/bidi-wide-emoji.vt?raw'
 import { Terminal as MainTerminal } from '../dom/terminal.js'
+import { LocalTerminalExecution } from '../dom/execution-local.js'
+import { WorkerTerminalExecution } from '../../dist/worker/execution.js'
+import { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
 import { CanvasTerminalRenderer } from '../render/canvas/renderer.js'
 import { Terminal as WorkerTerminal, TerminalWorkerError } from '../../dist/worker/index.js'
 import type { TerminalApi } from '../dom/terminal-api.js'
@@ -42,10 +45,13 @@ async function create(mode: string, input: string) {
     },
   }
   let terminal: TerminalApi
-  if (mode === 'main')
+  if (mode === 'main' || mode === 'main-gpu')
     terminal = await MainTerminal.create({
       ...options,
-      rendererFactory: (options) => CanvasTerminalRenderer.create(options),
+      rendererFactory: (options) =>
+        mode === 'main-gpu'
+          ? WebGlTerminalRenderer.create(options)
+          : CanvasTerminalRenderer.create(options),
     })
   else
     terminal = await WorkerTerminal.create({
@@ -221,5 +227,92 @@ describe.each(['main', 'webgl', 'webgpu'])('BiDi %s interactions', (mode) => {
     await expect
       .poll(() => reports)
       .toEqual(['\x1b[<0;3;1M', '\x1b[<0;3;1m', '\x1b[<0;4;1M', '\x1b[<0;4;1m'])
+  })
+})
+
+function executionOf(terminal: TerminalApi) {
+  const execution: unknown = Reflect.get(terminal, 'execution')
+  if (
+    !(execution instanceof LocalTerminalExecution) &&
+    !(execution instanceof WorkerTerminalExecution)
+  )
+    throw new Error('Expected real execution actor')
+  return execution
+}
+async function commandDrag(terminal: TerminalApi): Promise<void> {
+  const intent = executionOf(terminal).selectionGesture
+  await intent.selectionPress({
+    viewport: { x: 3, y: 0 },
+    position: { x: 35, y: 5 },
+    repeatDistance: 10,
+    repeatIntervalNanoseconds: 500_000_000n,
+    timeNanoseconds: 1_000_000_000n,
+  })
+  const update = await intent.selectionDrag({
+    viewport: { x: 1, y: 0 },
+    position: { x: 15, y: 5 },
+    geometry: {
+      columns: terminal.submittedFrame!.grid.columns,
+      cellWidth: 10,
+      paddingLeft: 0,
+      screenHeight: 160,
+    },
+  })
+  expect(update.selectionInstalled).toBe(true)
+  await intent.selectionRelease({ x: 1, y: 0 })
+  expect(await terminal.getSelection()).toBe('b ם')
+  expect(executionOf(terminal).renderHeld).toBe(true)
+  expect((await terminal.frameSnapshot())?.rows[0]?.text.trimEnd()).toBe('ab שלום cd')
+}
+
+async function logicalColumns(terminal: TerminalApi) {
+  return (await terminal.frameSnapshot())?.rows[0]?.renderCells
+    .filter((cell) => cell.selected)
+    .map((cell) => cell.x)
+}
+function assertMainGpuRetained(terminal: TerminalApi, mode: string): void {
+  if (mode !== 'main-gpu') return
+  expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
+  const execution = Reflect.get(terminal, 'execution')
+  expect(Reflect.get(execution.textFrame(), 'nativeFrame')).toBeDefined()
+}
+
+describe.each(['main', 'main-gpu', 'webgl', 'webgpu'])('%s captured BiDi selection', (mode) => {
+  const test = it.skipIf(mode === 'webgpu' && !navigator.gpu)
+  beforeEach(({ skip }) => {
+    if ((mode === 'webgl' || mode === 'main-gpu') && webglSkipReason) skip(webglSkipReason)
+  })
+  test('retains disjoint logical columns and independent visual pixels, then clears on a later frame', async () => {
+    const { terminal } = await create(mode, selection)
+    const errors: unknown[] = []
+    terminal.on('error', (error) => errors.push(error))
+    await drag(terminal, 3, 1)
+    await expect.poll(() => logicalColumns(terminal)).toEqual([1, 2, 6])
+    assertMainGpuRetained(terminal, mode)
+    await assertHighlight(terminal, [1, 2, 3])
+    const before = terminal.submittedFrame!.frame
+    await terminal.clearSelection()
+    await expect.poll(() => terminal.submittedFrame!.frame).toBeGreaterThan(before)
+    await expect.poll(() => logicalColumns(terminal)).toEqual([])
+    expect(errors).toEqual([])
+  })
+  test('publishes command-level held selection and releases like Canvas main', async () => {
+    const { terminal: reference } = await create('main', selection)
+    await reference.write('\x1b[?2026h')
+    await commandDrag(reference)
+    await reference.write('\x1b[?2026l')
+    await expect.poll(() => logicalColumns(reference)).toEqual([1, 2, 6])
+    const expected = await logicalColumns(reference)
+    const { terminal } = await create(mode, selection)
+    const errors: unknown[] = []
+    terminal.on('error', (error) => errors.push(error))
+    await terminal.write('\x1b[?2026h')
+    await commandDrag(terminal)
+    await terminal.write('\x1b[?2026l')
+    await expect.poll(() => logicalColumns(terminal)).toEqual(expected)
+    expect(executionOf(terminal).renderHeld).toBe(false)
+    assertMainGpuRetained(terminal, mode)
+    await assertHighlight(terminal, [1, 2, 3])
+    expect(errors).toEqual([])
   })
 })

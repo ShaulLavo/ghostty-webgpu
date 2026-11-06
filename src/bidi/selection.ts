@@ -10,6 +10,12 @@ import type { GhosttyRenderState } from '../core/render-state.js'
 import type { RenderRow, TerminalSelectionFormatOptions } from '../core/types.js'
 import { RowBidiMapper } from './row.js'
 import { CellPin } from './pin.js'
+import type { NativeDisplayedFrame } from '../core/displayed-frame.js'
+import {
+  overlaidRows,
+  SelectedDisplayedFrame,
+  type BidiSelectionOverlay,
+} from './selected-frame.js'
 
 function order(a: SelectionPoint, b: SelectionPoint): number {
   return a.y - b.y || a.x - b.x
@@ -131,22 +137,31 @@ export class BidiSelectionGesture extends GhosttySelectionGesture {
     return super.selectAll()
   }
 
-  selectedRows(rows: readonly RenderRow[]): readonly RenderRow[] {
-    if (!this.mask) return rows
-    if (!this.hasSelection) this.clearPins()
-    if (!this.mask) return rows
-    const selected = new Set(this.points().map((point) => `${point.y}:${point.x}`))
+  captureOverlay(): BidiSelectionOverlay | undefined {
+    if (this.mask && !this.hasSelection) this.clearPins()
+    if (!this.mask) return undefined
     const offset = this.vt.scrollbar.offset
-    return rows.map((row) => ({
-      ...row,
-      packed: undefined,
-      cells: row.cells.map((cell) => ({
-        ...cell,
-        selected:
-          selected.has(`${row.y + offset}:${cell.x}`) ||
-          (cell.continuation && selected.has(`${row.y + offset}:${cell.x - 1}`)),
-      })),
-    }))
+    const overlay = new Map<number, Set<number>>()
+    for (const pin of this.mask.pins) {
+      const point = pin.point()
+      if (!point || point.y - offset < 0) continue
+      const y = point.y - offset
+      const columns = overlay.get(y) ?? new Set<number>()
+      columns.add(point.x)
+      overlay.set(y, columns)
+    }
+    return overlay
+  }
+
+  retainFrame(retain: () => NativeDisplayedFrame): NativeDisplayedFrame {
+    const overlay = this.captureOverlay()
+    const frame = retain()
+    return overlay ? Object.freeze(new SelectedDisplayedFrame(frame, overlay)) : frame
+  }
+
+  selectedRows(rows: readonly RenderRow[]): readonly RenderRow[] {
+    const overlay = this.captureOverlay()
+    return overlay ? overlaidRows(rows, overlay) : rows
   }
 
   override getSelection(options: TerminalSelectionFormatOptions = {}): string | undefined {

@@ -33,3 +33,17 @@ The full gate otherwise passed 1,647 unit tests and 1,408 browser tests before a
 The runner's owned hardware-display path is implemented and statically checked, but has not run a screen. The supplied hardware preflight is capability evidence only. No timing win or rejection is claimed.
 
 External reports and receipts belong to `/work/reports/wave-20261106/audits2/ghostty-webgpu/007-evidence/`. The coordinator owns the read-only control and its retained dependencies until this task releases that consumer. T3 owns this candidate worktree. Shared caches are not cleanup targets.
+
+## Reviewed BiDi continuation
+
+The coordinator reconciled the independent BiDi addendum review. The stable session source now forwards retention through a capture-time selection wrapper. Its private overlay owns numeric row/column sets, never pins or a live gesture. Native tokens, text revisions, source identity and retirement pass through unchanged. No mask returns the original native frame without row extraction. An empty mask still wraps and clears stale native bits. Capture cost is O(mask pins), and retained coordinates include pins below the viewport; this is not a visible-cell bound.
+
+Main GPU BiDi now enters the same lazy three-native-slot retained path as main GPU without BiDi. Canvas and DOM keep their existing owned-row policy. Active-selection memory is outside the unselected performance cohort. The held-offset F1 behavior is deliberately unchanged and separately owned; F2 was not reproduced and is not patched.
+
+The real-Wasm tests use an independent copy of the checkpoint membership formula over raw native rows, copied pin coordinates and copied offset. Literal disjoint columns, nonzero-offset rows and wide lead/tail bits prevent shared helper code from proving itself. A held fixture first proves an empty visible mask alongside stale selected native bits, then requires the empty overlay to clear them. Wrapped/plain/wrapped publication and clean resubmission keep epoch 1 and agree with both eager shadow and reference decoder.
+
+Actual mutations were detected for forwarding without overlay, live pin borrowing, offset zero, missing continuation propagation, skipping empty wrapper creation, skipping empty decoration and fresh wrapper store identity. Live borrowing failed both held-token stability and the post-capture pin-call spy. Forward-only also failed the explicit main-GPU browser case. The original six transport mutations were rerun and detected. Every mutation was restored.
+
+All 24 original BiDi browser cases remain. New genuine pointer/pixel coverage asserts logical `[1, 2, 6]` against independently painted visual `[1, 2, 3]`, explicitly proves main-GPU backend and native token, and checks clear selection only on a later accepted frame. The held-only test uses normal selection commands with the optional expected identity omitted, on both Canvas reference and workers. It checks accepted native selection, unchanged held text and released snapshot/pixels. It is command-level publication coverage, not a claim about DOM pointer behavior during hold. No DOM guard or transport bypass was added.
+
+Focused real-Wasm and lazy tests passed 70 cases. All 32 BiDi interaction browser cases passed after the bounded held-test stimulus correction. Full verification and hardware qualification remain the next gates. The earlier failure records above are preserved history, not current failures of the implemented seam.
