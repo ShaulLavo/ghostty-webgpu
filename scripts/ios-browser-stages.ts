@@ -5,6 +5,8 @@ import { viewportCases, viewportFile } from './ios-browser-cases.ts'
 import { bulkSnapshotCases, bulkSnapshotFile } from './ios-browser-next-cases.ts'
 import { fontResourcesCases, fontResourcesFile } from './ios-browser-font-cases.ts'
 
+import { measurementCases, measurementFile } from './ios-browser-measurement-cases.ts'
+
 export const frameworkStageFile = fileURLToPath(
   new URL('./ios-browser-stage.browser.test.ts', import.meta.url),
 )
@@ -23,6 +25,7 @@ export function nativeStage(stage: NativeStage): {
   expected: readonly ExpectedCase[]
 } {
   if (stage === 'synthetic') return { file: frameworkStageFile, expected: frameworkStageCases }
+  if (stage === 'measurement') return { file: measurementFile, expected: measurementCases }
   if (stage === 'font-resources') return { file: fontResourcesFile, expected: fontResourcesCases }
   if (stage === 'bulk-snapshot') return { file: bulkSnapshotFile, expected: bulkSnapshotCases }
   return { file: viewportFile, expected: viewportCases }
