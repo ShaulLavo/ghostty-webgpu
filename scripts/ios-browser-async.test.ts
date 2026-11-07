@@ -32,13 +32,32 @@ const files = [
     hooks: ['beforeAll(', 'afterEach(', 'afterAll('],
   },
   { stage: 'scrollbar-async', sites: [[11, 0]], hooks: ['afterEach('] },
+  {
+    stage: 'history',
+    sites: [
+      [28, 0],
+      [28, 1],
+      [115, 0],
+      [123, 0],
+      [149, 0],
+    ],
+    hooks: ['afterEach('],
+  },
+  {
+    stage: 'readline-layout',
+    sites: [
+      [71, 0],
+      [93, 0],
+    ],
+    hooks: ['afterEach('],
+  },
 ] as const
 
 function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex')
 }
 
-test('the asynchronous stages bind complete original files, hooks, source sites and public types', async () => {
+test('the ownership stages bind complete original files, hooks, source sites and public types', async () => {
   for (const { stage, sites, hooks } of files) {
     const selected = nativeStage(stage)
     const expected: readonly ExpectedCase[] = selected.expected

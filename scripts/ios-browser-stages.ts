@@ -15,6 +15,13 @@ import {
 } from './ios-browser-async-cases.ts'
 import { measurementCases, measurementFile } from './ios-browser-measurement-cases.ts'
 
+import {
+  historyCases,
+  historyFile,
+  readlineLayoutCases,
+  readlineLayoutFile,
+} from './ios-browser-text-cases.ts'
+
 export const frameworkStageFile = fileURLToPath(
   new URL('./ios-browser-stage.browser.test.ts', import.meta.url),
 )
@@ -32,6 +39,9 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'history') return { file: historyFile, expected: historyCases }
+  if (stage === 'readline-layout')
+    return { file: readlineLayoutFile, expected: readlineLayoutCases }
   if (stage === 'write-queue') return { file: writeQueueFile, expected: writeQueueCases }
   if (stage === 'presentation') return { file: presentationFile, expected: presentationCases }
   if (stage === 'scrollbar-async')
