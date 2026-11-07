@@ -64,6 +64,9 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'bulk-snapshot',
     'font-resources',
     'measurement',
+    'write-queue',
+    'presentation',
+    'scrollbar-async',
   ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
@@ -114,7 +117,10 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
   const each = call.callee
   assert(each.callee.type === 'MemberExpression' && !each.callee.computed)
   assert(each.callee.object.type === 'Identifier' && each.callee.object.name === 'it')
-  assert(each.callee.property.type === 'Identifier' && each.callee.property.name === 'each')
+  assert(
+    each.callee.property.type === 'Identifier' &&
+      ['each', 'for'].includes(each.callee.property.name),
+  )
   assert.equal(each.arguments.length, 1)
   const argument = each.arguments[0]
   const table = argument?.type === 'TSAsExpression' ? argument.expression : argument
@@ -125,6 +131,8 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
   assert.equal(name.value.match(/%s/g)?.length, 1)
   assert(body?.type === 'ArrowFunctionExpression' && body.body.type === 'BlockStatement')
   return table.elements.map((item) => {
+    if (item?.type === 'Identifier' && item.name === 'undefined')
+      return prefix + name.value.replace('%s', 'undefined')
     assert(item?.type === 'Literal' && typeof item.value === 'string')
     return prefix + name.value.replace('%s', item.value)
   })
@@ -159,6 +167,26 @@ test('measurement parameter parity rejects changed rows, titles, and case option
     source.replace('public %s observers', 'public %i observers'),
     source.replace('public %s observers', 'other %s observers'),
     source.replace('    },\n  )', '    },\n    { timeout: 1 },\n  )'),
+  ]
+  for (const changed of mutations) {
+    assert.notEqual(changed, source)
+    const parsed = parseSync(selected.file, changed)
+    assert.deepEqual(parsed.errors, [])
+    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+  }
+})
+
+test('presentation parity rejects omitted, duplicate, substituted parameters and changed options', async () => {
+  const selected = nativeStage('presentation')
+  const source = await readFile(selected.file, 'utf8')
+  const expected = selected.expected.map((row) => row.fullName)
+  const mutations = [
+    source.replace("[undefined, 'canvas2d-fill-text']", "['canvas2d-fill-text']"),
+    source.replace("[undefined, 'canvas2d-fill-text']", '[undefined, undefined]'),
+    source.replace("[undefined, 'canvas2d-fill-text']", "[null, 'canvas2d-fill-text']"),
+    source.replace('next frame (%s)', 'next frame (%i)'),
+    source.replace('next frame (%s)', 'another frame (%s)'),
+    source.replace('  },\n)', '  },\n  { timeout: 1 },\n)'),
   ]
   for (const changed of mutations) {
     assert.notEqual(changed, source)
