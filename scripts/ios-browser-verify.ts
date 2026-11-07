@@ -89,6 +89,7 @@ export function verifyNativeStage(stage: NativeStage, result: unknown, receipt: 
     const identity = expected.find((item) => item.sourceKey === sourceKey)
     if (
       !identity ||
+      row.expected.file !== identity.file ||
       row.expected.fullName !== identity.fullName ||
       row.expected.timeoutMs !== identity.timeoutMs ||
       row.expected.retries !== identity.retries
@@ -132,7 +133,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     const [stage, path] = process.argv.slice(2)
     if (!isNativeStage(stage) || !path || !isAbsolute(path) || process.argv.length !== 4)
       throw new Error(
-        'Usage: node scripts/ios-browser-verify.ts synthetic|viewport|bulk-snapshot|font-resources|measurement /absolute/result.json',
+        'Usage: node scripts/ios-browser-verify.ts synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async /absolute/result.json',
       )
     await verifyNativeFiles(stage, path)
     console.log(

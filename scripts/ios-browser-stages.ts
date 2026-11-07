@@ -5,6 +5,14 @@ import { viewportCases, viewportFile } from './ios-browser-cases.ts'
 import { bulkSnapshotCases, bulkSnapshotFile } from './ios-browser-next-cases.ts'
 import { fontResourcesCases, fontResourcesFile } from './ios-browser-font-cases.ts'
 
+import {
+  writeQueueCases,
+  writeQueueFile,
+  presentationCases,
+  presentationFile,
+  scrollbarAsyncCases,
+  scrollbarAsyncFile,
+} from './ios-browser-async-cases.ts'
 import { measurementCases, measurementFile } from './ios-browser-measurement-cases.ts'
 
 export const frameworkStageFile = fileURLToPath(
@@ -24,6 +32,10 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'write-queue') return { file: writeQueueFile, expected: writeQueueCases }
+  if (stage === 'presentation') return { file: presentationFile, expected: presentationCases }
+  if (stage === 'scrollbar-async')
+    return { file: scrollbarAsyncFile, expected: scrollbarAsyncCases }
   if (stage === 'synthetic') return { file: frameworkStageFile, expected: frameworkStageCases }
   if (stage === 'measurement') return { file: measurementFile, expected: measurementCases }
   if (stage === 'font-resources') return { file: fontResourcesFile, expected: fontResourcesCases }

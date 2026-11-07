@@ -51,3 +51,17 @@ Historical native synthetic, viewport, and bulk-snapshot results used unpublishe
 The font-resource stage is source-prepared only. Ordinary Chromium execution does not establish native font-event behavior or release 0.0.111 qualification. The parent must supply a fresh Safari turn and keep the selected-file exit 4 and whole-root false distinction.
 
 The `measurement` stage selects the unchanged four-case public width and geometry file. It preserves the title and data parameter rows, the terminal and host cleanup hook, and the original 320 by 120 CSS host. It uses the checked-in `ghostty-vt.wasm` and `bridge.wasm` with normal platform font fitting. No screenshot, trusted input, explicit viewport operation, or new host API is needed. This stage is source-prepared only. Desktop success is not Safari qualification.
+
+The asynchronous ownership batch adds three independent stages. `write-queue` runs the
+complete five-case file, `presentation` runs all three cases including the original
+`undefined` and `canvas2d-fill-text` parameters, and `scrollbar-async` runs its complete
+one-case file. Run these stages sequentially in one separately parent-owned Safari turn,
+with a new result and launcher receipt for each stage. The scrollbar file dispatches its
+original synthetic `WheelEvent`; it does not request trusted provider input.
+
+These stages preserve all cleanup hooks, animation-frame waits, the five-second write
+settling deadline and ten-millisecond polling, normal fonts, and the checked-in Wasm
+assets. The presentation file retains its automatic backend choice. No new host API,
+controller, viewport command, screenshot, fixture input, or clock override is introduced.
+All three are source-prepared only. Host exit 4 and verifier exit 0 remain selected-file
+evidence, never whole-root completion or native qualification from desktop results.

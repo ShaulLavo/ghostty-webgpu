@@ -73,6 +73,9 @@ test('all complete selections stay partial and reject missing or duplicate outco
     'bulk-snapshot',
     'font-resources',
     'measurement',
+    'write-queue',
+    'presentation',
+    'scrollbar-async',
   ] as const) {
     const result = resultFixture(stage)
     verifyNativeStage(stage, result, receipt)
