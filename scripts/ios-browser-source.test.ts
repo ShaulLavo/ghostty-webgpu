@@ -58,7 +58,7 @@ test('the published test-tool dependency stays dev-only, locked, and singly reso
 })
 
 test('each native stage binds an independent complete manifest to unchanged source', async () => {
-  for (const stage of ['synthetic', 'viewport', 'bulk-snapshot'] as const) {
+  for (const stage of ['synthetic', 'viewport', 'bulk-snapshot', 'font-resources'] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
     const source = await readFile(selected.file, 'utf8')
@@ -73,6 +73,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
   }
   assert.equal(nativeStage('viewport').expected.length, 5)
   assert.equal(nativeStage('bulk-snapshot').expected.length, 1)
+  assert.equal(nativeStage('font-resources').expected.length, 5)
 })
 
 type Statement = ReturnType<typeof parseSync>['program']['body'][number]
@@ -83,6 +84,7 @@ function registration(statement: Statement, prefix: string): string[] {
   if (statement.type !== 'ExpressionStatement' || statement.expression.type !== 'CallExpression')
     return []
   const call = statement.expression
+  if (call.callee.type === 'CallExpression') return parameterizedRegistration(call, prefix)
   if (call.callee.type !== 'Identifier' || !['describe', 'test', 'it'].includes(call.callee.name))
     return []
   const [name, body] = call.arguments
@@ -95,6 +97,50 @@ function registration(statement: Statement, prefix: string): string[] {
   assert(body?.type === 'ArrowFunctionExpression' && body.body.type === 'BlockStatement')
   return registrations(body.body.body, fullName + ' > ')
 }
+
+type Call = Extract<
+  Extract<Statement, { type: 'ExpressionStatement' }>['expression'],
+  { type: 'CallExpression' }
+>
+function parameterizedRegistration(call: Call, prefix: string): string[] {
+  assert(call.callee.type === 'CallExpression')
+  const each = call.callee
+  assert(each.callee.type === 'MemberExpression' && !each.callee.computed)
+  assert(each.callee.object.type === 'Identifier' && each.callee.object.name === 'it')
+  assert(each.callee.property.type === 'Identifier' && each.callee.property.name === 'each')
+  assert.equal(each.arguments.length, 1)
+  const argument = each.arguments[0]
+  const table = argument?.type === 'TSAsExpression' ? argument.expression : argument
+  assert(table?.type === 'ArrayExpression' && table.elements.length > 0)
+  const [name, body] = call.arguments
+  assert.equal(call.arguments.length, 2)
+  assert(name?.type === 'Literal' && typeof name.value === 'string')
+  assert.equal(name.value.match(/%s/g)?.length, 1)
+  assert(body?.type === 'ArrowFunctionExpression' && body.body.type === 'BlockStatement')
+  return table.elements.map((item) => {
+    assert(item?.type === 'Literal' && typeof item.value === 'string')
+    return prefix + name.value.replace('%s', item.value)
+  })
+}
+
+test('font parameter inventory rejects changed tables, titles, and per-case options', async () => {
+  const selected = nativeStage('font-resources')
+  const source = await readFile(selected.file, 'utf8')
+  const expectedNames = selected.expected.map((row) => row.fullName)
+  const mutations = [
+    source.replace("['dispose', 'family-change']", "['dispose', 1]"),
+    source.replace('after %s', 'after %i'),
+    source.replace("['dispose', 'family-change']", "['dispose', 'family-change', 'extra']"),
+    source.replace('after %s', 'instead of %s'),
+    source.replace('  },\n)', '  },\n  { timeout: 1 },\n)'),
+  ]
+  for (const changed of mutations) {
+    assert.notEqual(changed, source)
+    const parsed = parseSync(selected.file, changed)
+    assert.deepEqual(parsed.errors, [])
+    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expectedNames))
+  }
+})
 
 test('the page bridge bundles without host, SDK, or Node imports', async () => {
   const { build } = await import('vite')
