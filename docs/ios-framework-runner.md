@@ -65,3 +65,16 @@ assets. The presentation file retains its automatic backend choice. No new host 
 controller, viewport command, screenshot, fixture input, or clock override is introduced.
 All three are source-prepared only. Host exit 4 and verifier exit 0 remain selected-file
 evidence, never whole-root completion or native qualification from desktop results.
+
+The text API batch adds `history` and `readline-layout` as independent stages. Run them
+sequentially with separate results and launcher receipts. The complete history file
+has five cases, including both main and worker parameter rows. It retains its original
+Chromium suite title, 20,000-line input, row-cap loop, normal automatic backend choice,
+and actual JetBrains Mono worker font. The complete multiline file has two cases using
+the built line-editor addon, original paste and key API calls, Canvas renderer, six-row
+grids, zero-millisecond settling wait, and soft cursor assertion. These are terminal
+API calls, not trusted provider input. Both files retain their original cleanup hooks.
+
+Only source preparation and ordinary desktop evidence belong to this batch. No native
+run or startup-cause fix is claimed. Keep earlier source-specific passed records separate.
+Waffle, provider operations, clocks, exclusions, and whole-root false semantics do not change.

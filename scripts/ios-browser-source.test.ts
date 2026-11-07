@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { realpathSync, readdirSync } from 'node:fs'
@@ -7,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { parseSync } from 'oxc-parser'
 import { test } from 'vitest'
 import { nativeStage } from './ios-browser-stages.ts'
-import { verifyNativeSource } from './ios-browser-source.ts'
+import { nativeSourceHashes, verifyNativeSource } from './ios-browser-source.ts'
 import { frameworkRelease, checkFrameworkArchive } from './ios-browser-dependency.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -67,6 +68,8 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'write-queue',
     'presentation',
     'scrollbar-async',
+    'history',
+    'readline-layout',
   ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
@@ -194,6 +197,81 @@ test('presentation parity rejects omitted, duplicate, substituted parameters and
     assert.deepEqual(parsed.errors, [])
     assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
   }
+})
+
+test('history and multiline parity rejects omitted, duplicate, renamed and modified originals', async () => {
+  for (const stage of ['history', 'readline-layout'] as const) {
+    const selected = nativeStage(stage)
+    const source = await readFile(selected.file, 'utf8')
+    const expected = selected.expected.map((row) => row.fullName)
+    const mutations = [
+      source.replace("  it('reads empty rows", "  it.skip('reads empty rows"),
+      source.replace("['main', 'worker']", "['main']"),
+      source.replace("['main', 'worker']", "['main', 'main']"),
+      source.replace('built native history API in Chromium', 'renamed suite'),
+      source.replace(
+        "  it('reads empty rows before opening with the same lifecycle guard as visibleLines', async () => {",
+        "  it('reads empty rows before opening with the same lifecycle guard as visibleLines', { timeout: 1 }, async () => {",
+      ),
+      source.replace("it('renders and submits", "it.skip('renders and submits"),
+      source.replace('preserves earlier output and pending wrap', 'renamed multiline case'),
+      source.replace(
+        "it('renders and submits logical LF and prints above an active multiline edit through the built addon', async () => {",
+        "it('renders and submits logical LF and prints above an active multiline edit through the built addon', { retry: 1 }, async () => {",
+      ),
+      source + "\nit('substituted extra case', () => {})\n",
+    ].filter((changed) => changed !== source)
+    for (const changed of mutations) {
+      assert.notEqual(createHash('sha256').update(changed).digest('hex'), nativeSourceHashes[stage])
+      const parsed = parseSync(selected.file, changed)
+      assert.deepEqual(parsed.errors, [])
+      assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+    }
+  }
+})
+
+test('the text batch keeps original helper clocks, cleanup, font and built imports', async () => {
+  const history = await readFile(nativeStage('history').file, 'utf8')
+  assert(
+    history.includes(
+      "import { Terminal, TERMINAL_READ_LINES_MAX_ROWS } from '../../../dist/index.js'",
+    ),
+  )
+  assert(
+    history.includes("import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'"),
+  )
+  assert(history.includes('Array.from({ length: 20000 }, (_, index) => `row-${index}`)'))
+  assert(history.includes('start += TERMINAL_READ_LINES_MAX_ROWS'))
+  assert(history.includes('for (const terminal of terminals.splice(0)) await terminal.dispose()'))
+  assert(history.includes('url: testFontUrl'))
+  const readline = await readFile(nativeStage('readline-layout').file, 'utf8')
+  assert(
+    readline.includes("import { readline } from '../../../packages/line-editor/dist/index.js'"),
+  )
+  assert(readline.includes('for (const cleanup of cleanups.splice(0).reverse()) cleanup()'))
+  assert(readline.includes('setTimeout(resolve, 0)'))
+  assert(
+    readline.includes(
+      "terminal.key({ action: 'press', code: 'Enter', text: '\\r', composing: false })",
+    ),
+  )
+  assert(readline.includes('expect.soft(terminal.geometry().cursor)'))
+  for (const [stage, changed] of [
+    ['history', history.replace('length: 20000', 'length: 1')],
+    ['readline-layout', readline.replace('setTimeout(resolve, 0)', 'setTimeout(resolve, 1)')],
+  ] as const)
+    assert.notEqual(createHash('sha256').update(changed).digest('hex'), nativeSourceHashes[stage])
+  const font = await readFile(
+    join(
+      root,
+      'node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2',
+    ),
+  )
+  assert.equal(font.byteLength, 21168)
+  assert.equal(
+    createHash('sha256').update(font).digest('hex'),
+    '14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb',
+  )
 })
 
 test('the page bridge bundles without host, SDK, or Node imports', async () => {
