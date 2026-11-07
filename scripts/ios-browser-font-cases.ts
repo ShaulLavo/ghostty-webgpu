@@ -30,14 +30,14 @@ export const fontResourcesCases = [
   {
     file: fontResourcesFile,
     fullName: 'recognizes a cached face that settled before its loading event was delivered',
-    sourceKey: 'src/dom/tests/font-resources.browser.test.ts:76:0',
+    sourceKey: 'src/dom/tests/font-resources.browser.test.ts:75:0',
     timeoutMs: 15000,
     retries: 0,
   },
   {
     file: fontResourcesFile,
     fullName: 'does not rediscover a known family after an ordinary family change',
-    sourceKey: 'src/dom/tests/font-resources.browser.test.ts:101:0',
+    sourceKey: 'src/dom/tests/font-resources.browser.test.ts:102:0',
     timeoutMs: 15000,
     retries: 0,
   },

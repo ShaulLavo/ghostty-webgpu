@@ -16,7 +16,7 @@ Run the synthetic stage first. Supply a new absolute result path in an existing 
 bun run test:browser --native-ios --stage synthetic --udid "$SIMULATOR_UUID" --result "$RESULT_DIRECTORY/synthetic.json"
 ```
 
-The other supported stages are `viewport`, the complete five-case saved-viewport file, and `bulk-snapshot`, the complete one-case bulk-snapshot file. Each stage has an independent manifest. Source hashes reject changed registrations before allocation. There is no arbitrary file or name filter on this route.
+The other supported stages are `viewport`, the complete five-case saved-viewport file, `bulk-snapshot`, the complete one-case bulk-snapshot file, and `font-resources`, the complete five-case font-resource file. The font stage expands both original retirement parameters and uses the checked-in replacement WOFF2 plus the original invalid data URL. It needs no additional provider operation. Each stage has an independent manifest. Source hashes reject changed registrations before allocation. There is no arbitrary file or name filter on this route.
 
 The equivalent explicit source command is:
 
@@ -47,3 +47,5 @@ Ordinary `bun run test:browser` still uses Playwright, the existing browser sele
 The discovered `scripts/ios-browser*.test.ts` tests include public installed-package contracts, no-browser SDK plus Vite and WebSocket controls, real Chromium with a labelled observation double, ordinary desktop input, process joining, and read-only result guards. The observation double proves Ghostty lifecycle ordering and RPC behavior. It does not prove Waffle document binding or native retirement.
 
 Historical native synthetic, viewport, and bulk-snapshot results used unpublished archive 06. They are not native runs of release 0.0.111. Their unknown SDK session-context warning remains unresolved evidence, not a claim of zero unsupported Safari HTTP. This supported dependency adoption does not add native or whole-root qualification, exclusions, skips, or relaxed clocks.
+
+The font-resource stage is source-prepared only. Ordinary Chromium execution does not establish native font-event behavior or release 0.0.111 qualification. The parent must supply a fresh Safari turn and keep the selected-file exit 4 and whole-root false distinction.

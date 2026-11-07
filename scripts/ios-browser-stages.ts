@@ -3,6 +3,7 @@ import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
 import type { NativeStage } from './ios-browser-options.ts'
 import { viewportCases, viewportFile } from './ios-browser-cases.ts'
 import { bulkSnapshotCases, bulkSnapshotFile } from './ios-browser-next-cases.ts'
+import { fontResourcesCases, fontResourcesFile } from './ios-browser-font-cases.ts'
 
 export const frameworkStageFile = fileURLToPath(
   new URL('./ios-browser-stage.browser.test.ts', import.meta.url),
@@ -22,6 +23,7 @@ export function nativeStage(stage: NativeStage): {
   expected: readonly ExpectedCase[]
 } {
   if (stage === 'synthetic') return { file: frameworkStageFile, expected: frameworkStageCases }
+  if (stage === 'font-resources') return { file: fontResourcesFile, expected: fontResourcesCases }
   if (stage === 'bulk-snapshot') return { file: bulkSnapshotFile, expected: bulkSnapshotCases }
   return { file: viewportFile, expected: viewportCases }
 }
