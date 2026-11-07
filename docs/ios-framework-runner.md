@@ -78,3 +78,12 @@ API calls, not trusted provider input. Both files retain their original cleanup 
 Only source preparation and ordinary desktop evidence belong to this batch. No native
 run or startup-cause fix is claimed. Keep earlier source-specific passed records separate.
 Waffle, provider operations, clocks, exclusions, and whole-root false semantics do not change.
+
+The `module-mock` stage selects the complete one-case module-mocking original. Its
+factory, mocked import, `vi.importActual` call, and both exact string assertions remain
+unchanged. Vitest resolves the package through its existing Vite mock registry and
+WebSocket RPC. No trusted provider command, font, Wasm asset, helper, hook, explicit
+viewport change, or database operation is required. The locked package is
+`@discoveryjs/json-ext` 1.1.0. This stage is source-prepared only. Run it only in a
+separately parent-owned Safari turn after review and ready-head CI. Selected-file host
+exit 4, verifier exit 0, and whole-root false semantics remain unchanged.
