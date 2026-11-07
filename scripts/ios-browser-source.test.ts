@@ -58,7 +58,7 @@ test('the published test-tool dependency stays dev-only, locked, and singly reso
 })
 
 test('each native stage binds an independent complete manifest to unchanged source', async () => {
-  for (const stage of ['synthetic', 'viewport', 'bulk-snapshot', 'font-resources'] as const) {
+  for (const stage of ['synthetic', 'viewport', 'bulk-snapshot', 'font-resources', 'measurement'] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
     const source = await readFile(selected.file, 'utf8')
@@ -74,6 +74,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
   assert.equal(nativeStage('viewport').expected.length, 5)
   assert.equal(nativeStage('bulk-snapshot').expected.length, 1)
   assert.equal(nativeStage('font-resources').expected.length, 5)
+  assert.equal(nativeStage('measurement').expected.length, 4)
 })
 
 type Statement = ReturnType<typeof parseSync>['program']['body'][number]
