@@ -1,1 +1,1 @@
-{"nativeInputsTreeSha256":"3c9dff8d7ede217bc6f4c03e9d92435871a8836f7e3a7d8d283b042d36f8ada5","packageVersion":"0.2.0","schemaVersion":1,"targets":["darwin-arm64","darwin-x64","linux-arm64","linux-x64"],"upstreamRevision":"c8554f28e0efe2f5595f32020371c34b25ec628f"}
+{"nativeInputsTreeSha256":"a4d4d1343a0181f764385dcf3714d9146fd63dec7df377d2c891d6f7a6e6e872","packageVersion":"0.2.0","schemaVersion":1,"targets":["darwin-arm64","darwin-x64","linux-arm64","linux-x64"],"upstreamRevision":"c8554f28e0efe2f5595f32020371c34b25ec628f"}
