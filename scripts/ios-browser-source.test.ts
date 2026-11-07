@@ -70,6 +70,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'scrollbar-async',
     'history',
     'readline-layout',
+    'module-mock',
   ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)

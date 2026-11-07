@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
 import type { NativeStage } from './ios-browser-options.ts'
+import { moduleMockCases, moduleMockFile } from './ios-browser-module-cases.ts'
 import { viewportCases, viewportFile } from './ios-browser-cases.ts'
 import { bulkSnapshotCases, bulkSnapshotFile } from './ios-browser-next-cases.ts'
 import { fontResourcesCases, fontResourcesFile } from './ios-browser-font-cases.ts'
@@ -39,6 +40,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'module-mock') return { file: moduleMockFile, expected: moduleMockCases }
   if (stage === 'history') return { file: historyFile, expected: historyCases }
   if (stage === 'readline-layout')
     return { file: readlineLayoutFile, expected: readlineLayoutCases }
