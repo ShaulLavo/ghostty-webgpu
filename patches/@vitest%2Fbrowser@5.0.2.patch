@@ -1,0 +1,215 @@
+diff --git a/dist/client/__vitest_browser__/orchestrator-M9828UZ-.js b/dist/client/__vitest_browser__/orchestrator-M9828UZ-.js
+index decc6b0ddc9531d7309bfb1aad608a2d24ccedaf..bf314b10d20f3bc69381ab4c46f521b6a43664d7 100644
+--- a/dist/client/__vitest_browser__/orchestrator-M9828UZ-.js
++++ b/dist/client/__vitest_browser__/orchestrator-M9828UZ-.js
+@@ -2,6 +2,12 @@ import { c as __vitePreload, f as relative, l as generateFileHash, n as getBrows
+ import { channel, client, globalChannel } from "@vitest/browser/client";
+ import { Traces } from "vitest/internal/traces";
+ 
++
++// Only the instrumented documents load the Ghostty bridge. This never awaits admission.
++const ghosttyPageModule = '/@ghostty/framework-page';
++const ghostty = typeof globalThis[Symbol.for('waffle.framework.observation')] === 'function'
++  ? await import(/* @vite-ignore */ ghosttyPageModule) : {};
++
+ //#region src/client/ui.ts
+ /* @__NO_SIDE_EFFECTS__ */
+ function getUiAPI() {
+@@ -124,7 +130,7 @@ var IframeOrchestrator = class {
+ 		const file = spec.filepath;
+ 		if (this.iframes.has(file)) this.removeIframe(file);
+ 		await this.prepareIframe(container, file, startTime, otelContext);
+-		await setIframeViewport(width, height);
++		await setIframeViewport(width, height, true);
+ 		await this.sendEventToIframe({
+ 			event: "execute",
+ 			files: [spec],
+@@ -138,6 +144,7 @@ var IframeOrchestrator = class {
+ 			event: "cleanup",
+ 			iframeId: file
+ 		});
++		await ghostty.cleanupResponseReceived?.();
+ 	}
+ 	dispatchIframeError(error) {
+ 		const event = new CustomEvent("iframeerror", { detail: error });
+@@ -292,7 +299,7 @@ Received URL: ${href || "unknown due to CORS"}\nExpected: ${iframe.src}`)));
+ 					}, "Teardown Error");
+ 					break;
+ 				}
+-				await setIframeViewport(width, height);
++				await setRequestedIframeViewport(width, height, id);
+ 				channel.postMessage({
+ 					event: "viewport:done",
+ 					iframeId: id
+@@ -378,7 +385,19 @@ function generateFileId(file) {
+ 	});
+ }
+ var currentViewport;
+-async function setIframeViewport(width, height) {
++async function setRequestedIframeViewport(width, height, id) {
++	try {
++		await setIframeViewport(width, height);
++	} catch (error) {
++		if (ghostty.initialViewport) channel.postMessage({
++			event: "viewport:fail",
++			iframeId: id,
++			error: error && typeof error === "object" && typeof error.message === "string" ? error.message : String(error)
++		});
++		throw error;
++	}
++}
++async function setIframeViewport(width, height, automatic = false) {
+ 	const ui = /* @__PURE__ */ getUiAPI();
+ 	if (ui) await ui.setIframeViewport(width, height);
+ 	else {
+@@ -386,11 +405,9 @@ async function setIframeViewport(width, height) {
+ 		document.body.style.setProperty("--viewport-height", `${height}px`);
+ 		const cacheable = (/* @__PURE__ */ getBrowserState()).provider === "playwright";
+ 		if (cacheable && (currentViewport === null || currentViewport === void 0 ? void 0 : currentViewport.width) === width && (currentViewport === null || currentViewport === void 0 ? void 0 : currentViewport.height) === height) return;
+-		await client.rpc.triggerCommand((/* @__PURE__ */ getBrowserState()).sessionId, "__vitest_viewport", void 0, [{
+-			width,
+-			height
+-		}]);
+-		currentViewport = cacheable ? {
++		const initial = automatic ? await ghostty.initialViewport?.() : undefined;
++		await client.rpc.triggerCommand((/* @__PURE__ */ getBrowserState()).sessionId, initial ? "__ghostty_initialViewport" : "__vitest_viewport", void 0, [initial ?? { width, height }]);
++		currentViewport = cacheable && !initial ? {
+ 			width,
+ 			height
+ 		} : void 0;
+diff --git a/dist/client/__vitest_browser__/tester-COH68OX9.js b/dist/client/__vitest_browser__/tester-COH68OX9.js
+index b46df55dd85896f8daf09456da0fc73667155d01..b646f92059c61eaec5dc17a080ec88c534690ce5 100644
+--- a/dist/client/__vitest_browser__/tester-COH68OX9.js
++++ b/dist/client/__vitest_browser__/tester-COH68OX9.js
+@@ -5,6 +5,12 @@ import { page, server, userEvent } from "vitest/browser";
+ import { DecodedMap, SpyModule, collectTests, format, getOriginalPosition, getSafeTimers, loadDiffConfig, loadSnapshotSerializers, setupCommonEnv, setupEnv, startCoverageInsideWorker, startTests, stopCoverageInsideWorker, takeCoverageInsideWorker } from "vitest/internal/browser";
+ import { TestRunner, recordArtifact } from "vitest";
+ 
++
++// Only the instrumented documents load the Ghostty bridge. This never awaits admission.
++const ghosttyPageModule = '/@ghostty/framework-page';
++const ghostty = typeof globalThis[Symbol.for('waffle.framework.observation')] === 'function'
++  ? await import(/* @vite-ignore */ ghosttyPageModule) : {};
++
+ //#region \0rolldown/runtime.js
+ var __create = Object.create;
+ var __defProp = Object.defineProperty;
+@@ -896,6 +902,11 @@ function createBrowserRunner(mocker, state, coverageModule) {
+ 						this.cancel("test-failure");
+ 					}
+ 				}
++				ghostty.caseSettled?.(task);
++			});
++			_defineProperty(this, "onBeforeRunTask", async (task) => {
++				await super.onBeforeRunTask?.(task);
++				ghostty.taskStarted?.(task);
+ 			});
+ 			_defineProperty(this, "onTaskFinished", async (task) => {
+ 				var _task$result3, _task$result4, _Reflect$get;
+@@ -928,6 +939,7 @@ function createBrowserRunner(mocker, state, coverageModule) {
+ 			});
+ 			_defineProperty(this, "onBeforeRunSuite", async (suite) => {
+ 				var _super$onBeforeRunSui;
++				ghostty.taskStarted?.(suite);
+ 				await Promise.all([(_super$onBeforeRunSui = super.onBeforeRunSuite) === null || _super$onBeforeRunSui === void 0 ? void 0 : _super$onBeforeRunSui.call(this, suite), (async () => {
+ 					if (!("filepath" in suite)) return;
+ 					const map = await (this.sourceMapPrefetches.get(suite.filepath) ?? rpc$2().getBrowserFileSourceMap(suite.filepath));
+@@ -960,7 +972,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
+ 				if (this.config.includeTaskLocation) try {
+ 					await updateTestFilesLocations(files, this.sourceMapCache);
+ 				} catch {}
+-				return rpc$2().onCollected(this.method, files);
++				const result = await rpc$2().onCollected(this.method, files);
++				await ghostty.collected?.(files, this.config);
++				return result;
+ 			});
+ 			_defineProperty(this, "onTestAnnotate", (test, annotation) => {
+ 				const artifact = {
+@@ -989,7 +1003,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
+ 				return rpc$2().onTaskArtifactRecord(test.id, artifact);
+ 			});
+ 			_defineProperty(this, "onTaskUpdate", (task, events) => {
+-				return rpc$2().onTaskUpdate(this.method, task, events);
++				const result = rpc$2().onTaskUpdate(this.method, task, events);
++				try { ghostty.taskUpdated?.(task); } catch (error) { console.error(error); }
++				return result;
+ 			});
+ 			_defineProperty(this, "importFile", async (filepath, mode) => {
+ 				let hash = this.hashMap.get(filepath);
+@@ -1996,12 +2012,14 @@ channel.addEventListener("message", async (e) => {
+ 				state.metaEnv.VITEST_WORKER_ID = String(workerId);
+ 				if (method === "collect") await executeTests("collect", files).catch((err) => unhandledError(err, "Collect Error"));
+ 				else await executeTests("run", files).catch((err) => unhandledError(err, "Run Error"));
++				ghostty.executionFlushed?.();
+ 				break;
+ 			}
+ 			case "cleanup":
+ 				await cleanup().catch((err) => unhandledError(err, "Cleanup Error"));
+ 				rootTesterSpan === null || rootTesterSpan === void 0 || rootTesterSpan.span.end();
+ 				await traces.finish();
++				ghostty.testerCleanupSettled?.();
+ 				break;
+ 			case "prepare": {
+ 				await traces.waitInit();
+@@ -2134,6 +2152,7 @@ async function cleanup() {
+ 	});
+ }
+ function unhandledError(e, type) {
++	try { ghostty.caughtError?.(e, type); } catch (error) { console.error(error); }
+ 	return client.rpc.onUnhandledError({
+ 		name: e.name,
+ 		message: e.message,
+diff --git a/dist/client/error-catcher.js b/dist/client/error-catcher.js
+index 15f3c5b0ee4f36b7c10e2ab0d85b093a0b0a0f6b..fcb6cce4202e438c5cf722b0a74a40a50a3e211f 100644
+--- a/dist/client/error-catcher.js
++++ b/dist/client/error-catcher.js
+@@ -1,5 +1,11 @@
+ import { client } from '@vitest/browser/client'
+ 
++// Only the instrumented documents load the Ghostty bridge. This never awaits admission.
++const ghosttyPageModule = '/@ghostty/framework-page';
++const ghostty = typeof globalThis[Symbol.for('waffle.framework.observation')] === 'function'
++  ? await import(/* @vite-ignore */ ghosttyPageModule) : {};
++
++
+ function serializeError(unhandledError) {
+   const state = globalThis.__vitest_worker__
+   const VITEST_TEST_NAME = state && state.current && state.current.type === 'test'
+@@ -74,9 +80,11 @@ async function reportUnexpectedError(
+   error,
+ ) {
+   const processedError = serializeError(error)
++  try { ghostty.caughtError?.(processedError, type) } catch (error) { console.error(error) }
+   await client.waitForConnection().then(() => {
+     return client.rpc.onUnhandledError(processedError, type)
+   }).catch(console.error)
+ }
+ 
+ globalThis.__vitest_browser_runner__.disposeExceptionTracker = registerUnexpectedErrors()
++ghostty.catcherInstalled?.()
+diff --git a/dist/index.js b/dist/index.js
+index a847bcae2d5a6102c78fefc4dbf24ea210fd7449..d3253657ac2fd7e77ecb45adf459688ad2410f6a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -769,7 +769,9 @@ function createOrchestratorMiddleware(parentServer) {
+ 		if (html) {
+ 			disableCache(res);
+ 			allowIframes(res);
+-			res.write(html, "utf-8");
++			const instrument = globalThis[Symbol.for('ghostty.framework.instrumentDocument')];
++			const finalHtml = typeof instrument === 'function' ? instrument({ kind: 'orchestrator', url: new URL(req.url, 'http://' + req.headers.host).href, html }) : html;
++			res.write(finalHtml, "utf-8");
+ 			res.end();
+ 			return;
+ 		}
+@@ -845,7 +847,9 @@ function createTesterMiddleware(browserServer) {
+ 		if (html) {
+ 			disableCache(res);
+ 			allowIframes(res);
+-			res.write(html, "utf-8");
++			const instrument = globalThis[Symbol.for('ghostty.framework.instrumentDocument')];
++			const finalHtml = typeof instrument === 'function' ? instrument({ kind: 'tester', url: new URL(req.url, 'http://' + req.headers.host).href, html }) : html;
++			res.write(finalHtml, "utf-8");
+ 			res.end();
+ 		}
+ 	};

@@ -18,4 +18,12 @@ async function runVitest(args: readonly string[]): Promise<void> {
   throw new BrowserTestError(`Vitest exited with status ${exitCode}`)
 }
 
-await runVitest(['run', '--config', config].concat(forwarded))
+if (forwarded[0] === '--native-ios') {
+  const child = Bun.spawn(['node', 'scripts/ios-browser-launch.ts'].concat(forwarded.slice(1)), {
+    stderr: 'inherit',
+    stdout: 'inherit',
+  })
+  process.exitCode = await child.exited
+} else {
+  await runVitest(['run', '--config', config].concat(forwarded))
+}

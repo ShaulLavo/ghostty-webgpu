@@ -3,11 +3,12 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
-    exclude: ['src/**/*.browser.test.ts'],
+    exclude: ['src/**/*.browser.test.ts', 'scripts/**/*.browser.test.ts'],
     include: [
       'src/**/*.test.ts',
       'bench/write-queue-probe.test.ts',
       'scripts/ghostty-source.test.ts',
+      'scripts/ios-browser*.test.ts',
       'scripts/layout.test.ts',
       'scripts/wasm-provenance.test.ts',
       'scripts/comparison-source.test.ts',
