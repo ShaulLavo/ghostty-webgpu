@@ -1,0 +1,72 @@
+import { access, lstat } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { dirname, isAbsolute } from 'node:path'
+import { verifyNativeSource } from './ios-browser-source.ts'
+
+export type NativeStage = 'synthetic' | 'viewport' | 'bulk-snapshot'
+export type NativeOptions = { stage: NativeStage; udid: string; resultPath: string }
+export type NativeRequest = { kind: 'help' } | { kind: 'run'; options: NativeOptions }
+
+export class NativePreconditionError extends Error {}
+
+export const nativeUsage =
+  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot --udid <explicit simulator UUID> --result <new absolute .json path>'
+
+export function isNativeStage(value: unknown): value is NativeStage {
+  return value === 'synthetic' || value === 'viewport' || value === 'bulk-snapshot'
+}
+
+export function parseNativeArguments(args: readonly string[]): NativeRequest {
+  if (args.length === 1 && args[0] === '--help') return { kind: 'help' }
+  if (args.length !== 6) throw new NativePreconditionError(nativeUsage)
+  const flags = new Map<string, string>()
+  for (let index = 0; index < args.length; index += 2) {
+    const key = args[index]
+    const value = args[index + 1]
+    if (!key || !value || !['--stage', '--udid', '--result'].includes(key) || flags.has(key))
+      throw new NativePreconditionError(nativeUsage)
+    flags.set(key, value)
+  }
+  const stage = flags.get('--stage')
+  const udid = flags.get('--udid')
+  const resultPath = flags.get('--result')
+  if (!isNativeStage(stage))
+    throw new NativePreconditionError(
+      'Choose the explicit synthetic, viewport, or bulk-snapshot stage',
+    )
+  if (!udid || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(udid))
+    throw new NativePreconditionError('An explicit simulator UUID is required')
+  if (!resultPath || !isAbsolute(resultPath) || !resultPath.endsWith('.json'))
+    throw new NativePreconditionError('Result must be a new absolute .json path')
+  return { kind: 'run', options: { stage, udid, resultPath } }
+}
+
+export function checkNativeRuntime(runtime: { version: string; platform: string }): void {
+  if (runtime.version !== 'v26.12.1')
+    throw new NativePreconditionError('The native runner requires Node 26.12.1')
+  if (runtime.platform !== 'darwin')
+    throw new NativePreconditionError('The parent-owned Safari stage requires macOS')
+}
+
+async function requireAbsent(path: string): Promise<void> {
+  try {
+    await lstat(path)
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT')
+      return
+    throw error
+  }
+  throw new NativePreconditionError(`Refusing an existing result: ${path}`)
+}
+
+export async function nativePreflight(options: NativeOptions): Promise<void> {
+  checkNativeRuntime({ version: process.version, platform: process.platform })
+  try {
+    await verifyNativeSource(options.stage)
+    await access(dirname(options.resultPath), constants.W_OK)
+    await requireAbsent(options.resultPath)
+    await requireAbsent(`${options.resultPath}.launcher.json`)
+  } catch (error) {
+    throw new NativePreconditionError(`Output precondition failed: ${String(error)}`)
+  }
+}
