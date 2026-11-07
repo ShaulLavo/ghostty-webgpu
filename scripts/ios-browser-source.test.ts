@@ -126,6 +126,7 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
 test('font parameter inventory rejects changed tables, titles, and per-case options', async () => {
   const selected = nativeStage('font-resources')
   const source = await readFile(selected.file, 'utf8')
+  const expectedNames = selected.expected.map((row) => row.fullName)
   const mutations = [
     source.replace("['dispose', 'family-change']", "['dispose', 1]"),
     source.replace('after %s', 'after %i'),
@@ -137,12 +138,7 @@ test('font parameter inventory rejects changed tables, titles, and per-case opti
     assert.notEqual(changed, source)
     const parsed = parseSync(selected.file, changed)
     assert.deepEqual(parsed.errors, [])
-    assert.throws(() =>
-      assert.deepEqual(
-        registrations(parsed.program.body),
-        selected.expected.map((row) => row.fullName),
-      ),
-    )
+    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expectedNames))
   }
 })
 
