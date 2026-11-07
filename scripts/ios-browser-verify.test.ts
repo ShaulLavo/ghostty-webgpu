@@ -67,7 +67,13 @@ test('requires separate documents and rejects unresolved failures or substituted
 })
 
 test('all complete selections stay partial and reject missing or duplicate outcomes', () => {
-  for (const stage of ['synthetic', 'viewport', 'bulk-snapshot', 'font-resources', 'measurement'] as const) {
+  for (const stage of [
+    'synthetic',
+    'viewport',
+    'bulk-snapshot',
+    'font-resources',
+    'measurement',
+  ] as const) {
     const result = resultFixture(stage)
     verifyNativeStage(stage, result, receipt)
     assert.throws(() => verifyNativeStage(stage, { ...result, exit: 0 }, receipt))

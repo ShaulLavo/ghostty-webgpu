@@ -3,7 +3,12 @@ import { constants } from 'node:fs'
 import { dirname, isAbsolute } from 'node:path'
 import { verifyNativeSource } from './ios-browser-source.ts'
 
-export type NativeStage = 'synthetic' | 'viewport' | 'bulk-snapshot' | 'font-resources' | 'measurement'
+export type NativeStage =
+  | 'synthetic'
+  | 'viewport'
+  | 'bulk-snapshot'
+  | 'font-resources'
+  | 'measurement'
 export type NativeOptions = { stage: NativeStage; udid: string; resultPath: string }
 export type NativeRequest = { kind: 'help' } | { kind: 'run'; options: NativeOptions }
 

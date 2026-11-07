@@ -58,7 +58,13 @@ test('the published test-tool dependency stays dev-only, locked, and singly reso
 })
 
 test('each native stage binds an independent complete manifest to unchanged source', async () => {
-  for (const stage of ['synthetic', 'viewport', 'bulk-snapshot', 'font-resources', 'measurement'] as const) {
+  for (const stage of [
+    'synthetic',
+    'viewport',
+    'bulk-snapshot',
+    'font-resources',
+    'measurement',
+  ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
     const source = await readFile(selected.file, 'utf8')
@@ -140,6 +146,25 @@ test('font parameter inventory rejects changed tables, titles, and per-case opti
     const parsed = parseSync(selected.file, changed)
     assert.deepEqual(parsed.errors, [])
     assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expectedNames))
+  }
+})
+
+test('measurement parameter parity rejects changed rows, titles, and case options', async () => {
+  const selected = nativeStage('measurement')
+  const source = await readFile(selected.file, 'utf8')
+  const expected = selected.expected.map((row) => row.fullName)
+  const mutations = [
+    source.replace("['title', 'data']", "['title', 1]"),
+    source.replace("['title', 'data']", "['title']"),
+    source.replace('public %s observers', 'public %i observers'),
+    source.replace('public %s observers', 'other %s observers'),
+    source.replace('    },\n  )', '    },\n    { timeout: 1 },\n  )'),
+  ]
+  for (const changed of mutations) {
+    assert.notEqual(changed, source)
+    const parsed = parseSync(selected.file, changed)
+    assert.deepEqual(parsed.errors, [])
+    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
   }
 })
 
