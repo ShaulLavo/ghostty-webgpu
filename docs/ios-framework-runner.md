@@ -112,3 +112,14 @@ this graph. System monospace, emoji fallback and browser identity remain unchang
 The failed-operation case retains its original clean cache retry, not a test retry.
 This stage is prepared only. The parent owns review, CI, merge, main CI and the next
 Safari turn. Host exit 4, verifier exit 0 and root completion false remain unchanged.
+
+The `pixel-damage` stage selects the complete five-case pixel-damage original.
+It retains DPR 1, 1.25, 1.5 and 2, exact displayed and uploaded RGBA comparisons,
+all fourteen transition rows, the injected transport failure and inherited-filter
+scroll case. Every renderer uses the unchanged manual TestClock maps and flushFrame.
+The shared fixture defines a screenshot helper, but this original never calls it.
+Real runtime, bridge and compositor Wasm load through their normal asset URLs.
+No provider operation, fixture replacement or clock override is added. This stage
+is prepared only. The parent owns native scheduling and completion assessment.
+Batch 06's eight passing native bodies did not complete adapter retirement and do
+not establish file completion. No failed original is replayed by this preparation.
