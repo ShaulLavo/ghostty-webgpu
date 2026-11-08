@@ -133,3 +133,11 @@ The shared fixture's screenshot helper is not called. The full public Terminal
 import graph, system monospace and emoji fallback, Wasm assets and cleanup remain
 unchanged. This is preparation only. The parent owns review, CI, merge and native
 intake. No earlier complete, failed or prepared original becomes eligible to replay.
+
+The `dom-appearance` stage selects the complete single-case DOM appearance
+retention original. It loads the real JetBrains Mono test font and uses the public
+session terminal factory with its actual DOM renderer. Cursor-only repaint counts,
+frame and appearance events, current CSS offsets, palette changes, retained
+snapshots after Wasm memory growth and a reentrant theme update stay unchanged.
+All original callbacks, assertions, animation-frame waits and reverse-order cleanup
+remain intact. This is preparation only, not a Safari or native completion claim.

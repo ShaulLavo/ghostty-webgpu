@@ -23,8 +23,12 @@ function digest(source: string): string {
 
 test('DOM appearance selects the whole original with its real font, geometry, callbacks and clocks', async () => {
   const request = parseNativeArguments([
-    '--stage', stage, '--udid', '00000000-0000-0000-0000-000000000000',
-    '--result', '/not-executed/dom-appearance.json',
+    '--stage',
+    stage,
+    '--udid',
+    '00000000-0000-0000-0000-000000000000',
+    '--result',
+    '/not-executed/dom-appearance.json',
   ])
   assert.equal(request.kind, 'run')
   if (request.kind !== 'run') throw new Error('Expected an explicit run request')
@@ -33,10 +37,16 @@ test('DOM appearance selects the whole original with its real font, geometry, ca
   const source = await readFile(selected.file, 'utf8')
   const registration = source.split('\n')[16]
   assert.equal(registration, `it('${selected.expected[0]?.fullName}', async () => {`)
-  assert.deepEqual(selected.expected.map(({ fullName, sourceKey }) => ({ fullName, sourceKey })), [{
-    fullName: 'retains cursor appearance rows while publishing frames and observing current geometry',
-    sourceKey: `${file}:17:0`,
-  }])
+  assert.deepEqual(
+    selected.expected.map(({ fullName, sourceKey }) => ({ fullName, sourceKey })),
+    [
+      {
+        fullName:
+          'retains cursor appearance rows while publishing frames and observing current geometry',
+        sourceKey: `${file}:17:0`,
+      },
+    ],
+  )
   assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))
   assert.equal(source.match(/\bexpect\(/g)?.length, 17)
   assert.equal(source.match(/await settle\(\)/g)?.length, 10)
@@ -48,7 +58,9 @@ test('DOM appearance selects the whole original with its real font, geometry, ca
   assert.equal(source.match(/expect\.poll\(/g), null)
   assert.equal(source.match(/vi\.|page\.|userEvent\./g), null)
   const helper = await readFile(new URL('../src/tests/fonts.ts', import.meta.url), 'utf8')
-  assert(helper.includes('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url'))
+  assert(
+    helper.includes('@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url'),
+  )
   assert(helper.includes('new URL(fontUrl, import.meta.url).href'))
 })
 

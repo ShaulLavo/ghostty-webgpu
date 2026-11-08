@@ -8,7 +8,8 @@ export const domAppearanceFile = fileURLToPath(
 export const domAppearanceCases = [
   {
     file: domAppearanceFile,
-    fullName: 'retains cursor appearance rows while publishing frames and observing current geometry',
+    fullName:
+      'retains cursor appearance rows while publishing frames and observing current geometry',
     sourceKey: 'src/render/dom/appearance-retention.browser.test.ts:17:0',
     timeoutMs: 15000,
     retries: 0,
