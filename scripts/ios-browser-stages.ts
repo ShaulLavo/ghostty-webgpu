@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
+import { stampCacheCases, stampCacheFile } from './ios-browser-stamp-cases.ts'
 import type { NativeStage } from './ios-browser-options.ts'
 import { canvasRasterizerCases, canvasRasterizerFile } from './ios-browser-rasterizer-cases.ts'
 import { fontGeometryCases, fontGeometryFile } from './ios-browser-geometry-cases.ts'
@@ -43,6 +44,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'stamp-cache') return { file: stampCacheFile, expected: stampCacheCases }
   if (stage === 'canvas-rasterizer')
     return { file: canvasRasterizerFile, expected: canvasRasterizerCases }
   if (stage === 'font-geometry') return { file: fontGeometryFile, expected: fontGeometryCases }

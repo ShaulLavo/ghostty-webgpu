@@ -103,3 +103,12 @@ system monospace and normal CJK and color-emoji fallback through Canvas 2D. No f
 fixture, screenshot oracle, trusted input or host operation is substituted. This stage
 is prepared only. Browser font behavior still needs a parent-owned Safari run after
 review, ready-head CI, merge and main CI. Host exit 4 and root completion false remain.
+
+The `stamp-cache` stage selects all six unchanged resident stamp cache cases. It
+uses the original reference cache and storage fixture, Canvas raster bytes, ordinary
+WebAssembly memory growth, and Vitest mocks. The storage fixture's production-cache
+import is type-only. No Wasm binary, font file, image, worker or addon is fetched by
+this graph. System monospace, emoji fallback and browser identity remain unchanged.
+The failed-operation case retains its original clean cache retry, not a test retry.
+This stage is prepared only. The parent owns review, CI, merge, main CI and the next
+Safari turn. Host exit 4, verifier exit 0 and root completion false remain unchanged.
