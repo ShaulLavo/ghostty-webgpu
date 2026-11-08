@@ -77,6 +77,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'stamp-cache',
     'pixel-damage',
     'mounted-scroll',
+    'dom-appearance',
   ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)

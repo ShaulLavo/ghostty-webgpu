@@ -21,13 +21,14 @@ export type NativeStage =
   | 'stamp-cache'
   | 'pixel-damage'
   | 'mounted-scroll'
+  | 'dom-appearance'
 export type NativeOptions = { stage: NativeStage; udid: string; resultPath: string }
 export type NativeRequest = { kind: 'help' } | { kind: 'run'; options: NativeOptions }
 
 export class NativePreconditionError extends Error {}
 
 export const nativeUsage =
-  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|mounted-scroll --udid <explicit simulator UUID> --result <new absolute .json path>'
+  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|mounted-scroll|dom-appearance --udid <explicit simulator UUID> --result <new absolute .json path>'
 
 export function isNativeStage(value: unknown): value is NativeStage {
   return (
@@ -47,7 +48,8 @@ export function isNativeStage(value: unknown): value is NativeStage {
     value === 'canvas-rasterizer' ||
     value === 'stamp-cache' ||
     value === 'pixel-damage' ||
-    value === 'mounted-scroll'
+    value === 'mounted-scroll' ||
+    value === 'dom-appearance'
   )
 }
 
@@ -67,7 +69,7 @@ export function parseNativeArguments(args: readonly string[]): NativeRequest {
   const resultPath = flags.get('--result')
   if (!isNativeStage(stage))
     throw new NativePreconditionError(
-      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, or mounted-scroll stage',
+      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, mounted-scroll, or dom-appearance stage',
     )
   if (!udid || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(udid))
     throw new NativePreconditionError('An explicit simulator UUID is required')
