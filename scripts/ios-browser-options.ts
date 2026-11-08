@@ -29,13 +29,14 @@ export type NativeStage =
   | 'managed-fallback'
   | 'worker-write-queue'
   | 'glyph-fidelity'
+  | 'selection-worker-ownership'
 export type NativeOptions = { stage: NativeStage; udid: string; resultPath: string }
 export type NativeRequest = { kind: 'help' } | { kind: 'run'; options: NativeOptions }
 
 export class NativePreconditionError extends Error {}
 
 export const nativeUsage =
-  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity --udid <explicit simulator UUID> --result <new absolute .json path>'
+  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity|selection-worker-ownership --udid <explicit simulator UUID> --result <new absolute .json path>'
 
 export function isNativeStage(value: unknown): value is NativeStage {
   return (
@@ -63,7 +64,8 @@ export function isNativeStage(value: unknown): value is NativeStage {
     value === 'ui-declarations' ||
     value === 'managed-fallback' ||
     value === 'worker-write-queue' ||
-    value === 'glyph-fidelity'
+    value === 'glyph-fidelity' ||
+    value === 'selection-worker-ownership'
   )
 }
 
@@ -83,7 +85,7 @@ export function parseNativeArguments(args: readonly string[]): NativeRequest {
   const resultPath = flags.get('--result')
   if (!isNativeStage(stage))
     throw new NativePreconditionError(
-      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, mounted-scroll, dom-appearance, ghostty-keymap, mac-keybindings, output-timing, ui-declarations, managed-fallback, worker-write-queue, or glyph-fidelity stage',
+      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, mounted-scroll, dom-appearance, ghostty-keymap, mac-keybindings, output-timing, ui-declarations, managed-fallback, worker-write-queue, glyph-fidelity, or selection-worker-ownership stage',
     )
   if (!udid || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(udid))
     throw new NativePreconditionError('An explicit simulator UUID is required')

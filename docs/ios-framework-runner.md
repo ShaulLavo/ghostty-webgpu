@@ -199,3 +199,12 @@ screenshots. No worker or downloadable font is used. Both native Wasm assets loa
 through the ordinary source runtime. Original bytes, callbacks and default 15,000 ms
 case clocks stay unchanged. Batch 32 preparation and saved desktop evidence are
 documented in `.internal/ios-browser-batch32.md`. Native intake remains parent-owned.
+
+The `selection-worker-ownership` stage selects complete
+`src/dom/tests/selection-worker-ownership.browser.test.ts`. All three rows retain
+real packaged worker ownership while cancel, dispose or a new press interrupts a
+stale release. The original uses WebGL, its actual font and native/bridge Wasm,
+selection snapshots, ordered request fences and real resize authority. Its direct
+controller calls need no trusted provider click. Explicit 15,000 ms cases, the
+5,000 ms projection bound and 10 ms waits stay unchanged. Waffle remains published
+0.0.111. This stage adds no provider capability or exclusion.
