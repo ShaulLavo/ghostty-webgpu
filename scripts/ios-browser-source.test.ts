@@ -75,6 +75,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'font-geometry',
     'canvas-rasterizer',
     'stamp-cache',
+    'pixel-damage',
   ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
@@ -141,8 +142,11 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
   return table.elements.map((item) => {
     if (item?.type === 'Identifier' && item.name === 'undefined')
       return prefix + name.value.replace('%s', 'undefined')
-    assert(item?.type === 'Literal' && typeof item.value === 'string')
-    return prefix + name.value.replace('%s', item.value)
+    assert(
+      item?.type === 'Literal' &&
+        (typeof item.value === 'string' || typeof item.value === 'number'),
+    )
+    return prefix + name.value.replace('%s', String(item.value))
   })
 }
 
