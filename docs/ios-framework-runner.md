@@ -141,3 +141,12 @@ frame and appearance events, current CSS offsets, palette changes, retained
 snapshots after Wasm memory growth and a reentrant theme update stay unchanged.
 All original callbacks, assertions, animation-frame waits and reverse-order cleanup
 remain intact. This is preparation only, not a Safari or native completion claim.
+
+The `ghostty-keymap` stage selects the complete 13-case terminal keymap original.
+It retains both legacy and kitty rows, all three scroll-platform rows, the platform
+getter spy, synthetic KeyboardEvents, composition and modifier checks, queued writes,
+and original cleanup. These are ordinary DOM events, not trusted provider input.
+The locked `@fregat/hotkeys` package and its TanStack Store dependency are required.
+Native and bridge Wasm load normally. The original uses system monospace and Canvas
+fill-text, with no test font, worker or compositor asset request. This stage is
+prepared only. Host exit 4, verifier exit 0, and whole-root false semantics stay fixed.
