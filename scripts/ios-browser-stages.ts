@@ -1,3 +1,7 @@
+import {
+  selectionWorkerOwnershipCases,
+  selectionWorkerOwnershipFile,
+} from './ios-browser-selection-worker-ownership-cases.ts'
 import { glyphFidelityCases, glyphFidelityFile } from './ios-browser-glyph-fidelity-cases.ts'
 import {
   workerWriteQueueCases,
@@ -57,6 +61,8 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'selection-worker-ownership')
+    return { file: selectionWorkerOwnershipFile, expected: selectionWorkerOwnershipCases }
   if (stage === 'glyph-fidelity') return { file: glyphFidelityFile, expected: glyphFidelityCases }
   if (stage === 'worker-write-queue')
     return { file: workerWriteQueueFile, expected: workerWriteQueueCases }
