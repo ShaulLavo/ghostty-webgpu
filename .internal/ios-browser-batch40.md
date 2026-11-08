@@ -1,6 +1,6 @@
 # Complete displayed-frame boundaries preparation
 
-Status: Approved, implementation in progress. Assigned merged base is
+Status: Approved source preparation. Assigned merged base is
 3ad7fa6088d3ef2dcc81d19f1094ae22c424ea7f. This batch selects only complete
 src/dom/tests/displayed-frame-boundaries.browser.test.ts.
 
@@ -15,3 +15,8 @@ The report packet is under
 Parent owns independent review, CI acceptance, merge, main CI and native intake.
 No native, Mac or Device resource is allocated by preparation. Waffle remains
 published 0.0.111. PR 108 is separate and unadopted.
+
+All 18 cases passed in one ordinary complete-file desktop execution. The 127
+normally discovered adapter tests and all prerequisite gates passed. Forty
+saved-data controls passed without original replay. Checked teardown removed
+all owned installs and outputs. This is not native Safari qualification.
