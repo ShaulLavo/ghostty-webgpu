@@ -1,19 +1,35 @@
 # Complete selector original preparation
 
-Status: Approved, preparation in progress. Batch 52 owns only
-`src/render/tests/selector.browser.test.ts` at base
-`aff535f366265adfc6371438b977019f843b74df`, blob
-`9bccab3a6a94ee6eba55c67d30c35d8e2d13f5c4`.
+Status: Approved. Batch 52 prepares only the complete renderer selector original
+at main-green base `aff535f366265adfc6371438b977019f843b74df`.
 
-The source and its actual called graph determine eligibility and membership.
-Metadata will preserve every original callback, clock, assertion, platform stub,
-real context path, and cleanup await. Native execution remains on hold.
+The original `src/render/tests/selector.browser.test.ts` remains byte-identical,
+with blob `9bccab3a6a94ee6eba55c67d30c35d8e2d13f5c4` and SHA-256
+`cac326816f5b68c39af13b661cf45ce56369bd8c1f9aa3fa427e444cd17ffe49`.
+The `selector` stage contains all 49 names, source keys, and unchanged options,
+derived from the current ten platform rows and every parameter table.
 
-The preparation packet is retained outside the repository at
+Local preparation passed root and extension builds, types, 32 explicit normally
+discovered safe adapter files with 147 tests, lint, oxfmt, docs, help, and strict
+report-driver types. Exactly one ordinary complete-file desktop execution passed
+all 49 cases in headless Chromium with SwiftShader. This proves correctness only,
+not hardware identity, native Safari behavior, or complete browser-suite success.
+
+Original platform stubs, real GPU and context paths, capability and programming
+failures, fallback order, real context-loss events, gated recovery, cancellation,
+settings, frame tracking, and cleanup timing are unchanged. The unawaited original
+renderer disposal loop remains unawaited. No explicit viewport or screenshot call
+is required. No font, Wasm, worker, or image response was observed.
+
+The packet preserves the actual served graph and null JavaScript response lengths.
+A saved-data verifier repair distinguishes two unrequested dynamic-import targets
+from actual requests. Neither the original nor its execution data was changed.
+All owned installs, caches, outputs, profiles, drivers, and scratch were removed
+after consumers joined. Final prose is checked by tracked-input equivalence,
+without another original execution.
+
+Evidence and reproducible preparation tools are retained at
 `/work/reports/wave-20261108/ios-suites/ghostty-next-complete-original-batch52/`.
-The parent owns independent review, CI acceptance, merge, green main, native
-intake, and eventual guarded source retirement. No native handoff is issued here.
-
-Estimate: 1.5 agent hours. The blocking step is source and graph inspection.
-There is one metadata-only workstream, no shared writer, and no delegated work.
-Existing manifest and packet patterns avoid a new runtime design.
+The parent owns independent review, CI acceptance, merge, green main, native intake,
+and source retirement with the external guard after T3 cwd holders release.
+Native hold is unchanged. No native handoff or native credit is issued here.
