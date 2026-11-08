@@ -1,3 +1,7 @@
+import {
+  rendererBenchmarkCases,
+  rendererBenchmarkFile,
+} from './ios-browser-renderer-benchmark-cases.ts'
 import { textPassCases, textPassFile } from './ios-browser-text-pass-cases.ts'
 import { selectorCases, selectorFile } from './ios-browser-selector-cases.ts'
 import { sharedAtlasCases, sharedAtlasFile } from './ios-browser-shared-atlas-cases.ts'
@@ -72,6 +76,8 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'renderer-benchmark')
+    return { file: rendererBenchmarkFile, expected: rendererBenchmarkCases }
   if (stage === 'text-pass') return { file: textPassFile, expected: textPassCases }
   if (stage === 'selector') return { file: selectorFile, expected: selectorCases }
   if (stage === 'shared-atlas') return { file: sharedAtlasFile, expected: sharedAtlasCases }
