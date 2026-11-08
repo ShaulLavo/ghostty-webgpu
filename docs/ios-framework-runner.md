@@ -150,3 +150,10 @@ The locked `@fregat/hotkeys` package and its TanStack Store dependency are requi
 Native and bridge Wasm load normally. The original uses system monospace and Canvas
 fill-text, with no test font, worker or compositor asset request. This stage is
 prepared only. Host exit 4, verifier exit 0, and whole-root false semantics stay fixed.
+
+Batch 14 adds `mac-keybindings` for the complete unchanged
+`src/dom/tests/mac-keybindings.browser.test.ts`. It retains eight cases, including
+both main/worker terminal and legacy/kitty protocol rows. Build root dist before
+running it. The worker loads the built entry, the JetBrains Mono fixture and both
+root Wasm assets. The original uses real clocks and synthetic DOM key events, not
+provider keyboard commands. This preparation adds no native completion credit.
