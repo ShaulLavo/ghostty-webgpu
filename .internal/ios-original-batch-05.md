@@ -17,5 +17,10 @@ The coordinator owns independent review, ready-head CI, merge, main CI, and nati
 The worker neither acquires a native session nor changes the paused event task.
 
 The portable packet is kept at
-`/work/reports/wave-20261108/ios-suites/ghostty-next-complete-original-batch05/`.
+`/work/reports/wave-20261108/ios-suites/ghostty-next-complete-original-batch05/resumed/packet/`.
 Local qualification and final source bindings are recorded there before handoff.
+
+This replacement recovers cancelled checkpoint `5dd03ca3710bdd9af24d703d78ae1e8e8098a737`
+with cherry-pick origin records. PR 95, its branch, bundle, and cancellation records
+remain intact. The recovered local gate passed all three originals once in Chromium.
+Native execution and review remain separate parent gates.
