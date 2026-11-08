@@ -1,3 +1,4 @@
+import { atlasRegistryCases, atlasRegistryFile } from './ios-browser-atlas-registry-cases.ts'
 import { gpuTexturesCases, gpuTexturesFile } from './ios-browser-gpu-textures-cases.ts'
 import {
   displayedFrameBoundariesCases,
@@ -67,6 +68,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'atlas-registry') return { file: atlasRegistryFile, expected: atlasRegistryCases }
   if (stage === 'gpu-textures') return { file: gpuTexturesFile, expected: gpuTexturesCases }
   if (stage === 'displayed-frame-boundaries')
     return { file: displayedFrameBoundariesFile, expected: displayedFrameBoundariesCases }
