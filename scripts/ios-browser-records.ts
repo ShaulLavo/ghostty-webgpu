@@ -21,8 +21,9 @@ export function errorJson(value: unknown, ancestors = new Set<object>()): Json {
 
 function objectErrorJson(value: object, ancestors: Set<object>): Json {
   const result: Record<string, Json> = {}
-  if (value instanceof Error && !Object.hasOwn(value, 'name')) result.name = value.name
-  for (const key of Object.getOwnPropertyNames(value)) {
+  const keys = Object.getOwnPropertyNames(value)
+  if (value instanceof Error && !keys.includes('name')) result.name = value.name
+  for (const key of keys) {
     const item: unknown = Reflect.get(value, key)
     if (item === undefined) continue
     result[key] = errorJson(item, ancestors)
