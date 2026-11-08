@@ -72,6 +72,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'readline-layout',
     'module-mock',
     'font-fixture',
+    'font-geometry',
   ] as const) {
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
