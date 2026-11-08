@@ -37,7 +37,7 @@ test('Text pass selects the complete original and both binding-budget rows', asy
     selected.expected.map((row) => row.fullName),
     [
       'binds the small grid on default device limits',
-      'binds the largest grid in the packed binding budget on default device limits',
+      'binds the largest grid in the packed binding budg… on default device limits',
       'renders transparent defaults, opaque explicit colors, glyphs, and an outline cursor',
       'renders identical native glyph pixels across bounded storage batches',
       'renders explicit cursor text over a WebGPU block cursor',

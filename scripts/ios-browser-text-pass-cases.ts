@@ -15,7 +15,7 @@ export const textPassCases = [
   },
   {
     file: textPassFile,
-    fullName: 'binds the largest grid in the packed binding budget on default device limits',
+    fullName: 'binds the largest grid in the packed binding budg… on default device limits',
     sourceKey: 'src/render/tests/text-pass.browser.test.ts:104:1',
     timeoutMs: 15000,
     retries: 0,
