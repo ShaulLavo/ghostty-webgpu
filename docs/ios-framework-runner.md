@@ -239,3 +239,14 @@ screenshot. This preparation adds no native or whole-root completion credit.
 node scripts/ios-browser-launch.ts --stage displayed-frame-boundaries --udid "$SIMULATOR_UUID" --result "$NEW_ABSOLUTE_RESULT_JSON"
 node scripts/ios-browser-verify.ts displayed-frame-boundaries "$NEW_ABSOLUTE_RESULT_JSON"
 ```
+
+## GPU texture arrays
+
+The `gpu-textures` stage selects all three cases in
+`src/render/webgpu/gpu-textures.browser.test.ts` unchanged. It requests a real
+high-performance WebGPU adapter and device, uploads odd-stride dirty rectangles,
+and checks bytes read from GPU texture arrays through mapped buffers. It also
+checks the adapter layer limit and preservation when only grayscale grows.
+No font, worker, Ghostty Wasm, page viewport or provider screenshot is required
+by this original. A normal GPU readback is the original oracle, not a screenshot
+substitute. Preparation adds no native pass credit.
