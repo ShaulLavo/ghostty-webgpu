@@ -95,3 +95,11 @@ pixel-ratio and line-height loops, mounted Canvas pixel checks, and the locked
 host operations. No provider screenshot, input, viewport command, or new host API is
 added. This stage is source-prepared only. Desktop correctness is not Safari
 qualification. Keep host exit 4, verifier exit 0, and root completion false.
+
+The `canvas-rasterizer` stage selects all eight unchanged glyph-rasterization cases.
+It keeps the 4,096-glyph retention loop, data-dependent four-MiB pixel loop, five DPR
+values, numeric font weights, cache identity and bitmap assertions. The original uses
+system monospace and normal CJK and color-emoji fallback through Canvas 2D. No font
+fixture, screenshot oracle, trusted input or host operation is substituted. This stage
+is prepared only. Browser font behavior still needs a parent-owned Safari run after
+review, ready-head CI, merge and main CI. Host exit 4 and root completion false remain.
