@@ -203,6 +203,8 @@ function mutate(command: BrowserCommandContext): () => void {
   if (kind === 'native') return replaceField(command.browser, 'sessionId', 'stale-native')
   if (kind === 'file') return replaceField(command, 'testPath', 'wrong-file.ts')
   if (kind === 'native-options') return replaceField(command.browser.options, 'port', 1)
+  if (kind === 'native-retry')
+    return replaceField(command.browser.options, 'connectionRetryCount', 1)
   if (kind === 'project-browser') return replaceField(command.project, 'browser', undefined)
   if (kind === 'provider-browser') {
     assert(provider?.browser)
@@ -348,6 +350,7 @@ async function invokeScreenshot<T>(
     undo = await changeContext(command)
     queueRelease.resolve()
     await blocked
+    captureRelease.resolve()
   }
   if (!mode.startsWith('queued-') && !configurationFailure) {
     await Promise.race([
@@ -358,6 +361,7 @@ async function invokeScreenshot<T>(
     ])
     assert.equal(settled, false, 'Official callback must still own pending HTTP')
     const next = host.provider('framework-cleanup', async () => {
+      assert.equal(sdkBuffers.length, 1, 'Later root began before the official SDK save settled')
       nextRoot = true
     })
     void next.catch(() => {})

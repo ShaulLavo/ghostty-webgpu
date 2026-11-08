@@ -151,7 +151,7 @@ function nativeSessionCheck(
   const capabilities = attached.capabilities
   const requested = attached.requestedCapabilities
   const options = attached.options
-  const { hostname, port, protocol, path } = connection.options
+  const retainedOptions: [string, unknown][] = Object.entries(connection.options)
   const descriptors = [capabilities, requested]
   const fields = [
     'browserName',
@@ -170,10 +170,7 @@ function nativeSessionCheck(
       attached.capabilities !== capabilities ||
       attached.requestedCapabilities !== requested ||
       attached.options !== options ||
-      options.hostname !== hostname ||
-      options.port !== port ||
-      options.protocol !== protocol ||
-      options.path !== path
+      !retainedOptions.every(([key, value]) => Reflect.get(options, key) === value)
     )
       throw new Error('Ghostty native session descriptor changed')
     const unchanged = descriptors.every((descriptor, index) =>

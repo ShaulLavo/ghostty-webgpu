@@ -17,6 +17,8 @@ export const combinedControlModes: readonly string[] = [
   'queued-project-provider',
   'queued-provider-browser',
   'queued-native-options',
+  'queued-native-retry',
+  'settled-native-retry',
   'queued-native-capabilities',
   'settled-native-capabilities',
   'queued-closed',
