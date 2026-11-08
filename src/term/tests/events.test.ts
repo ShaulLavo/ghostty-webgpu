@@ -139,7 +139,9 @@ it.each([
     for (const failure of [undefined, null, false, 0, -0, 0n, '', NaN]) {
       const result = options.native
         ? Promise.reject(failure)
-        : { then: (_resolve: unknown, reject: (cause: unknown) => void) => reject(failure) }
+        : {
+            then: (_resolve: unknown, reject: (cause: unknown) => void) => reject(failure),
+          }
       const observed = callbackResult(options.target, result)
 
       observed.emitter.emit()
@@ -253,3 +255,81 @@ it.each([undefined, null, false, 0, '', Symbol('value'), {}, { then: false }])(
     observed.emitter.dispose()
   },
 )
+
+it.each(['listener', 'sink'] as const)(
+  'does not re-assimilate a native %s promise fulfillment',
+  async (target) => {
+    let reads = 0
+    const value = {
+      get then() {
+        reads += 1
+        return undefined
+      },
+    }
+    const observed = callbackResult(target, Promise.resolve(value))
+
+    observed.emitter.emit()
+    await flushRejections()
+
+    expect(reads).toBe(2)
+    expect(observed.errors).toEqual(target === 'listener' ? [] : [observed.failure])
+    observed.emitter.dispose()
+  },
+)
+
+it('reports native rejection before a queued disposal', async () => {
+  const failure = new Error('native rejection before disposal')
+  const errors: unknown[] = []
+  const emitter = new EventEmitter<void>((cause) => errors.push(cause))
+  emitter.subscribe(() => Promise.reject(failure))
+
+  emitter.emit()
+  await new Promise<void>((resolve) => {
+    queueMicrotask(() => {
+      emitter.dispose()
+      resolve()
+    })
+  })
+  await flushRejections()
+
+  expect(errors).toEqual([failure])
+})
+
+it.each(['listener', 'sink'] as const)(
+  'captures a native %s promise then accessor once',
+  async (target) => {
+    let reads = 0
+    const failure = new Error('native result rejection')
+    const result = Promise.reject(failure)
+    Object.defineProperty(result, 'then', {
+      get() {
+        reads += 1
+        if (reads > 1) throw new Error('repeated native then read')
+        return Promise.prototype.then
+      },
+    })
+    const observed = callbackResult(target, result)
+
+    observed.emitter.emit()
+    await flushRejections()
+
+    expect(reads).toBe(1)
+    expect(observed.errors).toEqual([target === 'listener' ? failure : observed.failure])
+    observed.emitter.dispose()
+  },
+)
+
+it('defers adoption of a subclass promise', async () => {
+  class DerivedPromise extends Promise<number> {}
+  const result = DerivedPromise.resolve(42)
+  const then = vi.spyOn(result, 'then')
+  const observed = callbackResult('listener', result)
+
+  observed.emitter.emit()
+  expect(then).not.toHaveBeenCalled()
+  await flushRejections()
+
+  expect(then).toHaveBeenCalledOnce()
+  expect(observed.errors).toEqual([])
+  observed.emitter.dispose()
+})

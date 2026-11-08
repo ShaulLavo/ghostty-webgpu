@@ -11,6 +11,10 @@ function observeRejection(result: unknown, onRejected: (cause: unknown) => void)
   if (typeof result !== 'function' && typeof result !== 'object') return
   const then: unknown = Reflect.get(result, 'then')
   if (typeof then !== 'function') return
+  if (result instanceof Promise && result.constructor === Promise) {
+    void Reflect.apply(then, result, [undefined, onRejected])
+    return
+  }
   void Promise.resolve({
     then: (resolve: (value: unknown) => void, reject: (cause: unknown) => void) =>
       Reflect.apply(then, result, [resolve, reject]),
