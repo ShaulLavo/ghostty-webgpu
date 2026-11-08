@@ -173,3 +173,13 @@ Build root dist before the worker rows. They load the real font and both root Wa
 assets. Synthetic DOM composition and input events do not require provider input
 commands. Original waits, animation frames and reverse cleanup remain unchanged.
 This is source preparation, not Safari or whole-root completion.
+
+The `managed-fallback` stage selects the complete six-case
+`src/render/tests/fallback.browser.test.ts`. It retains native frame-builder
+attachment, real WebGL context loss, all backend fallback paths, Canvas2D pixel
+checks, focus and visibility changes, disposal and abort, error callbacks and
+reduced-motion updates. The original TestClock maps and flushes, default polls,
+mocks and cleanup are unchanged. Its imported fixture defines a screenshot helper
+that none of these cases calls. No worker or font file is requested. System
+monospace, native and bridge Wasm remain real. This is source preparation, not
+Safari or whole-root completion.
