@@ -49,3 +49,40 @@ it('clears listener presence on disposal and stops frame delivery', () => {
   subscription.dispose()
   expect(listener).not.toHaveBeenCalled()
 })
+
+it.each(['listener', 'sink'] as const)(
+  'reads a %s then accessor once and calls the captured method with its receiver',
+  async (target) => {
+    const failure = new Error('original rejection')
+    const secondRead = new Error('second getter read')
+    const errors: unknown[] = []
+    let reads = 0
+    let receiver: unknown
+    const result = {
+      get then() {
+        reads += 1
+        if (reads > 1) throw secondRead
+        return function (this: unknown, _resolve: unknown, reject: (cause: unknown) => void) {
+          receiver = this
+          reject(failure)
+        }
+      },
+    }
+    const emitter = new EventEmitter<void>((cause) => {
+      errors.push(cause)
+      if (target === 'sink') return result
+    })
+    emitter.subscribe(() => {
+      if (target === 'listener') return result
+      throw failure
+    })
+
+    emitter.emit()
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+
+    expect.soft(reads).toBe(1)
+    expect.soft(receiver).toBe(result)
+    expect(errors).toEqual([failure])
+    emitter.dispose()
+  },
+)
