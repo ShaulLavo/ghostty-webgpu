@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
+import { outputTimingCases, outputTimingFile } from './ios-browser-output-timing-cases.ts'
 import { macKeybindingsCases, macKeybindingsFile } from './ios-browser-mac-keybindings-cases.ts'
 import { ghosttyKeymapCases, ghosttyKeymapFile } from './ios-browser-hotkeys-cases.ts'
 import { domAppearanceCases, domAppearanceFile } from './ios-browser-dom-appearance-cases.ts'
@@ -49,6 +50,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'output-timing') return { file: outputTimingFile, expected: outputTimingCases }
   if (stage === 'mac-keybindings')
     return { file: macKeybindingsFile, expected: macKeybindingsCases }
   if (stage === 'ghostty-keymap') return { file: ghosttyKeymapFile, expected: ghosttyKeymapCases }
