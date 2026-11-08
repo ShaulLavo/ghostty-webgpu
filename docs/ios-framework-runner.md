@@ -190,3 +190,12 @@ worker-loaded test font, WebGL canvas, MessagePort transfer spy, ordered control
 cancelled neighbor and eight disposal rejections. Queue and worker clocks stay
 unchanged. Root `dist` is a prerequisite. This differs from the main-thread
 `write-queue` stage and does not establish Safari or whole-root completion.
+
+The `glyph-fidelity` stage selects complete
+`src/render/tests/glyph-fidelity.browser.test.ts`. Its four cases keep actual Canvas
+coverage, combining text and wide spans, native continuation ownership and transparent
+cells, and the five fractional DPR grid inputs. Canvas raster pixels are not provider
+screenshots. No worker or downloadable font is used. Both native Wasm assets load
+through the ordinary source runtime. Original bytes, callbacks and default 15,000 ms
+case clocks stay unchanged. Batch 32 preparation and saved desktop evidence are
+documented in `.internal/ios-browser-batch32.md`. Native intake remains parent-owned.
