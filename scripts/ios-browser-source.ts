@@ -5,6 +5,7 @@ import { nativeStage } from './ios-browser-stages.ts'
 
 // These source identities bind the independent manifests to the complete original files.
 export const nativeSourceHashes = {
+  'stamp-cache': '2cf8b38f0e3e96b61c49bb97e38228ae1354555362ba751e1808758b7fc3734f',
   'canvas-rasterizer': '8572318c4f8d21597e3f2bcc6839b9e4e995fdc232c861b9c7eec673712fea8a',
   'font-geometry': 'dcff759bd96b31d31502d8e4def1779cf8d2b3d205fc707bec22b2da2f867f5a',
   'font-fixture': '486c29aff0129d653623f7c2e648a3af9dff54633d5839c9cf2b8b9dc2a92086',
