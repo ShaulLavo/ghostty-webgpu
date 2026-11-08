@@ -183,3 +183,10 @@ mocks and cleanup are unchanged. Its imported fixture defines a screenshot helpe
 that none of these cases calls. No worker or font file is requested. System
 monospace, native and bridge Wasm remain real. This is source preparation, not
 Safari or whole-root completion.
+
+The `worker-write-queue` stage selects complete
+`src/worker/write-queue.browser.test.ts`. Its four cases keep the real `dist` worker,
+worker-loaded test font, WebGL canvas, MessagePort transfer spy, ordered controls,
+cancelled neighbor and eight disposal rejections. Queue and worker clocks stay
+unchanged. Root `dist` is a prerequisite. This differs from the main-thread
+`write-queue` stage and does not establish Safari or whole-root completion.
