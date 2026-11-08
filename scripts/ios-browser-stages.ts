@@ -1,3 +1,4 @@
+import { managedFallbackCases, managedFallbackFile } from './ios-browser-fallback-cases.ts'
 import { uiDeclarationsCases, uiDeclarationsFile } from './ios-browser-ui-declarations-cases.ts'
 import { fileURLToPath } from 'node:url'
 import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
@@ -51,6 +52,8 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'managed-fallback')
+    return { file: managedFallbackFile, expected: managedFallbackCases }
   if (stage === 'ui-declarations')
     return { file: uiDeclarationsFile, expected: uiDeclarationsCases }
   if (stage === 'output-timing') return { file: outputTimingFile, expected: outputTimingCases }
