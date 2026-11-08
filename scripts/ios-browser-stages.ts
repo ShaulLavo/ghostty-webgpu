@@ -1,3 +1,4 @@
+import { glyphFidelityCases, glyphFidelityFile } from './ios-browser-glyph-fidelity-cases.ts'
 import {
   workerWriteQueueCases,
   workerWriteQueueFile,
@@ -56,6 +57,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'glyph-fidelity') return { file: glyphFidelityFile, expected: glyphFidelityCases }
   if (stage === 'worker-write-queue')
     return { file: workerWriteQueueFile, expected: workerWriteQueueCases }
   if (stage === 'managed-fallback')
