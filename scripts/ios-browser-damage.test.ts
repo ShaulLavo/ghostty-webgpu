@@ -64,7 +64,7 @@ test('pixel damage selects every DPR row and the inherited-filter case with orig
 
 test('pixel damage source gate rejects changed DPR rows, pixel oracles, loops, clocks and filter behavior', async () => {
   const source = await readFile(selected.file, 'utf8')
-  for (const [before, after] of [
+  const replacements: readonly (readonly [string, string])[] = [
     ['[1, 1.25, 1.5, 2]', '[1, 1.5, 2]'],
     ['[1, 1.25, 1.5, 2]', '[1, 1.25, 1.25, 2]'],
     ['[1, 1.25, 1.5, 2]', '[1, 1.25, 1.5, 3]'],
@@ -87,7 +87,8 @@ test('pixel damage source gate rejects changed DPR rows, pixel oracles, loops, c
     ],
     ["it('preserves pixel-scroll", "it.skip('preserves pixel-scroll"],
     ['it.each(', 'it.skip.each('],
-  ]) {
+  ]
+  for (const [before, after] of replacements) {
     const changed = source.replace(before, after)
     assert.notEqual(changed, source, before)
     assert.notEqual(digest(changed), nativeSourceHashes[stage])
