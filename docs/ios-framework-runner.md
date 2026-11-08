@@ -226,3 +226,16 @@ node scripts/ios-browser-verify.ts canvas-image "$NEW_ABSOLUTE_RESULT_JSON"
 
 Native execution belongs to the parent after review, CI, merge and fresh intake.
 Whole-root completion remains false.
+
+The `displayed-frame-boundaries` stage selects complete
+`src/dom/tests/displayed-frame-boundaries.browser.test.ts`. All 18 current cases
+retain real native state, WebGL and direct or coordinated WebGPU, original
+DeferredClock callbacks and failure injection, owned snapshots, reentrant text,
+accessibility polling and shared-coordinator image publication order. Canvas and
+DOM fixture options remain uncalled. Source-image subscription is not a provider
+screenshot. This preparation adds no native or whole-root completion credit.
+
+```bash
+node scripts/ios-browser-launch.ts --stage displayed-frame-boundaries --udid "$SIMULATOR_UUID" --result "$NEW_ABSOLUTE_RESULT_JSON"
+node scripts/ios-browser-verify.ts displayed-frame-boundaries "$NEW_ABSOLUTE_RESULT_JSON"
+```

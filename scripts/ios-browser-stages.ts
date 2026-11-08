@@ -1,3 +1,7 @@
+import {
+  displayedFrameBoundariesCases,
+  displayedFrameBoundariesFile,
+} from './ios-browser-displayed-frame-boundaries-cases.ts'
 import { canvasImageCases, canvasImageFile } from './ios-browser-canvas-image-cases.ts'
 import {
   selectionWorkerOwnershipCases,
@@ -62,6 +66,8 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'displayed-frame-boundaries')
+    return { file: displayedFrameBoundariesFile, expected: displayedFrameBoundariesCases }
   if (stage === 'canvas-image') return { file: canvasImageFile, expected: canvasImageCases }
   if (stage === 'selection-worker-ownership')
     return { file: selectionWorkerOwnershipFile, expected: selectionWorkerOwnershipCases }
