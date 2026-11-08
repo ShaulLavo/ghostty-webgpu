@@ -87,3 +87,11 @@ viewport change, or database operation is required. The locked package is
 `@discoveryjs/json-ext` 1.1.0. This stage is source-prepared only. Run it only in a
 separately parent-owned Safari turn after review and ready-head CI. Selected-file host
 exit 4, verifier exit 0, and whole-root false semantics remain unchanged.
+
+The `font-geometry` stage selects the complete three-case original. It retains the
+loaded JetBrains Mono font, both font hooks, all four cleanup callbacks, the nested
+pixel-ratio and line-height loops, mounted Canvas pixel checks, and the locked
+`ghostty-web` Canvas renderer. It needs only normal browser APIs and existing public
+host operations. No provider screenshot, input, viewport command, or new host API is
+added. This stage is source-prepared only. Desktop correctness is not Safari
+qualification. Keep host exit 4, verifier exit 0, and root completion false.
