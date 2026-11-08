@@ -1,3 +1,4 @@
+import { selectorCases, selectorFile } from './ios-browser-selector-cases.ts'
 import { sharedAtlasCases, sharedAtlasFile } from './ios-browser-shared-atlas-cases.ts'
 import { webgpuCases, webgpuFile } from './ios-browser-webgpu-cases.ts'
 import { atlasRegistryCases, atlasRegistryFile } from './ios-browser-atlas-registry-cases.ts'
@@ -70,6 +71,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'selector') return { file: selectorFile, expected: selectorCases }
   if (stage === 'shared-atlas') return { file: sharedAtlasFile, expected: sharedAtlasCases }
   if (stage === 'webgpu') return { file: webgpuFile, expected: webgpuCases }
   if (stage === 'atlas-registry') return { file: atlasRegistryFile, expected: atlasRegistryCases }
