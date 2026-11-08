@@ -1,3 +1,7 @@
+import {
+  workerWriteQueueCases,
+  workerWriteQueueFile,
+} from './ios-browser-worker-write-queue-cases.ts'
 import { managedFallbackCases, managedFallbackFile } from './ios-browser-fallback-cases.ts'
 import { uiDeclarationsCases, uiDeclarationsFile } from './ios-browser-ui-declarations-cases.ts'
 import { fileURLToPath } from 'node:url'
@@ -52,6 +56,8 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'worker-write-queue')
+    return { file: workerWriteQueueFile, expected: workerWriteQueueCases }
   if (stage === 'managed-fallback')
     return { file: managedFallbackFile, expected: managedFallbackCases }
   if (stage === 'ui-declarations')
