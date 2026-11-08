@@ -157,3 +157,10 @@ both main/worker terminal and legacy/kitty protocol rows. Build root dist before
 running it. The worker loads the built entry, the JetBrains Mono fixture and both
 root Wasm assets. The original uses real clocks and synthetic DOM key events, not
 provider keyboard commands. This preparation adds no native completion credit.
+
+The `output-timing` stage selects the complete unchanged
+`src/dom/tests/output-timing.browser.test.ts`. It includes all four renderer and
+presentation combinations, the burst and listener lifecycle cases, and the built
+worker case. The original real waits, quiet periods and output timing payload
+assertions are preserved. Its source preparation does not establish Safari or
+root-suite completion.
