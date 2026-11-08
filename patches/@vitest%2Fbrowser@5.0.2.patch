@@ -78,7 +78,7 @@ index decc6b0ddc9531d7309bfb1aad608a2d24ccedaf..bf314b10d20f3bc69381ab4c46f521b6
  			height
  		} : void 0;
 diff --git a/dist/client/__vitest_browser__/tester-COH68OX9.js b/dist/client/__vitest_browser__/tester-COH68OX9.js
-index b46df55dd85896f8daf09456da0fc73667155d01..b646f92059c61eaec5dc17a080ec88c534690ce5 100644
+index b46df55dd85896f8daf09456da0fc73667155d01..f6b920c48de6acb9d230b4177763559562a72d4a 100644
 --- a/dist/client/__vitest_browser__/tester-COH68OX9.js
 +++ b/dist/client/__vitest_browser__/tester-COH68OX9.js
 @@ -5,6 +5,12 @@ import { page, server, userEvent } from "vitest/browser";
@@ -98,23 +98,34 @@ index b46df55dd85896f8daf09456da0fc73667155d01..b646f92059c61eaec5dc17a080ec88c5
  						this.cancel("test-failure");
  					}
  				}
-+				ghostty.caseSettled?.(task);
++				await ghostty.caseSettled?.(task);
 +			});
 +			_defineProperty(this, "onBeforeRunTask", async (task) => {
 +				await super.onBeforeRunTask?.(task);
-+				ghostty.taskStarted?.(task);
++				await ghostty.taskStarted?.(task);
  			});
  			_defineProperty(this, "onTaskFinished", async (task) => {
  				var _task$result3, _task$result4, _Reflect$get;
-@@ -928,6 +939,7 @@ function createBrowserRunner(mocker, state, coverageModule) {
+@@ -928,6 +939,8 @@ function createBrowserRunner(mocker, state, coverageModule) {
  			});
  			_defineProperty(this, "onBeforeRunSuite", async (suite) => {
  				var _super$onBeforeRunSui;
-+				ghostty.taskStarted?.(suite);
++				const reporting = ghostty.taskStarted?.(suite);
++				try {
  				await Promise.all([(_super$onBeforeRunSui = super.onBeforeRunSuite) === null || _super$onBeforeRunSui === void 0 ? void 0 : _super$onBeforeRunSui.call(this, suite), (async () => {
  					if (!("filepath" in suite)) return;
  					const map = await (this.sourceMapPrefetches.get(suite.filepath) ?? rpc$2().getBrowserFileSourceMap(suite.filepath));
-@@ -960,7 +972,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
+@@ -936,6 +949,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
+ 					const snapshotEnvironment = this.config.snapshotOptions.snapshotEnvironment;
+ 					if (snapshotEnvironment instanceof VitestBrowserSnapshotEnvironment) snapshotEnvironment.addSourceMap(suite.filepath, map);
+ 				})()]);
++				} finally {
++					await reporting;
++				}
+ 			});
+ 			_defineProperty(this, "onAfterRunFiles", async (files) => {
+ 				super.onAfterRunFiles(files);
+@@ -960,7 +976,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
  				if (this.config.includeTaskLocation) try {
  					await updateTestFilesLocations(files, this.sourceMapCache);
  				} catch {}
@@ -125,7 +136,7 @@ index b46df55dd85896f8daf09456da0fc73667155d01..b646f92059c61eaec5dc17a080ec88c5
  			});
  			_defineProperty(this, "onTestAnnotate", (test, annotation) => {
  				const artifact = {
-@@ -989,7 +1003,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
+@@ -989,7 +1007,9 @@ function createBrowserRunner(mocker, state, coverageModule) {
  				return rpc$2().onTaskArtifactRecord(test.id, artifact);
  			});
  			_defineProperty(this, "onTaskUpdate", (task, events) => {
@@ -136,22 +147,22 @@ index b46df55dd85896f8daf09456da0fc73667155d01..b646f92059c61eaec5dc17a080ec88c5
  			});
  			_defineProperty(this, "importFile", async (filepath, mode) => {
  				let hash = this.hashMap.get(filepath);
-@@ -1996,12 +2012,14 @@ channel.addEventListener("message", async (e) => {
+@@ -1996,12 +2016,14 @@ channel.addEventListener("message", async (e) => {
  				state.metaEnv.VITEST_WORKER_ID = String(workerId);
  				if (method === "collect") await executeTests("collect", files).catch((err) => unhandledError(err, "Collect Error"));
  				else await executeTests("run", files).catch((err) => unhandledError(err, "Run Error"));
-+				ghostty.executionFlushed?.();
++				await ghostty.executionFlushed?.();
  				break;
  			}
  			case "cleanup":
  				await cleanup().catch((err) => unhandledError(err, "Cleanup Error"));
  				rootTesterSpan === null || rootTesterSpan === void 0 || rootTesterSpan.span.end();
  				await traces.finish();
-+				ghostty.testerCleanupSettled?.();
++				await ghostty.testerCleanupSettled?.();
  				break;
  			case "prepare": {
  				await traces.waitInit();
-@@ -2134,6 +2152,7 @@ async function cleanup() {
+@@ -2134,6 +2156,7 @@ async function cleanup() {
  	});
  }
  function unhandledError(e, type) {

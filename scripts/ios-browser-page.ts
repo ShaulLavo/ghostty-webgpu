@@ -8,9 +8,9 @@ import { errorJson, frameworkTasks, frameworkUpdates, taskUpdate } from './ios-b
 function observe(
   operation: (observation: FrameworkObservation) => Promise<void> | void,
 ): Promise<void> | undefined {
-  const observation = getFrameworkObservation()
-  if (!observation || observation.signal.aborted) return
   try {
+    const observation = getFrameworkObservation()
+    if (!observation || observation.signal.aborted) return
     return operation(observation)?.catch(() => {})
   } catch {
     // Reporting failure must not replace an official framework outcome.
@@ -34,10 +34,14 @@ export function taskUpdated(packs: readonly RunnerTaskResultPack[]): void {
 }
 
 export function caseSettled(task: RunnerTask): Promise<void> | undefined {
-  return observe((observation) => observation.caseSettled(() => {
-    if (task.type !== 'test' || !task.result) return null
-    return [taskUpdate(task.id, task.result)]
-  }))
+  return observe((observation) =>
+    observation.caseSettled(() => {
+      if (task.type !== 'test') return null
+      const result = task.result
+      if (!result) return null
+      return [taskUpdate(task.id, result)]
+    }),
+  )
 }
 
 export function caughtError(error: unknown, source: string): void {
@@ -57,10 +61,8 @@ export function catcherInstalled(): void {
 }
 
 export async function cleanupResponseReceived(): Promise<void> {
-  await observe(async (observation) => {
-    await observation.cleanupResponseReceived()
-    await observation.waitForRetirement()
-  })
+  await observe((observation) => observation.cleanupResponseReceived())
+  await observe((observation) => observation.waitForRetirement())
 }
 
 export async function initialViewport(): Promise<

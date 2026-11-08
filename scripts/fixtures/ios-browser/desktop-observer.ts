@@ -22,19 +22,24 @@ function enqueue(event: string, detail: Json = null): void {
   void send(event, detail).catch((error) => console.error(error))
 }
 const observation: FrameworkObservation = {
-  collected: (tasks) => send('collected', tasks),
-  taskStarted: (id) => enqueue('task-started', id),
-  taskUpdate: (updates) => enqueue('task-update', updates),
-  caseSettled: (updates) => enqueue('case-settled', updates),
-  error(error, source) {
-    enqueue('error', { error, source })
-    if (!Reflect.get(globalThis, Symbol.for('ghostty.local.observerThrows'))) return
+  signal: new AbortController().signal,
+  collected: (snapshot) => send('collected', snapshot()),
+  taskStarted: (snapshot) => send('task-started', snapshot()),
+  taskUpdate: (snapshot) => send('task-update', snapshot()),
+  caseSettled: (snapshot) => {
+    const updates = snapshot()
+    return updates === null ? Promise.resolve() : send('case-settled', updates)
+  },
+  error(snapshot) {
+    const task = send('error', snapshot())
+    if (!Reflect.get(globalThis, Symbol.for('ghostty.local.observerThrows'))) return task
+    void task.catch(() => {})
     enqueue('observer-throw')
     throw new Error('LOCAL_OBSERVER_THREW')
   },
-  executionFlushed: () => enqueue('execution-flushed'),
-  testerCleanupSettled: () => enqueue('tester-cleanup-settled'),
-  cleanupResponseReceived: () => enqueue('cleanup-response-received'),
+  executionFlushed: () => send('execution-flushed'),
+  testerCleanupSettled: () => send('tester-cleanup-settled'),
+  cleanupResponseReceived: () => send('cleanup-response-received'),
   catcherInstalled: () => enqueue('catcher-installed'),
   async waitForInitialViewport() {
     await send('startup-wait', {
