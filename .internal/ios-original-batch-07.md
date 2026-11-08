@@ -19,7 +19,7 @@ handoff remain gates. No Safari run, native ID or root-suite completion is claim
 There are 28 source assertion sites and 30 passing-path assertions after expanding
 the three-row raster loop. No platform-dependent raster branch count is invented.
 All 25 original function and arrow callback bodies remain byte-identical.
-Fixed exclusions remain 35 touch and 16 N/A. Eleven completed originals stay frozen.
-Batches 05 and 06 stay prepared pending native execution and are not selected again.
+Fixed exclusions remain 35 touch and 16 N/A. Twelve completed originals stay frozen,
+including batch 05 geometry. Batch 06 stays native-unrun and is not selected again.
 The exact packet is retained at
 `/work/reports/wave-20261108/ios-suites/ghostty-next-complete-original-batch07/packet/`.
