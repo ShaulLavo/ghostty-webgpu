@@ -1,3 +1,4 @@
+import { webgpuCases, webgpuFile } from './ios-browser-webgpu-cases.ts'
 import { atlasRegistryCases, atlasRegistryFile } from './ios-browser-atlas-registry-cases.ts'
 import { gpuTexturesCases, gpuTexturesFile } from './ios-browser-gpu-textures-cases.ts'
 import {
@@ -68,6 +69,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'webgpu') return { file: webgpuFile, expected: webgpuCases }
   if (stage === 'atlas-registry') return { file: atlasRegistryFile, expected: atlasRegistryCases }
   if (stage === 'gpu-textures') return { file: gpuTexturesFile, expected: gpuTexturesCases }
   if (stage === 'displayed-frame-boundaries')
