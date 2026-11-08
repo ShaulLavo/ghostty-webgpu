@@ -208,3 +208,21 @@ selection snapshots, ordered request fences and real resize authority. Its direc
 controller calls need no trusted provider click. Explicit 15,000 ms cases, the
 5,000 ms projection bound and 10 ms waits stay unchanged. Waffle remains published
 0.0.111. This stage adds no provider capability or exclusion.
+
+## Canvas-image publications
+
+The `canvas-image` stage selects complete
+`src/dom/tests/canvas-image.browser.test.ts`. All 38 cases keep the original
+WebGL, direct and coordinated WebGPU, Canvas, pixels and DOM rows. It checks
+canvas-image delivery, direct pixel copies, submit failure and recovery, observer
+order, transparent erasure, disposal, blink, foreign-realm rejected promises,
+previous-frame reads and reentrant writes. Original clocks and cleanup remain
+unchanged. These image reads are not provider screenshots.
+
+```sh
+node scripts/ios-browser-launch.ts --stage canvas-image --udid "$SIMULATOR_UUID" --result "$NEW_ABSOLUTE_RESULT_JSON"
+node scripts/ios-browser-verify.ts canvas-image "$NEW_ABSOLUTE_RESULT_JSON"
+```
+
+Native execution belongs to the parent after review, CI, merge and fresh intake.
+Whole-root completion remains false.

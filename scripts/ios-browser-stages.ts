@@ -1,3 +1,4 @@
+import { canvasImageCases, canvasImageFile } from './ios-browser-canvas-image-cases.ts'
 import {
   selectionWorkerOwnershipCases,
   selectionWorkerOwnershipFile,
@@ -61,6 +62,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'canvas-image') return { file: canvasImageFile, expected: canvasImageCases }
   if (stage === 'selection-worker-ownership')
     return { file: selectionWorkerOwnershipFile, expected: selectionWorkerOwnershipCases }
   if (stage === 'glyph-fidelity') return { file: glyphFidelityFile, expected: glyphFidelityCases }
