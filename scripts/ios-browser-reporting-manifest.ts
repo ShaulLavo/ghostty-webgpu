@@ -1,0 +1,46 @@
+export const reportingSyntheticNames = [
+  '01 actual installed body and collection',
+  '02 original update promise is returned directly',
+  '03 original update falsy results remain exact',
+  '04 update does not read an original then getter',
+  '05 synchronous original throw stays falsy',
+  '06 update retains original receiver and argument identities',
+  '07 held original RPC does not join reporting',
+  '08 paired null settlement creates no event',
+  '09 factory runs synchronously after reservation',
+  '10 capacity 65 is failed incomplete with healthy prefix draining',
+  '11 throwing conversion consumes no sequence',
+  '12 error getters are read once',
+  '13 immutable full-envelope retry bytes',
+  '14 snapshot null releases its reservation',
+  '15 original update rejection keeps false',
+  '16 original thenable is read only by its real await owner',
+  '17 last slot includes the active factory',
+  '18 collected factory reentry is refused',
+  '19 task-start factory reentry is refused',
+  '20 update factory reentry is refused',
+  '21 settlement factory reentry is refused',
+  '22 error factory reentry is refused',
+  '23 encoding toJSON reentry cannot commit outer event',
+  '24 final encoding rejects reentry or uses a captured encoder',
+  '25 captured timeout is not replaced by fixture globals',
+  '26 captured abort composition is not replaced by fixture globals',
+  '27 conversion refusal preserves an admitted healthy prefix',
+  '28 closed reporting never reads another error snapshot',
+  '29 declared case and hook clocks are unchanged',
+  '30 original elapsed body clock runs normally',
+  '31 synchronous execution closure precedes delivery',
+  '32 synchronous tester cleanup closure precedes delivery',
+  '33 real throttle can report while a body is running',
+  '34 top cleanup delivery and retirement are distinct',
+  '35 finite nested sibling one',
+  '36 finite nested sibling two',
+  '37 concurrent sibling one',
+  '38 concurrent sibling two',
+] as const
+
+export function reportingFullName(name: string): string {
+  if (name.startsWith('35 ') || name.startsWith('36 ')) return `nested > ${name}`
+  if (name.startsWith('37 ') || name.startsWith('38 ')) return `concurrent > ${name}`
+  return name
+}

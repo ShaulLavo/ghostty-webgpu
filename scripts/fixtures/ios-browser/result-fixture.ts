@@ -30,6 +30,7 @@ export function resultFixture(stage: NativeStage = 'synthetic') {
     omittedRootFiles: 'not enumerated',
     framework: { status: 'passed' },
     commandHooks: [],
+    commandFailures: [],
     cleanup: {
       serviceDisposition: 'Unit fixture only',
       session: { status: 'confirmed', detail: 'Unit fixture only' },
