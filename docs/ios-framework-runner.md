@@ -164,3 +164,12 @@ presentation combinations, the burst and listener lifecycle cases, and the built
 worker case. The original real waits, quiet periods and output timing payload
 assertions are preserved. Its source preparation does not establish Safari or
 root-suite completion.
+
+The `ui-declarations` stage selects the complete unchanged
+`src/dom/tests/ui-declarations.browser.test.ts`. All 13 cases remain, including
+worker-only and host-loaded fonts, synchronous composition input, inert-document
+preedit, peer callback ordering, style priorities, observers and caret validation.
+Build root dist before the worker rows. They load the real font and both root Wasm
+assets. Synthetic DOM composition and input events do not require provider input
+commands. Original waits, animation frames and reverse cleanup remain unchanged.
+This is source preparation, not Safari or whole-root completion.
