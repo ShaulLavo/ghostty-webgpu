@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
+import { domAppearanceCases, domAppearanceFile } from './ios-browser-dom-appearance-cases.ts'
 import { mountedScrollCases, mountedScrollFile } from './ios-browser-mounted-cases.ts'
 import { pixelDamageCases, pixelDamageFile } from './ios-browser-damage-cases.ts'
 import { stampCacheCases, stampCacheFile } from './ios-browser-stamp-cases.ts'
@@ -46,6 +47,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'dom-appearance') return { file: domAppearanceFile, expected: domAppearanceCases }
   if (stage === 'mounted-scroll') return { file: mountedScrollFile, expected: mountedScrollCases }
   if (stage === 'pixel-damage') return { file: pixelDamageFile, expected: pixelDamageCases }
   if (stage === 'stamp-cache') return { file: stampCacheFile, expected: stampCacheCases }
