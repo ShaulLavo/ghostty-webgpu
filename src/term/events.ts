@@ -6,21 +6,18 @@ export interface EventSubscription {
   dispose(): void
 }
 
-function isPromiseLike(value: unknown): value is PromiseLike<void> {
-  if (value === null) return false
-  const type = typeof value
-  if (type !== 'function' && type !== 'object') return false
-  return typeof (value as PromiseLike<void>).then === 'function'
+function observeRejection(result: unknown, onRejected: (cause: unknown) => void): void {
+  if (result === null) return
+  if (typeof result !== 'function' && typeof result !== 'object') return
+  const then: unknown = Reflect.get(result, 'then')
+  if (typeof then !== 'function') return
+  void Promise.resolve({
+    then: (resolve: (value: unknown) => void, reject: (cause: unknown) => void) =>
+      Reflect.apply(then, result, [resolve, reject]),
+  }).catch(onRejected)
 }
 
-function ignoreRejection(result: unknown): void {
-  try {
-    if (!isPromiseLike(result)) return
-    void Promise.resolve(result).catch(() => {})
-  } catch {
-    return
-  }
-}
+function ignoreError(): void {}
 
 export class EventEmitter<T> {
   private disposed = false
@@ -82,18 +79,17 @@ export class EventEmitter<T> {
   private invoke(listener: EventListener<T>, event: T): void {
     try {
       const result = listener(event)
-      if (!isPromiseLike(result)) return
-      void Promise.resolve(result).catch((cause: unknown) => this.reportError(cause))
+      observeRejection(result, this.reportError)
     } catch (cause) {
       this.reportError(cause)
     }
   }
 
-  private reportError(cause: unknown): void {
+  private readonly reportError = (cause: unknown): void => {
     const sink = this.errorSink
     if (!sink) return
     try {
-      ignoreRejection(sink(cause))
+      observeRejection(sink(cause), ignoreError)
     } catch {
       return
     }
