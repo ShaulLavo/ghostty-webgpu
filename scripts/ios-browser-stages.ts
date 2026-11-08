@@ -1,3 +1,4 @@
+import { gpuTexturesCases, gpuTexturesFile } from './ios-browser-gpu-textures-cases.ts'
 import {
   displayedFrameBoundariesCases,
   displayedFrameBoundariesFile,
@@ -66,6 +67,7 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'gpu-textures') return { file: gpuTexturesFile, expected: gpuTexturesCases }
   if (stage === 'displayed-frame-boundaries')
     return { file: displayedFrameBoundariesFile, expected: displayedFrameBoundariesCases }
   if (stage === 'canvas-image') return { file: canvasImageFile, expected: canvasImageCases }
