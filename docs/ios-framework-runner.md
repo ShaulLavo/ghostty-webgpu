@@ -123,3 +123,13 @@ No provider operation, fixture replacement or clock override is added. This stag
 is prepared only. The parent owns native scheduling and completion assessment.
 Batch 06's eight passing native bodies did not complete adapter retirement and do
 not establish file completion. No failed original is replayed by this preparation.
+
+The `mounted-scroll` stage selects the complete two-case mounted public Terminal
+scroll original. Both `canvas2d-fill-text` and `canvas2d-pixels` retain the original
+manual TestClock scheduling, real animation-frame waits, 32-column by six-row grid,
+scroll notifications, row-read packing and reuse metrics. After initial output and
+every scroll, displayed RGBA equals a separately created full-reference renderer.
+The shared fixture's screenshot helper is not called. The full public Terminal
+import graph, system monospace and emoji fallback, Wasm assets and cleanup remain
+unchanged. This is preparation only. The parent owns review, CI, merge and native
+intake. No earlier complete, failed or prepared original becomes eligible to replay.
