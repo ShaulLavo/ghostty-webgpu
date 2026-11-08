@@ -28,8 +28,8 @@ source bundle/patch, saved desktop evidence, verifier, preparation and teardown.
 Historical pre-entry archive and generated-graph inventory failures remain in the report.
 
 Fresh eligibility preserves all 127 old receipt hashes. Batch 07's new parent receipt
-reports six passing stamp-cache cases and checked cleanup. It is frozen, pending canonical
-registry confirmation at this read. Batch 06 remains failed with no replay or file credit.
+and canonical registry now confirm six passing stamp-cache cases and checked cleanup.
+Thirteen canonical completed originals are frozen. Batch 06 remains failed with no replay or file credit.
 Batches 08-10 and 12 remain prepared and frozen; batch 11 is blocked; batch 13 is separately
 reserved. Fixed exclusions remain 35 touch and 16 N/A. No platform total or root credit changed.
 
