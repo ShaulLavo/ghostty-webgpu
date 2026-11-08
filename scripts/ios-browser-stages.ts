@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import type { ExpectedCase } from 'waffle/testing/page-runner/framework'
 import type { NativeStage } from './ios-browser-options.ts'
+import { canvasRasterizerCases, canvasRasterizerFile } from './ios-browser-rasterizer-cases.ts'
 import { fontGeometryCases, fontGeometryFile } from './ios-browser-geometry-cases.ts'
 import { fontFixtureCases, fontFixtureFile } from './ios-browser-fixture-cases.ts'
 import { moduleMockCases, moduleMockFile } from './ios-browser-module-cases.ts'
@@ -42,6 +43,8 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'canvas-rasterizer')
+    return { file: canvasRasterizerFile, expected: canvasRasterizerCases }
   if (stage === 'font-geometry') return { file: fontGeometryFile, expected: fontGeometryCases }
   if (stage === 'font-fixture') return { file: fontFixtureFile, expected: fontFixtureCases }
   if (stage === 'module-mock') return { file: moduleMockFile, expected: moduleMockCases }
