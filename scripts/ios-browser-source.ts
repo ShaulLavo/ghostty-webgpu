@@ -24,6 +24,7 @@ export const nativeSourceHashes = {
   'ghostty-keymap': '7ef02f9e9e292b4274d67967d31d254afff35acb9aa13f38ed812d167e68b780',
   'dom-appearance': 'e8a24dfb18a1ffb105254f7bb17557a5d528286567f1706f855c30bbe90b2286',
   'mounted-scroll': 'e044ff0a8282132982d31ec3fa5c6da8ceccd254b9b002772935ba8ffc391e51',
+  'canvas-scroll': '7e84e87bfea3408774a4caaa517dda7e80e1dd53dec5954803ff55e01e2769c0',
   'pixel-damage': '8b16f1b80a08a310226b8f9123e3fb5d94ea4a3ccb9575905c13ea51a08dc9f2',
   'stamp-cache': '2cf8b38f0e3e96b61c49bb97e38228ae1354555362ba751e1808758b7fc3734f',
   'canvas-rasterizer': '8572318c4f8d21597e3f2bcc6839b9e4e995fdc232c861b9c7eec673712fea8a',
