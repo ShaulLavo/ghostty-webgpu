@@ -1,10 +1,10 @@
 # Run a selected browser file on iOS
 
-This source-only route uses the published Waffle 0.0.111 framework host and the normal Vitest lifecycle. It does not run the whole browser suite.
+This source-only route uses the published Waffle 0.0.114 framework host and the normal Vitest lifecycle. It does not run the whole browser suite.
 
 ## Prerequisites
 
-Use an exclusive checkout, Bun 1.4.4, and Node 26.12.1 on macOS. Install dependencies with `bun install --frozen-lockfile`. The lockfile pins the public Waffle runtime tarball and its integrity. Waffle, WebdriverIO, and Undici are development dependencies, not terminal runtime dependencies.
+Use an exclusive checkout, Bun 1.4.4, and Node 26.12.1 on macOS. Install dependencies with `bun install --frozen-lockfile`. The runtime has host interface 2 and needs no program-family archives. The lockfile pins the public Waffle runtime tarball and its integrity. Waffle, WebdriverIO, and Undici are development dependencies, not terminal runtime dependencies.
 
 The parent execution owner must supply an already selected iOS Simulator UUID and own the Safari turn. Follow the fleet and device procedures before running this command. The runner does not reserve or boot a simulator. Do not run concurrent native stages.
 
@@ -48,7 +48,7 @@ The discovered `scripts/ios-browser*.test.ts` tests include public installed-pac
 
 Historical native synthetic, viewport, and bulk-snapshot results used unpublished archive 06. They are not native runs of release 0.0.111. Their unknown SDK session-context warning remains unresolved evidence, not a claim of zero unsupported Safari HTTP. This supported dependency adoption does not add native or whole-root qualification, exclusions, skips, or relaxed clocks.
 
-The font-resource stage is source-prepared only. Ordinary Chromium execution does not establish native font-event behavior or release 0.0.111 qualification. The parent must supply a fresh Safari turn and keep the selected-file exit 4 and whole-root false distinction.
+The font-resource stage is source-prepared only. Ordinary Chromium execution does not establish native font-event behavior or release 0.0.114 qualification. The parent must supply a fresh Safari turn and keep the selected-file exit 4 and whole-root false distinction.
 
 The `measurement` stage selects the unchanged four-case public width and geometry file. It preserves the title and data parameter rows, the terminal and host cleanup hook, and the original 320 by 120 CSS host. It uses the checked-in `ghostty-vt.wasm` and `bridge.wasm` with normal platform font fitting. No screenshot, trusted input, explicit viewport operation, or new host API is needed. This stage is source-prepared only. Desktop success is not Safari qualification.
 
@@ -207,7 +207,7 @@ stale release. The original uses WebGL, its actual font and native/bridge Wasm,
 selection snapshots, ordered request fences and real resize authority. Its direct
 controller calls need no trusted provider click. Explicit 15,000 ms cases, the
 5,000 ms projection bound and 10 ms waits stay unchanged. Waffle remains published
-0.0.111. This stage adds no provider capability or exclusion.
+0.0.114. This stage adds no provider capability or exclusion.
 
 ## Canvas-image publications
 

@@ -87,3 +87,31 @@ test('dedicated transport closes after execution and restores on success and fai
   )
   assert.equal(getGlobalDispatcher(), previous)
 })
+
+function inheritedNameError(throwOnSecondRead: boolean) {
+  const error = new Error('synthetic inherited name')
+  void error.stack
+  let reads = 0
+  const prototype = Object.create(Error.prototype)
+  function name(this: Error): string {
+    reads += 1
+    if (reads > 1 && throwOnSecondRead) throw false
+    Object.defineProperty(this, 'name', { get: name, configurable: true })
+    return reads === 1 ? 'first name' : 'second name'
+  }
+  Object.defineProperty(prototype, 'name', { get: name, configurable: true })
+  Object.setPrototypeOf(error, prototype)
+  return { error, reads: () => reads }
+}
+
+test.each([false, true])(
+  'an inherited Error name is captured before its getter adds an own property: throws=%s',
+  (throwOnSecondRead) => {
+    const fixture = inheritedNameError(throwOnSecondRead)
+    const snapshot = errorJson(fixture.error)
+    assert.equal(fixture.reads(), 1)
+    assert(snapshot !== null && typeof snapshot === 'object' && !Array.isArray(snapshot))
+    assert('name' in snapshot)
+    assert.equal(snapshot.name, 'first name')
+  },
+)

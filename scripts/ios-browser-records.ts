@@ -20,8 +20,10 @@ export function errorJson(value: unknown, ancestors = new Set<object>()): Json {
 }
 
 function objectErrorJson(value: object, ancestors: Set<object>): Json {
-  const result: Record<string, Json> = value instanceof Error ? { name: value.name } : {}
-  for (const key of Object.getOwnPropertyNames(value)) {
+  const result: Record<string, Json> = {}
+  const keys = Object.getOwnPropertyNames(value)
+  if (value instanceof Error && !keys.includes('name')) result.name = value.name
+  for (const key of keys) {
     const item: unknown = Reflect.get(value, key)
     if (item === undefined) continue
     result[key] = errorJson(item, ancestors)
@@ -41,18 +43,20 @@ export function frameworkTasks(
 ): FrameworkTask[] {
   return tasks.flatMap((task) => {
     const file = 'filepath' in task
+    const id = task.id
+    const type = task.type
     const record: FrameworkTask = {
-      id: task.id,
+      id,
       parentId,
-      type: file ? 'file' : task.type,
+      type: file ? 'file' : type,
       file: file ? task.filepath : task.file.filepath,
       fullName: task.fullTestName ?? task.name,
       mode: task.mode,
-      timeoutMs: task.type === 'test' ? task.timeout : config.hookTimeout,
+      timeoutMs: type === 'test' ? task.timeout : config.hookTimeout,
       retries: retries(task, config),
     }
-    if (task.type === 'test') return [record]
-    return [record].concat(frameworkTasks(task.tasks, config, task.id))
+    if (type === 'test') return [record]
+    return [record].concat(frameworkTasks(task.tasks, config, id))
   })
 }
 
