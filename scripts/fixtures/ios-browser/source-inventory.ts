@@ -115,8 +115,11 @@ function collectCall(call: CallExpression, state: Inventory): void {
     collect(body.body.body, { ...state, prefix: state.prefix + pattern + ' > ' })
     return
   }
-  assert(!timeout || (timeout.type === 'Literal' && typeof timeout.value === 'number'))
-  const timeoutMs = timeout ? Number(timeout.value) : 15000
+  let timeoutMs = 15000
+  if (timeout) {
+    assert(timeout.type === 'Literal' && typeof timeout.value === 'number')
+    timeoutMs = timeout.value
+  }
   assert(Number.isFinite(timeoutMs) && timeoutMs > 0)
   const names = registration.rows
     ? table(registration.rows, state.scope).map((row) => title(String(pattern), row))
