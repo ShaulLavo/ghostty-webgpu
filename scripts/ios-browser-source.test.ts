@@ -78,6 +78,9 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'stamp-cache',
     'pixel-damage',
     'canvas-scroll',
+    'legacy-text',
+    'pointer-selection',
+    'hotkeys-focus',
     'canvas-theme-cache',
     'canvas-zwj',
     'pixels',
@@ -107,6 +110,28 @@ test('each native stage binds an independent complete manifest to unchanged sour
   assert.equal(nativeStage('bulk-snapshot').expected.length, 1)
   assert.equal(nativeStage('font-resources').expected.length, 5)
   assert.equal(nativeStage('measurement').expected.length, 4)
+})
+
+test('hotkey focus inventory rejects omitted, malformed or changed outer and nested parameters', async () => {
+  const selected = nativeStage('hotkeys-focus')
+  const source = await readFile(selected.file, 'utf8')
+  const expected = selected.expected.map((row) => row.fullName)
+  const replacements = [
+    ["['main']", "['worker']"],
+    ["['main']", "['main', 'main']"],
+    ["['main']", '[]'],
+    ["['invalid', 'resolved', 'rejected']", "['invalid', 'resolved']"],
+    ["['invalid', 'resolved', 'rejected']", "['invalid', 'resolved', null]"],
+    ['public hotkeys connection', 'other connection'],
+    ['reports a %s decision', 'reports a %i decision'],
+    ["it('attaches after open", "it.skip('attaches after open"],
+    ['    },\n  )', '    },\n    { timeout: 1 },\n  )'],
+  ] as const
+  for (const [before, after] of replacements) {
+    const changed = source.replace(before, after)
+    assert.notEqual(changed, source)
+    assert.throws(() => assert.deepEqual(sourceNames(selected.file, changed), expected))
+  }
 })
 
 test('font parameter inventory rejects changed tables, titles, and per-case options', async () => {

@@ -83,7 +83,10 @@ function testCall(call: CallExpression): { name: string; rows?: Expression } | u
   if (call.callee.type !== 'CallExpression') return undefined
   const each = call.callee
   assert(each.callee.type === 'MemberExpression' && !each.callee.computed)
-  assert(each.callee.object.type === 'Identifier' && each.callee.object.name === 'it')
+  assert(
+    each.callee.object.type === 'Identifier' &&
+      ['it', 'describe'].includes(each.callee.object.name),
+  )
   assert(
     each.callee.property.type === 'Identifier' &&
       ['each', 'for'].includes(each.callee.property.name),
@@ -91,7 +94,7 @@ function testCall(call: CallExpression): { name: string; rows?: Expression } | u
   assert.equal(each.arguments.length, 1)
   const rows = each.arguments[0]
   assert(rows && rows.type !== 'SpreadElement')
-  return { name: 'it', rows }
+  return { name: each.callee.object.name, rows }
 }
 
 type Inventory = {
@@ -112,7 +115,10 @@ function collectCall(call: CallExpression, state: Inventory): void {
   assert(call.arguments.length === 2 || call.arguments.length === 3)
   if (registration.name === 'describe') {
     assert.equal(call.arguments.length, 2)
-    collect(body.body.body, { ...state, prefix: state.prefix + pattern + ' > ' })
+    const names = registration.rows
+      ? table(registration.rows, state.scope).map((row) => title(String(pattern), row))
+      : [String(pattern)]
+    collectDescriptions(body.body.body, names, state)
     return
   }
   let timeoutMs = 15000
@@ -131,6 +137,19 @@ function collectCall(call: CallExpression, state: Inventory): void {
       line,
       index: state.cases.filter((row) => row.line === line).length,
       timeoutMs,
+    })
+}
+
+function collectDescriptions(
+  statements: readonly Statement[],
+  names: readonly string[],
+  state: Inventory,
+): void {
+  for (const name of names)
+    collect(statements, {
+      ...state,
+      scope: new Map(state.scope),
+      prefix: state.prefix + name + ' > ',
     })
 }
 
