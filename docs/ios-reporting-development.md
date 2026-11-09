@@ -1,8 +1,9 @@
-# Browser reporting development controls
+# Browser reporting controls
 
-This draft changes reporting, not the supported Waffle dependency. The manifest, lockfile and
-`frameworkRelease` still select 0.0.111. The new factory signatures need the separately supplied
-development candidate. A normal supported-pin typecheck cannot qualify this draft.
+These controls use the published Waffle 0.0.114 runtime, source
+`341bf1452d98e280a5c718af2775a839ff4042fa`, host interface 2. The manifest, lockfile,
+and `frameworkRelease` bind the same public archive. No program family is required.
+CPU source checks do not qualify framework hook pacing or native execution.
 
 ## Upstream adaptation
 
@@ -20,18 +21,17 @@ dispatch and original connection/RPC/catch expression. Test-only error inspectio
 reference to the actual loaded tester's function and client. It does not copy a hook body,
 replace the runner or modify the committed upstream patch.
 
-## Isolated installation
+## Installation
 
-Use an exclusive T3 tree. Verify the supplied archive against its parent-owned identity before
-copying it. Install the ordinary frozen dependencies with `--backend copyfile` and a private
-`--cache-dir` under owned scratch. Extract the candidate into that scratch and copy its package
-contents over this tree's installed Waffle only. Check that `realpath node_modules/waffle` is
-inside this tree's `node_modules` before writing. Do not edit the manifest, lock, release identity,
-shared cache or SDK source. Do not commit the archive or installed package.
+Use an exclusive T3 worktree and run `bun install --frozen-lockfile`. The committed Vitest
+patch applies through Bun's normal patched dependency mechanism. Do not overlay a development
+SDK, patch Waffle, or replace the installed package. The published archive already contains
+the Node framework host and browser bootstrap.
 
-The changed upstream patch must also be applied to this tree's installed `@vitest/browser`.
-Patch hash changes are deliberately not adopted into the durable lockfile in this development
-unit. The parent owns supported adoption and normal integration CI.
+The release identity in `scripts/ios-browser-dependency.ts` records the public URL, source,
+byte count, SHA-256, SHA-512 integrity, and host interface. The discovered source tests require
+the installed version and host interface, matching manifest and lock, one Vitest browser
+resolution, and browser-only page imports.
 
 ## Exact commands
 
@@ -47,7 +47,7 @@ GHOSTTY_REPORTING_EVIDENCE="$EVIDENCE" STORAGE_SCRATCH_ROOT="$SCRATCH" TMPDIR="$
 
 The default includes exactly `scripts/ios-browser-reporting.synthetic.browser.test.ts` and
 registers 38 separate synthetic cases. It uses normal `createVitest.start`, the actual patched
-browser tester, the candidate's actual bootstrap/accessor, the actual collector and held real
+browser tester, the release's actual bootstrap/accessor, the actual collector and held real
 collector responses. It checks collection/body, settlement/next-body, execute-response and both
 cleanup-response barriers. Nested and concurrent cases retain normal scheduling.
 
@@ -93,9 +93,10 @@ not Safari, and supplies no native, pixel, original-suite or memory-release cred
 The runner releases held responses before joining its context, transport, routes and browser.
 It writes `installed-trace.json` and the SDK's `host-result.json` to the evidence directory.
 Successful selected-file SDK status is 4, never whole-root completion. Ordinary failed cases
-remain failed and make the development command fail. Negative infrastructure controls expect
+remain failed and make the control command fail. Negative infrastructure controls expect
 SDK status 2 without converting ordinary case outcomes into infrastructure errors.
 
-Keep candidate failures visible. The parent owns the corrected SDK, independent implementation
-review, supported release adoption, normal CI and native qualification. This draft is not ready
-to merge or publish.
+Keep earlier development candidate failures visible as historical evidence. The parent owns
+independent adoption review, merge, and fresh native qualification. Public runtime adoption
+does not turn earlier development results into supported-release proof. The page-owned trace
+fixture is implemented but its five native modes remain unexecuted in this adoption.

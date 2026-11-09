@@ -1,9 +1,8 @@
 import { expect, test } from 'vitest'
 import { readFile } from 'node:fs/promises'
-import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { parseSync } from 'oxc-parser'
 
-const baseline = '0d69040be1d27f8086adf9b9ce04be5b25eaf283'
 const newSources = [
   'scripts/ios-browser-reporting-controller.ts',
   'scripts/ios-browser-reporting-data.ts',
@@ -21,25 +20,35 @@ test('all matching source keeps bounded control flow', async () => {
 })
 
 test('matrix, flush, row membership and clocks retain their exact historical source', async () => {
-  const paths = [
-    'scripts/ios-browser-reporting.synthetic.browser.test.ts',
-    'scripts/ios-browser-reporting-flush.synthetic.browser.test.ts',
-    'scripts/ios-browser-reporting-cases.ts',
-    'scripts/ios-browser-reporting-manifest.ts',
+  // Pin the reviewed sources without requiring unmerged PR history in a shallow CI checkout.
+  const sources: readonly (readonly [string, string])[] = [
+    [
+      'scripts/ios-browser-reporting.synthetic.browser.test.ts',
+      '4402a03599f5184f464cc3eb495fd9f8a31f6d594b64cb55273af5fe5dc13c1c',
+    ],
+    [
+      'scripts/ios-browser-reporting-flush.synthetic.browser.test.ts',
+      '36a338e06dfa3a8934c3a475ddf675d945c9c5b0e057e3f95db6c681808b3f16',
+    ],
+    [
+      'scripts/ios-browser-reporting-cases.ts',
+      'e3fc6db3b925fa07f9bc6846e243fa20a4c6847278308d67b49b0850ebf79fa0',
+    ],
+    [
+      'scripts/ios-browser-reporting-manifest.ts',
+      '805abdf683f11258141b1c607f7e19c856aa60c0ed8b517092f51b0effaba678',
+    ],
+    [
+      'scripts/ios-browser-reporting-errors.synthetic.browser.test.ts',
+      '20612fd0809589d527a8d0295ec51a956e7881283b1fe8adfee38299f21591b5',
+    ],
   ]
-  for (const path of paths)
-    expect(await readFile(path, 'utf8')).toBe(
-      execFileSync('git', ['show', `${baseline}:${path}`], { encoding: 'utf8' }),
-    )
-  const path = 'scripts/ios-browser-reporting-errors.synthetic.browser.test.ts'
-  const historical = execFileSync('git', ['show', `${baseline}:${path}`], { encoding: 'utf8' })
-  const recorded = historical
-    .replace(
-      "import { until } from './ios-browser-reporting-realm.ts'",
-      "import { until } from './ios-browser-reporting-realm.ts'\nimport { reportingArray } from './ios-browser-reporting-page.ts'",
-    )
-    .replace('const trace: ErrorTrace[] = []', 'const trace = reportingArray<ErrorTrace>()')
-  expect(await readFile(path, 'utf8')).toBe(recorded)
+  for (const [path, expected] of sources) {
+    const actual = createHash('sha256')
+      .update(await readFile(path))
+      .digest('hex')
+    expect(actual, path).toBe(expected)
+  }
 })
 
 test('actual bridge keeps the cleanup ACK, trace fence and ordinary retirement in order', async () => {

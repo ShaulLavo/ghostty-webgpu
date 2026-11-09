@@ -2,11 +2,14 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 
 export const frameworkRelease = Object.freeze({
-  version: '0.0.111',
-  source: '96acfb246bb565cd008ad498e08230829c3a773a',
-  url: 'https://github.com/ShaulLavo/waffle/releases/download/waffle-v0.0.111/waffle-0.0.111.tgz',
-  bytes: 3000013,
-  sha256: '072f38c510b0044ab396f3f532a561a7a985527e72634e8bba031c34e86f072b',
+  version: '0.0.114',
+  hostInterface: 2,
+  integrity:
+    'sha512-Jr0R1489EeEACWOTENmPfkS1tjxxezsxiS4tpPZ3VfN7T7u6fFd3kHjrojLcy5k0V8teFI0NPJR3Bu09DAcnCg==',
+  source: '341bf1452d98e280a5c718af2775a839ff4042fa',
+  url: 'https://github.com/ShaulLavo/waffle/releases/download/waffle-v0.0.114/waffle-0.0.114.tgz',
+  bytes: 3580810,
+  sha256: '84a624f85f6843449ca2c96c113cb9609e8f4df634df17082e46246413f8245e',
 })
 
 export async function checkFrameworkArchive(path: string): Promise<void> {
@@ -15,5 +18,5 @@ export async function checkFrameworkArchive(path: string): Promise<void> {
     bytes.byteLength !== frameworkRelease.bytes ||
     createHash('sha256').update(bytes).digest('hex') !== frameworkRelease.sha256
   )
-    throw new Error('Expected the published Waffle 0.0.111 runtime archive')
+    throw new Error('Expected the published Waffle 0.0.114 runtime archive')
 }

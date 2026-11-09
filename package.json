@@ -200,7 +200,7 @@
     "undici": "6.29.1",
     "vite": "8.3.1",
     "vitest": "5.0.2",
-    "waffle": "https://github.com/ShaulLavo/waffle/releases/download/waffle-v0.0.111/waffle-0.0.111.tgz",
+    "waffle": "https://github.com/ShaulLavo/waffle/releases/download/waffle-v0.0.114/waffle-0.0.114.tgz",
     "webdriverio": "9.29.1",
     "wrangler": "4.149.0",
     "ws": "8.22.0"

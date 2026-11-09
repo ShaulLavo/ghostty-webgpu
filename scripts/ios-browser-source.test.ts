@@ -23,7 +23,7 @@ test('the published test-tool dependency stays dev-only, locked, and singly reso
   const lock = await readFile(join(root, 'bun.lock'), 'utf8')
   assert(
     lock.includes(
-      '"sha512-83zffXOSjEmildyP6FG2vryezZem81S6ggASb9GlRkjQAtHojqOQPMfYJ4kDkTKx90x7geBMfiXco9sE5Be81g=="',
+      `"waffle": ["waffle@${frameworkRelease.url}", { "hasInstallScript": true }, "${frameworkRelease.integrity}"]`,
     ),
   )
   const browser = realpathSync(require.resolve('@vitest/browser/package.json'))
@@ -39,6 +39,7 @@ test('the published test-tool dependency stays dev-only, locked, and singly reso
   )
   assert.equal(installed.name, 'waffle')
   assert.equal(installed.version, frameworkRelease.version)
+  assert.equal(installed.waffleHostInterface, frameworkRelease.hostInterface)
   assert.equal(
     installed.exports['./testing/page-runner/framework'].node,
     './dist/tests/page-runner/framework.js',
