@@ -27,13 +27,25 @@ export type NativeStage =
   | 'output-timing'
   | 'ui-declarations'
   | 'managed-fallback'
+  | 'worker-write-queue'
+  | 'glyph-fidelity'
+  | 'selection-worker-ownership'
+  | 'canvas-image'
+  | 'displayed-frame-boundaries'
+  | 'gpu-textures'
+  | 'atlas-registry'
+  | 'webgpu'
+  | 'shared-atlas'
+  | 'selector'
+  | 'text-pass'
+  | 'renderer-benchmark'
 export type NativeOptions = { stage: NativeStage; udid: string; resultPath: string }
 export type NativeRequest = { kind: 'help' } | { kind: 'run'; options: NativeOptions }
 
 export class NativePreconditionError extends Error {}
 
 export const nativeUsage =
-  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback --udid <explicit simulator UUID> --result <new absolute .json path>'
+  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity|selection-worker-ownership|canvas-image|displayed-frame-boundaries|gpu-textures|atlas-registry|webgpu|shared-atlas|selector|text-pass|renderer-benchmark --udid <explicit simulator UUID> --result <new absolute .json path>'
 
 export function isNativeStage(value: unknown): value is NativeStage {
   return (
@@ -59,7 +71,19 @@ export function isNativeStage(value: unknown): value is NativeStage {
     value === 'mac-keybindings' ||
     value === 'output-timing' ||
     value === 'ui-declarations' ||
-    value === 'managed-fallback'
+    value === 'managed-fallback' ||
+    value === 'worker-write-queue' ||
+    value === 'glyph-fidelity' ||
+    value === 'selection-worker-ownership' ||
+    value === 'canvas-image' ||
+    value === 'displayed-frame-boundaries' ||
+    value === 'webgpu' ||
+    value === 'shared-atlas' ||
+    value === 'selector' ||
+    value === 'text-pass' ||
+    value === 'renderer-benchmark' ||
+    value === 'atlas-registry' ||
+    value === 'gpu-textures'
   )
 }
 
@@ -79,7 +103,7 @@ export function parseNativeArguments(args: readonly string[]): NativeRequest {
   const resultPath = flags.get('--result')
   if (!isNativeStage(stage))
     throw new NativePreconditionError(
-      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, mounted-scroll, dom-appearance, ghostty-keymap, mac-keybindings, output-timing, ui-declarations, or managed-fallback stage',
+      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, mounted-scroll, dom-appearance, ghostty-keymap, mac-keybindings, output-timing, ui-declarations, managed-fallback, worker-write-queue, glyph-fidelity, selection-worker-ownership, canvas-image, displayed-frame-boundaries, gpu-textures, atlas-registry, webgpu, shared-atlas, selector, text-pass, or renderer-benchmark stage',
     )
   if (!udid || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(udid))
     throw new NativePreconditionError('An explicit simulator UUID is required')

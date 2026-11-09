@@ -1,3 +1,27 @@
+import {
+  rendererBenchmarkCases,
+  rendererBenchmarkFile,
+} from './ios-browser-renderer-benchmark-cases.ts'
+import { textPassCases, textPassFile } from './ios-browser-text-pass-cases.ts'
+import { selectorCases, selectorFile } from './ios-browser-selector-cases.ts'
+import { sharedAtlasCases, sharedAtlasFile } from './ios-browser-shared-atlas-cases.ts'
+import { webgpuCases, webgpuFile } from './ios-browser-webgpu-cases.ts'
+import { atlasRegistryCases, atlasRegistryFile } from './ios-browser-atlas-registry-cases.ts'
+import { gpuTexturesCases, gpuTexturesFile } from './ios-browser-gpu-textures-cases.ts'
+import {
+  displayedFrameBoundariesCases,
+  displayedFrameBoundariesFile,
+} from './ios-browser-displayed-frame-boundaries-cases.ts'
+import { canvasImageCases, canvasImageFile } from './ios-browser-canvas-image-cases.ts'
+import {
+  selectionWorkerOwnershipCases,
+  selectionWorkerOwnershipFile,
+} from './ios-browser-selection-worker-ownership-cases.ts'
+import { glyphFidelityCases, glyphFidelityFile } from './ios-browser-glyph-fidelity-cases.ts'
+import {
+  workerWriteQueueCases,
+  workerWriteQueueFile,
+} from './ios-browser-worker-write-queue-cases.ts'
 import { managedFallbackCases, managedFallbackFile } from './ios-browser-fallback-cases.ts'
 import { uiDeclarationsCases, uiDeclarationsFile } from './ios-browser-ui-declarations-cases.ts'
 import { fileURLToPath } from 'node:url'
@@ -52,6 +76,22 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'renderer-benchmark')
+    return { file: rendererBenchmarkFile, expected: rendererBenchmarkCases }
+  if (stage === 'text-pass') return { file: textPassFile, expected: textPassCases }
+  if (stage === 'selector') return { file: selectorFile, expected: selectorCases }
+  if (stage === 'shared-atlas') return { file: sharedAtlasFile, expected: sharedAtlasCases }
+  if (stage === 'webgpu') return { file: webgpuFile, expected: webgpuCases }
+  if (stage === 'atlas-registry') return { file: atlasRegistryFile, expected: atlasRegistryCases }
+  if (stage === 'gpu-textures') return { file: gpuTexturesFile, expected: gpuTexturesCases }
+  if (stage === 'displayed-frame-boundaries')
+    return { file: displayedFrameBoundariesFile, expected: displayedFrameBoundariesCases }
+  if (stage === 'canvas-image') return { file: canvasImageFile, expected: canvasImageCases }
+  if (stage === 'selection-worker-ownership')
+    return { file: selectionWorkerOwnershipFile, expected: selectionWorkerOwnershipCases }
+  if (stage === 'glyph-fidelity') return { file: glyphFidelityFile, expected: glyphFidelityCases }
+  if (stage === 'worker-write-queue')
+    return { file: workerWriteQueueFile, expected: workerWriteQueueCases }
   if (stage === 'managed-fallback')
     return { file: managedFallbackFile, expected: managedFallbackCases }
   if (stage === 'ui-declarations')

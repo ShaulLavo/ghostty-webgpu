@@ -1,10 +1,10 @@
 # Run a selected browser file on iOS
 
-This source-only route uses the published Waffle 0.0.111 framework host and the normal Vitest lifecycle. It does not run the whole browser suite.
+This source-only route uses the published Waffle 0.0.114 framework host and the normal Vitest lifecycle. It does not run the whole browser suite.
 
 ## Prerequisites
 
-Use an exclusive checkout, Bun 1.4.4, and Node 26.12.1 on macOS. Install dependencies with `bun install --frozen-lockfile`. The lockfile pins the public Waffle runtime tarball and its integrity. Waffle, WebdriverIO, and Undici are development dependencies, not terminal runtime dependencies.
+Use an exclusive checkout, Bun 1.4.4, and Node 26.12.1 on macOS. Install dependencies with `bun install --frozen-lockfile`. The runtime has host interface 2 and needs no program-family archives. The lockfile pins the public Waffle runtime tarball and its integrity. Waffle, WebdriverIO, and Undici are development dependencies, not terminal runtime dependencies.
 
 The parent execution owner must supply an already selected iOS Simulator UUID and own the Safari turn. Follow the fleet and device procedures before running this command. The runner does not reserve or boot a simulator. Do not run concurrent native stages.
 
@@ -48,7 +48,7 @@ The discovered `scripts/ios-browser*.test.ts` tests include public installed-pac
 
 Historical native synthetic, viewport, and bulk-snapshot results used unpublished archive 06. They are not native runs of release 0.0.111. Their unknown SDK session-context warning remains unresolved evidence, not a claim of zero unsupported Safari HTTP. This supported dependency adoption does not add native or whole-root qualification, exclusions, skips, or relaxed clocks.
 
-The font-resource stage is source-prepared only. Ordinary Chromium execution does not establish native font-event behavior or release 0.0.111 qualification. The parent must supply a fresh Safari turn and keep the selected-file exit 4 and whole-root false distinction.
+The font-resource stage is source-prepared only. Ordinary Chromium execution does not establish native font-event behavior or release 0.0.114 qualification. The parent must supply a fresh Safari turn and keep the selected-file exit 4 and whole-root false distinction.
 
 The `measurement` stage selects the unchanged four-case public width and geometry file. It preserves the title and data parameter rows, the terminal and host cleanup hook, and the original 320 by 120 CSS host. It uses the checked-in `ghostty-vt.wasm` and `bridge.wasm` with normal platform font fitting. No screenshot, trusted input, explicit viewport operation, or new host API is needed. This stage is source-prepared only. Desktop success is not Safari qualification.
 
@@ -183,3 +183,70 @@ mocks and cleanup are unchanged. Its imported fixture defines a screenshot helpe
 that none of these cases calls. No worker or font file is requested. System
 monospace, native and bridge Wasm remain real. This is source preparation, not
 Safari or whole-root completion.
+
+The `worker-write-queue` stage selects complete
+`src/worker/write-queue.browser.test.ts`. Its four cases keep the real `dist` worker,
+worker-loaded test font, WebGL canvas, MessagePort transfer spy, ordered controls,
+cancelled neighbor and eight disposal rejections. Queue and worker clocks stay
+unchanged. Root `dist` is a prerequisite. This differs from the main-thread
+`write-queue` stage and does not establish Safari or whole-root completion.
+
+The `glyph-fidelity` stage selects complete
+`src/render/tests/glyph-fidelity.browser.test.ts`. Its four cases keep actual Canvas
+coverage, combining text and wide spans, native continuation ownership and transparent
+cells, and the five fractional DPR grid inputs. Canvas raster pixels are not provider
+screenshots. No worker or downloadable font is used. Both native Wasm assets load
+through the ordinary source runtime. Original bytes, callbacks and default 15,000 ms
+case clocks stay unchanged. Batch 32 preparation and saved desktop evidence are
+documented in `.internal/ios-browser-batch32.md`. Native intake remains parent-owned.
+
+The `selection-worker-ownership` stage selects complete
+`src/dom/tests/selection-worker-ownership.browser.test.ts`. All three rows retain
+real packaged worker ownership while cancel, dispose or a new press interrupts a
+stale release. The original uses WebGL, its actual font and native/bridge Wasm,
+selection snapshots, ordered request fences and real resize authority. Its direct
+controller calls need no trusted provider click. Explicit 15,000 ms cases, the
+5,000 ms projection bound and 10 ms waits stay unchanged. Waffle remains published
+0.0.114. This stage adds no provider capability or exclusion.
+
+## Canvas-image publications
+
+The `canvas-image` stage selects complete
+`src/dom/tests/canvas-image.browser.test.ts`. All 38 cases keep the original
+WebGL, direct and coordinated WebGPU, Canvas, pixels and DOM rows. It checks
+canvas-image delivery, direct pixel copies, submit failure and recovery, observer
+order, transparent erasure, disposal, blink, foreign-realm rejected promises,
+previous-frame reads and reentrant writes. Original clocks and cleanup remain
+unchanged. These image reads are not provider screenshots.
+
+```sh
+node scripts/ios-browser-launch.ts --stage canvas-image --udid "$SIMULATOR_UUID" --result "$NEW_ABSOLUTE_RESULT_JSON"
+node scripts/ios-browser-verify.ts canvas-image "$NEW_ABSOLUTE_RESULT_JSON"
+```
+
+Native execution belongs to the parent after review, CI, merge and fresh intake.
+Whole-root completion remains false.
+
+The `displayed-frame-boundaries` stage selects complete
+`src/dom/tests/displayed-frame-boundaries.browser.test.ts`. All 18 current cases
+retain real native state, WebGL and direct or coordinated WebGPU, original
+DeferredClock callbacks and failure injection, owned snapshots, reentrant text,
+accessibility polling and shared-coordinator image publication order. Canvas and
+DOM fixture options remain uncalled. Source-image subscription is not a provider
+screenshot. This preparation adds no native or whole-root completion credit.
+
+```bash
+node scripts/ios-browser-launch.ts --stage displayed-frame-boundaries --udid "$SIMULATOR_UUID" --result "$NEW_ABSOLUTE_RESULT_JSON"
+node scripts/ios-browser-verify.ts displayed-frame-boundaries "$NEW_ABSOLUTE_RESULT_JSON"
+```
+
+## GPU texture arrays
+
+The `gpu-textures` stage selects all three cases in
+`src/render/webgpu/gpu-textures.browser.test.ts` unchanged. It requests a real
+high-performance WebGPU adapter and device, uploads odd-stride dirty rectangles,
+and checks bytes read from GPU texture arrays through mapped buffers. It also
+checks the adapter layer limit and preservation when only grayscale grows.
+No font, worker, Ghostty Wasm, page viewport or provider screenshot is required
+by this original. A normal GPU readback is the original oracle, not a screenshot
+substitute. Preparation adds no native pass credit.

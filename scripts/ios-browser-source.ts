@@ -5,6 +5,18 @@ import { nativeStage } from './ios-browser-stages.ts'
 
 // These source identities bind the independent manifests to the complete original files.
 export const nativeSourceHashes = {
+  'renderer-benchmark': 'e025ea0f0024a4830580947175b7a2b72adc503a886f1ac0646d6cdcd35aa5cc',
+  'text-pass': '5c58ec4ccd9c44126ec14914deb6371dca412d6c8b19832bf36a8989d0fb5e6e',
+  selector: 'cac326816f5b68c39af13b661cf45ce56369bd8c1f9aa3fa427e444cd17ffe49',
+  'shared-atlas': '42b25016dc2aa80f6c94673b2b9433ec1cda2a60d760286e733850edc5d60462',
+  webgpu: '2a809f046fa87abd860bc2f5f3a440ebeb3ba64c6ea9b5cf464c7ed99893808c',
+  'atlas-registry': 'a83e3be81d52bb63d1174963720a6aec96e4adcd937f3d80c7889372d7685e67',
+  'gpu-textures': '90c07526dac34b6919c718c9515f637119312c491e2cbf2c6a748834f892ad6f',
+  'displayed-frame-boundaries': 'f84ada3a66c7a6782e325d19dac7b153cac786541a1eea3e41c995bb6d355036',
+  'canvas-image': '27af5fb0c6a5b0c2cc675c90eb0f1c76e208ae0737cbc316a68e1d91b65c7d22',
+  'selection-worker-ownership': '42138cdee90cb593014e0cf6b65658feb47839d2c97148b93a029c8889cc8352',
+  'glyph-fidelity': '3ce593ef9b04763ab23567d82fd8f45affdacc7aee086d3ee87a7a7e25cf4226',
+  'worker-write-queue': '2d3dfc47518cce2471378216660e62404f3a4c37880b71b379b4950e002ca4d8',
   'managed-fallback': '9e60c1ddcaa14dd6d0cab493021e94ea76ecde8b130053fc263f65600bf68fea',
   'ui-declarations': '3580bc912afaeb0a82a3c55b4d8daec7b8346e6a48da880316b1d5a1a45214ad',
   'output-timing': 'fb4cca0c5fc5f101fab205bf098ad5d5681ad454d43d0847743534da10767e09',
