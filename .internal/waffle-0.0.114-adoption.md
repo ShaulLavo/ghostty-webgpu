@@ -141,3 +141,66 @@ worktree and no listener on the owned port 19764.
 No task-owned server, browser, native session, remote checkout, route, or container is retained.
 The shared comfy-gallery service and global caches remain untouched. The 138 MiB author worktree and
 committed notes stay for the parent to review and integrate, then the parent retires that worktree.
+
+## Hosted inventory-refusal correction
+
+The ready CI run `42638635095` exposed a real failure at adoption head
+`ae0d73f74cefed87934fb65194362bddfc58f54c`. The desktop `inventory-reject` control
+reached `before-all`, violating its existing assertion at `desktop-control.ts:204`.
+The complete failed log was read with `gh run view 42638635095 --log-failed`.
+No earlier CPU pass is relabeled as a browser pass.
+
+The shipped 0.0.114 contract separates reporting transport from host cancellation.
+`FrameworkCollector.fail` calls the host's failure callback. `PageFrameworkHost.cancel`
+aborts its controller; `run` races execution against that signal, and teardown invokes
+the registered context closer. `FrameworkObservation.collected` only sends a lazy report.
+It has no inventory-admission decision API. The consumer's reporting rejection containment
+is intentional and remains unchanged.
+
+The desktop double had used only a rejected observer HTTP request as its inventory veto.
+It has no Waffle host cancellation owner, so that was no longer an admission failure.
+Its explicit local inventory veto now belongs to `onTestModuleCollected`, inside the
+original, awaited collection RPC. The same `LOCAL_INVENTORY_REJECT` error prevents hooks
+before the reporting observer runs. The local event identifies the refusal as Node-owned.
+This is a desktop fixture policy, not an implementation or qualification of SDK cancellation.
+Reporting-only HTTP failures still cannot replace ordinary framework outcomes.
+
+Boundary Discipline moved the veto to its collection owner. Fix Root Causes kept the
+reporting bridge and SDK unchanged rather than rethrowing an observer failure. TDD added
+a Node-only regression that evaluates the actual installed collection hook with the real
+fixture admission function. It does not copy that hook's body or launch a browser.
+
+Before the fix, after extracting the unchanged collection callback, this command produced
+one failed and one passed test. The refusal test reported `promise resolved "undefined"
+instead of rejecting`, and its simulated next hook was reached:
+
+```sh
+vitest run scripts/ios-browser-inventory.test.ts
+```
+
+After the fix, both regression cases pass. The positive case also uses the actual page
+bridge and a real serialized Vitest configuration to retain reporting-failure containment.
+The focused command passes all 16 tests:
+
+```sh
+vitest run scripts/ios-browser-inventory.test.ts scripts/ios-browser-reporting.test.ts scripts/ios-browser-reporting-source.test.ts
+```
+
+Fresh CPU checks also pass. `bun run build`, `bun run verify:extensions`, `bun run typecheck`,
+`bun run lint`, and `bun run format:check` pass with no new warning in the changed files.
+The normal CPU discovery command passes 1,911 tests with the same single existing
+instrumentation-dependent skip. The separate mixed-file CPU selection passes four tests;
+its twelve browser cases remain unselected locally. These are the same two commands recorded
+above, not changes to source or CI discovery.
+
+An AST comparison against `ae0d73f74` confirms all 32 existing desktop control assertion
+calls are text-identical and in the same order. Their JSON inventory has SHA-256
+`049c4410084c2942d337d1523f5d14373ae803b22235cfa0b3ef1a5bc3ab2269`.
+The lifecycle fixture, all reporting fixtures, original sources, clocks, patches, pin,
+and lock are unchanged. All three changed TypeScript files stay within three block levels.
+
+This continuation owned `/work/tmp/ghostty-waffle114-admission-b047534d`, a private install,
+and generated build output. Temporary Node/Vite contexts close in `finally`. These resources
+are removed and absence is checked before handoff. The existing shared services stay untouched.
+The author worktree remains for parent integration. Browser confirmation belongs to hosted CI.
+The independent review pinned to `ae0d73f74` does not yet review this follow-up diff.

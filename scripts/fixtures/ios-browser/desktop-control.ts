@@ -5,6 +5,7 @@ import { createVitest, type Reporter } from 'vitest/node'
 import { playwright } from '@vitest/browser-playwright'
 import { createBrowserTestConfig } from '../../../vitest.browser.config.ts'
 import { frameworkEndReporter } from '../../../scripts/ios-browser-report.ts'
+import { collectDesktopInventory } from './desktop-inventory.ts'
 import { ghosttyFrameworkPlugin, rejectNativeBrowserCommand } from '../../../scripts/ios-browser.ts'
 import type { ViteDevServer } from 'vite'
 import type { Json } from 'waffle/testing/page-runner/framework'
@@ -20,9 +21,7 @@ let ended = false
 const localServers = new Set<ViteDevServer>()
 const normal: string[] = []
 const reporter: Reporter = {
-  onTestModuleCollected: () => {
-    normal.push('ordinary-collected')
-  },
+  onTestModuleCollected: () => collectDesktopInventory({ mode, normal, events }),
   onTestRunEnd: (_modules, errors, reason) => {
     normal.push(`ordinary-end:${reason}:errors:${errors.length}`)
     ended = true
@@ -49,7 +48,6 @@ async function recordLocalEvent(request: IncomingMessage, response: ServerRespon
   events.push({ event, role, sequence })
   await writeFile(`${report}/${mode}-${events.length}.event.json`, JSON.stringify(parsed))
   if (event === 'collected') {
-    if (mode === 'inventory-reject') throw new Error('LOCAL_INVENTORY_REJECT')
     assert(normal.includes('ordinary-collected'), 'Original collection RPC precedes observer ACK')
     await new Promise((resolve) => setTimeout(resolve, 60))
     events.push({ event: 'inventory-ack', role })
