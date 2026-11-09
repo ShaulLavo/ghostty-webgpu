@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { realpathSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseSync } from 'oxc-parser'
+import { sourceInventory } from './fixtures/ios-browser/source-inventory.ts'
 import { test } from 'vitest'
 import { nativeStage } from './ios-browser-stages.ts'
 import { nativeSourceHashes, verifyNativeSource } from './ios-browser-source.ts'
@@ -81,6 +81,12 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'legacy-text',
     'pointer-selection',
     'hotkeys-focus',
+    'canvas-theme-cache',
+    'canvas-zwj',
+    'pixels',
+    'glyph-constraints',
+    'sprites',
+    'displayed-pixels-fixture',
     'mounted-scroll',
     'dom-appearance',
     'managed-fallback',
@@ -88,83 +94,23 @@ test('each native stage binds an independent complete manifest to unchanged sour
     await verifyNativeSource(stage)
     const selected = nativeStage(stage)
     const source = await readFile(selected.file, 'utf8')
-    const parsed = parseSync(selected.file, source)
-    assert.deepEqual(parsed.errors, [])
-    const names = registrations(parsed.program.body)
+    const inventory = sourceInventory(selected.file, source)
+    const names = inventory.map((row) => row.fullName)
     assert.deepEqual(
       names,
       selected.expected.map((row) => row.fullName),
     )
-    assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))
+    assert.deepEqual(
+      selected.expected.map((row) => row.timeoutMs),
+      inventory.map((row) => row.timeoutMs),
+    )
+    assert(selected.expected.every((row) => row.retries === 0))
   }
   assert.equal(nativeStage('viewport').expected.length, 5)
   assert.equal(nativeStage('bulk-snapshot').expected.length, 1)
   assert.equal(nativeStage('font-resources').expected.length, 5)
   assert.equal(nativeStage('measurement').expected.length, 4)
 })
-
-type Statement = ReturnType<typeof parseSync>['program']['body'][number]
-function registrations(statements: readonly Statement[], prefix = ''): string[] {
-  return statements.flatMap((statement) => registration(statement, prefix))
-}
-function registration(statement: Statement, prefix: string): string[] {
-  if (statement.type !== 'ExpressionStatement' || statement.expression.type !== 'CallExpression')
-    return []
-  const call = statement.expression
-  if (call.callee.type === 'CallExpression') return parameterizedRegistration(call, prefix)
-  if (call.callee.type !== 'Identifier' || !['describe', 'test', 'it'].includes(call.callee.name))
-    return []
-  const [name, body] = call.arguments
-  assert(name?.type === 'Literal' && typeof name.value === 'string')
-  const fullName = prefix + name.value
-  if (call.callee.name !== 'describe') {
-    assert.equal(call.arguments.length, 2)
-    return [fullName]
-  }
-  assert(body?.type === 'ArrowFunctionExpression' && body.body.type === 'BlockStatement')
-  return registrations(body.body.body, fullName + ' > ')
-}
-
-type Call = Extract<
-  Extract<Statement, { type: 'ExpressionStatement' }>['expression'],
-  { type: 'CallExpression' }
->
-function parameterizedRegistration(call: Call, prefix: string): string[] {
-  assert(call.callee.type === 'CallExpression')
-  const each = call.callee
-  assert(each.callee.type === 'MemberExpression' && !each.callee.computed)
-  assert(
-    each.callee.object.type === 'Identifier' &&
-      ['it', 'describe'].includes(each.callee.object.name),
-  )
-  assert(
-    each.callee.property.type === 'Identifier' &&
-      ['each', 'for'].includes(each.callee.property.name),
-  )
-  assert.equal(each.arguments.length, 1)
-  const argument = each.arguments[0]
-  const table = argument?.type === 'TSAsExpression' ? argument.expression : argument
-  assert(table?.type === 'ArrayExpression' && table.elements.length > 0)
-  const [name, body] = call.arguments
-  assert.equal(call.arguments.length, 2)
-  assert(name?.type === 'Literal' && typeof name.value === 'string')
-  assert.equal(name.value.match(/%s/g)?.length, 1)
-  assert(body?.type === 'ArrowFunctionExpression' && body.body.type === 'BlockStatement')
-  const names = table.elements.map((item) => {
-    if (item?.type === 'Identifier' && item.name === 'undefined')
-      return prefix + name.value.replace('%s', 'undefined')
-    assert(
-      item?.type === 'Literal' &&
-        (typeof item.value === 'string' ||
-          typeof item.value === 'number' ||
-          typeof item.value === 'boolean'),
-    )
-    return prefix + name.value.replace('%s', String(item.value))
-  })
-  if (each.callee.object.name !== 'describe') return names
-  const statements = body.body.body
-  return names.flatMap((fullName) => registrations(statements, fullName + ' > '))
-}
 
 test('hotkey focus inventory rejects omitted, malformed or changed outer and nested parameters', async () => {
   const selected = nativeStage('hotkeys-focus')
@@ -184,9 +130,7 @@ test('hotkey focus inventory rejects omitted, malformed or changed outer and nes
   for (const [before, after] of replacements) {
     const changed = source.replace(before, after)
     assert.notEqual(changed, source)
-    const parsed = parseSync(selected.file, changed)
-    assert.deepEqual(parsed.errors, [])
-    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+    assert.throws(() => assert.deepEqual(sourceNames(selected.file, changed), expected))
   }
 })
 
@@ -203,9 +147,7 @@ test('font parameter inventory rejects changed tables, titles, and per-case opti
   ]
   for (const changed of mutations) {
     assert.notEqual(changed, source)
-    const parsed = parseSync(selected.file, changed)
-    assert.deepEqual(parsed.errors, [])
-    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expectedNames))
+    assert.throws(() => assert.deepEqual(sourceNames(selected.file, changed), expectedNames))
   }
 })
 
@@ -222,9 +164,7 @@ test('measurement parameter parity rejects changed rows, titles, and case option
   ]
   for (const changed of mutations) {
     assert.notEqual(changed, source)
-    const parsed = parseSync(selected.file, changed)
-    assert.deepEqual(parsed.errors, [])
-    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+    assert.throws(() => assert.deepEqual(sourceNames(selected.file, changed), expected))
   }
 })
 
@@ -242,9 +182,7 @@ test('presentation parity rejects omitted, duplicate, substituted parameters and
   ]
   for (const changed of mutations) {
     assert.notEqual(changed, source)
-    const parsed = parseSync(selected.file, changed)
-    assert.deepEqual(parsed.errors, [])
-    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+    assert.throws(() => assert.deepEqual(sourceNames(selected.file, changed), expected))
   }
 })
 
@@ -272,9 +210,7 @@ test('history and multiline parity rejects omitted, duplicate, renamed and modif
     ].filter((changed) => changed !== source)
     for (const changed of mutations) {
       assert.notEqual(createHash('sha256').update(changed).digest('hex'), nativeSourceHashes[stage])
-      const parsed = parseSync(selected.file, changed)
-      assert.deepEqual(parsed.errors, [])
-      assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+      assert.throws(() => assert.deepEqual(sourceNames(selected.file, changed), expected))
     }
   }
 })
@@ -342,3 +278,7 @@ test('the page bridge bundles without host, SDK, or Node imports', async () => {
     assert(!/node:|webdriverio|createFrameworkHost|OwnedFrameworkDispatcher/.test(code))
   }
 })
+
+function sourceNames(file: string, source: string): string[] {
+  return sourceInventory(file, source).map((row) => row.fullName)
+}

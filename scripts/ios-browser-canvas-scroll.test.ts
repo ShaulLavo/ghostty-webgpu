@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { readFile, mkdir, rmdir, readdir } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { readFile, mkdir, rmdir, readdir, access } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createVitest, type BrowserCommandContext, type TestProject } from 'vitest/node'
 import { webdriverio } from '@vitest/browser-webdriverio'
@@ -14,6 +14,11 @@ import { nativeStage } from './ios-browser-stages.ts'
 import { verifyNativeStage } from './ios-browser-verify.ts'
 import { resultFixture, receiptFixture } from './fixtures/ios-browser/result-fixture.ts'
 import type {} from './ios-browser.ts'
+import { rasterCaptures } from './fixtures/ios-browser/raster-captures.ts'
+import {
+  withOfficialScreenshot,
+  type OfficialScreenshotContext,
+} from './fixtures/ios-browser/official-screenshot.ts'
 
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -338,3 +343,85 @@ test('canvas scroll appears in launcher and saved-result verifier help', async (
   assert.equal(usage, nativeUsage.split('--stage ')[1]?.split(' --udid')[0])
   assert(usage.split('|').includes(stage))
 })
+
+test('all 36 raster CSS-scale saved paths and the device-scale temporary oracle reach the official callback', async () => {
+  const directories = [join(root, '.artifacts'), join(root, 'src/render/shared/atlas/.artifacts')]
+  const created: string[] = []
+  try {
+    for (const path of directories) await createCaptureDirectory(path, created)
+    const before = await Promise.all(directories.map((path) => readdir(path)))
+    const temporary = await withOfficialScreenshot(checkRasterCaptureBatch)
+    assert.deepEqual(await Promise.all(directories.map((path) => readdir(path))), before)
+    await assert.rejects(access(temporary), { code: 'ENOENT' })
+  } finally {
+    for (const path of created.reverse()) await rmdir(path)
+  }
+})
+
+async function checkRasterCaptureBatch({
+  project,
+  commandContext,
+  screenshot,
+  lookupReached,
+}: OfficialScreenshotContext): Promise<string> {
+  const captures = await rasterCaptures()
+  assert.equal(captures.length, 37)
+  assert.equal(captures.filter(({ options }) => options.save !== false).length, 36)
+  assert.equal(project.config.api.allowWrite, true)
+  assert.equal(project.vitest.config.api.allowWrite, true)
+  const paths: string[] = []
+  for (const { file, options } of captures) {
+    const path = resolveScreenshotPath(
+      file,
+      'original-raster-capture',
+      project.config,
+      options.path,
+    )
+    assert(isFileLoadingAllowed(project.vite.config, path))
+    assert(isFileLoadingAllowed(project.vitest.vite.config, path))
+    if (options.save !== false) paths.push(path)
+    const original = { ...options }
+    await assert.rejects(
+      () => screenshot(commandContext(file), 'original-raster-capture', options),
+      (reason) => reason === lookupReached,
+    )
+    assert.equal(options.element, original.element)
+    assert.equal(options.path, original.path)
+    assert.equal(options.scale, original.scale)
+    assert.equal(options.save, original.save ?? true)
+    assert.equal(Reflect.get(options, 'base64'), original.save === false ? true : undefined)
+  }
+  assertCapturePaths(paths)
+  return project.tmpDir
+}
+
+function assertCapturePaths(paths: string[]): void {
+  assert.equal(new Set(paths).size, 36)
+  assert.deepEqual(
+    paths.map((path) => relative(root, path)),
+    [
+      '.artifacts/canvas-zwj-technologist.png',
+      '.artifacts/canvas-zwj-family.png',
+      '.artifacts/canvas-packed-dpr-1.png',
+      '.artifacts/canvas-packed-dpr-2.png',
+      '.artifacts/canvas-clipped-canvas2d-fill-text-0.png',
+      '.artifacts/canvas-clipped-canvas2d-fill-text--1.png',
+      '.artifacts/canvas-clipped-canvas2d-pixels-0.png',
+      '.artifacts/canvas-clipped-canvas2d-pixels--1.png',
+    ].concat(
+      Array.from(
+        { length: 18 },
+        (_, index) => `src/render/shared/atlas/.artifacts/glyph-constraints-case-${index}.png`,
+      ),
+      Array.from(
+        { length: 10 },
+        (_, index) => `src/render/shared/atlas/.artifacts/sprites-case-${index}.png`,
+      ),
+    ),
+  )
+}
+
+async function createCaptureDirectory(path: string, created: string[]): Promise<void> {
+  const first = await mkdir(path, { recursive: true })
+  if (first) created.push(first)
+}
