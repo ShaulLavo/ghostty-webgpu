@@ -25,6 +25,7 @@ export type ReportingOwnership = {
 }
 
 export class ReportingNodeOwner {
+  private readonly now: () => number
   private readonly resources: Resource[] = []
   private context: { actual: OwnedContext; resource: Resource; closing?: Promise<void> } | undefined
   private readonly dispatcher: Dispatcher
@@ -35,9 +36,10 @@ export class ReportingNodeOwner {
   private finishing: Promise<ReportingOwnership> | undefined
 
   constructor(
-    private readonly now: () => number = monotonicNow,
+    now: () => number = monotonicNow,
     transport?: { actual: Dispatcher; identity: string; restore(): void },
   ) {
+    this.now = now
     if (transport) {
       this.dispatcher = transport.actual
       this.restore = transport.restore

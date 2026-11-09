@@ -1,6 +1,28 @@
 import { expect, test } from 'vitest'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import type { FrameworkResult } from 'waffle/testing/page-runner/framework'
 import { ReportingNodeOwner } from './ios-browser-reporting-owner.ts'
+
+test('plain Node imports the native source graph and selects every complete fixture', () => {
+  const output = execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      `const { reportingSelection } = await import('./scripts/ios-browser-reporting-native.ts');
+       const modes = ['matrix', 'flush', 'errors', 'capacity', 'malformed'];
+       console.log(JSON.stringify(modes.map(mode => reportingSelection(mode).names.length)));`,
+    ],
+    {
+      cwd: fileURLToPath(new URL('../', import.meta.url)),
+      env: { ...process.env, NODE_OPTIONS: '' },
+      encoding: 'utf8',
+      timeout: 5000,
+    },
+  )
+  expect(JSON.parse(output)).toEqual([38, 1, 3, 3, 3])
+})
 
 function raw(deadline = performance.now() + 100): FrameworkResult {
   return {

@@ -33,6 +33,7 @@ const matrixGates = [
 ]
 
 export class ReportingFixtureController {
+  readonly mode: ReportingMode
   readonly observations: CollectorObservation[] = []
   readonly reads: { gate: string; state: ReportingState }[] = []
   readonly gates = new Map<string, Gate>()
@@ -41,7 +42,8 @@ export class ReportingFixtureController {
   private tasks: readonly FrameworkTask[] = []
   private capture: TesterTraceCapture | undefined
 
-  constructor(readonly mode: ReportingMode) {
+  constructor(mode: ReportingMode) {
+    this.mode = mode
     const names = gateNames(mode)
     for (const name of names)
       this.gates.set(name, {
