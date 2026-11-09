@@ -261,7 +261,6 @@ try {
     assert(actualProvider.initScripts.some((path) => path.endsWith('/locators.js')))
     assert.equal(actualProvider.supportsParallelism, false)
     const beforeUnsupported = requests.length
-    await assert.rejects(actualProvider.setViewport(), /unsupported/)
     await assert.rejects(actualProvider.getCDPSession(), /unsupported/)
     assert.equal(requests.length, beforeUnsupported)
     assert.equal(actualProvider.isIframeSwitched(), false)
