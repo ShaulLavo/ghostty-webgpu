@@ -1,5 +1,5 @@
 const ownDescriptor = Object.getOwnPropertyDescriptor
-const ownKeys = Object.keys
+const ownKeys = Reflect.ownKeys
 const quote = JSON.stringify
 const encode = TextEncoder.prototype.encode.bind(new TextEncoder())
 const byteLimit = 48 * 1024
@@ -21,10 +21,8 @@ export function encodeReportingData(value: unknown): string {
     for (const char of text) append(quote(char).slice(1, -1))
     append('"')
   }
-  const field = (object: object, key: string, depth: number) => {
-    const descriptor = ownDescriptor(object, key)
-    if (!descriptor || !('value' in descriptor))
-      throw new Error('Reporting trace contains an accessor')
+  const field = (descriptor: PropertyDescriptor, depth: number) => {
+    if (!('value' in descriptor)) throw new Error('Reporting trace contains an accessor')
     visit(descriptor.value, depth)
   }
   const prefix = (key: string) => {
@@ -36,13 +34,20 @@ export function encodeReportingData(value: unknown): string {
     ancestors.add(value)
     const array = Array.isArray(value)
     const keys = ownKeys(value)
-    if (keys.length > entryLimit) throw new Error('Reporting trace has too many fields')
+    // Recorder arrays also own non-enumerable length and push properties.
+    if (keys.length > entryLimit + (array ? 2 : 0))
+      throw new Error('Reporting trace has too many fields')
     append(array ? '[' : '{')
-    for (const [index, key] of keys.entries()) {
+    let fields = 0
+    for (const key of keys) {
+      if (typeof key !== 'string') continue
+      const descriptor = ownDescriptor(value, key)
+      if (!descriptor?.enumerable) continue
+      if (++fields > entryLimit) throw new Error('Reporting trace has too many fields')
       if (array && !/^\d+$/.test(key)) throw new Error('Reporting trace has non-index array data')
-      if (index) append(',')
+      if (fields > 1) append(',')
       if (!array) prefix(key)
-      field(value, key, depth + 1)
+      field(descriptor, depth + 1)
     }
     append(array ? ']' : '}')
     ancestors.delete(value)
@@ -76,15 +81,16 @@ export function encodeReportingData(value: unknown): string {
 export class ReportingRecorder {
   private entries = 0
   private failed = false
+  private encoding = false
 
   array<T>(): T[] {
     const values: T[] = []
     const append = values.push.bind(values)
     Object.defineProperty(values, 'push', {
       value: (...items: T[]) => {
-        if (this.failed || this.entries + items.length > entryLimit) {
+        if (this.failed || this.encoding || this.entries + items.length > entryLimit) {
           this.failed = true
-          throw new Error('Reporting recorder exceeds 1,024 entries')
+          throw new Error('Reporting recorder exceeds 1,024 entries or changed during snapshot')
         }
         this.entries += items.length
         return append(...items)
@@ -98,7 +104,17 @@ export class ReportingRecorder {
   }
 
   encode(data: unknown): string {
-    if (this.failed) throw new Error('Reporting recorder overflowed')
-    return encodeReportingData(data)
+    if (this.failed || this.encoding) {
+      this.failed = true
+      throw new Error('Reporting recorder overflowed or reentered')
+    }
+    this.encoding = true
+    try {
+      const snapshot = encodeReportingData(data)
+      if (this.failed) throw new Error('Reporting recorder overflowed')
+      return snapshot
+    } finally {
+      this.encoding = false
+    }
   }
 }
