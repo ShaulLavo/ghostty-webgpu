@@ -31,6 +31,7 @@ import { macKeybindingsCases, macKeybindingsFile } from './ios-browser-mac-keybi
 import { ghosttyKeymapCases, ghosttyKeymapFile } from './ios-browser-hotkeys-cases.ts'
 import { domAppearanceCases, domAppearanceFile } from './ios-browser-dom-appearance-cases.ts'
 import { mountedScrollCases, mountedScrollFile } from './ios-browser-mounted-cases.ts'
+import { canvasScrollCases, canvasScrollFile } from './ios-browser-canvas-scroll-cases.ts'
 import { pixelDamageCases, pixelDamageFile } from './ios-browser-damage-cases.ts'
 import { stampCacheCases, stampCacheFile } from './ios-browser-stamp-cases.ts'
 import type { NativeStage } from './ios-browser-options.ts'
@@ -102,6 +103,7 @@ export function nativeStage(stage: NativeStage): {
   if (stage === 'ghostty-keymap') return { file: ghosttyKeymapFile, expected: ghosttyKeymapCases }
   if (stage === 'dom-appearance') return { file: domAppearanceFile, expected: domAppearanceCases }
   if (stage === 'mounted-scroll') return { file: mountedScrollFile, expected: mountedScrollCases }
+  if (stage === 'canvas-scroll') return { file: canvasScrollFile, expected: canvasScrollCases }
   if (stage === 'pixel-damage') return { file: pixelDamageFile, expected: pixelDamageCases }
   if (stage === 'stamp-cache') return { file: stampCacheFile, expected: stampCacheCases }
   if (stage === 'canvas-rasterizer')

@@ -77,6 +77,7 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'canvas-rasterizer',
     'stamp-cache',
     'pixel-damage',
+    'canvas-scroll',
     'mounted-scroll',
     'dom-appearance',
     'managed-fallback',
@@ -148,7 +149,9 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
       return prefix + name.value.replace('%s', 'undefined')
     assert(
       item?.type === 'Literal' &&
-        (typeof item.value === 'string' || typeof item.value === 'number'),
+        (typeof item.value === 'string' ||
+          typeof item.value === 'number' ||
+          typeof item.value === 'boolean'),
     )
     return prefix + name.value.replace('%s', String(item.value))
   })
