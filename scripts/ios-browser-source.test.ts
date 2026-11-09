@@ -78,6 +78,9 @@ test('each native stage binds an independent complete manifest to unchanged sour
     'stamp-cache',
     'pixel-damage',
     'canvas-scroll',
+    'legacy-text',
+    'pointer-selection',
+    'hotkeys-focus',
     'mounted-scroll',
     'dom-appearance',
     'managed-fallback',
@@ -130,7 +133,10 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
   assert(call.callee.type === 'CallExpression')
   const each = call.callee
   assert(each.callee.type === 'MemberExpression' && !each.callee.computed)
-  assert(each.callee.object.type === 'Identifier' && each.callee.object.name === 'it')
+  assert(
+    each.callee.object.type === 'Identifier' &&
+      ['it', 'describe'].includes(each.callee.object.name),
+  )
   assert(
     each.callee.property.type === 'Identifier' &&
       ['each', 'for'].includes(each.callee.property.name),
@@ -144,7 +150,7 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
   assert(name?.type === 'Literal' && typeof name.value === 'string')
   assert.equal(name.value.match(/%s/g)?.length, 1)
   assert(body?.type === 'ArrowFunctionExpression' && body.body.type === 'BlockStatement')
-  return table.elements.map((item) => {
+  const names = table.elements.map((item) => {
     if (item?.type === 'Identifier' && item.name === 'undefined')
       return prefix + name.value.replace('%s', 'undefined')
     assert(
@@ -155,7 +161,34 @@ function parameterizedRegistration(call: Call, prefix: string): string[] {
     )
     return prefix + name.value.replace('%s', String(item.value))
   })
+  if (each.callee.object.name !== 'describe') return names
+  const statements = body.body.body
+  return names.flatMap((fullName) => registrations(statements, fullName + ' > '))
 }
+
+test('hotkey focus inventory rejects omitted, malformed or changed outer and nested parameters', async () => {
+  const selected = nativeStage('hotkeys-focus')
+  const source = await readFile(selected.file, 'utf8')
+  const expected = selected.expected.map((row) => row.fullName)
+  const replacements = [
+    ["['main']", "['worker']"],
+    ["['main']", "['main', 'main']"],
+    ["['main']", '[]'],
+    ["['invalid', 'resolved', 'rejected']", "['invalid', 'resolved']"],
+    ["['invalid', 'resolved', 'rejected']", "['invalid', 'resolved', null]"],
+    ['public hotkeys connection', 'other connection'],
+    ['reports a %s decision', 'reports a %i decision'],
+    ["it('attaches after open", "it.skip('attaches after open"],
+    ['    },\n  )', '    },\n    { timeout: 1 },\n  )'],
+  ] as const
+  for (const [before, after] of replacements) {
+    const changed = source.replace(before, after)
+    assert.notEqual(changed, source)
+    const parsed = parseSync(selected.file, changed)
+    assert.deepEqual(parsed.errors, [])
+    assert.throws(() => assert.deepEqual(registrations(parsed.program.body), expected))
+  }
+})
 
 test('font parameter inventory rejects changed tables, titles, and per-case options', async () => {
   const selected = nativeStage('font-resources')

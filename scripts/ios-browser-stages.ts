@@ -1,3 +1,9 @@
+import { legacyTextCases, legacyTextFile } from './ios-browser-legacy-text-cases.ts'
+import {
+  pointerSelectionCases,
+  pointerSelectionFile,
+} from './ios-browser-pointer-selection-cases.ts'
+import { hotkeysFocusCases, hotkeysFocusFile } from './ios-browser-hotkeys-focus-cases.ts'
 import {
   rendererBenchmarkCases,
   rendererBenchmarkFile,
@@ -77,6 +83,10 @@ export function nativeStage(stage: NativeStage): {
   file: string
   expected: readonly ExpectedCase[]
 } {
+  if (stage === 'legacy-text') return { file: legacyTextFile, expected: legacyTextCases }
+  if (stage === 'pointer-selection')
+    return { file: pointerSelectionFile, expected: pointerSelectionCases }
+  if (stage === 'hotkeys-focus') return { file: hotkeysFocusFile, expected: hotkeysFocusCases }
   if (stage === 'renderer-benchmark')
     return { file: rendererBenchmarkFile, expected: rendererBenchmarkCases }
   if (stage === 'text-pass') return { file: textPassFile, expected: textPassCases }

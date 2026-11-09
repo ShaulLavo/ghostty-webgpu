@@ -57,12 +57,14 @@ function originalCaptures(source: string): CaptureOptions[] {
 
 async function checkOfficialCapture({
   project,
+  file,
   commandContext,
   options,
   directory,
   lookupReached,
 }: {
   project: TestProject
+  file: string
   commandContext: BrowserCommandContext
   options: CaptureOptions
   directory: string
@@ -74,18 +76,15 @@ async function checkOfficialCapture({
   assert(parent.commands && typeof parent.commands === 'object')
   const screenshot: unknown = Reflect.get(parent.commands, '__vitest_screenshot')
   assert(typeof screenshot === 'function')
-  const path = resolveScreenshotPath(
-    selected.file,
-    'original-capture',
-    project.config,
-    options.path,
-  )
+  const path = resolveScreenshotPath(file, 'original-capture', project.config, options.path)
   assert.equal(dirname(path), directory)
   assert(isFileLoadingAllowed(project.vite.config, path))
   assert(isFileLoadingAllowed(project.vitest.vite.config, path))
   assert.equal(project.config.api.allowWrite, true)
   assert.equal(project.vitest.config.api.allowWrite, true)
-  assert(!('save' in options) && !('scale' in options))
+  assert(!('save' in options))
+  const keys = Object.keys(options)
+  const scale = options.scale
   const element = options.element
   const customPath = options.path
   await assert.rejects(
@@ -97,7 +96,8 @@ async function checkOfficialCapture({
   assert.equal(options.save, true)
   assert.equal(options.element, element)
   assert.equal(options.path, customPath)
-  assert.deepEqual(Object.keys(options), ['element', 'path', 'save'])
+  assert.equal(options.scale, scale)
+  assert.deepEqual(Object.keys(options), keys.concat('save'))
 }
 
 async function closeCaptureContext(
@@ -195,7 +195,7 @@ test('canvas scroll identity rejects table, capture, clock, oracle and cleanup c
   await verifyNativeSource(stage)
 })
 
-test('four original captures reach official permission checks without any file-root expansion', async () => {
+test('six original Canvas scroll, legacy text and hotkey captures reach official permission checks', async () => {
   const source = await readFile(selected.file, 'utf8')
   const captures = originalCaptures(source)
   assert.deepEqual(
@@ -207,6 +207,28 @@ test('four original captures reach official permission checks without any file-r
       '../../../.artifacts/canvas-pixels-native-parity0.png',
     ],
   )
+  const originals = [{ file: selected.file, captures }]
+  for (const stage of ['legacy-text', 'hotkeys-focus'] as const) {
+    const { file } = nativeStage(stage)
+    const source = await readFile(file, 'utf8')
+    const sites = Array.from(source.matchAll(/await page\.screenshot\((\{[\s\S]*?\})\)/g))
+    assert.equal(sites.length, 1)
+    const expression = sites[0]?.[1]
+    assert(expression)
+    const element = { selector: '#original-element', locator: 'original' }
+    const observed: unknown = new Function(
+      'host',
+      'f',
+      'entry',
+      `return (${expression.replace('element!', 'element')})`,
+    )(element, { terminal: { element } }, 'main')
+    const options: CaptureOptions =
+      stage === 'legacy-text'
+        ? { element, path: '../.artifacts/bench-legacy-graphemes.png' }
+        : { element, path: '../../../../.artifacts/terminal205-main.png', scale: 'css' }
+    assert.deepEqual(observed, options)
+    originals.push({ file, captures: [options] })
+  }
   const base = createBrowserTestConfig()
   const directory = join(root, '.artifacts')
   let created: string | undefined
@@ -259,8 +281,18 @@ test('four original captures reach official permission checks without any file-r
         throw new Error('Unexpected Playwright access')
       },
     }
-    for (const options of captures)
-      await checkOfficialCapture({ project, commandContext, options, directory, lookupReached })
+    for (const original of originals) {
+      commandContext.testPath = original.file
+      for (const options of original.captures)
+        await checkOfficialCapture({
+          project,
+          file: original.file,
+          commandContext,
+          options,
+          directory,
+          lookupReached,
+        })
+    }
     assert.deepEqual(await readdir(directory), before)
   } finally {
     await closeCaptureContext(context, created, directory)
