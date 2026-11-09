@@ -1,9 +1,10 @@
 import { expect, test } from 'vitest'
 import { until } from './ios-browser-reporting-realm.ts'
+import { reportingArray } from './ios-browser-reporting-page.ts'
 import { getFrameworkObservation } from 'waffle/testing/page-runner/framework-page'
 
 type ErrorTrace = { kind: string; source?: unknown; payload?: unknown; receiver?: boolean }
-const trace: ErrorTrace[] = []
+const trace = reportingArray<ErrorTrace>()
 Reflect.set(globalThis, '__reportingErrorTrace', trace)
 function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object'

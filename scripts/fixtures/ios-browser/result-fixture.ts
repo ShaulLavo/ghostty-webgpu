@@ -8,6 +8,8 @@ export function resultFixture(stage: NativeStage = 'synthetic') {
   return {
     suite: `ghostty-${stage}`,
     run: 'fixture-run',
+    trace: { status: 'not-requested' },
+    cleanupDeadlineAt: 0,
     expected,
     cases: expected.map((item, index) => ({
       expected: item,
@@ -32,6 +34,7 @@ export function resultFixture(stage: NativeStage = 'synthetic') {
     commandHooks: [],
     commandFailures: [],
     cleanup: {
+      trace: { status: 'not-created', detail: 'Unit fixture only' },
       serviceDisposition: 'Unit fixture only',
       session: { status: 'confirmed', detail: 'Unit fixture only' },
       launcher: { status: 'confirmed', detail: 'Unit fixture only' },

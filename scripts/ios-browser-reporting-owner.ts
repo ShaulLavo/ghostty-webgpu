@@ -10,6 +10,7 @@ type Resource = {
   readonly kind: 'context' | 'execution' | 'fixture' | 'dispatcher'
   readonly identity: string
   settlement: Settlement
+  closeRequests: number
   closeInvocations: number
 }
 type Dispatcher = Pick<Agent, 'close'>
@@ -59,8 +60,9 @@ export class ReportingNodeOwner {
   readonly closeContext = (): Promise<void> => {
     const context = this.context
     if (!context) return Promise.resolve()
-    context.resource.closeInvocations++
+    context.resource.closeRequests++
     if (context.closing) return context.closing
+    context.resource.closeInvocations++
     const ticket = Promise.withResolvers<void>()
     context.closing = ticket.promise
     this.observe(ticket.promise, context.resource)
@@ -94,7 +96,13 @@ export class ReportingNodeOwner {
   }
 
   private add(kind: Resource['kind'], identity: string): Resource {
-    const resource: Resource = { kind, identity, settlement: 'pending', closeInvocations: 0 }
+    const resource: Resource = {
+      kind,
+      identity,
+      settlement: 'pending',
+      closeRequests: 0,
+      closeInvocations: 0,
+    }
     this.resources.push(resource)
     return resource
   }
@@ -115,6 +123,7 @@ export class ReportingNodeOwner {
     if (this.closingDispatcher) return this.closingDispatcher
     const ticket = Promise.withResolvers<void>()
     this.closingDispatcher = ticket.promise
+    this.dispatcherResource.closeRequests++
     this.dispatcherResource.closeInvocations++
     this.observe(ticket.promise, this.dispatcherResource)
     try {

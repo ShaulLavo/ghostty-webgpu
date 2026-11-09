@@ -62,7 +62,8 @@ test('memoized closer invokes actual close once and records each request', async
   await first
   const result = await owner.finish(raw())
   expect(result.status).toBe('confirmed')
-  expect(result.resources[1]?.closeInvocations).toBe(2)
+  expect(result.resources[1]?.closeRequests).toBe(2)
+  expect(result.resources[1]?.closeInvocations).toBe(1)
 })
 
 test('dispatcher remains available through actual session deletion before host return', async () => {
@@ -167,4 +168,43 @@ test('fixture rejection remains runner failure without changing ordinary SDK out
   expect(sdk.exit).toBe(4)
   expect(sdk.framework?.status).toBe('passed')
   expect(sdk.fileComplete).toBe(true)
+})
+
+test('synchronous close reentry sees the memoized promise before actual close begins', async () => {
+  let calls = 0
+  let reentered: Promise<void> | undefined
+  const owner = new ReportingNodeOwner(
+    undefined,
+    dispatcher(async () => {}),
+  )
+  owner.ownContext(
+    {
+      close: async () => {
+        calls++
+        reentered = owner.closeContext()
+      },
+    },
+    'reentrant actual close',
+  )
+  const closing = owner.closeContext()
+  expect(reentered).toBe(closing)
+  await closing
+  expect(calls).toBe(1)
+  expect((await owner.finish(raw())).status).toBe('confirmed')
+})
+
+test('a late clean observation never upgrades the SDK unconfirmed context result', async () => {
+  const owner = new ReportingNodeOwner(
+    undefined,
+    dispatcher(async () => {}),
+  )
+  owner.ownContext({ close: async () => {} }, 'late settled context')
+  await owner.closeContext()
+  const sdk = raw()
+  sdk.cleanup.context = { status: 'unconfirmed', detail: 'Already sealed by host' }
+  const result = await owner.finish(sdk)
+  expect(result.exit).toBe(2)
+  expect(result.status).toBe('unconfirmed')
+  expect(result.resources.every((resource) => resource.settlement === 'fulfilled')).toBe(true)
+  expect(sdk.cleanup.context.status).toBe('unconfirmed')
 })

@@ -1,6 +1,7 @@
 import type { RunnerTask, RunnerTaskResultPack, SerializedConfig } from 'vitest'
 import {
   getFrameworkObservation,
+  getFrameworkTraceDocument,
   type FrameworkObservation,
 } from 'waffle/testing/page-runner/framework-page'
 import { errorJson, frameworkTasks, frameworkUpdates, taskUpdate } from './ios-browser-records.ts'
@@ -62,6 +63,8 @@ export function catcherInstalled(): void {
 
 export async function cleanupResponseReceived(): Promise<void> {
   await observe((observation) => observation.cleanupResponseReceived())
+  const trace = getFrameworkTraceDocument()
+  if (trace?.kind === 'orchestrator') await trace.waitForTesterTrace()
   await observe((observation) => observation.waitForRetirement())
 }
 
