@@ -133,7 +133,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
     const [stage, path] = process.argv.slice(2)
     if (!isNativeStage(stage) || !path || !isAbsolute(path) || process.argv.length !== 4)
       throw new Error(
-        'Usage: node scripts/ios-browser-verify.ts synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|canvas-scroll|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity|selection-worker-ownership|canvas-image|displayed-frame-boundaries|gpu-textures|atlas-registry|webgpu|shared-atlas|selector|text-pass|renderer-benchmark /absolute/result.json',
+        'Usage: node scripts/ios-browser-verify.ts synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|canvas-theme-cache|canvas-zwj|pixels|glyph-constraints|sprites|displayed-pixels-fixture|canvas-scroll|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity|selection-worker-ownership|canvas-image|displayed-frame-boundaries|gpu-textures|atlas-registry|webgpu|shared-atlas|selector|text-pass|renderer-benchmark /absolute/result.json',
       )
     await verifyNativeFiles(stage, path)
     console.log(

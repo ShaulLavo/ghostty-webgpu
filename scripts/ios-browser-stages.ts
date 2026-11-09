@@ -1,4 +1,18 @@
 import {
+  canvasThemeCacheFile,
+  canvasThemeCacheCases,
+  canvasZwjFile,
+  canvasZwjCases,
+  pixelsFile,
+  pixelsCases,
+  glyphConstraintsFile,
+  glyphConstraintsCases,
+  spritesFile,
+  spritesCases,
+  displayedPixelsFixtureFile,
+  displayedPixelsFixtureCases,
+} from './ios-browser-raster-cases.ts'
+import {
   rendererBenchmarkCases,
   rendererBenchmarkFile,
 } from './ios-browser-renderer-benchmark-cases.ts'
@@ -103,6 +117,15 @@ export function nativeStage(stage: NativeStage): {
   if (stage === 'ghostty-keymap') return { file: ghosttyKeymapFile, expected: ghosttyKeymapCases }
   if (stage === 'dom-appearance') return { file: domAppearanceFile, expected: domAppearanceCases }
   if (stage === 'mounted-scroll') return { file: mountedScrollFile, expected: mountedScrollCases }
+  if (stage === 'canvas-theme-cache')
+    return { file: canvasThemeCacheFile, expected: canvasThemeCacheCases }
+  if (stage === 'canvas-zwj') return { file: canvasZwjFile, expected: canvasZwjCases }
+  if (stage === 'pixels') return { file: pixelsFile, expected: pixelsCases }
+  if (stage === 'glyph-constraints')
+    return { file: glyphConstraintsFile, expected: glyphConstraintsCases }
+  if (stage === 'sprites') return { file: spritesFile, expected: spritesCases }
+  if (stage === 'displayed-pixels-fixture')
+    return { file: displayedPixelsFixtureFile, expected: displayedPixelsFixtureCases }
   if (stage === 'canvas-scroll') return { file: canvasScrollFile, expected: canvasScrollCases }
   if (stage === 'pixel-damage') return { file: pixelDamageFile, expected: pixelDamageCases }
   if (stage === 'stamp-cache') return { file: stampCacheFile, expected: stampCacheCases }
