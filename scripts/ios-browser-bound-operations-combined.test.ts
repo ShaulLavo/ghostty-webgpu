@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { test } from 'vitest'
 import { combinedControlModes } from './ios-browser-bound-operations-modes.ts'
@@ -15,7 +16,7 @@ test.each(combinedControlModes)(
 )
 
 async function combinedControl(mode: string): Promise<void> {
-  const directory = await mkdtemp('/work/tmp/gb-test-')
+  const directory = await mkdtemp(join(tmpdir(), 'gb-test-'))
   let child: ReturnType<typeof spawn> | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let forced: ReturnType<typeof setTimeout> | undefined

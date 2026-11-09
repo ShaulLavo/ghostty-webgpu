@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { once } from 'node:events'
 import { mkdtemp, readFile, rm, writeFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page, type Frame } from 'playwright'
 import {
@@ -548,7 +549,7 @@ async function stopServer(): Promise<void> {
 async function run(): Promise<void> {
   process.once('SIGTERM', interrupted)
   try {
-    scratch = await mkdtemp(join(process.env.GHOSTTY_BOUND_SCRATCH ?? '/work/tmp', 'gb-'))
+    scratch = await mkdtemp(join(process.env.GHOSTTY_BOUND_SCRATCH ?? tmpdir(), 'gb-'))
     process.env.STORAGE_SCRATCH_ROOT = scratch
     browser = await chromium.launch({ headless: true, env: { ...process.env, TMPDIR: scratch } })
     page = await browser.newPage({ viewport: { width: 700, height: 1000 } })

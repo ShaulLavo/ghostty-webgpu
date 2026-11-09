@@ -31,7 +31,6 @@ export function resultFixture(stage: NativeStage = 'synthetic') {
     rootBrowserSuiteComplete: false,
     omittedRootFiles: 'not enumerated',
     framework: { status: 'passed' },
-    commandFailures: [],
     commandHooks: [],
     commandFailures: [],
     cleanup: {

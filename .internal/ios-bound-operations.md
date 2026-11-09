@@ -1,6 +1,6 @@
 # Bound viewport and screenshot adapter
 
-Status: Development draft. Do not merge or run originals until a supported Waffle successor is released and adopted. The committed dependency remains published 0.0.111, which cannot type-check these new operations.
+Status: Ready for independent source review after integrating main `c92a8a65fcbd1447f78937ce94da319a5666cb08` and its public Waffle 0.0.114 dependency. Normal CI and parent-owned native qualification remain separate gates. See [the refresh receipt](ios-bound-operations-refresh.md).
 
 ## Source contract
 
@@ -24,11 +24,11 @@ The modes cover queued and settlement-time context mutations, native descriptor 
 
 For falsy callback rejections, a one-shot public project-configuration getter rejects inside the unchanged official callback and changes its context before the adapter's post-check. The SDK command wrapper otherwise swallows injected falsy command rejections. The hostile-rejection mode instead awaits the actual public SDK save command before rejecting. Neither mode replaces the official screenshot callback.
 
-## Development qualification
+## Historical development qualification
 
-The local candidate archive is `waffle-0.0.113-development-3451d51f.tgz`, source `3451d51fcd993be506f2083ea55d3f041bb2d0b8`, 3,395,813 bytes, SHA-256 `cdae8a8b19e7f48ffa150f14154b497f8f2342c822c68c439703942f0d177a51`. This is not published 0.0.113 and excludes the separate declared-clock and asset-hold changes.
+The November 8 qualification used a local candidate archive, `waffle-0.0.113-development-3451d51f.tgz`, source `3451d51fcd993be506f2083ea55d3f041bb2d0b8`, 3,395,813 bytes, SHA-256 `cdae8a8b19e7f48ffa150f14154b497f8f2342c822c68c439703942f0d177a51`. This is not published 0.0.113 and excludes the separate declared-clock and asset-hold changes.
 
-Use an isolated dependency project with its own package manifest, private copyfile installation/cache, and resolved-parent checks. Leave the repository manifest and lock unchanged. With that temporary SDK override:
+That historical run used an isolated dependency project with its own package manifest, private copyfile installation/cache, and resolved-parent checks. It left the repository manifest and lock unchanged and ran these commands with the temporary SDK override:
 
 - Run `node node_modules/vitest/vitest.mjs run scripts/ios-browser-bound-operations-combined.test.ts`.
 - Run `node node_modules/vitest/vitest.mjs run scripts/ios-browser-bound-operations.test.ts scripts/ios-browser-types.test.ts scripts/ios-browser-controls.test.ts`.
@@ -36,4 +36,4 @@ Use an isolated dependency project with its own package manifest, private copyfi
 
 Local receipts and the setup reproducer are in `/work/reports/wave-20261108/ios-suites/ghostty-bound-operations-consumer/`.
 
-No original case, stage selection, corpus, registry, exclusion, package pin, or release version changes here. Native Safari geometry/capture, trusted input, actual pixels, supported-release adoption, ordinary CI, and independent parent review remain separate gates.
+No original case, stage selection, corpus, registry, exclusion, or release version changes here. The refresh inherits the public package pin from main, without a development override. Native Safari geometry and capture, trusted input, actual pixels, ordinary CI, and independent parent review remain separate gates.
