@@ -1,8 +1,11 @@
 # Browser reporting controls
 
-These controls use the published Waffle 0.0.114 runtime, source
-`341bf1452d98e280a5c718af2775a839ff4042fa`, host interface 2. The manifest, lockfile,
-and `frameworkRelease` bind the same public archive. No program family is required.
+These controls use the published Waffle 0.0.118 runtime, source
+`6e0608451a3f89c1fa0e4f17dacdc6edc5cbc900`, host interface 2. The manifest, lockfile,
+and `frameworkRelease` bind the same public archive. The complete development tuple also
+pins relay 0.0.118 and programs/base 0.0.20. The reporting controls do not start the relay
+or execute program families. Their original guest source remains
+`3050f69d810fe7c851e487135517698b5dfd93e5`.
 CPU source checks do not qualify framework hook pacing or native execution.
 
 ## Upstream adaptation
