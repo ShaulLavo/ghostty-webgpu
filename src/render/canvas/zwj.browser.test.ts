@@ -217,8 +217,7 @@ interface ExpectedGlyph {
   alpha?: number
 }
 
-function glyphOracle(glyphs: readonly ExpectedGlyph[]): HTMLCanvasElement {
-  const canvas = newCanvas()
+function glyphOracle(glyphs: readonly ExpectedGlyph[], canvas = newCanvas()): HTMLCanvasElement {
   const context = canvas.getContext('2d')!
   context.textAlign = 'center'
   context.textBaseline = 'alphabetic'
@@ -331,13 +330,18 @@ it('retains whole and partial selections, cursor overlays and row damage', async
   native.terminal.write('\x1b[1;4H\x1b[?25h')
   native.renderer.notifyWrite()
   native.clock.flushFrame()
-  const cursor = glyphOracle([
-    { text: 'A', column: 0 },
-    { text: '👩‍', column: 1, span: 2 },
-    { text: '💻', column: 3, span: 2 },
-    { text: 'B', column: 5 },
-  ])
+  const cursor = newCanvas()
+  // Match the renderer's background-first compositing of translucent COLR edges.
   background(cursor, 3, 1, '#eeeeee')
+  glyphOracle(
+    [
+      { text: 'A', column: 0 },
+      { text: '👩‍', column: 1, span: 2 },
+      { text: '💻', column: 3, span: 2 },
+      { text: 'B', column: 5 },
+    ],
+    cursor,
+  )
   expect(native.terminal.cursor.x).toBe(3)
   expect(differences(pixels(native.canvas, 0), pixels(cursor, 0))).toBe(0)
 

@@ -47,5 +47,7 @@ combining marks, and CJK, as before.
 The ten browser cases compare the renderer with a direct Canvas oracle in the
 same browser. They are not cross-browser golden screenshots. Keep their fixed
 cell geometry, pixel comparisons, style boundaries, selection checks, and row
-damage checks unchanged. Font loading alone does not prove shaping or painting.
+damage checks unchanged. The cursor oracle paints its opaque background before
+the emoji, matching the renderer. Drawing it behind already-rasterized translucent
+COLR edges instead differed by one color channel in Safari. No tolerance is added. Font loading alone does not prove shaping or painting.
 Run the complete file on Chromium and native Safari after changing this fixture.
