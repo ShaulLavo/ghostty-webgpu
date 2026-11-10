@@ -26,8 +26,29 @@ pins, archive integrity in the lock, installed host interfaces and versions,
 complete base family URLs, and the single installed runtime graph. It uses real
 package resolution, including Bun's isolated transitive dependency layout.
 
-Final command results are recorded before handoff. Logs and the resource ledger
-are under `/work/reports/wave-20261110/ios-suites/ghostty-118-source/`.
+The local checks passed through the shared runner:
+
+- `bun install --frozen-lockfile --cache-dir /work/cache/bun` left the lock unchanged.
+- `bunx vitest run scripts/ios-browser-source.test.ts scripts/ios-browser-dependency.test.ts`
+  passed 11 tests across two files.
+- `bunx vitest list --filesOnly --json=.../ci-discovery.json` used the actual default
+  CI configuration and discovered both pin-test files among 170 Node test files.
+  No discovery configuration change was needed.
+- `bunx vitest run scripts/ios-browser --exclude scripts/ios-browser-controls.test.ts`
+  passed 276 tests across 49 files. The omitted control file executes Chromium;
+  it is not skipped or changed in source or CI.
+- `bun run build`, both optional package builds, and `bun run typecheck` passed.
+- `bun run lint` passed with existing warnings. No warning is in the changed files.
+- `bun run format:check` and `bun run --cwd site docs:check` passed.
+
+The direct public-archive check also accepted the runtime archive and rejected
+same-length corrupt bytes. Logs, the rerunnable digest check, discovery output,
+and the resource ledger are under
+`/work/reports/wave-20261110/ios-suites/ghostty-118-source/`.
+
+These are local source and integration checks, not a complete GitHub CI verdict.
+The parent owns the required `verify`, four browser shards, and `sites` checks,
+independent review, merge, and native-lane handoff.
 
 ## Limits
 
@@ -46,6 +67,7 @@ cause, new key input, or a new Safari WebSocket qualification profile.
 
 Only this prepared worktree is edited or built. Task dependencies live behind
 its `node_modules` link in an owned `/work/tmp/ghostty-118-source-*` directory.
-Workspace dependency links and build outputs are task-owned and removed after
-verification. Shared caches and pre-existing services are preserved. No device,
+Cleanup checked the actual PC after all consumers stopped. The owned scratch,
+root and workspace dependency links, and all three generated build directories
+were removed. No listener remained on the source-control fixture ports. Shared caches and pre-existing services are preserved. No device,
 route, container, persistent server, or additional checkout is created.
