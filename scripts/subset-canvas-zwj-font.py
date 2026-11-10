@@ -26,6 +26,7 @@ if hashlib.sha256(source).hexdigest() != SOURCE_SHA256:
 
 options = subset.Options()
 options.recalc_timestamp = False
+options.harfbuzz_repacker = False
 options.drop_tables.append("FFTM")
 font = subset.load_font(BytesIO(source), options)
 subsetter = subset.Subsetter(options=options)
