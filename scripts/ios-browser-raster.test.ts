@@ -29,7 +29,7 @@ const stages = [
     'canvas-zwj',
     'canvas/zwj',
     10,
-    'e4ac85beefcc9a3080ed503303e3f581a782a0fa2794530d3b1cefce917f0c2e',
+    '3d79a6f37c2c82dd2ecdab524110db44a8e12cb0adef9bc199546834681b3393',
   ],
   [
     'pixels',
