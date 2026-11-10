@@ -1,10 +1,10 @@
 # Run a selected browser file on iOS
 
-This source-only route uses the published Waffle 0.0.114 framework host and the normal Vitest lifecycle. It does not run the whole browser suite.
+This source-only route uses the published Waffle 0.0.118 framework host and the normal Vitest lifecycle. It does not run the whole browser suite.
 
 ## Prerequisites
 
-Use an exclusive checkout, Bun 1.4.4, and Node 26.12.1 on macOS. Install dependencies with `bun install --frozen-lockfile`. The runtime has host interface 2 and needs no program-family archives. The lockfile pins the public Waffle runtime tarball and its integrity. Waffle, WebdriverIO, and Undici are development dependencies, not terminal runtime dependencies.
+Use an exclusive checkout, Bun 1.4.4, and Node 26.12.1 on macOS. Install dependencies with `bun install --frozen-lockfile`. The runtime has host interface 2. The lockfile pins public runtime and relay 0.0.118 archives plus programs/base 0.0.20 and its five program families. The selected-file runner does not start a relay or execute those families. Waffle, WebdriverIO, and Undici are development dependencies, not terminal runtime dependencies.
 
 The parent execution owner must supply an already selected iOS Simulator UUID and own the Safari turn. Follow the fleet and device procedures before running this command. The runner does not reserve or boot a simulator. Do not run concurrent native stages.
 
@@ -206,8 +206,8 @@ real packaged worker ownership while cancel, dispose or a new press interrupts a
 stale release. The original uses WebGL, its actual font and native/bridge Wasm,
 selection snapshots, ordered request fences and real resize authority. Its direct
 controller calls need no trusted provider click. Explicit 15,000 ms cases, the
-5,000 ms projection bound and 10 ms waits stay unchanged. Waffle remains published
-0.0.114. This stage adds no provider capability or exclusion.
+5,000 ms projection bound and 10 ms waits stay unchanged. The active host tuple uses published Waffle
+0.0.118. This stage adds no provider capability or exclusion.
 
 ## Canvas-image publications
 
