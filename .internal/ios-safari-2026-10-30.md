@@ -1,5 +1,7 @@
 # iOS Safari triage, October 30, 2026
 
+The current strict composited-capture disposition is recorded in the final section below.
+
 The frozen run used b3262bec. The investigated main, a322323b5, has the same tree as release e569a801 and does not fix the reported failures. This change fixes two product problems and the clear test assumptions. It does not qualify the full browser suite on iOS.
 
 Safari retained an old resolved canvas font after a web font loaded. Resource invalidation now changes the font string before restoring the requested font. Saved viewport previews also drew before their canvas joined the document, causing Safari to choose a different generic font than the live terminal. They now attach before painting and remove the canvas if painting throws.
@@ -32,5 +34,55 @@ Status: Approved.
 - The November 6 font follow-up found that cached replacement emits `loading` after the face is already loaded, without a completion event. Resource refresh now tracks new face identities at loading start and waits for `fonts.ready`, while coalescing completion events. Exact pixels and changed-metric geometry passed 14 native cases covering all seven supported variants with cached and fresh URLs. Preloaded faces added without a loading event still need explicit invalidation. This does not qualify native WebGPU or the full suite.
 - `src/render/dom/renderer.browser.test.ts`, case `keeps real focus, drag selection, wheel, and mouse reporting under forced DOM fallback`, returns body as the active element after the provider click. The two real clipboard cases in `src/dom/tests/selection-packaged.browser.test.ts` never set the click callback's baseline promise. The two trusted clipboard cases in `src/dom/tests/selection-history.browser.test.ts` wait for callbacks. Qualify the native adapter's click, iframe coordinates and user activation before assigning these five failures to the product. Do not infer absence of clipboard support from them.
 - The native-only GPU suites and large viewport suites need a suitable device or separately designed compact fixtures. Do not replace explicit WebGPU tests with WebGL or count failed hooks as passing tests.
+
+## Unresolved strict composited capture, November 12, 2026
+
+Owner disposition: keep the strict composited-pixel contract. No repaint route, calibration,
+inferred inset, new exclusion, changed tolerance or original-test rewrite is authorized.
+PR 129 is closed as an unqualified candidate and its branch is retained.
+
+The native viewport route failed its first positive because its image extent differed from
+the public visual viewport. One diagnostic then retained genuine official callback pixels
+and stable geometry. No recorded public metric supplied the observed content origin.
+Upper solids, grey and all stripe samples were exact, while lower expected colors failed
+inside the predicted visible rectangle. A constant offset does not establish the required
+exact bound-content contract. These observations establish no upstream specification defect.
+
+The following originals' shared displayed-pixel paths remain unresolved under this contract:
+
+- `src/bidi/paint.browser.test.ts`, through `src/bidi/tests/browser-capabilities.ts`.
+- `src/dom/tests/terminal-ui.browser.test.ts`.
+- `src/dom/tests/zig-frame.browser.test.ts`.
+- `src/render/tests/held-output.browser.test.ts`.
+- `src/render/tests/ligatures.browser.test.ts`.
+- `src/render/tests/zig-unicode.browser.test.ts`.
+- `src/render/webgl/renderer.browser.test.ts`.
+- `src/render/webgl/tests/fixture.browser.test.ts`.
+- `src/render/webgl/tests/native-attribution.browser.test.ts`.
+- `src/render/webgl/zig-frame.browser.test.ts`.
+- `src/worker/ligatures.browser.test.ts`.
+
+Historical source-specific receipts remain unchanged; this entry neither retracts their
+recorded outcomes nor promotes them to current strict-compositor or whole-root acceptance.
+The separate CSS-scale and oversized-caller findings remain unresolved. No additional
+skip, not-applicable row or denominator change is introduced.
+
+Reopen only when a supported capture of the bound tester's composited content establishes
+the rectangle origin, device scale and exact visible colors without calibration or repaint.
+Qualify that capability with the source-bound positive controls and ordinary retirement
+and cleanup, then run the unchanged original fixture and affected regressions. A desktop
+pass, matching image dimensions or a measured offset in one image is insufficient.
+
+Private evidence and the complete decision record are retained by the iOS coordinator at:
+
+- `/work/reports/wave-20261112/ios-suites-takeover/native-capture/OWNER-DECISION.md`.
+- `/work/reports/wave-20261112/ios-suites-takeover/native-capture/native/REPORT.md`.
+- `/work/reports/wave-20261112/ios-suites-takeover/native-capture/diagnostic/REPORT.md`.
+- The adjacent diagnostic `analysis.json` and `analysis-detail.json` contain derived facts.
+
+Raw private screenshots and simulator database snapshots are removed after this record,
+under the explicit owner instruction. Sanitized results, hashes, source and cleanup records
+remain. Nothing was posted upstream. Waffle releases, group-pin work and bootstrap
+diagnosis continue independently.
 
 The retained controller, exact selections, candidate diff, native identities, per-case results and actual-host cleanup receipts are in the evidence directory above. Original run receipts are untouched. Every new native session and driver was deleted, task tunnels stopped, scratch removed, and the Mac lock released. The track-owned simulator remains under its existing cleanup owner.

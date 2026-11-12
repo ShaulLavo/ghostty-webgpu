@@ -1,6 +1,10 @@
 # Native enclosing capture
 
-Status: Local implementation complete; coordinator-owned independent review and native qualification remain. Bound to main `5c6d00f076047bdc4090454543ec56d31198c94d`, freshly fetched on November 12, 2026. The approved parent disposition in the iPhone suites lane governs this unit.
+Status: Closed, unqualified. The owner keeps the strict composited-pixel contract and
+authorizes no repaint route or calibration. Reopen only with a supported bound-content
+capture capability. The [owning iOS plan](ios-safari-2026-10-30.md#unresolved-strict-composited-capture-november-12-2026)
+records the affected originals, evidence and reopening condition. The implementation and
+diagnostic history below remains source-only unless its specific receipt says otherwise.
 
 Normalize only element captures with no target, device scale and `save: false`, inside the existing owned callback. Capture the official provider page target once, validate stable geometry, then crop genuine viewport samples losslessly. Physically uncontainable callers and CSS-scale screenshots remain separate findings. Original tests, helper bytes, goldens, budgets and dependency pins stay unchanged.
 
