@@ -72,7 +72,12 @@ import {
   scrollbarAsyncFile,
 } from './ios-browser-async-cases.ts'
 import { measurementCases, measurementFile } from './ios-browser-measurement-cases.ts'
-import { captureControlCases, captureControlFile } from './ios-browser-capture-cases.ts'
+import {
+  captureControlCases,
+  captureControlFile,
+  captureDiagnosticCases,
+  captureDiagnosticFile,
+} from './ios-browser-capture-cases.ts'
 
 import {
   historyCases,
@@ -99,6 +104,8 @@ export function nativeStage(stage: NativeStage): {
   expected: readonly ExpectedCase[]
 } {
   if (stage === 'legacy-text') return { file: legacyTextFile, expected: legacyTextCases }
+  if (stage === 'capture-diagnostic')
+    return { file: captureDiagnosticFile, expected: captureDiagnosticCases }
   if (stage === 'capture-control')
     return { file: captureControlFile, expected: captureControlCases }
   if (stage === 'pointer-selection')

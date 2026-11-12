@@ -44,3 +44,16 @@ export const captureControlCases = [
     retries: 0,
   },
 ] satisfies readonly ExpectedCase[]
+
+export const captureDiagnosticFile = fileURLToPath(
+  new URL('./ios-browser-capture-diagnostic.browser.test.ts', import.meta.url),
+)
+export const captureDiagnosticCases = [
+  {
+    file: captureDiagnosticFile,
+    fullName: 'native capture diagnostic > acquires asymmetric bands and device color detail',
+    sourceKey: 'scripts/ios-browser-capture-diagnostic.browser.test.ts:17:0',
+    timeoutMs: 15000,
+    retries: 0,
+  },
+] satisfies readonly ExpectedCase[]

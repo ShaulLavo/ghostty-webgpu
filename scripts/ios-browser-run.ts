@@ -12,6 +12,11 @@ import type { NativeOptions } from './ios-browser-options.ts'
 import { writeFile } from 'node:fs/promises'
 import type { CaptureEvidence } from './ios-browser-capture.ts'
 
+import {
+  writeCaptureDiagnostic,
+  type DiagnosticObservation,
+} from './ios-browser-capture-diagnostic.ts'
+
 type CaptureObservation = { name: string; evidence: CaptureEvidence }
 
 async function closeFramework(
@@ -31,6 +36,7 @@ function nativeConfiguration(
   servers: Set<ViteDevServer>,
   end: ReturnType<typeof frameworkEndReporter>,
   captures: CaptureObservation[],
+  diagnostics: DiagnosticObservation[],
 ) {
   const base = createBrowserTestConfig()
   const selected = nativeStage(options.stage)
@@ -48,7 +54,11 @@ function nativeConfiguration(
     test: {
       ...base.test,
       include: base.test.include.concat(
-        options.stage === 'synthetic' || options.stage === 'capture-control' ? [selected.file] : [],
+        options.stage === 'synthetic' ||
+          options.stage === 'capture-control' ||
+          options.stage === 'capture-diagnostic'
+          ? [selected.file]
+          : [],
       ),
       testTimeout: 15000,
       hookTimeout: 30000,
@@ -63,6 +73,11 @@ function nativeConfiguration(
           options.stage === 'capture-control'
             ? (name, evidence) => {
                 captures.push({ name, evidence })
+              }
+            : undefined,
+          options.stage === 'capture-diagnostic'
+            ? (name, evidence) => {
+                diagnostics.push({ name, evidence })
               }
             : undefined,
         ),
@@ -81,6 +96,7 @@ async function executeFramework(
   host: FrameworkHost,
   options: NativeOptions,
   captures: CaptureObservation[],
+  diagnostics: DiagnosticObservation[],
 ): Promise<number> {
   const servers = new Set<ViteDevServer>()
   const end = frameworkEndReporter()
@@ -90,7 +106,7 @@ async function executeFramework(
     context = await createVitest(
       'test',
       { config: false, watch: false, root: fileURLToPath(new URL('../', import.meta.url)) },
-      nativeConfiguration(host, options, servers, end, captures),
+      nativeConfiguration(host, options, servers, end, captures, diagnostics),
     )
     const actual = context
     let closing = false
@@ -125,18 +141,24 @@ async function executeFramework(
 export async function executeNativeStage(options: NativeOptions): Promise<number> {
   let exit = 2
   const captures: CaptureObservation[] = []
+  const diagnostics: DiagnosticObservation[] = []
   // All framework/SDK modules above initialize before the owned dispatcher is installed.
-  await runFrameworkNode(async () => {
-    const selected = nativeStage(options.stage)
-    const host = createFrameworkHost({
-      suite: `ghostty-${options.stage}`,
-      native: { udid: options.udid },
-      expected: selected.expected,
-      scope: { kind: 'root-selection', command: 'test:browser', files: [selected.file] },
-      resultPath: options.resultPath,
+  try {
+    await runFrameworkNode(async () => {
+      const selected = nativeStage(options.stage)
+      const host = createFrameworkHost({
+        suite: `ghostty-${options.stage}`,
+        native: { udid: options.udid },
+        expected: selected.expected,
+        scope: { kind: 'root-selection', command: 'test:browser', files: [selected.file] },
+        resultPath: options.resultPath,
+      })
+      exit = await executeFramework(host, options, captures, diagnostics)
     })
-    exit = await executeFramework(host, options, captures)
-  })
+  } finally {
+    if (options.stage === 'capture-diagnostic')
+      await writeCaptureDiagnostic(options.resultPath, diagnostics)
+  }
   if (options.stage === 'capture-control')
     await writeFile(
       `${options.resultPath}.captures.json`,

@@ -1,5 +1,6 @@
 import { WebdriverBrowserProvider, webdriverio } from '@vitest/browser-webdriverio'
 import { attach } from 'webdriverio'
+import type { CaptureDiagnostic } from './ios-browser-capture-diagnostic.ts'
 import type {
   BrowserCommand,
   BrowserCommandContext,
@@ -102,6 +103,7 @@ type ScreenshotRegistration = {
   prepare: ContextCheck | undefined
   secondary: unknown[]
   observe: ((name: string, evidence: CaptureEvidence) => void) | undefined
+  diagnose: ((name: string, evidence: CaptureDiagnostic) => void) | undefined
 }
 
 async function invokeScreenshot(
@@ -110,6 +112,7 @@ async function invokeScreenshot(
   context: BrowserCommandContext,
   payload: ScreenshotPayload,
   observe: ScreenshotRegistration['observe'],
+  diagnose: ScreenshotRegistration['diagnose'],
 ): Promise<ScreenshotResult> {
   const [name, options] = payload
   if (!isEnclosingDeviceCapture(options)) return command.call(receiver, context, ...payload)
@@ -119,6 +122,7 @@ async function invokeScreenshot(
       context.provider instanceof WebdriverBrowserProvider && context.provider.isIframeSwitched(),
     options,
     observe: observe && ((evidence) => observe(name, evidence)),
+    diagnose: diagnose && ((evidence) => diagnose(name, evidence)),
   })
 }
 
@@ -131,7 +135,8 @@ function guardedScreenshot(
     if (!registration.prepare || !context.testPath)
       throw new Error('Ghostty screenshot adapter is not ready')
     const check = registration.prepare(context)
-    const invoke = () => invokeScreenshot(command, this, context, payload, registration.observe)
+    const invoke = () =>
+      invokeScreenshot(command, this, context, payload, registration.observe, registration.diagnose)
     return host.provider({ kind: 'screenshot', file: context.testPath }, async () =>
       checkedCommand(check, invoke, registration.secondary),
     )
@@ -151,13 +156,19 @@ function interceptScreenshot(
   project: TestProject,
   host: FrameworkHost,
   observe: ScreenshotRegistration['observe'],
+  diagnose: ScreenshotRegistration['diagnose'],
 ) {
   const browser = project.browser
   if (!browser) throw new Error('Ghostty framework adapter requires a browser project')
   const original = browser.registerCommand
   const forward: typeof original = original.bind(browser)
   let count = 0
-  const registration: ScreenshotRegistration = { prepare: undefined, secondary: [], observe }
+  const registration: ScreenshotRegistration = {
+    prepare: undefined,
+    secondary: [],
+    observe,
+    diagnose,
+  }
   const register: typeof original = function (name, command) {
     if (!isScreenshotCommand(name, command)) return forward(name, command)
     count++
@@ -235,8 +246,9 @@ export class AttachedGhosttyProvider extends WebdriverBrowserProvider {
     project: TestProject,
     host: FrameworkHost,
     observe?: ScreenshotRegistration['observe'],
+    diagnose?: ScreenshotRegistration['diagnose'],
   ) {
-    const registration = interceptScreenshot(project, host, observe)
+    const registration = interceptScreenshot(project, host, observe, diagnose)
     try {
       super(project, {})
     } finally {
@@ -363,10 +375,11 @@ export class AttachedGhosttyProvider extends WebdriverBrowserProvider {
 export function attachedGhosttyProvider(
   host: FrameworkHost,
   observe?: ScreenshotRegistration['observe'],
+  diagnose?: ScreenshotRegistration['diagnose'],
 ): BrowserProviderOption {
   return {
     ...webdriverio(),
-    providerFactory: (project) => new AttachedGhosttyProvider(project, host, observe),
+    providerFactory: (project) => new AttachedGhosttyProvider(project, host, observe, diagnose),
   }
 }
 

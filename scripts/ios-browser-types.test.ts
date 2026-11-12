@@ -16,6 +16,7 @@ test('authoritative native command augmentation coexists with desktop insertText
       'ios-browser-capture.ts',
       'ios-browser-capture-geometry.ts',
       'ios-browser-capture-png.ts',
+      'ios-browser-capture-diagnostic.ts',
     ]) {
       const text = await readFile(join(scripts, name), 'utf8')
       await writeFile(
