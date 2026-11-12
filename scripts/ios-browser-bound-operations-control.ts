@@ -24,6 +24,12 @@ import { AttachedGhosttyProvider, ghosttyFrameworkPlugin } from './ios-browser.t
 import { frameworkEndReporter } from './ios-browser-report.ts'
 import { runFrameworkNode } from './ios-browser-node.ts'
 import { combinedControlModes } from './ios-browser-bound-operations-modes.ts'
+import { PNG } from 'pngjs'
+import {
+  enclosingDeviceCapture,
+  type CaptureEvidence,
+  type EnclosingOptions,
+} from './ios-browser-capture.ts'
 
 const mode = process.argv[2] ?? 'pass'
 assert(combinedControlModes.includes(mode), 'Unknown synthetic control mode')
@@ -39,6 +45,8 @@ const png = Buffer.from(
 const requests: string[] = []
 const results: { path: string; buffer: Buffer }[] = []
 const sdkBuffers: Buffer[] = []
+const captureEvidence: CaptureEvidence[] = []
+const captureScripts: string[] = []
 let captureLookups = 0
 let deniedBeforeMkdir = false
 let browser: Browser | undefined
@@ -77,7 +85,7 @@ const rejectionValues: Record<string, unknown> = {
   empty: '',
   hostile,
 }
-const rejection = rejectionValues[mode.replace('rejection-', '')]
+const rejection = rejectionValues[mode.replace(/^(enclosing-)?rejection-/, '')]
 let scratch: string | undefined
 const captureEntered = Promise.withResolvers<void>()
 const captureRelease = Promise.withResolvers<void>()
@@ -125,6 +133,8 @@ function evaluateScript({ source, args, entries }: ScriptInput): unknown {
 
 async function execute(input: unknown): Promise<unknown> {
   assert(record(input) && typeof input.script === 'string')
+  if (input.script.includes('function prepareCapture(')) captureScripts.push('prepare')
+  if (input.script.includes('function measureCapture(')) captureScripts.push('measure')
   if (currentCommand && mode.endsWith('wrong-frame')) active = page
   assert(active)
   const args: unknown[] = Array.isArray(input.args) ? input.args : []
@@ -173,7 +183,9 @@ async function respond(request: IncomingMessage, response: ServerResponse): Prom
     screenshotCalls++
     captureEntered.resolve()
     await captureRelease.promise
-    value = png.toString('base64')
+    value = mode.startsWith('enclosing')
+      ? (await page!.screenshot({ scale: 'device' })).toString('base64')
+      : png.toString('base64')
   }
   response.setHeader('Content-Type', 'application/json')
   response.end(JSON.stringify({ value }))
@@ -221,6 +233,14 @@ function mutate(command: BrowserCommandContext): () => void {
 }
 
 function installBufferObserver(actual: NonNullable<AttachedGhosttyProvider['browser']>): void {
+  if (mode.startsWith('enclosing')) {
+    actual.overwriteCommand('saveScreenshot', async function (original, path) {
+      const buffer = await original(path)
+      sdkBuffers.push(buffer)
+      return buffer
+    })
+    return
+  }
   actual.overwriteCommand(
     'saveScreenshot',
     async function (original, path: string) {
@@ -326,6 +346,7 @@ async function invokeScreenshot<T>(
   currentCommand = command
   postClosureScreenshot = invoke
   installBufferObserver(provider.browser)
+  if (mode === 'enclosing') await rejectedCapturePreconditions(command.browser)
   let undo = () => {}
   let blocked: Promise<void> | undefined
   if (mode.startsWith('queued-')) {
@@ -335,7 +356,7 @@ async function invokeScreenshot<T>(
     })
     await queueEntered.promise
   }
-  const configurationFailure = mode.startsWith('rejection-') && mode !== 'rejection-hostile'
+  const configurationFailure = mode.includes('rejection-') && mode !== 'rejection-hostile'
   if (configurationFailure) undo = rejectOfficialConfiguration(command)
   const pending = invoke()
   void pending.catch(() => {})
@@ -368,6 +389,12 @@ async function invokeScreenshot<T>(
     void next.catch(() => {})
     assert.equal(nextRoot, false)
     if (mode.startsWith('settled-')) undo = await changeContext(command)
+    if (mode === 'enclosing-geometry-change') {
+      assert(active)
+      await active.evaluate(() => {
+        document.querySelector<HTMLElement>('#synthetic-transport-target')!.style.left = '11.5px'
+      })
+    }
     captureRelease.resolve()
     void next.then(
       () => {
@@ -379,7 +406,12 @@ async function invokeScreenshot<T>(
   try {
     return await pending
   } catch (reason) {
-    if (!mode.startsWith('rejection-')) throw reason
+    if (mode === 'enclosing-geometry-change') {
+      assert.match(String(reason), /geometry changed/)
+      assert.deepEqual(await readdir(command.project.tmpDir), [])
+      temporaryRemoved = true
+    }
+    if (!mode.includes('rejection-')) throw reason
     assert.equal(
       reason,
       rejection,
@@ -393,14 +425,49 @@ async function invokeScreenshot<T>(
   }
 }
 
+async function rejectedCapturePreconditions(browser: WebdriverIO.Browser): Promise<void> {
+  const before = requests.length
+  const options: EnclosingOptions = {
+    element: { selector: '#synthetic-transport-target', locator: null },
+    scale: 'device',
+    save: false,
+  }
+  const official = async (): Promise<never> => {
+    throw new Error('Precondition called official callback')
+  }
+  await assert.rejects(
+    () => enclosingDeviceCapture(official, { browser, testerSelected: false, options }),
+    /selected tester in classic/,
+  )
+  const bidi = new Proxy(browser, {
+    get(target, key, receiver) {
+      return key === 'isBidi' || Reflect.get(target, key, receiver)
+    },
+  })
+  await assert.rejects(
+    () => enclosingDeviceCapture(official, { browser: bidi, testerSelected: true, options }),
+    /selected tester in classic/,
+  )
+  assert.equal(requests.length, before, 'Preconditions must issue no WebDriver requests')
+}
+
 async function recordResult(value: unknown, command: BrowserCommandContext): Promise<void> {
   assert(record(value) && typeof value.path === 'string' && Buffer.isBuffer(value.buffer))
-  assert.equal(
-    value.buffer,
-    sdkBuffers.at(-1),
-    'Exact SDK Buffer must survive official callback and host queue',
-  )
-  if (mode === 'temporary') {
+  if (mode === 'enclosing') {
+    assert(provider?.isIframeSwitched())
+    const image = PNG.sync.read(value.buffer)
+    assert.deepEqual([image.width, image.height], [43, 27])
+    assert.deepEqual(
+      Array.from(image.data.subarray((13 * 43 + 21) * 4, (13 * 43 + 21) * 4 + 4)),
+      [49, 90, 155, 255],
+    )
+  } else
+    assert.equal(
+      value.buffer,
+      sdkBuffers.at(-1),
+      'Exact SDK Buffer must survive unchanged official route',
+    )
+  if (mode === 'temporary' || mode === 'enclosing') {
     assert.deepEqual(await readdir(command.project.tmpDir), [])
     temporaryRemoved = true
   }
@@ -430,7 +497,9 @@ function makeProvider(project: TestProject): AttachedGhosttyProvider {
   }
   server.registerCommand = register
   try {
-    provider = new AttachedGhosttyProvider(project, host)
+    provider = new AttachedGhosttyProvider(project, host, (_name, evidence) => {
+      captureEvidence.push(evidence)
+    })
   } finally {
     server.registerCommand = original
   }
@@ -502,10 +571,25 @@ async function verifyResult(result: FrameworkResult): Promise<void> {
   )
   assert(result.binding, 'The same combined fixture must admit actual paired documents')
   assert(result.documents.every((document) => document.doc !== null))
-  if (mode !== 'pass' && mode !== 'temporary') {
+  const viewportCaptures = requests.filter(
+    (path) => path === 'GET /session/bound-native-session/screenshot',
+  )
+  const elementCaptures = requests.filter((path) =>
+    /GET .*\/element\/[^/]+\/screenshot$/.test(path),
+  )
+  if (mode.startsWith('enclosing')) {
+    assert.equal(
+      viewportCaptures.length,
+      mode === 'enclosing-rejection-null' ? 0 : 1,
+      JSON.stringify(result.failures),
+    )
+    assert.equal(elementCaptures.length, 0)
+    if (mode !== 'enclosing-rejection-null') assert.equal(temporaryRemoved, true)
+  }
+  if (mode !== 'pass' && mode !== 'temporary' && mode !== 'enclosing') {
     assert.equal(result.exit, 2)
-    if (mode.startsWith('rejection-')) assert.equal(exactRejection, true)
-    if (mode.startsWith('rejection-') && mode !== 'rejection-hostile')
+    if (mode.includes('rejection-')) assert.equal(exactRejection, true)
+    if (mode.includes('rejection-') && mode !== 'rejection-hostile')
       assert.equal(officialConfigurationReads, 1)
     if (mode.startsWith('queued-')) {
       assert.equal(screenshotCalls, 0)
@@ -529,6 +613,15 @@ async function verifyResult(result: FrameworkResult): Promise<void> {
   assert.equal(joined, true)
   const actual = results[0]
   assert(actual)
+  if (mode === 'enclosing') {
+    assert.deepEqual(captureScripts, ['prepare', 'measure', 'measure'])
+    assert.equal(captureEvidence.length, 1)
+    assert.deepEqual(captureEvidence[0]?.before, captureEvidence[0]?.after)
+    assert.deepEqual(captureEvidence[0]?.png, { width: 43, height: 27, profiles: [] })
+    return
+  }
+  assert.equal(viewportCaptures.length, 0)
+  assert.equal(elementCaptures.length, 1)
   assert.deepEqual(actual.buffer, png)
   if (mode === 'pass') assert.deepEqual(await readFile(actual.path), png)
   if (mode === 'temporary') assert.equal(temporaryRemoved, true)
@@ -593,6 +686,8 @@ async function run(): Promise<void> {
           exactRejection,
           officialConfigurationReads,
           noPostClosureWork,
+          captureEvidence,
+          captureScripts,
           results: results.map((item) => ({ path: item.path, bytes: item.buffer.length })),
           syntheticTransport: true,
           nativeCredit: false,

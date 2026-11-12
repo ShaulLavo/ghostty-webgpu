@@ -9,6 +9,10 @@ import { frameworkEndReporter } from './ios-browser-report.ts'
 import { runFrameworkNode, joinFrameworkExecution } from './ios-browser-node.ts'
 import { nativeStage } from './ios-browser-stages.ts'
 import type { NativeOptions } from './ios-browser-options.ts'
+import { writeFile } from 'node:fs/promises'
+import type { CaptureEvidence } from './ios-browser-capture.ts'
+
+type CaptureObservation = { name: string; evidence: CaptureEvidence }
 
 async function closeFramework(
   context: Awaited<ReturnType<typeof createVitest>>,
@@ -26,6 +30,7 @@ function nativeConfiguration(
   options: NativeOptions,
   servers: Set<ViteDevServer>,
   end: ReturnType<typeof frameworkEndReporter>,
+  captures: CaptureObservation[],
 ) {
   const base = createBrowserTestConfig()
   const selected = nativeStage(options.stage)
@@ -42,7 +47,9 @@ function nativeConfiguration(
     ]),
     test: {
       ...base.test,
-      include: base.test.include.concat(options.stage === 'synthetic' ? [selected.file] : []),
+      include: base.test.include.concat(
+        options.stage === 'synthetic' || options.stage === 'capture-control' ? [selected.file] : [],
+      ),
       testTimeout: 15000,
       hookTimeout: 30000,
       retry: 0,
@@ -51,7 +58,14 @@ function nativeConfiguration(
       reporters: ['default', end.reporter],
       browser: {
         ...base.test.browser,
-        provider: attachedGhosttyProvider(host),
+        provider: attachedGhosttyProvider(
+          host,
+          options.stage === 'capture-control'
+            ? (name, evidence) => {
+                captures.push({ name, evidence })
+              }
+            : undefined,
+        ),
         instances: [{ browser: 'safari' }],
         commands: {},
         headless: false,
@@ -63,7 +77,11 @@ function nativeConfiguration(
   } satisfies import('vitest/config').ViteUserConfig
 }
 
-async function executeFramework(host: FrameworkHost, options: NativeOptions): Promise<number> {
+async function executeFramework(
+  host: FrameworkHost,
+  options: NativeOptions,
+  captures: CaptureObservation[],
+): Promise<number> {
   const servers = new Set<ViteDevServer>()
   const end = frameworkEndReporter()
   let context: Awaited<ReturnType<typeof createVitest>> | undefined
@@ -72,7 +90,7 @@ async function executeFramework(host: FrameworkHost, options: NativeOptions): Pr
     context = await createVitest(
       'test',
       { config: false, watch: false, root: fileURLToPath(new URL('../', import.meta.url)) },
-      nativeConfiguration(host, options, servers, end),
+      nativeConfiguration(host, options, servers, end, captures),
     )
     const actual = context
     let closing = false
@@ -106,6 +124,7 @@ async function executeFramework(host: FrameworkHost, options: NativeOptions): Pr
 
 export async function executeNativeStage(options: NativeOptions): Promise<number> {
   let exit = 2
+  const captures: CaptureObservation[] = []
   // All framework/SDK modules above initialize before the owned dispatcher is installed.
   await runFrameworkNode(async () => {
     const selected = nativeStage(options.stage)
@@ -116,7 +135,13 @@ export async function executeNativeStage(options: NativeOptions): Promise<number
       scope: { kind: 'root-selection', command: 'test:browser', files: [selected.file] },
       resultPath: options.resultPath,
     })
-    exit = await executeFramework(host, options)
+    exit = await executeFramework(host, options, captures)
   })
+  if (options.stage === 'capture-control')
+    await writeFile(
+      `${options.resultPath}.captures.json`,
+      JSON.stringify(captures, null, 2) + '\n',
+      { flag: 'wx' },
+    )
   return exit
 }

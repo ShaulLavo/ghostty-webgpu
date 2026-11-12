@@ -28,6 +28,22 @@ test('combined synthetic transport operation', async () => {
   document.body.append(target)
   expect(target.getBoundingClientRect().width).toBe(480)
   expect(target.getBoundingClientRect().width).toBeGreaterThan(innerWidth)
+  if (BOUND_CONTROL_MODE.startsWith('enclosing')) {
+    target.style.cssText =
+      'position:absolute;left:10.5px;top:10.5px;width:42px;height:26px;background:rgb(49,90,155)'
+    const capture = page.screenshot({ element: target, save: false, scale: 'device' })
+    if (BOUND_CONTROL_MODE !== 'enclosing') {
+      await expect(capture).rejects.toThrow()
+      return
+    }
+    const image = new Image()
+    image.src = `data:image/png;base64,${await capture}`
+    await image.decode()
+    expect([image.naturalWidth, image.naturalHeight]).toEqual([43, 27])
+    await page.viewport(640, 480)
+    expect([innerWidth, innerHeight]).toEqual([640, 480])
+    return
+  }
   const operation = page.screenshot({
     path: BOUND_CONTROL_PATH,
     save: BOUND_CONTROL_MODE !== 'temporary',

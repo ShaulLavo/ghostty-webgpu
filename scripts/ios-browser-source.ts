@@ -3,8 +3,9 @@ import { readFile } from 'node:fs/promises'
 import type { NativeStage } from './ios-browser-options.ts'
 import { nativeStage } from './ios-browser-stages.ts'
 
-// These source identities bind the independent manifests to the complete original files.
+// These source identities bind the independent manifests to the complete selected files.
 export const nativeSourceHashes = {
+  'capture-control': '4008a2f2e5984bb075dcdc0f8f15e4cc9b05e864a59e506e1bde855724c91817',
   'legacy-text': '3335534124bd8eb476e9e66c6e93028d31a33532354c009c5a54dbec10cdcf70',
   'pointer-selection': 'd1504dac38906a9dbe6d0326ed390350ed94aa4201a381ec20a5c8f464b65b6e',
   'hotkeys-focus': 'a589db2abdb54e8553ccf9afba7e7601faef7e0bd8149599afcf10f790141674',

@@ -5,6 +5,7 @@ import { verifyNativeSource } from './ios-browser-source.ts'
 
 export type NativeStage =
   | 'synthetic'
+  | 'capture-control'
   | 'viewport'
   | 'bulk-snapshot'
   | 'font-resources'
@@ -55,11 +56,12 @@ export type NativeRequest = { kind: 'help' } | { kind: 'run'; options: NativeOpt
 export class NativePreconditionError extends Error {}
 
 export const nativeUsage =
-  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|canvas-theme-cache|canvas-zwj|pixels|glyph-constraints|sprites|displayed-pixels-fixture|canvas-scroll|legacy-text|pointer-selection|hotkeys-focus|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity|selection-worker-ownership|canvas-image|displayed-frame-boundaries|gpu-textures|atlas-registry|webgpu|shared-atlas|selector|text-pass|renderer-benchmark --udid <explicit simulator UUID> --result <new absolute .json path>'
+  'Usage: node scripts/ios-browser-launch.ts --stage synthetic|capture-control|viewport|bulk-snapshot|font-resources|measurement|write-queue|presentation|scrollbar-async|history|readline-layout|module-mock|font-fixture|font-geometry|canvas-rasterizer|stamp-cache|pixel-damage|canvas-theme-cache|canvas-zwj|pixels|glyph-constraints|sprites|displayed-pixels-fixture|canvas-scroll|legacy-text|pointer-selection|hotkeys-focus|mounted-scroll|dom-appearance|ghostty-keymap|mac-keybindings|output-timing|ui-declarations|managed-fallback|worker-write-queue|glyph-fidelity|selection-worker-ownership|canvas-image|displayed-frame-boundaries|gpu-textures|atlas-registry|webgpu|shared-atlas|selector|text-pass|renderer-benchmark --udid <explicit simulator UUID> --result <new absolute .json path>'
 
 export function isNativeStage(value: unknown): value is NativeStage {
   return (
     value === 'synthetic' ||
+    value === 'capture-control' ||
     value === 'viewport' ||
     value === 'bulk-snapshot' ||
     value === 'font-resources' ||
@@ -123,7 +125,7 @@ export function parseNativeArguments(args: readonly string[]): NativeRequest {
   const resultPath = flags.get('--result')
   if (!isNativeStage(stage))
     throw new NativePreconditionError(
-      'Choose the explicit synthetic, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, canvas-theme-cache, canvas-zwj, pixels, glyph-constraints, sprites, displayed-pixels-fixture, canvas-scroll, legacy-text, pointer-selection, hotkeys-focus, mounted-scroll, dom-appearance, ghostty-keymap, mac-keybindings, output-timing, ui-declarations, managed-fallback, worker-write-queue, glyph-fidelity, selection-worker-ownership, canvas-image, displayed-frame-boundaries, gpu-textures, atlas-registry, webgpu, shared-atlas, selector, text-pass, or renderer-benchmark stage',
+      'Choose the explicit synthetic, capture-control, viewport, bulk-snapshot, font-resources, measurement, write-queue, presentation, scrollbar-async, history, readline-layout, module-mock, font-fixture, font-geometry, canvas-rasterizer, stamp-cache, pixel-damage, canvas-theme-cache, canvas-zwj, pixels, glyph-constraints, sprites, displayed-pixels-fixture, canvas-scroll, legacy-text, pointer-selection, hotkeys-focus, mounted-scroll, dom-appearance, ghostty-keymap, mac-keybindings, output-timing, ui-declarations, managed-fallback, worker-write-queue, glyph-fidelity, selection-worker-ownership, canvas-image, displayed-frame-boundaries, gpu-textures, atlas-registry, webgpu, shared-atlas, selector, text-pass, or renderer-benchmark stage',
     )
   if (!udid || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(udid))
     throw new NativePreconditionError('An explicit simulator UUID is required')
@@ -157,6 +159,8 @@ export async function nativePreflight(options: NativeOptions): Promise<void> {
     await access(dirname(options.resultPath), constants.W_OK)
     await requireAbsent(options.resultPath)
     await requireAbsent(`${options.resultPath}.launcher.json`)
+    if (options.stage === 'capture-control')
+      await requireAbsent(`${options.resultPath}.captures.json`)
   } catch (error) {
     throw new NativePreconditionError(`Output precondition failed: ${String(error)}`)
   }

@@ -1,6 +1,9 @@
 export const combinedControlModes: readonly string[] = [
   'pass',
   'temporary',
+  'enclosing',
+  'enclosing-geometry-change',
+  'enclosing-rejection-null',
   'queued-project',
   'queued-provider',
   'queued-browser',

@@ -10,9 +10,19 @@ import type { Plugin } from 'vite'
 import type { FrameworkHost } from 'waffle/testing/page-runner/framework'
 import { fileURLToPath } from 'node:url'
 import type { ScreenshotOptions } from '@vitest/browser/context'
+import type {} from '@vitest/browser-playwright'
 import type { Buffer } from 'node:buffer'
+import type { BrowserCommands } from 'vitest/internal/browser'
+import {
+  enclosingDeviceCapture,
+  isEnclosingDeviceCapture,
+  type ScreenshotCommand,
+  type ScreenshotPayload,
+  type ScreenshotResult,
+  type CaptureEvidence,
+} from './ios-browser-capture.ts'
 
-type ProviderScreenshotOptions = Omit<ScreenshotOptions, 'element'> & {
+export type ProviderScreenshotOptions = Omit<ScreenshotOptions, 'element'> & {
   element?: { selector: string; locator: unknown }
   target?: 'page'
 }
@@ -91,35 +101,67 @@ export async function checkedCommand<T>(
 type ScreenshotRegistration = {
   prepare: ContextCheck | undefined
   secondary: unknown[]
+  observe: ((name: string, evidence: CaptureEvidence) => void) | undefined
 }
 
-function guardedScreenshot<Payload extends unknown[], Result>(
-  command: BrowserCommand<Payload, Result>,
+async function invokeScreenshot(
+  command: ScreenshotCommand,
+  receiver: unknown,
+  context: BrowserCommandContext,
+  payload: ScreenshotPayload,
+  observe: ScreenshotRegistration['observe'],
+): Promise<ScreenshotResult> {
+  const [name, options] = payload
+  if (!isEnclosingDeviceCapture(options)) return command.call(receiver, context, ...payload)
+  return enclosingDeviceCapture(async (next) => command.call(receiver, context, name, next), {
+    browser: context.browser,
+    testerSelected:
+      context.provider instanceof WebdriverBrowserProvider && context.provider.isIframeSwitched(),
+    options,
+    observe: observe && ((evidence) => observe(name, evidence)),
+  })
+}
+
+function guardedScreenshot(
+  command: ScreenshotCommand,
   registration: ScreenshotRegistration,
   host: FrameworkHost,
-): BrowserCommand<Payload, Result> {
+): ScreenshotCommand {
   return function (this: unknown, context, ...payload) {
     if (!registration.prepare || !context.testPath)
       throw new Error('Ghostty screenshot adapter is not ready')
     const check = registration.prepare(context)
-    const invoke = async () => command.call(this, context, ...payload)
+    const invoke = () => invokeScreenshot(command, this, context, payload, registration.observe)
     return host.provider({ kind: 'screenshot', file: context.testPath }, async () =>
       checkedCommand(check, invoke, registration.secondary),
     )
   }
 }
 
-function interceptScreenshot(project: TestProject, host: FrameworkHost) {
+function isScreenshotCommand<K extends keyof BrowserCommands>(
+  name: K,
+  command: BrowserCommand<Parameters<BrowserCommands[K]>, ReturnType<BrowserCommands[K]>>,
+): command is BrowserCommand<Parameters<BrowserCommands[K]>, ReturnType<BrowserCommands[K]>> &
+  ScreenshotCommand {
+  // The authoritative registrar correlates K with the callback before this name check.
+  return name === '__vitest_takeScreenshot' && typeof command === 'function'
+}
+
+function interceptScreenshot(
+  project: TestProject,
+  host: FrameworkHost,
+  observe: ScreenshotRegistration['observe'],
+) {
   const browser = project.browser
   if (!browser) throw new Error('Ghostty framework adapter requires a browser project')
   const original = browser.registerCommand
   const forward: typeof original = original.bind(browser)
   let count = 0
-  const registration: ScreenshotRegistration = { prepare: undefined, secondary: [] }
+  const registration: ScreenshotRegistration = { prepare: undefined, secondary: [], observe }
   const register: typeof original = function (name, command) {
-    if (name !== '__vitest_takeScreenshot') return forward(name, command)
+    if (!isScreenshotCommand(name, command)) return forward(name, command)
     count++
-    forward(name, guardedScreenshot(command, registration, host))
+    forward('__vitest_takeScreenshot', guardedScreenshot(command, registration, host))
   }
   browser.registerCommand = register
   return {
@@ -189,8 +231,12 @@ export class AttachedGhosttyProvider extends WebdriverBrowserProvider {
   private nativeCheck: (() => void) | undefined
   readonly secondaryContextFaults: readonly unknown[]
 
-  constructor(project: TestProject, host: FrameworkHost) {
-    const registration = interceptScreenshot(project, host)
+  constructor(
+    project: TestProject,
+    host: FrameworkHost,
+    observe?: ScreenshotRegistration['observe'],
+  ) {
+    const registration = interceptScreenshot(project, host, observe)
     try {
       super(project, {})
     } finally {
@@ -314,10 +360,13 @@ export class AttachedGhosttyProvider extends WebdriverBrowserProvider {
   }
 }
 
-export function attachedGhosttyProvider(host: FrameworkHost): BrowserProviderOption {
+export function attachedGhosttyProvider(
+  host: FrameworkHost,
+  observe?: ScreenshotRegistration['observe'],
+): BrowserProviderOption {
   return {
     ...webdriverio(),
-    providerFactory: (project) => new AttachedGhosttyProvider(project, host),
+    providerFactory: (project) => new AttachedGhosttyProvider(project, host, observe),
   }
 }
 
