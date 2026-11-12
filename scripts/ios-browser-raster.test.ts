@@ -47,7 +47,7 @@ const stages = [
     'sprites',
     'shared/atlas/sprites',
     12,
-    '6e792785d462a8059d486900b3804ab48699631ead04764686aa98d754fda02f',
+    '8c2315f259f95962b455ac05d0eb9ad627fca5d0ee2b8190a8dd02900ca554d3',
   ],
   [
     'displayed-pixels-fixture',
