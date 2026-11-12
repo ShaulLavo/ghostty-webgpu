@@ -5,6 +5,7 @@ import { CanvasGlyphRasterizer } from './canvas-rasterizer.js'
 import { readSfntFontMetrics } from '../../../term/font-metrics.js'
 import type { TerminalFontMetrics } from '../../../term/types.js'
 import { spriteCodepoint, spriteThickness } from './sprites.js'
+import { decodePngFixture } from '../../tests/fixture-png.js'
 
 let fontMetrics: TerminalFontMetrics
 let fixtureFace: FontFace | undefined
@@ -107,15 +108,9 @@ async function referenceManifest(): Promise<Manifest> {
 }
 
 async function referencePixels(index: number): Promise<ImageData> {
-  const image = new Image()
-  image.src = new URL(`./sprite-fixtures/case-${index}.png`, import.meta.url).href
-  await image.decode()
-  const canvas = document.createElement('canvas')
-  canvas.width = image.width
-  canvas.height = image.height
-  const context = canvas.getContext('2d')!
-  context.drawImage(image, 0, 0)
-  return context.getImageData(0, 0, canvas.width, canvas.height)
+  const response = await fetch(new URL(`./sprite-fixtures/case-${index}.png`, import.meta.url))
+  const image = await decodePngFixture(new Uint8Array(await response.arrayBuffer()))
+  return new ImageData(image.data, image.width, image.height)
 }
 
 function candidatePixels(
