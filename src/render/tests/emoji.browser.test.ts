@@ -97,6 +97,7 @@ function referenceCanvas(
   const canvas = document.createElement('canvas')
   canvas.width = columns * targetFont.deviceCellWidth
   canvas.height = rows * targetFont.deviceCellHeight
+  canvas.style.display = 'block'
   const context = canvas.getContext('2d')!
   context.fillStyle = '#101010'
   context.fillRect(0, 0, canvas.width, canvas.height)
@@ -154,6 +155,7 @@ it.each([
   const terminal = runtime.createTerminal({ columns, rows })
   const state = runtime.createRenderState(terminal)
   const canvas = document.createElement('canvas')
+  canvas.style.display = 'block'
   canvas.style.backgroundColor = '#101010'
   const fixture = document.createElement('div')
   document.body.append(fixture)
@@ -270,6 +272,7 @@ it.each([
   const state = runtime.createRenderState(terminal)
   const selection = new GhosttySelectionGesture(terminal)
   const canvas = document.createElement('canvas')
+  canvas.style.display = 'block'
   canvas.style.backgroundColor = '#101010'
   const fixture = document.createElement('div')
   const label = document.createElement('p')

@@ -701,6 +701,12 @@ describe('CanvasTerminalRenderer', () => {
   it.each(['fill-text', 'pixels'] as const)(
     'remeasures late font ink after resource invalidation with unchanged geometry (%s)',
     async (mode) => {
+      // Register M without W so WebKit resolves the initial family while W still arrives late.
+      const fallback = await new FontFace('CanvasLateWide', `url(${testFontUrl})`, {
+        unicodeRange: 'U+004D',
+      }).load()
+      document.fonts.add(fallback)
+      resourceCleanups.add(() => document.fonts.delete(fallback))
       const base = fittedFont()
       const font: TerminalFittedFont = {
         ...base,
