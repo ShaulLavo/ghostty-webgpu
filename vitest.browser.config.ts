@@ -2,6 +2,7 @@ import { defineBrowserCommand, playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type ViteUserConfig } from 'vitest/config'
 import { browserFileRoots, counterpartWasmServing } from './scripts/browser-file-roots.ts'
+import { fontLoadingFixture } from './scripts/font-loading-fixture.ts'
 import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.mjs'
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
@@ -34,7 +35,7 @@ if (
 
 export function createBrowserTestConfig() {
   return {
-    plugins: [counterpartWasmServing()],
+    plugins: [counterpartWasmServing(), fontLoadingFixture()],
     server: {
       fs: { allow: browserFileRoots(fileURLToPath(new URL('.', import.meta.url))) },
     },

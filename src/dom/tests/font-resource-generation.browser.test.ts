@@ -222,6 +222,7 @@ async function joinFontLoadingCycle(
   replacement: FontFace,
   unrelated: FontFace,
   signal: AbortSignal,
+  releaseUnrelated: () => Promise<void>,
 ): Promise<boolean> {
   let matching: Promise<FontFace> | undefined
   let joinedWhileLoading = false
@@ -229,7 +230,7 @@ async function joinFontLoadingCycle(
     document.fonts.addEventListener(
       'loading',
       () => {
-        joinedWhileLoading = document.fonts.status === 'loading'
+        joinedWhileLoading = document.fonts.status === 'loading' && unrelated.status === 'loading'
         document.fonts.delete(initial)
         document.fonts.add(replacement)
         matching = replacement.load()
@@ -242,7 +243,14 @@ async function joinFontLoadingCycle(
   const other = unrelated.load()
   await started
   if (!matching) throw new Error('Missing joined font load')
-  await Promise.all([matching, other])
+  try {
+    // Hold the observed cycle open until the matching face has joined and settled.
+    await matching
+    expect(unrelated.status).toBe('loading')
+  } finally {
+    await releaseUnrelated()
+  }
+  await other
   return joinedWhileLoading
 }
 
@@ -251,6 +259,13 @@ it.each(['dormant', 'joined-cycle'] as const)(
   async (race) => {
     const runtime = await GhosttyRuntime.create()
     const events = new AbortController()
+    const barrier = `/__ghostty_font_loading__/${crypto.randomUUID()}`
+    // A distinct control URL avoids Chromium's lock on the pending font request.
+    const control = `${barrier}?control`
+    const releaseUnrelated = async () => {
+      const response = await fetch(control, { method: 'DELETE' })
+      expect(response.ok).toBe(true)
+    }
     const family = `FontRefreshRace-${race}`
     const faces: FontFace[] = []
     const terminals: Terminal[] = []
@@ -296,7 +311,12 @@ it.each(['dormant', 'joined-cycle'] as const)(
       const clears = vi.spyOn(renderers[0]!, 'clearTextureAtlas')
       const before = await pixels(renderers[0]!, terminal)
       const replacement = new FontFace(family, `url(${resources.replacement}?race=${race})`)
-      const unrelated = new FontFace(`${family}-Unrelated`, `url(${resources.before}?race=${race})`)
+      if (race === 'joined-cycle') {
+        const response = await fetch(control, { method: 'POST' })
+        expect(response.ok).toBe(true)
+      }
+      const unrelatedUrl = race === 'joined-cycle' ? barrier : `${resources.before}?race=${race}`
+      const unrelated = new FontFace(`${family}-Unrelated`, `url(${unrelatedUrl})`)
       faces.push(replacement, unrelated)
       let prematureClears = 0
       let joinedWhileLoading = false
@@ -316,6 +336,7 @@ it.each(['dormant', 'joined-cycle'] as const)(
           replacement,
           unrelated,
           events.signal,
+          releaseUnrelated,
         )
       }
       await document.fonts.ready
@@ -336,6 +357,7 @@ it.each(['dormant', 'joined-cycle'] as const)(
       for (const face of faces) document.fonts.delete(face)
       for (const host of hosts) host.remove()
       runtime.dispose()
+      if (race === 'joined-cycle') await releaseUnrelated()
     }
   },
 )
