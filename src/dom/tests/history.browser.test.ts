@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Terminal, TERMINAL_READ_LINES_MAX_ROWS } from '../../../dist/index.js'
@@ -28,6 +29,7 @@ describe('built native history API in Chromium', () => {
   it.each(['main', 'worker'] as const)(
     'keeps %s history, selection and mirrors on the retained native rows',
     async (mode) => {
+      if (mode === 'worker' && !navigator.gpu) await requireWorkerWebGl()
       const appearance = {
         grid: { columns: 40, rows: 12 },
         scrollbackByteLimit: 64 * 1024 * 1024,

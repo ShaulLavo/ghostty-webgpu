@@ -1,3 +1,5 @@
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import {
   observeDisplayedFrame,
@@ -67,6 +69,7 @@ afterAll(() => {
 })
 
 async function fixture(publicText = true, gpu = false, settleAccessibility = true) {
+  if (gpu) requireWebGpu()
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:180px;position:relative'
   document.body.append(host)
@@ -884,6 +887,8 @@ const packagedAssets = {
 }
 
 async function packagedFixture(mode: 'main' | 'webgl' | 'webgpu') {
+  if (mode === 'webgpu') requireWebGpu()
+  if (mode === 'webgl') await requireWorkerWebGl()
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:120px;position:relative'
   document.body.append(host)

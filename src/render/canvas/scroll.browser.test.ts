@@ -10,7 +10,7 @@ import { canonicalRendererTheme, mergeRendererTheme } from '../shared/config.js'
 import { renderCursorState } from '../shared/cursor.js'
 import type { CursorStyle, RendererTheme } from '../shared/instances/types.js'
 import type { RenderSchedulerClock } from '../shared/scheduler.js'
-import { CanvasRowPainter } from './painter.js'
+import { paintFullReference } from './tests/full-repaint.js'
 import { CanvasTerminalRenderer } from './renderer.js'
 import { ReferenceRenderer } from './tests/reference-renderer.js'
 
@@ -128,14 +128,15 @@ async function fixture(initial: string, rowCount = 6, pixels = false) {
     controlText.mockClear()
     control.width = canvas.width
     control.height = canvas.height
-    const painter = new CanvasRowPainter(
-      control.getContext('2d', { alpha: true, willReadFrequently: false })!,
+    const cursor = renderCursorState(state.readCursor(), phase, inactive)
+    paintFullReference(
+      control,
+      state.readRows(),
       fitted,
       canonicalRendererTheme(mergeRendererTheme(theme)),
+      cursor,
+      pixels,
     )
-    painter.resetContext(fitted)
-    const cursor = renderCursorState(state.readCursor(), phase, inactive)
-    for (const row of state.readRows()) painter.paint(row, cursor, control.width)
     const actual = context.getImageData(0, 0, canvas.width, canvas.height).data
     const expected = control
       .getContext('2d')!
@@ -459,13 +460,14 @@ it.each(['fill-text', 'pixels'] as const)(
     control.width = canvas.width
     control.height = canvas.height
     const context = control.getContext('2d', { alpha: true, willReadFrequently: false })!
-    const painter = new CanvasRowPainter(
-      context,
+    paintFullReference(
+      control,
+      state.readRows(),
       font(),
       canonicalRendererTheme(mergeRendererTheme({})),
+      undefined,
+      mode === 'pixels',
     )
-    painter.resetContext(font())
-    for (const row of state.readRows()) painter.paint(row, undefined, control.width)
     const actual = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
     const expected = context.getImageData(0, 0, control.width, control.height).data
     expect(actual).toEqual(expected)

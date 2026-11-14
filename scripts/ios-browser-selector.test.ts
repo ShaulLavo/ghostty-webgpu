@@ -33,16 +33,21 @@ test('Selector selects the complete original with all platform and parameter row
     fileURLToPath(new URL('../src/render/tests/selector.browser.test.ts', import.meta.url)),
   )
   await verifyNativeSource(stage)
-  assert.equal(selected.expected.length, 49)
-  assert.equal(new Set(selected.expected.map((row) => row.fullName)).size, 49)
-  assert.equal(new Set(selected.expected.map((row) => row.sourceKey)).size, 49)
+  assert.equal(selected.expected.length, 50)
+  assert.equal(new Set(selected.expected.map((row) => row.fullName)).size, 50)
+  assert.equal(new Set(selected.expected.map((row) => row.sourceKey)).size, 50)
+  assert.equal(
+    selected.expected[0]?.fullName,
+    'compatible renderer selection > selects the real fallback without WebGPU globals',
+  )
+  assert.equal(selected.expected[0]?.sourceKey, 'src/render/tests/selector.browser.test.ts:156:0')
   assert(
     selected.expected.every(
       (row) => row.file === selected.file && row.timeoutMs === 15000 && row.retries === 0,
     ),
   )
   assert.deepEqual(
-    selected.expected.slice(0, 10).map((row) => row.fullName),
+    selected.expected.slice(1, 11).map((row) => row.fullName),
     [
       'Linux client hints',
       'Linux legacy platform',
@@ -57,19 +62,19 @@ test('Selector selects the complete original with all platform and parameter row
     ].map((name) => `compatible renderer selection > selects the automatic renderer for ${name}`),
   )
   assert.deepEqual(
-    selected.expected.slice(23, 25).map((row) => row.fullName),
+    selected.expected.slice(24, 26).map((row) => row.fullName),
     ['abort', 'dispose'].map(
       (action) =>
         `compatible renderer selection > disposes WebGPU recovery that finishes after ${action} and preserves settings while acquiring it`,
     ),
   )
   assert.deepEqual(
-    selected.expected.slice(30, 34).map((row) => row.sourceKey),
+    selected.expected.slice(31, 35).map((row) => row.sourceKey),
     [
-      'src/render/tests/selector.browser.test.ts:424:0',
-      'src/render/tests/selector.browser.test.ts:424:1',
-      'src/render/tests/selector.browser.test.ts:424:2',
-      'src/render/tests/selector.browser.test.ts:424:3',
+      'src/render/tests/selector.browser.test.ts:442:0',
+      'src/render/tests/selector.browser.test.ts:442:1',
+      'src/render/tests/selector.browser.test.ts:442:2',
+      'src/render/tests/selector.browser.test.ts:442:3',
     ],
   )
   assert.notEqual(selected.file, nativeStage('managed-fallback').file)

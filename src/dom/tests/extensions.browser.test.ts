@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
@@ -1231,6 +1232,7 @@ describe('public worker extension integration', () => {
   })
 
   it('delivers submitted worker frames to an extension without a public frame listener', async () => {
+    await requireWorkerWebGl()
     const terminal = await createWorkerTerminal()
     await terminal.open(workerContainer())
     const extensionRevisions: number[] = []
@@ -1266,6 +1268,7 @@ describe('public worker extension integration', () => {
   })
 
   it('claims original worker input synchronously before forwarding and preserves later keyless text', async () => {
+    await requireWorkerWebGl()
     const terminal = await createWorkerTerminal()
     await terminal.open(workerContainer())
     const received: TerminalInputEvent[] = []

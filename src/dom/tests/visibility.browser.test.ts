@@ -1,3 +1,5 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
@@ -53,6 +55,8 @@ async function fixture(
   backend: Backend,
   options: { renderWhenOffscreen?: boolean; presentation?: 'immediate' } = {},
 ) {
+  if (backend === 'webgpu' || backend === 'worker-webgpu') requireWebGpu()
+  if (backend === 'worker-webgl2') await requireWorkerWebGl()
   const host = document.createElement('div')
   host.style.cssText = 'position:fixed;top:0;left:0;width:480px;height:160px'
   document.body.append(host)

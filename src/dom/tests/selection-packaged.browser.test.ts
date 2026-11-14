@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { stubRendererNavigator, restoreRendererNavigator } from '../../render/tests/navigator.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -27,6 +28,7 @@ async function eventually(condition: () => boolean | Promise<boolean>) {
 }
 
 async function create(mode: 'main' | 'worker', copySelection?: GhosttyWebGpuTerminalCopy) {
+  if (mode === 'worker') await requireWorkerWebGl()
   const root = document.createElement('div')
   root.style.cssText = 'width:400px;height:100px;position:relative'
   document.body.append(root)

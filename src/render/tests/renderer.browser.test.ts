@@ -1,4 +1,5 @@
-import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
 import { page } from 'vitest/browser'
 import { attachNativeTestBuilder } from './native-state.js'
 import { limitDeviceBuffers } from './device-limits.js'
@@ -29,11 +30,13 @@ import type { RenderSchedulerClock } from '../shared/scheduler.js'
 const devices = new Set<GPUDevice>()
 const renderers = new Set<WebGpuTerminalRenderer>()
 // Keep Dawn's external instance alive while SwiftShader churns test-owned devices.
-let sentinelDevice: GPUDevice
+let sentinelDevice: GPUDevice | undefined
 let deviceReplacement: DeviceReplacementQualification
 let deviceCleanupDelayMs = 0
 
+beforeEach(() => requireWebGpu())
 beforeAll(async () => {
+  if (!navigator.gpu) return
   const adapter = await requestAdapter()
   const info = adapter.info
   deviceReplacement = qualifyDeviceReplacement(info, navigator.userAgent)
@@ -64,6 +67,7 @@ afterEach(async () => {
 })
 
 afterAll(async () => {
+  if (!sentinelDevice) return
   const loss = sentinelDevice.lost
   sentinelDevice.destroy()
   await loss

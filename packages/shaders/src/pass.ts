@@ -250,7 +250,12 @@ export class WebGlShaderPass implements ShaderPass {
   constructor(canvas: HTMLCanvasElement) {
     this.#canvas = canvas
     this.#gl = requireResource(
-      canvas.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false }),
+      canvas.getContext('webgl2', {
+        alpha: false,
+        antialias: false,
+        premultipliedAlpha: false,
+        preserveDrawingBuffer: true,
+      }),
       'WebGL2 output context',
     )
     const gl = this.#gl

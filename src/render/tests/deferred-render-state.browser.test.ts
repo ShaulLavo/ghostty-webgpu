@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../../dist/core/runtime.js'
 import { WebGpuTerminalRenderer } from '../../../dist/render/webgpu/renderer.js'
@@ -13,6 +14,7 @@ import type { GhosttyRenderState } from '../../../dist/core/render-state.js'
 import { probeFont } from '../dom/tests/probe.js'
 
 async function fixture() {
+  requireWebGpu()
   const runtime = await GhosttyRuntime.create({
     wasm: new URL('../../../ghostty-vt.wasm', import.meta.url).href,
     bridge: new URL('../../../bridge.wasm', import.meta.url).href,

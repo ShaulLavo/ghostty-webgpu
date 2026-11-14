@@ -1,3 +1,4 @@
+import { requireWebGpu } from './webgpu-capability.js'
 import { expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../../dist/core/runtime.js'
@@ -46,6 +47,7 @@ const factories = {
 type Backend = keyof typeof factories
 
 async function createView(runtime: GhosttyRuntime, terminal: GhosttyTerminal, backend: Backend) {
+  if (backend === 'webgpu') requireWebGpu()
   const host = document.createElement('div')
   host.style.cssText = 'width:160px;height:60px;position:relative'
   const canvas = document.createElement('canvas')

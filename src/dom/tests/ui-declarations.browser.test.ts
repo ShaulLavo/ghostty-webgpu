@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DomTerminalRenderer } from '../../render/dom/renderer.js'
@@ -156,6 +157,7 @@ describe('terminal UI declarations', () => {
   it.each([false, true])(
     'styles the first worker preedit with actor metrics (host font loaded: %s)',
     async (hostLoaded) => {
+      await requireWorkerWebGl()
       const family = hostLoaded ? 'PreeditWorkerHost' : 'PreeditWorkerOnly'
       const source = testFontUrl
       expect(Array.from(document.fonts).some((face) => face.family === family)).toBe(false)

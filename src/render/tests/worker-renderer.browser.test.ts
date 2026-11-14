@@ -1,5 +1,7 @@
 import { testFontUrl } from '../../tests/fonts.js'
 import { expect, it } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
+import { requireWorkerWebGl } from './worker-webgl-capability.js'
 import { createGhosttyError } from '../../core/error.js'
 import type {
   ProducerObservation,
@@ -13,6 +15,8 @@ import { WorkerRunCollector, type WorkerRun } from './fixtures/worker-run.js'
 type WorkerScenario = 'success' | 'expected-error' | 'unexpected-error'
 
 async function runWorker(backend: WorkerBackend, scenario: WorkerScenario): Promise<WorkerRun> {
+  if (backend === 'webgpu') requireWebGpu()
+  if (backend === 'webgl') await requireWorkerWebGl()
   const canvas = document.createElement('canvas')
   document.body.append(canvas)
   const worker = new Worker(new URL('./fixtures/native-render.worker.ts', import.meta.url), {

@@ -1,3 +1,4 @@
+import { requireWebGpu } from './webgpu-capability.js'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { RenderStateDirty } from '../../core/abi.js'
@@ -58,6 +59,7 @@ async function setup(
   input: string,
   extension: { textBlink?: boolean } = { textBlink: true },
 ) {
+  if (backend === 'webgpu') requireWebGpu()
   const runtime = await GhosttyRuntime.create()
   onTestFinished(() => runtime.dispose())
   const terminal = runtime.createTerminal({ columns: 12, rows: 3 })

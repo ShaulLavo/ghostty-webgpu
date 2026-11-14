@@ -1,3 +1,4 @@
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { CanvasTerminalRenderer } from '../../render/canvas/renderer.js'
@@ -99,6 +100,7 @@ cases.push({
 it.each(cases)(
   'refreshes $backend glyph resources after same-metric font replacement, autoFit $autoFit, fallback $fallback, suppressed completion $suppressCompletionEvents, settled start $settledAtStart',
   async ({ backend, autoFit, fallback, suppressCompletionEvents, settledAtStart }) => {
+    if (backend === 'webgpu') requireWebGpu()
     const runtime = await GhosttyRuntime.create()
     const suppress = (event: Event) => event.stopImmediatePropagation()
     if (suppressCompletionEvents) {
@@ -106,8 +108,9 @@ it.each(cases)(
       document.fonts.addEventListener('loadingerror', suppress)
     }
     const family = `FontResource-${backend}-${autoFit}`
+    const primaryFamily = `${family}-Primary`
     const font: TerminalFontSettings = {
-      family: fallback ? `MissingResource812, "${family}"` : family,
+      family: fallback ? `"${primaryFamily}", "${family}"` : family,
       size: 20,
       weight: 400,
       boldWeight: 700,
@@ -145,6 +148,13 @@ it.each(cases)(
     }
     try {
       faces.push(await load(family, resources.before))
+      if (fallback) {
+        const primary = new FontFace(primaryFamily, `url(${resources.before})`, {
+          unicodeRange: 'U+0020',
+        })
+        faces.push(await primary.load())
+        document.fonts.add(primary)
+      }
       const terminal = await open()
       const resourceClears = vi.spyOn(renderers[0]!, 'clearTextureAtlas')
       terminal.refresh(0, terminal.appearance.grid.rows - 1)

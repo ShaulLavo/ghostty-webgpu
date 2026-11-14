@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, expect, it } from 'vitest'
 import { Terminal } from '../../../dist/dom/terminal.js'
@@ -12,6 +13,7 @@ afterEach(async () => {
 it.each(['cancel', 'dispose', 'new press'] as const)(
   'keeps real packaged native ownership when %s interrupts a stale pending release',
   async (interruption) => {
+    await requireWorkerWebGl()
     const family = 'PackagedSelectionOwnership'
     const execution = await WorkerTerminalExecution.create({
       assets: {

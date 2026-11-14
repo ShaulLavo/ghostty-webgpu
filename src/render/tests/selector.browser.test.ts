@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import type { RendererPlatform } from './platforms.js'
@@ -18,9 +19,10 @@ import { WebGlTerminalRenderer } from '../webgl/renderer.js'
 const canvases = new Set<HTMLCanvasElement>()
 const devices = new Set<GPUDevice>()
 const renderers = new Set<CompatibleTerminalRenderer>()
-let sentinelDevice: GPUDevice
+let sentinelDevice: GPUDevice | undefined
 
 beforeAll(async () => {
+  if (!navigator.gpu) return
   sentinelDevice = await requestDevice()
   devices.delete(sentinelDevice)
 })
@@ -36,9 +38,11 @@ afterEach(async () => {
   canvases.clear()
   vi.restoreAllMocks()
   restoreRendererNavigator()
+  vi.unstubAllGlobals()
 })
 
 afterAll(async () => {
+  if (!sentinelDevice) return
   const loss = sentinelDevice.lost
   sentinelDevice.destroy()
   await loss
@@ -99,6 +103,7 @@ const font: TerminalFittedFont = {
 }
 
 async function requestDevice(): Promise<GPUDevice> {
+  if (!navigator.gpu) return unavailableDevice()
   const adapter = await navigator.gpu.requestAdapter()
   if (!adapter) throw new Error('The browser test requires a WebGPU adapter')
   const device = await adapter.requestDevice()
@@ -148,14 +153,21 @@ function replaceGetContext(
 }
 
 describe('compatible renderer selection', () => {
+  it('selects the real fallback without WebGPU globals', async () => {
+    vi.stubGlobal('navigator', { platform: 'MacIntel', userAgent: '', gpu: undefined })
+    const { options } = fixture()
+    const renderer = await select({ ...options, deviceFactory: undefined })
+    expect(renderer.backend).toBe('webgl2')
+  })
   it.each(rendererPlatforms)('selects the automatic renderer for $name', async (platform) => {
     const { canvas, options } = fixture()
     const deviceFactory = vi.fn(requestDevice)
     const getContext = vi.spyOn(canvas, 'getContext')
     const renderer = await select({ ...options, deviceFactory }, undefined, platform.navigator)
 
-    expect(renderer.backend).toBe(platform.backend)
-    expect(getContext.mock.calls.map(([type]) => type)).toEqual([platform.backend])
+    const expected = platform.backend === 'webgpu' && !navigator.gpu ? 'webgl2' : platform.backend
+    expect(renderer.backend).toBe(expected)
+    expect(getContext.mock.calls.map(([type]) => type)).toEqual([expected])
     expect(deviceFactory.mock.calls.length).toBe(platform.backend === 'webgpu' ? 1 : 0)
   })
 
@@ -168,6 +180,7 @@ describe('compatible renderer selection', () => {
   ] as const)(
     'replaces the claimed Linux canvas after %s allocation fails and selects WebGPU',
     async (allocation) => {
+      requireWebGpu()
       const { canvas, options } = fixture()
       const replacement = fixture().canvas
       const replaceCanvas = vi.fn(() => {
@@ -191,6 +204,7 @@ describe('compatible renderer selection', () => {
   it.each(['limits', 'out-of-memory'] as const)(
     'continues to WebGPU after a Linux WebGL %s capability failure',
     async (failure) => {
+      requireWebGpu()
       const { canvas, options } = fixture()
       const replaceCanvas = vi.fn(() => {
         const next = fixture().canvas
@@ -248,6 +262,7 @@ describe('compatible renderer selection', () => {
   )
 
   it('replaces an unmanaged HTML canvas after Linux resource allocation fails', async () => {
+    requireWebGpu()
     const { canvas, options } = fixture()
     vi.spyOn(WebGL2RenderingContext.prototype, 'createShader').mockReturnValue(null)
     const replaceWith = vi.spyOn(canvas, 'replaceWith')
@@ -259,6 +274,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('tries hardware WebGPU after the initial Linux WebGL context is lost', async () => {
+    requireWebGpu()
     const { canvas, options } = fixture()
     const replacement = fixture().canvas
     const replaceCanvas = vi.fn(() => {
@@ -308,6 +324,7 @@ describe('compatible renderer selection', () => {
   it.each(['abort', 'dispose'] as const)(
     'disposes WebGPU recovery that finishes after %s and preserves settings while acquiring it',
     async (action) => {
+      requireWebGpu()
       const { canvas, clock, options } = fixture()
       const controller = new AbortController()
       const gate = Promise.withResolvers<void>()
@@ -363,6 +380,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('selects WebGPU on desktop Linux when WebGL is unavailable', async () => {
+    requireWebGpu()
     const { canvas, options } = fixture()
     const originalGetContext = canvas.getContext.bind(canvas)
     const getContext = replaceGetContext(canvas, (type, attributes) =>
@@ -427,6 +445,7 @@ describe('compatible renderer selection', () => {
     { isFallbackAdapter: false, info: { description: 'Google SwiftShader' } },
     { isFallbackAdapter: false, info: { architecture: 'llvmpipe' } },
   ])('selects WebGL for a software adapter in auto (%j)', async (identity) => {
+    requireWebGpu()
     const { canvas, options } = fixture()
     const device = await requestDevice()
     const acquire = vi.fn().mockResolvedValue(device)
@@ -444,6 +463,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('allows a software adapter with explicit WebGPU while auto selects WebGL', async () => {
+    requireWebGpu()
     const { options } = fixture()
     const device = await requestDevice()
     const acquire = vi.fn().mockResolvedValue(device)
@@ -462,6 +482,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('keeps a hardware adapter eligible for auto', async () => {
+    requireWebGpu()
     const { options } = fixture()
     const device = await requestDevice()
     vi.spyOn(navigator.gpu, 'requestAdapter').mockResolvedValue({
@@ -476,6 +497,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('selects real WebGPU without acquiring a fallback context', async () => {
+    requireWebGpu()
     const { canvas, options } = fixture()
     const getContext = vi.spyOn(canvas, 'getContext')
     const renderer = await select(options)
@@ -495,6 +517,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('releases the real WebGPU device before selecting WebGL2 after a missing context', async () => {
+    requireWebGpu()
     const { canvas, options } = fixture()
     const device = await requestDevice()
     const destroy = vi.spyOn(device, 'destroy')
@@ -601,6 +624,7 @@ describe('compatible renderer selection', () => {
   })
 
   it('disposes a WebGPU renderer that finishes after cancellation', async () => {
+    requireWebGpu()
     const { clock, options } = fixture()
     const controller = new AbortController()
     const dispose = vi.spyOn(WebGpuTerminalRenderer.prototype, 'dispose')

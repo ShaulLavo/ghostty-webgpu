@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../render/tests/worker-webgl-capability.js'
 import { afterEach, expect, it, vi } from 'vitest'
 import { testFontUrl } from '../tests/fonts.js'
 import { Terminal } from '../../dist/worker/index.js'
@@ -12,6 +13,7 @@ afterEach(async () => {
 })
 
 async function create(): Promise<Terminal> {
+  await requireWorkerWebGl()
   const terminal = await Terminal.create({
     appearance: { cursor: { blink: false }, font: { family, size: 16 } },
     backend: 'webgl',

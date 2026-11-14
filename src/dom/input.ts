@@ -111,8 +111,8 @@ type InputPlatform = 'mac' | 'linux' | 'windows'
 
 function inputPlatform(): InputPlatform {
   if (typeof navigator === 'undefined') return 'linux'
-  const platform = `${navigator.platform} ${navigator.userAgent}`.toLowerCase()
-  if (platform.includes('mac')) return 'mac'
+  const platform = (navigator.platform || navigator.userAgent).toLowerCase()
+  if (platform.includes('mac') || /^(iphone|ipad|ipod)/u.test(platform)) return 'mac'
   if (platform.includes('win')) return 'windows'
   return 'linux'
 }
@@ -353,7 +353,6 @@ class BrowserInputController implements DomInputController {
     }
     if (value.length === 0 || value !== event.data) {
       this.composition = { phase: 'awaiting', value: event.data }
-      this.options.textarea.value = ''
       return
     }
     // Browsers may deliver the same final input after compositionend.
@@ -391,7 +390,7 @@ class BrowserInputController implements DomInputController {
       if (duplicate) return
     }
     if (this.composition.phase === 'awaiting') {
-      const commit = value === this.composition.value
+      const commit = value === this.composition.value || input.data === this.composition.value
       this.composition = { phase: 'idle' }
       if (commit) {
         this.invokeSession('composition', value)
