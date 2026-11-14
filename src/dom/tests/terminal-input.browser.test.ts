@@ -924,6 +924,52 @@ describe('Terminal DOM host', () => {
   })
 
   it.each([
+    { name: 'no preedit input', preedit: '' },
+    { name: 'changed preedit input', preedit: 'old' },
+  ])('retains surrounding text until final composition input ($name)', async ({ preedit }) => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    const compositions: string[] = []
+    terminal.onData(({ bytes }) => output.push(bytes))
+    terminal.connectInput((input) => {
+      if (input.type === 'composition') compositions.push(input.text)
+      return 'pass'
+    })
+    textarea.value = 'leftRIGHT'
+    textarea.setSelectionRange(4, 4)
+    dispatchComposition(textarea, 'compositionstart')
+    if (preedit)
+      dispatchInput(textarea, `left${preedit}RIGHT`, {
+        data: preedit,
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      })
+    const text = 'Ω世界🙂\nsecond'
+    const expected = `left${text}RIGHT`
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        data: text,
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      }),
+    )
+    textarea.value = expected
+    dispatchComposition(textarea, 'compositionend', text)
+    expect(output).toEqual([])
+    expect(textarea.value).toBe(expected)
+
+    textarea.dispatchEvent(
+      new InputEvent('input', { data: text, inputType: 'insertCompositionText' }),
+    )
+
+    expect(compositions).toEqual([expected])
+    expect(output).toEqual([new TextEncoder().encode(expected)])
+    expect(textarea.value).toBe('')
+  })
+
+  it.each([
     { name: 'empty', initial: '', start: 0, end: 0, expected: 'A Ω世界🙂\nsecond' },
     { name: 'selected', initial: 'replace-me', start: 0, end: 10, expected: 'A Ω世界🙂\nsecond' },
     {
@@ -973,9 +1019,13 @@ describe('Terminal DOM host', () => {
     expect(textarea.value).toBe('')
   })
 
-  it.each(['', 'replace-me'])(
-    'publishes packaged multiline Unicode bytes once from %j',
-    async (initial) => {
+  it.each([
+    { initial: '', start: 0, end: 0, prefix: '', suffix: '' },
+    { initial: 'replace-me', start: 0, end: 10, prefix: '', suffix: '' },
+    { initial: 'leftRIGHT', start: 4, end: 4, prefix: 'left', suffix: 'RIGHT' },
+  ])(
+    'publishes packaged multiline Unicode bytes once from $initial',
+    async ({ initial, start, end, prefix, suffix }) => {
       const terminal = await PackagedTerminal.create({
         rendererFactory: PackagedDomRenderer.create,
       })
@@ -985,14 +1035,17 @@ describe('Terminal DOM host', () => {
         const output: Uint8Array[] = []
         terminal.onData(({ bytes }) => output.push(bytes))
         textarea.value = initial
-        textarea.select()
+        textarea.setSelectionRange(start, end)
         textarea.focus()
 
         const text = 'A Ω世界🙂\nsecond'
         await commands.insertText(text)
         await commands.insertText(text)
 
-        expect(output).toEqual([new TextEncoder().encode(text), new TextEncoder().encode(text)])
+        expect(output).toEqual([
+          new TextEncoder().encode(`${prefix}${text}${suffix}`),
+          new TextEncoder().encode(text),
+        ])
         expect(textarea.value).toBe('')
       } finally {
         terminal.dispose()
@@ -1060,8 +1113,10 @@ describe('Terminal DOM host', () => {
     const claimed: string[] = []
     terminal.onData(({ bytes }) => output.push(bytes))
     const connection = terminal.connectInput((input) => {
-      if (input.type !== 'text' || typeof input.data !== 'string') return 'pass'
-      claimed.push(input.data)
+      if (input.type !== 'text' && input.type !== 'composition') return 'pass'
+      const text = input.type === 'composition' ? input.text : input.data
+      if (typeof text !== 'string') return 'pass'
+      claimed.push(text)
       expect(textarea.value).toBe('')
       return 'claim'
     })
