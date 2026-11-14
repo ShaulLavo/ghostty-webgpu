@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LinkLineSnapshot, ProvidedLink } from '../../term/links.js'
@@ -32,6 +33,7 @@ afterEach(async () => {
 })
 
 async function create(mode: 'main' | 'worker', activateUri: (uri: string, event: Event) => void) {
+  if (mode === 'worker') await requireWorkerWebGl()
   const options = {
     appearance: { font: { family, size: 16 }, cursor: { blink: false } },
     links: { activateUri },

@@ -1,3 +1,4 @@
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { subscribeCanvasImage } from '../../../packages/shaders/src/canvas-image.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { retainDisplayedFrame } from '../../render/shared/displayed-frame.js'
@@ -65,6 +66,7 @@ async function fixture(
   publicFrames?: RendererTextFrameSnapshot[],
   shared?: { clock: DeferredClock; coordinator: FrameCoordinator },
 ) {
+  if (backend === 'webgpu') requireWebGpu()
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:160px;position:relative'
   document.body.append(host)

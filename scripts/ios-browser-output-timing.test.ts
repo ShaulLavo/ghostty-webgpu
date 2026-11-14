@@ -50,15 +50,15 @@ test('output timing selects the complete renderer and presentation matrix plus t
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
     [
-      'src/dom/tests/output-timing.browser.test.ts:65:0',
-      'src/dom/tests/output-timing.browser.test.ts:65:1',
-      'src/dom/tests/output-timing.browser.test.ts:65:2',
-      'src/dom/tests/output-timing.browser.test.ts:65:3',
-      'src/dom/tests/output-timing.browser.test.ts:97:0',
-      'src/dom/tests/output-timing.browser.test.ts:113:0',
-      'src/dom/tests/output-timing.browser.test.ts:128:0',
-      'src/dom/tests/output-timing.browser.test.ts:140:0',
-      'src/dom/tests/output-timing.browser.test.ts:152:0',
+      'src/dom/tests/output-timing.browser.test.ts:66:0',
+      'src/dom/tests/output-timing.browser.test.ts:66:1',
+      'src/dom/tests/output-timing.browser.test.ts:66:2',
+      'src/dom/tests/output-timing.browser.test.ts:66:3',
+      'src/dom/tests/output-timing.browser.test.ts:98:0',
+      'src/dom/tests/output-timing.browser.test.ts:114:0',
+      'src/dom/tests/output-timing.browser.test.ts:129:0',
+      'src/dom/tests/output-timing.browser.test.ts:141:0',
+      'src/dom/tests/output-timing.browser.test.ts:153:0',
     ],
   )
   assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))

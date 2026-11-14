@@ -1,3 +1,4 @@
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { CanvasTerminalRenderer } from '../../render/canvas/renderer.js'
@@ -99,6 +100,7 @@ cases.push({
 it.each(cases)(
   'refreshes $backend glyph resources after same-metric font replacement, autoFit $autoFit, fallback $fallback, suppressed completion $suppressCompletionEvents, settled start $settledAtStart',
   async ({ backend, autoFit, fallback, suppressCompletionEvents, settledAtStart }) => {
+    if (backend === 'webgpu') requireWebGpu()
     const runtime = await GhosttyRuntime.create()
     const suppress = (event: Event) => event.stopImmediatePropagation()
     if (suppressCompletionEvents) {

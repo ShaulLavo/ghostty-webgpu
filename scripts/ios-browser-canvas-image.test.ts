@@ -82,17 +82,17 @@ test('canvas-image selects the complete original and all 38 backend and paramete
     expectedNames(),
   )
   const groups = [
-    [91, 5],
-    [135, 3],
-    [160, 2],
-    [190, 1],
-    [198, 2],
-    [233, 1],
-    [252, 1],
-    [266, 2],
-    [286, 1],
-    [325, 16],
-    [378, 4],
+    [93, 5],
+    [137, 3],
+    [162, 2],
+    [192, 1],
+    [200, 2],
+    [235, 1],
+    [254, 1],
+    [268, 2],
+    [288, 1],
+    [327, 16],
+    [380, 4],
   ]
   const keys = groups.flatMap(([line, count]) =>
     Array.from(

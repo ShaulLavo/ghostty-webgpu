@@ -1,3 +1,5 @@
+import { requireWorkerWebGl } from './worker-webgl-capability.js'
+import { requireWebGpu } from './webgpu-capability.js'
 import { expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { Terminal } from '../../../dist/index.js'
@@ -28,6 +30,8 @@ const assets = {
 type Backend = keyof typeof factories | 'worker-webgl' | 'worker-webgpu'
 
 async function createTerminal(backend: Backend, quietMs = 100) {
+  if (backend === 'webgpu' || backend === 'worker-webgpu') requireWebGpu()
+  if (backend === 'worker-webgl') await requireWorkerWebGl()
   const appearance = {
     grid: { columns: 24, rows: 4 },
     font: { family, size: 16 },

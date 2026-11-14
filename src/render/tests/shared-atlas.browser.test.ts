@@ -1,4 +1,5 @@
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
 import { attachNativeTestBuilder } from './native-state.js'
 import { RenderStateDirty } from '../../core/abi.js'
 import type {
@@ -18,6 +19,7 @@ import type { AtlasGpuTextures } from '../webgpu/gpu-textures.js'
 import type { GlyphBitmap } from '../shared/atlas/types.js'
 
 const devices = new Set<GPUDevice>()
+beforeEach(() => requireWebGpu())
 const renderers = new Set<WebGpuTerminalRenderer>()
 const deviceCleanupDelayMs = 50
 

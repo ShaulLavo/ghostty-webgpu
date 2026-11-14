@@ -44,7 +44,7 @@ test('worker write queue selects the complete dist-worker original and all four 
   )
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
-    [30, 52, 69, 87].map((line) => `src/worker/write-queue.browser.test.ts:${line}:0`),
+    [32, 54, 71, 89].map((line) => `src/worker/write-queue.browser.test.ts:${line}:0`),
   )
   assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))
   assert.notEqual(selected.file, nativeStage('write-queue').file)

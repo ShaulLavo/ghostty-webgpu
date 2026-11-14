@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from './worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { expect, it } from 'vitest'
 import { page } from 'vitest/browser'
@@ -110,6 +111,7 @@ async function mainActor(host: HTMLDivElement): Promise<HoldActor> {
 }
 
 async function workerActor(host: HTMLDivElement): Promise<HoldActor> {
+  await requireWorkerWebGl()
   const canvas = document.createElement('canvas')
   host.append(canvas)
   const worker = new Worker(new URL('./fixtures/held-output.worker.ts', import.meta.url), {

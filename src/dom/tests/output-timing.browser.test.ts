@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, expect, it } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -150,6 +151,7 @@ it('records nothing while no one listens', async () => {
 })
 
 it('times worker output up to the frame notice', async () => {
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     outputTiming: { quietMs: 30 },
     appearance: { cursor: { blink: false } },

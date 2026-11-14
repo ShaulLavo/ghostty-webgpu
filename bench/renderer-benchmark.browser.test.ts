@@ -1,4 +1,5 @@
 import { expect, it, onTestFinished, vi } from 'vitest'
+import { requireWebGpu } from '../src/render/tests/webgpu-capability.js'
 import { GhosttyRuntime } from '../src/core/runtime.js'
 import { fitTerminalFont } from '../src/dom/fit.js'
 import { CanvasTerminalRenderer } from '../src/render/canvas/renderer.js'
@@ -11,6 +12,7 @@ const cases = [
 ] as const
 
 it.each(cases)('benchmarks $backend with native frames and no idle work', async (sample) => {
+  if (sample.backend === 'webgpu') requireWebGpu()
   const runtime = await GhosttyRuntime.create()
   let created: Awaited<ReturnType<typeof createBenchmarkRenderer>> | undefined
   onTestFinished(async () => {

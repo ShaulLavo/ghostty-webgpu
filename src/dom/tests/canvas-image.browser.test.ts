@@ -1,3 +1,4 @@
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { GhosttyRuntime, Terminal, WebGpuTerminalRenderer } from '../../../dist/index.js'
 import { WebGlTerminalRenderer } from '../../../dist/render/webgl/renderer.js'
@@ -22,6 +23,7 @@ afterEach(async () => {
 type Backend = 'webgl2' | 'webgpu-direct' | 'webgpu-coordinated' | 'canvas2d' | 'pixels' | 'dom'
 
 async function fixture(backend: Backend, controlled = false) {
+  if (backend.startsWith('webgpu')) requireWebGpu()
   const host = document.createElement('div')
   host.style.cssText = 'width:340px;height:160px'
   document.body.append(host)

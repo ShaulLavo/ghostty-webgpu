@@ -1,10 +1,12 @@
-import { expect, it } from 'vitest'
+import { beforeEach, expect, it } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import { AtlasGpuTextures } from '../webgpu/gpu-textures.js'
 
 const bytesPerRow = 256
+beforeEach(() => requireWebGpu())
 
 async function createDevice(): Promise<GPUDevice> {
   expect(navigator.gpu).toBeDefined()

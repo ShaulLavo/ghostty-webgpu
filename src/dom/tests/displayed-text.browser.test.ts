@@ -1,3 +1,5 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import {
   publicationColumns,
   publicationRows,
@@ -69,6 +71,7 @@ async function fixture(
   backend: 'webgl' | 'webgpu' | 'canvas' | 'dom' = 'webgl',
   { flushInitial = true, grid = { columns: 30, rows: 4, pixelRatio: 1 } } = {},
 ) {
+  if (backend === 'webgpu') requireWebGpu()
   const host = document.createElement('div')
   host.style.cssText = 'width:400px;height:160px;position:relative'
   document.body.append(host)
@@ -293,6 +296,7 @@ describe('main-thread displayed-text demand', () => {
 
 describe('worker displayed-text correctness fallback', () => {
   it('uses the same owned text API and metadata-only frame API through held output and resize', async () => {
+    await requireWorkerWebGl()
     const host = document.createElement('div')
     host.style.cssText = 'width:400px;height:120px;position:relative'
     document.body.append(host)
@@ -575,6 +579,8 @@ it.each([false, true])(
 it.each(['webgl', 'webgpu'] as const)(
   'confirms worker %s mode-only revisions without publishing private fields',
   async (backend) => {
+    if (backend === 'webgpu') requireWebGpu()
+    if (backend === 'webgl') await requireWorkerWebGl()
     const host = document.createElement('div')
     host.style.cssText = 'width:400px;height:120px;position:relative'
     document.body.append(host)

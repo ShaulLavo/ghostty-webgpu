@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
@@ -94,6 +95,7 @@ it.for([undefined, 'auto'] as const)(
   'preserves public worker mode %s without compositor fetches',
   { timeout: 20_000 },
   async (rendererMode, context) => {
+    if (!navigator.gpu) await requireWorkerWebGl()
     const fetches = vi.spyOn(globalThis, 'fetch')
     const terminal = await createWorker(rendererMode)
     await terminal.open(host())

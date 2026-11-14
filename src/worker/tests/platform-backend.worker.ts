@@ -11,17 +11,20 @@ for (const key of ['platform', 'userAgent', 'userAgentData'] as const) {
 const channelName = parameters.get('capabilityChannel')
 const channel = channelName ? new BroadcastChannel(channelName) : undefined
 
-const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu)
-navigator.gpu.requestAdapter = async (options) => {
-  const adapter = await requestAdapter(options)
-  channel?.postMessage(adapter !== null)
-  if (!adapter) return null
-  return {
-    isFallbackAdapter: false,
-    info: { description: 'Test hardware adapter' },
-    requestDevice: adapter.requestDevice.bind(adapter),
-  } as unknown as GPUAdapter
+if (navigator.gpu) {
+  const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu)
+  navigator.gpu.requestAdapter = async (options) => {
+    const adapter = await requestAdapter(options)
+    channel?.postMessage(adapter !== null)
+    if (!adapter) return null
+    return {
+      isFallbackAdapter: false,
+      info: { description: 'Test hardware adapter' },
+      requestDevice: adapter.requestDevice.bind(adapter),
+    } as unknown as GPUAdapter
+  }
 }
+if (!navigator.gpu) channel?.postMessage(false)
 
 if (parameters.has('unavailableWebGl')) {
   const getContext = OffscreenCanvas.prototype.getContext

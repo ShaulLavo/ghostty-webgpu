@@ -1,6 +1,7 @@
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { GhosttyResult } from '../../core/abi.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { createGhosttyError } from '../../core/error.js'
@@ -48,6 +49,7 @@ async function hostFixture(
   grid = { columns: 12, rows: 3 },
   clock?: TestClock,
 ) {
+  if (backend === 'webgpu') requireWebGpu()
   const runtime = await GhosttyRuntime.create()
   disposables.push(() => runtime.dispose())
   const host = document.createElement('div')

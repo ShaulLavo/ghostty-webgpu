@@ -1,4 +1,6 @@
 import { testFontUrl } from '../tests/fonts.js'
+import { requireWebGpu } from '../render/tests/webgpu-capability.js'
+import { requireWorkerWebGl } from '../render/tests/worker-webgl-capability.js'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { Terminal as MainTerminal, type GhosttyWebGpuRendererFactory } from '../../dist/index.js'
@@ -52,7 +54,10 @@ async function create(
   mode: 'main' | 'webgpu' | 'webgl',
   enableAccessibility = false,
   textBlink?: boolean,
+  rendererRequired = true,
 ) {
+  if (mode === 'webgpu') requireWebGpu()
+  if (mode === 'webgl' && rendererRequired) await requireWorkerWebGl()
   const appearance = { font: { family, size: 16 }, cursor: { blink: false } }
   if (mode === 'main') {
     const face = await new FontFace(family, `url(${JSON.stringify(fontUrl)})`).load()
@@ -146,6 +151,8 @@ it.each(
   url.searchParams.set('capabilityChannel', channel.name)
   url.searchParams.set('platform', test.platform)
   if (test.unavailableWebGl) url.searchParams.set('unavailableWebGl', '1')
+  if (!navigator.gpu && test.backend !== 'webgpu' && !test.unavailableWebGl)
+    await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     assets,
     appearance: { font: { family, size: 16 }, cursor: { blink: false } },
@@ -181,9 +188,11 @@ it.each(
 it.each(['createShader', 'createProgram', 'createBuffer', 'createVertexArray', 'createTexture'])(
   'replaces the transferred Linux canvas after %s fails and presents WebGPU output',
   async (allocation) => {
+    requireWebGpu()
     const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
     url.searchParams.set('platform', 'Linux legacy platform')
     url.searchParams.set('allocationFailure', allocation)
+    await requireWorkerWebGl()
     const terminal = await WorkerTerminal.create({
       assets,
       appearance: { font: { family, size: 16 }, cursor: { blink: false } },
@@ -206,6 +215,7 @@ it('propagates Linux worker shader programming failures', async () => {
   const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
   url.searchParams.set('platform', 'Linux legacy platform')
   url.searchParams.set('shaderFailure', '1')
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     assets,
     backend: 'auto',
@@ -221,6 +231,7 @@ it('propagates Linux worker shader programming failures', async () => {
 it.each(['auto', 'webgpu'] as const)(
   'selects the requested worker backend with a software adapter (%s)',
   async (backend) => {
+    requireWebGpu()
     const channel = new BroadcastChannel(`software-adapter-${backend}`)
     const observations: string[] = []
     channel.onmessage = ({ data }) => observations.push(data)
@@ -258,6 +269,7 @@ it.each([
 ] as const)(
   'handles main hardware device loss (%s, replacement: %s)',
   async (backend, replacement) => {
+    requireWebGpu()
     stubRendererNavigator({ platform: 'MacIntel', userAgent: '' })
     const requestAdapter = navigator.gpu.requestAdapter.bind(navigator.gpu)
     const devices: GPUDevice[] = []
@@ -347,6 +359,7 @@ it.each([
 ] as const)(
   'handles worker hardware device loss (%s, replacement: %s)',
   async (backend, replacement) => {
+    requireWebGpu()
     const channelName = `packaged-hardware-to-software-${backend}-${replacement}`
     const channel = new BroadcastChannel(channelName)
     const observations: Array<{ type: string; request: number }> = []
@@ -402,6 +415,7 @@ it.each([
 
 it('rejects an opening reply without font metrics before inputReady', async () => {
   const inputReady = vi.fn()
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     assets,
     appearance: { font: { family, size: 16 }, cursor: { blink: false } },
@@ -426,6 +440,7 @@ it('rejects an opening reply without font metrics before inputReady', async () =
 })
 
 it('waits and destroys each public Window device once', async () => {
+  requireWebGpu()
   const devices: DeviceLifecycleCounts[] = []
   const request = GPUAdapter.prototype.requestDevice
   const acquisition = vi
@@ -469,6 +484,7 @@ it.each([
 ] as const)(
   'waits and destroys each public worker device once before closing (%s)',
   async (mode) => {
+    requireWebGpu()
     const channel = new BroadcastChannel('packaged-worker-device-lifecycle')
     const observations: DeviceLifecycleObservation[] = []
     channel.onmessage = ({ data }: MessageEvent<DeviceLifecycleObservation>) =>
@@ -583,6 +599,7 @@ it.each([
 it.each(['normal', 'held', 'retired-held', 'replacement-held'] as const)(
   'bounds idle fatal worker shutdown (%s)',
   async (mode) => {
+    requireWebGpu()
     const channel = new BroadcastChannel('packaged-worker-device-lifecycle')
     const observations: DeviceLifecycleObservation[] = []
     channel.onmessage = ({ data }: MessageEvent<DeviceLifecycleObservation>) =>
@@ -727,6 +744,7 @@ it.each(['normal', 'held', 'retired-held', 'replacement-held'] as const)(
 it.each(['release', 'deadline'] as const)(
   'joins initial device acquisition during fatal public worker shutdown (%s)',
   async (outcome) => {
+    requireWebGpu()
     const channel = new BroadcastChannel('packaged-worker-device-lifecycle')
     const observations: DeviceLifecycleObservation[] = []
     channel.onmessage = ({ data }: MessageEvent<DeviceLifecycleObservation>) =>
@@ -848,6 +866,7 @@ it.each(['release', 'deadline'] as const)(
 )
 
 it('rejects unfinished worker cleanup at the shared shutdown deadline', async () => {
+  requireWebGpu()
   const channel = new BroadcastChannel('packaged-worker-device-lifecycle')
   const observations: DeviceLifecycleObservation[] = []
   channel.onmessage = ({ data }: MessageEvent<DeviceLifecycleObservation>) =>
@@ -906,6 +925,7 @@ it('rejects unfinished worker cleanup at the shared shutdown deadline', async ()
 }, 20_000)
 
 it('reacquires a live device and repaints after public worker device loss', async () => {
+  requireWebGpu()
   const channel = new BroadcastChannel('packaged-worker-device-loss')
   const observations: DeviceObservation[] = []
   channel.onmessage = ({ data }: MessageEvent<DeviceObservation>) => observations.push(data)
@@ -1141,6 +1161,7 @@ it.each(['webgl', 'webgpu'] as const)(
 )
 
 it('processes transferred producer output before an explicit control fence and actor disposal', async () => {
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     assets,
     backend: 'webgl',
@@ -1180,6 +1201,7 @@ it('processes transferred producer output before an explicit control fence and a
 }, 20_000)
 
 it('rejects pending authority at host disposal and awaits worker cleanup', async () => {
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     assets,
     backend: 'webgl',
@@ -1329,6 +1351,7 @@ it('invalidates the host after a producer sequence error', async () => {
 it('owns explicit font bytes and selects supported WebGL when auto has no WebGPU', async () => {
   const bytes = new Uint8Array(await (await fetch(fontUrl)).arrayBuffer())
   const byteFamily = 'WorkerByteFont'
+  if (!navigator.gpu) await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     assets,
     fonts: [{ family: byteFamily, source: { bytes }, descriptors: { weight: '400' } }],
@@ -1347,6 +1370,7 @@ it('owns explicit font bytes and selects supported WebGL when auto has no WebGPU
 
 it('forwards release after a pending press when host input becomes disabled', async () => {
   let disabled = false
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     backend: 'webgl',
     fonts: [{ family, source: { url: fontUrl } }],
@@ -1490,6 +1514,7 @@ it.each(['pending', 'current', 'older'] as const)(
   'review correction preserves release ownership with %s key ACKs',
   async (ack) => {
     let disabled = false
+    await requireWorkerWebGl()
     const terminal = await WorkerTerminal.create({
       backend: 'webgl',
       fonts: [{ family, source: { url: fontUrl } }],
@@ -1782,7 +1807,7 @@ it('preserves default worker browser paste keys and native clipboard encoding', 
 })
 
 it('rejects JavaScript worker hotkeys attachment before starting an asynchronous lease', async () => {
-  const terminal = await create('webgl')
+  const terminal = await create('webgl', false, undefined, false)
   let failure: unknown
   try {
     Reflect.apply(attachTerminalHotkeys, undefined, [terminal])
@@ -1865,6 +1890,8 @@ describe.each(['webgl', 'webgpu'] as const)('%s ordered output accessibility', (
   )(
     '$operation retains displayed output across a pre-output refresh submission for $label',
     async ({ operation, following }) => {
+      if (backend === 'webgpu') requireWebGpu()
+      if (backend === 'webgl') await requireWorkerWebGl()
       const terminal = await WorkerTerminal.create({
         accessibility: {},
         appearance: { font: { family, size: 16 }, cursor: { blink: false } },
@@ -1920,6 +1947,8 @@ describe.each(['webgl', 'webgpu'] as const)('%s producer output accessibility', 
   it.each(['mixed', 'fenced', 'unfenced'] as const)(
     'announces %s producer output once across coalesced displayed advances',
     async (ordering) => {
+      if (backend === 'webgpu') requireWebGpu()
+      if (backend === 'webgl') await requireWorkerWebGl()
       const terminal = await WorkerTerminal.create({
         accessibility: {},
         appearance: { font: { family, size: 16 }, cursor: { blink: false } },
@@ -2016,6 +2045,7 @@ it('uses host-selected worker DPR and reapplies it when the subscription changes
   let notify = () => {}
   let subscribed = true
   try {
+    await requireWorkerWebGl()
     const terminal = await WorkerTerminal.create({
       assets,
       appearance: { font: { family, size: 16 } },
@@ -2063,6 +2093,7 @@ it('disconnects the worker resize observer when the DPR subscription throws', as
   }
   vi.stubGlobal('ResizeObserver', TrackedResizeObserver)
   try {
+    await requireWorkerWebGl()
     const terminal = await WorkerTerminal.create({
       assets,
       appearance: { font: { family, size: 16 } },
@@ -2194,6 +2225,7 @@ it('derives procedural sprite metrics from an owned TrueType font', async () => 
     import.meta.url,
   ).href
   const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer())
+  await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
     backend: 'webgl',
     assets,
