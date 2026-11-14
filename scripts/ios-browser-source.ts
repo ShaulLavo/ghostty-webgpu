@@ -33,7 +33,7 @@ export const nativeSourceHashes = {
   'glyph-constraints': '9f05fa19c21785d96096d21c34541c97e8b9807159858a376c51f3eebeb1f592',
   sprites: '8c2315f259f95962b455ac05d0eb9ad627fca5d0ee2b8190a8dd02900ca554d3',
   'displayed-pixels-fixture': 'bf1a8296342bb21c73db9bb6b360ac212e91592cb9f1667425e6fbc28c924a68',
-  'canvas-scroll': '7e84e87bfea3408774a4caaa517dda7e80e1dd53dec5954803ff55e01e2769c0',
+  'canvas-scroll': 'c0f27b373480665c78c16b0cde21af6f5e7b442f5099b8e910df99b51c0b02f9',
   'pixel-damage': '8b16f1b80a08a310226b8f9123e3fb5d94ea4a3ccb9575905c13ea51a08dc9f2',
   'stamp-cache': '2cf8b38f0e3e96b61c49bb97e38228ae1354555362ba751e1808758b7fc3734f',
   'canvas-rasterizer': '8572318c4f8d21597e3f2bcc6839b9e4e995fdc232c861b9c7eec673712fea8a',
