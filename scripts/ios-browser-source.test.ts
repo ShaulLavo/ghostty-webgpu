@@ -3,16 +3,32 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { realpathSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { sourceInventory } from './fixtures/ios-browser/source-inventory.ts'
 import { test } from 'vitest'
 import { nativeStage } from './ios-browser-stages.ts'
 import { nativeSourceHashes, verifyNativeSource } from './ios-browser-source.ts'
 import { frameworkRelease, checkFrameworkArchive } from './ios-browser-dependency.ts'
+import { isNativeStage } from './ios-browser-options.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const require = createRequire(import.meta.url)
+
+test('every native source key points at its original test registration', async () => {
+  for (const stage of Object.keys(nativeSourceHashes)) {
+    assert(isNativeStage(stage))
+    await verifyNativeSource(stage)
+    if (stage === 'synthetic') continue
+    const selected = nativeStage(stage)
+    const lines = (await readFile(selected.file, 'utf8')).split('\n')
+    for (const row of selected.expected) {
+      const [file, line] = row.sourceKey.split(':')
+      assert.equal(file, relative(root, selected.file))
+      assert.match(lines[Number(line) - 1] ?? '', /\b(?:it|test)(?:\.|\()/, row.sourceKey)
+    }
+  }
+})
 
 test('the published test-tool dependency stays dev-only, locked, and singly resolved', async () => {
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))

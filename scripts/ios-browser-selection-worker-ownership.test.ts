@@ -45,7 +45,7 @@ test('worker selection ownership selects all three complete interruption rows', 
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
     [0, 1, 2].map(
-      (index) => `src/dom/tests/selection-worker-ownership.browser.test.ts:12:${index}`,
+      (index) => `src/dom/tests/selection-worker-ownership.browser.test.ts:13:${index}`,
     ),
   )
   assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))

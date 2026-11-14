@@ -44,7 +44,7 @@ test('Renderer benchmark selects both complete native and canvas tables', async 
   )
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
-    ['13:0', '13:1', '71:0', '71:1'].map(
+    ['14:0', '14:1', '73:0', '73:1'].map(
       (key) => `bench/renderer-benchmark.browser.test.ts:${key}`,
     ),
   )
