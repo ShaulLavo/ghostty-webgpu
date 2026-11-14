@@ -70,7 +70,7 @@ const suites = [
   {
     stage: 'hotkeys-focus',
     file: 'src/extensions/hotkeys/tests/focus.browser.test.ts',
-    hash: 'a589db2abdb54e8553ccf9afba7e7601faef7e0bd8149599afcf10f790141674',
+    hash: '65997947caf99d9a13a55d6828547965c4aa6fd50d59ed7469eddfd443736901',
     sites: [
       '136:0',
       '146:0',
@@ -92,7 +92,7 @@ const suites = [
       '436:0',
       '436:1',
       '436:2',
-      '523:0',
+      '525:0',
     ],
     replacements: [
       ["['main']", "['worker']"],
