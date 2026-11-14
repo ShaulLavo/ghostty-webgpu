@@ -937,15 +937,24 @@ describe('Terminal DOM host', () => {
       if (input.type === 'composition') compositions.push(input.text)
       return 'pass'
     })
+    textarea.value = 'leftRIGHT'
+    textarea.setSelectionRange(4, 4)
     dispatchComposition(textarea, 'compositionstart')
     if (preedit)
-      dispatchInput(textarea, preedit, {
+      dispatchInput(textarea, `left${preedit}RIGHT`, {
         data: preedit,
         inputType: 'insertCompositionText',
         isComposing: true,
       })
     const text = 'Ω世界🙂\nsecond'
     const expected = `left${text}RIGHT`
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        data: text,
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      }),
+    )
     textarea.value = expected
     dispatchComposition(textarea, 'compositionend', text)
     expect(output).toEqual([])
