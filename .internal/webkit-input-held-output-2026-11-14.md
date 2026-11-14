@@ -43,8 +43,14 @@ before the first browser reproduction.
   one existing worker-WebGL capability skip.
 - After the fix, the same WebKit files report 36 passed and one existing skip.
 - Chromium reports all 37 cases passed in those files.
+- Firefox passes the three paste cases and xterm reference. The other cases were
+  excluded by the focused test-name filter.
 - Typecheck, lint, and the repository format check pass. Lint reports existing
   repository warnings.
+
+Neither edited test is a source registered by `scripts/ios-browser-stages.ts`.
+No native source hash or case registration needs changing. PR 131 and PR 132 are
+not copied into this branch.
 
 Evidence and diagnostic logs are under
 `/work/reports/goals/ghostty-shell-20261114/residual-followup`.
