@@ -220,7 +220,8 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
     theme: { foreground: '#ffffff', background: '#000000' },
   })
   terminal.open(host)
-  terminal.loadAddon(new WebglAddon())
+  // Keep the reference pixels available between WebKit compositor captures.
+  terminal.loadAddon(new WebglAddon(true))
   let frames = 0
   terminal.onRender(() => {
     frames += 1

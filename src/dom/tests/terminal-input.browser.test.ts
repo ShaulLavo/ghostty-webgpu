@@ -1,5 +1,4 @@
 import { displayedFrameListener } from '../../render/shared/displayed-frame.js'
-import { detectPlatform } from '@fregat/hotkeys'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { commands, userEvent } from 'vitest/browser'
 import {
@@ -14,6 +13,7 @@ import type {
   WebGpuTerminalRendererOptions,
 } from '../../render/shared/types.js'
 import { TerminalSession } from '../../term/session.js'
+import { restoreRendererNavigator, stubRendererNavigator } from '../../render/tests/navigator.js'
 import type { TerminalFittedFont, TerminalKeyInput } from '../../term/types.js'
 import { createTerminalElements } from '../elements.js'
 import { createDomInputController } from '../input.js'
@@ -171,10 +171,6 @@ function dispatchComposition(target: HTMLTextAreaElement, type: string, data = '
   target.dispatchEvent(new CompositionEvent(type, { bubbles: true, data }))
 }
 
-function primaryModifier(): Pick<KeyboardEventInit, 'ctrlKey' | 'metaKey'> {
-  return detectPlatform() === 'mac' ? { metaKey: true } : { ctrlKey: true }
-}
-
 async function animationFrames(count = 2): Promise<void> {
   for (let index = 0; index < count; index += 1) {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -218,6 +214,7 @@ describe('Terminal DOM host', () => {
   afterEach(() => {
     for (const terminal of terminals.splice(0)) terminal.dispose()
     for (const host of hosts.splice(0)) host.remove()
+    restoreRendererNavigator()
   })
 
   afterAll(() => {
@@ -1217,61 +1214,69 @@ describe('Terminal DOM host', () => {
     expect(decodedOutput(output)).toEqual(['你', '\u001b[98u', '\u001b[98;1:3u'])
   })
 
-  it('routes paste fallbacks and focus reports without duplicate shortcut keys', async () => {
-    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
-    await terminal.open(trackedHost())
-    const textarea = terminal.textarea!
-    const output: Uint8Array[] = []
-    terminal.onData(({ bytes }) => output.push(bytes))
+  it.each([
+    { platform: 'Linux x86_64', modifier: { ctrlKey: true } },
+    { platform: 'MacIntel', modifier: { metaKey: true } },
+    { platform: 'iPhone', modifier: { metaKey: true } },
+  ])(
+    'routes paste fallbacks and focus reports without duplicate shortcut keys on $platform',
+    async ({ platform, modifier }) => {
+      stubRendererNavigator({ platform, userAgent: 'Macintosh' })
+      const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+      await terminal.open(trackedHost())
+      const textarea = terminal.textarea!
+      const output: Uint8Array[] = []
+      terminal.onData(({ bytes }) => output.push(bytes))
 
-    terminal.write('\u001b[?1004h')
-    terminal.focus()
-    terminal.blur()
-    expect(decodedOutput(output)).toEqual(['\u001b[I', '\u001b[O'])
+      terminal.write('\u001b[?1004h')
+      terminal.focus()
+      terminal.blur()
+      expect(decodedOutput(output)).toEqual(['\u001b[I', '\u001b[O'])
 
-    output.length = 0
-    const pasteKey = dispatchKey(textarea, 'keydown', {
-      code: 'KeyV',
-      key: 'v',
-      ...primaryModifier(),
-    })
-    const pasteRepeat = dispatchKey(textarea, 'keydown', {
-      code: 'KeyV',
-      key: 'v',
-      repeat: true,
-      ...primaryModifier(),
-    })
-    const pasteRelease = dispatchKey(textarea, 'keyup', {
-      code: 'KeyV',
-      key: 'v',
-      ...primaryModifier(),
-    })
-    expect(pasteKey.defaultPrevented).toBe(false)
-    expect(pasteRepeat.defaultPrevented).toBe(true)
-    expect(pasteRelease.defaultPrevented).toBe(false)
-    expect(output).toHaveLength(0)
+      output.length = 0
+      const pasteKey = dispatchKey(textarea, 'keydown', {
+        code: 'KeyV',
+        key: 'v',
+        ...modifier,
+      })
+      const pasteRepeat = dispatchKey(textarea, 'keydown', {
+        code: 'KeyV',
+        key: 'v',
+        repeat: true,
+        ...modifier,
+      })
+      const pasteRelease = dispatchKey(textarea, 'keyup', {
+        code: 'KeyV',
+        key: 'v',
+        ...modifier,
+      })
+      expect(pasteKey.defaultPrevented).toBe(false)
+      expect(pasteRepeat.defaultPrevented).toBe(true)
+      expect(pasteRelease.defaultPrevented).toBe(false)
+      expect(output).toHaveLength(0)
 
-    const clipboard = new DataTransfer()
-    clipboard.setData('text/plain', 'first\nsecond')
-    const paste = new ClipboardEvent('paste', {
-      bubbles: true,
-      cancelable: true,
-      clipboardData: clipboard,
-    })
-    Object.defineProperty(paste, 'clipboardData', { value: clipboard })
-    textarea.dispatchEvent(paste)
-    const unavailablePaste = new ClipboardEvent('paste', { bubbles: true, cancelable: true })
-    Object.defineProperty(unavailablePaste, 'clipboardData', { value: null })
-    textarea.dispatchEvent(unavailablePaste)
-    dispatchInput(textarea, 'fallback\nvalue', {
-      data: null,
-      inputType: 'insertFromPaste',
-    })
+      const clipboard = new DataTransfer()
+      clipboard.setData('text/plain', 'first\nsecond')
+      const paste = new ClipboardEvent('paste', {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: clipboard,
+      })
+      Object.defineProperty(paste, 'clipboardData', { value: clipboard })
+      textarea.dispatchEvent(paste)
+      const unavailablePaste = new ClipboardEvent('paste', { bubbles: true, cancelable: true })
+      Object.defineProperty(unavailablePaste, 'clipboardData', { value: null })
+      textarea.dispatchEvent(unavailablePaste)
+      dispatchInput(textarea, 'fallback\nvalue', {
+        data: null,
+        inputType: 'insertFromPaste',
+      })
 
-    expect(paste.defaultPrevented).toBe(true)
-    expect(unavailablePaste.defaultPrevented).toBe(false)
-    expect(decodedOutput(output)).toEqual(['first\rsecond', 'fallback\rvalue'])
-  })
+      expect(paste.defaultPrevented).toBe(true)
+      expect(unavailablePaste.defaultPrevented).toBe(false)
+      expect(decodedOutput(output)).toEqual(['first\rsecond', 'fallback\rvalue'])
+    },
+  )
 
   it('keeps focus and visibility lifecycle active when keyboard transport is manual', async () => {
     const recording: RendererRecording = {}
