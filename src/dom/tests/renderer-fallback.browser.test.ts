@@ -202,6 +202,7 @@ describe('runtime renderer fallback in the DOM host', () => {
     terminal.clearSelection()
     await page.elementLocator(replacement).dblClick({ position: cellPosition(terminal, 1, 1) })
     expect(terminal.getSelection()).toBe('hello')
+    await settle(terminal)
 
     let activations = 0
     terminal.registerLinkProvider({

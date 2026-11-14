@@ -92,6 +92,11 @@ describe('WebGlTerminalRenderer', () => {
     expect(pixel(initial, canvas.width, 24, 12)).toEqual([0, 0, 255, 255])
     expect(pixel(initial, canvas.width, 40, 12)).toEqual([17, 34, 51, 255])
 
+    await new Promise(requestAnimationFrame)
+    await new Promise(requestAnimationFrame)
+    expect(await displayedPixels(canvas)).toEqual(initial)
+    expect(renderer.metrics.submittedFrames).toBe(1)
+
     renderer.setTheme({ foreground: rgb(0, 255, 0) })
     await expect.poll(() => renderer.metrics.submittedFrames).toBe(2)
 
