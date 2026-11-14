@@ -1052,9 +1052,14 @@ it.each(['main', 'webgl', 'webgpu'] as const)(
     await wheelUp(terminal)
     const clipboard = new DataTransfer()
     clipboard.setData('text/plain', 'pasted input')
-    terminal.textarea!.dispatchEvent(
-      new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: clipboard }),
-    )
+    const paste = new ClipboardEvent('paste', {
+      bubbles: true,
+      cancelable: true,
+      clipboardData: clipboard,
+    })
+    Object.defineProperty(paste, 'clipboardData', { value: clipboard })
+    expect(paste.clipboardData?.getData('text/plain')).toBe('pasted input')
+    terminal.textarea!.dispatchEvent(paste)
     await expectBottom(terminal)
   },
   20_000,
@@ -1800,6 +1805,8 @@ it('preserves default worker browser paste keys and native clipboard encoding', 
   const clipboardData = new DataTransfer()
   clipboardData.setData('text/plain', 'worker clip')
   const event = new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'clipboardData', { value: clipboardData })
+  expect(event.clipboardData?.getData('text/plain')).toBe('worker clip')
   textarea.dispatchEvent(event)
   expect(event.defaultPrevented).toBe(true)
   await eventually(() => output.length === 1)
@@ -1851,7 +1858,7 @@ it('keeps finite input ownership and immediate native mode access on the synchro
   })
   expect(setup).toBe(0)
   try {
-    terminal.inputModes
+    void terminal.inputModes
     expect.fail('Worker modes require native authority')
   } catch (cause) {
     expect(cause).toMatchObject({ code: 'capability', operation: 'inputModes' })
