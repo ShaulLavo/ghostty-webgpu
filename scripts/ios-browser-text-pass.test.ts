@@ -49,7 +49,7 @@ test('Text pass selects the complete original and both binding-budget rows', asy
   )
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
-    ['104:0', '104:1', '305:0', '332:0', '347:0', '378:0', '422:0', '455:0', '499:0'].map(
+    ['106:0', '106:1', '307:0', '334:0', '349:0', '380:0', '424:0', '457:0', '501:0'].map(
       (key) => `src/render/tests/text-pass.browser.test.ts:${key}`,
     ),
   )

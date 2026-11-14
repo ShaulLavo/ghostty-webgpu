@@ -42,7 +42,7 @@ test('WebGPU selects the complete original and its two exact case identities', a
   )
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
-    [73, 81].map((line) => `src/render/tests/webgpu.browser.test.ts:${line}:0`),
+    [75, 83].map((line) => `src/render/tests/webgpu.browser.test.ts:${line}:0`),
   )
   assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))
   assert.notEqual(selected.file, nativeStage('displayed-frame-boundaries').file)

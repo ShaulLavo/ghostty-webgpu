@@ -9,7 +9,7 @@ export const selectionWorkerOwnershipCases = [
   {
     file: selectionWorkerOwnershipFile,
     fullName: 'keeps real packaged native ownership when cancel interrupts a stale pending release',
-    sourceKey: 'src/dom/tests/selection-worker-ownership.browser.test.ts:12:0',
+    sourceKey: 'src/dom/tests/selection-worker-ownership.browser.test.ts:13:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -17,7 +17,7 @@ export const selectionWorkerOwnershipCases = [
     file: selectionWorkerOwnershipFile,
     fullName:
       'keeps real packaged native ownership when dispose interrupts a stale pending release',
-    sourceKey: 'src/dom/tests/selection-worker-ownership.browser.test.ts:12:1',
+    sourceKey: 'src/dom/tests/selection-worker-ownership.browser.test.ts:13:1',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -25,7 +25,7 @@ export const selectionWorkerOwnershipCases = [
     file: selectionWorkerOwnershipFile,
     fullName:
       'keeps real packaged native ownership when new press interrupts a stale pending release',
-    sourceKey: 'src/dom/tests/selection-worker-ownership.browser.test.ts:12:2',
+    sourceKey: 'src/dom/tests/selection-worker-ownership.browser.test.ts:13:2',
     timeoutMs: 15000,
     retries: 0,
   },

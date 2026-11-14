@@ -43,7 +43,7 @@ test('GPU textures select the complete original and its three exact case identit
   )
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
-    [62, 91, 99].map((line) => `src/render/webgpu/gpu-textures.browser.test.ts:${line}:0`),
+    [64, 93, 101].map((line) => `src/render/webgpu/gpu-textures.browser.test.ts:${line}:0`),
   )
   assert(selected.expected.every((row) => row.timeoutMs === 15000 && row.retries === 0))
   assert.notEqual(selected.file, nativeStage('displayed-frame-boundaries').file)
