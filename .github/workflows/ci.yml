@@ -261,7 +261,15 @@ jobs:
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       - name: Browser tests
         if: needs.verify.outputs.code == 'true'
-        run: bun run test:browser --shard=${{ matrix.shard }}/4
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Firefox needs an X display to initialize Mesa WebGL, even in headless mode.
+          if [[ "$GHOSTTY_BROWSER_ENGINE" == firefox ]]; then
+            xvfb-run -a bun run test:browser --shard=${{ matrix.shard }}/4
+          else
+            bun run test:browser --shard=${{ matrix.shard }}/4
+          fi
 
   # Keep the protected check names and reject failed, cancelled, or skipped dependencies.
   browser:

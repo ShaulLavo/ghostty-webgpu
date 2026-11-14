@@ -42,9 +42,34 @@ test('runs every engine across all four shards without cancelling peers or toler
   expect(record(browsers.env).GHOSTTY_BROWSER_ENGINE).toBe('${{ matrix.engine }}')
   expect(browsers.name).toBe('browser tests (${{ matrix.engine }}, ${{ matrix.shard }}/4)')
   const run = step(browsers, 'Browser tests')
-  expect(run.run).toBe('bun run test:browser --shard=${{ matrix.shard }}/4')
   expect(run.if).toBe(codeChanged)
   expect(steps(browsers).every((entry) => entry['continue-on-error'] === undefined)).toBe(true)
+})
+
+test('the browser shell supplies Xvfb only to Firefox and preserves the shard and failures', () => {
+  const run = step(browsers, 'Browser tests')
+  expect(run.shell).toBe('bash')
+  if (typeof run.run !== 'string') throw new Error('Missing browser test shell')
+  const command = run.run.replaceAll('${{ matrix.shard }}', '2')
+  const stubs = `
+function bun() { printf 'bun'; printf ' <%s>' "$@"; printf '\\n'; return "$BROWSER_EXIT_CODE"; }
+function xvfb-run() { printf 'xvfb-run <%s>\\n' "$1"; shift; "$@"; }
+`
+  for (const engine of ['chromium', 'firefox', 'webkit']) {
+    for (const exitCode of [0, 23]) {
+      const result = spawnSync('bash', ['-c', stubs + command], {
+        encoding: 'utf8',
+        env: {
+          PATH: process.env.PATH,
+          GHOSTTY_BROWSER_ENGINE: engine,
+          BROWSER_EXIT_CODE: String(exitCode),
+        },
+      })
+      expect(result.status, result.stderr).toBe(exitCode)
+      const prefix = engine === 'firefox' ? 'xvfb-run <-a>\n' : ''
+      expect(result.stdout).toBe(prefix + 'bun <run> <test:browser> <--shard=2/4>\n')
+    }
+  }
 })
 
 test('all engines consume the verified build without rebuilding packages', () => {
