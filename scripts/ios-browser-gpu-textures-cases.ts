@@ -9,14 +9,14 @@ export const gpuTexturesCases = [
   {
     file: gpuTexturesFile,
     fullName: 'uploads odd-stride dirty rectangles to two layers of each growing texture array',
-    sourceKey: 'src/render/webgpu/gpu-textures.browser.test.ts:62:0',
+    sourceKey: 'src/render/webgpu/gpu-textures.browser.test.ts:64:0',
     timeoutMs: 15000,
     retries: 0,
   },
   {
     file: gpuTexturesFile,
     fullName: 'rejects a layer capacity above the adapter limit before allocating textures',
-    sourceKey: 'src/render/webgpu/gpu-textures.browser.test.ts:91:0',
+    sourceKey: 'src/render/webgpu/gpu-textures.browser.test.ts:93:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -24,7 +24,7 @@ export const gpuTexturesCases = [
     file: gpuTexturesFile,
     fullName:
       'starts each kind at one layer and preserves existing pixels when only grayscale grows',
-    sourceKey: 'src/render/webgpu/gpu-textures.browser.test.ts:99:0',
+    sourceKey: 'src/render/webgpu/gpu-textures.browser.test.ts:101:0',
     timeoutMs: 15000,
     retries: 0,
   },
