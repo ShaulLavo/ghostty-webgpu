@@ -83,17 +83,17 @@ test('displayed-frame boundaries select all 18 current cases with their exact pa
     expectedNames(),
   )
   const groups = [
-    [133, 1],
-    [148, 2],
-    [190, 4],
-    [235, 3],
-    [269, 2],
-    [300, 1],
-    [318, 1],
-    [335, 1],
-    [349, 1],
-    [363, 1],
-    [412, 1],
+    [135, 1],
+    [150, 2],
+    [192, 4],
+    [237, 3],
+    [271, 2],
+    [302, 1],
+    [320, 1],
+    [337, 1],
+    [351, 1],
+    [365, 1],
+    [414, 1],
   ]
   const keys = groups.flatMap(([line, count]) =>
     Array.from(

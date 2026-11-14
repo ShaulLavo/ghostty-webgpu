@@ -10,7 +10,7 @@ export const historyCases = [
     file: historyFile,
     fullName:
       'built native history API in Chromium > keeps main history, selection and mirrors on the retained native rows',
-    sourceKey: 'src/dom/tests/history.browser.test.ts:28:0',
+    sourceKey: 'src/dom/tests/history.browser.test.ts:29:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -18,7 +18,7 @@ export const historyCases = [
     file: historyFile,
     fullName:
       'built native history API in Chromium > keeps worker history, selection and mirrors on the retained native rows',
-    sourceKey: 'src/dom/tests/history.browser.test.ts:28:1',
+    sourceKey: 'src/dom/tests/history.browser.test.ts:29:1',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -26,7 +26,7 @@ export const historyCases = [
     file: historyFile,
     fullName:
       'built native history API in Chromium > reads empty rows before opening with the same lifecycle guard as visibleLines',
-    sourceKey: 'src/dom/tests/history.browser.test.ts:115:0',
+    sourceKey: 'src/dom/tests/history.browser.test.ts:117:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -34,7 +34,7 @@ export const historyCases = [
     file: historyFile,
     fullName:
       'built native history API in Chromium > reads history before paint and preserves selection and visibleLines',
-    sourceKey: 'src/dom/tests/history.browser.test.ts:123:0',
+    sourceKey: 'src/dom/tests/history.browser.test.ts:125:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -42,7 +42,7 @@ export const historyCases = [
     file: historyFile,
     fullName:
       'built native history API in Chromium > exports the row cap and reads the active screen through the built API',
-    sourceKey: 'src/dom/tests/history.browser.test.ts:149:0',
+    sourceKey: 'src/dom/tests/history.browser.test.ts:151:0',
     timeoutMs: 15000,
     retries: 0,
   },
