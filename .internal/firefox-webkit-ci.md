@@ -47,3 +47,10 @@ Hosted CI must still prove all 12 engine/shard jobs execute their tests against 
 downloaded build, validate the Linux image dependencies, and report real cache
 results. The independent Firefox and Linux WebKit workers own product/test fixes.
 No full local browser suite, native run, public deployment, or release was run here.
+
+The first hosted Firefox run stopped before collecting tests because the root
+container process inherited `/github/home` owned by `pwuser`. Browser setup now
+aligns that existing directory's ownership with the process user before installing
+dependencies. It does not change the home path or recursively change its contents.
+The hosted Firefox and WebKit logs both confirm JavaScript dependency cache hits
+and browser payload reuse from `/ms-playwright`.

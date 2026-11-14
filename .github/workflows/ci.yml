@@ -186,6 +186,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Firefox requires its home directory to belong to the process user.
+          chown "$(id -u):$(id -g)" "$HOME"
           started_ms="$(date +%s%3N)"
           apt-get update
           apt-get install -y --no-install-recommends unzip xz-utils
