@@ -12,7 +12,7 @@
     "paths": {
       "ghostty-webgpu": ["../../dist/index.d.ts"]
     },
-    "types": ["@webgpu/types"],
+    "types": ["bun", "@webgpu/types", "@vitest/browser-playwright"],
     "resolveJsonModule": true
   },
   "include": ["src", "vitest.config.ts"]

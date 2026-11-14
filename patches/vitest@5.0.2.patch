@@ -81,3 +81,16 @@ diff --git a/dist/chunks/index.DGdajAO2.js b/dist/chunks/index.DGdajAO2.js
  				const promise = async () => {
  					chai.util.flag(assertion, "_name", key);
  					chai.util.flag(assertion, "error", STACK_TRACE_ERROR);
+diff --git a/dist/chunks/run.C5UmxDPh.js b/dist/chunks/run.C5UmxDPh.js
+--- a/dist/chunks/run.C5UmxDPh.js
++++ b/dist/chunks/run.C5UmxDPh.js
+@@ -3927,7 +3927,8 @@
+-				updateTask("test-finished", test, runner);
+ 				setCurrentTest(void 0);
+ 				cleanupRunningTest();
++				await runner.onAfterRunTask?.(test);
++				updateTask("test-finished", test, runner);
+ 				return;
+ 			}
+ 			if (test.result.state === "pass") break;
+ 			if (retryCount < retry) {
