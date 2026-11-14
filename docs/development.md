@@ -34,6 +34,8 @@ Pass a path to run one browser file: `bun run test:browser src/render/tests/sele
 
 Set `GHOSTTY_BROWSER_ENGINE` to `firefox` or `webkit` to run the browser suite there. Install the matching Playwright engine and system dependencies first.
 
+CI runs all three engines across four shards each. Its headless Firefox command uses `xvfb-run -a` to provide the display required by software WebGL2 in the pinned Linux image.
+
 ## Rebuild the wasm
 
 `ghostty-vt.wasm` and `bridge.wasm` are checked in. Rebuild them with `bun run build:wasm`. It needs Zig 0.16.0 or newer, and it builds the pinned upstream Ghostty revision from `ghostty-vt.provenance.json` without patches ([ADR 001](adr/001-unpatched-pinned-ghostty-core.md)). Rebuild `canvas-compose.wasm` and `canvas-compose-scalar.wasm` with `bun run build:canvas-compose`.

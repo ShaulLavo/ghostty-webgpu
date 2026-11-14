@@ -4,6 +4,7 @@
 
 ### Patch Changes
 
+- [#130](https://github.com/ShaulLavo/ghostty-webgpu/pull/130) - Run every browser shard in Chromium, Firefox, and WebKit in CI. Headless Firefox uses a virtual X display for software WebGL2.
 - [#131](https://github.com/ShaulLavo/ghostty-webgpu/pull/131) - Preserve surrounding textarea text when Firefox sends the final composition input after composition ends.
 - [#133](https://github.com/ShaulLavo/ghostty-webgpu/pull/133) - Use the browser platform to select copy shortcuts and keep scrollbar thumbs aligned at fractional sizes.
 - [#137](https://github.com/ShaulLavo/ghostty-webgpu/pull/137) - Preserve WebGL drawing buffers so WebKit presents the current terminal and shader output instead of stale frames.
