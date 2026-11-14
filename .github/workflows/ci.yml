@@ -73,7 +73,6 @@ jobs:
           path: |
             ~/.bun/install/cache
             ~/.npm
-            ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
       - name: Log dependency cache result
         env:
@@ -87,6 +86,8 @@ jobs:
           bun install --frozen-lockfile
           finished_ms="$(date +%s%3N)"
           echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
+      - name: Check browser CI coverage and required gates
+        run: bun test scripts/ci-workflow.test.ts
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
         with:
           version: '0.16.0'
@@ -156,8 +157,8 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
-  # The browser suite runs files one at a time per runner (SwiftShader), so it is sharded across runners.
-  browser:
+  # Each engine runs the full file set across four shards, using the same verified build.
+  browser-tests:
     if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     needs: verify
     runs-on: ubuntu-latest
@@ -167,8 +168,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        engine: [chromium, firefox, webkit]
         shard: [1, 2, 3, 4]
-    name: browser (${{ matrix.shard }}/4)
+    name: browser tests (${{ matrix.engine }}, ${{ matrix.shard }}/4)
+    env:
+      GHOSTTY_BROWSER_ENGINE: ${{ matrix.engine }}
     steps:
       - name: Documentation-only PR has no browser inputs
         if: needs.verify.outputs.code != 'true'
@@ -212,7 +216,6 @@ jobs:
           path: |
             ~/.bun/install/cache
             ~/.npm
-            ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
       - name: Log dependency cache result
         if: needs.verify.outputs.code == 'true'
@@ -238,24 +241,48 @@ jobs:
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
-          if ! bunx playwright install-deps --dry-run chromium; then
+          if ! bunx playwright install-deps --dry-run "$GHOSTTY_BROWSER_ENGINE"; then
             echo 'Playwright system dependency validation failed; the pinned runner image contract is incomplete.' >&2
             exit 1
           fi
           finished_ms="$(date +%s%3N)"
           echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
-      - name: Install Playwright Chromium
+      - name: Install the selected Playwright browser
         if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
-          bunx playwright install chromium
+          echo "Playwright engine=$GHOSTTY_BROWSER_ENGINE browser_path=${PLAYWRIGHT_BROWSERS_PATH:-default}"
+          bunx playwright install "$GHOSTTY_BROWSER_ENGINE"
           finished_ms="$(date +%s%3N)"
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       - name: Browser tests
         if: needs.verify.outputs.code == 'true'
         run: bun run test:browser --shard=${{ matrix.shard }}/4
+
+  # Keep the protected check names and reject failed, cancelled, or skipped dependencies.
+  browser:
+    if: ${{ always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    needs: [verify, browser-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    name: browser (${{ matrix.shard }}/4)
+    steps:
+      - name: Require every browser engine and shard to pass
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          BROWSER_RESULT: ${{ needs.browser-tests.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "verify=$VERIFY_RESULT browser-tests=$BROWSER_RESULT"
+          test "$VERIFY_RESULT" = success
+          test "$BROWSER_RESULT" = success
 
   sites:
     if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
@@ -297,7 +324,6 @@ jobs:
           path: |
             ~/.bun/install/cache
             ~/.npm
-            ~/.cache/ms-playwright
           key: ${{ runner.os }}-bun-playwright-${{ hashFiles('bun.lock') }}
       - name: Log dependency cache result
         env:
