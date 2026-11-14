@@ -1,3 +1,4 @@
+import { requireWorkerWebGl } from '../../render/tests/worker-webgl-capability.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { Terminal as MainTerminal } from '../terminal.js'
@@ -66,6 +67,7 @@ function key(textarea: HTMLTextAreaElement, type: string, init: KeyboardEventIni
 }
 
 async function createTerminal(mode: 'main' | 'worker') {
+  if (mode === 'worker') await requireWorkerWebGl()
   const terminal =
     mode === 'main'
       ? await MainTerminal.create({

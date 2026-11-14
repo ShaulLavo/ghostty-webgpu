@@ -3,6 +3,7 @@ import type { TerminalFontMetrics } from '../../term/types.js'
 import { testFontUrl } from '../../tests/fonts.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
+import { requireWebGpu } from './webgpu-capability.js'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import {
   expectedGlyphs,
@@ -49,6 +50,7 @@ beforeAll(async () => {
   await page.viewport(900, 650)
   document.fonts.add(await intrinsicFont.load())
   document.fonts.add(await unicodeFont.load())
+  if (!navigator.gpu) return
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
   expect(adapter).not.toBeNull()
   // Keep Dawn's instance alive between independently owned renderer devices.
@@ -118,6 +120,7 @@ async function nativeFixture(
   content: string,
   options: Partial<WebGpuTerminalRendererOptions> = {},
 ) {
+  if (backend === 'webgpu') requireWebGpu()
   const fixture = document.createElement('div')
   document.body.append(fixture)
   disposables.push(() => fixture.remove())

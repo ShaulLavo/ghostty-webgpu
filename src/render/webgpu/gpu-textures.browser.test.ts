@@ -1,8 +1,10 @@
-import { expect, it } from 'vitest'
+import { beforeEach, expect, it } from 'vitest'
+import { requireWebGpu } from '../tests/webgpu-capability.js'
 import { AtlasGpuTextures } from './gpu-textures.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
 
 const layout: AtlasTextureLayout = { layerCount: 2, pageHeight: 5, pageWidth: 7 }
+beforeEach(() => requireWebGpu())
 
 async function createDevice(): Promise<GPUDevice> {
   const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })

@@ -1,3 +1,4 @@
+import { requireWebGpu } from '../tests/webgpu-capability.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { testFontUrl } from '../../tests/fonts.js'
 import { RenderStateDirty } from '../../core/abi.js'
@@ -1312,6 +1313,7 @@ describe('CanvasTerminalRenderer', () => {
 
 describe('compatible renderer selection', () => {
   it('releases an acquired device and falls back when the WebGPU context is unavailable', async () => {
+    requireWebGpu()
     stubRendererNavigator({ platform: 'MacIntel', userAgent: '' })
     const canvas = createCanvas()
     const getContext = canvas.getContext.bind(canvas)

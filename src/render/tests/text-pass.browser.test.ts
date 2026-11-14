@@ -1,4 +1,5 @@
-import { expect, it, onTestFinished } from 'vitest'
+import { beforeEach, expect, it, onTestFinished } from 'vitest'
+import { requireWebGpu } from './webgpu-capability.js'
 import type { CellStyle, RenderCell, RenderRow, RgbColor } from '../../core/types.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
@@ -18,6 +19,7 @@ import {
 import { WebGpuTextPass } from '../webgpu/text-pass.js'
 
 const cellSize = 16
+beforeEach(() => requireWebGpu())
 const columns = 7
 const rows = 3
 const width = columns * cellSize

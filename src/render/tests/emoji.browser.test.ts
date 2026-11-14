@@ -1,3 +1,4 @@
+import { requireWebGpu } from './webgpu-capability.js'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
@@ -148,6 +149,7 @@ it.each([
   ['webgpu', WebGpuTerminalRenderer],
   ['webgl2', WebGlTerminalRenderer],
 ] as const)('presents legacy and clustered ZWJ emoji through %s', async (backend, Renderer) => {
+  if (backend === 'webgpu') requireWebGpu()
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns, rows })
   const state = runtime.createRenderState(terminal)
@@ -262,6 +264,7 @@ it.each([
   ['webgl2', WebGlTerminalRenderer],
   ['canvas2d', CanvasTerminalRenderer],
 ] as const)('recolors cached mixed COLR layers through %s', async (backend, Renderer) => {
+  if (backend === 'webgpu') requireWebGpu()
   const runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns, rows })
   const state = runtime.createRenderState(terminal)

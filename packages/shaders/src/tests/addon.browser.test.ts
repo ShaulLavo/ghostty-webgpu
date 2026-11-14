@@ -1,3 +1,5 @@
+import { requireWebGpu } from '../../../../src/render/tests/webgpu-capability.js'
+import { requireWorkerWebGl } from '../../../../src/render/tests/worker-webgl-capability.js'
 import { afterEach, beforeAll, afterAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import {
@@ -52,6 +54,7 @@ async function fixture(
   content = '\x1b[?25l\x1b[48;2;255;0;0m          \r\n\x1b[48;2;0;255;0m          \r\n\x1b[48;2;0;0;255m          ',
   overrides: Pick<GhosttyWebGpuTerminalOptions, 'rendererFactory'> = {},
 ) {
+  if (backend === 'webgpu' || output === 'webgpu') requireWebGpu()
   const host = document.createElement('div')
   host.style.cssText = 'width:340px;height:180px'
   document.body.append(host)
@@ -393,14 +396,18 @@ it('disposes during async initialization and keeps the terminal usable', async (
 })
 
 it('defaults full artifacts to WebGL2 when WebGPU is unavailable, with strict explicit selection', async () => {
-  const adapter = vi.spyOn(navigator.gpu, 'requestAdapter').mockResolvedValue(null)
-  cleanups.push(() => adapter.mockRestore())
+  if (navigator.gpu) {
+    const adapter = vi.spyOn(navigator.gpu, 'requestAdapter').mockResolvedValue(null)
+    cleanups.push(() => adapter.mockRestore())
+  }
   const f = await fixture('canvas2d', copyShader)
   expect(f.canvas.dataset['backend']).toBe('webgl2')
   const image = await pixels(f.canvas)
   expect(pixel(image, 0.5, 1 / 6)[0]).toBeGreaterThan(100)
   expect(pixel(image, 0.5, 5 / 6)[2]).toBeGreaterThan(100)
-  await expect(fixture('canvas2d', copyShader, false, 'webgpu')).rejects.toThrow('unavailable')
+  const explicit = f.terminal.use(createShaderAddon(copyShader, { backend: 'webgpu' }))
+  cleanups.push(() => explicit.dispose())
+  await expect(explicit.api.ready).rejects.toThrow('unavailable')
   expect(f.errors).toEqual([])
 })
 
@@ -421,6 +428,7 @@ it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
 )
 
 it('bounds unfinished WebGPU submissions and retains the latest source state', async () => {
+  requireWebGpu()
   const adapter = await navigator.gpu.requestAdapter()
   if (!adapter) throw new TypeError('Missing test WebGPU adapter')
   const device = await adapter.requestDevice()
@@ -505,6 +513,7 @@ it('freezes hidden effect time and presents terminal writes after visibility res
 })
 
 it('clearly rejects asynchronous worker capture and removes its overlay', async () => {
+  await requireWorkerWebGl()
   const host = document.createElement('div')
   host.style.cssText = 'width:340px;height:180px'
   document.body.append(host)
@@ -527,6 +536,7 @@ it('clearly rejects asynchronous worker capture and removes its overlay', async 
 })
 
 it('disposes safely while a WebGPU replacement pipeline is compiling', async () => {
+  requireWebGpu()
   const adapter = await navigator.gpu.requestAdapter()
   if (!adapter) throw new TypeError('Missing test WebGPU adapter')
   const device = await adapter.requestDevice()

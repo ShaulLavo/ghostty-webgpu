@@ -6,6 +6,7 @@ import {
   type DisplayedTextFrame,
 } from '../../render/shared/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { page } from 'vitest/browser'
 import type { NativeDisplayedFrame } from '../../core/displayed-frame.js'
 import { GhosttyRenderState } from '../../core/render-state.js'
@@ -412,6 +413,7 @@ async function createObservedRendererHarness(
   readTextRowsCalls(): number
   updateCalls(): number
 }> {
+  if (backend === 'webgpu') requireWebGpu()
   const host = appendRoot(420, 140)
   const snapshots: RendererTextFrameSnapshot[] = []
   let renderState: RenderStateSource | undefined

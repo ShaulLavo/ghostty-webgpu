@@ -1,3 +1,4 @@
+import { requireWebGpu } from './webgpu-capability.js'
 import { afterEach, describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { TerminalSession } from '../../term/session.js'
@@ -83,6 +84,7 @@ const backends = [
 
 describe.each(backends)('$name short-line cells', ({ name, create }) => {
   it('keeps coloured dots inside their square cells after a partial row update', async () => {
+    if (name === 'WebGPU') requireWebGpu()
     const runtime = await GhosttyRuntime.create()
     cleanups.push(() => runtime.dispose())
     const terminal = runtime.createTerminal({ columns: 6, rows: 3 })
