@@ -1,5 +1,16 @@
 # ghostty-webgpu
 
+## 0.3.34
+
+### Patch Changes
+
+- [#130](https://github.com/ShaulLavo/ghostty-webgpu/pull/130) - Run every browser shard in Chromium, Firefox, and WebKit in CI. Headless Firefox uses a virtual X display for software WebGL2.
+- [#131](https://github.com/ShaulLavo/ghostty-webgpu/pull/131) - Preserve surrounding textarea text when Firefox sends the final composition input after composition ends.
+- [#133](https://github.com/ShaulLavo/ghostty-webgpu/pull/133) - Use the browser platform to select copy shortcuts and keep scrollbar thumbs aligned at fractional sizes.
+- [#137](https://github.com/ShaulLavo/ghostty-webgpu/pull/137) - Preserve WebGL drawing buffers so WebKit presents the current terminal and shader output instead of stale frames.
+- [#132](https://github.com/ShaulLavo/ghostty-webgpu/pull/132), [#134](https://github.com/ShaulLavo/ghostty-webgpu/pull/134), [#135](https://github.com/ShaulLavo/ghostty-webgpu/pull/135), [#136](https://github.com/ShaulLavo/ghostty-webgpu/pull/136) - Add cross-engine browser regression coverage with clipboard fixtures, Canvas comparisons, and rendering capability checks for Chromium, Firefox, and WebKit.
+- Release `ghostty-webgpu-shaders` 0.0.3 with the WebGL presentation fix. The line editor remains at 0.0.4, and both addons keep their existing terminal peer ranges.
+
 ## 0.3.33
 
 ### Patch Changes
