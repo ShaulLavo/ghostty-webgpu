@@ -412,10 +412,9 @@ class OwnedTerminalScrollbar implements TerminalScrollbarController {
     const ratio = snapshot.total === 0 ? 1 : snapshot.length / snapshot.total
     const maximum = maximumOffset(snapshot)
     const progress = maximum === 0 ? 0 : snapshot.offset / maximum
-    this.thumb.style.height = `min(100%, max(${ratio * 100}%, ${this.minThumbSize}px))`
-    this.thumb.style.top = `${progress * 100}%`
-    // Track-relative top minus thumb-relative translation preserves travel through resizes.
-    this.thumb.style.transform = `translateY(${-progress * 100}%)`
+    const height = `min(100%, max(${ratio * 100}%, ${this.minThumbSize}px))`
+    this.thumb.style.height = height
+    this.thumb.style.top = `calc((100% - ${height}) * ${progress})`
   }
 
   private readThumbGeometry(): ThumbGeometry {
