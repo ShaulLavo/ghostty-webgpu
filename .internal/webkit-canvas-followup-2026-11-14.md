@@ -69,9 +69,19 @@ mutation, and browser logs. `controls.ts` runs all three engines without importi
 code or starting a Vite server. Run it through the heavy runner with the checkout path and
 an output JSON path. `controls.json` contains its measurements.
 
-No test names, case counts, native registry entries, exclusions, timeouts, retries, SDK pins,
-versions, font atlas source, or WebGL source change. The new test helper is imported by the
-existing scroll test. Native registry integration remains with the registration worker.
+The updated PR 134 parent at `71f249fa62c31b831508d3f64ca64576c556a9ae` is merged into
+this branch. After its registration owner closed the claim, the coordinator granted this
+worker the three Canvas scroll metadata files. Only the `canvas-scroll` source hash,
+source-key lines, newline count, and screenshot-call lines change. All 15 expanded case
+objects deep-equal the parent after omitting only `sourceKey`. Their 12 declaration sites,
+names, order, ordinals, 15000 ms clocks, zero retries, captures, and fixed exclusions stay.
+The exact allowlist and preservation result are in `refresh-canvas.ts` and
+`preservation.json` beside the browser evidence.
+
+The required Node Vitest checks cover `ios-browser-source`, `ios-browser-canvas-scroll`,
+and `ios-browser-capability-imports`. They run through the PC heavy runner without opening
+a native session. There is no native Safari credit. No SDK pins, versions, font atlas source,
+or WebGL source change. The existing scroll test imports the new primitive repaint helper.
 
 Fix Root Causes separated browser behavior from renderer faults. Build the Lever produced
 the standalone three-engine controls and mutation check. Prove It Works required the real

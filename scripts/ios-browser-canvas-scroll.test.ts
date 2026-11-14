@@ -36,7 +36,7 @@ function originalCaptures(source: string): CaptureOptions[] {
   const sites = Array.from(source.matchAll(/await page\.screenshot\((\{[\s\S]*?\n\s*\})\)/g))
   assert.deepEqual(
     sites.map((site) => source.slice(0, site.index).split('\n').length),
-    [243, 515, 538],
+    [244, 517, 540],
   )
   const canvas = { selector: '#original-candidate-canvas', locator: 'canvas' }
   const evaluate = (site: (typeof sites)[number] | undefined, unicode: boolean) => {
@@ -133,24 +133,24 @@ test('canvas scroll selects all 15 unchanged rows with the original source ident
   await verifyNativeSource(stage)
   assert.equal(
     nativeSourceHashes[stage],
-    '7e84e87bfea3408774a4caaa517dda7e80e1dd53dec5954803ff55e01e2769c0',
+    'c0f27b373480665c78c16b0cde21af6f5e7b442f5099b8e910df99b51c0b02f9',
   )
   const sites = [
-    '213:0',
-    '213:1',
-    '250:0',
-    '273:0',
-    '296:0',
-    '322:0',
-    '365:0',
-    '365:1',
-    '403:0',
-    '424:0',
-    '424:1',
-    '475:0',
-    '494:0',
-    '544:0',
-    '590:0',
+    '214:0',
+    '214:1',
+    '251:0',
+    '274:0',
+    '297:0',
+    '323:0',
+    '366:0',
+    '366:1',
+    '404:0',
+    '425:0',
+    '425:1',
+    '477:0',
+    '496:0',
+    '546:0',
+    '592:0',
   ]
   assert.deepEqual(
     selected.expected.map((row) => row.sourceKey),
@@ -162,7 +162,7 @@ test('canvas scroll selects all 15 unchanged rows with the original source ident
     ),
   )
   const source = await readFile(selected.file, 'utf8')
-  assert.equal(source.split('\n').length - 1, 609)
+  assert.equal(source.split('\n').length - 1, 611)
   assert.equal(source.match(/\bit(?:\.each)?\(/g)?.length, 12)
   assert(!source.includes('page.viewport'))
   const runner = await readFile(new URL('./ios-browser-run.ts', import.meta.url), 'utf8')
