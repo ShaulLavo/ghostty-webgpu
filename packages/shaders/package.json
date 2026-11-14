@@ -1,6 +1,6 @@
 {
   "name": "ghostty-webgpu-shaders",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Optional compiled shader effects for ghostty-webgpu terminals",
   "license": "MIT",
   "repository": {
