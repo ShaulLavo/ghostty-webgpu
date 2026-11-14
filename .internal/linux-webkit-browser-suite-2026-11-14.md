@@ -52,8 +52,10 @@ cases, with one shader iframe initialization error. The shader case passed when 
 
 Chromium passed 290 cases across the real GPU, selector, terminal UI, and packaged worker
 suites with these capability checks. Typechecking, helper unit tests, lint, and formatting pass.
-The maintained full WebKit suite is still being qualified; no supported renderer assertion
-has been removed or weakened.
+The final maintained WebKit run, including frozen install and all three builds in one job,
+reported 44 failed, 944 passed, and 575 skipped cases across 84 files in 274.99 seconds.
+There were no unhandled iframe errors. Six focused capability-error and host-only cases pass.
+No supported renderer assertion has been removed or weakened.
 
 An independent, overlay-free canvas probe reproduced a WebKit font fallback discrepancy.
 A first assignment of `24px MissingProbeFamily, ProbeFallback` measures `M` as 19.9921875,
@@ -64,5 +66,29 @@ the base family, and loading the full family list did not resolve it. Those expe
 were reverted.
 
 Detailed logs and the standalone probe are retained under
-`/work/reports/goals/ghostty-shell-20261114/webkit`. Supported WebGL screenshot and Canvas
-pixel parity failures need further diagnosis. They are not capability exclusions.
+`/work/reports/goals/ghostty-shell-20261114/webkit`. `browser-final.log` contains the full
+run; `final-failures.txt` lists every remaining test, assertion, and source location.
+
+| Remaining file                                           | Cases | Observed failure                                                                                  |
+| -------------------------------------------------------- | ----: | ------------------------------------------------------------------------------------------------- |
+| `src/render/tests/zig-unicode.browser.test.ts`           |    18 | WebGL screenshots disagree with the independent glyph and selection oracle.                       |
+| `src/bidi/interactions.browser.test.ts`                  |     6 | WebGL highlight pixels remain background RGB 17 instead of selection RGB 51, 68, 85.              |
+| `src/render/canvas/scroll.browser.test.ts`               |     4 | Exact transparent pixel parity differs by 228, 1539, or 1548 bytes; OffscreenCanvas also differs. |
+| `src/dom/tests/zig-frame.browser.test.ts`                |     3 | Retained screenshots differ after atlas pressure, a bridge exception, or resource invalidation.   |
+| `src/render/tests/emoji.browser.test.ts`                 |     3 | Screenshot dimensions or mixed color-layer pixels differ.                                         |
+| `src/render/canvas/renderer.browser.test.ts`             |     2 | Late font invalidation changes the supposedly stable M advance, as reproduced above.              |
+| `packages/shaders/src/tests/addon.browser.test.ts`       |     2 | Paused theme/cursor updates and capture after presentation retain unexpected pixels.              |
+| `src/dom/tests/font-resource-generation.browser.test.ts` |     1 | The missing-first-family WebGL replacement leaves identical captured bytes.                       |
+| `src/dom/tests/renderer-fallback.browser.test.ts`        |     1 | Expected selected pixels are absent after WebGL loss.                                             |
+| `src/dom/tests/terminal-input.browser.test.ts`           |     1 | The paste fixture reports the wrong prevented state; the interaction worker owns this fixture.    |
+| `src/render/tests/held-output.browser.test.ts`           |     1 | Xterm screenshot pixels differ.                                                                   |
+| `src/render/tests/short-line.browser.test.ts`            |     1 | WebGL screenshot dots do not match the expected square cells.                                     |
+| `src/render/webgl/renderer.browser.test.ts`              |     1 | Compositor pixels do not reflect a live theme change.                                             |
+
+The nine zig-frame and Canvas cases also reproduced in a narrow run with both optional
+packages already built, in `overlay-free.log`. A framebuffer comparison remained exact
+across an atlas clear while screenshots changed, recorded in `bridge-pixels.log`. Temporary
+diagnostic source edits were removed. Font readiness and compositor environment probes
+did not resolve these failures. Further investigation should start from the individual
+commands above with the file filter, rather than changing assertions or adding retries.
+These supported-renderer failures are not capability exclusions.
