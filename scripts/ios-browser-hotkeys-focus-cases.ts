@@ -170,7 +170,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > attaches after open, removes its node/commands, cancels clipboard completion and leaves native authority live',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:523:0',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:525:0',
     timeoutMs: 15000,
     retries: 0,
   },
