@@ -1,6 +1,7 @@
 import {
   observeDisplayedFrame,
   displayedFrameListener,
+  type DisplayedFrameOptions,
   type DisplayedTextFrame,
 } from '../../render/shared/displayed-frame.js'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -54,21 +55,18 @@ async function fixture() {
   const terminal = createGhosttyWebGpuTerminalFromSession(session, {
     autoFit: false,
     elements,
-    rendererFactory: (options, signal) =>
-      createCompatibleTerminalRenderer(
-        {
-          ...options,
-          deviceFactory: () =>
-            Promise.reject(new WebGpuUnavailableError('adapter', 'No supported adapter')),
-          ...{
-            [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => {
-              observations.frames += 1
-              displayedFrameListener(options)?.(snapshot)
-            },
-          },
+    rendererFactory: (options, signal) => {
+      const rendererOptions: typeof options & DisplayedFrameOptions = {
+        ...options,
+        deviceFactory: () =>
+          Promise.reject(new WebGpuUnavailableError('adapter', 'No supported adapter')),
+        [observeDisplayedFrame]: (snapshot: DisplayedTextFrame) => {
+          observations.frames += 1
+          displayedFrameListener(options)?.(snapshot)
         },
-        signal,
-      ),
+      }
+      return createCompatibleTerminalRenderer(rendererOptions, signal)
+    },
   })
   cleanups.push(() => terminal.dispose())
   const errors: unknown[] = []
