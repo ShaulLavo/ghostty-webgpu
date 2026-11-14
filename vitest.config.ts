@@ -13,6 +13,7 @@ export default defineConfig({
       'scripts/wasm-provenance.test.ts',
       'scripts/comparison-source.test.ts',
       'scripts/browser-file-roots.test.ts',
+      'scripts/font-loading-fixture.test.ts',
       'scripts/renderer-smoke-dependency.test.ts',
       'scripts/package-tarball.test.ts',
       'scripts/release-artifacts.test.ts',
