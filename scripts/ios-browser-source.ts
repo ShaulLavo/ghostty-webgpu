@@ -7,7 +7,7 @@ import { nativeStage } from './ios-browser-stages.ts'
 export const nativeSourceHashes = {
   'legacy-text': '3335534124bd8eb476e9e66c6e93028d31a33532354c009c5a54dbec10cdcf70',
   'pointer-selection': 'd1504dac38906a9dbe6d0326ed390350ed94aa4201a381ec20a5c8f464b65b6e',
-  'hotkeys-focus': 'a589db2abdb54e8553ccf9afba7e7601faef7e0bd8149599afcf10f790141674',
+  'hotkeys-focus': '65997947caf99d9a13a55d6828547965c4aa6fd50d59ed7469eddfd443736901',
   'renderer-benchmark': '75a26d4536fd34a33dea03432f096e763b4c0029534df16f1518fdb944fd83f6',
   'text-pass': 'f54d444352c28e0ce3bc536ebf18fae6ea2efa9a4d2720674f1b8233f5589b83',
   selector: '29d2d7bf7b03d50e412e7d684c200e42e59bc102f4ef6d0b742a41aa1e793f71',
