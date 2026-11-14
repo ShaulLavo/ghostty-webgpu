@@ -111,8 +111,8 @@ type InputPlatform = 'mac' | 'linux' | 'windows'
 
 function inputPlatform(): InputPlatform {
   if (typeof navigator === 'undefined') return 'linux'
-  const platform = `${navigator.platform} ${navigator.userAgent}`.toLowerCase()
-  if (platform.includes('mac')) return 'mac'
+  const platform = (navigator.platform || navigator.userAgent).toLowerCase()
+  if (platform.includes('mac') || /^(iphone|ipad|ipod)/u.test(platform)) return 'mac'
   if (platform.includes('win')) return 'windows'
   return 'linux'
 }
