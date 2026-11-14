@@ -1,6 +1,6 @@
 # Release built packages
 
-1. Run `bun install --frozen-lockfile` and `bunx playwright install --with-deps chromium`.
+1. Run `bun install --frozen-lockfile` and `bunx playwright install --with-deps chromium firefox webkit`.
 2. Run `bun run verify`. This builds and checks the terminal, line editor, and shader addon, then packs them into `.artifacts/`. The terminal tarball is checked in Chromium. All three final tarballs are installed together in a temporary npm consumer to check their declarations together, addon exports, and behavior.
 3. Inspect `.artifacts/ghostty-webgpu.tgz`, `.artifacts/ghostty-webgpu-line-editor.tgz`, and `.artifacts/ghostty-webgpu-shaders.tgz`. The accompanying `release.json` records the source commit, package names, versions, and SHA-256 checksums. Keep these files unchanged after verification.
 4. When cutting a version, update the affected patch versions and changelogs. Update addon peer ranges if the terminal version requires it. Commit those changes and repeat verification.

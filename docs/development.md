@@ -32,7 +32,7 @@ Run these from the repository root. Before running the full browser suite direct
 
 Pass a path to run one browser file: `bun run test:browser src/render/tests/selector.browser.test.ts`. Headless software-GPU runs prove correctness only. Performance numbers need headed Chromium on a hardware adapter (`bun run bench:renderer`).
 
-Set `GHOSTTY_BROWSER_ENGINE` to `firefox` or `webkit` to run the browser suite there. CI does not.
+Set `GHOSTTY_BROWSER_ENGINE` to `firefox` or `webkit` to run the browser suite there. Install the matching Playwright engine and system dependencies first.
 
 ## Rebuild the wasm
 
@@ -64,7 +64,7 @@ The public docs live in three places.
 
 Two pieces are generated. `docs/benchmarks.md` and the `docs/overview.md` table between `## Performance` and `### Correctness` come from `docs/benchmarks/mac-m1-2026-10-10/scores.json`. Edit the data or `report.mjs`, then run `node docs/benchmarks/mac-m1-2026-10-10/report.mjs`. `report.mjs --check` fails when either generated file drifts.
 
-Run `bunx playwright install --with-deps chromium` before the first browser test on Linux. `bun run verify` also checks docs examples, packs all three packages, and installs the terminal tarball in a temporary consumer. See [releases](releasing.md) to distribute those tested files.
+Run `bunx playwright install --with-deps chromium firefox webkit` before testing all three engines on Linux. `bun run verify` also checks docs examples, packs all three packages, and installs the terminal tarball in a temporary consumer. See [releases](releasing.md) to distribute those tested files.
 
 ## Benchmark tooling
 
