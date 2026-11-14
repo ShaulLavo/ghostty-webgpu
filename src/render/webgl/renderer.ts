@@ -52,6 +52,8 @@ function requireContext(
     depth: false,
     desynchronized: presentation === 'immediate',
     premultipliedAlpha: true,
+    // WebKit otherwise presents the previous buffer when antialiasing is disabled.
+    preserveDrawingBuffer: true,
     stencil: false,
   })
   if (context) return context
