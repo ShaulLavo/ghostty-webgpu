@@ -472,9 +472,11 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
       expect(pastePress.defaultPrevented).toBe(false)
       const clipboardData = new DataTransfer()
       clipboardData.setData('text/plain', 'browser paste')
-      f.terminal.textarea!.dispatchEvent(
-        new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }),
-      )
+      const paste = new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true })
+      // Firefox replaces constructor-supplied clipboard data on untrusted paste events.
+      Object.defineProperty(paste, 'clipboardData', { value: clipboardData })
+      expect(paste.clipboardData?.getData('text/plain')).toBe('browser paste')
+      f.terminal.textarea!.dispatchEvent(paste)
       await expect.poll(() => f.output).toEqual(['\x1b[200~browser paste\x1b[201~'])
       const modifier = platform === 'mac' ? { metaKey: true } : { ctrlKey: true }
       f.key('keydown', { key: '=', code: 'Equal', ...modifier })
