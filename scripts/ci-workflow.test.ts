@@ -1,14 +1,20 @@
 import { expect, test } from 'bun:test'
-import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import {
+  BROWSER_ENGINES,
+  discoverBrowserTestFiles,
+  engineInvocation,
+  partitionSlices,
+  runBrowserShard,
+} from './browser-shard.ts'
 
+const root = fileURLToPath(new URL('..', import.meta.url))
 const source = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
 const workflow = record(Bun.YAML.parse(source))
 const jobs = record(workflow.jobs)
 const verify = record(jobs.verify)
-const browsers = record(jobs['browser-tests'])
-const gate = record(jobs.browser)
-const codeChanged = "needs.verify.outputs.code == 'true'"
+const codeChanged = "github.event_name != 'pull_request' || steps.paths.outputs.code == 'true'"
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -27,125 +33,94 @@ function step(job: Record<string, unknown>, name: string): Record<string, unknow
   return found
 }
 
-test('runs every engine across all four shards without cancelling peers or tolerating failures', () => {
-  const strategy = record(browsers.strategy)
-  expect(strategy.matrix).toEqual({
-    engine: ['chromium', 'firefox', 'webkit'],
-    shard: [1, 2, 3, 4],
-  })
-  expect(strategy['fail-fast']).toBe(false)
-  expect(browsers['continue-on-error']).toBeUndefined()
-  expect(browsers.needs).toBe('verify')
-  expect(browsers.if).toBe(
-    "${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}",
-  )
-  expect(record(browsers.env).GHOSTTY_BROWSER_ENGINE).toBe('${{ matrix.engine }}')
-  expect(browsers.name).toBe('browser tests (${{ matrix.engine }}, ${{ matrix.shard }}/4)')
-  const run = step(browsers, 'Browser tests')
+test('CI runs every required check in one verify job with no error suppression', () => {
+  expect(Object.keys(jobs).toSorted()).toEqual(['release', 'verify'])
+  expect(verify['continue-on-error']).toBeUndefined()
+  const run = step(verify, 'Browser tests')
   expect(run.if).toBe(codeChanged)
-  expect(steps(browsers).every((entry) => entry['continue-on-error'] === undefined)).toBe(true)
+  expect(run.run).toBe('bun scripts/browser-shard.ts --shard=1/1 --slices=6 --workers=3')
+  expect(step(verify, 'Verify both docs sites, examples and search').run).toBe(
+    'bun run sites:verify "$PWD/.artifacts/docs-browser" 4327',
+  )
+  expect(steps(verify).every((entry) => entry['continue-on-error'] === undefined)).toBe(true)
 })
 
-test('the browser shell supplies Xvfb only to Firefox and preserves the shard and failures', () => {
-  const run = step(browsers, 'Browser tests')
-  expect(run.shell).toBe('bash')
-  if (typeof run.run !== 'string') throw new Error('Missing browser test shell')
-  const command = run.run.replaceAll('${{ matrix.shard }}', '2')
-  const stubs = `
-function bun() { printf 'bun'; printf ' <%s>' "$@"; printf '\\n'; return "$BROWSER_EXIT_CODE"; }
-function xvfb-run() { printf 'xvfb-run <%s>\\n' "$1"; shift; "$@"; }
-`
-  for (const engine of ['chromium', 'firefox', 'webkit']) {
-    for (const exitCode of [0, 23]) {
-      const result = spawnSync('bash', ['-c', stubs + command], {
-        encoding: 'utf8',
-        env: {
-          PATH: process.env.PATH,
-          GHOSTTY_BROWSER_ENGINE: engine,
-          BROWSER_EXIT_CODE: String(exitCode),
-        },
-      })
-      expect(result.status, result.stderr).toBe(exitCode)
-      const prefix = engine === 'firefox' ? 'xvfb-run <-a>\n' : ''
-      expect(result.stdout).toBe(prefix + 'bun <run> <test:browser> <--shard=2/4>\n')
-    }
+test('browser runner covers every engine and propagates failures across all slices', async () => {
+  expect(BROWSER_ENGINES).toEqual(['chromium', 'firefox', 'webkit'])
+  const all = await discoverBrowserTestFiles(root)
+  expect(all.length).toBeGreaterThan(0)
+  const slices = partitionSlices(all, 6)
+  const combined = slices.reduce<string[]>((acc, slice) => acc.concat(slice), [])
+  expect(combined.toSorted()).toEqual(all)
+  for (const engine of BROWSER_ENGINES) {
+    const invocation = engineInvocation(engine, all)
+    expect(invocation.env.GHOSTTY_BROWSER_ENGINE).toBe(engine)
+    expect(invocation.command[0] === 'xvfb-run').toBe(engine === 'firefox')
+    expect(invocation.command.slice(-all.length)).toEqual(all)
   }
+  const executed = new Set<string>()
+  const outcome = await runBrowserShard({
+    cwd: root,
+    index: 1,
+    total: 1,
+    slices: 6,
+    workers: 3,
+    files: all,
+    cacheRoot: '/tmp/ci-workflow-browser-check',
+    log: () => {},
+    runner: async (invocation, meta) => {
+      executed.add(`${invocation.engine}:${meta.sliceIndex}`)
+      return {
+        exitCode: invocation.engine === 'webkit' && meta.sliceIndex === 0 ? 1 : 0,
+        output: '',
+      }
+    },
+  })
+  expect(outcome.exitCode).toBe(1)
+  expect(executed.size).toBe(slices.length * BROWSER_ENGINES.length)
 })
 
-test('all engines consume the verified build without rebuilding packages', () => {
-  const entries = steps(browsers)
-  const download = entries.findIndex((entry) => record(entry.with ?? {}).name === 'verified-build')
-  const restore = entries.indexOf(step(browsers, 'Verify the build artifact identity and outputs'))
-  const run = entries.indexOf(step(browsers, 'Browser tests'))
-  expect(download).toBeGreaterThanOrEqual(0)
-  expect(restore).toBeGreaterThan(download)
-  expect(run).toBeGreaterThan(restore)
-  expect(entries[download]?.if).toBe(codeChanged)
-  expect(entries[restore]?.run).toBe('bun scripts/verified-build-artifact.ts verify')
-  expect(entries[restore]?.if).toBe(codeChanged)
-  expect(
-    entries.some((entry) => /bun run (?:build|verify:extensions)/.test(String(entry.run))),
-  ).toBe(false)
+test('verify builds once, keeps site TypeDoc builds serial, and runs workflow self-checks', () => {
+  const entries = steps(verify)
+  const build = entries.indexOf(step(verify, 'Build and check all packages'))
+  const sitesBuild = entries.indexOf(
+    step(verify, 'Build both sites and dry-run the Worker from the verified packages'),
+  )
+  const sitesVerify = entries.indexOf(step(verify, 'Verify both docs sites, examples and search'))
+  const browserRun = entries.indexOf(step(verify, 'Browser tests'))
+  expect(build).toBeGreaterThanOrEqual(0)
+  expect(sitesBuild).toBeGreaterThan(build)
+  expect(sitesVerify).toBeGreaterThan(sitesBuild)
+  expect(browserRun).toBeGreaterThan(build)
+  const sitesBuildScript = String(entries[sitesBuild]?.run)
+  expect(entries[sitesBuild]?.shell).toBe('bash')
+  expect(sitesBuildScript).toContain('set -euo pipefail')
+  expect(sitesBuildScript).not.toContain('&')
   expect(step(verify, 'Check browser CI coverage and required gates').run).toBe(
     'bun test scripts/ci-workflow.test.ts',
   )
 })
 
-test('the selected engine uses the pinned image and validates its own dependencies', () => {
-  const image = record(verify.container).image
-  expect(image).toMatch(/^mcr\.microsoft\.com\/playwright@sha256:[a-f0-9]{64}$/)
-  expect(record(browsers.container).image).toBe(image)
-  expect(record(record(jobs.sites).container).image).toBe(image)
+test('all browser engines use the pinned Playwright image with init and 2g /dev/shm', () => {
+  const container = record(verify.container)
+  expect(container.image).toMatch(/^mcr\.microsoft\.com\/playwright@sha256:[a-f0-9]{64}$/)
+  expect(container.options).toContain('--init')
+  expect(container.options).toContain('--shm-size=2g')
   const manifest = record(
     JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')),
   )
   expect(source).toContain(`# v${record(manifest.devDependencies).playwright}-noble, amd64`)
-  expect(step(browsers, 'Validate Playwright system dependencies').run).toContain(
-    'playwright install-deps --dry-run "$GHOSTTY_BROWSER_ENGINE"',
+  expect(step(verify, 'Validate Playwright system dependencies').run).toContain(
+    'playwright install-deps --dry-run chromium firefox webkit',
   )
-  expect(step(browsers, 'Install the selected Playwright browser').run).toContain(
-    'playwright install "$GHOSTTY_BROWSER_ENGINE"',
+  expect(step(verify, 'Install Playwright browsers').run).toContain(
+    'playwright install chromium firefox webkit',
   )
 })
 
-test('protected check names run even after a dependency fails or is skipped', () => {
-  expect(gate.name).toBe('browser (${{ matrix.shard }}/4)')
-  expect(record(gate.strategy)['fail-fast']).toBe(false)
-  expect(record(gate.strategy).matrix).toEqual({ shard: [1, 2, 3, 4] })
-  expect(gate.needs).toEqual(['verify', 'browser-tests'])
-  expect(gate.if).toBe(
-    "${{ always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}",
-  )
-  expect(gate['continue-on-error']).toBeUndefined()
-  expect(steps(gate)).toHaveLength(1)
-  expect(steps(gate)[0]?.if).toBeUndefined()
-  expect(steps(gate)[0]?.['continue-on-error']).toBeUndefined()
-})
-
-test('the actual protected gate shell accepts only successful verify and browser jobs', () => {
-  const check = step(gate, 'Require every browser engine and shard to pass')
-  expect(check.env).toEqual({
-    VERIFY_RESULT: '${{ needs.verify.result }}',
-    BROWSER_RESULT: '${{ needs.browser-tests.result }}',
-  })
-  if (typeof check.run !== 'string') throw new Error('Missing gate shell')
-  const states = ['success', 'failure', 'cancelled', 'skipped']
-  const pairs = states.flatMap((verify) => states.map((browser) => ({ verify, browser })))
-  for (const pair of pairs) {
-    const result = spawnSync('bash', ['-c', check.run], {
-      env: { PATH: process.env.PATH, VERIFY_RESULT: pair.verify, BROWSER_RESULT: pair.browser },
-      encoding: 'utf8',
-    })
-    expect(result.error).toBeUndefined()
-    expect(result.status === 0, JSON.stringify(pair)).toBe(
-      pair.verify === 'success' && pair.browser === 'success',
-    )
-  }
-})
-
-test('tag releases still wait on verify, protected browser checks, and sites', () => {
+test('tag releases still wait on verify', () => {
   const release = record(jobs.release)
-  expect(release.needs).toEqual(['verify', 'browser', 'sites'])
+  expect(release.needs).toEqual(['verify'])
   expect(release.if).toBe("startsWith(github.ref, 'refs/tags/v')")
   expect(step(release, 'Publish tested packages as a GitHub release').run).toContain('--draft')
 })

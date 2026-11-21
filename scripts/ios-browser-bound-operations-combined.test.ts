@@ -9,7 +9,7 @@ import { test } from 'vitest'
 import { combinedControlModes } from './ios-browser-bound-operations-modes.ts'
 
 const entry = fileURLToPath(new URL('./ios-browser-bound-operations-control.ts', import.meta.url))
-test.each(combinedControlModes)(
+test.concurrent.each(combinedControlModes)(
   'combined admitted DOM, official provider and SDK: %s',
   combinedControl,
   55000,

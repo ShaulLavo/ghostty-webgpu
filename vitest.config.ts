@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
+    // Bound per-file concurrent tests to 2 so two overlapping browser-backed unit suites cap at 4 browsers on 4-vCPU CI runners.
+    maxConcurrency: 2,
     exclude: ['src/**/*.browser.test.ts', 'scripts/**/*.browser.test.ts'],
     include: [
       'src/**/*.test.ts',
@@ -13,6 +15,7 @@ export default defineConfig({
       'scripts/wasm-provenance.test.ts',
       'scripts/comparison-source.test.ts',
       'scripts/browser-file-roots.test.ts',
+      'scripts/browser-shard.test.ts',
       'scripts/font-loading-fixture.test.ts',
       'scripts/renderer-smoke-dependency.test.ts',
       'scripts/package-tarball.test.ts',

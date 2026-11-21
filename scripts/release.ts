@@ -38,9 +38,15 @@ async function checkAddons(): Promise<void> {
     )
     const tarballs = (await releasePackages(root)).map((entry) => join(artifacts, entry.filename))
     await run(
-      ['npm', 'install', '--dry-run=false', '--ignore-scripts', '--no-audit', '--no-fund'].concat(
-        tarballs,
-      ),
+      [
+        'npm',
+        'install',
+        '--dry-run=false',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--prefer-offline',
+      ].concat(tarballs),
       consumer,
     )
     await copyFile(

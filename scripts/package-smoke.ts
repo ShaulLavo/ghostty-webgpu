@@ -524,8 +524,7 @@ async function verifyTypes(root: string): Promise<void> {
       '--ignore-scripts',
       '--no-audit',
       '--no-fund',
-      '--cache',
-      join(compilerRoot, 'npm-cache'),
+      '--prefer-offline',
     ],
     compilerRoot,
   )
@@ -1067,7 +1066,16 @@ async function main(): Promise<void> {
     await writeConsumerFiles(consumerRoot, browserOnly)
     const tarball = input ?? (await createTarball(workspace, projectRoot))
     await run(
-      ['npm', 'install', '--dry-run=false', '--ignore-scripts', '--no-audit', '--no-fund', tarball],
+      [
+        'npm',
+        'install',
+        '--dry-run=false',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--prefer-offline',
+        tarball,
+      ],
       consumerRoot,
     )
     if (browserOnly) await verifyInstalledBrowserPackage(consumerRoot, tarball)

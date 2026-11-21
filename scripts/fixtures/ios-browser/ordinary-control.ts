@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { createVitest } from 'vitest/node'
 import { playwright } from '@vitest/browser-playwright'
 import { createBrowserTestConfig } from '../../../vitest.browser.config.ts'
@@ -16,6 +17,7 @@ try {
     { config: false, watch: false },
     {
       ...base,
+      cacheDir: join(report, 'vite'),
       test: {
         ...base.test,
         include: ['scripts/fixtures/ios-browser/ordinary.browser.test.ts'],
