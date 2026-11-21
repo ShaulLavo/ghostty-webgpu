@@ -5,7 +5,7 @@ import { join } from 'node:path'
 export async function rendererSmokeHotkeys(packageRoot: string): Promise<string> {
   const require = createRequire(join(packageRoot, 'package.json'))
   const build = await Bun.build({
-    entrypoints: [require.resolve('@fregat/hotkeys')],
+    entrypoints: [require.resolve('@shaulavo/hotkeys')],
     target: 'browser',
     format: 'esm',
   })

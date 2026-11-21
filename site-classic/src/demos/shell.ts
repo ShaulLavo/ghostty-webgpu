@@ -1,5 +1,5 @@
 import type { Bash } from 'just-bash/browser'
-import { readline, type ReadlineApi } from 'ghostty-webgpu-line-editor'
+import { readline, type ReadlineApi } from '@ghostty-webgpu/line-editor'
 import { clearScreen, fg, reset, showCursor } from '../ansi.js'
 import { dusk, pale, spectre } from '../theme.js'
 import { shellFiles } from './shell-files.js'

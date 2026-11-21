@@ -1,4 +1,4 @@
-import type { KeyContextInit } from '@fregat/hotkeys'
+import type { KeyContextInit } from '@shaulavo/hotkeys'
 
 export interface TerminalKeyContextState {
   readonly alternateScreen: boolean

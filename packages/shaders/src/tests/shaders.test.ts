@@ -25,9 +25,9 @@ it('accepts full compiler objects structurally and one-language artifacts', () =
     webgl: { uniformBlock: null, channel0: null },
   }
   expectTypeOf(full).toExtend<CompiledShader>()
-  expect(createShaderAddon(full).name).toBe('ghostty-webgpu-shaders')
-  expect(createShaderAddon({ wgsl: 'compiled' }).name).toBe('ghostty-webgpu-shaders')
-  expect(createShaderAddon({ glsl: 'compiled' }).name).toBe('ghostty-webgpu-shaders')
+  expect(createShaderAddon(full).name).toBe('@ghostty-webgpu/shaders')
+  expect(createShaderAddon({ wgsl: 'compiled' }).name).toBe('@ghostty-webgpu/shaders')
+  expect(createShaderAddon({ glsl: 'compiled' }).name).toBe('@ghostty-webgpu/shaders')
   expect(() => createShaderAddon({ wgsl: '' })).toThrow('must contain WGSL or GLSL')
   // @ts-expect-error source text is not a compiled artifact
   expect(() => createShaderAddon('shader')).toThrow('compiled WGSL or GLSL shader object')

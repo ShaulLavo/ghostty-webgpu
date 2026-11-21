@@ -1,6 +1,6 @@
 import type { TerminalApi } from 'ghostty-webgpu'
-import { History, readline } from 'ghostty-webgpu-line-editor'
-import { createShaderAddon } from 'ghostty-webgpu-shaders'
+import { History, readline } from '@ghostty-webgpu/line-editor'
+import { createShaderAddon } from '@ghostty-webgpu/shaders'
 
 export async function useAddons(terminal: TerminalApi): Promise<void> {
   const editor = await terminal.use(readline({ history: new History({ limit: 2 }) }))

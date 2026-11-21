@@ -7,7 +7,7 @@ import {
   type FocusNode,
   type KeymapEntry,
   type KeymapPlatform,
-} from '@fregat/hotkeys'
+} from '@shaulavo/hotkeys'
 import { createTerminalCommands, type TerminalCommandOptions } from './commands.js'
 import { terminalKeyContext, type TerminalKeyContextState } from './context.js'
 import {

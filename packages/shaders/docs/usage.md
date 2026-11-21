@@ -3,7 +3,7 @@
 Install the addon separately from `ghostty-webgpu`. Terminal core has no dependency on this package.
 
 ```ts
-import { createShaderAddon } from 'ghostty-webgpu-shaders'
+import { createShaderAddon } from '@ghostty-webgpu/shaders'
 
 const handle = terminal.use(
   createShaderAddon(compiled, {

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { createKeyInput, createDispatcher } from '@fregat/hotkeys'
+import { createKeyInput, createDispatcher } from '@shaulavo/hotkeys'
 import { terminalKeyContext } from '../context.js'
 import { readSendKeystrokeArgs, terminalKeystroke } from '../keystroke.js'
 import { ghosttyKeymap, terminalShellKeysPack } from '../packs.js'

@@ -11,7 +11,7 @@ export const packageAliases = [
     replacement: fileURLToPath(new URL('../../dist/extensions/hotkeys/index.js', import.meta.url)),
   },
   {
-    find: /^ghostty-webgpu-line-editor$/,
+    find: /^@ghostty-webgpu\/line-editor$/,
     replacement: fileURLToPath(
       new URL('../../packages/line-editor/dist/index.js', import.meta.url),
     ),

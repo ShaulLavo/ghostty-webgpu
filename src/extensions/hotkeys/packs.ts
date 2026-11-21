@@ -1,4 +1,4 @@
-import type { Binding, KeymapPlatform } from '@fregat/hotkeys'
+import type { Binding, KeymapPlatform } from '@shaulavo/hotkeys'
 
 function defaults(
   modifier: string,

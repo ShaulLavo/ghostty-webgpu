@@ -9,7 +9,7 @@ let root: string
 let artifacts: string
 let commit: string
 let tag: string
-const names = ['ghostty-webgpu', 'ghostty-webgpu-line-editor', 'ghostty-webgpu-shaders']
+const names = ['ghostty-webgpu', '@ghostty-webgpu/line-editor', '@ghostty-webgpu/shaders']
 
 function git(...args: string[]): string {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
@@ -24,7 +24,7 @@ async function packFixture(index: number, version = '0.0.1'): Promise<void> {
   )
   execFileSync('tar', [
     '-czf',
-    join(artifacts, `${names[index]}.tgz`),
+    join(artifacts, `${names[index]!.replace(/^@/, '').replaceAll('/', '-')}.tgz`),
     '-C',
     join(root, 'fixture'),
     'package',
@@ -98,7 +98,7 @@ test('rejects a packed version that differs from source', async () => {
 })
 
 test('rejects a missing or extra tarball', async () => {
-  await rm(join(artifacts, `${names[1]}.tgz`))
+  await rm(join(artifacts, `${names[1]!.replace(/^@/, '').replaceAll('/', '-')}.tgz`))
   await expect(validateReleaseArtifacts({ root, artifacts, commit, tag })).rejects.toThrow(
     'tarball set differs',
   )
@@ -121,7 +121,7 @@ test('rejects a mismatched manifest commit or package identity', async () => {
   const manifest = await readFile(join(artifacts, 'release.json'), 'utf8')
   await writeFile(
     join(artifacts, 'release.json'),
-    manifest.replace('ghostty-webgpu-line-editor', 'wrong-name'),
+    manifest.replace('@ghostty-webgpu/line-editor', 'wrong-name'),
   )
   await expect(validateReleaseArtifacts({ root, artifacts, commit, tag })).rejects.toThrow(
     'identity or checksum',
