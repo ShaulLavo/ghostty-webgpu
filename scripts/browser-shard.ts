@@ -208,6 +208,23 @@ interface ProcessEntry {
   readonly pid: number
   readonly ppid: number
   readonly pgid: number
+  readonly state: string
+}
+
+async function readProcessEntry(pid: number): Promise<ProcessEntry | undefined> {
+  try {
+    const stat = await readFile(`/proc/${pid}/stat`, 'utf8')
+    const close = stat.lastIndexOf(')')
+    if (close < 0) return undefined
+    const fields = stat.slice(close + 2).split(' ')
+    const state = fields[0] ?? ''
+    const ppid = Number(fields[1])
+    const pgid = Number(fields[2])
+    if (!Number.isInteger(ppid) || !Number.isInteger(pgid)) return undefined
+    return { pid, ppid, pgid, state }
+  } catch {
+    return undefined
+  }
 }
 
 async function listProcessEntries(): Promise<ProcessEntry[]> {
@@ -221,20 +238,24 @@ async function listProcessEntries(): Promise<ProcessEntry[]> {
   const result: ProcessEntry[] = []
   for (const entry of entries) {
     if (!/^\d+$/.test(entry)) continue
-    try {
-      const stat = await readFile(`/proc/${entry}/stat`, 'utf8')
-      const close = stat.lastIndexOf(')')
-      if (close < 0) continue
-      const fields = stat.slice(close + 2).split(' ')
-      const ppid = Number(fields[1])
-      const pgid = Number(fields[2])
-      if (!Number.isInteger(ppid) || !Number.isInteger(pgid)) continue
-      result.push({ pid: Number(entry), ppid, pgid })
-    } catch {
-      // Ignore processes that exited between readdir and readFile.
-    }
+    const parsed = await readProcessEntry(Number(entry))
+    if (parsed) result.push(parsed)
   }
   return result
+}
+
+export async function isLivePid(pid: number): Promise<boolean> {
+  if (process.platform === 'linux') {
+    const entry = await readProcessEntry(pid)
+    // Treat unreaped zombies (Z) and dead entries (X) as exited.
+    return entry !== undefined && entry.state !== 'Z' && entry.state !== 'X'
+  }
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM'
+  }
 }
 
 export async function collectDescendantPids(
@@ -267,15 +288,6 @@ export async function collectDescendantPids(
   return { pids, pgids }
 }
 
-function pidExists(pid: number): boolean {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === 'EPERM'
-  }
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -297,7 +309,10 @@ async function mergeLiveTargets(
   const snapshot = await collectDescendantPids(roots, runId)
   for (const pid of snapshot.pids) trackedPids.add(pid)
   for (const pgid of snapshot.pgids) trackedPgids.add(pgid)
-  return Array.from(trackedPids).filter(pidExists)
+  const checks = await Promise.all(
+    Array.from(trackedPids).map(async (pid) => ({ pid, live: await isLivePid(pid) })),
+  )
+  return checks.filter((item) => item.live).map((item) => item.pid)
 }
 
 async function waitForAllGone(

@@ -101,9 +101,10 @@ test('verify builds once, keeps site TypeDoc builds serial, and runs workflow se
   )
 })
 
-test('all browser engines use the pinned Playwright image with 2g /dev/shm and validate dependencies', () => {
+test('all browser engines use the pinned Playwright image with init and 2g /dev/shm', () => {
   const container = record(verify.container)
   expect(container.image).toMatch(/^mcr\.microsoft\.com\/playwright@sha256:[a-f0-9]{64}$/)
+  expect(container.options).toContain('--init')
   expect(container.options).toContain('--shm-size=2g')
   const manifest = record(
     JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')),

@@ -75,11 +75,12 @@ collect_descendant_pids() {
 }
 
 snapshot_live_pids() {
-  local pid
+  local pid state
   declare -a next=()
   while IFS= read -r pid; do
     [[ -n "$pid" ]] || continue
-    if kill -0 "$pid" 2>/dev/null; then
+    state=$(ps -o stat= -p "$pid" 2>/dev/null | tr -d ' ' || true)
+    if [[ -n "$state" && "${state:0:1}" != Z && "${state:0:1}" != X ]]; then
       next+=("$pid")
     fi
   done < <(collect_descendant_pids)
@@ -111,6 +112,14 @@ cleanup() {
     for pid in ${tracked_pids[@]+"${tracked_pids[@]}"}; do
       kill -KILL "$pid" 2>/dev/null || true
     done
+    for _attempt in $(seq 1 20); do
+      snapshot_live_pids
+      if [[ "${#tracked_pids[@]}" == 0 ]]; then break; fi
+      sleep 0.1
+    done
+    if [[ "${#tracked_pids[@]}" -gt 0 ]]; then
+      echo "verify-sites.sh: descendants still alive after SIGKILL: ${tracked_pids[*]}" >&2
+    fi
   fi
   for pid in ${child_pids[@]+"${child_pids[@]}"}; do
     wait "$pid" 2>/dev/null || true

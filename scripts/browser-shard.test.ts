@@ -8,6 +8,7 @@ import {
   collectDescendantPids,
   discoverBrowserTestFiles,
   engineInvocation,
+  isLivePid,
   parseShardSpec,
   partitionSlices,
   runBrowserShard,
@@ -175,14 +176,10 @@ test('terminateRunProcesses kills detached SIGTERM-ignoring descendants and brow
     const before = await collectDescendantPids(child.pid ? [child.pid] : [], runId)
     expect(before.pids.size).toBeGreaterThanOrEqual(4)
     await terminateRunProcesses(active, runId, 'SIGTERM', 250)
-    const surviving = Array.from(before.pids).filter((pid) => {
-      try {
-        process.kill(pid, 0)
-        return true
-      } catch {
-        return false
-      }
-    })
+    const checks = await Promise.all(
+      Array.from(before.pids).map(async (pid) => ({ pid, live: await isLivePid(pid) })),
+    )
+    const surviving = checks.filter((item) => item.live).map((item) => item.pid)
     expect(surviving).toEqual([])
   } finally {
     await terminateRunProcesses(active, runId, 'SIGKILL', 100)
