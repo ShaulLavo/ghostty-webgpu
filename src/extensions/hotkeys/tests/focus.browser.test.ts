@@ -1,7 +1,7 @@
 import { restoreRendererNavigator, stubRendererNavigator } from '../../../render/tests/navigator.js'
 import { testFontUrl } from '../../../tests/fonts.js'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { createBrowserDispatcher, type KeymapEntry, type KeymapPlatform } from '@fregat/hotkeys'
+import { createBrowserDispatcher, type KeymapEntry, type KeymapPlatform } from '@shaulavo/hotkeys'
 import { Terminal as MainTerminal } from '../../../../dist/index.js'
 import {
   attachTerminalHotkeys,

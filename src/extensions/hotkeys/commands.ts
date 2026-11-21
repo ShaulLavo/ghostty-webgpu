@@ -1,4 +1,4 @@
-import type { CommandHandler } from '@fregat/hotkeys'
+import type { CommandHandler } from '@shaulavo/hotkeys'
 import type { TerminalApi } from '../../dom/terminal-api.js'
 
 const commandIds = [

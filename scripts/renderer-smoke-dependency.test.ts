@@ -25,8 +25,8 @@ const source = await rendererSmokeHotkeys(${JSON.stringify(relocated)});`
 }
 
 test('a relocated installed graph produces standalone ESM with working reactive key state', async () => {
-  const installed = dirname(require.resolve('@fregat/hotkeys/package.json'))
-  const scope = join(relocated, 'node_modules', '@fregat')
+  const installed = dirname(require.resolve('@shaulavo/hotkeys/package.json'))
+  const scope = join(relocated, 'node_modules', '@shaulavo')
   await mkdir(scope, { recursive: true })
   await symlink(installed, join(scope, 'hotkeys'), 'junction')
   const result = spawnSync(
@@ -55,5 +55,5 @@ console.log('standalone ESM reactive state passed');`,
 test('an uninstalled relocated root cannot silently use the harness checkout dependency', () => {
   const result = spawnSync('bun', ['--eval', bundleScript()], { encoding: 'utf8', timeout: 15_000 })
   expect(result.status).not.toBe(0)
-  expect(result.stderr).toContain('@fregat/hotkeys')
+  expect(result.stderr).toContain('@shaulavo/hotkeys')
 })

@@ -1,6 +1,6 @@
 import { Terminal } from 'ghostty-webgpu'
 import { attachTerminalHotkeys } from 'ghostty-webgpu/hotkeys'
-import { readline, type ReadlineApi } from 'ghostty-webgpu-line-editor'
+import { readline, type ReadlineApi } from '@ghostty-webgpu/line-editor'
 
 export async function mountEcho(host: HTMLElement) {
   const terminal = await Terminal.create({ accessibility: {} })

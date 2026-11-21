@@ -124,6 +124,7 @@
   },
   "publishConfig": {
     "access": "public",
+    "provenance": true,
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
@@ -173,15 +174,17 @@
     "site:worker:build": "bun run build && bun run --cwd site build --base /",
     "site:worker:dry-run": "wrangler deploy --config wrangler.jsonc --dry-run --outdir .artifacts/site-worker",
     "site:worker:deploy": "wrangler deploy --config wrangler.jsonc",
-    "sites:verify": "bash scripts/verify-sites.sh"
+    "sites:verify": "bash scripts/verify-sites.sh",
+    "release:publish": "bun scripts/publish-npm.ts"
   },
   "dependencies": {
     "@webgpu/types": "0.1.74"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@discoveryjs/json-ext": "1.1.0",
     "@fontsource/jetbrains-mono": "5.3.0",
-    "@fregat/hotkeys": "https://github.com/ShaulLavo/hotkeys/releases/download/hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd/fregat-hotkeys-3de9d21e2299d2b94ed2d8b012c25bf9358dcfbd.tgz",
+    "@shaulavo/hotkeys": "^0.0.4",
     "@types/bun": "1.4.2",
     "@types/node": "26.6.3",
     "@vitest/browser": "5.0.2",
@@ -208,10 +211,10 @@
     "ws": "8.22.0"
   },
   "peerDependencies": {
-    "@fregat/hotkeys": "^0.0.3"
+    "@shaulavo/hotkeys": "^0.0.4"
   },
   "peerDependenciesMeta": {
-    "@fregat/hotkeys": {
+    "@shaulavo/hotkeys": {
       "optional": true
     }
   },

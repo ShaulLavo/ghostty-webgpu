@@ -14,7 +14,7 @@ The `readline()` extension attaches to a `ghostty-webgpu` terminal supplied by t
 `ReadSession` accepts `SessionOptions` and an event callback. `read({ prompt, secondaryPrompt, signal })` allows one active read. `dispatch()` processes editing commands and resolves a typed result on submission, interruption or end-of-input. Abort and disposal reject with structured errors. Completion and completeness callbacks receive an abort signal; their stale results are discarded after edits, later requests and read cancellation.
 
 ```ts
-import { ReadSession } from 'ghostty-webgpu-line-editor'
+import { ReadSession } from '@ghostty-webgpu/line-editor'
 
 const session = new ReadSession({
   complete: (text, cursor, signal) => host.complete(text, cursor, signal),
@@ -31,7 +31,7 @@ terminal is open:
 
 ```ts
 import { Terminal } from 'ghostty-webgpu'
-import { readline } from 'ghostty-webgpu-line-editor'
+import { readline } from '@ghostty-webgpu/line-editor'
 
 const terminal = await Terminal.create()
 await terminal.open(container)

@@ -233,10 +233,10 @@ async function writeConsumerFiles(root: string, browserOnly = false): Promise<vo
   const manifest = manifestRecord(
     JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8')),
   )
-  const hotkeys = manifestRecord(manifest.devDependencies)['@fregat/hotkeys']
+  const hotkeys = manifestRecord(manifest.devDependencies)['@shaulavo/hotkeys']
   await writeFile(
     join(root, 'package.json'),
-    `${JSON.stringify({ name: 'ghostty-webgpu-package-smoke', private: true, type: 'module', dependencies: { '@fregat/hotkeys': hotkeys } }, null, 2)}\n`,
+    `${JSON.stringify({ name: 'ghostty-webgpu-package-smoke', private: true, type: 'module', dependencies: { '@shaulavo/hotkeys': hotkeys } }, null, 2)}\n`,
   )
   await writeFile(
     join(root, 'tsconfig.json'),
@@ -581,7 +581,7 @@ async function verifyHotkeysIsolation(packageRoot: string): Promise<void> {
     if (visited.has(current)) continue
     visited.add(current)
     const source = await readFile(current, 'utf8')
-    if (source.includes('@fregat/hotkeys') || current.includes('/extensions/hotkeys/'))
+    if (source.includes('@shaulavo/hotkeys') || current.includes('/extensions/hotkeys/'))
       throw new PackageSmokeError(`main entry contains a hotkeys dependency: ${current}`)
     const imports = source.matchAll(
       /\b(?:import|export)\s+(?:[^;]*?\s+from\s+)?['"](\.[^'"]+)['"]/g,
@@ -591,10 +591,10 @@ async function verifyHotkeysIsolation(packageRoot: string): Promise<void> {
   const manifest = manifestRecord(
     JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8')),
   )
-  if (manifestRecord(manifest.dependencies)['@fregat/hotkeys'])
+  if (manifestRecord(manifest.dependencies)['@shaulavo/hotkeys'])
     throw new PackageSmokeError('hotkeys must not be a required dependency')
-  const peer = manifestRecord(manifestRecord(manifest.peerDependenciesMeta)['@fregat/hotkeys'])
-  if (!manifestRecord(manifest.peerDependencies)['@fregat/hotkeys'] || peer.optional !== true)
+  const peer = manifestRecord(manifestRecord(manifest.peerDependenciesMeta)['@shaulavo/hotkeys'])
+  if (!manifestRecord(manifest.peerDependencies)['@shaulavo/hotkeys'] || peer.optional !== true)
     throw new PackageSmokeError('hotkeys must be an optional peer dependency')
 }
 

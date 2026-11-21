@@ -5,8 +5,8 @@ import { join } from 'node:path'
 
 const packages = [
   { directory: '.', name: 'ghostty-webgpu' },
-  { directory: 'packages/line-editor', name: 'ghostty-webgpu-line-editor' },
-  { directory: 'packages/shaders', name: 'ghostty-webgpu-shaders' },
+  { directory: 'packages/line-editor', name: '@ghostty-webgpu/line-editor' },
+  { directory: 'packages/shaders', name: '@ghostty-webgpu/shaders' },
 ]
 
 export class ReleaseError extends Error {
@@ -35,7 +35,11 @@ export async function releasePackages(root: string) {
         JSON.parse(await readFile(join(directory, 'package.json'), 'utf8')),
       )
       if (identity.name !== entry.name) throw new ReleaseError('Source package name differs')
-      return { ...identity, directory, filename: `${entry.name}.tgz` }
+      return {
+        ...identity,
+        directory,
+        filename: `${entry.name.replace(/^@/, '').replaceAll('/', '-')}.tgz`,
+      }
     }),
   )
 }

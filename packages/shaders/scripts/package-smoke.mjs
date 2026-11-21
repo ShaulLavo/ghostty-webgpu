@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process'
 const installed = process.argv[2] === '--installed'
 const directory = await mkdtemp(join(tmpdir(), 'ghostty-shaders-pack-'))
 try {
-  let root = join(import.meta.dirname, 'node_modules/ghostty-webgpu-shaders')
+  let root = join(import.meta.dirname, 'node_modules/@ghostty-webgpu/shaders')
   if (!installed) {
     const packed = JSON.parse(
       execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', directory], {
@@ -21,14 +21,14 @@ try {
     root = join(unpacked, 'package')
   }
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-  assert.equal(manifest.name, 'ghostty-webgpu-shaders')
+  assert.equal(manifest.name, '@ghostty-webgpu/shaders')
   assert.equal(manifest.private, undefined)
   assert.deepEqual(manifest.dependencies ?? {}, {})
   assert.deepEqual(Object.keys(manifest.peerDependencies), ['ghostty-webgpu'])
   const api = installed
-    ? await import('ghostty-webgpu-shaders')
+    ? await import('@ghostty-webgpu/shaders')
     : await import(pathToFileURL(resolve(root, 'dist/index.js')).href)
-  assert.equal(api.createShaderAddon({ wgsl: 'compiled artifact' }).name, 'ghostty-webgpu-shaders')
+  assert.equal(api.createShaderAddon({ wgsl: 'compiled artifact' }).name, '@ghostty-webgpu/shaders')
   for (const name of await readdir(join(root, 'dist'))) {
     if (!name.endsWith('.js')) continue
     const source = await readFile(join(root, 'dist', name), 'utf8')

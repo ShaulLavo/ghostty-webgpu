@@ -1,6 +1,6 @@
 # Terminal hotkeys
 
-Core supports custom input ownership but ships no keymap. Install the optional `@fregat/hotkeys` peer and import the add-on explicitly:
+Core supports custom input ownership but ships no keymap. Install the optional `@shaulavo/hotkeys` peer and import the add-on explicitly:
 
 ```ts
 import { Terminal } from 'ghostty-webgpu'

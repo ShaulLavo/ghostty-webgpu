@@ -13,7 +13,7 @@ bun install --frozen-lockfile
 bun run build
 ```
 
-`build` compiles TypeScript to `dist/` and bundles the worker. `bun install` downloads the built `@fregat/hotkeys` package from its pinned release tarball. Consumers import `dist`, so rebuild after every source change.
+`build` compiles TypeScript to `dist/` and bundles the worker. `bun install` downloads the built `@shaulavo/hotkeys` package from its pinned release tarball. Consumers import `dist`, so rebuild after every source change.
 
 To see your build in a browser, run `bun run demo`. It serves a terminal lab with a real shell at `http://127.0.0.1:4173`.
 

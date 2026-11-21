@@ -3,7 +3,7 @@ import {
   parseHotkey,
   validateHotkey,
   type KeymapPlatform,
-} from '@fregat/hotkeys'
+} from '@shaulavo/hotkeys'
 import { isSupportedTerminalKeyCode } from '../../term/session.js'
 import type { TerminalKeyInput } from '../../term/types.js'
 

@@ -18,7 +18,7 @@ for (const backend of requested) {
 }
 const selected = backends.filter((backend) => requested.length === 0 || requested.includes(backend))
 const imports = {
-  '@fregat/hotkeys': '/smoke-hotkeys.js',
+  '@shaulavo/hotkeys': '/smoke-hotkeys.js',
 }
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const args = ['--enable-unsafe-webgpu']
@@ -110,7 +110,7 @@ async function checkBackend(
       })
       return
     }
-    if (path === imports['@fregat/hotkeys']) {
+    if (path === imports['@shaulavo/hotkeys']) {
       await route.fulfill({ body: hotkeys, contentType: 'text/javascript' })
       return
     }

@@ -8,7 +8,7 @@ sidebar:
 import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/hotkeys.ts?raw'
 
-Core supports bindings but ships no keymap. Install the optional `@fregat/hotkeys` peer, then use `ghostty-webgpu/hotkeys` with the synchronous main-thread terminal.
+Core supports bindings but ships no keymap. Install the optional `@shaulavo/hotkeys` peer, then use `ghostty-webgpu/hotkeys` with the synchronous main-thread terminal.
 
 ## 1. Attach before opening
 
@@ -41,7 +41,7 @@ Paste uses the browser's paste event, including bracketed paste when the applica
 
 ## 4. Share a host keymap
 
-A host with `@fregat/hotkeys` can pass `mode: 'hosted'`, its dispatcher, the parent focus node, and platform. The host owns the bindings and matcher. Import `ghosttyKeymap` and `terminalShellKeysPack` from `ghostty-webgpu/hotkeys` for binding data. The [hotkeys integration note](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/hotkeys.md) covers the focus adapter and commands.
+A host with `@shaulavo/hotkeys` can pass `mode: 'hosted'`, its dispatcher, the parent focus node, and platform. The host owns the bindings and matcher. Import `ghosttyKeymap` and `terminalShellKeysPack` from `ghostty-webgpu/hotkeys` for binding data. The [hotkeys integration note](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/hotkeys.md) covers the focus adapter and commands.
 
 ## If it doesn't work
 

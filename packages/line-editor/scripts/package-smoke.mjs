@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { EditModel, History, ReadSession, keyCommand, readline } from 'ghostty-webgpu-line-editor'
+import { EditModel, History, ReadSession, keyCommand, readline } from '@ghostty-webgpu/line-editor'
 
 const history = new History({ limit: 2 })
 const model = new EditModel(history)

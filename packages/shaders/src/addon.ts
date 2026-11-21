@@ -408,7 +408,7 @@ export function createShaderAddon(
 ): ShaderAddon {
   validateShader(shader)
   return {
-    name: 'ghostty-webgpu-shaders',
+    name: '@ghostty-webgpu/shaders',
     setup: (scope) => ({ api: new Controller(scope, shader, options) }),
   }
 }

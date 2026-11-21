@@ -7,7 +7,7 @@ npm install ghostty-webgpu ghostty-webgpu-shaders
 ```
 
 ```ts
-import { createShaderAddon } from 'ghostty-webgpu-shaders'
+import { createShaderAddon } from '@ghostty-webgpu/shaders'
 import compiled from './effect.js'
 
 const effect = terminal.use(createShaderAddon(compiled))
