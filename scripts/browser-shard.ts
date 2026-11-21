@@ -1,7 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBrowserTestConfig } from '../vitest.browser.config.ts'
@@ -350,7 +349,13 @@ export async function terminateRunProcesses(
   const remaining = await mergeLiveTargets(direct, runId, trackedPids, trackedPgids)
   for (const pgid of trackedPgids) sendSignal(pgid, 'SIGKILL', true)
   for (const pid of remaining) sendSignal(pid, 'SIGKILL', false)
-  await waitForAllGone(direct, runId, trackedPids, trackedPgids, 2000)
+  const settled = await waitForAllGone(direct, runId, trackedPids, trackedPgids, 2000)
+  if (!settled) {
+    const survivors = await mergeLiveTargets(direct, runId, trackedPids, trackedPgids)
+    if (survivors.length > 0) {
+      console.error(`browser-shard: descendants still alive after SIGKILL: ${survivors.join(' ')}`)
+    }
+  }
 }
 
 function createSpawnRunner(activeChildren: Set<ChildProcess>): InvocationRunner {
@@ -483,7 +488,7 @@ async function runSingleTask(
   task: ScheduledTask,
   workerSlot: number,
 ): Promise<void> {
-  const cacheDir = join(state.cacheRoot, `vite-w${workerSlot}-${task.engine}`)
+  const cacheDir = join(state.cacheRoot, `s${task.sliceIndex + 1}-${task.engine}`)
   const apiPort = 63315 + workerSlot * 20
   const invocation = engineInvocation(task.engine, task.files, {
     cacheDir,
@@ -580,12 +585,19 @@ export async function runBrowserShard(options: {
   return { results: state.results, exitCode: firstFailure ? firstFailure.exitCode : 0 }
 }
 
+export function shardCacheParent(root: string): string {
+  // Keep Vite caches under node_modules so @vitest/mocker resolves optimized deps inside project root.
+  return join(root, 'node_modules')
+}
+
 async function main(): Promise<void> {
   const root = fileURLToPath(new URL('..', import.meta.url))
   const parsed = parseShardSpec(process.argv.slice(2))
   const shardLabel = `${parsed.index}/${parsed.total}`
   const allFiles = await discoverBrowserTestFiles(root)
-  const cacheRoot = await mkdtemp(join(tmpdir(), `ghostty-browser-shard-${parsed.index}-`))
+  const cacheParent = shardCacheParent(root)
+  await mkdir(cacheParent, { recursive: true })
+  const cacheRoot = await mkdtemp(join(cacheParent, `.vite-browser-shard-${parsed.index}-`))
   const runId = `${process.pid}-${randomBytes(6).toString('hex')}`
   const activeChildren = new Set<ChildProcess>()
   let cancelledSignal: NodeJS.Signals | undefined

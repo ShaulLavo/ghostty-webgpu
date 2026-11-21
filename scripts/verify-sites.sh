@@ -87,10 +87,28 @@ snapshot_live_pids() {
   tracked_pids=(${next[@]+"${next[@]}"})
 }
 
+escalate_remaining() {
+  local pid _attempt
+  for pid in ${child_pids[@]+"${child_pids[@]}"}; do
+    signal_child "$pid" KILL
+  done
+  for pid in ${tracked_pids[@]+"${tracked_pids[@]}"}; do
+    kill -KILL "$pid" 2>/dev/null || true
+  done
+  for _attempt in $(seq 1 20); do
+    snapshot_live_pids
+    [[ "${#tracked_pids[@]}" == 0 ]] && break
+    sleep 0.1
+  done
+  if [[ "${#tracked_pids[@]}" -gt 0 ]]; then
+    echo "verify-sites.sh: descendants still alive after SIGKILL: ${tracked_pids[*]}" >&2
+  fi
+}
+
 cleanup() {
   if [[ "$cleaned" == 1 ]]; then return; fi
   cleaned=1
-  local pid
+  local pid _attempt
   # Snapshot full ppid tree before signalling parents so detached Playwright browsers stay tracked.
   snapshot_live_pids
   for pid in ${child_pids[@]+"${child_pids[@]}"}; do
@@ -99,27 +117,13 @@ cleanup() {
   for pid in ${tracked_pids[@]+"${tracked_pids[@]}"}; do
     kill -TERM "$pid" 2>/dev/null || true
   done
-  local _attempt
   for _attempt in $(seq 1 30); do
     snapshot_live_pids
-    if [[ "${#tracked_pids[@]}" == 0 ]]; then break; fi
+    [[ "${#tracked_pids[@]}" == 0 ]] && break
     sleep 0.1
   done
   if [[ "${#tracked_pids[@]}" -gt 0 ]]; then
-    for pid in ${child_pids[@]+"${child_pids[@]}"}; do
-      signal_child "$pid" KILL
-    done
-    for pid in ${tracked_pids[@]+"${tracked_pids[@]}"}; do
-      kill -KILL "$pid" 2>/dev/null || true
-    done
-    for _attempt in $(seq 1 20); do
-      snapshot_live_pids
-      if [[ "${#tracked_pids[@]}" == 0 ]]; then break; fi
-      sleep 0.1
-    done
-    if [[ "${#tracked_pids[@]}" -gt 0 ]]; then
-      echo "verify-sites.sh: descendants still alive after SIGKILL: ${tracked_pids[*]}" >&2
-    fi
+    escalate_remaining
   fi
   for pid in ${child_pids[@]+"${child_pids[@]}"}; do
     wait "$pid" 2>/dev/null || true

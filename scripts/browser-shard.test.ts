@@ -13,6 +13,7 @@ import {
   partitionSlices,
   runBrowserShard,
   selectShardFiles,
+  shardCacheParent,
   terminateRunProcesses,
 } from './browser-shard.ts'
 
@@ -135,6 +136,7 @@ test('runBrowserShard keeps slices disjoint, caps Chromium at 2, uses 3 workers,
   expect(peakChromium).toBe(2)
   expect(outcome.exitCode).toBe(7)
   expect(outcome.results.length).toBe(18)
+  expect(shardCacheParent(root)).toMatch(/\/node_modules$/)
   for (const engine of BROWSER_ENGINES) {
     expect((seen.get(engine) ?? []).toSorted()).toEqual(files.toSorted())
   }
