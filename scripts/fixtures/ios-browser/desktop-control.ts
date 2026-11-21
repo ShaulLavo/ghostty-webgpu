@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { join } from 'node:path'
 import { createVitest, type Reporter } from 'vitest/node'
 import { playwright } from '@vitest/browser-playwright'
 import { createBrowserTestConfig } from '../../../vitest.browser.config.ts'
@@ -126,6 +127,7 @@ try {
     { config: false, watch: false },
     {
       ...base,
+      cacheDir: join(report, 'vite'),
       plugins: base.plugins.concat([
         {
           name: 'local-sink-context',

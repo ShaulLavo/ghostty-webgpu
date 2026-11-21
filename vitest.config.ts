@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
+    maxConcurrency: 4,
     exclude: ['src/**/*.browser.test.ts', 'scripts/**/*.browser.test.ts'],
     include: [
       'src/**/*.test.ts',
@@ -13,6 +14,7 @@ export default defineConfig({
       'scripts/wasm-provenance.test.ts',
       'scripts/comparison-source.test.ts',
       'scripts/browser-file-roots.test.ts',
+      'scripts/browser-shard.test.ts',
       'scripts/font-loading-fixture.test.ts',
       'scripts/renderer-smoke-dependency.test.ts',
       'scripts/package-tarball.test.ts',

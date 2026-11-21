@@ -184,6 +184,7 @@ try {
     const base = createBrowserTestConfig()
     const nativeConfig = {
       ...base,
+      cacheDir: join(report, 'vite'),
       test: {
         ...base.test,
         reporters: ['default', ordinary.reporter],

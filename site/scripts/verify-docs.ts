@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { chromium } from 'playwright'
+import { chromium, type Browser, type Page } from 'playwright'
 
 const [url, evidence] = process.argv.slice(2)
 assert(url && evidence, 'Usage: bun scripts/verify-docs.ts <docs-url> <evidence-directory>')
@@ -9,11 +9,9 @@ const root = new URL(url)
 const directory = resolve(evidence)
 await mkdir(directory, { recursive: true })
 const browser = await chromium.launch({ headless: true })
-const page = await browser.newPage()
 const errors: string[] = []
-page.on('pageerror', (error) => errors.push(error.message))
 // The narrowest phones in use are 320 CSS pixels wide; no page may scroll sideways on them.
-const WIDTHS = [1440, 390, 320]
+const WIDTHS = [1440, 390, 320] as const
 const paths = [
   '',
   'guides/pty/',
@@ -23,37 +21,55 @@ const paths = [
   'reference/options/',
   'reference/api/',
   'examples/echo/',
-]
-try {
-  for (const width of WIDTHS) {
-    await page.setViewportSize({ width, height: 960 })
+] as const
+
+async function runPool<T>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> {
+  let cursor = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const current = items[cursor++]!
+      await worker(current)
+    }
+  })
+  await Promise.all(runners)
+}
+
+async function checkDocsTerminal(page: Page): Promise<void> {
+  await page.locator('[data-docs-terminal]').scrollIntoViewIfNeeded()
+  await page.getByRole('textbox', { name: 'Terminal input' }).waitFor()
+  assert(
+    await page
+      .locator('[data-docs-terminal]')
+      .evaluate((host) => getComputedStyle(host).backgroundColor !== 'rgba(0, 0, 0, 0)'),
+    'Echo terminal needs an opaque background for readable text',
+  )
+  const screen = page.locator('[data-docs-terminal]').getByRole('list', { name: 'Terminal screen' })
+  await screen
+    .getByRole('listitem')
+    .filter({ hasText: 'Hello from Ghostty.' })
+    .waitFor({ state: 'attached' })
+  await page.getByRole('textbox', { name: 'Terminal input' }).pressSequentially('docs-echo-check')
+  await screen
+    .getByRole('listitem')
+    .filter({ hasText: 'docs-echo-check' })
+    .waitFor({ state: 'attached' })
+}
+
+async function checkDocsWidth(browserInstance: Browser, width: number): Promise<void> {
+  const context = await browserInstance.newContext({ viewport: { width, height: 960 } })
+  try {
+    const page = await context.newPage()
+    page.on('pageerror', (error) => errors.push(error.message))
     for (const path of paths) {
       const response = await page.goto(new URL(path, root).href)
       assert.equal(response?.status(), 200)
       await page.locator('h1').waitFor()
       if (path === 'start/quick-start/' || path === 'examples/echo/') {
-        await page.locator('[data-docs-terminal]').scrollIntoViewIfNeeded()
-        await page.getByRole('textbox', { name: 'Terminal input' }).waitFor()
-        assert(
-          await page
-            .locator('[data-docs-terminal]')
-            .evaluate((host) => getComputedStyle(host).backgroundColor !== 'rgba(0, 0, 0, 0)'),
-          'Echo terminal needs an opaque background for readable text',
-        )
-        const screen = page
-          .locator('[data-docs-terminal]')
-          .getByRole('list', { name: 'Terminal screen' })
-        await screen
-          .getByRole('listitem')
-          .filter({ hasText: 'Hello from Ghostty.' })
-          .waitFor({ state: 'attached' })
-        await page
-          .getByRole('textbox', { name: 'Terminal input' })
-          .pressSequentially('docs-echo-check')
-        await screen
-          .getByRole('listitem')
-          .filter({ hasText: 'docs-echo-check' })
-          .waitFor({ state: 'attached' })
+        await checkDocsTerminal(page)
       }
       assert(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -64,9 +80,6 @@ try {
         fullPage: true,
       })
     }
-  }
-  for (const width of WIDTHS) {
-    await page.setViewportSize({ width, height: 960 })
     for (const [name, path] of [
       ['landing', '../'],
       ['not-found', '../404.html'],
@@ -78,62 +91,86 @@ try {
         `${name} overflows at ${width}`,
       )
     }
+  } finally {
+    await context.close()
   }
-  await page.setViewportSize({ width: 1440, height: 960 })
-  await page.goto(new URL('../', root).href)
-  assert.equal(
-    await page.getByRole('link', { name: '[ docs ]', exact: true }).getAttribute('href'),
-    root.pathname,
-  )
-  assert(
-    await page.evaluate(async () => {
-      const faces = await document.fonts.load('15px "Paper Mono"')
-      return faces.length > 0 && faces.every((face) => face.status === 'loaded')
-    }),
-    'Paper Mono must load under the active hosting base',
-  )
-  await page.screenshot({ path: `${directory}/landing.png`, fullPage: true })
-  // The scene is decoration: the first Tab reaches the project links.
-  await page.locator('#scene canvas').first().waitFor()
-  await page.keyboard.press('Tab')
-  assert.equal(
-    await page.evaluate(() => document.activeElement?.textContent?.trim()),
-    '[ docs ]',
-    'The first Tab on the landing page lands on the project links',
-  )
-  // A resized window refits the scene as a fresh load at that width does.
-  const sceneHeight = () => page.evaluate(() => document.getElementById('scene')!.clientHeight)
-  const wide = await sceneHeight()
-  await page.setViewportSize({ width: 320, height: 960 })
-  await page.waitForFunction(
-    (before) => document.getElementById('scene')!.clientHeight < before / 2,
-    wide,
-  )
-  await page.waitForTimeout(300)
-  const resized = await sceneHeight()
-  await page.reload()
-  await page.locator('#scene canvas').first().waitFor()
-  await page.waitForFunction(() => document.querySelector('#scene .scene-first') === null)
-  assert(
-    Math.abs((await sceneHeight()) - resized) <= 2,
-    `Resized scene is ${resized}px tall, a fresh load differs`,
-  )
-  await page.setViewportSize({ width: 1440, height: 960 })
-  // The first frame and the terminal that replaces it draw the same grid, at fractional pixel ratios too.
-  for (const [width, deviceScaleFactor] of [
-    [2560, 1],
-    [1850, 2],
-    [1024, 1.5],
-    [1023, 1.5],
-    [321, 1.5],
-    [420, 1.25],
-    [390, 3],
-  ] as const) {
-    const context = await browser.newContext({
-      viewport: { width, height: 900 },
-      deviceScaleFactor,
-    })
+}
+
+async function checkLandingAndSearch(browserInstance: Browser): Promise<void> {
+  const page = await browserInstance.newPage({ viewport: { width: 1440, height: 960 } })
+  page.on('pageerror', (error) => errors.push(error.message))
+  try {
+    await page.goto(new URL('../', root).href)
+    assert.equal(
+      await page.getByRole('link', { name: '[ docs ]', exact: true }).getAttribute('href'),
+      root.pathname,
+    )
+    assert(
+      await page.evaluate(async () => {
+        const faces = await document.fonts.load('15px "Paper Mono"')
+        return faces.length > 0 && faces.every((face) => face.status === 'loaded')
+      }),
+      'Paper Mono must load under the active hosting base',
+    )
+    await page.screenshot({ path: `${directory}/landing.png`, fullPage: true })
+    // The scene is decoration: the first Tab reaches the project links.
+    await page.locator('#scene canvas').first().waitFor()
+    await page.keyboard.press('Tab')
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.textContent?.trim()),
+      '[ docs ]',
+      'The first Tab on the landing page lands on the project links',
+    )
+    // A resized window refits the scene as a fresh load at that width does.
+    const sceneHeight = () => page.evaluate(() => document.getElementById('scene')!.clientHeight)
+    const wide = await sceneHeight()
+    await page.setViewportSize({ width: 320, height: 960 })
+    await page.waitForFunction(
+      (before) => document.getElementById('scene')!.clientHeight < before / 2,
+      wide,
+    )
+    await page.waitForTimeout(300)
+    const resized = await sceneHeight()
+    await page.reload()
+    await page.locator('#scene canvas').first().waitFor()
+    await page.waitForFunction(() => document.querySelector('#scene .scene-first') === null)
+    assert(
+      Math.abs((await sceneHeight()) - resized) <= 2,
+      `Resized scene is ${resized}px tall, a fresh load differs`,
+    )
+    await page.setViewportSize({ width: 1440, height: 960 })
+    // A missing page at any depth is the site's 404, with its font.
+    const missing = await page.goto(new URL('../missing/deep/', root).href)
+    assert.equal(missing?.status(), 404)
+    await page.locator('#not-found').waitFor()
+    assert(
+      await page.evaluate(async () => {
+        const faces = await document.fonts.load('15px "Paper Mono"')
+        return faces.length > 0 && faces.every((face) => face.status === 'loaded')
+      }),
+      'Paper Mono must load on a nested missing page',
+    )
+    await page.goto(root.href)
+    await page.getByRole('button', { name: 'Search' }).click()
+    await page.getByRole('dialog', { name: 'Search' }).getByRole('textbox').fill('scrollback')
+    await page.locator('.pagefind-ui__result-link').first().waitFor()
+    await page.screenshot({ path: `${directory}/search.png` })
+  } finally {
+    await page.close()
+  }
+}
+
+async function checkSceneGridCase(
+  browserInstance: Browser,
+  [width, deviceScaleFactor]: readonly [number, number],
+): Promise<void> {
+  const context = await browserInstance.newContext({
+    viewport: { width, height: 900 },
+    deviceScaleFactor,
+  })
+  try {
     const scenePage = await context.newPage()
+    scenePage.on('pageerror', (error) => errors.push(error.message))
     await scenePage.goto(new URL('../?scene=tokyo-rain', root).href)
     await scenePage.waitForFunction(() => document.getElementById('scene')!.dataset['terminalGrid'])
     const grids = await scenePage.evaluate(() => {
@@ -145,43 +182,50 @@ try {
       grids[0],
       `First frame and terminal grids differ at ${width}px, ratio ${deviceScaleFactor}`,
     )
+  } finally {
     await context.close()
   }
-  // The art's boxes are sized before any script runs: the sections below sit where they will stay.
-  for (const width of [1440, 390]) {
-    const positions: number[] = []
-    for (const scripts of [false, true]) {
-      const context = await browser.newContext({ viewport: { width, height: 900 } })
+}
+
+async function checkArtStability(browserInstance: Browser, width: number): Promise<void> {
+  const measure = async (scripts: boolean): Promise<number> => {
+    const context = await browserInstance.newContext({ viewport: { width, height: 900 } })
+    try {
       const artPage = await context.newPage()
+      artPage.on('pageerror', (error) => errors.push(error.message))
       if (!scripts) await artPage.route(/\/_astro\/.*\.js$|\.wasm$/, (route) => route.abort())
       await artPage.goto(new URL('../?scene=tokyo-rain', root).href)
       if (scripts) await artPage.locator('[data-art="wordmark"] canvas').waitFor()
-      positions.push(
-        await artPage.evaluate(
-          () => document.getElementById('measured')!.getBoundingClientRect().top,
-        ),
+      return await artPage.evaluate(
+        () => document.getElementById('measured')!.getBoundingClientRect().top,
       )
+    } finally {
       await context.close()
     }
-    assert(
-      Math.abs(positions[0]! - positions[1]!) <= 1,
-      `Art moved the page at ${width}px: ${positions.join(' → ')}`,
-    )
   }
-  // A mouse selects and copies scene cells without taking the keyboard; touch on the same device passes through.
-  {
-    const context = await browser.newContext({
-      viewport: { width: 1440, height: 900 },
-      hasTouch: true,
-      permissions: ['clipboard-read', 'clipboard-write'],
-    })
+  const [withoutScripts, withScripts] = await Promise.all([measure(false), measure(true)])
+  assert(
+    Math.abs(withoutScripts - withScripts) <= 1,
+    `Art moved the page at ${width}px: ${withoutScripts} → ${withScripts}`,
+  )
+}
+
+async function checkMouseAndTouchSelection(browserInstance: Browser): Promise<void> {
+  const context = await browserInstance.newContext({
+    viewport: { width: 1440, height: 900 },
+    hasTouch: true,
+    permissions: ['clipboard-read', 'clipboard-write'],
+  })
+  try {
     const scenePage = await context.newPage()
+    scenePage.on('pageerror', (error) => errors.push(error.message))
     await scenePage.goto(new URL('../?scene=tokyo-rain', root).href)
     await scenePage.waitForFunction(() => !document.querySelector('.scene-first'))
     const sceneBox = (await scenePage.locator('#scene').boundingBox())!
+    // Two drag steps exercise pointer selection without stalling behind 30 FPS software frames.
     await scenePage.mouse.move(sceneBox.x + 100, sceneBox.y + 100)
     await scenePage.mouse.down()
-    await scenePage.mouse.move(sceneBox.x + 400, sceneBox.y + 180, { steps: 10 })
+    await scenePage.mouse.move(sceneBox.x + 400, sceneBox.y + 180, { steps: 2 })
     await scenePage.mouse.up()
     await scenePage.keyboard.press('Control+c')
     assert(
@@ -200,7 +244,7 @@ try {
     const lede = (await scenePage.locator('.lede').boundingBox())!
     await scenePage.mouse.move(lede.x + 2, lede.y + lede.height / 2)
     await scenePage.mouse.down()
-    await scenePage.mouse.move(lede.x + lede.width - 2, lede.y + lede.height / 2, { steps: 8 })
+    await scenePage.mouse.move(lede.x + lede.width - 2, lede.y + lede.height / 2, { steps: 2 })
     await scenePage.mouse.up()
     assert.match(
       await scenePage.evaluate(() => String(getSelection())),
@@ -209,24 +253,30 @@ try {
     )
     await scenePage.touchscreen.tap(sceneBox.x + 200, sceneBox.y + 120)
     assert(!(await inScene()), 'A touch on the scene leaves focus outside it')
+  } finally {
     await context.close()
   }
-  // A missing page at any depth is the site's 404, with its font.
-  const missing = await page.goto(new URL('../missing/deep/', root).href)
-  assert.equal(missing?.status(), 404)
-  await page.locator('#not-found').waitFor()
-  assert(
-    await page.evaluate(async () => {
-      const faces = await document.fonts.load('15px "Paper Mono"')
-      return faces.length > 0 && faces.every((face) => face.status === 'loaded')
-    }),
-    'Paper Mono must load on a nested missing page',
+}
+
+try {
+  await Promise.all(WIDTHS.map((width) => checkDocsWidth(browser, width)))
+  await Promise.all([checkLandingAndSearch(browser), checkMouseAndTouchSelection(browser)])
+  // The first frame and the terminal that replaces it draw the same grid, at fractional pixel ratios too.
+  await runPool(
+    [
+      [2560, 1],
+      [1850, 2],
+      [1024, 1.5],
+      [1023, 1.5],
+      [321, 1.5],
+      [420, 1.25],
+      [390, 3],
+    ] as const,
+    4,
+    (entry) => checkSceneGridCase(browser, entry),
   )
-  await page.goto(root.href)
-  await page.getByRole('button', { name: 'Search' }).click()
-  await page.getByRole('dialog', { name: 'Search' }).getByRole('textbox').fill('scrollback')
-  await page.locator('.pagefind-ui__result-link').first().waitFor()
-  await page.screenshot({ path: `${directory}/search.png` })
+  // The art's boxes are sized before any script runs: the sections below sit where they will stay.
+  await Promise.all([1440, 390].map((width) => checkArtStability(browser, width)))
   assert.equal(errors.length, 0, errors.join('\n'))
   await writeFile(
     `${directory}/verification.json`,

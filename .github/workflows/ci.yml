@@ -157,8 +157,8 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
-  # Each engine runs the full file set across four shards, using the same verified build.
-  browser-tests:
+  # Each protected shard runs all three engines (Chromium, Firefox, WebKit) using the same verified build.
+  browser:
     if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     needs: verify
     runs-on: ubuntu-latest
@@ -168,11 +168,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [chromium, firefox, webkit]
         shard: [1, 2, 3, 4]
-    name: browser tests (${{ matrix.engine }}, ${{ matrix.shard }}/4)
-    env:
-      GHOSTTY_BROWSER_ENGINE: ${{ matrix.engine }}
+    name: browser (${{ matrix.shard }}/4)
     steps:
       - name: Documentation-only PR has no browser inputs
         if: needs.verify.outputs.code != 'true'
@@ -190,7 +187,7 @@ jobs:
           chown "$(id -u):$(id -g)" "$HOME"
           started_ms="$(date +%s%3N)"
           apt-get update
-          apt-get install -y --no-install-recommends unzip xz-utils
+          apt-get install -y --no-install-recommends unzip
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
@@ -211,7 +208,7 @@ jobs:
       - name: Verify the build artifact identity and outputs
         if: needs.verify.outputs.code == 'true'
         run: bun scripts/verified-build-artifact.ts verify
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: needs.verify.outputs.code == 'true'
         id: dependency-cache
         with:
@@ -233,66 +230,31 @@ jobs:
           bun install --frozen-lockfile
           finished_ms="$(date +%s%3N)"
           echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
-      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
-        if: needs.verify.outputs.code == 'true'
-        with:
-          version: '0.16.0'
       - name: Validate Playwright system dependencies
         if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
-          if ! bunx playwright install-deps --dry-run "$GHOSTTY_BROWSER_ENGINE"; then
+          if ! bunx playwright install-deps --dry-run chromium firefox webkit; then
             echo 'Playwright system dependency validation failed; the pinned runner image contract is incomplete.' >&2
             exit 1
           fi
           finished_ms="$(date +%s%3N)"
           echo "Playwright system dependency validation duration_ms=$((finished_ms - started_ms))"
-      - name: Install the selected Playwright browser
+      - name: Install Playwright browsers
         if: needs.verify.outputs.code == 'true'
         shell: bash
         run: |
           set -euo pipefail
           started_ms="$(date +%s%3N)"
-          echo "Playwright engine=$GHOSTTY_BROWSER_ENGINE browser_path=${PLAYWRIGHT_BROWSERS_PATH:-default}"
-          bunx playwright install "$GHOSTTY_BROWSER_ENGINE"
+          echo "Playwright engines=chromium,firefox,webkit browser_path=${PLAYWRIGHT_BROWSERS_PATH:-default}"
+          bunx playwright install chromium firefox webkit
           finished_ms="$(date +%s%3N)"
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
       - name: Browser tests
         if: needs.verify.outputs.code == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Firefox needs an X display to initialize Mesa WebGL, even in headless mode.
-          if [[ "$GHOSTTY_BROWSER_ENGINE" == firefox ]]; then
-            xvfb-run -a bun run test:browser --shard=${{ matrix.shard }}/4
-          else
-            bun run test:browser --shard=${{ matrix.shard }}/4
-          fi
-
-  # Keep the protected check names and reject failed, cancelled, or skipped dependencies.
-  browser:
-    if: ${{ always() && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
-    needs: [verify, browser-tests]
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-    name: browser (${{ matrix.shard }}/4)
-    steps:
-      - name: Require every browser engine and shard to pass
-        env:
-          VERIFY_RESULT: ${{ needs.verify.result }}
-          BROWSER_RESULT: ${{ needs.browser-tests.result }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "verify=$VERIFY_RESULT browser-tests=$BROWSER_RESULT"
-          test "$VERIFY_RESULT" = success
-          test "$BROWSER_RESULT" = success
+        run: bun scripts/browser-shard.ts --shard=${{ matrix.shard }}/4
 
   sites:
     if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
@@ -311,7 +273,7 @@ jobs:
           set -euo pipefail
           started_ms="$(date +%s%3N)"
           apt-get update
-          apt-get install -y --no-install-recommends unzip xz-utils
+          apt-get install -y --no-install-recommends unzip
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           rm -rf /var/lib/apt/lists/*
           finished_ms="$(date +%s%3N)"
@@ -328,7 +290,7 @@ jobs:
           path: .artifacts/verified-build
       - name: Verify the build artifact identity and outputs
         run: bun scripts/verified-build-artifact.ts verify
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: dependency-cache
         with:
           path: |
@@ -347,9 +309,6 @@ jobs:
           bun install --frozen-lockfile
           finished_ms="$(date +%s%3N)"
           echo "JavaScript dependency setup duration_ms=$((finished_ms - started_ms))"
-      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
-        with:
-          version: '0.16.0'
       - name: Validate Playwright system dependencies
         shell: bash
         run: |
@@ -369,14 +328,18 @@ jobs:
           bunx playwright install chromium
           finished_ms="$(date +%s%3N)"
           echo "Playwright browser setup duration_ms=$((finished_ms - started_ms))"
-      - name: Build the scene site from the verified packages
-        working-directory: site
-        run: bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /
-      - name: Package the existing custom-domain Worker without deploying
-        run: bun run site:worker:dry-run
-      - name: Build the classic site from the verified packages
-        working-directory: site-classic
-        run: bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /ghostty-webgpu/
+      - name: Build both sites and dry-run the Worker from the verified packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd site && bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base / && cd .. && bun run site:worker:dry-run) &
+          scene_pid=$!
+          (cd site-classic && bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /ghostty-webgpu/) &
+          classic_pid=$!
+          status=0
+          wait "$scene_pid" || status=$?
+          wait "$classic_pid" || status=$?
+          exit "$status"
       - name: Verify both docs sites, examples and search
         run: bun run sites:verify "$PWD/.artifacts/docs-browser" 4327
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

@@ -34,10 +34,15 @@ if (
   launchArgs.push('--ozone-platform=wayland')
 
 export function createBrowserTestConfig() {
+  const cacheDir = process.env.GHOSTTY_BROWSER_CACHE_DIR || undefined
+  const fsAllow = browserFileRoots(fileURLToPath(new URL('.', import.meta.url))).concat(
+    cacheDir ? [cacheDir] : [],
+  )
   return {
+    cacheDir,
     plugins: [counterpartWasmServing(), fontLoadingFixture()],
     server: {
-      fs: { allow: browserFileRoots(fileURLToPath(new URL('.', import.meta.url))) },
+      fs: { allow: fsAllow },
     },
     test: {
       browser: {

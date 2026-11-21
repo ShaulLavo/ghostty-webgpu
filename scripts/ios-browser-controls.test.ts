@@ -6,18 +6,30 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'vite'
-import { test } from 'vitest'
+import { afterAll, beforeAll, test } from 'vitest'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const entry = fileURLToPath(new URL('./fixtures/ios-browser/node-control.ts', import.meta.url))
+let sharedObserverDir = ''
+let sharedObserverPath = ''
+
+beforeAll(async () => {
+  sharedObserverDir = await mkdtemp(join(tmpdir(), 'ghostty-fw-observer-'))
+  sharedObserverPath = join(sharedObserverDir, 'desktop-observer.js')
+  await bundleObserver(sharedObserverPath)
+}, 30000)
+
+afterAll(async () => {
+  if (sharedObserverDir) await rm(sharedObserverDir, { recursive: true, force: true })
+})
 
 async function control(target: string, mode: string): Promise<void> {
   const scratch = await mkdtemp(join(tmpdir(), 'ghostty-fw-'))
   let child: ReturnType<typeof spawn> | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
-    const observer = join(scratch, 'desktop-observer.js')
-    if (target === 'desktop') await bundleObserver(observer)
+    const observer =
+      target === 'desktop' ? sharedObserverPath : join(scratch, 'desktop-observer.js')
     child = spawn(process.execPath, [entry, target], {
       cwd: root,
       detached: true,
@@ -87,7 +99,7 @@ async function bundleObserver(output: string): Promise<void> {
 
 // These are real SDK/Vite/WebSocket controls with no executing browser.
 for (const mode of ['unowned', 'expired', 'revoked', 'malformed'])
-  test(
+  test.concurrent(
     `published host and actual attached provider reject ${mode} HTTP work`,
     () => control('sdk', mode),
     55000,
@@ -107,13 +119,13 @@ for (const mode of [
   'caught-observer-throws',
   'viewport-reject',
 ])
-  test(
+  test.concurrent(
     `desktop observation double preserves normal ${mode} lifecycle`,
     () => control('desktop', mode),
     55000,
   )
 
-test(
+test.concurrent(
   'uninstrumented Playwright keeps ordinary insertText',
   () => control('ordinary', 'ordinary'),
   55000,
