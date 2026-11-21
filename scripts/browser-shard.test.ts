@@ -1,14 +1,18 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
 import {
   BROWSER_ENGINES,
+  MAX_ENGINE_CONCURRENCY,
+  SHARD_RUN_ID_ENV,
+  collectDescendantPids,
   discoverBrowserTestFiles,
   engineInvocation,
   parseShardSpec,
   partitionSlices,
   runBrowserShard,
   selectShardFiles,
+  terminateRunProcesses,
 } from './browser-shard.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -66,12 +70,17 @@ test('engineInvocation wraps only Firefox in xvfb-run and isolates cache directo
   const files = ['src/a.browser.test.ts', 'src/b.browser.test.ts']
   for (const engine of BROWSER_ENGINES) {
     const cacheDir = `/tmp/vite-${engine}`
-    const invocation = engineInvocation(engine, files, { cacheDir, apiPort: 63335 })
+    const invocation = engineInvocation(engine, files, {
+      cacheDir,
+      apiPort: 63335,
+      runId: 'run-123',
+    })
     expect(invocation.engine).toBe(engine)
     expect(invocation.env).toEqual({
       GHOSTTY_BROWSER_ENGINE: engine,
       GHOSTTY_BROWSER_CACHE_DIR: cacheDir,
       GHOSTTY_BROWSER_API_PORT: '63335',
+      [SHARD_RUN_ID_ENV]: 'run-123',
     })
     const expectedPrefix =
       engine === 'firefox'
@@ -81,10 +90,14 @@ test('engineInvocation wraps only Firefox in xvfb-run and isolates cache directo
   }
 })
 
-test('runBrowserShard keeps slices disjoint in flight, runs all engines on failure, and propagates exit code', async () => {
+test('runBrowserShard keeps slices disjoint, caps Chromium at 2, uses 3 workers, and propagates failure', async () => {
   const files = Array.from({ length: 12 }, (_, index) => `src/case-${index}.browser.test.ts`)
   const activeSlices = new Set<number>()
+  const activeEngines = new Map<string, number>()
   const seen = new Map<string, string[]>()
+  let activeTotal = 0
+  let peakTotal = 0
+  let peakChromium = 0
   let overlapDetected = false
 
   const outcome = await runBrowserShard({
@@ -99,8 +112,15 @@ test('runBrowserShard keeps slices disjoint in flight, runs all engines on failu
     runner: async (invocation, meta) => {
       if (activeSlices.has(meta.sliceIndex)) overlapDetected = true
       activeSlices.add(meta.sliceIndex)
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      activeTotal++
+      if (activeTotal > peakTotal) peakTotal = activeTotal
+      const engineCount = (activeEngines.get(invocation.engine) ?? 0) + 1
+      activeEngines.set(invocation.engine, engineCount)
+      if (invocation.engine === 'chromium' && engineCount > peakChromium) peakChromium = engineCount
+      await new Promise((resolve) => setTimeout(resolve, 15))
       activeSlices.delete(meta.sliceIndex)
+      activeTotal--
+      activeEngines.set(invocation.engine, (activeEngines.get(invocation.engine) ?? 1) - 1)
       const runFiles = invocation.command.slice(invocation.command.indexOf('test:browser') + 1)
       seen.set(invocation.engine, (seen.get(invocation.engine) ?? []).concat(runFiles))
       const failFirefoxSlice2 = invocation.engine === 'firefox' && meta.sliceIndex === 1
@@ -109,9 +129,62 @@ test('runBrowserShard keeps slices disjoint in flight, runs all engines on failu
   })
 
   expect(overlapDetected).toBe(false)
+  expect(peakTotal).toBe(3)
+  expect(peakChromium).toBeLessThanOrEqual(MAX_ENGINE_CONCURRENCY.chromium)
+  expect(peakChromium).toBe(2)
   expect(outcome.exitCode).toBe(7)
   expect(outcome.results.length).toBe(18)
   for (const engine of BROWSER_ENGINES) {
     expect((seen.get(engine) ?? []).toSorted()).toEqual(files.toSorted())
   }
 })
+
+test('terminateRunProcesses kills detached SIGTERM-ignoring descendants and browser processes', async () => {
+  if (process.platform !== 'linux') return
+  const runId = `test-cancel-${process.pid}-${Date.now()}`
+  const script = `
+    import { spawn } from 'node:child_process'
+    import { chromium } from 'playwright'
+    const stubborn = spawn(process.execPath, ['-e', 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000)'], {
+      detached: true,
+      stdio: 'ignore',
+      env: process.env,
+    })
+    stubborn.unref()
+    const browser = await chromium.launch({ headless: true })
+    await browser.newPage()
+    console.log('READY')
+    await new Promise(() => {})
+  `
+  const child = spawn(process.execPath, ['--input-type=module', '-e', script], {
+    cwd: root,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, [SHARD_RUN_ID_ENV]: runId },
+  })
+  const active = new Set<ChildProcess>([child])
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let buffer = ''
+      child.stdout?.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString('utf8')
+        if (buffer.includes('READY')) resolve()
+      })
+      child.once('exit', (code) => reject(new Error(`Helper exited early with ${code}`)))
+    })
+    const before = await collectDescendantPids(child.pid ? [child.pid] : [], runId)
+    expect(before.pids.size).toBeGreaterThanOrEqual(4)
+    await terminateRunProcesses(active, runId, 'SIGTERM', 250)
+    const surviving = Array.from(before.pids).filter((pid) => {
+      try {
+        process.kill(pid, 0)
+        return true
+      } catch {
+        return false
+      }
+    })
+    expect(surviving).toEqual([])
+  } finally {
+    await terminateRunProcesses(active, runId, 'SIGKILL', 100)
+  }
+}, 20000)

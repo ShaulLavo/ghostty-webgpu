@@ -92,7 +92,10 @@ test('verify builds once, keeps site TypeDoc builds serial, and runs workflow se
   expect(sitesBuild).toBeGreaterThan(build)
   expect(sitesVerify).toBeGreaterThan(sitesBuild)
   expect(browserRun).toBeGreaterThan(build)
-  expect(String(entries[sitesBuild]?.run)).not.toMatch(/(?<!&)&(?!&)/)
+  const sitesBuildScript = String(entries[sitesBuild]?.run)
+  expect(entries[sitesBuild]?.shell).toBe('bash')
+  expect(sitesBuildScript).toContain('set -euo pipefail')
+  expect(sitesBuildScript).not.toContain('&')
   expect(step(verify, 'Check browser CI coverage and required gates').run).toBe(
     'bun test scripts/ci-workflow.test.ts',
   )

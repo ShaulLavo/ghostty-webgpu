@@ -142,11 +142,23 @@ jobs:
             *) echo 'Invalid native resolver state' >&2; exit 1 ;;
           esac
       - name: Build both sites and dry-run the Worker from the verified packages
+        shell: bash
         run: |
+          set -euo pipefail
           # Build serially because site-classic/src/content/docs symlinks into site and TypeDoc clears its output dir.
-          cd site && bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /
-          cd .. && bun run site:worker:dry-run
-          cd site-classic && bun run typecheck && bun scripts/sync-assets.ts && bunx astro build --base /ghostty-webgpu/
+          (
+            cd site
+            bun run typecheck
+            bun scripts/sync-assets.ts
+            bunx astro build --base /
+          )
+          bun run site:worker:dry-run
+          (
+            cd site-classic
+            bun run typecheck
+            bun scripts/sync-assets.ts
+            bunx astro build --base /ghostty-webgpu/
+          )
       - name: Verify both docs sites, examples and search
         run: bun run sites:verify "$PWD/.artifacts/docs-browser" 4327
       - name: Documentation-only PR has no browser inputs

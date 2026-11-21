@@ -11,7 +11,11 @@ if command -v setsid >/dev/null 2>&1; then
   has_setsid=1
 fi
 
+GHOSTTY_SITES_RUN_ID="$$-$(date +%s%N)-$RANDOM"
+export GHOSTTY_SITES_RUN_ID
+
 declare -a child_pids=()
+declare -a tracked_pids=()
 cleaned=0
 started_pid=''
 
@@ -25,17 +29,94 @@ signal_child() {
   kill "-$sig" "$pid" 2>/dev/null || true
 }
 
+find_tagged_pids() {
+  [[ -d /proc ]] || return 0
+  local env_file pid
+  while IFS= read -r env_file; do
+    pid=${env_file#/proc/}
+    pid=${pid%/environ}
+    if [[ "$pid" == "$$" || "$pid" == "$BASHPID" ]]; then continue; fi
+    printf '%s\n' "$pid"
+  done < <(grep -Fxlza "GHOSTTY_SITES_RUN_ID=$GHOSTTY_SITES_RUN_ID" /proc/[0-9]*/environ 2>/dev/null | tr '\0' '\n' || true)
+}
+
+collect_descendant_pids() {
+  local roots
+  roots=$(
+    {
+      printf '%s\n' ${child_pids[@]+"${child_pids[@]}"} ${tracked_pids[@]+"${tracked_pids[@]}"}
+      find_tagged_pids
+    } | sort -u | tr '\n' ' '
+  )
+  [[ -n "${roots// /}" ]] || return 0
+  ps -eo pid=,ppid= | awk -v roots="$roots" -v self="$$" '
+    BEGIN {
+      n = split(roots, arr, " ")
+      for (i = 1; i <= n; i++) if (arr[i] != "" && arr[i] != self) seen[arr[i]] = 1
+    }
+    { kids[$2] = kids[$2] " " $1 }
+    END {
+      changed = 1
+      while (changed) {
+        changed = 0
+        for (p in seen) {
+          m = split(kids[p], k, " ")
+          for (i = 1; i <= m; i++) {
+            if (k[i] != "" && k[i] != self && !(k[i] in seen)) {
+              seen[k[i]] = 1
+              changed = 1
+            }
+          }
+        }
+      }
+      for (p in seen) print p
+    }
+  '
+}
+
+snapshot_live_pids() {
+  local pid
+  declare -a next=()
+  while IFS= read -r pid; do
+    [[ -n "$pid" ]] || continue
+    if kill -0 "$pid" 2>/dev/null; then
+      next+=("$pid")
+    fi
+  done < <(collect_descendant_pids)
+  tracked_pids=(${next[@]+"${next[@]}"})
+}
+
 cleanup() {
   if [[ "$cleaned" == 1 ]]; then return; fi
   cleaned=1
   local pid
+  # Snapshot full ppid tree before signalling parents so detached Playwright browsers stay tracked.
+  snapshot_live_pids
   for pid in ${child_pids[@]+"${child_pids[@]}"}; do
     signal_child "$pid" TERM
   done
+  for pid in ${tracked_pids[@]+"${tracked_pids[@]}"}; do
+    kill -TERM "$pid" 2>/dev/null || true
+  done
+  local _attempt
+  for _attempt in $(seq 1 30); do
+    snapshot_live_pids
+    if [[ "${#tracked_pids[@]}" == 0 ]]; then break; fi
+    sleep 0.1
+  done
+  if [[ "${#tracked_pids[@]}" -gt 0 ]]; then
+    for pid in ${child_pids[@]+"${child_pids[@]}"}; do
+      signal_child "$pid" KILL
+    done
+    for pid in ${tracked_pids[@]+"${tracked_pids[@]}"}; do
+      kill -KILL "$pid" 2>/dev/null || true
+    done
+  fi
   for pid in ${child_pids[@]+"${child_pids[@]}"}; do
     wait "$pid" 2>/dev/null || true
   done
   child_pids=()
+  tracked_pids=()
 }
 
 trap cleanup EXIT
