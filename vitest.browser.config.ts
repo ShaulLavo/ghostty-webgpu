@@ -35,6 +35,8 @@ if (
 
 export function createBrowserTestConfig() {
   const cacheDir = process.env.GHOSTTY_BROWSER_CACHE_DIR || undefined
+  const rawApiPort = process.env.GHOSTTY_BROWSER_API_PORT
+  const apiPort = rawApiPort && /^\d+$/.test(rawApiPort) ? Number(rawApiPort) : undefined
   const fsAllow = browserFileRoots(fileURLToPath(new URL('.', import.meta.url))).concat(
     cacheDir ? [cacheDir] : [],
   )
@@ -45,6 +47,7 @@ export function createBrowserTestConfig() {
       fs: { allow: fsAllow },
     },
     test: {
+      api: apiPort ? { port: apiPort } : undefined,
       browser: {
         enabled: true,
         headless: !hardware,

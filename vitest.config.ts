@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
-    maxConcurrency: 4,
+    maxConcurrency: 3,
     exclude: ['src/**/*.browser.test.ts', 'scripts/**/*.browser.test.ts'],
     include: [
       'src/**/*.test.ts',

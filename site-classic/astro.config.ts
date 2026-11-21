@@ -124,5 +124,6 @@ export default defineConfig({
     ],
     // main.ts imports the built package from ../dist, outside the site root.
     server: { fs: { allow: [projectRoot] } },
+    preview: { strictPort: true },
   },
 })

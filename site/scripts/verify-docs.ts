@@ -59,27 +59,27 @@ async function checkDocsTerminal(page: Page): Promise<void> {
     .waitFor({ state: 'attached' })
 }
 
+async function checkDocsPage(page: Page, path: string, width: number): Promise<void> {
+  const response = await page.goto(new URL(path, root).href)
+  assert.equal(response?.status(), 200)
+  await page.locator('h1').waitFor()
+  if (path === 'start/quick-start/' || path === 'examples/echo/') await checkDocsTerminal(page)
+  assert(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    `${path} overflows at ${width}`,
+  )
+  await page.screenshot({
+    path: `${directory}/${width}-${path.replaceAll('/', '-') || 'home'}.png`,
+    fullPage: true,
+  })
+}
+
 async function checkDocsWidth(browserInstance: Browser, width: number): Promise<void> {
   const context = await browserInstance.newContext({ viewport: { width, height: 960 } })
   try {
     const page = await context.newPage()
     page.on('pageerror', (error) => errors.push(error.message))
-    for (const path of paths) {
-      const response = await page.goto(new URL(path, root).href)
-      assert.equal(response?.status(), 200)
-      await page.locator('h1').waitFor()
-      if (path === 'start/quick-start/' || path === 'examples/echo/') {
-        await checkDocsTerminal(page)
-      }
-      assert(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-        `${path} overflows at ${width}`,
-      )
-      await page.screenshot({
-        path: `${directory}/${width}-${path.replaceAll('/', '-') || 'home'}.png`,
-        fullPage: true,
-      })
-    }
+    for (const path of paths) await checkDocsPage(page, path, width)
     for (const [name, path] of [
       ['landing', '../'],
       ['not-found', '../404.html'],
@@ -259,7 +259,8 @@ async function checkMouseAndTouchSelection(browserInstance: Browser): Promise<vo
 }
 
 try {
-  await Promise.all(WIDTHS.map((width) => checkDocsWidth(browser, width)))
+  // Run widths sequentially so Chromium never captures two tall full-page screenshots in parallel.
+  for (const width of WIDTHS) await checkDocsWidth(browser, width)
   await Promise.all([checkLandingAndSearch(browser), checkMouseAndTouchSelection(browser)])
   // The first frame and the terminal that replaces it draw the same grid, at fractional pixel ratios too.
   await runPool(

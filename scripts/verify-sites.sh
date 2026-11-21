@@ -6,53 +6,111 @@ port=${2:?Usage: verify-sites.sh EVIDENCE_DIRECTORY PORT}
 mkdir -p "$evidence"
 evidence=$(cd "$evidence" && pwd)
 
-declare -a pids=()
+has_setsid=0
+if command -v setsid >/dev/null 2>&1; then
+  has_setsid=1
+fi
+
+declare -a child_pids=()
+cleaned=0
+started_pid=''
+
+signal_child() {
+  local pid=$1
+  local sig=$2
+  if [[ "$has_setsid" == 1 ]]; then
+    kill "-$sig" -- "-$pid" 2>/dev/null || kill "-$sig" "$pid" 2>/dev/null || true
+    return
+  fi
+  kill "-$sig" "$pid" 2>/dev/null || true
+}
+
 cleanup() {
-  for pid in "${pids[@]}"; do
-    kill "$pid" 2>/dev/null || true
+  if [[ "$cleaned" == 1 ]]; then return; fi
+  cleaned=1
+  local pid
+  for pid in ${child_pids[@]+"${child_pids[@]}"}; do
+    signal_child "$pid" TERM
+  done
+  for pid in ${child_pids[@]+"${child_pids[@]}"}; do
     wait "$pid" 2>/dev/null || true
   done
-  pids=()
+  child_pids=()
 }
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
 
-verify_site() {
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
+
+start_preview() {
   local site=$1
   local site_port=$2
-  local base=/
-  if [[ "$site" == site-classic ]]; then base=/ghostty-webgpu/; fi
+  local base=$3
   mkdir -p "$evidence/$site"
-  node --input-type=module -e 'import { createServer } from "node:net"; const server = createServer(); server.listen({host: "127.0.0.1", port: Number(process.argv[1])}, () => server.close())' "$site_port"
-  cd "$root/$site"
-  bun node_modules/.bin/astro preview --ignore-lock --base "$base" --host 127.0.0.1 --port "$site_port" \
-    > "$evidence/$site/preview.log" 2>&1 &
-  local preview=$!
-  trap 'kill "$preview" 2>/dev/null || true; wait "$preview" 2>/dev/null || true' EXIT INT TERM
+  if [[ "$has_setsid" == 1 ]]; then
+    (cd "$root/$site" && exec setsid bun node_modules/.bin/astro preview --ignore-lock --base "$base" --host 127.0.0.1 --port "$site_port" >"$evidence/$site/preview.log" 2>&1) &
+  else
+    (cd "$root/$site" && exec bun node_modules/.bin/astro preview --ignore-lock --base "$base" --host 127.0.0.1 --port "$site_port" >"$evidence/$site/preview.log" 2>&1) &
+  fi
+  started_pid=$!
+  child_pids+=("$started_pid")
+}
+
+wait_for_preview() {
+  local site=$1
+  local site_port=$2
+  local base=$3
+  local pid=$4
+  local log="$evidence/$site/preview.log"
+  local expected="http://127.0.0.1:$site_port$base"
   local ready=0
   for _attempt in $(seq 1 60); do
-    kill -0 "$preview" || { cat "$evidence/$site/preview.log"; exit 1; }
-    if curl --fail --silent "http://127.0.0.1:$site_port${base}docs/" > /dev/null; then
+    if ! kill -0 "$pid" 2>/dev/null; then
+      cat "$log"
+      exit 1
+    fi
+    if grep -Fq "$expected" "$log" && curl --fail --silent "http://127.0.0.1:$site_port${base}docs/" >/dev/null; then
       ready=1
       break
     fi
     sleep 1
   done
-  [[ "$ready" == 1 ]] || { cat "$evidence/$site/preview.log"; exit 1; }
-  bun scripts/verify-docs.ts "http://127.0.0.1:$site_port${base}docs/" "$evidence/$site"
+  if [[ "$ready" != 1 ]]; then
+    cat "$log"
+    exit 1
+  fi
 }
 
-verify_site site "$port" &
-site_pid=$!
-pids+=("$site_pid")
+site_port=$port
+classic_port=$((port + 1))
 
-verify_site site-classic "$((port + 1))" &
-classic_pid=$!
-pids+=("$classic_pid")
+start_preview site "$site_port" /
+site_preview=$started_pid
+
+start_preview site-classic "$classic_port" /ghostty-webgpu/
+classic_preview=$started_pid
+
+wait_for_preview site "$site_port" / "$site_preview"
+wait_for_preview site-classic "$classic_port" /ghostty-webgpu/ "$classic_preview"
+
+if [[ "$has_setsid" == 1 ]]; then
+  (cd "$root/site" && exec setsid bun scripts/verify-docs.ts "http://127.0.0.1:$site_port/docs/" "$evidence/site") &
+else
+  (cd "$root/site" && exec bun scripts/verify-docs.ts "http://127.0.0.1:$site_port/docs/" "$evidence/site") &
+fi
+site_verify=$!
+child_pids+=("$site_verify")
+
+if [[ "$has_setsid" == 1 ]]; then
+  (cd "$root/site-classic" && exec setsid bun scripts/verify-docs.ts "http://127.0.0.1:$classic_port/ghostty-webgpu/docs/" "$evidence/site-classic") &
+else
+  (cd "$root/site-classic" && exec bun scripts/verify-docs.ts "http://127.0.0.1:$classic_port/ghostty-webgpu/docs/" "$evidence/site-classic") &
+fi
+classic_verify=$!
+child_pids+=("$classic_verify")
 
 status=0
-wait "$site_pid" || status=$?
-wait "$classic_pid" || status=$?
+wait "$site_verify" || status=$?
+wait "$classic_verify" || status=$?
 cleanup
 exit "$status"
