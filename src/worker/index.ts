@@ -1,5 +1,5 @@
 import { runtimeWasmAssets } from '../core/assets.js'
-import { Terminal as TerminalHost } from '../dom/terminal.js'
+import { TerminalHost } from '../dom/terminal-host.js'
 import type { GhosttyWebGpuTerminalFromSessionOptions } from '../dom/types.js'
 import { WorkerTerminalExecution } from './execution.js'
 import type { WorkerAssets, WorkerBackend, WorkerFontFace, WorkerInitialize } from './protocol.js'

@@ -1,4 +1,5 @@
-import { isSupportedTerminalKeyCode, type TerminalSession } from '../term/session.js'
+import { isSupportedTerminalKeyCode } from '../term/key-codes.js'
+import type { TerminalSession } from '../term/session.js'
 import type {
   TerminalInputData,
   TerminalInputResult,
