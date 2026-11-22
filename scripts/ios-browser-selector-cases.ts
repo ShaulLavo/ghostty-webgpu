@@ -254,7 +254,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects WebGL for a software adapter in auto ({"isFallbackAdapter":true,"info":{}})',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:442:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:443:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -262,7 +262,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects WebGL for a software adapter in auto ({"isFallbackAdapter":false,"info":{"isFallbackAdapter":true}})',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:442:1',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:443:1',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -270,7 +270,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects WebGL for a software adapter in auto ({"isFallbackAdapter":false,"info":{"description":"Google SwiftShader"}})',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:442:2',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:443:2',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -278,7 +278,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects WebGL for a software adapter in auto ({"isFallbackAdapter":false,"info":{"architecture":"llvmpipe"}})',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:442:3',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:443:3',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -286,14 +286,14 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > allows a software adapter with explicit WebGPU while auto selects WebGL',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:465:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:466:0',
     timeoutMs: 15000,
     retries: 0,
   },
   {
     file: selectorFile,
     fullName: 'compatible renderer selection > keeps a hardware adapter eligible for auto',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:484:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:485:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -301,7 +301,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects real WebGPU without acquiring a fallback context',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:499:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:500:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -309,7 +309,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects real WebGL2 when no WebGPU adapter is available',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:509:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:510:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -317,7 +317,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > releases the real WebGPU device before selecting WebGL2 after a missing context',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:519:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:520:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -325,7 +325,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > selects real Canvas2D after both GPU capabilities are unavailable',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:535:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:536:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -333,7 +333,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > propagates WebGPU programming failures without trying another context',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:557:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:558:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -341,7 +341,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > propagates invalid input before acquiring any device or context',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:571:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:572:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -349,14 +349,14 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > propagates WebGL shader failures without claiming a Canvas2D context',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:581:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:582:0',
     timeoutMs: 15000,
     retries: 0,
   },
   {
     file: selectorFile,
     fullName: 'compatible renderer selection > does not start a renderer when already aborted',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:592:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:593:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -364,7 +364,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > stops fallback when aborted while WebGPU initialization fails',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:606:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:607:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -372,7 +372,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > disposes a WebGPU renderer that finishes after cancellation',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:626:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:628:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -380,7 +380,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > disposes a webgl2 renderer that finishes after cancellation',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:649:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:651:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -388,7 +388,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > disposes a canvas2d renderer that finishes after cancellation',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:649:1',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:651:1',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -396,7 +396,7 @@ export const selectorCases = [
     file: selectorFile,
     fullName:
       'compatible renderer selection > stops fallback when aborted while WebGL2 is found unavailable',
-    sourceKey: 'src/render/tests/selector.browser.test.ts:673:0',
+    sourceKey: 'src/render/tests/selector.browser.test.ts:675:0',
     timeoutMs: 15000,
     retries: 0,
   },

@@ -1,7 +1,7 @@
 import type { GpuBackend } from './backend-order.js'
-import { DomTerminalRenderer } from '../dom/renderer.js'
+import type { DomTerminalRenderer } from '../dom/renderer.js'
 import type { TerminalFittedFont } from '../../term/types.js'
-import { CanvasUnavailableError, CanvasTerminalRenderer } from '../canvas/renderer.js'
+import type { CanvasTerminalRenderer } from '../canvas/renderer.js'
 import type { RowRendererMetrics } from './row-renderer.js'
 import {
   copyFittedFont,
@@ -11,9 +11,9 @@ import {
 } from './config.js'
 import type { InactiveCursorStyle } from './cursor.js'
 import type { RendererTheme } from './instances/types.js'
-import { WebGpuTerminalRenderer, WebGpuUnavailableError } from '../webgpu/renderer.js'
+import type { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
 import type { RendererGridSize, RendererMetrics, WebGpuTerminalRendererOptions } from './types.js'
-import { WebGlTerminalRenderer } from '../webgl/renderer.js'
+import type { WebGlTerminalRenderer } from '../webgl/renderer.js'
 
 type ReplacementRenderer = CanvasTerminalRenderer | DomTerminalRenderer | WebGpuTerminalRenderer
 
@@ -51,6 +51,7 @@ export class FallbackTerminalRenderer {
     signal?: AbortSignal,
     remainingBackends: readonly GpuBackend[] = [],
   ): Promise<FallbackTerminalRenderer> {
+    signal?.throwIfAborted()
     const prepared = {
       ...options,
       ...normalizeRendererGrid(options),
@@ -59,6 +60,8 @@ export class FallbackTerminalRenderer {
     }
     let fallback: FallbackTerminalRenderer | undefined
     let contextLost = false
+    const { WebGlTerminalRenderer } = await import('../webgl/renderer.js')
+    signal?.throwIfAborted()
     const renderer = await WebGlTerminalRenderer.create({
       ...prepared,
       onContextLost: () => {
@@ -234,8 +237,10 @@ export class FallbackTerminalRenderer {
   ): Promise<ReplacementRenderer | undefined> {
     for (const backend of this.remainingBackends) {
       if (backend !== 'webgpu') continue
-      this.signal?.throwIfAborted()
-      if (this.state.kind === 'disposed') return
+      if (!this.canReplace()) return
+      const { WebGpuTerminalRenderer, WebGpuUnavailableError } =
+        await import('../webgpu/renderer.js')
+      if (!this.canReplace()) return
       try {
         return await WebGpuTerminalRenderer.create({
           ...this.options,
@@ -246,15 +251,23 @@ export class FallbackTerminalRenderer {
         if (!(cause instanceof WebGpuUnavailableError)) throw cause
       }
     }
-    this.signal?.throwIfAborted()
-    if (this.state.kind === 'disposed') return
+    if (!this.canReplace()) return
+    const { CanvasTerminalRenderer, CanvasUnavailableError } = await import('../canvas/renderer.js')
+    if (!this.canReplace()) return
     try {
       return await CanvasTerminalRenderer.create({ ...this.options, canvas })
     } catch (cause) {
       if (!(cause instanceof CanvasUnavailableError)) throw cause
     }
-    this.signal?.throwIfAborted()
+    if (!this.canReplace()) return
+    const { DomTerminalRenderer } = await import('../dom/renderer.js')
+    if (!this.canReplace()) return
     return DomTerminalRenderer.create({ ...this.options, canvas })
+  }
+
+  private canReplace(): boolean {
+    this.signal?.throwIfAborted()
+    return this.state.kind === 'switching'
   }
 
   private applySettings(renderer: ReplacementRenderer): void {

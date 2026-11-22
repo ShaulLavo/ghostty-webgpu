@@ -8,6 +8,7 @@ import {
 } from '../../core/selection.js'
 import { defaultRendererTheme } from '../../render/shared/instances/types.js'
 import { EventEmitter } from '../events.js'
+import { isSupportedTerminalKeyCode } from '../key-codes.js'
 import { createLinkLineSnapshot, LinkResolver } from '../links.js'
 import type {
   LinkCell,
@@ -16,7 +17,6 @@ import type {
   ProvidedLink,
 } from '../links.js'
 import {
-  isSupportedTerminalKeyCode,
   normalizeTerminalKeyInput,
   normalizeTerminalMouseInput,
   TerminalSession,

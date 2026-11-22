@@ -71,10 +71,10 @@ test('Selector selects the complete original with all platform and parameter row
   assert.deepEqual(
     selected.expected.slice(31, 35).map((row) => row.sourceKey),
     [
-      'src/render/tests/selector.browser.test.ts:442:0',
-      'src/render/tests/selector.browser.test.ts:442:1',
-      'src/render/tests/selector.browser.test.ts:442:2',
-      'src/render/tests/selector.browser.test.ts:442:3',
+      'src/render/tests/selector.browser.test.ts:443:0',
+      'src/render/tests/selector.browser.test.ts:443:1',
+      'src/render/tests/selector.browser.test.ts:443:2',
+      'src/render/tests/selector.browser.test.ts:443:3',
     ],
   )
   assert.notEqual(selected.file, nativeStage('managed-fallback').file)

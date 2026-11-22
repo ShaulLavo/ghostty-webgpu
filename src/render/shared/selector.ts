@@ -1,10 +1,10 @@
-import { automaticGpuBackends } from './backend-order.js'
-import { DomTerminalRenderer } from '../dom/renderer.js'
-import { CanvasUnavailableError, CanvasTerminalRenderer } from '../canvas/renderer.js'
-import { FallbackTerminalRenderer } from './fallback.js'
-import { type WebGpuTerminalRendererOptions } from './types.js'
-import { WebGpuTerminalRenderer, WebGpuUnavailableError } from '../webgpu/renderer.js'
-import { WebGlTerminalRenderer } from '../webgl/renderer.js'
+import { automaticGpuBackends, type GpuBackend } from './backend-order.js'
+import type { DomTerminalRenderer } from '../dom/renderer.js'
+import type { CanvasTerminalRenderer } from '../canvas/renderer.js'
+import type { FallbackTerminalRenderer } from './fallback.js'
+import type { WebGpuTerminalRendererOptions } from './types.js'
+import type { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
+import type { WebGlTerminalRenderer } from '../webgl/renderer.js'
 import { WebGlUnavailableError } from '../webgl/unavailable.js'
 
 export type CompatibleTerminalRenderer =
@@ -31,32 +31,31 @@ async function createRenderer(
   options: WebGpuTerminalRendererOptions,
   signal?: AbortSignal,
 ): Promise<CompatibleTerminalRenderer> {
-  if (options.rendererMode && options.rendererMode !== 'auto')
+  if (options.rendererMode && options.rendererMode !== 'auto') {
+    const { CanvasTerminalRenderer } = await import('../canvas/renderer.js')
+    signal?.throwIfAborted()
     return CanvasTerminalRenderer.create(options)
+  }
   options = { ...options }
   const backends = automaticGpuBackends(options.presentation)
   for (const [index, backend] of backends.entries()) {
     signal?.throwIfAborted()
+    const webGpu = backend === 'webgpu' ? await import('../webgpu/renderer.js') : undefined
+    signal?.throwIfAborted()
     try {
-      if (backend === 'webgpu')
-        return await WebGpuTerminalRenderer.create({ ...options, adapterPolicy: 'hardware' })
-      if (options.replaceCanvas)
-        return await FallbackTerminalRenderer.create(
-          options,
-          options.replaceCanvas,
-          signal,
-          backends.slice(index + 1),
-        )
-      return await WebGlTerminalRenderer.create(options)
+      if (webGpu)
+        return await webGpu.WebGpuTerminalRenderer.create({ ...options, adapterPolicy: 'hardware' })
+      return await createWebGlRenderer(options, backends.slice(index + 1), signal)
     } catch (cause) {
-      if (!(cause instanceof WebGpuUnavailableError || cause instanceof WebGlUnavailableError))
-        throw cause
-      if (cause instanceof WebGlUnavailableError && cause.canvasClaimed) {
-        signal?.throwIfAborted()
-        options.canvas = replaceClaimedCanvas(options, cause)
-      }
+      if (webGpu && cause instanceof webGpu.WebGpuUnavailableError) continue
+      if (!(cause instanceof WebGlUnavailableError)) throw cause
+      if (!cause.canvasClaimed) continue
+      signal?.throwIfAborted()
+      options.canvas = replaceClaimedCanvas(options, cause)
     }
   }
+  signal?.throwIfAborted()
+  const { CanvasTerminalRenderer, CanvasUnavailableError } = await import('../canvas/renderer.js')
   signal?.throwIfAborted()
   try {
     return await CanvasTerminalRenderer.create(options)
@@ -64,7 +63,29 @@ async function createRenderer(
     if (!(cause instanceof CanvasUnavailableError)) throw cause
   }
   signal?.throwIfAborted()
+  const { DomTerminalRenderer } = await import('../dom/renderer.js')
+  signal?.throwIfAborted()
   return DomTerminalRenderer.create(options)
+}
+
+async function createWebGlRenderer(
+  options: WebGpuTerminalRendererOptions,
+  remainingBackends: readonly GpuBackend[],
+  signal?: AbortSignal,
+): Promise<WebGlTerminalRenderer | FallbackTerminalRenderer> {
+  if (options.replaceCanvas) {
+    const { FallbackTerminalRenderer } = await import('./fallback.js')
+    signal?.throwIfAborted()
+    return FallbackTerminalRenderer.create(
+      options,
+      options.replaceCanvas,
+      signal,
+      remainingBackends,
+    )
+  }
+  const { WebGlTerminalRenderer } = await import('../webgl/renderer.js')
+  signal?.throwIfAborted()
+  return WebGlTerminalRenderer.create(options)
 }
 
 function replaceClaimedCanvas(

@@ -4,7 +4,7 @@ import {
   validateHotkey,
   type KeymapPlatform,
 } from '@shaulavo/hotkeys'
-import { isSupportedTerminalKeyCode } from '../../term/session.js'
+import { isSupportedTerminalKeyCode } from '../../term/key-codes.js'
 import type { TerminalKeyInput } from '../../term/types.js'
 
 const punctuationCodes: Readonly<Record<string, string>> = {
