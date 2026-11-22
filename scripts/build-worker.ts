@@ -8,7 +8,7 @@ const result = await Bun.build({
   target: 'browser',
   format: 'esm',
   splitting: true,
-  sourcemap: 'external',
+  minify: true,
 })
 if (!result.success) {
   for (const log of result.logs) console.error(log)
