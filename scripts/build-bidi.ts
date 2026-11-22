@@ -8,7 +8,7 @@ const result = await Bun.build({
   target: 'browser',
   format: 'esm',
   splitting: true,
-  sourcemap: 'external',
+  minify: true,
   plugins: [
     {
       name: 'shared-native-modules',
