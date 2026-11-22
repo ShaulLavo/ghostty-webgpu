@@ -48,12 +48,20 @@ export interface WorkerState {
   readonly mouseTracking: boolean
   readonly backend?: 'webgpu' | 'webgl2'
 }
-interface WorkerSubmission extends WorkerWatermarks {
+export interface WorkerSubmission extends WorkerWatermarks {
   readonly type: 'frame'
   readonly mouseTracking: boolean
   readonly base: number
   readonly summary: TerminalSubmittedSnapshot
   readonly snapshot: RendererTextFrameSnapshot
+}
+
+export interface WorkerFrameDelta extends Omit<WorkerSubmission, 'snapshot' | 'summary'> {
+  readonly snapshot: Omit<RendererTextFrameSnapshot, 'rows'>
+  readonly summary: Omit<TerminalSubmittedSnapshot, 'rows' | 'rowPatches'>
+  readonly order: readonly number[]
+  readonly patches: readonly number[]
+  readonly buffer: ArrayBuffer
 }
 
 type NativeCommands = Pick<
@@ -137,10 +145,10 @@ export interface WorkerCanvasReplacement extends WorkerIdentity {
   readonly canvas: OffscreenCanvas
 }
 
-export type WorkerMessage =
+export type WorkerMessage<Frame extends WorkerSubmission | WorkerFrameDelta = WorkerSubmission> =
   | WorkerReply
   | WorkerEvent
-  | WorkerSubmission
+  | Frame
   | (WorkerWatermarks & { readonly type: 'replaceCanvas' })
   | (WorkerWatermarks & {
       readonly type: 'fatal'

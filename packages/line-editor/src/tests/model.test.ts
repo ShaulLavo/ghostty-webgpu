@@ -25,6 +25,37 @@ test('insertion resegments a combining mark and normalizes pasted newlines', () 
   expect(model.snapshot.text).toBe('one\ntwo\nthreeé')
 })
 
+test('ASCII replacement rounds offsets and normalizes newlines and controls', () => {
+  const model = new EditModel()
+  model.insert('a\r\nb\rc\t\x1b\x7f\x9b')
+  expect(model.snapshot).toMatchObject({ text: 'a\nb\nc\t', cursor: 6 })
+  model.replace(1.5, 3.5, '_')
+  expect(model.snapshot).toMatchObject({ text: 'a_c\t', cursor: 2 })
+  model.replace(NaN, NaN, 'next')
+  expect(model.snapshot).toMatchObject({ text: 'next', cursor: 4 })
+})
+
+test('edits snap past a joined grapheme and refresh cached boundaries', () => {
+  const model = new EditModel(new History({ entries: ['plain ASCII'] }))
+  model.insert('\u0301👨‍💻')
+  model.move('start')
+  model.insert('e')
+  expect(model.snapshot).toMatchObject({ text: 'e\u0301👨‍💻', cursor: 2 })
+  model.move('right')
+  expect(model.snapshot.cursor).toBe(7)
+  model.search()
+  expect(model.snapshot.text).toBe('plain ASCII')
+  model.cancelSearch()
+  model.move('left')
+  expect(model.snapshot.cursor).toBe(2)
+  model.replace(1, 6, '界')
+  expect(model.snapshot).toMatchObject({ text: '界', cursor: 1 })
+  model.reset()
+  model.insert('ab')
+  model.delete('backward')
+  expect(model.snapshot).toMatchObject({ text: 'a', cursor: 1 })
+})
+
 test('word motion and backward/forward kills preserve a yank buffer', () => {
   const model = new EditModel()
   model.insert('one two three')
@@ -41,6 +72,45 @@ test('word motion and backward/forward kills preserve a yank buffer', () => {
   expect(model.snapshot.text).toBe('one')
   model.yank()
   expect(model.snapshot.text).toBe('one two three')
+})
+
+test('structured line-editor errors preserve JSON serialization and status aliases without leaking internal data', () => {
+  let thrown: unknown
+  try {
+    new History({ limit: -1 })
+  } catch (error) {
+    thrown = error
+  }
+  expect(thrown).toBeInstanceOf(Error)
+  const error = thrown as Error & {
+    code: string
+    status: number
+    statusCode: number
+    statusText: string
+    statusMessage: string
+    why: string
+    fix: string
+    data: { code: string; why: string; fix: string }
+    internal: Record<string, unknown>
+  }
+  expect(error.code).toBe('line-editor.INVALID_HISTORY_LIMIT')
+  expect(error.status).toBe(400)
+  expect(error.statusCode).toBe(400)
+  expect(error.statusText).toBe(error.message)
+  expect(error.statusMessage).toBe(error.message)
+  expect(error.internal).toEqual({ integer: true, nonnegative: false })
+  const serialized = JSON.parse(JSON.stringify(error)) as Record<string, unknown>
+  expect(serialized).toEqual({
+    name: 'LineEditorError',
+    message: error.message,
+    status: 400,
+    data: {
+      code: 'line-editor.INVALID_HISTORY_LIMIT',
+      why: error.why,
+      fix: error.fix,
+    },
+  })
+  expect('internal' in serialized).toBe(false)
 })
 
 test('history is bounded, ignores adjacent duplicates and restores an edited draft', () => {
@@ -123,6 +193,20 @@ test('pasted and recalled text cannot send terminal escape or C1 controls', () =
 
 test.each([NaN, Infinity, -1, 1.5])('history rejects an invalid bounded limit %s', (limit) => {
   expect(() => new History({ limit })).toThrow('The history limit must be a nonnegative integer.')
+})
+
+test('history errors retain their structured details', () => {
+  expect(() => new History({ limit: -1 })).toThrow(
+    expect.objectContaining({
+      name: 'LineEditorError',
+      code: 'line-editor.INVALID_HISTORY_LIMIT',
+      message: 'The history limit must be a nonnegative integer.',
+      status: 400,
+      why: 'History uses a bounded number of entries.',
+      fix: 'Choose a finite whole-number history limit.',
+      internal: { integer: true, nonnegative: false },
+    }),
+  )
 })
 
 test('a zero history limit stores no entries', () => {

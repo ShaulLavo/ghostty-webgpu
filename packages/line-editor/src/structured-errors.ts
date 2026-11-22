@@ -1,7 +1,4 @@
-import type { EvlogError } from 'evlog'
-import { defineErrorCatalog } from 'evlog/catalog'
-
-const errors = defineErrorCatalog('line-editor', {
+const errors = {
   INVALID_HISTORY_LIMIT: {
     message: 'The history limit must be a nonnegative integer.',
     status: 400,
@@ -26,11 +23,70 @@ const errors = defineErrorCatalog('line-editor', {
     why: 'The editor lifecycle has ended.',
     fix: 'Create an editor for the active terminal.',
   },
-})
+}
+
+type ErrorCode = keyof typeof errors
+
+export interface LineEditorErrorData {
+  readonly code: `line-editor.${ErrorCode}`
+  readonly why: string
+  readonly fix: string
+}
+
+export class LineEditorError extends Error {
+  readonly code: `line-editor.${ErrorCode}`
+  readonly status: number
+  readonly why: string
+  readonly fix: string
+  readonly data: LineEditorErrorData
+  readonly #internal: Readonly<Record<string, unknown>>
+
+  constructor(code: ErrorCode, internal: Record<string, unknown>) {
+    const { message, status, why, fix } = errors[code]
+    super(message)
+    this.name = 'LineEditorError'
+    this.code = `line-editor.${code}`
+    this.status = status
+    this.why = why
+    this.fix = fix
+    this.data = Object.freeze({ code: this.code, why, fix })
+    this.#internal = internal
+  }
+
+  get statusCode(): number {
+    return this.status
+  }
+
+  get statusText(): string {
+    return this.message
+  }
+
+  get statusMessage(): string {
+    return this.message
+  }
+
+  get internal(): Readonly<Record<string, unknown>> {
+    return this.#internal
+  }
+
+  toJSON(): {
+    readonly name: string
+    readonly message: string
+    readonly status: number
+    readonly data: LineEditorErrorData
+  } {
+    return {
+      name: this.name,
+      message: this.message,
+      status: this.status,
+      data: this.data,
+    }
+  }
+}
 
 export function createLineEditorError(
-  code: Exclude<keyof typeof errors, `_${string}`>,
+  code: ErrorCode,
   internal: Record<string, unknown>,
-): EvlogError {
-  return errors[code]({ internal })
+): LineEditorError {
+  return new LineEditorError(code, internal)
 }
