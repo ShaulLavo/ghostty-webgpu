@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
+import { GhosttyRuntime } from '../../../../core/runtime.js'
+import { canonicalRendererTheme, mergeRendererTheme } from '../../config.js'
 import { GlyphAtlas } from '../atlas.js'
-import type { AtlasKind, AtlasPageUpload, GlyphBitmap } from '../types.js'
+import type { AtlasKind, AtlasPageUpload, GlyphBitmap, GlyphRasterizer } from '../types.js'
+import { buildZigFrame } from '../zig-glyphs.js'
 
 function bitmap(kind: AtlasKind, marker: number, width = 2, height = width): GlyphBitmap {
   return {
@@ -16,6 +19,40 @@ function bitmap(kind: AtlasKind, marker: number, width = 2, height = width): Gly
 function transferBytes(upload: AtlasPageUpload): number {
   const bytesPerPixel = upload.kind === 'grayscale' ? 1 : 4
   return upload.extent.width * upload.extent.height * bytesPerPixel
+}
+
+async function frameOwner(atlas: GlyphAtlas) {
+  const runtime = await GhosttyRuntime.create()
+  const terminal = runtime.createTerminal({ columns: 4, rows: 2 })
+  const state = runtime.createRenderState(terminal)
+  const builder = state.createFrameBuilder(4, 2)
+  const owner = {}
+  atlas.attachOwner(owner)
+  onTestFinished(() => {
+    atlas.detachOwner(owner)
+    builder.dispose()
+    runtime.dispose()
+  })
+  const options = {
+    cellWidth: 4,
+    cellHeight: 4,
+    theme: canonicalRendererTheme(mergeRendererTheme(undefined)),
+    full: false,
+    overlayRows: new Set<number>(),
+  }
+  const rasterizer: GlyphRasterizer = {
+    rasterize: ({ text }) => bitmap('grayscale', text.charCodeAt(0), 4),
+  }
+  return {
+    builder,
+    owner,
+    render(text?: string) {
+      if (text !== undefined) terminal.write('\r\x1b[2K' + text)
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, options, owner)).toBe(0)
+      state.acknowledge()
+    },
+  }
 }
 
 describe('GlyphAtlas', () => {
@@ -199,7 +236,9 @@ it('compacts a fragmented page while retaining its pinned glyphs and the other p
   expect(result?.glyph.layer).toBe(1)
   expect(atlas.touchGlyph(entries[0]!, 0)).toBe(true)
   expect(atlas.touchGlyph(entries[2]!, 0)).toBe(false)
-  expect(atlas.getOrInsert('C', bitmap('grayscale', 3, 4), 0).glyph.generation).toBe(2)
+  const compacted = atlas.getOrInsert('C', bitmap('grayscale', 3, 4), 0).glyph
+  expect(compacted.generation).toBe(2)
+  expect(atlas.touchGlyph(compacted, 0)).toBe(true)
   expect(atlas.evictionCount).toBe(1)
   const uploads = atlas.consumeUploads()
   expect(uploads).toHaveLength(1)
@@ -306,4 +345,128 @@ it('fits the union of two owners after growing the cap without eviction or repea
   expect(atlas.metrics(peer)).toEqual({ cacheHits: 6, cacheMisses: 2, evictions: 0, pages: 2 })
   expect(atlas.consumeEvictedPages(first)).toEqual([])
   expect(atlas.consumeEvictedPages(peer)).toEqual([])
+})
+
+describe('deferred owner pins', () => {
+  it('scans only on demand and reports pages from the latest retained frame', async () => {
+    const atlas = new GlyphAtlas({ padding: 0, pageWidth: 4, pageHeight: 4 })
+    const frame = await frameOwner(atlas)
+    frame.render('AB')
+    expect(atlas.metrics(frame.owner)).toEqual({
+      cacheHits: 0,
+      cacheMisses: 2,
+      evictions: 0,
+      pages: 2,
+    })
+
+    const glyphData = vi.spyOn(frame.builder, 'glyphData', 'get')
+    frame.render()
+    frame.render('A')
+    expect(glyphData).not.toHaveBeenCalled()
+    expect(atlas.metrics({}).pages).toBe(0)
+    atlas.beginFrame({}, false)
+    atlas.endFrame()
+    expect(glyphData).not.toHaveBeenCalled()
+    expect(atlas.metrics(frame.owner)).toEqual({
+      cacheHits: 0,
+      cacheMisses: 2,
+      evictions: 0,
+      pages: 1,
+    })
+    expect(atlas.metrics(frame.owner).pages).toBe(1)
+    expect(glyphData).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes every peer before choosing an eviction on a glyph miss', async () => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 3, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const first = await frameOwner(atlas)
+    const second = await frameOwner(atlas)
+    const active = await frameOwner(atlas)
+    first.render('AB')
+    first.render('A')
+    expect(atlas.metrics(first.owner).pages).toBe(1)
+    second.render('C')
+    const firstData = vi.spyOn(first.builder, 'glyphData', 'get')
+    const secondData = vi.spyOn(second.builder, 'glyphData', 'get')
+    first.render('B')
+    second.render()
+
+    active.render('D')
+
+    expect(firstData).toHaveBeenCalledTimes(1)
+    expect(secondData).toHaveBeenCalledTimes(1)
+    expect(atlas.consumeEvictedPages(first.owner)).toEqual([
+      { kind: 'grayscale', layer: 0, generation: 2 },
+    ])
+    expect(atlas.metrics(first.owner).pages).toBe(1)
+    expect(atlas.metrics(second.owner).pages).toBe(1)
+    expect(atlas.metrics(active.owner)).toEqual({
+      cacheHits: 0,
+      cacheMisses: 1,
+      evictions: 1,
+      pages: 1,
+    })
+  })
+
+  it('replaces an active owner’s deferred refresh when it enters the glyph miss path', async () => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 2, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const frame = await frameOwner(atlas)
+    frame.render('A')
+    frame.render()
+    const glyphData = vi.spyOn(frame.builder, 'glyphData', 'get')
+    frame.render('AB')
+    expect(atlas.metrics(frame.owner).pages).toBe(2)
+    expect(glyphData).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['metrics', 'peer frame'])('skips a disposed builder on a %s flush', async (observer) => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const frame = await frameOwner(atlas)
+    frame.render('A')
+    frame.render()
+    const glyphData = vi.spyOn(frame.builder, 'glyphData', 'get')
+    frame.builder.dispose()
+
+    if (observer === 'metrics') expect(atlas.metrics(frame.owner).pages).toBe(0)
+    const peer = await frameOwner(atlas)
+    peer.render('B')
+    expect(atlas.metrics(frame.owner).pages).toBe(0)
+    expect(atlas.metrics(peer.owner).evictions).toBe(1)
+    expect(glyphData).not.toHaveBeenCalled()
+  })
+
+  it('drops the pending refresher when the owner detaches', async () => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const frame = await frameOwner(atlas)
+    frame.render('A')
+    frame.render()
+    const glyphData = vi.spyOn(frame.builder, 'glyphData', 'get')
+    atlas.detachOwner(frame.owner)
+
+    const peer = await frameOwner(atlas)
+    peer.render('B')
+    expect(atlas.metrics(frame.owner).pages).toBe(0)
+    expect(atlas.metrics(peer.owner).evictions).toBe(1)
+    expect(glyphData).not.toHaveBeenCalled()
+  })
+
+  it('preserves the active frame when a peer’s metrics flush its deferred pins', async () => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 2, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const peer = await frameOwner(atlas)
+    peer.render('A')
+    peer.render()
+    const owner = {}
+    atlas.beginFrame(owner, false)
+    atlas.getOrInsert('active', bitmap('grayscale', 2, 4), 0)
+    expect(atlas.metrics(peer.owner).pages).toBe(1)
+    atlas.getOrInsert('active', bitmap('grayscale', 2, 4), 0)
+    atlas.endFrame()
+
+    expect(atlas.metrics(owner)).toEqual({
+      cacheHits: 1,
+      cacheMisses: 1,
+      evictions: 0,
+      pages: 1,
+    })
+  })
 })

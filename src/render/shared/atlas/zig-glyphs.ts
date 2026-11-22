@@ -6,6 +6,7 @@ import { glyphKey } from './key.js'
 
 // The native index retains glyphs across rows; a viewport row cannot own its residency.
 export const zigGlyphRow = -1
+const pinRefreshers = new WeakMap<ZigFrameBuilder, (atlas: GlyphAtlas) => void>()
 
 export function buildZigFrame(
   builder: ZigFrameBuilder,
@@ -16,8 +17,11 @@ export function buildZigFrame(
 ): number {
   invalidateEvictedPages(builder, atlas, owner)
   let status = builder.build(options)
-  if (status !== 2 && !builder.hasDeferredGlyphs && owner === undefined) return status
-  atlas.beginFrame(owner, status === 2 || builder.hasDeferredGlyphs)
+  if (status !== 2 && !builder.hasDeferredGlyphs) {
+    if (owner !== undefined) atlas.deferOwnerPins(owner, pinRefresher(builder))
+    return status
+  }
+  atlas.beginFrame(owner)
   try {
     touchRetainedGlyphs(builder, atlas)
     if (builder.hasDeferredGlyphs && atlas.hasReclaimableSpace && builder.retryDeferredGlyphs())
@@ -30,6 +34,16 @@ export function buildZigFrame(
   } finally {
     atlas.endFrame()
   }
+}
+
+function pinRefresher(builder: ZigFrameBuilder): (atlas: GlyphAtlas) => void {
+  const cached = pinRefreshers.get(builder)
+  if (cached) return cached
+  const refresh = (atlas: GlyphAtlas) => {
+    if (!builder.isDisposed) touchRetainedGlyphs(builder, atlas)
+  }
+  pinRefreshers.set(builder, refresh)
+  return refresh
 }
 
 function invalidateEvictedPages(
@@ -75,7 +89,7 @@ function touchRetainedGlyphs(builder: ZigFrameBuilder, atlas: GlyphAtlas): void 
     const y = Math.round(data[offset + GlyphOffset.Uv + 1]! * atlas.pageHeight)
     const slot = (page * atlas.pageHeight + y) * atlas.pageWidth + x
     if (touched.has(slot)) continue
-    atlas.touchGlyph({ generation, kind, layer, x, y }, zigGlyphRow)
+    atlas.touchGlyphSlot(kind, layer, generation, x, y, zigGlyphRow)
     touched.add(slot)
   }
 }

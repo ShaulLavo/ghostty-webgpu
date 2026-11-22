@@ -34,4 +34,71 @@ describe('fixed LTR cell BiDi', () => {
       [3, '('],
     ])
   })
+
+  it.each([
+    { text: 'abc (123), $2', continuations: [], identity: true },
+    { text: 'éå ΩЖ ㌀', continuations: [], identity: false },
+    { text: 'éå ΩЖ 5', continuations: [2], identity: true },
+    { text: ' abc', continuations: [0], identity: false },
+    { text: 'A  B', continuations: [1, 2], identity: false },
+    { text: 'ab א(ב)ج ١٢', continuations: [], identity: false },
+    { text: 'aא😀 ב𐤀', continuations: [3], identity: false },
+    { text: '', continuations: [], identity: true },
+  ])(
+    'matches the full BiDi algorithm for $text with continuations at $continuations',
+    ({ text, continuations, identity }) => {
+      const cells = Array.from(text, (text, index) => ({
+        text,
+        continuation: continuations.includes(index),
+      }))
+      const mapper = new RowBidiMapper()
+      const map = mapper.getMap(cells)
+      const full = mapper['compute'](cells)
+      expect(map).toEqual({ ...full, identity })
+    },
+  )
+
+  it('reuses identity maps for different rows of the same width', () => {
+    const mapper = new RowBidiMapper()
+    const map = mapper.getMap([
+      { text: 'A', continuation: false },
+      { text: '', continuation: false },
+    ])
+    expect(
+      mapper.getMap([
+        { text: 'Ω', continuation: false },
+        { text: '', continuation: true },
+      ]),
+    ).toBe(map)
+    expect(mapper.getMap([])).not.toBe(map)
+  })
+
+  it('keys complex maps by the first code point and effective continuation', () => {
+    const mapper = new RowBidiMapper()
+    const cells = [
+      { text: 'א', continuation: false },
+      { text: '𐤀', continuation: false },
+      { text: '', continuation: true },
+    ]
+    const map = mapper.getMap(cells)
+    expect(
+      mapper.getMap([
+        { text: 'א\u0301', continuation: false },
+        { text: '𐤀 extra', continuation: false },
+        { text: 'ignored', continuation: true },
+      ]),
+    ).toBe(map)
+
+    const differentScalar = [cells[0]!, { text: '\u0900', continuation: false }, cells[2]!]
+    expect(mapper.getMap(differentScalar)).not.toBe(map)
+    expect(mapper.getMap(differentScalar)).toEqual(mapper['compute'](differentScalar))
+    const split = [
+      cells[0]!,
+      { text: cells[1]!.text[0]!, continuation: false },
+      { text: cells[1]!.text[1]!, continuation: false },
+    ]
+    expect(mapper.getMap(split)).not.toBe(map)
+    expect(mapper.getMap(split)).toEqual(mapper['compute'](split))
+    expect(mapper.getMap([cells[0]!, cells[1]!, { text: '', continuation: false }])).not.toBe(map)
+  })
 })
