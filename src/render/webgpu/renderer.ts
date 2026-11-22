@@ -191,6 +191,7 @@ export class WebGpuTerminalRenderer {
     evictions: 0,
     pages: 0,
   }
+  private atlasMetricsOverrides?: Partial<typeof this.atlasMetricsSnapshot>
   private readonly metricsValue: RendererMetrics
   readonly backend = 'webgpu' as const
   readonly desynchronized = false
@@ -885,23 +886,44 @@ export class WebGpuTerminalRenderer {
   }
 
   private createMetricsObject(): RendererMetrics {
-    const readAtlasMetrics = () => {
+    const read = <K extends keyof typeof this.atlasMetricsSnapshot>(key: K): number => {
       if (!this.disposed) this.syncAtlasMetrics()
-      return this.atlasMetricsSnapshot
+      return this.atlasMetricsOverrides?.[key] ?? this.atlasMetricsSnapshot[key]
+    }
+    const write = <K extends keyof typeof this.atlasMetricsSnapshot>(
+      key: K,
+      value: number,
+    ): void => {
+      this.atlasMetricsSnapshot[key] = value
+      if (this.disposed) return
+      this.atlasMetricsOverrides ??= {}
+      this.atlasMetricsOverrides[key] = value
     }
     return {
       zigFrames: 0,
       get atlasCacheHits() {
-        return readAtlasMetrics().cacheHits
+        return read('cacheHits')
+      },
+      set atlasCacheHits(value: number) {
+        write('cacheHits', value)
       },
       get atlasCacheMisses() {
-        return readAtlasMetrics().cacheMisses
+        return read('cacheMisses')
+      },
+      set atlasCacheMisses(value: number) {
+        write('cacheMisses', value)
       },
       get atlasEvictions() {
-        return readAtlasMetrics().evictions
+        return read('evictions')
+      },
+      set atlasEvictions(value: number) {
+        write('evictions', value)
       },
       get atlasPages() {
-        return readAtlasMetrics().pages
+        return read('pages')
+      },
+      set atlasPages(value: number) {
+        write('pages', value)
       },
       atlasUploadedBytes: 0,
       atlasUploadOperations: 0,
@@ -926,6 +948,7 @@ export class WebGpuTerminalRenderer {
   }
 
   private recordFrame(rebuiltRows: number, instanceUploadOperations: number): void {
+    this.atlasMetricsOverrides = undefined
     this.metricsValue.atlasUploadedBytes = this.atlasUploadedBytesValue
     this.metricsValue.atlasUploadOperations = this.atlasUploadOperationsValue
     this.metricsValue.draws += this.textPass.drawCount

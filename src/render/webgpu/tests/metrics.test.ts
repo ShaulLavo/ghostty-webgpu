@@ -56,6 +56,16 @@ describe('WebGpuTerminalRenderer metrics deferral', () => {
       submittedFrames: 2,
     })
 
+    // The four atlas counters remain writable in strict mode and resync on the next submitted frame.
+    held.atlasCacheHits = 0
+    held.atlasCacheMisses = 0
+    held.atlasEvictions = 0
+    held.atlasPages = 0
+    expect(held.atlasCacheHits).toBe(0)
+    expect(held.atlasPages).toBe(0)
+    renderer.recordFrame(1, 1)
+    expect(held.atlasPages).toBe(4)
+
     // Disposed renderers retain their last synced counts without touching a detached atlas.
     const callsBeforeDispose = sharedAtlas.metrics.mock.calls.length
     renderer.disposed = true
