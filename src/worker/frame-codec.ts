@@ -245,11 +245,13 @@ export class RowDeltaDecoder {
       summaryRows.push(row.summary)
     }
     if (changed.size !== 0) throw new Error('Changed row missing from row order')
-    const rowPatches = patches.map((y) => {
-      const row = next.get(y)
+    const rowPatches: TerminalSubmittedRow[] = []
+    for (let index = 0; index < patches.length; index += 1) {
+      const y = patches[index]
+      const row = y === undefined ? undefined : next.get(y)
       if (!row) throw new Error(`Invalid row patch at ${y}`)
-      return row.summary
-    })
+      rowPatches.push(row.summary)
+    }
 
     const decoded = {
       ...header,

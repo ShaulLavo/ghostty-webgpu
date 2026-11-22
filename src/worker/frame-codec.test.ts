@@ -220,7 +220,9 @@ test('rejects truncated buffers, trailing bytes, invalid lengths, and missing ro
     { ...message, buffer: invalidFlag },
     { ...message, order: [1] },
     { ...message, order: [0, 0] },
+    { ...message, order: Array(1) as number[] },
     { ...message, patches: [1] },
+    { ...message, patches: Array(1) as number[] },
   ]) {
     expect(() => decoder.decode(malformed)).toThrow()
   }

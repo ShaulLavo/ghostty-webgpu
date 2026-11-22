@@ -27,11 +27,18 @@ const errors = {
 
 type ErrorCode = keyof typeof errors
 
+export interface LineEditorErrorData {
+  readonly code: `line-editor.${ErrorCode}`
+  readonly why: string
+  readonly fix: string
+}
+
 export class LineEditorError extends Error {
   readonly code: `line-editor.${ErrorCode}`
   readonly status: number
   readonly why: string
   readonly fix: string
+  readonly data: LineEditorErrorData
   readonly #internal: Readonly<Record<string, unknown>>
 
   constructor(code: ErrorCode, internal: Record<string, unknown>) {
@@ -42,11 +49,38 @@ export class LineEditorError extends Error {
     this.status = status
     this.why = why
     this.fix = fix
+    this.data = Object.freeze({ code: this.code, why, fix })
     this.#internal = internal
+  }
+
+  get statusCode(): number {
+    return this.status
+  }
+
+  get statusText(): string {
+    return this.message
+  }
+
+  get statusMessage(): string {
+    return this.message
   }
 
   get internal(): Readonly<Record<string, unknown>> {
     return this.#internal
+  }
+
+  toJSON(): {
+    readonly name: string
+    readonly message: string
+    readonly status: number
+    readonly data: LineEditorErrorData
+  } {
+    return {
+      name: this.name,
+      message: this.message,
+      status: this.status,
+      data: this.data,
+    }
   }
 }
 

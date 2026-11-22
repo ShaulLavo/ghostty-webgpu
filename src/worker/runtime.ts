@@ -128,7 +128,8 @@ export class TerminalWorkerRuntime {
     port.onmessage = this.onMessage
     port.start()
     try {
-      this.startupExecution = LocalTerminalExecution.create(
+      const faces = this.prepareFonts()
+      const startupExecution = LocalTerminalExecution.create(
         {
           appearance: this.initialize.appearance,
           bidi: this.initialize.bidi,
@@ -136,8 +137,12 @@ export class TerminalWorkerRuntime {
         },
         this.initialize.generation,
       )
-      const [execution] = await Promise.all([this.startupExecution, this.loadFonts()])
-      if (this.disposed) return
+      this.startupExecution = startupExecution
+      const [execution] = await Promise.all([startupExecution, this.loadFonts(faces)])
+      if (this.disposed) {
+        execution.dispose()
+        return
+      }
       this.startupExecution = undefined
       this.execution = execution
       this.subscribe()
@@ -147,7 +152,7 @@ export class TerminalWorkerRuntime {
     }
   }
 
-  private async loadFonts(): Promise<void> {
+  private prepareFonts(): FontFace[] {
     if (typeof FontFace === 'undefined' || !scope.fonts)
       throw workerError('capability', 'fonts', {
         fontFace: typeof FontFace,
@@ -155,7 +160,7 @@ export class TerminalWorkerRuntime {
       })
     if (this.initialize.faces.length === 0)
       throw workerError('capability', 'fonts', { faceCount: 0 })
-    const faces = this.initialize.faces.map((source) => {
+    return this.initialize.faces.map((source) => {
       const data =
         'url' in source.source
           ? `url(${JSON.stringify(source.source.url)})`
@@ -166,6 +171,9 @@ export class TerminalWorkerRuntime {
       if (metrics) this.faceMetrics.set(face, metrics)
       return face
     })
+  }
+
+  private async loadFonts(faces: readonly FontFace[]): Promise<void> {
     const loaded = await Promise.all(faces.map((face) => face.load()))
     if (this.disposed) return
     this.faces = loaded
@@ -769,7 +777,8 @@ export class TerminalWorkerRuntime {
     this.faceMetrics.clear()
     const startupExecution = this.startupExecution
     this.startupExecution = undefined
-    await startupExecution?.then(
+    // Dispose late-settling Wasm startup asynchronously so a known font failure reports immediately.
+    void startupExecution?.then(
       (execution) => execution.dispose(),
       () => {},
     )

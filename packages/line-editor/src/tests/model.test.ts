@@ -74,6 +74,45 @@ test('word motion and backward/forward kills preserve a yank buffer', () => {
   expect(model.snapshot.text).toBe('one two three')
 })
 
+test('structured line-editor errors preserve JSON serialization and status aliases without leaking internal data', () => {
+  let thrown: unknown
+  try {
+    new History({ limit: -1 })
+  } catch (error) {
+    thrown = error
+  }
+  expect(thrown).toBeInstanceOf(Error)
+  const error = thrown as Error & {
+    code: string
+    status: number
+    statusCode: number
+    statusText: string
+    statusMessage: string
+    why: string
+    fix: string
+    data: { code: string; why: string; fix: string }
+    internal: Record<string, unknown>
+  }
+  expect(error.code).toBe('line-editor.INVALID_HISTORY_LIMIT')
+  expect(error.status).toBe(400)
+  expect(error.statusCode).toBe(400)
+  expect(error.statusText).toBe(error.message)
+  expect(error.statusMessage).toBe(error.message)
+  expect(error.internal).toEqual({ integer: true, nonnegative: false })
+  const serialized = JSON.parse(JSON.stringify(error)) as Record<string, unknown>
+  expect(serialized).toEqual({
+    name: 'LineEditorError',
+    message: error.message,
+    status: 400,
+    data: {
+      code: 'line-editor.INVALID_HISTORY_LIMIT',
+      why: error.why,
+      fix: error.fix,
+    },
+  })
+  expect('internal' in serialized).toBe(false)
+})
+
 test('history is bounded, ignores adjacent duplicates and restores an edited draft', () => {
   const history = new History({ limit: 2, entries: ['first', 'second'] })
   history.add('second')
