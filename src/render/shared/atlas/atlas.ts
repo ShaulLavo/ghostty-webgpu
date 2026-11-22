@@ -316,9 +316,7 @@ export class GlyphAtlas {
 
   beginFrame(owner: object = this, collectPeerPins = true): void {
     this.deferredOwnerPins.delete(owner)
-    if (collectPeerPins) {
-      for (const peer of this.deferredOwnerPins.keys()) this.flushOwnerPins(peer)
-    }
+    if (collectPeerPins) this.flushDeferredPeers(owner)
     const frame = this.startFrame(owner)
     if (!collectPeerPins) return
     for (const [other, pins] of this.ownerPins) {
@@ -332,6 +330,20 @@ export class GlyphAtlas {
 
   deferOwnerPins(owner: object, refresh: (atlas: GlyphAtlas) => void): void {
     this.deferredOwnerPins.set(owner, refresh)
+  }
+
+  private flushDeferredPeers(excludeOwner: object): void {
+    if (this.deferredOwnerPins.size === 0) return
+    for (const peer of Array.from(this.deferredOwnerPins.keys())) {
+      if (peer === excludeOwner) continue
+      this.flushOwnerPins(peer)
+      const pins = this.ownerPins.get(peer)
+      if (!this.frame || !pins) continue
+      for (const [page, keys] of pins) {
+        const pinned = this.keysOnPage(this.frame.pinnedPages, page)
+        for (const key of keys) pinned.add(key)
+      }
+    }
   }
 
   private flushOwnerPins(owner: object): void {
@@ -368,6 +380,7 @@ export class GlyphAtlas {
     for (const count of layers.values()) {
       if (count < this.maxLayersPerKind) return true
     }
+    this.flushDeferredPeers(this.currentOwner())
     return this.pages.some(
       (page) =>
         !this.pinnedByOtherOwner(page.id) &&
@@ -504,7 +517,10 @@ export class GlyphAtlas {
     if (pages.length < this.maxLayersPerKind) {
       return this.insertIntoNewPage(cacheKey, key, bitmap, pages.length)
     }
-    const evictable = pages.filter((page) => !this.frame?.pinnedPages.has(page.id))
+    this.flushDeferredPeers(this.currentOwner())
+    const evictable = pages.filter(
+      (page) => !this.frame?.pinnedPages.has(page.id) && !this.pinnedByOtherOwner(page.id),
+    )
     if (evictable.length > 0) return this.insertIntoRecycledPage(cacheKey, key, bitmap, evictable)
     for (const page of pages) {
       const compacted = this.compactPage(page, cacheKey, key, bitmap)

@@ -40,7 +40,7 @@ function pinRefresher(builder: ZigFrameBuilder): (atlas: GlyphAtlas) => void {
   const cached = pinRefreshers.get(builder)
   if (cached) return cached
   const refresh = (atlas: GlyphAtlas) => {
-    if (!builder.isDisposed) touchRetainedGlyphs(builder, atlas)
+    if (builder.isActive) touchRetainedGlyphs(builder, atlas)
   }
   pinRefreshers.set(builder, refresh)
   return refresh

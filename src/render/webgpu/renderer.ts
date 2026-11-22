@@ -185,7 +185,7 @@ export class WebGpuTerminalRenderer {
   private textPass: WebGpuTextPass
   private theme: CanonicalRendererTheme
   private themeInput: RendererTheme
-  readonly metrics: RendererMetrics = {
+  private readonly metricsValue: RendererMetrics = {
     zigFrames: 0,
     atlasCacheHits: 0,
     atlasCacheMisses: 0,
@@ -202,6 +202,11 @@ export class WebGpuTerminalRenderer {
   }
   readonly backend = 'webgpu' as const
   readonly desynchronized = false
+
+  get metrics(): RendererMetrics {
+    if (!this.disposed) this.syncAtlasMetrics()
+    return this.metricsValue
+  }
 
   private constructor(
     options: WebGpuTerminalRendererOptions,
@@ -467,6 +472,7 @@ export class WebGpuTerminalRenderer {
       this.deviceGeneration += 1
       this.unsubscribeRenderRequest?.()
       this.scheduler.dispose()
+      this.syncAtlasMetrics()
       this.zigBuilder?.dispose()
       this.textPass.destroy()
       this.sharedAtlas.releaseTextures(this.device)
@@ -683,7 +689,7 @@ export class WebGpuTerminalRenderer {
       try {
         if (damage !== RenderStateDirty.False) this.renderState.acknowledge()
         this.recordFrame(rebuiltRows, operations)
-        this.metrics.zigFrames += 1
+        this.metricsValue.zigFrames += 1
         this.needsFullRebuild = false
         this.frameFailed = false
         this.overlayRows.clear()
@@ -737,7 +743,7 @@ export class WebGpuTerminalRenderer {
           textPass.acceptFrame()
           if (damage !== RenderStateDirty.False) acknowledge()
           this.recordFrame(rebuiltRows, operations)
-          this.metrics.zigFrames += 1
+          this.metricsValue.zigFrames += 1
           this.needsFullRebuild = false
           this.frameFailed = false
           this.overlayRows.clear()
@@ -886,19 +892,23 @@ export class WebGpuTerminalRenderer {
     this.frames.resize(this.grid.rows)
   }
 
-  private recordFrame(rebuiltRows: number, instanceUploadOperations: number): void {
+  private syncAtlasMetrics(): void {
     const atlasMetrics = this.sharedAtlas.metrics(this)
-    this.metrics.atlasCacheHits = this.previousAtlasMetrics.cacheHits + atlasMetrics.cacheHits
-    this.metrics.atlasCacheMisses = this.previousAtlasMetrics.cacheMisses + atlasMetrics.cacheMisses
-    this.metrics.atlasEvictions = this.previousAtlasMetrics.evictions + atlasMetrics.evictions
-    this.metrics.atlasPages = atlasMetrics.pages
-    this.metrics.atlasUploadedBytes = this.atlasUploadedBytesValue
-    this.metrics.atlasUploadOperations = this.atlasUploadOperationsValue
-    this.metrics.draws += this.textPass.drawCount
-    this.metrics.instanceUploadOperations += instanceUploadOperations
-    this.metrics.rebuiltRows += rebuiltRows
-    this.metrics.submittedFrames += 1
-    this.metrics.uploadedBytes += this.textPass.frameUploadedBytes
+    this.metricsValue.atlasCacheHits = this.previousAtlasMetrics.cacheHits + atlasMetrics.cacheHits
+    this.metricsValue.atlasCacheMisses =
+      this.previousAtlasMetrics.cacheMisses + atlasMetrics.cacheMisses
+    this.metricsValue.atlasEvictions = this.previousAtlasMetrics.evictions + atlasMetrics.evictions
+    this.metricsValue.atlasPages = atlasMetrics.pages
+  }
+
+  private recordFrame(rebuiltRows: number, instanceUploadOperations: number): void {
+    this.metricsValue.atlasUploadedBytes = this.atlasUploadedBytesValue
+    this.metricsValue.atlasUploadOperations = this.atlasUploadOperationsValue
+    this.metricsValue.draws += this.textPass.drawCount
+    this.metricsValue.instanceUploadOperations += instanceUploadOperations
+    this.metricsValue.rebuiltRows += rebuiltRows
+    this.metricsValue.submittedFrames += 1
+    this.metricsValue.uploadedBytes += this.textPass.frameUploadedBytes
   }
 
   private replaceTextPass(): void {
@@ -997,7 +1007,7 @@ export class WebGpuTerminalRenderer {
     const forget = () => this.retiredReleases.delete(release)
     void release.then(forget, forget)
     this.needsFullRebuild = true
-    this.metrics.deviceRestores += 1
+    this.metricsValue.deviceRestores += 1
     this.watchDeviceLoss(replacement.device, this.deviceGeneration)
     this.scheduler.schedule()
   }

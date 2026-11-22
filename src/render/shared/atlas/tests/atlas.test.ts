@@ -469,4 +469,73 @@ describe('deferred owner pins', () => {
       pages: 1,
     })
   })
+
+  it('flushes deferred peers before checking reclaimable space or recycling outside a frame', async () => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const frame = await frameOwner(atlas)
+    frame.render('A')
+    frame.render('')
+    expect(atlas.metrics(frame.owner).pages).toBe(0)
+    // Re-drawing cached A defers owner pins while the stored pin map is still empty.
+    frame.render('A')
+
+    expect(atlas.hasReclaimableSpace).toBe(false)
+    expect(atlas.tryGetOrInsert('unframed-b', bitmap('grayscale', 4, 4), 0)).toBeUndefined()
+    expect(atlas.metrics(frame.owner).pages).toBe(1)
+
+    // Repeat when another owner begins a frame without collecting peer pins upfront.
+    frame.render('')
+    expect(atlas.metrics(frame.owner).pages).toBe(0)
+    frame.render('A')
+    const peer = {}
+    atlas.beginFrame(peer, false)
+    try {
+      expect(atlas.hasReclaimableSpace).toBe(false)
+      expect(atlas.tryGetOrInsert('peer-b', bitmap('grayscale', 4, 4), 0)).toBeUndefined()
+    } finally {
+      atlas.endFrame()
+    }
+    expect(atlas.metrics(frame.owner).pages).toBe(1)
+  })
+
+  it('skips a pending refresher cleanly when its owning render state is disposed', async () => {
+    const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageWidth: 4, pageHeight: 4 })
+    const runtime = await GhosttyRuntime.create()
+    try {
+      const terminal = runtime.createTerminal({ columns: 4, rows: 1 })
+      const state = runtime.createRenderState(terminal)
+      const builder = state.createFrameBuilder(4, 1)
+      const owner = {}
+      atlas.attachOwner(owner)
+      const rasterizer = {
+        rasterize: () => bitmap('grayscale', 4, 4),
+      }
+      const options = {
+        cellWidth: 4,
+        cellHeight: 4,
+        theme: canonicalRendererTheme(mergeRendererTheme(undefined)),
+        full: false,
+        overlayRows: new Set<number>(),
+      }
+      terminal.write('A')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, options, owner)).toBe(0)
+      state.acknowledge()
+      terminal.write('\rA')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, options, owner)).toBe(0)
+      state.acknowledge()
+
+      // Disposing only the render state leaves builder.isDisposed false while ensureOwnerActive throws.
+      state.dispose()
+
+      const peer = await frameOwner(atlas)
+      expect(() => peer.render('B')).not.toThrow()
+      expect(atlas.metrics(owner).pages).toBe(0)
+      expect(atlas.metrics(peer.owner).evictions).toBe(1)
+      terminal.dispose()
+    } finally {
+      runtime.dispose()
+    }
+  })
 })
