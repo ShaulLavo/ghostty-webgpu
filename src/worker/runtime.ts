@@ -25,12 +25,14 @@ import type {
   WorkerInitialize,
   WorkerLayout,
   WorkerMessage,
+  WorkerFrameDelta,
   WorkerRequest,
   WorkerCanvasReplacement,
   WorkerState,
   TerminalOutputMessage,
 } from './protocol.js'
 import { workerCommandNames, workerOperationTimeout } from './protocol.js'
+import { RowDeltaEncoder } from './frame-codec.js'
 import { serializeWorkerFailure, TerminalWorkerError, workerError } from './structured-errors.js'
 
 interface WorkerScope {
@@ -61,11 +63,13 @@ function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
 }
 
 export class TerminalWorkerRuntime {
+  private startupExecution?: Promise<LocalTerminalExecution>
   private execution?: LocalTerminalExecution
   private renderer?: GhosttyWebGpuRenderer
   private inactiveCursorStyle?: InactiveCursorStyle
-  private readonly faces: FontFace[] = []
+  private faces: FontFace[] = []
   private readonly faceMetrics = new Map<FontFace, TerminalFontMetrics>()
+  private readonly frameEncoder = new RowDeltaEncoder()
   private readonly subscriptions: TerminalSessionSubscription[] = []
   private readonly abort = new AbortController()
   private outputPort?: MessagePort
@@ -124,9 +128,7 @@ export class TerminalWorkerRuntime {
     port.onmessage = this.onMessage
     port.start()
     try {
-      await this.loadFonts()
-      if (this.disposed) return
-      this.execution = await LocalTerminalExecution.create(
+      this.startupExecution = LocalTerminalExecution.create(
         {
           appearance: this.initialize.appearance,
           bidi: this.initialize.bidi,
@@ -134,10 +136,10 @@ export class TerminalWorkerRuntime {
         },
         this.initialize.generation,
       )
-      if (this.disposed) {
-        this.execution.dispose()
-        return
-      }
+      const [execution] = await Promise.all([this.startupExecution, this.loadFonts()])
+      if (this.disposed) return
+      this.startupExecution = undefined
+      this.execution = execution
       this.subscribe()
       this.post({ ...this.watermarks(), type: 'reply', id: 0, state: this.state() })
     } catch (cause) {
@@ -153,7 +155,7 @@ export class TerminalWorkerRuntime {
       })
     if (this.initialize.faces.length === 0)
       throw workerError('capability', 'fonts', { faceCount: 0 })
-    for (const source of this.initialize.faces) {
+    const faces = this.initialize.faces.map((source) => {
       const data =
         'url' in source.source
           ? `url(${JSON.stringify(source.source.url)})`
@@ -162,11 +164,12 @@ export class TerminalWorkerRuntime {
       const metrics =
         typeof data === 'string' ? undefined : readSfntFontMetrics(new Uint8Array(data))
       if (metrics) this.faceMetrics.set(face, metrics)
-      this.faces.push(face)
-      await face.load()
-      if (this.disposed) return
-      scope.fonts.add(face)
-    }
+      return face
+    })
+    const loaded = await Promise.all(faces.map((face) => face.load()))
+    if (this.disposed) return
+    this.faces = loaded
+    for (const face of loaded) scope.fonts.add(face)
   }
 
   private measuredFontSettings(settings: TerminalFontSettings): TerminalFontSettings {
@@ -425,7 +428,7 @@ export class TerminalWorkerRuntime {
     execution.submit(snapshot)
     const summary = execution.submittedFrame
     if (!summary || this.disposed) return
-    this.post({
+    const message = this.frameEncoder.encode({
       ...this.watermarks(),
       type: 'frame',
       base: summary.frame - 1,
@@ -433,6 +436,7 @@ export class TerminalWorkerRuntime {
       summary,
       snapshot: execution.textFrame()!,
     })
+    this.post(message, [message.buffer])
   }
 
   private subscribe(): void {
@@ -461,7 +465,7 @@ export class TerminalWorkerRuntime {
             event,
             value,
             state: this.state(),
-          } as WorkerMessage)
+          } as WorkerMessage<WorkerFrameDelta>)
         }),
       )
     }
@@ -712,8 +716,12 @@ export class TerminalWorkerRuntime {
   private watermarks() {
     return { ...this.identity(), control: this.control, output: this.output }
   }
-  private post(message: WorkerMessage): void {
+  private post(message: WorkerMessage<WorkerFrameDelta>, transfer?: Transferable[]): void {
     if (this.closed) return
+    if (transfer) {
+      this.initialize.port.postMessage(message, transfer)
+      return
+    }
     this.initialize.port.postMessage(message)
   }
 
@@ -759,6 +767,12 @@ export class TerminalWorkerRuntime {
     for (const face of this.faces) scope.fonts.delete(face)
     this.faces.length = 0
     this.faceMetrics.clear()
+    const startupExecution = this.startupExecution
+    this.startupExecution = undefined
+    await startupExecution?.then(
+      (execution) => execution.dispose(),
+      () => {},
+    )
     await this.prefetchedAcquisition?.then(
       () => {},
       () => {},

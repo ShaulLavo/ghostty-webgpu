@@ -35,9 +35,6 @@
     "format:check": "oxfmt --check .",
     "verify": "bun run build && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run test:package"
   },
-  "dependencies": {
-    "evlog": "2.29.0"
-  },
   "devDependencies": {
     "oxfmt": "0.70.0",
     "oxlint": "1.85.0",

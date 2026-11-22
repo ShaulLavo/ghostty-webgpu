@@ -20,14 +20,25 @@ interface Search extends Navigation {
 }
 
 const wordCharacter = /[\p{L}\p{N}\p{M}_]/u
-const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+let segmenter: Intl.Segmenter | undefined
+
+function isAscii(text: string): boolean {
+  return !/[\r\u0080-\uffff]/.test(text)
+}
+
+function cleanInput(text: string): string {
+  return text.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '')
+}
 
 function boundaries(text: string): number[] {
+  segmenter ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' })
   return Array.from(segmenter.segment(text), (segment) => segment.index).concat(text.length)
 }
 
 export class EditModel {
   private text = ''
+  // Null means ASCII. Undefined means the current text has not been classified.
+  private graphemePoints: readonly number[] | null | undefined = null
   private cursor = 0
   private revision = 0
   private searching: Search | undefined
@@ -52,6 +63,7 @@ export class EditModel {
 
   reset(): void {
     this.text = ''
+    this.graphemePoints = null
     this.cursor = 0
     this.searching = undefined
     this.lastKill = false
@@ -60,24 +72,31 @@ export class EditModel {
   }
 
   replace(from: number, to: number, text: string): void {
-    const points = boundaries(this.text)
-    const start = points.findLast((point) => point <= from) ?? 0
-    const end = points.find((point) => point >= to) ?? this.text.length
-    const clean = text.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '')
-    this.text = this.text.slice(0, start) + clean + this.text.slice(end)
-    this.cursor =
-      boundaries(this.text).find((point) => point >= start + clean.length) ?? this.text.length
+    const points = this.graphemes()
+    const length = this.text.length
+    const start =
+      points?.findLast((point) => point <= from) ??
+      Math.floor(Math.min(length, from > 0 ? from : 0))
+    const end =
+      points?.find((point) => point >= to) ?? Math.ceil(Math.max(0, to < length ? to : length))
+    const clean = cleanInput(text)
+    const next = this.text.slice(0, start) + clean + this.text.slice(end)
+    if (next !== this.text) {
+      this.text = next
+      this.graphemePoints = points === null && isAscii(clean) ? null : undefined
+    }
+    const target = start + clean.length
+    this.cursor = this.graphemes()?.find((point) => point >= target) ?? target
     this.lastKill = false
     this.revision++
   }
 
   insert(text: string): void {
-    const clean = text.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, '')
     if (!this.searching) {
-      this.replace(this.cursor, this.cursor, clean)
+      this.replace(this.cursor, this.cursor, text)
       return
     }
-    this.searching.query += clean
+    this.searching.query += cleanInput(text)
     this.updateSearch()
   }
 
@@ -91,7 +110,9 @@ export class EditModel {
   delete(direction: 'backward' | 'forward'): void {
     if (this.searching) {
       const query = this.searching.query
-      this.searching.query = query.slice(0, boundaries(query).at(-2) ?? 0)
+      this.searching.query = isAscii(query)
+        ? query.slice(0, -1)
+        : query.slice(0, boundaries(query).at(-2) ?? 0)
       this.updateSearch()
       return
     }
@@ -164,6 +185,7 @@ export class EditModel {
     if (!this.searching) return
     const { original } = this.searching
     this.text = original.text
+    this.graphemePoints = undefined
     this.cursor = original.cursor
     this.searching = undefined
     this.revision++
@@ -185,47 +207,54 @@ export class EditModel {
   }
 
   private destination(motion: Motion): number {
-    const points = boundaries(this.text)
     if (motion === 'start') return this.text.slice(0, this.cursor).lastIndexOf('\n') + 1
     if (motion === 'end') {
       const end = this.text.indexOf('\n', this.cursor)
       return end < 0 ? this.text.length : end
     }
-    if (motion === 'left') return points.findLast((point) => point < this.cursor) ?? 0
-    if (motion === 'right') return points.find((point) => point > this.cursor) ?? this.text.length
-    const index = points.indexOf(this.cursor)
+    const points = this.graphemes()
+    if (motion === 'left')
+      return points?.findLast((point) => point < this.cursor) ?? Math.max(0, this.cursor - 1)
+    if (motion === 'right')
+      return (
+        points?.find((point) => point > this.cursor) ?? Math.min(this.text.length, this.cursor + 1)
+      )
+    const index = points?.indexOf(this.cursor) ?? this.cursor
     if (motion === 'word-left') return this.wordLeft(points, index)
     return this.wordRight(points, index)
   }
 
   private unixWordLeft(): number {
-    const points = boundaries(this.text)
-    const index = points.indexOf(this.cursor)
-    let next = index
-    while (next > 0 && /\s/u.test(this.text.slice(points[next - 1], points[next]))) next--
-    while (next > 0 && !/\s/u.test(this.text.slice(points[next - 1], points[next]))) next--
-    return points[next] ?? 0
+    const points = this.graphemes()
+    let next = points?.indexOf(this.cursor) ?? this.cursor
+    while (next > 0 && /\s/u.test(this.graphemeAt(points, next - 1))) next--
+    while (next > 0 && !/\s/u.test(this.graphemeAt(points, next - 1))) next--
+    return points ? (points[next] ?? 0) : next
   }
 
-  private wordLeft(points: readonly number[], index: number): number {
+  private wordLeft(points: readonly number[] | null, index: number): number {
     let next = index
-    while (next > 0 && !wordCharacter.test(this.text.slice(points[next - 1], points[next]))) next--
-    while (next > 0 && wordCharacter.test(this.text.slice(points[next - 1], points[next]))) next--
-    return points[next] ?? 0
+    while (next > 0 && !wordCharacter.test(this.graphemeAt(points, next - 1))) next--
+    while (next > 0 && wordCharacter.test(this.graphemeAt(points, next - 1))) next--
+    return points ? (points[next] ?? 0) : next
   }
 
-  private wordRight(points: readonly number[], index: number): number {
+  private wordRight(points: readonly number[] | null, index: number): number {
+    const end = points ? points.length - 1 : this.text.length
     let next = index
-    while (
-      next < points.length - 1 &&
-      !wordCharacter.test(this.text.slice(points[next], points[next + 1]))
-    )
-      next++
-    while (
-      next < points.length - 1 &&
-      wordCharacter.test(this.text.slice(points[next], points[next + 1]))
-    )
-      next++
-    return points[next] ?? this.text.length
+    while (next < end && !wordCharacter.test(this.graphemeAt(points, next))) next++
+    while (next < end && wordCharacter.test(this.graphemeAt(points, next))) next++
+    return points ? (points[next] ?? this.text.length) : next
+  }
+
+  private graphemes(): readonly number[] | null {
+    if (this.graphemePoints === undefined)
+      this.graphemePoints = isAscii(this.text) ? null : boundaries(this.text)
+    return this.graphemePoints
+  }
+
+  private graphemeAt(points: readonly number[] | null, index: number): string {
+    if (!points) return this.text.charAt(index)
+    return this.text.slice(points[index], points[index + 1])
   }
 }

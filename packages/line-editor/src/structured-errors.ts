@@ -1,7 +1,4 @@
-import type { EvlogError } from 'evlog'
-import { defineErrorCatalog } from 'evlog/catalog'
-
-const errors = defineErrorCatalog('line-editor', {
+const errors = {
   INVALID_HISTORY_LIMIT: {
     message: 'The history limit must be a nonnegative integer.',
     status: 400,
@@ -26,11 +23,36 @@ const errors = defineErrorCatalog('line-editor', {
     why: 'The editor lifecycle has ended.',
     fix: 'Create an editor for the active terminal.',
   },
-})
+}
+
+type ErrorCode = keyof typeof errors
+
+export class LineEditorError extends Error {
+  readonly code: `line-editor.${ErrorCode}`
+  readonly status: number
+  readonly why: string
+  readonly fix: string
+  readonly #internal: Readonly<Record<string, unknown>>
+
+  constructor(code: ErrorCode, internal: Record<string, unknown>) {
+    const { message, status, why, fix } = errors[code]
+    super(message)
+    this.name = 'LineEditorError'
+    this.code = `line-editor.${code}`
+    this.status = status
+    this.why = why
+    this.fix = fix
+    this.#internal = internal
+  }
+
+  get internal(): Readonly<Record<string, unknown>> {
+    return this.#internal
+  }
+}
 
 export function createLineEditorError(
-  code: Exclude<keyof typeof errors, `_${string}`>,
+  code: ErrorCode,
   internal: Record<string, unknown>,
-): EvlogError {
-  return errors[code]({ internal })
+): LineEditorError {
+  return new LineEditorError(code, internal)
 }

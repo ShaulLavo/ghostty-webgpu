@@ -20,11 +20,14 @@ import type {
   WorkerCommand,
   WorkerRequest,
   WorkerMessage,
+  WorkerFrameDelta,
+  WorkerSubmission,
   WorkerState,
   WorkerLayout,
   WorkerCanvasReplacement,
 } from './protocol.js'
 import { TerminalWorkerError, workerError } from './structured-errors.js'
+import { RowDeltaDecoder } from './frame-codec.js'
 import { freezeWorkerValue } from './owned.js'
 import { readOpeningFont } from './opening-font.js'
 import { workerOperationTimeout } from './protocol.js'
@@ -66,6 +69,7 @@ export class WorkerTerminalExecution {
   private submittedProducerOutput = 0
   private nextId = 0
   private state?: WorkerState
+  private readonly frameDecoder = new RowDeltaDecoder()
   private summary?: TerminalSubmittedSnapshot
   private projection?: RendererTextFrameSnapshot
   private disposed = false
@@ -118,7 +122,8 @@ export class WorkerTerminalExecution {
     }
     const channel = new MessageChannel()
     this.port = channel.port1
-    this.port.onmessage = ({ data }: MessageEvent<WorkerMessage>) => this.receive(data)
+    this.port.onmessage = ({ data }: MessageEvent<WorkerMessage<WorkerFrameDelta>>) =>
+      this.receive(data)
     this.port.onmessageerror = () =>
       this.fail(workerError('protocol', 'messageerror', { control: this.control }))
     this.port.start()
@@ -260,7 +265,7 @@ export class WorkerTerminalExecution {
     return reply as Promise<ReturnType<WorkerCommands[K]>>
   }
 
-  private receive(message: WorkerMessage): void {
+  private receive(message: WorkerMessage<WorkerFrameDelta>): void {
     if (message?.terminal !== this.terminal || message.generation !== this.generation) return
     if (message.type === 'replaceCanvas') {
       this.replaceCanvas()
@@ -271,26 +276,7 @@ export class WorkerTerminalExecution {
       return
     }
     if (message.type === 'frame') {
-      if (this.disposed || message.summary.frame <= (this.summary?.frame ?? 0)) return
-      if (message.base !== (this.summary?.frame ?? 0)) {
-        this.fail(
-          workerError('protocol', 'frame.base', {
-            base: message.base,
-            frame: this.summary?.frame ?? 0,
-          }),
-        )
-        return
-      }
-      this.recordSubmittedOutput(message)
-      if (this.state)
-        this.state = freezeWorkerValue({
-          ...this.state,
-          mouseTracking: message.mouseTracking,
-          renderHeld: message.snapshot.renderHeld ?? false,
-        })
-      this.summary = freezeWorkerValue(message.summary)
-      this.projection = freezeWorkerValue(message.snapshot)
-      this.frameListener?.(this.textFrame()!)
+      this.receiveFrame(message)
       return
     }
     // FIFO delivery has already handled frames preceding this acknowledgement.
@@ -318,7 +304,39 @@ export class WorkerTerminalExecution {
     pending.resolve(freezeWorkerValue(message.result))
   }
 
-  private recordSubmittedOutput(message: Extract<WorkerMessage, { type: 'frame' }>): void {
+  private receiveFrame(message: WorkerFrameDelta): void {
+    if (this.disposed) return
+    const frame = this.summary?.frame ?? 0
+    const nextFrame = message.summary?.frame
+    if (message.base !== frame || !Number.isSafeInteger(nextFrame) || nextFrame <= frame) {
+      this.fail(workerError('protocol', 'frame.base', { base: message.base, frame, nextFrame }))
+      return
+    }
+    let decoded: WorkerSubmission
+    try {
+      decoded = this.frameDecoder.decode(message)
+    } catch (cause) {
+      this.fail(
+        workerError('protocol', 'frame.decode', {
+          frame: nextFrame,
+          reason: cause instanceof Error ? cause.message : undefined,
+        }),
+      )
+      return
+    }
+    this.recordSubmittedOutput(decoded)
+    if (this.state)
+      this.state = freezeWorkerValue({
+        ...this.state,
+        mouseTracking: decoded.mouseTracking,
+        renderHeld: decoded.snapshot.renderHeld ?? false,
+      })
+    this.summary = decoded.summary
+    this.projection = decoded.snapshot
+    this.frameListener?.(decoded.snapshot)
+  }
+
+  private recordSubmittedOutput(message: WorkerSubmission): void {
     this.submittedOutputValue = false
     if (message.snapshot.renderHeld) return
     this.submittedOutputValue = message.output > this.submittedProducerOutput
@@ -547,6 +565,7 @@ export class WorkerTerminalExecution {
     this.frameListener = undefined
     this.elements = undefined
     this.outputControls.clear()
+    this.frameDecoder.reset()
     this.summary = undefined
     this.projection = undefined
   }
