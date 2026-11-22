@@ -895,7 +895,10 @@ export class WebGpuTerminalRenderer {
       value: number,
     ): void => {
       this.atlasMetricsSnapshot[key] = value
-      if (this.disposed) return
+      if (this.disposed) {
+        delete this.atlasMetricsOverrides?.[key]
+        return
+      }
       this.atlasMetricsOverrides ??= {}
       this.atlasMetricsOverrides[key] = value
     }

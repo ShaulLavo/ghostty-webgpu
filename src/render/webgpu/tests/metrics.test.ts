@@ -66,10 +66,13 @@ describe('WebGpuTerminalRenderer metrics deferral', () => {
     renderer.recordFrame(1, 1)
     expect(held.atlasPages).toBe(4)
 
-    // Disposed renderers retain their last synced counts without touching a detached atlas.
+    // Disposed renderers retain their last synced counts and allow post-dispose writes without touching a detached atlas.
+    held.atlasPages = 0
     const callsBeforeDispose = sharedAtlas.metrics.mock.calls.length
     renderer.disposed = true
-    expect(held.atlasPages).toBe(4)
+    expect(held.atlasPages).toBe(0)
+    held.atlasPages = 7
+    expect(held.atlasPages).toBe(7)
     expect(sharedAtlas.metrics).toHaveBeenCalledTimes(callsBeforeDispose)
   })
 })
