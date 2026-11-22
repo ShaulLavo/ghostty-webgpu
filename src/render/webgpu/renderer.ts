@@ -185,26 +185,17 @@ export class WebGpuTerminalRenderer {
   private textPass: WebGpuTextPass
   private theme: CanonicalRendererTheme
   private themeInput: RendererTheme
-  private readonly metricsValue: RendererMetrics = {
-    zigFrames: 0,
-    atlasCacheHits: 0,
-    atlasCacheMisses: 0,
-    atlasEvictions: 0,
-    atlasPages: 0,
-    atlasUploadedBytes: 0,
-    atlasUploadOperations: 0,
-    deviceRestores: 0,
-    draws: 0,
-    instanceUploadOperations: 0,
-    rebuiltRows: 0,
-    submittedFrames: 0,
-    uploadedBytes: 0,
+  private readonly atlasMetricsSnapshot = {
+    cacheHits: 0,
+    cacheMisses: 0,
+    evictions: 0,
+    pages: 0,
   }
+  private readonly metricsValue: RendererMetrics
   readonly backend = 'webgpu' as const
   readonly desynchronized = false
 
   get metrics(): RendererMetrics {
-    if (!this.disposed) this.syncAtlasMetrics()
     return this.metricsValue
   }
 
@@ -215,6 +206,7 @@ export class WebGpuTerminalRenderer {
     prepared: PreparedRenderer,
     bidi?: RowBidiMapper,
   ) {
+    this.metricsValue = this.createMetricsObject()
     this.canvas = options.canvas
     this.context = prepared.context
     const device = lease.device
@@ -892,13 +884,45 @@ export class WebGpuTerminalRenderer {
     this.frames.resize(this.grid.rows)
   }
 
+  private createMetricsObject(): RendererMetrics {
+    const readAtlasMetrics = () => {
+      if (!this.disposed) this.syncAtlasMetrics()
+      return this.atlasMetricsSnapshot
+    }
+    return {
+      zigFrames: 0,
+      get atlasCacheHits() {
+        return readAtlasMetrics().cacheHits
+      },
+      get atlasCacheMisses() {
+        return readAtlasMetrics().cacheMisses
+      },
+      get atlasEvictions() {
+        return readAtlasMetrics().evictions
+      },
+      get atlasPages() {
+        return readAtlasMetrics().pages
+      },
+      atlasUploadedBytes: 0,
+      atlasUploadOperations: 0,
+      deviceRestores: 0,
+      draws: 0,
+      instanceUploadOperations: 0,
+      rebuiltRows: 0,
+      submittedFrames: 0,
+      uploadedBytes: 0,
+    }
+  }
+
   private syncAtlasMetrics(): void {
     const atlasMetrics = this.sharedAtlas.metrics(this)
-    this.metricsValue.atlasCacheHits = this.previousAtlasMetrics.cacheHits + atlasMetrics.cacheHits
-    this.metricsValue.atlasCacheMisses =
+    this.atlasMetricsSnapshot.cacheHits =
+      this.previousAtlasMetrics.cacheHits + atlasMetrics.cacheHits
+    this.atlasMetricsSnapshot.cacheMisses =
       this.previousAtlasMetrics.cacheMisses + atlasMetrics.cacheMisses
-    this.metricsValue.atlasEvictions = this.previousAtlasMetrics.evictions + atlasMetrics.evictions
-    this.metricsValue.atlasPages = atlasMetrics.pages
+    this.atlasMetricsSnapshot.evictions =
+      this.previousAtlasMetrics.evictions + atlasMetrics.evictions
+    this.atlasMetricsSnapshot.pages = atlasMetrics.pages
   }
 
   private recordFrame(rebuiltRows: number, instanceUploadOperations: number): void {
