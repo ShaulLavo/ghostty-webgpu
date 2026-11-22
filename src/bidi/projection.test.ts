@@ -44,4 +44,17 @@ describe('writeBidiProjection', () => {
     writeBidiProjection([row(2, 'אב', true)], mapper, resized, 3)
     expect(resized.slice(2 * 3 * 3, 2 * 3 * 3 + 6)).toEqual(expected.slice(6))
   })
+
+  it('clears old mirror data and writes selection for identity rows', () => {
+    const mapper = new RowBidiMapper()
+    const rows = [row(1, 'AΩ', true)]
+    const projection = new Uint32Array(4 * 3).fill(42)
+    const expected = new Uint32Array([0, 0, 1, 1, 0, 1])
+
+    writeBidiProjection(rows, mapper, projection, 2)
+
+    expect(projection.slice(0, 6)).toEqual(new Uint32Array(6).fill(42))
+    expect(projection.slice(6)).toEqual(expected)
+    expect(bidiProjection(rows, mapper)).toEqual(expected)
+  })
 })

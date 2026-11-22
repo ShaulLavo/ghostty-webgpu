@@ -62,6 +62,20 @@ export class ZigFrameBuilder {
     return this.deferredGlyphs
   }
 
+  get isDisposed(): boolean {
+    return this.disposed
+  }
+
+  get isActive(): boolean {
+    if (this.disposed) return false
+    try {
+      this.ensureOwnerActive()
+      return true
+    } catch {
+      return false
+    }
+  }
+
   constructor(
     private readonly runtime: GhosttyRuntime,
     private readonly state: number,

@@ -23,6 +23,13 @@ interface PixelBounds {
 type ScratchCanvas = HTMLCanvasElement | OffscreenCanvas
 type ScratchContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
 
+interface GlyphLayout {
+  readonly cellWidth: number
+  readonly constraint: GlyphConstraint | undefined
+  readonly constraintWidth: 1 | 2
+  readonly sprite: number | undefined
+}
+
 const colorChannelTolerance = 2
 const maxBitmapCacheBytes = 4 * 1_024 * 1_024
 const maxBitmapCacheEntries = 4_096
@@ -89,36 +96,24 @@ function fontString(
 }
 
 function alphaBounds(image: ImageData): PixelBounds | undefined {
-  let left = image.width
+  const { data, width, height } = image
+  let left = width
   let right = -1
-  let top = image.height
+  let top = height
   let bottom = -1
-  for (let y = 0; y < image.height; y += 1) {
-    const row = alphaRowBounds(image, y)
-    if (!row) continue
-    left = Math.min(left, row.left)
-    right = Math.max(right, row.right)
+  for (let y = 0, alpha = 3; y < height; y += 1, alpha += width * 4) {
+    let rowLeft = 0
+    while (rowLeft < width && data[alpha + rowLeft * 4] === 0) rowLeft += 1
+    if (rowLeft === width) continue
+    let rowRight = width - 1
+    while (rowRight > rowLeft && data[alpha + rowRight * 4] === 0) rowRight -= 1
+    left = Math.min(left, rowLeft)
+    right = Math.max(right, rowRight)
     top = Math.min(top, y)
     bottom = y
   }
-  if (right < left || bottom < top) return undefined
+  if (bottom < 0) return undefined
   return { bottom, left, right, top }
-}
-
-function alphaRowBounds(
-  image: ImageData,
-  row: number,
-): { left: number; right: number } | undefined {
-  let left = image.width
-  let right = -1
-  for (let x = 0; x < image.width; x += 1) {
-    const alpha = image.data[(row * image.width + x) * 4 + 3] ?? 0
-    if (alpha === 0) continue
-    left = Math.min(left, x)
-    right = x
-  }
-  if (right < left) return undefined
-  return { left, right }
 }
 
 function touchesScratchEdge(bounds: PixelBounds, width: number, height: number): boolean {
@@ -130,28 +125,24 @@ function touchesScratchEdge(bounds: PixelBounds, width: number, height: number):
   )
 }
 
-function hasIntrinsicColor(image: ImageData, bounds: PixelBounds, ink: 0 | 255): boolean {
-  for (let y = bounds.top; y <= bounds.bottom; y += 1) {
-    if (rowContainsIntrinsicColor(image, bounds, y, ink)) return true
-  }
-  return false
-}
-
-function rowContainsIntrinsicColor(
-  image: ImageData,
-  bounds: PixelBounds,
-  row: number,
-  ink: 0 | 255,
-): boolean {
-  for (let x = bounds.left; x <= bounds.right; x += 1) {
-    const offset = (row * image.width + x) * 4
-    const alpha = image.data[offset + 3] ?? 0
-    if (alpha === 0) continue
-    const red = image.data[offset] ?? 0
-    const green = image.data[offset + 1] ?? 0
-    const blue = image.data[offset + 2] ?? 0
-    const difference = Math.max(Math.abs(red - ink), Math.abs(green - ink), Math.abs(blue - ink))
-    if (difference > colorChannelTolerance) return true
+function hasIntrinsicColor(image: ImageData, ink: 0 | 255, bounds?: PixelBounds): boolean {
+  const { data, width, height } = image
+  const left = bounds?.left ?? 0
+  const bottom = bounds?.bottom ?? height - 1
+  const rowBytes = ((bounds?.right ?? width - 1) - left + 1) * 4
+  for (let y = bounds?.top ?? 0; y <= bottom; y += 1) {
+    const start = (y * width + left) * 4
+    const end = start + rowBytes
+    for (let offset = start; offset < end; offset += 4) {
+      if (data[offset + 3] === 0) continue
+      // XOR with 0 or 255 is the distance from black or white.
+      if (
+        (data[offset]! ^ ink) > colorChannelTolerance ||
+        (data[offset + 1]! ^ ink) > colorChannelTolerance ||
+        (data[offset + 2]! ^ ink) > colorChannelTolerance
+      )
+        return true
+    }
   }
   return false
 }
@@ -159,33 +150,34 @@ function rowContainsIntrinsicColor(
 function copyPixels(image: ImageData, bounds: PixelBounds, kind: AtlasKind): Uint8Array {
   const width = bounds.right - bounds.left + 1
   const height = bounds.bottom - bounds.top + 1
-  const bytesPerPixel = kind === 'grayscale' ? 1 : 4
-  const pixels = new Uint8Array(width * height * bytesPerPixel)
-  for (let row = 0; row < height; row += 1) {
-    copyPixelRow(image, bounds, kind, row, pixels, width)
+  const { data } = image
+  const pixels = new Uint8Array(width * height * (kind === 'grayscale' ? 1 : 4))
+  const start = bounds.top * image.width + bounds.left
+  if (kind === 'color') {
+    const source = new Uint32Array(data.buffer, data.byteOffset, data.byteLength / 4)
+    copyPixelRows(source, new Uint32Array(pixels.buffer), start, image.width, width)
+    return pixels
+  }
+  for (let row = 0, target = 0; row < height; row += 1) {
+    const alpha = (start + row * image.width) * 4 + 3
+    for (let offset = alpha; offset < alpha + width * 4; offset += 4) {
+      pixels[target++] = data[offset]!
+    }
   }
   return pixels
 }
 
-function copyPixelRow(
-  image: ImageData,
-  bounds: PixelBounds,
-  kind: AtlasKind,
-  row: number,
-  target: Uint8Array,
+function copyPixelRows(
+  source: Uint32Array,
+  target: Uint32Array,
+  start: number,
+  stride: number,
   width: number,
 ): void {
-  for (let column = 0; column < width; column += 1) {
-    const source = ((bounds.top + row) * image.width + bounds.left + column) * 4
-    if (kind === 'grayscale') {
-      target[row * width + column] = image.data[source + 3] ?? 0
-      continue
+  for (let offset = 0; offset < target.length; offset += width, start += stride) {
+    for (let column = 0; column < width; column += 1) {
+      target[offset + column] = source[start + column]!
     }
-    const destination = (row * width + column) * 4
-    target[destination] = image.data[source] ?? 0
-    target[destination + 1] = image.data[source + 1] ?? 0
-    target[destination + 2] = image.data[source + 2] ?? 0
-    target[destination + 3] = image.data[source + 3] ?? 0
   }
 }
 
@@ -194,6 +186,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
   private readonly bitmaps = new Map<string, GlyphBitmap | undefined>()
   private readonly canvas: ScratchCanvas
   private readonly capHeight: number
+  private readonly context: ScratchContext
   private readonly font: TerminalFittedFont
   private readonly initialPadding: number
 
@@ -204,6 +197,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       Math.max(this.font.deviceCellHeight, this.font.settings.size * this.font.pixelRatio),
     )
     const context = requireContext(this.canvas)
+    this.context = context
     context.font = fontString(this.font, { italic: false, weight: 'normal' })
     this.capHeight =
       context.measureText('H').actualBoundingBoxAscent || this.font.deviceCharHeight * 0.75
@@ -255,49 +249,61 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
     this.bitmapCacheBytes += bytes
   }
 
-  private configure(input: Pick<GlyphRasterizationInput, 'italic' | 'weight'>): ScratchContext {
-    const context = requireContext(this.canvas)
-    context.font = fontString(this.font, input)
-    context.textAlign = 'center'
-    context.textBaseline = 'alphabetic'
-    return context
-  }
-
-  private draw(input: GlyphRasterizationInput, padding: number, ink = '#ffffff'): ImageData {
+  private glyphLayout(input: GlyphRasterizationInput): GlyphLayout {
     const constraintWidth = glyphConstraintWidth(input)
-    const cp = spriteCodepoint(input.text, this.font)
+    const sprite = spriteCodepoint(input.text, this.font)
     const constraint =
-      cp === undefined && !isEmojiPresentationText(input.text)
+      sprite === undefined && !isEmojiPresentationText(input.text)
         ? glyphConstraint(input.text.codePointAt(0) ?? 0)
         : undefined
     const cells = constraint ? Math.max(input.cellSpan, constraintWidth) : input.cellSpan
-    const cellWidth = this.font.deviceCellWidth * cells
-    const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
-    const characterWidth = cellWidth - deviceSpacing
-    this.canvas.width = Math.ceil(cellWidth + padding * 2)
-    this.canvas.height = Math.ceil(this.font.deviceCellHeight + padding * 2)
-    const context = this.configure(input)
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height)
-    if (this.font.settings.lineHeight < 1) {
-      context.beginPath()
-      context.rect(padding, padding, cellWidth, this.font.deviceCellHeight)
-      context.clip()
-    }
+    return { cellWidth: this.font.deviceCellWidth * cells, constraint, constraintWidth, sprite }
+  }
+
+  private draw(
+    input: GlyphRasterizationInput,
+    layout: GlyphLayout,
+    padding: number,
+    ink: string,
+    width: number,
+    height: number,
+  ): void {
+    const { context, font } = this
+    const { cellWidth, constraint, constraintWidth, sprite } = layout
+    context.clearRect(0, 0, width, height)
+    context.font = fontString(font, input)
+    context.textAlign = 'center'
+    context.textBaseline = 'alphabetic'
     context.fillStyle = ink
-    if (cp !== undefined) {
-      context.strokeStyle = ink
-      context.translate(padding, padding)
-      drawSprite(context, cp, this.font, input.cellSpan)
-      return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+    const characterWidth = cellWidth - (font.deviceCellWidth - font.deviceCharWidth)
+    const drawX = padding + font.charLeft + characterWidth / 2
+    const drawY = padding + font.deviceBaseline
+    const clip = font.settings.lineHeight < 1
+    if (!clip && sprite === undefined && !constraint) {
+      context.fillText(input.text, drawX, drawY)
+      return
     }
-    const drawX = padding + this.font.charLeft + characterWidth / 2
-    const drawY = padding + this.font.deviceBaseline
-    if (constraint) {
-      this.drawConstrained(context, input, constraint, constraintWidth, drawX, drawY, padding)
-      return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
+    context.save()
+    try {
+      if (clip) {
+        context.beginPath()
+        context.rect(padding, padding, cellWidth, font.deviceCellHeight)
+        context.clip()
+      }
+      if (sprite !== undefined) {
+        context.strokeStyle = ink
+        context.translate(padding, padding)
+        drawSprite(context, sprite, font, input.cellSpan)
+        return
+      }
+      if (constraint) {
+        this.drawConstrained(context, input, constraint, constraintWidth, drawX, drawY, padding)
+        return
+      }
+      context.fillText(input.text, drawX, drawY)
+    } finally {
+      context.restore()
     }
-    context.fillText(input.text, drawX, drawY)
-    return context.getImageData(0, 0, this.canvas.width, this.canvas.height)
   }
 
   private drawConstrained(
@@ -357,26 +363,46 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
     ink: string,
     kind: AtlasKind | undefined,
   ): GlyphBitmap | undefined {
+    const layout = this.glyphLayout(input)
+    const { canvas, context } = this
     let padding = this.initialPadding
     for (let attempt = 0; attempt < maxScratchAttempts; attempt += 1) {
-      const image = this.draw(input, padding, ink)
+      const width = Math.ceil(layout.cellWidth + padding * 2)
+      const height = Math.ceil(this.font.deviceCellHeight + padding * 2)
+      if (width > canvas.width) canvas.width = width
+      if (height > canvas.height) canvas.height = height
+      this.draw(input, layout, padding, ink, width, height)
+      const image = context.getImageData(0, 0, width, height)
       const bounds = alphaBounds(image)
       if (!bounds) return undefined
-      if (touchesScratchEdge(bounds, image.width, image.height)) {
+      if (touchesScratchEdge(bounds, width, height)) {
         padding *= 2
         continue
       }
-      // Intrinsically gray glyphs need RGBA too; the black probe also identifies white color glyphs.
-      const bitmapKind =
-        kind ??
-        (spriteCodepoint(input.text, this.font) !== undefined ? 'grayscale' : undefined) ??
-        (hasIntrinsicColor(image, bounds, 255) ||
-        hasIntrinsicColor(this.draw(input, padding, '#000000'), bounds, 0)
-          ? 'color'
-          : 'grayscale')
+      const bitmapKind = kind ?? this.detectKind(input, layout, padding, image, bounds)
       return this.bitmapFromImage(image, bounds, padding, bitmapKind)
     }
     throw new RangeError(`glyph ${JSON.stringify(input.text)} exceeds bounded scratch space`)
+  }
+
+  private detectKind(
+    input: GlyphRasterizationInput,
+    layout: GlyphLayout,
+    padding: number,
+    image: ImageData,
+    bounds: PixelBounds,
+  ): AtlasKind {
+    if (layout.sprite !== undefined) return 'grayscale'
+    if (hasIntrinsicColor(image, 255, bounds)) return 'color'
+    // The black probe distinguishes intrinsic white from ordinary foreground ink.
+    this.draw(input, layout, padding, '#000000', image.width, image.height)
+    const probe = this.context.getImageData(
+      bounds.left,
+      bounds.top,
+      bounds.right - bounds.left + 1,
+      bounds.bottom - bounds.top + 1,
+    )
+    return hasIntrinsicColor(probe, 0) ? 'color' : 'grayscale'
   }
 
   private bitmapFromImage(

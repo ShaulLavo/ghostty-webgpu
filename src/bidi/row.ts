@@ -3,22 +3,77 @@ import type { RenderCell, RenderRow } from '../core/types.js'
 import type { CursorState } from '../render/shared/instances/types.js'
 
 export interface RowBidiMap {
+  readonly identity: boolean
   readonly visualToLogical: readonly number[]
   readonly logicalToVisual: readonly number[]
   readonly mirror: ReadonlyMap<number, string>
 }
 
+type BidiCell = Pick<RenderCell, 'text' | 'continuation'>
+
+function isIdentityRow(cells: readonly BidiCell[]): boolean {
+  // Code points before Hebrew have no class that can create an odd level in an LTR row.
+  let previousContinuation = true
+  for (let index = 0; index < cells.length; index += 1) {
+    const cell = cells[index]!
+    if (cell.text.charCodeAt(0) >= 0x0590) return false
+    if (cell.continuation && previousContinuation) return false
+    previousContinuation = cell.continuation
+  }
+  return true
+}
+
+function bidiCacheKey(cells: readonly BidiCell[]): string {
+  // Surrogate prefixes reserve tokens for continuations and for scalars with surrogate units.
+  let key = ''
+  for (let index = 0; index < cells.length; index += 1) {
+    const cell = cells[index]!
+    if (cell.continuation) {
+      key += '\udc00'
+      continue
+    }
+    const first = cell.text[0]
+    if (first === undefined || first === '\u0000') {
+      key += ' '
+      continue
+    }
+    if (first < '\ud800' || first > '\udfff') {
+      key += first
+      continue
+    }
+    const scalar = cell.text.codePointAt(0)!
+    key += String.fromCharCode(0xd800, scalar >>> 16, scalar & 0xffff)
+  }
+  return key
+}
+
 export class RowBidiMapper {
   private readonly bidi = bidiFactory()
   private readonly cache = new Map<string, RowBidiMap>()
+  private readonly identityMaps = new Map<number, RowBidiMap>()
 
-  getMap(cells: readonly Pick<RenderCell, 'text' | 'continuation'>[]): RowBidiMap {
-    const key = JSON.stringify(cells.map((cell) => [cell.text, cell.continuation]))
+  getMap(cells: readonly BidiCell[]): RowBidiMap {
+    if (isIdentityRow(cells)) return this.identityMap(cells.length)
+    const key = bidiCacheKey(cells)
     const cached = this.cache.get(key)
     if (cached) return cached
     const map = this.compute(cells)
     if (this.cache.size >= 512) this.cache.delete(this.cache.keys().next().value!)
     this.cache.set(key, map)
+    return map
+  }
+
+  private identityMap(length: number): RowBidiMap {
+    const cached = this.identityMaps.get(length)
+    if (cached) return cached
+    const columns = Array.from({ length }, (_, index) => index)
+    const map = {
+      identity: true,
+      visualToLogical: columns,
+      logicalToVisual: columns,
+      mirror: new Map<number, string>(),
+    }
+    this.identityMaps.set(length, map)
     return map
   }
 
@@ -65,7 +120,7 @@ export class RowBidiMapper {
     return paintedBidiCursor(this, source, cursor)
   }
 
-  private compute(cells: readonly Pick<RenderCell, 'text' | 'continuation'>[]): RowBidiMap {
+  private compute(cells: readonly BidiCell[]): RowBidiMap {
     let text = ''
     const owners: number[] = []
     for (const [index, cell] of cells.entries()) {
@@ -94,7 +149,7 @@ export class RowBidiMapper {
     const mirror = new Map<number, string>()
     for (const [unit, character] of this.bidi.getMirroredCharactersMap(text, levels.levels))
       mirror.set(owners[unit]!, character)
-    return { visualToLogical, logicalToVisual, mirror }
+    return { identity: false, visualToLogical, logicalToVisual, mirror }
   }
 }
 
@@ -132,6 +187,12 @@ function writeBidiCell(
   map: RowBidiMap,
   cell: RenderRow['cells'][number],
 ): void {
+  if (map.identity) {
+    target[offset] = cell.x
+    target[offset + 1] = 0
+    target[offset + 2] = Number(cell.selected)
+    return
+  }
   target[offset] = map.logicalToVisual[cell.x]!
   target[offset + 1] = map.mirror.get(cell.x)?.codePointAt(0) ?? 0
   target[offset + 2] = Number(cell.selected)
