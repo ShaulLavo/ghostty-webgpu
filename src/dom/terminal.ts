@@ -11,6 +11,11 @@ import type {
 const createFromSessionInternal = Symbol('createFromSessionInternal')
 
 export class Terminal<Mode extends 'sync' | 'async' = 'sync'> extends TerminalHost<Mode> {
+  // Preserve `workerTerminal instanceof Terminal` without making the worker entry import local execution.
+  static [Symbol.hasInstance](value: unknown): boolean {
+    return value instanceof TerminalHost
+  }
+
   private constructor(
     execution: LocalTerminalExecution | WorkerTerminalExecution,
     options: GhosttyWebGpuTerminalFromSessionOptions,
