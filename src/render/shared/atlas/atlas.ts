@@ -456,27 +456,9 @@ export class GlyphAtlas {
     glyph: Pick<AtlasGlyph, 'generation' | 'kind' | 'layer' | 'x' | 'y'>,
     row: number,
   ): boolean {
-    return this.touchGlyphSlot(
-      glyph.kind,
-      glyph.layer,
-      glyph.generation,
-      Math.round(glyph.x),
-      Math.round(glyph.y),
-      row,
-    )
-  }
-
-  touchGlyphSlot(
-    kind: AtlasKind,
-    layer: number,
-    generation: number,
-    x: number,
-    y: number,
-    row: number,
-  ): boolean {
-    const page = this.pagesByKind[kind][layer]
-    if (!page || page.generation !== generation) return false
-    const key = page.positions.get(y * page.width + x)
+    const page = this.pagesByKind[glyph.kind][glyph.layer]
+    if (!page || page.generation !== glyph.generation) return false
+    const key = page.positions.get(Math.round(glyph.y) * page.width + Math.round(glyph.x))
     if (key === undefined) return false
     this.touch(page, row, key)
     return true

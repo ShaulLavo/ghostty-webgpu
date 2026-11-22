@@ -89,7 +89,7 @@ function touchRetainedGlyphs(builder: ZigFrameBuilder, atlas: GlyphAtlas): void 
     const y = Math.round(data[offset + GlyphOffset.Uv + 1]! * atlas.pageHeight)
     const slot = (page * atlas.pageHeight + y) * atlas.pageWidth + x
     if (touched.has(slot)) continue
-    atlas.touchGlyphSlot(kind, layer, generation, x, y, zigGlyphRow)
+    atlas.touchGlyph({ generation, kind, layer, x, y }, zigGlyphRow)
     touched.add(slot)
   }
 }
