@@ -423,9 +423,10 @@ describe('compatible renderer selection', () => {
   it('stops Linux fallback when aborted during the first WebGL attempt', async () => {
     const { canvas, options } = fixture()
     const controller = new AbortController()
+    const reason = new DOMException('Cancelled renderer selection', 'AbortError')
     const deviceFactory = vi.fn(requestDevice)
     const getContext = replaceGetContext(canvas, () => {
-      controller.abort()
+      controller.abort(reason)
       return null
     })
 
@@ -434,7 +435,7 @@ describe('compatible renderer selection', () => {
         platform: 'Linux x86_64',
         userAgent: '',
       }),
-    ).rejects.toBe(controller.signal.reason)
+    ).rejects.toBe(reason)
     expect(deviceFactory).not.toHaveBeenCalled()
     expect(getContext.mock.calls.map(([type]) => type)).toEqual(['webgl2'])
   })
@@ -606,6 +607,7 @@ describe('compatible renderer selection', () => {
   it('stops fallback when aborted while WebGPU initialization fails', async () => {
     const { canvas, options } = fixture()
     const controller = new AbortController()
+    const reason = new DOMException('Cancelled renderer selection', 'AbortError')
     const getContext = vi.spyOn(canvas, 'getContext')
 
     await expect(
@@ -613,13 +615,13 @@ describe('compatible renderer selection', () => {
         {
           ...options,
           deviceFactory: () => {
-            controller.abort()
+            controller.abort(reason)
             return unavailableDevice()
           },
         },
         controller.signal,
       ),
-    ).rejects.toBe(controller.signal.reason)
+    ).rejects.toBe(reason)
     expect(getContext).not.toHaveBeenCalled()
   })
 
