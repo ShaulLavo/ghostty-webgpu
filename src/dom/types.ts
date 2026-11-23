@@ -158,6 +158,8 @@ export interface GhosttyWebGpuRenderer {
   notifyScroll(): void
   notifySelectionChange(): void
   notifyWrite(): void
+  /** Paints pending output before the next animation frame, at most once per display frame. */
+  paintSettled?(): void
   refreshRows?(startRow: number, endRow: number): void
   resize(grid: RendererGridSize): void
   schedule(): void

@@ -46,6 +46,8 @@ export class RenderScheduler {
   private flushRequested = false
   private immediateResetHandle?: number
   private readonly immediate: boolean
+  // Set by the first settled paint; only then do frame paints track the display frame.
+  private settledPaints = false
   private readonly onFrame: (state: RenderFrameState) => void
 
   constructor(options: RenderSchedulerOptions) {
@@ -101,6 +103,18 @@ export class RenderScheduler {
         throw cause
       })
     }
+  }
+
+  /**
+   * Paints pending output now instead of at the next animation frame, at most once per display
+   * frame. Output that arrives after a paint landed in this display frame joins the next one.
+   */
+  paintSettled(): void {
+    this.settledPaints = true
+    if (this.frameHandle === undefined || this.immediateResetHandle !== undefined) return
+    if (!this.canPaint) return
+    this.armImmediateReset()
+    this.flush()
   }
 
   /** Flushes now; a flush during paint runs after the active frame callback completes. */
@@ -201,7 +215,8 @@ export class RenderScheduler {
   }
 
   private armImmediateReset(): void {
-    if (!this.immediate || this.immediateResetHandle !== undefined) return
+    if (!this.immediate && !this.settledPaints) return
+    if (this.immediateResetHandle !== undefined) return
     this.immediateResetHandle = this.clock.requestFrame(() => {
       this.immediateResetHandle = undefined
     })

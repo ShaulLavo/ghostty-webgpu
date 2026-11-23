@@ -52,6 +52,9 @@ const workerClock: RenderSchedulerClock = {
   clearTimer: (handle) => scope.clearTimeout(handle),
 }
 
+// Long enough to gather a burst split across messages, short enough to finish before vsync.
+const outputSettleMs = 2
+
 function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
   return (
     left.width === right.width &&
@@ -88,6 +91,8 @@ export class TerminalWorkerRuntime {
   private layout?: WorkerLayout
   private layoutFont?: TerminalFittedFont
   private disposed = false
+  private lastWrite = 0
+  private settleTimer?: number
   private chain = Promise.resolve()
   private outputWaiter?: {
     readonly sequence: number
@@ -595,17 +600,17 @@ export class TerminalWorkerRuntime {
         return native.measureTexts(...request.args)
       case 'writeAndReadGeometry': {
         const geometry = native.writeAndReadGeometry(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return geometry
       }
       case 'write': {
         const result = native.write(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return result
       }
       case 'writeln': {
         const result = native.writeln(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return result
       }
       case 'sendInput':
@@ -693,6 +698,26 @@ export class TerminalWorkerRuntime {
     }
   }
 
+  // A frame painted at the next vsync runs just as a page that writes once per animation frame
+  // sends its next write, which then waits behind the paint. Painting once output has settled
+  // keeps the worker free at vsync; the reply to the write is already posted by then.
+  private noteWrite(): void {
+    this.renderer?.notifyWrite()
+    this.lastWrite = performance.now()
+    this.settleTimer ??= scope.setTimeout(() => this.paintSettled(), outputSettleMs)
+  }
+
+  private paintSettled(): void {
+    this.settleTimer = undefined
+    if (this.disposed) return
+    const remaining = this.lastWrite + outputSettleMs - performance.now()
+    if (remaining > 0.25) {
+      this.settleTimer = scope.setTimeout(() => this.paintSettled(), remaining)
+      return
+    }
+    this.renderer?.paintSettled?.()
+  }
+
   private attachOutput(port: MessagePort): void {
     if (this.outputPort) throw workerError('protocol', 'attachOutput', { attached: true })
     this.outputPort = port
@@ -713,7 +738,7 @@ export class TerminalWorkerRuntime {
       try {
         this.output = data.sequence
         this.native().write(data.data)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         port.postMessage({ ...this.identity(), type: 'output-ack', sequence: this.output })
         if (this.outputWaiter && this.output >= this.outputWaiter.sequence)
           this.outputWaiter.resolve()
@@ -823,6 +848,7 @@ export class TerminalWorkerRuntime {
     this.canvasReplacement?.reject(workerError('disposed', 'renderer.canvas', { disposed: true }))
     this.canvasReplacement = undefined
     this.outputWaiter?.reject(workerError('disposed', 'fence', { output: this.output }))
+    if (this.settleTimer !== undefined) scope.clearTimeout(this.settleTimer)
     this.outputPort?.close()
     for (const subscription of this.subscriptions) subscription.dispose()
     this.execution?.dispose()

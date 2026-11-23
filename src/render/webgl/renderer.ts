@@ -236,6 +236,11 @@ export class WebGlTerminalRenderer {
     this.scheduler.schedule()
   }
 
+  paintSettled(): void {
+    if (this.state.kind === 'unavailable') return
+    this.scheduler.paintSettled()
+  }
+
   setCursorBlinkEnabled(enabled: boolean): void {
     if (this.cursorBlinkPreference === enabled) return
     this.cursorBlinkPreference = enabled

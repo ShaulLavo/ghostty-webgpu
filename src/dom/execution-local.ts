@@ -138,6 +138,7 @@ export class LocalTerminalExecution {
       notifyScroll: () => this.rendererValue?.notifyScroll(),
       notifySelectionChange: () => this.rendererValue?.notifySelectionChange(),
       notifyWrite: () => this.rendererValue?.notifyWrite(),
+      paintSettled: () => this.rendererValue?.paintSettled?.(),
       refreshRows: (start, end) => this.rendererValue?.refreshRows?.(start, end),
       resize: (grid) => this.rendererValue?.resize(grid),
       schedule: () => this.rendererValue?.schedule(),

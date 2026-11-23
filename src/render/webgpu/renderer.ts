@@ -330,6 +330,10 @@ export class WebGpuTerminalRenderer {
     this.scheduler.schedule()
   }
 
+  paintSettled(): void {
+    this.scheduler.paintSettled()
+  }
+
   setCursorBlinkEnabled(enabled: boolean): void {
     if (this.cursorBlinkPreference === enabled) return
     this.cursorBlinkPreference = enabled
