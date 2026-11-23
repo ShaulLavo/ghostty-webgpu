@@ -112,7 +112,9 @@ export class TerminalWriteQueue<T> {
       incomingBytes = utf8ByteLength(data)
     if (incomingBytes > availableBytes) return Promise.reject(this.overflowError(incomingBytes))
 
-    const owned = typeof data === 'string' ? this.encoder.encode(data) : Uint8Array.from(data)
+    // Node's Buffer#slice returns a view, so call the typed-array copy directly.
+    const owned =
+      typeof data === 'string' ? this.encoder.encode(data) : Uint8Array.prototype.slice.call(data)
     if (owned.byteLength > this.maxBytes - this.pendingBytesValue)
       return Promise.reject(this.overflowError(owned.byteLength))
 

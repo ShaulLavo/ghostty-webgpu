@@ -2,6 +2,52 @@ import type { CellStyle, RenderCell, RgbColor } from './types.js'
 
 export const PACKED_CELL_WORDS = 6
 export const PACKED_ROW_WORDS = 4
+// String.fromCharCode.apply stays well under engine argument limits at this size.
+const unitChunk = 4096
+// Index 0 maps to '' because a zero codepoint is an empty cell.
+const asciiText = Array.from({ length: 128 }, (_, code) =>
+  code === 0 ? '' : String.fromCharCode(code),
+)
+let unitScratch = new Uint16Array(1024)
+
+/** Text for one scalar; zero is an empty cell. */
+export function codepointText(codepoint: number): string {
+  return codepoint < 128 ? asciiText[codepoint]! : String.fromCodePoint(codepoint)
+}
+
+function ensureUnits(used: number, capacity: number): Uint16Array<ArrayBuffer> {
+  if (capacity <= unitScratch.length) return unitScratch
+  const grown = new Uint16Array(Math.max(capacity, unitScratch.length * 2))
+  grown.set(unitScratch.subarray(0, used))
+  unitScratch = grown
+  return grown
+}
+
+function putCodepoint(units: Uint16Array, index: number, codepoint: number): number {
+  if (codepoint <= 0xffff) {
+    units[index] = codepoint
+    return index + 1
+  }
+  const value = codepoint - 0x10000
+  units[index] = 0xd800 | (value >>> 10)
+  units[index + 1] = 0xdc00 | (value & 0x3ff)
+  return index + 2
+}
+
+function putWord(units: Uint16Array, index: number, word: number): number {
+  units[index] = word & 0xffff
+  units[index + 1] = word >>> 16
+  return index + 2
+}
+
+function unitsText(units: Uint16Array, length: number): string {
+  let text = ''
+  for (let start = 0; start < length; start += unitChunk) {
+    const chunk = units.subarray(start, Math.min(length, start + unitChunk))
+    text += String.fromCharCode.apply(null, chunk as unknown as number[])
+  }
+  return text
+}
 
 function color(value: number, previous: RgbColor | undefined): RgbColor | undefined {
   if (value === 0xffffffff) return undefined
@@ -77,11 +123,20 @@ export class PackedCells {
         return null
       if (words[offset] !== 0 || words[offset + 5] !== 0) end = offset + PACKED_CELL_WORDS
     }
-    let text = ''
-    for (let offset = 0; offset < end; offset += PACKED_CELL_WORDS)
-      text += this.textAt(offset) || ' '
+    let units = unitScratch
+    let index = 0
+    for (let offset = 0; offset < end; offset += PACKED_CELL_WORDS) {
+      units = ensureUnits(index, index + 2 * (words[offset + 5]! || 1))
+      const next = this.putText(units, index, offset)
+      if (next !== index) {
+        index = next
+        continue
+      }
+      units[index] = 0x20
+      index += 1
+    }
     this.defaultTail = (words.length - end) / PACKED_CELL_WORDS
-    return text
+    return unitsText(units, index)
   }
 
   hasBlinkingText(): boolean {
@@ -112,18 +167,25 @@ export class PackedCells {
     return target
   }
 
+  /**
+   * A compact key equal exactly when every cell's text, colors and flags match. Each cell is a
+   * text-length unit, its UTF-16 text, then fixed-width foreground, background and flag words.
+   */
   identity(): string {
-    let identity = ''
-    for (let offset = 0; offset < this.words.length; offset += PACKED_CELL_WORDS) {
-      const text = this.textAt(offset)
-      const foreground = this.words[offset + 1]!
-      const background = this.words[offset + 2]!
-      const fg = foreground === 0xffffffff ? '-' : foreground.toString(16)
-      const bg = background === 0xffffffff ? '-' : background.toString(16)
-      // Grapheme offsets are frame-local; length-prefixed text keeps cell boundaries distinct.
-      identity += `${text.length}:${text}:${fg}:${bg}:${this.words[offset + 3]!.toString(16)};`
+    const words = this.words
+    let units = unitScratch
+    let index = 0
+    for (let offset = 0; offset < words.length; offset += PACKED_CELL_WORDS) {
+      units = ensureUnits(index, index + 7 + 2 * (words[offset + 5]! || 1))
+      // Grapheme offsets are frame-local; only the decoded text enters the key.
+      const textStart = index + 1
+      index = this.putText(units, textStart, offset)
+      units[textStart - 1] = index - textStart
+      index = putWord(units, index, words[offset + 1]!)
+      index = putWord(units, index, words[offset + 2]!)
+      index = putWord(units, index, words[offset + 3]!)
     }
-    return identity
+    return unitsText(units, index)
   }
 
   materialize(): readonly RenderCell[] {
@@ -138,13 +200,23 @@ export class PackedCells {
     return (this.words[index * PACKED_CELL_WORDS + 3]! & 3) === 2
   }
 
-  private textAt(offset: number): string {
+  /** Writes the cell's UTF-16 units at `index` and returns the end index. */
+  private putText(units: Uint16Array, index: number, offset: number): number {
     const length = this.words[offset + 5]!
     if (length === 0) {
       const codepoint = this.words[offset]!
-      if (codepoint === 0) return ''
-      return String.fromCodePoint(codepoint)
+      return codepoint === 0 ? index : putCodepoint(units, index, codepoint)
     }
+    const start = this.words[offset + 4]!
+    let end = index
+    for (let cursor = start; cursor < start + length; cursor += 1)
+      end = putCodepoint(units, end, this.graphemes[cursor]!)
+    return end
+  }
+
+  private textAt(offset: number): string {
+    const length = this.words[offset + 5]!
+    if (length === 0) return codepointText(this.words[offset]!)
     const start = this.words[offset + 4]!
     let text = ''
     for (let index = start; index < start + length; index += 1)

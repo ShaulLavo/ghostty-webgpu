@@ -167,7 +167,7 @@ it.each(['edit 0000', '  é edit 0000   ', '\x1b[1;40Hx'])(
       state.update()
       const row = state.readRows({ packed: true })[0]!
       const expected = copiedFrameRow(state.readRows()[0]!)
-      const decode = vi.spyOn(String, 'fromCodePoint')
+      const decode = vi.spyOn(String, 'fromCharCode')
       try {
         const prefix = row.packed!.defaultRunText()
         const firstReads = decode.mock.calls.length

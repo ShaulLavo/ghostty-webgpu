@@ -1,3 +1,4 @@
+import { codepointText } from './packed-cells.js'
 import { SnapshotReader, type ExtractSnapshot } from './snapshot-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { ReadTextRowsOptions, RenderTextRow, TerminalSize } from './types.js'
@@ -9,10 +10,7 @@ const emptyGraphemes = new Uint32Array(0)
 
 function cellText(words: Uint32Array, offset: number, graphemes: Uint32Array): string {
   const length = words[offset + 2]!
-  if (length === 0) {
-    const codepoint = words[offset]! & ~continuationFlag
-    return codepoint === 0 ? '' : String.fromCodePoint(codepoint)
-  }
+  if (length === 0) return codepointText(words[offset]! & ~continuationFlag)
   const start = words[offset + 1]!
   let text = ''
   for (let index = start; index < start + length; index += 1)

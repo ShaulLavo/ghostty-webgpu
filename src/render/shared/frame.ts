@@ -12,6 +12,7 @@ export function snapshotRenderState(state: RenderStateSource): RendererFrameSnap
       viewport: cursor.viewport ? Object.freeze({ ...cursor.viewport }) : undefined,
     }),
     paintedCursor: renderCursorState(cursor, true),
-    rows: Object.freeze(state.readRows().map(copiedFrameRow)),
+    // Packed rows decode styled cells only when a consumer reads renderCells.
+    rows: Object.freeze(state.readRows({ packed: true }).map(copiedFrameRow)),
   })
 }

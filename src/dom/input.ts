@@ -165,10 +165,17 @@ function activeModifiers(
   return result
 }
 
+/** The single code point `value` holds, or -1; allocation-free because it runs per keydown. */
+function singleCodepoint(value: string): number {
+  if (value.length === 1) return value.charCodeAt(0)
+  if (value.length !== 2) return -1
+  const codepoint = value.codePointAt(0)!
+  return codepoint > 0xffff ? codepoint : -1
+}
+
 function isUnicodeScalar(value: string): boolean {
-  const characters = Array.from(value)
-  if (characters.length !== 1) return false
-  const codepoint = characters[0]!.codePointAt(0)!
+  const codepoint = singleCodepoint(value)
+  if (codepoint < 0) return false
   if (codepoint >= 0xd800 && codepoint <= 0xdfff) return false
   if (codepoint <= c0Maximum || codepoint === deleteCodepoint) return false
   return codepoint < macosFunctionKeyMinimum || codepoint > macosFunctionKeyMaximum
@@ -695,7 +702,7 @@ class BrowserInputController implements DomInputController {
   private notifyKey(event: KeyboardEvent, bytes: TerminalInputResult): void {
     if (event.type !== 'keydown') return
     try {
-      this.options.hooks?.onKey?.(event, Uint8Array.from(bytes))
+      this.options.hooks?.onKey?.(event, bytes.slice())
     } catch (cause) {
       this.options.onError(cause, 'onKey')
     }

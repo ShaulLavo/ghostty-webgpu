@@ -52,10 +52,9 @@ async function compileSource(source: WasmSource): Promise<WebAssembly.Module> {
   if (source instanceof WebAssembly.Module) return source
   if (source instanceof ArrayBuffer) return WebAssembly.compile(source)
   if (ArrayBuffer.isView(source)) {
-    const bytes = Uint8Array.from(
-      new Uint8Array(source.buffer, source.byteOffset, source.byteLength),
-    )
-    return WebAssembly.compile(bytes)
+    // slice() is a native copy into a plain ArrayBuffer; compile rejects shared buffers.
+    const view = new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
+    return WebAssembly.compile(view.slice())
   }
   const url = resolveUrl(source)
   if (url.protocol === 'file:') return WebAssembly.compile(await readFileUrl(url))
@@ -92,11 +91,11 @@ export class GhosttyRuntime {
   private readonly terminals = new Set<GhosttyTerminal>()
   private disposed = false
 
-  private constructor(exports: GhosttyWasmExports, bridge: CallbackBridge, layouts: AbiLayouts) {
-    this.exports = exports
+  private constructor(memory: WasmMemory, bridge: CallbackBridge, layouts: AbiLayouts) {
+    this.exports = memory.exports
     this.bridge = bridge
     this.layouts = layouts
-    this.memory = new WasmMemory(exports)
+    this.memory = memory
   }
 
   static async create(options: RuntimeOptions = {}): Promise<GhosttyRuntime> {
@@ -120,7 +119,7 @@ export class GhosttyRuntime {
     const bridge = new CallbackBridge(wasmExports, layouts)
     const bridgeInstance = await WebAssembly.instantiate(bridgeModule, bridge.imports)
     bridge.install(bridgeInstance.exports as BridgeWasmExports)
-    const runtime = new GhosttyRuntime(wasmExports, bridge, layouts)
+    const runtime = new GhosttyRuntime(memory, bridge, layouts)
     if (options.decodePng) runtime.configurePngDecoder(options.decodePng)
     return runtime
   }
@@ -159,6 +158,7 @@ export class GhosttyRuntime {
     for (const terminal of this.terminals) terminal.dispose()
     this.bridge.configurePngDecoder(undefined)
     this.bridge.dispose()
+    this.memory.dispose()
     this.disposed = true
   }
 
