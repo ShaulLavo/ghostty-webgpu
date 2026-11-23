@@ -57,6 +57,8 @@ const settings = {
 }
 
 export interface Driver {
+  /** When the page learned of each frame the library submitted; the study clears it per run. */
+  frameTimes?: number[]
   complete?(): Promise<void>
   asyncText?(): Promise<readonly string[]>
   resize?(columns: number, rows: number): void
@@ -309,10 +311,13 @@ async function createWorkerNative(host: HTMLElement): Promise<Driver> {
     foreground: { r: 255, g: 255, b: 255 },
   })
   let frames = 0
+  const frameTimes: number[] = []
   terminal.onFrame(() => {
     frames += 1
+    frameTimes.push(performance.now())
   })
   return {
+    frameTimes,
     write: async (data) => {
       await terminal.write(data)
     },
@@ -985,6 +990,8 @@ let studyFenced = false
 async function runStudy(steps: number) {
   const samples: number[] = []
   const completions: number[] = []
+  const writes: { started: number; acknowledged: number }[] = []
+  for (const driver of drivers) driver.frameTimes?.splice(0)
   const started = performance.now()
   let bytes = 0
   const intervals = await pacedBurst(
@@ -993,6 +1000,7 @@ async function runStudy(steps: number) {
       const at = performance.now()
       await Promise.all(drivers.map((driver) => driver.write(chunk)))
       samples.push(performance.now() - at)
+      writes.push({ started: at, acknowledged: performance.now() })
       if (studyFenced) {
         await Promise.all(drivers.map((driver) => driver.complete?.()))
         completions.push(performance.now() - at)
@@ -1009,7 +1017,42 @@ async function runStudy(steps: number) {
     intervals,
     writeMilliseconds: samples,
     completionMilliseconds: completions,
+    submittedMilliseconds: submittedLatencies(writes),
   }
+}
+
+// Write start until every terminal has reported a frame submitted after that write was
+// acknowledged. Frame reports are ordered before later acknowledgements, so such a frame
+// contains the write. Empty when a library reports no frames or frames are forced.
+function submittedLatencies(
+  writes: readonly { started: number; acknowledged: number }[],
+): number[] {
+  const reported = drivers.map((driver) => driver.frameTimes)
+  if (studyFenced || reported.some((times) => !times)) return []
+  const cursors = reported.map(() => 0)
+  const latencies: number[] = []
+  for (const write of writes) {
+    const last = lastFrameAfter(reported as number[][], cursors, write.acknowledged)
+    if (last === undefined) break
+    latencies.push(last - write.started)
+  }
+  return latencies
+}
+
+function lastFrameAfter(
+  reported: readonly number[][],
+  cursors: number[],
+  acknowledged: number,
+): number | undefined {
+  let last = 0
+  for (const [index, times] of reported.entries()) {
+    while (cursors[index]! < times.length && times[cursors[index]!]! <= acknowledged)
+      cursors[index]! += 1
+    const time = times[cursors[index]!]
+    if (time === undefined) return undefined
+    last = Math.max(last, time)
+  }
+  return last
 }
 
 function comparisonInfo() {
