@@ -1195,6 +1195,27 @@ it.each(['webgl', 'webgpu'] as const)(
   20_000,
 )
 
+it.each(['webgl', 'webgpu'] as const)(
+  '%s paints settled output without waiting for a worker animation frame',
+  async (backend) => {
+    if (backend === 'webgpu') requireWebGpu()
+    else await requireWorkerWebGl()
+    const terminal = await WorkerTerminal.create({
+      assets,
+      appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+      backend,
+      workerUrl: new URL('./tests/no-animation-frames.worker.ts', import.meta.url),
+      fonts: [{ family, source: { url: fontUrl } }],
+    })
+    active.push(terminal)
+    await terminal.open(container())
+    await terminal.write('settled output')
+    await eventually(() => terminal.visibleLines()[0]?.trimEnd() === 'settled output')
+    expect(terminal.submittedFrame?.frame).toBeGreaterThan(0)
+  },
+  20_000,
+)
+
 it('processes transferred producer output before an explicit control fence and actor disposal', async () => {
   await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({

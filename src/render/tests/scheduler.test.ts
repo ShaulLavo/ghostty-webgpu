@@ -99,6 +99,60 @@ describe('RenderScheduler', () => {
     expect(frames).toHaveLength(4)
   })
 
+  it('paints settled output once per display frame and leaves later output to the frame', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = createScheduler(clock, frames)
+
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(0)
+    expect(clock.frames.size).toBe(0)
+
+    scheduler.scheduleWrite()
+    scheduler.paintSettled()
+    // The paint replaced the scheduled frame; the one pending callback marks the next frame.
+    expect(frames).toHaveLength(1)
+    expect(clock.frames.size).toBe(1)
+
+    scheduler.scheduleWrite()
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(1)
+    clock.takeFrame()()
+    clock.takeFrame()()
+    expect(frames).toHaveLength(2)
+
+    // A frame paint also uses up its display frame.
+    scheduler.scheduleWrite()
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(2)
+    clock.takeFrame()()
+    clock.takeFrame()()
+    expect(frames).toHaveLength(3)
+
+    clock.takeFrame()()
+    expect(clock.frames.size).toBe(0)
+    scheduler.scheduleWrite()
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(4)
+  })
+
+  it('skips settled paints while hidden and never tracks display frames unless one is asked for', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = createScheduler(clock, frames)
+
+    scheduler.scheduleWrite()
+    clock.takeFrame()()
+    expect(frames).toHaveLength(1)
+    expect(clock.frames.size).toBe(0)
+
+    scheduler.scheduleWrite()
+    scheduler.setDocumentVisible(false)
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(1)
+    expect(clock.frames.size).toBe(0)
+  })
+
   it('reports an immediate paint failure after the write returns', async () => {
     const clock = new FakeClock()
     const failure = new TypeError('paint failed')
