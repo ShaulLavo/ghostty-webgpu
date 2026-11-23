@@ -37,6 +37,9 @@ import {
 import { type CanonicalRendererTheme, type RendererTheme } from '../shared/instances/types.js'
 import { RenderScheduler } from '../shared/scheduler.js'
 import { textPassGlyphCapacity, WebGpuTextPass, type TextPassCopy } from './text-pass.js'
+import { WebGpuUnavailableError, type WebGpuUnavailableReason } from './unavailable.js'
+
+export { WebGpuUnavailableError, type WebGpuUnavailableReason }
 
 interface PreparedRenderer {
   readonly context: GPUCanvasContext
@@ -53,18 +56,6 @@ interface ValidatedRenderer {
 interface ReplacementResources {
   readonly atlasTextures: AtlasGpuTextures
   readonly textPass: WebGpuTextPass
-}
-
-export type WebGpuUnavailableReason = 'adapter' | 'api' | 'context'
-
-export class WebGpuUnavailableError extends Error {
-  readonly reason: WebGpuUnavailableReason
-
-  constructor(reason: WebGpuUnavailableReason, message: string, options?: ErrorOptions) {
-    super(message, options)
-    this.name = 'WebGpuUnavailableError'
-    this.reason = reason
-  }
 }
 
 async function defaultDeviceFactory(adapterPolicy: 'hardware' | 'any'): Promise<GPUDevice> {

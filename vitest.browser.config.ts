@@ -1,9 +1,24 @@
 import { defineBrowserCommand, playwright } from '@vitest/browser-playwright'
 import { fileURLToPath } from 'node:url'
+import type { Plugin } from 'vite'
 import { defineConfig, type ViteUserConfig } from 'vitest/config'
 import { browserFileRoots, counterpartWasmServing } from './scripts/browser-file-roots.ts'
 import { fontLoadingFixture } from './scripts/font-loading-fixture.ts'
+import { workerChunkFixture } from './scripts/worker-chunk-fixture.ts'
 import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.mjs'
+
+// Vitest's browser worker plugin only injects __vitest_browser_runner__ for static ?worker_file URLs.
+function dynamicUrlWorkerRunner(): Plugin {
+  const workerModule =
+    /(?:\/(?:src|dist)\/worker\/(?:entry|runtime)\.[jt]s|\.worker\.[jt]s)(?:\?|$)/
+  return {
+    name: 'ghostty-vitest-dynamic-url-worker',
+    transform(code, id) {
+      if (!workerModule.test(id) || code.includes('__vitest_browser_runner__')) return
+      return `globalThis.__vitest_browser_runner__ ??= { wrapDynamicImport: (load) => load() };\n${code}`
+    },
+  }
+}
 
 const hardware = process.env.GHOSTTY_BROWSER_HARDWARE === '1'
 const engine = process.env.GHOSTTY_BROWSER_ENGINE ?? 'chromium'
@@ -42,7 +57,12 @@ export function createBrowserTestConfig() {
   )
   return {
     cacheDir,
-    plugins: [counterpartWasmServing(), fontLoadingFixture()],
+    plugins: [
+      counterpartWasmServing(),
+      fontLoadingFixture(),
+      workerChunkFixture(),
+      dynamicUrlWorkerRunner(),
+    ],
     server: {
       fs: { allow: fsAllow },
     },

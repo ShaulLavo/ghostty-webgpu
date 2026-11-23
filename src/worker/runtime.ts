@@ -8,13 +8,14 @@ import {
   fittedFontEquals,
   gridEquals,
   paddingEquals,
-} from '../dom/fit.js'
+} from '../term/fit-math.js'
 import type { GhosttyWebGpuRenderer } from '../dom/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
 import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
 import { type WebGpuTerminalRendererOptions } from '../render/shared/types.js'
-import { WebGpuTerminalRenderer, WebGpuUnavailableError } from '../render/webgpu/renderer.js'
-import { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
+import type { WebGpuTerminalRenderer } from '../render/webgpu/renderer.js'
+import { WebGpuUnavailableError } from '../render/webgpu/unavailable.js'
+import type { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
 import { WebGlUnavailableError } from '../render/webgl/unavailable.js'
 import type {
   TerminalFittedFont,
@@ -331,23 +332,26 @@ export class TerminalWorkerRuntime {
     return font
   }
 
+  private plannedBackends(): readonly GpuBackend[] {
+    return this.initialize.backend === 'auto' ? automaticGpuBackends() : [this.initialize.backend]
+  }
+
   private async createRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer | WebGlTerminalRenderer> {
-    const backends: readonly GpuBackend[] =
-      this.initialize.backend === 'auto' ? automaticGpuBackends() : [this.initialize.backend]
+    const backends = this.plannedBackends()
     options = { ...options }
     let unavailable: unknown
     for (const backend of backends) {
       this.native()
       try {
-        if (backend === 'webgl') return await WebGlTerminalRenderer.create(options)
+        if (backend === 'webgl') return await this.createWebGlRenderer(options)
         return await this.createWebGpuRenderer(options)
       } catch (cause) {
         const capabilityFailure =
           cause instanceof TerminalWorkerError &&
           cause.code === 'capability' &&
-          cause.operation === 'renderer.webgpu'
+          (cause.operation === 'renderer.webgpu' || cause.operation === 'renderer.webgl')
         if (
           !(
             cause instanceof WebGpuUnavailableError ||
@@ -370,6 +374,22 @@ export class TerminalWorkerRuntime {
     if (unavailable instanceof WebGlUnavailableError)
       throw workerError('capability', 'renderer.webgl', { backend: this.initialize.backend })
     throw unavailable
+  }
+
+  private async createWebGlRenderer(
+    options: WebGpuTerminalRendererOptions,
+  ): Promise<WebGlTerminalRenderer> {
+    let WebGlTerminalRenderer: typeof import('../render/webgl/renderer.js').WebGlTerminalRenderer
+    try {
+      ;({ WebGlTerminalRenderer } = await import('../render/webgl/renderer.js'))
+    } catch (cause) {
+      throw workerError('capability', 'renderer.webgl', {
+        causeType: cause instanceof Error ? cause.name : typeof cause,
+        module: false,
+      })
+    }
+    this.native()
+    return await WebGlTerminalRenderer.create(options)
   }
 
   private replaceCanvas(): Promise<OffscreenCanvas> {
@@ -397,11 +417,30 @@ export class TerminalWorkerRuntime {
       })
     }
     this.native()
+    let WebGpuTerminalRenderer: typeof import('../render/webgpu/renderer.js').WebGpuTerminalRenderer
+    try {
+      ;({ WebGpuTerminalRenderer } = await import('../render/webgpu/renderer.js'))
+    } catch (cause) {
+      // Release the unused device before automatic fallback or open failure.
+      this.releasePrefetchedDevice()
+      throw workerError('capability', 'renderer.webgpu', {
+        causeType: cause instanceof Error ? cause.name : typeof cause,
+        module: false,
+      })
+    }
+    this.native()
     this.gpuRenderer = WebGpuTerminalRenderer.create({
       ...options,
       deviceFactory: this.deviceFactory(device),
     })
     return this.gpuRenderer
+  }
+
+  private releasePrefetchedDevice(): void {
+    const device = this.prefetchedDevice
+    this.prefetchedDevice = undefined
+    this.prefetchedAcquisition = undefined
+    device?.destroy()
   }
 
   private async requestDevice(adapterPolicy: 'hardware' | 'any'): Promise<GPUDevice> {
