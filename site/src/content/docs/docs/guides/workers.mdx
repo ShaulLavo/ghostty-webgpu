@@ -10,6 +10,10 @@ import sample from '../../../../examples/worker.ts?raw'
 
 You will open a terminal whose emulator, frame building and GPU rendering run in a dedicated worker. Start with a bundler that supports worker URLs, OffscreenCanvas and a supported GPU backend.
 
+## When to use it
+
+Pick the worker entry when many terminals receive dense output at the same time, or when the page thread must stay free for your app. Each terminal parses and draws on its own thread, so one terminal's write is not queued behind the others. The main entry parses every terminal on the page thread. That uses the least total CPU, but sixteen terminals each redrawing a full truecolor screen need more than one 60 Hz frame of page-thread time, so updates arrive late.
+
 ## 1. Import the worker entry
 
 <Code code={sample} lang='ts' title='worker.ts' />

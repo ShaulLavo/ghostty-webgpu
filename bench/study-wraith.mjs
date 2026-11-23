@@ -28,8 +28,10 @@ export async function createWraith(host, settings) {
   })
   const errors = []
   let renderedFrames = 0
+  const frameTimes = []
   terminal.onRender(({ frame }) => {
     renderedFrames = frame
+    frameTimes.push(performance.now())
   })
   let stats
   terminal.onStats((value) => {
@@ -37,6 +39,7 @@ export async function createWraith(host, settings) {
   })
   terminal.onError((error) => errors.push(String(error)))
   return {
+    frameTimes,
     write: (data) => terminal.write(data),
     complete: () => terminal.flush(),
     text: () => [],
