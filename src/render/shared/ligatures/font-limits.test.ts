@@ -264,6 +264,24 @@ describe('ligature font downloads', () => {
 })
 
 describe('ligature font limits', () => {
+  it('runs a later lookup on a glyph introduced by an earlier substitution', async () => {
+    const ligature = new Writer().u16(1, 18, 1, 8, 1, 4, 4, 2, 2, 1, 1, 3).done()
+    const finder = await loadGsubLigatureFinder(
+      sfnt({
+        cmap: cmap(),
+        GSUB: gsub([lookup(1, [new Writer().u16(1, 6, 2, 1, 1, 1).done()]), lookup(4, [ligature])]),
+      }),
+    )
+    expect(finder.find(points('ab'))).toEqual([[0, 2]])
+    expect(finder.find(points('ba'))).toEqual([])
+
+    const prefix = points('b'.repeat(150_000))
+    const segment = prefix.concat(points('ab'))
+    const ranges = finder.find(segment)
+    expect(ranges).toEqual([[prefix.length, segment.length]])
+    expect(finder.find(segment)).toBe(ranges)
+  })
+
   it('stops self-recursive contextual lookups', async () => {
     const finder = await loadGsubLigatureFinder(
       sfnt({ cmap: cmap(), GSUB: gsub([lookup(5, [selfContext(1)])]) }),

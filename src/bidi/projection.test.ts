@@ -57,4 +57,16 @@ describe('writeBidiProjection', () => {
     expect(projection.slice(6)).toEqual(expected)
     expect(bidiProjection(rows, mapper)).toEqual(expected)
   })
+
+  it('writes cached mirror code points at logical columns', () => {
+    const mapper = new RowBidiMapper()
+    const rows = [row(1, 'א(ב)ג', true)]
+    const projection = new Uint32Array(2 * 6 * 3).fill(42)
+    const expected = new Uint32Array([4, 0, 1, 3, 41, 1, 2, 0, 1, 1, 40, 1, 0, 0, 1])
+
+    expect(bidiProjection(rows, mapper)).toEqual(expected)
+    writeBidiProjection(rows, mapper, projection, 6)
+    expect(projection.slice(18, 33)).toEqual(expected)
+    expect(projection.slice(33)).toEqual(new Uint32Array(3).fill(42))
+  })
 })

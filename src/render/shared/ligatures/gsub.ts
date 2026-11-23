@@ -122,11 +122,16 @@ interface ContextRule {
   readonly records: readonly SequenceRecord[]
 }
 
+const noRules: readonly ContextRule[] = []
+
 class GsubTable {
   private readonly lookups: (Lookup | undefined)[] = []
   private readonly lookupOffsets: number[]
   private readonly budget = new ExpansionBudget()
   private readonly referenced = new Set<number>()
+  private readonly lookupsByStarter = new Map<number, number[]>()
+  private readonly seenStarters = new Set<number>()
+  private scheduled = new Uint8Array(0)
   private work = 0
   readonly active: readonly number[]
 
@@ -187,8 +192,31 @@ class GsubTable {
     }
   }
 
-  startSegment(): void {
+  indexLookups(lookups: readonly Lookup[]): void {
+    this.scheduled = new Uint8Array(lookups.length)
+    for (let index = 0; index < lookups.length; index += 1) {
+      for (const glyph of lookups[index]!.starts) {
+        const indices = this.lookupsByStarter.get(glyph)
+        if (indices) indices.push(index)
+        else this.lookupsByStarter.set(glyph, [index])
+      }
+    }
+  }
+
+  startSegment(glyphIds: readonly number[]): Uint8Array | undefined {
     this.work = maxSegmentWork
+    this.scheduled.fill(0)
+    this.seenStarters.clear()
+    for (let index = 0; index < glyphIds.length; index += 1) this.scheduleGlyph(glyphIds[index]!)
+    if (this.seenStarters.size > 0) return this.scheduled
+    return undefined
+  }
+
+  private scheduleGlyph(glyph: number): void {
+    const indices = this.lookupsByStarter.get(glyph)
+    if (indices === undefined || this.seenStarters.has(glyph)) return
+    this.seenStarters.add(glyph)
+    for (let index = 0; index < indices.length; index += 1) this.scheduled[indices[index]!] = 1
   }
 
   private coverage(offset: number): Coverage {
@@ -271,6 +299,7 @@ class GsubTable {
       if (next === undefined) return undefined
       const changed = next !== glyph.id
       glyph.id = next
+      if (changed) this.scheduleGlyph(next)
       return { advance: 1, changed, contextStart: glyph.start, contextEnd: glyph.end }
     }
   }
@@ -286,6 +315,8 @@ class GsubTable {
       const covered = coverage.get(glyph.id)
       const sequence = covered === undefined ? undefined : sequences[covered]
       if (!sequence || sequence.length === 0) return undefined
+      for (let position = 0; position < sequence.length; position += 1)
+        this.scheduleGlyph(sequence[position]!)
       const replacement = sequence.map((id) => ({ id, start: glyph.start, end: glyph.end }))
       glyphs.splice(index, 1, ...replacement)
       return {
@@ -318,13 +349,11 @@ class GsubTable {
       for (const candidate of set) {
         const length = candidate.components.length + 1
         if (index + length > glyphs.length) continue
-        const matches = candidate.components.every(
-          (component, position) => glyphs[index + 1 + position]!.id === component,
-        )
-        if (!matches) continue
+        if (!matchComponents(glyphs, index + 1, candidate.components)) continue
         const start = glyphs[index]!.start
         const end = glyphs[index + length - 1]!.end
         glyphs.splice(index, length, { id: candidate.glyph, start, end })
+        this.scheduleGlyph(candidate.glyph)
         return { advance: 1, changed: true, contextStart: start, contextEnd: end }
       }
       return undefined
@@ -353,14 +382,15 @@ class GsubTable {
     const first = index - rule.backtrack.length
     const last = index + rule.input.length + rule.lookahead.length
     if (first < 0 || last > glyphs.length) return undefined
-    for (const [position, matcher] of rule.backtrack.entries()) {
-      if (!matcher(glyphs[index - 1 - position]!.id)) return undefined
+    for (let position = 0; position < rule.backtrack.length; position += 1) {
+      if (!rule.backtrack[position]!(glyphs[index - 1 - position]!.id)) return undefined
     }
-    for (const [position, matcher] of rule.input.entries()) {
-      if (!matcher(glyphs[index + position]!.id)) return undefined
+    for (let position = 0; position < rule.input.length; position += 1) {
+      if (!rule.input[position]!(glyphs[index + position]!.id)) return undefined
     }
-    for (const [position, matcher] of rule.lookahead.entries()) {
-      if (!matcher(glyphs[index + rule.input.length + position]!.id)) return undefined
+    const lookaheadStart = index + rule.input.length
+    for (let position = 0; position < rule.lookahead.length; position += 1) {
+      if (!rule.lookahead[position]!(glyphs[lookaheadStart + position]!.id)) return undefined
     }
     const contextStart = glyphs[first]!.start
     const contextEnd = glyphs[last - 1]!.end
@@ -402,7 +432,8 @@ class GsubTable {
         records: this.records(offset + 6 + count * 2, records),
       }
       const firstCoverage = coverages[0]
-      return { candidates: (glyph) => (firstCoverage?.has(glyph) ? [rule] : []) }
+      const candidates = [rule]
+      return { candidates: (glyph) => (firstCoverage?.has(glyph) ? candidates : noRules) }
     }
     const coverage = this.coverage(offset + view.getUint16(offset + 2))
     const classDef = format === 2 ? this.classDef(offset + view.getUint16(offset + 4)) : undefined
@@ -413,8 +444,8 @@ class GsubTable {
     return {
       candidates: (glyph) => {
         const covered = coverage.get(glyph)
-        if (covered === undefined) return []
-        return sets[classDef ? classDef(glyph) : covered] ?? []
+        if (covered === undefined) return noRules
+        return sets[classDef ? classDef(glyph) : covered] ?? noRules
       },
     }
   }
@@ -450,8 +481,8 @@ class GsubTable {
     return {
       candidates: (glyph) => {
         const covered = coverage.get(glyph)
-        if (covered === undefined) return []
-        return sets[classes ? classes[1]!(glyph) : covered] ?? []
+        if (covered === undefined) return noRules
+        return sets[classes ? classes[1]!(glyph) : covered] ?? noRules
       },
     }
   }
@@ -496,7 +527,8 @@ class GsubTable {
       records: this.records(cursor + 2, view.getUint16(cursor)),
     }
     const first = input[0]
-    return { candidates: (glyph) => (first?.has(glyph) ? [rule] : []) }
+    const candidates = [rule]
+    return { candidates: (glyph) => (first?.has(glyph) ? candidates : noRules) }
   }
 
   private reverseChain(offset: number): Subtable {
@@ -518,14 +550,17 @@ class GsubTable {
       const first = index - backtrack.length
       const last = index + 1 + lookahead.length
       if (first < 0 || last > glyphs.length) return undefined
-      if (!backtrack.every((list, position) => list.has(glyphs[index - 1 - position]!.id)))
-        return undefined
-      if (!lookahead.every((list, position) => list.has(glyphs[index + 1 + position]!.id)))
-        return undefined
+      for (let position = 0; position < backtrack.length; position += 1) {
+        if (!backtrack[position]!.has(glyphs[index - 1 - position]!.id)) return undefined
+      }
+      for (let position = 0; position < lookahead.length; position += 1) {
+        if (!lookahead[position]!.has(glyphs[index + 1 + position]!.id)) return undefined
+      }
       const next = substitutes[covered]
       if (next === undefined) return undefined
       const changed = next !== glyph.id
       glyph.id = next
+      if (changed) this.scheduleGlyph(next)
       return {
         advance: 1,
         changed,
@@ -534,6 +569,17 @@ class GsubTable {
       }
     }
   }
+}
+
+function matchComponents(
+  glyphs: readonly Glyph[],
+  start: number,
+  components: readonly number[],
+): boolean {
+  for (let position = 0; position < components.length; position += 1) {
+    if (glyphs[start + position]!.id !== components[position]) return false
+  }
+  return true
 }
 
 interface RuleIndex {
@@ -558,12 +604,23 @@ function readCmap(view: DataView): (codepoint: number) => number {
   }))
   const formatOf = (offset: number) => view.getUint16(offset)
   const full = subtables.find((table) => formatOf(table.offset) === 12)
-  if (full) return cmapFormat12(view, full.offset)
+  if (full) return cacheAsciiCmap(cmapFormat12(view, full.offset))
   const unicode = subtables.find(
     (table) => formatOf(table.offset) === 4 && (table.platform === 0 || table.platform === 3),
   )
-  if (unicode) return cmapFormat4(view, unicode.offset)
+  if (unicode) return cacheAsciiCmap(cmapFormat4(view, unicode.offset))
   return () => 0
+}
+
+function cacheAsciiCmap(glyphOf: (codepoint: number) => number): (codepoint: number) => number {
+  const ascii = new Uint16Array(128)
+  for (let code = 0; code < ascii.length; code += 1) {
+    const glyph = glyphOf(code)
+    if (glyph > 0xffff) return glyphOf
+    ascii[code] = glyph
+  }
+  return (codepoint) =>
+    codepoint < 128 && codepoint >>> 0 === codepoint ? ascii[codepoint]! : glyphOf(codepoint)
 }
 
 function cmapFormat12(view: DataView, offset: number): (codepoint: number) => number {
@@ -629,33 +686,36 @@ export function createGsubShaper(tables: FontTables): GsubShaper | undefined {
   if (gsub.active.length === 0) return undefined
   gsub.validate()
   const lookups = gsub.active.flatMap((index) => gsub.lookup(index) ?? [])
-  const starters = new Set(lookups.flatMap((lookup) => Array.from(lookup.starts)))
+  gsub.indexLookups(lookups)
   return {
     ranges(codepoints) {
-      const glyphs = codepoints.map((codepoint, index) => ({
-        id: glyphOf(codepoint),
-        start: index,
-        end: index + 1,
-      }))
-      if (!glyphs.some((glyph) => starters.has(glyph.id))) return []
-      const ranges: [number, number][] = []
-      gsub.startSegment()
-      try {
-        for (const lookup of lookups) applyLookup(lookup, glyphs, ranges)
-      } catch (cause) {
-        // A segment that exhausts its work budget draws per cell.
-        if (cause === workExhausted) return []
-        throw cause
-      }
-      return ranges
-        .filter(([start, end]) => end - start > 1)
-        .sort((left, right) => left[0] - right[0])
+      return shapeSegment(codepoints.map(glyphOf), gsub, lookups)
     },
   }
 }
 
+function shapeSegment(
+  glyphIds: readonly number[],
+  gsub: GsubTable,
+  lookups: readonly Lookup[],
+): LigatureRange[] {
+  const scheduled = gsub.startSegment(glyphIds)
+  if (!scheduled) return []
+  const glyphs = glyphIds.map((id, start) => ({ id, start, end: start + 1 }))
+  const ranges: [number, number][] = []
+  try {
+    // Substitutions may schedule later lookups, so read the flags in font order.
+    for (let index = 0; index < scheduled.length; index += 1) {
+      if (scheduled[index]) applyLookup(lookups[index]!, glyphs, ranges)
+    }
+  } catch (cause) {
+    if (cause === workExhausted) return []
+    throw cause
+  }
+  return ranges.filter(([start, end]) => end - start > 1).sort((left, right) => left[0] - right[0])
+}
+
 function applyLookup(lookup: Lookup, glyphs: Glyph[], ranges: [number, number][]): void {
-  if (!glyphs.some((glyph) => lookup.starts.has(glyph.id))) return
   if (lookup.reverse) {
     for (let index = glyphs.length - 1; index >= 0; index -= 1) {
       if (!lookup.starts.has(glyphs[index]!.id)) continue
