@@ -136,9 +136,9 @@ function gpuFixture(
   return { device, pass, buffers, writes, bindGroups, draws }
 }
 
-function frame() {
-  const cellData = new Float32Array(new ArrayBuffer(480 * 64 + 32), 16, 480 * 16)
-  const glyphData = new Float32Array(new ArrayBuffer(480 * 96 + 32), 16, 480 * 24)
+function frame(instances = 480) {
+  const cellData = new Float32Array(new ArrayBuffer(instances * 64 + 32), 16, instances * 16)
+  const glyphData = new Float32Array(new ArrayBuffer(instances * 96 + 32), 16, instances * 24)
   for (const data of [cellData, glyphData]) {
     const words = new Uint32Array(data.buffer, data.byteOffset, data.length)
     for (let index = 0; index < words.length; index++) words[index] = index + 1
@@ -261,17 +261,17 @@ it('coalesces six full rows to two uploads with native glyph bytes and preserved
 })
 
 it('stages a dense frame through a mapped buffer copied ahead of its draws', () => {
-  const fixture = gpuFixture(),
-    data = frame()
-  const updates = Array.from({ length: 12 }, (_, row) =>
+  const fixture = gpuFixture(960),
+    data = frame(960)
+  const updates = Array.from({ length: 24 }, (_, row) =>
     update(row, row * 2560, 2560, row * 3840, 3840),
   )
   expect(fixture.pass.uploadFrame(data, updates)).toBe(2)
   expect(fixture.writes).toEqual([])
-  expect(fixture.pass.frameUploadedBytes).toBe(76800)
+  expect(fixture.pass.frameUploadedBytes).toBe(153600)
   expect(fixture.pass.metrics.uploadOperations).toBe(2)
-  expect(fixture.pass.metrics.uploadedBytes).toBe(76800)
-  expect(fixture.buffers[0]!.bytes).toEqual(new Uint8Array(30720))
+  expect(fixture.pass.metrics.uploadedBytes).toBe(153600)
+  expect(fixture.buffers[0]!.bytes).toEqual(new Uint8Array(61440))
   fixture.pass.syncAtlas(
     new AtlasGpuTextures(fixture.device, { layerCount: 1, pageHeight: 8, pageWidth: 8 }),
   )
@@ -285,16 +285,19 @@ it('stages a dense frame through a mapped buffer copied ahead of its draws', () 
 })
 
 it('lands a staged frame that missed its draw before the next frame writes', () => {
-  const fixture = gpuFixture(),
-    data = frame()
-  fixture.pass.uploadFrame(data, [update(0, 0, 30720, 0, 46080)])
-  const dense = new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, 64).slice()
+  const fixture = gpuFixture(960),
+    data = frame(960)
+  fixture.pass.uploadFrame(data, [update(0, 0, 61440, 0, 92160)])
+  expect(fixture.writes).toEqual([])
   data.cellData.fill(-1, 0, 16)
   fixture.pass.uploadFrame(data, [update(0, 0, 64, 0, 0)])
   expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([[0, 64]])
-  expect(fixture.buffers[0]!.bytes.subarray(0, 64)).not.toEqual(dense)
-  expect(fixture.buffers[0]!.bytes.subarray(64, 128)).toEqual(
-    new Uint8Array(data.cellData.buffer, data.cellData.byteOffset + 64, 64),
+  // The staged copy lands first, then the newer write replaces its first instance.
+  expect(fixture.buffers[0]!.bytes).toEqual(
+    new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, data.cellData.byteLength),
+  )
+  expect(fixture.buffers[1]!.bytes).toEqual(
+    new Uint8Array(data.glyphData.buffer, data.glyphData.byteOffset, data.glyphData.byteLength),
   )
 })
 

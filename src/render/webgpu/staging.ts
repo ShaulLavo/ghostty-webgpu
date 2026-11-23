@@ -1,7 +1,7 @@
 import type { InstanceByteRange } from '../shared/instances/types.js'
 
 /** Frames whose planned instance bytes reach this size upload through mapped staging buffers. */
-export const STAGING_MIN_BYTES = 64 * 1024
+export const STAGING_MIN_BYTES = 128 * 1024
 const POOL_LIMIT = 2
 
 interface StagedCopy {
