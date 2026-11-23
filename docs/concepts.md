@@ -57,6 +57,8 @@ Automatic selection skips software WebGPU adapters. `backend` is an option of th
 
 `ghostty-webgpu/worker` puts the wasm core, the frame builder, and a GPU renderer in a dedicated worker. The DOM host stays on the page and owns focus, pointer input, and layout. Operations that need the worker's answer return promises. The worker supports WebGPU and WebGL2. It has no Canvas modes. Link providers run on the page against owned native row snapshots, including keyboard link discovery. The page keeps a text copy of the displayed rows; the worker sends only the rows whose characters changed, as text plus one blank bit per cell, and the page builds per-cell strings only when a reader asks for them. See [status](status.md) and the [worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/).
 
+The worker paints when output has been quiet for 2 ms, or at the next animation frame if output keeps arriving, and at most once per display frame. The short wait gathers a burst that arrives in several messages. Painting before the next animation frame keeps the worker free when a page that writes once per frame sends its next write.
+
 ## Where to go next
 
 - [API behavior reference](api.md) for the exact rules of frames, scrollback, geometry, and extensions.

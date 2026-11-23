@@ -46,8 +46,10 @@ export class RenderScheduler {
   private flushRequested = false
   private immediateResetHandle?: number
   private readonly immediate: boolean
-  // Set by the first settled paint; only then do frame paints track the display frame.
-  private settledPaints = false
+  private settleResetHandle?: number
+  private settles = 0
+  private previousSettles = 0
+  private settledPaintLanded = false
   private readonly onFrame: (state: RenderFrameState) => void
 
   constructor(options: RenderSchedulerOptions) {
@@ -106,14 +108,18 @@ export class RenderScheduler {
   }
 
   /**
-   * Paints pending output now instead of at the next animation frame, at most once per display
-   * frame. Output that arrives after a paint landed in this display frame joins the next one.
+   * Paints output that has gone quiet now, instead of at the next animation frame. At most one
+   * such paint lands per display frame, and none while output settles more than once per display
+   * frame: a producer faster than the display keeps plain frame pacing.
    */
   paintSettled(): void {
-    this.settledPaints = true
-    if (this.frameHandle === undefined || this.immediateResetHandle !== undefined) return
+    if (this.disposed) return
+    this.settles += 1
+    this.armSettleReset()
+    if (this.frameHandle === undefined) return
+    if (this.settledPaintLanded || this.previousSettles > 1) return
     if (!this.canPaint) return
-    this.armImmediateReset()
+    this.settledPaintLanded = true
     this.flush()
   }
 
@@ -159,6 +165,8 @@ export class RenderScheduler {
     this.textBlink?.dispose()
     this.cancelFrame()
     this.cancelBlinkTimer()
+    if (this.settleResetHandle !== undefined) this.clock.cancelFrame(this.settleResetHandle)
+    this.settleResetHandle = undefined
     if (this.immediateResetHandle === undefined) return
     this.clock.cancelFrame(this.immediateResetHandle)
     this.immediateResetHandle = undefined
@@ -214,9 +222,21 @@ export class RenderScheduler {
     this.deliverFrames()
   }
 
+  // Each display frame starts a new count of settled bursts.
+  private armSettleReset(): void {
+    if (this.settleResetHandle !== undefined) return
+    this.settleResetHandle = this.clock.requestFrame(() => {
+      this.settleResetHandle = undefined
+      this.previousSettles = this.settles
+      this.settles = 0
+      this.settledPaintLanded = false
+      // One more tick lets a quiet display frame clear the count.
+      if (this.previousSettles > 0) this.armSettleReset()
+    })
+  }
+
   private armImmediateReset(): void {
-    if (!this.immediate && !this.settledPaints) return
-    if (this.immediateResetHandle !== undefined) return
+    if (!this.immediate || this.immediateResetHandle !== undefined) return
     this.immediateResetHandle = this.clock.requestFrame(() => {
       this.immediateResetHandle = undefined
     })

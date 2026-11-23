@@ -99,21 +99,18 @@ describe('RenderScheduler', () => {
     expect(frames).toHaveLength(4)
   })
 
-  it('paints settled output once per display frame and leaves later output to the frame', () => {
+  it('paints settled output once per display frame and keeps frame pacing for faster producers', () => {
     const clock = new FakeClock()
     const frames: RenderFrameState[] = []
     const scheduler = createScheduler(clock, frames)
 
-    scheduler.paintSettled()
-    expect(frames).toHaveLength(0)
-    expect(clock.frames.size).toBe(0)
-
     scheduler.scheduleWrite()
     scheduler.paintSettled()
-    // The paint replaced the scheduled frame; the one pending callback marks the next frame.
+    // The paint replaced the scheduled frame; the pending callback starts the next count.
     expect(frames).toHaveLength(1)
     expect(clock.frames.size).toBe(1)
 
+    // A second burst in the same display frame waits for the animation frame.
     scheduler.scheduleWrite()
     scheduler.paintSettled()
     expect(frames).toHaveLength(1)
@@ -121,7 +118,7 @@ describe('RenderScheduler', () => {
     clock.takeFrame()()
     expect(frames).toHaveLength(2)
 
-    // A frame paint also uses up its display frame.
+    // Two bursts settled in the last display frame, so this one keeps frame pacing.
     scheduler.scheduleWrite()
     scheduler.paintSettled()
     expect(frames).toHaveLength(2)
@@ -129,14 +126,18 @@ describe('RenderScheduler', () => {
     clock.takeFrame()()
     expect(frames).toHaveLength(3)
 
-    clock.takeFrame()()
-    expect(clock.frames.size).toBe(0)
+    // One burst in the last display frame: settled paints resume.
     scheduler.scheduleWrite()
     scheduler.paintSettled()
     expect(frames).toHaveLength(4)
+
+    // The count clears after one quiet display frame, then nothing stays scheduled.
+    clock.takeFrame()()
+    clock.takeFrame()()
+    expect(clock.frames.size).toBe(0)
   })
 
-  it('skips settled paints while hidden and never tracks display frames unless one is asked for', () => {
+  it('lets a settled paint follow an animation-frame paint in the same display frame', () => {
     const clock = new FakeClock()
     const frames: RenderFrameState[] = []
     const scheduler = createScheduler(clock, frames)
@@ -147,9 +148,28 @@ describe('RenderScheduler', () => {
     expect(clock.frames.size).toBe(0)
 
     scheduler.scheduleWrite()
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(2)
+  })
+
+  it('skips settled paints with nothing pending, while hidden and after disposal', () => {
+    const clock = new FakeClock()
+    const frames: RenderFrameState[] = []
+    const scheduler = createScheduler(clock, frames)
+
+    scheduler.paintSettled()
+    expect(frames).toHaveLength(0)
+    clock.takeFrame()()
+    clock.takeFrame()()
+
+    scheduler.scheduleWrite()
     scheduler.setDocumentVisible(false)
     scheduler.paintSettled()
-    expect(frames).toHaveLength(1)
+    expect(frames).toHaveLength(0)
+
+    scheduler.dispose()
+    expect(clock.frames.size).toBe(0)
+    scheduler.paintSettled()
     expect(clock.frames.size).toBe(0)
   })
 
