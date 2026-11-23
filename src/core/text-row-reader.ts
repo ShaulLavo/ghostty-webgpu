@@ -74,6 +74,26 @@ function ownedTextRow(y: number, words: Uint32Array, graphemes: Uint32Array): Re
   return copiedTextRow(y, records, owned)
 }
 
+/**
+ * Rebases one row's own records onto a copy of just the graphemes its clusters use, so a kept
+ * row pins no shared packet. Only cells with a cluster carry a meaningful grapheme offset.
+ */
+function rowGraphemes(records: Uint32Array, graphemes: Uint32Array): Uint32Array {
+  let base = graphemes.length
+  let end = 0
+  for (let offset = 0; offset < records.length; offset += cellWords) {
+    const length = records[offset + 2]!
+    if (length === 0) continue
+    base = Math.min(base, records[offset + 1]!)
+    end = Math.max(end, records[offset + 1]! + length)
+  }
+  if (end <= base) return emptyGraphemes
+  for (let offset = 0; offset < records.length; offset += cellWords) {
+    if (records[offset + 2] !== 0) records[offset + 1]! -= base
+  }
+  return graphemes.slice(base, end)
+}
+
 function ownedRows(
   metadata: Uint32Array,
   words: Uint32Array,
@@ -106,10 +126,50 @@ function hasCluster(words: Uint32Array, start: number, length: number): boolean 
  * The codepoints last read for each viewport row. A row redrawn with the same characters
  * (colour-only damage) keeps its owned text object instead of being rebuilt and re-sent.
  */
+interface ClusterRow {
+  readonly row: RenderTextRow
+  readonly records: Uint32Array
+  readonly graphemes: Uint32Array
+}
+
+function sameSpan(
+  left: Uint32Array,
+  leftStart: number,
+  right: Uint32Array,
+  rightStart: number,
+  length: number,
+): boolean {
+  for (let index = 0; index < length; index += 1) {
+    if (left[leftStart + index] !== right[rightStart + index]) return false
+  }
+  return true
+}
+
+function sameClusterRow(
+  kept: ClusterRow,
+  words: Uint32Array,
+  start: number,
+  length: number,
+  graphemes: Uint32Array,
+): boolean {
+  const records = kept.records
+  if (records.length !== length * cellWords) return false
+  for (let index = 0; index < length; index += 1) {
+    const offset = (start + index) * cellWords
+    const own = index * cellWords
+    const span = words[offset + 2]!
+    if (words[offset] !== records[own] || span !== records[own + 2]) return false
+    if (!sameSpan(graphemes, words[offset + 1]!, kept.graphemes, records[own + 1]!, span))
+      return false
+  }
+  return true
+}
+
 class RetainedTextRows {
   private codepoints = new Uint32Array(0)
   private lengths = new Int32Array(0)
   private rows: (RenderTextRow | undefined)[] = []
+  private clusters: (ClusterRow | undefined)[] = []
   private columns = 0
 
   /** A different grid forgets every row. */
@@ -120,10 +180,12 @@ class RetainedTextRows {
     this.lengths = new Int32Array(grid.rows).fill(-1)
     this.rows = []
     for (let y = 0; y < grid.rows; y += 1) this.rows.push(undefined)
+    this.clusters = []
   }
 
   forget(): void {
     this.rows.fill(undefined)
+    this.clusters = []
   }
 
   canHold(y: number, length: number): boolean {
@@ -142,14 +204,25 @@ class RetainedTextRows {
       same = false
     }
     this.lengths[y] = length
+    this.clusters[y] = undefined
     if (!same) this.rows[y] = undefined
     return this.rows[y]
   }
 
-  /** A row with grapheme clusters is not described by its first words, so it is never kept. */
-  skip(y: number): void {
+  /** A row with grapheme clusters is kept with its own records and compared cell by cell. */
+  matchCluster(
+    y: number,
+    words: Uint32Array,
+    start: number,
+    length: number,
+    graphemes: Uint32Array,
+  ): RenderTextRow | undefined {
     this.lengths[y] = -1
     this.rows[y] = undefined
+    const kept = this.clusters[y]
+    if (kept && sameClusterRow(kept, words, start, length, graphemes)) return kept.row
+    this.clusters[y] = undefined
+    return undefined
   }
 
   holds(y: number): boolean {
@@ -158,6 +231,10 @@ class RetainedTextRows {
 
   retain(row: RenderTextRow): void {
     this.rows[row.y] = row
+  }
+
+  retainCluster(row: RenderTextRow, records: Uint32Array, graphemes: Uint32Array): void {
+    this.clusters[row.y] = { row, records, graphemes }
   }
 
   /** Whether every cell of a stored row is blank or one UTF-16 code unit. */
@@ -225,13 +302,9 @@ export class TextRowReader {
         ascii ? { bytes: this.asciiBytes, decoder: this.decoder } : undefined,
       )
     this.retained.resize(grid)
-    if (this.retainable(snapshot.rows)) {
-      // Lazy rows keep their words, so only a borrowed ASCII packet goes without a copy.
-      const words = ascii ? snapshot.cells : snapshot.cells.slice()
-      const graphemes =
-        snapshot.graphemes.length === 0 ? emptyGraphemes : snapshot.graphemes.slice()
-      return this.packetRows(snapshot.rows, words, ascii, graphemes)
-    }
+    if (this.retainable(snapshot.rows))
+      return this.packetRows(snapshot.rows, snapshot.cells, ascii, snapshot.graphemes)
+    // Rows the store cannot hold are never kept across reads, so sharing one packet is safe.
     this.retained.forget()
     const records = snapshot.cells.slice()
     const graphemes = snapshot.graphemes.slice()
@@ -252,7 +325,8 @@ export class TextRowReader {
     return true
   }
 
-  /** `words` is borrowed for ASCII packets and an owned copy otherwise. */
+  // `words` and `graphemes` are borrowed. A changed row copies only its own cells, so a row
+  // kept across many reads never pins the packet of the read that built it.
   private packetRows(
     metadata: Uint32Array,
     words: Uint32Array,
@@ -262,11 +336,11 @@ export class TextRowReader {
     const rows: (RenderTextRow | undefined)[] = []
     let changed = 0
     for (let offset = 0; offset < metadata.length; offset += rowWords) {
-      const row = this.matchRow(metadata, offset, words, graphemes.length > 0)
+      const row = this.matchRow(metadata, offset, words, graphemes)
       rows.push(row)
       if (!row) changed += 1
     }
-    if (changed > 0 && ascii) this.buildAsciiRows(metadata, rows, words.length / cellWords)
+    if (changed > 0 && ascii) this.buildAsciiRows(metadata, rows)
     if (changed > 0 && !ascii) this.buildWordRows(metadata, words, graphemes, rows)
     return Object.freeze(rows as RenderTextRow[])
   }
@@ -276,26 +350,25 @@ export class TextRowReader {
     metadata: Uint32Array,
     offset: number,
     words: Uint32Array,
-    clustered: boolean,
+    graphemes: Uint32Array,
   ): RenderTextRow | undefined {
     const y = metadata[offset]!
     const start = metadata[offset + 1]!
     const length = metadata[offset + 2]!
-    if (!clustered || !hasCluster(words, start, length))
+    if (graphemes.length === 0 || !hasCluster(words, start, length))
       return this.retained.match(y, words, start, length)
-    this.retained.skip(y)
-    return undefined
+    return this.retained.matchCluster(y, words, start, length, graphemes)
   }
 
   // Changed ASCII rows share one decoded packet and one blank bitmap, built from the store.
   // The owned string and private bitmap outlive native records and scratch reuse.
-  private buildAsciiRows(
-    metadata: Uint32Array,
-    rows: (RenderTextRow | undefined)[],
-    cellCount: number,
-  ): void {
+  private buildAsciiRows(metadata: Uint32Array, rows: (RenderTextRow | undefined)[]): void {
     const bytes = this.asciiBytes
-    const blanks = new Uint32Array(Math.ceil(cellCount / 32))
+    let changedCells = 0
+    for (let index = 0; index < rows.length; index += 1) {
+      if (!rows[index]) changedCells += metadata[index * rowWords + 2]!
+    }
+    const blanks = new Uint32Array(Math.ceil(changedCells / 32))
     const starts: number[] = []
     let end = 0
     for (let index = 0; index < rows.length; index += 1) {
@@ -318,7 +391,7 @@ export class TextRowReader {
 
   private buildWordRows(
     metadata: Uint32Array,
-    records: Uint32Array,
+    words: Uint32Array,
     graphemes: Uint32Array,
     rows: (RenderTextRow | undefined)[],
   ): void {
@@ -327,18 +400,23 @@ export class TextRowReader {
       const offset = index * rowWords
       const start = metadata[offset + 1]! * cellWords
       const end = start + metadata[offset + 2]! * cellWords
-      const words = records.subarray(start, end)
-      const row = copiedTextRow(metadata[offset]!, words, graphemes)
+      // Each changed row owns exactly its cells and its grapheme span.
+      const records = words.slice(start, end)
+      const owned = rowGraphemes(records, graphemes)
+      const row = copiedTextRow(metadata[offset]!, records, owned)
       rows[index] = row
-      this.retainWordRow(row, words, metadata[offset + 2]!)
+      this.retainWordRow(row, records, owned)
     }
   }
 
-  private retainWordRow(row: RenderTextRow, words: Uint32Array, length: number): void {
-    if (!this.retained.holds(row.y)) return
+  private retainWordRow(row: RenderTextRow, records: Uint32Array, graphemes: Uint32Array): void {
+    if (!this.retained.holds(row.y)) {
+      this.retained.retainCluster(row, records, graphemes)
+      return
+    }
     this.retained.retain(row)
-    if (this.retained.isPlain(row.y, length))
-      markPlainTextRow(row, { blank: (column) => words[column * cellWords] === 0 })
+    if (this.retained.isPlain(row.y, records.length / cellWords))
+      markPlainTextRow(row, { blank: (column) => records[column * cellWords] === 0 })
   }
 
   dispose(): void {

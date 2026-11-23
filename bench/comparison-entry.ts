@@ -990,7 +990,7 @@ let studyFenced = false
 async function runStudy(steps: number) {
   const samples: number[] = []
   const completions: number[] = []
-  const writes: { started: number; acknowledged: number }[] = []
+  const writes: StudyWrite[] = []
   for (const driver of drivers) driver.frameTimes?.splice(0)
   const started = performance.now()
   let bytes = 0
@@ -998,9 +998,11 @@ async function runStudy(steps: number) {
     async () => {
       const chunk = studyChunks[samples.length % studyChunks.length]!
       const at = performance.now()
-      await Promise.all(drivers.map((driver) => driver.write(chunk)))
+      const acknowledged = await Promise.all(
+        drivers.map((driver) => driver.write(chunk).then(() => performance.now())),
+      )
       samples.push(performance.now() - at)
-      writes.push({ started: at, acknowledged: performance.now() })
+      writes.push({ started: at, acknowledged })
       if (studyFenced) {
         await Promise.all(drivers.map((driver) => driver.complete?.()))
         completions.push(performance.now() - at)
@@ -1021,20 +1023,24 @@ async function runStudy(steps: number) {
   }
 }
 
-// Write start until every terminal has reported a frame submitted after that write was
-// acknowledged. Frame reports are ordered before later acknowledgements, so such a frame
-// contains the write. Empty when a library reports no frames or frames are forced.
-function submittedLatencies(
-  writes: readonly { started: number; acknowledged: number }[],
-): number[] {
+interface StudyWrite {
+  readonly started: number
+  /** When the page saw each terminal acknowledge this write, in driver order. */
+  readonly acknowledged: readonly number[]
+}
+
+// Write start until every terminal has reported a frame after its own acknowledgement of that
+// write. A terminal reports frames in order with its acknowledgements, so that frame is the
+// first to contain the write. Empty when a library reports no frames or frames are forced.
+function submittedLatencies(writes: readonly StudyWrite[]): number[] {
   const reported = drivers.map((driver) => driver.frameTimes)
   if (studyFenced || reported.some((times) => !times)) return []
   const cursors = reported.map(() => 0)
   const latencies: number[] = []
   for (const write of writes) {
     const last = lastFrameAfter(reported as number[][], cursors, write.acknowledged)
-    if (last === undefined) break
-    latencies.push(last - write.started)
+    // A frame still in flight when the run ends leaves that write without a sample.
+    if (last !== undefined) latencies.push(last - write.started)
   }
   return latencies
 }
@@ -1042,15 +1048,14 @@ function submittedLatencies(
 function lastFrameAfter(
   reported: readonly number[][],
   cursors: number[],
-  acknowledged: number,
+  acknowledged: readonly number[],
 ): number | undefined {
-  let last = 0
+  let last: number | undefined = 0
   for (const [index, times] of reported.entries()) {
-    while (cursors[index]! < times.length && times[cursors[index]!]! <= acknowledged)
+    while (cursors[index]! < times.length && times[cursors[index]!]! <= acknowledged[index]!)
       cursors[index]! += 1
     const time = times[cursors[index]!]
-    if (time === undefined) return undefined
-    last = Math.max(last, time)
+    last = time === undefined || last === undefined ? undefined : Math.max(last, time)
   }
   return last
 }

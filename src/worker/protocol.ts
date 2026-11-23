@@ -138,14 +138,16 @@ interface WorkerReply extends WorkerWatermarks {
   readonly result?: unknown
   readonly failure?: WorkerFailure
 }
+type WorkerEventName = Exclude<keyof TerminalSessionEventMap, 'renderRequest'>
+// An appearance event carries no payload: the host emits the appearance its state confirmed.
 type WorkerEvent = {
-  [K in Exclude<keyof TerminalSessionEventMap, 'renderRequest'>]: WorkerWatermarks & {
+  [K in WorkerEventName]: WorkerWatermarks & {
     readonly type: 'event'
     readonly event: K
-    readonly value: TerminalSessionEventMap[K]
+    readonly value: K extends 'appearance' ? undefined : TerminalSessionEventMap[K]
     readonly state: WorkerStateUpdate
   }
-}[Exclude<keyof TerminalSessionEventMap, 'renderRequest'>]
+}[WorkerEventName]
 export interface WorkerCanvasReplacement extends WorkerIdentity {
   readonly type: 'canvas'
   readonly canvas: OffscreenCanvas

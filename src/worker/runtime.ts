@@ -511,7 +511,8 @@ export class TerminalWorkerRuntime {
             ...this.watermarks(),
             type: 'event',
             event,
-            value,
+            // A second clone of the appearance would reach subscribers unfrozen and unshared.
+            value: event === 'appearance' ? undefined : value,
             state: this.state(),
           } as WorkerMessage<WorkerFrameDelta>)
         }),

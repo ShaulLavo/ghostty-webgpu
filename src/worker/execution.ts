@@ -294,7 +294,13 @@ export class WorkerTerminalExecution {
     }
     this.state = freezeWorkerValue({ ...message.state, appearance })
     if (message.type === 'event') {
-      if (!this.disposed) this.emitters.get(message.event)?.emit(message.value)
+      if (this.disposed) return
+      // Subscribers get the frozen appearance the terminal itself reports, not another clone.
+      const value =
+        message.event === 'appearance'
+          ? Object.freeze({ appearance: this.state.appearance })
+          : message.value
+      this.emitters.get(message.event)?.emit(value)
       return
     }
     const pending = this.pending.get(message.id)
@@ -437,7 +443,8 @@ export class WorkerTerminalExecution {
   write(data: Parameters<LocalTerminalExecution['write']>[0]) {
     if (!(data instanceof Uint8Array)) return this.request('write', [data])
     // Cloning a view copies its whole backing buffer twice; copy the bytes once and transfer.
-    return this.writeOwned(data.slice())
+    // A subclass's slice() may return a view of the caller's buffer, so construct the copy.
+    return this.writeOwned(new Uint8Array(data))
   }
   writeOwned(data: Uint8Array) {
     return this.request('write', [data], [data.buffer as ArrayBuffer])
