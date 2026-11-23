@@ -284,6 +284,35 @@ it('stages a dense frame through a mapped buffer copied ahead of its draws', () 
   )
 })
 
+it('keeps staged copies for a retry until the queue accepts a frame', () => {
+  const fixture = gpuFixture(960),
+    data = frame(960)
+  fixture.pass.syncAtlas(
+    new AtlasGpuTextures(fixture.device, { layerCount: 1, pageHeight: 8, pageWidth: 8 }),
+  )
+  fixture.pass.uploadFrame(data, [update(0, 0, 61440, 0, 92160)])
+  // The first command buffer is lost to a failed submit; the retry must still carry the copies.
+  fixture.pass.encode({} as GPUTextureView)
+  const retry = fixture.pass.encode({} as GPUTextureView)
+  fixture.device.queue.submit([retry])
+  fixture.pass.acceptFrame()
+  expect(fixture.buffers[0]!.bytes).toEqual(
+    new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, data.cellData.byteLength),
+  )
+  const next = fixture.pass.encode({} as GPUTextureView) as unknown as { copies: unknown[] }
+  expect(next.copies).toEqual([])
+})
+
+it('uploads with writeBuffer when the combined staging mirror exceeds the buffer limit', () => {
+  const fixture = gpuFixture(960, {
+    maxStorageBufferBindingSize: 134217728,
+    maxBufferSize: 100_000,
+  })
+  const data = frame(960)
+  expect(fixture.pass.uploadFrame(data, [update(0, 0, 61440, 0, 92160)])).toBe(2)
+  expect(fixture.writes.map((write) => write.bytes.byteLength)).toEqual([61440, 92160])
+})
+
 it('lands a staged frame that missed its draw before the next frame writes', () => {
   const fixture = gpuFixture(960),
     data = frame(960)

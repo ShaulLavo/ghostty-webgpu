@@ -81,6 +81,12 @@ export function textPassGlyphCapacity(device: GPUDevice, instanceCount: number):
   return capacity
 }
 
+function rangeBytes(ranges: readonly { readonly byteLength: number }[]): number {
+  let bytes = 0
+  for (const range of ranges) bytes += range.byteLength
+  return bytes
+}
+
 function blendState(): GPUBlendState {
   return {
     alpha: { dstFactor: 'one-minus-src-alpha', srcFactor: 'one' },
@@ -138,10 +144,10 @@ export class WebGpuTextPass {
       }
       this.glyphBuffer = this.glyphBatches[0]!.buffer
       this.drawCount = 1 + this.glyphBatches.length
-      if (this.glyphBatches.length === 1) {
-        const bytes = this.instanceCount * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES)
-        this.staging = new StagingUploads(this.device, bytes)
-      }
+      const mirrorBytes = this.instanceCount * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES)
+      // Both destinations can fit while their combined mirror exceeds one buffer.
+      if (this.glyphBatches.length === 1 && mirrorBytes <= this.device.limits.maxBufferSize)
+        this.staging = new StagingUploads(this.device, mirrorBytes)
       this.viewportBuffer = options.device.createBuffer({
         size: 32,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
@@ -219,8 +225,7 @@ export class WebGpuTextPass {
 
   private stageFrame(plan: UploadPlan, cellData: Float32Array, glyphData: Float32Array): boolean {
     if (!this.staging) return false
-    const ranges = plan.cell.concat(plan.glyph)
-    const bytes = ranges.reduce((total, range) => total + range.byteLength, 0)
+    const bytes = rangeBytes(plan.cell) + rangeBytes(plan.glyph)
     if (bytes < STAGING_MIN_BYTES) return false
     const staged = this.staging.stage([
       { buffer: this.cellBuffer, data: cellData, mirrorOffset: 0, ranges: plan.cell },
@@ -234,7 +239,7 @@ export class WebGpuTextPass {
     if (!staged) return false
     this.frameUploadedBytesValue += bytes
     this.metrics.uploadedBytes += bytes
-    this.metrics.uploadOperations += ranges.length
+    this.metrics.uploadOperations += plan.cell.length + plan.glyph.length
     return true
   }
 
@@ -251,8 +256,14 @@ export class WebGpuTextPass {
   }
 
   acceptFrame(): void {
+    this.uploadsSubmitted()
     this.metrics.draws += this.drawCount
     this.metrics.submittedFrames += 1
+  }
+
+  /** The queue accepted the last encoded frame; until then a retry re-records its staged copies. */
+  uploadsSubmitted(): void {
+    this.staging?.settleRecorded()
   }
 
   encode(view: GPUTextureView, copy?: TextPassCopy): GPUCommandBuffer {
@@ -288,9 +299,7 @@ export class WebGpuTextPass {
         copy.size,
       )
     }
-    const command = encoder.finish()
-    this.staging?.settleRecorded()
-    return command
+    return encoder.finish()
   }
 
   destroy(): void {

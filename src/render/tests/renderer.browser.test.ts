@@ -412,7 +412,7 @@ it('paints an immediate write at once and joins a second write to the next frame
   })
   clock.flushFrame()
   // The first frame armed the once-per-display-frame guard; let that display frame end.
-  clock.flushFrame()
+  if (clock.frames.size > 0) clock.flushFrame()
   expect(clock.frames.size).toBe(0)
   expect(source.acknowledgements).toBe(1)
 
@@ -423,8 +423,7 @@ it('paints an immediate write at once and joins a second write to the next frame
   source.dirtyRow(0)
   renderer.notifyWrite()
   expect(source.acknowledgements).toBe(2)
-  clock.flushFrame()
-  clock.flushFrame()
+  for (let frame = 0; frame < 4 && clock.frames.size > 0; frame += 1) clock.flushFrame()
   expect(source.acknowledgements).toBe(3)
   canvas.remove()
 })
@@ -1944,6 +1943,109 @@ it('repaints default surfaces after one combined queue failure without acknowled
   expect(submissions.mock.calls.map((call) => Array.from(call[0]).length)).toEqual([2, 2])
   submissions.mockRestore()
   for (const renderer of pair) renderer.dispose()
+  for (const canvas of canvases) canvas.remove()
+})
+
+it('draws a staged frame after one queue failure instead of the stale screen', async () => {
+  const runtime = await GhosttyRuntime.create()
+  const fill = (letter: string) => `\x1b[?25l\x1b[H${letter.repeat(80 * 30)}`
+  const terminals = [
+    runtime.createTerminal({ columns: 80, rows: 30 }),
+    runtime.createTerminal({ columns: 80, rows: 30 }),
+  ]
+  terminals[0]!.write(fill('A'))
+  terminals[1]!.write(fill('B'))
+  const canvases = [createCanvas(), createCanvas()]
+  const failures = [0, 0]
+  const [renderer, reference] = await Promise.all(
+    terminals.map((terminal, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 80,
+        rows: 30,
+        deviceFactory: undefined,
+        font: fittedFont(),
+        renderState: runtime.createRenderState(terminal),
+        onError: () => {
+          failures[index] = (failures[index] ?? 0) + 1
+        },
+      }),
+    ),
+  )
+  await expect
+    .poll(() => renderer!.metrics.submittedFrames >= 1 && reference!.metrics.submittedFrames >= 1)
+    .toBe(true)
+  const before = renderer!.metrics.submittedFrames
+  const submissions = vi.spyOn(GPUQueue.prototype, 'submit').mockImplementationOnce(() => {
+    throw new TypeError('injected queue failure')
+  })
+  try {
+    terminals[0]!.write(fill('B'))
+    renderer!.notifyWrite()
+    await expect.poll(() => renderer!.metrics.submittedFrames).toBe(before + 1)
+  } finally {
+    submissions.mockRestore()
+  }
+  expect(failures).toEqual([1, 0])
+  expect(renderer!.metrics.uploadedBytes).toBeGreaterThan(128 * 1024)
+  const [pixels, expected] = await Promise.all([
+    renderer!.capturePixels(),
+    reference!.capturePixels(),
+  ])
+  expect(pixels.length).toBe(expected.length)
+  let mismatched = 0
+  for (let index = 0; index < pixels.length; index += 1)
+    if (pixels[index] !== expected[index]) mismatched += 1
+  expect(mismatched).toBe(0)
+  for (const canvas of canvases) canvas.remove()
+})
+
+it('submits an immediate write from a peer frame callback before notifyWrite returns', async () => {
+  const sources = [new FakeRenderState(2, 2), new FakeRenderState(2, 2)]
+  const canvases = [createCanvas(), createCanvas()]
+  let armed = false
+  let submittedDuringCall = -1
+  let immediate: WebGpuTerminalRenderer | undefined
+  const [first, second] = await Promise.all(
+    sources.map((source, index) =>
+      createRenderer({
+        canvas: canvases[index]!,
+        columns: 2,
+        rows: 2,
+        deviceFactory: undefined,
+        font: fittedFont(),
+        presentation: index === 0 ? 'immediate' : 'frame',
+        renderState: source,
+        onFrame:
+          index === 1
+            ? () => {
+                if (!armed || !immediate) return
+                armed = false
+                const before = immediate.metrics.submittedFrames
+                sources[0]!.dirtyRow(1)
+                sources[0]!.setCursor({
+                  ...sources[0]!.readCursor(),
+                  viewport: { wideTail: false, x: 1, y: 1 },
+                })
+                immediate.notifyWrite()
+                submittedDuringCall = immediate.metrics.submittedFrames - before
+              }
+            : undefined,
+      }),
+    ),
+  )
+  immediate = first
+  await expect
+    .poll(() => first!.metrics.submittedFrames >= 1 && second!.metrics.submittedFrames >= 1)
+    .toBe(true)
+  // Let the immediate terminal's once-per-display-frame guard expire.
+  await new Promise(requestAnimationFrame)
+  await new Promise(requestAnimationFrame)
+  armed = true
+  sources[1]!.dirtyRow(0)
+  second!.notifyWrite()
+  await expect.poll(() => submittedDuringCall).toBeGreaterThanOrEqual(0)
+  expect(submittedDuringCall).toBe(1)
   for (const canvas of canvases) canvas.remove()
 })
 

@@ -41,8 +41,8 @@ export class StagingUploads {
   ) {}
 
   /**
-   * Call before planning a frame's uploads. The owner flushes its coordinated frame first, so
-   * every encoded copy has been submitted or abandoned and its buffer can map again.
+   * Call before planning a frame's uploads, after the owner flushed its coordinated frame.
+   * Accepted copies map again; copies whose frame failed or never submitted land on their own.
    */
   beginFrame(): void {
     if (this.pending.length !== 0) {
@@ -101,7 +101,7 @@ export class StagingUploads {
     }
   }
 
-  /** The encoder that recorded the pending copies finished without error. */
+  /** The queue accepted a command buffer that recorded the pending copies. */
   settleRecorded(): void {
     for (const frame of this.pending) this.encoded.push(frame.buffer)
     this.pending = []
