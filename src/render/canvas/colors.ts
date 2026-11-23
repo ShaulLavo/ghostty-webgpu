@@ -3,9 +3,9 @@ import { contrastAdjustedColor } from '../shared/contrast.js'
 import type { CanonicalRendererTheme } from '../shared/instances/types.js'
 
 export interface CanvasCellColors {
-  readonly background: RgbColor
-  readonly drawBackground: boolean
-  readonly foreground: RgbColor
+  background: RgbColor
+  drawBackground: boolean
+  foreground: RgbColor
 }
 
 function cssRgb(color: RgbColor): string {
@@ -19,13 +19,36 @@ function rgbKey(color: RgbColor): number | string {
   return color.r * 65_536 + color.g * 256 + color.b
 }
 
+function sameRgb(left: RgbColor, right: RgbColor): boolean {
+  return left.r === right.r && left.g === right.g && left.b === right.b
+}
+
+function copyRgb(target: RgbColor, color: RgbColor): void {
+  target.r = color.r
+  target.g = color.g
+  target.b = color.b
+}
+
 export class CanvasColorCache {
   private readonly foregrounds = new Map<number | string, string>()
   private readonly colors = new Map<number | string, string>()
+  // Packed rows can reuse RGB objects for different values.
+  private readonly lastColor: RgbColor = { r: 0, g: 0, b: 0 }
+  private readonly lastForeground: RgbColor = { r: 0, g: 0, b: 0 }
+  private readonly lastBackground: RgbColor = { r: 0, g: 0, b: 0 }
+  private lastCss?: string
+  private lastAdjusted?: string
 
   constructor(private readonly minimumContrast: number) {}
 
   css(color: RgbColor): string {
+    if (this.lastCss !== undefined && sameRgb(color, this.lastColor)) return this.lastCss
+    copyRgb(this.lastColor, color)
+    this.lastCss = this.lookupCss(color)
+    return this.lastCss
+  }
+
+  private lookupCss(color: RgbColor): string {
     const key = rgbKey(color)
     const cached = this.colors.get(key)
     if (cached !== undefined) return cached
@@ -37,6 +60,19 @@ export class CanvasColorCache {
 
   foreground(colors: CanvasCellColors): string {
     if (this.minimumContrast <= 1) return this.css(colors.foreground)
+    if (
+      this.lastAdjusted !== undefined &&
+      sameRgb(colors.foreground, this.lastForeground) &&
+      sameRgb(colors.background, this.lastBackground)
+    )
+      return this.lastAdjusted
+    copyRgb(this.lastForeground, colors.foreground)
+    copyRgb(this.lastBackground, colors.background)
+    this.lastAdjusted = this.lookupForeground(colors)
+    return this.lastAdjusted
+  }
+
+  private lookupForeground(colors: CanvasCellColors): string {
     const foreground = rgbKey(colors.foreground)
     const background = rgbKey(colors.background)
     const key =
@@ -61,6 +97,7 @@ export function resolveCanvasCellColors(
   cell: RenderCell,
   theme: CanonicalRendererTheme,
   blockCursor: boolean,
+  target?: CanvasCellColors,
 ): CanvasCellColors {
   let foreground = cell.foreground ?? theme.foreground
   let background = cell.background ?? theme.background
@@ -76,6 +113,14 @@ export function resolveCanvasCellColors(
     background = theme.selectionBackground
     drawBackground = true
   }
-  if (!blockCursor) return { background, drawBackground, foreground }
-  return { background: theme.cursor, drawBackground: true, foreground: theme.cursorText }
+  if (blockCursor) {
+    foreground = theme.cursorText
+    background = theme.cursor
+    drawBackground = true
+  }
+  if (!target) return { background, drawBackground, foreground }
+  target.background = background
+  target.drawBackground = drawBackground
+  target.foreground = foreground
+  return target
 }

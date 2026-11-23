@@ -37,14 +37,20 @@ interface PlainRowImage {
   readonly cursor: string
 }
 
-export function plainRowText(row: RenderRow): string | undefined {
-  const packed = row.packed
-  const cells = packed ? undefined : row.cells
-  const length = packed?.length ?? cells!.length
-  const scratch = packed ? emptyRenderCell() : undefined
+interface GlyphMetrics {
+  readonly key: string
+  readonly overhangLeft: number
+  readonly overhangRight: number
+  blankSpaces: number
+  measuredSpaces: number
+}
+
+const nonPrintableAscii = /[^\x20-\x7e]/
+
+function plainCellText(cells: readonly RenderCell[]): string | undefined {
   let text = ''
-  for (let index = 0; index < length; index += 1) {
-    const cell = packed ? packed.read(index, scratch!) : cells![index]!
+  for (let index = 0; index < cells.length; index += 1) {
+    const cell = cells[index]!
     if (
       cell.x !== index ||
       cell.continuation ||
@@ -75,6 +81,13 @@ export function plainRowText(row: RenderRow): string | undefined {
   return text
 }
 
+function hasNoInk(metrics: TextMetrics): boolean {
+  return (
+    metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent === 0 ||
+    metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight === 0
+  )
+}
+
 export class CanvasRowPainter {
   private backgroundColor?: string
   private backgroundStart = 0
@@ -88,8 +101,7 @@ export class CanvasRowPainter {
   private currentFont?: string
   private fonts: readonly string[] = []
   private readonly plainRows = new Map<number, PlainRowImage>()
-  private overhangLeft = 0
-  private overhangRight = 0
+  private glyphMetrics?: GlyphMetrics
 
   constructor(
     private readonly context: PaintTarget,
@@ -114,28 +126,40 @@ export class CanvasRowPainter {
     this.context.textAlign = 'center'
     this.context.textBaseline = 'alphabetic'
     this.invalidate()
-    this.overhangLeft = 0
-    this.overhangRight = 0
+    if (fontResourcesChanged) this.glyphMetrics = undefined
     if (!this.context.measureText) return
+    const key = `${this.fonts[0]}\0${this.fonts[1]}\0${font.deviceCellWidth}\0${font.charLeft}\0${font.deviceCharWidth}`
+    if (key === this.glyphMetrics?.key) return
     const center = font.charLeft + font.deviceCharWidth / 2
+    let overhangLeft = 0
+    let overhangRight = 0
+    let blankSpaces = 0
     for (let code = 32; code <= 126; code += 1) {
       const ink = this.context.measureText(String.fromCharCode(code))
-      this.overhangLeft = Math.max(this.overhangLeft, Math.ceil(ink.actualBoundingBoxLeft - center))
-      this.overhangRight = Math.max(
-        this.overhangRight,
+      if (code === 32 && hasNoInk(ink)) blankSpaces = 1
+      overhangLeft = Math.max(overhangLeft, Math.ceil(ink.actualBoundingBoxLeft - center))
+      overhangRight = Math.max(
+        overhangRight,
         Math.ceil(center + ink.actualBoundingBoxRight - font.deviceCellWidth),
       )
     }
+    this.glyphMetrics = { key, overhangLeft, overhangRight, blankSpaces, measuredSpaces: 1 }
+  }
+
+  plainRowText(row: RenderRow): string | undefined {
+    if (!row.packed) return plainCellText(row.cells)
+    // Packed default text represents empty cells as spaces. Require a blank space glyph.
+    if (((this.glyphMetrics?.blankSpaces ?? 0) & 1) === 0) return undefined
+    const packed = row.packed
+    const text = packed.defaultRunText(true)
+    return text?.length === packed.length && !nonPrintableAscii.test(text) ? text : undefined
   }
 
   invalidate(): void {
-    this.finishFrame()
+    this.cells.length = 0
+    this.cellColors.length = 0
     this.backgroundColor = undefined
     this.plainRows.clear()
-  }
-
-  finishFrame(): void {
-    this.cells.length = 0
   }
 
   setTheme(theme: CanonicalRendererTheme): void {
@@ -160,7 +184,9 @@ export class CanvasRowPainter {
     const damage = allowCellDamage
       ? this.plainDamage(row, cursor, width, capturedPlainText)
       : undefined
-    const plain = damage !== undefined && !this.context.glyph
+    const text =
+      this.ligatures || this.context.glyph ? undefined : (damage?.text ?? capturedPlainText)
+    const plain = typeof text === 'string'
     if (!allowCellDamage) this.plainRows.delete(row.y)
     if (damage && damage.width === 0) return
     const x = damage?.x ?? 0
@@ -175,15 +201,14 @@ export class CanvasRowPainter {
       // Spreading the source row would invoke its complete-cell getter.
       row = { y: row.y, dirty: row.dirty, cells }
     }
-    if (!allowCellDamage && row.packed && !this.context.glyph) {
+    if (!plain && row.packed && !this.context.glyph) {
       const cells = row.packed.readInto(this.cells)
-      row = { y: row.y, dirty: row.dirty, cells }
+      row = { y: row.y, dirty: row.dirty, cells, logicalColumns: row.logicalColumns }
     }
     const y = row.y * this.font.deviceCellHeight
     this.currentFill = undefined
     this.currentFont = this.fonts[0]
     this.currentAlpha = 1
-    if (!plain) this.cellColors.length = row.cells.length
     this.context.save()
     try {
       this.context.beginPath()
@@ -191,7 +216,7 @@ export class CanvasRowPainter {
       this.context.clip()
       if (clearRow) this.context.clearRect(x, y, paintWidth, this.font.deviceCellHeight)
       if (plain) {
-        this.paintPlain(damage.text, cursor, row.y, damage.first, damage.end)
+        this.paintPlain(text, cursor, row.y, damage?.first ?? 0, damage?.end ?? text.length)
         return
       }
       this.paintBackgrounds(row, cursor, y)
@@ -214,9 +239,10 @@ export class CanvasRowPainter {
     width: number,
     capturedPlainText?: string | null,
   ): { x: number; width: number; first: number; end: number; text: string } | undefined {
-    if (!this.context.measureText || !Number.isInteger(this.font.deviceCellWidth)) return undefined
+    const metrics = this.glyphMetrics
+    if (!metrics || !Number.isInteger(this.font.deviceCellWidth)) return undefined
     // null records a rejected capture; undefined leaves direct painter callers unchecked.
-    const text = capturedPlainText === undefined ? plainRowText(row) : capturedPlainText
+    const text = capturedPlainText === undefined ? this.plainRowText(row) : capturedPlainText
     if (text === undefined || text === null) {
       this.plainRows.delete(row.y)
       return undefined
@@ -240,11 +266,11 @@ export class CanvasRowPainter {
       }
     }
     if (end <= first) return { x: 0, width: 0, first: 0, end: 0, text }
-    const left = Math.max(0, first * cellWidth - this.overhangLeft)
-    const right = Math.min(width, end * cellWidth + this.overhangRight)
+    const left = Math.max(0, first * cellWidth - metrics.overhangLeft)
+    const right = Math.min(width, end * cellWidth + metrics.overhangRight)
     // Unchanged neighboring ink can cross the clear region and must be restored too.
-    const glyphFirst = Math.max(0, Math.floor((left - this.overhangRight) / cellWidth))
-    const glyphEnd = Math.min(text.length, Math.ceil((right + this.overhangLeft) / cellWidth))
+    const glyphFirst = Math.max(0, Math.floor((left - metrics.overhangRight) / cellWidth))
+    const glyphEnd = Math.min(text.length, Math.ceil((right + metrics.overhangLeft) / cellWidth))
     return { x: left, width: right - left, first: glyphFirst, end: glyphEnd, text }
   }
 
@@ -275,9 +301,10 @@ export class CanvasRowPainter {
     const cursorForeground = this.colors.foreground(cursorColors)
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
     const characterWidth = this.font.deviceCellWidth - deviceSpacing
+    const skipSpace = ((this.glyphMetrics?.blankSpaces ?? 0) & 1) !== 0
     for (let column = first; column < end; column += 1) {
       const glyph = text[column]!
-      if (glyph === '\u0000') continue
+      if (glyph === '\u0000' || (skipSpace && glyph === ' ')) continue
       this.setFill(column === activeCursor?.x ? cursorForeground : foreground)
       const x = column * this.font.deviceCellWidth + this.font.charLeft + characterWidth / 2
       this.fillCellText(glyph, x, y + this.font.deviceBaseline, column, row, 1)
@@ -285,10 +312,16 @@ export class CanvasRowPainter {
   }
 
   private paintBackgrounds(row: RenderRow, cursor: CursorState | undefined, y: number): void {
+    this.cellColors.length = row.cells.length
     for (let index = 0; index < row.cells.length; index += 1) {
       const cell = row.cells[index]!
       const cellCursor = cursorForCell(cursor, cell, row.y)
-      const colors = resolveCanvasCellColors(cell, this.theme, cellCursor?.style === 'block')
+      const colors = resolveCanvasCellColors(
+        cell,
+        this.theme,
+        cellCursor?.style === 'block',
+        this.cellColors[index],
+      )
       this.cellColors[index] = colors
       const x = cell.x * this.font.deviceCellWidth
       this.appendBackground(colors, x, y)
@@ -395,12 +428,20 @@ export class CanvasRowPainter {
     if (cell.continuation || !cell.text || cell.style?.invisible) return 1
     const span = joinedSpan ?? cellSpan(row.cells, index)
     if (!this.textVisible && cell.style?.blink) return span
+    const style = Number(cell.style?.bold ?? false) + Number(cell.style?.italic ?? false) * 2
+    if (
+      joined === undefined &&
+      span === 1 &&
+      cell.text === ' ' &&
+      !this.context.glyph &&
+      this.spaceIsBlank(style)
+    )
+      return span
     const text = joined ?? cell.text
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth
     const characterWidth = this.font.deviceCellWidth * span - deviceSpacing
     const x = cell.x * this.font.deviceCellWidth + this.font.charLeft + characterWidth / 2
     const y = row.y * this.font.deviceCellHeight + this.font.deviceBaseline
-    const style = Number(cell.style?.bold ?? false) + Number(cell.style?.italic ?? false) * 2
     this.setFont(this.fonts[style]!)
     this.setFill(this.colors.foreground(this.cellColors[index]!))
     this.setAlpha(cell.style?.faint ? 0.5 : 1)
@@ -425,6 +466,18 @@ export class CanvasRowPainter {
       this.fillCellText(text, x, y, cell.x, row.y, span)
     }
     return span
+  }
+
+  private spaceIsBlank(style: number): boolean {
+    const metrics = this.glyphMetrics
+    if (!metrics || !this.context.measureText) return false
+    const mask = 1 << style
+    if ((metrics.measuredSpaces & mask) === 0) {
+      this.setFont(this.fonts[style]!)
+      if (hasNoInk(this.context.measureText(' '))) metrics.blankSpaces |= mask
+      metrics.measuredSpaces |= mask
+    }
+    return (metrics.blankSpaces & mask) !== 0
   }
 
   private fillCellText(

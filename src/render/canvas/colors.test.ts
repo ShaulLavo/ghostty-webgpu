@@ -34,6 +34,19 @@ describe('Canvas cell colors', () => {
     ).toBe('rgb(0, 0, 128)')
   })
 
+  it('notices changed values in reused packed row colors', () => {
+    const cache = new CanvasColorCache(21)
+    const background = { r: 0, g: 0, b: 0 }
+    const foreground = { r: 120, g: 120, b: 120 }
+    const colors = { background, drawBackground: true, foreground }
+    expect(cache.foreground(colors)).toBe('rgb(255, 255, 255)')
+    Object.assign(background, { r: 255, g: 255, b: 255 })
+    expect(cache.foreground(colors)).toBe('rgb(0, 0, 0)')
+    expect(cache.css(foreground)).toBe('rgb(120, 120, 120)')
+    foreground.r = 90
+    expect(cache.css(foreground)).toBe('rgb(90, 120, 120)')
+  })
+
   it('preserves inverse, selection, and block-cursor precedence', () => {
     const inverse = resolveCanvasCellColors(
       cell({

@@ -7,6 +7,7 @@ export interface RowBidiMap {
   readonly visualToLogical: readonly number[]
   readonly logicalToVisual: readonly number[]
   readonly mirror: ReadonlyMap<number, string>
+  readonly mirrorCodepoints: Uint32Array
 }
 
 type BidiCell = Pick<RenderCell, 'text' | 'continuation'>
@@ -72,6 +73,7 @@ export class RowBidiMapper {
       visualToLogical: columns,
       logicalToVisual: columns,
       mirror: new Map<number, string>(),
+      mirrorCodepoints: new Uint32Array(length),
     }
     this.identityMaps.set(length, map)
     return map
@@ -123,33 +125,48 @@ export class RowBidiMapper {
   private compute(cells: readonly BidiCell[]): RowBidiMap {
     let text = ''
     const owners: number[] = []
-    for (const [index, cell] of cells.entries()) {
+    for (let index = 0; index < cells.length; index += 1) {
+      const cell = cells[index]!
       if (cell.continuation) continue
-      const scalar = String.fromCodePoint(cell.text.codePointAt(0) || 32)
-      text += scalar
-      for (let unit = 0; unit < scalar.length; unit += 1) owners.push(index)
+      const first = cell.text[0]
+      owners.push(index)
+      if (first === undefined || first === '\u0000') {
+        text += ' '
+        continue
+      }
+      if (first < '\ud800' || first > '\udbff' || (cell.text.codePointAt(0) ?? 0) <= 0xffff) {
+        text += first
+        continue
+      }
+      text += cell.text.slice(0, 2)
+      owners.push(index)
     }
     const levels = this.bidi.getEmbeddingLevels(text, 'ltr')
     const visualToLogical: number[] = []
-    const seen = new Set<number>()
+    const seen = new Uint8Array(cells.length)
     for (const unit of this.bidi.getReorderedIndices(text, levels)) {
       const logical = owners[unit]!
-      if (seen.has(logical)) continue
-      seen.add(logical)
+      if (seen[logical]) continue
+      seen[logical] = 1
       visualToLogical.push(logical)
       if (!cells[logical + 1]?.continuation) continue
-      seen.add(logical + 1)
+      seen[logical + 1] = 1
       visualToLogical.push(logical + 1)
     }
     for (let logical = 0; logical < cells.length; logical += 1) {
-      if (!seen.has(logical)) visualToLogical.push(logical)
+      if (!seen[logical]) visualToLogical.push(logical)
     }
-    const logicalToVisual = Array.from({ length: cells.length }, () => 0)
-    for (const [visual, logical] of visualToLogical.entries()) logicalToVisual[logical] = visual
+    const logicalToVisual: number[] = []
+    for (let visual = 0; visual < visualToLogical.length; visual += 1)
+      logicalToVisual[visualToLogical[visual]!] = visual
     const mirror = new Map<number, string>()
-    for (const [unit, character] of this.bidi.getMirroredCharactersMap(text, levels.levels))
-      mirror.set(owners[unit]!, character)
-    return { identity: false, visualToLogical, logicalToVisual, mirror }
+    const mirrorCodepoints = new Uint32Array(cells.length)
+    for (const [unit, character] of this.bidi.getMirroredCharactersMap(text, levels.levels)) {
+      const logical = owners[unit]!
+      mirror.set(logical, character)
+      mirrorCodepoints[logical] = character.codePointAt(0) ?? 0
+    }
+    return { identity: false, visualToLogical, logicalToVisual, mirror, mirrorCodepoints }
   }
 }
 
@@ -157,11 +174,9 @@ export function bidiProjection(rows: readonly RenderRow[], mapper: RowBidiMapper
   const result = new Uint32Array(rows.reduce((sum, row) => sum + row.cells.length * 3, 0))
   let offset = 0
   for (const row of rows) {
-    const map = mapper.getMap(row.cells)
-    for (const cell of row.cells) {
-      writeBidiCell(result, offset, map, cell)
-      offset += 3
-    }
+    const cells = row.cells
+    writeBidiRow(result, offset, mapper.getMap(cells), cells, false)
+    offset += cells.length * 3
   }
   return result
 }
@@ -173,29 +188,36 @@ export function writeBidiProjection(
   columns: number,
 ): void {
   for (const row of rows) {
-    const map = mapper.getMap(row.cells)
-    for (const cell of row.cells) {
-      const offset = (row.y * columns + cell.x) * 3
-      writeBidiCell(target, offset, map, cell)
-    }
+    const cells = row.cells
+    writeBidiRow(target, row.y * columns * 3, mapper.getMap(cells), cells, true)
   }
 }
 
-function writeBidiCell(
+function writeBidiRow(
   target: Uint32Array,
-  offset: number,
+  start: number,
   map: RowBidiMap,
-  cell: RenderRow['cells'][number],
+  cells: readonly RenderCell[],
+  useCellColumn: boolean,
 ): void {
   if (map.identity) {
-    target[offset] = cell.x
-    target[offset + 1] = 0
-    target[offset + 2] = Number(cell.selected)
+    for (let index = 0; index < cells.length; index += 1) {
+      const cell = cells[index]!
+      const offset = start + (useCellColumn ? cell.x : index) * 3
+      target[offset] = cell.x
+      target[offset + 1] = 0
+      target[offset + 2] = +cell.selected
+    }
     return
   }
-  target[offset] = map.logicalToVisual[cell.x]!
-  target[offset + 1] = map.mirror.get(cell.x)?.codePointAt(0) ?? 0
-  target[offset + 2] = Number(cell.selected)
+  const { logicalToVisual, mirrorCodepoints } = map
+  for (let index = 0; index < cells.length; index += 1) {
+    const cell = cells[index]!
+    const offset = start + (useCellColumn ? cell.x : index) * 3
+    target[offset] = logicalToVisual[cell.x]!
+    target[offset + 1] = mirrorCodepoints[cell.x]!
+    target[offset + 2] = +cell.selected
+  }
 }
 
 export function paintedBidiCursor(

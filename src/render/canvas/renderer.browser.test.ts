@@ -383,7 +383,7 @@ describe('CanvasTerminalRenderer', () => {
     expectFullRepaint(canvas, source)
   })
 
-  it('paints packed plain edits with one scan and no complete-row materialization', async () => {
+  it('paints packed plain edits without decoding cells', async () => {
     const clock = new FakeClock()
     const canvas = createCanvas()
     const source = new FakeRenderState([
@@ -423,7 +423,7 @@ describe('CanvasTerminalRenderer', () => {
     renderer.notifyWrite()
     clock.flushFrame()
     expect(materializations).toBe(0)
-    expect(decode).toHaveBeenCalledTimes(40)
+    expect(decode).not.toHaveBeenCalled()
     expectFullRepaint(canvas, source)
   })
 
@@ -451,6 +451,7 @@ describe('CanvasTerminalRenderer', () => {
     const packed = new PackedCells(words, new Uint32Array())
     const decode = vi.spyOn(packed, 'read')
     const materialize = vi.spyOn(packed, 'materialize')
+    const identity = vi.spyOn(packed, 'identity')
     let cells: readonly RenderCell[] | undefined
     source.rows[0] = {
       y: 0,
@@ -464,13 +465,13 @@ describe('CanvasTerminalRenderer', () => {
     source.dirtyRow(0)
     renderer.notifyWrite()
     clock.flushFrame()
-    expect(materialize).toHaveBeenCalledTimes(1)
-    // One eligibility scan and one materialization for the fallback row key.
-    expect(decode).toHaveBeenCalledTimes(80)
+    expect(materialize).not.toHaveBeenCalled()
+    expect(identity).toHaveBeenCalledOnce()
+    expect(decode).toHaveBeenCalledTimes(40)
     expectFullRepaint(canvas, source)
   })
 
-  it('decodes each dense packed row once for identity and painting', async () => {
+  it('decodes each dense packed row once for painting', async () => {
     const clock = new FakeClock()
     const canvas = createCanvas()
     const source = new FakeRenderState([row(0, [cell(0)]), row(1, [cell(0)])])
@@ -501,41 +502,38 @@ describe('CanvasTerminalRenderer', () => {
     expectFullRepaint(canvas, source)
   })
 
-  it.each([1, 2])(
-    'borrows packed cells only within multi-row frames (%i rows)',
-    async (rowCount) => {
-      const clock = new FakeClock()
-      const canvas = createCanvas()
-      const source = new FakeRenderState(
-        Array.from({ length: rowCount }, (_, y) => row(y, [cell(0, { text: 'A' })])),
+  it.each([1, 2])('paints packed cells without materializing rows (%i rows)', async (rowCount) => {
+    const clock = new FakeClock()
+    const canvas = createCanvas()
+    const source = new FakeRenderState(
+      Array.from({ length: rowCount }, (_, y) => row(y, [cell(0, { text: 'A' })])),
+    )
+    source.cursor.visible = false
+    const renderer = await createRenderer(options(canvas, source, clock, { rows: rowCount }))
+    clock.flushFrame()
+    const materializations = []
+    for (let y = 0; y < rowCount; y += 1) {
+      const packed = new PackedCells(
+        new Uint32Array([0x754c + y, 0x030201, 0xffffffff, 1, 0, 0]),
+        new Uint32Array(),
       )
-      source.cursor.visible = false
-      const renderer = await createRenderer(options(canvas, source, clock, { rows: rowCount }))
-      clock.flushFrame()
-      const materializations = []
-      for (let y = 0; y < rowCount; y += 1) {
-        const packed = new PackedCells(
-          new Uint32Array([0x754c + y, 0x030201, 0xffffffff, 1, 0, 0]),
-          new Uint32Array(),
-        )
-        materializations.push(vi.spyOn(packed, 'materialize'))
-        let cells: readonly RenderCell[] | undefined
-        source.rows[y] = {
-          y,
-          dirty: true,
-          packed,
-          get cells() {
-            return (cells ??= packed.materialize())
-          },
-        }
-        source.dirtyRow(y)
+      materializations.push(vi.spyOn(packed, 'materialize'))
+      let cells: readonly RenderCell[] | undefined
+      source.rows[y] = {
+        y,
+        dirty: true,
+        packed,
+        get cells() {
+          return (cells ??= packed.materialize())
+        },
       }
-      renderer.notifyWrite()
-      clock.flushFrame()
-      for (const spy of materializations) expect(spy).toHaveBeenCalledTimes(rowCount === 1 ? 1 : 0)
-      expectFullRepaint(canvas, source)
-    },
-  )
+      source.dirtyRow(y)
+    }
+    renderer.notifyWrite()
+    clock.flushFrame()
+    for (const spy of materializations) expect(spy).not.toHaveBeenCalled()
+    expectFullRepaint(canvas, source)
+  })
 
   it.each([
     { name: 'plain glyph', style: undefined, method: 'fillText' },
@@ -928,6 +926,38 @@ describe('CanvasTerminalRenderer', () => {
     }).toEqual({ alpha: 0, backgrounds: 2, fillStyle: 4, font: 1, textAlign: 1 })
     expect(pixel(canvas, 2, 2)).toEqual([8, 16, 24, 255])
     expect(pixel(canvas, 792, 22)).toEqual([8, 16, 24, 255])
+  })
+
+  it('skips blank space glyphs while painting their backgrounds, underlines, and cursor', () => {
+    const canvas = createCanvas()
+    const context = canvas.getContext('2d')!
+    const font = fittedFont()
+    const theme = canonicalRendererTheme(mergeRendererTheme({}))
+    const painter = new CanvasRowPainter(context, font, theme)
+    const fillText = vi.spyOn(context, 'fillText')
+    const measureText = vi.spyOn(context, 'measureText')
+    const cells = [
+      cell(0, {
+        text: ' ',
+        background: { r: 10, g: 20, b: 30 },
+        foreground: { r: 255, g: 0, b: 0 },
+        style: styled({ bold: true, underline: 1 }),
+      }),
+      cell(1, { text: ' ' }),
+      cell(2, { text: 'A' }),
+    ]
+
+    painter.resetContext(font)
+    expect(measureText).toHaveBeenCalledTimes(95)
+    measureText.mockClear()
+    painter.resetContext(font)
+    expect(measureText).not.toHaveBeenCalled()
+
+    painter.paint(row(0, cells), { x: 1, y: 0, style: 'block', visible: true }, canvas.width)
+    expect(fillText.mock.calls.map(([text]) => text)).toEqual(['A'])
+    expect(pixel(canvas, 2, 2)).toEqual([10, 20, 30, 255])
+    expect(pixel(canvas, 2, 18)).toEqual([255, 0, 0, 255])
+    expect(pixel(canvas, 12, 2)).toEqual([theme.cursor.r, theme.cursor.g, theme.cursor.b, 255])
   })
 
   it('decodes only affected rows for cursor-only frames', async () => {

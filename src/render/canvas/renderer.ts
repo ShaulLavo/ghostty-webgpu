@@ -18,7 +18,7 @@ import {
   type RowRendererSurface,
   type RowThemeInvalidation,
 } from '../shared/row-renderer.js'
-import { CanvasRowPainter, plainRowText, type Canvas2dContext } from './painter.js'
+import { CanvasRowPainter, type Canvas2dContext } from './painter.js'
 import type { PixelTarget, PixelMetrics, PixelTargetFactory } from '../pixels/pixel-target.js'
 import { canvasScrollPlan, type CanvasScrollPlan } from './scroll.js'
 
@@ -155,7 +155,7 @@ class CanvasSurface implements RowRendererSurface {
   private captureRow(row: RenderRow, requested?: ReadonlySet<number>): void {
     if (row.y < 0 || row.y >= this.rowCount) return
     if (requested && !requested.has(row.y)) return
-    const text = plainRowText(row)
+    const text = this.painter.plainRowText(row)
     if (text !== undefined) {
       this.pending.set(row.y, `plain:${text}`)
       return
@@ -220,7 +220,6 @@ class CanvasSurface implements RowRendererSurface {
       }
       this.remaining -= 1
       if (this.remaining === 0) {
-        if (this.pending.size > 1 || this.plan!.offset !== 0) this.painter.finishFrame()
         this.pixelTarget?.present()
         this.image = this.nextImage
       }

@@ -13,6 +13,15 @@ export type LigatureFontSource = string | URL | ArrayBuffer | ArrayBufferView
 
 const noRanges: readonly LigatureRange[] = Object.freeze([])
 const maxCachedSegments = 4_096
+const keyChunkSize = 1_024
+
+function segmentKey(codepoints: readonly number[]): string {
+  if (codepoints.length <= keyChunkSize) return String.fromCodePoint(...codepoints)
+  let key = ''
+  for (let start = 0; start < codepoints.length; start += keyChunkSize)
+    key += String.fromCodePoint(...codepoints.slice(start, start + keyChunkSize))
+  return key
+}
 
 class CachedFinder implements LigatureFinder {
   private readonly cache = new Map<string, readonly LigatureRange[]>()
@@ -21,7 +30,7 @@ class CachedFinder implements LigatureFinder {
 
   find(codepoints: readonly number[]): readonly LigatureRange[] {
     if (codepoints.length < 2) return noRanges
-    const key = String.fromCodePoint(...codepoints)
+    const key = segmentKey(codepoints)
     const cached = this.cache.get(key)
     if (cached) return cached
     if (this.cache.size >= maxCachedSegments) this.cache.clear()
