@@ -258,6 +258,8 @@ const CachedRow = struct {
     cells: [*]CachedCell,
     selected: bool = false,
     blinking: bool = false,
+    // A cell still waits for its glyph, so the row must be revisited until it registers.
+    unresolved: bool = false,
     selection_start: u32 = 0,
     selection_end: u32 = 0,
     cursor: bool = false,
@@ -440,7 +442,7 @@ fn matchingFrameRow(frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, ce
     const cache = frame.row_cache.?;
     const source = cache.sources[y];
     const row = cache.previous[source];
-    if (source == y or row.cursor or cache.next[y].cursor or !sameRowId(row.id, cache.incoming[y])) return c.GHOSTTY_SUCCESS;
+    if (source == y or row.cursor or row.unresolved or cache.next[y].cursor or !sameRowId(row.id, cache.incoming[y])) return c.GHOSTTY_SUCCESS;
     if (!std.mem.eql(u32, &row.appearance, &cache.appearance)) return c.GHOSTTY_SUCCESS;
     var raw: c.GhosttyCellsView = undefined;
     var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raw);
@@ -762,7 +764,10 @@ fn writeInstances(comptime stable: bool, comptime bidi: bool, projection: ?[*]co
     frame.row_cache.?.next[y].cells[x].key = key;
     frame.row_cache.?.next[y].cells[x].registration = key.registration;
     const entry = key.glyph;
-    if (entry.valid == 0) return missingGlyph(frame, key);
+    if (entry.valid == 0) {
+        frame.row_cache.?.next[y].unresolved = true;
+        return missingGlyph(frame, key);
+    }
     if (entry.width == 0 or entry.height == 0) return c.GHOSTTY_SUCCESS;
     glyph[0..4].* = .{ left + entry.offset_x, top + entry.offset_y, entry.width, entry.height };
     writeColor(glyph[4..8], foreground, if (style.faint) 0.5 else 1);
@@ -873,7 +878,10 @@ fn reuseRenderedCell(comptime stable: bool, frame: *Frame, owner: *const CachedR
     if (selected != old_selected) return false;
     const input = cache.rendered[slot];
     if (!input.reusable or input.raw != raw) return false;
-    if (input.key != null and input.registration != input.key.?.registration) return false;
+    if (input.key) |key| {
+        // An unresolved glyph must be rebuilt so the retry queues it again.
+        if (input.registration != key.registration or key.glyph.valid == 0) return false;
+    }
     const cursor = frame.cursor_visible != 0 and frame.cursor_x == x and frame.cursor_y == y;
     const old_cursor = (@as(u32, @intFromFloat(frame.cell_data[slot][12])) & 1) != 0;
     if (cursor != old_cursor or (cursor and frame.cell_data[slot][14] != @as(f32, @floatFromInt(frame.cursor_style)))) return false;
@@ -1013,6 +1021,7 @@ fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const Bi
     const cached = &frame.row_cache.?.next[y];
     cached.appearance = frame.row_cache.?.appearance;
     cached.blinking = false;
+    cached.unresolved = false;
     cached.selected = has_selection;
     cached.selection_start = if (has_selection) selection.start_x else 0;
     cached.selection_end = if (has_selection) selection.end_x else 0;
@@ -1155,7 +1164,7 @@ fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.Ghos
         var write = !dirty_only or dirty or rebuild_all or layout_changed;
         if (residency_changed and !rebuild_all) write = write or rowGlyphsChanged(frame, y);
         if (mask) |m| write = write or (y < mask_len and m[y] != 0);
-        write = write or cache.sources[y] != y;
+        write = write or cache.sources[y] != y or cache.next[y].unresolved;
         cache.next[y].cursor = frame.cursor_visible != 0 and frame.cursor_y == y;
         if (!write) continue;
         var matches = false;
@@ -1171,11 +1180,9 @@ fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.Ghos
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     if (retry) mergePendingRanges(frame, cache);
-    cache.pending_len = 0;
-    if (frame.status == 2) {
-        @memcpy(cache.pending[0..frame.ranges_len], frame.ranges[0..frame.ranges_len]);
-        cache.pending_len = frame.ranges_len;
-    }
+    // Any later build in the same frame is a retry, so it must still deliver these ranges.
+    @memcpy(cache.pending[0..frame.ranges_len], frame.ranges[0..frame.ranges_len]);
+    cache.pending_len = frame.ranges_len;
     std.mem.swap([*]CachedRow, &cache.previous, &cache.next);
     if (frame.status == 0) {
         frame.glyph_index.rebuild_all = 0;

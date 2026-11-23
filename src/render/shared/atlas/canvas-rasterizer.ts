@@ -33,7 +33,7 @@ interface GlyphLayout {
 const colorChannelTolerance = 2
 const maxBitmapCacheBytes = 4 * 1_024 * 1_024
 const maxBitmapCacheEntries = 4_096
-const maxScratchAttempts = 4
+const maxScratchAttempts = 3
 
 function validateInput(input: GlyphRasterizationInput): GlyphRasterizationInput {
   if (!Number.isSafeInteger(input.cellSpan) || input.cellSpan <= 0) {
@@ -224,9 +224,9 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       fontString(this.font, { italic: true, weight: 'normal' }),
       fontString(this.font, { italic: true, weight: 'bold' }),
     ]
-    // Half the old start padding, with one more doubling, reaches the same maximum scratch size.
+    // Detached contours can sit far outside the cell without the main ink touching an edge.
     this.initialPadding = Math.ceil(
-      Math.max(this.font.deviceCellHeight, this.font.settings.size * this.font.pixelRatio) / 2,
+      Math.max(this.font.deviceCellHeight, this.font.settings.size * this.font.pixelRatio),
     )
     const context = requireContext(this.canvas)
     this.context = context

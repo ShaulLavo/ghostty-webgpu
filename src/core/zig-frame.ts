@@ -387,7 +387,10 @@ export class ZigFrameBuilder {
   retryDeferredGlyphs(): boolean {
     this.ensureActive()
     this.deferredGlyphs = false
-    return this.runtime.bridge.retryDeferredGlyphs(this.index)
+    const changed = this.runtime.bridge.retryDeferredGlyphs(this.index)
+    // The rebuild that follows retries this frame, so it keeps the ranges already built.
+    if (changed) this.setUint(44, 2)
+    return changed
   }
 
   dispose(): void {

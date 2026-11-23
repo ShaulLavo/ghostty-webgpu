@@ -11,7 +11,7 @@ import { verifyNativeStage } from './ios-browser-verify.ts'
 const original = new URL('../src/dom/tests/measurement.browser.test.ts', import.meta.url)
 const assets = [
   ['ghostty-vt.wasm', 'de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426'],
-  ['bridge.wasm', '0a7bae335099d3dd6a39c3ff416001a4be055042c1aaf16ca243801ddef35379'],
+  ['bridge.wasm', 'd10be7a2beec1a5dcbd82b9db5b13c62c970f2afde408ed88d31021b0dcf00cd'],
 ] as const
 
 function sha256(bytes: Uint8Array): string {
