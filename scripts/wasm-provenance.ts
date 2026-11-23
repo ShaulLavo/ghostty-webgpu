@@ -20,6 +20,25 @@ export const WASM_BUILD_INPUTS = [
   'src/core/version.ts',
 ] as const
 
+// Upstream's own feature gates: only the C APIs our bindings call. Each gate drops exports, and
+// glyph_protocol also drops the custom-glyph APC handler (we never draw registered glyphs).
+export const GHOSTTY_VT_FEATURES = [
+  '-all',
+  '+render_state',
+  '+input_encode',
+  '+selection',
+  '+formatter',
+  '+grid_introspection',
+] as const
+
+export const TERMINAL_BUILD_ARGS = [
+  'build',
+  '-Demit-lib-vt=true',
+  '-Dtarget=wasm32-freestanding',
+  '-Doptimize=ReleaseSmall',
+  `-Dvt-features=${GHOSTTY_VT_FEATURES.join(',')}`,
+] as const
+
 export const WASM_OPT = join(
   dirname(dirname(fileURLToPath(import.meta.url))),
   'node_modules/.bin/wasm-opt',
@@ -100,13 +119,7 @@ export async function recordWasmProvenance(source: string, zig: string): Promise
           executableSha256: sha256(await readFile(JSON.parse(executable[1]) as string)),
         },
         recipe: {
-          terminal: [
-            'zig',
-            'build',
-            '-Demit-lib-vt=true',
-            '-Dtarget=wasm32-freestanding',
-            '-Doptimize=ReleaseSmall',
-          ],
+          terminal: ['zig'].concat(TERMINAL_BUILD_ARGS),
           bridge: [
             'zig',
             'build-exe',
