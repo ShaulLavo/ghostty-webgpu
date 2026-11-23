@@ -48,6 +48,10 @@ export interface WorkerState {
   readonly mouseTracking: boolean
   readonly backend?: 'webgpu' | 'webgl2'
 }
+/** Wire state: the appearance travels only when its identity changed since the last message. */
+export type WorkerStateUpdate = Omit<WorkerState, 'appearance'> & {
+  readonly appearance?: TerminalAppearance
+}
 export interface WorkerSubmission extends WorkerWatermarks {
   readonly type: 'frame'
   readonly mouseTracking: boolean
@@ -58,7 +62,9 @@ export interface WorkerSubmission extends WorkerWatermarks {
 
 export interface WorkerFrameDelta extends Omit<WorkerSubmission, 'snapshot' | 'summary'> {
   readonly snapshot: Omit<RendererTextFrameSnapshot, 'rows'>
-  readonly summary: Omit<TerminalSubmittedSnapshot, 'rows' | 'rowPatches'>
+  // Font and theme travel only when their identity changed since the previous frame.
+  readonly summary: Omit<TerminalSubmittedSnapshot, 'rows' | 'rowPatches' | 'font' | 'theme'> &
+    Partial<Pick<TerminalSubmittedSnapshot, 'font' | 'theme'>>
   readonly order: readonly number[]
   readonly patches: readonly number[]
   readonly buffer: ArrayBuffer
@@ -128,18 +134,20 @@ export type WorkerRequest = {
 interface WorkerReply extends WorkerWatermarks {
   readonly type: 'reply'
   readonly id: number
-  readonly state: WorkerState
+  readonly state: WorkerStateUpdate
   readonly result?: unknown
   readonly failure?: WorkerFailure
 }
+type WorkerEventName = Exclude<keyof TerminalSessionEventMap, 'renderRequest'>
+// An appearance event carries no payload: the host emits the appearance its state confirmed.
 type WorkerEvent = {
-  [K in Exclude<keyof TerminalSessionEventMap, 'renderRequest'>]: WorkerWatermarks & {
+  [K in WorkerEventName]: WorkerWatermarks & {
     readonly type: 'event'
     readonly event: K
-    readonly value: TerminalSessionEventMap[K]
-    readonly state: WorkerState
+    readonly value: K extends 'appearance' ? undefined : TerminalSessionEventMap[K]
+    readonly state: WorkerStateUpdate
   }
-}[Exclude<keyof TerminalSessionEventMap, 'renderRequest'>]
+}[WorkerEventName]
 export interface WorkerCanvasReplacement extends WorkerIdentity {
   readonly type: 'canvas'
   readonly canvas: OffscreenCanvas

@@ -19,6 +19,7 @@ import { GhosttyTerminal } from '../src/core/terminal.js'
 import { TerminalOption } from '../src/core/abi.js'
 import { TerminalSession } from '../src/term/session.js'
 import { createGhosttyWebGpuTerminalFromSession } from '../src/dom/terminal.js'
+import { Terminal as WorkerTerminal, TerminalWorkerError } from '../src/worker/index.js'
 import { RenderScheduler } from '../src/render/shared/scheduler.js'
 import { WebGpuTerminalRenderer } from '../src/render/webgpu/renderer.js'
 import { WebGlTerminalRenderer } from '../src/render/webgl/renderer.js'
@@ -56,6 +57,8 @@ const settings = {
 }
 
 export interface Driver {
+  /** When the page learned of each frame the library submitted; the study clears it per run. */
+  frameTimes?: number[]
   complete?(): Promise<void>
   asyncText?(): Promise<readonly string[]>
   resize?(columns: number, rows: number): void
@@ -247,6 +250,110 @@ async function createNative(host: HTMLElement): Promise<Driver> {
   }
 }
 
+const NativeWorker = globalThis.Worker
+const createdWorkers: Worker[] = []
+globalThis.Worker = class extends NativeWorker {
+  constructor(url: string | URL, options?: WorkerOptions) {
+    super(url, options)
+    createdWorkers.push(this)
+  }
+}
+
+// Our worker entry: one dedicated worker, core and GPU device per terminal, like Wraith.
+async function createWorkerNative(host: HTMLElement): Promise<Driver> {
+  const origin = location.origin
+  createdWorkers.length = 0
+  const terminal = await WorkerTerminal.create({
+    appearance: {
+      grid: { columns: settings.columns, rows: settings.rows },
+      scrollbackLimit: settings.scrollback,
+      scrollbackByteLimit: settings.ghosttyScrollbackBytes,
+      font: {
+        family: settings.fontFamily,
+        size: settings.fontSize,
+        lineHeight: settings.lineHeight,
+      },
+      cursor: { blink: false },
+    },
+    autoFit: false,
+    accessibility: false,
+    backend: current.variant === 'ghostty-worker-webgl' ? 'webgl' : 'webgpu',
+    fonts: [
+      {
+        family: settings.fontFamily,
+        source: { url: `${origin}/font.woff2` },
+        descriptors: { weight: '400' },
+      },
+      {
+        family: settings.fontFamily,
+        source: { url: `${origin}/font-bold.woff2` },
+        descriptors: { weight: '700' },
+      },
+    ],
+    workerUrl: `${origin}/ghostty-worker/entry.js`,
+    assets: { wasm: `${origin}/native.wasm`, bridge: `${origin}/bridge.wasm` },
+  })
+  const worker = createdWorkers.at(-1)
+  if (!worker) throw new Error('Worker entry did not create a worker')
+  const completions = new Map<number, () => void>()
+  let completionId = 0
+  worker.addEventListener('message', ({ data }: MessageEvent<{ type?: string; id?: number }>) => {
+    if (data?.type !== 'study-completed' || data.id === undefined) return
+    completions.get(data.id)?.()
+    completions.delete(data.id)
+  })
+  const failures: string[] = []
+  terminal.on('error', (event) => failures.push(String(event.cause)))
+  await terminal.open(host)
+  await terminal.setTheme({
+    ...terminal.appearance.theme,
+    background: { r: 0, g: 0, b: 0 },
+    foreground: { r: 255, g: 255, b: 255 },
+  })
+  let frames = 0
+  const frameTimes: number[] = []
+  terminal.onFrame(() => {
+    frames += 1
+    frameTimes.push(performance.now())
+  })
+  return {
+    frameTimes,
+    write: async (data) => {
+      await terminal.write(data)
+    },
+    text: () => terminal.visibleLines(),
+    // The study worker forces its pending draw, then awaits its own GPU queue.
+    complete: () =>
+      new Promise<void>((resolve) => {
+        const id = ++completionId
+        completions.set(id, resolve)
+        worker.postMessage({ type: 'study-complete', id })
+      }),
+    asyncText: async () => {
+      // A request round trip orders this read after every earlier write.
+      await terminal.lineCount()
+      for (let attempt = 0; attempt < 120 && terminal.hasPendingFrame; attempt++) await frame()
+      await settle()
+      if (failures.length) throw new Error(failures.join('; '))
+      return terminal.visibleLines()
+    },
+    metadata: () => ({
+      workerTopology: 'dedicated-worker-per-terminal',
+      backend: terminal.diagnostics.rendererBackend,
+      submittedFrames: frames,
+      failures,
+    }),
+    history: () => 0,
+    focus: () => terminal.focus(),
+    onData: (listener) => {
+      terminal.onData(({ bytes }) => listener(bytes))
+    },
+    dispose: () => {
+      void terminal.dispose()
+    },
+  }
+}
+
 async function createLegacy(host: HTMLElement): Promise<Driver> {
   legacy ??= await Ghostty.load('/legacy.wasm')
   const terminal = new GhosttyWeb({
@@ -330,7 +437,16 @@ async function createTerminals(): Promise<void> {
     const host = document.createElement('section')
     mount.append(host)
     let driver: Driver
-    if (current.variant !== 'ghostty-web' && current.variant.startsWith('ghostty-'))
+    if (current.variant.startsWith('ghostty-worker-'))
+      driver = await createWorkerNative(host).catch((cause: unknown) => {
+        // Page evaluation keeps only the message, so carry the structured failure in it.
+        if (!(cause instanceof TerminalWorkerError)) throw cause
+        throw new Error(
+          `${cause.message} ${JSON.stringify({ code: cause.code, operation: cause.operation, internal: cause.internal })}`,
+          { cause },
+        )
+      })
+    else if (current.variant !== 'ghostty-web' && current.variant.startsWith('ghostty-'))
       driver = await createNative(host)
     else if (current.variant === 'ghostty-web') driver = await createLegacy(host)
     else if (current.variant === 'nm-webgpu') driver = await createNm(host, settings)
@@ -874,14 +990,19 @@ let studyFenced = false
 async function runStudy(steps: number) {
   const samples: number[] = []
   const completions: number[] = []
+  const writes: StudyWrite[] = []
+  for (const driver of drivers) driver.frameTimes?.splice(0)
   const started = performance.now()
   let bytes = 0
   const intervals = await pacedBurst(
     async () => {
       const chunk = studyChunks[samples.length % studyChunks.length]!
       const at = performance.now()
-      await Promise.all(drivers.map((driver) => driver.write(chunk)))
+      const acknowledged = await Promise.all(
+        drivers.map((driver) => driver.write(chunk).then(() => performance.now())),
+      )
       samples.push(performance.now() - at)
+      writes.push({ started: at, acknowledged })
       if (studyFenced) {
         await Promise.all(drivers.map((driver) => driver.complete?.()))
         completions.push(performance.now() - at)
@@ -898,7 +1019,45 @@ async function runStudy(steps: number) {
     intervals,
     writeMilliseconds: samples,
     completionMilliseconds: completions,
+    submittedMilliseconds: submittedLatencies(writes),
   }
+}
+
+interface StudyWrite {
+  readonly started: number
+  /** When the page saw each terminal acknowledge this write, in driver order. */
+  readonly acknowledged: readonly number[]
+}
+
+// Write start until every terminal has reported a frame after its own acknowledgement of that
+// write. A terminal reports frames in order with its acknowledgements, so that frame is the
+// first to contain the write. Empty when a library reports no frames or frames are forced.
+function submittedLatencies(writes: readonly StudyWrite[]): number[] {
+  const reported = drivers.map((driver) => driver.frameTimes)
+  if (studyFenced || reported.some((times) => !times)) return []
+  const cursors = reported.map(() => 0)
+  const latencies: number[] = []
+  for (const write of writes) {
+    const last = lastFrameAfter(reported as number[][], cursors, write.acknowledged)
+    // A frame still in flight when the run ends leaves that write without a sample.
+    if (last !== undefined) latencies.push(last - write.started)
+  }
+  return latencies
+}
+
+function lastFrameAfter(
+  reported: readonly number[][],
+  cursors: number[],
+  acknowledged: readonly number[],
+): number | undefined {
+  let last: number | undefined = 0
+  for (const [index, times] of reported.entries()) {
+    while (cursors[index]! < times.length && times[cursors[index]!]! <= acknowledged[index]!)
+      cursors[index]! += 1
+    const time = times[cursors[index]!]
+    last = time === undefined || last === undefined ? undefined : Math.max(last, time)
+  }
+  return last
 }
 
 function comparisonInfo() {

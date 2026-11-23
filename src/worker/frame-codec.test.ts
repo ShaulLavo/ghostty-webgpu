@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { calculateTerminalFittedFont } from '../dom/fit.js'
 import { submittedFrame, type TerminalSubmittedSnapshot } from '../dom/submitted-frame.js'
 import type { RendererTextFrameRow, RendererTextFrameSnapshot } from '../render/shared/types.js'
+import { plainTextRow } from '../core/plain-text-row.js'
 import { defaultRendererTheme } from '../term/theme.js'
 import { RowDeltaDecoder, RowDeltaEncoder } from './frame-codec.js'
 import type { WorkerFrameDelta } from './protocol.js'
@@ -22,7 +23,7 @@ function transport() {
   let previous: TerminalSubmittedSnapshot | undefined
   return {
     decoder,
-    send(rows: readonly RendererTextFrameRow[], layout = 1) {
+    send(rows: readonly RendererTextFrameRow[], layout = 1, theme = defaultRendererTheme) {
       const snapshot: RendererTextFrameSnapshot = {
         renderHeld: false,
         cursor: {
@@ -49,7 +50,7 @@ function transport() {
         },
         font,
         padding: { top: 1, right: 2, bottom: 3, left: 4 },
-        theme: defaultRendererTheme,
+        theme,
         selection: { start: { x: 0, y: 0 }, end: { x: 3, y: 0 }, rectangle: false },
         scrollbar: { length: rows.length, offset: 0, total: rows.length },
         snapshot,
@@ -103,6 +104,84 @@ test('transfers a full frame with exact UTF-16 text, cells, flags, and metadata'
     snapshot,
     summary,
   })
+})
+
+test('sends the font and theme once and restores them on later frames', () => {
+  const { send, decoder } = transport()
+  const first = send([row(0, 'one')])
+  expect(first.message.summary.font).toEqual(font)
+  expect(first.message.summary.theme).toEqual(defaultRendererTheme)
+  const old = decoder.decode(first.message)
+  const second = send([row(0, 'two')])
+  expect(second.message.summary).not.toHaveProperty('font')
+  expect(second.message.summary).not.toHaveProperty('theme')
+  const next = decoder.decode(second.message)
+  expect(next.summary).toEqual(second.summary)
+  expect(next.summary.font).toBe(old.summary.font)
+  expect(next.summary.theme).toBe(old.summary.theme)
+  // A replaced theme is a new identity, so it travels again; the unchanged font does not.
+  const recoloured = { ...defaultRendererTheme, background: { r: 1, g: 2, b: 3 } }
+  const third = send([row(0, 'two')], 1, recoloured)
+  expect(third.message.summary.theme).toEqual(recoloured)
+  expect(third.message.summary).not.toHaveProperty('font')
+  const last = decoder.decode(third.message)
+  expect(last.summary.theme).toEqual(recoloured)
+  expect(Object.isFrozen(last.summary.theme)).toBe(true)
+  expect(last.summary.font).toBe(old.summary.font)
+})
+
+test('rejects a later frame when its font and theme never arrived', () => {
+  const { send } = transport()
+  send([row(0, 'one')])
+  const second = send([row(0, 'two')])
+  expect(() => new RowDeltaDecoder().decode(second.message)).toThrow(
+    'Row delta is missing its font or theme',
+  )
+})
+
+test('sends plain rows as text plus blank bits and builds their cells lazily', () => {
+  const { send, decoder } = transport()
+  // Column 2 is blank; a 40-column row crosses a bitmap word boundary with column 33 blank.
+  const short = plainTextRow(0, 'ab d', 0, Uint32Array.of(0b100))
+  const longText = `${'x'.repeat(33)} ${'y'.repeat(6)}`
+  const long = plainTextRow(1, longText, 0, Uint32Array.of(0, 0b10))
+  const wide = { y: 2, text: '界', cells: ['界', ''], continuations: [false, true] }
+  const first = send([short, long, wide])
+  expect(changedRows(first.message)).toBe(3)
+  const plainBytes = (length: number) => 16 + length * 2 + Math.ceil(length / 32) * 4
+  expect(first.message.buffer.byteLength).toBe(
+    4 + plainBytes(4) + plainBytes(40) + (16 + 2 + (4 + 2) + 4 + 2),
+  )
+  const rows = decoder.decode(first.message).snapshot.rows
+  expect(typeof Object.getOwnPropertyDescriptor(rows[0], 'cells')?.get).toBe('function')
+  expect(rows[0]).toEqual({
+    y: 0,
+    text: 'ab d',
+    cells: ['a', 'b', '', 'd'],
+    continuations: [false, false, false, false],
+  })
+  expect(rows[1]!.cells).toEqual(
+    Array.from(longText, (unit, column) => (column === 33 ? '' : unit)),
+  )
+  expect(rows[2]).toEqual(wide)
+  for (const value of [rows[0], rows[0]!.cells, rows[0]!.continuations])
+    expect(Object.isFrozen(value)).toBe(true)
+  // The same characters in a new object are not sent again.
+  const same = send([plainTextRow(0, 'ab d', 0, Uint32Array.of(0b100)), long, wide])
+  expect(changedRows(same.message)).toBe(0)
+  expect(decoder.decode(same.message).snapshot.rows[0]).toBe(rows[0])
+  // A blank that became a real space keeps the text but changes the cell, so it is sent.
+  const spaced = send([plainTextRow(0, 'ab d', 0, Uint32Array.of(0)), long, wide])
+  expect(changedRows(spaced.message)).toBe(1)
+  expect(spaced.message.patches).toEqual([])
+  expect(decoder.decode(spaced.message).snapshot.rows[0]!.cells).toEqual(['a', 'b', ' ', 'd'])
+})
+
+test('rejects a plain row whose bitmap length disagrees with its text', () => {
+  const { send, decoder } = transport()
+  const { message } = send([plainTextRow(0, 'abcd', 0, Uint32Array.of(0))])
+  new DataView(message.buffer).setUint32(4 + 12, 2, true)
+  expect(() => decoder.decode(message)).toThrow('Invalid plain row bitmap')
 })
 
 test('packs continuation flags at one byte per cell', () => {

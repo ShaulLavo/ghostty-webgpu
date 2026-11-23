@@ -286,9 +286,21 @@ export class WorkerTerminalExecution {
       if (retained) this.outputControls.delete(control)
       retained = true
     }
-    this.state = freezeWorkerValue(message.state)
+    // An omitted appearance means the one already confirmed still applies.
+    const appearance = message.state.appearance ?? this.state?.appearance
+    if (!appearance) {
+      this.fail(workerError('protocol', 'state', { control: message.control }))
+      return
+    }
+    this.state = freezeWorkerValue({ ...message.state, appearance })
     if (message.type === 'event') {
-      if (!this.disposed) this.emitters.get(message.event)?.emit(message.value)
+      if (this.disposed) return
+      // Subscribers get the frozen appearance the terminal itself reports, not another clone.
+      const value =
+        message.event === 'appearance'
+          ? Object.freeze({ appearance: this.state.appearance })
+          : message.value
+      this.emitters.get(message.event)?.emit(value)
       return
     }
     const pending = this.pending.get(message.id)
@@ -428,8 +440,11 @@ export class WorkerTerminalExecution {
   writeAndReadGeometry(...args: Parameters<LocalTerminalExecution['writeAndReadGeometry']>) {
     return this.request('writeAndReadGeometry', args)
   }
-  write(...args: Parameters<LocalTerminalExecution['write']>) {
-    return this.request('write', args)
+  write(data: Parameters<LocalTerminalExecution['write']>[0]) {
+    if (!(data instanceof Uint8Array)) return this.request('write', [data])
+    // Cloning a view copies its whole backing buffer twice; copy the bytes once and transfer.
+    // A subclass's slice() may return a view of the caller's buffer, so construct the copy.
+    return this.writeOwned(new Uint8Array(data))
   }
   writeOwned(data: Uint8Array) {
     return this.request('write', [data], [data.buffer as ArrayBuffer])

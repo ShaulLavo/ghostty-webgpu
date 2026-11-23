@@ -1165,6 +1165,87 @@ it.each(['webgl', 'webgpu'] as const)(
   20_000,
 )
 
+it.each(['webgl', 'webgpu'] as const)(
+  '%s keeps the confirmed appearance across writes and leaves the caller’s bytes attached',
+  async (backend) => {
+    const terminal = await create(backend)
+    await terminal.open(container())
+    const appearance = terminal.appearance
+    // Buffer-style subclasses return a view of the caller's storage from slice().
+    class ViewSlice extends Uint8Array {
+      override slice(start?: number, end?: number) {
+        return this.subarray(start, end) as unknown as Uint8Array<ArrayBuffer>
+      }
+    }
+    const padded = new TextEncoder().encode('....view bytes....')
+    const view = new ViewSlice(padded.buffer, 4, 10)
+    const sibling = new Uint8Array(padded.buffer, 0, 4)
+    await terminal.write(view)
+    await terminal.write(view)
+    // Replies omit an unchanged appearance, so the host keeps the same frozen object.
+    expect(terminal.appearance).toBe(appearance)
+    expect(padded.buffer.byteLength).toBe(18)
+    expect(view.byteLength).toBe(10)
+    expect(new TextDecoder().decode(padded)).toBe('....view bytes....')
+    expect(new TextDecoder().decode(sibling)).toBe('....')
+    expect((await terminal.readLines(0, 1))[0]?.text.trimEnd()).toBe('view bytesview bytes')
+    await terminal.write('\r\x1b[2Kview bytes')
+    const background = { r: 1, g: 2, b: 3 }
+    await terminal.setTheme({ ...terminal.appearance.theme, background })
+    const themed = terminal.appearance
+    expect(themed).not.toBe(appearance)
+    expect(themed.theme.background).toEqual(background)
+    await terminal.write(' more')
+    expect(terminal.appearance).toBe(themed)
+    await eventually(
+      () =>
+        terminal.visibleLines()[0]?.trimEnd() === 'view bytes more' &&
+        terminal.submittedFrame?.theme.background.b === 3,
+    )
+    expect(Object.isFrozen(terminal.submittedFrame!.theme)).toBe(true)
+    expect(terminal.submittedFrame!.font.settings.family).toBe(family)
+  },
+  20_000,
+)
+
+it.each(['webgl', 'webgpu'] as const)(
+  '%s emits the confirmed frozen appearance on a fitted resize and mirrors both screens',
+  async (backend) => {
+    const terminal = await create(backend)
+    const root = container()
+    await terminal.open(root)
+    const firstRow = () => terminal.visibleLines()[0]?.trimEnd()
+    await terminal.write('primary row')
+    await eventually(() => firstRow() === 'primary row')
+    await terminal.write('\x1b[?1049h\x1b[Halternate row')
+    await eventually(() => firstRow() === 'alternate row')
+    await terminal.write('\x1b[?1049l')
+    await eventually(() => firstRow() === 'primary row')
+    const columns = terminal.appearance.grid.columns
+    const seen: { same: boolean; frozen: boolean; columns: number }[] = []
+    terminal.on('appearance', (appearance) =>
+      seen.push({
+        same: appearance === terminal.appearance,
+        frozen:
+          Object.isFrozen(appearance) &&
+          Object.isFrozen(appearance.grid) &&
+          Object.isFrozen(appearance.theme.palette),
+        columns: appearance.grid.columns,
+      }),
+    )
+    root.style.width = '320px'
+    await eventually(() => seen.some((event) => event.columns < columns))
+    expect(seen.every((event) => event.same && event.frozen)).toBe(true)
+    const fitted = terminal.appearance.grid.columns
+    expect(fitted).toBe(seen.at(-1)!.columns)
+    await eventually(
+      () => terminal.submittedFrame?.grid.columns === fitted && firstRow() === 'primary row',
+    )
+    expect(terminal.visibleLines()[0]).toHaveLength(fitted)
+  },
+  20_000,
+)
+
 it('processes transferred producer output before an explicit control fence and actor disposal', async () => {
   await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({

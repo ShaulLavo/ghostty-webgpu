@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GhosttyResult, RenderStateDirty } from '../abi.js'
+import { plainRowSource } from '../plain-text-row.js'
 import { GhosttyRuntime } from '../runtime.js'
 import { TextRowReader } from '../text-row-reader.js'
 import type { RenderRow, RenderTextRow } from '../types.js'
@@ -224,11 +225,13 @@ describe('text-only render rows', () => {
       vi.unstubAllGlobals()
     }
     expect(runtime.memory.view.getUint32(extract.mock.calls[0]![6] + 32, true)).toBe(0)
+    // The second read finds every row unchanged, so only the first builds a blank bitmap.
     expect({ scratchAllocations, bitmapAllocations }).toEqual({
       scratchAllocations: allocations,
-      bitmapAllocations: allocations * 2,
+      bitmapAllocations: allocations,
     })
-    expect(wordReads).toBe(allocations * cellCount * 2)
+    // Each read compares every borrowed cell once; nothing else reads the native view.
+    expect(wordReads).toBe(cellCount * 2)
     const codepointMask = runtime.memory.view.getUint32(extract.mock.calls[0]![6] + 36, true)
     expect((codepointMask & ~0x7f) === 0).toBe(allocations === 1)
     expect(materialize(rows)).toEqual(expected)
@@ -359,6 +362,154 @@ describe('text-only render rows', () => {
     calls = 0
     expect(materialize(state.readTextRows())).toEqual(materialize(rows))
     expect(calls).toBe(1)
+  })
+
+  it.each([
+    { name: 'ASCII', lines: ['plain row', 'second row'] },
+    { name: 'non-ASCII', lines: ['blocks ▀▄ é', '日本語 wide'] },
+  ])('keeps owned $name rows when a redraw changes only colours', async ({ lines }) => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 16, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    const read = () => {
+      state.update()
+      const rows = state.readTextRows()
+      state.acknowledge()
+      return rows
+    }
+    terminal.write(lines.join('\r\n'))
+    const first = read()
+    terminal.write(`\x1b[H\x1b[31m${lines[0]}\r\n\x1b[48;2;1;2;3m${lines[1]}\x1b[0m`)
+    const recoloured = read()
+    expect(recoloured).not.toBe(first)
+    expect(recoloured.map((row) => row.y)).toEqual([0, 1, 2])
+    for (const y of [0, 1, 2]) expect(recoloured[y]).toBe(first[y])
+    terminal.write('\x1b[2;1Hchanged')
+    const changed = read()
+    expect(changed[0]).toBe(first[0])
+    expect(changed[1]).not.toBe(first[1])
+    expect(changed[1]!.text.startsWith('changed')).toBe(true)
+    expect(materialize(changed)).toEqual(equivalentTextRows(state.readRows()))
+    // Restoring the old characters builds a new row: only the latest read is retained.
+    terminal.write(`\x1b[2;1H\x1b[2K${lines[1]}`)
+    const restored = read()
+    expect(restored[1]).not.toBe(first[1])
+    expect(materialize(restored)).toEqual(materialize(first))
+  })
+
+  it('marks rows of single code units as plain and leaves wide or clustered rows unmarked', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('ab d\r\n▀▄ é\r\n界\r\n\x1b[?2027h👩‍💻')
+    state.update()
+    const rows = state.readTextRows()
+    const blanks = (row: RenderTextRow) => {
+      const source = plainRowSource(row)
+      return source && Array.from(row.text, (_, column) => source.blank(column))
+    }
+    // The space typed inside a row is a real cell; cells never written are blank.
+    expect(blanks(rows[0]!)).toEqual([false, false, false, false, true, true, true, true])
+    expect(blanks(rows[1]!)).toEqual([false, false, false, false, true, true, true, true])
+    expect(blanks(rows[2]!)).toBeUndefined()
+    expect(blanks(rows[3]!)).toBeUndefined()
+    expect(materialize(rows)).toEqual(equivalentTextRows(state.readRows()))
+    terminal.write('\x1b[2J\x1b[Hascii only')
+    state.update()
+    const ascii = state.readTextRows()
+    expect(blanks(ascii[0]!)).toEqual([false, false, false, false, false, false, false, false])
+    expect(blanks(ascii[3]!)).toEqual(Array.from({ length: 8 }, () => true))
+    expect(materialize(ascii)).toEqual(equivalentTextRows(state.readRows()))
+  })
+
+  it.each([
+    { name: 'non-ASCII', fill: '▀', edit: '▄' },
+    { name: 'clustered', fill: '▀', edit: 'é' },
+    { name: 'ASCII', fill: 'x', edit: 'y' },
+  ])(
+    'allocates one row of storage when a full read finds one changed $name row',
+    async ({ fill, edit }) => {
+      runtime = await GhosttyRuntime.create()
+      const grid = { columns: 200, rows: 60 }
+      const terminal = runtime.createTerminal(grid)
+      const state = runtime.createRenderState(terminal)
+      const rowsOf = (count: number) => Array.from({ length: count }, () => fill.repeat(200))
+      terminal.write(`\x1b[?2027h\x1b[?7l${rowsOf(60).join('\r\n')}`)
+      state.update()
+      state.readTextRows()
+      state.acknowledge()
+      // Every buffer a kept row can pin is created here, so their sum bounds what the final
+      // viewport retains. One row at a time must not cost one full packet per row.
+      let allocated = 0
+      const slice = Uint32Array.prototype.slice
+      const sliced = vi.spyOn(Uint32Array.prototype, 'slice').mockImplementation(function (
+        this: Uint32Array,
+        ...args
+      ) {
+        const copy = slice.apply(this, args)
+        allocated += copy.byteLength
+        return copy
+      })
+      vi.stubGlobal(
+        'Uint32Array',
+        new Proxy(Uint32Array, {
+          construct(target, args, newTarget) {
+            const array = Reflect.construct(target, args, newTarget) as Uint32Array
+            if (typeof args[0] === 'number') allocated += array.byteLength
+            return array
+          },
+        }),
+      )
+      let rows: readonly RenderTextRow[] = []
+      try {
+        for (let y = 0; y < grid.rows; y += 1) {
+          terminal.write(`\x1b[${y + 1};200H${edit}`)
+          state.update()
+          rows = state.readTextRows()
+          state.acknowledge()
+        }
+      } finally {
+        vi.unstubAllGlobals()
+        sliced.mockRestore()
+      }
+      const viewportBytes = grid.columns * grid.rows * 3 * 4
+      expect(allocated).toBeLessThanOrEqual(viewportBytes * 2)
+      expect(rows.every((row) => row.text.endsWith(edit))).toBe(true)
+      expect(materialize(rows)).toEqual(equivalentTextRows(state.readRows()))
+    },
+  )
+
+  it('rebuilds rows after a resize and keeps recoloured grapheme clusters', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 12, rows: 2 })
+    const state = runtime.createRenderState(terminal)
+    const read = () => {
+      state.update()
+      const rows = state.readTextRows()
+      state.acknowledge()
+      return rows
+    }
+    terminal.write('stable')
+    const narrow = read()
+    terminal.resize({ columns: 20, rows: 2 })
+    const wide = read()
+    expect(wide[0]).not.toBe(narrow[0])
+    expect(wide[0]!.text).toBe('stable'.padEnd(20))
+    expect(materialize(wide)).toEqual(equivalentTextRows(state.readRows()))
+    terminal.write('\x1b[?2027h\x1b[2;1H👩‍💻 cluster')
+    const clustered = read()
+    terminal.write('\x1b[2;1H\x1b[32m👩‍💻 cluster\x1b[0m')
+    const recoloured = read()
+    expect(recoloured[1]).toBe(clustered[1])
+    expect(materialize(recoloured)).toEqual(equivalentTextRows(state.readRows()))
+    // A different cluster of the same length in the same cells is a different row.
+    terminal.write('\x1b[2;1H👨‍💻 cluster')
+    const swapped = read()
+    expect(swapped[1]).not.toBe(clustered[1])
+    expect(swapped[1]!.cells[0]).toBe('👨‍💻')
+    expect(materialize(swapped)).toEqual(equivalentTextRows(state.readRows()))
+    terminal.write('\x1b[2;1H\x1b[2Kplain again')
+    expect(materialize(read())).toEqual(equivalentTextRows(state.readRows()))
   })
 
   it.each([
