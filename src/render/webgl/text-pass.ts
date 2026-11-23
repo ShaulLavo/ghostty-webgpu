@@ -28,12 +28,17 @@ type FrameRows =
 interface Pipeline {
   readonly buffer: WebGLBuffer
   readonly program: WebGLProgram
-  readonly vertexArray: WebGLVertexArrayObject
+  // The base array always reads from instance 0; the split array follows the ring's wrap point.
+  readonly baseVertexArray: WebGLVertexArrayObject
+  readonly splitVertexArray: WebGLVertexArrayObject
   readonly rowLayout: WebGLUniformLocation
   readonly firstInstance: WebGLUniformLocation
+  readonly textHidden: WebGLUniformLocation | undefined
   readonly stride: number
   drawable: Uint8Array
   drawInstanceCount: number
+  firstInstanceValue: number
+  splitInstance: number
 }
 
 function positiveInteger(name: string, value: number): void {
@@ -109,6 +114,7 @@ export class WebGlTextPass {
         color: this.createAtlasTexture('color'),
       }
       this.configureSamplers()
+      this.configureFixedState()
       this.assertNoError('WebGL text pass initialization')
     } catch (cause) {
       this.destroy()
@@ -174,6 +180,7 @@ export class WebGlTextPass {
     this.instanceCount = options.instanceCount
     this.resizePipeline(this.cells, CELL_INSTANCE_BYTES)
     this.resizePipeline(this.glyphs, GLYPH_INSTANCE_BYTES)
+    this.context.viewport(0, 0, this.width, this.height)
     this.uploadRows({ stableRows: false })
   }
 
@@ -183,7 +190,7 @@ export class WebGlTextPass {
     const gl = this.context
     for (const pipeline of [this.cells, this.glyphs]) {
       gl.useProgram(pipeline.program)
-      gl.uniform1f(this.uniform(pipeline.program, 'textHidden'), visible ? 0 : 1)
+      gl.uniform1f(pipeline.textHidden!, visible ? 0 : 1)
     }
     return true
   }
@@ -191,18 +198,6 @@ export class WebGlTextPass {
   submit(): number {
     this.ensureActive()
     const gl = this.context
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    gl.viewport(0, 0, this.width, this.height)
-    gl.disable(gl.DEPTH_TEST)
-    gl.disable(gl.STENCIL_TEST)
-    gl.disable(gl.CULL_FACE)
-    gl.disable(gl.SCISSOR_TEST)
-    gl.disable(gl.DITHER)
-    gl.colorMask(true, true, true, true)
-    gl.enable(gl.BLEND)
-    gl.blendEquation(gl.FUNC_ADD)
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-    gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT)
     this.bindAtlas()
     const draws = this.draw(this.cells) + this.draw(this.glyphs)
@@ -277,30 +272,59 @@ export class WebGlTextPass {
     const gl = this.context
     const program = this.createProgram(vertex, fragment)
     const buffer = this.own(gl.createBuffer(), (resource) => gl.deleteBuffer(resource))
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+    gl.bufferData(gl.ARRAY_BUFFER, this.instanceCount * stride, gl.DYNAMIC_DRAW)
+    const baseVertexArray = this.createVertexArray(buffer, stride)
+    const splitVertexArray = this.createVertexArray(buffer, stride)
+    gl.useProgram(program)
+    gl.uniform2f(this.uniform(program, 'viewport'), this.width, this.height)
+    return {
+      buffer,
+      program,
+      baseVertexArray,
+      splitVertexArray,
+      rowLayout: this.uniform(program, 'rowLayout'),
+      firstInstance: this.uniform(program, 'firstInstance'),
+      textHidden: this.textBlinkEnabled ? this.uniform(program, 'textHidden') : undefined,
+      stride,
+      drawable: new Uint8Array(this.instanceCount),
+      drawInstanceCount: 0,
+      firstInstanceValue: 0,
+      splitInstance: 0,
+    }
+  }
+
+  private createVertexArray(buffer: WebGLBuffer, stride: number): WebGLVertexArrayObject {
+    const gl = this.context
     const vertexArray = this.own(gl.createVertexArray(), (resource) =>
       gl.deleteVertexArray(resource),
     )
     gl.bindVertexArray(vertexArray)
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, this.instanceCount * stride, gl.DYNAMIC_DRAW)
     for (let attribute = 0; attribute < stride / 16; attribute += 1) {
       gl.enableVertexAttribArray(attribute)
       gl.vertexAttribPointer(attribute, 4, gl.FLOAT, false, stride, attribute * 16)
       gl.vertexAttribDivisor(attribute, 1)
     }
     gl.bindVertexArray(null)
-    gl.useProgram(program)
-    gl.uniform2f(this.uniform(program, 'viewport'), this.width, this.height)
-    return {
-      buffer,
-      program,
-      vertexArray,
-      rowLayout: this.uniform(program, 'rowLayout'),
-      firstInstance: this.uniform(program, 'firstInstance'),
-      stride,
-      drawable: new Uint8Array(this.instanceCount),
-      drawInstanceCount: 0,
-    }
+    return vertexArray
+  }
+
+  // This pass owns the context, so fixed pipeline state is set once instead of every frame.
+  private configureFixedState(): void {
+    const gl = this.context
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    gl.viewport(0, 0, this.width, this.height)
+    gl.disable(gl.DEPTH_TEST)
+    gl.disable(gl.STENCIL_TEST)
+    gl.disable(gl.CULL_FACE)
+    gl.disable(gl.SCISSOR_TEST)
+    gl.disable(gl.DITHER)
+    gl.colorMask(true, true, true, true)
+    gl.enable(gl.BLEND)
+    gl.blendEquation(gl.FUNC_ADD)
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+    gl.clearColor(0, 0, 0, 0)
   }
 
   private uniform(program: WebGLProgram, name: string): WebGLUniformLocation {
@@ -312,6 +336,7 @@ export class WebGlTextPass {
   private resizePipeline(pipeline: Pipeline, stride: number): void {
     pipeline.drawable = new Uint8Array(this.instanceCount)
     pipeline.drawInstanceCount = 0
+    pipeline.splitInstance = 0
     const gl = this.context
     gl.bindBuffer(gl.ARRAY_BUFFER, pipeline.buffer)
     gl.bufferData(gl.ARRAY_BUFFER, this.instanceCount * stride, gl.DYNAMIC_DRAW)
@@ -491,14 +516,9 @@ export class WebGlTextPass {
 
   private draw(pipeline: Pipeline): number {
     if (pipeline.drawInstanceCount === 0) return 0
-    const gl = this.context
-    gl.useProgram(pipeline.program)
-    gl.bindVertexArray(pipeline.vertexArray)
+    this.context.useProgram(pipeline.program)
     const split = this.rowOffset * this.rowColumns
-    if (split === 0) {
-      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, pipeline.drawInstanceCount)
-      return 1
-    }
+    if (split === 0) return this.drawRange(pipeline, 0, pipeline.drawInstanceCount)
     // Draw logical rows in order so overhanging glyphs blend the same way across the wrap.
     const high = this.drawRange(pipeline, split, pipeline.drawInstanceCount - split)
     return high + this.drawRange(pipeline, 0, Math.min(split, pipeline.drawInstanceCount))
@@ -506,6 +526,19 @@ export class WebGlTextPass {
 
   private drawRange(pipeline: Pipeline, first: number, count: number): number {
     if (count <= 0) return 0
+    const gl = this.context
+    gl.bindVertexArray(first === 0 ? pipeline.baseVertexArray : pipeline.splitVertexArray)
+    if (first !== 0 && first !== pipeline.splitInstance) this.moveSplit(pipeline, first)
+    if (first !== pipeline.firstInstanceValue) {
+      gl.uniform1i(pipeline.firstInstance, first)
+      pipeline.firstInstanceValue = first
+    }
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count)
+    return 1
+  }
+
+  // Expects the split vertex array to be bound.
+  private moveSplit(pipeline: Pipeline, first: number): void {
     const gl = this.context
     gl.bindBuffer(gl.ARRAY_BUFFER, pipeline.buffer)
     for (let attribute = 0; attribute < pipeline.stride / 16; attribute += 1)
@@ -517,9 +550,7 @@ export class WebGlTextPass {
         pipeline.stride,
         first * pipeline.stride + attribute * 16,
       )
-    gl.uniform1i(pipeline.firstInstance, first)
-    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count)
-    return 1
+    pipeline.splitInstance = first
   }
 
   private assertNoError(operation: string): void {
