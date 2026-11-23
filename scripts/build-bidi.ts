@@ -13,10 +13,11 @@ const result = await Bun.build({
     {
       name: 'shared-native-modules',
       setup(build) {
-        build.onResolve({ filter: /^\.\.\/(?:core|render|term)\// }, (args) => ({
-          path: args.path,
-          external: true,
-        }))
+        build.onResolve({ filter: /^\.\.\/(?:core|render|term)\// }, (args) => {
+          // The package build inlines const enums, so dist/core/abi.js exports none of them.
+          if (args.path === '../core/abi.js') return undefined
+          return { path: args.path, external: true }
+        })
       },
     },
   ],

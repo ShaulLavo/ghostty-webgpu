@@ -1,5 +1,5 @@
 import type { AbiLayouts, BridgeWasmExports, GhosttyWasmExports } from './abi.js'
-import { runtimeWasmAssets } from './assets.js'
+import { terminalWasmAssets } from './assets.js'
 import { CallbackBridge } from './bridge.js'
 import { createGhosttyError } from './error.js'
 import { readNodeFileUrl } from './file-url.js'
@@ -100,8 +100,8 @@ export class GhosttyRuntime {
 
   static async create(options: RuntimeOptions = {}): Promise<GhosttyRuntime> {
     const [wasmModule, bridgeModule] = await Promise.all([
-      compileSource(options.wasm ?? runtimeWasmAssets.native),
-      compileSource(options.bridge ?? runtimeWasmAssets.bridge),
+      compileSource(options.wasm ?? terminalWasmAssets.native),
+      compileSource(options.bridge ?? terminalWasmAssets.bridge),
     ])
     let wasmExports: GhosttyWasmExports | undefined
     const wasmInstance = await WebAssembly.instantiate(wasmModule, {

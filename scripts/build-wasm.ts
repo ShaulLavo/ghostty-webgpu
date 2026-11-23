@@ -1,11 +1,13 @@
-import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from '../src/core/version.js'
 
 import { ArtifactBuildError, verifyCleanSource, verifyRevision } from './ghostty-source.js'
-import { recordWasmProvenance } from './wasm-provenance.js'
+import { GHOSTTY_VT_EXPORTS } from './ghostty-vt-exports.js'
+import { trimWasmExports } from './wasm-exports.js'
+import { recordWasmProvenance, WASM_OPT, WASM_OPT_FLAGS } from './wasm-provenance.js'
 
 const sourceRepository = GHOSTTY_SOURCE_REPOSITORY
 const sourceRevision = GHOSTTY_SOURCE_REVISION
@@ -94,8 +96,17 @@ async function buildArtifacts(source: string, workspace: string, zig: string): P
   const terminalOutput = join(source, 'zig-out/bin/ghostty-vt.wasm')
   await validateWasm(terminalOutput)
   await validateWasm(bridgeOutput)
-  await copyFile(terminalOutput, join(projectRoot, 'ghostty-vt.wasm'))
-  await copyFile(bridgeOutput, join(projectRoot, 'bridge.wasm'))
+  const trimmedTerminal = join(workspace, 'ghostty-vt.trimmed.wasm')
+  const keep = new Set<string>(GHOSTTY_VT_EXPORTS)
+  await writeFile(trimmedTerminal, trimWasmExports(await readFile(terminalOutput), keep))
+  await optimizeWasm(trimmedTerminal, join(projectRoot, 'ghostty-vt.wasm'))
+  await optimizeWasm(bridgeOutput, join(projectRoot, 'bridge.wasm'))
+}
+
+// Post-link only: the Ghostty source stays unpatched. Features match what Zig emits for wasm32.
+async function optimizeWasm(input: string, output: string): Promise<void> {
+  await run([WASM_OPT, input].concat(WASM_OPT_FLAGS, ['-o', output]), projectRoot)
+  await validateWasm(output)
 }
 
 async function main(): Promise<void> {

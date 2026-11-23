@@ -14,8 +14,25 @@ export const WASM_BUILD_INPUTS = [
   'scripts/glyph-index.zig',
   'scripts/unknown-osc.zig',
   'scripts/ghostty-source.ts',
+  'scripts/ghostty-vt-exports.ts',
+  'scripts/wasm-exports.ts',
   'scripts/wasm-provenance.ts',
   'src/core/version.ts',
+] as const
+
+export const WASM_OPT = join(
+  dirname(dirname(fileURLToPath(import.meta.url))),
+  'node_modules/.bin/wasm-opt',
+)
+// Dead-code removal only: every -O level measured 1.5-3% slower VT writes than Zig's own code.
+export const WASM_OPT_FLAGS = [
+  '--mvp-features',
+  '--enable-bulk-memory',
+  '--enable-mutable-globals',
+  '--enable-nontrapping-float-to-int',
+  '--enable-sign-ext',
+  '--enable-simd',
+  '--remove-unused-module-elements',
 ] as const
 
 export function sha256(bytes: Uint8Array): string {
@@ -107,6 +124,13 @@ export async function recordWasmProvenance(source: string, zig: string): Promise
             '-O',
             'ReleaseSmall',
           ],
+          postLink: {
+            exports: 'scripts/ghostty-vt-exports.ts',
+            wasmOpt: {
+              version: decoder.decode(await output([WASM_OPT, '--version'], root)).trim(),
+              flags: WASM_OPT_FLAGS,
+            },
+          },
           inputs,
         },
         artifacts,

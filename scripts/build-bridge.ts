@@ -1,9 +1,10 @@
-import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { verifyCleanSource, verifyRevision } from './ghostty-source.js'
+import { WASM_OPT, WASM_OPT_FLAGS } from './wasm-provenance.js'
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 
@@ -97,7 +98,9 @@ async function main(): Promise<void> {
       projectRoot,
     )
     await validateWasm(output)
-    await copyFile(output, join(projectRoot, 'bridge.wasm'))
+    const optimized = join(projectRoot, 'bridge.wasm')
+    await run([WASM_OPT, output].concat(WASM_OPT_FLAGS, ['-o', optimized]), projectRoot)
+    await validateWasm(optimized)
   } finally {
     await rm(workspace, { force: true, recursive: true })
   }

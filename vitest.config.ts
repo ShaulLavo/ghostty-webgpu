@@ -13,6 +13,7 @@ export default defineConfig({
       'scripts/ios-browser*.test.ts',
       'scripts/layout.test.ts',
       'scripts/wasm-provenance.test.ts',
+      'scripts/ghostty-vt-exports.test.ts',
       'scripts/comparison-source.test.ts',
       'scripts/browser-file-roots.test.ts',
       'scripts/browser-shard.test.ts',
