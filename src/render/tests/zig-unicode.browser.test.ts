@@ -419,8 +419,9 @@ for (const backend of ['webgpu', 'webgl2'] as const) {
         const uploaded = pair.native.renderer.metrics.uploadedBytes
         writeFrame(pair, '\x1b[2;1H\x1b[31;44m界é👩‍💻\x1b[0m')
         expect(pair.builds.mock.results.map((result) => result.value)).toEqual([2, 0])
+        // The retry uploads the five changed cells, not every dirty row.
         expect(pair.native.renderer.metrics.uploadedBytes - uploaded).toBe(
-          2 * 40 * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES),
+          5 * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES),
         )
         const changed = await expectPainted(pair, 2)
         expect(changed).not.toEqual(before)

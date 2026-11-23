@@ -316,13 +316,14 @@ it.each(['webgl2', 'webgpu'] as const)(
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
     await expectPainted(native)
     expectExactPixels(await native.renderer.capturePixels(), partialPixels)
-    expect(native.renderer.metrics.submittedFrames).toBe(before + 2)
+    // Spaces over deferred cells leave both buffers unchanged, so nothing is submitted.
+    expect(native.renderer.metrics.submittedFrames).toBe(before + 1)
     expect(acknowledge).toHaveBeenCalledTimes(2)
     const target = glyphs[deferred[0]!]!
     native.terminal.write(`\x1b[2J\x1b[H\x1b[${target.weight === 'bold' ? 1 : 0}m${target.text}`)
     if (nativeClock.frames.size > 0) nativeClock.flushFrame()
     await expectPainted(native)
-    expect(native.renderer.metrics.submittedFrames).toBe(before + 3)
+    expect(native.renderer.metrics.submittedFrames).toBe(before + 2)
     expect(acknowledge).toHaveBeenCalledTimes(3)
     expect(builder.hasDeferredGlyphs).toBe(false)
     expect(builder.glyphData[GlyphOffset.Meta]! & GlyphFlag.Glyph).toBe(GlyphFlag.Glyph)

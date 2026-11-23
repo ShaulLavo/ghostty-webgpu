@@ -72,6 +72,46 @@ function readyFrame(frameOptions = options): void {
   expect(status).toBe(0)
 }
 
+// Mirrors the GPU buffers: only bytes inside reported ranges reach them after a snapshot.
+function uploadedRecords(frame: ZigFrameBuilder) {
+  const cells = frame.cellData.slice()
+  const glyphs = frame.glyphData.slice()
+  return {
+    apply(): void {
+      for (const range of frame.changedRanges()) {
+        copyRange(cells, frame.cellData, range.cell)
+        copyRange(glyphs, frame.glyphData, range.glyph)
+      }
+    },
+    expectCurrent(): void {
+      expect(cells).toEqual(frame.cellData)
+      expect(glyphs).toEqual(frame.glyphData)
+    },
+  }
+}
+
+function copyRange(
+  target: Float32Array,
+  source: Float32Array,
+  range: { readonly byteOffset: number; readonly byteLength: number },
+): void {
+  const start = range.byteOffset / 4
+  target.set(source.subarray(start, start + range.byteLength / 4), start)
+}
+
+function visibleGlyphs(frame: ZigFrameBuilder): number {
+  let count = 0
+  for (let offset = 0; offset < frame.glyphData.length; offset += 24)
+    count += Number(frame.glyphData[offset + 2]! > 0)
+  return count
+}
+
+function uploadedBytes(frame: ZigFrameBuilder): number {
+  return frame
+    .changedRanges()
+    .reduce((bytes, range) => bytes + range.cell.byteLength + range.glyph.byteLength, 0)
+}
+
 function expectNativeRecords(frame: ZigFrameBuilder): void {
   expect(frame.cellData).toHaveLength(frame.columns * frame.rows * 16)
   expect(frame.glyphData).toHaveLength(frame.columns * frame.rows * 24)
@@ -690,19 +730,126 @@ describe('WASM frame records', () => {
     state.acknowledge()
     terminal.write('\x1b[2;1H\x1b[31mX')
     state.update()
-    const dirtyRows = state.readRows({ dirtyOnly: true })
+    const uploaded = uploadedRecords(builder)
     expect(builder.build({ ...options, full: false })).toBe(2)
     expect(builder.missingGlyphs.map((key) => builder!.glyphInput(key).text)).toContain('X')
     for (const key of builder.missingGlyphs) builder.registerGlyph(key, glyph)
     expect(builder.build({ ...options, full: false })).toBe(0)
-    expect(builder.changedRanges()).toEqual(
-      dirtyRows.map((row) => ({
-        row: row.y,
-        cell: { byteOffset: row.y * 8 * 64, byteLength: 8 * 64 },
-        glyph: { byteOffset: row.y * 8 * 96, byteLength: 8 * 96 },
-      })),
-    )
+    uploaded.apply()
+    uploaded.expectCurrent()
+    // The retry uploads the one changed cell, not every dirty row.
+    expect(uploadedBytes(builder)).toBe(64 + 96)
     expectNativeRecords(builder)
+  })
+
+  it.each([false, true])(
+    'keeps unregistered glyphs pending across partial registrations with stableRows=%s',
+    async (stableRows) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 8, rows: 3 })
+      const state = runtime.createRenderState(terminal)
+      terminal.write('\x1b[?25la0\r\na1\r\na2')
+      state.update()
+      builder = state.createFrameBuilder(8, 3)
+      readyFrame({ ...options, stableRows })
+      state.acknowledge()
+      // The first scroll switches to the row ring, which rewrites every record once.
+      terminal.write('\r\na0')
+      state.update()
+      readyFrame({ ...options, stableRows, full: false })
+      state.acknowledge()
+      terminal.write('\r\nXY')
+      state.update()
+      const uploaded = uploadedRecords(builder)
+      const frameOptions = { ...options, stableRows, full: false }
+      expect(builder.build(frameOptions)).toBe(2)
+      const texts = () => builder!.missingGlyphs.map((key) => builder!.glyphInput(key).text)
+      expect(texts().toSorted()).toEqual(['X', 'Y'])
+      const missingY = builder.missingGlyphs.find((key) => builder!.glyphInput(key).text === 'Y')
+      for (const key of builder.missingGlyphs) {
+        if (key !== missingY) builder.registerGlyph(key, glyph)
+      }
+      expect(builder.build(frameOptions)).toBe(2)
+      expect(texts()).toEqual(['Y'])
+      for (const key of builder.missingGlyphs) builder.registerGlyph(key, glyph)
+      expect(builder.build(frameOptions)).toBe(0)
+      uploaded.apply()
+      uploaded.expectCurrent()
+      expect(uploadedBytes(builder)).toBeLessThan(3 * 8 * (64 + 96))
+      const glyphs = visibleGlyphs(builder)
+      const cells = builder.cellData.slice()
+      const glyphData = builder.glyphData.slice()
+      const rowOffset = builder.rowOffset
+      builder.dispose()
+      builder = state.createFrameBuilder(8, 3)
+      readyFrame()
+      expect(visibleGlyphs(builder)).toBe(glyphs)
+      if (stableRows && rowOffset !== 0) return
+      expect(cells).toEqual(builder.cellData)
+      expect(glyphData).toEqual(builder.glyphData)
+    },
+  )
+
+  it('delivers ranges built before a deferred-glyph rebuild in the same frame', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 8, rows: 3 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25la0\r\nXY')
+    state.update()
+    builder = state.createFrameBuilder(8, 3)
+    expect(builder.build(options)).toBe(2)
+    for (const key of builder.missingGlyphs) {
+      if (builder.glyphInput(key).text === 'Y') builder.deferGlyph(key)
+      else builder.registerGlyph(key, glyph)
+    }
+    expect(builder.build(options)).toBe(0)
+    expect(builder.hasDeferredGlyphs).toBe(true)
+    state.acknowledge()
+    terminal.write('\x1b[1;1H\x1b[31ma')
+    state.update()
+    const uploaded = uploadedRecords(builder)
+    const frameOptions = { ...options, full: false }
+    expect(builder.build(frameOptions)).toBe(0)
+    expect(builder.retryDeferredGlyphs()).toBe(true)
+    expect(builder.build(frameOptions)).toBe(2)
+    for (const key of builder.missingGlyphs) builder.registerGlyph(key, glyph)
+    expect(builder.build(frameOptions)).toBe(0)
+    uploaded.apply()
+    uploaded.expectCurrent()
+    expect(builder.changedRanges().map((range) => range.row)).toEqual(
+      expect.arrayContaining([0, 1]),
+    )
+  })
+
+  it('uploads only the new row when a scrolled frame retries a missing glyph', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('\x1b[?25la0\r\na1\r\na2\r\na3')
+    state.update()
+    builder = state.createFrameBuilder(8, 4)
+    readyFrame({ ...options, stableRows: true })
+    state.acknowledge()
+    // The first scroll switches to the row ring, which rewrites every record once.
+    terminal.write('\r\na0')
+    state.update()
+    readyFrame({ ...options, stableRows: true, full: false })
+    state.acknowledge()
+    for (const line of ['\r\n界Z', '\r\né', '\r\nq']) {
+      terminal.write(line)
+      state.update()
+      const uploaded = uploadedRecords(builder)
+      const frameOptions = { ...options, stableRows: true, full: false }
+      expect(builder.build(frameOptions)).toBe(2)
+      for (const key of builder.missingGlyphs) builder.registerGlyph(key, glyph)
+      expect(builder.build(frameOptions)).toBe(0)
+      uploaded.apply()
+      uploaded.expectCurrent()
+      expect(builder.changedRanges().map((range) => range.row)).toEqual([0, 1, 2, 3])
+      expect(uploadedBytes(builder)).toBeLessThanOrEqual(8 * (64 + 96))
+      expectNativeRecords(builder)
+      state.acknowledge()
+    }
   })
 
   it('retains clean wide Unicode while another row changes', async () => {
@@ -717,19 +864,18 @@ describe('WASM frame records', () => {
     state.acknowledge()
     terminal.write('\x1b[2;1HAScii')
     state.update()
+    const uploaded = uploadedRecords(builder)
     readyFrame({ ...options, full: false })
+    uploaded.apply()
+    uploaded.expectCurrent()
     expect(builder.glyphData.slice(0, 12 * 24)).toEqual(firstRow)
     expect(
       builder
         .changedRanges()
         .filter((range) => range.cell.byteLength || range.glyph.byteLength)
         .map((range) => range.row),
-    ).toEqual([0, 1])
-    expect(
-      builder
-        .changedRanges()
-        .reduce((bytes, range) => bytes + range.cell.byteLength + range.glyph.byteLength, 0),
-    ).toBe(2 * 12 * (64 + 96))
+    ).toEqual([1])
+    expect(uploadedBytes(builder)).toBeLessThanOrEqual(5 * (64 + 96))
   })
 
   it('rerasterizes symbols when neighbor changes alter their available width', async () => {
@@ -1048,6 +1194,7 @@ describe('WASM Unicode descriptors and native records', () => {
     readyFrame()
     state.acknowledge()
     const before = builder.glyphData.slice()
+    const uploaded = uploadedRecords(builder)
     terminal.write('\x1b[?2027h\x1b[1;1H\x1b[31;44m界é👩‍💻')
     state.update()
     const frameOptions = { ...options, full: false }
@@ -1066,17 +1213,15 @@ describe('WASM Unicode descriptors and native records', () => {
     expect(builder.missingGlyphs).not.toContain(keys[0])
     for (const key of builder.missingGlyphs) builder.registerGlyph(key, glyph)
     expect(builder.build(frameOptions)).toBe(0)
+    uploaded.apply()
+    uploaded.expectCurrent()
+    // Row 2 only lost the hidden cursor, so its records stay put.
     expect(
       builder
         .changedRanges()
         .filter((range) => range.cell.byteLength || range.glyph.byteLength)
         .map((range) => range.row),
-    ).toEqual([0, 2])
-    expect(
-      builder
-        .changedRanges()
-        .reduce((bytes, range) => bytes + range.cell.byteLength + range.glyph.byteLength, 0),
-    ).toBe(2 * 12 * (64 + 96))
+    ).toEqual([0])
     expect(builder.glyphData.slice(12 * 24)).toEqual(before.slice(12 * 24))
     expectNativeRecords(builder)
   })

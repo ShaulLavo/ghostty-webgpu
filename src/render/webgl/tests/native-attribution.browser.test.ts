@@ -105,9 +105,9 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
     {
       name: 'unicode',
       content: viewport('界'.repeat(20)),
-      // A cold native retry uploads the full extents of both instance buffers.
-      writes: 2,
-      bytes: 76_800,
+      // The colors carry over, so a cold native retry uploads only the glyph buffer.
+      writes: 1,
+      bytes: 46_080,
       submits: 1,
     },
   ]) {
@@ -123,8 +123,11 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
     const records = tracing.end()
     const observed = counts(records)
     expect(observed.stateUpdates).toBe(1)
-    expect(observed.buffersWritten).toBe(control.writes)
-    expect(observed.bufferBytes).toBe(control.bytes)
+    expect([control.name, observed.buffersWritten, observed.bufferBytes]).toEqual([
+      control.name,
+      control.writes,
+      control.bytes,
+    ])
     expect(bufferWrites).toHaveBeenCalledTimes(control.writes)
     expect(bufferWrites.mock.calls.reduce((sum, args) => sum + Number(args[4]) * 4, 0)).toBe(
       control.bytes,
@@ -159,13 +162,14 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
       const spans = operations(records, 'build')
       expect(spans).toHaveLength(2)
       expect(spans[0]!.end).toBeLessThanOrEqual(spans[1]!.start)
+      const cellRowBytes = control.name === 'missing' ? 40 * CELL_INSTANCE_BYTES : 0
       expect(uploads).toHaveBeenCalledTimes(1)
       expect(uploads.mock.calls[0]![1]).toEqual(
         Array.from({ length: 12 }, (_, row) => ({
           row,
           cell: {
             byteOffset: row * 40 * CELL_INSTANCE_BYTES,
-            byteLength: 40 * CELL_INSTANCE_BYTES,
+            byteLength: cellRowBytes,
           },
           glyph: {
             byteOffset: row * 40 * GLYPH_INSTANCE_BYTES,
@@ -173,24 +177,19 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
           },
         })),
       )
+      const cellWrite = { byteOffset: 0, sourceOffset: 0, byteLength: 12 * cellRowBytes }
+      const glyphWrite = {
+        byteOffset: 0,
+        sourceOffset: 0,
+        byteLength: 12 * 40 * GLYPH_INSTANCE_BYTES,
+      }
       expect(
         bufferWrites.mock.calls.map((args) => ({
           byteOffset: args[1],
           sourceOffset: args[3],
           byteLength: Number(args[4]) * 4,
         })),
-      ).toEqual([
-        {
-          byteOffset: 0,
-          sourceOffset: 0,
-          byteLength: 12 * 40 * CELL_INSTANCE_BYTES,
-        },
-        {
-          byteOffset: 0,
-          sourceOffset: 0,
-          byteLength: 12 * 40 * GLYPH_INSTANCE_BYTES,
-        },
-      ])
+      ).toEqual(cellRowBytes ? [cellWrite, glyphWrite] : [glyphWrite])
     }
     const submittedFrames = native.renderer.metrics.submittedFrames
     const pixels = await displayedPixels(native.canvas)
