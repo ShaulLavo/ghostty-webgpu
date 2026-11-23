@@ -237,6 +237,7 @@ export class WebGpuTerminalRenderer {
         textBlink: options.textBlink,
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
         onFrame: () => this.drawFrame(),
+        presentation: options.presentation,
       })
       this.scheduler = scheduler
       this.setReducedMotion(options.reducedMotion ?? false)
@@ -313,7 +314,7 @@ export class WebGpuTerminalRenderer {
 
   notifyWrite(): void {
     this.resetCursorBlink()
-    this.scheduler.schedule()
+    this.scheduler.scheduleWrite()
   }
 
   refreshRows(startRow: number, endRow: number): void {

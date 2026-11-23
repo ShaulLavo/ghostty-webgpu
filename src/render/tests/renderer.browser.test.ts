@@ -397,6 +397,59 @@ it.each([false, true])(
   },
 )
 
+it('paints an immediate write at once and joins a second write to the next frame', async () => {
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 2)
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    font: fittedFont(),
+    presentation: 'immediate',
+    renderState: source,
+    rows: 2,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  // The first frame armed the once-per-display-frame guard; let that display frame end.
+  clock.flushFrame()
+  expect(clock.frames.size).toBe(0)
+  expect(source.acknowledgements).toBe(1)
+
+  source.dirtyRow(1)
+  renderer.notifyWrite()
+  expect(source.acknowledgements).toBe(2)
+
+  source.dirtyRow(0)
+  renderer.notifyWrite()
+  expect(source.acknowledgements).toBe(2)
+  clock.flushFrame()
+  clock.flushFrame()
+  expect(source.acknowledgements).toBe(3)
+  canvas.remove()
+})
+
+it('waits for a frame to paint a write without immediate presentation', async () => {
+  const clock = new FakeClock()
+  const source = new FakeRenderState(2, 2)
+  const canvas = createCanvas()
+  const renderer = await createRenderer({
+    canvas,
+    columns: 2,
+    font: fittedFont(),
+    renderState: source,
+    rows: 2,
+    schedulerClock: clock,
+  })
+  clock.flushFrame()
+  source.dirtyRow(1)
+  renderer.notifyWrite()
+  expect(source.acknowledgements).toBe(1)
+  clock.flushFrame()
+  expect(source.acknowledgements).toBe(2)
+  canvas.remove()
+})
+
 it('captures retained records after presentation without acquiring another canvas texture', async () => {
   const clock = new FakeClock()
   const canvas = createCanvas()
