@@ -28,20 +28,13 @@ function shouldFail(mode: FailureMode, kind: 'webgl' | 'webgpu' | 'other'): bool
   return mode === kind
 }
 
-function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolveBody, reject) => {
-    const chunks: Buffer[] = []
-    request.on('data', (chunk: Buffer) => chunks.push(chunk))
-    request.on('end', () => {
-      try {
-        const text = Buffer.concat(chunks).toString('utf8')
-        resolveBody(text ? (JSON.parse(text) as Record<string, unknown>) : {})
-      } catch (cause) {
-        reject(cause)
-      }
-    })
-    request.on('error', reject)
-  })
+async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = []
+  for await (const chunk of request) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : (chunk as Buffer))
+  }
+  const text = Buffer.concat(chunks).toString('utf8')
+  return text ? (JSON.parse(text) as Record<string, unknown>) : {}
 }
 
 function macosWrapperSource(scenario: string): string {
