@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { parseSync } from 'oxc-parser'
 import { expect, it } from 'vitest'
 
-const workerDir = fileURLToPath(new URL('../../dist/worker/', import.meta.url))
+const distDir = fileURLToPath(new URL('../../dist/', import.meta.url))
+const workerDir = resolve(distDir, 'worker')
 
 function staticClosure(entry: string): string[] {
   const pending = new Set([resolve(workerDir, entry)])
@@ -29,24 +30,29 @@ function dynamicChunkFiles(entry: string): string[] {
   const source = readFileSync(file, 'utf8')
   const { errors, module } = parseSync(file, source)
   expect(errors, file).toEqual([])
-  const chunks: string[] = []
+  const chunks = new Set<string>()
   for (const entryImport of module.dynamicImports) {
     const raw = source.slice(entryImport.moduleRequest.start, entryImport.moduleRequest.end)
     if (!raw.startsWith('"./') && !raw.startsWith("'./")) continue
-    chunks.push(resolve(dirname(file), raw.slice(1, -1)))
+    chunks.add(resolve(dirname(file), raw.slice(1, -1)))
   }
-  return chunks
+  return Array.from(chunks)
 }
 
 it('splits WebGPU and WebGL renderers out of the static worker entry bundle', () => {
   const staticFiles = staticClosure('entry.js')
   const staticSource = staticFiles.map((file) => readFileSync(file, 'utf8')).join('\n')
+  const domFitSource = readFileSync(resolve(distDir, 'dom/fit.js'), 'utf8')
 
-  // Static worker startup must not eagerly parse either GPU backend or DOM fitting.
+  // Guard minification-surviving browser globals so accidental DOM fit imports fail.
+  expect(domFitSource).toContain('ResizeObserver')
+  expect(domFitSource).toContain('getComputedStyle')
+  expect(staticSource).not.toContain('ResizeObserver')
+  expect(staticSource).not.toContain('getComputedStyle')
+  expect(staticSource).not.toContain('dppx')
   expect(staticSource).not.toContain('#version 300 es')
   expect(staticSource).not.toContain('getPreferredCanvasFormat')
   expect(staticSource).not.toContain('createRenderPipeline')
-  expect(staticSource).not.toContain('TerminalFitController')
 
   const staticSet = new Set(staticFiles)
   const lazyChunks = dynamicChunkFiles('entry.js').filter((file) => !staticSet.has(file))
