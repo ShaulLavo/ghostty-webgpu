@@ -45,6 +45,13 @@ function positive(name: string, value: number): number {
   throw new RangeError(`${name} must be greater than zero`)
 }
 
+// Unlike slice(), this ignores Symbol.species and Buffer's view-returning slice.
+function ownedBytes(data: Uint8Array): Uint8Array {
+  const copy = new Uint8Array(data.byteLength)
+  copy.set(data)
+  return copy
+}
+
 function utf8ByteLength(text: string): number {
   let bytes = 0
   for (let index = 0; index < text.length; index += 1) {
@@ -112,9 +119,7 @@ export class TerminalWriteQueue<T> {
       incomingBytes = utf8ByteLength(data)
     if (incomingBytes > availableBytes) return Promise.reject(this.overflowError(incomingBytes))
 
-    // Node's Buffer#slice returns a view, so call the typed-array copy directly.
-    const owned =
-      typeof data === 'string' ? this.encoder.encode(data) : Uint8Array.prototype.slice.call(data)
+    const owned = typeof data === 'string' ? this.encoder.encode(data) : ownedBytes(data)
     if (owned.byteLength > this.maxBytes - this.pendingBytesValue)
       return Promise.reject(this.overflowError(owned.byteLength))
 

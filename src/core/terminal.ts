@@ -168,6 +168,12 @@ function selectionAbi(layouts: AbiLayouts): SizedAbi {
   return { size: layout.size, sizeField: fieldOffset(layout, 'size') }
 }
 
+// Shared readers keep scalar getters free of per-call closures.
+const readUint8 = (view: DataView, pointer: number): number => view.getUint8(pointer)
+const readUint16 = (view: DataView, pointer: number): number => view.getUint16(pointer, true)
+const readUint32 = (view: DataView, pointer: number): number => view.getUint32(pointer, true)
+const readInt32 = (view: DataView, pointer: number): number => view.getInt32(pointer, true)
+
 function decodeSafeUint64(view: DataView, pointer: number, name: string): number {
   const value = view.getBigUint64(pointer, true)
   if (value <= BigInt(Number.MAX_SAFE_INTEGER)) return Number(value)
@@ -762,11 +768,30 @@ export class GhosttyTerminal {
     this.ensureActive()
     const memory = this.runtime.memory
     const pointer = memory.borrow(size)
-    const result = this.runtime.exports.ghostty_terminal_get(this.handleValue, data, pointer)
-    if (result === GhosttyResult.Success) return pointer
-    memory.release(pointer, size)
-    assertGhosttyResult(`ghostty_terminal_get(${name})`, result)
+    let result: number = GhosttyResult.InvalidValue
+    try {
+      result = this.runtime.exports.ghostty_terminal_get(this.handleValue, data, pointer)
+    } finally {
+      // A trap or failure must not leave the shared scratch region claimed.
+      if (result !== GhosttyResult.Success) memory.release(pointer, size)
+    }
+    if (result !== GhosttyResult.Success)
+      assertGhosttyResult(`ghostty_terminal_get(${name})`, result)
     return pointer
+  }
+
+  private readScalar(
+    data: TerminalData,
+    size: number,
+    name: string,
+    read: (view: DataView, pointer: number) => number,
+  ): number {
+    const pointer = this.getRequired(data, size, name)
+    try {
+      return read(this.runtime.memory.view, pointer)
+    } finally {
+      this.runtime.memory.release(pointer, size)
+    }
   }
 
   private readOptionalData<T>(
@@ -792,31 +817,19 @@ export class GhosttyTerminal {
   }
 
   private readUint8(data: TerminalData, name: string): number {
-    const pointer = this.getRequired(data, 1, name)
-    const value = this.runtime.memory.view.getUint8(pointer)
-    this.runtime.memory.release(pointer, 1)
-    return value
+    return this.readScalar(data, 1, name, readUint8)
   }
 
   private readUint16(data: TerminalData, name: string): number {
-    const pointer = this.getRequired(data, 2, name)
-    const value = this.runtime.memory.view.getUint16(pointer, true)
-    this.runtime.memory.release(pointer, 2)
-    return value
+    return this.readScalar(data, 2, name, readUint16)
   }
 
   private readUint32(data: TerminalData, name: string): number {
-    const pointer = this.getRequired(data, 4, name)
-    const value = this.runtime.memory.view.getUint32(pointer, true)
-    this.runtime.memory.release(pointer, 4)
-    return value
+    return this.readScalar(data, 4, name, readUint32)
   }
 
   private readInt32(data: TerminalData, name: string): number {
-    const pointer = this.getRequired(data, 4, name)
-    const value = this.runtime.memory.view.getInt32(pointer, true)
-    this.runtime.memory.release(pointer, 4)
-    return value
+    return this.readScalar(data, 4, name, readInt32)
   }
 
   private setAllocatedOption(

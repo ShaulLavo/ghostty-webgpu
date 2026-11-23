@@ -702,7 +702,8 @@ class BrowserInputController implements DomInputController {
   private notifyKey(event: KeyboardEvent, bytes: TerminalInputResult): void {
     if (event.type !== 'keydown') return
     try {
-      this.options.hooks?.onKey?.(event, bytes.slice())
+      // The constructor copies without consulting Symbol.species on session-supplied bytes.
+      this.options.hooks?.onKey?.(event, new Uint8Array(bytes))
     } catch (cause) {
       this.options.onError(cause, 'onKey')
     }

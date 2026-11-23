@@ -53,7 +53,7 @@ export class WasmMemory {
   }
 
   allocateBytes(value: string | Uint8Array): WasmAllocation {
-    const bytes = typeof value === 'string' ? encoder.encode(value) : value
+    const bytes = typeof value === 'string' ? encoder.encode(value) : this.stableInput(value)
     // ghostty_wasm_alloc returns null for a zero length, which is not a failure.
     if (bytes.length === 0) return { length: 0, pointer: 0 }
 
@@ -86,21 +86,20 @@ export class WasmMemory {
    * region skips malloc, free and zero-fill; strings encode straight into linear memory.
    */
   withBytes(value: string | Uint8Array, use: (pointer: number, length: number) => void): void {
-    const length = this.stageScratch(value)
-    if (length >= 0) {
-      try {
-        use(this.scratchPointer, length)
-      } finally {
-        this.scratchBusy = false
-      }
+    const input = typeof value === 'string' ? value : this.stableInput(value)
+    if (this.scratchBusy || input.length > WASM_SCRATCH_BYTES) {
+      this.withAllocation(input, use)
       return
     }
-    const input = this.allocateBytes(value)
+    const pointer = this.claimScratch()
+    let length = -1
     try {
-      use(input.pointer, input.length)
+      length = this.stageScratch(pointer, input)
+      if (length >= 0) use(pointer, length)
     } finally {
-      this.freeBytes(input)
+      this.scratchBusy = false
     }
+    if (length < 0) this.withAllocation(input, use)
   }
 
   allocateOpaque(): number {
@@ -166,19 +165,35 @@ export class WasmMemory {
     return this.scratchPointer
   }
 
-  /** Returns the staged length, or -1 when the input must take the allocating path. */
-  private stageScratch(value: string | Uint8Array): number {
-    if (this.scratchBusy || value.length > WASM_SCRATCH_BYTES) return -1
-    const pointer = this.claimScratch()
+  /** Copies views of linear memory, which an allocation that grows memory would detach. */
+  private stableInput(value: Uint8Array): Uint8Array {
+    if (value.buffer !== this.exports.memory.buffer) return value
+    const copy = new Uint8Array(value.length)
+    copy.set(value)
+    return copy
+  }
+
+  /** Returns the staged length, or -1 when a string's UTF-8 overflows the region. */
+  private stageScratch(pointer: number, value: string | Uint8Array): number {
     const target = this.bytes.subarray(pointer, pointer + WASM_SCRATCH_BYTES)
     if (typeof value !== 'string') {
       target.set(value)
       return value.length
     }
     const result = encoder.encodeInto(value, target)
-    if (result.read === value.length) return result.written
-    this.scratchBusy = false
-    return -1
+    return result.read === value.length ? result.written : -1
+  }
+
+  private withAllocation(
+    value: string | Uint8Array,
+    use: (pointer: number, length: number) => void,
+  ): void {
+    const input = this.allocateBytes(value)
+    try {
+      use(input.pointer, input.length)
+    } finally {
+      this.freeBytes(input)
+    }
   }
 }
 

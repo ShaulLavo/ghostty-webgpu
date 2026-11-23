@@ -30,6 +30,30 @@ it('stages ASCII, multi-byte, astral and lone-surrogate strings without allocati
   expect(screenText(terminal)).toEqual(['warm', 'hé界😀�!', 'bytes'])
 })
 
+it('copies a view of linear memory before the cold scratch allocation grows memory', async () => {
+  runtime = await GhosttyRuntime.create()
+  const memory = runtime.memory
+  const terminal = runtime.createTerminal({ columns: 20, rows: 2 })
+  const pointer = memory.allocate(4)
+  memory.bytes.set(new TextEncoder().encode('abcd'), pointer)
+  const input = memory.bytes.subarray(pointer, pointer + 4)
+  const allocateRaw = memory.allocateRaw.bind(memory)
+  const wasm = runtime.exports.memory
+  const allocate = vi.spyOn(memory, 'allocateRaw').mockImplementation((length) => {
+    // Force the growth that detaches every existing view of linear memory.
+    wasm.grow(1)
+    return allocateRaw(length)
+  })
+  terminal.write(input)
+  expect(allocate).toHaveBeenCalledWith(WASM_SCRATCH_BYTES)
+  allocate.mockRestore()
+  memory.free(pointer, 4)
+  const warm = vi.spyOn(memory, 'allocateRaw')
+  terminal.write('ef')
+  expect(warm).not.toHaveBeenCalled()
+  expect(screenText(terminal)[0]).toBe('abcdef')
+})
+
 it('falls back to allocation for input larger than the scratch region', async () => {
   runtime = await GhosttyRuntime.create()
   const terminal = runtime.createTerminal({ columns: 16, rows: 2 })
