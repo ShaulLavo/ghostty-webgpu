@@ -22,7 +22,7 @@ function transport() {
   let previous: TerminalSubmittedSnapshot | undefined
   return {
     decoder,
-    send(rows: readonly RendererTextFrameRow[], layout = 1) {
+    send(rows: readonly RendererTextFrameRow[], layout = 1, theme = defaultRendererTheme) {
       const snapshot: RendererTextFrameSnapshot = {
         renderHeld: false,
         cursor: {
@@ -49,7 +49,7 @@ function transport() {
         },
         font,
         padding: { top: 1, right: 2, bottom: 3, left: 4 },
-        theme: defaultRendererTheme,
+        theme,
         selection: { start: { x: 0, y: 0 }, end: { x: 3, y: 0 }, rectangle: false },
         scrollbar: { length: rows.length, offset: 0, total: rows.length },
         snapshot,
@@ -103,6 +103,39 @@ test('transfers a full frame with exact UTF-16 text, cells, flags, and metadata'
     snapshot,
     summary,
   })
+})
+
+test('sends the font and theme once and restores them on later frames', () => {
+  const { send, decoder } = transport()
+  const first = send([row(0, 'one')])
+  expect(first.message.summary.font).toEqual(font)
+  expect(first.message.summary.theme).toEqual(defaultRendererTheme)
+  const old = decoder.decode(first.message)
+  const second = send([row(0, 'two')])
+  expect(second.message.summary).not.toHaveProperty('font')
+  expect(second.message.summary).not.toHaveProperty('theme')
+  const next = decoder.decode(second.message)
+  expect(next.summary).toEqual(second.summary)
+  expect(next.summary.font).toBe(old.summary.font)
+  expect(next.summary.theme).toBe(old.summary.theme)
+  // A replaced theme is a new identity, so it travels again; the unchanged font does not.
+  const recoloured = { ...defaultRendererTheme, background: { r: 1, g: 2, b: 3 } }
+  const third = send([row(0, 'two')], 1, recoloured)
+  expect(third.message.summary.theme).toEqual(recoloured)
+  expect(third.message.summary).not.toHaveProperty('font')
+  const last = decoder.decode(third.message)
+  expect(last.summary.theme).toEqual(recoloured)
+  expect(Object.isFrozen(last.summary.theme)).toBe(true)
+  expect(last.summary.font).toBe(old.summary.font)
+})
+
+test('rejects a later frame when its font and theme never arrived', () => {
+  const { send } = transport()
+  send([row(0, 'one')])
+  const second = send([row(0, 'two')])
+  expect(() => new RowDeltaDecoder().decode(second.message)).toThrow(
+    'Row delta is missing its font or theme',
+  )
 })
 
 test('packs continuation flags at one byte per cell', () => {

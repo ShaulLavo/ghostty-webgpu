@@ -47,33 +47,6 @@ function copiedAsciiRow(
   })
 }
 
-function copiedAsciiRows(
-  metadata: Uint32Array,
-  words: Uint32Array,
-  bytes: Uint8Array,
-  decoder: TextDecoder,
-): readonly RenderTextRow[] {
-  const length = words.length / cellWords
-  const blanks = new Uint32Array(Math.ceil(length / 32))
-  let index = 0
-  for (let offset = 0; offset < words.length; offset += cellWords) {
-    const codepoint = words[offset]!
-    bytes[index] = codepoint || 0x20
-    if (codepoint === 0) blanks[index >>> 5]! |= 1 << (index & 31)
-    index += 1
-  }
-  // The owned string and private bitmap outlive native records and scratch reuse.
-  const packet = decoder.decode(bytes.subarray(0, length))
-  const rows: RenderTextRow[] = []
-  for (let offset = 0; offset < metadata.length; offset += rowWords) {
-    const y = metadata[offset]!
-    const start = metadata[offset + 1]!
-    const length = metadata[offset + 2]!
-    rows.push(copiedAsciiRow(y, packet.slice(start, start + length), start, blanks))
-  }
-  return Object.freeze(rows)
-}
-
 function copiedTextRow(y: number, words: Uint32Array, graphemes: Uint32Array): RenderTextRow {
   let text = ''
   for (let offset = 0; offset < words.length; offset += cellWords) {
@@ -150,10 +123,72 @@ function ownedRows(
   return Object.freeze(rows)
 }
 
+/**
+ * The codepoints last read for each viewport row. A row redrawn with the same characters
+ * (colour-only damage) keeps its owned text object instead of being rebuilt and re-sent.
+ */
+class RetainedTextRows {
+  private codepoints = new Uint32Array(0)
+  private lengths = new Int32Array(0)
+  private rows: (RenderTextRow | undefined)[] = []
+  private columns = 0
+
+  /** A different grid forgets every row. */
+  resize(grid: Pick<TerminalSize, 'columns' | 'rows'>): void {
+    if (grid.columns === this.columns && grid.rows === this.rows.length) return
+    this.columns = grid.columns
+    this.codepoints = new Uint32Array(grid.columns * grid.rows)
+    this.lengths = new Int32Array(grid.rows).fill(-1)
+    this.rows = []
+    for (let y = 0; y < grid.rows; y += 1) this.rows.push(undefined)
+  }
+
+  forget(): void {
+    this.rows.fill(undefined)
+  }
+
+  canHold(y: number, length: number): boolean {
+    return y < this.rows.length && length <= this.columns
+  }
+
+  /** One pass both compares and stores; the retained row comes back only when nothing changed. */
+  match(y: number, words: Uint32Array, start: number, length: number): RenderTextRow | undefined {
+    const base = y * this.columns
+    const codepoints = this.codepoints
+    let same = this.lengths[y] === length
+    for (let index = 0; index < length; index += 1) {
+      const codepoint = words[(start + index) * cellWords]!
+      if (codepoints[base + index] === codepoint) continue
+      codepoints[base + index] = codepoint
+      same = false
+    }
+    this.lengths[y] = length
+    if (!same) this.rows[y] = undefined
+    return this.rows[y]
+  }
+
+  retain(row: RenderTextRow): void {
+    this.rows[row.y] = row
+  }
+
+  /** Appends one stored ASCII row to a packet and returns the next packet index. */
+  appendAscii(y: number, length: number, bytes: Uint8Array, blanks: Uint32Array, index: number) {
+    const base = y * this.columns
+    for (let column = 0; column < length; column += 1) {
+      const codepoint = this.codepoints[base + column]!
+      bytes[index] = codepoint || 0x20
+      if (codepoint === 0) blanks[index >>> 5]! |= 1 << (index & 31)
+      index += 1
+    }
+    return index
+  }
+}
+
 export class TextRowReader {
   private readonly snapshots: SnapshotReader
   private readonly decoder = new TextDecoder()
   private asciiBytes: Uint8Array = new Uint8Array(0)
+  private readonly retained = new RetainedTextRows()
 
   constructor(
     runtime: GhosttyRuntime,
@@ -177,18 +212,23 @@ export class TextRowReader {
   ): readonly RenderTextRow[] {
     if (grid.rows === 0) return Object.freeze([])
     const snapshot = this.snapshots.read(state, iterator, cells, grid, options)
-    if (snapshot.graphemes.length === 0 && (this.snapshots.codepointMask & ~0x7f) === 0) {
+    const ascii = snapshot.graphemes.length === 0 && (this.snapshots.codepointMask & ~0x7f) === 0
+    if (ascii) {
       const length = snapshot.cells.length / cellWords
       if (this.asciiBytes.length < length) this.asciiBytes = new Uint8Array(length)
-      if (this.ownership === 'row')
-        return ownedRows(snapshot.rows, snapshot.cells, snapshot.graphemes, {
-          bytes: this.asciiBytes,
-          decoder: this.decoder,
-        })
-      return copiedAsciiRows(snapshot.rows, snapshot.cells, this.asciiBytes, this.decoder)
     }
     if (this.ownership === 'row')
-      return ownedRows(snapshot.rows, snapshot.cells, snapshot.graphemes, undefined)
+      return ownedRows(
+        snapshot.rows,
+        snapshot.cells,
+        snapshot.graphemes,
+        ascii ? { bytes: this.asciiBytes, decoder: this.decoder } : undefined,
+      )
+    this.retained.resize(grid)
+    // Without graphemes the first word of every cell fully determines the row's text.
+    if (snapshot.graphemes.length === 0 && this.retainable(snapshot.rows))
+      return this.packetRows(snapshot.rows, ascii ? snapshot.cells : snapshot.cells.slice(), ascii)
+    this.retained.forget()
     const records = snapshot.cells.slice()
     const graphemes = snapshot.graphemes.slice()
     const rows: RenderTextRow[] = []
@@ -199,6 +239,81 @@ export class TextRowReader {
       rows.push(copiedTextRow(y, records.subarray(start, end), graphemes))
     }
     return Object.freeze(rows)
+  }
+
+  private retainable(metadata: Uint32Array): boolean {
+    for (let offset = 0; offset < metadata.length; offset += rowWords) {
+      if (!this.retained.canHold(metadata[offset]!, metadata[offset + 2]!)) return false
+    }
+    return true
+  }
+
+  /** `words` is borrowed for ASCII packets and an owned copy otherwise. */
+  private packetRows(
+    metadata: Uint32Array,
+    words: Uint32Array,
+    ascii: boolean,
+  ): readonly RenderTextRow[] {
+    const rows: (RenderTextRow | undefined)[] = []
+    let changed = 0
+    for (let offset = 0; offset < metadata.length; offset += rowWords) {
+      const row = this.retained.match(
+        metadata[offset]!,
+        words,
+        metadata[offset + 1]!,
+        metadata[offset + 2]!,
+      )
+      rows.push(row)
+      if (!row) changed += 1
+    }
+    if (changed > 0 && ascii) this.buildAsciiRows(metadata, rows, words.length / cellWords)
+    if (changed > 0 && !ascii) this.buildPlainRows(metadata, words, rows)
+    return Object.freeze(rows as RenderTextRow[])
+  }
+
+  // Changed ASCII rows share one decoded packet and one blank bitmap, built from the store.
+  // The owned string and private bitmap outlive native records and scratch reuse.
+  private buildAsciiRows(
+    metadata: Uint32Array,
+    rows: (RenderTextRow | undefined)[],
+    cellCount: number,
+  ): void {
+    const bytes = this.asciiBytes
+    const blanks = new Uint32Array(Math.ceil(cellCount / 32))
+    const starts: number[] = []
+    let end = 0
+    for (let index = 0; index < rows.length; index += 1) {
+      starts.push(end)
+      if (rows[index]) continue
+      const offset = index * rowWords
+      end = this.retained.appendAscii(metadata[offset]!, metadata[offset + 2]!, bytes, blanks, end)
+    }
+    const packet = this.decoder.decode(bytes.subarray(0, end))
+    for (let index = 0; index < rows.length; index += 1) {
+      if (rows[index]) continue
+      const offset = index * rowWords
+      const start = starts[index]!
+      const text = packet.slice(start, start + metadata[offset + 2]!)
+      const row = copiedAsciiRow(metadata[offset]!, text, start, blanks)
+      rows[index] = row
+      this.retained.retain(row)
+    }
+  }
+
+  private buildPlainRows(
+    metadata: Uint32Array,
+    records: Uint32Array,
+    rows: (RenderTextRow | undefined)[],
+  ): void {
+    for (let index = 0; index < rows.length; index += 1) {
+      if (rows[index]) continue
+      const offset = index * rowWords
+      const start = metadata[offset + 1]! * cellWords
+      const end = start + metadata[offset + 2]! * cellWords
+      const row = copiedTextRow(metadata[offset]!, records.subarray(start, end), emptyGraphemes)
+      rows[index] = row
+      this.retained.retain(row)
+    }
   }
 
   dispose(): void {

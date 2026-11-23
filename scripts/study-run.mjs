@@ -7,6 +7,8 @@ import { join, resolve, extname } from 'node:path'
 import { chromium } from 'playwright'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
+import { gzipSync } from 'node:zlib'
+import { createServer } from 'node:http'
 import { createGpuGate } from './comparison-gpu.mjs'
 import { measureCpu } from './comparison-guards.mjs'
 
@@ -18,7 +20,9 @@ const variants = (
 ).split(',')
 if (process.env.STUDY_FENCED === '1')
   assert(
-    variants.every((variant) => ['ghostty-webgpu', 'wraith-native'].includes(variant)),
+    variants.every((variant) =>
+      ['ghostty-webgpu', 'ghostty-worker-webgpu', 'wraith-native'].includes(variant),
+    ),
     'GPU completion requires an instrumented WebGPU entry',
   )
 const counts = (process.env.STUDY_COUNTS ?? '1').split(',').map(Number)
@@ -27,6 +31,7 @@ const repetitions = mode === 'smoke' ? 1 : Number(process.env.STUDY_REPETITIONS 
 const repetitionOffset = Number(process.env.STUDY_REPETITION_OFFSET ?? 0)
 const steps = Number(process.env.STUDY_STEPS ?? 120)
 const dpr = Number(process.env.STUDY_DPR ?? 2)
+const traced = process.env.STUDY_TRACE === '1'
 const workloadRoot = process.env.STUDY_WORKLOAD_ROOT
 const workloads = {}
 if (workloadRoot) {
@@ -70,8 +75,13 @@ const temporary = await mkdtemp(
 process.env.TMPDIR = temporary
 let browser
 let session
+const server = createServer((request, response) => void serve(request, response))
+await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+const origin = `http://127.0.0.1:${server.address().port}`
 async function cleanup() {
   await browser?.close()
+  server.closeAllConnections()
+  server.close()
   await rm(temporary, { recursive: true, force: true })
 }
 for (const [signal, code] of [
@@ -152,9 +162,16 @@ async function processMemory() {
   )
 }
 
-async function route(route) {
-  const path = new URL(route.request().url()).pathname
+// A real server also answers requests workers make themselves, such as lazy module chunks.
+async function serve(request, response) {
+  const path = new URL(request.url, 'http://study.invalid').pathname
   const name = path === '/' ? 'index.html' : path.slice(1)
+  // A missing favicon would log a console error and fail the run's clean-console check.
+  if (name === 'favicon.ico') {
+    response.writeHead(204)
+    response.end()
+    return
+  }
   const types = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -166,9 +183,11 @@ async function route(route) {
   }
   try {
     const body = await readFile(join(bundle, name))
-    await route.fulfill({ body, contentType: types[extname(name)] ?? 'text/plain' })
+    response.writeHead(200, { 'content-type': types[extname(name)] ?? 'text/plain' })
+    response.end(body)
   } catch {
-    await route.fulfill({ status: 404, body: name })
+    response.writeHead(404)
+    response.end(name)
   }
 }
 
@@ -217,7 +236,6 @@ async function run(testCase) {
     if (message.text().startsWith('STUDY_WEBGPU_ADAPTER '))
       workerAdapters.push(JSON.parse(message.text().slice('STUDY_WEBGPU_ADAPTER '.length)))
   })
-  await page.route('http://localhost:41783/**', route)
   const run = {
     ...testCase,
     startedAt: new Date().toISOString(),
@@ -227,7 +245,7 @@ async function run(testCase) {
   }
   result.runs.push(run)
   try {
-    await page.goto('http://localhost:41783/?study=1')
+    await page.goto(`${origin}/?study=1`)
     await page.waitForFunction(() => window.__compare)
     await page.evaluate((testCase) => window.__compare.initialize(testCase), testCase)
     await Promise.race([
@@ -331,22 +349,44 @@ async function measureWorkload(page, run, fixture, repetition, variant, count) {
   const beforeInfo = await page.evaluate(() => window.__compare.studyInfo())
   studyCanvases(beforeInfo, variant, count)
   const idle = await gate.waitForIdle()
-  const window = await gate.monitorWindow(
-    () =>
-      measureCpu(
-        session,
-        () =>
-          page.evaluate(
-            ({ name, steps, external }) =>
-              external ? window.__compare.studyRun(steps) : window.__compare.burst(name, steps),
-            { name: fixture, steps, external: Boolean(workloadRoot) },
-          ),
-        { tickSeconds: 0.01 },
-      ),
-    { sampleMilliseconds: 1000 },
-  )
+  // Tracing perturbs timing: traced windows explain where time goes, they are not results.
+  if (traced)
+    await browser.startTracing(page, {
+      categories: [
+        'toplevel',
+        'devtools.timeline',
+        'disabled-by-default-devtools.timeline',
+        'v8.execute',
+        'disabled-by-default-v8.cpu_profiler',
+        'gpu',
+      ],
+    })
+  let window
+  try {
+    window = await gate.monitorWindow(
+      () =>
+        measureCpu(
+          session,
+          () =>
+            page.evaluate(
+              ({ name, steps, external }) =>
+                external ? window.__compare.studyRun(steps) : window.__compare.burst(name, steps),
+              { name: fixture, steps, external: Boolean(workloadRoot) },
+            ),
+          { tickSeconds: 0.01 },
+        ),
+      { sampleMilliseconds: 1000 },
+    )
+  } finally {
+    if (traced)
+      await writeFile(
+        join(output, `${variant}-${count}-${fixture}-r${repetition}.trace.json.gz`),
+        gzipSync(await browser.stopTracing()),
+      )
+  }
   run.workloads[fixture] = {
     ...window.value,
+    traced,
     gpu: window.gpu,
     gpuIdle: idle,
     beforeInfo,

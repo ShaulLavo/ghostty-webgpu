@@ -48,6 +48,10 @@ export interface WorkerState {
   readonly mouseTracking: boolean
   readonly backend?: 'webgpu' | 'webgl2'
 }
+/** Wire state: the appearance travels only when its identity changed since the last message. */
+export type WorkerStateUpdate = Omit<WorkerState, 'appearance'> & {
+  readonly appearance?: TerminalAppearance
+}
 export interface WorkerSubmission extends WorkerWatermarks {
   readonly type: 'frame'
   readonly mouseTracking: boolean
@@ -58,7 +62,9 @@ export interface WorkerSubmission extends WorkerWatermarks {
 
 export interface WorkerFrameDelta extends Omit<WorkerSubmission, 'snapshot' | 'summary'> {
   readonly snapshot: Omit<RendererTextFrameSnapshot, 'rows'>
-  readonly summary: Omit<TerminalSubmittedSnapshot, 'rows' | 'rowPatches'>
+  // Font and theme travel only when their identity changed since the previous frame.
+  readonly summary: Omit<TerminalSubmittedSnapshot, 'rows' | 'rowPatches' | 'font' | 'theme'> &
+    Partial<Pick<TerminalSubmittedSnapshot, 'font' | 'theme'>>
   readonly order: readonly number[]
   readonly patches: readonly number[]
   readonly buffer: ArrayBuffer
@@ -128,7 +134,7 @@ export type WorkerRequest = {
 interface WorkerReply extends WorkerWatermarks {
   readonly type: 'reply'
   readonly id: number
-  readonly state: WorkerState
+  readonly state: WorkerStateUpdate
   readonly result?: unknown
   readonly failure?: WorkerFailure
 }
@@ -137,7 +143,7 @@ type WorkerEvent = {
     readonly type: 'event'
     readonly event: K
     readonly value: TerminalSessionEventMap[K]
-    readonly state: WorkerState
+    readonly state: WorkerStateUpdate
   }
 }[Exclude<keyof TerminalSessionEventMap, 'renderRequest'>]
 export interface WorkerCanvasReplacement extends WorkerIdentity {

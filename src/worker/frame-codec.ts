@@ -159,10 +159,12 @@ class RowReader {
 
 export class RowDeltaEncoder {
   private rows = new Map<number, RendererTextFrameRow>()
+  private font?: WorkerSubmission['summary']['font']
+  private theme?: WorkerSubmission['summary']['theme']
 
   encode(frame: WorkerSubmission): WorkerFrameDelta {
     const { rows, cursor, paintedCursor, renderHeld } = frame.snapshot
-    const { rows: summaryRows, rowPatches, ...summary } = frame.summary
+    const { rows: summaryRows, rowPatches, font, theme, ...summary } = frame.summary
     if (summaryRows.length !== rows.length) throw new Error('Summary and renderer rows diverged')
     const next = new Map<number, RendererTextFrameRow>()
     const changed: RendererTextFrameRow[] = []
@@ -182,10 +184,17 @@ export class RowDeltaEncoder {
     writer.uint32(changed.length)
     for (const row of changed) writer.row(row)
     this.rows = next
+    // The decoder keeps the last font and theme, so only a new identity is sent.
+    const appearance = {
+      ...(font === this.font ? {} : { font }),
+      ...(theme === this.theme ? {} : { theme }),
+    }
+    this.font = font
+    this.theme = theme
     return {
       ...frame,
       snapshot: { cursor, paintedCursor, renderHeld },
-      summary,
+      summary: { ...summary, ...appearance },
       order,
       patches: rowPatches.map((row) => row.y),
       buffer: writer.buffer,
@@ -200,9 +209,13 @@ interface DecodedRow {
 
 export class RowDeltaDecoder {
   private rows = new Map<number, DecodedRow>()
+  private font?: WorkerSubmission['summary']['font']
+  private theme?: WorkerSubmission['summary']['theme']
 
   reset(): void {
     this.rows.clear()
+    this.font = undefined
+    this.theme = undefined
   }
 
   decode(frame: WorkerFrameDelta): WorkerSubmission {
@@ -253,16 +266,23 @@ export class RowDeltaDecoder {
       rowPatches.push(row.summary)
     }
 
+    const font = summary.font ?? this.font
+    const theme = summary.theme ?? this.theme
+    if (!font || !theme) throw new Error('Row delta is missing its font or theme')
     const decoded = {
       ...header,
       snapshot: freezeWorkerValue({ ...snapshot, rows: Object.freeze(rendererRows) }),
       summary: freezeWorkerValue({
         ...summary,
+        font,
+        theme,
         rows: Object.freeze(summaryRows),
         rowPatches: Object.freeze(rowPatches),
       }),
     }
     this.rows = next
+    this.font = decoded.summary.font
+    this.theme = decoded.summary.theme
     return decoded
   }
 }

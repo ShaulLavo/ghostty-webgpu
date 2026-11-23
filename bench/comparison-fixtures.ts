@@ -8,7 +8,12 @@ export const variants = [
   { id: 'ghostty-web', library: 'ghostty-web', renderer: 'canvas2d' },
 ] as const
 
-export type Variant = (typeof variants)[number]['id'] | 'wraith-native' | 'nm-webgpu'
+export type Variant =
+  | (typeof variants)[number]['id']
+  | 'ghostty-worker-webgpu'
+  | 'ghostty-worker-webgl'
+  | 'wraith-native'
+  | 'nm-webgpu'
 export type WritePath = 'bytes' | 'string'
 export const rollingFixtureNames = ['rolling-logs', 'rolling-unicode-logs', 'rolling-slow'] as const
 export type RollingFixtureName = (typeof rollingFixtureNames)[number]

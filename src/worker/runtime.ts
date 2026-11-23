@@ -77,6 +77,7 @@ export class TerminalWorkerRuntime {
   private output = 0
   private control = 0
   private acceptedControl = 0
+  private postedAppearance?: WorkerState['appearance']
   private prefetchedDevice?: GPUDevice
   private prefetchedAcquisition?: Promise<GPUDevice>
   private gpuRenderer?: Promise<WebGpuTerminalRenderer>
@@ -765,11 +766,25 @@ export class TerminalWorkerRuntime {
   }
   private post(message: WorkerMessage<WorkerFrameDelta>, transfer?: Transferable[]): void {
     if (this.closed) return
+    const outgoing = this.withoutPostedAppearance(message)
     if (transfer) {
-      this.initialize.port.postMessage(message, transfer)
+      this.initialize.port.postMessage(outgoing, transfer)
       return
     }
-    this.initialize.port.postMessage(message)
+    this.initialize.port.postMessage(outgoing)
+  }
+
+  // Cloning the 256-colour theme into every reply dominated host message time.
+  private withoutPostedAppearance(
+    message: WorkerMessage<WorkerFrameDelta>,
+  ): WorkerMessage<WorkerFrameDelta> {
+    if (!('state' in message) || !message.state.appearance) return message
+    const { appearance, ...state } = message.state
+    if (appearance !== this.postedAppearance) {
+      this.postedAppearance = appearance
+      return message
+    }
+    return { ...message, state } as WorkerMessage<WorkerFrameDelta>
   }
 
   private stop(): void {

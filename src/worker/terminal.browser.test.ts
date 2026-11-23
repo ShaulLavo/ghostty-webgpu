@@ -1165,6 +1165,36 @@ it.each(['webgl', 'webgpu'] as const)(
   20_000,
 )
 
+it.each(['webgl', 'webgpu'] as const)(
+  '%s keeps the confirmed appearance across writes and sends only a view’s bytes',
+  async (backend) => {
+    const terminal = await create(backend)
+    await terminal.open(container())
+    const appearance = terminal.appearance
+    const padded = new TextEncoder().encode('....view bytes....')
+    await terminal.write(padded.subarray(4, 14))
+    // Replies omit an unchanged appearance, so the host keeps the same frozen object.
+    expect(terminal.appearance).toBe(appearance)
+    expect(new TextDecoder().decode(padded)).toBe('....view bytes....')
+    expect((await terminal.readLines(0, 1))[0]?.text.trimEnd()).toBe('view bytes')
+    const background = { r: 1, g: 2, b: 3 }
+    await terminal.setTheme({ ...terminal.appearance.theme, background })
+    const themed = terminal.appearance
+    expect(themed).not.toBe(appearance)
+    expect(themed.theme.background).toEqual(background)
+    await terminal.write(' more')
+    expect(terminal.appearance).toBe(themed)
+    await eventually(
+      () =>
+        terminal.visibleLines()[0]?.trimEnd() === 'view bytes more' &&
+        terminal.submittedFrame?.theme.background.b === 3,
+    )
+    expect(Object.isFrozen(terminal.submittedFrame!.theme)).toBe(true)
+    expect(terminal.submittedFrame!.font.settings.family).toBe(family)
+  },
+  20_000,
+)
+
 it('processes transferred producer output before an explicit control fence and actor disposal', async () => {
   await requireWorkerWebGl()
   const terminal = await WorkerTerminal.create({
