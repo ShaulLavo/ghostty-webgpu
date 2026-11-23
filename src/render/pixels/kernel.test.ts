@@ -3,7 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { ComposeKernel, type ComposeExports } from './kernel.js'
+import { runtimeWasmAssets } from '../../core/assets.js'
+import { canvasWasmAssets, ComposeKernel, type ComposeExports } from './kernel.js'
 
 const root = resolve(import.meta.dirname, '../../..')
 const compilerAvailable = spawnSync('zig', ['version']).status === 0
@@ -191,6 +192,13 @@ function verifyMemoryEndMoves(kernel: ComposeKernel, width: number): void {
 }
 
 describe('compositor asset loading', () => {
+  it('declares the same compositor files as the package asset manifest', () => {
+    expect(canvasWasmAssets.canvasCompose.href).toBe(runtimeWasmAssets.canvasCompose.href)
+    expect(canvasWasmAssets.canvasComposeScalar.href).toBe(
+      runtimeWasmAssets.canvasComposeScalar.href,
+    )
+  })
+
   it('loads an explicit compositor URL', async () => {
     const bytes = readFileSync(resolve(root, 'canvas-compose.wasm'))
     const asset = new URL('https://assets.test/custom-compositor.wasm')

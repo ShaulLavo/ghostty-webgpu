@@ -41,8 +41,23 @@
       "-O",
       "ReleaseSmall"
     ],
+    "postLink": {
+      "exports": "scripts/ghostty-vt-exports.ts",
+      "wasmOpt": {
+        "version": "wasm-opt version 132 (version_132)",
+        "flags": [
+          "--mvp-features",
+          "--enable-bulk-memory",
+          "--enable-mutable-globals",
+          "--enable-nontrapping-float-to-int",
+          "--enable-sign-ext",
+          "--enable-simd",
+          "--remove-unused-module-elements"
+        ]
+      }
+    },
     "inputs": {
-      "scripts/build-wasm.ts": "91442f6b080a347aed96e61a7c592576102e9a82851d93013aba30f050847302",
+      "scripts/build-wasm.ts": "bdebe3b657784c8b3cf3db88bfb2c079edb86d2cbda560e1262bfc1b04b5520d",
       "scripts/bridge.zig": "f83322de9290a587370cebf6569e224e398f7dcd793b83706e1cfc3416251653",
       "scripts/row-index.zig": "9d09589b7091bd22447503e24a5642d87575c99aed9ac89f5f91205f0578bf44",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
@@ -50,19 +65,21 @@
       "scripts/glyph-index.zig": "794a84519609363599996105634f5e7cdc3554cbb2abac74a2e859b370dd0ee2",
       "scripts/unknown-osc.zig": "99b6aa177a66bb6df934a8c16d17ebcb5488f15946600e1df52bf6d10a77b5d7",
       "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
-      "scripts/wasm-provenance.ts": "2f7daaa452fe9d9b6915a57c7616039f862dfdfcb54bb2700f0f8d0171331d8a",
+      "scripts/ghostty-vt-exports.ts": "059b0cdd5862ebad9df92d443fc9b85b31f72b73183d3f613c07187078ff1592",
+      "scripts/wasm-exports.ts": "1b03a3db978bfe750cb0361a5b2d028e1e2fe56dc02004cce19a69024af60be9",
+      "scripts/wasm-provenance.ts": "4a83f0b64130693725f31cdc108e2d0d5c4045196260524000380d85b8bad03a",
       "src/core/version.ts": "a9f9166ef443f4fa2b0b2d43385802bad9efe4825d996cad0b7efa5db107d6fb"
     }
   },
   "artifacts": {
     "ghostty-vt.wasm": {
-      "bytes": 821390,
-      "sha256": "de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426",
+      "bytes": 672435,
+      "sha256": "2f1aaf70f4cfc3310f0fe896bc446ce7a007ea063ef175fd8d105be7781f627e",
       "nameSectionSha256": []
     },
     "bridge.wasm": {
-      "bytes": 33657,
-      "sha256": "d10be7a2beec1a5dcbd82b9db5b13c62c970f2afde408ed88d31021b0dcf00cd",
+      "bytes": 31927,
+      "sha256": "42c56087d4a75b7d39c5905646c8287696574456cc05f7260804b539fab87aaa",
       "nameSectionSha256": []
     }
   }

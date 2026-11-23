@@ -1,4 +1,4 @@
-import { runtimeWasmAssets } from '../core/assets.js'
+import { terminalWasmAssets } from '../core/assets.js'
 import { TerminalHost } from '../dom/terminal-host.js'
 import type { GhosttyWebGpuTerminalFromSessionOptions } from '../dom/types.js'
 import { WorkerTerminalExecution } from './execution.js'
@@ -36,8 +36,8 @@ export const Terminal = Object.freeze({
     }
     const execution = await WorkerTerminalExecution.create({
       assets: options.assets ?? {
-        wasm: runtimeWasmAssets.native.href,
-        bridge: runtimeWasmAssets.bridge.href,
+        wasm: terminalWasmAssets.native.href,
+        bridge: terminalWasmAssets.bridge.href,
       },
       backend: options.backend ?? 'auto',
       textBlink: options.textBlink,

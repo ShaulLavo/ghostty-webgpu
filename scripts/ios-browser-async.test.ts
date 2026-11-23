@@ -117,13 +117,12 @@ test('the batch retains original clocks, cleanup loops, synthetic event and real
   assert(scroll.includes("new WheelEvent('wheel', { cancelable: true, deltaMode: 1, deltaY: -1 })"))
   assert(scroll.includes('for (const cleanup of cleanups.splice(0).reverse()) cleanup()'))
   assert.equal(scroll.match(/await Promise\.resolve\(\)/g)?.length, 2)
-  for (const [path, digest] of [
-    ['ghostty-vt.wasm', 'de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426'],
-    ['bridge.wasm', 'd10be7a2beec1a5dcbd82b9db5b13c62c970f2afde408ed88d31021b0dcf00cd'],
-  ] as const) {
+  const provenance = new URL('../ghostty-vt.provenance.json', import.meta.url)
+  const { artifacts } = JSON.parse(await readFile(provenance, 'utf8'))
+  for (const path of ['ghostty-vt.wasm', 'bridge.wasm'] as const) {
     const bytes = await readFile(new URL(`../${path}`, import.meta.url))
     assert.equal(bytes.subarray(0, 4).toString('hex'), '0061736d')
-    assert.equal(sha256(bytes), digest)
+    assert.equal(sha256(bytes), artifacts[path].sha256)
   }
 })
 

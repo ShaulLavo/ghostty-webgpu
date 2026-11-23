@@ -1,6 +1,7 @@
 import { deepStrictEqual } from 'node:assert'
 import { resolve } from 'node:path'
 import { chromium } from 'playwright'
+import { GhosttyResult, TerminalData, TerminalOption } from '../src/core/abi.ts'
 import { swiftShaderArgs, swiftShaderEnv } from './swiftshader-launch.mjs'
 
 // CPU-side copy costs only; SwiftShader lets the same headless Chromium launch everywhere.
@@ -23,16 +24,19 @@ const browser = await chromium.launch({ args: [...swiftShaderArgs], env: swiftSh
 try {
   const page = await browser.newPage()
   await page.goto(`http://127.0.0.1:${server.port}`)
-  const fixtures = await page.evaluate(async () => {
+  // The built package inlines these const enums, so the page receives their values from here.
+  const enums = {
+    TerminalOption: { ScrollbackMaxBytes: TerminalOption.ScrollbackMaxBytes },
+    TerminalData: { ScrollbackMaxBytes: TerminalData.ScrollbackMaxBytes },
+    GhosttyResult: { Success: GhosttyResult.Success, NoValue: GhosttyResult.NoValue },
+  }
+  const fixtures = await page.evaluate(async ({ TerminalOption, TerminalData, GhosttyResult }) => {
     const { GhosttyRuntime } = (await import(
       `${location.origin}/dist/core/runtime.js`
     )) as typeof import('../src/core/runtime.js')
     const { GhosttySelectionGesture } = (await import(
       `${location.origin}/dist/core/selection.js`
     )) as typeof import('../src/core/selection.js')
-    const { TerminalOption, TerminalData, GhosttyResult } = (await import(
-      `${location.origin}/dist/core/abi.js`
-    )) as typeof import('../src/core/abi.js')
     const results = []
     for (const retainedRows of [1025, 50001]) {
       const runtime = await GhosttyRuntime.create()
@@ -131,7 +135,7 @@ try {
       }
     }
     return results
-  })
+  }, enums)
   if (process.argv[3]) {
     const baseline = await Bun.file(process.argv[3]).json()
     deepStrictEqual(

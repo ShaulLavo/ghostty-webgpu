@@ -9,10 +9,8 @@ import { resultFixture, receiptFixture } from './fixtures/ios-browser/result-fix
 import { verifyNativeStage } from './ios-browser-verify.ts'
 
 const original = new URL('../src/dom/tests/measurement.browser.test.ts', import.meta.url)
-const assets = [
-  ['ghostty-vt.wasm', 'de411c7abb6af40aa9c077b79c373cf11952e7801133d0855cdf3723be5b1426'],
-  ['bridge.wasm', 'd10be7a2beec1a5dcbd82b9db5b13c62c970f2afde408ed88d31021b0dcf00cd'],
-] as const
+const assets = ['ghostty-vt.wasm', 'bridge.wasm'] as const
+const provenance = new URL('../ghostty-vt.provenance.json', import.meta.url)
 
 function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex')
@@ -31,10 +29,11 @@ test('the complete measurement stage binds the unchanged file and real Wasm inpu
   if (request.kind !== 'run') throw new Error('Expected the explicit run request')
   assert.equal(request.options.stage, 'measurement')
   assert.equal(sha256(await readFile(original)), nativeSourceHashes.measurement)
-  for (const [path, digest] of assets) {
+  const { artifacts } = JSON.parse(await readFile(provenance, 'utf8'))
+  for (const path of assets) {
     const bytes = await readFile(new URL(`../${path}`, import.meta.url))
     assert.equal(bytes.subarray(0, 4).toString('hex'), '0061736d')
-    assert.equal(sha256(bytes), digest)
+    assert.equal(sha256(bytes), artifacts[path].sha256)
   }
   assert.throws(() => parseNativeArguments(['--stage', 'measurement']))
   assert.throws(() =>
