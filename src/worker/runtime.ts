@@ -8,13 +8,14 @@ import {
   fittedFontEquals,
   gridEquals,
   paddingEquals,
-} from '../dom/fit.js'
+} from '../term/fit-math.js'
 import type { GhosttyWebGpuRenderer } from '../dom/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
 import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
 import { type WebGpuTerminalRendererOptions } from '../render/shared/types.js'
-import { WebGpuTerminalRenderer, WebGpuUnavailableError } from '../render/webgpu/renderer.js'
-import { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
+import type { WebGpuTerminalRenderer } from '../render/webgpu/renderer.js'
+import { WebGpuUnavailableError } from '../render/webgpu/unavailable.js'
+import type { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
 import { WebGlUnavailableError } from '../render/webgl/unavailable.js'
 import type {
   TerminalFittedFont,
@@ -62,6 +63,25 @@ function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
   )
 }
 
+function loadDynamic<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return load()
+  } catch (cause) {
+    // Vitest wraps dynamic imports with __vitest_browser_runner__, which is absent in dynamic-URL workers.
+    if (
+      cause instanceof TypeError &&
+      cause.message.includes('wrapDynamicImport') &&
+      !('__vitest_browser_runner__' in globalThis)
+    ) {
+      Object.defineProperty(globalThis, '__vitest_browser_runner__', {
+        value: { wrapDynamicImport: <U>(run: () => Promise<U>) => run() },
+      })
+      return load()
+    }
+    throw cause
+  }
+}
+
 export class TerminalWorkerRuntime {
   private startupExecution?: Promise<LocalTerminalExecution>
   private execution?: LocalTerminalExecution
@@ -78,6 +98,8 @@ export class TerminalWorkerRuntime {
   private acceptedControl = 0
   private prefetchedDevice?: GPUDevice
   private prefetchedAcquisition?: Promise<GPUDevice>
+  private webgpuModule?: Promise<typeof import('../render/webgpu/renderer.js')>
+  private webglModule?: Promise<typeof import('../render/webgl/renderer.js')>
   private gpuRenderer?: Promise<WebGpuTerminalRenderer>
   private cleanupPromise?: Promise<void>
   private acquiredDevices = 0
@@ -129,6 +151,7 @@ export class TerminalWorkerRuntime {
     port.start()
     try {
       const faces = this.prepareFonts()
+      this.prefetchBackend()
       const startupExecution = LocalTerminalExecution.create(
         {
           appearance: this.initialize.appearance,
@@ -290,7 +313,7 @@ export class TerminalWorkerRuntime {
     // The font reader loads only when ligatures are on.
     const ligatures = option
       ? await (
-          await import('../render/shared/ligatures/finder.js')
+          await loadDynamic(() => import('../render/shared/ligatures/finder.js'))
         ).resolveLigatureFinder(option, font, this.regularFaceSource(font.settings))
       : undefined
     if (this.disposed) throw workerError('disposed', 'open', { disposed: true })
@@ -331,17 +354,41 @@ export class TerminalWorkerRuntime {
     return font
   }
 
+  private plannedBackends(): readonly GpuBackend[] {
+    return this.initialize.backend === 'auto' ? automaticGpuBackends() : [this.initialize.backend]
+  }
+
+  private loadWebGpuModule(): Promise<typeof import('../render/webgpu/renderer.js')> {
+    return (this.webgpuModule ??= loadDynamic(() => import('../render/webgpu/renderer.js')))
+  }
+
+  private loadWebGlModule(): Promise<typeof import('../render/webgl/renderer.js')> {
+    return (this.webglModule ??= loadDynamic(() => import('../render/webgl/renderer.js')))
+  }
+
+  private prefetchBackend(): void {
+    const [primary, fallback] = this.plannedBackends()
+    const target = primary === 'webgpu' && !navigator.gpu ? fallback : primary
+    if (!target) return
+    if (target === 'webgpu' && !navigator.gpu) return
+    const pending = target === 'webgl' ? this.loadWebGlModule() : this.loadWebGpuModule()
+    // Swallow prefetch failures so startup stays resilient and createRenderer retries on demand.
+    void pending.catch(() => {
+      if (target === 'webgl' && this.webglModule === pending) this.webglModule = undefined
+      if (target === 'webgpu' && this.webgpuModule === pending) this.webgpuModule = undefined
+    })
+  }
+
   private async createRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer | WebGlTerminalRenderer> {
-    const backends: readonly GpuBackend[] =
-      this.initialize.backend === 'auto' ? automaticGpuBackends() : [this.initialize.backend]
+    const backends = this.plannedBackends()
     options = { ...options }
     let unavailable: unknown
     for (const backend of backends) {
       this.native()
       try {
-        if (backend === 'webgl') return await WebGlTerminalRenderer.create(options)
+        if (backend === 'webgl') return await this.createWebGlRenderer(options)
         return await this.createWebGpuRenderer(options)
       } catch (cause) {
         const capabilityFailure =
@@ -372,6 +419,14 @@ export class TerminalWorkerRuntime {
     throw unavailable
   }
 
+  private async createWebGlRenderer(
+    options: WebGpuTerminalRendererOptions,
+  ): Promise<WebGlTerminalRenderer> {
+    const { WebGlTerminalRenderer } = await this.loadWebGlModule()
+    this.native()
+    return await WebGlTerminalRenderer.create(options)
+  }
+
   private replaceCanvas(): Promise<OffscreenCanvas> {
     this.native()
     this.canvasReplacement = Promise.withResolvers<OffscreenCanvas>()
@@ -382,6 +437,12 @@ export class TerminalWorkerRuntime {
   private async createWebGpuRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer> {
+    if (navigator.gpu && !this.webgpuModule) {
+      const pending = this.loadWebGpuModule()
+      void pending.catch(() => {
+        if (this.webgpuModule === pending) this.webgpuModule = undefined
+      })
+    }
     this.prefetchedAcquisition = this.requestDevice(
       this.initialize.backend === 'auto' ? 'hardware' : 'any',
     ).then((acquired) => {
@@ -396,6 +457,8 @@ export class TerminalWorkerRuntime {
         causeType: cause instanceof Error ? cause.name : typeof cause,
       })
     }
+    this.native()
+    const { WebGpuTerminalRenderer } = await this.loadWebGpuModule()
     this.native()
     this.gpuRenderer = WebGpuTerminalRenderer.create({
       ...options,
