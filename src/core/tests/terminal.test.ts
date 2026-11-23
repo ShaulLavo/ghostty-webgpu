@@ -42,8 +42,8 @@ function createScrollbarTerminal(values: {
     },
     layouts,
     memory: {
-      allocate: () => 8,
-      free() {},
+      borrow: () => 8,
+      release() {},
       view,
     },
   } as unknown as GhosttyRuntime

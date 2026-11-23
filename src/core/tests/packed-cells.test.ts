@@ -188,3 +188,48 @@ it('keeps text boundaries and row lengths distinct without decoding cells', () =
   split.readInto([])
   expect(split.identity()).toBe(identity)
 })
+
+function plainCells(cells: readonly (readonly number[])[]): Uint32Array {
+  return new Uint32Array(
+    cells.flatMap(([codepoint = 0, start = 0, length = 0]) => [
+      codepoint,
+      0xffffffff,
+      0xffffffff,
+      0,
+      start,
+      length,
+    ]),
+  )
+}
+
+it('projects default runs with astral, grapheme, blank and long rows', () => {
+  const packed = new PackedCells(
+    plainCells([[65], [0x1f600], [0], [0, 0, 2], [0x7f], [0xe9], [0], [0]]),
+    new Uint32Array([101, 0x301]),
+  )
+  expect(packed.defaultRunText()).toBe('A😀 é\x7fé')
+  expect(packed.defaultRunText(true)).toBe('A😀 é\x7fé  ')
+  expect(packed.text(1)).toBe('😀')
+  expect(packed.text(2)).toBe('')
+  const long = Array.from({ length: 9000 }, (_, index) => [0x41 + (index % 26)])
+  const expected = long.map(([codepoint]) => String.fromCharCode(codepoint!)).join('')
+  expect(new PackedCells(plainCells(long), new Uint32Array()).defaultRunText()).toBe(expected)
+})
+
+it('keeps identities distinct across long rows and word halves', () => {
+  const long = Array.from({ length: 9000 }, () => [0x41])
+  const words = plainCells(long)
+  const original = new PackedCells(words, new Uint32Array()).identity()
+  expect(new PackedCells(words.slice(), new Uint32Array()).identity()).toBe(original)
+  const changed = words.slice()
+  changed[changed.length - 6] = 0x42
+  expect(new PackedCells(changed, new Uint32Array()).identity()).not.toBe(original)
+  const low = new Uint32Array([65, 0x00010001, 0xffffffff, 0, 0, 0])
+  const high = new Uint32Array([65, 0x00000101, 0xffffffff, 0, 0, 0])
+  expect(new PackedCells(low, new Uint32Array()).identity()).not.toBe(
+    new PackedCells(high, new Uint32Array()).identity(),
+  )
+  const astral = new PackedCells(plainCells([[0x1f600]]), new Uint32Array()).identity()
+  const pair = new PackedCells(plainCells([[0, 0, 1]]), new Uint32Array([0x1f600])).identity()
+  expect(pair).toBe(astral)
+})

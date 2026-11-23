@@ -112,7 +112,8 @@ export class TerminalWriteQueue<T> {
       incomingBytes = utf8ByteLength(data)
     if (incomingBytes > availableBytes) return Promise.reject(this.overflowError(incomingBytes))
 
-    const owned = typeof data === 'string' ? this.encoder.encode(data) : Uint8Array.from(data)
+    // The constructor copies from internal slots, so species and overridden getters can't alias it.
+    const owned = typeof data === 'string' ? this.encoder.encode(data) : new Uint8Array(data)
     if (owned.byteLength > this.maxBytes - this.pendingBytesValue)
       return Promise.reject(this.overflowError(owned.byteLength))
 

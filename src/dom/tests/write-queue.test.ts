@@ -42,6 +42,19 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
+// A non-typed-array view makes the queue's copy observable: copying iterates it.
+function observedBytes(values: readonly number[]) {
+  let iterations = 0
+  const source = new Proxy(new Uint8Array(values), {
+    get(target, property) {
+      if (property === Symbol.iterator) iterations += 1
+      const value: unknown = Reflect.get(target, property)
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  })
+  return { source, copies: () => iterations }
+}
+
 afterEach(() => vi.restoreAllMocks())
 
 describe('TerminalWriteQueue', () => {
@@ -181,8 +194,7 @@ describe('TerminalWriteQueue', () => {
     const execute = vi.fn(() => {})
     const queue = new TerminalWriteQueue<void>(execute, { maxBytes: 3 }, clock)
     const first = queue.write(new Uint8Array([1, 2, 3]))
-    const source = new Uint8Array([4])
-    const copy = vi.spyOn(Uint8Array, 'from')
+    const { source, copies } = observedBytes([4])
     const error = await queue.write(source).catch((cause: unknown) => cause)
 
     expect(error).toBeInstanceOf(GhosttyError)
@@ -190,7 +202,7 @@ describe('TerminalWriteQueue', () => {
       operation: 'writeQueue.write',
       cause: { incomingBytes: 1, maxBytes: 3, pendingBytes: 3 },
     })
-    expect(copy.mock.calls.filter(([input]) => input === source)).toHaveLength(0)
+    expect(copies()).toBe(0)
     expect(queue.pendingBytes).toBe(3)
     expect(clock.pending).toBe(1)
     expect(execute).not.toHaveBeenCalled()
@@ -284,16 +296,64 @@ describe('TerminalWriteQueue', () => {
   )
 
   it('copies accepted arrays once and executes owned bytes after caller mutation', async () => {
-    const source = new Uint8Array([1, 2, 3])
-    const copy = vi.spyOn(Uint8Array, 'from')
+    const { source, copies } = observedBytes([1, 2, 3])
+    const execute = vi.fn((data: Uint8Array) => Array.from(data))
+    const queue = new TerminalWriteQueue(execute, {}, new FakeClock())
+    const result = queue.write(source)
+    expect(copies()).toBe(1)
+    source.fill(9)
+    queue.flush()
+    expect(await result).toEqual([1, 2, 3])
+    expect(copies()).toBe(1)
+    const owned = execute.mock.calls[0]?.[0]
+    expect(owned).not.toBe(source)
+    expect(owned?.constructor).toBe(Uint8Array)
+  })
+
+  it('charges and dispatches the real bytes of a subclass that overrides byteLength', async () => {
+    class InflatedArray extends Uint8Array {
+      override get byteLength(): number {
+        return super.byteLength + 1
+      }
+    }
+    const source = new InflatedArray([65, 66])
+    const execute = vi.fn((data: Uint8Array) => Array.from(data))
+    const queue = new TerminalWriteQueue(execute, {}, new FakeClock())
+    const result = queue.write(source)
+    expect(queue.pendingBytes).toBe(2)
+    queue.flush()
+    expect(await result).toEqual([65, 66])
+    expect(execute.mock.calls[0]?.[0]?.byteLength).toBe(2)
+  })
+
+  it('copies Node buffer views whose own slice would return a shared view', async () => {
+    const backing = Buffer.from([0, 1, 2, 3, 4])
+    const source = backing.subarray(1, 4)
+    const execute = vi.fn((data: Uint8Array) => Array.from(data))
+    const queue = new TerminalWriteQueue(execute, {}, new FakeClock())
+    const result = queue.write(source)
+    backing.fill(9)
+    queue.flush()
+    expect(await result).toEqual([1, 2, 3])
+    expect(execute.mock.calls[0]?.[0]).toBeInstanceOf(Uint8Array)
+    expect(execute.mock.calls[0]?.[0]).not.toBeInstanceOf(Buffer)
+  })
+
+  it('copies arrays whose species constructor would alias the caller buffer', async () => {
+    class AliasingArray extends Uint8Array {
+      static get [Symbol.species](): Uint8ArrayConstructor {
+        return function alias(this: unknown, length: number) {
+          return new Uint8Array(source.buffer, 0, length)
+        } as unknown as Uint8ArrayConstructor
+      }
+    }
+    const source = new AliasingArray([1, 2, 3])
     const execute = vi.fn((data: Uint8Array) => Array.from(data))
     const queue = new TerminalWriteQueue(execute, {}, new FakeClock())
     const result = queue.write(source)
     source.fill(9)
-    expect(copy.mock.calls.filter(([input]) => input === source)).toHaveLength(1)
     queue.flush()
     expect(await result).toEqual([1, 2, 3])
-    expect(execute.mock.calls[0]?.[0]).not.toBe(source)
   })
 
   it('encodes ordinary accepted strings once without exact-count traversal', async () => {
@@ -359,8 +419,7 @@ describe('TerminalWriteQueue', () => {
     const clock = new FakeClock()
     const execute = vi.fn(() => {})
     const queue = new TerminalWriteQueue<void>(execute, {}, clock)
-    const source = new Uint8Array([1])
-    const copy = vi.spyOn(Uint8Array, 'from')
+    const { source, copies } = observedBytes([1])
     const encode = vi.spyOn(TextEncoder.prototype, 'encode')
     await expect(queue.write(source, { signal: controller.signal })).rejects.toBe(
       controller.signal.reason,
@@ -371,7 +430,7 @@ describe('TerminalWriteQueue', () => {
     queue.dispose()
     await expect(queue.write(source)).rejects.toMatchObject({ operation: 'writeQueue.dispose' })
     await expect(queue.write('disposed')).rejects.toMatchObject({ operation: 'writeQueue.dispose' })
-    expect(copy.mock.calls.filter(([input]) => input === source)).toHaveLength(0)
+    expect(copies()).toBe(0)
     expect(
       encode.mock.calls.filter(([input]) => input === 'aborted' || input === 'disposed'),
     ).toHaveLength(0)

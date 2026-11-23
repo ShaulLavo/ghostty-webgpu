@@ -8,10 +8,10 @@ import {
   TerminalOption,
   TerminalScreen,
 } from './abi.js'
-import type { AbiLayout } from './abi.js'
+import type { AbiLayout, AbiLayouts } from './abi.js'
 import { assertGhosttyResult, createGhosttyError } from './error.js'
 import { readTerminalLines } from './grid-text.js'
-import { requireLayout } from './memory.js'
+import { fieldOffset, requireLayout } from './memory.js'
 import { readNativeBuffer } from './native-buffer.js'
 import { readSelectionText } from './native-text.js'
 import type { GhosttyRuntime } from './runtime.js'
@@ -106,11 +106,73 @@ export function normalizeTerminalSize(options: TerminalOptions): TerminalSize {
   }
 }
 
-function fieldOffset(layout: AbiLayout, field: string): number {
-  const value = layout.fields[field]
-  if (value) return value.offset
-  throw createGhosttyError('ghostty_type_json', `Required ABI field is missing: ${field}`)
+// Hot getters and scrolling resolve their ABI offsets once per terminal.
+interface ScrollbarAbi {
+  length: number
+  offset: number
+  size: number
+  total: number
 }
+
+interface ScrollViewportAbi {
+  delta: number
+  row: number
+  size: number
+  tag: number
+}
+
+interface ModeAbi {
+  mode: number
+  size: number
+  value: number
+}
+
+interface SizedAbi {
+  size: number
+  sizeField: number
+}
+
+function scrollbarAbi(layouts: AbiLayouts): ScrollbarAbi {
+  const layout = requireLayout(layouts, 'GhosttyTerminalScrollbar')
+  return {
+    length: fieldOffset(layout, 'len'),
+    offset: fieldOffset(layout, 'offset'),
+    size: layout.size,
+    total: fieldOffset(layout, 'total'),
+  }
+}
+
+function scrollViewportAbi(layouts: AbiLayouts): ScrollViewportAbi {
+  const layout = requireLayout(layouts, 'GhosttyTerminalScrollViewport')
+  const union = requireLayout(layouts, 'GhosttyTerminalScrollViewportValue')
+  const value = fieldOffset(layout, 'value')
+  return {
+    delta: value + fieldOffset(union, 'delta'),
+    row: value + fieldOffset(union, 'row'),
+    size: layout.size,
+    tag: fieldOffset(layout, 'tag'),
+  }
+}
+
+function modeAbi(layouts: AbiLayouts): ModeAbi {
+  const layout = requireLayout(layouts, 'GhosttyTerminalModeConfig')
+  return {
+    mode: fieldOffset(layout, 'mode'),
+    size: layout.size,
+    value: fieldOffset(layout, 'value'),
+  }
+}
+
+function selectionAbi(layouts: AbiLayouts): SizedAbi {
+  const layout = requireLayout(layouts, 'GhosttySelection')
+  return { size: layout.size, sizeField: fieldOffset(layout, 'size') }
+}
+
+// Shared readers keep scalar getters free of per-call closures.
+const readUint8 = (view: DataView, pointer: number): number => view.getUint8(pointer)
+const readUint16 = (view: DataView, pointer: number): number => view.getUint16(pointer, true)
+const readUint32 = (view: DataView, pointer: number): number => view.getUint32(pointer, true)
+const readInt32 = (view: DataView, pointer: number): number => view.getInt32(pointer, true)
 
 function decodeSafeUint64(view: DataView, pointer: number, name: string): number {
   const value = view.getBigUint64(pointer, true)
@@ -150,6 +212,13 @@ export class GhosttyTerminal {
   private disposed = false
   private handleValue: number
   private sizeValue: TerminalSize
+  private scrollbarLayout?: ScrollbarAbi
+  private scrollViewportLayout?: ScrollViewportAbi
+  private modeLayout?: ModeAbi
+  private selectionLayout?: SizedAbi
+  private readonly writeInput = (pointer: number, length: number): void => {
+    this.runtime.exports.ghostty_terminal_vt_write(this.handleValue, pointer, length)
+  }
 
   constructor(runtime: GhosttyRuntime, options: TerminalOptions) {
     this.runtime = runtime
@@ -252,24 +321,19 @@ export class GhosttyTerminal {
   }
 
   get scrollbar(): TerminalScrollbar {
-    const layout = requireLayout(this.runtime.layouts, 'GhosttyTerminalScrollbar')
-    return this.readRequiredData(TerminalData.Scrollbar, layout.size, 'SCROLLBAR', (pointer) => ({
-      length: decodeSafeUint64(
-        this.runtime.memory.view,
-        pointer + fieldOffset(layout, 'len'),
-        'scrollbar length',
-      ),
-      offset: decodeSafeUint64(
-        this.runtime.memory.view,
-        pointer + fieldOffset(layout, 'offset'),
-        'scrollbar offset',
-      ),
-      total: decodeSafeUint64(
-        this.runtime.memory.view,
-        pointer + fieldOffset(layout, 'total'),
-        'scrollbar total',
-      ),
-    }))
+    const abi = (this.scrollbarLayout ??= scrollbarAbi(this.runtime.layouts))
+    const memory = this.runtime.memory
+    const pointer = this.getRequired(TerminalData.Scrollbar, abi.size, 'SCROLLBAR')
+    try {
+      const view = memory.view
+      return {
+        length: decodeSafeUint64(view, pointer + abi.length, 'scrollbar length'),
+        offset: decodeSafeUint64(view, pointer + abi.offset, 'scrollbar offset'),
+        total: decodeSafeUint64(view, pointer + abi.total, 'scrollbar total'),
+      }
+    } finally {
+      memory.release(pointer, abi.size)
+    }
   }
 
   get totalRows(): number {
@@ -316,10 +380,11 @@ export class GhosttyTerminal {
 
   get hasSelection(): boolean {
     this.ensureActive()
-    const layout = requireLayout(this.runtime.layouts, 'GhosttySelection')
-    const pointer = this.runtime.memory.allocate(layout.size)
+    const abi = (this.selectionLayout ??= selectionAbi(this.runtime.layouts))
+    const memory = this.runtime.memory
+    const pointer = memory.borrow(abi.size)
     try {
-      this.runtime.memory.view.setUint32(pointer + fieldOffset(layout, 'size'), layout.size, true)
+      memory.view.setUint32(pointer + abi.sizeField, abi.size, true)
       const result = this.runtime.exports.ghostty_terminal_get(
         this.handleValue,
         TerminalData.Selection,
@@ -329,7 +394,7 @@ export class GhosttyTerminal {
       assertGhosttyResult('ghostty_terminal_get(SELECTION)', result)
       return true
     } finally {
-      this.runtime.memory.free(pointer, layout.size)
+      memory.release(pointer, abi.size)
     }
   }
 
@@ -395,26 +460,30 @@ export class GhosttyTerminal {
 
   isModeEnabled(mode: TerminalMode): boolean {
     this.ensureActive()
-    const layout = requireLayout(this.runtime.layouts, 'GhosttyTerminalModeConfig')
-    const pointer = this.runtime.memory.allocate(layout.size)
+    const abi = (this.modeLayout ??= modeAbi(this.runtime.layouts))
+    const memory = this.runtime.memory
+    const pointer = memory.borrow(abi.size)
     try {
-      this.runtime.memory.view.setUint16(pointer + fieldOffset(layout, 'mode'), mode, true)
-      assertGhosttyResult(
-        'ghostty_terminal_get(MODE)',
-        this.runtime.exports.ghostty_terminal_get(this.handleValue, TerminalData.Mode, pointer),
+      memory.view.setUint16(pointer + abi.mode, mode, true)
+      const result = this.runtime.exports.ghostty_terminal_get(
+        this.handleValue,
+        TerminalData.Mode,
+        pointer,
       )
-      return this.runtime.memory.view.getUint8(pointer + fieldOffset(layout, 'value')) !== 0
+      if (result !== GhosttyResult.Success)
+        assertGhosttyResult('ghostty_terminal_get(MODE)', result)
+      return memory.view.getUint8(pointer + abi.value) !== 0
     } finally {
-      this.runtime.memory.free(pointer, layout.size)
+      memory.release(pointer, abi.size)
     }
   }
 
   setMode(mode: TerminalMode, enabled: boolean): void {
     this.ensureActive()
-    const layout = requireLayout(this.runtime.layouts, 'GhosttyTerminalModeConfig')
-    this.setAllocatedOption(TerminalOption.Mode, layout.size, 'MODE', (pointer) => {
-      this.runtime.memory.view.setUint16(pointer + fieldOffset(layout, 'mode'), mode, true)
-      this.runtime.memory.view.setUint8(pointer + fieldOffset(layout, 'value'), Number(enabled))
+    const abi = (this.modeLayout ??= modeAbi(this.runtime.layouts))
+    this.setAllocatedOption(TerminalOption.Mode, abi.size, 'MODE', (pointer) => {
+      this.runtime.memory.view.setUint16(pointer + abi.mode, mode, true)
+      this.runtime.memory.view.setUint8(pointer + abi.value, Number(enabled))
     })
     if (mode === TerminalMode.SynchronizedOutput) this.setRenderHeld(enabled)
   }
@@ -480,10 +549,10 @@ export class GhosttyTerminal {
 
   selectAll(): boolean {
     this.ensureActive()
-    const layout = requireLayout(this.runtime.layouts, 'GhosttySelection')
-    const pointer = this.runtime.memory.allocate(layout.size)
+    const abi = (this.selectionLayout ??= selectionAbi(this.runtime.layouts))
+    const pointer = this.runtime.memory.borrow(abi.size)
     try {
-      this.runtime.memory.view.setUint32(pointer + fieldOffset(layout, 'size'), layout.size, true)
+      this.runtime.memory.view.setUint32(pointer + abi.sizeField, abi.size, true)
       const result = this.runtime.exports.ghostty_terminal_select_all(this.handleValue, pointer)
       if (result === GhosttyResult.NoValue) return false
       assertGhosttyResult('ghostty_terminal_select_all', result)
@@ -497,7 +566,7 @@ export class GhosttyTerminal {
       )
       return true
     } finally {
-      this.runtime.memory.free(pointer, layout.size)
+      this.runtime.memory.release(pointer, abi.size)
     }
   }
 
@@ -612,12 +681,7 @@ export class GhosttyTerminal {
 
   write(value: string | Uint8Array): void {
     this.ensureActive()
-    const input = this.runtime.memory.allocateBytes(value)
-    try {
-      this.runtime.exports.ghostty_terminal_vt_write(this.handleValue, input.pointer, input.length)
-    } finally {
-      this.runtime.memory.freeBytes(input)
-    }
+    this.runtime.memory.withBytes(value, this.writeInput)
   }
 
   resize(size: Partial<TerminalSize>): void {
@@ -691,16 +755,42 @@ export class GhosttyTerminal {
     name: string,
     read: (pointer: number) => T,
   ): T {
-    this.ensureActive()
-    const pointer = this.runtime.memory.allocate(size)
+    const pointer = this.getRequired(data, size, name)
     try {
-      assertGhosttyResult(
-        `ghostty_terminal_get(${name})`,
-        this.runtime.exports.ghostty_terminal_get(this.handleValue, data, pointer),
-      )
       return read(pointer)
     } finally {
-      this.runtime.memory.free(pointer, size)
+      this.runtime.memory.release(pointer, size)
+    }
+  }
+
+  /** Borrows `size` bytes filled by ghostty_terminal_get; the caller releases them. */
+  private getRequired(data: TerminalData, size: number, name: string): number {
+    this.ensureActive()
+    const memory = this.runtime.memory
+    const pointer = memory.borrow(size)
+    let result: number = GhosttyResult.InvalidValue
+    try {
+      result = this.runtime.exports.ghostty_terminal_get(this.handleValue, data, pointer)
+    } finally {
+      // A trap or failure must not leave the shared scratch region claimed.
+      if (result !== GhosttyResult.Success) memory.release(pointer, size)
+    }
+    if (result !== GhosttyResult.Success)
+      assertGhosttyResult(`ghostty_terminal_get(${name})`, result)
+    return pointer
+  }
+
+  private readScalar(
+    data: TerminalData,
+    size: number,
+    name: string,
+    read: (view: DataView, pointer: number) => number,
+  ): number {
+    const pointer = this.getRequired(data, size, name)
+    try {
+      return read(this.runtime.memory.view, pointer)
+    } finally {
+      this.runtime.memory.release(pointer, size)
     }
   }
 
@@ -711,48 +801,35 @@ export class GhosttyTerminal {
     read: (pointer: number) => T,
   ): T | undefined {
     this.ensureActive()
-    const pointer = this.runtime.memory.allocate(size)
+    const pointer = this.runtime.memory.borrow(size)
     try {
       const result = this.runtime.exports.ghostty_terminal_get(this.handleValue, data, pointer)
       if (result === GhosttyResult.NoValue) return undefined
       assertGhosttyResult(`ghostty_terminal_get(${name})`, result)
       return read(pointer)
     } finally {
-      this.runtime.memory.free(pointer, size)
+      this.runtime.memory.release(pointer, size)
     }
   }
 
   private readBoolean(data: TerminalData, name: string): boolean {
-    return this.readRequiredData(
-      data,
-      1,
-      name,
-      (pointer) => this.runtime.memory.view.getUint8(pointer) !== 0,
-    )
+    return this.readUint8(data, name) !== 0
   }
 
   private readUint8(data: TerminalData, name: string): number {
-    return this.readRequiredData(data, 1, name, (pointer) =>
-      this.runtime.memory.view.getUint8(pointer),
-    )
+    return this.readScalar(data, 1, name, readUint8)
   }
 
   private readUint16(data: TerminalData, name: string): number {
-    return this.readRequiredData(data, 2, name, (pointer) =>
-      this.runtime.memory.view.getUint16(pointer, true),
-    )
+    return this.readScalar(data, 2, name, readUint16)
   }
 
   private readUint32(data: TerminalData, name: string): number {
-    return this.readRequiredData(data, 4, name, (pointer) =>
-      this.runtime.memory.view.getUint32(pointer, true),
-    )
+    return this.readScalar(data, 4, name, readUint32)
   }
 
   private readInt32(data: TerminalData, name: string): number {
-    return this.readRequiredData(data, 4, name, (pointer) =>
-      this.runtime.memory.view.getInt32(pointer, true),
-    )
+    return this.readScalar(data, 4, name, readInt32)
   }
 
   private setAllocatedOption(
@@ -761,7 +838,7 @@ export class GhosttyTerminal {
     name: string,
     write: (pointer: number) => void,
   ): void {
-    const pointer = this.runtime.memory.allocate(size)
+    const pointer = this.runtime.memory.borrow(size)
     try {
       write(pointer)
       assertGhosttyResult(
@@ -769,7 +846,7 @@ export class GhosttyTerminal {
         this.runtime.exports.ghostty_terminal_set(this.handleValue, option, pointer),
       )
     } finally {
-      this.runtime.memory.free(pointer, size)
+      this.runtime.memory.release(pointer, size)
     }
   }
 
@@ -782,21 +859,17 @@ export class GhosttyTerminal {
 
   private scrollViewport(tag: ScrollViewportTag, value = 0): void {
     this.ensureActive()
-    const layout = requireLayout(this.runtime.layouts, 'GhosttyTerminalScrollViewport')
-    const union = requireLayout(this.runtime.layouts, 'GhosttyTerminalScrollViewportValue')
-    const pointer = this.runtime.memory.allocate(layout.size)
+    const abi = (this.scrollViewportLayout ??= scrollViewportAbi(this.runtime.layouts))
+    const memory = this.runtime.memory
+    const pointer = memory.borrow(abi.size)
     try {
-      this.runtime.memory.view.setInt32(pointer + fieldOffset(layout, 'tag'), tag, true)
-      const valuePointer = pointer + fieldOffset(layout, 'value')
-      if (tag === ScrollViewportTag.Delta) {
-        this.runtime.memory.view.setInt32(valuePointer + fieldOffset(union, 'delta'), value, true)
-      }
-      if (tag === ScrollViewportTag.Row) {
-        this.runtime.memory.view.setUint32(valuePointer + fieldOffset(union, 'row'), value, true)
-      }
+      const view = memory.view
+      view.setInt32(pointer + abi.tag, tag, true)
+      if (tag === ScrollViewportTag.Delta) view.setInt32(pointer + abi.delta, value, true)
+      if (tag === ScrollViewportTag.Row) view.setUint32(pointer + abi.row, value, true)
       this.runtime.exports.ghostty_terminal_scroll_viewport(this.handleValue, pointer)
     } finally {
-      this.runtime.memory.free(pointer, layout.size)
+      memory.release(pointer, abi.size)
     }
   }
 
