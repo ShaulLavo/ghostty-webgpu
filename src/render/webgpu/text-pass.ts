@@ -10,6 +10,7 @@ import {
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
 import { cellShader } from '../shaders/cell.wgsl.js'
 import { glyphShader } from '../shaders/glyph.wgsl.js'
+import { STAGING_MIN_BYTES, StagingUploads } from './staging.js'
 
 export interface TextPassMetrics {
   draws: number
@@ -118,6 +119,7 @@ export class WebGpuTextPass {
   private wrapRow = Infinity
   private editPlanner: (updates: readonly RowInstanceUpdate[], wrapRow: number) => UploadPlan =
     planUploadRanges
+  private readonly staging?: StagingUploads
 
   constructor(options: WebGpuTextPassOptions) {
     this.textBlinkEnabled = options.textBlink ?? false
@@ -136,6 +138,10 @@ export class WebGpuTextPass {
       }
       this.glyphBuffer = this.glyphBatches[0]!.buffer
       this.drawCount = 1 + this.glyphBatches.length
+      if (this.glyphBatches.length === 1) {
+        const bytes = this.instanceCount * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES)
+        this.staging = new StagingUploads(this.device, bytes)
+      }
       this.viewportBuffer = options.device.createBuffer({
         size: 32,
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
@@ -188,6 +194,7 @@ export class WebGpuTextPass {
     updates: readonly RowInstanceUpdate[],
   ): number {
     this.frameUploadedBytesValue = 0
+    this.staging?.beginFrame()
     const changes = data.rowChanges ?? 0
     if (!this.rowsInitialized || changes !== 0) {
       this.uploadRows(data)
@@ -199,6 +206,7 @@ export class WebGpuTextPass {
         : planSparseUploadRanges(updates)
     const cellData = data.cellData
     const glyphData = data.glyphData
+    if (this.stageFrame(plan, cellData, glyphData)) return plan.cell.length + plan.glyph.length
     for (const range of plan.cell) this.writeRange(this.cellBuffer, cellData, range)
     if (this.glyphBatches.length === 1) {
       for (const range of plan.glyph) this.writeRange(this.glyphBuffer, glyphData, range)
@@ -207,6 +215,27 @@ export class WebGpuTextPass {
     let operations = plan.cell.length
     for (const range of plan.glyph) operations += this.writeGlyphRange(glyphData, range)
     return operations
+  }
+
+  private stageFrame(plan: UploadPlan, cellData: Float32Array, glyphData: Float32Array): boolean {
+    if (!this.staging) return false
+    const ranges = plan.cell.concat(plan.glyph)
+    const bytes = ranges.reduce((total, range) => total + range.byteLength, 0)
+    if (bytes < STAGING_MIN_BYTES) return false
+    const staged = this.staging.stage([
+      { buffer: this.cellBuffer, data: cellData, mirrorOffset: 0, ranges: plan.cell },
+      {
+        buffer: this.glyphBuffer,
+        data: glyphData,
+        mirrorOffset: this.instanceCount * CELL_INSTANCE_BYTES,
+        ranges: plan.glyph,
+      },
+    ])
+    if (!staged) return false
+    this.frameUploadedBytesValue += bytes
+    this.metrics.uploadedBytes += bytes
+    this.metrics.uploadOperations += ranges.length
+    return true
   }
 
   setTextVisible(visible: boolean): boolean {
@@ -229,6 +258,7 @@ export class WebGpuTextPass {
   encode(view: GPUTextureView, copy?: TextPassCopy): GPUCommandBuffer {
     if (!this.glyphBindGroup) throw new Error('Atlas textures must be synchronized before drawing')
     const encoder = this.device.createCommandEncoder()
+    this.staging?.record(encoder)
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
@@ -258,11 +288,14 @@ export class WebGpuTextPass {
         copy.size,
       )
     }
-    return encoder.finish()
+    const command = encoder.finish()
+    this.staging?.settleRecorded()
+    return command
   }
 
   destroy(): void {
     for (const buffer of this.ownedBuffers) buffer.destroy()
+    this.staging?.destroy()
   }
 
   private uploadRows(data: FrameRows): void {

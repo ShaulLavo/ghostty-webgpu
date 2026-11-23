@@ -11,11 +11,61 @@ interface BufferState {
   destroy(): void
 }
 
+interface CopyCommand {
+  source: BufferState
+  sourceOffset: number
+  destination: BufferState
+  destinationOffset: number
+  size: number
+}
+
+function fakeBuffer(size: number): BufferState & GPUBuffer {
+  const bytes = new Uint8Array(size)
+  return {
+    bytes,
+    destroy() {},
+    getMappedRange: () => bytes.buffer,
+    unmap() {},
+    mapAsync: () => Promise.resolve(),
+  } as unknown as BufferState & GPUBuffer
+}
+
+function fakeEncoder(renderPass: object) {
+  const copies: CopyCommand[] = []
+  return {
+    beginRenderPass: () => renderPass,
+    copyBufferToBuffer(
+      source: BufferState,
+      sourceOffset: number,
+      destination: BufferState,
+      destinationOffset: number,
+      size: number,
+    ) {
+      copies.push({ source, sourceOffset, destination, destinationOffset, size })
+    },
+    finish: () => ({ copies }),
+  }
+}
+
+function applyCopies(commands: readonly { copies?: readonly CopyCommand[] }[]): void {
+  for (const copy of commands.flatMap((command) => command.copies ?? [])) {
+    const source = copy.source.bytes.subarray(copy.sourceOffset, copy.sourceOffset + copy.size)
+    copy.destination.bytes.set(source, copy.destinationOffset)
+  }
+}
+
 function gpuFixture(
   instanceCount = 480,
   limits = { maxStorageBufferBindingSize: 134217728, maxBufferSize: 268435456 },
 ) {
-  vi.stubGlobal('GPUBufferUsage', { COPY_DST: 8, STORAGE: 128, UNIFORM: 64 })
+  vi.stubGlobal('GPUBufferUsage', {
+    COPY_DST: 8,
+    COPY_SRC: 4,
+    MAP_WRITE: 2,
+    STORAGE: 128,
+    UNIFORM: 64,
+  })
+  vi.stubGlobal('GPUMapMode', { WRITE: 2 })
   vi.stubGlobal('GPUTextureUsage', { COPY_DST: 8, COPY_SRC: 4, TEXTURE_BINDING: 16 })
   const buffers: BufferState[] = []
   const writes: {
@@ -38,10 +88,11 @@ function gpuFixture(
   const device = {
     limits: { ...limits, maxTextureArrayLayers: 256 },
     createTexture: () => ({ createView: () => ({}), destroy() {} }),
-    createCommandEncoder: () => ({ beginRenderPass: () => renderPass, finish: () => ({}) }),
-    createBuffer({ size }: { size: number }) {
-      const buffer = { bytes: new Uint8Array(size), destroy() {} }
-      buffers.push(buffer)
+    createCommandEncoder: () => fakeEncoder(renderPass),
+    createBuffer({ size, usage }: { size: number; usage: number }) {
+      const buffer = fakeBuffer(size)
+      // Staging buffers stay out of the storage and uniform list the tests index.
+      if ((usage & 2) === 0) buffers.push(buffer)
       return buffer
     },
     createSampler: () => ({}),
@@ -52,6 +103,7 @@ function gpuFixture(
       return {}
     },
     queue: {
+      submit: applyCopies,
       writeBuffer(
         buffer: BufferState,
         offset: number,
@@ -190,21 +242,59 @@ it('uploads native glyph records from their current backing view without repacki
   )
 })
 
-it('coalesces twelve full rows to two uploads with native glyph bytes and preserved raw bits', () => {
+it('coalesces six full rows to two uploads with native glyph bytes and preserved raw bits', () => {
+  const fixture = gpuFixture(),
+    data = frame()
+  const updates = Array.from({ length: 6 }, (_, row) =>
+    update(row, row * 2560, 2560, row * 3840, 3840),
+  )
+  expect(fixture.pass.uploadFrame(data, updates)).toBe(2)
+  expect(fixture.writes.map((write) => write.bytes.byteLength)).toEqual([15360, 23040])
+  expect(fixture.pass.metrics.uploadOperations).toBe(2)
+  expect(fixture.pass.metrics.uploadedBytes).toBe(38400)
+  expect(fixture.buffers[0]!.bytes.subarray(0, 15360)).toEqual(
+    new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, 15360),
+  )
+  expect(fixture.buffers[1]!.bytes.subarray(0, 23040)).toEqual(
+    new Uint8Array(data.glyphData.buffer, data.glyphData.byteOffset, 23040),
+  )
+})
+
+it('stages a dense frame through a mapped buffer copied ahead of its draws', () => {
   const fixture = gpuFixture(),
     data = frame()
   const updates = Array.from({ length: 12 }, (_, row) =>
     update(row, row * 2560, 2560, row * 3840, 3840),
   )
   expect(fixture.pass.uploadFrame(data, updates)).toBe(2)
-  expect(fixture.writes.map((write) => write.bytes.byteLength)).toEqual([30720, 46080])
+  expect(fixture.writes).toEqual([])
+  expect(fixture.pass.frameUploadedBytes).toBe(76800)
   expect(fixture.pass.metrics.uploadOperations).toBe(2)
   expect(fixture.pass.metrics.uploadedBytes).toBe(76800)
+  expect(fixture.buffers[0]!.bytes).toEqual(new Uint8Array(30720))
+  fixture.pass.syncAtlas(
+    new AtlasGpuTextures(fixture.device, { layerCount: 1, pageHeight: 8, pageWidth: 8 }),
+  )
+  fixture.device.queue.submit([fixture.pass.encode({} as GPUTextureView)])
   expect(fixture.buffers[0]!.bytes).toEqual(
     new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, data.cellData.byteLength),
   )
   expect(fixture.buffers[1]!.bytes).toEqual(
     new Uint8Array(data.glyphData.buffer, data.glyphData.byteOffset, data.glyphData.byteLength),
+  )
+})
+
+it('lands a staged frame that missed its draw before the next frame writes', () => {
+  const fixture = gpuFixture(),
+    data = frame()
+  fixture.pass.uploadFrame(data, [update(0, 0, 30720, 0, 46080)])
+  const dense = new Uint8Array(data.cellData.buffer, data.cellData.byteOffset, 64).slice()
+  data.cellData.fill(-1, 0, 16)
+  fixture.pass.uploadFrame(data, [update(0, 0, 64, 0, 0)])
+  expect(fixture.writes.map((write) => [write.offset, write.bytes.byteLength])).toEqual([[0, 64]])
+  expect(fixture.buffers[0]!.bytes.subarray(0, 64)).not.toEqual(dense)
+  expect(fixture.buffers[0]!.bytes.subarray(64, 128)).toEqual(
+    new Uint8Array(data.cellData.buffer, data.cellData.byteOffset + 64, 64),
   )
 })
 
