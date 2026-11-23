@@ -1,4 +1,5 @@
 import { codepointText } from './packed-cells.js'
+import { markPlainTextRow, plainTextRow } from './plain-text-row.js'
 import { SnapshotReader, type ExtractSnapshot } from './snapshot-reader.js'
 import type { GhosttyRuntime } from './runtime.js'
 import type { ReadTextRowsOptions, RenderTextRow, TerminalSize } from './types.js'
@@ -16,35 +17,6 @@ function cellText(words: Uint32Array, offset: number, graphemes: Uint32Array): s
   for (let index = start; index < start + length; index += 1)
     text += String.fromCodePoint(graphemes[index]!)
   return text
-}
-
-function copiedAsciiCells(text: string, start: number, blanks: Uint32Array): readonly string[] {
-  return Object.freeze(
-    Array.from({ length: text.length }, (_, column) => {
-      const index = start + column
-      return (blanks[index >>> 5]! & (1 << (index & 31))) !== 0 ? '' : text[column]!
-    }),
-  )
-}
-
-function copiedAsciiRow(
-  y: number,
-  text: string,
-  start: number,
-  blanks: Uint32Array,
-): RenderTextRow {
-  let cells: readonly string[] | undefined
-  let continuations: readonly boolean[] | undefined
-  return Object.freeze({
-    y,
-    text,
-    get cells() {
-      return (cells ??= copiedAsciiCells(text, start, blanks))
-    },
-    get continuations() {
-      return (continuations ??= Object.freeze(Array.from({ length: text.length }, () => false)))
-    },
-  })
 }
 
 function copiedTextRow(y: number, words: Uint32Array, graphemes: Uint32Array): RenderTextRow {
@@ -89,7 +61,7 @@ function ownedAsciiRow(
     bytes[index] = codepoint || 0x20
     if (codepoint === 0) blanks[index >>> 5]! |= 1 << (index & 31)
   }
-  return copiedAsciiRow(y, decoder.decode(bytes.subarray(0, length)), 0, blanks)
+  return plainTextRow(y, decoder.decode(bytes.subarray(0, length)), 0, blanks)
 }
 
 function ownedTextRow(y: number, words: Uint32Array, graphemes: Uint32Array): RenderTextRow {
@@ -121,6 +93,13 @@ function ownedRows(
     )
   }
   return Object.freeze(rows)
+}
+
+function hasCluster(words: Uint32Array, start: number, length: number): boolean {
+  for (let index = 0; index < length; index += 1) {
+    if (words[(start + index) * cellWords + 2] !== 0) return true
+  }
+  return false
 }
 
 /**
@@ -167,8 +146,29 @@ class RetainedTextRows {
     return this.rows[y]
   }
 
+  /** A row with grapheme clusters is not described by its first words, so it is never kept. */
+  skip(y: number): void {
+    this.lengths[y] = -1
+    this.rows[y] = undefined
+  }
+
+  holds(y: number): boolean {
+    return this.lengths[y]! >= 0
+  }
+
   retain(row: RenderTextRow): void {
     this.rows[row.y] = row
+  }
+
+  /** Whether every cell of a stored row is blank or one UTF-16 code unit. */
+  isPlain(y: number, length: number): boolean {
+    const base = y * this.columns
+    for (let column = 0; column < length; column += 1) {
+      const codepoint = this.codepoints[base + column]!
+      // Continuation flags, astral scalars and surrogates need the per-cell form.
+      if (codepoint > 0xffff || (codepoint >= 0xd800 && codepoint <= 0xdfff)) return false
+    }
+    return true
   }
 
   /** Appends one stored ASCII row to a packet and returns the next packet index. */
@@ -225,9 +225,13 @@ export class TextRowReader {
         ascii ? { bytes: this.asciiBytes, decoder: this.decoder } : undefined,
       )
     this.retained.resize(grid)
-    // Without graphemes the first word of every cell fully determines the row's text.
-    if (snapshot.graphemes.length === 0 && this.retainable(snapshot.rows))
-      return this.packetRows(snapshot.rows, ascii ? snapshot.cells : snapshot.cells.slice(), ascii)
+    if (this.retainable(snapshot.rows)) {
+      // Lazy rows keep their words, so only a borrowed ASCII packet goes without a copy.
+      const words = ascii ? snapshot.cells : snapshot.cells.slice()
+      const graphemes =
+        snapshot.graphemes.length === 0 ? emptyGraphemes : snapshot.graphemes.slice()
+      return this.packetRows(snapshot.rows, words, ascii, graphemes)
+    }
     this.retained.forget()
     const records = snapshot.cells.slice()
     const graphemes = snapshot.graphemes.slice()
@@ -253,22 +257,34 @@ export class TextRowReader {
     metadata: Uint32Array,
     words: Uint32Array,
     ascii: boolean,
+    graphemes: Uint32Array,
   ): readonly RenderTextRow[] {
     const rows: (RenderTextRow | undefined)[] = []
     let changed = 0
     for (let offset = 0; offset < metadata.length; offset += rowWords) {
-      const row = this.retained.match(
-        metadata[offset]!,
-        words,
-        metadata[offset + 1]!,
-        metadata[offset + 2]!,
-      )
+      const row = this.matchRow(metadata, offset, words, graphemes.length > 0)
       rows.push(row)
       if (!row) changed += 1
     }
     if (changed > 0 && ascii) this.buildAsciiRows(metadata, rows, words.length / cellWords)
-    if (changed > 0 && !ascii) this.buildPlainRows(metadata, words, rows)
+    if (changed > 0 && !ascii) this.buildWordRows(metadata, words, graphemes, rows)
     return Object.freeze(rows as RenderTextRow[])
+  }
+
+  // Without a cluster the first word of every cell fully determines the row's text.
+  private matchRow(
+    metadata: Uint32Array,
+    offset: number,
+    words: Uint32Array,
+    clustered: boolean,
+  ): RenderTextRow | undefined {
+    const y = metadata[offset]!
+    const start = metadata[offset + 1]!
+    const length = metadata[offset + 2]!
+    if (!clustered || !hasCluster(words, start, length))
+      return this.retained.match(y, words, start, length)
+    this.retained.skip(y)
+    return undefined
   }
 
   // Changed ASCII rows share one decoded packet and one blank bitmap, built from the store.
@@ -294,15 +310,16 @@ export class TextRowReader {
       const offset = index * rowWords
       const start = starts[index]!
       const text = packet.slice(start, start + metadata[offset + 2]!)
-      const row = copiedAsciiRow(metadata[offset]!, text, start, blanks)
+      const row = plainTextRow(metadata[offset]!, text, start, blanks)
       rows[index] = row
       this.retained.retain(row)
     }
   }
 
-  private buildPlainRows(
+  private buildWordRows(
     metadata: Uint32Array,
     records: Uint32Array,
+    graphemes: Uint32Array,
     rows: (RenderTextRow | undefined)[],
   ): void {
     for (let index = 0; index < rows.length; index += 1) {
@@ -310,10 +327,18 @@ export class TextRowReader {
       const offset = index * rowWords
       const start = metadata[offset + 1]! * cellWords
       const end = start + metadata[offset + 2]! * cellWords
-      const row = copiedTextRow(metadata[offset]!, records.subarray(start, end), emptyGraphemes)
+      const words = records.subarray(start, end)
+      const row = copiedTextRow(metadata[offset]!, words, graphemes)
       rows[index] = row
-      this.retained.retain(row)
+      this.retainWordRow(row, words, metadata[offset + 2]!)
     }
+  }
+
+  private retainWordRow(row: RenderTextRow, words: Uint32Array, length: number): void {
+    if (!this.retained.holds(row.y)) return
+    this.retained.retain(row)
+    if (this.retained.isPlain(row.y, length))
+      markPlainTextRow(row, { blank: (column) => words[column * cellWords] === 0 })
   }
 
   dispose(): void {

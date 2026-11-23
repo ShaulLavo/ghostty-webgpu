@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GhosttyResult, RenderStateDirty } from '../abi.js'
+import { plainRowSource } from '../plain-text-row.js'
 import { GhosttyRuntime } from '../runtime.js'
 import { TextRowReader } from '../text-row-reader.js'
 import type { RenderRow, RenderTextRow } from '../types.js'
@@ -393,6 +394,31 @@ describe('text-only render rows', () => {
     const restored = read()
     expect(restored[1]).not.toBe(first[1])
     expect(materialize(restored)).toEqual(materialize(first))
+  })
+
+  it('marks rows of single code units as plain and leaves wide or clustered rows unmarked', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 8, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    terminal.write('ab d\r\n▀▄ é\r\n界\r\n\x1b[?2027h👩‍💻')
+    state.update()
+    const rows = state.readTextRows()
+    const blanks = (row: RenderTextRow) => {
+      const source = plainRowSource(row)
+      return source && Array.from(row.text, (_, column) => source.blank(column))
+    }
+    // The space typed inside a row is a real cell; cells never written are blank.
+    expect(blanks(rows[0]!)).toEqual([false, false, false, false, true, true, true, true])
+    expect(blanks(rows[1]!)).toEqual([false, false, false, false, true, true, true, true])
+    expect(blanks(rows[2]!)).toBeUndefined()
+    expect(blanks(rows[3]!)).toBeUndefined()
+    expect(materialize(rows)).toEqual(equivalentTextRows(state.readRows()))
+    terminal.write('\x1b[2J\x1b[Hascii only')
+    state.update()
+    const ascii = state.readTextRows()
+    expect(blanks(ascii[0]!)).toEqual([false, false, false, false, false, false, false, false])
+    expect(blanks(ascii[3]!)).toEqual(Array.from({ length: 8 }, () => true))
+    expect(materialize(ascii)).toEqual(equivalentTextRows(state.readRows()))
   })
 
   it('rebuilds rows after a resize and for grapheme clusters', async () => {
