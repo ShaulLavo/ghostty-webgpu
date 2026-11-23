@@ -228,6 +228,22 @@ describe('libghostty-vt callback bridge', () => {
     terminal.dispose()
   })
 
+  // build:wasm leaves out Ghostty's glyph protocol: we never draw registered glyphs.
+  it('does not advertise the glyph protocol but still parses OSC color names', async () => {
+    runtime = await GhosttyRuntime.create()
+    const writes: Uint8Array[] = []
+    const terminal = runtime.createTerminal({
+      effects: { writePty: (bytes) => writes.push(bytes) },
+    })
+
+    terminal.write('\u001b_25a1;s\u001b\\\u001b_25a1;q;cp=e0b0\u001b\\')
+    terminal.write('\u001b]11;LightGoldenrodYellow\u0007\u001b]11;?\u0007')
+
+    expect(decoder.decode(Buffer.concat(writes))).toBe('\u001b]11;rgb:fafa/fafa/d2d2\u0007')
+    expect(terminal.colors.background).toEqual({ r: 250, g: 250, b: 210 })
+    terminal.dispose()
+  })
+
   it('copies OSC 52 clipboard content before the callback returns', async () => {
     runtime = await GhosttyRuntime.create()
     const clipboardWrites: ClipboardWrite[] = []
