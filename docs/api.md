@@ -104,6 +104,16 @@ terminal.focus()
 await terminal.dispose()
 ```
 
+Pass `pool: new TerminalWorkerPool({ workers })` to share workers between terminals. The pool
+starts a worker per terminal up to `workers` (default half of `navigator.hardwareConcurrency`,
+one to eight), then assigns each further terminal to the worker with the fewest terminals, and
+terminates a worker after its last terminal is disposed. Terminals on one worker share a GPU
+device per adapter policy, one frame coordinator, glyph atlases and identical font faces. A
+pooled terminal paints once its worker has parsed the queued output, at most once per display
+frame, and falls back to animation-frame painting while its output settles more than once per
+frame. A failed terminal stops alone; a worker-level error fails every terminal on that worker.
+Without `pool`, each terminal keeps its own worker and paints at animation frames.
+
 Worker terminals support `fitEnvironment.getPixelRatio` and
 `fitEnvironment.subscribePixelRatio`. The getter returns a finite positive DPR for each host
 layout. The subscription calls its callback when that DPR changes and returns a dispose function.
@@ -133,7 +143,8 @@ replacement, including software adapters, so automatic and explicit WebGPU termi
 keep painting on their existing canvas. A supplied `deviceFactory` controls its own initial
 and replacement acquisition policy. Replacement acquisition failures reach the renderer's
 `onError` callback and the terminal's `error` event. Main-thread errors identify the operation
-as `renderer.restore`; worker errors close the worker and release its resources.
+as `renderer.restore`; worker errors stop that terminal's worker session and release its
+resources.
 
 Capability failures carry `code`, `operation`, `why`, `fix` and runtime facts. `assets` and `workerUrl` can point at explicitly hosted native files and the
 built standalone `dist/worker/entry.js`; the defaults resolve beside the package output.

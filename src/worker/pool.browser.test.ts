@@ -175,6 +175,39 @@ describe.each(['webgl', 'webgpu'] as const)('%s pooled worker pixels', (backend)
   })
 })
 
+it.each(['webgl', 'webgpu'] as const)(
+  '%s pooled terminals paint parsed output without waiting for an animation frame',
+  async (backend) => {
+    if (backend === 'webgpu') requireWebGpu()
+    else await requireWorkerWebGl()
+    const pool = new TerminalWorkerPool({ workers: 1 })
+    const terminals = await Promise.all(
+      [0, 1].map(async () => {
+        const terminal = await Terminal.create({
+          appearance: { cursor: { blink: false }, font: { family, size: 16 } },
+          backend,
+          pool,
+          workerUrl: new URL('./tests/no-animation-frames.worker.ts', import.meta.url),
+          fonts: [{ family, source: { url: testFontUrl } }],
+        })
+        active.push(terminal)
+        const root = document.createElement('div')
+        root.style.cssText = 'width:480px;height:120px;position:relative'
+        document.body.append(root)
+        containers.push(root)
+        await terminal.open(root)
+        return terminal
+      }),
+    )
+    await Promise.all(terminals.map((terminal, index) => terminal.write(`settled ${index}`)))
+    for (const [index, terminal] of terminals.entries()) {
+      await eventually(shown(terminal, `settled ${index}`))
+      expect(terminal.submittedFrame?.frame).toBeGreaterThan(0)
+    }
+  },
+  20_000,
+)
+
 it('rejects a pool without workers', () => {
   expect(() => new TerminalWorkerPool({ workers: 0 })).toThrow(RangeError)
 })
