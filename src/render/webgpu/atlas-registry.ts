@@ -1,5 +1,6 @@
 import type { TerminalFittedFont } from '../../term/types.js'
 import { copyFittedFont } from '../shared/config.js'
+import { fontResources, resourceIdentity } from '../shared/font-identity.js'
 import { SharedGlyphAtlas, type SharedAtlasOwner } from './shared-atlas.js'
 
 interface AtlasScope {
@@ -12,44 +13,7 @@ interface AtlasScope {
 
 const scopes = new WeakMap<FontFaceSet, AtlasScope>()
 const registrations = new WeakMap<SharedGlyphAtlas, AtlasScope>()
-const faceIdentities = new WeakMap<FontFace, number>()
 const fontEvents = ['loading', 'loadingdone', 'loadingerror'] as const
-let nextFaceIdentity = 0
-
-function fontResources(canvas: HTMLCanvasElement | OffscreenCanvas): FontFaceSet | undefined {
-  if ('ownerDocument' in canvas) return canvas.ownerDocument.fonts
-  const fonts: unknown = Reflect.get(globalThis, 'fonts')
-  if (typeof FontFaceSet !== 'undefined' && fonts instanceof FontFaceSet) return fonts
-  if (typeof document !== 'undefined') return document.fonts
-}
-
-function resourceIdentity(resources: FontFaceSet): string {
-  return JSON.stringify(
-    Array.from(resources, (face) => {
-      let identity = faceIdentities.get(face)
-      if (identity === undefined) {
-        identity = ++nextFaceIdentity
-        faceIdentities.set(face, identity)
-      }
-      return [
-        identity,
-        face.status,
-        face.family,
-        face.style,
-        face.weight,
-        face.stretch,
-        face.unicodeRange,
-        face.featureSettings,
-        face.variationSettings,
-        face.ascentOverride,
-        face.descentOverride,
-        face.lineGapOverride,
-        Reflect.get(face, 'sizeAdjust'),
-        face.display,
-      ]
-    }),
-  )
-}
 
 function scopeFor(resources: FontFaceSet): AtlasScope {
   const existing = scopes.get(resources)

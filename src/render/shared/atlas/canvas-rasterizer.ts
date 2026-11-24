@@ -235,6 +235,12 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       context.measureText('H').actualBoundingBoxAscent || this.font.deviceCharHeight * 0.75
   }
 
+  /** Drops cached bitmaps but keeps the scratch canvas and its context. */
+  clear(): void {
+    this.bitmaps.clear()
+    this.bitmapCacheBytes = 0
+  }
+
   rasterize(rawInput: GlyphRasterizationInput): GlyphBitmap | undefined {
     const input = validateInput(rawInput)
     const bitmap = this.rasterizeCached(input, glyphKey(input, 'grayscale'))
