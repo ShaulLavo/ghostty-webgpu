@@ -110,9 +110,9 @@ worker-wide; `workers` (default half of `navigator.hardwareConcurrency`, one to 
 such group. The pool starts a worker per terminal up to that limit, then assigns each further
 terminal to the worker with the fewest terminals, and terminates a worker after its last terminal
 is disposed. Terminals on one worker share a GPU device per adapter policy, one frame
-coordinator, glyph atlases and font faces. After the page has received the reply to a pooled
-terminal's `write`, it tells the worker on the same port, and the worker paints that terminal
-then instead of at the next animation frame, at most once per display frame and not while its
+coordinator, glyph atlases and font faces. After the page task that wrote to a pooled terminal,
+the page tells the worker on the same port, and once the worker has parsed those writes it paints
+the terminal then instead of at the next animation frame, at most once per display frame and not while its
 output settles more than once per frame. Output from an attached producer port paints at
 animation frames. A failed terminal stops alone, including after a page-side failure; a
 worker-level error fails every terminal on that worker. Without `pool`, each terminal keeps its

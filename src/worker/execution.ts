@@ -69,6 +69,7 @@ export class WorkerTerminalExecution {
   private readonly terminal: string
   private readonly generation = 1
   private readonly pooled: boolean
+  private drainQueued = false
   private control = 0
   private output = 0
   private readonly outputControls = new Set<number>()
@@ -297,13 +298,14 @@ export class WorkerTerminalExecution {
       command,
       args,
     } as WorkerRequest
-    if (command === 'write' || command === 'writeln' || command === 'writeAndReadGeometry')
-      this.outputControls.add(request.control)
+    const write = writeOperations.has(command)
+    if (write) this.outputControls.add(request.control)
     try {
       this.port.postMessage(request, transfer)
     } catch {
       this.fail(workerError('protocol', command, { id, control: this.control }))
     }
+    if (write && this.pooled) this.queueDrained()
     return reply as Promise<ReturnType<WorkerCommands[K]>>
   }
 
@@ -356,11 +358,19 @@ export class WorkerTerminalExecution {
       return
     }
     pending.resolve(freezeWorkerValue(message.result))
-    if (this.pooled && writeOperations.has(pending.operation)) this.postDrained()
   }
 
-  // Sent on the request port, so it reaches the worker after every write posted before it; the
-  // worker paints this terminal early only then, never between two writes it already holds.
+  // Once per page task, after its writes: same-port FIFO puts it behind every write posted
+  // before it, so the worker paints early only after parsing them, in one batch per worker.
+  private queueDrained(): void {
+    if (this.drainQueued) return
+    this.drainQueued = true
+    queueMicrotask(() => {
+      this.drainQueued = false
+      this.postDrained()
+    })
+  }
+
   private postDrained(): void {
     if (this.disposed || this.failure) return
     try {

@@ -188,7 +188,7 @@ export interface WorkerInitialize extends WorkerIdentity {
 export interface WorkerCancel extends WorkerIdentity {
   readonly type: 'cancel'
 }
-/** Every write the page posted before this one has been answered on the same port. */
+/** The page has posted its writes for this task; same-port FIFO puts this behind them. */
 export interface WorkerDrained extends WorkerIdentity {
   readonly type: 'drained'
 }
