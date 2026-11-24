@@ -82,9 +82,8 @@ it('downloads the selected renderer while the core wasm is still held', async ()
   const fetches = vi.spyOn(globalThis, 'fetch')
   onTestFinished(() => fetches.mockRestore())
   const created = Terminal.create({ runtime: runtime(scenario) })
-  expect(fetches.mock.calls.some(([input]) => String(input).includes('canvas-compose.wasm'))).toBe(
-    true,
-  )
+  const requests = fetches.mock.calls.map(([input]) => String(input).split('/').at(-1))
+  expect(requests).toEqual(['ghostty-vt.wasm', 'bridge.wasm', 'canvas-compose.wasm'])
   await expect
     .poll(() =>
       requestedRendererModules().some((path) => path.endsWith('/render/webgl/renderer.js')),
