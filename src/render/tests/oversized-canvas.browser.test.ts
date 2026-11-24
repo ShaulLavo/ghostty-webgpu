@@ -18,20 +18,20 @@ afterEach(async () => {
   for (const root of roots.splice(0)) root.remove()
 })
 
-async function open(columns: number): Promise<TerminalApi> {
+// The grid is sized up front; a container at least as wide keeps a refit from shrinking it.
+async function open(columns: number, width: number): Promise<TerminalApi> {
   const terminal = await Terminal.create({
     appearance: {
       font: { family, size: 16 },
       cursor: { blink: false },
       grid: { columns, rows: 3 },
     },
-    autoFit: false,
     runtime: { kind: 'owned', options: assets },
     rendererFactory: (options) => WebGpuTerminalRenderer.create(options),
   })
   active.push(terminal)
   const root = document.createElement('div')
-  root.style.cssText = 'width:320px;height:60px;position:relative'
+  root.style.cssText = `width:${width}px;height:60px;position:relative`
   document.body.append(root)
   roots.push(root)
   await terminal.open(root)
@@ -60,9 +60,9 @@ it('keeps painting a WebGPU sibling when another terminal outgrows the texture l
   requireWebGpu()
   document.fonts.add(await new FontFace(family, `url(${JSON.stringify(testFontUrl)})`).load())
   const limit = (await navigator.gpu.requestAdapter())!.limits.maxTextureDimension2D
-  const sibling = await open(30)
+  const sibling = await open(30, 320)
   // Every cell is at least 8 device pixels wide, so this grid exceeds the limit.
-  const oversized = await open(Math.ceil(limit / 8) + 1)
+  const oversized = await open(Math.ceil(limit / 8) + 1, limit / devicePixelRatio + 256)
   const errors: unknown[] = []
   oversized.on('error', (event) => errors.push(event.cause))
   expect(oversized.canvas!.width).toBeGreaterThan(limit)
