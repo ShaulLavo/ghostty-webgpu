@@ -48,11 +48,22 @@ function image(canvas: HTMLCanvasElement): ImageData {
   return context.getImageData(0, 0, copy.width, copy.height)
 }
 
-function comparePixels(before: ImageData, after: ImageData): number {
+function visiblePixelDifference(
+  before: ImageData,
+  after: ImageData,
+  background: readonly number[],
+): number {
   expect([after.width, after.height]).toEqual([before.width, before.height])
   let maxDelta = 0
-  for (let i = 0; i < before.data.length; i += 1) {
-    maxDelta = Math.max(maxDelta, Math.abs(before.data[i]! - after.data[i]!))
+  for (let i = 0; i < before.data.length; i += 4) {
+    const beforeAlpha = before.data[i + 3]! / 255
+    const afterAlpha = after.data[i + 3]! / 255
+    for (let channel = 0; channel < 3; channel += 1) {
+      const bg = background[channel]!
+      const first = Math.round(bg + (before.data[i + channel]! - bg) * beforeAlpha)
+      const next = Math.round(bg + (after.data[i + channel]! - bg) * afterAlpha)
+      maxDelta = Math.max(maxDelta, Math.abs(first - next))
+    }
   }
   return maxDelta
 }
@@ -134,8 +145,9 @@ it.for(['webgl2', 'webgpu'] as const)(
     expect(terminal.getSelection()).toBe('hel')
     expect(document.activeElement).toBe(terminal.textarea)
     expect(underline(firstGpuFrame)).toEqual(expectedUnderline)
-    // Software and GPU blending can round antialiased glyph coverage differently.
-    expect(comparePixels(before, firstGpuFrame)).toBeLessThanOrEqual(4)
+    // Compare what the browser displays over the terminal's background.
+    const { r, g, b } = terminal.appearance.rendererTheme.background
+    expect(visiblePixelDifference(before, firstGpuFrame, [r, g, b])).toBeLessThanOrEqual(4)
   },
 )
 
