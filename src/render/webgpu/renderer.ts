@@ -324,6 +324,12 @@ export class WebGpuTerminalRenderer {
     if (this.immediate) this.coordinator?.flushOwner(this)
   }
 
+  paintPending(): boolean {
+    if (!this.scheduler.hasPendingFrame) return false
+    this.scheduler.flush()
+    return true
+  }
+
   refreshRows(startRow: number, endRow: number): void {
     const start = safeRendererInteger('startRow', startRow)
     const end = safeRendererInteger('endRow', endRow)

@@ -219,6 +219,12 @@ export class WebGlTerminalRenderer {
     this.scheduler.scheduleWrite()
   }
 
+  paintPending(): boolean {
+    if (this.state.kind === 'unavailable' || !this.scheduler.hasPendingFrame) return false
+    this.scheduler.flush()
+    return true
+  }
+
   refreshRows(startRow: number, endRow: number): void {
     const start = safeRendererInteger('startRow', startRow)
     const end = safeRendererInteger('endRow', endRow)

@@ -6,6 +6,7 @@ import { readSfntFontMetrics } from '../term/font-metrics.js'
 import type { TerminalFontMetrics } from '../term/types.js'
 import type { WorkerFontFace } from './protocol.js'
 import { workerError } from './structured-errors.js'
+import { SettledPaint } from './settled-paint.js'
 
 const fontScope = () => globalThis as unknown as FontScope
 
@@ -55,75 +56,6 @@ interface FontScope {
   readonly fonts: FontFaceSet
 }
 
-// W11 experiment knob; removed before review.
-const settleWindowMs = (): number => {
-  const value = Reflect.get(globalThis, '__w11SettleMs')
-  return typeof value === 'number' ? value : 0
-}
-
-/**
- * A worker that paints at vsync is busy exactly when a page that writes once per frame sends its
- * next write. Painting as soon as queued output is parsed reaches the compositor at the same vsync
- * and leaves the worker free then. At most one such paint lands per display frame, and none while
- * output settles more than once per frame, so a fast producer keeps plain vsync pacing.
- */
-class SettledPaint {
-  private pending = false
-  private lastWrite = 0
-  private settles = 0
-  private previousSettles = 0
-  private landed = false
-  private tick?: number
-  private readonly channel = new MessageChannel()
-
-  constructor(
-    private readonly clock: RenderSchedulerClock,
-    private readonly paint: () => void,
-  ) {
-    this.channel.port1.onmessage = () => this.settle()
-  }
-
-  noteWrite(): void {
-    this.lastWrite = performance.now()
-    if (this.pending || settleWindowMs() < 0) return
-    this.pending = true
-    this.queue(settleWindowMs())
-  }
-
-  // A posted message runs after the messages already queued for this worker.
-  private queue(delay: number): void {
-    if (delay <= 0) this.channel.port2.postMessage(undefined)
-    else this.clock.setTimer(() => this.settle(), delay)
-  }
-
-  private settle(): void {
-    const window = settleWindowMs()
-    const quiet = performance.now() - this.lastWrite
-    if (window > 0 && quiet < window) {
-      this.queue(window - quiet)
-      return
-    }
-    this.pending = false
-    this.settles += 1
-    this.armTick()
-    if (this.landed || this.previousSettles > 1) return
-    this.landed = true
-    this.paint()
-  }
-
-  private armTick(): void {
-    if (this.tick !== undefined) return
-    this.tick = this.clock.requestFrame(() => {
-      this.tick = undefined
-      this.previousSettles = this.settles
-      this.settles = 0
-      this.landed = false
-      // One more tick lets a quiet display frame clear the count.
-      if (this.previousSettles > 0) this.armTick()
-    })
-  }
-}
-
 let current: WorkerShared | undefined
 /** This worker's shared resources, created on first use. */
 export function workerShared(): WorkerShared {
@@ -138,17 +70,12 @@ export class WorkerShared {
   private readonly owners = new Map<AdapterPolicy, DeviceOwner>()
   // One face per source: every add or delete changes the font set and retires shared glyph atlases.
   private readonly faces = new Map<string, FaceEntry[]>()
-
-  private readonly settled: SettledPaint
+  /** Pooled terminals paint once the worker's queued output is parsed. */
+  readonly settled: SettledPaint
 
   constructor(readonly clock: RenderSchedulerClock) {
     this.frameCoordinator = new FrameCoordinator(clock)
-    this.settled = new SettledPaint(clock, () => this.frameCoordinator.paintNow())
-  }
-
-  /** Output was parsed; paint once this worker's queued output is parsed too. */
-  noteWrite(): void {
-    this.settled.noteWrite()
+    this.settled = new SettledPaint(clock, (paint) => this.frameCoordinator.batch(paint))
   }
 
   acquireFace(source: WorkerFontFace): SharedFontFace {

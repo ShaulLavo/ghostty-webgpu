@@ -61,6 +61,7 @@ export class TerminalWorkerRuntime {
   private inactiveCursorStyle?: InactiveCursorStyle
   private faces: FontFace[] = []
   private sharedFaces: SharedFontFace[] = []
+  private readonly settleTarget = { paintPending: () => this.renderer?.paintPending?.() ?? false }
   private readonly faceMetrics = new Map<FontFace, TerminalFontMetrics>()
   private readonly frameEncoder = new RowDeltaEncoder()
   private readonly subscriptions: TerminalSessionSubscription[] = []
@@ -650,7 +651,9 @@ export class TerminalWorkerRuntime {
 
   private noteWrite(): void {
     this.renderer?.notifyWrite()
-    this.shared.noteWrite()
+    // W11 experiment knob (__w11SettleMs = -1 disables); removed before review.
+    if (this.initialize.pooled && Reflect.get(globalThis, '__w11SettleMs') !== -1)
+      this.shared.settled.noteWrite(this.settleTarget)
   }
 
   private attachOutput(port: MessagePort): void {
@@ -786,6 +789,7 @@ export class TerminalWorkerRuntime {
     this.outputPort?.close()
     for (const subscription of this.subscriptions) subscription.dispose()
     this.execution?.dispose()
+    this.shared.settled.forget(this.settleTarget)
     for (const shared of this.sharedFaces) this.shared.releaseFace(shared)
     this.sharedFaces = []
     this.faces.length = 0
