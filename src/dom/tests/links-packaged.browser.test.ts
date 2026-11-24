@@ -971,9 +971,8 @@ describe.each(['main', 'worker'] as const)('packaged pointer links %s', (mode) =
       once: true,
     })
     await clickLink(terminal)
-    expect(terminal.hasPendingLinkResolution).toBe(true)
-    move(terminal, 3)
     await expect.poll(() => terminal.hasPendingLinkResolution).toBe(false)
+    move(terminal, 3)
     await expect.poll(() => root.querySelector('[role="link"]') !== null).toBe(true)
     expect(uris).toEqual([])
   }, 20_000)

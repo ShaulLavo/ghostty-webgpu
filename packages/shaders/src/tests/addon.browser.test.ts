@@ -993,6 +993,65 @@ it('resolves a before-open dual-language addon if the tab hides while GPU startu
   expect(errors).toEqual([])
 })
 
+it('lets a visible addon installed after reveal wait for GPU draw fallback', async (context) => {
+  if (!(await navigator.gpu?.requestAdapter())) {
+    context.skip('WebGPU has no adapter')
+    return
+  }
+  const originalPlatform = Object.getOwnPropertyDescriptor(Navigator.prototype, 'platform')
+  Object.defineProperty(Navigator.prototype, 'platform', {
+    configurable: true,
+    get: () => 'Linux x86_64',
+  })
+  cleanups.push(() => {
+    if (originalPlatform) Object.defineProperty(Navigator.prototype, 'platform', originalPlatform)
+  })
+  const originalHidden = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState')
+  let hidden = true
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: () => (hidden ? 'hidden' : 'visible'),
+  })
+  cleanups.push(() => {
+    if (originalHidden) Object.defineProperty(document, 'visibilityState', originalHidden)
+    else delete (document as { visibilityState?: DocumentVisibilityState }).visibilityState
+  })
+  const host = document.createElement('div')
+  host.style.cssText = 'width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => terminal.dispose())
+  const hiddenHandle = terminal.use(createShaderAddon(copyShader))
+  cleanups.push(() => hiddenHandle.dispose())
+  await terminal.open(host)
+  await hiddenHandle.api.ready
+  hiddenHandle.dispose()
+
+  const spy = vi.spyOn(WebGlTerminalRenderer.prototype, 'paintPending').mockImplementation(() => {
+    throw new Error('first GPU draw failed after reveal')
+  })
+  cleanups.push(() => spy.mockRestore())
+
+  hidden = false
+  document.dispatchEvent(new Event('visibilitychange'))
+  const errors: unknown[] = []
+  const visibleHandle = terminal.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => visibleHandle.dispose())
+  await visibleHandle.api.ready
+  expect(terminal.diagnostics.rendererBackend).toBe('canvas2d')
+  const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+  expect(overlay?.dataset['backend']).toBe('webgpu')
+  await expect(visibleHandle.api.setShader(language(copyShader, 'webgpu'))).resolves.toBe(true)
+  expect(errors).toEqual([])
+})
+
 it('keeps explicit addon backends and permanent Canvas sources independent of GPU startup', async () => {
   const gate = Promise.withResolvers<void>()
   cleanups.push(() => gate.resolve())

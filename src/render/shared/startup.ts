@@ -40,9 +40,8 @@ export class StartupTerminalRenderer {
   private state: RendererState
   private pendingFrame?: number
   private gpuStart: 'idle' | 'queued' | 'running' = 'idle'
-  private startupBackendRequested = false
   private backendSettled = false
-  private readonly settledBackend = Promise.withResolvers<StartupBackend>()
+  private readonly backendWaiters: Array<(backend: StartupBackend) => void> = []
   private documentVisible = true
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
@@ -127,10 +126,14 @@ export class StartupTerminalRenderer {
   }
 
   [startupBackend](): Promise<StartupBackend> {
-    if (this.backendSettled) return Promise.resolve(this.currentStartupBackend())
-    this.startupBackendRequested = true
-    if (!this.documentVisible) this.resolveHiddenStartupBackend()
-    return this.settledBackend.promise
+    if (this.backendSettled) return Promise.resolve(this.backend)
+    if (!this.documentVisible) {
+      if (this.state.kind === 'ready') return Promise.resolve(this.state.gpu.backend)
+      this.beginGpuStartup()
+    }
+    return new Promise((resolve) => {
+      this.backendWaiters.push(resolve)
+    })
   }
 
   [wakeStartupHandoff](): void {
@@ -187,7 +190,7 @@ export class StartupTerminalRenderer {
     this.documentVisible = visible
     this.active?.setDocumentVisible(visible)
     if (visible && this.state.kind === 'ready') this.scheduleHandoff()
-    if (!visible && this.startupBackendRequested) this.resolveHiddenStartupBackend()
+    if (!visible && this.backendWaiters.length > 0) this.resolveHiddenStartupBackend()
   }
 
   setReducedMotion(reduced: boolean): void {
@@ -229,14 +232,9 @@ export class StartupTerminalRenderer {
     state.renderer.dispose()
   }
 
-  private currentStartupBackend(): StartupBackend {
-    if (this.state.kind === 'ready') return this.state.gpu.backend
-    return this.backend
-  }
-
   private resolveHiddenStartupBackend(): void {
     if (this.state.kind === 'ready') {
-      this.settleStartupBackend(this.state.gpu.backend)
+      this.resolveBackendWaiters(this.state.gpu.backend)
       return
     }
     this.beginGpuStartup()
@@ -303,7 +301,7 @@ export class StartupTerminalRenderer {
       }
       gpu.setDocumentVisible(false)
       this.state = { kind: 'ready', renderer: this.state.renderer, gpu }
-      if (!this.documentVisible) this.settleStartupBackend(gpu.backend)
+      if (!this.documentVisible) this.resolveBackendWaiters(gpu.backend)
       this.scheduleHandoff()
     } catch (cause) {
       this.settleStartupBackend(
@@ -374,10 +372,14 @@ export class StartupTerminalRenderer {
     state.previous.refreshRows(0, this.options.rows - 1)
   }
 
+  private resolveBackendWaiters(backend: StartupBackend): void {
+    for (const resolve of this.backendWaiters.splice(0)) resolve(backend)
+  }
+
   private settleStartupBackend(backend: StartupBackend): void {
     if (this.backendSettled) return
     this.backendSettled = true
-    this.settledBackend.resolve(backend)
+    this.resolveBackendWaiters(backend)
   }
 
   private applySettings(renderer: GpuRenderer): void {
