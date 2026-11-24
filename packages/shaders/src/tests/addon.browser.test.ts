@@ -897,6 +897,102 @@ it('resolves an automatic dual-language addon while the terminal is offscreen', 
   expect(errors).toEqual([])
 })
 
+it('uses Canvas fallback for a before-open dual-language addon if the first GPU draw fails', async (context) => {
+  if (!(await navigator.gpu?.requestAdapter())) {
+    context.skip('WebGPU has no adapter')
+    return
+  }
+  const spy = vi.spyOn(WebGlTerminalRenderer.prototype, 'paintPending').mockImplementation(() => {
+    throw new Error('first GPU draw failed')
+  })
+  cleanups.push(() => spy.mockRestore())
+  const host = document.createElement('div')
+  host.style.cssText = 'width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    rendererMode: 'webgl2',
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => terminal.dispose())
+  const errors: unknown[] = []
+  const handle = terminal.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => handle.dispose())
+  await terminal.open(host)
+  terminal.write('failed gpu draw')
+  await handle.api.ready
+  expect(terminal.diagnostics.rendererBackend).toBe('canvas2d')
+  const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+  expect(overlay?.dataset['backend']).toBe('webgpu')
+  await expect(handle.api.setShader(language(copyShader, 'webgpu'))).resolves.toBe(true)
+  expect(errors).toEqual([])
+})
+
+it('resolves a before-open dual-language addon if the tab hides while GPU startup is queued', async () => {
+  const originalPlatform = Object.getOwnPropertyDescriptor(Navigator.prototype, 'platform')
+  Object.defineProperty(Navigator.prototype, 'platform', {
+    configurable: true,
+    get: () => 'Linux x86_64',
+  })
+  cleanups.push(() => {
+    if (originalPlatform) Object.defineProperty(Navigator.prototype, 'platform', originalPlatform)
+  })
+  const originalHidden = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState')
+  let hidden = false
+  Object.defineProperty(document, 'visibilityState', {
+    configurable: true,
+    get: () => (hidden ? 'hidden' : 'visible'),
+  })
+  cleanups.push(() => {
+    if (originalHidden) Object.defineProperty(document, 'visibilityState', originalHidden)
+    else delete (document as { visibilityState?: DocumentVisibilityState }).visibilityState
+  })
+
+  const host = document.createElement('div')
+  host.style.cssText = 'width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => terminal.dispose())
+  const errors: unknown[] = []
+  const handle = terminal.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => handle.dispose())
+
+  let pauseRaf = false
+  const realRaf = window.requestAnimationFrame.bind(window)
+  const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    if (pauseRaf) return 999_999
+    return realRaf(callback)
+  })
+  cleanups.push(() => rafSpy.mockRestore())
+
+  terminal.on('frame', () => {
+    if (pauseRaf) return
+    pauseRaf = true
+    queueMicrotask(() => {
+      hidden = true
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+  })
+
+  await terminal.open(host)
+  terminal.write('hide after first paint')
+  await handle.api.ready
+  const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+  expect(overlay?.dataset['backend']).toBe('webgl2')
+  expect(errors).toEqual([])
+})
+
 it('keeps explicit addon backends and permanent Canvas sources independent of GPU startup', async () => {
   const gate = Promise.withResolvers<void>()
   cleanups.push(() => gate.resolve())

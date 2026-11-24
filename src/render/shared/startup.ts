@@ -39,7 +39,7 @@ type StartupBackend = 'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined
 export class StartupTerminalRenderer {
   private state: RendererState
   private pendingFrame?: number
-  private started = false
+  private gpuStart: 'idle' | 'queued' | 'running' = 'idle'
   private startupBackendRequested = false
   private backendSettled = false
   private readonly settledBackend = Promise.withResolvers<StartupBackend>()
@@ -129,7 +129,7 @@ export class StartupTerminalRenderer {
   [startupBackend](): Promise<StartupBackend> {
     if (this.backendSettled) return Promise.resolve(this.currentStartupBackend())
     this.startupBackendRequested = true
-    if (!this.documentVisible) this.beginGpuStartup()
+    if (!this.documentVisible) this.resolveHiddenStartupBackend()
     return this.settledBackend.promise
   }
 
@@ -187,7 +187,7 @@ export class StartupTerminalRenderer {
     this.documentVisible = visible
     this.active?.setDocumentVisible(visible)
     if (visible && this.state.kind === 'ready') this.scheduleHandoff()
-    if (!visible && this.startupBackendRequested) this.beginGpuStartup()
+    if (!visible && this.startupBackendRequested) this.resolveHiddenStartupBackend()
   }
 
   setReducedMotion(reduced: boolean): void {
@@ -234,17 +234,29 @@ export class StartupTerminalRenderer {
     return this.backend
   }
 
+  private resolveHiddenStartupBackend(): void {
+    if (this.state.kind === 'ready') {
+      this.settleStartupBackend(this.state.gpu.backend)
+      return
+    }
+    this.beginGpuStartup()
+  }
+
   private beginGpuStartup(): void {
-    if (this.started || this.state.kind !== 'canvas') return
-    this.started = true
+    if (this.gpuStart === 'running' || this.state.kind !== 'canvas') return
+    if (this.gpuStart === 'queued' && this.pendingFrame !== undefined) {
+      this.view.cancelAnimationFrame(this.pendingFrame)
+      this.pendingFrame = undefined
+    }
+    this.gpuStart = 'running'
     void this.startGpu()
   }
 
   private afterCanvasFrame(): void {
-    if (this.started || this.state.kind !== 'canvas') return
-    this.started = true
+    if (this.gpuStart !== 'idle' || this.state.kind !== 'canvas') return
+    this.gpuStart = 'queued'
     // The current frame must reach the compositor before getContext can block the page.
-    this.requestFrame(() => void this.startGpu())
+    this.requestFrame(() => this.beginGpuStartup())
   }
 
   private requestFrame(callback: () => void): void {
@@ -291,7 +303,7 @@ export class StartupTerminalRenderer {
       }
       gpu.setDocumentVisible(false)
       this.state = { kind: 'ready', renderer: this.state.renderer, gpu }
-      this.settleStartupBackend(gpu.backend)
+      if (!this.documentVisible) this.settleStartupBackend(gpu.backend)
       this.scheduleHandoff()
     } catch (cause) {
       this.settleStartupBackend(
