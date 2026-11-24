@@ -10,7 +10,6 @@ import { Terminal } from '../../dom/terminal.js'
 import type { GhosttyWebGpuTerminalFromSessionOptions } from '../../dom/types.js'
 import { browserRenderClock } from '../shared/config.js'
 import { WebGlTerminalRenderer } from '../webgl/renderer.js'
-import { displayedPixels } from '../webgl/tests/fixture.js'
 import type { HoldCommand, HoldReply, HoldSnapshot } from './fixtures/held-output.worker.js'
 
 const font = {
@@ -217,6 +216,15 @@ function parkSyncWatchdog() {
   }
 }
 
+function xtermDrawingBuffer(host: HTMLElement): WebGL2RenderingContext {
+  const canvas = host.querySelector<HTMLCanvasElement>(
+    '.xterm-screen canvas:not(.xterm-link-layer)',
+  )
+  const gl = canvas?.getContext('webgl2')
+  if (!gl) throw createGhosttyError('held xterm fixture', 'The WebGL drawing buffer is unavailable')
+  return gl
+}
+
 async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
   const stylesheet = document.createElement('link')
   stylesheet.rel = 'stylesheet'
@@ -241,9 +249,16 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
     scrollback: 0,
     theme: { foreground: '#ffffff', background: '#000000' },
   })
-  terminal.open(host)
-  // Keep the reference pixels available between WebKit compositor captures.
-  terminal.loadAddon(new WebglAddon(true))
+  let gl: WebGL2RenderingContext
+  try {
+    terminal.open(host)
+    // Preserve the last frame so the test can sample its pixels without capturing the whole page.
+    terminal.loadAddon(new WebglAddon(true))
+    gl = xtermDrawingBuffer(host)
+  } catch (cause) {
+    terminal.dispose()
+    throw cause
+  }
   let frames = 0
   terminal.onRender(() => {
     frames += 1
@@ -258,8 +273,6 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
   })
   const write = (value: string) => new Promise<void>((resolve) => terminal.write(value, resolve))
   await write('\x1b[?25l\x1b[2J\x1b[H')
-  const screen = host.querySelector('.xterm-screen') as HTMLDivElement
-  const canvas = screen.querySelector('canvas')!
   const watchdog = parkSyncWatchdog()
   return {
     async write(color, held = false) {
@@ -278,11 +291,12 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
       await write('\x1b[?2026l')
     },
     async read() {
-      const pixels = await displayedPixels(canvas)
-      const x = Math.floor((screen.clientWidth / 24) * 2.5)
-      const y = Math.floor((screen.clientHeight / 4) * 1.5)
-      const offset = (y * canvas.width + x) * 4
-      return { color: Array.from(pixels.subarray(offset, offset + 4)), frames }
+      const pixel = new Uint8Array(4)
+      const x = Math.floor((gl.drawingBufferWidth / terminal.cols) * 2.5)
+      const y =
+        gl.drawingBufferHeight - 1 - Math.floor((gl.drawingBufferHeight / terminal.rows) * 1.5)
+      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel)
+      return { color: Array.from(pixel), frames }
     },
     async dispose() {
       watchdog.restore()

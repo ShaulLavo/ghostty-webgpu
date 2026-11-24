@@ -102,6 +102,10 @@ function gpuChannel(scenario: string) {
   return { channel, messages }
 }
 
+async function adapterAttempts(scenario: string): Promise<number> {
+  return (await events(scenario)).filter((event) => event === 'worker:requestAdapter').length
+}
+
 async function requireRealAdapter(context: TestContext): Promise<void> {
   requireWebGpu(context)
   if (!(await navigator.gpu.requestAdapter())) context.skip('No WebGPU adapter')
@@ -191,37 +195,31 @@ it('rejects a failed initialize send without leaving the page compile unhandled'
 it('retries a failed speculative adapter request when the worker opens', async (context) => {
   await requireRealAdapter(context)
   const scenario = await newScenario()
-  const { messages } = gpuChannel(scenario)
   const terminal = await create(scenario, {
     backend: 'webgpu',
     entry: 'gpu-entry.js?mode=late-adapter',
   })
   active.push(terminal)
+  await expect.poll(() => adapterAttempts(scenario)).toBe(1)
   await openAndWrite(terminal, 'adapter after retry')
   expect(terminal.diagnostics.rendererBackend).toBe('webgpu')
-  expect(messages.filter((message) => message.startsWith('adapter-'))).toEqual([
-    'adapter-1',
-    'adapter-2',
-  ])
+  expect(await adapterAttempts(scenario)).toBe(2)
 })
 
 it('reports an adapter that stays unavailable after retrying at open', async () => {
   requireWebGpu()
   const scenario = await newScenario()
-  const { messages } = gpuChannel(scenario)
   const terminal = await create(scenario, {
     backend: 'webgpu',
     entry: 'gpu-entry.js?mode=no-adapter',
   })
   active.push(terminal)
+  await expect.poll(() => adapterAttempts(scenario)).toBe(1)
   await expect(terminal.open(container())).rejects.toMatchObject({
     code: 'capability',
     operation: 'renderer.webgpu',
   })
-  expect(messages.filter((message) => message.startsWith('adapter-'))).toEqual([
-    'adapter-1',
-    'adapter-2',
-  ])
+  expect(await adapterAttempts(scenario)).toBe(2)
 })
 
 it('reports a font failure while the speculative device request is still pending', async (context) => {

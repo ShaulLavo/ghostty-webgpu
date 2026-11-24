@@ -40,6 +40,7 @@ function releaseGates(state: ScenarioState): void {
 }
 
 function gpuWrapperSource(scenario: string, mode: string): string {
+  const attemptUrl = `${prefix}${scenario}?adapter`
   return `import './entry.js'
 const channel = new BroadcastChannel(${JSON.stringify(`startup-${scenario}`)})
 const mode = ${JSON.stringify(mode)}
@@ -72,6 +73,11 @@ if (gpu)
     value: async (options) => {
       calls += 1
       channel.postMessage('adapter-' + calls)
+      if (mode === 'no-adapter' || mode === 'late-adapter') {
+        // A failed open can terminate this worker before the page can query it.
+        const recorded = await fetch(${JSON.stringify(attemptUrl)}, { method: 'POST' })
+        if (!recorded.ok) throw new Error('Could not record the adapter request')
+      }
       if (mode === 'no-adapter') return null
       if (mode === 'late-adapter' && calls === 1) return null
       if (mode === 'held-adapter') await released
@@ -226,6 +232,11 @@ function handleRequest(
   }
   const state = scenarios.get(scenario) ?? emptyState()
   scenarios.set(scenario, state)
+  if (!file && url.search === '?adapter' && request.method === 'POST') {
+    state.events.push('worker:requestAdapter')
+    response.writeHead(204).end()
+    return
+  }
   if (!file || request.method !== 'GET') {
     response.writeHead(400).end()
     return
