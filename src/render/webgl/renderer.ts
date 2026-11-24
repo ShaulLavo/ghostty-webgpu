@@ -9,7 +9,11 @@ import { buildZigFrame } from '../shared/atlas/zig-glyphs.js'
 import type { LigatureFinder } from '../shared/ligatures/finder.js'
 import type { TerminalFittedFont } from '../../term/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
-import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import type { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import {
+  acquireGlyphRasterizer,
+  releaseGlyphRasterizer,
+} from '../shared/atlas/shared-rasterizer.js'
 import {
   browserRenderClock,
   canonicalRendererTheme,
@@ -147,8 +151,8 @@ export class WebGlTerminalRenderer {
     this.theme = canonicalRendererTheme(this.themeInput)
     this.frames.resize(this.grid.rows)
     this.resizeCanvas()
-    this.rasterizer = new CanvasGlyphRasterizer({ font })
     this.state = { kind: 'ready', pass: this.createTextPass() }
+    this.rasterizer = acquireGlyphRasterizer(font)
     this.desynchronized = context.getContextAttributes()?.desynchronized === true
     this.scheduler = new RenderScheduler({
       textBlink: options.textBlink,
@@ -195,7 +199,19 @@ export class WebGlTerminalRenderer {
   }
 
   clearTextureAtlas(): void {
-    this.rasterizer = new CanvasGlyphRasterizer({ font: this.font })
+    // Loaded faces may have changed, which moves this terminal to another shared rasterizer.
+    this.replaceRasterizer()
+    this.rasterizer.clear()
+    this.resetAtlas()
+  }
+
+  private replaceRasterizer(): void {
+    const next = acquireGlyphRasterizer(this.font)
+    releaseGlyphRasterizer(this.rasterizer)
+    this.rasterizer = next
+  }
+
+  private resetAtlas(): void {
     this.zigBuilder?.clearGlyphs()
     this.atlas.invalidateAll()
     this.invalidateAll()
@@ -281,7 +297,8 @@ export class WebGlTerminalRenderer {
     const geometryChanged = !fittedFontGeometryEquals(this.font, next)
     this.font = next
     if (geometryChanged) this.rebuildGeometry()
-    this.clearTextureAtlas()
+    this.replaceRasterizer()
+    this.resetAtlas()
   }
 
   setTheme(theme: Partial<RendererTheme>): void {
@@ -312,6 +329,7 @@ export class WebGlTerminalRenderer {
     this.unsubscribeRenderRequest?.()
     this.scheduler.dispose()
     this.zigBuilder?.dispose()
+    releaseGlyphRasterizer(this.rasterizer)
     this.canvas.removeEventListener('webglcontextlost', this.handleContextLost)
     this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored)
     if (this.state.kind === 'ready') this.state.pass.destroy()

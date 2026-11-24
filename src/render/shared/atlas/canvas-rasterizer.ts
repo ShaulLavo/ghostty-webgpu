@@ -11,6 +11,8 @@ import { drawSprite, spriteCodepoint } from './sprites.js'
 
 export interface CanvasGlyphRasterizerOptions {
   font: TerminalFittedFont
+  /** Checked before a newly drawn bitmap is cached; false keeps it out of the cache. */
+  canCache?: () => boolean
 }
 
 interface PixelBounds {
@@ -207,6 +209,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
   private readonly capHeight: number
   private readonly context: ScratchContext
   private readonly font: TerminalFittedFont
+  private readonly canCache?: () => boolean
   // Indexed by bold | italic << 1.
   private readonly fonts: readonly string[]
   private readonly initialPadding: number
@@ -217,6 +220,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
 
   constructor(options: CanvasGlyphRasterizerOptions) {
     this.font = options.font
+    this.canCache = options.canCache
     this.canvas = createScratchCanvas()
     this.fonts = [
       fontString(this.font, { italic: false, weight: 'normal' }),
@@ -233,6 +237,12 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
     context.font = this.fonts[0]!
     this.capHeight =
       context.measureText('H').actualBoundingBoxAscent || this.font.deviceCharHeight * 0.75
+  }
+
+  /** Drops cached bitmaps but keeps the scratch canvas and its context. */
+  clear(): void {
+    this.bitmaps.clear()
+    this.bitmapCacheBytes = 0
   }
 
   rasterize(rawInput: GlyphRasterizationInput): GlyphBitmap | undefined {
@@ -264,7 +274,7 @@ export class CanvasGlyphRasterizer implements GlyphRasterizer {
       return cached
     }
     const bitmap = input.text.length === 0 ? undefined : this.rasterizeUncached(input, ink, kind)
-    this.cacheBitmap(key, bitmap)
+    if (this.canCache?.() ?? true) this.cacheBitmap(key, bitmap)
     return bitmap
   }
 

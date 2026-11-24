@@ -732,9 +732,12 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
   expect(native.renderer.metrics.atlasEvictions - warm.native.atlasEvictions).toBe(1)
   expect(native.renderer.metrics.atlasCacheMisses - warm.native.atlasCacheMisses).toBe(1)
   expect(native.renderer.metrics.atlasUploadOperations - warm.native.atlasUploadOperations).toBe(1)
-  expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(
-    512 * 512,
-  )
+  // The recycled layer keeps stale texels; only the new glyph's padded box is cleared and sent.
+  const { x, y, width, height } = nativeFirstEviction.glyph
+  const box =
+    (Math.min(512, x + width + 1) - Math.max(0, x - 1)) *
+    (Math.min(512, y + height + 1) - Math.max(0, y - 1))
+  expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(box)
   expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2, 0])
   expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
   expect(nativeReadRows).not.toHaveBeenCalled()

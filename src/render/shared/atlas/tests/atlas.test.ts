@@ -139,7 +139,7 @@ describe('GlyphAtlas', () => {
     expect(atlas.consumeUploads()).toEqual([])
   })
 
-  it('increments a recycled layer generation, invalidates references, and clears the full layer', () => {
+  it('increments a recycled layer generation, invalidates references, and uploads only the new glyph', () => {
     const atlas = new GlyphAtlas({ maxLayersPerKind: 1, padding: 0, pageHeight: 4, pageWidth: 4 })
     const first = atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 2)
     atlas.getOrInsert('A', bitmap('grayscale', 1, 4), 5)
@@ -151,7 +151,7 @@ describe('GlyphAtlas', () => {
     expect(recycled.glyph.generation).toBe(first.glyph.generation + 1)
     expect(recycled.invalidatedRows).toEqual([2, 5])
     expect(upload).toMatchObject({
-      extent: { height: 4, width: 4 },
+      extent: { height: 2, width: 2 },
       layer: 0,
       origin: { x: 0, y: 0 },
     })
@@ -195,7 +195,7 @@ describe('GlyphAtlas', () => {
     expect(atlas.evictionCount).toBeGreaterThan(100)
   })
 
-  it('globally invalidates referenced rows and marks every live layer for full upload', () => {
+  it('globally invalidates referenced rows without re-uploading cleared layers', () => {
     const atlas = new GlyphAtlas({ padding: 0, pageHeight: 8, pageWidth: 8 })
     atlas.getOrInsert('A', bitmap('grayscale', 1), 3)
     atlas.getOrInsert('🙂', bitmap('color', 2), 7)
@@ -203,9 +203,36 @@ describe('GlyphAtlas', () => {
 
     expect(atlas.invalidateAll()).toEqual([3, 7])
     expect(atlas.rowsWithStaleReferences()).toEqual([])
-    const uploads = atlas.consumeUploads()
-    expect(uploads).toHaveLength(2)
-    expect(uploads.map(transferBytes)).toEqual([64, 256])
+    expect(atlas.consumeUploads()).toEqual([])
+  })
+
+  it('drops upload bounds left from before a reset', () => {
+    const atlas = new GlyphAtlas({ padding: 1, pageHeight: 8, pageWidth: 8 })
+    atlas.getOrInsert('wide', bitmap('grayscale', 9, 6, 2), 0)
+    atlas.invalidateAll()
+    atlas.getOrInsert('narrow', bitmap('grayscale', 7, 2, 2), 0)
+
+    expect(atlas.consumeUploads()).toMatchObject([
+      { extent: { height: 4, width: 4 }, origin: { x: 0, y: 0 } },
+    ])
+  })
+
+  it('clears the padded box around a glyph inserted into a reset layer', () => {
+    const atlas = new GlyphAtlas({ padding: 1, pageHeight: 8, pageWidth: 8 })
+    atlas.getOrInsert('wide', bitmap('grayscale', 9, 6, 2), 0)
+    atlas.consumeUploads()
+    atlas.invalidateAll()
+    const narrow = atlas.getOrInsert('narrow', bitmap('grayscale', 7, 2, 2), 0)
+    const upload = atlas.consumeUploads()[0]!
+
+    expect(upload).toMatchObject({ extent: { height: 4, width: 4 }, origin: { x: 0, y: 0 } })
+    // The old wide glyph's pixels right of the new glyph's padding stay unreferenced.
+    const page = upload.pixels
+    const row = (y: number) => Array.from(page.subarray(y * 8, y * 8 + 8))
+    expect(row(0)).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
+    expect(row(1)).toEqual([0, 7, 7, 0, 9, 9, 9, 0])
+    expect(row(3)).toEqual([0, 0, 0, 0, 0, 0, 0, 0])
+    expect(narrow.glyph).toMatchObject({ x: 1, y: 1, width: 2, height: 2 })
   })
 
   it('marks every live layer for restoration without changing glyph generations', () => {

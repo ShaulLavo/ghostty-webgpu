@@ -81,6 +81,7 @@ class AtlasPage {
   readonly pixels: Uint8Array
   readonly rows = new Set<number>()
   private dirty?: DirtyRectangle
+  private stale = false
   private shelfHeight = 0
   private shelfX: number
   private shelfY: number
@@ -134,6 +135,7 @@ class AtlasPage {
       x: position.x,
       y: position.y,
     }
+    if (this.stale) this.clearPadded(position, bitmap.width, bitmap.height)
     this.blit(position, bitmap)
     this.entries.set(cacheKey, glyph)
     this.positions.set(glyph.y * this.width + glyph.x, cacheKey)
@@ -145,16 +147,31 @@ class AtlasPage {
     this.dirty = { bottom: this.height, left: 0, right: this.width, top: 0 }
   }
 
+  // Unreferenced texels may keep old pixels; each later insert clears and uploads its padded box.
   reset(): void {
     this.generation += 1
     this.entries.clear()
     this.positions.clear()
-    this.pixels.fill(0)
     this.rows.clear()
     this.shelfHeight = 0
     this.shelfX = this.padding
     this.shelfY = this.padding
-    this.markFullDirty()
+    this.stale = true
+    // Pending bounds belong to the old generation; each new glyph marks its own padded box.
+    this.dirty = undefined
+  }
+
+  private clearPadded(position: AtlasPosition, width: number, height: number): void {
+    const pixelBytes = bytesPerPixel(this.kind)
+    const left = Math.max(0, position.x - this.padding)
+    const top = Math.max(0, position.y - this.padding)
+    const right = Math.min(this.width, position.x + width + this.padding)
+    const bottom = Math.min(this.height, position.y + height + this.padding)
+    for (let row = top; row < bottom; row += 1) {
+      const start = (row * this.width + left) * pixelBytes
+      this.pixels.fill(0, start, start + (right - left) * pixelBytes)
+    }
+    this.markDirty(left, top, right - left, bottom - top)
   }
 
   private allocate(width: number, height: number): AtlasPosition | undefined {
