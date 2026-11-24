@@ -21,7 +21,11 @@ import type {
 import type { RendererFrameSnapshot, RendererTextFrameSnapshot } from '../render/shared/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
 import { bindCanvasImage, CanvasImageRelay } from './canvas-image.js'
-import { attachCanvasImage, observeDisplayedFrame } from '../render/shared/displayed-frame.js'
+import {
+  attachCanvasImage,
+  observeDisplayedFrame,
+  startupCanvas,
+} from '../render/shared/displayed-frame.js'
 import { EventEmitter } from '../term/events.js'
 import {
   browserOutputTimingClock,
@@ -1134,6 +1138,10 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
         },
         [attachCanvasImage]: () => this.canvasImages.attach(),
         [observeDisplayedFrame]: (snapshot) => this.handleFrame(snapshot),
+        [startupCanvas]: elements.adoptCanvas && {
+          adopt: (canvas) => this.replaceRendererCanvas(elements, canvas),
+          canAdopt: () => (this.pointer?.owner ?? 'none') === 'none',
+        },
         retainDisplayedText: true,
         needsFrameRows: () => Boolean(this.links?.needsFrame || this.textSubscribers.hasListeners),
         onRowsChanged: (rows) => {
@@ -1614,7 +1622,10 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     )
   }
 
-  private replaceRendererCanvas(elements: TerminalElements): HTMLCanvasElement {
+  private replaceRendererCanvas(
+    elements: TerminalElements,
+    replacement?: HTMLCanvasElement,
+  ): HTMLCanvasElement {
     elements.signal.throwIfAborted()
     if (!elements.replaceCanvas) throw new Error('Terminal elements cannot replace their canvas')
     const active = elements.root.ownerDocument.activeElement
@@ -1623,7 +1634,9 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       (active?.classList.contains('ghostty-webgpu-link') === true && elements.root.contains(active))
     const rebind = this.pointer !== undefined || this.links !== undefined
     this.disposeCanvasControllers()
-    const canvas = elements.replaceCanvas()
+    if (replacement) elements.adoptCanvas?.(replacement)
+    else elements.replaceCanvas()
+    const canvas = elements.canvas
     if (rebind) {
       if (this.execution.kind === 'sync') {
         this.installPointer(elements)

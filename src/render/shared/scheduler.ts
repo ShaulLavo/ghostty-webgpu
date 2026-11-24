@@ -11,6 +11,14 @@ export interface RenderFrameState {
   cursorVisible: boolean
 }
 
+export const captureBlinkPhase = Symbol('captureBlinkPhase')
+export const seedBlinkPhase = Symbol('seedBlinkPhase')
+
+export interface BlinkPhase {
+  cursorVisible: boolean
+  textVisible: boolean
+}
+
 /** `immediate` paints a write synchronously unless a paint already landed this display frame; those writes join the next one. */
 export type TerminalPresentation = 'frame' | 'immediate'
 
@@ -70,6 +78,11 @@ export class RenderScheduler {
 
   get hasPendingTimer(): boolean {
     return this.blinkTimerHandle !== undefined || (this.textBlink?.hasPendingTimer ?? false)
+  }
+
+  seedBlinkPhase(phase: BlinkPhase): void {
+    this.cursorVisibleValue = phase.cursorVisible
+    if (this.textBlink) this.textBlink.visible = phase.textVisible
   }
 
   schedule(): void {

@@ -4,9 +4,11 @@ import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { GhosttyRuntime } from '../../core/runtime.js'
 import { Terminal as MainTerminal } from '../terminal.js'
-import type { GhosttyWebGpuTerminalOptions } from '../types.js'
 import type { TerminalApi } from '../terminal-api.js'
-import { Terminal as WorkerTerminal } from '../../../dist/worker/index.js'
+import {
+  Terminal as WorkerTerminal,
+  type WorkerTerminalOptions,
+} from '../../../dist/worker/index.js'
 
 const terminals: TerminalApi[] = []
 const hosts: HTMLElement[] = []
@@ -33,7 +35,7 @@ function composeFetches(fetches: {
 }): number {
   return fetches.mock.calls.filter(([url]) => String(url).includes('canvas-compose.wasm')).length
 }
-async function createWorker(rendererMode?: GhosttyWebGpuTerminalOptions['rendererMode']) {
+async function createWorker(rendererMode?: WorkerTerminalOptions['rendererMode']) {
   const terminal = await WorkerTerminal.create({
     rendererMode,
     appearance: { cursor: { blink: false } },
@@ -70,7 +72,7 @@ it.for([undefined, 'auto', 'canvas2d-fill-text', 'canvas2d-pixels'] as const)(
     await expect.poll(() => terminal.visibleLines()[0]?.includes('Á界')).toBe(true)
     await expect.poll(() => terminal.hasPendingFrame).toBe(false)
     expect(terminal.readLines(0, 1)[0]?.text).toContain('Á界')
-    expect(composeFetches(fetches)).toBe(rendererMode === 'canvas2d-pixels' ? 1 : 0)
+    expect(composeFetches(fetches)).toBe(rendererMode === 'canvas2d-fill-text' ? 0 : 1)
     await context.annotate(
       JSON.stringify({
         evidence: 'canvas-mode-correctness',

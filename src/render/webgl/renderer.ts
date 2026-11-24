@@ -32,7 +32,7 @@ import type {
   RenderStateSource,
   WebGpuTerminalRendererOptions,
 } from '../shared/types.js'
-import { RenderScheduler } from '../shared/scheduler.js'
+import { RenderScheduler, seedBlinkPhase, type BlinkPhase } from '../shared/scheduler.js'
 import { WebGlTextPass } from './text-pass.js'
 import { WebGlUnavailableError } from './unavailable.js'
 
@@ -197,6 +197,10 @@ export class WebGlTerminalRenderer {
 
   get hasPendingTimer(): boolean {
     return this.scheduler.hasPendingTimer
+  }
+
+  [seedBlinkPhase](phase: BlinkPhase): void {
+    this.scheduler.seedBlinkPhase(phase)
   }
 
   clearTextureAtlas(): void {

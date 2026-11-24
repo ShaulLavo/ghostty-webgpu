@@ -30,11 +30,8 @@ if (hardware && process.platform === 'linux' && process.env.WAYLAND_DISPLAY)
 const openScenario = `(async (backend, bidi, worker) => {
   const api = await import(worker ? '/dist/worker/index.js' : '/dist/index.js');
   const { Terminal } = api;
-  const rendererFactory = backend === 'webgpu' && !worker
-    ? (options) => api.WebGpuTerminalRenderer.create(options)
-    : undefined;
-  const rendererMode = backend === 'canvas2d-pixels' ? backend : undefined;
-  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererFactory, rendererMode, bidi, ...(worker ? { backend: backend === 'webgl2' ? 'webgl' : 'webgpu', fonts: [{family:'SmokeFont',source:{url:new URL('/smoke-font.ttf',location.href).href}}] } : {}) });
+  const rendererMode = !worker && (backend === 'webgpu' || backend === 'canvas2d-pixels') ? backend : undefined;
+  const terminal = await Terminal.create({ appearance: { cursor: { blink: false } }, rendererMode, bidi, ...(worker ? { backend: backend === 'webgl2' ? 'webgl' : 'webgpu', fonts: [{family:'SmokeFont',source:{url:new URL('/smoke-font.ttf',location.href).href}}] } : {}) });
   globalThis.rendererSmokeTerminal = terminal;
   await terminal.open(document.querySelector('main'));
   await terminal.setTheme({ ...terminal.appearance.theme, foreground: { r: 255, g: 0, b: 0 } });
@@ -44,8 +41,10 @@ const openScenario = `(async (backend, bidi, worker) => {
   return { backend: terminal.diagnostics.rendererBackend, text: terminal.visibleLines().join('\\n') };
   async function waitForSubmitted(terminal) {
     const revision = (await terminal.geometry()).revision;
+    const expectedBackend = backend === 'canvas2d-pixels' ? 'canvas2d' : backend;
     for (let attempt=0;attempt<500;attempt++) {
-      if ((terminal.submittedFrame?.nativeRevision ?? -1) >= revision) return;
+      if ((terminal.submittedFrame?.nativeRevision ?? -1) >= revision &&
+          terminal.diagnostics.rendererBackend === expectedBackend) return;
       await new Promise(resolve => setTimeout(resolve,10));
     }
     throw new Error('No submitted frame for parsed state');
@@ -161,7 +160,7 @@ async function checkBackend(
     assert(result && typeof result === 'object')
     assert('backend' in result && 'text' in result)
     assert.equal(result.backend, backend === 'canvas2d-pixels' ? 'canvas2d' : backend)
-    assert.equal(composeRequests.length, backend === 'canvas2d-pixels' ? 1 : 0)
+    assert.equal(composeRequests.length, worker ? 0 : 1)
     assert.equal(typeof result.text, 'string')
     assert(String(result.text).includes('built-fallback-ok'))
     assert.equal(

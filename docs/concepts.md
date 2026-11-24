@@ -53,6 +53,10 @@ flowchart TD
 
 Automatic selection skips software WebGPU adapters. `backend` is an option of the worker entry only, and an explicit `backend: 'webgpu'` there accepts any adapter. The main entry has no `backend` option. It takes `rendererMode` or a `rendererFactory`. After a lost WebGL context, the main entry follows the remaining order. The order lives in `src/render/shared/backend-order.ts` and `src/render/shared/selector.ts`. Desktop Linux tries WebGL2 first because it measured lower CPU work there ([changelog 0.3.22](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/CHANGELOG.md)).
 
+In the main entry, frame presentation can begin on Canvas 2D while the GPU starts.
+The terminal swaps in the GPU canvas after its first draw. A forced GPU mode uses the
+same handoff and keeps Canvas if the named renderer is unavailable.
+
 ## The worker entry
 
 `ghostty-webgpu/worker` puts the wasm core, the frame builder, and a GPU renderer in a dedicated worker. The DOM host stays on the page and owns focus, pointer input, and layout. Operations that need the worker's answer return promises. The worker supports WebGPU and WebGL2. It has no Canvas modes. Link providers run on the page against owned native row snapshots, including keyboard link discovery. The page keeps a text copy of the displayed rows; the worker sends only the rows whose characters changed, as text plus one blank bit per cell, and the page builds per-cell strings only when a reader asks for them. See [status](status.md) and the [worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/).

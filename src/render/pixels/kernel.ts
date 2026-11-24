@@ -95,13 +95,31 @@ export class ComposeKernel implements StampStorage {
     source: string | URL = canvasWasmAssets.canvasCompose,
   ): Promise<ComposeKernel> {
     try {
-      const bytes = await compositorAssetBytes(source)
+      const bytes = await (takePrefetch(source) ?? compositorAssetBytes(source))
       const { instance } = await WebAssembly.instantiate(bytes)
       return new ComposeKernel(instance.exports as unknown as ComposeExports)
     } catch (cause) {
       throw createGhosttyError('canvas.load', 'Canvas pixel composition is unavailable', cause)
     }
   }
+}
+
+let prefetch: { source: string | URL; bytes: Promise<ArrayBuffer> } | undefined
+
+export function prefetchComposeKernel(source: string | URL = canvasWasmAssets.canvasCompose): void {
+  if (prefetch?.source === source) return
+  const bytes = compositorAssetBytes(source)
+  prefetch = { source, bytes }
+  void bytes.catch(() => {
+    if (prefetch?.bytes === bytes) prefetch = undefined
+  })
+}
+
+function takePrefetch(source: string | URL): Promise<ArrayBuffer> | undefined {
+  if (prefetch?.source !== source) return
+  const { bytes } = prefetch
+  prefetch = undefined
+  return bytes.catch(() => compositorAssetBytes(source))
 }
 
 async function compositorAssetBytes(source: string | URL): Promise<ArrayBuffer> {

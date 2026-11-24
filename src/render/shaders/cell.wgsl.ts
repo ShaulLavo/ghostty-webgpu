@@ -102,7 +102,7 @@ fn hasFlag(flags: u32, flag: u32) -> bool {
 }
 
 fn lineCoverage(position: f32, center: f32) -> f32 {
-  return select(0.0, 1.0, abs(position - center) <= 0.5);
+  return select(0.0, 1.0, floor(position) == center);
 }
 
 fn underlineCoverage(style: u32, local: vec2f, size: vec2f) -> f32 {
@@ -117,7 +117,7 @@ fn underlineCoverage(style: u32, local: vec2f, size: vec2f) -> f32 {
     return max(lineCoverage(local.y, lower), lineCoverage(local.y, lower - 3.0));
   }
   if (style == 3u) {
-    let wave = lower - 1.0 + sin(local.x * 1.5707963);
+    let wave = lower - select(2.0, 1.0, (local.x % 4.0) < 2.0);
     return lineCoverage(local.y, wave);
   }
   if (style == 4u) {

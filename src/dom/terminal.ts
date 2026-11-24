@@ -1,5 +1,5 @@
 import {
-  createCompatibleTerminalRenderer,
+  createStartupTerminalRenderer,
   prewarmCompatibleRenderer,
 } from '../render/shared/selector.js'
 import type { TerminalSession } from '../term/session.js'
@@ -23,7 +23,7 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> extends TerminalHo
     execution: LocalTerminalExecution | WorkerTerminalExecution,
     options: GhosttyWebGpuTerminalFromSessionOptions,
   ) {
-    super(execution, options, createCompatibleTerminalRenderer)
+    super(execution, options, createStartupTerminalRenderer)
   }
 
   static override fromWorker(

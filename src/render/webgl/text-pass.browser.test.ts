@@ -249,7 +249,8 @@ it('renders every underline style, other decorations, contrast and an outline cu
     coveredPixels(grid.pixels, grid.width, column, 0),
   )
   expect(coverage.every((count) => count > 0)).toBe(true)
-  expect(coverage[1]).toBeGreaterThan(coverage[0]!)
+  expect(coverage[0]).toBe(cellSize)
+  expect(coverage[1]).toBe(cellSize * 2)
   expect(coverage[3]).toBeLessThan(coverage[4]!)
   expect(coverage[4]).toBeLessThan(coverage[0]!)
   expect(grid.pixel(120, 8)[3]).toBe(0)

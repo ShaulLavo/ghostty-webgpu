@@ -7,8 +7,9 @@ import type { WorkerAssets, WorkerBackend, WorkerFontFace, WorkerInitialize } fr
 
 export interface WorkerTerminalOptions extends Omit<
   GhosttyWebGpuTerminalFromSessionOptions,
-  'elements' | 'compositorAsset' | 'rendererFactory' | 'runtime'
+  'elements' | 'compositorAsset' | 'rendererFactory' | 'rendererMode' | 'runtime'
 > {
+  readonly rendererMode?: 'auto' | 'canvas2d-fill-text' | 'canvas2d-pixels'
   readonly assets?: WorkerAssets
   readonly backend?: WorkerBackend
   readonly fonts: readonly WorkerFontFace[]

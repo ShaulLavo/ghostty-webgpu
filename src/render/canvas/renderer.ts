@@ -111,6 +111,7 @@ class CanvasSurface implements RowRendererSurface {
       options.font,
       canonicalRendererTheme(mergeRendererTheme(options.theme)),
       options.ligatures,
+      this.pixelTarget !== undefined,
     )
   }
 

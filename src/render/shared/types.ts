@@ -77,7 +77,7 @@ export interface RendererMetrics {
   uploadedBytes: number
 }
 
-type TerminalRendererMode = 'auto' | 'canvas2d-fill-text' | 'canvas2d-pixels'
+type TerminalRendererMode = 'auto' | 'webgpu' | 'webgl2' | 'canvas2d-fill-text' | 'canvas2d-pixels'
 export type CanvasPaintMode = 'fill-text' | 'pixels'
 
 export interface WebGpuTerminalRendererOptions {

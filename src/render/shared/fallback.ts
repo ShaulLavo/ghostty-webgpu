@@ -14,6 +14,7 @@ import type { RendererTheme } from './instances/types.js'
 import type { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
 import type { RendererGridSize, RendererMetrics, WebGpuTerminalRendererOptions } from './types.js'
 import type { WebGlTerminalRenderer } from '../webgl/renderer.js'
+import { seedBlinkPhase, type BlinkPhase } from './scheduler.js'
 
 type ReplacementRenderer = CanvasTerminalRenderer | DomTerminalRenderer | WebGpuTerminalRenderer
 
@@ -105,6 +106,10 @@ export class FallbackTerminalRenderer {
     return this.activeRenderer?.hasPendingTimer ?? false
   }
 
+  [seedBlinkPhase](phase: BlinkPhase): void {
+    this.activeRenderer?.[seedBlinkPhase](phase)
+  }
+
   clearTextureAtlas(): void {
     this.activeRenderer?.clearTextureAtlas()
   }
@@ -119,6 +124,11 @@ export class FallbackTerminalRenderer {
 
   notifyWrite(): void {
     this.activeRenderer?.notifyWrite()
+  }
+
+  paintPending(): boolean {
+    const renderer = this.activeRenderer
+    return Boolean(renderer && 'paintPending' in renderer && renderer.paintPending())
   }
 
   refreshRows(startRow: number, endRow: number): void {
