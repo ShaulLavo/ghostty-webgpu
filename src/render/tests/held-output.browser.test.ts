@@ -1,6 +1,6 @@
 import { requireWorkerWebGl } from './worker-webgl-capability.js'
 import { testFontUrl } from '../../tests/fonts.js'
-import { expect, it } from 'vitest'
+import { expect, it, onTestFinished } from 'vitest'
 import { page } from 'vitest/browser'
 import { Terminal as Xterm } from '@xterm/xterm'
 import { WebglAddon } from '@xterm/addon-webgl'
@@ -195,6 +195,28 @@ async function workerActor(host: HTMLDivElement): Promise<HoldActor> {
   }
 }
 
+// xterm releases DEC 2026 after a one-second watchdog; park it so only the explicit release can.
+function parkSyncWatchdog() {
+  const native = window.setTimeout
+  let holding = false
+  let parked = 0
+  const parking = (handler: TimerHandler, delay?: number, ...args: unknown[]): number => {
+    if (!holding || delay !== 1000) return Reflect.apply(native, window, [handler, delay, ...args])
+    parked += 1
+    return Reflect.apply(native, window, [() => {}, delay])
+  }
+  Reflect.set(window, 'setTimeout', parking)
+  return {
+    hold(value: boolean) {
+      holding = value
+    },
+    parked: () => parked,
+    restore() {
+      Reflect.set(window, 'setTimeout', native)
+    },
+  }
+}
+
 async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
   const stylesheet = document.createElement('link')
   stylesheet.rel = 'stylesheet'
@@ -238,8 +260,10 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
   await write('\x1b[?25l\x1b[2J\x1b[H')
   const screen = host.querySelector('.xterm-screen') as HTMLDivElement
   const canvas = screen.querySelector('canvas')!
+  const watchdog = parkSyncWatchdog()
   return {
     async write(color, held = false) {
+      if (held) watchdog.hold(true)
       await write(`${held ? '\x1b[?2026h' : ''}${output(color)}`)
     },
     async queue() {
@@ -249,6 +273,8 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
       terminal.refresh(0, 3)
     },
     async release() {
+      expect(watchdog.parked()).toBeGreaterThan(0)
+      watchdog.hold(false)
       await write('\x1b[?2026l')
     },
     async read() {
@@ -259,6 +285,7 @@ async function xtermActor(host: HTMLDivElement): Promise<HoldActor> {
       return { color: Array.from(pixels.subarray(offset, offset + 4)), frames }
     },
     async dispose() {
+      watchdog.restore()
       terminal.dispose()
     },
     async frames() {
@@ -276,44 +303,48 @@ for (const [name, create] of [
     await page.viewport(800, 600)
     const host = document.createElement('div')
     document.body.append(host)
-    const face = await new FontFace(font.family, `url(${fontUrl})`).load()
-    document.fonts.add(face)
+    let face: FontFace | undefined
     let actor: HoldActor | undefined
     let disposed = false
-    try {
-      actor = await create(host)
-      await actor.write(oldColor)
-      await expect.poll(async () => (await actor!.read()).color).toEqual(oldColor)
-      const normal = await actor.read()
-      await actor.queue()
-      await actor.write(heldColor, true)
-      await actor.stimulate()
-      await outsideFrames()
-      const held = await actor.read()
-      expect(held.color).toEqual(oldColor)
-      expect(held.frames).toBe(normal.frames)
-      await actor.stimulate()
-      await outsideFrames()
-      expect((await actor.read()).color).toEqual(oldColor)
-      await actor.release()
-      await expect.poll(async () => (await actor!.read()).color).toEqual(heldColor)
-      await outsideFrames()
-      const released = await actor.read()
-      expect(released.frames).toBe(normal.frames + 1)
-      await actor.queue()
-      await actor.write(canceledColor, true)
-      await actor.stimulate()
-      await outsideFrames()
-      expect((await actor.read()).color).toEqual(heldColor)
-      const beforeDispose = await actor.frames()
-      await actor.dispose()
-      disposed = true
-      await outsideFrames()
-      expect(await actor.frames()).toBe(beforeDispose)
-    } finally {
-      if (actor && !disposed) await actor.dispose()
-      host.remove()
-      document.fonts.delete(face)
-    }
-  }, 15_000)
+    // Vitest runs this after a timeout too, which a finally block would not.
+    onTestFinished(async () => {
+      try {
+        if (actor && !disposed) await actor.dispose()
+      } finally {
+        host.remove()
+        if (face) document.fonts.delete(face)
+      }
+    })
+    face = await new FontFace(font.family, `url(${fontUrl})`).load()
+    document.fonts.add(face)
+    actor = await create(host)
+    await actor.write(oldColor)
+    await expect.poll(async () => (await actor!.read()).color).toEqual(oldColor)
+    const normal = await actor.read()
+    await actor.queue()
+    await actor.write(heldColor, true)
+    await actor.stimulate()
+    await outsideFrames()
+    const held = await actor.read()
+    expect(held.color).toEqual(oldColor)
+    expect(held.frames).toBe(normal.frames)
+    await actor.stimulate()
+    await outsideFrames()
+    expect((await actor.read()).color).toEqual(oldColor)
+    await actor.release()
+    await expect.poll(async () => (await actor!.read()).color).toEqual(heldColor)
+    await outsideFrames()
+    const released = await actor.read()
+    expect(released.frames).toBe(normal.frames + 1)
+    await actor.queue()
+    await actor.write(canceledColor, true)
+    await actor.stimulate()
+    await outsideFrames()
+    expect((await actor.read()).color).toEqual(heldColor)
+    const beforeDispose = await actor.frames()
+    disposed = true
+    await actor.dispose()
+    await outsideFrames()
+    expect(await actor.frames()).toBe(beforeDispose)
+  }, 30_000)
 }

@@ -148,6 +148,7 @@ export class WebGpuTerminalRenderer {
   private readonly context: GPUCanvasContext
   private cursor?: RenderCursorSnapshot
   private readonly textBlinkEnabled: boolean
+  private readonly immediate: boolean
   private cursorBlinkPreference: boolean
   private cursorPhaseVisible = true
   private textPhaseVisible = true
@@ -216,6 +217,7 @@ export class WebGpuTerminalRenderer {
     this.themeInput = mergeRendererTheme(options.theme)
     this.theme = canonicalRendererTheme(this.themeInput)
     this.textBlinkEnabled = options.textBlink ?? false
+    this.immediate = options.presentation === 'immediate'
     this.cursorBlinkPreference = options.cursorBlink ?? false
     this.frames = new FrameObserver(options)
     this.frames.resize(this.grid.rows)
@@ -237,6 +239,7 @@ export class WebGpuTerminalRenderer {
         textBlink: options.textBlink,
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
         onFrame: () => this.drawFrame(),
+        presentation: options.presentation,
       })
       this.scheduler = scheduler
       this.setReducedMotion(options.reducedMotion ?? false)
@@ -313,7 +316,9 @@ export class WebGpuTerminalRenderer {
 
   notifyWrite(): void {
     this.resetCursorBlink()
-    this.scheduler.schedule()
+    this.scheduler.scheduleWrite()
+    // A peer's frame callback runs inside the shared frame; submit before returning.
+    if (this.immediate) this.coordinator?.flushOwner(this)
   }
 
   refreshRows(startRow: number, endRow: number): void {
@@ -422,6 +427,7 @@ export class WebGpuTerminalRenderer {
       })
       try {
         this.device.queue.submit([command])
+        this.textPass.uploadsSubmitted()
         this.sharedAtlas.frameSubmitted(this, this.device)
       } catch (cause) {
         this.sharedAtlas.frameFailed(this, this.device)

@@ -49,7 +49,7 @@ export const nativeSourceHashes = {
   viewport: 'fd9b16ee545bce85c021f522e79d4d5d58b71e86f57d4da87c006857e162f2da',
   'bulk-snapshot': '172d11118d4f39b977dd801d8c50c2b54449f803a0620e018bdfd1e8d8aaa7e2',
   measurement: '314c6aa438c4360fdcd1d82a703af17554d431bf7c9a826c4c36785dba68b6e3',
-  'font-resources': 'd9a65ca1f6e94fb613d02d14b00a8a4d98cf5107775ed308d8579f8e7427c227',
+  'font-resources': '3797d793a8a78af81bc068d525c303f515b72f91ae962c3bca387b3cdfc20c1a',
 } satisfies Record<NativeStage, string>
 
 export async function verifyNativeSource(stage: NativeStage): Promise<void> {

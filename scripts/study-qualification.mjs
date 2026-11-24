@@ -7,8 +7,9 @@ export function studyCanvases(info, variant, count) {
     'xterm-webgl': 'webgl2',
     'nm-webgpu': 'webgpu',
   }
+  // Worker-owned canvases create their context off the page, so no page-side tag exists.
   const active =
-    variant === 'wraith-native'
+    variant === 'wraith-native' || variant.startsWith('ghostty-worker-')
       ? info.canvases
       : info.canvases.filter((canvas) => canvas.context === contexts[variant])
   assert.equal(active.length, count, `Expected ${count} active ${variant} canvases`)

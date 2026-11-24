@@ -362,15 +362,38 @@ it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
 
 it('freezes effect time while paused, resumes and keeps capture current', async () => {
   const f = await fixture('webgl2', timeShader)
+  expect(f.canvas.dataset['backend']).toBe('webgl2')
+  const gl = f.canvas.getContext('webgl2')
+  if (!gl) throw new TypeError('Missing shader output context')
+  // The pass defers each draw until the previous draw's fence signals, so wait for counted draws
+  // and read the preserved drawing buffer they produced; red is fract(iTime).
+  const draws = vi.spyOn(gl, 'drawArrays')
+  const shaderTime = () => {
+    const pixel = new Uint8Array(4)
+    gl.readPixels(
+      gl.drawingBufferWidth >> 1,
+      gl.drawingBufferHeight >> 1,
+      1,
+      1,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      pixel,
+    )
+    return pixel[0]
+  }
+  const drawnAfter = async (count: number) => {
+    await expect.poll(() => draws.mock.calls.length).toBeGreaterThan(count)
+    return shaderTime()
+  }
+  const beforePause = draws.mock.calls.length
   f.handle.api.setPaused(true)
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-  )
-  const paused = await color(f.canvas)
+  const paused = await drawnAfter(beforePause)
   await new Promise((resolve) => setTimeout(resolve, 100))
-  expect(await color(f.canvas)).toEqual(paused)
+  const beforeRedraw = draws.mock.calls.length
+  f.terminal.write('x')
+  expect(await drawnAfter(beforeRedraw)).toBe(paused)
   f.handle.api.setPaused(false)
-  await expect.poll(async () => (await color(f.canvas))[0]).not.toBe(paused[0])
+  await expect.poll(shaderTime).not.toBe(paused)
 })
 
 it('follows a replaced terminal canvas during renderer recovery', async () => {

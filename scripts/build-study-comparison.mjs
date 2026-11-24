@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFile, readFile, writeFile, rm } from 'node:fs/promises'
+import { copyFile, readdir, readFile, writeFile, rm } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 
 const output = resolve(process.argv[2])
@@ -39,6 +39,41 @@ await writeFile(
   (await readFile(new URL('./study-worker-observer.js', import.meta.url), 'utf8')) +
     '\n' +
     (await readFile(join(output, 'worker.js'), 'utf8')),
+)
+// Our worker entry, built like the published one, with the same adapter observer.
+await rm(join(output, 'ghostty-worker'), { recursive: true, force: true })
+execFileSync(
+  'bun',
+  [
+    'build',
+    'bench/study-worker.ts',
+    '--entry-naming',
+    'entry.js',
+    '--target',
+    'browser',
+    '--format',
+    'esm',
+    '--splitting',
+    '--minify',
+    '--outdir',
+    join(output, 'ghostty-worker'),
+  ],
+  { stdio: 'inherit' },
+)
+const workerChunks = await Promise.all(
+  (await readdir(join(output, 'ghostty-worker'))).map((name) =>
+    readFile(join(output, 'ghostty-worker', name), 'utf8'),
+  ),
+)
+assert(
+  workerChunks.some((chunk) => chunk.includes('requestAdapter')),
+  'Study worker bundle is missing the worker runtime',
+)
+await writeFile(
+  join(output, 'ghostty-worker/entry.js'),
+  (await readFile(new URL('./study-worker-observer.js', import.meta.url), 'utf8')) +
+    '\n' +
+    (await readFile(join(output, 'ghostty-worker/entry.js'), 'utf8')),
 )
 await copyFile(
   join(wraith, 'packages/wraith/wasm/wraith_engine_bg.wasm'),

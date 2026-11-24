@@ -89,6 +89,8 @@ export function createBrowserTestConfig() {
         screenshotFailures: false,
         commands: { insertText },
       },
+      // Polls wait for an outcome; one pixel screenshot on a loaded CI runner can use most of the 1s default.
+      expect: { poll: { timeout: 10_000 } },
       // SwiftShader can lose adapters when browser files churn WebGPU devices concurrently.
       fileParallelism: false,
       include: [

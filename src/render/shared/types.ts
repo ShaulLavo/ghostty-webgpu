@@ -106,7 +106,7 @@ export interface WebGpuTerminalRendererOptions {
   /** Painted row IDs without requesting cell data. */
   onRowsChanged?: (rows: readonly number[]) => void
   onRowsPainted?: (rows: readonly RenderRow[]) => void
-  /** `immediate` prefers WebGL2 with a desynchronized canvas; WebGPU always presents per frame. */
+  /** `immediate` prefers WebGL2 with a desynchronized canvas and paints writes without waiting for a frame. */
   presentation?: TerminalPresentation
   replaceCanvas?: () => HTMLCanvasElement | OffscreenCanvas
   renderState: GhosttyRenderState | RenderStateSource

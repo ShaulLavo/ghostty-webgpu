@@ -1,5 +1,6 @@
 import type { TerminalSubmittedRow } from '../dom/submitted-frame.js'
 import type { RendererTextFrameRow } from '../render/shared/types.js'
+import { plainRowSource, plainTextRow, type PlainRowSource } from '../core/plain-text-row.js'
 import { freezeWorkerValue } from './owned.js'
 import type { WorkerFrameDelta, WorkerSubmission } from './protocol.js'
 
@@ -7,11 +8,24 @@ const uint32Bytes = 4
 const codeUnitBytes = 2
 const rowHeaderBytes = 4 * uint32Bytes
 const codeUnitChunk = 4096
+// A plain row stores this in its cell-count field and its blank bitmap length in the flag field.
+const plainRow = 0xffffffff
 const littleEndian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1
+
+function sameBlanks(left: PlainRowSource, right: PlainRowSource, length: number): boolean {
+  for (let column = 0; column < length; column++) {
+    if (left.blank(column) !== right.blank(column)) return false
+  }
+  return true
+}
 
 function equalRow(left: RendererTextFrameRow | undefined, right: RendererTextFrameRow): boolean {
   if (left === right) return true
   if (!left || left.text !== right.text) return false
+  const leftPlain = plainRowSource(left)
+  const rightPlain = plainRowSource(right)
+  // Two plain rows with equal text differ only where a blank became a space or back.
+  if (leftPlain && rightPlain) return sameBlanks(leftPlain, rightPlain, right.text.length)
   const leftCells = left.cells
   const rightCells = right.cells
   if (leftCells.length !== rightCells.length) return false
@@ -31,13 +45,29 @@ function alignedFlagBytes(length: number): number {
   return length + (length % codeUnitBytes)
 }
 
+function blankWords(length: number): number {
+  return Math.ceil(length / 32)
+}
+
 // Rows contain four uint32 fields (y, text length, cell count, flag count).
 // Each cell has a uint32 length. Text is UTF-16LE and flags pad to an even offset.
-function rowBytes(row: RendererTextFrameRow): number {
-  let size =
-    rowHeaderBytes + row.text.length * codeUnitBytes + alignedFlagBytes(row.continuations.length)
+// A plain row replaces its cells and flags with one blank bit per code unit of its text.
+function rowBytes(row: RendererTextFrameRow, plain: PlainRowSource | undefined): number {
+  const header = rowHeaderBytes + row.text.length * codeUnitBytes
+  if (plain) return header + blankWords(row.text.length) * uint32Bytes
+  let size = header + alignedFlagBytes(row.continuations.length)
   for (const cell of row.cells) size += uint32Bytes + cell.length * codeUnitBytes
   return size
+}
+
+function blankBits(source: PlainRowSource, word: number, length: number): number {
+  const first = word * 32
+  const end = Math.min(length, first + 32)
+  let bits = 0
+  for (let column = first; column < end; column++) {
+    if (source.blank(column)) bits |= 1 << (column - first)
+  }
+  return bits >>> 0
 }
 
 class RowWriter {
@@ -62,6 +92,17 @@ class RowWriter {
       view.setUint16(start + index * codeUnitBytes, value.charCodeAt(index), true)
     }
     this.offset += value.length * codeUnitBytes
+  }
+
+  // The text and one blank bit per cell stand in for 100 small cell strings per row.
+  plain(row: RendererTextFrameRow, source: PlainRowSource): void {
+    const words = blankWords(row.text.length)
+    this.uint32(row.y)
+    this.uint32(row.text.length)
+    this.uint32(plainRow)
+    this.uint32(words)
+    this.text(row.text)
+    for (let word = 0; word < words; word++) this.uint32(blankBits(source, word, row.text.length))
   }
 
   row(row: RendererTextFrameRow): void {
@@ -133,12 +174,21 @@ class RowReader {
     return value
   }
 
+  // Cells stay unbuilt until a consumer (links, accessibility) reads them.
+  private plain(y: number, text: string, words: number): RendererTextFrameRow {
+    if (words !== blankWords(text.length)) throw new Error('Invalid plain row bitmap')
+    const blanks = new Uint32Array(words)
+    for (let word = 0; word < words; word++) blanks[word] = this.uint32()
+    return plainTextRow(y, text, 0, blanks)
+  }
+
   row(): RendererTextFrameRow {
     const y = this.uint32()
     const textLength = this.uint32()
     const cellCount = this.uint32()
     const flagCount = this.uint32()
     const text = this.text(textLength)
+    if (cellCount === plainRow) return this.plain(y, text, flagCount)
     if (cellCount * uint32Bytes + alignedFlagBytes(flagCount) > this.remaining)
       throw new Error('Invalid row lengths')
     const cells = Array.from({ length: cellCount }, () => this.text(this.uint32()))
@@ -159,13 +209,15 @@ class RowReader {
 
 export class RowDeltaEncoder {
   private rows = new Map<number, RendererTextFrameRow>()
+  private font?: WorkerSubmission['summary']['font']
+  private theme?: WorkerSubmission['summary']['theme']
 
   encode(frame: WorkerSubmission): WorkerFrameDelta {
     const { rows, cursor, paintedCursor, renderHeld } = frame.snapshot
-    const { rows: summaryRows, rowPatches, ...summary } = frame.summary
+    const { rows: summaryRows, rowPatches, font, theme, ...summary } = frame.summary
     if (summaryRows.length !== rows.length) throw new Error('Summary and renderer rows diverged')
     const next = new Map<number, RendererTextFrameRow>()
-    const changed: RendererTextFrameRow[] = []
+    const changed: { row: RendererTextFrameRow; plain: PlainRowSource | undefined }[] = []
     const order: number[] = []
     let size = uint32Bytes
     for (const [index, row] of rows.entries()) {
@@ -175,17 +227,28 @@ export class RowDeltaEncoder {
       next.set(row.y, row)
       order.push(row.y)
       if (equalRow(this.rows.get(row.y), row)) continue
-      changed.push(row)
-      size += rowBytes(row)
+      const plain = plainRowSource(row)
+      changed.push({ row, plain })
+      size += rowBytes(row, plain)
     }
     const writer = new RowWriter(new ArrayBuffer(size))
     writer.uint32(changed.length)
-    for (const row of changed) writer.row(row)
+    for (const { row, plain } of changed) {
+      if (plain) writer.plain(row, plain)
+      else writer.row(row)
+    }
     this.rows = next
+    // The decoder keeps the last font and theme, so only a new identity is sent.
+    const appearance = {
+      ...(font === this.font ? {} : { font }),
+      ...(theme === this.theme ? {} : { theme }),
+    }
+    this.font = font
+    this.theme = theme
     return {
       ...frame,
       snapshot: { cursor, paintedCursor, renderHeld },
-      summary,
+      summary: { ...summary, ...appearance },
       order,
       patches: rowPatches.map((row) => row.y),
       buffer: writer.buffer,
@@ -200,9 +263,13 @@ interface DecodedRow {
 
 export class RowDeltaDecoder {
   private rows = new Map<number, DecodedRow>()
+  private font?: WorkerSubmission['summary']['font']
+  private theme?: WorkerSubmission['summary']['theme']
 
   reset(): void {
     this.rows.clear()
+    this.font = undefined
+    this.theme = undefined
   }
 
   decode(frame: WorkerFrameDelta): WorkerSubmission {
@@ -253,16 +320,23 @@ export class RowDeltaDecoder {
       rowPatches.push(row.summary)
     }
 
+    const font = summary.font ?? this.font
+    const theme = summary.theme ?? this.theme
+    if (!font || !theme) throw new Error('Row delta is missing its font or theme')
     const decoded = {
       ...header,
       snapshot: freezeWorkerValue({ ...snapshot, rows: Object.freeze(rendererRows) }),
       summary: freezeWorkerValue({
         ...summary,
+        font,
+        theme,
         rows: Object.freeze(summaryRows),
         rowPatches: Object.freeze(rowPatches),
       }),
     }
     this.rows = next
+    this.font = decoded.summary.font
+    this.theme = decoded.summary.theme
     return decoded
   }
 }

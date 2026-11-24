@@ -22,7 +22,8 @@
       "build",
       "-Demit-lib-vt=true",
       "-Dtarget=wasm32-freestanding",
-      "-Doptimize=ReleaseSmall"
+      "-Doptimize=ReleaseSmall",
+      "-Dvt-features=-all,+render_state,+input_encode,+selection,+formatter,+grid_introspection"
     ],
     "bridge": [
       "zig",
@@ -57,7 +58,7 @@
       }
     },
     "inputs": {
-      "scripts/build-wasm.ts": "bdebe3b657784c8b3cf3db88bfb2c079edb86d2cbda560e1262bfc1b04b5520d",
+      "scripts/build-wasm.ts": "34a9bbf58b923f275140381b25ba622b8c674b61a651fd3d935692bed196840b",
       "scripts/bridge.zig": "f83322de9290a587370cebf6569e224e398f7dcd793b83706e1cfc3416251653",
       "scripts/row-index.zig": "9d09589b7091bd22447503e24a5642d87575c99aed9ac89f5f91205f0578bf44",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
@@ -67,14 +68,14 @@
       "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
       "scripts/ghostty-vt-exports.ts": "059b0cdd5862ebad9df92d443fc9b85b31f72b73183d3f613c07187078ff1592",
       "scripts/wasm-exports.ts": "1b03a3db978bfe750cb0361a5b2d028e1e2fe56dc02004cce19a69024af60be9",
-      "scripts/wasm-provenance.ts": "4a83f0b64130693725f31cdc108e2d0d5c4045196260524000380d85b8bad03a",
+      "scripts/wasm-provenance.ts": "67913f3dce5078fcb11c13e2a9efb339c601634c6fc1ead55723391aa3a3d4f6",
       "src/core/version.ts": "a9f9166ef443f4fa2b0b2d43385802bad9efe4825d996cad0b7efa5db107d6fb"
     }
   },
   "artifacts": {
     "ghostty-vt.wasm": {
-      "bytes": 672435,
-      "sha256": "2f1aaf70f4cfc3310f0fe896bc446ce7a007ea063ef175fd8d105be7781f627e",
+      "bytes": 606873,
+      "sha256": "8c53340f9a2183fbd4ba62d3f9acf82b313557e43929d78ed1075aff34d8144c",
       "nameSectionSha256": []
     },
     "bridge.wasm": {
