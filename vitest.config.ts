@@ -3,6 +3,8 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
+    // A hang cap, not a speed limit: CPU-bound tests beside nested browser suites can pass 5s on CI.
+    testTimeout: 60_000,
     // Bound per-file concurrent tests to 2 so two overlapping browser-backed unit suites cap at 4 browsers on 4-vCPU CI runners.
     maxConcurrency: 2,
     exclude: ['src/**/*.browser.test.ts', 'scripts/**/*.browser.test.ts'],

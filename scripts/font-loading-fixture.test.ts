@@ -91,6 +91,19 @@ test('holds the real font response until release and removes the gate', async (c
   expect((await fixture.control('success', 'DELETE')).status).toBe(204)
 })
 
+test('reports whether the font request has reached an armed gate', async (context) => {
+  const fixture = await start(context)
+  const waiting = async () => (await fixture.send(`${prefix}status?waiting`)).bytes.toString()
+  expect(await waiting()).toBe('false')
+  await fixture.control('status', 'POST')
+  expect(await waiting()).toBe('false')
+  const held = await fixture.held('status')
+  expect(await waiting()).toBe('true')
+  await fixture.control('status', 'DELETE')
+  expect(await held.finished).toEqual(font)
+  expect(await waiting()).toBe('false')
+})
+
 test('removes an armed gate when setup is cancelled before GET', async (context) => {
   const fixture = await start(context)
   await fixture.control('cancelled', 'POST')
