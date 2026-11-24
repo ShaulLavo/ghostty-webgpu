@@ -1,6 +1,6 @@
 import type { TerminalFittedFont } from '../../../term/types.js'
 import { copyFittedFont } from '../config.js'
-import { fontResources, resourceIdentity } from '../font-identity.js'
+import { resourceIdentity, scratchFontResources } from '../font-identity.js'
 import { CanvasGlyphRasterizer } from './canvas-rasterizer.js'
 
 interface SharedEntry<T> {
@@ -44,16 +44,22 @@ export class SharedPool<T extends object> {
 // WebGL contexts cannot share textures, but terminals in one realm can share rasterized bitmaps.
 const rasterizers = new SharedPool<CanvasGlyphRasterizer>()
 
+// The scratch canvas is created in this realm, so this realm's faces are the ones it draws with.
+function drawingFaces(): string {
+  const resources = scratchFontResources()
+  return resources ? resourceIdentity(resources) : ''
+}
+
 /** Shares bitmaps only between terminals that draw the same fitted font with the same loaded faces. */
-export function acquireGlyphRasterizer(
-  font: TerminalFittedFont,
-  canvas: HTMLCanvasElement | OffscreenCanvas,
-): CanvasGlyphRasterizer {
+export function acquireGlyphRasterizer(font: TerminalFittedFont): CanvasGlyphRasterizer {
   const copy = copyFittedFont(font)
-  const resources = fontResources(canvas)
-  const faces = resources ? resourceIdentity(resources) : ''
+  const faces = drawingFaces()
   const key = JSON.stringify(copy) + '\u0000' + faces
-  return rasterizers.acquire(key, () => new CanvasGlyphRasterizer({ font: copy }))
+  // A miss drawn after the faces changed belongs to another key, so it is drawn but not kept.
+  return rasterizers.acquire(
+    key,
+    () => new CanvasGlyphRasterizer({ font: copy, canCache: () => drawingFaces() === faces }),
+  )
 }
 
 export function releaseGlyphRasterizer(rasterizer: CanvasGlyphRasterizer): void {

@@ -152,7 +152,7 @@ export class WebGlTerminalRenderer {
     this.frames.resize(this.grid.rows)
     this.resizeCanvas()
     this.state = { kind: 'ready', pass: this.createTextPass() }
-    this.rasterizer = acquireGlyphRasterizer(font, this.canvas)
+    this.rasterizer = acquireGlyphRasterizer(font)
     this.desynchronized = context.getContextAttributes()?.desynchronized === true
     this.scheduler = new RenderScheduler({
       textBlink: options.textBlink,
@@ -206,7 +206,7 @@ export class WebGlTerminalRenderer {
   }
 
   private replaceRasterizer(): void {
-    const next = acquireGlyphRasterizer(this.font, this.canvas)
+    const next = acquireGlyphRasterizer(this.font)
     releaseGlyphRasterizer(this.rasterizer)
     this.rasterizer = next
   }

@@ -11,6 +11,13 @@ export function fontResources(
   if (typeof document !== 'undefined') return document.fonts
 }
 
+/** The font faces a canvas created in this realm draws with. */
+export function scratchFontResources(): FontFaceSet | undefined {
+  const fonts: unknown = Reflect.get(globalThis, 'fonts')
+  if (typeof FontFaceSet !== 'undefined' && fonts instanceof FontFaceSet) return fonts
+  if (typeof document !== 'undefined') return document.fonts
+}
+
 /** Changes whenever a face is added, removed, replaced or finishes loading. */
 export function resourceIdentity(resources: FontFaceSet): string {
   return JSON.stringify(

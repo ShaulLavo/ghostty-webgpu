@@ -6,14 +6,10 @@ import { acquireGlyphRasterizer, releaseGlyphRasterizer } from '../shared-raster
 it('shares a rasterizer only while the fitted font and the loaded faces match', async ({
   onTestFinished,
 }) => {
-  const canvas = document.createElement('canvas')
   const font = fittedFont()
-  const first = acquireGlyphRasterizer(font, canvas)
-  const second = acquireGlyphRasterizer(font, canvas)
-  const larger = acquireGlyphRasterizer(
-    { ...font, settings: { ...font.settings, size: 30 } },
-    canvas,
-  )
+  const first = acquireGlyphRasterizer(font)
+  const second = acquireGlyphRasterizer(font)
+  const larger = acquireGlyphRasterizer({ ...font, settings: { ...font.settings, size: 30 } })
   onTestFinished(() => [first, second, larger].forEach(releaseGlyphRasterizer))
   expect(second).toBe(first)
   expect(larger).not.toBe(first)
@@ -24,7 +20,7 @@ it('shares a rasterizer only while the fitted font and the loaded faces match', 
   onTestFinished(() => {
     document.fonts.delete(face)
   })
-  const afterLoad = acquireGlyphRasterizer(font, canvas)
+  const afterLoad = acquireGlyphRasterizer(font)
   onTestFinished(() => releaseGlyphRasterizer(afterLoad))
   expect(afterLoad).not.toBe(first)
 })

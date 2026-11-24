@@ -206,6 +206,17 @@ describe('GlyphAtlas', () => {
     expect(atlas.consumeUploads()).toEqual([])
   })
 
+  it('drops upload bounds left from before a reset', () => {
+    const atlas = new GlyphAtlas({ padding: 1, pageHeight: 8, pageWidth: 8 })
+    atlas.getOrInsert('wide', bitmap('grayscale', 9, 6, 2), 0)
+    atlas.invalidateAll()
+    atlas.getOrInsert('narrow', bitmap('grayscale', 7, 2, 2), 0)
+
+    expect(atlas.consumeUploads()).toMatchObject([
+      { extent: { height: 4, width: 4 }, origin: { x: 0, y: 0 } },
+    ])
+  })
+
   it('clears the padded box around a glyph inserted into a reset layer', () => {
     const atlas = new GlyphAtlas({ padding: 1, pageHeight: 8, pageWidth: 8 })
     atlas.getOrInsert('wide', bitmap('grayscale', 9, 6, 2), 0)

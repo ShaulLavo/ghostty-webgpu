@@ -157,6 +157,8 @@ class AtlasPage {
     this.shelfX = this.padding
     this.shelfY = this.padding
     this.stale = true
+    // Pending bounds belong to the old generation; each new glyph marks its own padded box.
+    this.dirty = undefined
   }
 
   private clearPadded(position: AtlasPosition, width: number, height: number): void {
