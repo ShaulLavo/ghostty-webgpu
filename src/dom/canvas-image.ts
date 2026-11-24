@@ -1,6 +1,7 @@
 import type { CanvasImagePublisher } from '../render/shared/displayed-frame.js'
 
 const observeCanvasImage = Symbol.for('ghostty-webgpu.observeCanvasImage')
+const observeStartupBackend = Symbol.for('ghostty-webgpu.resolveStartupBackend')
 type Listener = () => unknown
 
 export class CanvasImageRelay {
@@ -75,5 +76,14 @@ export class CanvasImageRelay {
 export function bindCanvasImage(terminal: object, relay: CanvasImageRelay): void {
   Object.defineProperty(terminal, observeCanvasImage, {
     value: (listener: Listener) => relay.subscribe(listener),
+  })
+}
+
+export function bindStartupBackend(
+  terminal: object,
+  resolve: () => Promise<'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined>,
+): void {
+  Object.defineProperty(terminal, observeStartupBackend, {
+    value: resolve,
   })
 }

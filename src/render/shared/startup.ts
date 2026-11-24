@@ -7,6 +7,8 @@ import { copyFittedFont, normalizeRendererGrid } from './config.js'
 import type { InactiveCursorStyle } from './cursor.js'
 import {
   attachCanvasImage,
+  startupBackend,
+  wakeStartupHandoff,
   type CanvasImagePublisher,
   type DisplayedFrameOptions,
   type StartupCanvas,
@@ -32,10 +34,14 @@ interface StartupRendererOptions {
   signal: AbortSignal
 }
 
+type StartupBackend = 'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined
+
 export class StartupTerminalRenderer {
   private state: RendererState
   private pendingFrame?: number
   private started = false
+  private backendSettled = false
+  private readonly settledBackend = Promise.withResolvers<StartupBackend>()
   private documentVisible = true
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
@@ -115,20 +121,31 @@ export class StartupTerminalRenderer {
     return this.active?.hasPendingTimer ?? false
   }
 
+  [startupBackend](): Promise<StartupBackend> {
+    return this.settledBackend.promise
+  }
+
+  [wakeStartupHandoff](): void {
+    if (this.state.kind === 'ready') this.scheduleHandoff()
+  }
+
   clearTextureAtlas(): void {
     this.active?.clearTextureAtlas()
   }
 
   notifyScroll(): void {
     this.active?.notifyScroll()
+    if (this.state.kind === 'ready') this.scheduleHandoff()
   }
 
   notifySelectionChange(): void {
     this.active?.notifySelectionChange()
+    if (this.state.kind === 'ready') this.scheduleHandoff()
   }
 
   notifyWrite(): void {
     this.active?.notifyWrite()
+    if (this.state.kind === 'ready') this.scheduleHandoff()
   }
 
   paintPending(): boolean {
@@ -138,6 +155,7 @@ export class StartupTerminalRenderer {
 
   refreshRows(startRow: number, endRow: number): void {
     this.active?.refreshRows(startRow, endRow)
+    if (this.state.kind === 'ready') this.scheduleHandoff()
   }
 
   resize(grid: RendererGridSize): void {
@@ -149,6 +167,7 @@ export class StartupTerminalRenderer {
 
   schedule(): void {
     this.active?.schedule()
+    if (this.state.kind === 'ready') this.scheduleHandoff()
   }
 
   setCursorBlinkEnabled(enabled: boolean): void {
@@ -192,6 +211,7 @@ export class StartupTerminalRenderer {
     const state = this.state
     if (state.kind === 'disposed') return
     this.state = { kind: 'disposed' }
+    this.settleStartupBackend(undefined)
     if (this.pendingFrame !== undefined) this.view.cancelAnimationFrame(this.pendingFrame)
     if (state.kind === 'ready') state.gpu.dispose()
     if (state.kind === 'painting') state.previous.dispose()
@@ -236,15 +256,24 @@ export class StartupTerminalRenderer {
           }),
         onError: this.handleGpuError,
       })
-      if (!gpu) return
+      if (!gpu) {
+        this.settleStartupBackend(
+          this.state.kind === 'disposed' || signal.aborted ? undefined : 'canvas2d',
+        )
+        return
+      }
       if (this.state.kind !== 'canvas' || signal.aborted) {
         gpu.dispose()
+        this.settleStartupBackend(undefined)
         return
       }
       gpu.setDocumentVisible(false)
       this.state = { kind: 'ready', renderer: this.state.renderer, gpu }
       this.scheduleHandoff()
     } catch (cause) {
+      this.settleStartupBackend(
+        this.state.kind === 'disposed' || signal.aborted ? undefined : 'canvas2d',
+      )
       this.handleGpuError(cause)
     }
   }
@@ -257,10 +286,7 @@ export class StartupTerminalRenderer {
   private paintGpu(): void {
     const state = this.state
     if (state.kind !== 'ready' || !this.documentVisible) return
-    if (!this.host.canAdopt() || this.options.renderState.renderHeld) {
-      this.scheduleHandoff()
-      return
-    }
+    if (!this.host.canAdopt() || this.options.renderState.renderHeld) return
     const { renderer: previous, gpu } = state
     previous.setDocumentVisible(false)
     this.state = { kind: 'painting', renderer: gpu, previous }
@@ -284,6 +310,7 @@ export class StartupTerminalRenderer {
           if (!canvas) return
           this.host.adopt(canvas)
           this.state = { kind: 'gpu', renderer: state.renderer }
+          this.settleStartupBackend(state.renderer.backend)
           state.previous.dispose()
         }
         if (this.state.kind !== 'gpu') return
@@ -303,10 +330,17 @@ export class StartupTerminalRenderer {
     const state = this.state
     if (state.kind !== 'painting') return
     this.state = { kind: 'canvas', renderer: state.previous }
+    this.settleStartupBackend('canvas2d')
     state.renderer.dispose()
     state.previous.setDocumentVisible(this.documentVisible)
     state.previous[seedBlinkPhase](state.previous[captureBlinkPhase]())
     state.previous.refreshRows(0, this.options.rows - 1)
+  }
+
+  private settleStartupBackend(backend: StartupBackend): void {
+    if (this.backendSettled) return
+    this.backendSettled = true
+    this.settledBackend.resolve(backend)
   }
 
   private applySettings(renderer: GpuRenderer): void {

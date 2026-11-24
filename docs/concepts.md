@@ -39,13 +39,21 @@ One renderer cannot cover every browser. WebGPU and WebGL2 draw on the GPU, Canv
 
 ```mermaid
 flowchart TD
-  start["Terminal.open()"] --> mode{"rendererMode is a<br/>Canvas mode?"}
-  mode -- yes --> explicit["CanvasTerminalRenderer"]
-  mode -- no --> linux{"Desktop Linux, or<br/>presentation: immediate?"}
+  start["Terminal.open()"] --> mode{"rendererMode?"}
+  mode -- "canvas2d-*" --> explicit["CanvasTerminalRenderer"]
+  mode -- "auto / webgpu / webgl2" --> pres{"presentation?"}
+  pres -- "frame (default)" --> cfirst["Canvas2D first paint"]
+  cfirst -- "GPU starts asynchronously" --> gpu{"rendererMode?"}
+  pres -- "immediate" --> gpu
+  gpu -- "webgpu" --> forcedgpu["WebGPU (any adapter)"]
+  gpu -- "webgl2" --> forcedgl["WebGL2"]
+  gpu -- "auto" --> linux{"Desktop Linux, or<br/>presentation: immediate?"}
   linux -- yes --> webgl1["WebGL2"]
   webgl1 -- unavailable --> webgpu1["Hardware WebGPU"]
   linux -- no --> webgpu2["Hardware WebGPU"]
   webgpu2 -- unavailable --> webgl2["WebGL2"]
+  forcedgpu -- unavailable --> canvas["CanvasTerminalRenderer"]
+  forcedgl -- unavailable --> canvas
   webgpu1 -- unavailable --> canvas
   webgl2 -- unavailable --> canvas
   canvas -- unavailable --> dom["DomTerminalRenderer"]

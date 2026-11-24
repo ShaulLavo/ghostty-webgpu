@@ -792,3 +792,95 @@ it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
     expect(f.errors).toEqual([])
   },
 )
+
+it('aligns before-open dual-language addon selection with the terminal startup backend', async () => {
+  const originalPlatform = Object.getOwnPropertyDescriptor(Navigator.prototype, 'platform')
+  Object.defineProperty(Navigator.prototype, 'platform', {
+    configurable: true,
+    get: () => 'Linux x86_64',
+  })
+  cleanups.push(() => {
+    if (originalPlatform) Object.defineProperty(Navigator.prototype, 'platform', originalPlatform)
+  })
+  const host = document.createElement('div')
+  host.style.cssText = 'width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => terminal.dispose())
+  const errors: unknown[] = []
+  const handle = terminal.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => handle.dispose())
+  await terminal.open(host)
+  terminal.write('startup shader')
+  await handle.api.ready
+  expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
+  const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+  expect(overlay?.dataset['backend']).toBe('webgl2')
+  await expect(handle.api.setShader(language(copyShader, 'webgl2'))).resolves.toBe(true)
+  expect(errors).toEqual([])
+})
+
+it('keeps explicit addon backends and permanent Canvas sources independent of GPU startup', async () => {
+  const gate = Promise.withResolvers<void>()
+  cleanups.push(() => gate.resolve())
+  const createGl = WebGlTerminalRenderer.create.bind(WebGlTerminalRenderer)
+  const spy = vi.spyOn(WebGlTerminalRenderer, 'create').mockImplementation(async (options) => {
+    await gate.promise
+    return createGl(options)
+  })
+  cleanups.push(() => spy.mockRestore())
+
+  const host = document.createElement('div')
+  host.style.cssText = 'width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const explicitTerminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    rendererMode: 'webgl2',
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => explicitTerminal.dispose())
+  const explicitErrors: unknown[] = []
+  const explicitHandle = explicitTerminal.use(
+    createShaderAddon(copyShader, {
+      backend: 'webgl2',
+      onError: (error) => explicitErrors.push(error),
+    }),
+  )
+  cleanups.push(() => explicitHandle.dispose())
+  await explicitTerminal.open(host)
+  explicitTerminal.write('explicit')
+  await explicitHandle.api.ready
+  expect(explicitTerminal.diagnostics.rendererBackend).toBe('canvas2d')
+  expect(explicitErrors).toEqual([])
+
+  const canvasHost = document.createElement('div')
+  canvasHost.style.cssText = 'width:340px;height:180px'
+  document.body.append(canvasHost)
+  cleanups.push(() => canvasHost.remove())
+  const canvasTerminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    rendererMode: 'canvas2d-pixels',
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => canvasTerminal.dispose())
+  const canvasErrors: unknown[] = []
+  const canvasHandle = canvasTerminal.use(
+    createShaderAddon(copyShader, { onError: (error) => canvasErrors.push(error) }),
+  )
+  cleanups.push(() => canvasHandle.dispose())
+  await canvasTerminal.open(canvasHost)
+  canvasTerminal.write('permanent canvas')
+  await canvasHandle.api.ready
+  expect(canvasTerminal.diagnostics.rendererBackend).toBe('canvas2d')
+  expect(canvasErrors).toEqual([])
+})

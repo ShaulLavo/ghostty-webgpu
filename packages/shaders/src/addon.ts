@@ -1,5 +1,5 @@
 import type { ExtensionScope, TerminalApi } from 'ghostty-webgpu'
-import { subscribeCanvasImage } from './canvas-image.js'
+import { resolveStartupBackend, subscribeCanvasImage } from './canvas-image.js'
 import { FrameSchedule, type ShaderFrame } from './frame-schedule.js'
 import { WebGlShaderPass, WebGpuShaderPass, type ShaderPass } from './pass.js'
 import { packShaderUniforms, SHADER_UNIFORM_BYTE_LENGTH } from './uniforms.js'
@@ -145,6 +145,20 @@ class Controller implements ShaderAddonApi {
         'backend',
         'Shader capture requires a WebGPU, WebGL2, or Canvas2D terminal renderer.',
       )
+    const automaticDualLanguage =
+      !this.options.backend && Boolean(this.shader.wgsl) && Boolean(this.shader.glsl)
+    const terminalBackend = automaticDualLanguage
+      ? await resolveStartupBackend(terminal, terminal.diagnostics.rendererBackend)
+      : terminal.diagnostics.rendererBackend
+    if (this.#disposed) return
+    const currentSource = terminal.canvas
+    if (!currentSource)
+      throw new ShaderAddonError('capture', 'Open the terminal with a canvas renderer.')
+    if (terminalBackend === 'dom')
+      throw new ShaderAddonError(
+        'backend',
+        'Shader capture requires a WebGPU, WebGL2, or Canvas2D terminal renderer.',
+      )
     this.#cleanup.push(subscribeCanvasImage(terminal, () => this.capture()))
     const view = root.ownerDocument.defaultView
     if (!view) throw new ShaderAddonError('capture', 'The terminal must belong to a window.')
@@ -155,7 +169,8 @@ class Controller implements ShaderAddonApi {
     output.style.cssText = 'position:absolute;pointer-events:none;display:none;'
     this.#output = output
     this.#capture = root.ownerDocument.createElement('canvas')
-    source.after(output)
+    this.#source = currentSource
+    currentSource.after(output)
     this.listen(root.ownerDocument, 'visibilitychange', this.synchronize)
     this.listen(view, 'resize', this.resized)
     this.listen(root, 'focusin', this.focused)
@@ -165,13 +180,9 @@ class Controller implements ShaderAddonApi {
     this.listen(view, 'pointerup', this.pointer)
     this.listen(output, 'webglcontextlost', this.contextLost)
     this.#observer = new ResizeObserver(this.resized)
-    this.#observer.observe(source)
-    const pass = await createPass(
-      output,
-      this.shader,
-      this.options,
-      terminal.diagnostics.rendererBackend,
-      (cause) => this.fail(cause),
+    this.#observer.observe(currentSource)
+    const pass = await createPass(output, this.shader, this.options, terminalBackend, (cause) =>
+      this.fail(cause),
     )
     if (this.#disposed) {
       pass.dispose()

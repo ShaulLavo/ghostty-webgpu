@@ -20,11 +20,13 @@ import type {
 } from '../core/types.js'
 import type { RendererFrameSnapshot, RendererTextFrameSnapshot } from '../render/shared/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
-import { bindCanvasImage, CanvasImageRelay } from './canvas-image.js'
+import { bindCanvasImage, bindStartupBackend, CanvasImageRelay } from './canvas-image.js'
 import {
   attachCanvasImage,
   observeDisplayedFrame,
+  startupBackend,
   startupCanvas,
+  wakeStartupHandoff,
 } from '../render/shared/displayed-frame.js'
 import { EventEmitter } from '../term/events.js'
 import {
@@ -355,6 +357,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     defaultRendererFactory?: GhosttyWebGpuRendererFactory,
   ) {
     bindCanvasImage(this, this.canvasImages)
+    bindStartupBackend(this, () => this.resolveStartupBackend())
     this.cleanup.add(() => this.textSubscribers.dispose())
     this.accessibilityOptions = options.accessibility
     this.autoFit = options.autoFit !== false
@@ -1140,7 +1143,8 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
         [observeDisplayedFrame]: (snapshot) => this.handleFrame(snapshot),
         [startupCanvas]: elements.adoptCanvas && {
           adopt: (canvas) => this.replaceRendererCanvas(elements, canvas),
-          canAdopt: () => (this.pointer?.owner ?? 'none') === 'none',
+          canAdopt: () =>
+            (this.pointer?.owner ?? 'none') === 'none' && !this.links?.hasActivePointerActivation,
         },
         retainDisplayedText: true,
         needsFrameRows: () => Boolean(this.links?.needsFrame || this.textSubscribers.hasListeners),
@@ -1578,6 +1582,9 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
         canvas: elements.canvas,
         getLayout: () => this.committedPointerLayout(),
         onError: (cause, operation) => this.reportError(cause, operation),
+        onOwnerChange: (owner) => {
+          if (owner === 'none') this.wakeStartupHandoff()
+        },
         selection,
         session: this.execution.pointer,
         signal: elements.signal,
@@ -1598,6 +1605,9 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       activationModifier: this.linkActivationModifier,
       canvas: elements.canvas,
       getLayout: () => this.committedPointerLayout(),
+      onActivationChange: (active) => {
+        if (!active) this.wakeStartupHandoff()
+      },
       onError: (cause, operation) => this.reportError(cause, `link.${operation}`),
       root: elements.root,
       session: this.execution.links,
@@ -1606,20 +1616,43 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.links = links
   }
 
-  private disposeCanvasControllers(): void {
-    const links = this.links
+  private wakeStartupHandoff(): void {
+    const renderer = this.renderer
+    if (renderer && wakeStartupHandoff in renderer) {
+      ;(renderer as { [wakeStartupHandoff](): void })[wakeStartupHandoff]()
+    }
+  }
+
+  private resolveStartupBackend(): Promise<'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined> {
+    const renderer = this.renderer
+    if (renderer && startupBackend in renderer) {
+      return (
+        renderer as {
+          [startupBackend](): Promise<'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined>
+        }
+      )[startupBackend]()
+    }
+    return Promise.resolve(this.diagnostics.rendererBackend)
+  }
+
+  private disposePointerController(): void {
     const pointer = this.pointer
-    this.links = undefined
     this.pointer = undefined
     this.selection = undefined
-    invokeCleanup(
-      () => links?.dispose(),
-      (cause) => this.reportError(cause, 'link.dispose'),
-    )
     invokeCleanup(
       () => pointer?.dispose(),
       (cause) => this.reportError(cause, 'pointer.dispose'),
     )
+  }
+
+  private disposeCanvasControllers(): void {
+    const links = this.links
+    this.links = undefined
+    invokeCleanup(
+      () => links?.dispose(),
+      (cause) => this.reportError(cause, 'link.dispose'),
+    )
+    this.disposePointerController()
   }
 
   private replaceRendererCanvas(
@@ -1629,19 +1662,23 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     elements.signal.throwIfAborted()
     if (!elements.replaceCanvas) throw new Error('Terminal elements cannot replace their canvas')
     const active = elements.root.ownerDocument.activeElement
+    const preserveLinks = replacement !== undefined && this.links !== undefined
     const restoreFocus =
       active === elements.canvas ||
-      (active?.classList.contains('ghostty-webgpu-link') === true && elements.root.contains(active))
-    const rebind = this.pointer !== undefined || this.links !== undefined
-    this.disposeCanvasControllers()
+      (!preserveLinks &&
+        active?.classList.contains('ghostty-webgpu-link') === true &&
+        elements.root.contains(active))
+    const rebindPointer = this.pointer !== undefined
+    const rebindLinks = this.links !== undefined
+    if (preserveLinks) this.disposePointerController()
+    else this.disposeCanvasControllers()
     if (replacement) elements.adoptCanvas?.(replacement)
     else elements.replaceCanvas()
     const canvas = elements.canvas
-    if (rebind) {
-      if (this.execution.kind === 'sync') {
-        this.installPointer(elements)
-        this.installLinks(elements)
-      }
+    if (this.execution.kind === 'sync') {
+      if (rebindPointer) this.installPointer(elements)
+      if (preserveLinks) this.links?.rebindCanvas(canvas)
+      else if (rebindLinks) this.installLinks(elements)
     }
     if (restoreFocus) elements.textarea.focus({ preventScroll: true })
     this.replayLastFrame()

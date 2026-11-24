@@ -13,7 +13,13 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function open(rendererMode: 'auto' | 'webgl2' | 'webgpu') {
+async function open(
+  rendererMode: 'auto' | 'webgl2' | 'webgpu',
+  extra: {
+    readonly activateUri?: (uri: string) => void
+    readonly linkActivationModifier?: (event: MouseEvent) => boolean
+  } = {},
+) {
   const host = document.createElement('div')
   host.style.cssText = 'width:320px;height:100px'
   document.body.append(host)
@@ -26,6 +32,8 @@ async function open(rendererMode: 'auto' | 'webgl2' | 'webgpu') {
       font: { family: 'monospace', size: 16 },
     },
     fitEnvironment: { getPixelRatio: () => 1 },
+    linkActivationModifier: extra.linkActivationModifier,
+    links: extra.activateUri ? { activateUri: extra.activateUri } : undefined,
     padding: { left: 5, right: 3, top: 4, bottom: 2 },
     renderWhenOffscreen: true,
     scrollbar: false,
@@ -247,4 +255,100 @@ it('restores the WebGPU device after the handoff', async (context) => {
   terminal.write(' after loss')
   await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before loss after loss')
   expect(terminal.canvas).toBe(canvas)
+})
+
+it('defers GPU handoff during a modified OSC 8 link click', async () => {
+  const gpu = holdWebGl()
+  const activated: string[] = []
+  const { terminal, canvas } = await open('webgl2', {
+    activateUri: (uri) => {
+      activated.push(uri)
+    },
+    linkActivationModifier: (event) => event.ctrlKey,
+  })
+  terminal.write(`${hideCursor}\x1b]8;;https://example.com/click\x07click-here\x1b]8;;\x07`)
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('click-here')
+  await expect.poll(() => gpu.create.mock.calls.length).toBe(1)
+
+  const rect = canvas.getBoundingClientRect()
+  const { cellWidth, cellHeight } = terminal.appearance.grid
+  const clientX = rect.left + 5 + cellWidth * 2
+  const clientY = rect.top + 4 + cellHeight * 0.5
+  vi.spyOn(canvas, 'setPointerCapture').mockImplementation(() => {})
+  vi.spyOn(canvas, 'hasPointerCapture').mockReturnValue(true)
+  vi.spyOn(canvas, 'releasePointerCapture').mockImplementation(() => {})
+
+  canvas.dispatchEvent(
+    new PointerEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      cancelable: true,
+      clientX,
+      clientY,
+      ctrlKey: true,
+      pointerId: 1,
+    }),
+  )
+  gpu.release()
+  const staged = gpu.create.mock.results[0]
+  if (staged?.type !== 'return') throw new Error('WebGL2 creation did not start')
+  await staged.value
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
+  expect(terminal.diagnostics.rendererBackend).toBe('canvas2d')
+  expect(terminal.canvas).toBe(canvas)
+
+  canvas.dispatchEvent(
+    new PointerEvent('pointerup', {
+      bubbles: true,
+      button: 0,
+      buttons: 0,
+      cancelable: true,
+      clientX,
+      clientY,
+      ctrlKey: true,
+      pointerId: 1,
+    }),
+  )
+  canvas.dispatchEvent(
+    new MouseEvent('click', {
+      bubbles: true,
+      button: 0,
+      cancelable: true,
+      clientX,
+      clientY,
+      ctrlKey: true,
+    }),
+  )
+  await expect.poll(() => activated).toEqual(['https://example.com/click'])
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
+  expect(terminal.canvas).not.toBe(canvas)
+})
+
+it('preserves keyboard link focus across GPU handoff and activates it with Enter', async () => {
+  const gpu = holdWebGl()
+  const activated: string[] = []
+  const { terminal } = await open('webgl2', {
+    activateUri: (uri) => {
+      activated.push(uri)
+    },
+  })
+  terminal.write(`${hideCursor}\x1b]8;;https://example.com/key\x07open-link\x1b]8;;\x07`)
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('open-link')
+  await expect.poll(() => gpu.create.mock.calls.length).toBe(1)
+
+  await expect(terminal.focusNextLink()).resolves.toBe(true)
+  const focused = document.activeElement
+  expect(focused?.classList.contains('ghostty-webgpu-link')).toBe(true)
+
+  gpu.release()
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
+  expect(document.activeElement).toBe(focused)
+
+  focused?.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+  )
+  await expect.poll(() => activated).toEqual(['https://example.com/key'])
 })
