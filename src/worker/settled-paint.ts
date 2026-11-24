@@ -7,6 +7,9 @@ export interface SettledPaintTarget {
   fail(cause: unknown): void
 }
 
+// A settle task paints for about this long, then yields to writes that arrived meanwhile.
+const settleSliceMs = 2
+
 interface OpenBatch {
   readonly size: number
   /** Display frames counted when the batch opened. */
@@ -32,6 +35,7 @@ export class SettledPaint {
   private readonly written = new Set<SettledPaintTarget>()
   private readonly frames = new Map<SettledPaintTarget, TargetFrames>()
   private readonly batches = new Map<number, OpenBatch>()
+  private readonly unsettled = new Set<SettledPaintTarget>()
   private ticks = 0
   private tick?: number
   private readonly channel = new MessageChannel()
@@ -39,6 +43,7 @@ export class SettledPaint {
   constructor(
     private readonly clock: RenderSchedulerClock,
     private readonly batch: (paint: () => void) => void,
+    private readonly now: () => number = () => performance.now(),
   ) {
     this.channel.port1.onmessage = () => this.settle()
   }
@@ -49,6 +54,7 @@ export class SettledPaint {
    * of its members have arrived, and a batch that never completes leaves them to vsync.
    */
   noteWrite(target: SettledPaintTarget, batch: number, size: number): void {
+    this.unsettled.delete(target)
     let open = this.batches.get(batch)
     if (!open) {
       open = { size, opened: this.ticks, targets: new Set() }
@@ -59,14 +65,12 @@ export class SettledPaint {
     if (open.targets.size < open.size) return
     this.batches.delete(batch)
     for (const member of open.targets) this.written.add(member)
-    if (this.queued) return
-    this.queued = true
-    // A posted message runs after the messages already queued for this worker.
-    this.channel.port2.postMessage(undefined)
+    this.post()
   }
 
   forget(target: SettledPaintTarget): void {
     this.written.delete(target)
+    this.unsettled.delete(target)
     this.frames.delete(target)
     // A batch that lost a member can no longer complete; its others paint at vsync.
     for (const [id, open] of this.batches) {
@@ -81,14 +85,36 @@ export class SettledPaint {
     this.tick = undefined
   }
 
+  /** The terminal parsed a write whose marker has not arrived; it may not paint early until then. */
+  hold(target: SettledPaintTarget): void {
+    this.unsettled.add(target)
+  }
+
   private settle(): void {
     this.queued = false
     const targets = Array.from(this.written)
     this.written.clear()
     this.armTick()
+    const deadline = this.now() + settleSliceMs
+    let painted = 0
     this.batch(() => {
-      for (const target of targets) this.paintSettled(target)
+      for (const target of targets) {
+        if (painted > 0 && this.now() > deadline) break
+        painted += 1
+        if (!this.unsettled.has(target)) this.paintSettled(target)
+      }
     })
+    if (painted === targets.length) return
+    // Writes that arrived during a long batch parse before its remaining terminals paint.
+    for (const target of targets.slice(painted)) this.written.add(target)
+    this.post()
+  }
+
+  private post(): void {
+    if (this.queued) return
+    this.queued = true
+    // A posted message runs after the messages already queued for this worker.
+    this.channel.port2.postMessage(undefined)
   }
 
   private paintSettled(target: SettledPaintTarget): void {

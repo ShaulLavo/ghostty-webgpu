@@ -41,11 +41,15 @@ function target(name: string, log: string[]) {
 
 const settled = () => new Promise((resolve) => setTimeout(resolve, 0))
 const created: SettledPaint[] = []
-function create(clock: RenderSchedulerClock, batches: number[] = []) {
-  const paint = new SettledPaint(clock, (run) => {
-    batches.push(1)
-    run()
-  })
+function create(clock: RenderSchedulerClock, batches: number[] = [], now?: () => number) {
+  const paint = new SettledPaint(
+    clock,
+    (run) => {
+      batches.push(1)
+      run()
+    },
+    now,
+  )
   created.push(paint)
   return paint
 }
@@ -75,6 +79,43 @@ test('paints every terminal of a page batch together once all of them have parse
   await settled()
   expect(log).toEqual(['first', 'second'])
   expect(batches).toHaveLength(1)
+})
+
+test('does not paint a terminal early between a parsed write and that write’s marker', async () => {
+  const { clock } = manualClock()
+  const log: string[] = []
+  const paint = create(clock)
+  const first = target('first', log)
+  const second = target('second', log)
+  paint.noteWrite(first, 1, 2)
+  paint.noteWrite(second, 1, 2)
+  // A later page task's write to the first terminal was parsed before the settle ran.
+  paint.hold(first)
+  await settled()
+  expect(log).toEqual(['second'])
+  solo(paint, first)
+  await settled()
+  expect(log).toEqual(['second', 'first'])
+})
+
+test('yields a long batch so writes queued meanwhile parse before the rest paints', async () => {
+  const { clock } = manualClock()
+  const log: string[] = []
+  const batches: number[] = []
+  let time = 0
+  const paint = create(clock, batches, () => time)
+  const slow = target('slow', log)
+  const paintSlow = slow.paintPending.bind(slow)
+  slow.paintPending = () => {
+    time += 5
+    return paintSlow()
+  }
+  const rest = target('rest', log)
+  paint.noteWrite(slow, 1, 2)
+  paint.noteWrite(rest, 1, 2)
+  await settled()
+  expect(log).toEqual(['slow', 'rest'])
+  expect(batches).toHaveLength(2)
 })
 
 test('leaves an incomplete batch to vsync once a display frame has passed', async () => {
