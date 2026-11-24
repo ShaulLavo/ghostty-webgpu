@@ -166,13 +166,8 @@ export class TerminalWorkerRuntime {
       message.generation !== this.initialize.generation
     )
       return
-    const { batch, size } = message
-    if (!Number.isSafeInteger(batch) || !Number.isSafeInteger(size) || size < 1) {
-      this.fail(workerError('protocol', 'drained', { control: this.control }))
-      return
-    }
     this.chain = this.chain.then(() => {
-      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget, batch, size)
+      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget)
     })
   }
 
@@ -762,7 +757,6 @@ export class TerminalWorkerRuntime {
   }
 
   private noteWrite(): void {
-    if (this.initialize.pooled) this.shared.settled.hold(this.settleTarget)
     this.renderer?.notifyWrite()
   }
 

@@ -25,7 +25,6 @@ import type {
   WorkerState,
   WorkerLayout,
   WorkerCanvasReplacement,
-  WorkerDrained,
   WorkerModules,
 } from './protocol.js'
 import { compileWorkerModules, type CompiledWorkerModules } from './page-modules.js'
@@ -70,7 +69,6 @@ export class WorkerTerminalExecution {
   private readonly terminal: string
   private readonly generation = 1
   private readonly pooled: boolean
-  private drainQueued = false
   private control = 0
   private output = 0
   private readonly outputControls = new Set<number>()
@@ -299,14 +297,13 @@ export class WorkerTerminalExecution {
       command,
       args,
     } as WorkerRequest
-    const write = writeOperations.has(command)
-    if (write) this.outputControls.add(request.control)
+    if (command === 'write' || command === 'writeln' || command === 'writeAndReadGeometry')
+      this.outputControls.add(request.control)
     try {
       this.port.postMessage(request, transfer)
     } catch {
       this.fail(workerError('protocol', command, { id, control: this.control }))
     }
-    if (write && this.pooled) this.queueDrained()
     return reply as Promise<ReturnType<WorkerCommands[K]>>
   }
 
@@ -359,30 +356,19 @@ export class WorkerTerminalExecution {
       return
     }
     pending.resolve(freezeWorkerValue(message.result))
+    if (this.pooled && writeOperations.has(pending.operation)) this.postDrained()
   }
 
-  // Once per page task, after its writes: same-port FIFO puts it behind every write posted
-  // before it, so the worker paints early only after parsing them, with its batch siblings.
-  private queueDrained(): void {
-    if (this.drainQueued) return
-    this.drainQueued = true
-    this.worker.queueDrained((batch, size) => {
-      this.drainQueued = false
-      this.postDrained(batch, size)
-    })
-  }
-
-  private postDrained(batch: number, size: number): void {
+  // Sent on the request port, so it reaches the worker after every write posted before it; the
+  // worker paints this terminal early only then, never between two writes it already holds.
+  private postDrained(): void {
     if (this.disposed || this.failure) return
-    const message: WorkerDrained = {
-      type: 'drained',
-      terminal: this.terminal,
-      generation: this.generation,
-      batch,
-      size,
-    }
     try {
-      this.port.postMessage(message)
+      this.port.postMessage({
+        type: 'drained',
+        terminal: this.terminal,
+        generation: this.generation,
+      })
     } catch {}
   }
 

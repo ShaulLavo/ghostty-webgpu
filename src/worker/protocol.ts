@@ -188,12 +188,9 @@ export interface WorkerInitialize extends WorkerIdentity {
 export interface WorkerCancel extends WorkerIdentity {
   readonly type: 'cancel'
 }
-/** The page has posted its writes for this task; same-port FIFO puts this behind them. */
+/** Every write the page posted before this one has been answered on the same port. */
 export interface WorkerDrained extends WorkerIdentity {
   readonly type: 'drained'
-  /** Page task batch shared by the worker's terminals that wrote in it, and their count. */
-  readonly batch: number
-  readonly size: number
 }
 
 /** A producer transfers only buffers it owns. Its sequence starts at one per attached port. */
