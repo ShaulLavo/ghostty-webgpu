@@ -28,7 +28,7 @@ it('leaves relative, blob and data asset URLs to the worker', () => {
 })
 
 it('compiles both absolute assets on the page', async () => {
-  const fetch = vi.fn(async () => wasmResponse())
+  const fetch = vi.fn(async (_url: string | URL) => wasmResponse())
   vi.stubGlobal('fetch', fetch)
   const modules = await compileWorkerModules({
     wasm: 'https://host/ghostty-vt.wasm',
