@@ -92,6 +92,14 @@ export class WorkerShared {
     return entry
   }
 
+  /** Adds loaded faces in declaration order, which decides overlapping matches as before. */
+  addFaces(faces: readonly SharedFontFace[]): void {
+    const fonts = fontScope().fonts
+    for (const shared of faces) {
+      if ((shared as FaceEntry).users > 0 && !fonts.has(shared.face)) fonts.add(shared.face)
+    }
+  }
+
   releaseFace(shared: SharedFontFace): void {
     const entry = shared as FaceEntry
     entry.users -= 1
@@ -110,10 +118,7 @@ export class WorkerShared {
       : `url(${JSON.stringify((source.source as { url: string }).url)})`
     const face = new FontFace(source.family, data, source.descriptors)
     const metrics = typeof data === 'string' ? undefined : readSfntFontMetrics(new Uint8Array(data))
-    const loaded = face.load().then((value) => {
-      if (entry.users > 0) fontScope().fonts.add(value)
-      return value
-    })
+    const loaded = face.load()
     const entry: FaceEntry = { key, face, metrics, loaded, bytes, users: 0 }
     // A failed load stays with the terminals that saw it; later terminals load again.
     loaded.catch(() => this.forget(entry))
@@ -131,15 +136,7 @@ export class WorkerShared {
   deviceOwner(policy: AdapterPolicy): DeviceOwner {
     let owner = this.owners.get(policy)
     if (owner) return owner
-    // Replacements after a loss accept any adapter, as the main entry's do.
-    let replacing = false
-    owner = new DeviceOwner(async () => {
-      const device = await this.requestDevice(replacing ? 'any' : policy)
-      void device.lost.then(() => {
-        replacing = true
-      })
-      return device
-    })
+    owner = new DeviceOwner(() => this.requestDevice(policy))
     this.owners.set(policy, owner)
     return owner
   }

@@ -239,7 +239,7 @@ export class WebGpuTerminalRenderer {
       scheduler = new RenderScheduler({
         textBlink: options.textBlink,
         clock: options.schedulerClock ?? this.coordinator ?? browserRenderClock(),
-        onFrame: () => this.drawFrame(),
+        onFrame: () => this.drawReporting(),
         presentation: options.presentation,
       })
       this.scheduler = scheduler
@@ -275,7 +275,8 @@ export class WebGpuTerminalRenderer {
     if (options.deviceFactory) owner = new DeviceOwner(options.deviceFactory)
     if (options.deviceOwner) owner = options.deviceOwner
     const replacementOwner =
-      options.deviceFactory || options.deviceOwner ? owner : defaultDeviceOwner
+      options.replacementDeviceOwner ??
+      (options.deviceFactory || options.deviceOwner ? owner : defaultDeviceOwner)
     const lease = await owner.acquire()
     let prepared: PreparedRenderer | undefined
     try {
@@ -541,6 +542,16 @@ export class WebGpuTerminalRenderer {
     })
   }
 
+  // A failed paint is this terminal's error; a shared frame or worker must not see it.
+  private drawReporting(): void {
+    if (!this.onError) return this.drawFrame()
+    try {
+      this.drawFrame()
+    } catch (cause) {
+      this.onError(cause)
+    }
+  }
+
   private drawFrame(): void {
     if (this.disposed) return
     if (this.atlas.hasEvictions(this)) this.needsFullRebuild = true
@@ -548,6 +559,17 @@ export class WebGpuTerminalRenderer {
     if (this.disposed) return
     if (this.deviceUnavailable) {
       void this.restoreDevice(this.deviceGeneration).catch(() => {})
+      return
+    }
+    // An oversized canvas texture invalidates every command in its queue submit, siblings' too.
+    const limit = this.device.limits.maxTextureDimension2D
+    if (this.canvas.width > limit || this.canvas.height > limit) {
+      this.reportFrameFailure(
+        createGhosttyError(
+          'renderer.canvas',
+          `The ${this.canvas.width}x${this.canvas.height} canvas exceeds this GPU's ${limit} pixel texture limit`,
+        ),
+      )
       return
     }
     const damage = this.renderState.update()

@@ -153,7 +153,7 @@ export class WebGlTerminalRenderer {
     this.scheduler = new RenderScheduler({
       textBlink: options.textBlink,
       clock: options.schedulerClock ?? browserRenderClock(),
-      onFrame: () => this.drawFrame(),
+      onFrame: () => this.drawReporting(),
       presentation: options.presentation,
     })
     this.setReducedMotion(options.reducedMotion ?? false)
@@ -387,6 +387,16 @@ export class WebGlTerminalRenderer {
     if (!('style' in this.canvas)) return
     this.canvas.style.width = `${this.grid.columns * this.font.cssCellWidth}px`
     this.canvas.style.height = `${this.grid.rows * this.font.cssCellHeight}px`
+  }
+
+  // A failed paint is this terminal's error; a shared frame or worker must not see it.
+  private drawReporting(): void {
+    if (!this.onError) return this.drawFrame()
+    try {
+      this.drawFrame()
+    } catch (cause) {
+      this.onError(cause)
+    }
   }
 
   private drawFrame(): void {

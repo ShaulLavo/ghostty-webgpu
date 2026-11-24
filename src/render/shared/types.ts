@@ -95,6 +95,8 @@ export interface WebGpuTerminalRendererOptions {
   deviceFactory?: () => Promise<GPUDevice>
   /** Terminals sharing one owner share its device; overrides `deviceFactory` and `adapterPolicy`. */
   deviceOwner?: DeviceOwner
+  /** Owner of devices that replace a lost one; defaults to `deviceOwner`. */
+  replacementDeviceOwner?: DeviceOwner
   /** Terminals sharing one coordinator paint in one animation frame and one queue submit. */
   frameCoordinator?: FrameCoordinator
   font: TerminalFittedFont

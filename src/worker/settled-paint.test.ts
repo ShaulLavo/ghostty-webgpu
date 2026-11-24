@@ -27,10 +27,14 @@ function manualClock() {
 function target(name: string, log: string[]) {
   return {
     pending: true,
+    failures: [] as unknown[],
     paintPending() {
       if (!this.pending) return false
       log.push(name)
       return true
+    },
+    fail(cause: unknown) {
+      this.failures.push(cause)
     },
   }
 }
@@ -116,6 +120,25 @@ test('does not count a settle without a waiting frame as an early paint', async 
   paint.noteWrite(idle)
   await settled()
   expect(log).toEqual(['idle'])
+})
+
+test('reports a failed paint to its terminal and still paints the rest of the batch', async () => {
+  const { clock } = manualClock()
+  const log: string[] = []
+  const batches: number[] = []
+  const paint = create(clock, batches)
+  const broken = target('broken', log)
+  const cause = new Error('render state read failed')
+  broken.paintPending = () => {
+    throw cause
+  }
+  const healthy = target('healthy', log)
+  paint.noteWrite(broken)
+  paint.noteWrite(healthy)
+  await settled()
+  expect(broken.failures).toEqual([cause])
+  expect(log).toEqual(['healthy'])
+  expect(batches).toHaveLength(1)
 })
 
 test('forgets a disposed terminal', async () => {

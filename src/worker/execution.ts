@@ -33,10 +33,13 @@ import { readOpeningFont } from './opening-font.js'
 import { workerOperationTimeout } from './protocol.js'
 import {
   dedicatedWorkerLease,
+  leasePooledWorker,
   type TerminalWorkerPool,
   type WorkerLease,
   type WorkerLeaseListeners,
 } from './pool.js'
+
+const writeOperations: ReadonlySet<string> = new Set(['write', 'writeln', 'writeAndReadGeometry'])
 
 interface Pending {
   readonly operation: string
@@ -63,6 +66,7 @@ export class WorkerTerminalExecution {
   private readonly emitters = new Map<TerminalSessionEventType, EventEmitter<unknown>>()
   private readonly terminal: string
   private readonly generation = 1
+  private readonly pooled: boolean
   private control = 0
   private output = 0
   private readonly outputControls = new Set<number>()
@@ -115,6 +119,7 @@ export class WorkerTerminalExecution {
       resolveLinkDiscovery: (request) => this.request('resolveLinkDiscovery', [request]),
     })
     this.terminal = crypto.randomUUID()
+    this.pooled = options.pool !== undefined
     const listeners: WorkerLeaseListeners = {
       error: (event) =>
         this.fail(
@@ -125,7 +130,7 @@ export class WorkerTerminalExecution {
     }
     try {
       this.worker = options.pool
-        ? options.pool.lease(options.workerUrl, listeners)
+        ? leasePooledWorker(options.pool, options.workerUrl, options.faces, listeners)
         : dedicatedWorkerLease(options.workerUrl, listeners)
     } catch (cause) {
       throw workerError('startup', 'worker.create', {
@@ -321,6 +326,20 @@ export class WorkerTerminalExecution {
       return
     }
     pending.resolve(freezeWorkerValue(message.result))
+    if (this.pooled && writeOperations.has(pending.operation)) this.postDrained()
+  }
+
+  // Sent on the request port, so it reaches the worker after every write posted before it; the
+  // worker paints this terminal early only then, never between two writes it already holds.
+  private postDrained(): void {
+    if (this.disposed || this.failure) return
+    try {
+      this.port.postMessage({
+        type: 'drained',
+        terminal: this.terminal,
+        generation: this.generation,
+      })
+    } catch {}
   }
 
   private receiveFrame(message: WorkerFrameDelta): void {
@@ -581,6 +600,8 @@ export class WorkerTerminalExecution {
   }
   private stop(): void {
     this.links.dispose()
+    // A pooled worker outlives this terminal, so it must tear the terminal down itself.
+    this.worker.cancel(this.terminal, this.generation)
     this.worker.release()
     this.port.close()
     for (const emitter of this.emitters.values()) emitter.dispose()

@@ -28,6 +28,7 @@ import type {
   WorkerFrameDelta,
   WorkerRequest,
   WorkerCanvasReplacement,
+  WorkerDrained,
   WorkerState,
   TerminalOutputMessage,
 } from './protocol.js'
@@ -61,7 +62,10 @@ export class TerminalWorkerRuntime {
   private inactiveCursorStyle?: InactiveCursorStyle
   private faces: FontFace[] = []
   private sharedFaces: SharedFontFace[] = []
-  private readonly settleTarget = { paintPending: () => this.renderer?.paintPending?.() ?? false }
+  private readonly settleTarget = {
+    paintPending: () => this.renderer?.paintPending?.() ?? false,
+    fail: (cause: unknown) => this.fail(cause),
+  }
   private readonly faceMetrics = new Map<FontFace, TerminalFontMetrics>()
   private readonly frameEncoder = new RowDeltaEncoder()
   private readonly subscriptions: TerminalSessionSubscription[] = []
@@ -85,8 +89,14 @@ export class TerminalWorkerRuntime {
     readonly reject: (cause: unknown) => void
   }
   private canvasReplacement?: ReturnType<typeof Promise.withResolvers<OffscreenCanvas>>
-  private readonly onMessage = (event: MessageEvent<WorkerRequest | WorkerCanvasReplacement>) => {
+  private readonly onMessage = (
+    event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerDrained>,
+  ) => {
     const request = event.data
+    if (request?.type === 'drained') {
+      this.receiveDrained(request)
+      return
+    }
     if (request?.type === 'canvas') {
       if (
         request.terminal !== this.initialize.terminal ||
@@ -114,7 +124,34 @@ export class TerminalWorkerRuntime {
   constructor(
     private readonly initialize: WorkerInitialize,
     private readonly shared: WorkerShared = workerShared(),
+    private readonly onStopped?: () => void,
   ) {}
+
+  get generation(): number {
+    return this.initialize.generation
+  }
+
+  /** The page has dropped this terminal; release it without replying. */
+  cancel(): void {
+    if (this.closed) return
+    void this.cleanup().then(
+      () => this.stop(),
+      () => this.stop(),
+    )
+  }
+
+  // Queued behind earlier requests, so every write the page sent before it is parsed.
+  private receiveDrained(message: WorkerDrained): void {
+    if (
+      !this.initialize.pooled ||
+      message.terminal !== this.initialize.terminal ||
+      message.generation !== this.initialize.generation
+    )
+      return
+    this.chain = this.chain.then(() => {
+      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget)
+    })
+  }
 
   async start(): Promise<void> {
     const port = this.initialize.port
@@ -165,6 +202,7 @@ export class TerminalWorkerRuntime {
     const loaded = await Promise.all(faces.map((shared) => shared.loaded))
     if (this.disposed) return
     this.faces = loaded
+    this.shared.addFaces(faces)
   }
 
   private measuredFontSettings(settings: TerminalFontSettings): TerminalFontSettings {
@@ -416,6 +454,8 @@ export class TerminalWorkerRuntime {
       this.gpuRenderer = WebGpuTerminalRenderer.create({
         ...rest,
         deviceOwner: owner,
+        // Replacements after a device loss accept any adapter, as the main entry's do.
+        replacementDeviceOwner: this.shared.deviceOwner('any'),
         frameCoordinator: this.shared.frameCoordinator,
       })
       return await this.gpuRenderer
@@ -651,7 +691,6 @@ export class TerminalWorkerRuntime {
 
   private noteWrite(): void {
     this.renderer?.notifyWrite()
-    if (this.initialize.pooled) this.shared.settled.noteWrite(this.settleTarget)
   }
 
   private attachOutput(port: MessagePort): void {
@@ -752,6 +791,7 @@ export class TerminalWorkerRuntime {
     if (this.closed) return
     this.closed = true
     this.initialize.port.close()
+    this.onStopped?.()
     if (!this.initialize.pooled) scope.close()
   }
 

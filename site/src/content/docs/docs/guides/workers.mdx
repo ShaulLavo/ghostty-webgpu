@@ -35,7 +35,7 @@ The worker's `backend` accepts `auto`, `webgpu` and `webgl`. Its current API has
 
 ## 4. Share workers between many terminals
 
-Pass one `TerminalWorkerPool` to every `Terminal.create` call when a page shows several busy terminals. The pool starts a worker per terminal up to its `workers` limit, half the logical cores and at most four by default, then puts each further terminal on the least loaded worker. Terminals on one worker share its GPU device, glyph atlas and font faces, paint together, and paint as soon as their output is parsed instead of waiting for the next display frame. That costs less CPU and memory than one worker per terminal and answers writes sooner. A worker stops when its last terminal is disposed.
+Pass one `TerminalWorkerPool` to every `Terminal.create` call when a page shows several busy terminals. The pool starts a worker per terminal up to its `workers` limit, half the logical cores and at most four by default, then puts each further terminal on the least loaded worker. Only terminals with the same worker URL and the same `fonts` share a worker. Terminals on one worker share its GPU device, glyph atlas and font faces, and paint as soon as their written output is parsed instead of waiting for the next display frame; output from an attached producer port still paints at the next display frame. That costs less CPU and memory than one worker per terminal and answers writes sooner. A worker stops when its last terminal is disposed.
 
 <Code code={poolSample} lang='ts' title='worker-pool.ts' />
 

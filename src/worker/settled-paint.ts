@@ -3,6 +3,8 @@ import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
 /** A terminal whose waiting frame can be painted now. */
 export interface SettledPaintTarget {
   paintPending(): boolean
+  /** A paint failure belongs to its terminal; siblings in the batch still paint. */
+  fail(cause: unknown): void
 }
 
 interface TargetFrames {
@@ -70,7 +72,11 @@ export class SettledPaint {
     }
     frames.settles += 1
     if (frames.landed || frames.previousSettles > 1) return
-    frames.landed = target.paintPending()
+    try {
+      frames.landed = target.paintPending()
+    } catch (cause) {
+      target.fail(cause)
+    }
   }
 
   private armTick(): void {
