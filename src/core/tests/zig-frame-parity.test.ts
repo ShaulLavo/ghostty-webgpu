@@ -216,6 +216,8 @@ describe('native frame records match the previous builder', () => {
       const terminal = runtime.createTerminal({ columns: 6, rows: 1 })
       const state = runtime.createRenderState(terminal)
       const builder = state.createFrameBuilder(6, 1)
+      // The frozen bridge has no in-place retry; it finished missing glyphs with a second build.
+      if (bridge === 'previous') builder.retryMissing = (settings) => builder.build(settings)
       const atlas = new GlyphAtlas({ pageWidth: 4, pageHeight: 2, padding: 0, maxLayersPerKind: 1 })
       const rasterizer: GlyphRasterizer = {
         rasterize: ({ foreground: { r, g, b } }) => ({

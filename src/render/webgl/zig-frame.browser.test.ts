@@ -14,9 +14,11 @@ import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
 import type { AtlasInsertResult } from '../shared/atlas/types.js'
 import { buildZigFrame, zigGlyphRow } from '../shared/atlas/zig-glyphs.js'
 import { canonicalRendererTheme } from '../shared/config.js'
+import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'
 import { defaultRendererTheme } from '../shared/instances/types.js'
 import type { RendererFrameSnapshot, WebGpuTerminalRendererOptions } from '../shared/types.js'
 import { WebGlTerminalRenderer } from './renderer.js'
+import type { WebGlTextPass } from './text-pass.js'
 import { TestClock, displayedPixels, fittedFont } from './tests/fixture.js'
 import { expectPixelsEqual } from './tests/pixels.js'
 
@@ -127,14 +129,14 @@ describe('WebGL WASM frame pixels', () => {
       '\x1b[?25lold\r\nsecond\r\nthird\x1b[2;1H',
     )
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     const before = await expectPainted(native.renderer)
     build.mockClear()
     const uploaded = native.renderer.metrics.uploadedBytes
     writeFrame(nativeSource, '\x1b[2;6H\x1b[31;44mX')
     native.renderer.notifyWrite()
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     const after = await expectPainted(native.renderer)
     expect(after).not.toEqual(before)
     const firstRowBytes = native.canvas.width * fittedFont().deviceCellHeight * 4
@@ -518,7 +520,8 @@ describe('WebGL native atlas residency', () => {
     source.terminal.write('\x1b[2;2HE')
     source.state.update()
     expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
-    expect(builds.mock.results.map((result) => result.value)).toEqual([2, 2, 0])
+    // The eviction stales the queued cells, so the second build reruns; its retry then patches.
+    expect(builds.mock.results.map((result) => result.value)).toEqual([2, 2])
     expect(atlas.evictionCount).toBe(1)
     const records = { cells: builder.cellData.slice(), glyphs: builder.glyphData.slice() }
     expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: true })).toBe(0)
@@ -577,19 +580,49 @@ describe('WebGL native atlas residency', () => {
     native.clock.flushFrame()
     const before = await expectPainted(native.renderer)
     build.mockClear()
+    const pass = Reflect.get(native.renderer, 'state').pass as WebGlTextPass
+    const uploads = vi.spyOn(pass, 'uploadFrame')
     native.renderer.clearTextureAtlas()
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     expect(await expectPainted(native.renderer)).toEqual(before)
+    // Unchanged cells stay on the GPU, and glyph uploads stay below one full glyph buffer.
+    expect(uploads).toHaveBeenCalledTimes(1)
+    const ranges = uploads.mock.calls[0]![1]
+    expect(ranges.reduce((bytes, range) => bytes + range.cell.byteLength, 0)).toBe(0)
+    const glyphBytes = ranges.reduce((bytes, range) => bytes + range.glyph.byteLength, 0)
+    expect(glyphBytes).toBeGreaterThan(0)
+    expect(glyphBytes).toBeLessThan(32 * 3 * GLYPH_INSTANCE_BYTES)
     build.mockClear()
     const font = fittedFont(20, 30, 24)
     native.renderer.setFont(font)
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     expect([native.canvas.width, native.canvas.height]).toEqual([32 * 20, 3 * 30])
     await expectPainted(native.renderer)
     expect(native.renderer.metrics.zigFrames).toBe(3)
     expect(readRows).not.toHaveBeenCalled()
+  })
+
+  it('refills both instance buffers when a CSS-only font change recreates them', async () => {
+    const { native } = await nativeFixture(
+      '\x1b[?25l\x1b[30;43mfirst\x1b[0m\r\n\x1b[44m      \x1b[0msecond',
+    )
+    native.clock.flushFrame()
+    const before = await expectPainted(native.renderer)
+    const uploaded = native.renderer.metrics.uploadedBytes
+    const font = fittedFont()
+    // Device cells, and so every native record, stay byte-identical; the buffers do not.
+    native.renderer.setFont({
+      ...font,
+      cssCellWidth: font.cssCellWidth + 1,
+      cssCellHeight: font.cssCellHeight + 2,
+    })
+    native.clock.flushFrame()
+    expect(await expectPainted(native.renderer)).toEqual(before)
+    expect(native.renderer.metrics.uploadedBytes - uploaded).toBe(
+      32 * 3 * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES),
+    )
   })
 
   it('recovers native atlas eviction through native retries and clean-row pixels intact', async ({
@@ -738,7 +771,7 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
     (Math.min(512, x + width + 1) - Math.max(0, x - 1)) *
     (Math.min(512, y + height + 1) - Math.max(0, y - 1))
   expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(box)
-  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2, 0])
+  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2])
   expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
   expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches.mock.calls).toEqual([

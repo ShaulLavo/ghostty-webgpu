@@ -294,6 +294,23 @@ const FrameCache = struct {
     last_raw: c.GhosttyCell = 0,
     last_cell: CellFields = undefined,
     last_cell_valid: bool = false,
+    // Cells whose glyph was missing in the last build; a retry rewrites only their glyph records.
+    pending_cells: ?[*]PendingCell = null,
+    pending_cells_len: u32 = 0,
+    pending_cells_valid: bool = false,
+    pending_epoch: u32 = 0,
+};
+
+// Everything writeInstances needs to finish a glyph record once its atlas entry registers.
+const PendingCell = struct {
+    key: *glyph_index.Entry,
+    slot: u32,
+    x: u32,
+    y: u32,
+    foreground: u32,
+    background: u32,
+    faint: bool,
+    blink: bool,
 };
 
 const CellFields = struct {
@@ -386,6 +403,7 @@ export fn bridge_destroy_frame_cache(cache: *FrameCache) void {
     frameFree([24]f32, cache.glyphs, cache.columns * cache.rows);
     frameFree(FrameRange, cache.pending, cache.rows);
     frameFree(u32, cache.range_slots, cache.rows);
+    if (cache.pending_cells) |cells| frameFree(PendingCell, cells, cache.columns * cache.rows);
     ghostty_wasm_free(@ptrCast(cache), @sizeOf(FrameCache));
 }
 
@@ -658,7 +676,8 @@ fn frameColor(cells: c.GhosttyRenderStateRowCells, field: c.GhosttyRenderStateRo
     return c.GHOSTTY_SUCCESS;
 }
 
-// Inlined: as a call it showed up at 3% of plain-text frame builds.
+// Inlined: as a call it showed up at 3% of plain-text frame builds, and V8's own wasm inlining
+// budget shrinks as the module grows.
 inline fn writeColor(out: []f32, rgb: u32, alpha: f32) void {
     out[0] = @as(f32, @floatFromInt(rgb & 255)) / 255;
     out[1] = @as(f32, @floatFromInt((rgb >> 8) & 255)) / 255;
@@ -837,6 +856,62 @@ fn writeInstances(comptime stable: bool, comptime bidi: bool, projection: ?[*]co
     glyph[21] = entry.generation;
     glyph[22] = entry.kind;
     return c.GHOSTTY_SUCCESS;
+}
+
+// Matches the record writeInstances produces for a registered entry.
+fn writeGlyph(glyph: *[24]f32, entry: glyph_index.Glyph, left: f32, top: f32, foreground: u32, background: u32, faint: bool, blink: bool, minimum_contrast: f32) void {
+    glyph.* = @splat(0);
+    if (entry.width == 0 or entry.height == 0) return;
+    glyph[0..4].* = .{ left + entry.offset_x, top + entry.offset_y, entry.width, entry.height };
+    writeColor(glyph[4..8], foreground, if (faint) 0.5 else 1);
+    glyph[8..12].* = .{ entry.u0, entry.v0, entry.u1, entry.v1 };
+    writeColor(glyph[12..16], background, 1);
+    glyph[16] = if (blink) 3 else 1;
+    glyph[18] = minimum_contrast;
+    glyph[20] = entry.layer;
+    glyph[21] = entry.generation;
+    glyph[22] = entry.kind;
+}
+
+fn packedColor(rgb: []const f32) u32 {
+    var value: u32 = 0;
+    for (0..3) |channel| value |= @as(u32, @intFromFloat(@round(rgb[channel] * 255))) << @intCast(channel * 8);
+    return value;
+}
+
+// Queues a row's cells whose glyph is missing, taking each brush from the cell record writeInstances wrote.
+noinline fn queueRowPending(comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, start: u32, y: u32) void {
+    const cache = frame.row_cache.?;
+    if (!cache.pending_cells_valid) return;
+    const capacity = cache.columns * cache.rows;
+    if (cache.pending_cells == null) cache.pending_cells = frameAllocate(PendingCell, capacity);
+    const list = cache.pending_cells orelse {
+        cache.pending_cells_valid = false;
+        return;
+    };
+    const row = cache.next[y];
+    for (0..frame.columns) |x| {
+        const key = row.cells[x].key orelse continue;
+        if (key.glyph.valid != 0) continue;
+        if (cache.pending_cells_len == capacity) {
+            cache.pending_cells_valid = false;
+            return;
+        }
+        const visual = if (bidi) projection.?[y * frame.columns + x].visual else @as(u32, @intCast(x));
+        const slot = start + visual;
+        const cell = &frame.cell_data[slot];
+        list[cache.pending_cells_len] = .{
+            .key = key,
+            .slot = slot,
+            .x = @intCast(x),
+            .y = @intCast(y),
+            .foreground = packedColor(cell[4..7]),
+            .background = packedColor(cell[8..11]),
+            .faint = (row.cells[x].style & 4) != 0,
+            .blink = (@as(u32, @intFromFloat(cell[12])) & 8) != 0,
+        };
+        cache.pending_cells_len += 1;
+    }
 }
 
 // `plain` enables the plain-cell cache; full rebuilds skip it because they follow glyph clears.
@@ -1222,7 +1297,8 @@ fn planLigatures(frame: *Frame, projection: ?[*]const BidiCell, raws: []const c.
     return c.GHOSTTY_SUCCESS;
 }
 
-fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, force: bool) c.GhosttyResult {
+// `rebuild` rewrites every cell without reuse; `force_upload` also uploads records that compare equal.
+fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, iterator: c.GhosttyRenderStateRowIterator, cells: *c.GhosttyRenderStateRowCells, y: u32, rebuild: bool, force_upload: bool) c.GhosttyResult {
     var raw: c.GhosttyCellsView = undefined;
     var result = c.ghostty_render_state_row_get(iterator, c.GHOSTTY_RENDER_STATE_ROW_DATA_CELLS_RAW, &raw);
     if (result != c.GHOSTTY_SUCCESS) return result;
@@ -1256,7 +1332,7 @@ fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const Bi
     var glyph_end: u32 = 0;
     const start = if (stable) frame.row_cache.?.row_starts.?[y] else y * frame.columns;
     const owner = if (stable) &frame.row_cache.?.previous[previousLogicalRow(frame, y)] else undefined;
-    const reuse_row = if (force) null else reusableRow(stable, frame, owner, y);
+    const reuse_row = if (rebuild) null else reusableRow(stable, frame, owner, y);
     for (0..raw.len) |x| {
         const selected = if (bidi) projection.?[y * frame.columns + x].selected != 0 else has_selection and x >= selection.start_x and x <= selection.end_x;
         const visual = if (bidi) projection.?[y * frame.columns + x].visual else @as(u32, @intCast(x));
@@ -1267,14 +1343,14 @@ fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const Bi
         const previous_cell = frame.cell_data[slot];
         const previous_glyph = frame.glyph_data[slot];
         const joined = if (spans) |values| values[x] else 0;
-        result = buildCell(stable, bidi, projection, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined, !force);
+        result = buildCell(stable, bidi, projection, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined, !rebuild);
         if (result != c.GHOSTTY_SUCCESS) return result;
         rememberRenderedCell(frame.row_cache.?, slot, cached.cells[x]);
-        if (force or !sameRecord(16, &previous_cell, &frame.cell_data[slot])) {
+        if (force_upload or !sameRecord(16, &previous_cell, &frame.cell_data[slot])) {
             cell_first = @min(cell_first, @as(u32, @intCast(x)));
             cell_end = @intCast(x + 1);
         }
-        if (force or !sameRecord(24, &previous_glyph, &frame.glyph_data[slot])) {
+        if (force_upload or !sameRecord(24, &previous_glyph, &frame.glyph_data[slot])) {
             glyph_first = @min(glyph_first, @as(u32, @intCast(x)));
             glyph_end = @intCast(x + 1);
         }
@@ -1346,7 +1422,6 @@ fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.Ghos
     const residency_changed = frame.glyph_index.residency_changed != 0;
     // A missing-glyph retry rebuilds only changed cells; the earlier pass's ranges are merged in.
     const retry = frame.status == 2;
-    var force = !dirty_only or rebuild_all;
     const previous_stable = frame.stable_rows;
     if (frame.row_cache == null) frame.row_cache = createFrameCache(frame.columns, frame.rows) orelse return c.GHOSTTY_OUT_OF_MEMORY;
     frame.rows_built = 0;
@@ -1360,7 +1435,9 @@ fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.Ghos
     frame.row_changes |= @as(u32, @intFromBool(cache.moved)) | (@as(u32, @intFromBool(previous_stable != frame.stable_rows)) << 1);
     // Glyph retries must retain both remap delivery and every coordinate-layout upload.
     const layout_changed = (frame.row_changes & 2) != 0;
-    force = force or layout_changed;
+    const force_upload = !dirty_only or layout_changed;
+    // A glyph clear rewrites every row, but its records still upload only where bytes changed.
+    const force = force_upload or rebuild_all;
     defer {
         if (result != c.GHOSTTY_SUCCESS) {
             for (0..cache.rows) |row| cache.previous[row].id = std.mem.zeroes(c.GhosttyRenderStateRowId);
@@ -1370,6 +1447,8 @@ fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.Ghos
     frame.ranges_len = 0;
     frame.missing_len = 0;
     frame.status = 0;
+    cache.pending_cells_len = 0;
+    cache.pending_cells_valid = true;
     var it = iterator;
     var row_cells = cells;
     result = c.ghostty_render_state_get(state, c.GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, @ptrCast(&it));
@@ -1393,22 +1472,105 @@ fn buildFrame(comptime bidi: bool, projection: ?[*]const BidiCell, state: c.Ghos
             if (result != c.GHOSTTY_SUCCESS) return result;
         }
         if (frame.stable_rows != 0) {
-            result = if (matches) reuseFrameRow(true, frame, y) else buildRow(true, bidi, projection, frame, it, &row_cells, y, force);
+            result = if (matches) reuseFrameRow(true, frame, y) else buildRow(true, bidi, projection, frame, it, &row_cells, y, force, force_upload);
         } else {
-            result = if (matches) reuseFrameRow(false, frame, y) else buildRow(false, bidi, projection, frame, it, &row_cells, y, force);
+            result = if (matches) reuseFrameRow(false, frame, y) else buildRow(false, bidi, projection, frame, it, &row_cells, y, force, force_upload);
         }
         if (result != c.GHOSTTY_SUCCESS) return result;
+        // Per row with a missing glyph, outside the per-cell loop.
+        if (!matches and cache.next[y].unresolved) {
+            const start = if (frame.stable_rows != 0) cache.row_starts.?[y] else y * frame.columns;
+            queueRowPending(bidi, projection, frame, start, y);
+        }
     }
     if (retry) mergePendingRanges(frame, cache);
     // Any later build in the same frame is a retry, so it must still deliver these ranges.
     @memcpy(cache.pending[0..frame.ranges_len], frame.ranges[0..frame.ranges_len]);
     cache.pending_len = frame.ranges_len;
     std.mem.swap([*]CachedRow, &cache.previous, &cache.next);
+    cache.pending_epoch = frame.glyph_index.epoch;
     if (frame.status == 0) {
         frame.glyph_index.rebuild_all = 0;
         frame.glyph_index.residency_changed = 0;
     }
     return c.GHOSTTY_SUCCESS;
+}
+
+fn addPatchedGlyph(frame: *Frame, cache: *FrameCache, slot: u32) c.GhosttyResult {
+    const row = slot / frame.columns;
+    var index = cache.range_slots[row];
+    if (index == cache.rows) {
+        if (frame.ranges_len == frame.ranges_cap) return c.GHOSTTY_OUT_OF_SPACE;
+        index = frame.ranges_len;
+        frame.ranges[index] = .{ .cell_offset = row * frame.columns * 64, .cell_length = 0, .glyph_offset = 0, .glyph_length = 0 };
+        frame.ranges_len += 1;
+        cache.range_slots[row] = index;
+    }
+    const range = &frame.ranges[index];
+    unionSpan(&range.glyph_offset, &range.glyph_length, slot * 96, 96);
+    return c.GHOSTTY_SUCCESS;
+}
+
+fn patchPendingCell(frame: *Frame, cache: *FrameCache, cell: PendingCell) c.GhosttyResult {
+    const glyph = &frame.glyph_data[cell.slot];
+    const left = @as(f32, @floatFromInt(cell.slot % frame.columns)) * frame.cell_width;
+    const top = if (frame.stable_rows != 0) 0 else @as(f32, @floatFromInt(cell.y)) * frame.cell_height;
+    writeGlyph(glyph, cell.key.glyph, left, top, cell.foreground, cell.background, cell.faint, cell.blink, frame.minimum_contrast);
+    const row = &cache.previous[cell.y];
+    row.cells[cell.x].registration = cell.key.registration;
+    if (cache.rendered[cell.slot].key == cell.key) cache.rendered[cell.slot].registration = cell.key.registration;
+    if (cell.blink and glyph[16] != 0 and !row.blinking) {
+        row.blinking = true;
+        frame.blinking_rows += 1;
+    }
+    // The earlier build left this record empty and already delivered that if the GPU differed;
+    // a record with no draw flags is still empty.
+    if (glyph[16] == 0) return c.GHOSTTY_SUCCESS;
+    return addPatchedGlyph(frame, cache, cell.slot);
+}
+
+// Finishes the cells the last build queued instead of rebuilding the frame. Returns 0 untouched
+// when the index changed since that build (evictions, clears) and the caller must rebuild, 1 when
+// patched, or 2 when the frame failed and needs a full upload.
+export fn bridge_patch_frame(frame: *Frame) u32 {
+    const cache = frame.row_cache orelse return 0;
+    if (frame.status != 2 or !cache.pending_cells_valid) return 0;
+    if (cache.pending_epoch != frame.glyph_index.epoch) return 0;
+    const list = cache.pending_cells orelse return 0;
+    const pending = list[0..cache.pending_cells_len];
+    glyph_index.beginBuild(frame.glyph_index);
+    frame.missing_len = 0;
+    frame.status = 0;
+    @memset(cache.range_slots[0..cache.rows], cache.rows);
+    for (frame.ranges[0..frame.ranges_len], 0..) |range, index| cache.range_slots[range.cell_offset / (frame.columns * 64)] = @intCast(index);
+    for (pending) |cell| cache.previous[cell.y].unresolved = false;
+    var kept: u32 = 0;
+    for (pending) |cell| {
+        if (cell.key.glyph.valid == 0) {
+            cache.previous[cell.y].unresolved = true;
+            list[kept] = cell;
+            kept += 1;
+            if (missingGlyph(frame, cell.key) != c.GHOSTTY_SUCCESS) return failPatch(frame, cache);
+            continue;
+        }
+        if (patchPendingCell(frame, cache, cell) != c.GHOSTTY_SUCCESS) return failPatch(frame, cache);
+    }
+    cache.pending_cells_len = kept;
+    @memcpy(cache.pending[0..frame.ranges_len], frame.ranges[0..frame.ranges_len]);
+    cache.pending_len = frame.ranges_len;
+    if (frame.status == 0) {
+        frame.glyph_index.rebuild_all = 0;
+        frame.glyph_index.residency_changed = 0;
+    }
+    return 1;
+}
+
+// Records were partly rewritten, so neither a retry nor the next incremental frame may trust them.
+fn failPatch(frame: *Frame, cache: *FrameCache) u32 {
+    frame.status = 0;
+    cache.pending_cells_valid = false;
+    for (0..cache.rows) |row| cache.previous[row].id = std.mem.zeroes(c.GhosttyRenderStateRowId);
+    return 2;
 }
 
 export fn bridge_build_frame(state: c.GhosttyRenderState, iterator: c.GhosttyRenderStateRowIterator, cells: c.GhosttyRenderStateRowCells, mask: ?[*]const u8, mask_len: u32, dirty_only: bool, frame: *Frame) c.GhosttyResult {

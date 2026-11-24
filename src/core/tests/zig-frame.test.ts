@@ -697,6 +697,67 @@ describe('WASM frame records', () => {
     expectNativeRecords(builder)
   })
 
+  it.each([false, true])(
+    'finishes a glyph clear in one build with full-build bytes and only changed uploads with stableRows=%s',
+    async (stableRows) => {
+      const frameOptions = { ...options, stableRows }
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
+      const state = runtime.createRenderState(terminal)
+      terminal.write(
+        '\x1b[?25l\x1b[2mfaint\x1b[0m \x1b[5mblink\x1b[0m \x1b[7minv\x1b[0m\r\n' +
+          '\x1b[1;38;2;10;20;30;48;2;200;100;50mbold\x1b[0m 界é\r\nplain text',
+      )
+      state.update()
+      // Each glyph's bitmap height depends on its code point, so a wrong atlas entry shows in bytes.
+      const rasterizer: GlyphRasterizer = {
+        rasterize: (input) => ({
+          ...bitmap,
+          height: 1 + (input.text.codePointAt(0)! % 7),
+          pixels: new Uint8Array(5 * (1 + (input.text.codePointAt(0)! % 7))),
+        }),
+      }
+      builder = state.createFrameBuilder(24, 3)
+      const atlas = new GlyphAtlas()
+      expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+      state.acknowledge()
+      // A scroll moves the ring's physical rows, so finished records must use their physical slots.
+      terminal.write('\r\n\x1b[5mscrolled\x1b[0m')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, { ...frameOptions, full: false })).toBe(0)
+      expect(builder.stableRows).toBe(stableRows)
+      state.acknowledge()
+      const uploaded = uploadedRecords(builder)
+      builder.clearGlyphs()
+      atlas.invalidateAll()
+      const builds = vi.spyOn(builder, 'build')
+      expect(buildZigFrame(builder, atlas, rasterizer, { ...frameOptions, full: false })).toBe(0)
+      expect(builds).toHaveBeenCalledTimes(1)
+      expect(builder.rowRebuilds).toBe(3)
+      const ranges = builder.changedRanges()
+      expect(ranges.every((range) => range.cell.byteLength === 0)).toBe(true)
+      uploaded.apply()
+      uploaded.expectCurrent()
+      expect(builder.missingGlyphs).toEqual([])
+      expect(visibleGlyphs(builder)).toBeGreaterThan(20)
+      const patched = {
+        cells: builder.cellData.slice(),
+        glyphs: builder.glyphData.slice(),
+        blinking: builder.blinkingRows,
+      }
+      // The finished cells are current: rewriting the same text uploads nothing.
+      terminal.write('\x1b[3;1H\x1b[5mscrolled\x1b[0m')
+      state.update()
+      expect(buildZigFrame(builder, atlas, rasterizer, { ...frameOptions, full: false })).toBe(0)
+      expect(uploadedBytes(builder)).toBe(0)
+      state.acknowledge()
+      expect(buildZigFrame(builder, atlas, rasterizer, frameOptions)).toBe(0)
+      expect(builder.cellData).toEqual(patched.cells)
+      expect(builder.glyphData).toEqual(patched.glyphs)
+      expect(builder.blinkingRows).toBe(patched.blinking)
+    },
+  )
+
   it.each(zigFrameContents)('builds native records for %j', async (content) => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 32, rows: 3 })
@@ -1091,8 +1152,11 @@ describe('WASM Unicode descriptors and native records', () => {
         ['B', { r: 0, g: 255, b: 0 }],
       ])
       const builds = vi.spyOn(builder, 'build')
+      const retries = vi.spyOn(builder, 'retryMissing')
       expect(buildZigFrame(builder, nativeAtlas, rasterizer, frameOptions)).toBe(0)
-      expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0])
+      // The retry finishes the queued cells in place instead of building the frame again.
+      expect(builds.mock.results.map((result) => result.value)).toEqual([2])
+      expect(retries.mock.results.map((result) => result.value)).toEqual([0])
       expect(builder.missingGlyphs).toEqual([])
       expect(nativeAtlas.pageCount).toBe(1)
       expect(nativeAtlas.evictionCount).toBe(0)

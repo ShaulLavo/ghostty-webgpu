@@ -59,11 +59,11 @@
     },
     "inputs": {
       "scripts/build-wasm.ts": "34a9bbf58b923f275140381b25ba622b8c674b61a651fd3d935692bed196840b",
-      "scripts/bridge.zig": "73f45e6c3526d8514e47adec8d192d688593b9b45091786c488e995a2329b586",
+      "scripts/bridge.zig": "49a35bae8a549bec69d9ed30f98ac56969d3a116ce3415e75e5dd66c0c039298",
       "scripts/row-index.zig": "9d09589b7091bd22447503e24a5642d87575c99aed9ac89f5f91205f0578bf44",
       "scripts/snapshot.zig": "77787a136a22d03509b75fae45c92623fae792a412e4da61877a15a30dd7c1ee",
       "scripts/retained-frame.zig": "2191d227e9794d02f0de4f0453355b4972858e4028fa03da2cabba252e699dd3",
-      "scripts/glyph-index.zig": "ef7d3112cff10ed8ff39f9911a4e71c97bf3ca1d781ed219fb5afe8e307939bb",
+      "scripts/glyph-index.zig": "b3e9845b276a4036af0a6e0dd2a87e13d5ae79fe2414ff01cd5669cfccb55cb5",
       "scripts/unknown-osc.zig": "99b6aa177a66bb6df934a8c16d17ebcb5488f15946600e1df52bf6d10a77b5d7",
       "scripts/ghostty-source.ts": "f87852c521a48c96171508845928504ecb8532eb07befe41a3770b26d054de56",
       "scripts/ghostty-vt-exports.ts": "059b0cdd5862ebad9df92d443fc9b85b31f72b73183d3f613c07187078ff1592",
@@ -79,8 +79,8 @@
       "nameSectionSha256": []
     },
     "bridge.wasm": {
-      "bytes": 36009,
-      "sha256": "d466f8b9cec600c90c6f8c551a670469d124a984e7158f8dc6e009374bde752c",
+      "bytes": 38776,
+      "sha256": "29d16d4e1856bde47be7beb07c573c5ac29aade061ef61479133ae2b57edfa63",
       "nameSectionSha256": []
     }
   }

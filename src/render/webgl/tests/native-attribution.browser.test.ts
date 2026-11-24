@@ -155,13 +155,18 @@ it('distinguishes native warm builds and ASCII or Unicode missing-glyph retry up
       expect(builds.mock.results.map((result) => result.value)).toEqual([0])
     }
     if (control.name === 'missing' || control.name === 'unicode') {
-      expect(observed.zigBuilds).toBe(2)
-      expect(observed.zigReadyBuilds).toBe(1)
+      // One build queues the missing cells; the retry finishes them without building again.
+      expect(observed.zigBuilds).toBe(1)
+      expect(observed.zigReadyBuilds ?? 0).toBe(0)
       expect(observed.zigMissingGlyphBuilds).toBe(1)
-      expect(builds.mock.results.map((result) => result.value)).toEqual([2, 0])
+      expect(observed.zigGlyphRetries).toBe(1)
+      expect(observed.zigReadyRetries).toBe(1)
+      expect(builds.mock.results.map((result) => result.value)).toEqual([2])
       const spans = operations(records, 'build')
-      expect(spans).toHaveLength(2)
-      expect(spans[0]!.end).toBeLessThanOrEqual(spans[1]!.start)
+      const retries = operations(records, 'retryMissing')
+      expect(spans).toHaveLength(1)
+      expect(retries).toHaveLength(1)
+      expect(spans[0]!.end).toBeLessThanOrEqual(retries[0]!.start)
       const cellRowBytes = control.name === 'missing' ? 40 * CELL_INSTANCE_BYTES : 0
       expect(uploads).toHaveBeenCalledTimes(1)
       expect(uploads.mock.calls[0]![1]).toEqual(

@@ -28,7 +28,7 @@ export function buildZigFrame(
       status = builder.build(options)
     for (let attempt = 0; attempt < 3 && status === 2; attempt += 1) {
       registerMissingGlyphs(builder, atlas, rasterizer, owner)
-      status = builder.build(options)
+      status = builder.retryMissing(options)
     }
     return status
   } finally {

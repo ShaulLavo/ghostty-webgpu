@@ -337,6 +337,11 @@ export class CallbackBridge {
     return this.bridgeExports!.bridge_retry_deferred_glyphs(index) !== 0
   }
 
+  /** 0: not patchable, rebuild; 1: patched; 2: the frame's records failed and need a full upload. */
+  patchFrame(frame: number): number {
+    return this.bridgeExports!.bridge_patch_frame(frame)
+  }
+
   dispose(): void {
     this.memory.free(this.stackPointer, 65536)
   }

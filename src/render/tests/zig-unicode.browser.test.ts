@@ -169,7 +169,14 @@ async function nativeFixture(
   const native = await create()
   const readRows = vi.spyOn(native.state, 'readRows')
   const builds = vi.spyOn(ZigFrameBuilder.prototype, 'build')
-  return { fixture, native, readRows, builds }
+  const retries = vi.spyOn(ZigFrameBuilder.prototype, 'retryMissing')
+  return { fixture, native, readRows, builds, retries }
+}
+
+// A missing-glyph build is finished by a retry that patches the queued cells in place.
+function frameStatus(pair: Fixture): number | undefined {
+  const built = pair.builds.mock.results.at(-1)?.value
+  return built === 2 ? pair.retries.mock.results.at(-1)?.value : built
 }
 
 type Fixture = Awaited<ReturnType<typeof nativeFixture>>
@@ -336,7 +343,7 @@ for (const backend of ['webgpu', 'webgl2'] as const) {
         const pair = await nativeFixture(backend, content)
         flushFrame(pair)
         const pixels = await expectPainted(pair, 1)
-        expect(pair.builds.mock.results.at(-1)?.value).toBe(0)
+        expect(frameStatus(pair)).toBe(0)
         expectGlyphInk(pixels, pair.native.canvas, pair.native.state.readRows(), pair.native.font)
       },
     )
@@ -416,9 +423,11 @@ for (const backend of ['webgpu', 'webgl2'] as const) {
         const builder = pair.builds.mock.contexts.at(-1) as ZigFrameBuilder
         const cleanRecords = cleanRowRecords(builder)
         pair.builds.mockClear()
+        pair.retries.mockClear()
         const uploaded = pair.native.renderer.metrics.uploadedBytes
         writeFrame(pair, '\x1b[2;1H\x1b[31;44m界é👩‍💻\x1b[0m')
-        expect(pair.builds.mock.results.map((result) => result.value)).toEqual([2, 0])
+        expect(pair.builds.mock.results.map((result) => result.value)).toEqual([2])
+        expect(pair.retries.mock.results.map((result) => result.value)).toEqual([0])
         // The retry uploads the five changed cells, not every dirty row.
         expect(pair.native.renderer.metrics.uploadedBytes - uploaded).toBe(
           5 * (CELL_INSTANCE_BYTES + GLYPH_INSTANCE_BYTES),

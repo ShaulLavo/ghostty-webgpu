@@ -40,6 +40,8 @@ pub const Index = extern struct {
     rebuild_all: u32,
     residency_changed: u32,
     fast: ?[*]FastCell,
+    // Bumped whenever entries are freed or lose their atlas placement, which stales queued cells.
+    epoch: u32,
 };
 
 // Direct-mapped cache from a raw unstyled cell to its glyph under one default brush.
@@ -88,7 +90,7 @@ pub fn create() ?*Index {
         return null;
     };
     @memset(entries[0..256], null);
-    index.* = .{ .entries = entries, .capacity = 256, .count = 0, .scratch = null, .scratch_cap = 0, .build_generation = 0, .rebuild_all = 0, .residency_changed = 0, .fast = null };
+    index.* = .{ .entries = entries, .capacity = 256, .count = 0, .scratch = null, .scratch_cap = 0, .build_generation = 0, .rebuild_all = 0, .residency_changed = 0, .fast = null, .epoch = 0 };
     return index;
 }
 
@@ -110,6 +112,7 @@ pub fn clear(index: *Index) void {
     @memset(index.entries[0..index.capacity], null);
     index.count = 0;
     index.rebuild_all = 1;
+    index.epoch +%= 1;
     resetFast(index);
 }
 
@@ -131,6 +134,7 @@ pub fn invalidatePage(index: *Index, kind: u32, layer: u32, generation: u32) voi
         glyph.valid = 0;
         entry.registration +%= 1;
         index.residency_changed = 1;
+        index.epoch +%= 1;
     }
 }
 
@@ -143,7 +147,9 @@ pub fn retryDeferred(index: *Index) bool {
         entry.registration +%= 1;
         changed = true;
     }
-    if (changed) index.residency_changed = 1;
+    if (!changed) return false;
+    index.residency_changed = 1;
+    index.epoch +%= 1;
     return changed;
 }
 
@@ -151,6 +157,7 @@ pub fn collect(index: *Index) bool {
     const entries = allocate(?*Entry, index.capacity) orelse return false;
     @memset(entries[0..index.capacity], null);
     resetFast(index);
+    index.epoch +%= 1;
     const previous = index.entries;
     index.entries = entries;
     index.count = 0;
