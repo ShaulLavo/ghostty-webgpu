@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { page } from 'vitest/browser'
 import { requireWebGpu } from '../render/tests/webgpu-capability.js'
 import { requireWorkerWebGl } from '../render/tests/worker-webgl-capability.js'
 import { testFontUrl } from '../tests/fonts.js'
@@ -134,6 +135,43 @@ describe.each(['webgl', 'webgpu'] as const)('%s pooled workers', (backend) => {
     expect(workers.created).toHaveLength(2)
     await terminal.write('fresh worker')
     await eventually(shown(terminal, 'fresh worker'))
+  })
+})
+
+async function fillShare(element: Element, rgb: readonly number[]): Promise<number> {
+  const image = new Image()
+  image.src = `data:image/png;base64,${await page.screenshot({ element, save: false, scale: 'css' })}`
+  await image.decode()
+  const canvas = document.createElement('canvas')
+  canvas.width = image.naturalWidth
+  canvas.height = image.naturalHeight
+  const context = canvas.getContext('2d')!
+  context.drawImage(image, 0, 0)
+  const data = context.getImageData(0, 0, canvas.width, canvas.height).data
+  let matching = 0
+  for (let offset = 0; offset < data.length; offset += 4) {
+    if (rgb.every((value, channel) => Math.abs(data[offset + channel]! - value) <= 4)) matching++
+  }
+  return matching / (data.length / 4)
+}
+
+describe.each(['webgl', 'webgpu'] as const)('%s pooled worker pixels', (backend) => {
+  it('composites every terminal sharing a worker after each write', async () => {
+    if (backend === 'webgpu') requireWebGpu()
+    else await requireWorkerWebGl()
+    const pool = new TerminalWorkerPool({ workers: 1 })
+    const terminals = [await open(backend, pool), await open(backend, pool)]
+    for (const color of [
+      [25, 100, 200],
+      [200, 60, 30],
+    ]) {
+      const fill = `\x1b[?25l\x1b[48;2;${color.join(';')}m\x1b[2J`
+      await Promise.all(terminals.map((terminal) => terminal.write(fill)))
+      for (const terminal of terminals) {
+        const canvas = terminal.canvas!
+        await expect.poll(() => fillShare(canvas, color), { timeout: 5_000 }).toBeGreaterThan(0.8)
+      }
+    }
   })
 })
 

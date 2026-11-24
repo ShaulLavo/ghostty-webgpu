@@ -11,6 +11,8 @@ const codeUnitChunk = 4096
 // A plain row stores this in its cell-count field and its blank bitmap length in the flag field.
 const plainRow = 0xffffffff
 const littleEndian = new Uint8Array(Uint16Array.of(1).buffer)[0] === 1
+// Native decoding is about ten times faster than spreading code units into fromCharCode.
+const strictUtf16 = new TextDecoder('utf-16le', { fatal: true, ignoreBOM: true })
 
 function sameBlanks(left: PlainRowSource, right: PlainRowSource, length: number): boolean {
   for (let column = 0; column < length; column++) {
@@ -165,11 +167,20 @@ class RowReader {
     const start = this.advance(length * codeUnitBytes)
     if (length === 0) return ''
     if (length === 1) return String.fromCharCode(this.view.getUint16(start, true))
-    // TextDecoder replaces isolated surrogates. Rebuild the original code units in bounded chunks.
+    try {
+      return strictUtf16.decode(this.bytes.subarray(start, start + length * codeUnitBytes))
+    } catch {
+      return this.unpairedText(start, length)
+    }
+  }
+
+  // The strict decoder rejects isolated surrogates; rebuild those code units in bounded chunks.
+  private unpairedText(start: number, length: number): string {
     let value = ''
     for (let index = 0; index < length; index += codeUnitChunk) {
       const chunkLength = Math.min(codeUnitChunk, length - index)
-      value += String.fromCharCode(...this.codeUnits(start + index * codeUnitBytes, chunkLength))
+      const units = this.codeUnits(start + index * codeUnitBytes, chunkLength)
+      value += String.fromCharCode.apply(null, units as unknown as number[])
     }
     return value
   }

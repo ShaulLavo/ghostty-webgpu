@@ -86,11 +86,13 @@ test('transfers a full frame with exact UTF-16 text, cells, flags, and metadata'
   const rows = [
     { y: 0, text: cells.join(' '), cells, continuations },
     { y: 1, text: longCell, cells: [longCell, ''], continuations: [false, false] },
+    // A leading byte-order mark without lone surrogates takes the native decoder path.
+    { y: 2, text: '﻿﻿界🧪', cells: ['﻿﻿界🧪'], continuations: [false] },
   ]
   const { message, snapshot, summary } = send(rows)
-  expect(changedRows(message)).toBe(2)
-  expect(message.order).toEqual([0, 1])
-  expect(message.patches).toEqual([0, 1])
+  expect(changedRows(message)).toBe(3)
+  expect(message.order).toEqual([0, 1, 2])
+  expect(message.patches).toEqual([0, 1, 2])
   expect(message.snapshot).not.toHaveProperty('rows')
   expect(message.summary).not.toHaveProperty('rowPatches')
   expect(decoder.decode(message)).toEqual({
