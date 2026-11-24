@@ -898,7 +898,7 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
     // Symbols take their constraint width from neighbors, so their glyph is not a function of the cell.
     if (codepoint == 0 or selected or cursorAt(frame, x, y) or isSymbol(codepoint)) return result;
     const key = frame.row_cache.?.next[y].cells[x].key orelse return result;
-    if (key.glyph.valid != 0) glyph_index.fastStore(frame.glyph_index, raw, key, frame.foreground, frame.background, frame.glyph_minimum_contrast);
+    if (brushFreeGlyph(key)) glyph_index.fastStore(frame.glyph_index, raw, key, frame.foreground, frame.background, frame.glyph_minimum_contrast);
     return result;
 }
 
@@ -1009,6 +1009,12 @@ fn rememberGlyph(frame: *Frame, content: CellContent, style: u32, foreground: u3
     };
 }
 
+// Only registered grayscale glyphs serve every brush; a deferred entry has no kind yet and
+// a color entry belongs to the brush that resolved it.
+fn brushFreeGlyph(key: *const glyph_index.Entry) bool {
+    return key.glyph.valid == 1 and key.glyph.kind == 0;
+}
+
 fn cursorAt(frame: *const Frame, x: u32, y: u32) bool {
     return frame.cursor_visible != 0 and frame.cursor_x == x and frame.cursor_y == y;
 }
@@ -1018,7 +1024,7 @@ fn cursorAt(frame: *const Frame, x: u32, y: u32) bool {
 fn plainCellKey(frame: *Frame, raws: []const c.GhosttyCell, x: u32, y: u32, selected: bool) ?*glyph_index.Entry {
     if (selected or frame.ligatures != 0 or cursorAt(frame, x, y)) return null;
     const key = glyph_index.fastLookup(frame.glyph_index, raws[x], frame.foreground, frame.background, frame.glyph_minimum_contrast) orelse return null;
-    if (key.glyph.valid == 0) return null;
+    if (!brushFreeGlyph(key)) return null;
     if (x + 1 >= raws.len) return key;
     var next_wide: c.GhosttyCellWide = 0;
     if (c.ghostty_cell_get(raws[x + 1], c.GHOSTTY_CELL_DATA_WIDE, &next_wide) != c.GHOSTTY_SUCCESS) return null;
