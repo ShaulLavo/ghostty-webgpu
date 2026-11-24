@@ -35,7 +35,7 @@ import {
   safeRendererInteger,
 } from '../shared/config.js'
 import { type CanonicalRendererTheme, type RendererTheme } from '../shared/instances/types.js'
-import { RenderScheduler } from '../shared/scheduler.js'
+import { RenderScheduler, seedBlinkPhase, type BlinkPhase } from '../shared/scheduler.js'
 import { textPassGlyphCapacity, WebGpuTextPass, type TextPassCopy } from './text-pass.js'
 import { WebGpuUnavailableError, type WebGpuUnavailableReason } from './unavailable.js'
 
@@ -302,6 +302,10 @@ export class WebGpuTerminalRenderer {
 
   get hasPendingTimer(): boolean {
     return this.scheduler.hasPendingTimer
+  }
+
+  [seedBlinkPhase](phase: BlinkPhase): void {
+    this.scheduler.seedBlinkPhase(phase)
   }
 
   clearTextureAtlas(): void {

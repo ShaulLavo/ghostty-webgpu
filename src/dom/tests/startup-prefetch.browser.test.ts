@@ -1,4 +1,4 @@
-import { afterEach, expect, it, onTestFinished } from 'vitest'
+import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import { Terminal } from '../../../dist/index.js'
 import { rendererPlatforms } from '../../render/tests/platforms.js'
 import { restoreRendererNavigator, stubRendererNavigator } from '../../render/tests/navigator.js'
@@ -79,7 +79,11 @@ it('starts no default renderer download for a custom renderer factory', async ()
 it('downloads the selected renderer while the core wasm is still held', async () => {
   stubRendererNavigator(linux.navigator)
   const { scenario, release } = await heldScenario()
+  const fetches = vi.spyOn(globalThis, 'fetch')
+  onTestFinished(() => fetches.mockRestore())
   const created = Terminal.create({ runtime: runtime(scenario) })
+  const requests = fetches.mock.calls.map(([input]) => String(input).split('/').at(-1))
+  expect(requests).toEqual(['ghostty-vt.wasm', 'bridge.wasm', 'canvas-compose.wasm'])
   await expect
     .poll(() =>
       requestedRendererModules().some((path) => path.endsWith('/render/webgl/renderer.js')),

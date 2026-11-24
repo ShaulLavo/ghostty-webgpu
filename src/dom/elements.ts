@@ -25,6 +25,7 @@ export interface TerminalElements {
   readonly textarea: HTMLTextAreaElement
 
   dispose(): void
+  adoptCanvas?(canvas: HTMLCanvasElement): void
   positionTextarea(position: TerminalCaretPosition): void
   replaceCanvas?(): HTMLCanvasElement
   setPadding(padding: TerminalElementPaddingInput): boolean
@@ -195,6 +196,19 @@ class OwnedTerminalElements implements TerminalElements {
     if (this.disposed) throw new Error('Terminal elements have been disposed')
     this.canvasValue = replaceTerminalCanvas(this.canvasValue)
     return this.canvasValue
+  }
+
+  adoptCanvas(canvas: HTMLCanvasElement): void {
+    if (this.disposed) throw new Error('Terminal elements have been disposed')
+    const { width, height } = canvas.style
+    for (const attribute of this.canvas.attributes) {
+      if (attribute.name === 'width' || attribute.name === 'height') continue
+      canvas.setAttribute(attribute.name, attribute.value)
+    }
+    canvas.style.width = width
+    canvas.style.height = height
+    this.canvas.replaceWith(canvas)
+    this.canvasValue = canvas
   }
 
   setPadding(input: TerminalElementPaddingInput): boolean {

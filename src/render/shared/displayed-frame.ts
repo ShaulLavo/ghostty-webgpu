@@ -43,7 +43,17 @@ export interface CanvasImagePublisher {
   dispose(): void
 }
 
+export const startupCanvas = Symbol('startupCanvas')
+export const startupBackend = Symbol('startupBackend')
+export const wakeStartupHandoff = Symbol('wakeStartupHandoff')
+
+export interface StartupCanvas {
+  adopt(canvas: HTMLCanvasElement): void
+  canAdopt(): boolean
+}
+
 export interface DisplayedFrameOptions {
+  [startupCanvas]?: StartupCanvas
   [captureSubmission]?: () => object
   [attachCanvasImage]?: () => CanvasImagePublisher
   [observeDisplayedFrame]?: (snapshot: DisplayedTextFrame) => void

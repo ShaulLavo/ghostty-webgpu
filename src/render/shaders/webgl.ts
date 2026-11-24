@@ -90,7 +90,7 @@ in vec2 v_local;
 flat in vec2 v_size;
 
 float lineCoverage(float position, float center) {
-  return abs(position - center) <= 0.5 ? 1.0 : 0.0;
+  return floor(position) == center ? 1.0 : 0.0;
 }
 
 float underlineCoverage(uint style, vec2 local, vec2 size) {
@@ -99,7 +99,7 @@ float underlineCoverage(uint style, vec2 local, vec2 size) {
   if (style == 1u) return lineCoverage(local.y, lower);
   if (style == 2u) return max(lineCoverage(local.y, lower), lineCoverage(local.y, lower - 3.0));
   if (style == 3u) {
-    float wave = lower - 1.0 + sin(local.x * 1.5707963);
+    float wave = lower - (mod(local.x, 4.0) < 2.0 ? 1.0 : 2.0);
     return lineCoverage(local.y, wave);
   }
   if (style == 4u) {

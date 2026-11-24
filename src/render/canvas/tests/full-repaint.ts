@@ -32,7 +32,7 @@ export function paintFullReference(
   const raster = context2d(scratch)
   scratch.width = canvas.width
   scratch.height = font.deviceCellHeight
-  const painter = new CanvasRowPainter(raster, font, theme)
+  const painter = new CanvasRowPainter(raster, font, theme, undefined, true)
   painter.resetContext(font)
   try {
     for (const row of rows) {

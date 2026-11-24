@@ -14,13 +14,13 @@ You will know which renderer opened and how to choose a fallback. Start with the
 
 <Code code={sample} lang='ts' title='renderers.ts' />
 
-On desktop Linux, the main entry tries WebGL2, hardware WebGPU, Canvas 2D, then DOM. On macOS, Windows, Android, ChromeOS, and other platforms, it tries hardware WebGPU before WebGL2. A capability failure advances to the next backend. `diagnostics.rendererBackend` reports the selected backend after `open`.
+The main entry in frame presentation starts on Canvas 2D and switches to the GPU once it draws a frame. On desktop Linux, it tries WebGL2 before hardware WebGPU. On other platforms, it tries hardware WebGPU first. `diagnostics.rendererBackend` reports the renderer currently in use.
 
 ## 2. Choose Canvas 2D explicitly
 
-Set `rendererMode` to `canvas2d-fill-text` when creating the main-thread terminal. The public mode option accepts `auto`, `canvas2d-fill-text` and `canvas2d-pixels`. The pixel compositor is experimental. Use fill-text for a Canvas integration.
+Set `rendererMode` to `canvas2d-fill-text` when creating the main-thread terminal. The explicit `canvas2d-pixels` mode enables the pixel compositor.
 
-For a GPU-specific integration, `rendererFactory` lets the host supply a renderer. `rendererMode: 'webgpu'` and `rendererMode: 'webgl2'` are outside this option's type. The [worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/) has a separate `backend` option with `auto`, `webgpu` and `webgl`.
+Set `rendererMode` to `webgpu` or `webgl2` to try a specific GPU backend. The terminal keeps painting on Canvas if that backend is unavailable. `rendererFactory` lets the host supply its own renderer. The worker entry has a separate `backend` option with `auto`, `webgpu`, and `webgl`. [Worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/)
 
 ## 3. Check the result
 
@@ -30,7 +30,7 @@ All four backends read Ghostty's terminal state. Font availability and browser c
 
 ### WebGPU is unavailable
 
-Use a secure context and a current browser with a usable GPU adapter. The default main entry falls back automatically. A forced backend or worker operation may return a capability error. Keep its `code`, `why` and `fix` when displaying it to the user.
+Use a secure context and a current browser with a usable GPU adapter. The main entry falls back automatically. A worker operation may return a capability error. Keep its `code`, `why`, and `fix` when displaying it to the user.
 
 ### Many terminals lose WebGL contexts
 

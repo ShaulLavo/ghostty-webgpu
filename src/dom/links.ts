@@ -39,6 +39,7 @@ export interface DomLinkControllerOptions {
   readonly getFrame?: () => RendererTextFrameSnapshot | undefined
   readonly getLayout: () => CommittedPointerLayout | undefined
   readonly getProjection?: () => LinkProjection | undefined
+  readonly onActivationChange?: (active: boolean) => void
   readonly onError?: (cause: unknown, operation: string) => void
   readonly onHitChange?: (hit: LinkHit<Event> | undefined) => void
   readonly root: HTMLElement
@@ -49,10 +50,12 @@ export interface DomLinkControllerOptions {
 export interface DomLinkController {
   readonly needsFrame: boolean
   readonly currentHit: LinkHit<Event> | undefined
+  readonly hasActivePointerActivation: boolean
   readonly hasPendingResolution: boolean
   dispose(): void
   focusNextLink(): Promise<boolean>
   invalidate(): void
+  rebindCanvas(canvas: HTMLCanvasElement): void
   updateFrame(snapshot: RendererTextFrameSnapshot): void
 }
 
@@ -234,10 +237,14 @@ function applyOverlayStyles(overlay: HTMLElement): void {
 
 class BrowserLinkController implements DomLinkController {
   private activation?: PointerLinkActivation
+  private activationActive = false
   private activationSequence = 0
   private claimedClick?: PointerLinkActivation
+  private claimedClickTimer?: number
   private pointerSequence?: number
   private readonly abortController = new AbortController()
+  private canvas: HTMLCanvasElement
+  private canvasAbortController = new AbortController()
   private currentResolution?: LinkResolution<Event>
   private currentScope?: LinkScope
   private disposed = false
@@ -264,6 +271,7 @@ class BrowserLinkController implements DomLinkController {
     if (options.root.ownerDocument !== options.canvas.ownerDocument) {
       throw new TypeError('root and canvas must belong to the same document')
     }
+    this.canvas = options.canvas
     this.view = view
     this.overlay = options.canvas.ownerDocument.createElement('div')
     this.overlay.className = 'ghostty-webgpu-link'
@@ -278,12 +286,20 @@ class BrowserLinkController implements DomLinkController {
       this.lastPoint !== undefined ||
       this.pointerSequence !== undefined ||
       this.pendingGeneration !== undefined ||
-      this.options.canvas.ownerDocument.activeElement === this.overlay
+      this.canvas.ownerDocument.activeElement === this.overlay
     )
   }
 
   get currentHit(): LinkHit<Event> | undefined {
     return this.currentResolution?.hit
+  }
+
+  get hasActivePointerActivation(): boolean {
+    return (
+      this.activation !== undefined ||
+      this.claimedClick !== undefined ||
+      this.pointerSequence !== undefined
+    )
   }
 
   get hasPendingResolution(): boolean {
@@ -295,12 +311,37 @@ class BrowserLinkController implements DomLinkController {
     this.disposed = true
     this.advanceGeneration()
     this.pendingGeneration = undefined
+    this.clearClaimedClickTimer()
     this.finishActivationGesture()
+    this.canvasAbortController.abort()
     this.abortController.abort()
     this.clearVisibleHit()
     this.lastPoint = undefined
     this.frameSnapshot = undefined
     this.displayedHit = undefined
+  }
+
+  rebindCanvas(canvas: HTMLCanvasElement): void {
+    if (this.disposed || canvas === this.canvas) return
+    if (canvas.ownerDocument !== this.options.root.ownerDocument) {
+      throw new TypeError('root and canvas must belong to the same document')
+    }
+    const cursor = this.replacedCursor
+    this.restoreCanvasCursor()
+    this.canvasAbortController.abort()
+    this.canvasAbortController = new AbortController()
+    this.canvas = canvas
+    this.attachCanvas()
+    if (cursor) {
+      const style = this.canvas.style
+      if (
+        style.getPropertyValue('cursor') === 'pointer' &&
+        style.getPropertyPriority('cursor') === 'important'
+      ) {
+        style.setProperty('cursor', cursor.value, cursor.priority)
+      }
+    }
+    if (this.currentResolution?.hit) this.applyCanvasCursor()
   }
 
   invalidate(): void {
@@ -396,32 +437,37 @@ class BrowserLinkController implements DomLinkController {
 
   private attach(): void {
     const signal = this.abortController.signal
-    this.options.canvas.addEventListener('pointerdown', this.handleActivationPointerDown, {
-      capture: true,
-      signal,
-    })
-    this.options.canvas.addEventListener('pointermove', this.handleActivationPointerMove, {
-      capture: true,
-      signal,
-    })
-    this.options.canvas.addEventListener('pointerup', this.handleActivationPointerUp, {
-      capture: true,
-      signal,
-    })
-    this.options.canvas.addEventListener('pointercancel', this.handleActivationPointerCancel, {
-      capture: true,
-      signal,
-    })
-    this.options.canvas.addEventListener('lostpointercapture', this.handleLostPointerCapture, {
-      signal,
-    })
+    this.attachCanvas()
     this.view.addEventListener('blur', this.handleWindowBlur, { signal })
-    this.options.canvas.addEventListener('pointermove', this.handlePointerMove, { signal })
-    this.options.canvas.addEventListener('pointerleave', this.handlePointerLeave, { signal })
-    this.options.canvas.addEventListener('click', this.handleClick, { capture: true, signal })
     this.overlay.addEventListener('keydown', this.handleOverlayKeyDown, { signal })
     this.options.signal?.addEventListener('abort', this.handleAbort, { once: true, signal })
     if (this.options.signal?.aborted) this.dispose()
+  }
+
+  private attachCanvas(): void {
+    const signal = this.canvasAbortController.signal
+    this.canvas.addEventListener('pointerdown', this.handleActivationPointerDown, {
+      capture: true,
+      signal,
+    })
+    this.canvas.addEventListener('pointermove', this.handleActivationPointerMove, {
+      capture: true,
+      signal,
+    })
+    this.canvas.addEventListener('pointerup', this.handleActivationPointerUp, {
+      capture: true,
+      signal,
+    })
+    this.canvas.addEventListener('pointercancel', this.handleActivationPointerCancel, {
+      capture: true,
+      signal,
+    })
+    this.canvas.addEventListener('lostpointercapture', this.handleLostPointerCapture, {
+      signal,
+    })
+    this.canvas.addEventListener('pointermove', this.handlePointerMove, { signal })
+    this.canvas.addEventListener('pointerleave', this.handlePointerLeave, { signal })
+    this.canvas.addEventListener('click', this.handleClick, { capture: true, signal })
   }
 
   private readonly handleAbort = (): void => {
@@ -462,6 +508,7 @@ class BrowserLinkController implements DomLinkController {
       projection,
       target,
     }
+    this.syncActivationState()
     this.consumeActivationEvent(event)
   }
 
@@ -474,9 +521,11 @@ class BrowserLinkController implements DomLinkController {
   private readonly handleActivationPointerUp = (event: PointerEvent): void => {
     if (event.pointerId !== this.activation?.pointerId) return
     this.lastPoint = { clientX: event.clientX, clientY: event.clientY }
-    this.claimedClick = this.activation
+    const claimed = this.activation
+    this.claimedClick = claimed
     this.consumeActivationEvent(event)
     this.finishActivationGesture(true)
+    if (claimed) this.scheduleClaimedClickExpiry(claimed)
   }
 
   private readonly handleLostPointerCapture = (event: PointerEvent): void => {
@@ -491,9 +540,13 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private readonly handleClick = (event: MouseEvent): void => {
+    this.clearClaimedClickTimer()
     const claimed = this.claimedClick
     this.claimedClick = undefined
-    if (!claimed) return
+    if (!claimed) {
+      this.syncActivationState()
+      return
+    }
     this.consumeActivationEvent(event)
     void this.activatePointer(claimed, event)
   }
@@ -508,7 +561,7 @@ class BrowserLinkController implements DomLinkController {
 
   private readonly handlePointerLeave = (): void => {
     if (this.activation !== undefined) return
-    if (this.options.canvas.ownerDocument.activeElement === this.overlay) return
+    if (this.canvas.ownerDocument.activeElement === this.overlay) return
     // A claimed click survives leaving: touch fires pointerleave before click.
     this.displayedHit = undefined
     this.lastPoint = undefined
@@ -647,7 +700,15 @@ class BrowserLinkController implements DomLinkController {
   private releasePointerActivation(activation: PointerLinkActivation): void {
     if (this.pointerSequence !== activation.sequence) return
     this.pointerSequence = undefined
+    this.syncActivationState()
     if (this.lastPoint && !this.disposed) this.requestResolution(this.lastPoint)
+  }
+
+  private syncActivationState(): void {
+    const active = this.hasActivePointerActivation
+    if (active === this.activationActive) return
+    this.activationActive = active
+    this.options.onActivationChange?.(active)
   }
 
   private notifyPointerFrame(): void {
@@ -675,7 +736,7 @@ class BrowserLinkController implements DomLinkController {
 
   private captureActivationPointer(pointerId: number): boolean {
     try {
-      this.options.canvas.setPointerCapture(pointerId)
+      this.canvas.setPointerCapture(pointerId)
       return true
     } catch {
       return false
@@ -690,6 +751,7 @@ class BrowserLinkController implements DomLinkController {
   private finishActivationGesture(preserveClick = false): void {
     const pointerId = this.activation?.pointerId
     this.activation = undefined
+    if (!preserveClick) this.clearClaimedClickTimer()
     if (!preserveClick && this.pointerSequence !== undefined) {
       this.pointerSequence = undefined
       this.claimedClick = undefined
@@ -699,14 +761,30 @@ class BrowserLinkController implements DomLinkController {
       this.advanceGeneration()
       this.clearVisibleHit()
     }
+    this.syncActivationState()
     if (pointerId === undefined) return
     try {
-      if (this.options.canvas.hasPointerCapture(pointerId)) {
-        this.options.canvas.releasePointerCapture(pointerId)
+      if (this.canvas.hasPointerCapture(pointerId)) {
+        this.canvas.releasePointerCapture(pointerId)
       }
     } catch {
       return
     }
+  }
+
+  private scheduleClaimedClickExpiry(claimed: PointerLinkActivation): void {
+    this.clearClaimedClickTimer()
+    // Expire the claim if the embedding page suppresses click after pointerup.
+    this.claimedClickTimer = this.view.setTimeout(() => {
+      this.claimedClickTimer = undefined
+      if (this.claimedClick === claimed) this.finishActivationGesture()
+    }, 0)
+  }
+
+  private clearClaimedClickTimer(): void {
+    if (this.claimedClickTimer === undefined) return
+    this.view.clearTimeout(this.claimedClickTimer)
+    this.claimedClickTimer = undefined
   }
 
   private isActivationGesture(event: MouseEvent): boolean {
@@ -748,9 +826,25 @@ class BrowserLinkController implements DomLinkController {
     this.currentScope = undefined
     if (!changed) return
     this.overlay.remove()
+    this.restoreCanvasCursor()
+    this.options.onHitChange?.(undefined)
+  }
+
+  private applyCanvasCursor(): void {
+    const style = this.canvas.style
+    const value = style.getPropertyValue('cursor')
+    const priority = style.getPropertyPriority('cursor')
+    if (value !== 'pointer' || priority !== 'important') {
+      this.replacedCursor = { value, priority }
+      // Link hover must remain visible above important author cursor rules.
+      style.setProperty('cursor', 'pointer', 'important')
+    }
+  }
+
+  private restoreCanvasCursor(): void {
     const cursor = this.replacedCursor
     this.replacedCursor = undefined
-    const style = this.options.canvas.style
+    const style = this.canvas.style
     if (
       cursor &&
       style.getPropertyValue('cursor') === 'pointer' &&
@@ -758,7 +852,6 @@ class BrowserLinkController implements DomLinkController {
     ) {
       style.setProperty('cursor', cursor.value, cursor.priority)
     }
-    this.options.onHitChange?.(undefined)
   }
 
   private readFrame(): RendererTextFrameSnapshot | undefined {
@@ -934,14 +1027,7 @@ class BrowserLinkController implements DomLinkController {
     this.currentScope = scope
     this.displayedHit = { hit, projection: scope.projection }
     this.positionOverlay(hit, layout)
-    const style = this.options.canvas.style
-    const value = style.getPropertyValue('cursor')
-    const priority = style.getPropertyPriority('cursor')
-    if (value !== 'pointer' || priority !== 'important') {
-      this.replacedCursor = { value, priority }
-      // Link hover must remain visible above important author cursor rules.
-      style.setProperty('cursor', 'pointer', 'important')
-    }
+    this.applyCanvasCursor()
     this.options.onHitChange?.(hit)
   }
 

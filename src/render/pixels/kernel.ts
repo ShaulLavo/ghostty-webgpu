@@ -1,12 +1,9 @@
 import { createGhosttyError } from '../../core/error.js'
 import type { StampStorage } from './stamp-cache.js'
 
-// Declared here rather than imported from core/assets.ts: Vite inlines these small files as
-// base64, and that copy must stay in the lazily loaded Canvas chunk.
-export const canvasWasmAssets = {
-  canvasCompose: new URL('../../../canvas-compose.wasm', import.meta.url),
-  canvasComposeScalar: new URL('../../../canvas-compose-scalar.wasm', import.meta.url),
-} as const
+import { canvasWasmAssets, loadComposeKernelBytes } from './kernel-source.js'
+
+export { canvasWasmAssets } from './kernel-source.js'
 
 export interface ComposeExports {
   readonly memory: WebAssembly.Memory
@@ -95,26 +92,11 @@ export class ComposeKernel implements StampStorage {
     source: string | URL = canvasWasmAssets.canvasCompose,
   ): Promise<ComposeKernel> {
     try {
-      const bytes = await compositorAssetBytes(source)
+      const bytes = await loadComposeKernelBytes(source)
       const { instance } = await WebAssembly.instantiate(bytes)
       return new ComposeKernel(instance.exports as unknown as ComposeExports)
     } catch (cause) {
       throw createGhosttyError('canvas.load', 'Canvas pixel composition is unavailable', cause)
     }
   }
-}
-
-async function compositorAssetBytes(source: string | URL): Promise<ArrayBuffer> {
-  const bytes = await compositorBytes(source)
-  if (WebAssembly.validate(bytes)) return bytes
-  if (source !== canvasWasmAssets.canvasCompose) {
-    throw createGhosttyError('canvas.load', 'Canvas compositor is not valid WebAssembly')
-  }
-  return compositorBytes(canvasWasmAssets.canvasComposeScalar)
-}
-
-async function compositorBytes(source: string | URL): Promise<ArrayBuffer> {
-  const response = await fetch(source)
-  if (!response.ok) throw createGhosttyError('canvas.load', 'Canvas compositor download failed')
-  return response.arrayBuffer()
 }

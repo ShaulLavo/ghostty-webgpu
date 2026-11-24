@@ -9,7 +9,7 @@ export const nativeSourceHashes = {
   'pointer-selection': 'd1504dac38906a9dbe6d0326ed390350ed94aa4201a381ec20a5c8f464b65b6e',
   'hotkeys-focus': '7bc865e171b0dbbb5c214875e233ff91b2201ae34989dac2d0031533088ad19c',
   'renderer-benchmark': '75a26d4536fd34a33dea03432f096e763b4c0029534df16f1518fdb944fd83f6',
-  'text-pass': 'f54d444352c28e0ce3bc536ebf18fae6ea2efa9a4d2720674f1b8233f5589b83',
+  'text-pass': '2ab9b20b3237287b4055522c1121b27d88dd42638cb9f29399ed19feea8580e9',
   selector: 'ca473b572daed73babe5638dc7eca83f0287567059ea79f834c1b3e27cb80e08',
   'shared-atlas': 'e07542f65b3a1c9d69ed2702e6ab5565bd3680c0dbf238b16aff289648380df8',
   webgpu: 'cf5a892d5408e08a3eb2cf9e173eb4eef6bdd16033878136c7f027200983537d',

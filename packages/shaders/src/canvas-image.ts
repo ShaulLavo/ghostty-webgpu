@@ -1,6 +1,30 @@
+import type { TerminalApi } from 'ghostty-webgpu'
 import { ShaderAddonError } from './types.js'
 
 const observeCanvasImage = Symbol.for('ghostty-webgpu.observeCanvasImage')
+const observeStartupBackend = Symbol.for('ghostty-webgpu.resolveStartupBackend')
+
+type TerminalBackend = TerminalApi['diagnostics']['rendererBackend']
+
+function isTerminalBackend(value: unknown): value is TerminalBackend {
+  return (
+    value === undefined ||
+    value === 'canvas2d' ||
+    value === 'dom' ||
+    value === 'webgl2' ||
+    value === 'webgpu'
+  )
+}
+
+export async function resolveStartupBackend(
+  terminal: object,
+  fallback: TerminalBackend,
+): Promise<TerminalBackend> {
+  const binding: unknown = Reflect.get(terminal, observeStartupBackend)
+  if (typeof binding !== 'function') return fallback
+  const result: unknown = await binding.call(terminal)
+  return isTerminalBackend(result) ? result : fallback
+}
 
 export function subscribeCanvasImage(terminal: object, listener: () => void): () => void {
   try {

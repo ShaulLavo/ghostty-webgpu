@@ -108,6 +108,7 @@ export class CanvasRowPainter {
     private font: TerminalFittedFont,
     private theme: CanonicalRendererTheme,
     private readonly ligatures?: LigatureFinder,
+    private readonly pixelDecorations = false,
   ) {
     this.colors = new CanvasColorCache(theme.minimumContrast)
   }
@@ -368,7 +369,7 @@ export class CanvasRowPainter {
       const offset = Math.floor(this.font.deviceCellHeight * 0.52)
       this.context.fillRect(x, y + offset, this.font.deviceCellWidth, 1)
     }
-    drawUnderline(this.context, style.underline, x, y, this.font)
+    drawUnderline(this.context, style.underline, x, y, this.font, this.pixelDecorations)
   }
 
   private paintCursor(
@@ -533,6 +534,7 @@ function drawUnderline(
   x: number,
   y: number,
   font: TerminalFittedFont,
+  pixelDecorations: boolean,
 ): void {
   if (style <= 0) return
   const lower = y + font.deviceCellHeight - 2
@@ -543,6 +545,13 @@ function drawUnderline(
   if (style === 2) {
     context.fillRect(x, lower, font.deviceCellWidth, 1)
     context.fillRect(x, lower - 3, font.deviceCellWidth, 1)
+    return
+  }
+  if (style === 3 && pixelDecorations) {
+    const width = font.deviceCellWidth
+    for (let offset = 0; offset < width; offset += 2) {
+      context.fillRect(x + offset, lower - 1 - ((offset / 2) % 2), Math.min(2, width - offset), 1)
+    }
     return
   }
   if (style === 3) {

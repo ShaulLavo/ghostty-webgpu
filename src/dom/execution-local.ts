@@ -1,6 +1,11 @@
 import { captureSubmission, capturedSubmission, displayedRows } from '../core/frame-observers.js'
 import { createGhosttyError } from '../core/error.js'
-import type { DisplayedTextFrame, DisplayedFrameOptions } from '../render/shared/displayed-frame.js'
+import {
+  startupBackend,
+  wakeStartupHandoff,
+  type DisplayedTextFrame,
+  type DisplayedFrameOptions,
+} from '../render/shared/displayed-frame.js'
 import { copiedFrameRow } from '../render/shared/frame-row.js'
 import type { SelectionPoint } from '../core/selection.js'
 import type { ReadLinesOptions, TerminalSelectionFormatOptions } from '../core/types.js'
@@ -149,6 +154,23 @@ export class LocalTerminalExecution {
       setInactiveCursorStyle: (style) => this.rendererValue?.setInactiveCursorStyle?.(style),
       setFont: (font) => this.rendererValue?.setFont(font),
       setTheme: (theme) => this.rendererValue?.setTheme(theme),
+      [startupBackend]: () => {
+        const current = this.rendererValue
+        if (current && startupBackend in current) {
+          return (
+            current as {
+              [startupBackend](): Promise<'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined>
+            }
+          )[startupBackend]()
+        }
+        return Promise.resolve(current?.backend)
+      },
+      [wakeStartupHandoff]: () => {
+        const current = this.rendererValue
+        if (current && wakeStartupHandoff in current) {
+          ;(current as { [wakeStartupHandoff](): void })[wakeStartupHandoff]()
+        }
+      },
     }
   }
 
@@ -599,7 +621,10 @@ export class LocalTerminalExecution {
     return this.renderer
   }
 
-  readonly renderer: GhosttyWebGpuRenderer
+  readonly renderer: GhosttyWebGpuRenderer & {
+    [startupBackend](): Promise<'canvas2d' | 'dom' | 'webgl2' | 'webgpu' | undefined>
+    [wakeStartupHandoff](): void
+  }
 
   private disposeRenderer(): void {
     const renderer = this.rendererValue

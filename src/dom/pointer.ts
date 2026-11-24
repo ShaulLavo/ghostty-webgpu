@@ -55,6 +55,7 @@ export interface TerminalPointerControllerOptions {
   readonly canvas: HTMLCanvasElement
   readonly getLayout: () => CommittedPointerLayout | undefined
   readonly onError?: (cause: unknown, operation: string) => void
+  readonly onOwnerChange?: (owner: TerminalPointerOwner) => void
   readonly selection: TerminalSelectionController
   readonly session: TerminalPointerSession
   readonly signal?: AbortSignal
@@ -254,6 +255,7 @@ class PointerRoutingController implements TerminalPointerController {
   private lastModifiers: TerminalModifiers | undefined
   private lastProjection: TerminalPointerProjection | undefined
   private readonly onError?: (cause: unknown, operation: string) => void
+  private readonly onOwnerChange?: (owner: TerminalPointerOwner) => void
   private ownerValue: TerminalPointerOwner = 'none'
   private readonly pressedButtons = new Set<TerminalMouseButton>()
   private readonly selection: TerminalSelectionController
@@ -272,6 +274,7 @@ class PointerRoutingController implements TerminalPointerController {
     this.view = view
     this.getLayout = options.getLayout
     this.onError = options.onError
+    this.onOwnerChange = options.onOwnerChange
     this.selection = options.selection
     this.session = options.session
     this.signal = options.signal
@@ -450,7 +453,7 @@ class PointerRoutingController implements TerminalPointerController {
 
   private beginMousePress(event: PointerEvent, projection: TerminalPointerProjection): void {
     if (this.ownerValue === 'selection') this.endSelectionForOwnerChange()
-    this.ownerValue = 'mouse'
+    this.setOwner('mouse')
     this.activePointerId = event.pointerId
     const button = terminalButton(event.button)
     this.pressedButtons.add(button)
@@ -462,7 +465,7 @@ class PointerRoutingController implements TerminalPointerController {
     if (this.ownerValue === 'mouse') {
       this.endMouseForOwnerChange(projection, terminalModifiers(event))
     }
-    this.ownerValue = 'selection'
+    this.setOwner('selection')
     this.activePointerId = event.pointerId
     this.capture(event.pointerId)
     this.selection.press(projection.selection)
@@ -501,13 +504,13 @@ class PointerRoutingController implements TerminalPointerController {
       this.finishPointer(event.pointerId)
       return
     }
-    this.ownerValue = 'selection'
+    this.setOwner('selection')
     this.selection.press(projection.selection)
   }
 
   private changeSelectionToMouse(event: PointerEvent, projection: TerminalPointerProjection): void {
     this.endSelectionForOwnerChange()
-    this.ownerValue = 'mouse'
+    this.setOwner('mouse')
     this.pressedButtons.add('left')
     this.emitMouse('press', 'left', projection, terminalModifiers(event))
   }
@@ -518,13 +521,13 @@ class PointerRoutingController implements TerminalPointerController {
   ): void {
     this.synthesizeMouseReleases(projection, modifiers)
     this.observe(this.session.resetMouseTracking(), 'pointer.mouseReset')
-    this.ownerValue = 'none'
+    this.setOwner('none')
   }
 
   private endSelectionForOwnerChange(): void {
     this.selection.cancel()
     this.observe(this.session.resetMouseTracking(), 'pointer.mouseReset')
-    this.ownerValue = 'none'
+    this.setOwner('none')
   }
 
   private releaseMissingMouseButtons(
@@ -593,7 +596,7 @@ class PointerRoutingController implements TerminalPointerController {
     const projection = this.lastProjection
     const modifiers = this.lastModifiers
     this.activePointerId = undefined
-    this.ownerValue = 'none'
+    this.setOwner('none')
     this.resetWheelState()
     try {
       this.synthesizeMouseReleases(projection, modifiers)
@@ -696,8 +699,14 @@ class PointerRoutingController implements TerminalPointerController {
     }
   }
 
+  private setOwner(next: TerminalPointerOwner): void {
+    if (this.ownerValue === next) return
+    this.ownerValue = next
+    this.onOwnerChange?.(next)
+  }
+
   private finishPointer(pointerId: number | undefined): void {
-    this.ownerValue = 'none'
+    this.setOwner('none')
     this.activePointerId = undefined
     this.releaseCapture(pointerId)
   }

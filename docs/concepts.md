@@ -39,19 +39,31 @@ One renderer cannot cover every browser. WebGPU and WebGL2 draw on the GPU, Canv
 
 ```mermaid
 flowchart TD
-  start["Terminal.open()"] --> mode{"rendererMode is a<br/>Canvas mode?"}
-  mode -- yes --> explicit["CanvasTerminalRenderer"]
-  mode -- no --> linux{"Desktop Linux, or<br/>presentation: immediate?"}
+  start["Terminal.open()"] --> mode{"rendererMode?"}
+  mode -- "canvas2d-*" --> explicit["CanvasTerminalRenderer"]
+  mode -- "auto / webgpu / webgl2" --> pres{"presentation?"}
+  pres -- "frame (default)" --> cfirst["Canvas2D first paint"]
+  cfirst -- "GPU starts asynchronously" --> gpu{"rendererMode?"}
+  pres -- "immediate" --> gpu
+  gpu -- "webgpu" --> forcedgpu["WebGPU (any adapter)"]
+  gpu -- "webgl2" --> forcedgl["WebGL2"]
+  gpu -- "auto" --> linux{"Desktop Linux, or<br/>presentation: immediate?"}
   linux -- yes --> webgl1["WebGL2"]
   webgl1 -- unavailable --> webgpu1["Hardware WebGPU"]
   linux -- no --> webgpu2["Hardware WebGPU"]
   webgpu2 -- unavailable --> webgl2["WebGL2"]
+  forcedgpu -- unavailable --> canvas["CanvasTerminalRenderer"]
+  forcedgl -- unavailable --> canvas
   webgpu1 -- unavailable --> canvas
   webgl2 -- unavailable --> canvas
   canvas -- unavailable --> dom["DomTerminalRenderer"]
 ```
 
 Automatic selection skips software WebGPU adapters. `backend` is an option of the worker entry only, and an explicit `backend: 'webgpu'` there accepts any adapter. The main entry has no `backend` option. It takes `rendererMode` or a `rendererFactory`. After a lost WebGL context, the main entry follows the remaining order. The order lives in `src/render/shared/backend-order.ts` and `src/render/shared/selector.ts`. Desktop Linux tries WebGL2 first because it measured lower CPU work there ([changelog 0.3.22](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/CHANGELOG.md)).
+
+In the main entry, frame presentation can begin on Canvas 2D while the GPU starts.
+The terminal swaps in the GPU canvas after its first draw. A forced GPU mode uses the
+same handoff and keeps Canvas if the named renderer is unavailable.
 
 ## The worker entry
 

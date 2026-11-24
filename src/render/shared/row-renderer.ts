@@ -17,7 +17,7 @@ import {
 import { ligatureCursor, renderCursorState, type InactiveCursorStyle } from './cursor.js'
 import type { CanonicalRendererTheme, CursorState, RendererTheme } from './instances/types.js'
 import type { RendererGridSize, RenderStateSource, WebGpuTerminalRendererOptions } from './types.js'
-import { RenderScheduler } from './scheduler.js'
+import { captureBlinkPhase, RenderScheduler, seedBlinkPhase, type BlinkPhase } from './scheduler.js'
 export interface RowRendererMetrics {
   paintedCells: number
   paintedRows: number
@@ -127,6 +127,14 @@ export class RowTerminalRenderer {
 
   get hasPendingTimer(): boolean {
     return this.scheduler.hasPendingTimer
+  }
+
+  [captureBlinkPhase](): BlinkPhase {
+    return { cursorVisible: this.cursorPhaseVisible, textVisible: this.textPhaseVisible }
+  }
+
+  [seedBlinkPhase](phase: BlinkPhase): void {
+    this.scheduler.seedBlinkPhase(phase)
   }
 
   clearTextureAtlas(): void {

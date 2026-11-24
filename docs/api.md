@@ -128,8 +128,7 @@ The other fit-environment hooks remain main-thread-only because the worker owns 
 and scheduling.
 
 `backend` is an option of the worker entry only. It accepts `webgpu`, `webgl` or `auto`, and
-defaults to `auto`. The main-thread `Terminal.create` has no `backend` option. It takes
-`rendererMode` (`auto`, `canvas2d-fill-text` or `canvas2d-pixels`) or a `rendererFactory`.
+defaults to `auto`. The main-thread `Terminal.create` takes `rendererMode` or a `rendererFactory`.
 Automatic selection tries WebGL before hardware WebGPU on desktop Linux because WebGL measured
 lower CPU work there, while macOS, Windows, Android, ChromeOS, and other platforms try hardware
 WebGPU before WebGL. The main-thread
@@ -140,6 +139,13 @@ remaining order, including hardware WebGPU when Linux selected WebGL first.
 Automatic selection skips software WebGPU adapters.
 An explicit `backend: 'webgpu'` on the worker entry uses any available WebGPU adapter,
 including software adapters.
+
+With frame presentation, the main entry paints with the Canvas 2D pixel compositor
+while the built-in GPU renderer starts. `rendererMode: 'webgpu'` and `'webgl2'`
+try only the named GPU backend and keep Canvas if it cannot start. The explicit
+`'webgpu'` mode accepts software adapters. `diagnostics.rendererBackend` reports
+the active renderer, starting with `'canvas2d'`. The terminal replaces its `canvas`
+when the GPU renderer draws its first frame.
 
 `WebGpuTerminalRenderer.create` can be passed directly as `rendererFactory`. Its
 `adapterPolicy` option defaults to `any`; `hardware` requires an eligible hardware adapter
@@ -436,8 +442,8 @@ Styled snapshots and text-only rows describe those consumers; GPU rendering read
 
 ## Canvas paint modes
 
-`Terminal.create({ rendererMode })` and `WebGpuTerminalRendererOptions.rendererMode`
-select `auto`, `canvas2d-fill-text`, or `canvas2d-pixels`. The worker entry accepts `auto`
+Set `rendererMode` to `canvas2d-fill-text` or `canvas2d-pixels` to keep the main terminal
+on Canvas 2D. The worker entry accepts `auto`
 and reports a capability error for explicit Canvas modes. The two Canvas modes share native cell ownership, row damage, cursor
 painting and scroll history. Text shaping stays inside each native owner, including the
 terminal's mode-2027 grapheme spans.

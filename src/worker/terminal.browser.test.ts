@@ -326,7 +326,7 @@ it.each([
       const errors: unknown[] = []
       terminal.on('error', (event) => errors.push(event))
       await terminal.open(container())
-      expect(terminal.diagnostics.rendererBackend).toBe('webgpu')
+      await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgpu')
       await terminal.write('BEFORE-LOSS')
       await eventually(() => terminal.visibleLines()[0]?.includes('BEFORE-LOSS') === true)
       expect(errors).toHaveLength(0)
@@ -359,7 +359,7 @@ it.each([
         })
         active.push(fresh)
         await fresh.open(container())
-        expect(fresh.diagnostics.rendererBackend).toBe('webgl2')
+        await expect.poll(() => fresh.diagnostics.rendererBackend).toBe('webgl2')
         expect(devices).toHaveLength(2)
         await fresh.write('SOFTWARE AT CREATION')
         await eventually(() => fresh.visibleLines().join('\n').includes('SOFTWARE AT CREATION'))

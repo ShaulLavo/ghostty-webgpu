@@ -3,7 +3,7 @@ export const terminalWasmAssets = {
   bridge: /* @__PURE__ */ new URL('../../bridge.wasm', import.meta.url),
 } as const
 
-/** Every runtime wasm file the package ships. The Canvas kernel declares its own copies. */
+/** Every runtime wasm file the package ships. */
 export const runtimeWasmAssets = {
   ...terminalWasmAssets,
   canvasCompose: /* @__PURE__ */ new URL('../../canvas-compose.wasm', import.meta.url),

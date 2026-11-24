@@ -7,20 +7,20 @@ Create a terminal with `Terminal.create(options)`. The main entry takes `Ghostty
 
 ## Main entry
 
-| Option                | Purpose                                           | When omitted                    |
-| --------------------- | ------------------------------------------------- | ------------------------------- |
-| `appearance`          | Font, theme, cursor, grid and history budgets     | Native appearance defaults      |
-| `rendererMode`        | `auto`, `canvas2d-fill-text`, `canvas2d-pixels`   | Automatic fallback selection    |
-| `renderWhenOffscreen` | Paint outside the viewport and clipping ancestors | `false`                         |
-| `rendererFactory`     | Host-owned renderer construction                  | Built-in selection              |
-| `keyboard`            | Enable keyboard input                             | Enabled                         |
-| `accessibility`       | Text mirror and live-region options, or `false`   | Off                             |
-| `clipboardWrite`      | Policy for OSC 52 writes                          | Denied                          |
-| `extensions`          | Native extension registrations                    | Empty                           |
-| `links`               | Link resolution policy                            | Built-in URL and OSC 8 handling |
-| `padding`             | Insets around the terminal grid                   | Host defaults                   |
-| `scrollbar`           | Scrollbar presentation                            | Host defaults                   |
-| `runtime`             | Reuse a session runtime                           | Create the terminal runtime     |
+| Option                | Purpose                                                                | When omitted                    |
+| --------------------- | ---------------------------------------------------------------------- | ------------------------------- |
+| `appearance`          | Font, theme, cursor, grid and history budgets                          | Native appearance defaults      |
+| `rendererMode`        | `auto`, `webgpu`, `webgl2`, `canvas2d-fill-text`, or `canvas2d-pixels` | Automatic fallback selection    |
+| `renderWhenOffscreen` | Paint outside the viewport and clipping ancestors                      | `false`                         |
+| `rendererFactory`     | Host-owned renderer construction                                       | Built-in selection              |
+| `keyboard`            | Enable keyboard input                                                  | Enabled                         |
+| `accessibility`       | Text mirror and live-region options, or `false`                        | Off                             |
+| `clipboardWrite`      | Policy for OSC 52 writes                                               | Denied                          |
+| `extensions`          | Native extension registrations                                         | Empty                           |
+| `links`               | Link resolution policy                                                 | Built-in URL and OSC 8 handling |
+| `padding`             | Insets around the terminal grid                                        | Host defaults                   |
+| `scrollbar`           | Scrollbar presentation                                                 | Host defaults                   |
+| `runtime`             | Reuse a session runtime                                                | Create the terminal runtime     |
 
 ## Worker entry
 
