@@ -40,11 +40,13 @@ export class StartupTerminalRenderer {
   private state: RendererState
   private pendingFrame?: number
   private started = false
+  private startupBackendRequested = false
   private backendSettled = false
   private readonly settledBackend = Promise.withResolvers<StartupBackend>()
   private documentVisible = true
   private focused = false
   private inactiveCursorStyle?: InactiveCursorStyle
+  private unsubscribeRenderRequest?: () => void
   private readonly options: Omit<RendererOptions, 'canvas'>
   private readonly host: StartupCanvas
   private readonly signal: AbortSignal
@@ -65,6 +67,9 @@ export class StartupTerminalRenderer {
       ...normalizeRendererGrid(options),
       font: copyFittedFont(options.font),
     }
+    this.unsubscribeRenderRequest = options.renderState.subscribeRenderRequest?.(() => {
+      if (this.state.kind === 'ready') this.scheduleHandoff()
+    })
   }
 
   static async create(
@@ -122,6 +127,9 @@ export class StartupTerminalRenderer {
   }
 
   [startupBackend](): Promise<StartupBackend> {
+    if (this.backendSettled) return Promise.resolve(this.currentStartupBackend())
+    this.startupBackendRequested = true
+    if (!this.documentVisible) this.beginGpuStartup()
     return this.settledBackend.promise
   }
 
@@ -179,6 +187,7 @@ export class StartupTerminalRenderer {
     this.documentVisible = visible
     this.active?.setDocumentVisible(visible)
     if (visible && this.state.kind === 'ready') this.scheduleHandoff()
+    if (!visible && this.startupBackendRequested) this.beginGpuStartup()
   }
 
   setReducedMotion(reduced: boolean): void {
@@ -211,11 +220,24 @@ export class StartupTerminalRenderer {
     const state = this.state
     if (state.kind === 'disposed') return
     this.state = { kind: 'disposed' }
+    this.unsubscribeRenderRequest?.()
+    this.unsubscribeRenderRequest = undefined
     this.settleStartupBackend(undefined)
     if (this.pendingFrame !== undefined) this.view.cancelAnimationFrame(this.pendingFrame)
     if (state.kind === 'ready') state.gpu.dispose()
     if (state.kind === 'painting') state.previous.dispose()
     state.renderer.dispose()
+  }
+
+  private currentStartupBackend(): StartupBackend {
+    if (this.state.kind === 'ready') return this.state.gpu.backend
+    return this.backend
+  }
+
+  private beginGpuStartup(): void {
+    if (this.started || this.state.kind !== 'canvas') return
+    this.started = true
+    void this.startGpu()
   }
 
   private afterCanvasFrame(): void {
@@ -269,6 +291,7 @@ export class StartupTerminalRenderer {
       }
       gpu.setDocumentVisible(false)
       this.state = { kind: 'ready', renderer: this.state.renderer, gpu }
+      this.settleStartupBackend(gpu.backend)
       this.scheduleHandoff()
     } catch (cause) {
       this.settleStartupBackend(
@@ -310,6 +333,8 @@ export class StartupTerminalRenderer {
           if (!canvas) return
           this.host.adopt(canvas)
           this.state = { kind: 'gpu', renderer: state.renderer }
+          this.unsubscribeRenderRequest?.()
+          this.unsubscribeRenderRequest = undefined
           this.settleStartupBackend(state.renderer.backend)
           state.previous.dispose()
         }

@@ -352,3 +352,102 @@ it('preserves keyboard link focus across GPU handoff and activates it with Enter
   )
   await expect.poll(() => activated).toEqual(['https://example.com/key'])
 })
+
+it('hands off to GPU when synchronized output expires by timeout', async () => {
+  const gpu = holdWebGl()
+  const { terminal, canvas } = await open('webgl2')
+  terminal.write(`${hideCursor}before hold`)
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('before hold')
+  await expect.poll(() => gpu.create.mock.calls.length).toBe(1)
+
+  terminal.write(`${holdOutput}\r\ntimed out text`)
+  gpu.release()
+  const staged = gpu.create.mock.results[0]
+  if (staged?.type !== 'return') throw new Error('WebGL2 creation did not start')
+  await staged.value
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
+  expect(terminal.diagnostics.rendererBackend).toBe('canvas2d')
+  expect(terminal.canvas).toBe(canvas)
+
+  await expect
+    .poll(() => terminal.visibleLines()[1]?.trimEnd(), { timeout: 5_000 })
+    .toBe('timed out text')
+  await expect.poll(() => terminal.diagnostics.rendererBackend, { timeout: 5_000 }).toBe('webgl2')
+  expect(terminal.canvas).not.toBe(canvas)
+})
+
+it('wakes GPU handoff when the host intercepts a modified link click', async () => {
+  const gpu = holdWebGl()
+  const activated: string[] = []
+  const { terminal, canvas } = await open('webgl2', {
+    activateUri: (uri) => {
+      activated.push(uri)
+    },
+    linkActivationModifier: (event) => event.ctrlKey,
+  })
+  terminal.write(`${hideCursor}\x1b]8;;https://example.com/intercept\x07intercept-me\x1b]8;;\x07`)
+  await expect.poll(() => terminal.visibleLines()[0]?.trimEnd()).toBe('intercept-me')
+  await expect.poll(() => gpu.create.mock.calls.length).toBe(1)
+
+  const suppressClick = (event: MouseEvent): void => {
+    event.stopPropagation()
+  }
+  document.addEventListener('click', suppressClick, { capture: true })
+  cleanups.push(() => document.removeEventListener('click', suppressClick, { capture: true }))
+
+  const rect = canvas.getBoundingClientRect()
+  const { cellWidth, cellHeight } = terminal.appearance.grid
+  const clientX = rect.left + 5 + cellWidth * 2
+  const clientY = rect.top + 4 + cellHeight * 0.5
+  vi.spyOn(canvas, 'setPointerCapture').mockImplementation(() => {})
+  vi.spyOn(canvas, 'hasPointerCapture').mockReturnValue(true)
+  vi.spyOn(canvas, 'releasePointerCapture').mockImplementation(() => {})
+
+  canvas.dispatchEvent(
+    new PointerEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      buttons: 1,
+      cancelable: true,
+      clientX,
+      clientY,
+      ctrlKey: true,
+      pointerId: 1,
+    }),
+  )
+  gpu.release()
+  const staged = gpu.create.mock.results[0]
+  if (staged?.type !== 'return') throw new Error('WebGL2 creation did not start')
+  await staged.value
+  await new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  )
+  expect(terminal.diagnostics.rendererBackend).toBe('canvas2d')
+
+  canvas.dispatchEvent(
+    new PointerEvent('pointerup', {
+      bubbles: true,
+      button: 0,
+      buttons: 0,
+      cancelable: true,
+      clientX,
+      clientY,
+      ctrlKey: true,
+      pointerId: 1,
+    }),
+  )
+  canvas.dispatchEvent(
+    new MouseEvent('click', {
+      bubbles: true,
+      button: 0,
+      cancelable: true,
+      clientX,
+      clientY,
+      ctrlKey: true,
+    }),
+  )
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
+  expect(activated).toEqual([])
+})

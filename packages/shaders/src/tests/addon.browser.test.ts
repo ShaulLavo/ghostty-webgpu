@@ -820,10 +820,80 @@ it('aligns before-open dual-language addon selection with the terminal startup b
   await terminal.open(host)
   terminal.write('startup shader')
   await handle.api.ready
-  expect(terminal.diagnostics.rendererBackend).toBe('webgl2')
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
   const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
   expect(overlay?.dataset['backend']).toBe('webgl2')
   await expect(handle.api.setShader(language(copyShader, 'webgl2'))).resolves.toBe(true)
+  expect(errors).toEqual([])
+})
+
+it('selects the active Canvas backend when a dual-language addon installs after WebGL2 loss', async (context) => {
+  if (!(await navigator.gpu?.requestAdapter())) {
+    context.skip('WebGPU has no adapter')
+    return
+  }
+  const host = document.createElement('div')
+  host.style.cssText = 'width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    rendererMode: 'webgl2',
+    renderWhenOffscreen: true,
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => terminal.dispose())
+  await terminal.open(host)
+  terminal.write('before loss')
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
+  const lose = terminal.canvas?.getContext('webgl2')?.getExtension('WEBGL_lose_context')
+  if (!lose) throw new Error('Expected WEBGL_lose_context')
+  lose.loseContext()
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('canvas2d')
+
+  const errors: unknown[] = []
+  const handle = terminal.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => handle.dispose())
+  await handle.api.ready
+  const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+  expect(overlay?.dataset['backend']).toBe('webgpu')
+  await expect(handle.api.setShader(language(copyShader, 'webgpu'))).resolves.toBe(true)
+  expect(errors).toEqual([])
+})
+
+it('resolves an automatic dual-language addon while the terminal is offscreen', async () => {
+  const originalPlatform = Object.getOwnPropertyDescriptor(Navigator.prototype, 'platform')
+  Object.defineProperty(Navigator.prototype, 'platform', {
+    configurable: true,
+    get: () => 'Linux x86_64',
+  })
+  cleanups.push(() => {
+    if (originalPlatform) Object.defineProperty(Navigator.prototype, 'platform', originalPlatform)
+  })
+  const host = document.createElement('div')
+  host.style.cssText = 'position:fixed;left:-2000px;top:0;width:340px;height:180px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+  const terminal = await Terminal.create({
+    appearance: { cursor: { blink: false }, font: { family: 'monospace', size: 16 } },
+    runtime: { kind: 'borrowed', runtime },
+  })
+  cleanups.push(() => terminal.dispose())
+  const errors: unknown[] = []
+  const handle = terminal.use(
+    createShaderAddon(copyShader, { onError: (error) => errors.push(error) }),
+  )
+  cleanups.push(() => handle.dispose())
+  await terminal.open(host)
+  terminal.write('offscreen startup')
+  await handle.api.ready
+  const overlay = terminal.element?.querySelector<HTMLCanvasElement>('[data-ghostty-shader]')
+  expect(overlay?.dataset['backend']).toBe('webgl2')
+  await expect(handle.api.setShader(language(copyShader, 'webgl2'))).resolves.toBe(true)
+  host.style.left = '0px'
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
   expect(errors).toEqual([])
 })
 

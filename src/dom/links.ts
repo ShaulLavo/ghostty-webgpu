@@ -240,6 +240,7 @@ class BrowserLinkController implements DomLinkController {
   private activationActive = false
   private activationSequence = 0
   private claimedClick?: PointerLinkActivation
+  private claimedClickTimer?: number
   private pointerSequence?: number
   private readonly abortController = new AbortController()
   private canvas: HTMLCanvasElement
@@ -310,6 +311,7 @@ class BrowserLinkController implements DomLinkController {
     this.disposed = true
     this.advanceGeneration()
     this.pendingGeneration = undefined
+    this.clearClaimedClickTimer()
     this.finishActivationGesture()
     this.canvasAbortController.abort()
     this.abortController.abort()
@@ -519,9 +521,11 @@ class BrowserLinkController implements DomLinkController {
   private readonly handleActivationPointerUp = (event: PointerEvent): void => {
     if (event.pointerId !== this.activation?.pointerId) return
     this.lastPoint = { clientX: event.clientX, clientY: event.clientY }
-    this.claimedClick = this.activation
+    const claimed = this.activation
+    this.claimedClick = claimed
     this.consumeActivationEvent(event)
     this.finishActivationGesture(true)
+    if (claimed) this.scheduleClaimedClickExpiry(claimed)
   }
 
   private readonly handleLostPointerCapture = (event: PointerEvent): void => {
@@ -536,6 +540,7 @@ class BrowserLinkController implements DomLinkController {
   }
 
   private readonly handleClick = (event: MouseEvent): void => {
+    this.clearClaimedClickTimer()
     const claimed = this.claimedClick
     this.claimedClick = undefined
     if (!claimed) {
@@ -746,6 +751,7 @@ class BrowserLinkController implements DomLinkController {
   private finishActivationGesture(preserveClick = false): void {
     const pointerId = this.activation?.pointerId
     this.activation = undefined
+    if (!preserveClick) this.clearClaimedClickTimer()
     if (!preserveClick && this.pointerSequence !== undefined) {
       this.pointerSequence = undefined
       this.claimedClick = undefined
@@ -764,6 +770,21 @@ class BrowserLinkController implements DomLinkController {
     } catch {
       return
     }
+  }
+
+  private scheduleClaimedClickExpiry(claimed: PointerLinkActivation): void {
+    this.clearClaimedClickTimer()
+    // Expire the claim if the embedding page suppresses click after pointerup.
+    this.claimedClickTimer = this.view.setTimeout(() => {
+      this.claimedClickTimer = undefined
+      if (this.claimedClick === claimed) this.finishActivationGesture()
+    }, 0)
+  }
+
+  private clearClaimedClickTimer(): void {
+    if (this.claimedClickTimer === undefined) return
+    this.view.clearTimeout(this.claimedClickTimer)
+    this.claimedClickTimer = undefined
   }
 
   private isActivationGesture(event: MouseEvent): boolean {
