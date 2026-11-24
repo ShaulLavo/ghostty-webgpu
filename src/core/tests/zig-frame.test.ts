@@ -564,6 +564,83 @@ describe('WASM frame records', () => {
     }
   })
 
+  // Every reference cell follows a differently styled cell, so no per-row memo can serve it.
+  it.each(['grayscale', 'color'] as const)(
+    'writes repeated styled cells exactly as cells that follow another style (%s glyphs)',
+    async (kind) => {
+      runtime = await GhosttyRuntime.create()
+      const terminal = runtime.createTerminal({ columns: 12, rows: 2 })
+      const state = runtime.createRenderState(terminal)
+      builder = state.createFrameBuilder(12, 2)
+      const places = new Map<number, number>()
+      const build = (frameOptions: ZigFrameOptions) => {
+        let status = builder!.build(frameOptions)
+        for (let attempt = 0; status === 2 && attempt < 4; attempt += 1) {
+          for (const key of builder!.missingGlyphs) {
+            if (!places.has(key)) places.set(key, places.size + 1)
+            builder!.registerGlyph(key, { ...glyph, kind, x: 8 * places.get(key)! })
+          }
+          status = builder!.build(frameOptions)
+        }
+        expect(status).toBe(0)
+      }
+      const record = (y: number, x: number) => {
+        const cell = Array.from(
+          builder!.cellData.subarray((y * 12 + x) * 16, (y * 12 + x + 1) * 16),
+        )
+        const glyphs = Array.from(
+          builder!.glyphData.subarray((y * 12 + x) * 24, (y * 12 + x + 1) * 24),
+        )
+        if (cell[2]! > 0) cell.splice(0, 2, cell[0]! - x * 8, cell[1]! - y * 16)
+        if (glyphs[2]! > 0) glyphs.splice(0, 2, glyphs[0]! - x * 8, glyphs[1]! - y * 16)
+        return { cell, glyphs }
+      }
+      const other = '\x1b[0;38;2;1;1;1;48;2;2;2;2m~'
+      // Each run: [style, text]. Row 0 writes the runs as is; row 1 writes every cell after `other`.
+      const cases: [string, string][][] = [
+        [
+          ['\x1b[0;1;38;2;10;20;30;48;2;40;50;60m', 'AAB'],
+          ['\x1b[0;7;4m', 'BBA'],
+        ],
+        [
+          ['\x1b[0;31;44m', 'xxy'],
+          ['\x1b[0;3;9;48;5;200m', 'z '],
+          ['\x1b[0m', 'p'],
+        ],
+        [
+          ['\x1b[0;48;2;9;8;7m', '  '],
+          ['\x1b[0;2;38;5;33m', '界界'],
+        ],
+        [
+          ['\x1b[0;31m', 'qq'],
+          ['\x1b[0;32m', 'q'],
+          ['\x1b[0;31;42m', 'q'],
+          ['\x1b[0m', 'q'],
+        ],
+      ]
+      for (const runs of cases) {
+        const flat = runs.flatMap(([style, text]) =>
+          Array.from(text, (char) => [style, char] as const),
+        )
+        const width = (char: string) => (char.codePointAt(0)! > 0x2e80 ? 2 : 1)
+        const row0 = runs.map(([style, text]) => style + text).join('')
+        const row1 = flat.map(([style, char]) => other + style + char).join('')
+        terminal.write(`\x1b[?25l\x1b[2J\x1b[1;1H${row0}\x1b[0m\x1b[2;1H${row1}\x1b[0m`)
+        state.update()
+        build({ ...options, full: true })
+        state.acknowledge()
+        let column = 0
+        let reference = 1
+        for (const [, char] of flat) {
+          expect(reference + width(char)).toBeLessThanOrEqual(12)
+          expect({ char, ...record(0, column) }).toEqual({ char, ...record(1, reference) })
+          column += width(char)
+          reference += width(char) + 1
+        }
+      }
+    },
+  )
+
   it('compares moved selection and history rows against full records', async () => {
     runtime = await GhosttyRuntime.create()
     const terminal = runtime.createTerminal({ columns: 24, rows: 4 })

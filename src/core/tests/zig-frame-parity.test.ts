@@ -8,6 +8,7 @@ import { canonicalRendererTheme, mergeRendererTheme } from '../../render/shared/
 import { GLYPH_INSTANCE_FLOATS, GlyphOffset } from '../../render/shared/instances/layout.js'
 import { defaultRendererTheme } from '../../render/shared/instances/types.js'
 import { GhosttyRuntime } from '../runtime.js'
+import { GhosttySelectionGesture } from '../selection.js'
 import type { ZigFrameOptions } from '../zig-frame.js'
 import { fixtureGlyphs } from './zig-frame-fixtures.js'
 
@@ -136,6 +137,77 @@ describe('native frame records match the previous builder', () => {
     for (const [index, frame] of current.entries())
       expect({ index, ...frame }).toEqual({ index, ...previous[index] })
   })
+
+  // Reported in review: selection and a block cursor repaint cells inside one styled run, so a
+  // per-row memo keyed on the cell's own colors would hand them the run's glyph.
+  it.each(['grayscale', 'color'] as const)(
+    'repaints selection and block cursor cells inside styled runs (%s glyphs)',
+    async (kind) => {
+      const record = async (bridge: 'previous' | 'current') => {
+        const runtime = await runtimeFor(bridge)
+        const terminal = runtime.createTerminal({ columns: 24, rows: 3 })
+        const state = runtime.createRenderState(terminal)
+        const builder = state.createFrameBuilder(24, 3)
+        const gesture = new GhosttySelectionGesture(terminal)
+        const glyphs = fixtureGlyphs(kind)
+        const options: ZigFrameOptions = {
+          cellWidth: 8,
+          cellHeight: 16,
+          theme,
+          full: true,
+          overlayRows: new Set(),
+        }
+        const frame = (patch: Partial<ZigFrameOptions> = {}) => {
+          state.update()
+          const settings = { ...options, ...patch }
+          let status = builder.build(settings)
+          for (let attempt = 0; status === 2 && attempt < 4; attempt += 1) {
+            for (const key of builder.missingGlyphs)
+              builder.registerGlyph(key, glyphs.resolveInput(builder.glyphInput(key)))
+            status = builder.build(settings)
+          }
+          expect(status).toBe(0)
+          state.acknowledge()
+          options.full = false
+          return { cells: bytes(builder.cellData), glyphs: bytes(builder.glyphData) }
+        }
+        const block = (x: number, y: number) => ({
+          cursor: { x, y, visible: true, style: 'block' as const },
+          overlayRows: new Set([y]),
+        })
+        try {
+          terminal.write(
+            '\x1b[?25l\x1b[38;2;200;100;50;48;2;10;20;30mAAAAAAAAAAAA\x1b[0;1;31mBBBBBBBB\x1b[0m\r\n' +
+              '\x1b[7;38;5;45mCCCCCCCCCC\x1b[0;3;48;5;200mdddd dddd\x1b[0m\r\n' +
+              '\x1b[48;2;9;8;7m      \x1b[0;2;38;2;1;200;3mxxyyxxyy\x1b[0m',
+          )
+          const frames = [frame()]
+          gesture.selectRange({ x: 3, y: 0 }, { x: 6, y: 0 })
+          frames.push(frame({ full: true }))
+          frames.push(frame(block(9, 0)))
+          frames.push(frame(block(4, 0)))
+          gesture.selectRange({ x: 14, y: 0 }, { x: 3, y: 1 })
+          frames.push(frame({ ...block(15, 1), full: true }))
+          frames.push(frame(block(2, 2)))
+          gesture.clear()
+          frames.push(frame({ ...block(17, 2), full: true }))
+          return frames
+        } finally {
+          gesture.dispose()
+          builder.dispose()
+          state.dispose()
+          terminal.dispose()
+        }
+      }
+      const previous = await record('previous')
+      const current = await record('current')
+      // Every step repaints something; otherwise the overlays aren't exercised.
+      for (let index = 1; index < previous.length; index += 1)
+        expect(previous[index]!.cells, `step ${index}`).not.toEqual(previous[index - 1]!.cells)
+      for (const [index, frame] of current.entries())
+        expect({ index, ...frame }).toEqual({ index, ...previous[index] })
+    },
+  )
 
   // Reported in review: a deferred entry shares its key across brushes until it registers.
   it('keeps distinct color brushes after deferred glyphs register', async () => {
