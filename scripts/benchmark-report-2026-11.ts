@@ -313,20 +313,23 @@ export async function renderNovember(): Promise<{ version: string; markdown: str
   return { version: data.version, markdown: render(data) }
 }
 
+function formatCommitSummary(
+  short: string,
+  coldLoadShort: string | undefined,
+  sizeShort: string | undefined,
+): string {
+  if (!sizeShort && !coldLoadShort) return `commit \`${short}\``
+  const parts = [`speed and energy on \`${short}\``]
+  if (coldLoadShort) parts.push(`refreshed main-entry cold load on \`${coldLoadShort}\``)
+  if (sizeShort) parts.push(`refreshed main-entry download size on \`${sizeShort}\``)
+  return parts.join('; ')
+}
+
 function render(data: Data) {
   const short = data.commit.slice(0, 9)
   const sizeShort = data.sizeCommit?.slice(0, 9)
   const coldLoadShort = data.coldLoadCommit?.slice(0, 9)
-  const commitSummary =
-    sizeShort || coldLoadShort
-      ? [
-          `speed and energy on \`${short}\``,
-          coldLoadShort ? `refreshed main-entry cold load on \`${coldLoadShort}\`` : '',
-          sizeShort ? `refreshed main-entry download size on \`${sizeShort}\`` : '',
-        ]
-          .filter(Boolean)
-          .join('; ')
-      : `commit \`${short}\``
+  const commitSummary = formatCommitSummary(short, coldLoadShort, sizeShort)
   const lib = data.libraries
   const cpu = {
     pc: standing(compare(rowsOf(data, 'pc', 'cpu')), false),
