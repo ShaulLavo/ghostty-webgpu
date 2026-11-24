@@ -5,6 +5,7 @@ import type { FallbackTerminalRenderer } from './fallback.js'
 import type { WebGpuTerminalRendererOptions } from './types.js'
 import type { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
 import type { WebGlTerminalRenderer } from '../webgl/renderer.js'
+import { prefetchComposeKernel } from '../pixels/kernel-source.js'
 import { WebGlUnavailableError } from '../webgl/unavailable.js'
 import { startupCanvas, type DisplayedFrameOptions } from './displayed-frame.js'
 import { StartupTerminalRenderer } from './startup.js'
@@ -36,14 +37,12 @@ export function prewarmCompatibleRenderer(
 ): void {
   // A failed prefetch rejects the same import again when the renderer is created.
   if (canvasMode(options.rendererMode) || options.presentation !== 'immediate') {
-    void import('../canvas/renderer.js').catch(ignoreFailure)
     if (options.rendererMode !== 'canvas2d-fill-text') {
-      void import('../pixels/kernel.js').then(
-        (kernel) => kernel.prefetchComposeKernel(options.compositorAsset),
-        ignoreFailure,
-      )
+      prefetchComposeKernel(options.compositorAsset)
+      void import('../pixels/kernel.js').catch(ignoreFailure)
       void import('../pixels/stamp-target.js').catch(ignoreFailure)
     }
+    void import('../canvas/renderer.js').catch(ignoreFailure)
   }
   if (canvasMode(options.rendererMode)) return
   if (gpuBackends(options)[0] === 'webgpu') {
