@@ -720,27 +720,69 @@ describe('DOM terminal renderer', () => {
   })
 })
 
-it('observes peer canvas CSS changes between participating native callbacks', async () => {
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+
+async function browserClockDomTerminal(runtime: GhosttyRuntime, name: string, events: string[]) {
+  const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
+  const state = runtime.createRenderState(terminal)
+  terminal.write(probeInput)
+  const canvas = mountedCanvas()
+  const offsetLeft = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetLeft')!
+  Object.defineProperty(canvas, 'offsetLeft', {
+    configurable: true,
+    get() {
+      events.push(`read-${name}`)
+      return offsetLeft.get!.call(this)
+    },
+  })
+  const renderer = await DomTerminalRenderer.create({
+    canvas,
+    columns: 12,
+    rows: 3,
+    font: probeFont,
+    renderState: state,
+    onRowsPainted: () => events.push(`paint-${name}`),
+  })
+  cleanups.push(() => renderer.dispose())
+  return { canvas, renderer, terminal }
+}
+
+const overlayLeft = (canvas: HTMLCanvasElement) =>
+  `${canvas.offsetLeft + parseFloat(getComputedStyle(canvas).paddingLeft)}px`
+
+it('measures every DOM overlay before any terminal paints in a shared display frame', async () => {
   const runtime = await GhosttyRuntime.create()
   cleanups.push(() => runtime.dispose())
   const events: string[] = []
-  const make = async (name: string) => {
-    const terminal = runtime.createTerminal({ columns: 12, rows: 3 })
-    const state = runtime.createRenderState(terminal)
-    terminal.write(probeInput)
-    const canvas = mountedCanvas()
-    const renderer = await DomTerminalRenderer.create({
-      canvas,
-      columns: 12,
-      rows: 3,
-      font: probeFont,
-      renderState: state,
-      onRowsPainted: () => events.push(`paint-${name}`),
-    })
-    cleanups.push(() => renderer.dispose())
-    return { canvas, renderer }
+  const a = await browserClockDomTerminal(runtime, 'a', events)
+  const b = await browserClockDomTerminal(runtime, 'b', events)
+  await nextFrame()
+  await nextFrame()
+  for (const terminal of [a, b]) {
+    terminal.terminal.write('\rnext')
+    terminal.renderer.notifyWrite()
   }
-  await make('a')
+  events.length = 0
+  await nextFrame()
+  // Reading a peer's geometry after another terminal wrote rows would force one layout per terminal.
+  const firstPaint = events.findIndex((event) => event.startsWith('paint-'))
+  expect(events.slice(0, firstPaint).toSorted()).toEqual(['read-a', 'read-b'])
+  expect(events.slice(firstPaint).filter((event) => event.startsWith('read-'))).toEqual([])
+  expect(events.filter((event) => event.startsWith('paint-')).toSorted()).toEqual([
+    'paint-a',
+    'paint-b',
+  ])
+  for (const terminal of [a, b])
+    expect(terminal.canvas.nextElementSibling!.getAttribute('style')).toContain(
+      `left: ${overlayLeft(terminal.canvas)}`,
+    )
+})
+
+it('applies a peer canvas CSS change made between two paints by the next frame', async () => {
+  const runtime = await GhosttyRuntime.create()
+  cleanups.push(() => runtime.dispose())
+  const events: string[] = []
+  await browserClockDomTerminal(runtime, 'a', events)
   let peer: HTMLCanvasElement | undefined
   requestAnimationFrame(() => {
     events.push('peer-css-change')
@@ -748,12 +790,16 @@ it('observes peer canvas CSS changes between participating native callbacks', as
     peer!.style.paddingLeft = '11px'
     peer!.parentElement!.style.paddingLeft = '10px'
   })
-  const b = await make('b')
+  const b = await browserClockDomTerminal(runtime, 'b', events)
   peer = b.canvas
-  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-  expect(events).toEqual(['paint-a', 'peer-css-change', 'paint-b'])
-  const expected = `${b.canvas.offsetLeft + parseFloat(getComputedStyle(b.canvas).paddingLeft)}px`
-  expect(b.canvas.nextElementSibling!.getAttribute('style')).toContain(`left: ${expected}`)
+  await nextFrame()
+  const paints = events.filter((event) => !event.startsWith('read-'))
+  expect(paints).toEqual(['paint-a', 'peer-css-change', 'paint-b'])
+  // No further write: the trailing check frame repositions the overlay on its own.
+  await nextFrame()
+  expect(b.canvas.nextElementSibling!.getAttribute('style')).toContain(
+    `left: ${overlayLeft(b.canvas)}`,
+  )
 })
 
 it('packed DOM rows keep styled callbacks and lazy snapshots owned across writes and memory growth', async () => {
