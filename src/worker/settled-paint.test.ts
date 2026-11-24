@@ -141,6 +141,24 @@ test('reports a failed paint to its terminal and still paints the rest of the ba
   expect(batches).toHaveLength(1)
 })
 
+test('does not paint a terminal early after it parsed a write its signal does not cover', async () => {
+  const { clock } = manualClock()
+  const log: string[] = []
+  const paint = create(clock)
+  const first = target('first', log)
+  const second = target('second', log)
+  paint.noteWrite(first)
+  paint.noteWrite(second)
+  // A later page task's write reached the first terminal before the settle ran; its siblings
+  // from that task may still be queued.
+  paint.hold(first)
+  await settled()
+  expect(log).toEqual(['second'])
+  paint.noteWrite(first)
+  await settled()
+  expect(log).toEqual(['second', 'first'])
+})
+
 test('forgets a disposed terminal', async () => {
   const { clock } = manualClock()
   const log: string[] = []

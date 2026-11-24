@@ -757,6 +757,7 @@ export class TerminalWorkerRuntime {
   }
 
   private noteWrite(): void {
+    if (this.initialize.pooled) this.shared.settled.hold(this.settleTarget)
     this.renderer?.notifyWrite()
   }
 

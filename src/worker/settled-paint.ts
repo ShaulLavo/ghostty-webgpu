@@ -23,6 +23,7 @@ interface TargetFrames {
 export class SettledPaint {
   private queued = false
   private readonly written = new Set<SettledPaintTarget>()
+  private readonly unsettled = new Set<SettledPaintTarget>()
   private readonly frames = new Map<SettledPaintTarget, TargetFrames>()
   private tick?: number
   private readonly channel = new MessageChannel()
@@ -34,7 +35,9 @@ export class SettledPaint {
     this.channel.port1.onmessage = () => this.settle()
   }
 
+  /** Every write the page posted before this signal has been parsed. */
   noteWrite(target: SettledPaintTarget): void {
+    this.unsettled.delete(target)
     this.written.add(target)
     if (this.queued) return
     this.queued = true
@@ -42,8 +45,17 @@ export class SettledPaint {
     this.channel.port2.postMessage(undefined)
   }
 
+  /**
+   * The terminal parsed a write the page may have posted together with others still queued; it
+   * paints early only after its next signal, so a settle never shows part of a page task.
+   */
+  hold(target: SettledPaintTarget): void {
+    this.unsettled.add(target)
+  }
+
   forget(target: SettledPaintTarget): void {
     this.written.delete(target)
+    this.unsettled.delete(target)
     this.frames.delete(target)
   }
 
@@ -60,7 +72,9 @@ export class SettledPaint {
     this.written.clear()
     this.armTick()
     this.batch(() => {
-      for (const target of targets) this.paintSettled(target)
+      for (const target of targets) {
+        if (!this.unsettled.has(target)) this.paintSettled(target)
+      }
     })
   }
 
