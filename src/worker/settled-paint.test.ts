@@ -41,15 +41,11 @@ function target(name: string, log: string[]) {
 
 const settled = () => new Promise((resolve) => setTimeout(resolve, 0))
 const created: SettledPaint[] = []
-function create(clock: RenderSchedulerClock, batches: number[] = [], now?: () => number) {
-  const paint = new SettledPaint(
-    clock,
-    (run) => {
-      batches.push(1)
-      run()
-    },
-    now,
-  )
+function create(clock: RenderSchedulerClock, batches: number[] = []) {
+  const paint = new SettledPaint(clock, (run) => {
+    batches.push(1)
+    run()
+  })
   created.push(paint)
   return paint
 }
@@ -96,26 +92,6 @@ test('does not paint a terminal early between a parsed write and that write’s 
   solo(paint, first)
   await settled()
   expect(log).toEqual(['second', 'first'])
-})
-
-test('yields a long batch so writes queued meanwhile parse before the rest paints', async () => {
-  const { clock } = manualClock()
-  const log: string[] = []
-  const batches: number[] = []
-  let time = 0
-  const paint = create(clock, batches, () => time)
-  const slow = target('slow', log)
-  const paintSlow = slow.paintPending.bind(slow)
-  slow.paintPending = () => {
-    time += 5
-    return paintSlow()
-  }
-  const rest = target('rest', log)
-  paint.noteWrite(slow, 1, 2)
-  paint.noteWrite(rest, 1, 2)
-  await settled()
-  expect(log).toEqual(['slow', 'rest'])
-  expect(batches).toHaveLength(2)
 })
 
 test('leaves an incomplete batch to vsync once a display frame has passed', async () => {

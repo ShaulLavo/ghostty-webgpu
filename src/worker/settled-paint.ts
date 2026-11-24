@@ -7,9 +7,6 @@ export interface SettledPaintTarget {
   fail(cause: unknown): void
 }
 
-// A settle task paints for about this long, then yields to writes that arrived meanwhile.
-const settleSliceMs = 2
-
 interface OpenBatch {
   readonly size: number
   /** Display frames counted when the batch opened. */
@@ -43,7 +40,6 @@ export class SettledPaint {
   constructor(
     private readonly clock: RenderSchedulerClock,
     private readonly batch: (paint: () => void) => void,
-    private readonly now: () => number = () => performance.now(),
   ) {
     this.channel.port1.onmessage = () => this.settle()
   }
@@ -95,19 +91,11 @@ export class SettledPaint {
     const targets = Array.from(this.written)
     this.written.clear()
     this.armTick()
-    const deadline = this.now() + settleSliceMs
-    let painted = 0
     this.batch(() => {
       for (const target of targets) {
-        if (painted > 0 && this.now() > deadline) break
-        painted += 1
         if (!this.unsettled.has(target)) this.paintSettled(target)
       }
     })
-    if (painted === targets.length) return
-    // Writes that arrived during a long batch parse before its remaining terminals paint.
-    for (const target of targets.slice(painted)) this.written.add(target)
-    this.post()
   }
 
   private post(): void {
