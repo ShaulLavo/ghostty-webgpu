@@ -121,13 +121,16 @@ test('refreshes the overview WebGL table without replacing product copy', () => 
     mkdirSync(reportDirectory, { recursive: true })
     for (const file of ['report.mjs', 'scores.json'])
       copyFileSync(fileURLToPath(new URL(file, source)), path.join(reportDirectory, file))
-    const novemberDirectory = path.join(directory, 'docs/benchmarks/2026-11-24')
-    mkdirSync(novemberDirectory, { recursive: true })
-    for (const file of ['report.ts', 'results.json'])
+    for (const file of [
+      'docs/benchmarks/2026-11-24/results.json',
+      'scripts/benchmark-report-2026-11.ts',
+    ]) {
+      mkdirSync(path.dirname(path.join(directory, file)), { recursive: true })
       copyFileSync(
-        fileURLToPath(new URL(`../2026-11-24/${file}`, source)),
-        path.join(novemberDirectory, file),
+        fileURLToPath(new URL(`../../${file}`, import.meta.url)),
+        path.join(directory, file),
       )
+    }
     writeFileSync(
       path.join(directory, 'docs/overview.md'),
       `${before}| Workload | CPU energy ratio | Instruction ratio |\n| --- | ---: | ---: |\n| Stale workload | 999 | 999 |\n${after}`,

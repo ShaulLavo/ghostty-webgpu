@@ -13,8 +13,8 @@ Measured 2026-11-24 on ghostty-webgpu 0.3.34 (commit `b4a279a1c`) against xterm.
 
 ### Summary
 
-- **CPU.** Our best backend uses more than 10% less whole-browser CPU than the best competitor in 26 of 34 PC cells and 25 of 34 Mac cells, is within 10% in 5 and 8, and loses by more than 10% in 3 and 1. The median ratio, ours over the best competitor, is 0.70 on the PC and 0.77 on the Mac. Our clearest leads are dense output at 16 terminals, repeated identical screens, sparse edits and queued output.
-- **Mac energy.** Better by more than 10% in 21 of 34 cells, within 10% in 3, worse in 10. Most losses are to Wraith, on full-screen redraws at 16 terminals and on light one-terminal work.
+- **CPU.** Our best backend uses more than 10% less whole-browser CPU than the best competitor in 26 of 34 PC cells and 24 of 34 Mac cells, is within 10% in 5 and 9, and loses by more than 10% in 3 and 1. The median ratio, ours over the best competitor, is 0.71 on the PC and 0.77 on the Mac. Our clearest leads are dense output at 16 terminals, repeated identical screens, sparse edits and queued output.
+- **Mac energy.** Better by more than 10% in 20 of 34 cells, within 10% in 4, worse in 10. Most losses are to Wraith, on full-screen redraws at 16 terminals and on light one-terminal work.
 - **Write acknowledgement p95.** Worse by more than 10% and 0.5 ms in 4 of 34 PC cells and 0 of 34 Mac cells, all heavy 16-terminal parsing.
 - **Download size.** Our smallest setup (main, WebGL2) downloads 249.2 KiB brotli. Smaller: xterm.js 84.1, xterm.js with Unicode 11 85.8, ghostty-web 146.1 KiB. Larger: Wraith 879.0, Wraith's xterm profile 826.6, Restty 559.3 KiB.
 - **Cold load to first painted terminal.** PC unthrottled: our best 128 ms; faster: ghostty-web 41, Wraith's xterm profile 112 ms. PC Fast 4G: our best 857 ms; faster: Wraith's xterm profile 469, xterm.js 624, xterm.js with Unicode 11 631, ghostty-web 680 ms. Mac unthrottled: our best 99 ms; faster: ghostty-web 61, Wraith's xterm profile 76, xterm.js with Unicode 11 93, xterm.js 97 ms. Mac Fast 4G: our best 864 ms; faster: xterm.js with Unicode 11 501, xterm.js 503, Wraith's xterm profile 504, ghostty-web 728 ms.
@@ -23,7 +23,7 @@ Measured 2026-11-24 on ghostty-webgpu 0.3.34 (commit `b4a279a1c`) against xterm.
 
 CPU, PC:
 
-- opentui-plasma at 1 terminal: Wraith WebGPU 0.171 s against our main WebGL2 0.192 s (1.12x)
+- opentui-plasma at 1 terminal: Wraith WebGPU 0.171 s against our main WebGL2 0.192 s (1.13x)
 - glyph-churn at 1 terminal: Restty WebGL2 0.151 s against our main Canvas2D 0.222 s (1.47x)
 - cold-cache at 16 terminals: xterm.js WebGL 0.481 s against our main WebGL2 0.573 s (1.19x)
 
@@ -34,15 +34,15 @@ CPU, Mac:
 Mac energy:
 
 - rolling-logs at 1 terminal: Wraith WebGPU 0.135 J against our main WebGL2 0.194 J (1.44x)
-- ntcharts-heatmap at 1 terminal: Wraith WebGPU 0.118 J against our worker WebGPU 0.163 J (1.38x)
+- ntcharts-heatmap at 1 terminal: Wraith WebGPU 0.118 J against our pool WebGL2 0.163 J (1.38x)
 - ntcharts-heatmap at 16 terminals: Wraith WebGPU 2.630 J against our worker WebGL2 3.153 J (1.20x)
 - opentui-plasma at 1 terminal: Wraith WebGPU 0.194 J against our worker WebGPU 0.285 J (1.47x)
 - opentui-plasma at 16 terminals: Wraith WebGPU 4.507 J against our pool WebGPU 6.665 J (1.48x)
-- synchronized-frames at 1 terminal: Wraith WebGPU 0.044 J against our main WebGPU 0.072 J (1.64x)
+- synchronized-frames at 1 terminal: Wraith WebGPU 0.044 J against our main WebGPU 0.072 J (1.62x)
 - synchronized-frames at 16 terminals: Wraith WebGPU 1.375 J against our main WebGL2 1.591 J (1.16x)
 - glyph-churn at 1 terminal: Restty WebGL2 0.216 J against our main Canvas2D 0.291 J (1.35x)
 - cold-cache at 16 terminals: xterm.js WebGL 1.757 J against our main DOM 2.160 J (1.23x)
-- write-queue-overload at 1 terminal: Wraith WebGPU 0.009 J against our main DOM 0.011 J (1.22x)
+- write-queue-overload at 1 terminal: Wraith WebGPU 0.009 J against our main DOM 0.011 J (1.29x)
 
 Write acknowledgement p95, PC (the Mac has none):
 
@@ -58,12 +58,15 @@ Forced draw to GPU completion p95 (only ours and Wraith can force a draw), PC:
 
 On glyph churn our rasterizer still draws each new glyph twice to detect colour glyphs. Cold cache can only be compared with xterm.js, the one competitor with a public glyph-atlas reset. The acknowledgement losses are all heavy parsing at 16 terminals: our main entry parses on the page's thread before it answers, and our worker pool shares 4 workers across the 16 terminals. One worker per terminal answers sooner but costs about 35 to 60% more CPU, so the pool keeps 4. The one-terminal losses are absolute gaps of a few to 90 milliseconds or millijoules, and those cells move by about 10% between sessions, so they can flip in a repeat.
 
-On the PC, our main-thread WebGPU renderer costs more CPU than our WebGL2 renderer (Chrome on Linux presents each WebGPU canvas separately, which we reproduced without our code), so the auto backend picks WebGL2 on desktop Linux. Main WebGL2 is our best backend in 24 of 34 PC cells and 18 of 34 Mac cells; the tables below show every backend.
+On the PC, our main-thread WebGPU renderer costs more CPU than our WebGL2 renderer (Chrome on Linux presents each WebGPU canvas separately, which we reproduced without our code), so the auto backend picks WebGL2 on desktop Linux. Main WebGL2 is our best backend in 25 of 34 PC cells and 18 of 34 Mac cells; the tables below show every backend.
 
 ### How it was measured
 
-- **Same work for everyone.** Every library gets the same bytes, a 100x30 grid, the same JetBrains Mono Regular TTF at 14 px, the same DPR and a history of 10,000 lines. Each cell is one workload at 1 or 16 terminals, 64 paced steps: write one chunk to every terminal, wait for every library's parse acknowledgement, then wait one display frame. Final screen text is compared across libraries, and a cell whose text differs is excluded.
-- **Display check.** Before and after every run each terminal is filled with a known colour and must be on screen, unclipped, uncovered, and actually drawn by the compositor (seen in a browser trace). A run that fails stops before measuring.
+- **Same work for everyone.** Every library gets the same bytes, a 100x30 grid, the same JetBrains Mono Regular TTF at 14 px and the same DPR. History is capped at 10,000 lines for ours, xterm.js and Wraith, and at a 64 MiB scrollback budget for ghostty-web and Restty, which limit history by bytes. Final screen text is compared across libraries, and a cell whose text differs is excluded.
+- **Paced pass** (CPU, energy, acknowledgement): each cell is one workload at 1 or 16 terminals, 64 steps. A step writes one chunk to every terminal, waits until every terminal has acknowledged parsing it, then waits one display frame. Acknowledgement time runs from the start of that batch until the last terminal acknowledges. Afterwards every library drains and every arm waits two more frames.
+- **Overload pass**: write-queue-overload queues the whole corpus at once, unpaced, and records each queued write's own acknowledgement.
+- **Forced pass** (ours on the main entry and Wraith, the only libraries that can force a draw): 32 steps, each timed from the start of the write batch until the GPU reports the forced draw complete.
+- **Display check.** Before and after every run each terminal is filled with a known colour. The check confirms that each terminal's drawing surface lies inside its section and the viewport, is visible with an intersection ratio of at least 0.99, and is not covered at five sampled points. It then requires compositor draw or swap events in a browser trace across the fill. Those events are browser-wide, so they show the browser drew a frame, not that each terminal's own pixels reached the screen. A failed check before a run stops it before measuring; a failed check after a run is recorded with the run. All 68 runs on the PC and 68 on the Mac passed both checks.
 - **CPU** is on-CPU time of the whole browser process family (browser, renderer, GPU, utility and worker processes) for the delivered work, not a percentage. Linux sums per-thread `schedstat`; the Mac sums `proc_pid_rusage` user and system time.
 - **Mac energy** is the macOS kernel's per-process CPU energy estimate (`proc_pid_rusage`, `RUSAGE_INFO_V6`) over the same process family. It excludes GPU-device, display and whole-system power.
 - **Two repetitions** per cell in ABBA order; each value is their mean. Repetition-to-repetition CPU spread was 4% median and 8% at p75, so a gap under 10% counts as even. One-terminal cells are about 0.1 s of CPU and vary by about 10% between sessions.
@@ -73,8 +76,8 @@ On the PC, our main-thread WebGPU renderer costs more CPU than our WebGL2 render
 <details>
 <summary>The 17 workloads</summary>
 
-- `rolling-logs`: about 1 MiB of real log output in 4 KiB writes.
-- `rolling-unicode-logs`: the same logs with CJK, combining marks and emoji.
+- `rolling-logs`: real log output in 4 KiB writes, 256 KiB per terminal over the 64 steps.
+- `rolling-unicode-logs`: the same kind of logs with CJK, combining marks and emoji, also 256 KiB.
 - `rolling-slow`: one log line per write.
 - `unicode-emoji`: one Unicode and emoji line per write.
 - `line-scroll`: one ASCII line per write, scrolling one row each time.
@@ -89,7 +92,7 @@ On the PC, our main-thread WebGPU renderer costs more CPU than our WebGL2 render
 - `glyph-churn`: a stream of never-seen CJK glyphs and emoji that keeps growing the glyph atlas.
 - `cold-cache`: Unicode text with the glyph atlas cleared before every write.
 - `repeated-ascii`: the same full ASCII screen written again every step.
-- `write-queue-overload`: the whole 1 MiB log corpus queued at once, unpaced.
+- `write-queue-overload`: the whole rolling-logs corpus (about 1 MiB) queued at once, unpaced.
 
 </details>
 
@@ -103,27 +106,27 @@ CPU seconds for the delivered work, lower is better. Each library column is that
 | rolling-logs         |        16 |           0.504 (main WebGL2) |  0.791 (WebGL) |        5.841 |  1.310 | 1.712 (WebGL2) |              0.64 |
 | rolling-unicode-logs |         1 |           0.094 (main WebGL2) |  0.146 (WebGL) |        0.483 |  0.122 | 0.256 (WebGL2) |              0.77 |
 | rolling-unicode-logs |        16 |           0.367 (main WebGL2) |  0.779 (WebGL) |        6.053 |  1.283 | 1.472 (WebGL2) |              0.47 |
-| rolling-slow         |         1 |              0.085 (main DOM) |  0.123 (WebGL) |        0.225 |  0.110 | 0.123 (WebGL2) |              0.77 |
+| rolling-slow         |         1 |              0.085 (main DOM) |    0.123 (DOM) |        0.225 |  0.110 | 0.123 (WebGL2) |              0.77 |
 | rolling-slow         |        16 |           0.187 (main WebGL2) |  0.278 (WebGL) |        2.435 |  1.129 | 0.769 (WebGL2) |              0.67 |
-| unicode-emoji        |         1 |           0.092 (main WebGL2) |  0.161 (WebGL) |        0.212 |  0.130 | 0.214 (WebGL2) |              0.71 |
+| unicode-emoji        |         1 |           0.092 (main WebGL2) |  0.161 (WebGL) |        0.212 |  0.130 | 0.214 (WebGL2) |              0.70 |
 | unicode-emoji        |        16 |           0.215 (main WebGL2) |  0.307 (WebGL) |        2.194 |  1.214 | 0.850 (WebGL2) |              0.70 |
 | line-scroll          |         1 |              0.077 (main DOM) |  0.105 (WebGL) |        0.232 |  0.124 | 0.153 (WebGL2) |              0.73 |
 | line-scroll          |        16 |           0.186 (main WebGL2) |  0.282 (WebGL) |        2.416 |  1.135 | 0.843 (WebGL2) |              0.66 |
-| interactive-edits    |         1 |              0.084 (main DOM) |  0.084 (WebGL) |        0.132 |  0.128 | 0.110 (WebGL2) |              1.00 |
+| interactive-edits    |         1 |              0.084 (main DOM) |  0.084 (WebGL) |        0.132 |  0.128 | 0.110 (WebGL2) |              1.01 |
 | interactive-edits    |        16 |              0.156 (main DOM) |    0.156 (DOM) |        0.740 |  1.094 | 0.490 (WebGL2) |              1.00 |
 | ntcharts-heatmap     |         1 |           0.128 (main WebGL2) |  0.187 (WebGL) |        0.407 |  0.155 | 0.132 (WebGL2) |              0.97 |
 | ntcharts-heatmap     |        16 |           0.808 (main WebGL2) |  0.875 (WebGL) |        5.051 |  1.810 | 0.914 (WebGL2) |              0.92 |
-| opentui-plasma       |         1 |           0.192 (main WebGL2) |    3.111 (DOM) |        0.854 |  0.171 | 0.235 (WebGL2) |          **1.12** |
+| opentui-plasma       |         1 |           0.192 (main WebGL2) |    3.111 (DOM) |        0.854 |  0.171 | 0.235 (WebGL2) |          **1.13** |
 | opentui-plasma       |        16 |           1.668 (main WebGL2) | 11.737 (WebGL) |       11.663 |  2.845 | 2.437 (WebGL2) |              0.68 |
 | synchronized-frames  |         1 |           0.103 (main WebGL2) |    0.159 (DOM) |        0.663 |  0.172 | 0.193 (WebGL2) |              0.65 |
 | synchronized-frames  |        16 |           0.511 (main WebGL2) |  0.873 (WebGL) |        9.312 |  1.325 | 1.699 (WebGL2) |              0.59 |
-| partial-scroll       |         1 |           0.079 (pool WebGL2) |  0.088 (WebGL) |        0.327 |  0.111 | 0.153 (WebGL2) |              0.90 |
+| partial-scroll       |         1 |           0.079 (pool WebGL2) |  0.088 (WebGL) |        0.327 |  0.111 | 0.153 (WebGL2) |              0.89 |
 | partial-scroll       |        16 |           0.238 (main WebGL2) |  0.309 (WebGL) |        4.290 |  1.220 | 0.974 (WebGL2) |              0.77 |
 | insert-delete-lines  |         1 |           0.071 (main WebGL2) |  0.085 (WebGL) |        0.305 |  0.107 | 0.144 (WebGL2) |              0.84 |
 | insert-delete-lines  |        16 |           0.184 (main WebGL2) |  0.308 (WebGL) |        3.753 |  1.216 | 1.295 (WebGL2) |              0.60 |
-| sparse-edits         |         1 |           0.070 (main WebGL2) |    0.123 (DOM) |        0.119 |  0.100 | 0.101 (WebGL2) |              0.70 |
-| sparse-edits         |        16 |           0.162 (main WebGL2) |  0.357 (WebGL) |        0.954 |  1.100 | 0.663 (WebGL2) |              0.45 |
-| ligature-redraw      |         1 |           0.085 (main WebGL2) |  0.097 (WebGL) |        0.451 |  0.110 | 0.145 (WebGL2) |              0.88 |
+| sparse-edits         |         1 |           0.070 (main WebGL2) |    0.123 (DOM) |        0.119 |  0.100 | 0.101 (WebGL2) |              0.71 |
+| sparse-edits         |        16 |           0.162 (main WebGL2) |  0.357 (WebGL) |        0.954 |  1.101 | 0.663 (WebGL2) |              0.45 |
+| ligature-redraw      |         1 |           0.085 (main WebGL2) |  0.097 (WebGL) |        0.451 |  0.110 | 0.145 (WebGL2) |              0.87 |
 | ligature-redraw      |        16 |           0.383 (main WebGL2) |  0.446 (WebGL) |        5.761 |  1.247 | 1.341 (WebGL2) |              0.86 |
 | glyph-churn          |         1 |         0.222 (main Canvas2D) |   text differs | text differs |  0.263 | 0.151 (WebGL2) |          **1.47** |
 | glyph-churn          |        16 |           0.549 (main WebGL2) |   text differs | text differs |  2.224 | 1.341 (WebGL2) |              0.41 |
@@ -131,8 +134,8 @@ CPU seconds for the delivered work, lower is better. Each library column is that
 | cold-cache           |        16 |           0.573 (main WebGL2) |  0.481 (WebGL) |          n/a |    n/a |            n/a |          **1.19** |
 | repeated-ascii       |         1 |           0.020 (main WebGPU) |  0.099 (WebGL) |        0.485 |  0.118 | 0.177 (WebGL2) |              0.20 |
 | repeated-ascii       |        16 |           0.109 (main WebGPU) |  0.361 (WebGL) |        6.596 |  1.206 | 1.578 (WebGL2) |              0.30 |
-| write-queue-overload |         1 |           0.007 (main WebGPU) |    0.065 (DOM) |      crashed |  0.019 | 0.011 (WebGPU) |              0.64 |
-| write-queue-overload |        16 |           0.060 (main WebGL2) |    0.793 (DOM) |      crashed |  0.186 | 0.153 (WebGPU) |              0.39 |
+| write-queue-overload |         1 |           0.007 (main WebGL2) |    0.065 (DOM) |      crashed |  0.019 | 0.011 (WebGPU) |              0.63 |
+| write-queue-overload |        16 |           0.060 (main WebGL2) |    0.793 (DOM) |      crashed |  0.186 | 0.153 (WebGPU) |              0.40 |
 
 <details>
 <summary>PC CPU seconds: every backend</summary>
@@ -152,7 +155,7 @@ CPU seconds for the delivered work, lower is better. Each library column is that
 | interactive-edits    |         1 |            0.095 |            0.096 |              0.160 |         0.084 |              0.134 |              0.118 |            0.138 |            0.096 |          0.084 |        0.100 |                0.132 |         0.128 |         0.167 |         0.110 |
 | interactive-edits    |        16 |            0.568 |            0.166 |              0.473 |         0.156 |              1.148 |              0.545 |            0.849 |            0.349 |          0.224 |        0.156 |                0.740 |         1.094 |         1.144 |         0.490 |
 | ntcharts-heatmap     |         1 |            0.151 |            0.128 |              0.194 |         0.804 |              0.199 |              0.166 |            0.172 |            0.138 |          0.187 |        0.847 |                0.407 |         0.155 |         0.178 |         0.132 |
-| ntcharts-heatmap     |        16 |            1.264 |            0.808 |              1.630 |        12.956 |              2.391 |              1.790 |            1.604 |            1.174 |          0.875 |       12.182 |                5.051 |         1.810 |         1.581 |         0.914 |
+| ntcharts-heatmap     |        16 |            1.264 |            0.808 |              1.630 |        12.956 |              2.391 |              1.790 |            1.604 |            1.174 |          0.875 |       12.181 |                5.051 |         1.810 |         1.581 |         0.914 |
 | opentui-plasma       |         1 |            0.205 |            0.192 |              0.803 |         2.824 |              0.236 |              0.221 |            0.246 |            0.203 |          9.494 |        3.111 |                0.854 |         0.171 |         0.302 |         0.235 |
 | opentui-plasma       |        16 |            2.100 |            1.668 |             10.270 |        43.303 |              4.100 |              3.522 |            2.612 |            2.231 |         11.737 |       46.440 |               11.663 |         2.845 |         3.028 |         2.437 |
 | synchronized-frames  |         1 |            0.156 |            0.103 |              0.490 |         0.146 |              0.169 |              0.117 |            0.169 |            0.131 |          0.469 |        0.159 |                0.663 |         0.172 |         0.246 |         0.193 |
@@ -162,7 +165,7 @@ CPU seconds for the delivered work, lower is better. Each library column is that
 | insert-delete-lines  |         1 |            0.089 |            0.071 |              0.115 |         0.080 |              0.109 |              0.088 |            0.118 |            0.086 |          0.085 |        0.110 |                0.305 |         0.107 |         0.205 |         0.144 |
 | insert-delete-lines  |        16 |            0.571 |            0.184 |              0.785 |         0.339 |              1.276 |              0.614 |            0.916 |            0.419 |          0.308 |        0.513 |                3.753 |         1.216 |         1.996 |         1.295 |
 | sparse-edits         |         1 |            0.092 |            0.070 |              0.110 |         0.078 |              0.110 |              0.081 |            0.117 |            0.077 |          0.148 |        0.123 |                0.119 |         0.100 |         0.166 |         0.101 |
-| sparse-edits         |        16 |            0.558 |            0.162 |              0.542 |         0.336 |              1.105 |              0.506 |            0.814 |            0.372 |          0.357 |        0.514 |                0.954 |         1.100 |         1.210 |         0.663 |
+| sparse-edits         |        16 |            0.558 |            0.162 |              0.542 |         0.336 |              1.105 |              0.506 |            0.814 |            0.372 |          0.357 |        0.514 |                0.954 |         1.101 |         1.210 |         0.663 |
 | ligature-redraw      |         1 |            0.113 |            0.085 |              0.326 |         0.120 |              0.142 |              0.096 |            0.142 |            0.091 |          0.097 |        0.131 |                0.451 |         0.110 |         0.203 |         0.145 |
 | ligature-redraw      |        16 |            0.861 |            0.383 |              4.049 |         0.866 |              1.777 |              1.126 |            1.207 |            0.794 |          0.446 |        0.793 |                5.761 |         1.247 |         1.979 |         1.341 |
 | glyph-churn          |         1 |            0.262 |            0.239 |              0.222 |         0.409 |              0.399 |              0.302 |            0.320 |            0.291 |   text differs | text differs |         text differs |         0.263 |         0.223 |         0.151 |
@@ -202,17 +205,17 @@ CPU seconds for the delivered work, lower is better. Each library column is that
 | partial-scroll       |        16 |           0.586 (main WebGL2) |  0.764 (WebGL) |        4.285 |  1.594 | 1.513 (WebGL2) |              0.77 |
 | insert-delete-lines  |         1 |           0.250 (main WebGL2) |    0.280 (DOM) |        0.433 |  0.337 | 0.327 (WebGL2) |              0.89 |
 | insert-delete-lines  |        16 |           0.565 (main WebGL2) |    0.789 (DOM) |        3.618 |  1.583 | 1.902 (WebGL2) |              0.72 |
-| sparse-edits         |         1 |           0.256 (main WebGL2) |    0.323 (DOM) |        0.289 |  0.329 | 0.350 (WebGL2) |              0.89 |
+| sparse-edits         |         1 |           0.256 (main WebGL2) |    0.323 (DOM) |        0.289 |  0.329 | 0.350 (WebGL2) |              0.88 |
 | sparse-edits         |        16 |           0.493 (main WebGPU) |    0.826 (DOM) |        0.993 |  1.556 | 1.027 (WebGL2) |              0.60 |
 | ligature-redraw      |         1 |           0.259 (main WebGL2) |  0.271 (WebGL) |        0.480 |  0.351 | 0.394 (WebGL2) |              0.96 |
 | ligature-redraw      |        16 |           0.748 (main WebGPU) |  0.877 (WebGL) |        5.485 |  1.656 | 1.855 (WebGL2) |              0.85 |
 | glyph-churn          |         1 |         0.353 (main Canvas2D) |   text differs | text differs |  0.503 | 0.394 (WebGL2) |              0.90 |
 | glyph-churn          |        16 |           1.143 (main WebGPU) |   text differs | text differs |  3.325 | 1.871 (WebGL2) |              0.61 |
-| cold-cache           |         1 |              0.246 (main DOM) |  0.349 (WebGL) |          n/a |    n/a |            n/a |              0.70 |
+| cold-cache           |         1 |              0.246 (main DOM) |  0.349 (WebGL) |          n/a |    n/a |            n/a |              0.71 |
 | cold-cache           |        16 |              0.811 (main DOM) |  1.196 (WebGL) |          n/a |    n/a |            n/a |              0.68 |
 | repeated-ascii       |         1 |           0.096 (main WebGL2) |  0.270 (WebGL) |        0.542 |  0.304 | 0.423 (WebGL2) |              0.36 |
 | repeated-ascii       |        16 |           0.331 (main WebGPU) |  0.945 (WebGL) |        6.175 |  1.407 | 2.228 (WebGL2) |              0.35 |
-| write-queue-overload |         1 |           0.014 (main WebGL2) |    0.126 (DOM) |      crashed |  0.013 | 0.030 (WebGPU) |              1.08 |
+| write-queue-overload |         1 |           0.014 (main WebGL2) |    0.126 (DOM) |      crashed |  0.013 | 0.030 (WebGPU) |              1.07 |
 | write-queue-overload |        16 |           0.087 (main WebGPU) |    0.935 (DOM) |      crashed |  0.406 | 0.172 (WebGPU) |              0.51 |
 
 <details>
@@ -273,29 +276,29 @@ Joules for the whole browser process family, lower is better.
 | unicode-emoji        |        16 |           0.488 (main WebGL2) |  0.908 (WebGL) |        9.311 |  1.214 | 3.356 (WebGL2) |              0.54 |
 | line-scroll          |         1 |           0.035 (main WebGL2) |  0.067 (WebGL) |        0.388 |  0.050 | 0.165 (WebGPU) |              0.70 |
 | line-scroll          |        16 |           0.402 (main WebGL2) |  0.880 (WebGL) |        9.958 |  0.991 | 3.312 (WebGL2) |              0.46 |
-| interactive-edits    |         1 |         0.029 (main Canvas2D) |  0.035 (WebGL) |        0.085 |  0.044 | 0.085 (WebGL2) |              0.83 |
+| interactive-edits    |         1 |         0.029 (main Canvas2D) |  0.035 (WebGL) |        0.085 |  0.044 | 0.085 (WebGL2) |              0.81 |
 | interactive-edits    |        16 |              0.170 (main DOM) |    0.189 (DOM) |        1.430 |  0.949 | 1.518 (WebGL2) |              0.90 |
-| ntcharts-heatmap     |         1 |         0.163 (worker WebGPU) |  0.262 (WebGL) |        1.025 |  0.118 | 0.187 (WebGL2) |          **1.38** |
+| ntcharts-heatmap     |         1 |           0.163 (pool WebGL2) |  0.262 (WebGL) |        1.025 |  0.118 | 0.187 (WebGL2) |          **1.38** |
 | ntcharts-heatmap     |        16 |         3.153 (worker WebGL2) |  4.793 (WebGL) |       22.323 |  2.630 | 4.575 (WebGL2) |          **1.20** |
 | opentui-plasma       |         1 |         0.285 (worker WebGPU) |    9.369 (DOM) |        2.705 |  0.194 | 0.470 (WebGL2) |          **1.47** |
 | opentui-plasma       |        16 |           6.665 (pool WebGPU) | 34.712 (WebGL) |       47.851 |  4.507 | 9.668 (WebGL2) |          **1.48** |
-| synchronized-frames  |         1 |           0.072 (main WebGPU) |    0.155 (DOM) |        1.707 |  0.044 | 0.351 (WebGPU) |          **1.64** |
+| synchronized-frames  |         1 |           0.072 (main WebGPU) |    0.155 (DOM) |        1.707 |  0.044 | 0.351 (WebGPU) |          **1.62** |
 | synchronized-frames  |        16 |           1.591 (main WebGL2) |    3.257 (DOM) |       35.062 |  1.375 | 7.663 (WebGL2) |          **1.16** |
-| partial-scroll       |         1 |           0.041 (main WebGL2) |  0.049 (WebGL) |        0.730 |  0.049 | 0.228 (WebGL2) |              0.84 |
+| partial-scroll       |         1 |           0.041 (main WebGL2) |  0.049 (WebGL) |        0.730 |  0.049 | 0.228 (WebGL2) |              0.85 |
 | partial-scroll       |        16 |           0.624 (main WebGL2) |  1.169 (WebGL) |       18.378 |  1.260 | 4.551 (WebGL2) |              0.53 |
 | insert-delete-lines  |         1 |           0.028 (main WebGL2) |  0.048 (WebGL) |        0.601 |  0.046 | 0.206 (WebGL2) |              0.61 |
 | insert-delete-lines  |        16 |           0.462 (main WebGL2) |  1.435 (WebGL) |       15.339 |  1.136 | 5.794 (WebGL2) |              0.41 |
-| sparse-edits         |         1 |           0.025 (main WebGL2) |    0.097 (DOM) |        0.091 |  0.036 | 0.097 (WebGL2) |              0.69 |
+| sparse-edits         |         1 |           0.025 (main WebGL2) |    0.097 (DOM) |        0.091 |  0.036 | 0.097 (WebGL2) |              0.71 |
 | sparse-edits         |        16 |           0.368 (main WebGL2) |  1.355 (WebGL) |        2.714 |  0.912 | 2.154 (WebGL2) |              0.40 |
-| ligature-redraw      |         1 |           0.050 (main WebGL2) |  0.070 (WebGL) |        1.076 |  0.046 | 0.243 (WebGPU) |              1.09 |
+| ligature-redraw      |         1 |           0.050 (main WebGL2) |  0.070 (WebGL) |        1.076 |  0.046 | 0.243 (WebGPU) |              1.08 |
 | ligature-redraw      |        16 |           1.030 (main WebGL2) |  1.810 (WebGL) |       23.638 |  1.210 | 6.100 (WebGL2) |              0.85 |
 | glyph-churn          |         1 |         0.291 (main Canvas2D) |   text differs | text differs |  0.363 | 0.216 (WebGL2) |          **1.35** |
 | glyph-churn          |        16 |           2.180 (main WebGPU) |   text differs | text differs |  4.291 | 5.385 (WebGL2) |              0.51 |
 | cold-cache           |         1 |              0.090 (main DOM) |  0.085 (WebGL) |          n/a |    n/a |            n/a |              1.06 |
 | cold-cache           |        16 |              2.160 (main DOM) |  1.757 (WebGL) |          n/a |    n/a |            n/a |          **1.23** |
-| repeated-ascii       |         1 |           0.014 (main WebGL2) |  0.066 (WebGL) |        1.192 |  0.040 | 0.309 (WebGPU) |              0.35 |
+| repeated-ascii       |         1 |           0.014 (main WebGL2) |  0.066 (WebGL) |        1.192 |  0.040 | 0.309 (WebGPU) |              0.36 |
 | repeated-ascii       |        16 |           0.212 (main WebGPU) |  1.902 (WebGL) |       26.282 |  1.046 | 7.329 (WebGL2) |              0.20 |
-| write-queue-overload |         1 |              0.011 (main DOM) |    0.254 (DOM) |      crashed |  0.009 | 0.034 (WebGPU) |          **1.22** |
+| write-queue-overload |         1 |              0.011 (main DOM) |    0.254 (DOM) |      crashed |  0.009 | 0.034 (WebGPU) |          **1.29** |
 | write-queue-overload |        16 |           0.231 (main WebGPU) |    2.954 (DOM) |      crashed |  0.568 | 0.498 (WebGPU) |              0.46 |
 
 <details>
@@ -306,7 +309,7 @@ Joules for the whole browser process family, lower is better.
 | rolling-logs         |         1 |            0.251 |            0.194 |              0.620 |         0.227 |              0.251 |              0.235 |            0.243 |            0.261 |          0.219 |        0.339 |                1.189 |         0.135 |         1.152 |         0.751 |
 | rolling-logs         |        16 |            1.693 |            1.615 |             12.656 |         2.780 |              3.686 |              3.595 |            2.841 |            2.826 |          2.960 |        4.712 |               23.214 |         1.600 |         7.943 |         7.649 |
 | rolling-unicode-logs |         1 |            0.100 |            0.083 |              0.468 |         0.181 |              0.141 |              0.128 |            0.143 |            0.131 |          0.145 |        0.269 |                1.085 |         0.146 |         0.583 |         0.430 |
-| rolling-unicode-logs |        16 |            1.259 |            1.142 |             11.017 |         3.283 |              2.974 |              2.757 |            2.747 |            2.702 |          2.594 |        4.787 |               24.094 |         1.624 |         7.187 |         6.592 |
+| rolling-unicode-logs |        16 |            1.259 |            1.142 |             11.017 |         3.283 |              2.974 |              2.757 |            2.747 |            2.701 |          2.594 |        4.787 |               24.094 |         1.624 |         7.187 |         6.592 |
 | rolling-slow         |         1 |            0.047 |            0.039 |              0.065 |         0.099 |              0.062 |              0.054 |            0.067 |            0.059 |          0.074 |        0.095 |                0.386 |         0.048 |         0.139 |         0.184 |
 | rolling-slow         |        16 |            0.547 |            0.473 |              0.839 |         0.927 |              1.243 |              1.153 |            1.014 |            1.009 |          0.893 |        1.566 |                9.780 |         1.271 |         3.859 |         3.257 |
 | unicode-emoji        |         1 |            0.059 |            0.043 |              0.077 |         0.198 |              0.102 |              0.136 |            0.124 |            0.122 |          0.080 |        0.328 |                0.370 |         0.056 |         0.549 |         0.329 |
@@ -330,7 +333,7 @@ Joules for the whole browser process family, lower is better.
 | ligature-redraw      |         1 |            0.057 |            0.050 |              0.530 |         0.129 |              0.083 |              0.062 |            0.082 |            0.084 |          0.070 |        0.157 |                1.076 |         0.046 |         0.243 |         0.254 |
 | ligature-redraw      |        16 |            1.173 |            1.030 |             12.817 |         2.449 |              1.940 |              1.723 |            1.662 |            1.820 |          1.810 |        3.121 |               23.638 |         1.210 |         6.584 |         6.100 |
 | glyph-churn          |         1 |            0.593 |            0.460 |              0.291 |         1.026 |              0.583 |              0.620 |            0.587 |            0.618 |   text differs | text differs |         text differs |         0.363 |         0.258 |         0.216 |
-| glyph-churn          |        16 |            2.180 |            2.352 |              2.604 |        17.925 |             11.288 |             12.354 |            6.179 |            6.801 |   text differs | text differs |         text differs |         4.291 |         5.930 |         5.385 |
+| glyph-churn          |        16 |            2.180 |            2.352 |              2.604 |        17.924 |             11.288 |             12.354 |            6.179 |            6.801 |   text differs | text differs |         text differs |         4.291 |         5.930 |         5.385 |
 | cold-cache           |         1 |            0.239 |            0.209 |              0.214 |         0.090 |              0.253 |              0.239 |            0.257 |            0.217 |          0.085 |        0.530 |                  n/a |           n/a |           n/a |           n/a |
 | cold-cache           |        16 |            2.539 |            2.844 |              5.616 |         2.160 |              7.056 |              6.792 |            3.324 |            3.742 |          1.757 |       12.100 |                  n/a |           n/a |           n/a |           n/a |
 | repeated-ascii       |         1 |            0.017 |            0.014 |              0.030 |         0.018 |              0.022 |              0.019 |            0.024 |            0.032 |          0.066 |        0.132 |                1.192 |         0.040 |         0.309 |         0.317 |
@@ -361,7 +364,9 @@ KiB that one terminal on its best renderer downloads, built with the same Vite p
 
 ### Cold load
 
-Milliseconds from navigation to the first compositor frame that shows the probe text, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. The auto backend is WebGL2 on the PC and WebGPU on the Mac. On Fast 4G our main entry pays for two serial round trips and an external wasm file; libraries that ship no wasm or inline it start sooner. Unthrottled WebGL2 first paint on the PC is bimodal, about 222 or 270 ms per load, for xterm.js too.
+Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's `monospace` font; the others fetch a font file. The auto backend is WebGL2 on the PC and WebGPU on the Mac.
+
+Fastest first paint: PC unthrottled ghostty-web (41 ms), PC Fast 4G Wraith's xterm profile (469 ms), Mac unthrottled ghostty-web (61 ms), Mac Fast 4G xterm.js with Unicode 11 (501 ms). On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. Unthrottled WebGL2 first paint on the PC is bimodal, about 222 or 270 ms per load, for xterm.js too, so its 10-run median can land on either mode.
 
 | App                                    | PC unthrottled |  PC Fast 4G | Mac unthrottled | Mac Fast 4G |
 | -------------------------------------- | -------------: | ----------: | --------------: | ----------: |

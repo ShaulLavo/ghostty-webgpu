@@ -1,4 +1,4 @@
-// Renders the November 2026 section of docs/benchmarks.md from results.json.
+// Renders the November 2026 section of docs/benchmarks.md from docs/benchmarks/2026-11-24/results.json.
 // docs/benchmarks/mac-m1-2026-10-10/report.mjs calls it; Node runs this file with type stripping.
 import { readFile } from 'node:fs/promises'
 
@@ -32,7 +32,10 @@ interface Data {
   libraries: Record<string, string>
   drift: Record<Host, number>
   hosts: Record<Host, { machine: string; browser: string; dpr: number }>
-  speed: Record<Host, Record<'cpu' | 'ackP95' | 'forcedP95' | 'energy', Row[] | undefined>>
+  speed: Record<
+    Host,
+    Record<'cpu' | 'ackP95' | 'forcedP95' | 'energy', Row[] | undefined> & { runs: number }
+  >
   size: SizeRow[]
   coldLoad: Record<Host, Record<'unthrottled' | 'fast4g', LoadRow[]>>
 }
@@ -43,8 +46,10 @@ interface Pick {
 
 const folder = 'docs/benchmarks/2026-11-24/'
 const evidence = `https://github.com/ShaulLavo/ghostty-webgpu/blob/main/${folder}`
-// Repetition-to-repetition CPU spread was 4% median and 8% at p75, so a loss needs more than 10%.
+// Repetition-to-repetition CPU spread was 4% median and 8% at p75, so a loss needs more than 10%
+// over the competitor and a win more than 10% under it. Ratios use unrounded values.
 const MARGIN = 1.1
+const WIN = 0.9
 // Latencies sit on the browser's 0.1 ms timer grid; a latency loss also needs 0.5 ms.
 const LATENCY_FLOOR = 0.5
 
@@ -77,8 +82,8 @@ const ARM_LABEL: Record<string, string> = Object.assign(
   COMPETITORS,
 )
 const WORKLOADS: Record<string, string> = {
-  'rolling-logs': 'about 1 MiB of real log output in 4 KiB writes',
-  'rolling-unicode-logs': 'the same logs with CJK, combining marks and emoji',
+  'rolling-logs': 'real log output in 4 KiB writes, 256 KiB per terminal over the 64 steps',
+  'rolling-unicode-logs': 'the same kind of logs with CJK, combining marks and emoji, also 256 KiB',
   'rolling-slow': 'one log line per write',
   'unicode-emoji': 'one Unicode and emoji line per write',
   'line-scroll': 'one ASCII line per write, scrolling one row each time',
@@ -93,7 +98,7 @@ const WORKLOADS: Record<string, string> = {
   'glyph-churn': 'a stream of never-seen CJK glyphs and emoji that keeps growing the glyph atlas',
   'cold-cache': 'Unicode text with the glyph atlas cleared before every write',
   'repeated-ascii': 'the same full ASCII screen written again every step',
-  'write-queue-overload': 'the whole 1 MiB log corpus queued at once, unpaced',
+  'write-queue-overload': 'the whole rolling-logs corpus (about 1 MiB) queued at once, unpaced',
 }
 const STATUS: Record<Status, string> = {
   unsupported: 'n/a',
@@ -216,7 +221,7 @@ const median = (values: number[]) => {
 
 function standing(comparisons: readonly Comparison[], latency: boolean) {
   const lost = comparisons.filter((entry) => loses(entry, latency))
-  const ahead = comparisons.filter((entry) => entry.ratio < 1 / MARGIN).length
+  const ahead = comparisons.filter((entry) => entry.ratio < WIN).length
   return {
     lost,
     ahead,
@@ -285,8 +290,24 @@ function loadLeaders(data: Data, host: Host, profile: 'unthrottled' | 'fast4g') 
   return `${label}: our best ${ours.median} ms${tail}`
 }
 
+const PROFILES: [Host, 'unthrottled' | 'fast4g', string][] = [
+  ['pc', 'unthrottled', 'PC unthrottled'],
+  ['pc', 'fast4g', 'PC Fast 4G'],
+  ['mac', 'unthrottled', 'Mac unthrottled'],
+  ['mac', 'fast4g', 'Mac Fast 4G'],
+]
+
+function coldLoadNotes(data: Data) {
+  const fastest = PROFILES.map(([host, profile, label]) => {
+    const row = data.coldLoad[host][profile].toSorted((a, b) => a.median - b.median)[0]!
+    return `${label} ${shortName(row.app)} (${row.median} ms)`
+  })
+  return `Fastest first paint: ${fastest.join(', ')}.`
+}
+
 export async function renderNovember(): Promise<{ version: string; markdown: string }> {
-  const data: Data = JSON.parse(await readFile(new URL('results.json', import.meta.url), 'utf8'))
+  const source = new URL(`../${folder}results.json`, import.meta.url)
+  const data: Data = JSON.parse(await readFile(source, 'utf8'))
   return { version: data.version, markdown: render(data) }
 }
 
@@ -361,8 +382,11 @@ On the PC, our main-thread WebGPU renderer costs more CPU than our WebGL2 render
 
 ### How it was measured
 
-- **Same work for everyone.** Every library gets the same bytes, a 100x30 grid, the same JetBrains Mono Regular TTF at 14 px, the same DPR and a history of 10,000 lines. Each cell is one workload at 1 or 16 terminals, 64 paced steps: write one chunk to every terminal, wait for every library's parse acknowledgement, then wait one display frame. Final screen text is compared across libraries, and a cell whose text differs is excluded.
-- **Display check.** Before and after every run each terminal is filled with a known colour and must be on screen, unclipped, uncovered, and actually drawn by the compositor (seen in a browser trace). A run that fails stops before measuring.
+- **Same work for everyone.** Every library gets the same bytes, a 100x30 grid, the same JetBrains Mono Regular TTF at 14 px and the same DPR. History is capped at 10,000 lines for ours, xterm.js and Wraith, and at a 64 MiB scrollback budget for ghostty-web and Restty, which limit history by bytes. Final screen text is compared across libraries, and a cell whose text differs is excluded.
+- **Paced pass** (CPU, energy, acknowledgement): each cell is one workload at 1 or 16 terminals, 64 steps. A step writes one chunk to every terminal, waits until every terminal has acknowledged parsing it, then waits one display frame. Acknowledgement time runs from the start of that batch until the last terminal acknowledges. Afterwards every library drains and every arm waits two more frames.
+- **Overload pass**: write-queue-overload queues the whole corpus at once, unpaced, and records each queued write's own acknowledgement.
+- **Forced pass** (ours on the main entry and Wraith, the only libraries that can force a draw): 32 steps, each timed from the start of the write batch until the GPU reports the forced draw complete.
+- **Display check.** Before and after every run each terminal is filled with a known colour. The check confirms that each terminal's drawing surface lies inside its section and the viewport, is visible with an intersection ratio of at least 0.99, and is not covered at five sampled points. It then requires compositor draw or swap events in a browser trace across the fill. Those events are browser-wide, so they show the browser drew a frame, not that each terminal's own pixels reached the screen. A failed check before a run stops it before measuring; a failed check after a run is recorded with the run. All ${data.speed.pc.runs} runs on the PC and ${data.speed.mac.runs} on the Mac passed both checks.
 - **CPU** is on-CPU time of the whole browser process family (browser, renderer, GPU, utility and worker processes) for the delivered work, not a percentage. Linux sums per-thread \`schedstat\`; the Mac sums \`proc_pid_rusage\` user and system time.
 - **Mac energy** is the macOS kernel's per-process CPU energy estimate (\`proc_pid_rusage\`, \`RUSAGE_INFO_V6\`) over the same process family. It excludes GPU-device, display and whole-system power.
 - **Two repetitions** per cell in ABBA order; each value is their mean. Repetition-to-repetition CPU spread was 4% median and 8% at p75, so a gap under 10% counts as even. One-terminal cells are about 0.1 s of CPU and vary by about 10% between sessions.
@@ -413,7 +437,9 @@ ${sizeTable(data.size)}
 
 ### Cold load
 
-Milliseconds from navigation to the first compositor frame that shows the probe text, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. The auto backend is WebGL2 on the PC and WebGPU on the Mac. On Fast 4G our main entry pays for two serial round trips and an external wasm file; libraries that ship no wasm or inline it start sooner. Unthrottled WebGL2 first paint on the PC is bimodal, about 222 or 270 ms per load, for xterm.js too.
+Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's \`monospace\` font; the others fetch a font file. The auto backend is WebGL2 on the PC and WebGPU on the Mac.
+
+${coldLoadNotes(data)} On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. Unthrottled WebGL2 first paint on the PC is bimodal, about 222 or 270 ms per load, for xterm.js too, so its 10-run median can land on either mode.
 
 ${loadTable(data)}
 

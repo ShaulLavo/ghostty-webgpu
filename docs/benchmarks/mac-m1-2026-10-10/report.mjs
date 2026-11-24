@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
-import { renderNovember } from '../2026-11-24/report.ts'
+import { renderNovember } from '../../../scripts/benchmark-report-2026-11.ts'
 
 const root = new URL('./', import.meta.url)
 const data = JSON.parse(await readFile(new URL('scores.json', root)))
