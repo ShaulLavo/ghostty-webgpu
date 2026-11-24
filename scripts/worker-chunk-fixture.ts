@@ -54,6 +54,7 @@ Object.defineProperty(navigator, 'gpu', {
         channel.postMessage('device')
         return {
           queue: { onSubmittedWorkDone: async () => {} },
+          lost: new Promise(() => {}),
           destroy() {
             channel.postMessage('destroyed')
           },

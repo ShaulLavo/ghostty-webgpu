@@ -7,12 +7,13 @@ sidebar:
 
 import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/worker.ts?raw'
+import poolSample from '../../../../examples/worker-pool.ts?raw'
 
 You will open a terminal whose emulator, frame building and GPU rendering run in a dedicated worker. Start with a bundler that supports worker URLs, OffscreenCanvas and a supported GPU backend.
 
 ## When to use it
 
-Pick the worker entry when many terminals receive dense output at the same time, or when the page thread must stay free for your app. Each terminal parses and draws on its own thread, so one terminal's write is not queued behind the others. The main entry parses every terminal on the page thread. That uses the least total CPU, but sixteen terminals each redrawing a full truecolor screen need more than one 60 Hz frame of page-thread time, so updates arrive late.
+Pick the worker entry when many terminals receive dense output at the same time, or when the page thread must stay free for your app. Terminals parse and draw off the page thread, so one terminal's write is not queued behind the page's work. With many terminals, share workers through a pool (step 4). The main entry parses every terminal on the page thread. That uses the least total CPU, but sixteen terminals each redrawing a full truecolor screen need more than one 60 Hz frame of page-thread time, so updates arrive late.
 
 ## 1. Import the worker entry
 
@@ -31,6 +32,14 @@ Your CSP must allow the worker URL in `worker-src`, WebAssembly compilation, and
 The main entry updates native state synchronously. Worker writes, reads, appearance changes and disposal return promises. Await a write before a read that depends on it. Host operations such as `focus` keep their synchronous shape.
 
 The worker's `backend` accepts `auto`, `webgpu` and `webgl`. Its current API has capability limits for Canvas modes, link providers, keyboard link discovery and finite synchronous input connections. `attachTerminalHotkeys` is an optional `ghostty-webgpu/hotkeys` add-on for the synchronous main-thread terminal. Keep those boundaries in mind when migrating an interactive host.
+
+## 4. Share workers between many terminals
+
+Pass one `TerminalWorkerPool` to every `Terminal.create` call when a page shows several busy terminals. The pool starts a worker per terminal up to its `workers` limit, half the logical cores and at most four by default, then puts each further terminal on the least loaded worker. Only terminals with the same worker URL and the same `fonts` share a worker. Terminals on one worker share its GPU device, glyph atlas and font faces, and paint as soon as their written output is parsed instead of waiting for the next display frame; output from an attached producer port still paints at the next display frame. That costs less CPU and memory than one worker per terminal and answers writes sooner. A worker stops when its last terminal is disposed.
+
+<Code code={poolSample} lang='ts' title='worker-pool.ts' />
+
+A terminal that fails closes only itself. A worker that crashes fails every terminal on it.
 
 ## If it doesn't work
 

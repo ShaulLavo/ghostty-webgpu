@@ -1,8 +1,7 @@
-import { readSfntFontMetrics } from '../term/font-metrics.js'
 import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
 import type { RuntimeOptions } from '../core/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
-import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
+import type { DeviceLease, DeviceOwner } from '../render/webgpu/device-owner.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
 import {
   calculateTerminalFittedFont,
@@ -12,7 +11,7 @@ import {
 } from '../term/fit-math.js'
 import type { GhosttyWebGpuRenderer } from '../dom/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
-import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
+import { workerShared, type SharedFontFace, type WorkerShared } from './worker-shared.js'
 import { type WebGpuTerminalRendererOptions } from '../render/shared/types.js'
 import type { WebGpuTerminalRenderer } from '../render/webgpu/renderer.js'
 import { WebGpuUnavailableError } from '../render/webgpu/unavailable.js'
@@ -30,6 +29,7 @@ import type {
   WorkerFrameDelta,
   WorkerRequest,
   WorkerCanvasReplacement,
+  WorkerDrained,
   WorkerModules,
   WorkerState,
   TerminalOutputMessage,
@@ -40,19 +40,11 @@ import { serializeWorkerFailure, TerminalWorkerError, workerError } from './stru
 
 interface WorkerScope {
   readonly fonts: FontFaceSet
-  requestAnimationFrame(callback: FrameRequestCallback): number
-  cancelAnimationFrame(handle: number): void
   setTimeout(callback: () => void, delay: number): number
   clearTimeout(handle: number): void
   close(): void
 }
 const scope = globalThis as unknown as WorkerScope
-const workerClock: RenderSchedulerClock = {
-  requestFrame: (callback) => scope.requestAnimationFrame(callback),
-  cancelFrame: (handle) => scope.cancelAnimationFrame(handle),
-  setTimer: (callback, delay) => scope.setTimeout(callback, delay),
-  clearTimer: (handle) => scope.clearTimeout(handle),
-}
 
 function isSoftwareAdapterRejection(cause: unknown): boolean {
   return cause instanceof TerminalWorkerError && cause.internal?.softwareAdapter === true
@@ -75,6 +67,11 @@ export class TerminalWorkerRuntime {
   private renderer?: GhosttyWebGpuRenderer
   private inactiveCursorStyle?: InactiveCursorStyle
   private faces: FontFace[] = []
+  private sharedFaces: SharedFontFace[] = []
+  private readonly settleTarget = {
+    paintPending: () => this.renderer?.paintPending?.() ?? false,
+    fail: (cause: unknown) => this.fail(cause),
+  }
   private readonly faceMetrics = new Map<FontFace, TerminalFontMetrics>()
   private readonly frameEncoder = new RowDeltaEncoder()
   private readonly subscriptions: TerminalSessionSubscription[] = []
@@ -84,12 +81,9 @@ export class TerminalWorkerRuntime {
   private control = 0
   private acceptedControl = 0
   private postedAppearance?: WorkerState['appearance']
-  private prefetchedDevice?: GPUDevice
-  private prefetchedAcquisition?: Promise<GPUDevice>
+  private prefetchedLease?: Promise<DeviceLease>
   private gpuRenderer?: Promise<WebGpuTerminalRenderer>
   private cleanupPromise?: Promise<void>
-  private acquiredDevices = 0
-  private pendingAcquisitions = 0
   private closed = false
   private layout?: WorkerLayout
   private layoutFont?: TerminalFittedFont
@@ -103,11 +97,15 @@ export class TerminalWorkerRuntime {
   private canvasReplacement?: ReturnType<typeof Promise.withResolvers<OffscreenCanvas>>
   private readonly pageModules = Promise.withResolvers<Pick<WorkerModules, 'wasm' | 'bridge'>>()
   private modulesSettled = false
-  private speculativeAcquisition?: Promise<GPUDevice>
+  private speculativeLease?: Promise<DeviceLease>
   private readonly onMessage = (
-    event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerModules>,
+    event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerModules | WorkerDrained>,
   ) => {
     const request = event.data
+    if (request?.type === 'drained') {
+      this.receiveDrained(request)
+      return
+    }
     if (request?.type === 'modules') {
       if (
         request.terminal !== this.initialize.terminal ||
@@ -141,7 +139,37 @@ export class TerminalWorkerRuntime {
       .catch((cause: unknown) => this.fail(cause))
   }
 
-  constructor(private readonly initialize: WorkerInitialize) {}
+  constructor(
+    private readonly initialize: WorkerInitialize,
+    private readonly shared: WorkerShared = workerShared(),
+    private readonly onStopped?: () => void,
+  ) {}
+
+  get generation(): number {
+    return this.initialize.generation
+  }
+
+  /** The page has dropped this terminal; release it without replying. */
+  cancel(): void {
+    if (this.closed) return
+    void this.cleanup().then(
+      () => this.stop(),
+      () => this.stop(),
+    )
+  }
+
+  // Queued behind earlier requests, so every write the page sent before it is parsed.
+  private receiveDrained(message: WorkerDrained): void {
+    if (
+      !this.initialize.pooled ||
+      message.terminal !== this.initialize.terminal ||
+      message.generation !== this.initialize.generation
+    )
+      return
+    this.chain = this.chain.then(() => {
+      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget)
+    })
+  }
 
   async start(): Promise<void> {
     const port = this.initialize.port
@@ -202,33 +230,29 @@ export class TerminalWorkerRuntime {
   // wait for `open`: a failed early import would stay failed in the module map.
   private prewarmRenderer(): void {
     if (this.plannedBackends()[0] !== 'webgpu') return
-    this.speculativeAcquisition = this.prefetchDevice()
+    this.speculativeLease = this.webGpuOwner().acquire()
     // `open` retries a failed speculative request on its own acquisition path.
-    this.speculativeAcquisition.catch(() => undefined)
+    this.speculativeLease.catch(() => undefined)
   }
 
   // A speculative request that failed is retried at open, which then decides fallback. A
   // software adapter is not retried: it is the same adapter at open.
-  private takeAcquisition(): Promise<GPUDevice> {
-    const speculative = this.speculativeAcquisition
-    this.speculativeAcquisition = undefined
-    if (!speculative) return this.prefetchDevice()
+  private takeLease(): Promise<DeviceLease> {
+    const speculative = this.speculativeLease
+    this.speculativeLease = undefined
+    if (!speculative) return this.webGpuOwner().acquire()
     return speculative.catch((cause: unknown) => {
       if (isSoftwareAdapterRejection(cause)) throw cause
-      return this.prefetchDevice()
+      return this.webGpuOwner().acquire()
     })
   }
 
-  private prefetchDevice(): Promise<GPUDevice> {
-    return this.requestDevice(this.initialize.backend === 'auto' ? 'hardware' : 'any').then(
-      (acquired) => {
-        this.prefetchedDevice = acquired
-        return acquired
-      },
-    )
+  // Terminals in one worker share a device; automatic selection takes only hardware at first.
+  private webGpuOwner(): DeviceOwner {
+    return this.shared.deviceOwner(this.initialize.backend === 'auto' ? 'hardware' : 'any')
   }
 
-  private prepareFonts(): FontFace[] {
+  private prepareFonts(): SharedFontFace[] {
     if (typeof FontFace === 'undefined' || !scope.fonts)
       throw workerError('capability', 'fonts', {
         fontFace: typeof FontFace,
@@ -236,24 +260,17 @@ export class TerminalWorkerRuntime {
       })
     if (this.initialize.faces.length === 0)
       throw workerError('capability', 'fonts', { faceCount: 0 })
-    return this.initialize.faces.map((source) => {
-      const data =
-        'url' in source.source
-          ? `url(${JSON.stringify(source.source.url)})`
-          : new Uint8Array(source.source.bytes).buffer
-      const face = new FontFace(source.family, data, source.descriptors)
-      const metrics =
-        typeof data === 'string' ? undefined : readSfntFontMetrics(new Uint8Array(data))
-      if (metrics) this.faceMetrics.set(face, metrics)
-      return face
-    })
+    this.sharedFaces = this.initialize.faces.map((source) => this.shared.acquireFace(source))
+    for (const shared of this.sharedFaces)
+      if (shared.metrics) this.faceMetrics.set(shared.face, shared.metrics)
+    return this.sharedFaces
   }
 
-  private async loadFonts(faces: readonly FontFace[]): Promise<void> {
-    const loaded = await Promise.all(faces.map((face) => face.load()))
+  private async loadFonts(faces: readonly SharedFontFace[]): Promise<void> {
+    const loaded = await Promise.all(faces.map((shared) => shared.loaded))
     if (this.disposed) return
     this.faces = loaded
-    for (const face of loaded) scope.fonts.add(face)
+    this.shared.addFaces(faces)
   }
 
   private measuredFontSettings(settings: TerminalFontSettings): TerminalFontSettings {
@@ -376,7 +393,7 @@ export class TerminalWorkerRuntime {
       columns: execution.grid.columns,
       rows: execution.grid.rows,
       font,
-      schedulerClock: workerClock,
+      schedulerClock: this.shared.frameCoordinator,
       cursorBlink: execution.appearance.cursor.blink,
       textBlink: this.initialize.textBlink,
       theme: execution.appearance.rendererTheme,
@@ -477,67 +494,42 @@ export class TerminalWorkerRuntime {
   private async createWebGpuRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer> {
-    this.prefetchedAcquisition ??= this.takeAcquisition()
-    let device: GPUDevice
+    // This lease keeps the shared device alive until the renderer holds its own.
+    const acquisition = (this.prefetchedLease ??= this.takeLease())
+    let lease: DeviceLease
     try {
-      device = await this.prefetchedAcquisition
+      lease = await acquisition
     } catch (cause) {
-      this.prefetchedAcquisition = undefined
+      this.prefetchedLease = undefined
       throw workerError('capability', 'renderer.webgpu', {
         causeType: cause instanceof Error ? cause.name : typeof cause,
       })
     }
-    this.native()
-    let WebGpuTerminalRenderer: typeof import('../render/webgpu/renderer.js').WebGpuTerminalRenderer
     try {
-      ;({ WebGpuTerminalRenderer } = await import('../render/webgpu/renderer.js'))
-    } catch (cause) {
-      // Release the unused device before automatic fallback or open failure.
-      this.releasePrefetchedDevice()
-      throw workerError('capability', 'renderer.webgpu', {
-        causeType: cause instanceof Error ? cause.name : typeof cause,
-        module: false,
+      this.native()
+      let WebGpuTerminalRenderer: typeof import('../render/webgpu/renderer.js').WebGpuTerminalRenderer
+      try {
+        ;({ WebGpuTerminalRenderer } = await import('../render/webgpu/renderer.js'))
+      } catch (cause) {
+        throw workerError('capability', 'renderer.webgpu', {
+          causeType: cause instanceof Error ? cause.name : typeof cause,
+          module: false,
+        })
+      }
+      this.native()
+      const { schedulerClock: _clock, ...rest } = options
+      this.gpuRenderer = WebGpuTerminalRenderer.create({
+        ...rest,
+        deviceOwner: this.webGpuOwner(),
+        // Replacements after a device loss accept any adapter, as the main entry's do.
+        replacementDeviceOwner: this.shared.deviceOwner('any'),
+        frameCoordinator: this.shared.frameCoordinator,
       })
-    }
-    this.native()
-    this.gpuRenderer = WebGpuTerminalRenderer.create({
-      ...options,
-      deviceFactory: this.deviceFactory(device),
-    })
-    return this.gpuRenderer
-  }
-
-  private releasePrefetchedDevice(): void {
-    const device = this.prefetchedDevice
-    this.prefetchedDevice = undefined
-    this.prefetchedAcquisition = undefined
-    device?.destroy()
-  }
-
-  private async requestDevice(adapterPolicy: 'hardware' | 'any'): Promise<GPUDevice> {
-    this.pendingAcquisitions += 1
-    try {
-      const adapter = await navigator.gpu?.requestAdapter({ powerPreference: 'high-performance' })
-      if (!adapter) throw workerError('capability', 'renderer.webgpu', { adapter: false })
-      if (adapterPolicy === 'hardware' && isSoftwareWebGpuAdapter(adapter))
-        throw workerError('capability', 'renderer.webgpu', { softwareAdapter: true })
-      const device = await adapter.requestDevice()
-      this.acquiredDevices += 1
-      return device
+      return await this.gpuRenderer
     } finally {
-      this.pendingAcquisitions -= 1
-    }
-  }
-
-  private deviceFactory(initialDevice: GPUDevice): () => Promise<GPUDevice> {
-    let initial: GPUDevice | undefined = initialDevice
-    return async () => {
-      if (!initial) return this.requestDevice('any')
-      const device = initial
-      initial = undefined
-      this.prefetchedDevice = undefined
-      this.prefetchedAcquisition = undefined
-      return device
+      // Releasing the last reservation destroys an unused device before fallback or open failure.
+      this.prefetchedLease = undefined
+      await lease.release()
     }
   }
 
@@ -666,17 +658,17 @@ export class TerminalWorkerRuntime {
         return native.measureTexts(...request.args)
       case 'writeAndReadGeometry': {
         const geometry = native.writeAndReadGeometry(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return geometry
       }
       case 'write': {
         const result = native.write(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return result
       }
       case 'writeln': {
         const result = native.writeln(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return result
       }
       case 'sendInput':
@@ -764,6 +756,10 @@ export class TerminalWorkerRuntime {
     }
   }
 
+  private noteWrite(): void {
+    this.renderer?.notifyWrite()
+  }
+
   private attachOutput(port: MessagePort): void {
     if (this.outputPort) throw workerError('protocol', 'attachOutput', { attached: true })
     this.outputPort = port
@@ -784,7 +780,7 @@ export class TerminalWorkerRuntime {
       try {
         this.output = data.sequence
         this.native().write(data.data)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         port.postMessage({ ...this.identity(), type: 'output-ack', sequence: this.output })
         if (this.outputWaiter && this.output >= this.outputWaiter.sequence)
           this.outputWaiter.resolve()
@@ -862,7 +858,8 @@ export class TerminalWorkerRuntime {
     if (this.closed) return
     this.closed = true
     this.initialize.port.close()
-    scope.close()
+    this.onStopped?.()
+    if (!this.initialize.pooled) scope.close()
   }
 
   private cleanup(): Promise<void> {
@@ -873,8 +870,8 @@ export class TerminalWorkerRuntime {
     const deadline = Promise.withResolvers<never>()
     const timer = scope.setTimeout(() => {
       const internal = {
-        deviceCount: this.acquiredDevices + this.pendingAcquisitions,
-        pendingAcquisitions: this.pendingAcquisitions,
+        deviceCount: this.shared.acquiredDevices + this.shared.pendingAcquisitions,
+        pendingAcquisitions: this.shared.pendingAcquisitions,
         reason: 'shutdown-deadline',
         timeoutMs: workerOperationTimeout,
       }
@@ -897,7 +894,9 @@ export class TerminalWorkerRuntime {
     this.outputPort?.close()
     for (const subscription of this.subscriptions) subscription.dispose()
     this.execution?.dispose()
-    for (const face of this.faces) scope.fonts.delete(face)
+    this.shared.settled.forget(this.settleTarget)
+    for (const shared of this.sharedFaces) this.shared.releaseFace(shared)
+    this.sharedFaces = []
     this.faces.length = 0
     this.faceMetrics.clear()
     const startupExecution = this.startupExecution
@@ -907,31 +906,22 @@ export class TerminalWorkerRuntime {
       (execution) => execution.dispose(),
       () => {},
     )
-    // A speculative request never holds up cleanup or a startup failure; its device is
-    // destroyed whenever it settles.
-    const speculative = this.speculativeAcquisition
-    this.speculativeAcquisition = undefined
+    // A speculative request never holds up cleanup or a startup failure; its reservation is
+    // released whenever it settles.
+    const speculative = this.speculativeLease
+    this.speculativeLease = undefined
     void speculative?.then(
-      (device) => this.destroySpeculativeDevice(device),
+      (lease) => lease.release(),
       () => {},
     )
-    await this.prefetchedAcquisition?.then(
-      () => {},
+    await this.prefetchedLease?.then(
+      (lease) => lease.release(),
       () => {},
     )
     await this.gpuRenderer?.then(
       (renderer) => renderer.dispose(),
       () => {},
     )
-    try {
-      await this.prefetchedDevice?.queue.onSubmittedWorkDone()
-    } catch {}
-    this.prefetchedDevice?.destroy()
-    this.prefetchedDevice = undefined
-  }
-  private destroySpeculativeDevice(device: GPUDevice): void {
-    if (this.prefetchedDevice === device) this.prefetchedDevice = undefined
-    device.destroy()
   }
 
   private fail(cause: unknown): void {

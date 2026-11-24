@@ -20,5 +20,6 @@ export const workerOptions = [
   'backend',
   'assets',
   'workerUrl',
+  'pool',
   'appearance',
 ] as const satisfies readonly (keyof WorkerTerminalOptions)[]

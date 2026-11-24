@@ -158,6 +158,8 @@ export interface GhosttyWebGpuRenderer {
   notifyScroll(): void
   notifySelectionChange(): void
   notifyWrite(): void
+  /** Paints a frame that waits for the next display frame now; false when none waits. */
+  paintPending?(): boolean
   refreshRows?(startRow: number, endRow: number): void
   resize(grid: RendererGridSize): void
   schedule(): void

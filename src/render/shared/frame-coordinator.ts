@@ -55,6 +55,21 @@ export class FrameCoordinator implements RenderSchedulerClock {
     this.pending.push(frame)
   }
 
+  /** Runs paints outside an animation frame and submits their frames together, per device. */
+  batch(paint: () => void): void {
+    if (this.active) {
+      paint()
+      return
+    }
+    this.active = true
+    try {
+      this.invoke(paint)
+    } finally {
+      this.flush()
+      this.active = false
+    }
+  }
+
   flushPending(): void {
     this.flush()
   }

@@ -14,6 +14,8 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import type { CursorState, RendererTheme } from './instances/types.js'
 import type { RenderSchedulerClock, TerminalPresentation } from './scheduler.js'
 import type { LigatureFinder } from './ligatures/finder.js'
+import type { FrameCoordinator } from './frame-coordinator.js'
+import type { DeviceOwner } from '../webgpu/device-owner.js'
 
 export interface RenderStateSource {
   readonly snapshotVersion?: number
@@ -91,6 +93,12 @@ export interface WebGpuTerminalRendererOptions {
   textBlink?: boolean
   reducedMotion?: boolean
   deviceFactory?: () => Promise<GPUDevice>
+  /** Terminals sharing one owner share its device; overrides `deviceFactory` and `adapterPolicy`. */
+  deviceOwner?: DeviceOwner
+  /** Owner of devices that replace a lost one; defaults to `deviceOwner`. */
+  replacementDeviceOwner?: DeviceOwner
+  /** Terminals sharing one coordinator paint in one animation frame and one queue submit. */
+  frameCoordinator?: FrameCoordinator
   font: TerminalFittedFont
   /** Joins programming ligatures in the primary font; absent keeps the per-cell path. */
   ligatures?: LigatureFinder
