@@ -25,6 +25,7 @@ import type {
   WorkerState,
   WorkerLayout,
   WorkerCanvasReplacement,
+  WorkerDrained,
   WorkerModules,
 } from './protocol.js'
 import { compileWorkerModules, type CompiledWorkerModules } from './page-modules.js'
@@ -361,24 +362,27 @@ export class WorkerTerminalExecution {
   }
 
   // Once per page task, after its writes: same-port FIFO puts it behind every write posted
-  // before it, so the worker paints early only after parsing them, in one batch per worker.
+  // before it, so the worker paints early only after parsing them, with its batch siblings.
   private queueDrained(): void {
     if (this.drainQueued) return
     this.drainQueued = true
-    queueMicrotask(() => {
+    this.worker.queueDrained((batch, size) => {
       this.drainQueued = false
-      this.postDrained()
+      this.postDrained(batch, size)
     })
   }
 
-  private postDrained(): void {
+  private postDrained(batch: number, size: number): void {
     if (this.disposed || this.failure) return
+    const message: WorkerDrained = {
+      type: 'drained',
+      terminal: this.terminal,
+      generation: this.generation,
+      batch,
+      size,
+    }
     try {
-      this.port.postMessage({
-        type: 'drained',
-        terminal: this.terminal,
-        generation: this.generation,
-      })
+      this.port.postMessage(message)
     } catch {}
   }
 

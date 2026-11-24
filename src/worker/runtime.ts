@@ -166,8 +166,13 @@ export class TerminalWorkerRuntime {
       message.generation !== this.initialize.generation
     )
       return
+    const { batch, size } = message
+    if (!Number.isSafeInteger(batch) || !Number.isSafeInteger(size) || size < 1) {
+      this.fail(workerError('protocol', 'drained', { control: this.control }))
+      return
+    }
     this.chain = this.chain.then(() => {
-      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget)
+      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget, batch, size)
     })
   }
 

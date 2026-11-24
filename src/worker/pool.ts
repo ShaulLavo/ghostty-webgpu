@@ -9,6 +9,11 @@ export interface WorkerLease {
   readonly worker: Worker
   /** Tells the worker to tear this terminal down; the page no longer talks to it. */
   cancel(terminal: string, generation: number): void
+  /**
+   * After this page task, calls `post` once with a batch shared by every terminal on this worker
+   * that wrote in the task, so the worker can paint them together once all have parsed.
+   */
+  queueDrained(post: (batch: number, size: number) => void): void
   release(): void
 }
 
@@ -21,7 +26,27 @@ interface PooledWorker {
   readonly key: string
   readonly worker: Worker
   readonly listeners: Set<WorkerLeaseListeners>
+  readonly drains: DrainBatches
   failed: boolean
+}
+
+// One batch per page task and worker: each member posts its marker on its own port, behind its
+// writes, and the worker paints once every member's marker has arrived.
+class DrainBatches {
+  private next = 0
+  private pending: ((batch: number, size: number) => void)[] = []
+
+  queue(post: (batch: number, size: number) => void): void {
+    this.pending.push(post)
+    if (this.pending.length === 1) queueMicrotask(() => this.flush())
+  }
+
+  private flush(): void {
+    const posts = this.pending
+    this.pending = []
+    const batch = ++this.next
+    for (const post of posts) post(batch, posts.length)
+  }
 }
 
 interface PoolState {
@@ -84,6 +109,9 @@ export function leasePooledWorker(
       if (released || entry.failed) return
       entry.worker.postMessage({ type: 'cancel', terminal, generation })
     },
+    queueDrained: (post) => {
+      if (!released && !entry.failed) entry.drains.queue(post)
+    },
     release: () => {
       if (released) return
       released = true
@@ -105,7 +133,13 @@ function selectWorker(state: PoolState, key: string): PooledWorker | undefined {
 
 function startWorker(state: PoolState, url: string | URL | undefined, key: string): PooledWorker {
   const worker = createTerminalWorker(url)
-  const entry: PooledWorker = { key, worker, listeners: new Set(), failed: false }
+  const entry: PooledWorker = {
+    key,
+    worker,
+    listeners: new Set(),
+    drains: new DrainBatches(),
+    failed: false,
+  }
   worker.onerror = (event) => {
     event.preventDefault()
     entry.failed = true
@@ -143,6 +177,6 @@ export function dedicatedWorkerLease(
     listeners.error(event)
   }
   worker.onmessageerror = () => listeners.messageError()
-  // Terminating the worker tears its only terminal down.
-  return { worker, cancel: () => {}, release: () => worker.terminate() }
+  // Terminating the worker tears its only terminal down. Dedicated workers paint at vsync.
+  return { worker, cancel: () => {}, queueDrained: () => {}, release: () => worker.terminate() }
 }

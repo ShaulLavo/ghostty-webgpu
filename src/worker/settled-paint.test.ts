@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'vitest'
 import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
-import { SettledPaint } from './settled-paint.js'
+import { SettledPaint, type SettledPaintTarget } from './settled-paint.js'
 
 function manualClock() {
   const frames = new Map<number, () => void>()
@@ -53,20 +53,45 @@ afterEach(() => {
   for (const paint of created.splice(0)) paint.dispose()
 })
 
-test('paints every written terminal in one batch after the queued writes', async () => {
+let nextBatch = 1000
+// A page task that wrote only to this terminal.
+function solo(paint: SettledPaint, written: SettledPaintTarget): void {
+  paint.noteWrite(written, ++nextBatch, 1)
+}
+
+test('paints every terminal of a page batch together once all of them have parsed', async () => {
   const { clock } = manualClock()
   const log: string[] = []
   const batches: number[] = []
   const paint = create(clock, batches)
   const first = target('first', log)
   const second = target('second', log)
-  paint.noteWrite(first)
-  paint.noteWrite(second)
-  paint.noteWrite(first)
+  paint.noteWrite(first, 1, 2)
+  await settled()
+  // The sibling's writes may still be queued on its own port.
+  expect(log).toEqual([])
+  paint.noteWrite(second, 1, 2)
   expect(log).toEqual([])
   await settled()
   expect(log).toEqual(['first', 'second'])
   expect(batches).toHaveLength(1)
+})
+
+test('leaves an incomplete batch to vsync once a display frame has passed', async () => {
+  const frames = manualClock()
+  const log: string[] = []
+  const paint = create(frames.clock)
+  const arrived = target('arrived', log)
+  const late = target('late', log)
+  paint.noteWrite(arrived, 1, 2)
+  frames.displayFrame()
+  frames.displayFrame()
+  paint.noteWrite(late, 1, 2)
+  await settled()
+  expect(log).toEqual([])
+  solo(paint, arrived)
+  await settled()
+  expect(log).toEqual(['arrived'])
 })
 
 test('paints a terminal early at most once per display frame, independently of its siblings', async () => {
@@ -75,14 +100,14 @@ test('paints a terminal early at most once per display frame, independently of i
   const paint = create(frames.clock)
   const first = target('first', log)
   const second = target('second', log)
-  paint.noteWrite(first)
+  solo(paint, first)
   await settled()
-  paint.noteWrite(first)
-  paint.noteWrite(second)
+  paint.noteWrite(first, 1, 2)
+  paint.noteWrite(second, 1, 2)
   await settled()
   expect(log).toEqual(['first', 'second'])
   frames.displayFrame()
-  paint.noteWrite(second)
+  solo(paint, second)
   await settled()
   // The second terminal settled once last frame, so it may paint early again.
   expect(log).toEqual(['first', 'second', 'second'])
@@ -93,17 +118,17 @@ test('keeps vsync pacing for a terminal whose output settled more than once per 
   const log: string[] = []
   const paint = create(frames.clock)
   const busy = target('busy', log)
-  paint.noteWrite(busy)
+  solo(paint, busy)
   await settled()
-  paint.noteWrite(busy)
+  solo(paint, busy)
   await settled()
   frames.displayFrame()
-  paint.noteWrite(busy)
+  solo(paint, busy)
   await settled()
   expect(log).toEqual(['busy'])
   frames.displayFrame()
   frames.displayFrame()
-  paint.noteWrite(busy)
+  solo(paint, busy)
   await settled()
   expect(log).toEqual(['busy', 'busy'])
 })
@@ -114,10 +139,10 @@ test('does not count a settle without a waiting frame as an early paint', async 
   const paint = create(frames.clock)
   const idle = target('idle', log)
   idle.pending = false
-  paint.noteWrite(idle)
+  solo(paint, idle)
   await settled()
   idle.pending = true
-  paint.noteWrite(idle)
+  solo(paint, idle)
   await settled()
   expect(log).toEqual(['idle'])
 })
@@ -133,21 +158,27 @@ test('reports a failed paint to its terminal and still paints the rest of the ba
     throw cause
   }
   const healthy = target('healthy', log)
-  paint.noteWrite(broken)
-  paint.noteWrite(healthy)
+  paint.noteWrite(broken, 1, 2)
+  paint.noteWrite(healthy, 1, 2)
   await settled()
   expect(broken.failures).toEqual([cause])
   expect(log).toEqual(['healthy'])
   expect(batches).toHaveLength(1)
 })
 
-test('forgets a disposed terminal', async () => {
+test('forgets a disposed terminal, including in a batch that is still open', async () => {
   const { clock } = manualClock()
   const log: string[] = []
   const paint = create(clock)
   const gone = target('gone', log)
-  paint.noteWrite(gone)
+  solo(paint, gone)
   paint.forget(gone)
+  await settled()
+  expect(log).toEqual([])
+  const sibling = target('sibling', log)
+  paint.noteWrite(gone, 1, 3)
+  paint.forget(gone)
+  paint.noteWrite(sibling, 1, 3)
   await settled()
   expect(log).toEqual([])
 })
