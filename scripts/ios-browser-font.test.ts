@@ -50,7 +50,7 @@ test('font case source identities retain every original registration and paramet
   const expected = nativeStage('font-resources').expected
   const keys = expected.map((row) => row.sourceKey)
   assert.equal(new Set(keys).size, 5)
-  for (const [index, line] of [12, 12, 59, 87, 114].entries()) {
+  for (const [index, line] of [12, 12, 62, 90, 117].entries()) {
     const ordinal = index === 1 ? 1 : 0
     assert.equal(keys[index], `src/dom/tests/font-resources.browser.test.ts:${line}:${ordinal}`)
     assert.match(lines[line - 1] ?? '', /^it(?:\(|\.each\()/)

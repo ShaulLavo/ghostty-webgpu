@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest'
+import { expect, it, onTestFinished, vi } from 'vitest'
 import { observeFontResources } from '../font-resources.js'
 
 const resource = new URL('./fixtures/font-resource/replacement.woff2', import.meta.url).href
@@ -20,39 +20,42 @@ it.each(['dispose', 'family-change'] as const)(
     // Hold the font response so the load is still pending when the loading event arrives.
     const barrier = `/__ghostty_font_loading__/${crypto.randomUUID()}`
     const control = `${barrier}?control`
-    expect((await fetch(control, { method: 'POST' })).ok).toBe(true)
     const face = new FontFace(family, `url("${barrier}")`)
+    expect((await fetch(control, { method: 'POST' })).ok).toBe(true)
+    // Vitest runs this after a timeout too; DOM teardown goes first so a failed release cannot skip it.
+    onTestFinished(async () => {
+      lifecycle.abort()
+      events.abort()
+      document.fonts.delete(face)
+      await fetch(control, { method: 'DELETE' })
+    })
     observeFontResources({
       fonts: document.fonts,
       family: () => requested,
       refresh,
       signal: lifecycle.signal,
     })
-    const loading = Promise.withResolvers<void>()
-    const started = vi.fn(() => {
-      expect(face.status).toBe('loading')
-      if (retire === 'dispose') lifecycle.abort()
-      if (retire === 'family-change') requested = 'UnrelatedResource'
-      loading.resolve()
+    const started = new Promise<FontFaceLoadStatus>((resolve) => {
+      const retireOnLoading = () => {
+        const status = face.status
+        if (retire === 'dispose') lifecycle.abort()
+        if (retire === 'family-change') requested = 'UnrelatedResource'
+        resolve(status)
+      }
+      document.fonts.addEventListener('loading', retireOnLoading, {
+        signal: events.signal,
+        once: true,
+      })
     })
-    document.fonts.addEventListener('loading', started, { signal: events.signal, once: true })
-    try {
-      document.fonts.add(face)
-      const loaded = face.load()
-      await loading.promise
-      // The loading event can precede the request; releasing an unseen gate would 404 it.
-      await expect.poll(async () => (await fetch(`${barrier}?waiting`)).json()).toBe(true)
-      expect((await fetch(control, { method: 'DELETE' })).ok).toBe(true)
-      await loaded
-      await settle()
-      expect(started).toHaveBeenCalledOnce()
-      expect(refresh).not.toHaveBeenCalled()
-    } finally {
-      await fetch(control, { method: 'DELETE' })
-      lifecycle.abort()
-      events.abort()
-      document.fonts.delete(face)
-    }
+    document.fonts.add(face)
+    const loaded = face.load()
+    expect(await started).toBe('loading')
+    // The loading event can precede the request; releasing an unseen gate would 404 it.
+    await expect.poll(async () => (await fetch(`${barrier}?waiting`)).json()).toBe(true)
+    expect((await fetch(control, { method: 'DELETE' })).ok).toBe(true)
+    await loaded
+    await settle()
+    expect(refresh).not.toHaveBeenCalled()
   },
 )
 

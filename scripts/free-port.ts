@@ -1,7 +1,7 @@
 import { createServer } from 'node:net'
 
 // Vitest treats `api.port: 0` as unset and races every nested session for 63315 and up.
-// OS-assigned ports come from the ephemeral range, which never overlaps that scan.
+// Pair this with `strictPort`: a port taken before Vitest binds then fails startup instead of hanging.
 export async function freePort(host = '127.0.0.1'): Promise<number> {
   const server = createServer()
   await new Promise<void>((resolve, reject) => {
