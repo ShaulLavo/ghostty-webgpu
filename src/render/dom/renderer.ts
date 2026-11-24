@@ -214,17 +214,21 @@ class DomSurface implements RowRendererSurface {
     return 'all'
   }
 
-  /** Reads the canvas content origin; touches layout but writes nothing. */
-  measure(): void {
+  /** Reads the canvas content origin; touches layout but writes nothing. False without a window. */
+  measure(): boolean {
     const document = this.canvas.ownerDocument
     if (this.styleDocument !== document) {
-      this.canvasStyle = document.defaultView!.getComputedStyle(this.canvas)
+      // A host parked in a windowless document has no layout; it is measured again once remounted.
+      const view = document.defaultView
+      if (!view) return false
+      this.canvasStyle = view.getComputedStyle(this.canvas)
       this.styleDocument = document
     }
     // The declaration stays live; flow offsets and padding are read for every frame.
     const style = this.canvasStyle
     this.measuredLeft = this.canvas.offsetLeft + (parseFloat(style.paddingLeft) || 0)
     this.measuredTop = this.canvas.offsetTop + (parseFloat(style.paddingTop) || 0)
+    return true
   }
 
   /** Moves the overlay to the last measured origin; writes only changed declarations. */
@@ -239,13 +243,12 @@ class DomSurface implements RowRendererSurface {
   }
 
   private position(): void {
-    this.measure()
-    this.place()
+    if (this.measure()) this.place()
   }
 }
 
 // The first paint of a display frame measures every overlay before any row write, so peers never force
-// a layout each; layout changes made later in that frame are applied by a check on the next frame.
+// a layout each; layout changes made after that read are applied by a check on the next frame.
 class OverlayLayoutBatch {
   private readonly surfaces = new Set<DomSurface>()
   private readonly measuredAt = new WeakMap<DomSurface, number>()
@@ -263,26 +266,27 @@ class OverlayLayoutBatch {
   position(surface: DomSurface): void {
     const time = currentAnimationFrameTime()
     if (time === undefined) {
-      surface.measure()
-      surface.place()
+      if (surface.measure()) surface.place()
       return
     }
-    // The paint that starts a batch reads its own geometry fresh; only later paints can miss changes.
-    if (this.frameTime !== time) return this.run(time)
+    // Any reading can go stale before the frame ends, including the batch's own.
     this.scheduleCheck()
+    if (this.frameTime !== time) {
+      this.frameTime = time
+      this.measureAll(time)
+      return
+    }
     if (this.measuredAt.get(surface) === time) return
     // Joined after this frame's batch (created or moved mid-frame); measure it alone.
-    surface.measure()
-    surface.place()
+    if (surface.measure()) surface.place()
   }
 
-  private run(time: number): void {
-    this.frameTime = time
-    const surfaces = Array.from(this.surfaces)
-    for (const surface of surfaces) surface.measure()
-    for (const surface of surfaces) {
+  // Reads every overlay before writing any; with a frame time the readings serve that frame's paints.
+  private measureAll(time?: number): void {
+    const measured = Array.from(this.surfaces).filter((surface) => surface.measure())
+    for (const surface of measured) {
       surface.place()
-      this.measuredAt.set(surface, time)
+      if (time !== undefined) this.measuredAt.set(surface, time)
     }
   }
 
@@ -290,8 +294,9 @@ class OverlayLayoutBatch {
     if (this.checkHandle !== undefined) return
     this.checkHandle = window.requestAnimationFrame((time) => {
       this.checkHandle = undefined
-      if (this.frameTime === time || this.surfaces.size === 0) return
-      this.run(time)
+      if (this.frameTime === time) return
+      // Not a paint cache: app callbacks after this check can still move a terminal before it paints.
+      this.measureAll()
     })
   }
 }
