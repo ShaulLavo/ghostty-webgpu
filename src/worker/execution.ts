@@ -356,18 +356,20 @@ export class WorkerTerminalExecution {
       return
     }
     pending.resolve(freezeWorkerValue(message.result))
-    if (this.pooled && writeOperations.has(pending.operation)) this.postDrained()
+    if (this.pooled && writeOperations.has(pending.operation)) this.postDrained(message.output)
   }
 
   // Sent on the request port, so it reaches the worker after every write posted before it; the
-  // worker paints this terminal early only then, never between two writes it already holds.
-  private postDrained(): void {
+  // worker paints this terminal early only then, never between two writes it already holds, and
+  // only if it parsed no producer output after the answered write.
+  private postDrained(output: number): void {
     if (this.disposed || this.failure) return
     try {
       this.port.postMessage({
         type: 'drained',
         terminal: this.terminal,
         generation: this.generation,
+        output,
       })
     } catch {}
   }

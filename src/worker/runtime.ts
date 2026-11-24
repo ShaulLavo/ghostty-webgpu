@@ -77,6 +77,12 @@ export class TerminalWorkerRuntime {
   private readonly subscriptions: TerminalSessionSubscription[] = []
   private readonly abort = new AbortController()
   private outputPort?: MessagePort
+  private pageVisible = true
+  private deferredLayout?: {
+    readonly font: TerminalFittedFont
+    readonly columns: number
+    readonly rows: number
+  }
   private output = 0
   private control = 0
   private acceptedControl = 0
@@ -166,9 +172,46 @@ export class TerminalWorkerRuntime {
       message.generation !== this.initialize.generation
     )
       return
-    this.chain = this.chain.then(() => {
-      if (!this.disposed) this.shared.settled.noteWrite(this.settleTarget)
-    })
+    const covered = message.output
+    if (!Number.isSafeInteger(covered) || covered < 0) {
+      this.fail(workerError('protocol', 'drained', { control: this.control }))
+      return
+    }
+    this.chain = this.chain.then(() => this.settle(covered))
+  }
+
+  // Every page write before the signal is parsed and none after it, so the page's part is whole.
+  private settle(covered: number): void {
+    if (this.disposed) return
+    this.applyDeferredLayout()
+    // Producer output parsed after the answered write is not ordered with this signal.
+    if (this.output > covered) {
+      this.shared.settled.release(this.settleTarget)
+      return
+    }
+    this.shared.settled.noteWrite(this.settleTarget)
+  }
+
+  // A resize repaints at once, so a pooled terminal holding part of a page task resizes its
+  // canvas, and paints at all, only at its next signal. The native grid resizes in order.
+  private deferRendererLayout(font: TerminalFittedFont, columns: number, rows: number): boolean {
+    const renderer = this.renderer
+    if (!renderer || !this.initialize.pooled || !this.shared.settled.holds(this.settleTarget))
+      return false
+    if (!this.deferredLayout) renderer.setDocumentVisible(false)
+    this.deferredLayout = { font, columns, rows }
+    return true
+  }
+
+  private applyDeferredLayout(): void {
+    const layout = this.deferredLayout
+    const renderer = this.renderer
+    if (!layout || !renderer) return
+    this.deferredLayout = undefined
+    renderer.setDocumentVisible(this.pageVisible)
+    renderer.setFont(layout.font)
+    renderer.resize({ columns: layout.columns, rows: layout.rows })
+    renderer.refreshRows?.(0, layout.rows - 1)
   }
 
   async start(): Promise<void> {
@@ -362,7 +405,8 @@ export class TerminalWorkerRuntime {
     // No await splits the font, native grid and renderer commit.
     this.layoutFont = font
     execution.commitLayout(font, padding)
-    this.renderer?.setFont(font)
+    const deferred = this.deferRendererLayout(font, columns, rows)
+    if (!deferred) this.renderer?.setFont(font)
     execution.resize({
       columns,
       rows,
@@ -370,6 +414,7 @@ export class TerminalWorkerRuntime {
       cellHeight: font.cssCellHeight,
       pixelRatio: font.pixelRatio,
     })
+    if (deferred) return
     this.renderer?.resize({ columns, rows })
     this.renderer?.refreshRows?.(0, rows - 1)
   }
@@ -735,6 +780,9 @@ export class TerminalWorkerRuntime {
       case 'reducedMotion':
         return this.renderer?.setReducedMotion?.(...request.args)
       case 'visible':
+        this.pageVisible = request.args[0]
+        // A deferred layout restores the page's visibility when it applies.
+        if (this.deferredLayout) return undefined
         return this.renderer?.setDocumentVisible(...request.args)
       case 'inactiveCursor': {
         const [style] = request.args
@@ -756,7 +804,9 @@ export class TerminalWorkerRuntime {
     }
   }
 
+  // A page write; producer output is checked against each signal's watermark instead.
   private noteWrite(): void {
+    if (this.initialize.pooled) this.shared.settled.hold(this.settleTarget)
     this.renderer?.notifyWrite()
   }
 
@@ -780,7 +830,7 @@ export class TerminalWorkerRuntime {
       try {
         this.output = data.sequence
         this.native().write(data.data)
-        this.noteWrite()
+        this.renderer?.notifyWrite()
         port.postMessage({ ...this.identity(), type: 'output-ack', sequence: this.output })
         if (this.outputWaiter && this.output >= this.outputWaiter.sequence)
           this.outputWaiter.resolve()
