@@ -28,6 +28,8 @@ interface LoadRow {
 interface Data {
   measured: string
   commit: string
+  sizeCommit?: string
+  coldLoadCommit?: string
   version: string
   libraries: Record<string, string>
   drift: Record<Host, number>
@@ -311,8 +313,23 @@ export async function renderNovember(): Promise<{ version: string; markdown: str
   return { version: data.version, markdown: render(data) }
 }
 
+function formatCommitSummary(
+  short: string,
+  coldLoadShort: string | undefined,
+  sizeShort: string | undefined,
+): string {
+  if (!sizeShort && !coldLoadShort) return `commit \`${short}\``
+  const parts = [`speed and energy on \`${short}\``]
+  if (coldLoadShort) parts.push(`refreshed main-entry cold load on \`${coldLoadShort}\``)
+  if (sizeShort) parts.push(`refreshed main-entry download size on \`${sizeShort}\``)
+  return parts.join('; ')
+}
+
 function render(data: Data) {
   const short = data.commit.slice(0, 9)
+  const sizeShort = data.sizeCommit?.slice(0, 9)
+  const coldLoadShort = data.coldLoadCommit?.slice(0, 9)
+  const commitSummary = formatCommitSummary(short, coldLoadShort, sizeShort)
   const lib = data.libraries
   const cpu = {
     pc: standing(compare(rowsOf(data, 'pc', 'cpu')), false),
@@ -339,7 +356,7 @@ ${fullTable(rowsOf(data, host, 'cpu'), 3)}
 
   return `## November 2026: against xterm.js, ghostty-web, Wraith and Restty
 
-Measured ${data.measured} on ghostty-webgpu ${data.version} (commit \`${short}\`) against xterm.js ${lib['@xterm/xterm']} (WebGL addon ${lib['@xterm/addon-webgl']}), ghostty-web ${lib['ghostty-web']}, Wraith (\`wraithterm\`) ${lib.wraithterm} and Restty ${lib.restty}, on two machines:
+Measured ${data.measured} on ghostty-webgpu ${data.version} (${commitSummary}) against xterm.js ${lib['@xterm/xterm']} (WebGL addon ${lib['@xterm/addon-webgl']}), ghostty-web ${lib['ghostty-web']}, Wraith (\`wraithterm\`) ${lib.wraithterm} and Restty ${lib.restty}, on two machines:
 
 - **PC:** ${data.hosts.pc.machine}; ${data.hosts.pc.browser}; DPR ${data.hosts.pc.dpr}.
 - **Mac:** ${data.hosts.mac.machine}; ${data.hosts.mac.browser}; DPR ${data.hosts.mac.dpr}.
@@ -431,15 +448,15 @@ ${fullTable(rowsOf(data, 'mac', 'energy'), 3)}
 
 ### Download size
 
-KiB that one terminal on its best renderer downloads, built with the same Vite production config and logged by the server while the page loads in Chromium. Brotli is quality 11. Fonts are counted separately: xterm.js, ghostty-web and our main entry draw with the page's \`monospace\` font; our worker entry and Restty get the same 21 KiB woff2, and Wraith fetches its bundled TTF.
+KiB that one terminal on its best renderer downloads, built with the same Vite production config and logged by the server while the page loads in Chromium. Brotli is quality 11. Fonts are counted separately: xterm.js, ghostty-web and our main entry draw with the page's \`monospace\` font; our worker entry and Restty get the same 21 KiB woff2, and Wraith fetches its bundled TTF.${sizeShort ? ` Main-entry rows were measured on \`${sizeShort}\` after Canvas-first startup landed; worker rows were measured on \`${short}\`.` : ''}
 
 ${sizeTable(data.size)}
 
 ### Cold load
 
-Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's \`monospace\` font; the others fetch a font file. The auto backend is WebGL2 on the PC and WebGPU on the Mac.
+Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's \`monospace\` font; the others fetch a font file. The main entry paints its first frame on Canvas 2D while its GPU renderer starts: in \`auto\` mode it hands off \`canvas2d → webgl2\` on the PC and \`canvas2d → webgpu\` on the Mac, while forced \`WebGPU\` and \`WebGL2\` hand off to their named backend on both hosts${coldLoadShort ? ` (main-entry cold-load rows measured on \`${coldLoadShort}\`; worker rows on \`${short}\`)` : ''}.
 
-${coldLoadNotes(data)} On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. Unthrottled WebGL2 first paint on the PC is bimodal, about 222 or 270 ms per load, for xterm.js too, so its 10-run median can land on either mode.
+${coldLoadNotes(data)} On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. On the PC, our main entry avoids WebGL2 startup latency by painting first on Canvas 2D (80 to 82 ms median unthrottled), while xterm.js WebGL2 remains bimodal around 222 or 270 ms per load.
 
 ${loadTable(data)}
 
