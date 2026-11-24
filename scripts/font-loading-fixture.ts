@@ -5,6 +5,8 @@ import type { Plugin } from 'vite'
 const prefix = '/__ghostty_font_loading__/'
 type Gate = ReturnType<typeof Promise.withResolvers<void>>
 type Gates = Map<string, Gate>
+// Gates whose font request has reached the server; a release before that would 404 the request.
+const held = new WeakSet<Gate>()
 
 function release(gates: Gates, key: string, gate = gates.get(key)): void {
   if (!gate) return
@@ -19,6 +21,7 @@ function fontResponse(
   response: ServerResponse,
   bytes: Buffer,
 ): void {
+  held.add(gate)
   response.once('close', () => release(gates, key, gate))
   void gate.promise.then(() => {
     if (response.destroyed || response.writableEnded) return
@@ -56,6 +59,12 @@ function handle(
   if (control && request.method === 'DELETE') {
     release(gates, key)
     response.writeHead(204).end()
+    return
+  }
+  if (url.search === '?waiting' && request.method === 'GET') {
+    const gate = gates.get(key)
+    response.setHeader('Content-Type', 'application/json')
+    response.end(JSON.stringify(gate !== undefined && held.has(gate)))
     return
   }
   if (url.search || request.method !== 'GET') {

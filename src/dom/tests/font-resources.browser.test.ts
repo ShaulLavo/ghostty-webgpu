@@ -17,26 +17,38 @@ it.each(['dispose', 'family-change'] as const)(
     const lifecycle = new AbortController()
     const events = new AbortController()
     const refresh = vi.fn()
-    const face = new FontFace(family, `url("${resource}")`)
+    // Hold the font response so the load is still pending when the loading event arrives.
+    const barrier = `/__ghostty_font_loading__/${crypto.randomUUID()}`
+    const control = `${barrier}?control`
+    expect((await fetch(control, { method: 'POST' })).ok).toBe(true)
+    const face = new FontFace(family, `url("${barrier}")`)
     observeFontResources({
       fonts: document.fonts,
       family: () => requested,
       refresh,
       signal: lifecycle.signal,
     })
+    const loading = Promise.withResolvers<void>()
     const started = vi.fn(() => {
       expect(face.status).toBe('loading')
       if (retire === 'dispose') lifecycle.abort()
       if (retire === 'family-change') requested = 'UnrelatedResource'
+      loading.resolve()
     })
     document.fonts.addEventListener('loading', started, { signal: events.signal, once: true })
     try {
       document.fonts.add(face)
-      await face.load()
+      const loaded = face.load()
+      await loading.promise
+      // The loading event can precede the request; releasing an unseen gate would 404 it.
+      await expect.poll(async () => (await fetch(`${barrier}?waiting`)).json()).toBe(true)
+      expect((await fetch(control, { method: 'DELETE' })).ok).toBe(true)
+      await loaded
       await settle()
       expect(started).toHaveBeenCalledOnce()
       expect(refresh).not.toHaveBeenCalled()
     } finally {
+      await fetch(control, { method: 'DELETE' })
       lifecycle.abort()
       events.abort()
       document.fonts.delete(face)

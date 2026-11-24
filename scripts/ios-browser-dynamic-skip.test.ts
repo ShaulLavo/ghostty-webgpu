@@ -18,6 +18,7 @@ import type {
   FrameworkUpdate,
 } from 'waffle/testing/page-runner/framework'
 import { createBrowserTestConfig } from '../vitest.browser.config.ts'
+import { freePort } from './free-port.ts'
 import { ghosttyFrameworkPlugin } from './ios-browser.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
@@ -199,10 +200,13 @@ test('dynamic skips settle once after every cleanup and preserve non-passing out
       { root, config: false, watch: false, reporters: [] },
       {
         ...base,
+        // Parallel nested sessions must not share Vite's dependency cache or Vitest's default port.
+        cacheDir: join(scratch, 'vite'),
         plugins: base.plugins.concat(plugin),
+        server: { ...base.server, fs: { allow: base.server.fs.allow.concat(scratch) } },
         test: {
           ...base.test,
-          api: { port: 0 },
+          api: { port: await freePort(), strictPort: true, host: '127.0.0.1' },
           include: [file],
           testTimeout: 15000,
           hookTimeout: 30000,

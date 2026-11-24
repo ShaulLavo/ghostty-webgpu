@@ -363,10 +363,17 @@ it.each(['webgpu', 'webgl2'] satisfies ('webgpu' | 'webgl2')[])(
 it('freezes effect time while paused, resumes and keeps capture current', async () => {
   const f = await fixture('webgl2', timeShader)
   f.handle.api.setPaused(true)
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-  )
-  const paused = await color(f.canvas)
+  // The WebGL pass skips draws until the previous draw's fence signals, so the frozen frame can land late.
+  let paused = await color(f.canvas)
+  await expect
+    .poll(async () => {
+      await frames(3)
+      const next = await color(f.canvas)
+      const settled = next.every((value, index) => value === paused[index])
+      paused = next
+      return settled
+    })
+    .toBe(true)
   await new Promise((resolve) => setTimeout(resolve, 100))
   expect(await color(f.canvas)).toEqual(paused)
   f.handle.api.setPaused(false)
