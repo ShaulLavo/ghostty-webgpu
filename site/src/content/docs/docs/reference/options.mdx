@@ -30,6 +30,7 @@ Create a terminal with `Terminal.create(options)`. The main entry takes `Ghostty
 | `backend`    | `auto`, `webgpu`, `webgl`         | `auto`                                      |
 | `assets`     | Hosted wasm and bridge URLs       | Package-relative files                      |
 | `workerUrl`  | Hosted worker module              | Package worker                              |
+| `pool`       | Share a few workers between terminals | One worker per terminal                 |
 | `appearance` | Same appearance model             | Native defaults, first supplied font family |
 
 Both entries pause painting when the document is hidden. By default, an IntersectionObserver also pauses a terminal outside the viewport or a clipping ancestor. Parsing and layout changes continue. On return, the renderer paints the current state. `visibleLines()` and the accessibility mirror retain the last displayed text until that paint. Set `renderWhenOffscreen: true` to keep offscreen painting enabled. Element intersection does not detect another element covering the terminal.

@@ -55,6 +55,14 @@ export class FrameCoordinator implements RenderSchedulerClock {
     this.pending.push(frame)
   }
 
+  /** Runs the waiting frame callbacks now instead of at the next animation frame. */
+  paintNow(): boolean {
+    if (this.frameHandle === undefined || this.active) return false
+    this.clock.cancelFrame(this.frameHandle)
+    this.runFrame()
+    return true
+  }
+
   flushPending(): void {
     this.flush()
   }

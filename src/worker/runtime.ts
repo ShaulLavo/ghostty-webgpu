@@ -286,7 +286,7 @@ export class TerminalWorkerRuntime {
       columns: execution.grid.columns,
       rows: execution.grid.rows,
       font,
-      schedulerClock: this.shared.clock,
+      schedulerClock: this.shared.frameCoordinator,
       cursorBlink: execution.appearance.cursor.blink,
       textBlink: this.initialize.textBlink,
       theme: execution.appearance.rendererTheme,
@@ -550,17 +550,17 @@ export class TerminalWorkerRuntime {
         return native.measureTexts(...request.args)
       case 'writeAndReadGeometry': {
         const geometry = native.writeAndReadGeometry(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return geometry
       }
       case 'write': {
         const result = native.write(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return result
       }
       case 'writeln': {
         const result = native.writeln(...request.args)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         return result
       }
       case 'sendInput':
@@ -648,6 +648,11 @@ export class TerminalWorkerRuntime {
     }
   }
 
+  private noteWrite(): void {
+    this.renderer?.notifyWrite()
+    this.shared.noteWrite()
+  }
+
   private attachOutput(port: MessagePort): void {
     if (this.outputPort) throw workerError('protocol', 'attachOutput', { attached: true })
     this.outputPort = port
@@ -668,7 +673,7 @@ export class TerminalWorkerRuntime {
       try {
         this.output = data.sequence
         this.native().write(data.data)
-        this.renderer?.notifyWrite()
+        this.noteWrite()
         port.postMessage({ ...this.identity(), type: 'output-ack', sequence: this.output })
         if (this.outputWaiter && this.output >= this.outputWaiter.sequence)
           this.outputWaiter.resolve()
