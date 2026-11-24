@@ -38,7 +38,7 @@ CI runs all three engines across four shards each. Its headless Firefox command 
 
 ## Rebuild the wasm
 
-`ghostty-vt.wasm` and `bridge.wasm` are checked in. Rebuild them with `bun run build:wasm`. It needs Zig 0.16.0 or newer, and it builds the pinned upstream Ghostty revision from `ghostty-vt.provenance.json` without patches ([ADR 001](adr/001-unpatched-pinned-ghostty-core.md)). Rebuild `canvas-compose.wasm` and `canvas-compose-scalar.wasm` with `bun run build:canvas-compose`.
+`ghostty-vt.wasm` and `bridge.wasm` are checked in. Rebuild them with `bun run build:wasm`. It needs Zig 0.16.0 or newer, and it builds the pinned upstream Ghostty revision from `ghostty-vt.provenance.json` without patches ([ADR 001](adr/001-unpatched-pinned-ghostty-core.md)). Upstream's `-Dvt-features` option limits the build to the libghostty-vt features our bindings call (`GHOSTTY_VT_FEATURES` in `scripts/wasm-provenance.ts`). Rebuild `canvas-compose.wasm` and `canvas-compose-scalar.wasm` with `bun run build:canvas-compose`.
 
 ## Where things live
 

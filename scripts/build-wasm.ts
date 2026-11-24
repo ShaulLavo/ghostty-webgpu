@@ -7,7 +7,12 @@ import { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from '../src/core/
 import { ArtifactBuildError, verifyCleanSource, verifyRevision } from './ghostty-source.js'
 import { GHOSTTY_VT_EXPORTS } from './ghostty-vt-exports.js'
 import { trimWasmExports } from './wasm-exports.js'
-import { recordWasmProvenance, WASM_OPT, WASM_OPT_FLAGS } from './wasm-provenance.js'
+import {
+  recordWasmProvenance,
+  TERMINAL_BUILD_ARGS,
+  WASM_OPT,
+  WASM_OPT_FLAGS,
+} from './wasm-provenance.js'
 
 const sourceRepository = GHOSTTY_SOURCE_REPOSITORY
 const sourceRevision = GHOSTTY_SOURCE_REVISION
@@ -67,10 +72,7 @@ async function validateWasm(path: string): Promise<void> {
 }
 
 async function buildArtifacts(source: string, workspace: string, zig: string): Promise<void> {
-  await run(
-    [zig, 'build', '-Demit-lib-vt=true', '-Dtarget=wasm32-freestanding', '-Doptimize=ReleaseSmall'],
-    source,
-  )
+  await run([zig].concat(TERMINAL_BUILD_ARGS), source)
   const bridgeOutput = join(workspace, 'bridge.wasm')
   await run(
     [
