@@ -480,13 +480,16 @@ export class WebGlTextPass {
     const start = range.byteOffset / stride
     const end = (range.byteOffset + range.byteLength) / stride
     const floats = stride / 4
+    const drawable = pipeline.drawable
+    let last = -1
     for (let index = start; index < end; index += 1) {
-      const offset = index * floats
-      const drawable = Number(data[offset + 2]! > 0 && data[offset + 3]! > 0)
-      pipeline.drawable[index] = drawable
-      if (drawable) pipeline.drawInstanceCount = Math.max(pipeline.drawInstanceCount, index + 1)
+      const offset = index * floats + 2
+      const visible = data[offset]! > 0 && data[offset + 1]! > 0 ? 1 : 0
+      drawable[index] = visible
+      if (visible) last = index
     }
-    while (pipeline.drawInstanceCount > 0 && !pipeline.drawable[pipeline.drawInstanceCount - 1])
+    if (last >= pipeline.drawInstanceCount) pipeline.drawInstanceCount = last + 1
+    while (pipeline.drawInstanceCount > 0 && !drawable[pipeline.drawInstanceCount - 1])
       pipeline.drawInstanceCount -= 1
   }
 

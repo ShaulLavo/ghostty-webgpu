@@ -165,7 +165,9 @@ describe('WASM frame records', () => {
       terminal.write('\x1b[1;2Ha')
       state.update()
       readyFrame({ ...options, stableRows, full: false })
-      expect(cellReads).toBe(5)
+      // One rebuilt cell. Full builds skip the plain-cell cache, so only the unstable layout,
+      // whose scroll frame was incremental, has 'a' cached and reads just the neighbor's width.
+      expect(cellReads).toBe(stableRows ? 5 : 1)
       const cells = builder.cellData.slice()
       const glyphs = builder.glyphData.slice()
       readyFrame({ ...options, stableRows })
@@ -505,6 +507,62 @@ describe('WASM frame records', () => {
       expect(builder.glyphData).toEqual(glyphs)
     },
   )
+
+  it('reuses cached plain cells across frames exactly as a fresh builder writes them', async () => {
+    runtime = await GhosttyRuntime.create()
+    const terminal = runtime.createTerminal({ columns: 12, rows: 4 })
+    const state = runtime.createRenderState(terminal)
+    builder = state.createFrameBuilder(12, 4)
+    let current: ZigFrameOptions = { ...options, full: false }
+    const fresh = () => {
+      const reference = state.createFrameBuilder(12, 4)
+      try {
+        const full = { ...current, full: true }
+        let status = reference.build(full)
+        if (status === 2) {
+          for (const key of reference.missingGlyphs) reference.registerGlyph(key, glyph)
+          status = reference.build(full)
+        }
+        expect(status).toBe(0)
+        return { cells: reference.cellData.slice(), glyphs: reference.glyphData.slice() }
+      } finally {
+        reference.dispose()
+      }
+    }
+    // Each step changes what the renderer would: cursor moves repaint their rows, the rest repaint all.
+    const cursor = (style: 'bar' | 'block', x: number, y: number, rows: number[]) => () => {
+      current = { ...current, cursor: { style, visible: true, x, y }, overlayRows: new Set(rows) }
+    }
+    const repaint = (change: () => void) => () => {
+      change()
+      current = { ...current, full: true }
+    }
+    const theme = (patch: Partial<ZigFrameOptions['theme']>) =>
+      repaint(() => (current = { ...current, theme: { ...current.theme, ...patch } }))
+    const steps: [string, () => void][] = [
+      ['plain text', () => terminal.write('\x1b[?25labc abc\r\ncab bca')],
+      ['cursor over a cached cell', cursor('block', 1, 0, [0])],
+      ['bar cursor', cursor('bar', 2, 1, [0, 1])],
+      ['selection', repaint(() => terminal.selectAll())],
+      ['cleared selection', repaint(() => terminal.clearSelection())],
+      ['foreground', theme({ foreground: { r: 200, g: 80, b: 40 } })],
+      ['contrast', theme({ minimumContrast: 4.5 })],
+      ['cleared glyphs', repaint(() => builder!.clearGlyphs())],
+      ['wide and styled', () => terminal.write('\x1b[3;1Hb界a\x1b[31;1ma\x1b[0mb\x1b[7mc\x1b[0m')],
+      ['symbols beside cached cells', () => terminal.write('\x1b[4;1H→a a→ ab́')],
+      ['rewritten rows', () => terminal.write('\x1b[1;1Hcba cba\r\nbca abc')],
+    ]
+    for (const [name, step] of steps) {
+      current = { ...current, full: false, overlayRows: new Set() }
+      step()
+      state.update()
+      readyFrame(current)
+      const expected = fresh()
+      state.acknowledge()
+      expect({ name, cells: builder.cellData.slice() }).toEqual({ name, cells: expected.cells })
+      expect({ name, glyphs: builder.glyphData.slice() }).toEqual({ name, glyphs: expected.glyphs })
+    }
+  })
 
   it('compares moved selection and history rows against full records', async () => {
     runtime = await GhosttyRuntime.create()
