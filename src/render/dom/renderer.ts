@@ -5,6 +5,7 @@ import type { TerminalFittedFont } from '../../term/types.js'
 import {
   canonicalRendererTheme,
   copyFittedFont,
+  currentAnimationFrameTime,
   mergeRendererTheme,
   normalizeRendererGrid,
 } from '../shared/config.js'
@@ -81,6 +82,8 @@ class DomSurface implements RowRendererSurface {
   private grid: RendererGridSize
   private theme: CanonicalRendererTheme
   private rows: MountedRow[] = []
+  private measuredLeft = 0
+  private measuredTop = 0
   private defaultStyle: DefaultRowStyle
   private readonly ligatures?: LigatureFinder
 
@@ -105,16 +108,18 @@ class DomSurface implements RowRendererSurface {
     // Transparency preserves the canvas as the terminal pointer target.
     this.canvas.style.opacity = '0'
     this.canvas.after(this.container)
+    overlayLayout.add(this)
   }
 
   dispose(): void {
+    overlayLayout.delete(this)
     this.container.remove()
     this.rows = []
     this.canvas.style.opacity = this.previousOpacity
   }
 
   beginFrame(): void {
-    this.position()
+    overlayLayout.position(this)
   }
 
   paint(
@@ -209,25 +214,94 @@ class DomSurface implements RowRendererSurface {
     return 'all'
   }
 
-  private position(): void {
+  /** Reads the canvas content origin; touches layout but writes nothing. False without a window. */
+  measure(): boolean {
     const document = this.canvas.ownerDocument
     if (this.styleDocument !== document) {
-      this.canvasStyle = document.defaultView!.getComputedStyle(this.canvas)
+      // A host parked in a windowless document has no layout; it is measured again once remounted.
+      const view = document.defaultView
+      if (!view) return false
+      this.canvasStyle = view.getComputedStyle(this.canvas)
       this.styleDocument = document
     }
     // The declaration stays live; flow offsets and padding are read for every frame.
     const style = this.canvasStyle
-    const left = this.canvas.offsetLeft + (parseFloat(style.paddingLeft) || 0)
-    const top = this.canvas.offsetTop + (parseFloat(style.paddingTop) || 0)
+    this.measuredLeft = this.canvas.offsetLeft + (parseFloat(style.paddingLeft) || 0)
+    this.measuredTop = this.canvas.offsetTop + (parseFloat(style.paddingTop) || 0)
+    return true
+  }
+
+  /** Moves the overlay to the last measured origin; writes only changed declarations. */
+  place(): void {
     const declarations = this.container.style
-    const leftDeclaration = `${left}px`
-    const topDeclaration = `${top}px`
+    const leftDeclaration = `${this.measuredLeft}px`
+    const topDeclaration = `${this.measuredTop}px`
     if (declarations.left !== leftDeclaration || declarations.getPropertyPriority('left') !== '')
       declarations.left = leftDeclaration
     if (declarations.top !== topDeclaration || declarations.getPropertyPriority('top') !== '')
       declarations.top = topDeclaration
   }
+
+  private position(): void {
+    if (this.measure()) this.place()
+  }
 }
+
+// The first paint of a display frame measures every overlay before any row write, so peers never force
+// a layout each; layout changes made after that read are applied by a check on the next frame.
+class OverlayLayoutBatch {
+  private readonly surfaces = new Set<DomSurface>()
+  private readonly measuredAt = new WeakMap<DomSurface, number>()
+  private frameTime?: number
+  private checkHandle?: number
+
+  add(surface: DomSurface): void {
+    this.surfaces.add(surface)
+  }
+
+  delete(surface: DomSurface): void {
+    this.surfaces.delete(surface)
+  }
+
+  position(surface: DomSurface): void {
+    const time = currentAnimationFrameTime()
+    if (time === undefined) {
+      if (surface.measure()) surface.place()
+      return
+    }
+    // Any reading can go stale before the frame ends, including the batch's own.
+    this.scheduleCheck()
+    if (this.frameTime !== time) {
+      this.frameTime = time
+      this.measureAll(time)
+      return
+    }
+    if (this.measuredAt.get(surface) === time) return
+    // Joined after this frame's batch (created or moved mid-frame); measure it alone.
+    if (surface.measure()) surface.place()
+  }
+
+  // Reads every overlay before writing any; with a frame time the readings serve that frame's paints.
+  private measureAll(time?: number): void {
+    const measured = Array.from(this.surfaces).filter((surface) => surface.measure())
+    for (const surface of measured) {
+      surface.place()
+      if (time !== undefined) this.measuredAt.set(surface, time)
+    }
+  }
+
+  private scheduleCheck(): void {
+    if (this.checkHandle !== undefined) return
+    this.checkHandle = window.requestAnimationFrame((time) => {
+      this.checkHandle = undefined
+      if (this.frameTime === time) return
+      // Not a paint cache: app callbacks after this check can still move a terminal before it paints.
+      this.measureAll()
+    })
+  }
+}
+
+const overlayLayout = new OverlayLayoutBatch()
 
 export class DomTerminalRenderer extends RowTerminalRenderer {
   readonly backend = 'dom' as const

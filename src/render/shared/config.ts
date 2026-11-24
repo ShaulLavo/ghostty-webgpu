@@ -45,18 +45,27 @@ function fontSettingsEqual(left: TerminalFittedFont, right: TerminalFittedFont):
 }
 
 let animationFrameDepth = 0
+let animationFrameTime: number | undefined
 
 /** True while a library animation-frame callback runs, so its drawing joins the current page update. */
 export function insideAnimationFrame(): boolean {
   return animationFrameDepth > 0
 }
 
-function runAnimationFrame(callback: () => void): void {
+/** The display frame's timestamp while a library animation-frame callback runs; every callback of one frame shares it. */
+export function currentAnimationFrameTime(): number | undefined {
+  return animationFrameDepth > 0 ? animationFrameTime : undefined
+}
+
+function runAnimationFrame(callback: () => void, time: number): void {
+  const previous = animationFrameTime
   animationFrameDepth += 1
+  animationFrameTime = time
   try {
     callback()
   } finally {
     animationFrameDepth -= 1
+    animationFrameTime = previous
   }
 }
 
@@ -64,7 +73,8 @@ export function browserRenderClock(): RenderSchedulerClock {
   return {
     cancelFrame: (handle) => window.cancelAnimationFrame(handle),
     clearTimer: (handle) => window.clearTimeout(handle),
-    requestFrame: (callback) => window.requestAnimationFrame(() => runAnimationFrame(callback)),
+    requestFrame: (callback) =>
+      window.requestAnimationFrame((time) => runAnimationFrame(callback, time)),
     setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
   }
 }
