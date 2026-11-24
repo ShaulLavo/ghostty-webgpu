@@ -283,6 +283,16 @@ export class ZigFrameBuilder {
     return this.runtime.memory.view.getUint32(this.frame + 44, true)
   }
 
+  /** Retries a build that reported missing glyphs, rewriting only the cells that waited on them. */
+  retryMissing(options: ZigFrameOptions): number {
+    this.ensureActive()
+    const patched = this.runtime.bridge.patchFrame(this.frame)
+    if (patched === 0) return this.build(options)
+    if (patched === 2)
+      throw createGhosttyError('frame_builder', 'The native frame could not finish missing glyphs')
+    return this.runtime.memory.view.getUint32(this.frame + 44, true)
+  }
+
   changedRanges(): readonly RowInstanceUpdate[] {
     this.ensureActive()
     const view = this.runtime.memory.view

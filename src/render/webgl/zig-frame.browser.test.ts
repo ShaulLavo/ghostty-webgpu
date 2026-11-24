@@ -127,14 +127,14 @@ describe('WebGL WASM frame pixels', () => {
       '\x1b[?25lold\r\nsecond\r\nthird\x1b[2;1H',
     )
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     const before = await expectPainted(native.renderer)
     build.mockClear()
     const uploaded = native.renderer.metrics.uploadedBytes
     writeFrame(nativeSource, '\x1b[2;6H\x1b[31;44mX')
     native.renderer.notifyWrite()
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     const after = await expectPainted(native.renderer)
     expect(after).not.toEqual(before)
     const firstRowBytes = native.canvas.width * fittedFont().deviceCellHeight * 4
@@ -518,7 +518,8 @@ describe('WebGL native atlas residency', () => {
     source.terminal.write('\x1b[2;2HE')
     source.state.update()
     expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: false })).toBe(0)
-    expect(builds.mock.results.map((result) => result.value)).toEqual([2, 2, 0])
+    // The eviction stales the queued cells, so the second build reruns; its retry then patches.
+    expect(builds.mock.results.map((result) => result.value)).toEqual([2, 2])
     expect(atlas.evictionCount).toBe(1)
     const records = { cells: builder.cellData.slice(), glyphs: builder.glyphData.slice() }
     expect(buildZigFrame(builder, atlas, rasterizer, { ...options, full: true })).toBe(0)
@@ -579,13 +580,13 @@ describe('WebGL native atlas residency', () => {
     build.mockClear()
     native.renderer.clearTextureAtlas()
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     expect(await expectPainted(native.renderer)).toEqual(before)
     build.mockClear()
     const font = fittedFont(20, 30, 24)
     native.renderer.setFont(font)
     native.clock.flushFrame()
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     expect([native.canvas.width, native.canvas.height]).toEqual([32 * 20, 3 * 30])
     await expectPainted(native.renderer)
     expect(native.renderer.metrics.zigFrames).toBe(3)
@@ -738,7 +739,7 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
     (Math.min(512, x + width + 1) - Math.max(0, x - 1)) *
     (Math.min(512, y + height + 1) - Math.max(0, y - 1))
   expect(native.renderer.metrics.atlasUploadedBytes - warm.native.atlasUploadedBytes).toBe(box)
-  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2, 0])
+  expect(builds.mock.results.map((result) => result.value)).toEqual([0, 0, 0, 2])
   expect(native.renderer.metrics.zigFrames).toBe(native.renderer.metrics.submittedFrames)
   expect(nativeReadRows).not.toHaveBeenCalled()
   expect(touches.mock.calls).toEqual([

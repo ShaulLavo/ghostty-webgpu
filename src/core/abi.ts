@@ -819,6 +819,7 @@ export interface BridgeWasmExports extends WebAssembly.Exports {
   bridge_clear_glyphs(index: number): void
   bridge_invalidate_glyph_page(index: number, kind: number, layer: number, generation: number): void
   bridge_retry_deferred_glyphs(index: number): number
+  bridge_patch_frame(frame: number): number
   bridge_render_hold: WebAssembly.ExportValue
   bridge_bell: WebAssembly.ExportValue
   bridge_clipboard_write: WebAssembly.ExportValue

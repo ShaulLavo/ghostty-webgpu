@@ -116,6 +116,7 @@ export class WebGlTerminalRenderer {
   private inactiveCursorStyle?: InactiveCursorStyle
   private frameFailed = false
   private needsFullRebuild = true
+  private glyphsReset = false
   private readonly onError?: (cause: unknown) => void
   private readonly onContextLost?: () => void
   private readonly frames: FrameObserver
@@ -214,7 +215,10 @@ export class WebGlTerminalRenderer {
   private resetAtlas(): void {
     this.zigBuilder?.clearGlyphs()
     this.atlas.invalidateAll()
-    this.invalidateAll()
+    // The cleared index rewrites every row; only records whose bytes changed upload.
+    this.frames.invalidate()
+    this.glyphsReset = true
+    this.schedule()
   }
 
   notifySelectionChange(): void {
@@ -446,12 +450,17 @@ export class WebGlTerminalRenderer {
   private drawZigFrame(pass: WebGlTextPass, damage: RenderStateDirty): void {
     const textBlink = this.scheduler.textBlink
     const phaseChanged = textBlink !== undefined && this.textPhaseVisible !== textBlink.visible
+    const glyphsReset = this.glyphsReset
     const phaseOnly =
-      !this.needsFullRebuild && damage === RenderStateDirty.False && this.overlayRows.size === 0
+      !this.needsFullRebuild &&
+      !glyphsReset &&
+      damage === RenderStateDirty.False &&
+      this.overlayRows.size === 0
     if (!this.renderState.createFrameBuilder)
       throw createGhosttyError('frame_builder', 'The GPU renderer requires a native frame builder')
     if (
       !this.needsFullRebuild &&
+      !glyphsReset &&
       damage === RenderStateDirty.False &&
       this.overlayRows.size === 0 &&
       !phaseChanged
@@ -511,7 +520,8 @@ export class WebGlTerminalRenderer {
     const operations = pass.uploadFrame(builder, updates)
     const blinkChanged = textBlink ? pass.setTextVisible(this.textPhaseVisible) : false
     // Persistent records can report terminal damage without changing either GPU buffer.
-    const drawn = Boolean(options.full || operations > 0 || blinkChanged)
+    // Reinserted glyph bitmaps can change pixels under byte-identical instance records.
+    const drawn = Boolean(options.full || glyphsReset || operations > 0 || blinkChanged)
     const draws = drawn ? pass.submit() : 0
     if (this.context.isContextLost()) {
       this.suspendContext()
@@ -519,7 +529,10 @@ export class WebGlTerminalRenderer {
     }
     let rows: readonly RenderRow[] | undefined
     if (this.frames.requiresFullRows) {
-      rows = options.full ? this.renderState.readRows({ packed: true }) : this.rowsToRebuild(damage)
+      rows =
+        options.full || glyphsReset
+          ? this.renderState.readRows({ packed: true })
+          : this.rowsToRebuild(damage)
     }
     const frame = this.captureFrame(
       rows,
@@ -532,6 +545,7 @@ export class WebGlTerminalRenderer {
         this.metrics.zigFrames += 1
       }
       this.needsFullRebuild = false
+      this.glyphsReset = false
       this.frameFailed = false
       this.overlayRows.clear()
       frame?.accept()

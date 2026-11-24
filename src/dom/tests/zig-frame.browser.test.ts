@@ -137,19 +137,26 @@ it.each(['webgl2', 'webgpu'] as const)(
     expect(native.renderer.metrics.zigFrames).toBeGreaterThan(0)
     const nativeFrames = native.renderer.metrics.zigFrames
     const build = vi.spyOn(ZigFrameBuilder.prototype, 'build')
+    const retry = vi.spyOn(ZigFrameBuilder.prototype, 'retryMissing')
+    // A missing-glyph build is finished by a retry that patches the queued cells in place.
+    const frameStatus = () => {
+      const built = build.mock.results.at(-1)?.value
+      return built === 2 ? retry.mock.results.at(-1)?.value : built
+    }
     native.terminal.write('\x1b[3;1H界')
     await expectPainted(native)
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
+    expect(frameStatus()).toBe(0)
     expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 1)
     build.mockClear()
     native.terminal.write('\x1b[1;1Hchanged')
     await expectPainted(native)
-    expect(build.mock.results.at(-1)?.value).toBe(0)
+    expect(frameStatus()).toBe(0)
     expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 2)
     build.mockClear()
     native.terminal.write('\x1b[3;1H\x1b[2KASCII')
     await expectPainted(native)
-    expect(build.mock.results.at(-1)?.value).toBe(0)
+    expect(frameStatus()).toBe(0)
     expect(native.renderer.metrics.zigFrames).toBe(nativeFrames + 3)
 
     native.terminal.dispose()
@@ -284,7 +291,7 @@ it.each(['webgl2', 'webgpu'] as const)(
     )
     expect(() => nativeClock.flushFrame()).not.toThrow()
     await expectPainted(native)
-    expect(build.mock.results.map((result) => result.value)).toEqual([2, 0])
+    expect(build.mock.results.map((result) => result.value)).toEqual([2])
     expect(build.mock.calls.every(([options]) => !options.full)).toBe(true)
     expect(readRows).not.toHaveBeenCalled()
     expect(native.renderer.metrics.submittedFrames).toBe(before + 1)

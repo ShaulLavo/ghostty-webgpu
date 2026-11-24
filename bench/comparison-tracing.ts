@@ -169,6 +169,13 @@ export class ComparisonTracing {
           if (result === 1) this.count(terminal, 'zigUnsupportedBuilds')
           if (result === 2) this.count(terminal, 'zigMissingGlyphBuilds')
         })
+        // Older comparison runtimes retry missing glyphs with a second build.
+        if (typeof Reflect.get(builder as object, 'retryMissing') === 'function') {
+          this.wrap(builder, 'retryMissing', terminal, 'instances', (result) => {
+            this.count(terminal, 'zigGlyphRetries')
+            if (result === 0) this.count(terminal, 'zigReadyRetries')
+          })
+        }
         this.wrap(builder, 'clearGlyphs', terminal, 'instances', () =>
           this.count(terminal, 'zigGlyphIndexClears'),
         )
