@@ -651,9 +651,7 @@ export class TerminalWorkerRuntime {
 
   private noteWrite(): void {
     this.renderer?.notifyWrite()
-    // W11 experiment knob (__w11SettleMs = -1 disables); removed before review.
-    if (this.initialize.pooled && Reflect.get(globalThis, '__w11SettleMs') !== -1)
-      this.shared.settled.noteWrite(this.settleTarget)
+    if (this.initialize.pooled) this.shared.settled.noteWrite(this.settleTarget)
   }
 
   private attachOutput(port: MessagePort): void {

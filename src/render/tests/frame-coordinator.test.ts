@@ -163,3 +163,23 @@ it('mixed device queue failures report only after accepted peers have committed'
   f.run()
   expect(f.events).toEqual(['submit:1', 'commit:peer', 'error-after-peer:true', 'notify:peer'])
 })
+
+it('submits frames painted in a batch outside an animation frame together', () => {
+  const f = fixture()
+  f.coordinator.batch(() => {
+    f.coordinator.submit(f.frame('first'))
+    f.coordinator.batch(() => f.coordinator.submit(f.frame('nested')))
+    expect(f.submit).not.toHaveBeenCalled()
+  })
+  expect(f.requestFrame).not.toHaveBeenCalled()
+  expect(f.events).toEqual([
+    'submit:2',
+    'commit:first',
+    'commit:nested',
+    'notify:first',
+    'notify:nested',
+  ])
+  // Outside the batch, frames submit at once again.
+  f.coordinator.submit(f.frame('after'))
+  expect(f.events.at(-3)).toBe('submit:1')
+})
