@@ -191,6 +191,8 @@ export interface WorkerCancel extends WorkerIdentity {
 /** Every write the page posted before this one has been answered on the same port. */
 export interface WorkerDrained extends WorkerIdentity {
   readonly type: 'drained'
+  /** Producer output the answered write's reply covered; anything newer paints at vsync. */
+  readonly output: number
 }
 
 /** A producer transfers only buffers it owns. Its sequence starts at one per attached port. */

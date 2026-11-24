@@ -53,6 +53,15 @@ export class SettledPaint {
     this.unsettled.add(target)
   }
 
+  holds(target: SettledPaintTarget): boolean {
+    return this.unsettled.has(target)
+  }
+
+  /** Clears a hold without an early paint; the terminal keeps painting at animation frames. */
+  release(target: SettledPaintTarget): void {
+    this.unsettled.delete(target)
+  }
+
   forget(target: SettledPaintTarget): void {
     this.written.delete(target)
     this.unsettled.delete(target)
