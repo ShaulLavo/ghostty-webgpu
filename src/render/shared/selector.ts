@@ -14,6 +14,28 @@ export type CompatibleTerminalRenderer =
   | WebGlTerminalRenderer
   | WebGpuTerminalRenderer
 
+const ignoreFailure = (): undefined => undefined
+
+/** Starts downloading the renderer chunks `createCompatibleTerminalRenderer` will need first. */
+export function prewarmCompatibleRenderer(
+  options: Pick<WebGpuTerminalRendererOptions, 'rendererMode' | 'presentation'>,
+): void {
+  // A failed prefetch rejects the same import again when the renderer is created.
+  if (options.rendererMode && options.rendererMode !== 'auto') {
+    void import('../canvas/renderer.js').catch(ignoreFailure)
+    if (options.rendererMode !== 'canvas2d-pixels') return
+    void import('../pixels/kernel.js').catch(ignoreFailure)
+    void import('../pixels/stamp-target.js').catch(ignoreFailure)
+    return
+  }
+  if (automaticGpuBackends(options.presentation)[0] === 'webgpu') {
+    void import('../webgpu/renderer.js').catch(ignoreFailure)
+    return
+  }
+  void import('./fallback.js').catch(ignoreFailure)
+  void import('../webgl/renderer.js').catch(ignoreFailure)
+}
+
 export async function createCompatibleTerminalRenderer(
   options: WebGpuTerminalRendererOptions,
   signal?: AbortSignal,
@@ -74,7 +96,11 @@ async function createWebGlRenderer(
   signal?: AbortSignal,
 ): Promise<WebGlTerminalRenderer | FallbackTerminalRenderer> {
   if (options.replaceCanvas) {
-    const { FallbackTerminalRenderer } = await import('./fallback.js')
+    // Fetch the WebGL chunk alongside the wrapper instead of after it.
+    const [{ FallbackTerminalRenderer }] = await Promise.all([
+      import('./fallback.js'),
+      import('../webgl/renderer.js'),
+    ])
     signal?.throwIfAborted()
     return FallbackTerminalRenderer.create(
       options,

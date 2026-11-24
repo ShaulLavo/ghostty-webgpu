@@ -1,6 +1,7 @@
 import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
+import type { RuntimeOptions } from '../core/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
-import type { DeviceLease } from '../render/webgpu/device-owner.js'
+import type { DeviceLease, DeviceOwner } from '../render/webgpu/device-owner.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
 import {
   calculateTerminalFittedFont,
@@ -29,6 +30,7 @@ import type {
   WorkerRequest,
   WorkerCanvasReplacement,
   WorkerDrained,
+  WorkerModules,
   WorkerState,
   TerminalOutputMessage,
 } from './protocol.js'
@@ -43,6 +45,10 @@ interface WorkerScope {
   close(): void
 }
 const scope = globalThis as unknown as WorkerScope
+
+function isSoftwareAdapterRejection(cause: unknown): boolean {
+  return cause instanceof TerminalWorkerError && cause.internal?.softwareAdapter === true
+}
 
 function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
   return (
@@ -89,12 +95,24 @@ export class TerminalWorkerRuntime {
     readonly reject: (cause: unknown) => void
   }
   private canvasReplacement?: ReturnType<typeof Promise.withResolvers<OffscreenCanvas>>
+  private readonly pageModules = Promise.withResolvers<Pick<WorkerModules, 'wasm' | 'bridge'>>()
+  private modulesSettled = false
+  private speculativeLease?: Promise<DeviceLease>
   private readonly onMessage = (
-    event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerDrained>,
+    event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerModules | WorkerDrained>,
   ) => {
     const request = event.data
     if (request?.type === 'drained') {
       this.receiveDrained(request)
+      return
+    }
+    if (request?.type === 'modules') {
+      if (
+        request.terminal !== this.initialize.terminal ||
+        request.generation !== this.initialize.generation
+      )
+        return
+      this.settleModules(request)
       return
     }
     if (request?.type === 'canvas') {
@@ -155,19 +173,28 @@ export class TerminalWorkerRuntime {
 
   async start(): Promise<void> {
     const port = this.initialize.port
-    port.onmessageerror = () =>
+    port.onmessageerror = () => {
+      // Only the page's module handoff is in flight before startup; it falls back to the URLs.
+      if (this.initialize.modules && !this.modulesSettled) {
+        this.settleModules({})
+        return
+      }
       this.fail(workerError('protocol', 'messageerror', { control: this.control }))
+    }
     port.onmessage = this.onMessage
     port.start()
     try {
       const faces = this.prepareFonts()
-      const startupExecution = LocalTerminalExecution.create(
-        {
-          appearance: this.initialize.appearance,
-          bidi: this.initialize.bidi,
-          runtime: { kind: 'owned', options: this.initialize.assets },
-        },
-        this.initialize.generation,
+      this.prewarmRenderer()
+      const startupExecution = this.runtimeOptions().then((options) =>
+        LocalTerminalExecution.create(
+          {
+            appearance: this.initialize.appearance,
+            bidi: this.initialize.bidi,
+            runtime: { kind: 'owned', options },
+          },
+          this.initialize.generation,
+        ),
       )
       this.startupExecution = startupExecution
       const [execution] = await Promise.all([startupExecution, this.loadFonts(faces)])
@@ -182,6 +209,47 @@ export class TerminalWorkerRuntime {
     } catch (cause) {
       this.fail(cause)
     }
+  }
+
+  private settleModules(modules: Pick<WorkerModules, 'wasm' | 'bridge'>): void {
+    if (this.modulesSettled) return
+    this.modulesSettled = true
+    this.pageModules.resolve(modules)
+  }
+
+  private async runtimeOptions(): Promise<RuntimeOptions> {
+    if (!this.initialize.modules) return this.initialize.assets
+    const { wasm, bridge } = await this.pageModules.promise
+    return {
+      wasm: wasm ?? this.initialize.assets.wasm,
+      bridge: bridge ?? this.initialize.assets.bridge,
+    }
+  }
+
+  // The GPU device starts while the wasm core compiles, not after `open`. Renderer chunks
+  // wait for `open`: a failed early import would stay failed in the module map.
+  private prewarmRenderer(): void {
+    if (this.plannedBackends()[0] !== 'webgpu') return
+    this.speculativeLease = this.webGpuOwner().acquire()
+    // `open` retries a failed speculative request on its own acquisition path.
+    this.speculativeLease.catch(() => undefined)
+  }
+
+  // A speculative request that failed is retried at open, which then decides fallback. A
+  // software adapter is not retried: it is the same adapter at open.
+  private takeLease(): Promise<DeviceLease> {
+    const speculative = this.speculativeLease
+    this.speculativeLease = undefined
+    if (!speculative) return this.webGpuOwner().acquire()
+    return speculative.catch((cause: unknown) => {
+      if (isSoftwareAdapterRejection(cause)) throw cause
+      return this.webGpuOwner().acquire()
+    })
+  }
+
+  // Terminals in one worker share a device; automatic selection takes only hardware at first.
+  private webGpuOwner(): DeviceOwner {
+    return this.shared.deviceOwner(this.initialize.backend === 'auto' ? 'hardware' : 'any')
   }
 
   private prepareFonts(): SharedFontFace[] {
@@ -426,14 +494,13 @@ export class TerminalWorkerRuntime {
   private async createWebGpuRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer> {
-    // Terminals in one worker share a device; this lease keeps it alive until the renderer holds it.
-    const owner = this.shared.deviceOwner(this.initialize.backend === 'auto' ? 'hardware' : 'any')
-    const acquisition = owner.acquire()
-    this.prefetchedLease = acquisition
+    // This lease keeps the shared device alive until the renderer holds its own.
+    const acquisition = (this.prefetchedLease ??= this.takeLease())
     let lease: DeviceLease
     try {
       lease = await acquisition
     } catch (cause) {
+      this.prefetchedLease = undefined
       throw workerError('capability', 'renderer.webgpu', {
         causeType: cause instanceof Error ? cause.name : typeof cause,
       })
@@ -453,7 +520,7 @@ export class TerminalWorkerRuntime {
       const { schedulerClock: _clock, ...rest } = options
       this.gpuRenderer = WebGpuTerminalRenderer.create({
         ...rest,
-        deviceOwner: owner,
+        deviceOwner: this.webGpuOwner(),
         // Replacements after a device loss accept any adapter, as the main entry's do.
         replacementDeviceOwner: this.shared.deviceOwner('any'),
         frameCoordinator: this.shared.frameCoordinator,
@@ -839,6 +906,14 @@ export class TerminalWorkerRuntime {
       (execution) => execution.dispose(),
       () => {},
     )
+    // A speculative request never holds up cleanup or a startup failure; its reservation is
+    // released whenever it settles.
+    const speculative = this.speculativeLease
+    this.speculativeLease = undefined
+    void speculative?.then(
+      (lease) => lease.release(),
+      () => {},
+    )
     await this.prefetchedLease?.then(
       (lease) => lease.release(),
       () => {},
@@ -848,6 +923,7 @@ export class TerminalWorkerRuntime {
       () => {},
     )
   }
+
   private fail(cause: unknown): void {
     if (this.disposed) return
     void this.cleanup().then(

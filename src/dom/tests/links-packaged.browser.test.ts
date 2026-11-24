@@ -435,6 +435,7 @@ describe('packaged worker link authority transport', () => {
       'faces',
       'generation',
       'ligatures',
+      'modules',
       'port',
       'terminal',
       'textBlink',

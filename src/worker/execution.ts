@@ -25,7 +25,9 @@ import type {
   WorkerState,
   WorkerLayout,
   WorkerCanvasReplacement,
+  WorkerModules,
 } from './protocol.js'
+import { compileWorkerModules, type CompiledWorkerModules } from './page-modules.js'
 import { TerminalWorkerError, workerError } from './structured-errors.js'
 import { RowDeltaDecoder } from './frame-codec.js'
 import { freezeWorkerValue } from './owned.js'
@@ -144,12 +146,19 @@ export class WorkerTerminalExecution {
     this.port.onmessageerror = () =>
       this.fail(workerError('protocol', 'messageerror', { control: this.control }))
     this.port.start()
+    const modules = compileWorkerModules(options.assets)
+    // Settled before the first post, so a failed initialize send leaves no unhandled rejection.
+    const delivery = modules?.then(
+      (compiled) => compiled,
+      () => undefined,
+    )
     const initialize: WorkerInitialize = {
       type: 'initialize',
       terminal: this.terminal,
       generation: this.generation,
       port: channel.port2,
       assets: options.assets,
+      ...(modules ? { modules: true as const } : {}),
       faces: options.faces,
       appearance: options.appearance,
       backend: options.backend,
@@ -164,6 +173,27 @@ export class WorkerTerminalExecution {
       this.stop()
       channel.port2.close()
       throw workerError('protocol', 'initialize', { initialized: false })
+    }
+    // A failed page compile hands the download back to the worker, which reports the real error.
+    void delivery?.then((compiled) => this.postModules(compiled))
+  }
+
+  private postModules(compiled: CompiledWorkerModules | undefined): void {
+    if (this.disposed || this.failure) return
+    const empty: WorkerModules = {
+      type: 'modules',
+      terminal: this.terminal,
+      generation: this.generation,
+    }
+    try {
+      this.port.postMessage(compiled ? { ...empty, ...compiled } : empty)
+      return
+    } catch {}
+    // Modules the port cannot clone fall back to the worker's own download.
+    try {
+      this.port.postMessage(empty)
+    } catch {
+      this.fail(workerError('protocol', 'modules', { compiled: Boolean(compiled) }))
     }
   }
 

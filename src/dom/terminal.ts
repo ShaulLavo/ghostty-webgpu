@@ -1,4 +1,7 @@
-import { createCompatibleTerminalRenderer } from '../render/shared/selector.js'
+import {
+  createCompatibleTerminalRenderer,
+  prewarmCompatibleRenderer,
+} from '../render/shared/selector.js'
 import type { TerminalSession } from '../term/session.js'
 import type { WorkerTerminalExecution } from '../worker/execution.js'
 import { LocalTerminalExecution } from './execution-local.js'
@@ -31,6 +34,8 @@ export class Terminal<Mode extends 'sync' | 'async' = 'sync'> extends TerminalHo
   }
 
   static async create(options: GhosttyWebGpuTerminalOptions = {}): Promise<Terminal> {
+    // Renderer chunks download while the wasm core compiles, not after it.
+    if (!options.rendererFactory) prewarmCompatibleRenderer(options)
     const execution = await LocalTerminalExecution.create({
       appearance: options.appearance,
       links: options.links,

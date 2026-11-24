@@ -4,6 +4,7 @@ import type { Plugin } from 'vite'
 import { defineConfig, type ViteUserConfig } from 'vitest/config'
 import { browserFileRoots, counterpartWasmServing } from './scripts/browser-file-roots.ts'
 import { fontLoadingFixture } from './scripts/font-loading-fixture.ts'
+import { startupFixture } from './scripts/startup-fixture.ts'
 import { workerChunkFixture } from './scripts/worker-chunk-fixture.ts'
 import { swiftShaderArgs, swiftShaderEnv } from './scripts/swiftshader-launch.mjs'
 
@@ -61,6 +62,7 @@ export function createBrowserTestConfig() {
       counterpartWasmServing(),
       fontLoadingFixture(),
       workerChunkFixture(),
+      startupFixture(),
       dynamicUrlWorkerRunner(),
     ],
     server: {
