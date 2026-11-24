@@ -39,7 +39,41 @@ pub const Index = extern struct {
     build_generation: u32,
     rebuild_all: u32,
     residency_changed: u32,
+    fast: ?[*]FastCell,
 };
+
+// Direct-mapped cache from a raw unstyled cell to its glyph under one default brush.
+pub const FastCell = extern struct { raw: u64, entry: ?*Entry, foreground: u32, background: u32, minimum_contrast: f64 };
+const fast_bits = 9;
+const fast_slots = 1 << fast_bits;
+const empty_fast = FastCell{ .raw = 0, .entry = null, .foreground = 0, .background = 0, .minimum_contrast = 0 };
+
+fn fastSlot(raw: u64) usize {
+    return @intCast((raw *% 0x9e3779b97f4a7c15) >> (64 - fast_bits));
+}
+
+pub fn fastLookup(index: *Index, raw: u64, foreground: u32, background: u32, minimum_contrast: f64) ?*Entry {
+    const table = index.fast orelse return null;
+    const cell = &table[fastSlot(raw)];
+    if (cell.raw != raw or cell.foreground != foreground or cell.background != background) return null;
+    if (cell.minimum_contrast != minimum_contrast) return null;
+    return cell.entry;
+}
+
+pub fn fastStore(index: *Index, raw: u64, entry: *Entry, foreground: u32, background: u32, minimum_contrast: f64) void {
+    if (index.fast == null) {
+        const table = allocate(FastCell, fast_slots) orelse return;
+        @memset(table[0..fast_slots], empty_fast);
+        index.fast = table;
+    }
+    index.fast.?[fastSlot(raw)] = .{ .raw = raw, .entry = entry, .foreground = foreground, .background = background, .minimum_contrast = minimum_contrast };
+}
+
+// Entries are freed by clear and collect, so every cached pointer goes with them.
+fn resetFast(index: *Index) void {
+    const table = index.fast orelse return;
+    @memset(table[0..fast_slots], empty_fast);
+}
 
 fn allocate(comptime T: type, count: usize) ?[*]T {
     const bytes = ghostty_wasm_alloc(count * @sizeOf(T)) orelse return null;
@@ -54,7 +88,7 @@ pub fn create() ?*Index {
         return null;
     };
     @memset(entries[0..256], null);
-    index.* = .{ .entries = entries, .capacity = 256, .count = 0, .scratch = null, .scratch_cap = 0, .build_generation = 0, .rebuild_all = 0, .residency_changed = 0 };
+    index.* = .{ .entries = entries, .capacity = 256, .count = 0, .scratch = null, .scratch_cap = 0, .build_generation = 0, .rebuild_all = 0, .residency_changed = 0, .fast = null };
     return index;
 }
 
@@ -76,10 +110,12 @@ pub fn clear(index: *Index) void {
     @memset(index.entries[0..index.capacity], null);
     index.count = 0;
     index.rebuild_all = 1;
+    resetFast(index);
 }
 
 pub fn destroy(index: *Index) void {
     clear(index);
+    if (index.fast) |table| ghostty_wasm_free(@ptrCast(table), fast_slots * @sizeOf(FastCell));
     ghostty_wasm_free(@ptrCast(index.entries), index.capacity * @sizeOf(?*Entry));
     ghostty_wasm_free(@ptrCast(index.scratch), index.scratch_cap * 4);
     ghostty_wasm_free(@ptrCast(index), @sizeOf(Index));
@@ -114,6 +150,7 @@ pub fn retryDeferred(index: *Index) bool {
 pub fn collect(index: *Index) bool {
     const entries = allocate(?*Entry, index.capacity) orelse return false;
     @memset(entries[0..index.capacity], null);
+    resetFast(index);
     const previous = index.entries;
     index.entries = entries;
     index.count = 0;

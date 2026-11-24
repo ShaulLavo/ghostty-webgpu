@@ -538,11 +538,13 @@ fn reuseFrameRow(comptime stable: bool, frame: *Frame, y: u32) c.GhosttyResult {
     var glyph_first = frame.columns;
     var glyph_end: u32 = 0;
     const top = if (stable) 0 else @as(f32, @floatFromInt(y)) * frame.cell_height;
-    const previous = &cache.previous[previousLogicalRow(frame, y)];
+    const reuse_row = reusableRow(stable, frame, &cache.previous[previousLogicalRow(frame, y)], y);
     for (0..frame.columns) |x| {
         const row = cache.next[y];
         const selected = row.selected and x >= row.selection_start and x <= row.selection_end;
-        if (reuseRenderedCell(stable, frame, previous, start + @as(u32, @intCast(x)), row.cells[x].raw, @intCast(x), y, selected)) continue;
+        if (reuse_row) |previous| {
+            if (reuseRenderedCell(stable, frame, previous, start + @as(u32, @intCast(x)), row.cells[x].raw, @intCast(x), y, selected)) continue;
+        }
         rememberRenderedCell(cache, start + x, cache.next[y].cells[x]);
         var next_cell = source_cells[source_start + x];
         var next_glyph = source_glyphs[source_start + x];
@@ -550,11 +552,11 @@ fn reuseFrameRow(comptime stable: bool, frame: *Frame, y: u32) c.GhosttyResult {
         const glyph = &next_glyph;
         if (cell[3] != 0) cell[1] = top;
         if (glyph[16] != 0) glyph[1] = top + cache.next[y].cells[x].key.?.glyph.offset_y;
-        if (!std.mem.eql(u8, std.mem.asBytes(cell), std.mem.asBytes(&frame.cell_data[start + x]))) {
+        if (!sameRecord(16, cell, &frame.cell_data[start + x])) {
             cell_first = @min(cell_first, @as(u32, @intCast(x)));
             cell_end = @intCast(x + 1);
         }
-        if (!std.mem.eql(u8, std.mem.asBytes(glyph), std.mem.asBytes(&frame.glyph_data[start + x]))) {
+        if (!sameRecord(24, glyph, &frame.glyph_data[start + x])) {
             glyph_first = @min(glyph_first, @as(u32, @intCast(x)));
             glyph_end = @intCast(x + 1);
         }
@@ -685,7 +687,43 @@ const CellContent = struct {
     constraint_width: u32,
     tag: c.GhosttyCellContentTag,
     joined: ?[]const u32 = null,
+    // A glyph already resolved for this content and brush, from the plain-cell cache.
+    resolved: ?*glyph_index.Entry = null,
 };
+
+fn resolveCellKey(comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, cells: c.GhosttyRenderStateRowCells, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, foreground: u32, background: u32, out: *?*glyph_index.Entry) c.GhosttyResult {
+    var scalar = content.codepoint;
+    var text: []const u32 = content.joined orelse @as(*const [1]u32, &scalar);
+    if (content.joined == null and content.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
+        var length: u32 = 0;
+        var result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        const scratch = glyph_index.scratch(frame.glyph_index, length) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+        result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, scratch.ptr);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        text = scratch;
+    }
+    if (bidi) {
+        const mirror = projection.?[y * frame.columns + x].mirror;
+        if (mirror != 0) {
+            const scratch = glyph_index.scratch(frame.glyph_index, @intCast(text.len)) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+            @memmove(scratch, text);
+            scratch[0] = mirror;
+            text = scratch;
+        }
+    }
+    out.* = glyph_index.resolve(frame.glyph_index, .{
+        .text = text.ptr,
+        .text_len = @intCast(text.len),
+        .span = content.span,
+        .style = @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1),
+        .foreground = foreground,
+        .background = background,
+        .minimum_contrast = frame.glyph_minimum_contrast,
+        .constraint_width = content.constraint_width,
+    }) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+    return c.GHOSTTY_SUCCESS;
+}
 
 const BidiCell = extern struct { visual: u32, mirror: u32, selected: u32 };
 
@@ -731,36 +769,12 @@ fn writeInstances(comptime stable: bool, comptime bidi: bool, projection: ?[*]co
     cell[14] = if (cursor) @floatFromInt(frame.cursor_style) else 0;
     cell[15] = frame.minimum_contrast;
     if (content.continuation or content.codepoint == 0 or style.invisible) return c.GHOSTTY_SUCCESS;
-    var scalar = content.codepoint;
-    var text: []const u32 = content.joined orelse @as(*const [1]u32, &scalar);
-    if (content.joined == null and content.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
-        var length: u32 = 0;
-        var result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_LEN, &length);
+    var resolved = content.resolved;
+    if (resolved == null) {
+        const result = resolveCellKey(bidi, projection, frame, cells, x, y, content, style, foreground, background, &resolved);
         if (result != c.GHOSTTY_SUCCESS) return result;
-        const scratch = glyph_index.scratch(frame.glyph_index, length) orelse return c.GHOSTTY_OUT_OF_MEMORY;
-        result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_GRAPHEMES_BUF, scratch.ptr);
-        if (result != c.GHOSTTY_SUCCESS) return result;
-        text = scratch;
     }
-    if (bidi) {
-        const mirror = projection.?[y * frame.columns + x].mirror;
-        if (mirror != 0) {
-            const scratch = glyph_index.scratch(frame.glyph_index, @intCast(text.len)) orelse return c.GHOSTTY_OUT_OF_MEMORY;
-            @memmove(scratch, text);
-            scratch[0] = mirror;
-            text = scratch;
-        }
-    }
-    const key = glyph_index.resolve(frame.glyph_index, .{
-        .text = text.ptr,
-        .text_len = @intCast(text.len),
-        .span = content.span,
-        .style = @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1),
-        .foreground = foreground,
-        .background = background,
-        .minimum_contrast = frame.glyph_minimum_contrast,
-        .constraint_width = content.constraint_width,
-    }) orelse return c.GHOSTTY_OUT_OF_MEMORY;
+    const key = resolved.?;
     frame.row_cache.?.next[y].cells[x].key = key;
     frame.row_cache.?.next[y].cells[x].registration = key.registration;
     const entry = key.glyph;
@@ -782,8 +796,12 @@ fn writeInstances(comptime stable: bool, comptime bidi: bool, projection: ?[*]co
     return c.GHOSTTY_SUCCESS;
 }
 
-fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, selected: bool, joined: u32) c.GhosttyResult {
+// `plain` enables the plain-cell cache; full rebuilds skip it because they follow glyph clears.
+fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, raws: []const c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, slot: u32, x: u32, y: u32, selected: bool, joined: u32, plain: bool) c.GhosttyResult {
     const raw = raws[x];
+    if (plain and !bidi and joined == 0) {
+        if (plainCellKey(frame, raws, x, y, selected)) |key| return buildPlainCell(stable, frame, cells, raw, slot, x, y, key);
+    }
     var codepoint: u32 = 0;
     var wide: c.GhosttyCellWide = 0;
     var tag: c.GhosttyCellContentTag = 0;
@@ -845,7 +863,7 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
         .tag = tag,
         .key = null,
     };
-    return writeInstances(stable, bidi, projection, frame, cells, slot, x, y, .{
+    result = writeInstances(stable, bidi, projection, frame, cells, slot, x, y, .{
         .codepoint = codepoint,
         .continuation = wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL or joined == ligature_interior,
         .span = span,
@@ -853,6 +871,51 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
         .tag = tag,
         .joined = joined_text,
     }, style, fg, bg, selected);
+    if (result != c.GHOSTTY_SUCCESS or !plain or bidi or joined != 0 or styled) return result;
+    if (tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT or wide != c.GHOSTTY_CELL_WIDE_NARROW or span != 1) return result;
+    // Symbols take their constraint width from neighbors, so their glyph is not a function of the cell.
+    if (codepoint == 0 or selected or cursorAt(frame, x, y) or isSymbol(codepoint)) return result;
+    const key = frame.row_cache.?.next[y].cells[x].key orelse return result;
+    if (key.glyph.valid != 0) glyph_index.fastStore(frame.glyph_index, raw, key, frame.foreground, frame.background, frame.glyph_minimum_contrast);
+    return result;
+}
+
+fn cursorAt(frame: *const Frame, x: u32, y: u32) bool {
+    return frame.cursor_visible != 0 and frame.cursor_x == x and frame.cursor_y == y;
+}
+
+// An unstyled narrow cell seen before needs none of its fields read again: its raw value
+// determines its codepoint and glyph under the frame's default brush.
+fn plainCellKey(frame: *Frame, raws: []const c.GhosttyCell, x: u32, y: u32, selected: bool) ?*glyph_index.Entry {
+    if (selected or frame.ligatures != 0 or cursorAt(frame, x, y)) return null;
+    const key = glyph_index.fastLookup(frame.glyph_index, raws[x], frame.foreground, frame.background, frame.glyph_minimum_contrast) orelse return null;
+    if (key.glyph.valid == 0) return null;
+    if (x + 1 >= raws.len) return key;
+    var next_wide: c.GhosttyCellWide = 0;
+    if (c.ghostty_cell_get(raws[x + 1], c.GHOSTTY_CELL_DATA_WIDE, &next_wide) != c.GHOSTTY_SUCCESS) return null;
+    if (next_wide == c.GHOSTTY_CELL_WIDE_SPACER_TAIL) return null;
+    return key;
+}
+
+fn buildPlainCell(comptime stable: bool, frame: *Frame, cells: c.GhosttyRenderStateRowCells, raw: c.GhosttyCell, slot: u32, x: u32, y: u32, key: *glyph_index.Entry) c.GhosttyResult {
+    const cache = frame.row_cache.?;
+    cache.next[y].cells[x] = .{
+        .raw = raw,
+        .foreground = 0xffffffff,
+        .background = 0xffffffff,
+        .style = visualStyle(cache.default_style),
+        .styled = false,
+        .tag = c.GHOSTTY_CELL_CONTENT_CODEPOINT,
+        .key = null,
+    };
+    return writeInstances(stable, false, null, frame, cells, slot, x, y, .{
+        .codepoint = key.key.text[0],
+        .continuation = false,
+        .span = 1,
+        .constraint_width = 1,
+        .tag = c.GHOSTTY_CELL_CONTENT_CODEPOINT,
+        .resolved = key,
+    }, cache.default_style, 0xffffffff, 0xffffffff, false);
 }
 
 fn rememberRenderedCell(cache: *FrameCache, slot: usize, input: CachedCell) void {
@@ -866,14 +929,30 @@ fn rememberRenderedCell(cache: *FrameCache, slot: usize, input: CachedCell) void
     };
 }
 
-fn reuseRenderedCell(comptime stable: bool, frame: *Frame, owner: *const CachedRow, address: u32, raw: c.GhosttyCell, x: u32, y: u32, selected: bool) bool {
+// Row-wide reuse conditions, checked once per row; null when no cell of the row can be reused.
+fn reusableRow(comptime stable: bool, frame: *Frame, owner: *const CachedRow, y: u32) ?*const CachedRow {
     const cache = frame.row_cache.?;
     // A joined run depends on its neighbors, which per-cell reuse does not compare.
-    if (frame.ligatures != 0) return false;
+    if (frame.ligatures != 0) return null;
     const previous = if (stable) owner else &cache.previous[y];
+    if (!std.mem.eql(u32, &previous.appearance, &cache.appearance)) return null;
+    if (sameRowId(previous.id, std.mem.zeroes(c.GhosttyRenderStateRowId))) return null;
+    return previous;
+}
+
+// Bitwise equality of instance records; a byte loop here dominated full-screen redraws.
+fn sameRecord(comptime n: usize, left: *const [n]f32, right: *const [n]f32) bool {
+    const a: *align(4) const [n / 2]u64 = @ptrCast(left);
+    const b: *align(4) const [n / 2]u64 = @ptrCast(right);
+    for (a, b) |first, second| {
+        if (first != second) return false;
+    }
+    return true;
+}
+
+fn reuseRenderedCell(comptime stable: bool, frame: *Frame, previous: *const CachedRow, address: u32, raw: c.GhosttyCell, x: u32, y: u32, selected: bool) bool {
+    const cache = frame.row_cache.?;
     const slot = if (stable) address else y * frame.columns + x;
-    if (!std.mem.eql(u32, &previous.appearance, &cache.appearance)) return false;
-    if (sameRowId(previous.id, std.mem.zeroes(c.GhosttyRenderStateRowId))) return false;
     const old_selected = previous.selected and x >= previous.selection_start and x <= previous.selection_end;
     if (selected != old_selected) return false;
     const input = cache.rendered[slot];
@@ -1038,23 +1117,26 @@ fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const Bi
     var glyph_first = frame.columns;
     var glyph_end: u32 = 0;
     const start = if (stable) frame.row_cache.?.row_starts.?[y] else y * frame.columns;
-    const previous = if (stable) &frame.row_cache.?.previous[previousLogicalRow(frame, y)] else undefined;
+    const owner = if (stable) &frame.row_cache.?.previous[previousLogicalRow(frame, y)] else undefined;
+    const reuse_row = if (force) null else reusableRow(stable, frame, owner, y);
     for (0..raw.len) |x| {
         const selected = if (bidi) projection.?[y * frame.columns + x].selected != 0 else has_selection and x >= selection.start_x and x <= selection.end_x;
         const visual = if (bidi) projection.?[y * frame.columns + x].visual else @as(u32, @intCast(x));
         const slot = start + visual;
-        if (!force and reuseRenderedCell(stable, frame, previous, slot, raw.ptr[x], @intCast(x), y, selected)) continue;
+        if (reuse_row) |previous| {
+            if (reuseRenderedCell(stable, frame, previous, slot, raw.ptr[x], @intCast(x), y, selected)) continue;
+        }
         const previous_cell = frame.cell_data[slot];
         const previous_glyph = frame.glyph_data[slot];
         const joined = if (spans) |values| values[x] else 0;
-        result = buildCell(stable, bidi, projection, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined);
+        result = buildCell(stable, bidi, projection, frame, raw.ptr[0..raw.len], cells.*, slot, @intCast(x), y, selected, joined, !force);
         if (result != c.GHOSTTY_SUCCESS) return result;
         rememberRenderedCell(frame.row_cache.?, slot, cached.cells[x]);
-        if (force or !std.mem.eql(u8, std.mem.asBytes(&previous_cell), std.mem.asBytes(&frame.cell_data[slot]))) {
+        if (force or !sameRecord(16, &previous_cell, &frame.cell_data[slot])) {
             cell_first = @min(cell_first, @as(u32, @intCast(x)));
             cell_end = @intCast(x + 1);
         }
-        if (force or !std.mem.eql(u8, std.mem.asBytes(&previous_glyph), std.mem.asBytes(&frame.glyph_data[slot]))) {
+        if (force or !sameRecord(24, &previous_glyph, &frame.glyph_data[slot])) {
             glyph_first = @min(glyph_first, @as(u32, @intCast(x)));
             glyph_end = @intCast(x + 1);
         }
