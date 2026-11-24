@@ -16,8 +16,8 @@ Measured 2026-11-24 on ghostty-webgpu 0.3.34 (commit `b4a279a1c`) against xterm.
 - **CPU.** Our best backend uses more than 10% less whole-browser CPU than the best competitor in 26 of 34 PC cells and 24 of 34 Mac cells, is within 10% in 5 and 9, and loses by more than 10% in 3 and 1. The median ratio, ours over the best competitor, is 0.71 on the PC and 0.77 on the Mac. Our clearest leads are dense output at 16 terminals, repeated identical screens, sparse edits and queued output.
 - **Mac energy.** Better by more than 10% in 20 of 34 cells, within 10% in 4, worse in 10. Most losses are to Wraith, on full-screen redraws at 16 terminals and on light one-terminal work.
 - **Write acknowledgement p95.** Worse by more than 10% and 0.5 ms in 4 of 34 PC cells and 0 of 34 Mac cells, all heavy 16-terminal parsing.
-- **Download size.** Our smallest setup (main, WebGL2) downloads 249.2 KiB brotli. Smaller: xterm.js 84.1, xterm.js with Unicode 11 85.8, ghostty-web 146.1 KiB. Larger: Wraith 879.0, Wraith's xterm profile 826.6, Restty 559.3 KiB.
-- **Cold load to first painted terminal.** PC unthrottled: our best 128 ms; faster: ghostty-web 41, Wraith's xterm profile 112 ms. PC Fast 4G: our best 857 ms; faster: Wraith's xterm profile 469, xterm.js 624, xterm.js with Unicode 11 631, ghostty-web 680 ms. Mac unthrottled: our best 99 ms; faster: ghostty-web 61, Wraith's xterm profile 76, xterm.js with Unicode 11 93, xterm.js 97 ms. Mac Fast 4G: our best 864 ms; faster: xterm.js with Unicode 11 501, xterm.js 503, Wraith's xterm profile 504, ghostty-web 728 ms.
+- **Download size.** Our smallest setup (main, auto backend) downloads 269.2 KiB brotli. Smaller: xterm.js 84.1, xterm.js with Unicode 11 85.8, ghostty-web 146.1 KiB. Larger: Wraith 879.0, Wraith's xterm profile 826.6, Restty 559.3 KiB.
+- **Cold load to first painted terminal.** PC unthrottled: our best 80 ms; faster: ghostty-web 41 ms. PC Fast 4G: our best 823 ms; faster: Wraith's xterm profile 469, xterm.js 624, xterm.js with Unicode 11 631, ghostty-web 680 ms. Mac unthrottled: our best 101 ms; faster: ghostty-web 61, Wraith's xterm profile 76, xterm.js with Unicode 11 93, xterm.js 97 ms. Mac Fast 4G: our best 861 ms; faster: xterm.js with Unicode 11 501, xterm.js 503, Wraith's xterm profile 504, ghostty-web 728 ms.
 
 ### Where a competitor still wins
 
@@ -347,32 +347,32 @@ Joules for the whole browser process family, lower is better.
 
 KiB that one terminal on its best renderer downloads, built with the same Vite production config and logged by the server while the page loads in Chromium. Brotli is quality 11. Fonts are counted separately: xterm.js, ghostty-web and our main entry draw with the page's `monospace` font; our worker entry and Restty get the same 21 KiB woff2, and Wraith fetches its bundled TTF.
 
-| App                                    | Renderer     |    Raw |   gzip | Brotli | Font file (wire) | Brotli + font |
-| -------------------------------------- | ------------ | -----: | -----: | -----: | ---------------: | ------------: |
-| ghostty-webgpu main, auto backend      | webgl2       | 1019.1 |  308.7 |  252.7 |                - |         252.7 |
-| ghostty-webgpu main, WebGPU            | webgpu       | 1030.9 |  310.3 |  252.6 |                - |         252.6 |
-| ghostty-webgpu main, WebGL2            | webgl2       | 1013.9 |  306.5 |  249.2 |                - |         249.2 |
-| ghostty-webgpu worker, auto backend    | webgl2       | 1074.2 |  324.2 |  267.3 |             20.7 |         288.0 |
-| ghostty-webgpu worker, WebGPU          | webgpu       | 1086.8 |  327.1 |  270.0 |             20.7 |         290.6 |
-| ghostty-webgpu worker, WebGL2          | webgl2       | 1074.2 |  324.2 |  267.3 |             20.7 |         287.9 |
-| xterm.js 6 + WebGL addon               | webgl2       |  439.3 |  111.7 |   84.1 |                - |          84.1 |
-| xterm.js 6 + WebGL + Unicode 11 addons | webgl2       |  463.9 |  119.9 |   85.8 |                - |          85.8 |
-| ghostty-web 0.4.0 (Canvas 2D)          | canvas2d     |  621.9 |  181.7 |  146.1 |                - |         146.1 |
-| Wraith 0.6.1 native (worker, WebGPU)   | webgpu       | 2964.0 | 1045.0 |  775.7 |            103.3 |         879.0 |
-| Wraith 0.6.1 xterm profile             | dom → webgpu | 3237.9 | 1108.4 |  826.6 |                - |         826.6 |
-| Restty 0.3.0 (WebGPU, WebGL2 fallback) | webgpu       | 2748.9 |  682.1 |  538.7 |             20.7 |         559.3 |
+| App                                    | Renderer          |    Raw |   gzip | Brotli | Font file (wire) | Brotli + font |
+| -------------------------------------- | ----------------- | -----: | -----: | -----: | ---------------: | ------------: |
+| ghostty-webgpu main, auto backend      | canvas2d → webgl2 | 1074.9 |  327.2 |  269.2 |                - |         269.2 |
+| ghostty-webgpu main, WebGPU            | canvas2d → webgpu | 1086.3 |  329.2 |  270.9 |                - |         270.9 |
+| ghostty-webgpu main, WebGL2            | canvas2d → webgl2 | 1074.9 |  327.2 |  269.2 |                - |         269.2 |
+| ghostty-webgpu worker, auto backend    | webgl2            | 1074.2 |  324.2 |  267.3 |             20.7 |         288.0 |
+| ghostty-webgpu worker, WebGPU          | webgpu            | 1086.8 |  327.1 |  270.0 |             20.7 |         290.6 |
+| ghostty-webgpu worker, WebGL2          | webgl2            | 1074.2 |  324.2 |  267.3 |             20.7 |         287.9 |
+| xterm.js 6 + WebGL addon               | webgl2            |  439.3 |  111.7 |   84.1 |                - |          84.1 |
+| xterm.js 6 + WebGL + Unicode 11 addons | webgl2            |  463.9 |  119.9 |   85.8 |                - |          85.8 |
+| ghostty-web 0.4.0 (Canvas 2D)          | canvas2d          |  621.9 |  181.7 |  146.1 |                - |         146.1 |
+| Wraith 0.6.1 native (worker, WebGPU)   | webgpu            | 2964.0 | 1045.0 |  775.7 |            103.3 |         879.0 |
+| Wraith 0.6.1 xterm profile             | dom → webgpu      | 3237.9 | 1108.4 |  826.6 |                - |         826.6 |
+| Restty 0.3.0 (WebGPU, WebGL2 fallback) | webgpu            | 2748.9 |  682.1 |  538.7 |             20.7 |         559.3 |
 
 ### Cold load
 
-Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's `monospace` font; the others fetch a font file. The auto backend is WebGL2 on the PC and WebGPU on the Mac.
+Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's `monospace` font; the others fetch a font file. The main entry paints its first frame on Canvas 2D while its GPU renderer starts (`canvas2d → webgl2` on the PC, `canvas2d → webgpu` on the Mac; main-entry cold-load and transfer rows refreshed after Canvas-first startup landed in `6e488dd51`).
 
-Fastest first paint: PC unthrottled ghostty-web (41 ms), PC Fast 4G Wraith's xterm profile (469 ms), Mac unthrottled ghostty-web (61 ms), Mac Fast 4G xterm.js with Unicode 11 (501 ms). On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. Unthrottled WebGL2 first paint on the PC is bimodal, about 222 or 270 ms per load, for xterm.js too, so its 10-run median can land on either mode.
+Fastest first paint: PC unthrottled ghostty-web (41 ms), PC Fast 4G Wraith's xterm profile (469 ms), Mac unthrottled ghostty-web (61 ms), Mac Fast 4G xterm.js with Unicode 11 (501 ms). On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. On the PC, our main entry avoids WebGL2 startup latency by painting first on Canvas 2D (80 to 82 ms median unthrottled), while xterm.js WebGL2 remains bimodal around 222 or 270 ms per load.
 
 | App                                    | PC unthrottled |  PC Fast 4G | Mac unthrottled | Mac Fast 4G |
 | -------------------------------------- | -------------: | ----------: | --------------: | ----------: |
-| ghostty-webgpu main, auto backend      |      252 (396) |  861 (1012) |       101 (178) |   864 (879) |
-| ghostty-webgpu main, WebGPU            |      128 (138) |   871 (872) |       104 (131) |   882 (888) |
-| ghostty-webgpu main, WebGL2            |      267 (279) |   857 (870) |        99 (315) |   877 (884) |
+| ghostty-webgpu main, auto backend      |       82 (235) |  824 (1004) |       104 (123) |   866 (905) |
+| ghostty-webgpu main, WebGPU            |        81 (85) |   826 (834) |       103 (129) |   861 (882) |
+| ghostty-webgpu main, WebGL2            |        80 (84) |   823 (914) |       101 (135) |   864 (875) |
 | ghostty-webgpu worker, auto backend    |      235 (291) | 1436 (1458) |       130 (224) | 1294 (1304) |
 | ghostty-webgpu worker, WebGPU          |      138 (151) | 1240 (1249) |       127 (293) | 1294 (1429) |
 | ghostty-webgpu worker, WebGL2          |      231 (244) | 1435 (1449) |       123 (147) | 1314 (1333) |
