@@ -1,7 +1,8 @@
 {
   "measured": "2026-11-24",
   "commit": "b4a279a1cb5c76191423fcdcafa5bddaa15afdb9",
-  "coldLoadCommit": "6e488dd51feca6b4b6a8ad85d512758eb914e002",
+  "sizeCommit": "6e488dd51feca6b4b6a8ad85d512758eb914e002",
+  "coldLoadCommit": "8d02570c4b5f7819b3a1d139c087721c7607cf2f",
   "version": "0.3.34",
   "libraries": {
     "@xterm/xterm": "6.0.0",
@@ -4198,7 +4199,7 @@
           "runs": 10,
           "median": 82,
           "p95": 235,
-          "kibOnWire": 269
+          "kibOnWire": 268
         },
         {
           "app": "ghostty-webgpu main, WebGPU",
@@ -4206,7 +4207,7 @@
           "runs": 10,
           "median": 81,
           "p95": 85,
-          "kibOnWire": 271
+          "kibOnWire": 270
         },
         {
           "app": "ghostty-webgpu main, WebGL2",
@@ -4214,7 +4215,7 @@
           "runs": 10,
           "median": 80,
           "p95": 84,
-          "kibOnWire": 269
+          "kibOnWire": 268
         },
         {
           "app": "ghostty-webgpu worker, auto backend",
@@ -4296,7 +4297,7 @@
           "runs": 10,
           "median": 824,
           "p95": 1004,
-          "kibOnWire": 269
+          "kibOnWire": 268
         },
         {
           "app": "ghostty-webgpu main, WebGPU",
@@ -4304,7 +4305,7 @@
           "runs": 10,
           "median": 826,
           "p95": 834,
-          "kibOnWire": 271
+          "kibOnWire": 270
         },
         {
           "app": "ghostty-webgpu main, WebGL2",
@@ -4312,7 +4313,7 @@
           "runs": 10,
           "median": 823,
           "p95": 914,
-          "kibOnWire": 269
+          "kibOnWire": 268
         },
         {
           "app": "ghostty-webgpu worker, auto backend",
@@ -4396,7 +4397,7 @@
           "runs": 10,
           "median": 104,
           "p95": 123,
-          "kibOnWire": 271
+          "kibOnWire": 270
         },
         {
           "app": "ghostty-webgpu main, WebGPU",
@@ -4404,7 +4405,7 @@
           "runs": 10,
           "median": 103,
           "p95": 129,
-          "kibOnWire": 271
+          "kibOnWire": 270
         },
         {
           "app": "ghostty-webgpu main, WebGL2",
@@ -4412,7 +4413,7 @@
           "runs": 10,
           "median": 101,
           "p95": 135,
-          "kibOnWire": 269
+          "kibOnWire": 268
         },
         {
           "app": "ghostty-webgpu worker, auto backend",
@@ -4494,7 +4495,7 @@
           "runs": 10,
           "median": 866,
           "p95": 905,
-          "kibOnWire": 271
+          "kibOnWire": 270
         },
         {
           "app": "ghostty-webgpu main, WebGPU",
@@ -4502,7 +4503,7 @@
           "runs": 10,
           "median": 861,
           "p95": 882,
-          "kibOnWire": 271
+          "kibOnWire": 270
         },
         {
           "app": "ghostty-webgpu main, WebGL2",
@@ -4510,7 +4511,7 @@
           "runs": 10,
           "median": 864,
           "p95": 875,
-          "kibOnWire": 269
+          "kibOnWire": 268
         },
         {
           "app": "ghostty-webgpu worker, auto backend",

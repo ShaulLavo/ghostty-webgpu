@@ -4,7 +4,7 @@ This page holds two sets of measurements. The November 2026 set compares ghostty
 
 ## November 2026: against xterm.js, ghostty-web, Wraith and Restty
 
-Measured 2026-11-24 on ghostty-webgpu 0.3.34 (commit `b4a279a1c`) against xterm.js 6.0.0 (WebGL addon 0.19.0), ghostty-web 0.4.0, Wraith (`wraithterm`) 0.6.1 and Restty 0.3.0, on two machines:
+Measured 2026-11-24 on ghostty-webgpu 0.3.34 (speed and energy on `b4a279a1c`; refreshed main-entry cold load on `8d02570c4`; refreshed main-entry download size on `6e488dd51`) against xterm.js 6.0.0 (WebGL addon 0.19.0), ghostty-web 0.4.0, Wraith (`wraithterm`) 0.6.1 and Restty 0.3.0, on two machines:
 
 - **PC:** Linux desktop (Wayland), NVIDIA GeForce RTX 3060 Ti, driver 615.78.08; Chromium 153.0.8010.12, headed, hardware GPU (ANGLE OpenGL ES; WebGPU on Vulkan); DPR 1.
 - **Mac:** Apple M1 MacBook on AC power; Chromium 153.0.8010.12, headed, hardware GPU (ANGLE Metal); DPR 2.
@@ -345,7 +345,7 @@ Joules for the whole browser process family, lower is better.
 
 ### Download size
 
-KiB that one terminal on its best renderer downloads, built with the same Vite production config and logged by the server while the page loads in Chromium. Brotli is quality 11. Fonts are counted separately: xterm.js, ghostty-web and our main entry draw with the page's `monospace` font; our worker entry and Restty get the same 21 KiB woff2, and Wraith fetches its bundled TTF.
+KiB that one terminal on its best renderer downloads, built with the same Vite production config and logged by the server while the page loads in Chromium. Brotli is quality 11. Fonts are counted separately: xterm.js, ghostty-web and our main entry draw with the page's `monospace` font; our worker entry and Restty get the same 21 KiB woff2, and Wraith fetches its bundled TTF. Main-entry rows were measured on `6e488dd51` after Canvas-first startup landed; worker rows were measured on `b4a279a1c`.
 
 | App                                    | Renderer          |    Raw |   gzip | Brotli | Font file (wire) | Brotli + font |
 | -------------------------------------- | ----------------- | -----: | -----: | -----: | ---------------: | ------------: |
@@ -364,7 +364,7 @@ KiB that one terminal on its best renderer downloads, built with the same Vite p
 
 ### Cold load
 
-Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's `monospace` font; the others fetch a font file. The main entry paints its first frame on Canvas 2D while its GPU renderer starts (`canvas2d → webgl2` on the PC, `canvas2d → webgpu` on the Mac; main-entry cold-load and transfer rows refreshed after Canvas-first startup landed in `6e488dd51`).
+Milliseconds from navigation to the first compositor frame that shows a probe line written right after the terminal is created, median (p95) of 10 runs, each in a fresh headed Chromium profile with no HTTP or code cache, at device scale factor 2. Fast 4G adds 165 ms before every response and shares a 1.01 MB/s downlink. This setup differs from the speed runs: each app gets a 720x400 CSS px box; xterm.js, ghostty-web and Wraith are created at 80x20 cells and ours and Restty fit the box at 14 px (about 83x22). Ours on the main entry, xterm.js and ghostty-web draw with the page's `monospace` font; the others fetch a font file. The main entry paints its first frame on Canvas 2D while its GPU renderer starts: in `auto` mode it hands off `canvas2d → webgl2` on the PC and `canvas2d → webgpu` on the Mac, while forced `WebGPU` and `WebGL2` hand off to their named backend on both hosts (main-entry cold-load rows measured on `8d02570c4`; worker rows on `b4a279a1c`).
 
 Fastest first paint: PC unthrottled ghostty-web (41 ms), PC Fast 4G Wraith's xterm profile (469 ms), Mac unthrottled ghostty-web (61 ms), Mac Fast 4G xterm.js with Unicode 11 (501 ms). On Fast 4G our main entry needs two serial round trips before it can request its external wasm file, and that wasm is most of its download. Wraith's xterm profile paints its first text through the DOM while its WebGPU renderer is still starting, so its first paint does not wait for its larger download. On the PC, our main entry avoids WebGL2 startup latency by painting first on Canvas 2D (80 to 82 ms median unthrottled), while xterm.js WebGL2 remains bimodal around 222 or 270 ms per load.
 
