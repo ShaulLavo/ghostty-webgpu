@@ -31,6 +31,12 @@ import { RowDeltaDecoder } from './frame-codec.js'
 import { freezeWorkerValue } from './owned.js'
 import { readOpeningFont } from './opening-font.js'
 import { workerOperationTimeout } from './protocol.js'
+import {
+  dedicatedWorkerLease,
+  type TerminalWorkerPool,
+  type WorkerLease,
+  type WorkerLeaseListeners,
+} from './pool.js'
 
 interface Pending {
   readonly operation: string
@@ -40,22 +46,18 @@ interface Pending {
 }
 export type WorkerExecutionOptions = Omit<
   WorkerInitialize,
-  'type' | 'port' | 'terminal' | 'generation'
+  'type' | 'port' | 'terminal' | 'generation' | 'pooled'
 > & {
   readonly workerUrl?: string | URL
   readonly links?: LinkResolverOptions<Event>
-}
-
-function createWorker(url: string | URL | undefined): Worker {
-  if (url !== undefined) return new Worker(url, { type: 'module' })
-  return new Worker(new URL('./entry.js', import.meta.url), { type: 'module' })
+  readonly pool?: TerminalWorkerPool
 }
 
 /** Host mirror contains acknowledged metadata and owned submitted text, never a native session. */
 export class WorkerTerminalExecution {
   readonly kind = 'async' as const
   readonly links: ProjectedLinkSession<Event>
-  private readonly worker: Worker
+  private readonly worker: WorkerLease
   private readonly port: MessagePort
   private readonly pending = new Map<number, Pending>()
   private readonly emitters = new Map<TerminalSessionEventType, EventEmitter<unknown>>()
@@ -113,8 +115,18 @@ export class WorkerTerminalExecution {
       resolveLinkDiscovery: (request) => this.request('resolveLinkDiscovery', [request]),
     })
     this.terminal = crypto.randomUUID()
+    const listeners: WorkerLeaseListeners = {
+      error: (event) =>
+        this.fail(
+          workerError('startup', 'worker.error', { line: event.lineno, column: event.colno }),
+        ),
+      messageError: () =>
+        this.fail(workerError('protocol', 'worker.messageerror', { control: this.control })),
+    }
     try {
-      this.worker = createWorker(options.workerUrl)
+      this.worker = options.pool
+        ? options.pool.lease(options.workerUrl, listeners)
+        : dedicatedWorkerLease(options.workerUrl, listeners)
     } catch (cause) {
       throw workerError('startup', 'worker.create', {
         causeType: cause instanceof Error ? cause.name : typeof cause,
@@ -127,12 +139,6 @@ export class WorkerTerminalExecution {
     this.port.onmessageerror = () =>
       this.fail(workerError('protocol', 'messageerror', { control: this.control }))
     this.port.start()
-    this.worker.onerror = (event) => {
-      event.preventDefault()
-      this.fail(workerError('startup', 'worker.error', { line: event.lineno, column: event.colno }))
-    }
-    this.worker.onmessageerror = () =>
-      this.fail(workerError('protocol', 'worker.messageerror', { control: this.control }))
     const initialize: WorkerInitialize = {
       type: 'initialize',
       terminal: this.terminal,
@@ -145,9 +151,10 @@ export class WorkerTerminalExecution {
       textBlink: options.textBlink,
       ligatures: options.ligatures,
       ...(options.bidi ? { bidi: true } : {}),
+      ...(options.pool ? { pooled: true } : {}),
     }
     try {
-      this.worker.postMessage(initialize, [channel.port2])
+      this.worker.worker.postMessage(initialize, [channel.port2])
     } catch {
       this.stop()
       channel.port2.close()
@@ -574,7 +581,7 @@ export class WorkerTerminalExecution {
   }
   private stop(): void {
     this.links.dispose()
-    this.worker.terminate()
+    this.worker.release()
     this.port.close()
     for (const emitter of this.emitters.values()) emitter.dispose()
     this.frameListener = undefined

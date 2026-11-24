@@ -1,7 +1,6 @@
-import { readSfntFontMetrics } from '../term/font-metrics.js'
 import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
-import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
+import type { DeviceLease } from '../render/webgpu/device-owner.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
 import {
   calculateTerminalFittedFont,
@@ -11,7 +10,7 @@ import {
 } from '../term/fit-math.js'
 import type { GhosttyWebGpuRenderer } from '../dom/types.js'
 import type { InactiveCursorStyle } from '../render/shared/cursor.js'
-import type { RenderSchedulerClock } from '../render/shared/scheduler.js'
+import { workerShared, type SharedFontFace, type WorkerShared } from './worker-shared.js'
 import { type WebGpuTerminalRendererOptions } from '../render/shared/types.js'
 import type { WebGpuTerminalRenderer } from '../render/webgpu/renderer.js'
 import { WebGpuUnavailableError } from '../render/webgpu/unavailable.js'
@@ -38,19 +37,11 @@ import { serializeWorkerFailure, TerminalWorkerError, workerError } from './stru
 
 interface WorkerScope {
   readonly fonts: FontFaceSet
-  requestAnimationFrame(callback: FrameRequestCallback): number
-  cancelAnimationFrame(handle: number): void
   setTimeout(callback: () => void, delay: number): number
   clearTimeout(handle: number): void
   close(): void
 }
 const scope = globalThis as unknown as WorkerScope
-const workerClock: RenderSchedulerClock = {
-  requestFrame: (callback) => scope.requestAnimationFrame(callback),
-  cancelFrame: (handle) => scope.cancelAnimationFrame(handle),
-  setTimer: (callback, delay) => scope.setTimeout(callback, delay),
-  clearTimer: (handle) => scope.clearTimeout(handle),
-}
 
 function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
   return (
@@ -69,6 +60,7 @@ export class TerminalWorkerRuntime {
   private renderer?: GhosttyWebGpuRenderer
   private inactiveCursorStyle?: InactiveCursorStyle
   private faces: FontFace[] = []
+  private sharedFaces: SharedFontFace[] = []
   private readonly faceMetrics = new Map<FontFace, TerminalFontMetrics>()
   private readonly frameEncoder = new RowDeltaEncoder()
   private readonly subscriptions: TerminalSessionSubscription[] = []
@@ -78,12 +70,9 @@ export class TerminalWorkerRuntime {
   private control = 0
   private acceptedControl = 0
   private postedAppearance?: WorkerState['appearance']
-  private prefetchedDevice?: GPUDevice
-  private prefetchedAcquisition?: Promise<GPUDevice>
+  private prefetchedLease?: Promise<DeviceLease>
   private gpuRenderer?: Promise<WebGpuTerminalRenderer>
   private cleanupPromise?: Promise<void>
-  private acquiredDevices = 0
-  private pendingAcquisitions = 0
   private closed = false
   private layout?: WorkerLayout
   private layoutFont?: TerminalFittedFont
@@ -121,7 +110,10 @@ export class TerminalWorkerRuntime {
       .catch((cause: unknown) => this.fail(cause))
   }
 
-  constructor(private readonly initialize: WorkerInitialize) {}
+  constructor(
+    private readonly initialize: WorkerInitialize,
+    private readonly shared: WorkerShared = workerShared(),
+  ) {}
 
   async start(): Promise<void> {
     const port = this.initialize.port
@@ -154,7 +146,7 @@ export class TerminalWorkerRuntime {
     }
   }
 
-  private prepareFonts(): FontFace[] {
+  private prepareFonts(): SharedFontFace[] {
     if (typeof FontFace === 'undefined' || !scope.fonts)
       throw workerError('capability', 'fonts', {
         fontFace: typeof FontFace,
@@ -162,24 +154,16 @@ export class TerminalWorkerRuntime {
       })
     if (this.initialize.faces.length === 0)
       throw workerError('capability', 'fonts', { faceCount: 0 })
-    return this.initialize.faces.map((source) => {
-      const data =
-        'url' in source.source
-          ? `url(${JSON.stringify(source.source.url)})`
-          : new Uint8Array(source.source.bytes).buffer
-      const face = new FontFace(source.family, data, source.descriptors)
-      const metrics =
-        typeof data === 'string' ? undefined : readSfntFontMetrics(new Uint8Array(data))
-      if (metrics) this.faceMetrics.set(face, metrics)
-      return face
-    })
+    this.sharedFaces = this.initialize.faces.map((source) => this.shared.acquireFace(source))
+    for (const shared of this.sharedFaces)
+      if (shared.metrics) this.faceMetrics.set(shared.face, shared.metrics)
+    return this.sharedFaces
   }
 
-  private async loadFonts(faces: readonly FontFace[]): Promise<void> {
-    const loaded = await Promise.all(faces.map((face) => face.load()))
+  private async loadFonts(faces: readonly SharedFontFace[]): Promise<void> {
+    const loaded = await Promise.all(faces.map((shared) => shared.loaded))
     if (this.disposed) return
     this.faces = loaded
-    for (const face of loaded) scope.fonts.add(face)
   }
 
   private measuredFontSettings(settings: TerminalFontSettings): TerminalFontSettings {
@@ -302,7 +286,7 @@ export class TerminalWorkerRuntime {
       columns: execution.grid.columns,
       rows: execution.grid.rows,
       font,
-      schedulerClock: workerClock,
+      schedulerClock: this.shared.clock,
       cursorBlink: execution.appearance.cursor.blink,
       textBlink: this.initialize.textBlink,
       theme: execution.appearance.rendererTheme,
@@ -403,71 +387,41 @@ export class TerminalWorkerRuntime {
   private async createWebGpuRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer> {
-    this.prefetchedAcquisition = this.requestDevice(
-      this.initialize.backend === 'auto' ? 'hardware' : 'any',
-    ).then((acquired) => {
-      this.prefetchedDevice = acquired
-      return acquired
-    })
-    let device: GPUDevice
+    // Terminals in one worker share a device; this lease keeps it alive until the renderer holds it.
+    const owner = this.shared.deviceOwner(this.initialize.backend === 'auto' ? 'hardware' : 'any')
+    const acquisition = owner.acquire()
+    this.prefetchedLease = acquisition
+    let lease: DeviceLease
     try {
-      device = await this.prefetchedAcquisition
+      lease = await acquisition
     } catch (cause) {
       throw workerError('capability', 'renderer.webgpu', {
         causeType: cause instanceof Error ? cause.name : typeof cause,
       })
     }
-    this.native()
-    let WebGpuTerminalRenderer: typeof import('../render/webgpu/renderer.js').WebGpuTerminalRenderer
     try {
-      ;({ WebGpuTerminalRenderer } = await import('../render/webgpu/renderer.js'))
-    } catch (cause) {
-      // Release the unused device before automatic fallback or open failure.
-      this.releasePrefetchedDevice()
-      throw workerError('capability', 'renderer.webgpu', {
-        causeType: cause instanceof Error ? cause.name : typeof cause,
-        module: false,
+      this.native()
+      let WebGpuTerminalRenderer: typeof import('../render/webgpu/renderer.js').WebGpuTerminalRenderer
+      try {
+        ;({ WebGpuTerminalRenderer } = await import('../render/webgpu/renderer.js'))
+      } catch (cause) {
+        throw workerError('capability', 'renderer.webgpu', {
+          causeType: cause instanceof Error ? cause.name : typeof cause,
+          module: false,
+        })
+      }
+      this.native()
+      const { schedulerClock: _clock, ...rest } = options
+      this.gpuRenderer = WebGpuTerminalRenderer.create({
+        ...rest,
+        deviceOwner: owner,
+        frameCoordinator: this.shared.frameCoordinator,
       })
-    }
-    this.native()
-    this.gpuRenderer = WebGpuTerminalRenderer.create({
-      ...options,
-      deviceFactory: this.deviceFactory(device),
-    })
-    return this.gpuRenderer
-  }
-
-  private releasePrefetchedDevice(): void {
-    const device = this.prefetchedDevice
-    this.prefetchedDevice = undefined
-    this.prefetchedAcquisition = undefined
-    device?.destroy()
-  }
-
-  private async requestDevice(adapterPolicy: 'hardware' | 'any'): Promise<GPUDevice> {
-    this.pendingAcquisitions += 1
-    try {
-      const adapter = await navigator.gpu?.requestAdapter({ powerPreference: 'high-performance' })
-      if (!adapter) throw workerError('capability', 'renderer.webgpu', { adapter: false })
-      if (adapterPolicy === 'hardware' && isSoftwareWebGpuAdapter(adapter))
-        throw workerError('capability', 'renderer.webgpu', { softwareAdapter: true })
-      const device = await adapter.requestDevice()
-      this.acquiredDevices += 1
-      return device
+      return await this.gpuRenderer
     } finally {
-      this.pendingAcquisitions -= 1
-    }
-  }
-
-  private deviceFactory(initialDevice: GPUDevice): () => Promise<GPUDevice> {
-    let initial: GPUDevice | undefined = initialDevice
-    return async () => {
-      if (!initial) return this.requestDevice('any')
-      const device = initial
-      initial = undefined
-      this.prefetchedDevice = undefined
-      this.prefetchedAcquisition = undefined
-      return device
+      // Releasing the last reservation destroys an unused device before fallback or open failure.
+      this.prefetchedLease = undefined
+      await lease.release()
     }
   }
 
@@ -792,7 +746,7 @@ export class TerminalWorkerRuntime {
     if (this.closed) return
     this.closed = true
     this.initialize.port.close()
-    scope.close()
+    if (!this.initialize.pooled) scope.close()
   }
 
   private cleanup(): Promise<void> {
@@ -803,8 +757,8 @@ export class TerminalWorkerRuntime {
     const deadline = Promise.withResolvers<never>()
     const timer = scope.setTimeout(() => {
       const internal = {
-        deviceCount: this.acquiredDevices + this.pendingAcquisitions,
-        pendingAcquisitions: this.pendingAcquisitions,
+        deviceCount: this.shared.acquiredDevices + this.shared.pendingAcquisitions,
+        pendingAcquisitions: this.shared.pendingAcquisitions,
         reason: 'shutdown-deadline',
         timeoutMs: workerOperationTimeout,
       }
@@ -827,7 +781,8 @@ export class TerminalWorkerRuntime {
     this.outputPort?.close()
     for (const subscription of this.subscriptions) subscription.dispose()
     this.execution?.dispose()
-    for (const face of this.faces) scope.fonts.delete(face)
+    for (const shared of this.sharedFaces) this.shared.releaseFace(shared)
+    this.sharedFaces = []
     this.faces.length = 0
     this.faceMetrics.clear()
     const startupExecution = this.startupExecution
@@ -837,19 +792,14 @@ export class TerminalWorkerRuntime {
       (execution) => execution.dispose(),
       () => {},
     )
-    await this.prefetchedAcquisition?.then(
-      () => {},
+    await this.prefetchedLease?.then(
+      (lease) => lease.release(),
       () => {},
     )
     await this.gpuRenderer?.then(
       (renderer) => renderer.dispose(),
       () => {},
     )
-    try {
-      await this.prefetchedDevice?.queue.onSubmittedWorkDone()
-    } catch {}
-    this.prefetchedDevice?.destroy()
-    this.prefetchedDevice = undefined
   }
   private fail(cause: unknown): void {
     if (this.disposed) return

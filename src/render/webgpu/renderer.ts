@@ -206,7 +206,8 @@ export class WebGpuTerminalRenderer {
     this.device = device
     this.deviceLease = lease
     this.replacementDeviceOwner = replacementDeviceOwner
-    if (!options.deviceFactory && !options.schedulerClock)
+    this.coordinator = options.frameCoordinator
+    if (!this.coordinator && !options.deviceFactory && !options.schedulerClock)
       this.coordinator = sharedFrameCoordinator()
     this.bidi = bidi
     this.renderState = options.renderState
@@ -272,7 +273,9 @@ export class WebGpuTerminalRenderer {
     const validated = validateRenderer(options)
     let owner = options.adapterPolicy === 'hardware' ? hardwareDeviceOwner : defaultDeviceOwner
     if (options.deviceFactory) owner = new DeviceOwner(options.deviceFactory)
-    const replacementOwner = options.deviceFactory ? owner : defaultDeviceOwner
+    if (options.deviceOwner) owner = options.deviceOwner
+    const replacementOwner =
+      options.deviceFactory || options.deviceOwner ? owner : defaultDeviceOwner
     const lease = await owner.acquire()
     let prepared: PreparedRenderer | undefined
     try {

@@ -2,6 +2,7 @@ import { terminalWasmAssets } from '../core/assets.js'
 import { TerminalHost } from '../dom/terminal-host.js'
 import type { GhosttyWebGpuTerminalFromSessionOptions } from '../dom/types.js'
 import { WorkerTerminalExecution } from './execution.js'
+import type { TerminalWorkerPool } from './pool.js'
 import type { WorkerAssets, WorkerBackend, WorkerFontFace, WorkerInitialize } from './protocol.js'
 
 export interface WorkerTerminalOptions extends Omit<
@@ -12,6 +13,8 @@ export interface WorkerTerminalOptions extends Omit<
   readonly backend?: WorkerBackend
   readonly fonts: readonly WorkerFontFace[]
   readonly workerUrl?: string | URL
+  /** Shares a few workers between terminals; without it each terminal gets its own worker. */
+  readonly pool?: TerminalWorkerPool
 }
 export type Terminal = TerminalHost<'async'>
 
@@ -47,6 +50,7 @@ export const Terminal = Object.freeze({
       appearance,
       links: options.links,
       workerUrl: options.workerUrl,
+      pool: options.pool,
     })
     try {
       return TerminalHost.fromWorker(execution, options)
@@ -57,6 +61,7 @@ export const Terminal = Object.freeze({
   },
 })
 export { TerminalWorkerError } from './structured-errors.js'
+export { TerminalWorkerPool, type TerminalWorkerPoolOptions } from './pool.js'
 export type { TerminalApi, TerminalResult } from '../dom/terminal-api.js'
 export type { TerminalBatchedWriteOptions, TerminalWriteQueueOptions } from '../dom/write-queue.js'
 export type {

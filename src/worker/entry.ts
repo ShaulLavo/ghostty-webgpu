@@ -4,7 +4,8 @@ import type { WorkerInitialize } from './protocol.js'
 const scope = globalThis as unknown as {
   onmessage: ((event: MessageEvent<WorkerInitialize>) => void) | null
 }
+// A pooled worker starts one runtime per terminal; a dedicated one accepts a single initialize.
 scope.onmessage = ({ data }) => {
-  scope.onmessage = null
+  if (!data.pooled) scope.onmessage = null
   void new TerminalWorkerRuntime(data).start()
 }

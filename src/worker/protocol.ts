@@ -169,6 +169,8 @@ export interface WorkerInitialize extends WorkerIdentity {
   readonly faces: readonly WorkerFontFace[]
   readonly appearance?: TerminalAppearanceOptions
   readonly backend: WorkerBackend
+  /** The page owns a pooled worker's lifetime; a dedicated worker closes itself on stop. */
+  readonly pooled?: boolean
   readonly bidi?: boolean
   readonly textBlink?: boolean
   readonly ligatures?: boolean | { readonly font: string | ArrayBuffer | ArrayBufferView }
