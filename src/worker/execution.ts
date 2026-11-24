@@ -136,6 +136,11 @@ export class WorkerTerminalExecution {
     this.worker.onmessageerror = () =>
       this.fail(workerError('protocol', 'worker.messageerror', { control: this.control }))
     const modules = compileWorkerModules(options.assets)
+    // Settled before the first post, so a failed initialize send leaves no unhandled rejection.
+    const delivery = modules?.then(
+      (compiled) => compiled,
+      () => undefined,
+    )
     const initialize: WorkerInitialize = {
       type: 'initialize',
       terminal: this.terminal,
@@ -158,21 +163,26 @@ export class WorkerTerminalExecution {
       throw workerError('protocol', 'initialize', { initialized: false })
     }
     // A failed page compile hands the download back to the worker, which reports the real error.
-    void modules?.then(
-      (compiled) => this.postModules(compiled),
-      () => this.postModules({}),
-    )
+    void delivery?.then((compiled) => this.postModules(compiled))
   }
 
-  private postModules(modules: Partial<CompiledWorkerModules>): void {
-    if (this.disposed) return
-    const message: WorkerModules = {
+  private postModules(compiled: CompiledWorkerModules | undefined): void {
+    if (this.disposed || this.failure) return
+    const empty: WorkerModules = {
       type: 'modules',
       terminal: this.terminal,
       generation: this.generation,
-      ...modules,
     }
-    this.port.postMessage(message)
+    try {
+      this.port.postMessage(compiled ? { ...empty, ...compiled } : empty)
+      return
+    } catch {}
+    // Modules the port cannot clone fall back to the worker's own download.
+    try {
+      this.port.postMessage(empty)
+    } catch {
+      this.fail(workerError('protocol', 'modules', { compiled: Boolean(compiled) }))
+    }
   }
 
   static async create(options: WorkerExecutionOptions): Promise<WorkerTerminalExecution> {

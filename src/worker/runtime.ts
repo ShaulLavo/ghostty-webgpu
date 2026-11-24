@@ -54,6 +54,10 @@ const workerClock: RenderSchedulerClock = {
   clearTimer: (handle) => scope.clearTimeout(handle),
 }
 
+function isSoftwareAdapterRejection(cause: unknown): boolean {
+  return cause instanceof TerminalWorkerError && cause.internal?.softwareAdapter === true
+}
+
 function layoutEquals(left: WorkerLayout, right: WorkerLayout): boolean {
   return (
     left.width === right.width &&
@@ -97,7 +101,9 @@ export class TerminalWorkerRuntime {
     readonly reject: (cause: unknown) => void
   }
   private canvasReplacement?: ReturnType<typeof Promise.withResolvers<OffscreenCanvas>>
-  private readonly pageModules = Promise.withResolvers<Omit<WorkerModules, 'type'>>()
+  private readonly pageModules = Promise.withResolvers<Pick<WorkerModules, 'wasm' | 'bridge'>>()
+  private modulesSettled = false
+  private speculativeAcquisition?: Promise<GPUDevice>
   private readonly onMessage = (
     event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerModules>,
   ) => {
@@ -108,7 +114,7 @@ export class TerminalWorkerRuntime {
         request.generation !== this.initialize.generation
       )
         return
-      this.pageModules.resolve(request)
+      this.settleModules(request)
       return
     }
     if (request?.type === 'canvas') {
@@ -139,8 +145,14 @@ export class TerminalWorkerRuntime {
 
   async start(): Promise<void> {
     const port = this.initialize.port
-    port.onmessageerror = () =>
+    port.onmessageerror = () => {
+      // Only the page's module handoff is in flight before startup; it falls back to the URLs.
+      if (this.initialize.modules && !this.modulesSettled) {
+        this.settleModules({})
+        return
+      }
       this.fail(workerError('protocol', 'messageerror', { control: this.control }))
+    }
     port.onmessage = this.onMessage
     port.start()
     try {
@@ -171,6 +183,12 @@ export class TerminalWorkerRuntime {
     }
   }
 
+  private settleModules(modules: Pick<WorkerModules, 'wasm' | 'bridge'>): void {
+    if (this.modulesSettled) return
+    this.modulesSettled = true
+    this.pageModules.resolve(modules)
+  }
+
   private async runtimeOptions(): Promise<RuntimeOptions> {
     if (!this.initialize.modules) return this.initialize.assets
     const { wasm, bridge } = await this.pageModules.promise
@@ -184,9 +202,21 @@ export class TerminalWorkerRuntime {
   // wait for `open`: a failed early import would stay failed in the module map.
   private prewarmRenderer(): void {
     if (this.plannedBackends()[0] !== 'webgpu') return
-    this.prefetchedAcquisition = this.prefetchDevice()
-    // A failed early request resurfaces as a capability failure when the renderer is created.
-    this.prefetchedAcquisition.catch(() => undefined)
+    this.speculativeAcquisition = this.prefetchDevice()
+    // `open` retries a failed speculative request on its own acquisition path.
+    this.speculativeAcquisition.catch(() => undefined)
+  }
+
+  // A speculative request that failed is retried at open, which then decides fallback. A
+  // software adapter is not retried: it is the same adapter at open.
+  private takeAcquisition(): Promise<GPUDevice> {
+    const speculative = this.speculativeAcquisition
+    this.speculativeAcquisition = undefined
+    if (!speculative) return this.prefetchDevice()
+    return speculative.catch((cause: unknown) => {
+      if (isSoftwareAdapterRejection(cause)) throw cause
+      return this.prefetchDevice()
+    })
   }
 
   private prefetchDevice(): Promise<GPUDevice> {
@@ -447,7 +477,7 @@ export class TerminalWorkerRuntime {
   private async createWebGpuRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer> {
-    this.prefetchedAcquisition ??= this.prefetchDevice()
+    this.prefetchedAcquisition ??= this.takeAcquisition()
     let device: GPUDevice
     try {
       device = await this.prefetchedAcquisition
@@ -877,6 +907,14 @@ export class TerminalWorkerRuntime {
       (execution) => execution.dispose(),
       () => {},
     )
+    // A speculative request never holds up cleanup or a startup failure; its device is
+    // destroyed whenever it settles.
+    const speculative = this.speculativeAcquisition
+    this.speculativeAcquisition = undefined
+    void speculative?.then(
+      (device) => this.destroySpeculativeDevice(device),
+      () => {},
+    )
     await this.prefetchedAcquisition?.then(
       () => {},
       () => {},
@@ -891,6 +929,11 @@ export class TerminalWorkerRuntime {
     this.prefetchedDevice?.destroy()
     this.prefetchedDevice = undefined
   }
+  private destroySpeculativeDevice(device: GPUDevice): void {
+    if (this.prefetchedDevice === device) this.prefetchedDevice = undefined
+    device.destroy()
+  }
+
   private fail(cause: unknown): void {
     if (this.disposed) return
     void this.cleanup().then(

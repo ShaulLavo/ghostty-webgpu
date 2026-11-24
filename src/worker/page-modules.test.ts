@@ -8,6 +8,12 @@ function wasmResponse(): Response {
   return new Response(emptyModule, { headers: { 'Content-Type': 'application/wasm' } })
 }
 
+// Compiles are shared per URL for the page's lifetime, so every test uses its own host.
+function assets() {
+  const host = `https://${crypto.randomUUID()}.test`
+  return { wasm: `${host}/ghostty-vt.wasm`, bridge: `${host}/bridge.wasm` }
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -30,29 +36,44 @@ it('leaves relative, blob and data asset URLs to the worker', () => {
 it('compiles both absolute assets on the page', async () => {
   const fetch = vi.fn(async (_url: string | URL) => wasmResponse())
   vi.stubGlobal('fetch', fetch)
-  const modules = await compileWorkerModules({
-    wasm: 'https://host/ghostty-vt.wasm',
-    bridge: 'https://host/bridge.wasm',
-  })
+  const urls = assets()
+  const modules = await compileWorkerModules(urls)
   expect(modules?.wasm).toBeInstanceOf(WebAssembly.Module)
   expect(modules?.bridge).toBeInstanceOf(WebAssembly.Module)
-  expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([
-    'https://host/ghostty-vt.wasm',
-    'https://host/bridge.wasm',
-  ])
+  expect(fetch.mock.calls.map(([url]) => String(url))).toEqual([urls.wasm, urls.bridge])
 })
 
-it('rejects when either download fails so the worker fetches the assets itself', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url: URL) =>
-      url.pathname.endsWith('bridge.wasm') ? new Response('', { status: 503 }) : wasmResponse(),
-    ),
-  )
-  await expect(
-    compileWorkerModules({
-      wasm: 'https://host/ghostty-vt.wasm',
-      bridge: 'https://host/bridge.wasm',
-    }),
-  ).rejects.toThrow('HTTP 503')
+it('shares one download and compile per asset between concurrent workers', async () => {
+  const fetch = vi.fn(async (_url: string | URL) => wasmResponse())
+  vi.stubGlobal('fetch', fetch)
+  const urls = assets()
+  const results = await Promise.all([
+    compileWorkerModules(urls),
+    compileWorkerModules(urls),
+    compileWorkerModules(urls),
+  ])
+  expect(fetch).toHaveBeenCalledTimes(2)
+  for (const modules of results) {
+    expect(modules?.wasm).toBe(results[0]?.wasm)
+    expect(modules?.bridge).toBe(results[0]?.bridge)
+  }
+})
+
+it('rejects a failed download and downloads again for the next worker', async () => {
+  let failBridge = true
+  const fetch = vi.fn(async (url: URL) => {
+    if (url.pathname.endsWith('bridge.wasm') && failBridge) return new Response('', { status: 503 })
+    return wasmResponse()
+  })
+  vi.stubGlobal('fetch', fetch)
+  const urls = assets()
+  await expect(compileWorkerModules(urls)).rejects.toThrow('HTTP 503')
+  failBridge = false
+  const modules = await compileWorkerModules(urls)
+  expect(modules?.bridge).toBeInstanceOf(WebAssembly.Module)
+  expect(fetch.mock.calls.map(([url]) => url.pathname)).toEqual([
+    '/ghostty-vt.wasm',
+    '/bridge.wasm',
+    '/bridge.wasm',
+  ])
 })
