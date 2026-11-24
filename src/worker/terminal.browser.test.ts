@@ -211,6 +211,30 @@ it.each(['createShader', 'createProgram', 'createBuffer', 'createVertexArray', '
   },
 )
 
+it('compiles absolute wasm assets on the page while the worker script loads', async () => {
+  await requireWorkerWebGl()
+  const query = `?page-compile=${crypto.randomUUID()}`
+  const pageAssets = { wasm: assets.wasm + query, bridge: assets.bridge + query }
+  const fetched: string[] = []
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) fetched.push(entry.name)
+  })
+  observer.observe({ type: 'resource' })
+  onTestFinished(() => observer.disconnect())
+  const terminal = await WorkerTerminal.create({
+    assets: pageAssets,
+    appearance: { font: { family, size: 16 }, cursor: { blink: false } },
+    backend: 'webgl',
+    workerUrl,
+    fonts: [{ family, source: { url: fontUrl } }],
+  })
+  active.push(terminal)
+  await terminal.open(container())
+  await terminal.write('page compiled wasm')
+  await eventually(() => terminal.visibleLines()[0]?.includes('page compiled wasm') === true)
+  expect(fetched).toEqual(expect.arrayContaining([pageAssets.wasm, pageAssets.bridge]))
+})
+
 it('propagates Linux worker shader programming failures', async () => {
   const url = new URL('./tests/platform-backend.worker.ts', import.meta.url)
   url.searchParams.set('platform', 'Linux legacy platform')

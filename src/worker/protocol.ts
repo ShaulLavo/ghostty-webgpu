@@ -144,6 +144,12 @@ export interface WorkerCanvasReplacement extends WorkerIdentity {
   readonly type: 'canvas'
   readonly canvas: OffscreenCanvas
 }
+/** Wasm the page compiled while the worker script downloaded; absent modules mean fetch `assets`. */
+export interface WorkerModules extends WorkerIdentity {
+  readonly type: 'modules'
+  readonly wasm?: WebAssembly.Module
+  readonly bridge?: WebAssembly.Module
+}
 
 export type WorkerMessage<Frame extends WorkerSubmission | WorkerFrameDelta = WorkerSubmission> =
   | WorkerReply
@@ -158,6 +164,8 @@ export interface WorkerInitialize extends WorkerIdentity {
   readonly type: 'initialize'
   readonly port: MessagePort
   readonly assets: WorkerAssets
+  /** The page posts a `WorkerModules` message on `port` before the worker may load wasm. */
+  readonly modules?: true
   readonly faces: readonly WorkerFontFace[]
   readonly appearance?: TerminalAppearanceOptions
   readonly backend: WorkerBackend

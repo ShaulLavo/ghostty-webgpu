@@ -1,5 +1,6 @@
 import { readSfntFontMetrics } from '../term/font-metrics.js'
 import type { TerminalFontMetrics, TerminalFontSettings } from '../term/types.js'
+import type { RuntimeOptions } from '../core/types.js'
 import { automaticGpuBackends, type GpuBackend } from '../render/shared/backend-order.js'
 import { isSoftwareWebGpuAdapter } from '../render/webgpu/adapter.js'
 import { LocalTerminalExecution } from '../dom/execution-local.js'
@@ -29,6 +30,7 @@ import type {
   WorkerFrameDelta,
   WorkerRequest,
   WorkerCanvasReplacement,
+  WorkerModules,
   WorkerState,
   TerminalOutputMessage,
 } from './protocol.js'
@@ -94,8 +96,20 @@ export class TerminalWorkerRuntime {
     readonly reject: (cause: unknown) => void
   }
   private canvasReplacement?: ReturnType<typeof Promise.withResolvers<OffscreenCanvas>>
-  private readonly onMessage = (event: MessageEvent<WorkerRequest | WorkerCanvasReplacement>) => {
+  private readonly pageModules = Promise.withResolvers<Omit<WorkerModules, 'type'>>()
+  private readonly onMessage = (
+    event: MessageEvent<WorkerRequest | WorkerCanvasReplacement | WorkerModules>,
+  ) => {
     const request = event.data
+    if (request?.type === 'modules') {
+      if (
+        request.terminal !== this.initialize.terminal ||
+        request.generation !== this.initialize.generation
+      )
+        return
+      this.pageModules.resolve(request)
+      return
+    }
     if (request?.type === 'canvas') {
       if (
         request.terminal !== this.initialize.terminal ||
@@ -130,13 +144,16 @@ export class TerminalWorkerRuntime {
     port.start()
     try {
       const faces = this.prepareFonts()
-      const startupExecution = LocalTerminalExecution.create(
-        {
-          appearance: this.initialize.appearance,
-          bidi: this.initialize.bidi,
-          runtime: { kind: 'owned', options: this.initialize.assets },
-        },
-        this.initialize.generation,
+      this.prewarmRenderer()
+      const startupExecution = this.runtimeOptions().then((options) =>
+        LocalTerminalExecution.create(
+          {
+            appearance: this.initialize.appearance,
+            bidi: this.initialize.bidi,
+            runtime: { kind: 'owned', options },
+          },
+          this.initialize.generation,
+        ),
       )
       this.startupExecution = startupExecution
       const [execution] = await Promise.all([startupExecution, this.loadFonts(faces)])
@@ -151,6 +168,33 @@ export class TerminalWorkerRuntime {
     } catch (cause) {
       this.fail(cause)
     }
+  }
+
+  private async runtimeOptions(): Promise<RuntimeOptions> {
+    if (!this.initialize.modules) return this.initialize.assets
+    const { wasm, bridge } = await this.pageModules.promise
+    return {
+      wasm: wasm ?? this.initialize.assets.wasm,
+      bridge: bridge ?? this.initialize.assets.bridge,
+    }
+  }
+
+  // The GPU device starts while the wasm core compiles, not after `open`. Renderer chunks
+  // wait for `open`: a failed early import would stay failed in the module map.
+  private prewarmRenderer(): void {
+    if (this.plannedBackends()[0] !== 'webgpu') return
+    this.prefetchedAcquisition = this.prefetchDevice()
+    // A failed early request resurfaces as a capability failure when the renderer is created.
+    this.prefetchedAcquisition.catch(() => undefined)
+  }
+
+  private prefetchDevice(): Promise<GPUDevice> {
+    return this.requestDevice(this.initialize.backend === 'auto' ? 'hardware' : 'any').then(
+      (acquired) => {
+        this.prefetchedDevice = acquired
+        return acquired
+      },
+    )
   }
 
   private prepareFonts(): FontFace[] {
@@ -402,16 +446,12 @@ export class TerminalWorkerRuntime {
   private async createWebGpuRenderer(
     options: WebGpuTerminalRendererOptions,
   ): Promise<WebGpuTerminalRenderer> {
-    this.prefetchedAcquisition = this.requestDevice(
-      this.initialize.backend === 'auto' ? 'hardware' : 'any',
-    ).then((acquired) => {
-      this.prefetchedDevice = acquired
-      return acquired
-    })
+    this.prefetchedAcquisition ??= this.prefetchDevice()
     let device: GPUDevice
     try {
       device = await this.prefetchedAcquisition
     } catch (cause) {
+      this.prefetchedAcquisition = undefined
       throw workerError('capability', 'renderer.webgpu', {
         causeType: cause instanceof Error ? cause.name : typeof cause,
       })

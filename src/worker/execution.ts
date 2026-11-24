@@ -25,7 +25,9 @@ import type {
   WorkerState,
   WorkerLayout,
   WorkerCanvasReplacement,
+  WorkerModules,
 } from './protocol.js'
+import { compileWorkerModules, type CompiledWorkerModules } from './page-modules.js'
 import { TerminalWorkerError, workerError } from './structured-errors.js'
 import { RowDeltaDecoder } from './frame-codec.js'
 import { freezeWorkerValue } from './owned.js'
@@ -133,12 +135,14 @@ export class WorkerTerminalExecution {
     }
     this.worker.onmessageerror = () =>
       this.fail(workerError('protocol', 'worker.messageerror', { control: this.control }))
+    const modules = compileWorkerModules(options.assets)
     const initialize: WorkerInitialize = {
       type: 'initialize',
       terminal: this.terminal,
       generation: this.generation,
       port: channel.port2,
       assets: options.assets,
+      ...(modules ? { modules: true as const } : {}),
       faces: options.faces,
       appearance: options.appearance,
       backend: options.backend,
@@ -153,6 +157,22 @@ export class WorkerTerminalExecution {
       channel.port2.close()
       throw workerError('protocol', 'initialize', { initialized: false })
     }
+    // A failed page compile hands the download back to the worker, which reports the real error.
+    void modules?.then(
+      (compiled) => this.postModules(compiled),
+      () => this.postModules({}),
+    )
+  }
+
+  private postModules(modules: Partial<CompiledWorkerModules>): void {
+    if (this.disposed) return
+    const message: WorkerModules = {
+      type: 'modules',
+      terminal: this.terminal,
+      generation: this.generation,
+      ...modules,
+    }
+    this.port.postMessage(message)
   }
 
   static async create(options: WorkerExecutionOptions): Promise<WorkerTerminalExecution> {
