@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
+import { renderNovember } from '../2026-11-24/report.ts'
 
 const root = new URL('./', import.meta.url)
 const data = JSON.parse(await readFile(new URL('scores.json', root)))
+const november = await renderNovember()
 const base = 'https://github.com/ShaulLavo/ghostty-webgpu/blob/main/'
 const evidence = `${base}docs/benchmarks/mac-m1-2026-10-10/`
 const { versions, runtimeCommit } = data.conditions
@@ -67,13 +69,18 @@ const unavailable = data.unavailable
   .join(' ')
 const report = `# Terminal comparison benchmarks
 
-These are instrumented whole-terminal measurements of ghostty-webgpu ${versions['ghostty-webgpu']} (Fregat commit \`${runtimeCommit}\`). They measure CPU work and estimated CPU energy while terminals receive paced output, and they show workload-specific results from one Mac on the evening of 2026-10-09 UTC. Later builds are not measured here.
+This page holds two sets of measurements. The November 2026 set compares ghostty-webgpu ${november.version} with xterm.js, ghostty-web, Wraith and Restty on a Linux PC and an M1 Mac: CPU across 17 workloads, Mac energy, download size and cold load. The October 2026 set is older and narrower: ghostty-webgpu ${versions['ghostty-webgpu']} against xterm.js only, as paired Mac energy and instruction ratios.
+
+${november.markdown}
+## October 2026: Mac energy pairs against xterm.js
+
+These are instrumented whole-terminal measurements of ghostty-webgpu ${versions['ghostty-webgpu']} (Fregat commit \`${runtimeCommit}\`). They measure CPU work and estimated CPU energy while terminals receive paced output, and they show workload-specific results from one Mac on the evening of 2026-10-09 UTC. Later builds are not measured in this section.
 
 Every ratio is ghostty divided by xterm.js. Below 1 means ghostty uses less. Energy and instructions are the efficiency metrics. CPU seconds appear for context. Apple Silicon changes its clock speed with load, so a run that does less work can take more CPU seconds.
 
 [Scores](${evidence}scores.json) · [Method and recompute](${evidence}README.md) · [Offline verifier](${evidence}verify.mjs)
 
-## WebGL vs xterm.js WebGL
+### WebGL vs xterm.js WebGL
 
 Apple M1 MacBook, AC power, headed Chrome 154.0.8037.93, hardware ANGLE Metal GPU. Acquired 2026-10-09 UTC, reviewed 2026-10-10. ghostty-webgpu ${versions['ghostty-webgpu']}; xterm.js ${versions['@xterm/xterm']} with WebGL addon ${versions['@xterm/addon-webgl']}, plus its Unicode 11 addon ${versions['@xterm/addon-unicode11']} on one Unicode line per tick. 40 × 12 cells, DPR 2, a 560 × 456-pixel drawing buffer for both libraries, 17 visible terminals. Each workload has 120 warm-up ticks and 900 measured ticks paced at 60 Hz. Each row is the median of two balanced pair ratios from one browser session, and every workload ran in its own session. Counters cover the endpoint-enumerated Chrome process family, including GPU-process CPU work.
 
@@ -85,7 +92,7 @@ One Unicode line per tick is even. Energy is ${less(glLine.energy, 1)}% lower in
 
 The bounded log workloads finish with matching retained text and equal history: ${pick(gl, 'rolling-logs').historyRows.toLocaleString('en-US')} rows per terminal for heavy log output and ${pick(gl, 'rolling-unicode-logs').historyRows.toLocaleString('en-US')} for heavy Unicode output. The check compares final retained output. It does not prove equal intermediate retention or identical rasters.
 
-## DOM vs xterm.js DOM
+### DOM vs xterm.js DOM
 
 Same machine, browser, build and dates. ghostty-webgpu ${versions['ghostty-webgpu']} DOM against xterm.js ${versions['@xterm/xterm']} DOM. Both use a normalized 360 × 288 CSS-pixel surface, a 15px font and hidden scrollbars. 40 × 12 cells, DPR 2, 17 visible terminals, 120 warm-up ticks and 900 measured ticks at 60 Hz. Ratios are medians of two balanced pairs of all-Chrome counter deltas.
 
@@ -95,17 +102,11 @@ DOM uses ${less(pick(dom, 'rolling-logs').energy)}% less estimated CPU energy an
 
 ${unavailable}
 
-## Not published here
+### Not published in this set
 
-This page publishes the WebGL and DOM tables only. Canvas, WebGPU, Linux and Raspberry Pi 4 results are not published. xterm.js has no WebGPU renderer, so a WebGPU row would be a cross-API comparison.
+The October set pairs each renderer with the same kind of xterm.js renderer, so it has WebGL and DOM tables only. Its Canvas, WebGPU, Linux and Raspberry Pi 4 runs are not published. xterm.js has no WebGPU renderer, so a WebGPU row would be a cross-API comparison.
 
-## Memory
-
-A fair memory comparison covers the whole browser process family, including resident WebAssembly memory. Report the idle baseline, retained-history phase and their delta, along with actual retained rows. GPU-device allocations need a separate measurement and label. Avoid adding WASM capacity to RSS, which already includes resident WASM pages.
-
-This page makes no numeric memory claim.
-
-## Method limits
+### Method limits
 
 Energy is the macOS kernel's per-process CPU energy estimate from \`proc_pid_rusage\` with \`RUSAGE_INFO_V6\`. It includes GPU-process CPU work, and excludes GPU-device, display, non-Chrome and whole-system power. Instructions are retired CPU instructions across the same process family. Cycles, CPU seconds, core placement and effective clocks are diagnostics. The M1 runs light work on its efficiency cores, so a terminal that does less work can show more cycles.
 
@@ -114,6 +115,12 @@ Each cell has two chronological ghostty and xterm.js pairs, ordered ABBA or BAAB
 Native snapshots bracket the reset, paced writes, logical settlement through two animation frames, and target-counter snapshots. Text and screenshots are captured afterwards. This endpoint proves logical settlement; it does not prove physical presentation. Stable PID, type and start identities at the endpoints cannot capture a process born and gone entirely between samples. Samples are sequential and non-atomic.
 
 These tables do not support a claim that ghostty is faster on every workload. Each saved record preserves per-process counter deltas, output digests and work counts. Recompute every ratio with \`node docs/benchmarks/mac-m1-2026-10-10/verify.mjs\`, from \`ghostty-webgpu/\`.
+
+## Memory
+
+A fair memory comparison covers the whole browser process family, including resident WebAssembly memory. Report the idle baseline, retained-history phase and their delta, along with actual retained rows. GPU-device allocations need a separate measurement and label. Avoid adding WASM capacity to RSS, which already includes resident WASM pages.
+
+This page makes no numeric memory claim.
 `
 const overviewUrl = new URL('../../overview.md', root)
 const oldOverview = await readFile(overviewUrl, 'utf8')

@@ -1,0 +1,4587 @@
+{
+  "measured": "2026-11-24",
+  "commit": "b4a279a1cb5c76191423fcdcafa5bddaa15afdb9",
+  "version": "0.3.34",
+  "libraries": {
+    "@xterm/xterm": "6.0.0",
+    "@xterm/addon-webgl": "0.19.0",
+    "@xterm/addon-unicode11": "0.9.0",
+    "ghostty-web": "0.4.0",
+    "wraithterm": "0.6.1",
+    "restty": "0.3.0"
+  },
+  "competitorSession": "055a698c5",
+  "drift": {
+    "pc": 1.006,
+    "mac": 0.997
+  },
+  "hosts": {
+    "pc": {
+      "machine": "Linux desktop (Wayland), NVIDIA GeForce RTX 3060 Ti, driver 615.78.08",
+      "browser": "Chromium 153.0.8010.12, headed, hardware GPU (ANGLE OpenGL ES; WebGPU on Vulkan)",
+      "dpr": 1,
+      "cpuCounter": "sum of /proc/<pid>/task/*/schedstat on-CPU time over every Chromium process"
+    },
+    "mac": {
+      "machine": "Apple M1 MacBook on AC power",
+      "browser": "Chromium 153.0.8010.12, headed, hardware GPU (ANGLE Metal)",
+      "dpr": 2,
+      "cpuCounter": "proc_pid_rusage (RUSAGE_INFO_V6) user + system time over every Chromium process"
+    }
+  },
+  "speed": {
+    "pc": {
+      "cpu": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.166,
+            "ours-main-webgl2": 0.151,
+            "ours-main-canvas2d": 0.376,
+            "ours-main-dom": 0.153,
+            "ours-worker-webgpu": 0.202,
+            "ours-worker-webgl2": 0.166,
+            "ours-pool-webgpu": 0.207,
+            "ours-pool-webgl2": 0.2,
+            "xterm-webgl": 0.182,
+            "xterm-dom": 0.195,
+            "ghostty-web-canvas2d": 0.465,
+            "wraith-webgpu": 0.151,
+            "restty-webgpu": 0.454,
+            "restty-webgl2": 0.353
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.789,
+            "ours-main-webgl2": 0.504,
+            "ours-main-canvas2d": 4.104,
+            "ours-main-dom": 0.839,
+            "ours-worker-webgpu": 2.486,
+            "ours-worker-webgl2": 1.932,
+            "ours-pool-webgpu": 1.442,
+            "ours-pool-webgl2": 1.153,
+            "xterm-webgl": 0.791,
+            "xterm-dom": 1.367,
+            "ghostty-web-canvas2d": 5.841,
+            "wraith-webgpu": 1.31,
+            "restty-webgpu": 2.272,
+            "restty-webgl2": 1.712
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.123,
+            "ours-main-webgl2": 0.094,
+            "ours-main-canvas2d": 0.393,
+            "ours-main-dom": 0.139,
+            "ours-worker-webgpu": 0.163,
+            "ours-worker-webgl2": 0.141,
+            "ours-pool-webgpu": 0.159,
+            "ours-pool-webgl2": 0.144,
+            "xterm-webgl": 0.146,
+            "xterm-dom": 0.204,
+            "ghostty-web-canvas2d": 0.483,
+            "wraith-webgpu": 0.122,
+            "restty-webgpu": 0.296,
+            "restty-webgl2": 0.256
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.829,
+            "ours-main-webgl2": 0.367,
+            "ours-main-canvas2d": 3.972,
+            "ours-main-dom": 0.963,
+            "ours-worker-webgpu": 2.216,
+            "ours-worker-webgl2": 1.65,
+            "ours-pool-webgpu": 1.528,
+            "ours-pool-webgl2": 1.128,
+            "xterm-webgl": 0.779,
+            "xterm-dom": 1.223,
+            "ghostty-web-canvas2d": 6.053,
+            "wraith-webgpu": 1.283,
+            "restty-webgpu": 2.062,
+            "restty-webgl2": 1.472
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.102,
+            "ours-main-webgl2": 0.086,
+            "ours-main-canvas2d": 0.131,
+            "ours-main-dom": 0.085,
+            "ours-worker-webgpu": 0.115,
+            "ours-worker-webgl2": 0.116,
+            "ours-pool-webgpu": 0.122,
+            "ours-pool-webgl2": 0.092,
+            "xterm-webgl": 0.123,
+            "xterm-dom": 0.123,
+            "ghostty-web-canvas2d": 0.225,
+            "wraith-webgpu": 0.11,
+            "restty-webgpu": 0.156,
+            "restty-webgl2": 0.123
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.592,
+            "ours-main-webgl2": 0.187,
+            "ours-main-canvas2d": 0.932,
+            "ours-main-dom": 0.383,
+            "ours-worker-webgpu": 1.288,
+            "ours-worker-webgl2": 0.76,
+            "ours-pool-webgpu": 0.866,
+            "ours-pool-webgl2": 0.447,
+            "xterm-webgl": 0.278,
+            "xterm-dom": 0.529,
+            "ghostty-web-canvas2d": 2.435,
+            "wraith-webgpu": 1.129,
+            "restty-webgpu": 1.429,
+            "restty-webgl2": 0.769
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.127,
+            "ours-main-webgl2": 0.092,
+            "ours-main-canvas2d": 0.17,
+            "ours-main-dom": 0.127,
+            "ours-worker-webgpu": 0.148,
+            "ours-worker-webgl2": 0.171,
+            "ours-pool-webgpu": 0.166,
+            "ours-pool-webgl2": 0.12,
+            "xterm-webgl": 0.161,
+            "xterm-dom": 0.247,
+            "ghostty-web-canvas2d": 0.212,
+            "wraith-webgpu": 0.13,
+            "restty-webgpu": 0.324,
+            "restty-webgl2": 0.214
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.615,
+            "ours-main-webgl2": 0.215,
+            "ours-main-canvas2d": 0.797,
+            "ours-main-dom": 0.993,
+            "ours-worker-webgpu": 2.012,
+            "ours-worker-webgl2": 1.464,
+            "ours-pool-webgpu": 1.389,
+            "ours-pool-webgl2": 0.898,
+            "xterm-webgl": 0.307,
+            "xterm-dom": 1.868,
+            "ghostty-web-canvas2d": 2.194,
+            "wraith-webgpu": 1.214,
+            "restty-webgpu": 1.598,
+            "restty-webgl2": 0.85
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.129,
+            "ours-main-webgl2": 0.081,
+            "ours-main-canvas2d": 0.147,
+            "ours-main-dom": 0.077,
+            "ours-worker-webgpu": 0.132,
+            "ours-worker-webgl2": 0.153,
+            "ours-pool-webgpu": 0.14,
+            "ours-pool-webgl2": 0.089,
+            "xterm-webgl": 0.105,
+            "xterm-dom": 0.11,
+            "ghostty-web-canvas2d": 0.232,
+            "wraith-webgpu": 0.124,
+            "restty-webgpu": 0.178,
+            "restty-webgl2": 0.153
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.607,
+            "ours-main-webgl2": 0.186,
+            "ours-main-canvas2d": 0.684,
+            "ours-main-dom": 0.399,
+            "ours-worker-webgpu": 1.414,
+            "ours-worker-webgl2": 0.813,
+            "ours-pool-webgpu": 0.914,
+            "ours-pool-webgl2": 0.446,
+            "xterm-webgl": 0.282,
+            "xterm-dom": 0.445,
+            "ghostty-web-canvas2d": 2.416,
+            "wraith-webgpu": 1.135,
+            "restty-webgpu": 1.453,
+            "restty-webgl2": 0.843
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.095,
+            "ours-main-webgl2": 0.096,
+            "ours-main-canvas2d": 0.16,
+            "ours-main-dom": 0.084,
+            "ours-worker-webgpu": 0.134,
+            "ours-worker-webgl2": 0.118,
+            "ours-pool-webgpu": 0.138,
+            "ours-pool-webgl2": 0.096,
+            "xterm-webgl": 0.084,
+            "xterm-dom": 0.1,
+            "ghostty-web-canvas2d": 0.132,
+            "wraith-webgpu": 0.128,
+            "restty-webgpu": 0.167,
+            "restty-webgl2": 0.11
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.568,
+            "ours-main-webgl2": 0.166,
+            "ours-main-canvas2d": 0.473,
+            "ours-main-dom": 0.156,
+            "ours-worker-webgpu": 1.148,
+            "ours-worker-webgl2": 0.545,
+            "ours-pool-webgpu": 0.849,
+            "ours-pool-webgl2": 0.349,
+            "xterm-webgl": 0.224,
+            "xterm-dom": 0.156,
+            "ghostty-web-canvas2d": 0.74,
+            "wraith-webgpu": 1.094,
+            "restty-webgpu": 1.144,
+            "restty-webgl2": 0.49
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.151,
+            "ours-main-webgl2": 0.128,
+            "ours-main-canvas2d": 0.194,
+            "ours-main-dom": 0.804,
+            "ours-worker-webgpu": 0.199,
+            "ours-worker-webgl2": 0.166,
+            "ours-pool-webgpu": 0.172,
+            "ours-pool-webgl2": 0.138,
+            "xterm-webgl": 0.187,
+            "xterm-dom": 0.847,
+            "ghostty-web-canvas2d": 0.407,
+            "wraith-webgpu": 0.155,
+            "restty-webgpu": 0.178,
+            "restty-webgl2": 0.132
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.264,
+            "ours-main-webgl2": 0.808,
+            "ours-main-canvas2d": 1.63,
+            "ours-main-dom": 12.956,
+            "ours-worker-webgpu": 2.391,
+            "ours-worker-webgl2": 1.79,
+            "ours-pool-webgpu": 1.604,
+            "ours-pool-webgl2": 1.174,
+            "xterm-webgl": 0.875,
+            "xterm-dom": 12.182,
+            "ghostty-web-canvas2d": 5.051,
+            "wraith-webgpu": 1.81,
+            "restty-webgpu": 1.581,
+            "restty-webgl2": 0.914
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.205,
+            "ours-main-webgl2": 0.192,
+            "ours-main-canvas2d": 0.803,
+            "ours-main-dom": 2.824,
+            "ours-worker-webgpu": 0.236,
+            "ours-worker-webgl2": 0.221,
+            "ours-pool-webgpu": 0.246,
+            "ours-pool-webgl2": 0.203,
+            "xterm-webgl": 9.494,
+            "xterm-dom": 3.111,
+            "ghostty-web-canvas2d": 0.854,
+            "wraith-webgpu": 0.171,
+            "restty-webgpu": 0.302,
+            "restty-webgl2": 0.235
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 2.1,
+            "ours-main-webgl2": 1.668,
+            "ours-main-canvas2d": 10.27,
+            "ours-main-dom": 43.303,
+            "ours-worker-webgpu": 4.1,
+            "ours-worker-webgl2": 3.522,
+            "ours-pool-webgpu": 2.612,
+            "ours-pool-webgl2": 2.231,
+            "xterm-webgl": 11.737,
+            "xterm-dom": 46.44,
+            "ghostty-web-canvas2d": 11.663,
+            "wraith-webgpu": 2.845,
+            "restty-webgpu": 3.028,
+            "restty-webgl2": 2.437
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.156,
+            "ours-main-webgl2": 0.103,
+            "ours-main-canvas2d": 0.49,
+            "ours-main-dom": 0.146,
+            "ours-worker-webgpu": 0.169,
+            "ours-worker-webgl2": 0.117,
+            "ours-pool-webgpu": 0.169,
+            "ours-pool-webgl2": 0.131,
+            "xterm-webgl": 0.469,
+            "xterm-dom": 0.159,
+            "ghostty-web-canvas2d": 0.663,
+            "wraith-webgpu": 0.172,
+            "restty-webgpu": 0.246,
+            "restty-webgl2": 0.193
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.947,
+            "ours-main-webgl2": 0.511,
+            "ours-main-canvas2d": 5.943,
+            "ours-main-dom": 1.29,
+            "ours-worker-webgpu": 2.112,
+            "ours-worker-webgl2": 1.506,
+            "ours-pool-webgpu": 1.399,
+            "ours-pool-webgl2": 1.019,
+            "xterm-webgl": 0.873,
+            "xterm-dom": 1.06,
+            "ghostty-web-canvas2d": 9.312,
+            "wraith-webgpu": 1.325,
+            "restty-webgpu": 2.361,
+            "restty-webgl2": 1.699
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.099,
+            "ours-main-webgl2": 0.08,
+            "ours-main-canvas2d": 0.152,
+            "ours-main-dom": 0.169,
+            "ours-worker-webgpu": 0.121,
+            "ours-worker-webgl2": 0.106,
+            "ours-pool-webgpu": 0.115,
+            "ours-pool-webgl2": 0.079,
+            "xterm-webgl": 0.088,
+            "xterm-dom": 0.111,
+            "ghostty-web-canvas2d": 0.327,
+            "wraith-webgpu": 0.111,
+            "restty-webgpu": 0.171,
+            "restty-webgl2": 0.153
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.614,
+            "ours-main-webgl2": 0.238,
+            "ours-main-canvas2d": 1.182,
+            "ours-main-dom": 0.479,
+            "ours-worker-webgpu": 1.515,
+            "ours-worker-webgl2": 0.816,
+            "ours-pool-webgpu": 1.061,
+            "ours-pool-webgl2": 0.561,
+            "xterm-webgl": 0.309,
+            "xterm-dom": 0.534,
+            "ghostty-web-canvas2d": 4.29,
+            "wraith-webgpu": 1.22,
+            "restty-webgpu": 1.646,
+            "restty-webgl2": 0.974
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.089,
+            "ours-main-webgl2": 0.071,
+            "ours-main-canvas2d": 0.115,
+            "ours-main-dom": 0.08,
+            "ours-worker-webgpu": 0.109,
+            "ours-worker-webgl2": 0.088,
+            "ours-pool-webgpu": 0.118,
+            "ours-pool-webgl2": 0.086,
+            "xterm-webgl": 0.085,
+            "xterm-dom": 0.11,
+            "ghostty-web-canvas2d": 0.305,
+            "wraith-webgpu": 0.107,
+            "restty-webgpu": 0.205,
+            "restty-webgl2": 0.144
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.571,
+            "ours-main-webgl2": 0.184,
+            "ours-main-canvas2d": 0.785,
+            "ours-main-dom": 0.339,
+            "ours-worker-webgpu": 1.276,
+            "ours-worker-webgl2": 0.614,
+            "ours-pool-webgpu": 0.916,
+            "ours-pool-webgl2": 0.419,
+            "xterm-webgl": 0.308,
+            "xterm-dom": 0.513,
+            "ghostty-web-canvas2d": 3.753,
+            "wraith-webgpu": 1.216,
+            "restty-webgpu": 1.996,
+            "restty-webgl2": 1.295
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.092,
+            "ours-main-webgl2": 0.07,
+            "ours-main-canvas2d": 0.11,
+            "ours-main-dom": 0.078,
+            "ours-worker-webgpu": 0.11,
+            "ours-worker-webgl2": 0.081,
+            "ours-pool-webgpu": 0.117,
+            "ours-pool-webgl2": 0.077,
+            "xterm-webgl": 0.148,
+            "xterm-dom": 0.123,
+            "ghostty-web-canvas2d": 0.119,
+            "wraith-webgpu": 0.1,
+            "restty-webgpu": 0.166,
+            "restty-webgl2": 0.101
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.558,
+            "ours-main-webgl2": 0.162,
+            "ours-main-canvas2d": 0.542,
+            "ours-main-dom": 0.336,
+            "ours-worker-webgpu": 1.105,
+            "ours-worker-webgl2": 0.506,
+            "ours-pool-webgpu": 0.814,
+            "ours-pool-webgl2": 0.372,
+            "xterm-webgl": 0.357,
+            "xterm-dom": 0.514,
+            "ghostty-web-canvas2d": 0.954,
+            "wraith-webgpu": 1.1,
+            "restty-webgpu": 1.21,
+            "restty-webgl2": 0.663
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.113,
+            "ours-main-webgl2": 0.085,
+            "ours-main-canvas2d": 0.326,
+            "ours-main-dom": 0.12,
+            "ours-worker-webgpu": 0.142,
+            "ours-worker-webgl2": 0.096,
+            "ours-pool-webgpu": 0.142,
+            "ours-pool-webgl2": 0.091,
+            "xterm-webgl": 0.097,
+            "xterm-dom": 0.131,
+            "ghostty-web-canvas2d": 0.451,
+            "wraith-webgpu": 0.11,
+            "restty-webgpu": 0.203,
+            "restty-webgl2": 0.145
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.861,
+            "ours-main-webgl2": 0.383,
+            "ours-main-canvas2d": 4.049,
+            "ours-main-dom": 0.866,
+            "ours-worker-webgpu": 1.777,
+            "ours-worker-webgl2": 1.126,
+            "ours-pool-webgpu": 1.207,
+            "ours-pool-webgl2": 0.794,
+            "xterm-webgl": 0.446,
+            "xterm-dom": 0.793,
+            "ghostty-web-canvas2d": 5.761,
+            "wraith-webgpu": 1.247,
+            "restty-webgpu": 1.979,
+            "restty-webgl2": 1.341
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.262,
+            "ours-main-webgl2": 0.239,
+            "ours-main-canvas2d": 0.222,
+            "ours-main-dom": 0.409,
+            "ours-worker-webgpu": 0.399,
+            "ours-worker-webgl2": 0.302,
+            "ours-pool-webgpu": 0.32,
+            "ours-pool-webgl2": 0.291,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 0.263,
+            "restty-webgpu": 0.223,
+            "restty-webgl2": 0.151
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.957,
+            "ours-main-webgl2": 0.549,
+            "ours-main-canvas2d": 1.264,
+            "ours-main-dom": 5.083,
+            "ours-worker-webgpu": 5.615,
+            "ours-worker-webgl2": 5.076,
+            "ours-pool-webgpu": 2.388,
+            "ours-pool-webgl2": 1.909,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 2.224,
+            "restty-webgpu": 1.913,
+            "restty-webgl2": 1.341
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.158,
+            "ours-main-canvas2d": 0.169,
+            "ours-main-dom": 0.058,
+            "ours-worker-webgpu": 0.224,
+            "ours-worker-webgl2": 0.176,
+            "ours-pool-webgpu": 0.214,
+            "ours-pool-webgl2": 0.155,
+            "xterm-webgl": 0.114,
+            "xterm-dom": 0.3,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.075,
+            "ours-main-webgl2": 0.573,
+            "ours-main-canvas2d": 1.518,
+            "ours-main-dom": 0.646,
+            "ours-worker-webgpu": 3.639,
+            "ours-worker-webgl2": 2.845,
+            "ours-pool-webgpu": 1.74,
+            "ours-pool-webgl2": 1.081,
+            "xterm-webgl": 0.481,
+            "xterm-dom": 3.236,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.02,
+            "ours-main-webgl2": 0.023,
+            "ours-main-canvas2d": 0.037,
+            "ours-main-dom": 0.038,
+            "ours-worker-webgpu": 0.047,
+            "ours-worker-webgl2": 0.034,
+            "ours-pool-webgpu": 0.034,
+            "ours-pool-webgl2": 0.034,
+            "xterm-webgl": 0.099,
+            "xterm-dom": 0.179,
+            "ghostty-web-canvas2d": 0.485,
+            "wraith-webgpu": 0.118,
+            "restty-webgpu": 0.226,
+            "restty-webgl2": 0.177
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.109,
+            "ours-main-webgl2": 0.112,
+            "ours-main-canvas2d": 0.298,
+            "ours-main-dom": 0.262,
+            "ours-worker-webgpu": 0.402,
+            "ours-worker-webgl2": 0.37,
+            "ours-pool-webgpu": 0.197,
+            "ours-pool-webgl2": 0.2,
+            "xterm-webgl": 0.361,
+            "xterm-dom": 0.813,
+            "ghostty-web-canvas2d": 6.596,
+            "wraith-webgpu": 1.206,
+            "restty-webgpu": 2.232,
+            "restty-webgl2": 1.578
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.007,
+            "ours-main-webgl2": 0.007,
+            "ours-main-canvas2d": 0.01,
+            "ours-main-dom": 0.007,
+            "ours-worker-webgpu": 0.018,
+            "ours-worker-webgl2": 0.014,
+            "ours-pool-webgpu": 0.013,
+            "ours-pool-webgl2": 0.014,
+            "xterm-webgl": 0.149,
+            "xterm-dom": 0.065,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 0.019,
+            "restty-webgpu": 0.011,
+            "restty-webgl2": 0.028
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.075,
+            "ours-main-webgl2": 0.06,
+            "ours-main-canvas2d": 0.104,
+            "ours-main-dom": 0.065,
+            "ours-worker-webgpu": 0.249,
+            "ours-worker-webgl2": 0.404,
+            "ours-pool-webgpu": 0.263,
+            "ours-pool-webgl2": 0.241,
+            "xterm-webgl": 0.879,
+            "xterm-dom": 0.793,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 0.186,
+            "restty-webgpu": 0.153,
+            "restty-webgl2": 0.162
+          }
+        }
+      ],
+      "ackP95": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.15,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 1.05,
+            "ours-worker-webgl2": 0.95,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.45,
+            "xterm-webgl": 1.05,
+            "xterm-dom": 1.35,
+            "ghostty-web-canvas2d": 0.15,
+            "wraith-webgpu": 0.5,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.6,
+            "ours-main-webgl2": 0.6,
+            "ours-main-canvas2d": 0.6,
+            "ours-main-dom": 0.6,
+            "ours-worker-webgpu": 2.85,
+            "ours-worker-webgl2": 3.3,
+            "ours-pool-webgpu": 1.1,
+            "ours-pool-webgl2": 1.35,
+            "xterm-webgl": 4.95,
+            "xterm-dom": 10.1,
+            "ghostty-web-canvas2d": 0.95,
+            "wraith-webgpu": 0.8,
+            "restty-webgpu": 1.95,
+            "restty-webgl2": 2
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.9,
+            "ours-worker-webgl2": 0.95,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.35,
+            "xterm-webgl": 0.75,
+            "xterm-dom": 1.65,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.45,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.15
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.7,
+            "ours-main-webgl2": 0.6,
+            "ours-main-canvas2d": 0.6,
+            "ours-main-dom": 0.6,
+            "ours-worker-webgpu": 2.8,
+            "ours-worker-webgl2": 2.95,
+            "ours-pool-webgpu": 0.85,
+            "ours-pool-webgl2": 1.2,
+            "xterm-webgl": 4.7,
+            "xterm-dom": 10.25,
+            "ghostty-web-canvas2d": 0.9,
+            "wraith-webgpu": 0.75,
+            "restty-webgpu": 0.65,
+            "restty-webgl2": 0.7
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.55,
+            "ours-worker-webgl2": 0.7,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.3,
+            "xterm-webgl": 0.5,
+            "xterm-dom": 0.8,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.4,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 2.1,
+            "ours-worker-webgl2": 2.2,
+            "ours-pool-webgpu": 1,
+            "ours-pool-webgl2": 1.1,
+            "xterm-webgl": 1,
+            "xterm-dom": 5.5,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.6,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.15
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 1.05,
+            "ours-worker-webgl2": 1.1,
+            "ours-pool-webgpu": 0.35,
+            "ours-pool-webgl2": 0.4,
+            "xterm-webgl": 0.45,
+            "xterm-dom": 2.4,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.4,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.15,
+            "ours-worker-webgpu": 4.75,
+            "ours-worker-webgl2": 5.2,
+            "ours-pool-webgpu": 0.95,
+            "ours-pool-webgl2": 1.45,
+            "xterm-webgl": 1.25,
+            "xterm-dom": 27.55,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.9,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.6,
+            "ours-worker-webgl2": 0.7,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.3,
+            "xterm-webgl": 0.35,
+            "xterm-dom": 0.7,
+            "ghostty-web-canvas2d": 0.05,
+            "wraith-webgpu": 0.3,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.15,
+            "ours-main-webgl2": 0.15,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 2.4,
+            "ours-worker-webgl2": 2.05,
+            "ours-pool-webgpu": 0.9,
+            "ours-pool-webgl2": 1.1,
+            "xterm-webgl": 1.15,
+            "xterm-dom": 5.15,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.65,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.15
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.4,
+            "ours-worker-webgl2": 0.45,
+            "ours-pool-webgpu": 0.35,
+            "ours-pool-webgl2": 0.3,
+            "xterm-webgl": 0.2,
+            "xterm-dom": 0.35,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.35,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.15,
+            "ours-main-webgl2": 0.15,
+            "ours-main-canvas2d": 0.15,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 1.05,
+            "ours-worker-webgl2": 0.95,
+            "ours-pool-webgpu": 0.85,
+            "ours-pool-webgl2": 0.85,
+            "xterm-webgl": 0.4,
+            "xterm-dom": 1.15,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.6,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.55,
+            "ours-main-webgl2": 0.45,
+            "ours-main-canvas2d": 0.5,
+            "ours-main-dom": 0.4,
+            "ours-worker-webgpu": 1.2,
+            "ours-worker-webgl2": 1.15,
+            "ours-pool-webgpu": 0.8,
+            "ours-pool-webgl2": 0.75,
+            "xterm-webgl": 1.1,
+            "xterm-dom": 6.8,
+            "ghostty-web-canvas2d": 0.8,
+            "wraith-webgpu": 0.95,
+            "restty-webgpu": 0.5,
+            "restty-webgl2": 0.6
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 5.15,
+            "ours-main-webgl2": 4.95,
+            "ours-main-canvas2d": 4.9,
+            "ours-main-dom": 4.95,
+            "ours-worker-webgpu": 2.25,
+            "ours-worker-webgl2": 2.5,
+            "ours-pool-webgpu": 2.6,
+            "ours-pool-webgl2": 3.05,
+            "xterm-webgl": 7.65,
+            "xterm-dom": 136.85,
+            "ghostty-web-canvas2d": 8.75,
+            "wraith-webgpu": 1.45,
+            "restty-webgpu": 5.8,
+            "restty-webgl2": 5.75
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 1.15,
+            "ours-main-webgl2": 1,
+            "ours-main-canvas2d": 1.15,
+            "ours-main-dom": 1.2,
+            "ours-worker-webgpu": 2.1,
+            "ours-worker-webgl2": 1.7,
+            "ours-pool-webgpu": 1.5,
+            "ours-pool-webgl2": 1.55,
+            "xterm-webgl": 1.1,
+            "xterm-dom": 22.6,
+            "ghostty-web-canvas2d": 1.8,
+            "wraith-webgpu": 1.5,
+            "restty-webgpu": 1.7,
+            "restty-webgl2": 1.4
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 15,
+            "ours-main-webgl2": 14.55,
+            "ours-main-canvas2d": 16.5,
+            "ours-main-dom": 17.65,
+            "ours-worker-webgpu": 6.15,
+            "ours-worker-webgl2": 5.9,
+            "ours-pool-webgpu": 6.95,
+            "ours-pool-webgl2": 7.05,
+            "xterm-webgl": 11.75,
+            "xterm-dom": 348.55,
+            "ghostty-web-canvas2d": 26,
+            "wraith-webgpu": 2.85,
+            "restty-webgpu": 21.55,
+            "restty-webgl2": 20.65
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 0.85,
+            "ours-worker-webgl2": 0.65,
+            "ours-pool-webgpu": 0.35,
+            "ours-pool-webgl2": 0.4,
+            "xterm-webgl": 0.2,
+            "xterm-dom": 1.05,
+            "ghostty-web-canvas2d": 0.2,
+            "wraith-webgpu": 0.55,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.8,
+            "ours-main-webgl2": 1.75,
+            "ours-main-canvas2d": 1.8,
+            "ours-main-dom": 1.8,
+            "ours-worker-webgpu": 2.25,
+            "ours-worker-webgl2": 2.55,
+            "ours-pool-webgpu": 1.5,
+            "ours-pool-webgl2": 1.65,
+            "xterm-webgl": 0.8,
+            "xterm-dom": 6.9,
+            "ghostty-web-canvas2d": 1.95,
+            "wraith-webgpu": 0.9,
+            "restty-webgpu": 1.6,
+            "restty-webgl2": 1.6
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.55,
+            "ours-worker-webgl2": 0.65,
+            "ours-pool-webgpu": 0.25,
+            "ours-pool-webgl2": 0.35,
+            "xterm-webgl": 0.25,
+            "xterm-dom": 0.75,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.4,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.15,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.15,
+            "ours-worker-webgpu": 1.3,
+            "ours-worker-webgl2": 1.3,
+            "ours-pool-webgpu": 0.75,
+            "ours-pool-webgl2": 0.85,
+            "xterm-webgl": 0.45,
+            "xterm-dom": 5.85,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.65,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.45,
+            "ours-worker-webgl2": 0.45,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.3,
+            "xterm-webgl": 0.25,
+            "xterm-dom": 0.65,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.3,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.3,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 1,
+            "ours-worker-webgl2": 1.05,
+            "ours-pool-webgpu": 0.9,
+            "ours-pool-webgl2": 0.95,
+            "xterm-webgl": 0.5,
+            "xterm-dom": 4.45,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.65,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.45,
+            "ours-worker-webgl2": 0.4,
+            "ours-pool-webgpu": 0.35,
+            "ours-pool-webgl2": 0.35,
+            "xterm-webgl": 0.35,
+            "xterm-dom": 1,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.25,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 0.9,
+            "ours-worker-webgl2": 0.9,
+            "ours-pool-webgpu": 0.75,
+            "ours-pool-webgl2": 1.05,
+            "xterm-webgl": 0.95,
+            "xterm-dom": 8.5,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.6,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.75,
+            "ours-worker-webgl2": 0.6,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.3,
+            "xterm-webgl": 0.2,
+            "xterm-dom": 0.85,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.35,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.25,
+            "ours-main-dom": 0.25,
+            "ours-worker-webgpu": 2,
+            "ours-worker-webgl2": 1.8,
+            "ours-pool-webgpu": 0.75,
+            "ours-pool-webgl2": 1.05,
+            "xterm-webgl": 0.7,
+            "xterm-dom": 6.15,
+            "ghostty-web-canvas2d": 0.55,
+            "wraith-webgpu": 0.6,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 4.95,
+            "ours-worker-webgl2": 4.2,
+            "ours-pool-webgpu": 0.25,
+            "ours-pool-webgl2": 0.3,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 1.3,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.25,
+            "ours-worker-webgpu": 13.65,
+            "ours-worker-webgl2": 14.85,
+            "ours-pool-webgpu": 2.2,
+            "ours-pool-webgl2": 1.6,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 1.7,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.25
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 1.75,
+            "ours-worker-webgl2": 1.65,
+            "ours-pool-webgpu": 0.8,
+            "ours-pool-webgl2": 0.75,
+            "xterm-webgl": 0.35,
+            "xterm-dom": 3.1,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 3.75,
+            "ours-worker-webgl2": 3.6,
+            "ours-pool-webgpu": 1.9,
+            "ours-pool-webgl2": 2.05,
+            "xterm-webgl": 1.1,
+            "xterm-dom": 33.4,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 0.35,
+            "ours-worker-webgl2": 0.35,
+            "ours-pool-webgpu": 0.15,
+            "ours-pool-webgl2": 0.25,
+            "xterm-webgl": 0.25,
+            "xterm-dom": 0.9,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 0.35,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 0.8,
+            "ours-worker-webgl2": 0.8,
+            "ours-pool-webgpu": 0.4,
+            "ours-pool-webgl2": 0.4,
+            "xterm-webgl": 1,
+            "xterm-dom": 6.65,
+            "ghostty-web-canvas2d": 0.5,
+            "wraith-webgpu": 0.6,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 2.75,
+            "ours-main-webgl2": 2.6,
+            "ours-main-canvas2d": 2.6,
+            "ours-main-dom": 2.55,
+            "ours-worker-webgpu": 7.25,
+            "ours-worker-webgl2": 4.85,
+            "ours-pool-webgpu": 3.85,
+            "ours-pool-webgl2": 4.5,
+            "xterm-webgl": 35.7,
+            "xterm-dom": 33.6,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 5,
+            "restty-webgpu": 5.2,
+            "restty-webgl2": 5.35
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 32.7,
+            "ours-main-webgl2": 33.2,
+            "ours-main-canvas2d": 35,
+            "ours-main-dom": 31.95,
+            "ours-worker-webgpu": 58.2,
+            "ours-worker-webgl2": 70.45,
+            "ours-pool-webgpu": 66.25,
+            "ours-pool-webgl2": 68,
+            "xterm-webgl": 512.6,
+            "xterm-dom": 517.35,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 22.85,
+            "restty-webgpu": 77.5,
+            "restty-webgl2": 81.2
+          }
+        }
+      ],
+      "forcedP95": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.25,
+            "ours-main-webgl2": 7.1,
+            "wraith-webgpu": 4
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 11.4,
+            "ours-main-webgl2": 17.8,
+            "wraith-webgpu": 13.9
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.25,
+            "ours-main-webgl2": 6.65,
+            "wraith-webgpu": 3.7
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 11.8,
+            "ours-main-webgl2": 12.35,
+            "wraith-webgpu": 18.1
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3,
+            "ours-main-webgl2": 4.5,
+            "wraith-webgpu": 3.3
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 5.8,
+            "ours-main-webgl2": 7.9,
+            "wraith-webgpu": 17.2
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.1,
+            "ours-main-webgl2": 4.45,
+            "wraith-webgpu": 3.65
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 6.5,
+            "ours-main-webgl2": 8.95,
+            "wraith-webgpu": 18.8
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.05,
+            "ours-main-webgl2": 4.5,
+            "wraith-webgpu": 3.65
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.9,
+            "ours-main-webgl2": 8.2,
+            "wraith-webgpu": 19.9
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.15,
+            "ours-main-webgl2": 4.45,
+            "wraith-webgpu": 4.45
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 10.5,
+            "ours-main-webgl2": 6.2,
+            "wraith-webgpu": 18.9
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.9,
+            "ours-main-webgl2": 5.2,
+            "wraith-webgpu": 4.35
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 17.15,
+            "ours-main-webgl2": 16.85,
+            "wraith-webgpu": 25.9
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 6.55,
+            "ours-main-webgl2": 7.2,
+            "wraith-webgpu": 4.7
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 36.05,
+            "ours-main-webgl2": 36.75,
+            "wraith-webgpu": 32.8
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.55,
+            "ours-main-webgl2": 5,
+            "wraith-webgpu": 3.4
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 15.55,
+            "ours-main-webgl2": 15.4,
+            "wraith-webgpu": 40.2
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.35,
+            "ours-main-webgl2": 4.55,
+            "wraith-webgpu": 3.8
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 11.8,
+            "ours-main-webgl2": 8.55,
+            "wraith-webgpu": 46.4
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.4,
+            "ours-main-webgl2": 4.55,
+            "wraith-webgpu": 3.85
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 11.45,
+            "ours-main-webgl2": 7.55,
+            "wraith-webgpu": 46.3
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.35,
+            "ours-main-webgl2": 4.5,
+            "wraith-webgpu": 3.35
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 11.1,
+            "ours-main-webgl2": 9.6,
+            "wraith-webgpu": 54.6
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.3,
+            "ours-main-webgl2": 4.8,
+            "wraith-webgpu": 3.55
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 13.25,
+            "ours-main-webgl2": 10.25,
+            "wraith-webgpu": 59.45
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 13.2,
+            "ours-main-webgl2": 7.05,
+            "wraith-webgpu": 4.65
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 14.6,
+            "ours-main-webgl2": 13.25,
+            "wraith-webgpu": 64.3
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 6.05,
+            "ours-main-webgl2": 5.45,
+            "wraith-webgpu": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 15.65,
+            "ours-main-webgl2": 11.6,
+            "wraith-webgpu": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.8,
+            "ours-main-webgl2": 4.85,
+            "wraith-webgpu": 3.55
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 3.45,
+            "ours-main-webgl2": 5.65,
+            "wraith-webgpu": 66.35
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": "unsupported",
+            "ours-main-webgl2": "unsupported",
+            "wraith-webgpu": "unsupported"
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": "unsupported",
+            "ours-main-webgl2": "unsupported",
+            "wraith-webgpu": "unsupported"
+          }
+        }
+      ]
+    },
+    "mac": {
+      "cpu": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.416,
+            "ours-main-webgl2": 0.375,
+            "ours-main-canvas2d": 0.479,
+            "ours-main-dom": 0.396,
+            "ours-worker-webgpu": 0.478,
+            "ours-worker-webgl2": 0.497,
+            "ours-pool-webgpu": 0.499,
+            "ours-pool-webgl2": 0.471,
+            "xterm-webgl": 0.452,
+            "xterm-dom": 0.427,
+            "ghostty-web-canvas2d": 0.535,
+            "wraith-webgpu": 0.389,
+            "restty-webgpu": 0.697,
+            "restty-webgl2": 0.57
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.006,
+            "ours-main-webgl2": 1.027,
+            "ours-main-canvas2d": 3.399,
+            "ours-main-dom": 1.096,
+            "ours-worker-webgpu": 3.38,
+            "ours-worker-webgl2": 2.885,
+            "ours-pool-webgpu": 2.609,
+            "ours-pool-webgl2": 2.597,
+            "xterm-webgl": 1.514,
+            "xterm-dom": 1.775,
+            "ghostty-web-canvas2d": 5.453,
+            "wraith-webgpu": 1.692,
+            "restty-webgpu": 2.892,
+            "restty-webgl2": 2.655
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.34,
+            "ours-main-webgl2": 0.297,
+            "ours-main-canvas2d": 0.454,
+            "ours-main-dom": 0.346,
+            "ours-worker-webgpu": 0.459,
+            "ours-worker-webgl2": 0.429,
+            "ours-pool-webgpu": 0.472,
+            "ours-pool-webgl2": 0.442,
+            "xterm-webgl": 0.417,
+            "xterm-dom": 0.423,
+            "ghostty-web-canvas2d": 0.598,
+            "wraith-webgpu": 0.386,
+            "restty-webgpu": 0.591,
+            "restty-webgl2": 0.528
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.79,
+            "ours-main-webgl2": 0.718,
+            "ours-main-canvas2d": 3.149,
+            "ours-main-dom": 1.223,
+            "ours-worker-webgpu": 2.868,
+            "ours-worker-webgl2": 2.469,
+            "ours-pool-webgpu": 2.553,
+            "ours-pool-webgl2": 2.445,
+            "xterm-webgl": 1.434,
+            "xterm-dom": 1.686,
+            "ghostty-web-canvas2d": 5.717,
+            "wraith-webgpu": 1.639,
+            "restty-webgpu": 2.727,
+            "restty-webgl2": 2.312
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.27,
+            "ours-main-webgl2": 0.225,
+            "ours-main-canvas2d": 0.29,
+            "ours-main-dom": 0.297,
+            "ours-worker-webgpu": 0.369,
+            "ours-worker-webgl2": 0.339,
+            "ours-pool-webgpu": 0.366,
+            "ours-pool-webgl2": 0.367,
+            "xterm-webgl": 0.337,
+            "xterm-dom": 0.324,
+            "ghostty-web-canvas2d": 0.349,
+            "wraith-webgpu": 0.318,
+            "restty-webgpu": 0.357,
+            "restty-webgl2": 0.335
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.524,
+            "ours-main-webgl2": 0.574,
+            "ours-main-canvas2d": 0.647,
+            "ours-main-dom": 0.656,
+            "ours-worker-webgpu": 1.84,
+            "ours-worker-webgl2": 1.388,
+            "ours-pool-webgpu": 1.519,
+            "ours-pool-webgl2": 1.302,
+            "xterm-webgl": 0.703,
+            "xterm-dom": 0.834,
+            "ghostty-web-canvas2d": 2.441,
+            "wraith-webgpu": 1.614,
+            "restty-webgpu": 1.625,
+            "restty-webgl2": 1.241
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.274,
+            "ours-main-webgl2": 0.252,
+            "ours-main-canvas2d": 0.283,
+            "ours-main-dom": 0.345,
+            "ours-worker-webgpu": 0.457,
+            "ours-worker-webgl2": 0.373,
+            "ours-pool-webgpu": 0.442,
+            "ours-pool-webgl2": 0.417,
+            "xterm-webgl": 0.344,
+            "xterm-dom": 0.436,
+            "ghostty-web-canvas2d": 0.38,
+            "wraith-webgpu": 0.332,
+            "restty-webgpu": 0.513,
+            "restty-webgl2": 0.429
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.561,
+            "ours-main-webgl2": 0.587,
+            "ours-main-canvas2d": 0.813,
+            "ours-main-dom": 1.475,
+            "ours-worker-webgpu": 2.642,
+            "ours-worker-webgl2": 2.371,
+            "ours-pool-webgpu": 2.234,
+            "ours-pool-webgl2": 2.087,
+            "xterm-webgl": 0.718,
+            "xterm-dom": 2.27,
+            "ghostty-web-canvas2d": 2.329,
+            "wraith-webgpu": 1.599,
+            "restty-webgpu": 2.069,
+            "restty-webgl2": 1.32
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.269,
+            "ours-main-webgl2": 0.235,
+            "ours-main-canvas2d": 0.25,
+            "ours-main-dom": 0.259,
+            "ours-worker-webgpu": 0.378,
+            "ours-worker-webgl2": 0.306,
+            "ours-pool-webgpu": 0.381,
+            "ours-pool-webgl2": 0.355,
+            "xterm-webgl": 0.317,
+            "xterm-dom": 0.281,
+            "ghostty-web-canvas2d": 0.384,
+            "wraith-webgpu": 0.316,
+            "restty-webgpu": 0.409,
+            "restty-webgl2": 0.376
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.51,
+            "ours-main-webgl2": 0.549,
+            "ours-main-canvas2d": 0.644,
+            "ours-main-dom": 0.673,
+            "ours-worker-webgpu": 1.945,
+            "ours-worker-webgl2": 1.429,
+            "ours-pool-webgpu": 1.522,
+            "ours-pool-webgl2": 1.355,
+            "xterm-webgl": 0.722,
+            "xterm-dom": 0.795,
+            "ghostty-web-canvas2d": 2.466,
+            "wraith-webgpu": 1.538,
+            "restty-webgpu": 1.695,
+            "restty-webgl2": 1.236
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.247,
+            "ours-main-webgl2": 0.248,
+            "ours-main-canvas2d": 0.243,
+            "ours-main-dom": 0.232,
+            "ours-worker-webgpu": 0.323,
+            "ours-worker-webgl2": 0.265,
+            "ours-pool-webgpu": 0.327,
+            "ours-pool-webgl2": 0.282,
+            "xterm-webgl": 0.197,
+            "xterm-dom": 0.227,
+            "ghostty-web-canvas2d": 0.286,
+            "wraith-webgpu": 0.303,
+            "restty-webgpu": 0.353,
+            "restty-webgl2": 0.293
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.585,
+            "ours-main-webgl2": 0.548,
+            "ours-main-canvas2d": 0.512,
+            "ours-main-dom": 0.351,
+            "ours-worker-webgpu": 1.63,
+            "ours-worker-webgl2": 1.11,
+            "ours-pool-webgpu": 1.297,
+            "ours-pool-webgl2": 1.049,
+            "xterm-webgl": 0.509,
+            "xterm-dom": 0.339,
+            "ghostty-web-canvas2d": 0.691,
+            "wraith-webgpu": 1.549,
+            "restty-webgpu": 1.271,
+            "restty-webgl2": 0.871
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.349,
+            "ours-main-webgl2": 0.287,
+            "ours-main-canvas2d": 0.367,
+            "ours-main-dom": 0.952,
+            "ours-worker-webgpu": 0.449,
+            "ours-worker-webgl2": 0.393,
+            "ours-pool-webgpu": 0.4,
+            "ours-pool-webgl2": 0.4,
+            "xterm-webgl": 0.379,
+            "xterm-dom": 0.973,
+            "ghostty-web-canvas2d": 0.452,
+            "wraith-webgpu": 0.413,
+            "restty-webgpu": 0.379,
+            "restty-webgl2": 0.316
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.351,
+            "ours-main-webgl2": 1.321,
+            "ours-main-canvas2d": 1.801,
+            "ours-main-dom": 14.362,
+            "ours-worker-webgpu": 2.915,
+            "ours-worker-webgl2": 2.418,
+            "ours-pool-webgpu": 2.26,
+            "ours-pool-webgl2": 2.446,
+            "xterm-webgl": 1.407,
+            "xterm-dom": 12.803,
+            "ghostty-web-canvas2d": 5.138,
+            "wraith-webgpu": 2.446,
+            "restty-webgpu": 2.046,
+            "restty-webgl2": 1.466
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.42,
+            "ours-main-webgl2": 0.395,
+            "ours-main-canvas2d": 0.792,
+            "ours-main-dom": 2.543,
+            "ours-worker-webgpu": 0.493,
+            "ours-worker-webgl2": 0.431,
+            "ours-pool-webgpu": 0.425,
+            "ours-pool-webgl2": 0.455,
+            "xterm-webgl": 8.559,
+            "xterm-dom": 2.937,
+            "ghostty-web-canvas2d": 0.873,
+            "wraith-webgpu": 0.409,
+            "restty-webgpu": 0.543,
+            "restty-webgl2": 0.439
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 2.268,
+            "ours-main-webgl2": 2.391,
+            "ours-main-canvas2d": 9.635,
+            "ours-main-dom": 35.222,
+            "ours-worker-webgpu": 5.291,
+            "ours-worker-webgl2": 4.861,
+            "ours-pool-webgpu": 3.52,
+            "ours-pool-webgl2": 4.093,
+            "xterm-webgl": 15.787,
+            "xterm-dom": 44.329,
+            "ghostty-web-canvas2d": 11.792,
+            "wraith-webgpu": 4.031,
+            "restty-webgpu": 3.472,
+            "restty-webgl2": 3.093
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.312,
+            "ours-main-webgl2": 0.303,
+            "ours-main-canvas2d": 0.487,
+            "ours-main-dom": 0.416,
+            "ours-worker-webgpu": 0.43,
+            "ours-worker-webgl2": 0.411,
+            "ours-pool-webgpu": 0.396,
+            "ours-pool-webgl2": 0.413,
+            "xterm-webgl": 0.502,
+            "xterm-dom": 0.3,
+            "ghostty-web-canvas2d": 0.655,
+            "wraith-webgpu": 0.367,
+            "restty-webgpu": 0.463,
+            "restty-webgl2": 0.44
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.865,
+            "ours-main-webgl2": 0.889,
+            "ours-main-canvas2d": 5.052,
+            "ours-main-dom": 1.381,
+            "ours-worker-webgpu": 2.698,
+            "ours-worker-webgl2": 2.191,
+            "ours-pool-webgpu": 2.008,
+            "ours-pool-webgl2": 2.012,
+            "xterm-webgl": 2.077,
+            "xterm-dom": 1.191,
+            "ghostty-web-canvas2d": 8.173,
+            "wraith-webgpu": 1.771,
+            "restty-webgpu": 2.672,
+            "restty-webgl2": 2.26
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.289,
+            "ours-main-webgl2": 0.257,
+            "ours-main-canvas2d": 0.309,
+            "ours-main-dom": 0.283,
+            "ours-worker-webgpu": 0.384,
+            "ours-worker-webgl2": 0.304,
+            "ours-pool-webgpu": 0.382,
+            "ours-pool-webgl2": 0.337,
+            "xterm-webgl": 0.265,
+            "xterm-dom": 0.293,
+            "ghostty-web-canvas2d": 0.463,
+            "wraith-webgpu": 0.347,
+            "restty-webgpu": 0.441,
+            "restty-webgl2": 0.422
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.598,
+            "ours-main-webgl2": 0.586,
+            "ours-main-canvas2d": 1.155,
+            "ours-main-dom": 0.616,
+            "ours-worker-webgpu": 1.972,
+            "ours-worker-webgl2": 1.508,
+            "ours-pool-webgpu": 1.681,
+            "ours-pool-webgl2": 1.582,
+            "xterm-webgl": 0.764,
+            "xterm-dom": 0.962,
+            "ghostty-web-canvas2d": 4.285,
+            "wraith-webgpu": 1.594,
+            "restty-webgpu": 1.874,
+            "restty-webgl2": 1.513
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.28,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.279,
+            "ours-main-dom": 0.253,
+            "ours-worker-webgpu": 0.345,
+            "ours-worker-webgl2": 0.354,
+            "ours-pool-webgpu": 0.348,
+            "ours-pool-webgl2": 0.335,
+            "xterm-webgl": 0.291,
+            "xterm-dom": 0.28,
+            "ghostty-web-canvas2d": 0.433,
+            "wraith-webgpu": 0.337,
+            "restty-webgpu": 0.444,
+            "restty-webgl2": 0.327
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.59,
+            "ours-main-webgl2": 0.565,
+            "ours-main-canvas2d": 0.741,
+            "ours-main-dom": 0.712,
+            "ours-worker-webgpu": 1.914,
+            "ours-worker-webgl2": 1.195,
+            "ours-pool-webgpu": 1.376,
+            "ours-pool-webgl2": 1.225,
+            "xterm-webgl": 0.792,
+            "xterm-dom": 0.789,
+            "ghostty-web-canvas2d": 3.618,
+            "wraith-webgpu": 1.583,
+            "restty-webgpu": 2.231,
+            "restty-webgl2": 1.902
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.271,
+            "ours-main-webgl2": 0.256,
+            "ours-main-canvas2d": 0.289,
+            "ours-main-dom": 0.286,
+            "ours-worker-webgpu": 0.358,
+            "ours-worker-webgl2": 0.293,
+            "ours-pool-webgpu": 0.348,
+            "ours-pool-webgl2": 0.331,
+            "xterm-webgl": 0.415,
+            "xterm-dom": 0.323,
+            "ghostty-web-canvas2d": 0.289,
+            "wraith-webgpu": 0.329,
+            "restty-webgpu": 0.381,
+            "restty-webgl2": 0.35
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.493,
+            "ours-main-webgl2": 0.545,
+            "ours-main-canvas2d": 0.602,
+            "ours-main-dom": 0.52,
+            "ours-worker-webgpu": 1.652,
+            "ours-worker-webgl2": 1.154,
+            "ours-pool-webgpu": 1.373,
+            "ours-pool-webgl2": 1.053,
+            "xterm-webgl": 0.986,
+            "xterm-dom": 0.826,
+            "ghostty-web-canvas2d": 0.993,
+            "wraith-webgpu": 1.556,
+            "restty-webgpu": 1.389,
+            "restty-webgl2": 1.027
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.313,
+            "ours-main-webgl2": 0.259,
+            "ours-main-canvas2d": 0.484,
+            "ours-main-dom": 0.336,
+            "ours-worker-webgpu": 0.412,
+            "ours-worker-webgl2": 0.375,
+            "ours-pool-webgpu": 0.398,
+            "ours-pool-webgl2": 0.361,
+            "xterm-webgl": 0.271,
+            "xterm-dom": 0.328,
+            "ghostty-web-canvas2d": 0.48,
+            "wraith-webgpu": 0.351,
+            "restty-webgpu": 0.454,
+            "restty-webgl2": 0.394
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.748,
+            "ours-main-webgl2": 0.813,
+            "ours-main-canvas2d": 3.345,
+            "ours-main-dom": 1.097,
+            "ours-worker-webgpu": 2.352,
+            "ours-worker-webgl2": 1.747,
+            "ours-pool-webgpu": 1.943,
+            "ours-pool-webgl2": 1.897,
+            "xterm-webgl": 0.877,
+            "xterm-dom": 1.101,
+            "ghostty-web-canvas2d": 5.485,
+            "wraith-webgpu": 1.656,
+            "restty-webgpu": 2.249,
+            "restty-webgl2": 1.855
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.605,
+            "ours-main-webgl2": 0.518,
+            "ours-main-canvas2d": 0.353,
+            "ours-main-dom": 0.768,
+            "ours-worker-webgpu": 0.606,
+            "ours-worker-webgl2": 0.59,
+            "ours-pool-webgpu": 0.591,
+            "ours-pool-webgl2": 0.61,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 0.503,
+            "restty-webgpu": 0.486,
+            "restty-webgl2": 0.394
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.143,
+            "ours-main-webgl2": 1.21,
+            "ours-main-canvas2d": 1.165,
+            "ours-main-dom": 5.919,
+            "ours-worker-webgpu": 7.73,
+            "ours-worker-webgl2": 8.577,
+            "ours-pool-webgpu": 3.616,
+            "ours-pool-webgl2": 4.366,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 3.325,
+            "restty-webgpu": 2.263,
+            "restty-webgl2": 1.871
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.484,
+            "ours-main-webgl2": 0.427,
+            "ours-main-canvas2d": 0.344,
+            "ours-main-dom": 0.246,
+            "ours-worker-webgpu": 0.529,
+            "ours-worker-webgl2": 0.477,
+            "ours-pool-webgpu": 0.509,
+            "ours-pool-webgl2": 0.497,
+            "xterm-webgl": 0.349,
+            "xterm-dom": 0.477,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.244,
+            "ours-main-webgl2": 1.201,
+            "ours-main-canvas2d": 1.679,
+            "ours-main-dom": 0.811,
+            "ours-worker-webgpu": 6.103,
+            "ours-worker-webgl2": 5.202,
+            "ours-pool-webgpu": 2.757,
+            "ours-pool-webgl2": 3.05,
+            "xterm-webgl": 1.196,
+            "xterm-dom": 3.816,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.105,
+            "ours-main-webgl2": 0.096,
+            "ours-main-canvas2d": 0.133,
+            "ours-main-dom": 0.136,
+            "ours-worker-webgpu": 0.173,
+            "ours-worker-webgl2": 0.161,
+            "ours-pool-webgpu": 0.163,
+            "ours-pool-webgl2": 0.17,
+            "xterm-webgl": 0.27,
+            "xterm-dom": 0.317,
+            "ghostty-web-canvas2d": 0.542,
+            "wraith-webgpu": 0.304,
+            "restty-webgpu": 0.462,
+            "restty-webgl2": 0.423
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.331,
+            "ours-main-webgl2": 0.333,
+            "ours-main-canvas2d": 0.546,
+            "ours-main-dom": 0.478,
+            "ours-worker-webgpu": 0.999,
+            "ours-worker-webgl2": 0.992,
+            "ours-pool-webgpu": 0.731,
+            "ours-pool-webgl2": 0.718,
+            "xterm-webgl": 0.945,
+            "xterm-dom": 1.149,
+            "ghostty-web-canvas2d": 6.175,
+            "wraith-webgpu": 1.407,
+            "restty-webgpu": 2.559,
+            "restty-webgl2": 2.228
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.018,
+            "ours-main-webgl2": 0.014,
+            "ours-main-canvas2d": 0.02,
+            "ours-main-dom": 0.018,
+            "ours-worker-webgpu": 0.031,
+            "ours-worker-webgl2": 0.022,
+            "ours-pool-webgpu": 0.025,
+            "ours-pool-webgl2": 0.023,
+            "xterm-webgl": 0.176,
+            "xterm-dom": 0.126,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 0.013,
+            "restty-webgpu": 0.03,
+            "restty-webgl2": 0.037
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.087,
+            "ours-main-webgl2": 0.107,
+            "ours-main-canvas2d": 0.147,
+            "ours-main-dom": 0.093,
+            "ours-worker-webgpu": 0.37,
+            "ours-worker-webgl2": 0.35,
+            "ours-pool-webgpu": 0.323,
+            "ours-pool-webgl2": 0.359,
+            "xterm-webgl": 1.154,
+            "xterm-dom": 0.935,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 0.406,
+            "restty-webgpu": 0.172,
+            "restty-webgl2": 0.178
+          }
+        }
+      ],
+      "ackP95": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.3,
+            "ours-main-canvas2d": 0.15,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 3.3,
+            "ours-worker-webgl2": 2.85,
+            "ours-pool-webgpu": 0.85,
+            "ours-pool-webgl2": 1.05,
+            "xterm-webgl": 1.55,
+            "xterm-dom": 3.35,
+            "ghostty-web-canvas2d": 0.2,
+            "wraith-webgpu": 1.55,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.6,
+            "ours-main-webgl2": 0.85,
+            "ours-main-canvas2d": 0.5,
+            "ours-main-dom": 0.45,
+            "ours-worker-webgpu": 12.7,
+            "ours-worker-webgl2": 19.25,
+            "ours-pool-webgpu": 2.5,
+            "ours-pool-webgl2": 10.25,
+            "xterm-webgl": 5.9,
+            "xterm-dom": 13.45,
+            "ghostty-web-canvas2d": 1.25,
+            "wraith-webgpu": 2.1,
+            "restty-webgpu": 1.15,
+            "restty-webgl2": 1.1
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.15,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 3.45,
+            "ours-worker-webgl2": 3.45,
+            "ours-pool-webgpu": 1.1,
+            "ours-pool-webgl2": 1.05,
+            "xterm-webgl": 1.55,
+            "xterm-dom": 3,
+            "ghostty-web-canvas2d": 0.25,
+            "wraith-webgpu": 1.6,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.5,
+            "ours-main-webgl2": 0.4,
+            "ours-main-canvas2d": 0.35,
+            "ours-main-dom": 0.4,
+            "ours-worker-webgpu": 7.9,
+            "ours-worker-webgl2": 6.9,
+            "ours-pool-webgpu": 3.2,
+            "ours-pool-webgl2": 2.95,
+            "xterm-webgl": 7.7,
+            "xterm-dom": 11.15,
+            "ghostty-web-canvas2d": 1.2,
+            "wraith-webgpu": 2.05,
+            "restty-webgpu": 0.5,
+            "restty-webgl2": 0.65
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 2.6,
+            "ours-worker-webgl2": 2.55,
+            "ours-pool-webgpu": 0.85,
+            "ours-pool-webgl2": 1.4,
+            "xterm-webgl": 0.9,
+            "xterm-dom": 1.9,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.1,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.3,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.25,
+            "ours-worker-webgpu": 4.35,
+            "ours-worker-webgl2": 3.35,
+            "ours-pool-webgpu": 1.6,
+            "ours-pool-webgl2": 2.3,
+            "xterm-webgl": 1.45,
+            "xterm-dom": 5.9,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.45,
+            "restty-webgpu": 0.25,
+            "restty-webgl2": 0.25
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 4.15,
+            "ours-worker-webgl2": 4.2,
+            "ours-pool-webgpu": 0.8,
+            "ours-pool-webgl2": 1,
+            "xterm-webgl": 0.8,
+            "xterm-dom": 3.8,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.35,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.15
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.3,
+            "ours-main-canvas2d": 0.25,
+            "ours-main-dom": 0.4,
+            "ours-worker-webgpu": 10.5,
+            "ours-worker-webgl2": 9.8,
+            "ours-pool-webgpu": 5.6,
+            "ours-pool-webgl2": 1.95,
+            "xterm-webgl": 1.25,
+            "xterm-dom": 28.9,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 2,
+            "restty-webgpu": 0.25,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.15,
+            "ours-worker-webgpu": 2.55,
+            "ours-worker-webgl2": 2.15,
+            "ours-pool-webgpu": 1,
+            "ours-pool-webgl2": 1.25,
+            "xterm-webgl": 0.85,
+            "xterm-dom": 2,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 4.95,
+            "ours-worker-webgl2": 2.8,
+            "ours-pool-webgpu": 1.75,
+            "ours-pool-webgl2": 3.9,
+            "xterm-webgl": 1.45,
+            "xterm-dom": 5.7,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.25,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 1.45,
+            "ours-worker-webgl2": 1.35,
+            "ours-pool-webgpu": 0.75,
+            "ours-pool-webgl2": 0.9,
+            "xterm-webgl": 0.5,
+            "xterm-dom": 1.3,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.3,
+            "ours-worker-webgpu": 2.3,
+            "ours-worker-webgl2": 1.65,
+            "ours-pool-webgpu": 1.35,
+            "ours-pool-webgl2": 1.5,
+            "xterm-webgl": 0.75,
+            "xterm-dom": 3.3,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.3,
+            "restty-webgpu": 0.2,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 1.7,
+            "ours-main-webgl2": 1.7,
+            "ours-main-canvas2d": 1.45,
+            "ours-main-dom": 0.6,
+            "ours-worker-webgpu": 5.1,
+            "ours-worker-webgl2": 4.45,
+            "ours-pool-webgpu": 2.95,
+            "ours-pool-webgl2": 3.05,
+            "xterm-webgl": 2.9,
+            "xterm-dom": 7.55,
+            "ghostty-web-canvas2d": 1.05,
+            "wraith-webgpu": 3.6,
+            "restty-webgpu": 1.9,
+            "restty-webgl2": 1.9
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.1,
+            "ours-main-webgl2": 7.05,
+            "ours-main-canvas2d": 6.7,
+            "ours-main-dom": 6.8,
+            "ours-worker-webgpu": 6.35,
+            "ours-worker-webgl2": 4.9,
+            "ours-pool-webgpu": 5.05,
+            "ours-pool-webgl2": 5.5,
+            "xterm-webgl": 11,
+            "xterm-dom": 133.8,
+            "ghostty-web-canvas2d": 12.4,
+            "wraith-webgpu": 6.7,
+            "restty-webgpu": 7.8,
+            "restty-webgl2": 7.85
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 2.75,
+            "ours-main-webgl2": 2.7,
+            "ours-main-canvas2d": 1.15,
+            "ours-main-dom": 1.2,
+            "ours-worker-webgpu": 6,
+            "ours-worker-webgl2": 5.5,
+            "ours-pool-webgpu": 3.55,
+            "ours-pool-webgl2": 4.8,
+            "xterm-webgl": 4.25,
+            "xterm-dom": 26.95,
+            "ghostty-web-canvas2d": 2.55,
+            "wraith-webgpu": 5.15,
+            "restty-webgpu": 3.9,
+            "restty-webgl2": 3
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 17.25,
+            "ours-main-webgl2": 18.15,
+            "ours-main-canvas2d": 15.75,
+            "ours-main-dom": 17.65,
+            "ours-worker-webgpu": 30.55,
+            "ours-worker-webgl2": 14.4,
+            "ours-pool-webgpu": 10,
+            "ours-pool-webgl2": 14.7,
+            "xterm-webgl": 53.55,
+            "xterm-dom": 389.75,
+            "ghostty-web-canvas2d": 34.45,
+            "wraith-webgpu": 10.95,
+            "restty-webgpu": 21.15,
+            "restty-webgl2": 22.15
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.55,
+            "ours-main-webgl2": 0.55,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.4,
+            "ours-worker-webgpu": 3.7,
+            "ours-worker-webgl2": 3.55,
+            "ours-pool-webgpu": 1.05,
+            "ours-pool-webgl2": 1.9,
+            "xterm-webgl": 0.3,
+            "xterm-dom": 2.3,
+            "ghostty-web-canvas2d": 0.25,
+            "wraith-webgpu": 1.9,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.8,
+            "ours-main-webgl2": 2.05,
+            "ours-main-canvas2d": 1.7,
+            "ours-main-dom": 1.65,
+            "ours-worker-webgpu": 8.05,
+            "ours-worker-webgl2": 4.65,
+            "ours-pool-webgpu": 2.1,
+            "ours-pool-webgl2": 4.6,
+            "xterm-webgl": 2.45,
+            "xterm-dom": 7.9,
+            "ghostty-web-canvas2d": 2.4,
+            "wraith-webgpu": 2.15,
+            "restty-webgpu": 1.8,
+            "restty-webgl2": 1.7
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 2.2,
+            "ours-worker-webgl2": 2.05,
+            "ours-pool-webgpu": 0.95,
+            "ours-pool-webgl2": 1,
+            "xterm-webgl": 0.55,
+            "xterm-dom": 1.95,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.4,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.25,
+            "ours-worker-webgpu": 3.95,
+            "ours-worker-webgl2": 2.7,
+            "ours-pool-webgpu": 1.4,
+            "ours-pool-webgl2": 1.75,
+            "xterm-webgl": 1,
+            "xterm-dom": 6.9,
+            "ghostty-web-canvas2d": 0.15,
+            "wraith-webgpu": 1.5,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.2
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 1.95,
+            "ours-worker-webgl2": 1.85,
+            "ours-pool-webgpu": 0.9,
+            "ours-pool-webgl2": 1,
+            "xterm-webgl": 0.65,
+            "xterm-dom": 2.05,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.25,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.25,
+            "ours-main-webgl2": 0.45,
+            "ours-main-canvas2d": 0.25,
+            "ours-main-dom": 0.3,
+            "ours-worker-webgpu": 3.1,
+            "ours-worker-webgl2": 1.75,
+            "ours-pool-webgpu": 1.45,
+            "ours-pool-webgl2": 1.55,
+            "xterm-webgl": 0.75,
+            "xterm-dom": 6.8,
+            "ghostty-web-canvas2d": 0.2,
+            "wraith-webgpu": 1.45,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.4
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 1.45,
+            "ours-worker-webgl2": 1.4,
+            "ours-pool-webgpu": 0.95,
+            "ours-pool-webgl2": 1.05,
+            "xterm-webgl": 0.6,
+            "xterm-dom": 2.25,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.15
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.25,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 2.15,
+            "ours-worker-webgl2": 1.7,
+            "ours-pool-webgpu": 1.45,
+            "ours-pool-webgl2": 1.55,
+            "xterm-webgl": 2.15,
+            "xterm-dom": 9.7,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.25,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.15,
+            "ours-worker-webgpu": 2.95,
+            "ours-worker-webgl2": 2.65,
+            "ours-pool-webgpu": 0.8,
+            "ours-pool-webgl2": 1,
+            "xterm-webgl": 0.55,
+            "xterm-dom": 2.25,
+            "ghostty-web-canvas2d": 0.1,
+            "wraith-webgpu": 1.7,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.3,
+            "ours-main-webgl2": 0.4,
+            "ours-main-canvas2d": 0.3,
+            "ours-main-dom": 0.4,
+            "ours-worker-webgpu": 4.65,
+            "ours-worker-webgl2": 3.1,
+            "ours-pool-webgpu": 1.15,
+            "ours-pool-webgl2": 2.25,
+            "xterm-webgl": 1.25,
+            "xterm-dom": 7,
+            "ghostty-web-canvas2d": 0.8,
+            "wraith-webgpu": 1.6,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.4
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.15,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.15,
+            "ours-main-dom": 0.1,
+            "ours-worker-webgpu": 7.35,
+            "ours-worker-webgl2": 6.6,
+            "ours-pool-webgpu": 0.3,
+            "ours-pool-webgl2": 0.4,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 4.85,
+            "restty-webgpu": 0.15,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.4,
+            "ours-main-webgl2": 0.3,
+            "ours-main-canvas2d": 0.3,
+            "ours-main-dom": 0.4,
+            "ours-worker-webgpu": 34.75,
+            "ours-worker-webgl2": 36.25,
+            "ours-pool-webgpu": 1.75,
+            "ours-pool-webgl2": 8.7,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 7,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.4
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.1,
+            "ours-main-canvas2d": 0.1,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 5.45,
+            "ours-worker-webgl2": 5.4,
+            "ours-pool-webgpu": 0.8,
+            "ours-pool-webgl2": 0.75,
+            "xterm-webgl": 0.75,
+            "xterm-dom": 3.8,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.3,
+            "ours-main-webgl2": 0.25,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 32.05,
+            "ours-worker-webgl2": 14.85,
+            "ours-pool-webgpu": 2.5,
+            "ours-pool-webgl2": 3,
+            "xterm-webgl": 2.65,
+            "xterm-dom": 41.9,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.2,
+            "ours-main-webgl2": 0.2,
+            "ours-main-canvas2d": 0.2,
+            "ours-main-dom": 0.2,
+            "ours-worker-webgpu": 1.3,
+            "ours-worker-webgl2": 1.05,
+            "ours-pool-webgpu": 0.7,
+            "ours-pool-webgl2": 0.75,
+            "xterm-webgl": 0.6,
+            "xterm-dom": 2.4,
+            "ghostty-web-canvas2d": 0.15,
+            "wraith-webgpu": 1.05,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.1
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.55,
+            "ours-main-webgl2": 0.55,
+            "ours-main-canvas2d": 0.4,
+            "ours-main-dom": 0.45,
+            "ours-worker-webgpu": 4.65,
+            "ours-worker-webgl2": 3.65,
+            "ours-pool-webgpu": 2,
+            "ours-pool-webgl2": 2.4,
+            "xterm-webgl": 1.4,
+            "xterm-dom": 7.15,
+            "ghostty-web-canvas2d": 0.8,
+            "wraith-webgpu": 1.1,
+            "restty-webgpu": 0.3,
+            "restty-webgl2": 0.3
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 5.5,
+            "ours-main-webgl2": 4.3,
+            "ours-main-canvas2d": 5.65,
+            "ours-main-dom": 6.55,
+            "ours-worker-webgpu": 12.65,
+            "ours-worker-webgl2": 6.25,
+            "ours-pool-webgpu": 6.9,
+            "ours-pool-webgl2": 6.55,
+            "xterm-webgl": 57,
+            "xterm-dom": 48.6,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 6.05,
+            "restty-webgpu": 6.25,
+            "restty-webgl2": 6.8
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 40.7,
+            "ours-main-webgl2": 42.9,
+            "ours-main-canvas2d": 37.6,
+            "ours-main-dom": 40.05,
+            "ours-worker-webgpu": 77.75,
+            "ours-worker-webgl2": 83.7,
+            "ours-pool-webgpu": 76.3,
+            "ours-pool-webgl2": 85,
+            "xterm-webgl": 617.45,
+            "xterm-dom": 556.75,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 55.9,
+            "restty-webgpu": 76.4,
+            "restty-webgl2": 76.8
+          }
+        }
+      ],
+      "forcedP95": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.85,
+            "ours-main-webgl2": 28.45,
+            "wraith-webgpu": 9
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 19.7,
+            "ours-main-webgl2": 32.65,
+            "wraith-webgpu": 31.7
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 5.1,
+            "ours-main-webgl2": 37.2,
+            "wraith-webgpu": 6.65
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 11.95,
+            "ours-main-webgl2": 43,
+            "wraith-webgpu": 23.95
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 2.95,
+            "ours-main-webgl2": 41.6,
+            "wraith-webgpu": 5.5
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.95,
+            "ours-main-webgl2": 17.25,
+            "wraith-webgpu": 20.55
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.95,
+            "ours-main-webgl2": 48.7,
+            "wraith-webgpu": 5.85
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.25,
+            "ours-main-webgl2": 31.35,
+            "wraith-webgpu": 21.55
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.15,
+            "ours-main-webgl2": 48.5,
+            "wraith-webgpu": 5.85
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.35,
+            "ours-main-webgl2": 23.75,
+            "wraith-webgpu": 20.25
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.05,
+            "ours-main-webgl2": 36.35,
+            "wraith-webgpu": 5.35
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.35,
+            "ours-main-webgl2": 16.55,
+            "wraith-webgpu": 15.2
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 5.3,
+            "ours-main-webgl2": 50.55,
+            "wraith-webgpu": 6.1
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 17.05,
+            "ours-main-webgl2": 58.65,
+            "wraith-webgpu": 21
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 6.95,
+            "ours-main-webgl2": 42.1,
+            "wraith-webgpu": 10
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 39.5,
+            "ours-main-webgl2": 86.95,
+            "wraith-webgpu": 46.2
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 5.35,
+            "ours-main-webgl2": 33.35,
+            "wraith-webgpu": 8.35
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 14.85,
+            "ours-main-webgl2": 50.5,
+            "wraith-webgpu": 30.1
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.4,
+            "ours-main-webgl2": 38.8,
+            "wraith-webgpu": 6.75
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 12.35,
+            "ours-main-webgl2": 34.4,
+            "wraith-webgpu": 29.25
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.2,
+            "ours-main-webgl2": 38.1,
+            "wraith-webgpu": 7.5
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 8.45,
+            "ours-main-webgl2": 17.3,
+            "wraith-webgpu": 21.8
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.1,
+            "ours-main-webgl2": 43.95,
+            "wraith-webgpu": 7.8
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.25,
+            "ours-main-webgl2": 16.7,
+            "wraith-webgpu": 20.65
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 4.15,
+            "ours-main-webgl2": 41.65,
+            "wraith-webgpu": 7.55
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 8,
+            "ours-main-webgl2": 25.05,
+            "wraith-webgpu": 20.8
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 8.25,
+            "ours-main-webgl2": 49.95,
+            "wraith-webgpu": 7.85
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 13.5,
+            "ours-main-webgl2": 42.65,
+            "wraith-webgpu": 24.05
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 6.6,
+            "ours-main-webgl2": 49.45,
+            "wraith-webgpu": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 18.3,
+            "ours-main-webgl2": 24.3,
+            "wraith-webgpu": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 3.7,
+            "ours-main-webgl2": 52.9,
+            "wraith-webgpu": 7.6
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 5.35,
+            "ours-main-webgl2": 32.8,
+            "wraith-webgpu": 32.8
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": "unsupported",
+            "ours-main-webgl2": "unsupported",
+            "wraith-webgpu": "unsupported"
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": "unsupported",
+            "ours-main-webgl2": "unsupported",
+            "wraith-webgpu": "unsupported"
+          }
+        }
+      ],
+      "energy": [
+        {
+          "workload": "rolling-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.251,
+            "ours-main-webgl2": 0.194,
+            "ours-main-canvas2d": 0.62,
+            "ours-main-dom": 0.227,
+            "ours-worker-webgpu": 0.251,
+            "ours-worker-webgl2": 0.235,
+            "ours-pool-webgpu": 0.243,
+            "ours-pool-webgl2": 0.261,
+            "xterm-webgl": 0.219,
+            "xterm-dom": 0.339,
+            "ghostty-web-canvas2d": 1.189,
+            "wraith-webgpu": 0.135,
+            "restty-webgpu": 1.152,
+            "restty-webgl2": 0.751
+          }
+        },
+        {
+          "workload": "rolling-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.693,
+            "ours-main-webgl2": 1.615,
+            "ours-main-canvas2d": 12.656,
+            "ours-main-dom": 2.78,
+            "ours-worker-webgpu": 3.686,
+            "ours-worker-webgl2": 3.595,
+            "ours-pool-webgpu": 2.841,
+            "ours-pool-webgl2": 2.826,
+            "xterm-webgl": 2.96,
+            "xterm-dom": 4.712,
+            "ghostty-web-canvas2d": 23.214,
+            "wraith-webgpu": 1.6,
+            "restty-webgpu": 7.943,
+            "restty-webgl2": 7.649
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.1,
+            "ours-main-webgl2": 0.083,
+            "ours-main-canvas2d": 0.468,
+            "ours-main-dom": 0.181,
+            "ours-worker-webgpu": 0.141,
+            "ours-worker-webgl2": 0.128,
+            "ours-pool-webgpu": 0.143,
+            "ours-pool-webgl2": 0.131,
+            "xterm-webgl": 0.145,
+            "xterm-dom": 0.269,
+            "ghostty-web-canvas2d": 1.085,
+            "wraith-webgpu": 0.146,
+            "restty-webgpu": 0.583,
+            "restty-webgl2": 0.43
+          }
+        },
+        {
+          "workload": "rolling-unicode-logs",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.259,
+            "ours-main-webgl2": 1.142,
+            "ours-main-canvas2d": 11.017,
+            "ours-main-dom": 3.283,
+            "ours-worker-webgpu": 2.974,
+            "ours-worker-webgl2": 2.757,
+            "ours-pool-webgpu": 2.747,
+            "ours-pool-webgl2": 2.702,
+            "xterm-webgl": 2.594,
+            "xterm-dom": 4.787,
+            "ghostty-web-canvas2d": 24.094,
+            "wraith-webgpu": 1.624,
+            "restty-webgpu": 7.187,
+            "restty-webgl2": 6.592
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.047,
+            "ours-main-webgl2": 0.039,
+            "ours-main-canvas2d": 0.065,
+            "ours-main-dom": 0.099,
+            "ours-worker-webgpu": 0.062,
+            "ours-worker-webgl2": 0.054,
+            "ours-pool-webgpu": 0.067,
+            "ours-pool-webgl2": 0.059,
+            "xterm-webgl": 0.074,
+            "xterm-dom": 0.095,
+            "ghostty-web-canvas2d": 0.386,
+            "wraith-webgpu": 0.048,
+            "restty-webgpu": 0.139,
+            "restty-webgl2": 0.184
+          }
+        },
+        {
+          "workload": "rolling-slow",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.547,
+            "ours-main-webgl2": 0.473,
+            "ours-main-canvas2d": 0.839,
+            "ours-main-dom": 0.927,
+            "ours-worker-webgpu": 1.243,
+            "ours-worker-webgl2": 1.153,
+            "ours-pool-webgpu": 1.014,
+            "ours-pool-webgl2": 1.009,
+            "xterm-webgl": 0.893,
+            "xterm-dom": 1.566,
+            "ghostty-web-canvas2d": 9.78,
+            "wraith-webgpu": 1.271,
+            "restty-webgpu": 3.859,
+            "restty-webgl2": 3.257
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.059,
+            "ours-main-webgl2": 0.043,
+            "ours-main-canvas2d": 0.077,
+            "ours-main-dom": 0.198,
+            "ours-worker-webgpu": 0.102,
+            "ours-worker-webgl2": 0.136,
+            "ours-pool-webgpu": 0.124,
+            "ours-pool-webgl2": 0.122,
+            "xterm-webgl": 0.08,
+            "xterm-dom": 0.328,
+            "ghostty-web-canvas2d": 0.37,
+            "wraith-webgpu": 0.056,
+            "restty-webgpu": 0.549,
+            "restty-webgl2": 0.329
+          }
+        },
+        {
+          "workload": "unicode-emoji",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.598,
+            "ours-main-webgl2": 0.488,
+            "ours-main-canvas2d": 1.145,
+            "ours-main-dom": 4.023,
+            "ours-worker-webgpu": 2.965,
+            "ours-worker-webgl2": 2.84,
+            "ours-pool-webgpu": 2.44,
+            "ours-pool-webgl2": 2.504,
+            "xterm-webgl": 0.908,
+            "xterm-dom": 6.729,
+            "ghostty-web-canvas2d": 9.311,
+            "wraith-webgpu": 1.214,
+            "restty-webgpu": 4.446,
+            "restty-webgl2": 3.356
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.044,
+            "ours-main-webgl2": 0.035,
+            "ours-main-canvas2d": 0.039,
+            "ours-main-dom": 0.057,
+            "ours-worker-webgpu": 0.06,
+            "ours-worker-webgl2": 0.072,
+            "ours-pool-webgpu": 0.062,
+            "ours-pool-webgl2": 0.054,
+            "xterm-webgl": 0.067,
+            "xterm-dom": 0.083,
+            "ghostty-web-canvas2d": 0.388,
+            "wraith-webgpu": 0.05,
+            "restty-webgpu": 0.165,
+            "restty-webgl2": 0.209
+          }
+        },
+        {
+          "workload": "line-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.568,
+            "ours-main-webgl2": 0.402,
+            "ours-main-canvas2d": 0.81,
+            "ours-main-dom": 1.058,
+            "ours-worker-webgpu": 1.226,
+            "ours-worker-webgl2": 1.249,
+            "ours-pool-webgpu": 0.88,
+            "ours-pool-webgl2": 0.922,
+            "xterm-webgl": 0.88,
+            "xterm-dom": 1.57,
+            "ghostty-web-canvas2d": 9.958,
+            "wraith-webgpu": 0.991,
+            "restty-webgpu": 3.896,
+            "restty-webgl2": 3.312
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.044,
+            "ours-main-webgl2": 0.042,
+            "ours-main-canvas2d": 0.029,
+            "ours-main-dom": 0.033,
+            "ours-worker-webgpu": 0.056,
+            "ours-worker-webgl2": 0.061,
+            "ours-pool-webgpu": 0.052,
+            "ours-pool-webgl2": 0.047,
+            "xterm-webgl": 0.035,
+            "xterm-dom": 0.044,
+            "ghostty-web-canvas2d": 0.085,
+            "wraith-webgpu": 0.044,
+            "restty-webgpu": 0.1,
+            "restty-webgl2": 0.085
+          }
+        },
+        {
+          "workload": "interactive-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.556,
+            "ours-main-webgl2": 0.369,
+            "ours-main-canvas2d": 0.316,
+            "ours-main-dom": 0.17,
+            "ours-worker-webgpu": 0.861,
+            "ours-worker-webgl2": 0.688,
+            "ours-pool-webgpu": 0.69,
+            "ours-pool-webgl2": 0.662,
+            "xterm-webgl": 0.334,
+            "xterm-dom": 0.189,
+            "ghostty-web-canvas2d": 1.43,
+            "wraith-webgpu": 0.949,
+            "restty-webgpu": 2.075,
+            "restty-webgl2": 1.518
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.18,
+            "ours-main-webgl2": 0.172,
+            "ours-main-canvas2d": 0.322,
+            "ours-main-dom": 2.73,
+            "ours-worker-webgpu": 0.163,
+            "ours-worker-webgl2": 0.19,
+            "ours-pool-webgpu": 0.177,
+            "ours-pool-webgl2": 0.163,
+            "xterm-webgl": 0.262,
+            "xterm-dom": 2.461,
+            "ghostty-web-canvas2d": 1.025,
+            "wraith-webgpu": 0.118,
+            "restty-webgpu": 0.207,
+            "restty-webgl2": 0.187
+          }
+        },
+        {
+          "workload": "ntcharts-heatmap",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 4.293,
+            "ours-main-webgl2": 4.259,
+            "ours-main-canvas2d": 6.869,
+            "ours-main-dom": 48.217,
+            "ours-worker-webgpu": 3.465,
+            "ours-worker-webgl2": 3.153,
+            "ours-pool-webgpu": 3.848,
+            "ours-pool-webgl2": 3.649,
+            "xterm-webgl": 4.793,
+            "xterm-dom": 45.099,
+            "ghostty-web-canvas2d": 22.323,
+            "wraith-webgpu": 2.63,
+            "restty-webgpu": 5.353,
+            "restty-webgl2": 4.575
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.295,
+            "ours-main-webgl2": 0.333,
+            "ours-main-canvas2d": 2.063,
+            "ours-main-dom": 8.656,
+            "ours-worker-webgpu": 0.285,
+            "ours-worker-webgl2": 0.315,
+            "ours-pool-webgpu": 0.35,
+            "ours-pool-webgl2": 0.308,
+            "xterm-webgl": 21.662,
+            "xterm-dom": 9.369,
+            "ghostty-web-canvas2d": 2.705,
+            "wraith-webgpu": 0.194,
+            "restty-webgpu": 0.476,
+            "restty-webgl2": 0.47
+          }
+        },
+        {
+          "workload": "opentui-plasma",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 7.104,
+            "ours-main-webgl2": 6.954,
+            "ours-main-canvas2d": 37.56,
+            "ours-main-dom": 119.293,
+            "ours-worker-webgpu": 6.755,
+            "ours-worker-webgl2": 6.736,
+            "ours-pool-webgpu": 6.665,
+            "ours-pool-webgl2": 7.144,
+            "xterm-webgl": 34.712,
+            "xterm-dom": 153.512,
+            "ghostty-web-canvas2d": 47.851,
+            "wraith-webgpu": 4.507,
+            "restty-webgpu": 10.115,
+            "restty-webgl2": 9.668
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.072,
+            "ours-main-webgl2": 0.075,
+            "ours-main-canvas2d": 0.955,
+            "ours-main-dom": 0.378,
+            "ours-worker-webgpu": 0.11,
+            "ours-worker-webgl2": 0.082,
+            "ours-pool-webgpu": 0.115,
+            "ours-pool-webgl2": 0.092,
+            "xterm-webgl": 0.418,
+            "xterm-dom": 0.155,
+            "ghostty-web-canvas2d": 1.707,
+            "wraith-webgpu": 0.044,
+            "restty-webgpu": 0.351,
+            "restty-webgl2": 0.436
+          }
+        },
+        {
+          "workload": "synchronized-frames",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.618,
+            "ours-main-webgl2": 1.591,
+            "ours-main-canvas2d": 20.025,
+            "ours-main-dom": 4.961,
+            "ours-worker-webgpu": 2.601,
+            "ours-worker-webgl2": 2.346,
+            "ours-pool-webgpu": 2.161,
+            "ours-pool-webgl2": 2.186,
+            "xterm-webgl": 3.844,
+            "xterm-dom": 3.257,
+            "ghostty-web-canvas2d": 35.062,
+            "wraith-webgpu": 1.375,
+            "restty-webgpu": 8.066,
+            "restty-webgl2": 7.663
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.047,
+            "ours-main-webgl2": 0.041,
+            "ours-main-canvas2d": 0.112,
+            "ours-main-dom": 0.06,
+            "ours-worker-webgpu": 0.062,
+            "ours-worker-webgl2": 0.051,
+            "ours-pool-webgpu": 0.064,
+            "ours-pool-webgl2": 0.053,
+            "xterm-webgl": 0.049,
+            "xterm-dom": 0.078,
+            "ghostty-web-canvas2d": 0.73,
+            "wraith-webgpu": 0.049,
+            "restty-webgpu": 0.236,
+            "restty-webgl2": 0.228
+          }
+        },
+        {
+          "workload": "partial-scroll",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.741,
+            "ours-main-webgl2": 0.624,
+            "ours-main-canvas2d": 2.634,
+            "ours-main-dom": 1.055,
+            "ours-worker-webgpu": 1.4,
+            "ours-worker-webgl2": 1.102,
+            "ours-pool-webgpu": 1.221,
+            "ours-pool-webgl2": 1.33,
+            "xterm-webgl": 1.169,
+            "xterm-dom": 1.999,
+            "ghostty-web-canvas2d": 18.378,
+            "wraith-webgpu": 1.26,
+            "restty-webgpu": 5.08,
+            "restty-webgl2": 4.551
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.036,
+            "ours-main-webgl2": 0.028,
+            "ours-main-canvas2d": 0.059,
+            "ours-main-dom": 0.05,
+            "ours-worker-webgpu": 0.05,
+            "ours-worker-webgl2": 0.033,
+            "ours-pool-webgpu": 0.056,
+            "ours-pool-webgl2": 0.042,
+            "xterm-webgl": 0.048,
+            "xterm-dom": 0.07,
+            "ghostty-web-canvas2d": 0.601,
+            "wraith-webgpu": 0.046,
+            "restty-webgpu": 0.238,
+            "restty-webgl2": 0.206
+          }
+        },
+        {
+          "workload": "insert-delete-lines",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.658,
+            "ours-main-webgl2": 0.462,
+            "ours-main-canvas2d": 1.071,
+            "ours-main-dom": 0.888,
+            "ours-worker-webgpu": 0.983,
+            "ours-worker-webgl2": 0.805,
+            "ours-pool-webgpu": 0.868,
+            "ours-pool-webgl2": 0.872,
+            "xterm-webgl": 1.435,
+            "xterm-dom": 1.509,
+            "ghostty-web-canvas2d": 15.339,
+            "wraith-webgpu": 1.136,
+            "restty-webgpu": 6.162,
+            "restty-webgl2": 5.794
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.032,
+            "ours-main-webgl2": 0.025,
+            "ours-main-canvas2d": 0.038,
+            "ours-main-dom": 0.061,
+            "ours-worker-webgpu": 0.036,
+            "ours-worker-webgl2": 0.034,
+            "ours-pool-webgpu": 0.039,
+            "ours-pool-webgl2": 0.03,
+            "xterm-webgl": 0.11,
+            "xterm-dom": 0.097,
+            "ghostty-web-canvas2d": 0.091,
+            "wraith-webgpu": 0.036,
+            "restty-webgpu": 0.101,
+            "restty-webgl2": 0.097
+          }
+        },
+        {
+          "workload": "sparse-edits",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.472,
+            "ours-main-webgl2": 0.368,
+            "ours-main-canvas2d": 0.414,
+            "ours-main-dom": 0.74,
+            "ours-worker-webgpu": 0.837,
+            "ours-worker-webgl2": 0.658,
+            "ours-pool-webgpu": 0.696,
+            "ours-pool-webgl2": 0.781,
+            "xterm-webgl": 1.355,
+            "xterm-dom": 1.802,
+            "ghostty-web-canvas2d": 2.714,
+            "wraith-webgpu": 0.912,
+            "restty-webgpu": 2.622,
+            "restty-webgl2": 2.154
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.057,
+            "ours-main-webgl2": 0.05,
+            "ours-main-canvas2d": 0.53,
+            "ours-main-dom": 0.129,
+            "ours-worker-webgpu": 0.083,
+            "ours-worker-webgl2": 0.062,
+            "ours-pool-webgpu": 0.082,
+            "ours-pool-webgl2": 0.084,
+            "xterm-webgl": 0.07,
+            "xterm-dom": 0.157,
+            "ghostty-web-canvas2d": 1.076,
+            "wraith-webgpu": 0.046,
+            "restty-webgpu": 0.243,
+            "restty-webgl2": 0.254
+          }
+        },
+        {
+          "workload": "ligature-redraw",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 1.173,
+            "ours-main-webgl2": 1.03,
+            "ours-main-canvas2d": 12.817,
+            "ours-main-dom": 2.449,
+            "ours-worker-webgpu": 1.94,
+            "ours-worker-webgl2": 1.723,
+            "ours-pool-webgpu": 1.662,
+            "ours-pool-webgl2": 1.82,
+            "xterm-webgl": 1.81,
+            "xterm-dom": 3.121,
+            "ghostty-web-canvas2d": 23.638,
+            "wraith-webgpu": 1.21,
+            "restty-webgpu": 6.584,
+            "restty-webgl2": 6.1
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.593,
+            "ours-main-webgl2": 0.46,
+            "ours-main-canvas2d": 0.291,
+            "ours-main-dom": 1.026,
+            "ours-worker-webgpu": 0.583,
+            "ours-worker-webgl2": 0.62,
+            "ours-pool-webgpu": 0.587,
+            "ours-pool-webgl2": 0.618,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 0.363,
+            "restty-webgpu": 0.258,
+            "restty-webgl2": 0.216
+          }
+        },
+        {
+          "workload": "glyph-churn",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 2.18,
+            "ours-main-webgl2": 2.352,
+            "ours-main-canvas2d": 2.604,
+            "ours-main-dom": 17.925,
+            "ours-worker-webgpu": 11.288,
+            "ours-worker-webgl2": 12.354,
+            "ours-pool-webgpu": 6.179,
+            "ours-pool-webgl2": 6.801,
+            "xterm-webgl": "text-mismatch",
+            "xterm-dom": "text-mismatch",
+            "ghostty-web-canvas2d": "text-mismatch",
+            "wraith-webgpu": 4.291,
+            "restty-webgpu": 5.93,
+            "restty-webgl2": 5.385
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.239,
+            "ours-main-webgl2": 0.209,
+            "ours-main-canvas2d": 0.214,
+            "ours-main-dom": 0.09,
+            "ours-worker-webgpu": 0.253,
+            "ours-worker-webgl2": 0.239,
+            "ours-pool-webgpu": 0.257,
+            "ours-pool-webgl2": 0.217,
+            "xterm-webgl": 0.085,
+            "xterm-dom": 0.53,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "cold-cache",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 2.539,
+            "ours-main-webgl2": 2.844,
+            "ours-main-canvas2d": 5.616,
+            "ours-main-dom": 2.16,
+            "ours-worker-webgpu": 7.056,
+            "ours-worker-webgl2": 6.792,
+            "ours-pool-webgpu": 3.324,
+            "ours-pool-webgl2": 3.742,
+            "xterm-webgl": 1.757,
+            "xterm-dom": 12.1,
+            "ghostty-web-canvas2d": "unsupported",
+            "wraith-webgpu": "unsupported",
+            "restty-webgpu": "unsupported",
+            "restty-webgl2": "unsupported"
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.017,
+            "ours-main-webgl2": 0.014,
+            "ours-main-canvas2d": 0.03,
+            "ours-main-dom": 0.018,
+            "ours-worker-webgpu": 0.022,
+            "ours-worker-webgl2": 0.019,
+            "ours-pool-webgpu": 0.024,
+            "ours-pool-webgl2": 0.032,
+            "xterm-webgl": 0.066,
+            "xterm-dom": 0.132,
+            "ghostty-web-canvas2d": 1.192,
+            "wraith-webgpu": 0.04,
+            "restty-webgpu": 0.309,
+            "restty-webgl2": 0.317
+          }
+        },
+        {
+          "workload": "repeated-ascii",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.212,
+            "ours-main-webgl2": 0.242,
+            "ours-main-canvas2d": 0.697,
+            "ours-main-dom": 0.519,
+            "ours-worker-webgpu": 0.403,
+            "ours-worker-webgl2": 0.429,
+            "ours-pool-webgpu": 0.285,
+            "ours-pool-webgl2": 0.317,
+            "xterm-webgl": 1.902,
+            "xterm-dom": 3.259,
+            "ghostty-web-canvas2d": 26.282,
+            "wraith-webgpu": 1.046,
+            "restty-webgpu": 7.762,
+            "restty-webgl2": 7.329
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 1,
+          "values": {
+            "ours-main-webgpu": 0.013,
+            "ours-main-webgl2": 0.018,
+            "ours-main-canvas2d": 0.015,
+            "ours-main-dom": 0.011,
+            "ours-worker-webgpu": 0.025,
+            "ours-worker-webgl2": 0.031,
+            "ours-pool-webgpu": 0.028,
+            "ours-pool-webgl2": 0.029,
+            "xterm-webgl": 0.314,
+            "xterm-dom": 0.254,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 0.009,
+            "restty-webgpu": 0.034,
+            "restty-webgl2": 0.04
+          }
+        },
+        {
+          "workload": "write-queue-overload",
+          "terminals": 16,
+          "values": {
+            "ours-main-webgpu": 0.231,
+            "ours-main-webgl2": 0.247,
+            "ours-main-canvas2d": 0.426,
+            "ours-main-dom": 0.257,
+            "ours-worker-webgpu": 0.595,
+            "ours-worker-webgl2": 0.561,
+            "ours-pool-webgpu": 0.702,
+            "ours-pool-webgl2": 0.649,
+            "xterm-webgl": 3.219,
+            "xterm-dom": 2.954,
+            "ghostty-web-canvas2d": "crash",
+            "wraith-webgpu": 0.568,
+            "restty-webgpu": 0.498,
+            "restty-webgl2": 0.526
+          }
+        }
+      ]
+    }
+  },
+  "size": [
+    {
+      "app": "ghostty-webgpu main, auto backend",
+      "backend": "webgl2",
+      "raw": 1019.1,
+      "gzip": 308.7,
+      "brotli": 252.7,
+      "font": null,
+      "brotliWithFont": 252.7
+    },
+    {
+      "app": "ghostty-webgpu main, WebGPU",
+      "backend": "webgpu",
+      "raw": 1030.9,
+      "gzip": 310.3,
+      "brotli": 252.6,
+      "font": null,
+      "brotliWithFont": 252.6
+    },
+    {
+      "app": "ghostty-webgpu main, WebGL2",
+      "backend": "webgl2",
+      "raw": 1013.9,
+      "gzip": 306.5,
+      "brotli": 249.2,
+      "font": null,
+      "brotliWithFont": 249.2
+    },
+    {
+      "app": "ghostty-webgpu worker, auto backend",
+      "backend": "webgl2",
+      "raw": 1074.2,
+      "gzip": 324.2,
+      "brotli": 267.3,
+      "font": {
+        "file": "jetbrains-mono-latin-400-normal.woff2",
+        "kib": 20.7
+      },
+      "brotliWithFont": 288
+    },
+    {
+      "app": "ghostty-webgpu worker, WebGPU",
+      "backend": "webgpu",
+      "raw": 1086.8,
+      "gzip": 327.1,
+      "brotli": 270,
+      "font": {
+        "file": "jetbrains-mono-latin-400-normal.woff2",
+        "kib": 20.7
+      },
+      "brotliWithFont": 290.6
+    },
+    {
+      "app": "ghostty-webgpu worker, WebGL2",
+      "backend": "webgl2",
+      "raw": 1074.2,
+      "gzip": 324.2,
+      "brotli": 267.3,
+      "font": {
+        "file": "jetbrains-mono-latin-400-normal.woff2",
+        "kib": 20.7
+      },
+      "brotliWithFont": 287.9
+    },
+    {
+      "app": "xterm.js 6 + WebGL addon",
+      "backend": "webgl2",
+      "raw": 439.3,
+      "gzip": 111.7,
+      "brotli": 84.1,
+      "font": null,
+      "brotliWithFont": 84.1
+    },
+    {
+      "app": "xterm.js 6 + WebGL + Unicode 11 addons",
+      "backend": "webgl2",
+      "raw": 463.9,
+      "gzip": 119.9,
+      "brotli": 85.8,
+      "font": null,
+      "brotliWithFont": 85.8
+    },
+    {
+      "app": "ghostty-web 0.4.0 (Canvas 2D)",
+      "backend": "canvas2d",
+      "raw": 621.9,
+      "gzip": 181.7,
+      "brotli": 146.1,
+      "font": null,
+      "brotliWithFont": 146.1
+    },
+    {
+      "app": "Wraith 0.6.1 native (worker, WebGPU)",
+      "backend": "webgpu",
+      "raw": 2964,
+      "gzip": 1045,
+      "brotli": 775.7,
+      "font": {
+        "file": "JetBrainsMono-Regular.ttf",
+        "kib": 103.3
+      },
+      "brotliWithFont": 879
+    },
+    {
+      "app": "Wraith 0.6.1 xterm profile",
+      "backend": "dom → webgpu",
+      "raw": 3237.9,
+      "gzip": 1108.4,
+      "brotli": 826.6,
+      "font": null,
+      "brotliWithFont": 826.6
+    },
+    {
+      "app": "Restty 0.3.0 (WebGPU, WebGL2 fallback)",
+      "backend": "webgpu",
+      "raw": 2748.9,
+      "gzip": 682.1,
+      "brotli": 538.7,
+      "font": {
+        "file": "jetbrains-mono-latin-400-normal.woff2",
+        "kib": 20.7
+      },
+      "brotliWithFont": 559.3
+    }
+  ],
+  "coldLoad": {
+    "pc": {
+      "unthrottled": [
+        {
+          "app": "ghostty-webgpu main, auto backend",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 252,
+          "p95": 396,
+          "kibOnWire": 253
+        },
+        {
+          "app": "ghostty-webgpu main, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 128,
+          "p95": 138,
+          "kibOnWire": 253
+        },
+        {
+          "app": "ghostty-webgpu main, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 267,
+          "p95": 279,
+          "kibOnWire": 249
+        },
+        {
+          "app": "ghostty-webgpu worker, auto backend",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 235,
+          "p95": 291,
+          "kibOnWire": 288
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 138,
+          "p95": 151,
+          "kibOnWire": 291
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 231,
+          "p95": 244,
+          "kibOnWire": 288
+        },
+        {
+          "app": "xterm.js 6 + WebGL addon",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 269,
+          "p95": 277,
+          "kibOnWire": 84
+        },
+        {
+          "app": "xterm.js 6 + WebGL + Unicode 11 addons",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 264,
+          "p95": 273,
+          "kibOnWire": 86
+        },
+        {
+          "app": "ghostty-web 0.4.0 (Canvas 2D)",
+          "backend": "canvas2d",
+          "runs": 10,
+          "median": 41,
+          "p95": 46,
+          "kibOnWire": 146
+        },
+        {
+          "app": "Wraith 0.6.1 native (worker, WebGPU)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 155,
+          "p95": 167,
+          "kibOnWire": 879
+        },
+        {
+          "app": "Wraith 0.6.1 xterm profile",
+          "backend": "dom → webgpu",
+          "runs": 10,
+          "median": 112,
+          "p95": 131,
+          "kibOnWire": 827
+        },
+        {
+          "app": "Restty 0.3.0 (WebGPU, WebGL2 fallback)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 176,
+          "p95": 190,
+          "kibOnWire": 559
+        }
+      ],
+      "fast4g": [
+        {
+          "app": "ghostty-webgpu main, auto backend",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 861,
+          "p95": 1012,
+          "kibOnWire": 253
+        },
+        {
+          "app": "ghostty-webgpu main, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 871,
+          "p95": 872,
+          "kibOnWire": 253
+        },
+        {
+          "app": "ghostty-webgpu main, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 857,
+          "p95": 870,
+          "kibOnWire": 249
+        },
+        {
+          "app": "ghostty-webgpu worker, auto backend",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 1436,
+          "p95": 1458,
+          "kibOnWire": 288
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1240,
+          "p95": 1249,
+          "kibOnWire": 291
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 1435,
+          "p95": 1449,
+          "kibOnWire": 288
+        },
+        {
+          "app": "xterm.js 6 + WebGL addon",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 624,
+          "p95": 674,
+          "kibOnWire": 84
+        },
+        {
+          "app": "xterm.js 6 + WebGL + Unicode 11 addons",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 631,
+          "p95": 684,
+          "kibOnWire": 86
+        },
+        {
+          "app": "ghostty-web 0.4.0 (Canvas 2D)",
+          "backend": "canvas2d",
+          "runs": 10,
+          "median": 680,
+          "p95": 687,
+          "kibOnWire": 146
+        },
+        {
+          "app": "Wraith 0.6.1 native (worker, WebGPU)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1596,
+          "p95": 1662,
+          "kibOnWire": 879
+        },
+        {
+          "app": "Wraith 0.6.1 xterm profile",
+          "backend": "dom → webgpu",
+          "runs": 10,
+          "median": 469,
+          "p95": 492,
+          "kibOnWire": 827
+        },
+        {
+          "app": "Restty 0.3.0 (WebGPU, WebGL2 fallback)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1215,
+          "p95": 1238,
+          "kibOnWire": 559
+        }
+      ]
+    },
+    "mac": {
+      "unthrottled": [
+        {
+          "app": "ghostty-webgpu main, auto backend",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 101,
+          "p95": 178,
+          "kibOnWire": 255
+        },
+        {
+          "app": "ghostty-webgpu main, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 104,
+          "p95": 131,
+          "kibOnWire": 253
+        },
+        {
+          "app": "ghostty-webgpu main, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 99,
+          "p95": 315,
+          "kibOnWire": 249
+        },
+        {
+          "app": "ghostty-webgpu worker, auto backend",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 130,
+          "p95": 224,
+          "kibOnWire": 291
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 127,
+          "p95": 293,
+          "kibOnWire": 291
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 123,
+          "p95": 147,
+          "kibOnWire": 288
+        },
+        {
+          "app": "xterm.js 6 + WebGL addon",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 97,
+          "p95": 111,
+          "kibOnWire": 84
+        },
+        {
+          "app": "xterm.js 6 + WebGL + Unicode 11 addons",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 93,
+          "p95": 133,
+          "kibOnWire": 86
+        },
+        {
+          "app": "ghostty-web 0.4.0 (Canvas 2D)",
+          "backend": "canvas2d",
+          "runs": 10,
+          "median": 61,
+          "p95": 129,
+          "kibOnWire": 146
+        },
+        {
+          "app": "Wraith 0.6.1 native (worker, WebGPU)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 151,
+          "p95": 168,
+          "kibOnWire": 879
+        },
+        {
+          "app": "Wraith 0.6.1 xterm profile",
+          "backend": "dom → webgpu",
+          "runs": 10,
+          "median": 76,
+          "p95": 116,
+          "kibOnWire": 827
+        },
+        {
+          "app": "Restty 0.3.0 (WebGPU, WebGL2 fallback)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 139,
+          "p95": 176,
+          "kibOnWire": 559
+        }
+      ],
+      "fast4g": [
+        {
+          "app": "ghostty-webgpu main, auto backend",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 864,
+          "p95": 879,
+          "kibOnWire": 255
+        },
+        {
+          "app": "ghostty-webgpu main, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 882,
+          "p95": 888,
+          "kibOnWire": 253
+        },
+        {
+          "app": "ghostty-webgpu main, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 877,
+          "p95": 884,
+          "kibOnWire": 249
+        },
+        {
+          "app": "ghostty-webgpu worker, auto backend",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1294,
+          "p95": 1304,
+          "kibOnWire": 291
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGPU",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1294,
+          "p95": 1429,
+          "kibOnWire": 291
+        },
+        {
+          "app": "ghostty-webgpu worker, WebGL2",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 1314,
+          "p95": 1333,
+          "kibOnWire": 288
+        },
+        {
+          "app": "xterm.js 6 + WebGL addon",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 503,
+          "p95": 521,
+          "kibOnWire": 84
+        },
+        {
+          "app": "xterm.js 6 + WebGL + Unicode 11 addons",
+          "backend": "webgl2",
+          "runs": 10,
+          "median": 501,
+          "p95": 524,
+          "kibOnWire": 86
+        },
+        {
+          "app": "ghostty-web 0.4.0 (Canvas 2D)",
+          "backend": "canvas2d",
+          "runs": 10,
+          "median": 728,
+          "p95": 747,
+          "kibOnWire": 146
+        },
+        {
+          "app": "Wraith 0.6.1 native (worker, WebGPU)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1659,
+          "p95": 1698,
+          "kibOnWire": 879
+        },
+        {
+          "app": "Wraith 0.6.1 xterm profile",
+          "backend": "dom → webgpu",
+          "runs": 10,
+          "median": 504,
+          "p95": 513,
+          "kibOnWire": 827
+        },
+        {
+          "app": "Restty 0.3.0 (WebGPU, WebGL2 fallback)",
+          "backend": "webgpu",
+          "runs": 10,
+          "median": 1253,
+          "p95": 1277,
+          "kibOnWire": 559
+        }
+      ]
+    }
+  }
+}

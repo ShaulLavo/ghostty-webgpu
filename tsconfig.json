@@ -19,5 +19,5 @@
     "types": ["bun", "@webgpu/types"],
     "verbatimModuleSyntax": true
   },
-  "include": ["bench", "src", "scripts", "vitest*.ts"]
+  "include": ["bench", "src", "scripts", "docs/benchmarks", "vitest*.ts"]
 }
