@@ -391,6 +391,8 @@ export class WebGlTerminalRenderer {
   }
 
   private rebuildGeometry(): void {
+    // Resizing reallocates both instance buffers empty, so byte-identical records must upload too.
+    this.needsFullRebuild = true
     this.resizeCanvas()
     if (this.state.kind === 'ready') {
       this.state.pass.resize({
