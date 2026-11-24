@@ -288,6 +288,42 @@ const FrameCache = struct {
     row_starts: ?[*]u32 = null,
     appearance: [11]u32 = [_]u32{0} ** 11,
     default_style: c.GhosttyStyle,
+    // Per-row memos; style ids are only comparable within one row's page.
+    run: StyledRun = .{},
+    last_glyph: GlyphMemo = .{},
+    last_raw: c.GhosttyCell = 0,
+    last_cell: CellFields = undefined,
+    last_cell_valid: bool = false,
+};
+
+const CellFields = struct {
+    codepoint: u32 = 0,
+    wide: c.GhosttyCellWide = 0,
+    tag: c.GhosttyCellContentTag = 0,
+    styled: bool = false,
+    style: c.GhosttyStyle,
+    fg: u32 = 0xffffffff,
+    bg: u32 = 0xffffffff,
+};
+
+// The style, foreground and background of the row's last styled codepoint cell, by style id.
+const StyledRun = struct {
+    valid: bool = false,
+    id: u16 = 0,
+    style: c.GhosttyStyle = undefined,
+    fg: u32 = 0,
+    bg: u32 = 0,
+};
+
+// The row's last resolved glyph and the exact inputs it was resolved from.
+const GlyphMemo = struct {
+    key: ?*glyph_index.Entry = null,
+    codepoint: u32 = 0,
+    span: u32 = 0,
+    constraint_width: u32 = 0,
+    style: u32 = 0,
+    foreground: u32 = 0,
+    background: u32 = 0,
 };
 
 fn frameAllocate(comptime T: type, count: usize) ?[*]T {
@@ -622,7 +658,8 @@ fn frameColor(cells: c.GhosttyRenderStateRowCells, field: c.GhosttyRenderStateRo
     return c.GHOSTTY_SUCCESS;
 }
 
-fn writeColor(out: []f32, rgb: u32, alpha: f32) void {
+// Inlined: as a call it showed up at 3% of plain-text frame builds.
+inline fn writeColor(out: []f32, rgb: u32, alpha: f32) void {
     out[0] = @as(f32, @floatFromInt(rgb & 255)) / 255;
     out[1] = @as(f32, @floatFromInt((rgb >> 8) & 255)) / 255;
     out[2] = @as(f32, @floatFromInt((rgb >> 16) & 255)) / 255;
@@ -689,6 +726,8 @@ const CellContent = struct {
     joined: ?[]const u32 = null,
     // A glyph already resolved for this content and brush, from the plain-cell cache.
     resolved: ?*glyph_index.Entry = null,
+    // Styled cells repeat within a row; plain repeats across frames use the plain-cell cache.
+    memo: bool = false,
 };
 
 fn resolveCellKey(comptime bidi: bool, projection: ?[*]const BidiCell, frame: *Frame, cells: c.GhosttyRenderStateRowCells, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, foreground: u32, background: u32, out: *?*glyph_index.Entry) c.GhosttyResult {
@@ -771,7 +810,11 @@ fn writeInstances(comptime stable: bool, comptime bidi: bool, projection: ?[*]co
     if (content.continuation or content.codepoint == 0 or style.invisible) return c.GHOSTTY_SUCCESS;
     var resolved = content.resolved;
     if (resolved == null) {
-        const result = resolveCellKey(bidi, projection, frame, cells, x, y, content, style, foreground, background, &resolved);
+        // A BiDi mirror replaces the codepoint, so mirrored rows never use the memo.
+        const result = if (!bidi and content.memo)
+            resolveMemoKey(frame, cells, x, y, content, style, foreground, background, &resolved)
+        else
+            resolveCellKey(bidi, projection, frame, cells, x, y, content, style, foreground, background, &resolved);
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     const key = resolved.?;
@@ -802,37 +845,15 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
     if (plain and !bidi and joined == 0) {
         if (plainCellKey(frame, raws, x, y, selected)) |key| return buildPlainCell(stable, frame, cells, raw, slot, x, y, key);
     }
-    var codepoint: u32 = 0;
-    var wide: c.GhosttyCellWide = 0;
-    var tag: c.GhosttyCellContentTag = 0;
-    var result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CODEPOINT, &codepoint);
+    var fields: CellFields = undefined;
+    var result = readCellFields(frame, raw, cells, x, &fields);
     if (result != c.GHOSTTY_SUCCESS) return result;
-    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_WIDE, &wide);
-    if (result != c.GHOSTTY_SUCCESS) return result;
-    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &tag);
-    if (result != c.GHOSTTY_SUCCESS) return result;
-    var style = frame.row_cache.?.default_style;
-    var styled = false;
-    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_HAS_STYLING, &styled);
-    if (result != c.GHOSTTY_SUCCESS) return result;
-    // Unstyled text has no explicit background; graphemes still need native text selection.
-    const default_colors = !styled and (tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT or tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME);
-    if (!default_colors or tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) {
-        result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
-        if (result != c.GHOSTTY_SUCCESS) return result;
-    }
-    var fg: u32 = 0xffffffff;
-    if (styled) {
-        result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_STYLE, &style);
-        if (result != c.GHOSTTY_SUCCESS) return result;
-        result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_FG_COLOR, &fg);
-        if (result != c.GHOSTTY_SUCCESS) return result;
-    }
-    var bg: u32 = 0xffffffff;
-    if (!default_colors) {
-        result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, &bg);
-        if (result != c.GHOSTTY_SUCCESS) return result;
-    }
+    const codepoint = fields.codepoint;
+    const wide = fields.wide;
+    const tag = fields.tag;
+    const styled = fields.styled;
+    const fg = fields.fg;
+    const bg = fields.bg;
     var span: u32 = 1;
     while (x + span < raws.len) : (span += 1) {
         var next_wide: c.GhosttyCellWide = 0;
@@ -858,7 +879,7 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
         .raw = raw,
         .foreground = fg,
         .background = bg,
-        .style = visualStyle(style),
+        .style = visualStyle(fields.style),
         .styled = styled,
         .tag = tag,
         .key = null,
@@ -870,7 +891,8 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
         .constraint_width = constraint_width,
         .tag = tag,
         .joined = joined_text,
-    }, style, fg, bg, selected);
+        .memo = styled,
+    }, fields.style, fg, bg, selected);
     if (result != c.GHOSTTY_SUCCESS or !plain or bidi or joined != 0 or styled) return result;
     if (tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT or wide != c.GHOSTTY_CELL_WIDE_NARROW or span != 1) return result;
     // Symbols take their constraint width from neighbors, so their glyph is not a function of the cell.
@@ -878,6 +900,113 @@ fn buildCell(comptime stable: bool, comptime bidi: bool, projection: ?[*]const B
     const key = frame.row_cache.?.next[y].cells[x].key orelse return result;
     if (key.glyph.valid != 0) glyph_index.fastStore(frame.glyph_index, raw, key, frame.foreground, frame.background, frame.glyph_minimum_contrast);
     return result;
+}
+
+// Identical raw cells in one row share every field, except a grapheme's extra codepoints.
+// A memo hit skips the native cell select, which only grapheme reads depend on.
+// A miss leaves the memo alone: an identical raw cell anywhere in the row has the same fields.
+inline fn readCellFields(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, out: *CellFields) c.GhosttyResult {
+    const cache = frame.row_cache.?;
+    if (cache.last_cell_valid and cache.last_raw == raw) {
+        out.* = cache.last_cell;
+        return c.GHOSTTY_SUCCESS;
+    }
+    out.style = cache.default_style;
+    out.styled = false;
+    out.fg = 0xffffffff;
+    out.bg = 0xffffffff;
+    var result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CODEPOINT, &out.codepoint);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_WIDE, &out.wide);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_CONTENT_TAG, &out.tag);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_HAS_STYLING, &out.styled);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    result = if (out.styled and out.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT)
+        readStyledRun(frame, raw, cells, x, &out.style, &out.fg, &out.bg)
+    else
+        readCellColors(cells, x, out.tag, out.styled, &out.style, &out.fg, &out.bg);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (out.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) return c.GHOSTTY_SUCCESS;
+    // Plain text reads no colors, so remembering it costs more than it saves.
+    if (!out.styled and out.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT) return c.GHOSTTY_SUCCESS;
+    cache.last_raw = raw;
+    cache.last_cell = out.*;
+    cache.last_cell_valid = true;
+    return c.GHOSTTY_SUCCESS;
+}
+
+fn readCellColors(cells: c.GhosttyRenderStateRowCells, x: u32, tag: c.GhosttyCellContentTag, styled: bool, style: *c.GhosttyStyle, fg: *u32, bg: *u32) c.GhosttyResult {
+    // Unstyled text has no explicit background; graphemes still need native text selection.
+    const default_colors = !styled and (tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT or tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME);
+    if (default_colors and tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT_GRAPHEME) return c.GHOSTTY_SUCCESS;
+    var result = c.ghostty_render_state_row_cells_select(cells, @intCast(x));
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (styled) {
+        result = c.ghostty_render_state_row_cells_get(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_STYLE, style);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+        result = frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_FG_COLOR, fg);
+        if (result != c.GHOSTTY_SUCCESS) return result;
+    }
+    if (default_colors) return c.GHOSTTY_SUCCESS;
+    return frameColor(cells, c.GHOSTTY_RENDER_STATE_ROW_CELLS_DATA_BG_COLOR, bg);
+}
+
+// A styled codepoint cell's style and colors depend only on its style id within the row, so a run
+// of cells sharing one style reads them once.
+fn readStyledRun(frame: *Frame, raw: c.GhosttyCell, cells: c.GhosttyRenderStateRowCells, x: u32, style: *c.GhosttyStyle, fg: *u32, bg: *u32) c.GhosttyResult {
+    const run = &frame.row_cache.?.run;
+    var id: u16 = 0;
+    const result = c.ghostty_cell_get(raw, c.GHOSTTY_CELL_DATA_STYLE_ID, &id);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    if (run.valid and run.id == id) {
+        style.* = run.style;
+        fg.* = run.fg;
+        bg.* = run.bg;
+        return c.GHOSTTY_SUCCESS;
+    }
+    run.valid = false;
+    const read = readCellColors(cells, x, c.GHOSTTY_CELL_CONTENT_CODEPOINT, true, style, fg, bg);
+    if (read != c.GHOSTTY_SUCCESS) return read;
+    run.* = .{ .valid = true, .id = id, .style = style.*, .fg = fg.*, .bg = bg.* };
+    return c.GHOSTTY_SUCCESS;
+}
+
+// Styled runs repeat one glyph and brush, so the row's last resolved glyph often answers.
+fn resolveMemoKey(frame: *Frame, cells: c.GhosttyRenderStateRowCells, x: u32, y: u32, content: CellContent, style: c.GhosttyStyle, foreground: u32, background: u32, out: *?*glyph_index.Entry) c.GhosttyResult {
+    const brush = @as(u32, @intFromBool(style.bold)) | (@as(u32, @intFromBool(style.italic)) << 1);
+    out.* = memoGlyph(frame, content, brush, foreground, background);
+    if (out.* != null) return c.GHOSTTY_SUCCESS;
+    const result = resolveCellKey(false, null, frame, cells, x, y, content, style, foreground, background, out);
+    if (result != c.GHOSTTY_SUCCESS) return result;
+    rememberGlyph(frame, content, brush, foreground, background, out.*);
+    return c.GHOSTTY_SUCCESS;
+}
+
+fn memoGlyph(frame: *Frame, content: CellContent, style: u32, foreground: u32, background: u32) ?*glyph_index.Entry {
+    const memo = &frame.row_cache.?.last_glyph;
+    if (content.joined != null or content.tag != c.GHOSTTY_CELL_CONTENT_CODEPOINT) return null;
+    const key = memo.key orelse return null;
+    if (memo.codepoint != content.codepoint or memo.span != content.span or memo.constraint_width != content.constraint_width) return null;
+    if (memo.style != style) return null;
+    // glyph_index.resolve returns a registered grayscale or empty base entry for every brush.
+    if (key.variant == 0 and key.glyph.valid != 0 and key.glyph.kind == 0) return key;
+    if (memo.foreground != foreground or memo.background != background) return null;
+    return key;
+}
+
+fn rememberGlyph(frame: *Frame, content: CellContent, style: u32, foreground: u32, background: u32, key: ?*glyph_index.Entry) void {
+    const eligible = content.joined == null and content.tag == c.GHOSTTY_CELL_CONTENT_CODEPOINT;
+    frame.row_cache.?.last_glyph = .{
+        .key = if (eligible) key else null,
+        .codepoint = content.codepoint,
+        .span = content.span,
+        .constraint_width = content.constraint_width,
+        .style = style,
+        .foreground = foreground,
+        .background = background,
+    };
 }
 
 fn cursorAt(frame: *const Frame, x: u32, y: u32) bool {
@@ -1112,6 +1241,9 @@ fn buildRow(comptime stable: bool, comptime bidi: bool, projection: ?[*]const Bi
         if (result != c.GHOSTTY_SUCCESS) return result;
     }
     frame.rows_built += 1;
+    frame.row_cache.?.run.valid = false;
+    frame.row_cache.?.last_glyph.key = null;
+    frame.row_cache.?.last_cell_valid = false;
     var cell_first = frame.columns;
     var cell_end: u32 = 0;
     var glyph_first = frame.columns;
