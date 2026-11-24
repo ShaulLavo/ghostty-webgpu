@@ -106,7 +106,7 @@ await terminal.dispose()
 
 Pass `pool: new TerminalWorkerPool({ workers })` to share workers between terminals. The pool
 starts a worker per terminal up to `workers` (default half of `navigator.hardwareConcurrency`,
-one to eight), then assigns each further terminal to the worker with the fewest terminals, and
+one to four), then assigns each further terminal to the worker with the fewest terminals, and
 terminates a worker after its last terminal is disposed. Terminals on one worker share a GPU
 device per adapter policy, one frame coordinator, glyph atlases and identical font faces. A
 pooled terminal paints once its worker has parsed the queued output, at most once per display

@@ -87,10 +87,11 @@ export class TerminalWorkerPool {
   }
 }
 
-// Half the logical cores keeps the page and GPU process off the workers' cores.
+// Four workers used the least CPU for 16 dense terminals on both an M1 and a 28-thread desktop;
+// half the logical cores leaves smaller machines room for the page and GPU process.
 function defaultPoolWorkers(): number {
   const cores = globalThis.navigator?.hardwareConcurrency ?? 4
-  return Math.max(1, Math.min(8, Math.floor(cores / 2)))
+  return Math.max(1, Math.min(4, Math.floor(cores / 2)))
 }
 
 /** One worker per terminal, the entry's behavior without a pool. */
