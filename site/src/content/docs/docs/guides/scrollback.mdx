@@ -1,6 +1,6 @@
 ---
 title: Scrollback and reading history
-description: Read retained rows without changing the viewport or selection.
+description: Configure row and byte scrollback limits and read retained lines from libghostty-vt without disturbing the viewport.
 sidebar:
   order: 7
 ---
@@ -9,36 +9,42 @@ import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/history.ts?raw'
 import retention from '../../../../examples/retention.ts?raw'
 
-You will read the last 100 retained rows as text. Start with a live main-thread terminal.
+`ghostty-webgpu` exposes Ghostty's native scrollback directly through `lineCount()` and `readLines()`, leaving scroll position and active selection untouched.
 
-## 1. Read rows
+## 1. Read retained lines
 
 <Code code={sample} lang='ts' title='history.ts' />
 
-`lineCount` includes retained history and visible rows, including empty visible rows. `readLines(start, end)` reads a half-open interval. Each row has `text` and `wrapped`. `wrapped` means that row soft-wraps into the next row.
+- `lineCount()` returns total retained history rows plus visible rows on the active screen (including blank visible rows).
+- `readLines(start, end, options)` reads the clamped, oldest-first half-open interval `[start, end)`.
+- Each returned `TerminalLine` contains `{ text, wrapped }`. `wrapped: true` indicates the row soft-wrapped into the next physical row (so you can rejoin wrapped lines when exporting logs). `trimRight` defaults to `true`.
 
-## 2. Choose retention
+A single `readLines()` call returns at most `TERMINAL_READ_LINES_MAX_ROWS` (1,024 rows). For larger exports, paginate by advancing `start` by the count returned. Because incoming writes, page eviction, or resize reflow can shift row indices between calls, pause your producer when taking a consistent multi-page dump.
 
-`appearance.scrollbackLimit` budgets physical history rows, excluding the active screen. Ghostty prunes whole pages and permits at least one standard page of rows. Small values, including `scrollbackLimit: 0`, can therefore retain history. Pages that overlap the active screen stay whole, and page capacity depends on terminal width, styles and graphemes.
-
-`appearance.scrollbackByteLimit` budgets logical page allocations, including the active area. A positive value is raised to Ghostty's minimum allocation for the active area plus one extra page. `scrollbackByteLimit: 0` erases retained history and disables further scrollback. Both budgets apply independently; the first reached triggers pruning. Read `lineCount` for the current history plus active rows.
+## 2. Configure retention budgets
 
 <Code code={retention} lang='ts' title='retention.ts' />
 
-A single `readLines` call returns at most 1,024 rows. Paginate larger reads by advancing by the number returned. Writes, eviction and reflow between calls can shift row indices. Use a paused producer when you need a stable export.
+Ghostty allocates terminal history in pages whose row capacity depends on terminal width, styles, and grapheme data. Two independent limits control pruning:
 
-## 3. Read the active screen
+- `appearance.scrollbackLimit`: caps physical history rows above the active screen. Because Ghostty prunes whole pages and keeps at least one standard page intact, small values (including `0`) can still retain rows that share a page with the active area.
+- `appearance.scrollbackByteLimit`: caps logical page memory across both scrollback and the active screen. Any positive value is raised to Ghostty's minimum allocation (active area plus one extra page). Setting `scrollbackByteLimit: 0` immediately discards retained history and disables future scrollback.
 
-History reads use current emulator state, even before the terminal paints. While the alternate screen is active, reads cover that screen. Return to the primary screen to read its retained history. `visibleLines` reads the last submitted viewport frame.
+When both budgets are set, whichever limit is reached first triggers page eviction.
 
-## If it doesn't work
+## 3. Live state vs. displayed viewport
 
-### A read returns fewer rows than requested
+- `readLines()` reads live `libghostty-vt` state immediately after `write()`, even before the next animation frame paints. While the alternate screen (for example `vim` or `htop`) is active, `readLines()` reads the alternate screen; exiting returns to primary history.
+- `visibleLines()` reads the last frame submitted to the renderer, matching what is currently painted on screen.
 
-Check the per-call cap, current count and active screen. Bounds clamp to the retained range.
+## Troubleshooting
 
-### A reload shows the old frame but the shell state is empty
+### `readLines()` returns fewer rows than requested
 
-A captured viewport restores paint. Restore the emulator through replay or a server session protocol. The [saved viewport guide](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/saved-viewport.md) describes the visual checkpoint.
+Check the 1,024-row per-call cap, `lineCount()`, and whether the terminal is currently on the alternate screen. Out-of-bounds intervals clamp silently to `[0, lineCount())`.
 
-Next, read [how damage tracking works](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/).
+### Restoring a saved viewport after reload does not restore shell history
+
+`captureViewport()` encodes a compact visual checkpoint (`paintTerminalViewport`) for instant first paint, not live emulator history. Restore emulator state by replaying retained PTY bytes or reconnecting to a persistent server session. See [docs/saved-viewport.md](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/saved-viewport.md).
+
+Next: [Damage tracking](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/).

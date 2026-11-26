@@ -6,12 +6,13 @@
 :root {
   --ground: #07060d;
   --surface: #16151c;
-  --line: #2f2e34;
+  --line: #36353c;
   --text: #ffffff;
-  --muted: #8f8f92;
+  --muted: #9b9b9f;
   --accent: #ffc65e;
   --accentText: #07060d;
   --second: #ff47a8;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* The scene is a night picture in either mode, so both modes take its colours. */
@@ -24,16 +25,16 @@
   --sl-color-accent: var(--accent);
   --sl-color-accent-high: color-mix(in oklab, var(--accent) 55%, var(--text));
   --sl-color-white: var(--text);
-  --sl-color-gray-1: color-mix(in oklab, var(--text) 90%, var(--ground));
-  --sl-color-gray-2: color-mix(in oklab, var(--text) 75%, var(--ground));
+  --sl-color-gray-1: color-mix(in oklab, var(--text) 92%, var(--ground));
+  --sl-color-gray-2: color-mix(in oklab, var(--text) 78%, var(--ground));
   --sl-color-gray-3: var(--muted);
-  --sl-color-gray-4: color-mix(in oklab, var(--muted) 60%, var(--ground));
+  --sl-color-gray-4: color-mix(in oklab, var(--muted) 68%, var(--ground));
   --sl-color-gray-5: var(--line);
   --sl-color-gray-6: var(--surface);
   --sl-color-gray-7: var(--surface);
   --sl-color-black: var(--ground);
   --sl-color-bg: var(--ground);
-  --sl-color-bg-nav: color-mix(in oklab, var(--ground) 90%, transparent);
+  --sl-color-bg-nav: color-mix(in oklab, var(--ground) 92%, transparent);
   --sl-color-bg-sidebar: var(--ground);
   --sl-color-bg-inline-code: var(--surface);
   --sl-color-hairline: var(--line);
@@ -42,14 +43,19 @@
   --sl-color-text: var(--text);
   --sl-color-text-accent: var(--accent);
   --sl-color-text-invert: var(--accentText);
-  --sl-text-h1: clamp(1.6rem, 3vw, 2.1rem);
+  --sl-text-h1: clamp(1.55rem, 3vw, 2.05rem);
   --sl-content-width: 48rem;
-  --sl-text-body: 0.95rem;
-  --sl-line-height: 1.7;
+  --sl-text-body: 0.94rem;
+  --sl-line-height: 1.72;
 }
 
 body {
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+}
+
+header.header {
+  border-bottom: 1px dashed var(--line);
 }
 
 /* Header: the wordmark as text, links in brackets. */
@@ -70,10 +76,27 @@ site-search button[data-open-modal] {
   border: 1px dashed var(--line);
   border-radius: 0;
   background: transparent;
+  transition:
+    border-color 150ms var(--ease-out),
+    color 150ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  site-search button[data-open-modal]:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
 }
 
 .social-icons a {
   color: var(--muted);
+  transition: color 150ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .social-icons a:hover {
+    color: var(--accent);
+  }
 }
 
 /* Sidebar: a file tree. */
@@ -101,6 +124,7 @@ site-search button[data-open-modal] {
   border-radius: 0;
   color: var(--muted);
   padding-inline-start: 0.4rem;
+  transition: color 140ms var(--ease-out);
 }
 
 .sidebar-content ul ul a::before {
@@ -112,9 +136,11 @@ site-search button[data-open-modal] {
   content: '└─ ';
 }
 
-.sidebar-content a:hover {
-  background: transparent;
-  color: var(--text);
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-content a:hover {
+    background: transparent;
+    color: var(--text);
+  }
 }
 
 .sidebar-content a[aria-current='page'] {
@@ -132,21 +158,23 @@ site-search button[data-open-modal] {
 .sl-markdown-content h1,
 .content-panel h1 {
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--text);
 }
 
 /* Starlight sizes the heading's anchor icon from its wrapper, so the wrapper carries the heading's size. */
 .sl-markdown-content .sl-heading-wrapper.level-h2 {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
+  margin-top: 2.25rem;
 }
 
 .sl-markdown-content .sl-heading-wrapper.level-h3 {
-  font-size: 1rem;
+  font-size: 0.98rem;
+  margin-top: 1.6rem;
 }
 
 .sl-markdown-content h2 {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 600;
   color: var(--accent);
 }
@@ -157,7 +185,7 @@ site-search button[data-open-modal] {
 }
 
 .sl-markdown-content h3 {
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -177,17 +205,21 @@ site-search button[data-open-modal] {
   overflow: hidden;
   white-space: nowrap;
   color: var(--line);
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .sl-markdown-content a {
   color: var(--accent);
   text-decoration: none;
+  transition: color 140ms var(--ease-out);
 }
 
-.sl-markdown-content a:hover {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+@media (hover: hover) and (pointer: fine) {
+  .sl-markdown-content a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.24em;
+    text-decoration-thickness: 1px;
+  }
 }
 
 .sl-markdown-content hr {
@@ -210,39 +242,68 @@ site-search button[data-open-modal] {
 }
 
 .sl-markdown-content :not(pre) > code {
-  border: 0;
+  border: 1px solid color-mix(in oklab, var(--line) 75%, transparent);
   border-radius: 0;
+  padding: 0.1em 0.35em;
   background: var(--surface);
   color: var(--text);
+  font-size: 0.88em;
 }
 
-/* Tables: dashed rules, like ascii.rest's grids. */
+/* Tables: dashed rules, like ascii.rest's grids. Keep Starlight's horizontal scroll on narrow screens. */
 .sl-markdown-content table {
   border-collapse: collapse;
+  font-size: 0.88rem;
 }
 
 .sl-markdown-content :is(th, td) {
   border: 0;
   border-bottom: 1px dashed var(--line);
   background: transparent;
+  padding: 0.6rem 0.75rem;
+  vertical-align: top;
+}
+
+.sl-markdown-content td code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .sl-markdown-content table {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    font-size: 0.82rem;
+  }
+
+  .sl-markdown-content :is(th, td) {
+    padding: 0.5rem 0.45rem;
+    overflow-wrap: break-word;
+  }
 }
 
 .sl-markdown-content th {
   color: var(--muted);
   font-weight: 600;
+  text-align: left;
 }
 
 /* Asides: titled boxes. */
 .starlight-aside {
-  border: 1px solid var(--line);
-  border-inline-start: 1px solid var(--line);
+  border: 1px dashed var(--line);
+  border-inline-start: 2px solid var(--accent);
   border-radius: 0;
-  background: transparent;
+  background: var(--surface);
 }
 
 .starlight-aside__title {
   color: var(--accent);
   font-weight: 600;
+}
+
+.starlight-aside--caution,
+.starlight-aside--danger {
+  border-inline-start-color: var(--second);
 }
 
 .starlight-aside--caution .starlight-aside__title,
@@ -253,6 +314,13 @@ site-search button[data-open-modal] {
 /* Contents list and pagination. */
 starlight-toc a {
   color: var(--muted);
+  transition: color 140ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  starlight-toc a:hover {
+    color: var(--text);
+  }
 }
 
 /* Starlight marks the current link from script; until it runs, mark Overview as it would at the top. */
@@ -271,15 +339,26 @@ starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
   border-radius: 0;
   box-shadow: none;
   background: transparent;
+  transition:
+    border-color 150ms var(--ease-out),
+    background-color 150ms var(--ease-out),
+    transform 140ms var(--ease-out);
 }
 
-.pagination-links a:hover {
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .pagination-links a:hover {
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+}
+
+.pagination-links a:active {
+  transform: scale(0.985);
 }
 
 .pagination-links .link-title {
   color: var(--accent);
-  font-size: 1rem;
+  font-size: 0.96rem;
 }
 
 .pagination-links .link-title::before {
@@ -295,4 +374,19 @@ starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
 :focus-visible {
   outline: 1px solid var(--accent);
   outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  site-search button[data-open-modal],
+  .social-icons a,
+  .sidebar-content ul ul a,
+  .sl-markdown-content a,
+  starlight-toc a,
+  .pagination-links a {
+    transition: none;
+  }
+
+  .pagination-links a:active {
+    transform: none;
+  }
 }

@@ -51,7 +51,7 @@ export const docsIndex: readonly { readonly title: string; readonly links: reado
     },
   ]
 
-const plan = (file: string) => `https://github.com/ShaulLavo/fregat/blob/main/plans/${file}.md`
+const repo = (path: string) => `https://github.com/ShaulLavo/ghostty-webgpu/blob/main/${path}`
 
 export const roadmap: readonly {
   readonly state: 'done' | 'progress'
@@ -59,28 +59,28 @@ export const roadmap: readonly {
   readonly plan: string
 }[] = [
   {
-    state: 'progress',
-    text: 'WebGL line scroll and Unicode cost, the two WebGL losses above.',
-    plan: plan('283-ghostty-output-and-input-latency'),
-  },
-  {
-    state: 'progress',
-    text: 'DOM typing-like edit cost.',
-    plan: plan('283-ghostty-output-and-input-latency'),
-  },
-  {
-    state: 'progress',
-    text: 'Worker mode: the whole terminal on an OffscreenCanvas, with every renderer.',
-    plan: plan('287-ghostty-worker-mode'),
-  },
-  {
-    state: 'progress',
-    text: 'Extensions: the addons xterm.js users expect, on a public API, starting with a line editor.',
-    plan: plan('286-ghostty-extensions'),
+    state: 'done',
+    text: 'Canvas-first startup: paint the first frame on Canvas 2D while WebGPU or WebGL2 warms up, then swap in place.',
+    plan: repo('docs/concepts.md'),
   },
   {
     state: 'done',
-    text: "First frame rendered into the page's HTML, with the live renderer taking over in place.",
-    plan: plan('285-ghostty-site-first-frame-and-real-shell'),
+    text: 'Worker execution and TerminalWorkerPool: run libghostty-vt, Zig frame building, and GPU rendering on OffscreenCanvas.',
+    plan: repo('docs/concepts.md'),
+  },
+  {
+    state: 'done',
+    text: 'DEC mode 2026 synchronized output, opt-in GSUB ligatures, lazy BiDi, and public extensions including @ghostty-webgpu/line-editor.',
+    plan: repo('docs/api.md'),
+  },
+  {
+    state: 'progress',
+    text: 'Single-pass colour-glyph detection to cut glyph-churn rasterization cost on CJK and emoji bursts.',
+    plan: repo('docs/benchmarks.md'),
+  },
+  {
+    state: 'progress',
+    text: 'Retained-buffer search, Sixel and Kitty image protocols, and a full screen-reader audit.',
+    plan: repo('docs/status.md'),
   },
 ]

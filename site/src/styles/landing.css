@@ -6,6 +6,7 @@
   --gutter: clamp(16px, 4vw, 40px);
   /* As padding: the hero copy starts on the column's left edge, however wide the scene is. */
   --inset: max(var(--gutter), (100% - var(--measure)) / 2 + var(--gutter));
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 * {
@@ -17,18 +18,23 @@ body {
   margin: 0;
   background: var(--ground);
   color: var(--text);
-  font: 15px/1.6 var(--font);
+  font: 15px/1.65 var(--font);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: var(--accent);
   text-decoration: none;
+  transition: color 150ms var(--ease-out);
 }
 
-a:hover {
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.24em;
+    text-decoration-thickness: 1px;
+  }
 }
 
 :focus-visible {
@@ -43,6 +49,24 @@ button {
   border: 0;
   padding: 0;
   cursor: pointer;
+  transition:
+    color 150ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a,
+  button {
+    transition: none;
+  }
+
+  button:active {
+    transform: none;
+  }
 }
 
 code {
@@ -75,7 +99,7 @@ code {
   font-size: min(14px, calc(100cqi / var(--cols) / 0.62));
   line-height: 1.2;
   white-space: pre;
-  color: #f0f6fc;
+  color: var(--text);
 }
 
 .ascii.inline {
@@ -106,6 +130,7 @@ code {
 
 .scene {
   position: relative;
+  isolation: isolate;
   width: 100%;
   /* Every scene is 200 by 100 square cells; the terminal settles the exact height once its font is measured. */
   aspect-ratio: 2 / 1;
@@ -118,20 +143,22 @@ code {
 .scene-first {
   position: absolute;
   inset: 0;
+  z-index: 2;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .hero-copy {
   position: absolute;
   inset: auto 0 0 0;
-  padding: var(--gutter) var(--inset);
+  padding: var(--gutter) var(--inset) clamp(20px, 3vw, 32px);
   /* The scene is busy behind the wordmark: fade it nearly to the ground before the letters start. */
-  padding-top: clamp(60px, 10vw, 160px);
+  padding-top: clamp(64px, 10vw, 160px);
   background: linear-gradient(
     transparent,
-    color-mix(in srgb, var(--ground) 80%, transparent) 30%,
-    color-mix(in srgb, var(--ground) 94%, transparent) 55%,
+    color-mix(in srgb, var(--ground) 78%, transparent) 30%,
+    color-mix(in srgb, var(--ground) 95%, transparent) 58%,
     var(--ground)
   );
   /* The faded strip above the tagline passes the mouse to the scene; the tagline is text to select. */
@@ -141,6 +168,9 @@ code {
 .lede {
   /* Hugs its lines, so the blank space beside a wrapped tagline still reaches the scene. */
   width: fit-content;
+  margin: 16px 0 0;
+  max-width: 62ch;
+  color: var(--text);
   pointer-events: auto;
 }
 
@@ -149,7 +179,7 @@ code {
   max-width: min(100%, 900px);
 }
 
-/* The banner's first frame in its canvas colours and cells: the letters' fade across the columns over its grey shadow. */
+/* The banner's first frame in its canvas colours and cells: the letters' fade across the columns over its shadow. */
 .wordmark {
   container-type: inline-size;
   /* The banner is 145 columns of 0.61em: fit it to the hero's text width. */
@@ -179,23 +209,18 @@ code {
 }
 
 .wordmark .shadow {
-  color: #9198a1;
-}
-
-.lede {
-  margin: 14px 0 0;
-  max-width: 60ch;
-  color: var(--text);
+  color: var(--muted);
 }
 
 .bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 18px;
+  gap: 8px 20px;
   align-items: baseline;
   max-width: var(--measure);
   margin: 0 auto;
-  padding: 16px var(--gutter);
+  padding: 16px var(--gutter) 18px;
+  border-bottom: 1px dashed var(--line);
 }
 
 .bar .version {
@@ -205,6 +230,7 @@ code {
 .credit {
   margin-left: auto;
   color: var(--muted);
+  font-size: 13px;
 }
 
 /* The scene's name arrives with its colours, before the first paint, so the line never shifts. */
@@ -219,9 +245,13 @@ footer {
   padding: 0 var(--gutter);
 }
 
+main {
+  padding-top: 28px;
+}
+
 hr {
   border: 0;
-  margin: 40px 0;
+  margin: 48px 0;
   height: 1.2em;
   overflow: hidden;
   color: var(--line);
@@ -239,19 +269,39 @@ hr::before {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 14px;
-  align-items: baseline;
-  margin-top: 8px;
-  font-size: 17px;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  font-size: 16px;
 }
 
 .install .prompt {
   color: var(--accent);
+  user-select: none;
+}
+
+.install code {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .install code::after {
   content: '█';
+  margin-left: 2px;
   color: var(--accent);
   animation: blink 1.1s steps(1) infinite;
+}
+
+#copy-install {
+  margin-left: auto;
+  font-size: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #copy-install:hover {
+    color: var(--text);
+  }
 }
 
 @keyframes blink {
@@ -266,23 +316,32 @@ hr::before {
   }
 }
 
-/* Cards stop growing at 14px text; spread them so the outer two meet the column's edges. */
+/* Cards stop growing at 14px text; spread them so the outer two meet both edges of the measure. */
 .facts {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
 }
 
 .facts article {
   flex: 0 1 300px;
-  min-width: 250px;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
 }
 
 .panel h2 {
-  margin: 0 0 14px;
+  margin: 0 0 18px;
   font-size: 15px;
   font-weight: 600;
+  letter-spacing: 0.01em;
   color: var(--accent);
 }
 
@@ -297,7 +356,50 @@ hr::before {
 }
 
 .panel p {
+  margin: 0 0 14px;
   max-width: 72ch;
+}
+
+.panel p:last-child {
+  margin-bottom: 0;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin: 18px 0 22px;
+  padding: 14px 0;
+  border-top: 1px dashed var(--line);
+  border-bottom: 1px dashed var(--line);
+}
+
+.summary-strip div {
+  min-width: 0;
+}
+
+.summary-strip dt {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.summary-strip dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.summary-strip strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .summary-strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
 }
 
 /* Prose and its figure side by side on a wide column; each half sizes its own art. */
@@ -316,14 +418,15 @@ hr::before {
 
   .split .scores,
   .bench > pre {
-    margin-top: 1em;
+    margin-top: 0.25em;
   }
 }
 
 .links {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
+  gap: 8px 20px;
+  margin-top: 18px;
 }
 
 .muted,
@@ -332,15 +435,26 @@ hr::before {
   color: var(--muted);
 }
 
+.status {
+  color: var(--text);
+}
+
 .choices {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
-  margin: 18px 0 10px;
+  gap: 6px 20px;
+  margin: 18px 0 14px;
 }
 
 .choices button {
   color: var(--muted);
+  padding: 2px 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .choices button:hover {
+    color: var(--text);
+  }
 }
 
 .choices button::before {
@@ -362,29 +476,39 @@ hr::before {
   margin: 18px 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .map {
   display: grid;
-  gap: 6px;
+  gap: 0;
   margin: 18px 0 0;
+  border-bottom: 1px dashed var(--line);
 }
 
 .map > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: 18px;
-  padding: 6px 0;
+  padding: 10px 6px;
   border-top: 1px dashed var(--line);
+  transition: background-color 140ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .map > div:hover {
+    background: var(--surface);
+  }
 }
 
 .map dt {
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .map dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .map dd::before {
@@ -394,8 +518,8 @@ hr::before {
 
 .tree {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 24px 20px;
 }
 
 .tree .branch {
@@ -405,8 +529,10 @@ hr::before {
 
 .tree ul {
   list-style: none;
-  margin: 4px 0 0;
+  margin: 6px 0 0;
   padding: 0;
+  display: grid;
+  gap: 4px;
 }
 
 .tree li::before {
@@ -423,13 +549,13 @@ hr::before {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .roadmap li {
   display: grid;
   grid-template-columns: 7ch 1fr;
-  gap: 12px;
+  gap: 14px;
   align-items: baseline;
 }
 
@@ -437,15 +563,31 @@ hr::before {
   color: var(--text);
 }
 
+@media (hover: hover) and (pointer: fine) {
+  .roadmap a:hover {
+    color: var(--accent);
+  }
+}
+
 .done {
   color: var(--accent);
 }
 
 footer {
-  margin-top: 56px;
-  padding-bottom: 40px;
+  margin-top: 64px;
+  padding-top: 24px;
+  padding-bottom: 44px;
+  border-top: 1px dashed var(--line);
   color: var(--muted);
   font-size: 13px;
+}
+
+footer p {
+  margin: 0 0 10px;
+}
+
+footer p:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 700px) {
@@ -456,25 +598,41 @@ footer {
 
   .hero-copy {
     position: static;
-    padding: 14px 16px 0;
+    padding: 16px var(--gutter) 4px;
     background: none;
+  }
+
+  .bar {
+    gap: 10px 16px;
+    padding: 14px var(--gutter);
   }
 
   .credit {
     margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  .install {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  #copy-install {
+    margin-left: 0;
+  }
+
+  hr {
+    margin: 36px 0;
   }
 
   .map > div {
     grid-template-columns: 1fr;
-    gap: 2px;
+    gap: 4px;
+    padding: 10px 0;
   }
 
   .facts {
-    gap: 8px;
-  }
-
-  .facts article {
-    flex-basis: 100%;
+    gap: 10px;
   }
 
   /* Stacked on a phone, three body-size cards fill the screen; a smaller face keeps them a glance. */

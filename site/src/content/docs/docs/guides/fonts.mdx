@@ -1,6 +1,6 @@
 ---
 title: Load fonts and fit the grid
-description: Load a font before mounting and understand native cell widths.
+description: Preload web fonts before opening, understand device-pixel cell rounding, and configure ligatures and Unicode widths.
 sidebar:
   order: 4
 ---
@@ -8,32 +8,39 @@ sidebar:
 import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/fonts.ts?raw'
 
-You will size the grid using your chosen font. Start with a font URL your page is allowed to fetch and a sized host.
+`ghostty-webgpu` derives a single integer device-pixel cell grid from your font metrics and uses it across layout, pointer projection, selection, and every renderer so columns never drift across high-DPI or fractional pixel ratios.
 
-## 1. Load before opening
+## 1. Load web fonts before calling `open()`
 
 <Code code={sample} lang='ts' title='fonts.ts' />
 
-The example registers a `FontFace`, waits for it to load, then creates the terminal with that family. CSS `@font-face` works too; await `document.fonts.load` before opening. [Worker terminals](https://ghostty.shaulavo.dev/docs/guides/workers/) load their own faces.
+Wait for your `FontFace` (or `document.fonts.load(...)` for CSS `@font-face` rules) before `Terminal.create()` and `open()`. When the face is already loaded, `open()` fits the container synchronously on the very first frame with no fallback-font flash. If a font finishes loading later, the built-in `document.fonts` observer re-measures the grid and clears the glyph atlas automatically.
 
-## 2. Change appearance
+For worker terminals, supply faces through the `fonts` creation option instead of `document.fonts`. See [Run in a worker](https://ghostty.shaulavo.dev/docs/guides/workers/).
 
-Call `setFont` with a partial font object to change `family`, `size`, `lineHeight`, `weight`, `boldWeight` or `letterSpacing`. `lineHeight` multiplies the measured font box and must be at least 0.5. Values below 1 centre the font in a shorter cell and clip glyphs to their cell spans. Fitted device cell heights and baselines must remain positive integers. Font size describes the em size; the measured row can be taller.
+## 2. Font geometry and live updates
 
-The fitter measures the font in CSS pixels, rounds its device-pixel geometry, then fits the host. Let the terminal perform this calculation so the session and renderer agree.
+Call `terminal.setFont(partial)` to change `family`, `size`, `lineHeight`, `letterSpacing`, `weight`, or `boldWeight` at runtime.
 
-## 3. Check emoji and CJK
+- `size` is the CSS em size in pixels. Measured row height includes ascent and descent, so a 14 px font at `lineHeight: 1.2` produces a taller cell than 14 px.
+- `lineHeight` multiplies the natural font box and must be at least `0.5`. Values below `1` center glyphs inside a shorter cell and clip them to their cell span.
+- `letterSpacing` adjusts horizontal advance in CSS pixels; negative values are allowed as long as the fitted device cell width stays positive.
+- Every cell width and height rounds to whole device pixels (`cssCellWidth * pixelRatio` is an exact integer) so adjacent rows and box-drawing glyphs align without subpixel seams. See the [font geometry specification](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/font-geometry.md) for the exact formulas.
 
-libghostty-vt determines cell widths. The browser's fallback fonts determine glyph appearance. Applications enable grapheme clustering with mode 2027. With that mode enabled, a ZWJ sequence such as 👩‍💻 occupies two cells. With it off, native default widths apply. The renderers use the same native cell ownership.
+## 3. Unicode widths, emoji, and ligatures
 
-## If it doesn't work
+- **Cell widths:** `libghostty-vt` decides whether a code point occupies 1 or 2 cells; browser font fallback only draws the pixels inside that span. When an application enables DEC mode 2027 (grapheme clustering), ZWJ sequences such as `👩‍💻` occupy 2 cells and stay intact across byte-by-byte writes.
+- **Ligatures:** Off by default. Enable programming ligatures by passing `ligatures` in `Terminal.create()`. The renderer reads the font's `GSUB` table to split and shape joined runs without changing underlying cell ownership.
+- **BiDi:** Off by default. Pass `bidi: true` to lazy-load Unicode 13.0 bidirectional row reordering (`bidi-js`) for right-to-left scripts.
 
-### The first frame uses a different font
+## Troubleshooting
 
-Wait for the face before opening, and use the exact registered family. Check CORS and network responses for the font URL.
+### The terminal briefly renders in the wrong font
 
-### Rows are taller than the font size
+Wait for `document.fonts.load('400 14px "Your Font"')` before `open()`, match the exact family string in `appearance.font.family`, and verify the font response includes CORS headers when served from another origin.
 
-Font box metrics include ascent and descent. Check `lineHeight` and the actual loaded face. The repository's [font geometry note](https://github.com/ShaulLavo/fregat/blob/main/packages/ghostty-webgpu/docs/font-geometry.md) explains the rounding formulas.
+### Rows look taller than expected
 
-Next, [apply a theme](https://ghostty.shaulavo.dev/docs/guides/themes/).
+Inspect `terminal.appearance.grid.cellHeight` and check both `lineHeight` and the font's intrinsic ascent/descent metrics.
+
+Next: [Themes and Ghostty config](https://ghostty.shaulavo.dev/docs/guides/themes/).

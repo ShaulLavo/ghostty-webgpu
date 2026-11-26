@@ -1,32 +1,33 @@
 ---
 title: Coming from ghostty-web
-description: Move initialization, input, fonts and fitting to the native API.
+description: Move from ghostty-web's xterm-style wrapper to ghostty-webgpu's native API and GPU renderers.
 ---
 
-ghostty-webgpu has its own native API. Start with [a working terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/) and move the transport before changing appearance.
+Both libraries compile Ghostty's `libghostty-vt` to WebAssembly, but `ghostty-webgpu` uses its own native API rather than an xterm.js compatibility wrapper and adds Zig frame building, WebGPU/WebGL2/Canvas/DOM renderers, and worker execution.
 
-## Map the integration
+## Key differences
 
-| ghostty-web                                       | ghostty-webgpu                                        |
-| ------------------------------------------------- | ----------------------------------------------------- |
-| Separate initialization and terminal construction | Await `Terminal.create`, then await `open`            |
-| String input callbacks                            | `onData` emits `{ bytes, origin }`                    |
-| Canvas renderer                                   | Automatic WebGPU, WebGL2, Canvas 2D and DOM selection |
-| Fit addon                                         | Fit to the sized host automatically                   |
-| Font size and family options                      | `appearance.font`, then `setFont`                     |
-| Theme colors                                      | `TerminalTheme` RGB objects and a 256-entry palette   |
-| Main-thread terminal                              | Main entry or dedicated `/worker` entry               |
+| ghostty-web 0.4.0                              | ghostty-webgpu                                                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Separate `init()` followed by `new Terminal()` | `await Terminal.create(options)`, then `await terminal.open(host)`                                    |
+| String callbacks in `onData`                   | `onData(({ bytes, origin }) => ...)` delivers raw `Uint8Array` bytes                                  |
+| Single Canvas 2D renderer                      | Canvas-first startup handing off to WebGPU or WebGL2, with Canvas 2D and DOM fallbacks                |
+| External fit addon                             | Automatic synchronous fit during `open()` plus `ResizeObserver` tracking                              |
+| Flat font and theme options                    | Structured `appearance.font`, `appearance.theme` (RGB objects + 256-entry palette), `setAppearance()` |
+| Main-thread execution only                     | Main entry (`ghostty-webgpu`) and worker entry (`ghostty-webgpu/worker`) with `TerminalWorkerPool`    |
 
-These mappings describe ghostty-web 0.4.0 and the current ghostty-webgpu checkout. Check the [xterm.js mapping](https://ghostty.shaulavo.dev/docs/start/xterm/) for more API names; the native API takes a different shape from the xterm-style facade.
+Check [Coming from xterm.js](https://ghostty.shaulavo.dev/docs/start/xterm/) for a full method-by-method table.
 
-## Keep input as bytes
+## Keep I/O as bytes
 
-Send each `onData` event's `bytes` directly to your PTY. Set the socket to `arraybuffer` and pass binary output into `write`. The [PTY client](https://ghostty.shaulavo.dev/docs/guides/pty/) includes resize and disposal.
+Avoid decoding terminal output to JavaScript strings on the hot path. Set `socket.binaryType = 'arraybuffer'`, pass `new Uint8Array(event.data)` to `terminal.write()`, and send `event.bytes` from `terminal.onData` directly back to the PTY. `libghostty-vt` handles UTF-8 sequences split across chunks natively. See [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/) for the complete client.
 
-## Load fonts before fitting
+## Load fonts before opening
 
-Use [browser font loading](https://ghostty.shaulavo.dev/docs/guides/fonts/) for the main entry. Supply font URLs or bytes to [the worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/) so its own font set can measure and render them.
+For the main entry, load faces into `document.fonts` before calling `open()` ([Load fonts and fit the grid](https://ghostty.shaulavo.dev/docs/guides/fonts/)). For `ghostty-webgpu/worker`, pass font URLs or raw `Uint8Array` bytes in the `fonts` option because workers do not share the page's `document.fonts` set.
 
-## Check your feature needs
+## Tradeoffs to check
 
-URL detection, OSC 8 links and native widths are available. Search and images remain planned; ligatures are an opt-in `ligatures` option. Worker link providers and finite synchronous hotkeys have capability limits. Compare current versions and renderer classes through the [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/).
+- **Bundle size and cold load:** `ghostty-web` 0.4.0 downloads 146.1 KiB brotli (41 ms PC / 61 ms Mac unthrottled cold paint). `ghostty-webgpu` downloads 269.2 KiB brotli (80 ms PC / 101 ms Mac) because it ships the unpatched upstream `libghostty-vt` build, `bridge.wasm`, and the Canvas compositor alongside the GPU renderers.
+- **CPU under load and correctness:** In the November 2026 benchmarks, `ghostty-webgpu` uses a fraction of `ghostty-web`'s CPU on dense output and 16-terminal workloads and survives the unpaced 1 MiB write-queue overload and Unicode burst cases where `ghostty-web` 0.4.0 crashes. See [Benchmarks](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) and [correctness](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/correctness.md).
+- **Features:** DEC mode 2026 synchronized output, mode 2027 grapheme clustering, opt-in GSUB ligatures, lazy BiDi, OSC 8 links, and host-side link providers are shipped. Retained-buffer search and Sixel/Kitty images are not built yet.

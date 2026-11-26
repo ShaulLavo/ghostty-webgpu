@@ -89,18 +89,18 @@ export function sceneTheme(
   const ranked = Array.from(colors.keys())
     .sort((a, b) => presence(b) - presence(a))
     .map((index) => colors[index]!)
-  const accent = readable(ranked[0]!, ground, 6)
+  const accent = readable(ranked[0]!, ground, 6.2)
   const second = readable(
     ranked.find((color) => hueDistance(color, accent) > 50) ?? ranked[1] ?? accent,
     ground,
-    5,
+    5.5,
   )
   return {
     ground: format(ground),
-    surface: format(mix(ground, text, 0.06)),
-    line: format(mix(ground, text, 0.16)),
+    surface: format(mix(ground, text, 0.065)),
+    line: format(mix(ground, text, 0.2)),
     text: format(text),
-    muted: format(readable(mix(text, ground, 0.45), ground, 4.5)),
+    muted: format(readable(mix(text, ground, 0.42), ground, 5.5)),
     accent: format(accent),
     accentText: format(ground),
     second: format(second),

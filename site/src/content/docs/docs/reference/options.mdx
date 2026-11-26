@@ -1,42 +1,61 @@
 ---
 title: Terminal options
-description: Find the main and worker creation options.
+description: Configuration reference for Terminal.create() on the main entry and ghostty-webgpu/worker.
 ---
 
-Create a terminal with `Terminal.create(options)`. The main entry takes `GhosttyWebGpuTerminalOptions`; `/worker` takes `WorkerTerminalOptions`. The generated API below this page is built from the current declarations.
+Pass options to `Terminal.create(options)`. The main entry (`ghostty-webgpu`) accepts `GhosttyWebGpuTerminalOptions`; `ghostty-webgpu/worker` accepts `WorkerTerminalOptions`. The generated TypeDoc pages in the sidebar list every nested property and method signature directly from the compiled `.d.ts` declarations.
 
-## Main entry
+## Main entry options
 
-| Option                | Purpose                                                                | When omitted                    |
-| --------------------- | ---------------------------------------------------------------------- | ------------------------------- |
-| `appearance`          | Font, theme, cursor, grid and history budgets                          | Native appearance defaults      |
-| `rendererMode`        | `auto`, `webgpu`, `webgl2`, `canvas2d-fill-text`, or `canvas2d-pixels` | Automatic fallback selection    |
-| `renderWhenOffscreen` | Paint outside the viewport and clipping ancestors                      | `false`                         |
-| `rendererFactory`     | Host-owned renderer construction                                       | Built-in selection              |
-| `keyboard`            | Enable keyboard input                                                  | Enabled                         |
-| `accessibility`       | Text mirror and live-region options, or `false`                        | Off                             |
-| `clipboardWrite`      | Policy for OSC 52 writes                                               | Denied                          |
-| `extensions`          | Native extension registrations                                         | Empty                           |
-| `links`               | Link resolution policy                                                 | Built-in URL and OSC 8 handling |
-| `padding`             | Insets around the terminal grid                                        | Host defaults                   |
-| `scrollbar`           | Scrollbar presentation                                                 | Host defaults                   |
-| `runtime`             | Reuse a session runtime                                                | Create the terminal runtime     |
+| Option                   | Purpose                                                                                                            | Default                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| `appearance`             | Font, theme, cursor, `backgroundOpacity`, `colorScheme`, grid, and scrollback budgets                              | Native Ghostty defaults             |
+| `rendererMode`           | `'auto'`, `'webgpu'`, `'webgl2'`, `'canvas2d-fill-text'`, or `'canvas2d-pixels'`                                   | `'auto'` (Canvas-first GPU startup) |
+| `presentation`           | `'frame'` (rAF-scheduled, Canvas-first GPU startup) or `'immediate'` (low-latency desynchronized)                  | `'frame'`                           |
+| `rendererFactory`        | Custom renderer constructor bypassing built-in backend selection                                                   | Built-in selector                   |
+| `compositorAsset`        | Explicit URL for the `canvas-compose.wasm` pixel compositor                                                        | Package-relative asset              |
+| `runtime`                | Owned WASM asset URLs (`{ kind: 'owned', options: { wasm, bridge } }`) or a shared `{ kind: 'borrowed', runtime }` | Creates an owned `GhosttyRuntime`   |
+| `renderWhenOffscreen`    | Keep painting while clipped or scrolled outside the viewport                                                       | `false`                             |
+| `accessibility`          | Screen-reader text mirror and live-region config (`{}` to enable) or `false`                                       | Disabled                            |
+| `keyboard`               | Set `false` to disable built-in keyboard listeners                                                                 | `true`                              |
+| `clipboardWrite`         | Host policy for OSC 52 clipboard writes                                                                            | Denied                              |
+| `copySelection`          | Custom clipboard writer for user selection copy                                                                    | `navigator.clipboard.writeText`     |
+| `links`                  | Link activation handler and custom resolution options                                                              | Built-in URL and OSC 8 handling     |
+| `linkActivationModifier` | Predicate deciding when a pointer click activates a link (for example `e => e.metaKey`)                            | Unmodified click                    |
+| `ligatures`              | Opt-in programming ligature configuration using the font's `GSUB` table                                            | Off                                 |
+| `bidi`                   | Opt-in Unicode 13.0 bidirectional row reordering (lazy-loads `bidi-js`)                                            | `false`                             |
+| `textBlink`              | Opt-in SGR 5/6 text blink animation                                                                                | `false`                             |
+| `padding`                | CSS pixel insets (`number` or `{ top, right, bottom, left }`) around the cell grid                                 | `0`                                 |
+| `scrollbar`              | Scrollbar width, fade delay, and min thumb size, or `false` to remove it                                           | `12` px overlay scrollbar           |
+| `extensions`             | Initial native extensions (for example `readline()`)                                                               | None                                |
+| `writeQueue`             | Coalescing thresholds for `writeBatched()`                                                                         | Built-in defaults                   |
+| `outputTiming`           | Burst thresholds (`quietMs`, `inputWindowMs`) for `outputTiming` telemetry                                         | `100` ms / `2000` ms                |
 
-## Worker entry
+## Worker entry options (`ghostty-webgpu/worker`)
 
-| Option       | Purpose                               | When omitted                                |
-| ------------ | ------------------------------------- | ------------------------------------------- |
-| `fonts`      | Worker font faces by URL or bytes     | Required array                              |
-| `backend`    | `auto`, `webgpu`, `webgl`             | `auto`                                      |
-| `assets`     | Hosted wasm and bridge URLs           | Package-relative files                      |
-| `workerUrl`  | Hosted worker module                  | Package worker                              |
-| `pool`       | Share a few workers between terminals | One worker per terminal                     |
-| `appearance` | Same appearance model                 | Native defaults, first supplied font family |
+| Option       | Purpose                                                                 | Default                                         |
+| ------------ | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| `fonts`      | Required list of `WorkerFontFace` entries (`url` or `Uint8Array` bytes) | Required                                        |
+| `backend`    | `'auto'`, `'webgpu'`, or `'webgl'`                                      | `'auto'`                                        |
+| `pool`       | Shared `TerminalWorkerPool` instance                                    | Dedicated worker per terminal                   |
+| `assets`     | Custom `{ wasm, bridge }` URLs                                          | Package-relative files                          |
+| `workerUrl`  | Custom hosted worker script URL                                         | Package worker entry                            |
+| `appearance` | Same appearance object as main entry                                    | Native defaults with first supplied font family |
 
-Both entries pause painting when the document is hidden. By default, an IntersectionObserver also pauses a terminal outside the viewport or a clipping ancestor. Parsing and layout changes continue. On return, the renderer paints the current state. `visibleLines()` and the accessibility mirror retain the last displayed text until that paint. Set `renderWhenOffscreen: true` to keep offscreen painting enabled. Element intersection does not detect another element covering the terminal.
+Worker terminals share `accessibility`, `bidi`, `ligatures`, `links`, `padding`, `renderWhenOffscreen`, `scrollbar`, `textBlink`, and `writeQueue`. `rendererMode: 'canvas2d-*'`, `presentation: 'immediate'`, `compositorAsset`, and `rendererFactory` are main-entry only.
 
-## Appearance
+## Visibility and offscreen pausing
 
-`font` has `family`, `size`, `lineHeight`, `letterSpacing`, `weight` and `boldWeight`. `cursor` has `style` and `blink`. `theme` carries named RGB colors and the palette. `backgroundOpacity` sets the alpha of the default background, from 0 to 1, and defaults to 1. `scrollbackLimit` and `scrollbackByteLimit` bound retained history. `grid` carries cell dimensions, columns, rows and pixel ratio.
+Both entries pause rendering when `document.visibilityState === 'hidden'`. By default (`renderWhenOffscreen: false`), an `IntersectionObserver` also pauses painting when the terminal is scrolled offscreen, clipped to zero area, or sized to `0x0`. Parsing, scrollback, and layout tracking continue; when the terminal becomes visible again, one catch-up frame paints the latest state. Set `renderWhenOffscreen: true` if an offscreen canvas must stay continuously updated.
 
-For working setups, read [fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/), [themes](https://ghostty.shaulavo.dev/docs/guides/themes/), [scrollback](https://ghostty.shaulavo.dev/docs/guides/scrollback/) and [workers](https://ghostty.shaulavo.dev/docs/guides/workers/).
+## Appearance fields
+
+- `font`: `{ family, size, lineHeight, letterSpacing, weight, boldWeight }`
+- `cursor`: `{ style: 'block' | 'bar' | 'underline' | 'outline', blink: boolean }`
+- `theme`: `{ foreground, background, cursor, cursorText?, selectionForeground, selectionBackground, minimumContrast, palette }`
+- `backgroundOpacity`: number in `[0, 1]`, default `1`
+- `colorScheme`: `'dark' | 'light'`
+- `scrollbackLimit` and `scrollbackByteLimit`: retention budgets
+- `grid`: `{ columns, rows, cellWidth, cellHeight, pixelRatio }` (auto-fitted during `open()` when host has nonzero size)
+
+See the guides for [fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/), [themes](https://ghostty.shaulavo.dev/docs/guides/themes/), [scrollback](https://ghostty.shaulavo.dev/docs/guides/scrollback/), and [workers](https://ghostty.shaulavo.dev/docs/guides/workers/).

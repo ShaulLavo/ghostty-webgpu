@@ -1,9 +1,9 @@
 ---
 title: Echo terminal
-description: Try the same source module used in the quick start.
+description: Interactive terminal running the checked quick-start module with @ghostty-webgpu/line-editor and ghostty-webgpu/hotkeys.
 ---
 
-The terminal below prints a greeting and echoes each line you submit at its prompt. Click it, type a line and press Enter. Its source is the checked `mountEcho` module from [the quick start](https://ghostty.shaulavo.dev/docs/start/quick-start/).
+Click the terminal below, type a command or line of text, and press Enter. Arrow keys navigate line history, Backspace edits in place, and Ctrl+C cancels the current line. This widget mounts the exact `mountEcho` module checked by CI and introduced in [First terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/).
 
 import EchoTerminal from '../../../../components/EchoTerminal.astro'
 import { Code } from '@astrojs/starlight/components'
@@ -13,4 +13,4 @@ import sample from '../../../../examples/quick-start.ts?raw'
 
 <Code code={sample} lang='ts' title='quick-start.ts' />
 
-[Connect a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/) to replace the local line editor with a shell.
+To swap the local line editor for Bash over a WebSocket, follow [A real shell in the browser](https://ghostty.shaulavo.dev/docs/start/real-shell/) or [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/).

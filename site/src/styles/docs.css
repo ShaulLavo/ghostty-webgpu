@@ -1,25 +1,21 @@
-/* Docs-only overrides live here. Starlight owns the page theme. */
+/* Docs-only overrides live here. Starlight owns the page shell and docs-theme.css maps the scene tokens. */
 .sl-markdown-content .migration-comparison pre {
   margin: 0;
   padding: 0;
   border: 0;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   white-space: pre;
+  background-color: transparent !important;
 }
 
-:root[data-theme='light'] .migration-comparison .astro-code {
-  background-color: var(--shiki-light-bg) !important;
-}
-
+/* Every scene uses a dark ground, so Shiki code blocks stay on dark tokens even when the OS requests light mode. */
+:root[data-theme='light'] .migration-comparison .astro-code,
 :root[data-theme='dark'] .migration-comparison .astro-code {
-  background-color: var(--shiki-dark-bg) !important;
+  background-color: transparent !important;
 }
 
 :root[data-theme='light'] .migration-comparison .astro-code,
-:root[data-theme='light'] .migration-comparison .astro-code span {
-  color: var(--shiki-light) !important;
-}
-
+:root[data-theme='light'] .migration-comparison .astro-code span,
 :root[data-theme='dark'] .migration-comparison .astro-code,
 :root[data-theme='dark'] .migration-comparison .astro-code span {
   color: var(--shiki-dark) !important;
@@ -45,23 +41,39 @@
   }
 
   .sl-markdown-content .migration-comparison td {
-    padding: 0.75rem 0;
+    padding: 0.65rem 0;
     border: 0;
+    overflow-x: auto;
+  }
+
+  .sl-markdown-content .migration-comparison tr {
+    border-bottom: 1px dashed var(--line);
+    padding: 0.35rem 0;
   }
 
   .sl-markdown-content .migration-comparison td::before {
     content: attr(data-label);
     display: block;
     margin-bottom: 0.25rem;
-    color: var(--sl-color-gray-2);
+    color: var(--muted);
     font-size: 0.75rem;
   }
 }
+
 .docs-terminal {
   width: 100%;
   height: 20rem;
-  background: #111;
-  color: #eee;
-  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px dashed var(--line);
+  border-radius: 0;
   overflow: hidden;
+}
+
+.docs-terminal > pre {
+  margin: 0;
+  padding: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
 }

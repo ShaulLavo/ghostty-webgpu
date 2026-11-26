@@ -1,6 +1,6 @@
 ---
 title: Connect to a PTY
-description: Send terminal input and output as binary WebSocket messages.
+description: Stream raw terminal bytes over a binary WebSocket and keep PTY dimensions synchronized.
 sidebar:
   order: 1
 ---
@@ -8,36 +8,39 @@ sidebar:
 import { Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/websocket.ts?raw'
 
-You will connect the browser terminal to a PTY endpoint and keep its size in sync. Start with a sized host element and a WebSocket server that accepts binary input, emits binary output and accepts the resize message shown below.
+This guide wires a browser `Terminal` to a WebSocket PTY endpoint without string round-trips. You need a sized host element and a server that exchanges raw terminal bytes as binary frames and accepts JSON resize messages (see [A real shell in the browser](https://ghostty.shaulavo.dev/docs/start/real-shell/) for a ready-to-run Bun server).
 
 ## 1. Open the terminal and socket
 
 <Code code={sample} lang='ts' title='websocket.ts' />
 
-Call `connectShell(host, socketUrl)`. Keep its disposer. Closing the page's terminal should release both the terminal and its transport. The [real shell tutorial](https://ghostty.shaulavo.dev/docs/start/real-shell/) supplies a local Bun server for this protocol.
+Call `connectShell(host, socketUrl)` and hold onto the returned disposer so route changes or tab teardown close both the WebSocket and the WASM terminal instance.
 
-## 2. Preserve the bytes
+## 2. Keep terminal I/O in bytes
 
-Set `binaryType` to `arraybuffer`. Pass received frames to `write` as a `Uint8Array` and send each `onData` event's `bytes` directly. Ghostty parses UTF-8 across writes, including code points split between WebSocket frames.
+- Set `socket.binaryType = 'arraybuffer'`.
+- Feed incoming binary frames directly into `terminal.write(new Uint8Array(data))`. `libghostty-vt` decodes UTF-8 incrementally across writes, including multi-byte sequences split across WebSocket frames.
+- Forward `terminal.onData(({ bytes }) => ...)` directly as binary frames. Never round-trip raw PTY bytes through `TextDecoder` or UTF-16 strings.
 
-Send the initial grid on the socket's `open` event. Later `onResize` events update the PTY. Resize messages have `type: 'resize'`, `columns` and `rows`.
+Because `await terminal.open(host)` fits the grid synchronously before resolving, `terminal.geometry()` already reflects the host element's exact columns and rows when the socket's `open` listener calls `sendSize()`. Subsequent viewport or font changes fire `terminal.onResize` and push updated `{ type: 'resize', columns, rows }` messages.
 
-## 3. Bound queued output
+## 3. Flow control and batching
 
-The example is for an interactive local shell. For bulk output, monitor `bufferedAmount` on the producer and pause PTY reads at your chosen queue limit. Resume after the queue drains. Define a byte acknowledgement protocol if you need receiver-driven flow control.
+For heavy streaming output:
 
-A successful `write` updates emulator state. It does not acknowledge a presented frame. Use `onFrame` to observe submitted frames. Keep transport acknowledgements separate from renderer notifications.
+- **Producer pacing:** Watch `socket.bufferedAmount` on the server and pause PTY reads once queued bytes pass your high-water mark, resuming after drain.
+- **Client batching:** On bursty streams, `terminal.writeBatched(bytes)` coalesces writes across frames under a configurable byte budget (`writeQueue` option) instead of forcing synchronous parsing on every tiny chunk.
+- **Parse vs. paint:** `terminal.write()` updates native emulator state immediately, while painting happens on the scheduler's frame boundary. Listen to `terminal.onFrame` if you need to know when rows were submitted to the renderer, and keep network flow-control acknowledgements separate from render notifications.
+- **Worker output ports:** In `ghostty-webgpu/worker`, you can transfer a producer's `MessagePort` directly to the terminal worker with `attachOutputPort(port)` and coordinate draining with `fenceOutput(sequence)` so bulk PTY traffic bypasses the main thread altogether.
 
-Worker integrations can transfer a producer's `MessagePort` with `attachOutputPort`. Its sequence acknowledgements and `fenceOutput` belong to the worker output protocol. See the generated worker types for the message shapes.
+## Troubleshooting
 
-## If it doesn't work
+### Reconnecting shows stale screen text or an empty shell
 
-### Output stops after reconnecting
+Opening a fresh WebSocket requires an explicit server session policy: either reattach to an existing PTY and replay its buffered output, or spawn a new shell and call `terminal.reset()`. `captureViewport()` saves a visual snapshot for instant paint, not live emulator state.
 
-A new WebSocket needs an explicit server session policy. Reattach to the existing PTY and replay retained bytes, or start a new PTY and clear the old client state. A saved viewport is a visual snapshot; replay restores emulator state.
+### Incoming frames arrive as strings instead of `ArrayBuffer`
 
-### Text arrives as a string
+Ensure the server sends binary WebSocket frames for PTY output. The client ignores text frames so text remains available for JSON control messages.
 
-Configure the server to emit binary frames. The sample ignores text frames because text is reserved for control messages in this protocol.
-
-Next, [move the terminal into a worker](https://ghostty.shaulavo.dev/docs/guides/workers/) or [read its history](https://ghostty.shaulavo.dev/docs/guides/scrollback/).
+Next: [Renderers and fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/) or [Run in a worker](https://ghostty.shaulavo.dev/docs/guides/workers/).
