@@ -1,22 +1,38 @@
 ---
-title: Terminal hotkeys
-description: Attach Ghostty's default keyboard shortcuts or integrate with an application-wide @shaulavo/hotkeys dispatcher.
-sidebar:
-  order: 6
+title: Keyboard & hotkeys
+description: Attach Ghostty's default keyboard shortcuts, customize bindings, or integrate with a host @shaulavo/hotkeys dispatcher.
 ---
 
-import { Code } from '@astrojs/starlight/components'
+import { Aside, Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/hotkeys.ts?raw'
 
-The core `Terminal` encodes VT keys and Kitty keyboard protocol sequences without forcing an opinionated shortcut table. To add Ghostty's keymap, install the optional `@shaulavo/hotkeys` peer dependency and import `attachTerminalHotkeys` from `ghostty-webgpu/hotkeys`.
+The core `Terminal` encodes VT keys and Kitty keyboard protocol sequences without forcing an opinionated shortcut table on your app. When you want Ghostty's standard copy, clear, zoom, and scroll shortcuts, install the optional `@shaulavo/hotkeys` peer dependency and connect it with `ghostty-webgpu/hotkeys`.
 
-## 1. Attach before opening
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>How to attach Ghostty's default shortcut map before opening a terminal</li>
+    <li>Which macOS, Linux, and Windows shortcuts ship out of the box</li>
+    <li>
+      How to override bindings, handle custom clipboards, or integrate with an app-wide hotkey
+      dispatcher
+    </li>
+  </ul>
+</div>
+
+## Attach shortcuts before opening
 
 <Code code={sample} lang='ts' title='hotkeys.ts' />
 
-Call `attachTerminalHotkeys(terminal, options)` before `terminal.open(host)`. The connection claims original keyboard input via `terminal.connectInput()` once the terminal opens, and disposing either the connection or the terminal tears down listeners and aborts pending clipboard work. Only one original-input owner can be connected to a terminal at a time.
+Call `attachTerminalHotkeys(terminal, options)` before `terminal.open(host)`. The adapter claims original keyboard input through `terminal.connectInput()` once the terminal opens, and disposing either the returned handle or the terminal cleans up listeners and aborts pending clipboard work. Only one original-input owner can attach to a terminal at a time.
 
-## 2. Default Ghostty keymap
+<Aside type='caution' title='Pitfall: main entry only'>
+  `attachTerminalHotkeys` needs synchronous `connectInput()` access to live native input modes
+  (`alternateScreen` and `mouseReporting`). Calling it on a `ghostty-webgpu/worker` terminal throws
+  a `TerminalWorkerError` with `code: 'capability'`.
+</Aside>
+
+## Default Ghostty keymap
 
 | Action                  | macOS                        | Linux and Windows                |
 | ----------------------- | ---------------------------- | -------------------------------- |
@@ -31,24 +47,49 @@ Call `attachTerminalHotkeys(terminal, options)` before `terminal.open(host)`. Th
 
 On macOS, `Cmd+Left`, `Cmd+Right`, `Cmd+Backspace`, `Option+Left`, and `Option+Right` forward standard shell line-editing actions (the shell must recognize them), while `Option` plus letter keys continue to compose dead-key characters.
 
-`terminal.clear` drops selection, scrollback, and rows above the cursor while keeping the prompt row at the top; it is a no-op on the alternate screen. Copy is ignored when nothing is selected. Paste relies on the browser's native `paste` event (honoring bracketed paste mode when enabled by the app) so no default shortcut triggers a clipboard-read permission prompt.
+A few intentional behaviors keep shortcuts predictable:
 
-## 3. Override bindings or disable defaults
+- `terminal.clear` clears selection, scrollback, and rows above the cursor while keeping the active prompt row at the top; it is a no-op on the alternate screen.
+- Copy does nothing when nothing is selected, letting `Ctrl+C` reach the shell as interrupt (`^C`).
+- Paste uses the browser's native `paste` event (honoring bracketed paste mode when active) so no default shortcut triggers a clipboard-read permission prompt.
 
-Pass `bindings` to append custom shortcuts on top of `ghosttyKeymap[platform]` (later bindings override earlier ones). Pass `keymap: []` to start from an empty map. Pass `screenReaderMode: () => enabled` to suspend the five macOS text-navigation shortcuts while a screen reader is active, sharing the same predicate with `inputHooks.screenReaderMode` if your host configures it.
+## Customize bindings or clipboards
 
-## 4. Integrate with a host dispatcher
+- **Override or extend bindings:** Pass `bindings` to layer custom shortcuts on top of `ghosttyKeymap[platform]` (later bindings override earlier ones), or pass `keymap: []` to start from a blank slate.
+- **Screen-reader compatibility:** Pass `screenReaderMode: () => enabled` to suspend the five macOS text-navigation shortcuts while a screen reader is active.
+- **Custom clipboard environments:** `navigator.clipboard.writeText` requires a secure context and user gesture. In a desktop webview or custom host, pass `clipboard: { readText, writeText }` and `onError` callbacks.
 
-Applications already running `@shaulavo/hotkeys` can pass `mode: 'hosted'` alongside their dispatcher, parent focus node, and platform so terminal shortcuts participate in global focus routing. Import `ghosttyKeymap` and `terminalShellKeysPack` from `ghostty-webgpu/hotkeys` to inspect or reuse the binding definitions. See [docs/hotkeys.md](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/hotkeys.md) for the focus adapter contract.
+<details class='deep-dive'>
+  <summary>Integrating with an existing @shaulavo/hotkeys dispatcher</summary>
+  <div class='deep-dive__body'>
+    <p>
+      Apps that already run <code>@shaulavo/hotkeys</code> can pass <code>mode: 'hosted'</code>{' '}
+      alongside their dispatcher, parent focus node, and platform so terminal shortcuts participate
+      in global focus routing. You can also import <code>ghosttyKeymap</code> and{' '}
+      <code>terminalShellKeysPack</code> from <code>ghostty-webgpu/hotkeys</code> to inspect or
+      reuse the binding definitions. See{' '}
+      <a href='https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/hotkeys.md'>
+        docs/hotkeys.md
+      </a>{' '}
+      for the focus adapter contract.
+    </p>
+  </div>
+</details>
 
-## Troubleshooting
-
-### Copy fails silently or reports an error
-
-`navigator.clipboard.writeText` requires a secure context and user gesture. Pass custom `clipboard: { readText, writeText }` and `onError` callbacks when embedding inside a desktop webview or custom clipboard policy.
-
-### Attaching to a worker terminal throws a capability error
-
-`attachTerminalHotkeys` requires synchronous `connectInput()` access to live native input modes (`alternateScreen` and `mouseReporting`), which is only available on the synchronous main-thread `Terminal`.
-
-Next: [Scrollback and reading history](https://ghostty.shaulavo.dev/docs/guides/scrollback/).
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Call <code>attachTerminalHotkeys(terminal)</code> before <code>open()</code> on the main
+      entry.
+    </li>
+    <li>
+      Pass <code>bindings</code> to override defaults, or <code>keymap: []</code> to define your own
+      table from scratch.
+    </li>
+    <li>
+      Use <code>mode: 'hosted'</code> when integrating terminal shortcuts into an application-wide{' '}
+      <code>@shaulavo/hotkeys</code> dispatcher.
+    </li>
+  </ul>
+</div>

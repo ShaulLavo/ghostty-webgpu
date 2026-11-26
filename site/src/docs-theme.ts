@@ -12,7 +12,7 @@ export const docsTheme = {
     themes: ['github-dark-default'],
     useStarlightUiThemeColors: false,
     styleOverrides: {
-      borderRadius: '0',
+      borderRadius: '6px',
       borderColor: line,
       codeBackground: 'var(--surface)',
       codeFontFamily: mono,

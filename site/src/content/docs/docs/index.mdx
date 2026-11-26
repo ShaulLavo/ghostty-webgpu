@@ -3,40 +3,61 @@ title: Ghostty in the browser
 description: Embed Ghostty's unpatched libghostty-vt WebAssembly core with WebGPU, WebGL2, Canvas 2D, and DOM renderers.
 ---
 
-`ghostty-webgpu` runs Ghostty's unpatched `libghostty-vt` terminal core in WebAssembly and pairs it with a browser host and four renderers. Use it to embed interactive shells, build logs, or local command prompts inside a web app.
+import { docsHref } from '../../../site-links'
 
-Start with [First terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/) for a working local prompt, or [A real shell](https://ghostty.shaulavo.dev/docs/start/real-shell/) to wire Bash over WebSocket.
+`ghostty-webgpu` runs Ghostty's unpatched `libghostty-vt` terminal emulator in WebAssembly and pairs it with a browser host and four renderers. Use it to embed interactive shells, build logs, or local command prompts without re-implementing VT parsing in JavaScript.
 
-## Architecture at a glance
+<div class='doc-cards'>
+  <a class='doc-card' href={docsHref('start/quick-start')}>
+    <span class='doc-card__title'>Quick start</span>
+    <span class='doc-card__desc'>
+      Install the package, mount a fitted terminal in ten lines, and try a live prompt.
+    </span>
+  </a>
+  <a class='doc-card' href={docsHref('start/real-shell')}>
+    <span class='doc-card__title'>Connect a real shell</span>
+    <span class='doc-card__desc'>
+      Spawn Bash in a Bun PTY and stream raw bytes over a binary WebSocket.
+    </span>
+  </a>
+  <a class='doc-card' href={docsHref('start/xterm')}>
+    <span class='doc-card__title'>Migrating from xterm.js</span>
+    <span class='doc-card__desc'>
+      Map constructors, byte I/O, built-in fit, and addon replacements.
+    </span>
+  </a>
+  <a class='doc-card' href={docsHref('guides/workers')}>
+    <span class='doc-card__title'>Run in a worker</span>
+    <span class='doc-card__desc'>
+      Move parsing, frame building, and GPU rendering onto OffscreenCanvas.
+    </span>
+  </a>
+</div>
 
-One native `libghostty-vt` instance owns escape parsing, active screen state, modes, scrollback, selection coordinates, and Unicode cell widths. Four renderers read from that single state:
+## How the pieces fit together
 
-- **WebGPU and WebGL2** feed persistent cell and glyph buffers built in Zig (`bridge.wasm`) and upload only dirty byte ranges.
-- **Canvas 2D** paints the first frame immediately during frame presentation while WebGPU or WebGL2 warms up, then swaps the painted GPU canvas in place without flashing. It also serves as the fallback when neither GPU API is available.
-- **DOM** renders plain styled rows when Canvas is unavailable or explicitly requested via `rendererFactory`.
+One native `libghostty-vt` instance owns escape parsing, active screen state, modes, scrollback, selection coordinates, and Unicode cell widths. Four renderers read from that single source of truth:
 
-`await terminal.open(host)` measures the host container synchronously before constructing the renderer, so `terminal.appearance.grid` and `terminal.geometry()` already hold the fitted column and row counts when `open()` resolves.
+- **WebGPU and WebGL2** consume persistent cell and glyph buffers built in Zig (`bridge.wasm`) and upload only dirty byte ranges.
+- **Canvas 2D** paints frame one immediately while WebGPU or WebGL2 compiles its shaders in the background, then hands off in place without flashing. It also serves as the fallback when neither GPU API is available.
+- **DOM** renders plain styled rows when Canvas is unavailable or explicitly chosen through `rendererFactory`.
+
+`await terminal.open(host)` measures the container synchronously before constructing the renderer, so `terminal.appearance.grid` and `terminal.geometry()` already hold the fitted column and row counts as soon as `open()` resolves.
 
 ## Entry points
 
-| Entry point                      | Environment     | Purpose                                                                                                                                   |
-| -------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `ghostty-webgpu`                 | Browser         | Main-thread `Terminal` host with automatic fitting, selection, links, scrollback, and Canvas-first GPU startup.                           |
-| `ghostty-webgpu/worker`          | Browser         | Runs `libghostty-vt`, Zig frame building, and WebGPU/WebGL2 rendering in a dedicated worker or `TerminalWorkerPool` on `OffscreenCanvas`. |
-| `ghostty-webgpu/core`            | Browser or Node | Headless `GhosttyRuntime`, `GhosttyTerminal`, and `TerminalSession` with no DOM or renderer imports.                                      |
-| `ghostty-webgpu/hotkeys`         | Browser         | Optional Ghostty keymap adapter (`attachTerminalHotkeys`) backed by `@shaulavo/hotkeys`.                                                  |
-| `ghostty-webgpu/config-resolver` | Node or Bun     | Resolves host Ghostty config files into terminal appearance objects.                                                                      |
+Pick the package entry point that matches where your code runs:
 
-## Where to go next
-
-- [Coming from xterm.js](https://ghostty.shaulavo.dev/docs/start/xterm/) maps constructors, events, and addon replacements.
-- [Coming from ghostty-web](https://ghostty.shaulavo.dev/docs/start/ghostty-web/) covers async creation, byte I/O, and multi-backend rendering.
-- [Renderers and fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/) explains platform backend order and Canvas-first startup.
-- [The wasm core](https://ghostty.shaulavo.dev/docs/concepts/how-it-works/) and [Damage tracking](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/) detail the frame pipeline.
-- [Benchmarks](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) summarizes the November 2026 five-way suite and links the raw data.
+| Entry point                      | Environment     | Purpose                                                                                                                                      |
+| -------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ghostty-webgpu`                 | Browser         | Main-thread `Terminal` host with automatic fitting, selection, links, scrollback, and Canvas-first GPU startup.                              |
+| `ghostty-webgpu/worker`          | Browser         | Runs `libghostty-vt`, Zig frame building, and WebGPU or WebGL2 rendering in a dedicated worker or `TerminalWorkerPool` on `OffscreenCanvas`. |
+| `ghostty-webgpu/core`            | Browser or Node | Headless `GhosttyRuntime`, `GhosttyTerminal`, and `TerminalSession` with no DOM or renderer imports.                                         |
+| `ghostty-webgpu/hotkeys`         | Browser         | Optional Ghostty keymap adapter (`attachTerminalHotkeys`) backed by `@shaulavo/hotkeys`.                                                     |
+| `ghostty-webgpu/config-resolver` | Node or Bun     | Resolves host Ghostty config files into terminal appearance objects.                                                                         |
 
 ## Current scope and limits
 
 Shipped features include DEC mode 2026 synchronized output, mode 2027 grapheme clustering, opt-in GSUB ligatures (`ligatures`), lazy Unicode 13.0 BiDi (`bidi`), OSC 8 hyperlinks, URL detection, and an opt-in screen-reader text mirror (`accessibility: {}`).
 
-Retained-buffer search, Sixel and Kitty image protocols, and a formal screen-reader audit remain open work. See [status and limits](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/status.md) and the [changelog](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md) for release-specific notes.
+Retained-buffer search, Sixel and Kitty image protocols, and a formal screen-reader audit remain open work. See [status and limits](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/status.md) and the [changelog](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/CHANGELOG.md) for release notes.

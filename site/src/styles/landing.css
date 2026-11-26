@@ -329,14 +329,6 @@ hr::before {
   min-width: 0;
 }
 
-@media (max-width: 860px) {
-  .facts {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
-}
-
 .panel h2 {
   margin: 0 0 18px;
   font-size: 15px;
@@ -632,12 +624,14 @@ footer p:last-child {
   }
 
   .facts {
-    gap: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
-  /* Stacked on a phone, three body-size cards fill the screen; a smaller face keeps them a glance. */
+  /* On phones, size each stacked ASCII card to fill the full column width cleanly. */
   .facts .ascii {
-    font-size: min(12px, calc(100cqi / var(--cols) / 0.62));
+    font-size: min(19px, calc(100cqi / var(--cols) / 0.615));
   }
 
   /* Four narrow columns wrap badly on a phone; the bar's [ docs ] link leads there instead. */

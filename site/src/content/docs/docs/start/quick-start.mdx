@@ -1,59 +1,135 @@
 ---
-title: First terminal in a minute
-description: Install ghostty-webgpu, open a fitted terminal with line editing, and clean it up cleanly.
+title: Quick start
+description: Install ghostty-webgpu, mount a fitted browser terminal in ten lines, and add local line editing with hotkeys.
 ---
 
-import { Code } from '@astrojs/starlight/components'
-import sample from '../../../../examples/quick-start.ts?raw'
+import { Aside, Code } from '@astrojs/starlight/components'
+import EchoTerminal from '../../../../components/EchoTerminal.astro'
+import minimal from '../../../../examples/minimal.ts?raw'
+import echoSample from '../../../../examples/quick-start.ts?raw'
 
-By the end of this page you will have a mounted terminal that prints a greeting, edits lines locally at a `$ ` prompt, echoes submitted input, and disposes cleanly on teardown. Any TypeScript bundler that serves `.wasm` files (such as Vite) works.
+`ghostty-webgpu` runs Ghostty's unpatched `libghostty-vt` core in WebAssembly and renders it to WebGPU, WebGL2, Canvas 2D, or DOM. In a few minutes you will mount a working terminal, see how sizing and input work, and try a live interactive prompt.
 
-## 1. Install
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>How to install the package and give the host container a real size</li>
+    <li>
+      How to create, open, write to, and dispose a <code>Terminal</code>
+    </li>
+    <li>
+      How input bytes flow out of <code>onData</code>
+    </li>
+    <li>How to add local line editing and Ghostty shortcuts when no shell is attached</li>
+  </ul>
+</div>
+
+## Install the package
+
+Install `ghostty-webgpu` with your package manager. Any bundler that serves `.wasm` assets (Vite, esbuild, Webpack, Bun) works out of the box.
 
 ```sh
-npm install ghostty-webgpu @ghostty-webgpu/line-editor @shaulavo/hotkeys
+npm install ghostty-webgpu
 ```
 
-`@ghostty-webgpu/line-editor` provides local line editing when no PTY is attached. `@shaulavo/hotkeys` is an optional peer used by `ghostty-webgpu/hotkeys`. If you are linking directly from a source checkout or configuring custom asset paths, read [Use ghostty-webgpu in your own app](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/use-in-your-app.md).
+<Aside type='note' title='WASM asset serving'>
+  Make sure your bundler emits `ghostty-vt.wasm`, `bridge.wasm`, `canvas-compose.wasm`, and
+  `canvas-compose-scalar.wasm` with `Content-Type: application/wasm`. For custom asset paths or
+  linking from a local checkout, pass explicit URLs via `runtime` and `compositorAsset` (see [Use
+  ghostty-webgpu in your own
+  app](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/use-in-your-app.md)).
+</Aside>
 
-## 2. Give the host element a size
+## Give the host container a size
 
-Place a container with a concrete height in your HTML. `open()` measures it synchronously and sizes the initial grid before painting frame one.
+Place a container element with a concrete height in your page:
 
 ```html title="index.html"
 <div id="terminal" style="height: 20rem; width: 100%"></div>
 ```
 
-## 3. Mount, edit, and echo
+<Aside type='caution' title='Pitfall: zero-height containers'>
+  `await terminal.open(host)` measures `host` synchronously and sizes the initial grid before
+  painting the first frame. If `host` has `0px` height when `open()` runs (common inside an
+  unconstrained flex item missing `min-height: 0`), the terminal keeps the default `80x24` grid
+  until `ResizeObserver` sees a nonzero size. Give the container an explicit height up front so
+  frame one lands at the true dimensions.
+</Aside>
 
-Save this module as `terminal.ts` and call `mountEcho(host)` from your app entry point. Keep the returned disposer and call it when unmounting the view.
+## Mount your first terminal
 
-<Code code={sample} lang='ts' title='terminal.ts' />
+Creation and opening are both asynchronous because `Terminal.create()` loads and compiles the WebAssembly modules, and `open(host)` mounts the DOM host and initializes the renderer.
 
-What each call does:
+<Code code={minimal} lang='ts' title='terminal.ts' />
 
-- `Terminal.create({ accessibility: {} })` fetches and compiles `ghostty-vt.wasm` and `bridge.wasm`, creates the native session, and enables the accessible text mirror.
-- `attachTerminalHotkeys(terminal)` binds the Ghostty shortcut table before the terminal opens.
-- `terminal.use(readline())` installs the line-editor extension so Enter, Backspace, arrow keys, history, and Ctrl+C work without a remote shell.
-- `await terminal.open(host)` mounts the DOM elements, fits the grid to `host`, starts Canvas-first rendering, and begins GPU warm-up in the background.
-- `editor.read({ prompt: '$ ' })` resolves on each submitted line, and `editor.print()` writes output above the active prompt without corrupting it.
+Here is what happens at each step:
 
-import EchoTerminal from '../../../../components/EchoTerminal.astro'
+1. **`await Terminal.create()`** loads `ghostty-vt.wasm` and `bridge.wasm` and constructs an owned `libghostty-vt` session.
+2. **`await terminal.open(host)`** measures `host`, computes the integer device-pixel cell grid, mounts the canvas, and starts Canvas-first rendering while WebGPU or WebGL2 warms up in the background.
+3. **`terminal.writeln(...)`** feeds UTF-8 bytes directly into `libghostty-vt`. On the main entry, native writes update emulator state synchronously and schedule a paint on the next animation frame.
+4. **`terminal.onData(({ bytes }) => ...)`** fires whenever keyboard or paste input produces VT bytes. In a real app you forward `bytes` straight to a PTY socket; in this minimal example we loop them back into `terminal.write(bytes)`.
+5. **`terminal.dispose()`** tears down observers, event listeners, GPU resources, and WASM memory. Always call the disposer when your view or component unmounts.
+
+<details class='deep-dive'>
+  <summary>Why open() paints at full size with no flash</summary>
+  <div class='deep-dive__body'>
+    <p>
+      Before constructing the renderer, <code>TerminalHost.open()</code> measures the container's
+      content box, font metrics, padding, and scrollbar reservation, then resizes the native{' '}
+      <code>libghostty-vt</code> grid and styles the canvas to those exact pixel dimensions.
+    </p>
+    <p>
+      In default <code>frame</code> presentation mode, <code>CanvasTerminalRenderer</code> paints
+      the first frame immediately while WebGPU or WebGL2 compiles its shaders on a separate
+      offscreen canvas. Once the GPU canvas paints a matching frame, the host swaps it in place with
+      zero layout shift.
+    </p>
+  </div>
+</details>
+
+## Add local line editing and Ghostty shortcuts
+
+A bare terminal only displays bytes and emits encoded keystrokes; normally a shell like Bash or Zsh handles prompts, Backspace, arrow keys, and command history. When you are building a local prompt with no remote shell, add `@ghostty-webgpu/line-editor` and `@shaulavo/hotkeys`:
+
+```sh
+npm install @ghostty-webgpu/line-editor @shaulavo/hotkeys
+```
+
+<Code code={echoSample} lang='ts' title='echo.ts' />
+
+- `attachTerminalHotkeys(terminal)` binds Ghostty's keyboard shortcuts (`Cmd+C`, `Cmd+K`, font zoom, page scroll) before `open()`.
+- `terminal.use(readline())` installs the line-editor extension so `editor.read({ prompt: '$ ' })` handles editing, history, and Ctrl+C locally.
+- `accessibility: {}` turns on the opt-in screen-reader text mirror.
+- Calling `terminal.dispose()` rejects the pending `editor.read()` promise cleanly, ending the loop.
+
+Click the live terminal below, type a line, and press Enter:
 
 <EchoTerminal />
 
-Next, replace the local line editor with a real shell in [A real shell in the browser](https://ghostty.shaulavo.dev/docs/start/real-shell/). With a PTY attached, the shell handles line editing and you forward `onData` bytes straight to the socket.
+<Aside type='tip' title='Moving to a real shell'>
+  When you connect a real PTY in [Connect a real
+  shell](https://ghostty.shaulavo.dev/docs/start/real-shell/), drop `@ghostty-webgpu/line-editor`.
+  The remote shell owns line editing, and your browser code simply forwards `onData` bytes to the
+  WebSocket.
+</Aside>
 
-## Troubleshooting
-
-### The terminal opens with default 80x24 dimensions
-
-`open()` fits synchronously only when `host` has nonzero width and height. Give the container an explicit height before calling `open()`, and add `min-height: 0` on flex children so the parent constrains them. When a zero-sized host later gains dimensions, `ResizeObserver` fits it automatically.
-
-### WebAssembly files fail to load
-
-Confirm that `ghostty-vt.wasm`, `bridge.wasm`, `canvas-compose.wasm`, and `canvas-compose-scalar.wasm` are emitted by your bundler and served with `Content-Type: application/wasm`. You can pass explicit URLs through `runtime: { kind: 'owned', options: { wasm, bridge } }` and `compositorAsset`. See [Run in a worker](https://ghostty.shaulavo.dev/docs/guides/workers/) for worker asset URLs.
-
-### Typing produces no characters
-
-Call `terminal.focus()` after `open()` (or click the terminal). The line editor only claims keyboard input while an `editor.read()` call is pending.
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Give the host element a real height before calling <code>await terminal.open(host)</code>.
+    </li>
+    <li>
+      Always await both <code>Terminal.create()</code> and <code>terminal.open(host)</code>, and
+      call <code>terminal.dispose()</code> on teardown.
+    </li>
+    <li>
+      Keep input and output in raw <code>Uint8Array</code> bytes via <code>onData</code> and{' '}
+      <code>write</code>.
+    </li>
+    <li>
+      Use <code>@ghostty-webgpu/line-editor</code> for local prompts, or remove it when attaching a
+      remote PTY shell.
+    </li>
+  </ul>
+</div>

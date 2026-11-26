@@ -1,47 +1,85 @@
 ---
-title: Themes and Ghostty config
-description: Configure RGB terminal themes, contrast enforcement, background opacity, and host Ghostty config resolution.
-sidebar:
-  order: 5
+title: Themes & Ghostty config
+description: Apply RGB terminal themes, enforce minimum contrast, control background opacity, and resolve host Ghostty configs.
 ---
 
-import { Code } from '@astrojs/starlight/components'
+import { Aside, Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/theme.ts?raw'
 
-`ghostty-webgpu` represents colors as explicit `{ r, g, b }` integer objects and passes them straight into `libghostty-vt` and the renderers.
+`ghostty-webgpu` represents colors as explicit `{ r, g, b }` integer objects and passes them directly to `libghostty-vt` and the renderers. That avoids CSS color parsing on the frame path and keeps palette lookups identical across WebGPU, WebGL2, Canvas 2D, and DOM.
 
-## 1. Apply a theme
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>
+      How to structure and apply a <code>TerminalTheme</code> without breaking the 256-color palette
+    </li>
+    <li>How to batch theme, font, cursor, and opacity changes into one atomic repaint</li>
+    <li>
+      How <code>backgroundOpacity</code> interacts with explicit SGR cell backgrounds
+    </li>
+    <li>
+      How to load a user's local Ghostty configuration file on the server with{' '}
+      <code>ghostty-webgpu/config-resolver</code>
+    </li>
+  </ul>
+</div>
+
+## Apply a theme
 
 <Code code={sample} lang='ts' title='theme.ts' />
 
-`TerminalTheme` requires named colors (`background`, `foreground`, `cursor`, `selectionBackground`, `selectionForeground`, optional `cursorText`), `minimumContrast`, and a `palette` array with exactly 256 RGB entries. Spread `terminal.appearance.theme` when updating only a subset of named colors so the 256-color palette stays intact.
+`TerminalTheme` includes the named UI colors (`background`, `foreground`, `cursor`, `selectionBackground`, `selectionForeground`, optional `cursorText`), `minimumContrast`, and a `palette` array of **256** RGB entries.
 
-`minimumContrast` enforces a minimum WCAG contrast ratio between a cell's resolved foreground and background colors (default `1` disables adjustment).
+<Aside type='caution' title='Pitfall: partial theme objects'>
+  `setTheme()` validates that `palette` has length 256 with integer `0..255` RGB channels. Spread
+  `terminal.appearance.theme` (and clone `terminal.appearance.theme.palette` if editing individual
+  ANSI indices) so you never drop required entries.
+</Aside>
 
-## 2. Batch appearance updates
+Set `minimumContrast` above `1` to enforce a minimum WCAG contrast ratio between a cell's resolved foreground and background colors (default `1` leaves colors untouched).
 
-Use `terminal.setAppearance({ theme, font, cursor, backgroundOpacity, colorScheme })` when multiple visual settings change together so the session commits one atomic revision and triggers a single repaint. Use `setTheme`, `setFont`, `setCursor`, or `setColorScheme` for isolated updates. On the worker entry, all appearance setters return promises.
+## Batch appearance updates
 
-## 3. Control background opacity
+When several visual properties change together (for example, switching between a dark and light app theme), call `terminal.setAppearance({ theme, font, cursor, backgroundOpacity, colorScheme })`. That commits one atomic revision and triggers a single repaint instead of repainting once per setter. On `ghostty-webgpu/worker`, all appearance setters return promises.
 
-The root `.ghostty-webgpu` container paints the default theme background across the full element, including padding and remainder pixels outside the cell grid, while renderers leave default-background cells transparent. `backgroundOpacity` controls the alpha of that root fill (from `0` to `1`, default `1`, matching Ghostty's `background-opacity`).
+## Background opacity and backdrops
 
-Pass `setAppearance({ backgroundOpacity: 0.85 })` to let a page backdrop show through, or `0` to paint your own surface behind the terminal. Cells with an explicit SGR background color remain opaque.
+The root `.ghostty-webgpu` element paints the default theme background across the entire container (including padding and remainder pixels outside the cell grid), while renderers leave default-background cells transparent.
 
-## 4. Resolve a host Ghostty config
+- Set `backgroundOpacity` in `[0, 1]` (default `1`, matching Ghostty's `background-opacity`) to fade that root fill and let a page backdrop show through.
+- Set `backgroundOpacity: 0` if your page paints its own surface behind the terminal.
+- Cells with an explicit SGR background color stay opaque so TUI panels and status bars remain readable.
 
-`ghostty-webgpu/config-resolver` runs in Node or Bun and invokes a native helper binary on supported macOS (`darwin-arm64`, `darwin-x64`) and Linux (`linux-arm64`, `linux-x64`) hosts to parse a user's Ghostty configuration file into a structured appearance object (including `surface.backgroundOpacity` and light/dark profiles).
+## Resolve a host Ghostty config
 
-Keep `ghostty-webgpu/config-resolver` strictly on the server and forward only the resolved appearance JSON to the browser client. See the [config resolver guide](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/config-resolver.md) and [Config resolver API](https://ghostty.shaulavo.dev/docs/reference/config-api/) for manifest checks and native helper setup.
+`ghostty-webgpu/config-resolver` runs in Node or Bun and invokes a native helper binary on macOS (`darwin-arm64`, `darwin-x64`) and Linux (`linux-arm64`, `linux-x64`) to parse a user's Ghostty config file into a structured appearance object (including `surface.backgroundOpacity` and light/dark profiles).
 
-## Troubleshooting
+Keep `ghostty-webgpu/config-resolver` strictly on the server and send only the resolved appearance JSON to the browser client.
 
-### `setTheme` throws on the palette
+<details class="deep-dive">
+  <summary>Native helper packaging and bootstrap checkouts</summary>
+  <div class="deep-dive__body">
 
-`palette` must have length `256` with valid 0..255 integer RGB channels. Clone `terminal.appearance.theme.palette` if you only want to override specific ANSI indices.
+Source checkouts carry only the bootstrap manifest until the platform helper binaries are assembled. The browser terminal does not depend on `ghostty-webgpu/config-resolver` and runs independently without it. See the [config resolver guide](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/config-resolver.md) and [Config resolver API](https://ghostty.shaulavo.dev/docs/reference/config-api/) for setup and manifest verification.
 
-### The config resolver reports a missing helper
+  </div>
+</details>
 
-Source checkouts hold only the bootstrap manifest until the native helper binaries are assembled for your platform. The browser terminal works independently without the host config resolver.
-
-Next: [Terminal hotkeys](https://ghostty.shaulavo.dev/docs/guides/hotkeys/).
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Spread <code>terminal.appearance.theme</code> when changing named colors so the 256-entry RGB
+      palette stays valid.
+    </li>
+    <li>
+      Use <code>setAppearance()</code> to apply theme, font, cursor, and{' '}
+      <code>backgroundOpacity</code> changes in a single repaint.
+    </li>
+    <li>
+      Run <code>ghostty-webgpu/config-resolver</code> on the server only and forward the resolved
+      JSON to the browser.
+    </li>
+  </ul>
+</div>

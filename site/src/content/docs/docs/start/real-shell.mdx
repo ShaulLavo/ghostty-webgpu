@@ -1,52 +1,104 @@
 ---
-title: A real shell in the browser
-description: Run Bash inside a Bun PTY and stream raw bytes to ghostty-webgpu over WebSocket.
+title: Connect a real shell
+description: Spawn Bash inside a Bun PTY and stream raw bytes to ghostty-webgpu over a binary WebSocket.
 ---
 
-import { Code } from '@astrojs/starlight/components'
-import sample from '../../../../examples/pty-server.ts?raw'
+import { Aside, Code } from '@astrojs/starlight/components'
+import serverSample from '../../../../examples/pty-server.ts?raw'
+import clientSample from '../../../../examples/websocket.ts?raw'
 
-This tutorial connects `ghostty-webgpu` to a live Bash session using Bun's built-in PTY API on Linux or macOS. It requires Bun 1.4.2 or newer, `bash` on your `PATH`, and the browser client from [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/).
+A browser terminal becomes a real shell the moment you pair `ghostty-webgpu` with a server-side pseudoterminal (PTY). This tutorial builds a complete local setup using Bun's built-in PTY support on Linux or macOS and connects it to the browser over a single WebSocket.
 
-## 1. Start the local PTY server
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>How to spawn a Bash PTY per WebSocket connection in Bun</li>
+    <li>Why PTY traffic uses binary frames while resize messages use JSON text frames</li>
+    <li>How to connect the browser client and verify end-to-end resize sync</li>
+    <li>What security boundaries to add before exposing a PTY over a network</li>
+  </ul>
+</div>
 
-Save this file as `pty-server.ts`. Each incoming WebSocket spawns an isolated `bash --noprofile --norc` child attached to a PTY.
+## Start the local PTY server
 
-<Code code={sample} lang='ts' title='pty-server.ts' />
+You need Bun 1.4.2 or newer on Linux or macOS with `bash` on your `PATH`. Save the server below as `pty-server.ts`. Each incoming WebSocket spawns an isolated `bash --noprofile --norc` child attached to a PTY.
 
-Start the server:
+<Code code={serverSample} lang='ts' title='pty-server.ts' />
+
+Run it from your terminal:
 
 ```sh
 bun pty-server.ts
 ```
 
-It prints `Shell WebSocket listening at ws://127.0.0.1:8080/pty`.
+It logs `Shell WebSocket listening at ws://127.0.0.1:8080/pty`.
 
-## 2. Connect the browser client
+## Connect the browser client
 
-In your browser entry point, use `connectShell(host, 'ws://127.0.0.1:8080/pty')` from [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/).
+In your app, mount the terminal and wire the socket to `ws://127.0.0.1:8080/pty`:
 
-The wire protocol separates data and control cleanly:
+<Code code={clientSample} lang='ts' title='websocket.ts' />
 
-- **Binary frames** carry raw terminal bytes in both directions (browser `onData` bytes to the PTY, PTY stdout to `terminal.write`).
-- **Text frames** carry JSON resize messages (`{ type: 'resize', columns, rows }`). Because `await terminal.open(host)` fits the grid before resolving, the initial `open` handler sends the true container size immediately.
+Notice how the protocol splits data and control across WebSocket frame types:
 
-## 3. Verify output and resize sync
+- **Binary frames** carry raw terminal bytes in both directions: PTY output goes directly into `terminal.write(new Uint8Array(data))`, and browser keystrokes from `terminal.onData(({ bytes }) => ...)` go straight back to the PTY.
+- **Text frames** carry JSON resize messages (`{ type: 'resize', columns, rows }`). Because `await terminal.open(host)` fits the grid before resolving, `terminal.geometry()` already holds the true dimensions the instant the socket opens.
 
-Type `printf 'Hello from Bash\n'` and press Enter to confirm round-trip byte delivery. Then resize the browser window and run `stty size`. The reported rows and columns should match `terminal.geometry()`.
+<Aside type='caution' title='Pitfall: mixed content with ws://'>
+  Pages served over `https://` cannot open insecure `ws://` sockets. Run this tutorial from a local
+  `http://localhost` or `http://127.0.0.1` dev server, and terminate TLS (`wss://`) in front of any
+  deployed PTY endpoint.
+</Aside>
 
-## Troubleshooting
+## Verify bytes and resize sync
 
-### Bun throws when spawning the terminal
+1. Click the terminal, type `printf 'Hello from Bash\n'`, and press Enter to confirm round-trip byte delivery.
+2. Resize the browser window and run `stty size`. The printed rows and columns should match `terminal.geometry()`.
 
-Bun's `terminal` option in `Bun.spawn` requires Linux or macOS and Bun 1.4.2+. Confirm `which bash` succeeds in the same shell where you launch `bun pty-server.ts`.
+<details class='deep-dive'>
+  <summary>Why bytes never pass through TextDecoder</summary>
+  <div class='deep-dive__body'>
+    <p>
+      A PTY can split a multi-byte UTF-8 character or an escape sequence across two separate OS
+      reads and two separate WebSocket frames. Decoding each chunk independently to a JavaScript
+      string corrupts split sequences with replacement characters (<code>U+FFFD</code>) and burns
+      extra UTF-16 allocation overhead.
+    </p>
+    <p>
+      Feeding raw <code>Uint8Array</code> chunks directly to <code>terminal.write()</code> lets{' '}
+      <code>libghostty-vt</code>'s stateful UTF-8 and VT parser stitch split sequences natively.
+    </p>
+  </div>
+</details>
 
-### The browser blocks `ws://`
+## Security checklist before deploying
 
-Pages served over `https://` cannot open insecure `ws://` sockets. Run this tutorial from a local `http://localhost` or `http://127.0.0.1` dev server, and terminate TLS (`wss://`) in front of any deployed PTY endpoint.
+The example server above is scoped for localhost development: it binds only to `127.0.0.1`, rejects non-loopback `Origin` headers, validates integer grid bounds (`1..500` columns and `1..200` rows), and closes sockets on malformed JSON.
 
-## Security before deploying
+Because a PTY spawns a shell with the host user's permissions, put these controls in place before exposing any PTY endpoint on a network:
 
-This local server spawns a shell with your OS user's permissions and binds only to `127.0.0.1`. It rejects non-loopback `Origin` headers, validates integer grid bounds (`1..500` columns, `1..200` rows), and closes sockets that send malformed JSON. Before exposing a PTY endpoint on a network, add authentication, an explicit `Origin` allowlist, per-user container or OS isolation, connection rate limits, and bounded output queues.
+- Require authentication on the WebSocket upgrade request and enforce an explicit `Origin` allowlist.
+- Isolate each user's shell inside a container, sandbox, or dedicated OS account.
+- Cap concurrent connections per user and bound outbound buffers when a client stops reading (see [Wire a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/) for backpressure patterns).
 
-Continue with [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/) for backpressure, reconnection, and worker output ports.
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Use binary WebSocket frames (`socket.binaryType = 'arraybuffer'`) for raw PTY bytes and text
+      frames for JSON resize control messages.
+    </li>
+    <li>
+      Read `terminal.geometry()` immediately after `await terminal.open(host)` to send the initial
+      PTY size.
+    </li>
+    <li>
+      Keep `terminal.onResize` wired to the socket so interactive TUIs reflow cleanly when the
+      viewport changes.
+    </li>
+    <li>
+      Never expose a shell WebSocket beyond `127.0.0.1` without authentication, origin checks, and
+      OS/container isolation.
+    </li>
+  </ul>
+</div>

@@ -1,46 +1,103 @@
 ---
-title: Connect to a PTY
-description: Stream raw terminal bytes over a binary WebSocket and keep PTY dimensions synchronized.
-sidebar:
-  order: 1
+title: Wire a PTY
+description: Stream raw terminal bytes over a binary WebSocket, synchronize PTY dimensions, and handle heavy output backpressure.
 ---
 
-import { Code } from '@astrojs/starlight/components'
+import { Aside, Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/websocket.ts?raw'
 
-This guide wires a browser `Terminal` to a WebSocket PTY endpoint without string round-trips. You need a sized host element and a server that exchanges raw terminal bytes as binary frames and accepts JSON resize messages (see [A real shell in the browser](https://ghostty.shaulavo.dev/docs/start/real-shell/) for a ready-to-run Bun server).
+Connecting `ghostty-webgpu` to a remote shell takes one binary WebSocket and a tiny resize message. Keeping terminal traffic in raw `Uint8Array` bytes avoids UTF-16 conversion overhead and prevents corrupted multi-byte sequences when packets split mid-character.
 
-## 1. Open the terminal and socket
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>
+      How to stream binary PTY frames in and out of a mounted <code>Terminal</code>
+    </li>
+    <li>How initial and live viewport resize messages stay in sync with the PTY</li>
+    <li>
+      How to apply backpressure, client-side write batching, and worker output ports under heavy
+      streaming
+    </li>
+    <li>How to handle reconnects without leaving stale screen contents behind</li>
+  </ul>
+</div>
+
+## Mount the terminal and socket
+
+Pair this browser client with a server that exchanges raw terminal bytes over binary frames and accepts JSON resize control messages (see [Connect a real shell](https://ghostty.shaulavo.dev/docs/start/real-shell/) for a ready-to-run Bun server).
 
 <Code code={sample} lang='ts' title='websocket.ts' />
 
-Call `connectShell(host, socketUrl)` and hold onto the returned disposer so route changes or tab teardown close both the WebSocket and the WASM terminal instance.
+Hold onto the returned disposer and call it when unmounting the view so both the WebSocket and the WebAssembly terminal release their resources together.
 
-## 2. Keep terminal I/O in bytes
+## Why binary frames matter
 
-- Set `socket.binaryType = 'arraybuffer'`.
-- Feed incoming binary frames directly into `terminal.write(new Uint8Array(data))`. `libghostty-vt` decodes UTF-8 incrementally across writes, including multi-byte sequences split across WebSocket frames.
-- Forward `terminal.onData(({ bytes }) => ...)` directly as binary frames. Never round-trip raw PTY bytes through `TextDecoder` or UTF-16 strings.
+Set `socket.binaryType = 'arraybuffer'` before listening for messages:
 
-Because `await terminal.open(host)` fits the grid synchronously before resolving, `terminal.geometry()` already reflects the host element's exact columns and rows when the socket's `open` listener calls `sendSize()`. Subsequent viewport or font changes fire `terminal.onResize` and push updated `{ type: 'resize', columns, rows }` messages.
+- Incoming binary frames go straight into `terminal.write(new Uint8Array(data))`. `libghostty-vt` decodes UTF-8 incrementally, even when a 4-byte emoji or escape sequence arrives split across two WebSocket frames.
+- Outgoing keystrokes and pastes from `terminal.onData(({ bytes }) => ...)` go back to the socket as binary frames without ever passing through `TextDecoder`.
+- Text frames stay free for small JSON control messages such as `{ type: 'resize', columns, rows }`.
 
-## 3. Flow control and batching
+<Aside type='caution' title='Pitfall: server sending text frames'>
+  If your server sends PTY stdout as WebSocket text frames instead of binary frames, `data
+  instanceof ArrayBuffer` is `false` and the client ignores the output. Always send PTY bytes as
+  binary frames so text frames remain unambiguous control messages.
+</Aside>
 
-For heavy streaming output:
+## Keeping PTY dimensions synchronized
 
-- **Producer pacing:** Watch `socket.bufferedAmount` on the server and pause PTY reads once queued bytes pass your high-water mark, resuming after drain.
-- **Client batching:** On bursty streams, `terminal.writeBatched(bytes)` coalesces writes across frames under a configurable byte budget (`writeQueue` option) instead of forcing synchronous parsing on every tiny chunk.
-- **Parse vs. paint:** `terminal.write()` updates native emulator state immediately, while painting happens on the scheduler's frame boundary. Listen to `terminal.onFrame` if you need to know when rows were submitted to the renderer, and keep network flow-control acknowledgements separate from render notifications.
-- **Worker output ports:** In `ghostty-webgpu/worker`, you can transfer a producer's `MessagePort` directly to the terminal worker with `attachOutputPort(port)` and coordinate draining with `fenceOutput(sequence)` so bulk PTY traffic bypasses the main thread altogether.
+Because `await terminal.open(host)` fits the grid synchronously before resolving, `terminal.geometry()` already matches the host container's true columns and rows when the socket's `open` handler fires `sendSize()`. After that, `terminal.onResize` pushes updated `{ type: 'resize', columns, rows }` messages whenever the layout, DPR, or font size changes.
 
-## Troubleshooting
+## Handling heavy streaming output
 
-### Reconnecting shows stale screen text or an empty shell
+A fast compiler or `cat` on a multi-megabyte log can outpace the browser if your server writes unbounded chunks. Combine three controls when throughput matters:
 
-Opening a fresh WebSocket requires an explicit server session policy: either reattach to an existing PTY and replay its buffered output, or spawn a new shell and call `terminal.reset()`. `captureViewport()` saves a visual snapshot for instant paint, not live emulator state.
+- **Server-side backpressure:** Check `socket.bufferedAmount` before pushing more PTY bytes. Pause PTY reads once queued bytes cross your high-water mark and resume when the socket drains.
+- **Client-side batching:** For bursty streams on the main thread, call `terminal.writeBatched(bytes)` instead of `terminal.write(bytes)` to coalesce writes across animation frames under a configurable byte budget (`writeQueue` option).
+- **Direct worker ports:** On `ghostty-webgpu/worker`, transfer a producer's `MessagePort` directly to the terminal worker via `attachOutputPort(port)` and coordinate draining with `fenceOutput(sequence)` so bulk PTY bytes bypass the main thread altogether.
 
-### Incoming frames arrive as strings instead of `ArrayBuffer`
+<details class='deep-dive'>
+  <summary>Parse timing vs. paint timing</summary>
+  <div class='deep-dive__body'>
+    <p>
+      Calling <code>terminal.write()</code> parses bytes into <code>libghostty-vt</code>{' '}
+      immediately, while rendering coalesces onto the scheduler's next animation frame. Subscribe to{' '}
+      <code>terminal.onFrame</code> only when you need to observe painted rows, and keep network
+      flow-control acknowledgements independent of visual paint notifications so background tabs do
+      not stall a PTY.
+    </p>
+  </div>
+</details>
 
-Ensure the server sends binary WebSocket frames for PTY output. The client ignores text frames so text remains available for JSON control messages.
+## Handling reconnects cleanly
 
-Next: [Renderers and fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/) or [Run in a worker](https://ghostty.shaulavo.dev/docs/guides/workers/).
+Opening a fresh WebSocket needs an explicit session policy on the server:
+
+- **New shell:** spawn a fresh PTY and call `terminal.reset()` on the client before streaming output so stale screen state from the previous session is cleared.
+- **Reattaching to a persistent PTY:** replay the server's buffered history (or send a `SIGWINCH` redraw) into the existing terminal.
+
+<Aside type='note' title='Saved viewports are visual only'>
+  `captureViewport()` captures a lightweight visual snapshot for instant first paint, not live
+  emulator state or shell scrollback. Always rely on your server's PTY or replay log to restore a
+  live session.
+</Aside>
+
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Set <code>socket.binaryType = 'arraybuffer'</code> and pass <code>Uint8Array</code> slices
+      directly between the WebSocket and <code>Terminal</code>.
+    </li>
+    <li>
+      Send initial size on socket <code>open</code> and keep it updated through{' '}
+      <code>terminal.onResize</code>.
+    </li>
+    <li>
+      Pace heavy output on the server with <code>bufferedAmount</code>, or use{' '}
+      <code>writeBatched()</code> and worker <code>attachOutputPort()</code> for high-volume
+      streams.
+    </li>
+  </ul>
+</div>

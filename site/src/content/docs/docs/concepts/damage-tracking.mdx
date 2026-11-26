@@ -1,9 +1,27 @@
 ---
-title: Damage tracking
-description: How libghostty-vt dirty state, Zig instance diffing, row reuse, and synchronized output minimize per-frame work.
+title: Per-cell damage tracking
+description: How libghostty-vt dirty flags, Zig instance diffing, row reuse, and DEC mode 2026 minimize per-frame CPU and GPU work.
 ---
 
-Redrawing every cell on every animation frame wastes CPU and GPU bandwidth whenever only a prompt line or cursor moved. `ghostty-webgpu` propagates dirty state from `libghostty-vt` all the way to GPU buffer uploads and Canvas/DOM row updates.
+Redrawing every cell on every animation frame burns CPU and GPU bandwidth when only a prompt line or cursor moved. `ghostty-webgpu` carries dirty state from `libghostty-vt` all the way down to GPU byte-range uploads and Canvas or DOM row updates.
+
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>
+      How dirty state flows from <code>libghostty-vt</code> into <code>bridge.wasm</code> and each
+      renderer
+    </li>
+    <li>
+      Which work each backend skips on idle screens, repeated redraws, scrolls, and single-line
+      edits
+    </li>
+    <li>How DEC mode 2026 synchronized output prevents torn TUI frames</li>
+    <li>How observer APIs expose coherent presented frames</li>
+  </ul>
+</div>
+
+## The damage pipeline
 
 ```text
 write() / resize / setAppearance()
@@ -15,29 +33,52 @@ write() / resize / setAppearance()
    bridge.wasm rebuilds only dirty rows into persistent buffers
                |
                v
-   upload changed byte ranges (WebGPU/WebGL2) or repaint rows (Canvas/DOM)
+   upload changed byte ranges (WebGPU / WebGL2) or repaint rows (Canvas / DOM)
                |
                v
       emit submittedFrame / onFrame / onText
 ```
 
+A container resize, font metric change, theme or palette change, or GPU device restoration triggers a full rebuild so every cell reflects the new geometry or colors. Everything else goes through the incremental path.
+
 ## What each backend skips
 
-- **Idle frames:** when `renderState.update()` reports no damage and neither cursor blink nor text blink changed phase, the renderer skips drawing and submits zero GPU commands.
-- **Repeated identical screens:** if an application rewrites the same characters and styles (for example a TUI redrawing unchanged panels), byte-level comparison against the persistent Zig instance records skips unnecessary uploads. In the November 2026 benchmarks, `repeated-ascii` runs at `0.20x` to `0.36x` the CPU of the best competitor.
-- **Full-viewport scrolling:** both WebGPU and WebGL2 retain physical row slots across full-viewport scrolls and shift them visually via shader row offsets, rebuilding only newly exposed rows (WebGPU disables slot reuse only when glyph instances split across multiple draw batches). Canvas 2D copies unchanged rows in place via `drawImage` self-copy when device row height is integral.
+- **Idle frames:** When `renderState.update()` reports no damage and neither cursor blink nor text blink changed phase, the renderer exits early and submits zero GPU commands.
+- **Repeated identical screens:** When a TUI rewrites unchanged panels with the same characters and styles, byte-level diffing against persistent Zig instance records skips redundant uploads. In the November 2026 benchmarks, `repeated-ascii` runs at `0.20x` to `0.36x` the CPU of the best competitor.
+- **Full-viewport scrolling:** WebGPU and WebGL2 retain physical row slots across full-viewport scrolls and shift them visually via shader row offsets, rebuilding only newly exposed rows. Canvas 2D self-copies unchanged rows via `drawImage` when device row height is integral.
 - **Single-line edits:** Canvas 2D tracks per-row plain-text damage to repaint only the changed horizontal span (plus glyph overhang); GPU backends upload only the modified byte slices of the persistent instance buffer.
-- **Synchronized output (DEC mode 2026):** while an application holds mode 2026 active (`CSI ? 2026 h`), the renderer defers painting until release (`CSI ? 2026 l`) or safety timeout, avoiding half-drawn frames and suppressing Canvas-to-GPU startup swaps mid-frame.
 
-A container resize, font metric change, theme/palette change, or GPU device restoration triggers a full rebuild so every cell reflects the new geometry or colors.
+<details class="deep-dive">
+  <summary>Synchronized output (DEC mode 2026) and startup swaps</summary>
+  <div class="deep-dive__body">
 
-## Coherent snapshots for observers
+Modern TUIs wrap multi-line redraws inside `CSI ? 2026 h` (begin synchronized update) and `CSI ? 2026 l` (end synchronized update). While mode 2026 is active, `ghostty-webgpu` continues parsing incoming bytes into `libghostty-vt` but holds visual presentation until release or safety timeout. That prevents half-drawn frames and also delays any pending Canvas-to-GPU startup swap so the handoff never splits an atomic TUI frame.
 
-Observers that overlay UI on the terminal (such as link hit-testing, accessibility mirrors, or IME caret placement) need text that matches the pixels currently on screen rather than bytes that were just parsed and not yet drawn.
+  </div>
+</details>
 
-- `terminal.submittedFrame` exposes the immutable metadata (`frame`, `nativeRevision`, `grid`, `font`, `padding`, `cursor`, `selection`, `scrollbar`) for the last presented frame.
+## Coherent snapshots for overlays and observers
+
+Overlays such as link hit-testing, screen-reader mirrors, and IME caret placement must match the pixels currently displayed rather than bytes parsed five microseconds ago and not yet painted.
+
+- `terminal.submittedFrame` returns immutable metadata (`frame`, `nativeRevision`, `grid`, `font`, `padding`, `cursor`, `selection`, `scrollbar`) for the last presented frame (see [TerminalSubmittedFrame](https://ghostty.shaulavo.dev/docs/reference/api/interfaces/terminalsubmittedframe/)).
 - `terminal.onFrame(({ rows }) => ...)` fires with the row indices updated in each submitted frame.
-- `terminal.onText(({ frame, rows, rowPatches }) => ...)` delivers text snapshots synchronized with presentation.
-- `terminal.refresh(startRow, endRow)` marks a row range dirty on demand; `terminal.clearTextureAtlas()` flushes cached glyph bitmaps so newly loaded fonts rasterize fresh.
+- `terminal.onText(({ frame, rows, rowPatches }) => ...)` delivers text patches synchronized with presentation.
+- `terminal.refresh(startRow, endRow)` marks a row range dirty on demand, and `terminal.clearTextureAtlas()` flushes cached glyph bitmaps so newly loaded fonts rasterize fresh.
 
-See [TerminalSubmittedFrame](https://ghostty.shaulavo.dev/docs/reference/api/interfaces/terminalsubmittedframe/) in the API reference or review measured costs in [Benchmarks](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/).
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Idle screens submit zero GPU work; partial edits upload only changed byte ranges or row spans.
+    </li>
+    <li>
+      Full-viewport scrolls reuse GPU row slots and Canvas self-copies instead of repainting every
+      row.
+    </li>
+    <li>
+      Read <code>submittedFrame</code>, <code>onFrame</code>, or <code>onText</code> whenever UI
+      overlays need to match what is on screen.
+    </li>
+  </ul>
+</div>

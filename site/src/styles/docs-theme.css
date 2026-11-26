@@ -1,8 +1,7 @@
 /*
- * Starlight in the landing page's look: the tab's scene sets --ground, --surface, --line, --text, --muted, --accent,
- * --accentText and --second, and every part is drawn as ascii.rest draws its frames, trees and buttons.
+ * Starlight themed with the active scene's palette (--ground, --surface, --line, --text, --muted, --accent,
+ * --accentText, --second). Long-form prose uses readable system sans-serif; code, chrome, and diagrams use Paper Mono.
  */
-/* Tokyo rain until the scene's colours arrive, and for readers without script. */
 :root {
   --ground: #07060d;
   --surface: #16151c;
@@ -15,13 +14,14 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* The scene is a night picture in either mode, so both modes take its colours. */
+/* Every scene has a dark ground, so both light and dark OS preferences adopt the scene's dark palette. */
 :root,
 :root[data-theme='light'] {
   color-scheme: dark;
-  --sl-font: 'Paper Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sl-font:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --sl-font-mono: 'Paper Mono', ui-monospace, Menlo, Consolas, monospace;
-  --sl-color-accent-low: color-mix(in oklab, var(--accent) 18%, var(--ground));
+  --sl-color-accent-low: color-mix(in oklab, var(--accent) 16%, var(--ground));
   --sl-color-accent: var(--accent);
   --sl-color-accent-high: color-mix(in oklab, var(--accent) 55%, var(--text));
   --sl-color-white: var(--text);
@@ -43,9 +43,9 @@
   --sl-color-text: var(--text);
   --sl-color-text-accent: var(--accent);
   --sl-color-text-invert: var(--accentText);
-  --sl-text-h1: clamp(1.55rem, 3vw, 2.05rem);
-  --sl-content-width: 48rem;
-  --sl-text-body: 0.94rem;
+  --sl-text-h1: clamp(1.85rem, 3.2vw, 2.35rem);
+  --sl-content-width: 50rem;
+  --sl-text-body: 0.98rem;
   --sl-line-height: 1.72;
 }
 
@@ -55,10 +55,9 @@ body {
 }
 
 header.header {
-  border-bottom: 1px dashed var(--line);
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
 }
 
-/* Header: the wordmark as text, links in brackets. */
 .site-title,
 .site-title:hover {
   color: var(--accent);
@@ -73,9 +72,11 @@ header.header {
 }
 
 site-search button[data-open-modal] {
-  border: 1px dashed var(--line);
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  font-family: var(--sl-font-mono);
+  font-size: 0.84rem;
   transition:
     border-color 150ms var(--ease-out),
     color 150ms var(--ease-out);
@@ -99,20 +100,20 @@ site-search button[data-open-modal] {
   }
 }
 
-/* Sidebar: a file tree. */
+/* Sidebar: clean grouped navigation with monospace section labels. */
 .sidebar-content .group-label .large {
-  font-size: 13px;
+  font-family: var(--sl-font-mono);
+  font-size: 0.74rem;
   font-weight: 600;
-  color: var(--text);
-}
-
-.sidebar-content .group-label .large::after {
-  content: '/';
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
 .sidebar-content ul ul {
-  border-inline-start: 0;
+  border-inline-start: 1px solid color-mix(in oklab, var(--line) 65%, transparent);
+  margin-inline-start: 0.4rem;
+  padding-inline-start: 0.5rem;
 }
 
 .sidebar-content ul ul li {
@@ -121,151 +122,326 @@ site-search button[data-open-modal] {
 }
 
 .sidebar-content ul ul a {
-  border-radius: 0;
-  color: var(--muted);
-  padding-inline-start: 0.4rem;
-  transition: color 140ms var(--ease-out);
-}
-
-.sidebar-content ul ul a::before {
-  content: '├─ ';
-  color: var(--line);
-}
-
-.sidebar-content ul ul li:last-child > a::before {
-  content: '└─ ';
+  border-radius: 4px;
+  color: color-mix(in oklab, var(--text) 74%, var(--ground));
+  font-size: 0.9rem;
+  padding: 0.35rem 0.6rem;
+  transition:
+    color 140ms var(--ease-out),
+    background-color 140ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .sidebar-content a:hover {
-    background: transparent;
+    background: var(--surface);
     color: var(--text);
   }
 }
 
 .sidebar-content a[aria-current='page'] {
-  background: transparent;
+  background: color-mix(in oklab, var(--accent) 14%, var(--ground));
   color: var(--accent);
   font-weight: 600;
 }
 
-.sidebar-content a[aria-current='page']::after {
-  content: ' ◂';
-  color: var(--accent);
-}
-
-/* Headings: ascii.rest panel titles. */
+/* Headings: crisp modern hierarchy with generous vertical rhythm. */
 .sl-markdown-content h1,
 .content-panel h1 {
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.sl-markdown-content .sl-heading-wrapper.level-h2 {
+  font-size: 1.38rem;
+  margin-top: 2.75rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 65%, transparent);
+}
+
+.sl-markdown-content .sl-heading-wrapper.level-h3 {
+  font-size: 1.08rem;
+  margin-top: 1.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.sl-markdown-content h2 {
+  font-size: 1.38rem;
+  font-weight: 650;
   letter-spacing: -0.015em;
   color: var(--text);
 }
 
-/* Starlight sizes the heading's anchor icon from its wrapper, so the wrapper carries the heading's size. */
-.sl-markdown-content .sl-heading-wrapper.level-h2 {
-  font-size: 1.12rem;
-  margin-top: 2.25rem;
-}
-
-.sl-markdown-content .sl-heading-wrapper.level-h3 {
-  font-size: 0.98rem;
-  margin-top: 1.6rem;
-}
-
-.sl-markdown-content h2 {
-  font-size: 1.12rem;
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.sl-markdown-content h2::before {
-  content: '╭─ ';
-  color: var(--line);
-}
-
 .sl-markdown-content h3 {
-  font-size: 0.98rem;
+  font-size: 1.08rem;
   font-weight: 600;
   color: var(--text);
 }
 
-.sl-markdown-content h3::before {
-  content: '── ';
-  color: var(--line);
-}
-
 .content-panel + .content-panel {
-  border-top: 0;
+  border-top: 1px solid color-mix(in oklab, var(--line) 60%, transparent);
 }
 
-.content-panel + .content-panel::before {
-  display: block;
-  content: '· · ─ ─ ──────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────── ─ ─ · ·';
-  overflow: hidden;
-  white-space: nowrap;
-  color: var(--line);
-  margin-bottom: 1.25rem;
+.sl-markdown-content p,
+.sl-markdown-content li {
+  color: color-mix(in oklab, var(--text) 90%, var(--ground));
+}
+
+.sl-markdown-content strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .sl-markdown-content a {
   color: var(--accent);
-  text-decoration: none;
-  transition: color 140ms var(--ease-out);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  text-underline-offset: 0.22em;
+  text-decoration-thickness: 1px;
+  transition:
+    color 140ms var(--ease-out),
+    text-decoration-color 140ms var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .sl-markdown-content a:hover {
-    text-decoration: underline;
-    text-underline-offset: 0.24em;
-    text-decoration-thickness: 1px;
+    text-decoration-color: var(--accent);
   }
 }
 
 .sl-markdown-content hr {
   border: 0;
-  height: 1.4em;
-  overflow: hidden;
-}
-
-.sl-markdown-content hr::before {
-  display: block;
-  content: '· · ─ ─ ──────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────── ─ ─ · ·';
-  text-align: center;
-  white-space: nowrap;
-  color: var(--line);
-}
-
-.sl-markdown-content ul > li::marker {
-  content: '· ';
-  color: var(--accent);
+  border-top: 1px solid color-mix(in oklab, var(--line) 70%, transparent);
+  margin: 2.5rem 0;
 }
 
 .sl-markdown-content :not(pre) > code {
+  font-family: var(--sl-font-mono);
   border: 1px solid color-mix(in oklab, var(--line) 75%, transparent);
-  border-radius: 0;
-  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  padding: 0.12em 0.38em;
   background: var(--surface);
   color: var(--text);
-  font-size: 0.88em;
+  font-size: 0.86em;
 }
 
-/* Tables: dashed rules, like ascii.rest's grids. Keep Starlight's horizontal scroll on narrow screens. */
+/* React-style learning blocks: "You will learn", "Deep Dive", and "Recap". */
+.sl-markdown-content .learn-card {
+  margin: 1.5rem 0 2rem;
+  padding: 1.25rem 1.4rem;
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-top: 2px solid var(--accent);
+  border-radius: 6px;
+}
+
+.sl-markdown-content .learn-card__title {
+  margin: 0 0 0.7rem;
+  font-family: var(--sl-font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.sl-markdown-content .learn-card ul {
+  margin: 0;
+  padding-inline-start: 1.2rem;
+}
+
+.sl-markdown-content .learn-card li {
+  margin-top: 0.35rem;
+}
+
+.sl-markdown-content .learn-card li:first-child {
+  margin-top: 0;
+}
+
+.sl-markdown-content details.deep-dive {
+  margin: 1.6rem 0;
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sl-markdown-content details.deep-dive > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.95rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.7rem;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+  transition: background-color 140ms var(--ease-out);
+}
+
+.sl-markdown-content details.deep-dive > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sl-markdown-content details.deep-dive > summary::before {
+  content: 'DEEP DIVE';
+  display: inline-block;
+  width: auto;
+  height: auto;
+  margin-inline-end: 0;
+  mask: none;
+  -webkit-mask: none;
+  transform: none;
+  font-family: var(--sl-font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, var(--ground));
+  padding: 0.14rem 0.45rem;
+  border-radius: 3px;
+}
+
+.sl-markdown-content details.deep-dive[open] > summary::before {
+  transform: none;
+}
+
+.sl-markdown-content details.deep-dive > summary::after {
+  content: '▸';
+  margin-left: auto;
+  color: var(--muted);
+  font-family: var(--sl-font-mono);
+  transition: transform 150ms var(--ease-out);
+}
+
+.sl-markdown-content details.deep-dive[open] > summary::after {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sl-markdown-content details.deep-dive > summary:hover {
+    background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  }
+}
+
+.sl-markdown-content details.deep-dive > .deep-dive__body {
+  padding: 0 1.25rem 1.2rem;
+  border-top: 1px solid color-mix(in oklab, var(--line) 65%, transparent);
+}
+
+.sl-markdown-content details.deep-dive > .deep-dive__body > :first-child {
+  margin-top: 1rem;
+}
+
+.sl-markdown-content .recap-card {
+  margin: 2.5rem 0 0.5rem;
+  padding: 1.25rem 1.4rem;
+  background: color-mix(in oklab, var(--surface) 75%, var(--ground));
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-radius: 6px;
+}
+
+.sl-markdown-content .recap-card__title {
+  margin: 0 0 0.65rem;
+  font-family: var(--sl-font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.sl-markdown-content .recap-card ul {
+  margin: 0;
+  padding-inline-start: 1.2rem;
+}
+
+.sl-markdown-content .recap-card li {
+  margin-top: 0.35rem;
+}
+
+.sl-markdown-content .recap-card li:first-child {
+  margin-top: 0;
+}
+
+/* Route cards on the overview page. */
+.sl-markdown-content .doc-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 1.5rem 0 2rem;
+}
+
+@media (max-width: 640px) {
+  .sl-markdown-content .doc-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sl-markdown-content .doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.05rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-radius: 6px;
+  text-decoration: none;
+  transition:
+    border-color 150ms var(--ease-out),
+    background-color 150ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+.sl-markdown-content .doc-card__title {
+  font-weight: 650;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.sl-markdown-content .doc-card__desc {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sl-markdown-content .doc-card:hover {
+    border-color: var(--accent);
+    background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+    text-decoration: none;
+  }
+
+  .sl-markdown-content .doc-card:hover .doc-card__title {
+    color: var(--accent);
+  }
+}
+
+.sl-markdown-content .doc-card:active {
+  transform: scale(0.99);
+}
+
+/* Tables */
 .sl-markdown-content table {
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
+  width: 100%;
 }
 
 .sl-markdown-content :is(th, td) {
   border: 0;
-  border-bottom: 1px dashed var(--line);
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 75%, transparent);
   background: transparent;
-  padding: 0.6rem 0.75rem;
+  padding: 0.65rem 0.75rem;
   vertical-align: top;
 }
 
-.sl-markdown-content td code {
-  overflow-wrap: anywhere;
+.sl-markdown-content td:first-child code {
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -273,30 +449,44 @@ site-search button[data-open-modal] {
     display: table;
     width: 100%;
     table-layout: fixed;
-    font-size: 0.82rem;
+    font-size: 0.83rem;
   }
 
   .sl-markdown-content :is(th, td) {
     padding: 0.5rem 0.45rem;
     overflow-wrap: break-word;
   }
+
+  .sl-markdown-content td code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 .sl-markdown-content th {
+  font-family: var(--sl-font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
   text-align: left;
 }
 
-/* Asides: titled boxes. */
+/* Asides: Pitfall, Note, Tip */
 .starlight-aside {
-  border: 1px dashed var(--line);
-  border-inline-start: 2px solid var(--accent);
-  border-radius: 0;
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: 6px;
   background: var(--surface);
+  padding: 1rem 1.2rem;
 }
 
 .starlight-aside__title {
+  font-family: var(--sl-font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--accent);
   font-weight: 600;
 }
@@ -311,9 +501,18 @@ site-search button[data-open-modal] {
   color: var(--second);
 }
 
-/* Contents list and pagination. */
+/* Right TOC and pagination */
+starlight-toc h2 {
+  font-family: var(--sl-font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 starlight-toc a {
   color: var(--muted);
+  font-size: 0.85rem;
   transition: color 140ms var(--ease-out);
 }
 
@@ -323,22 +522,17 @@ starlight-toc a {
   }
 }
 
-/* Starlight marks the current link from script; until it runs, mark Overview as it would at the top. */
 starlight-toc a[aria-current='true'],
 starlight-toc:not(:has([aria-current='true'])) a[href='#_top'] {
   color: var(--accent);
-}
-
-starlight-toc a[aria-current='true']::before,
-starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
-  content: '▸ ';
+  font-weight: 600;
 }
 
 .pagination-links a {
-  border: 1px dashed var(--line);
-  border-radius: 0;
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-radius: 6px;
   box-shadow: none;
-  background: transparent;
+  background: var(--surface);
   transition:
     border-color 150ms var(--ease-out),
     background-color 150ms var(--ease-out),
@@ -348,7 +542,7 @@ starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
 @media (hover: hover) and (pointer: fine) {
   .pagination-links a:hover {
     border-color: var(--accent);
-    background: var(--surface);
+    background: color-mix(in oklab, var(--accent) 6%, var(--surface));
   }
 }
 
@@ -359,21 +553,12 @@ starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
 .pagination-links .link-title {
   color: var(--accent);
   font-size: 0.96rem;
-}
-
-.pagination-links .link-title::before {
-  content: '[ ';
-  color: var(--muted);
-}
-
-.pagination-links .link-title::after {
-  content: ' ]';
-  color: var(--muted);
+  font-weight: 600;
 }
 
 :focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: 3px;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -381,12 +566,16 @@ starlight-toc:not(:has([aria-current='true'])) a[href='#_top']::before {
   .social-icons a,
   .sidebar-content ul ul a,
   .sl-markdown-content a,
+  .sl-markdown-content .doc-card,
+  .sl-markdown-content details.deep-dive > summary,
+  .sl-markdown-content details.deep-dive > summary::after,
   starlight-toc a,
   .pagination-links a {
     transition: none;
   }
 
-  .pagination-links a:active {
+  .pagination-links a:active,
+  .sl-markdown-content .doc-card:active {
     transform: none;
   }
 }

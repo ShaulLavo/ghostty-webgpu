@@ -1,71 +1,111 @@
 ---
 title: Run in a worker
-description: Move libghostty-vt, Zig frame building, and GPU rendering onto an OffscreenCanvas worker or shared worker pool.
-sidebar:
-  order: 3
+description: Move libghostty-vt, Zig frame building, and WebGPU or WebGL2 rendering off the main thread onto an OffscreenCanvas worker.
 ---
 
-import { Code } from '@astrojs/starlight/components'
+import { Aside, Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/worker.ts?raw'
 import poolSample from '../../../../examples/worker-pool.ts?raw'
 
-`ghostty-webgpu/worker` moves escape parsing, native screen state, Zig frame building, and WebGPU or WebGL2 rendering off the main thread onto an `OffscreenCanvas`. The page keeps a lightweight DOM host for focus, keyboard/pointer events, layout, and accessibility.
+Importing `Terminal` from `ghostty-webgpu/worker` moves escape parsing, native screen state, Zig frame building, and WebGPU or WebGL2 rendering off the main thread onto an `OffscreenCanvas`. The page keeps only a lightweight DOM host for focus, keyboard/pointer events, layout, and accessibility.
 
-## When to use worker mode
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>When worker execution helps (and when the main entry is simpler and cheaper)</li>
+    <li>How to mount a worker terminal and supply its required font faces</li>
+    <li>How async worker methods differ from the synchronous main entry</li>
+    <li>
+      How to share workers, GPU devices, and glyph atlases with <code>TerminalWorkerPool</code>
+    </li>
+  </ul>
+</div>
 
-Use the main entry when you have one or a few terminals and want the lowest total whole-browser CPU and synchronous `write()` / `readLines()` calls.
+## When to choose worker mode
+
+Stay on the main entry (`ghostty-webgpu`) when you mount one or a few terminals and want the lowest total whole-browser CPU plus synchronous `write()` and `readLines()`.
 
 Switch to `ghostty-webgpu/worker` when:
 
-- Your UI must stay responsive while multiple terminals stream heavy output.
-- You render many simultaneous terminals (for example 8 to 16 panes) where main-thread parsing would exceed a 16.6 ms frame budget.
-- You want a producer worker to stream PTY bytes directly into the terminal via `attachOutputPort()` without touching the page thread.
+- Your UI must stay smooth while multiple terminals stream heavy output simultaneously.
+- You render many panes at once (for example 8 to 16 terminals) where main-thread parsing would blow past a 16.6 ms frame budget.
+- You want a producer worker to stream PTY bytes directly into the terminal via `attachOutputPort(port)` without touching the page thread.
 
-## 1. Create a worker terminal
+## Mount a worker terminal
 
 <Code code={sample} lang='ts' title='worker.ts' />
 
-Workers do not inherit fonts loaded into the page's `document.fonts`. Pass every font face the worker needs through `fonts` as an absolute URL or `Uint8Array` bytes so the worker can register them in its own `FontFaceSet`, measure exact cell geometry, and rasterize glyphs.
+Workers do not inherit fonts loaded into the page's `document.fonts`. Pass every font face the worker needs through `fonts` as an absolute URL or raw `Uint8Array` bytes so the worker can register them in its own `FontFaceSet`, measure exact cell geometry, and rasterize glyphs.
 
-## 2. Host the worker and WASM assets
+<Aside type='caution' title='Pitfall: relative URLs on nested routes'>
+  Relative paths for `workerUrl`, `assets`, or `fonts` resolve against the browser's current route
+  and break on nested URLs like `/projects/123`. Always pass absolute URLs or bundler-resolved `new
+  URL(..., import.meta.url)` values.
+</Aside>
 
-By default, the worker resolves `ghostty-vt.wasm`, `bridge.wasm`, and the worker bundle relative to the package module. For custom CDN paths or non-root base URLs, pass `assets: { wasm, bridge }` and `workerUrl` explicitly.
+## Asset hosting and CSP
 
-Check your Content Security Policy:
+By default, the worker resolves `ghostty-vt.wasm`, `bridge.wasm`, and the worker bundle relative to the package module. Pass `assets: { wasm, bridge }` and `workerUrl` when serving from a custom CDN or non-root base path.
+
+Check three Content Security Policy requirements:
 
 - `worker-src` must allow `workerUrl`.
 - `script-src` must permit WebAssembly compilation (`'wasm-unsafe-eval'`).
 - Cross-origin font and WASM URLs need matching CORS headers.
 
-Worker mode communicates over `MessagePort` and transferable buffers. `SharedArrayBuffer` and cross-origin isolation (`COOP`/`COEP`) are not required.
+Worker mode communicates over `MessagePort` and transferable buffers, so `SharedArrayBuffer` and cross-origin isolation (`COOP` / `COEP`) are **not** required.
 
-## 3. Await async native operations
+## Async methods and capability boundaries
 
-Because emulator state lives in the worker, operations that read or mutate native state return promises: `write`, `writeln`, `readLines`, `lineCount`, `geometry`, `setAppearance`, `setFont`, `setTheme`, `getSelection`, and `dispose`. Await a write before calling a read that depends on it. Pure DOM operations such as `focus()` and `blur()` stay synchronous.
+Because `libghostty-vt` lives inside the worker, every call that reads or mutates native state returns a promise: `write`, `writeln`, `readLines`, `lineCount`, `geometry`, `setAppearance`, `setFont`, `setTheme`, `getSelection`, and `dispose`. Await a write before calling a read that depends on it. Pure DOM methods like `focus()` and `blur()` remain synchronous.
 
-The worker supports `backend: 'auto' | 'webgpu' | 'webgl'` (no Canvas 2D or DOM backends, and no `presentation: 'immediate'`). Host-side link providers (`registerLinkProvider`) and keyboard link discovery (`focusNextLink`) work over owned row snapshots. Synchronous original-input handlers (`connectInput`) and `ghostty-webgpu/hotkeys` remain main-entry capabilities.
+Worker terminals support `backend: 'auto' | 'webgpu' | 'webgl'`, `registerLinkProvider`, and `focusNextLink`. Main-thread-only capabilities (`connectInput`, `ghostty-webgpu/hotkeys`, `canvas2d-*`, and `presentation: 'immediate'`) reject with a `TerminalWorkerError` whose `code`, `why`, and `fix` properties explain what failed.
 
-## 4. Share workers with `TerminalWorkerPool`
+## Share workers with `TerminalWorkerPool`
 
 Spawning one dedicated worker per terminal duplicates WASM instances, GPU devices, and glyph atlases. Pass a shared `TerminalWorkerPool` when mounting several terminals on one page:
 
 <Code code={poolSample} lang='ts' title='worker-pool.ts' />
 
-How the pool schedules work:
+<details class='deep-dive'>
+  <summary>How TerminalWorkerPool schedules and isolates terminals</summary>
+  <div class='deep-dive__body'>
+    <ul>
+      <li>
+        Spawns one worker per terminal up to <code>workers</code> (default:{' '}
+        <code>min(4, Math.floor(navigator.hardwareConcurrency / 2))</code>), then places additional
+        terminals on the least-loaded worker.
+      </li>
+      <li>
+        Shares a worker only among terminals with identical <code>workerUrl</code> and{' '}
+        <code>fonts</code>.
+      </li>
+      <li>
+        Terminals on the same worker share its GPU device, glyph atlas, and font faces, and shut the
+        worker down once the last terminal disposes.
+      </li>
+      <li>
+        An error in one terminal closes only that terminal; an unrecoverable worker crash fails
+        every terminal leased on that worker.
+      </li>
+    </ul>
+  </div>
+</details>
 
-- Starts one worker per terminal up to `workers` (default: `min(4, Math.floor(navigator.hardwareConcurrency / 2))`), then assigns additional terminals to the least-loaded worker.
-- Shares a worker only among terminals with identical `workerUrl` and `fonts`.
-- Terminals sharing a worker share its GPU device, glyph atlas, and font faces, and shut the worker down once its last terminal disposes.
-- A single terminal error closes only that terminal; an unrecoverable worker crash fails every terminal leased on that worker.
-
-## Troubleshooting
-
-### Worker script or font returns 404
-
-Relative URLs resolve against the current route, which breaks on nested paths. Pass bundler-resolved URLs (`new URL(..., import.meta.url)`) or absolute URLs for `workerUrl`, `assets`, and `fonts`.
-
-### A method rejects with `TerminalWorkerError`
-
-Inspect `error.code`, `error.why`, and `error.fix`. Capability errors (`code: 'capability'`) indicate a main-thread-only feature such as `connectInput`, `canvas2d-*`, or `presentation: 'immediate'`.
-
-Next: [Load fonts and fit the grid](https://ghostty.shaulavo.dev/docs/guides/fonts/) or inspect the [Worker API reference](https://ghostty.shaulavo.dev/docs/reference/worker-api/).
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Always pass explicit <code>fonts</code> (URLs or bytes) to <code>ghostty-webgpu/worker</code>{' '}
+      because workers cannot read <code>document.fonts</code>.
+    </li>
+    <li>
+      Await native operations on the worker entry and watch for <code>TerminalWorkerError</code> on
+      main-thread-only capabilities.
+    </li>
+    <li>
+      Share a single <code>TerminalWorkerPool</code> across multi-pane layouts to pool GPU devices
+      and glyph atlases.
+    </li>
+  </ul>
+</div>

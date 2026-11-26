@@ -1,16 +1,25 @@
 ---
-title: Echo terminal
-description: Interactive terminal running the checked quick-start module with @ghostty-webgpu/line-editor and ghostty-webgpu/hotkeys.
+title: Interactive echo demo
+description: Try ghostty-webgpu live in the browser with local line editing, Ghostty hotkeys, and accessibility enabled.
 ---
 
-Click the terminal below, type a command or line of text, and press Enter. Arrow keys navigate line history, Backspace edits in place, and Ctrl+C cancels the current line. This widget mounts the exact `mountEcho` module checked by CI and introduced in [First terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/).
-
-import EchoTerminal from '../../../../components/EchoTerminal.astro'
 import { Code } from '@astrojs/starlight/components'
+import EchoTerminal from '../../../../components/EchoTerminal.astro'
 import sample from '../../../../examples/quick-start.ts?raw'
+
+Click the terminal below and type a few lines. This widget runs the exact TypeScript module shown underneath, compiled against `ghostty-webgpu`'s built declarations and verified in headless Chromium on every build.
 
 <EchoTerminal />
 
+## Things to try
+
+- **Edit in place:** use Left/Right arrows, Backspace, and Home/End before pressing Enter.
+- **Browse history:** press Up and Down arrows to recall previous lines, or `Ctrl+C` to cancel the current line.
+- **Select and copy:** drag across text to select, then press `Cmd+C` (macOS) or `Ctrl+Shift+C` (Linux/Windows).
+- **Zoom font size:** press `Cmd+=` / `Cmd+-` / `Cmd+0` (or `Ctrl` equivalents on Linux/Windows) and watch the cell grid refit cleanly.
+
+## Source code
+
 <Code code={sample} lang='ts' title='quick-start.ts' />
 
-To swap the local line editor for Bash over a WebSocket, follow [A real shell in the browser](https://ghostty.shaulavo.dev/docs/start/real-shell/) or [Connect to a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/).
+To replace `@ghostty-webgpu/line-editor` with a live Bash session over WebSocket, follow [Connect a real shell](https://ghostty.shaulavo.dev/docs/start/real-shell/).

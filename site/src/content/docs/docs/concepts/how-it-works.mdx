@@ -1,9 +1,24 @@
 ---
-title: The wasm core
-description: How bytes move through unpatched libghostty-vt, the Zig frame builder, and the four browser renderers.
+title: How the WASM core works
+description: How bytes move from a PTY through unpatched libghostty-vt, the Zig frame builder, and four browser renderers.
 ---
 
-`ghostty-webgpu` keeps all terminal semantics inside Ghostty's `libghostty-vt` compiled to WebAssembly without downstream patches. The TypeScript layer owns browser integration: layout measurement, keyboard and pointer input, font rasterization, and GPU/Canvas/DOM submission.
+`ghostty-webgpu` keeps all terminal semantics inside Ghostty's unpatched `libghostty-vt` compiled to WebAssembly. TypeScript handles only browser integration: DOM measurement, keyboard and pointer events, font rasterization, and submitting frames to the GPU, Canvas, or DOM.
+
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>
+      How bytes travel from <code>write()</code> through <code>ghostty-vt.wasm</code> and{' '}
+      <code>bridge.wasm</code> to the screen
+    </li>
+    <li>The four layered APIs from headless core to mounted DOM or worker terminal</li>
+    <li>How the main-thread entry and worker entry divide work across threads</li>
+    <li>The difference between live emulator state and submitted visual frames</li>
+  </ul>
+</div>
+
+## Data flow from bytes to pixels
 
 ```text
 PTY bytes -> libghostty-vt (ghostty-vt.wasm) -> native screen, modes, scrollback
@@ -19,29 +34,55 @@ PTY bytes -> libghostty-vt (ghostty-vt.wasm) -> native screen, modes, scrollback
                   WebGPU / WebGL2
 ```
 
-## One authoritative terminal state
+Every escape sequence, line-wrapping rule, resize reflow, selection coordinate, and Unicode width comes straight from `libghostty-vt`. Because every renderer and every read API inspects that same native state, handing off from Canvas 2D to WebGPU at startup or recovering from a lost GPU device never loses screen text or scrollback.
 
-Every escape sequence, wrapping rule, reflow step, selection coordinate, and Unicode width comes from `libghostty-vt`. Four layers expose that state at increasing levels of browser integration:
+## Four layers of abstraction
 
-1. `GhosttyRuntime` (`ghostty-webgpu/core`): loads and instantiates `ghostty-vt.wasm` and `bridge.wasm` in browser or Node with no DOM globals.
-2. `GhosttyTerminal` (`ghostty-webgpu/core`): headless terminal instance for writing bytes, resizing, reading lines, and querying geometry.
-3. `TerminalSession` (`ghostty-webgpu/core`): adds appearance management, selection history, mouse/key encoding, links, and typed events.
-4. `Terminal` (`ghostty-webgpu` or `ghostty-webgpu/worker`): mounts the DOM host, fits the container synchronously on `open()`, drives focus/IME/pointer/scrollbar/accessibility, and attaches a renderer.
+You can adopt the stack at whichever level fits your environment:
 
-Because every renderer and every query (`readLines`, `getSelection`, accessibility text) reads the same native state, switching from Canvas 2D to WebGPU during startup or recovering from a lost GPU device never loses screen contents.
+1. **`GhosttyRuntime` (`ghostty-webgpu/core`):** loads and instantiates `ghostty-vt.wasm` and `bridge.wasm` in a browser or Node with no DOM globals.
+2. **`GhosttyTerminal` (`ghostty-webgpu/core`):** headless terminal instance for writing bytes, resizing, reading lines, and querying geometry.
+3. **`TerminalSession` (`ghostty-webgpu/core`):** adds appearance management, selection history, mouse and key encoding, link providers, and typed events.
+4. **`Terminal` (`ghostty-webgpu` or `ghostty-webgpu/worker`):** mounts the DOM host, measures and fits the container synchronously during `open()`, wires focus, IME, pointer, scrollbar, and accessibility, and drives the renderer.
 
-The checked-in WASM binary is built from the exact upstream Ghostty commit, Zig compiler version, and hashes recorded in [ghostty-vt.provenance.json](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/ghostty-vt.provenance.json). [ADR 001](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/adr/001-unpatched-pinned-ghostty-core.md) documents why the core stays unpatched.
+<details class="deep-dive">
+  <summary>Why libghostty-vt stays unpatched upstream</summary>
+  <div class="deep-dive__body">
+
+Maintaining a forked VT parser drifts from upstream fixes quickly. The checked-in `ghostty-vt.wasm` binary is compiled cleanly from the exact upstream Ghostty commit, Zig compiler version, and SHA-256 hashes recorded in [ghostty-vt.provenance.json](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/ghostty-vt.provenance.json). See [ADR 001](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/adr/001-unpatched-pinned-ghostty-core.md) for the full rationale.
+
+  </div>
+</details>
 
 ## Main thread vs. worker boundary
 
-- **Main entry (`ghostty-webgpu`):** after async `Terminal.create()` and `open()`, native mutations (`write`, `resize`, `setTheme`, `readLines`) execute synchronously on the page thread. During `open()`, `TerminalHost` computes the initial fit before constructing the renderer so frame one paints at the container's true dimensions.
-- **Worker entry (`ghostty-webgpu/worker`):** runs `libghostty-vt`, `bridge.wasm`, and the WebGPU or WebGL2 renderer inside a dedicated worker (or `TerminalWorkerPool`) bound to an `OffscreenCanvas`. The page sends layout updates and input events over `MessagePort`; the worker sends back compact text-row deltas only for rows whose characters changed.
+- **Main entry (`ghostty-webgpu`):** after async `Terminal.create()` and `open()`, native mutations (`write`, `setTheme`, `readLines`) execute synchronously on the page thread. During `open()`, `TerminalHost` computes the container fit before creating the renderer so frame one lands at the true size.
+- **Worker entry (`ghostty-webgpu/worker`):** runs `libghostty-vt`, `bridge.wasm`, and the WebGPU or WebGL2 renderer inside a dedicated worker (or `TerminalWorkerPool`) bound to an `OffscreenCanvas`. The page forwards layout updates and input over `MessagePort`; the worker sends back compact text-row deltas only for rows whose text changed.
 
 ## Live state vs. submitted frames
 
-`terminal.write()` parses bytes into `libghostty-vt` immediately, while rendering is coalesced onto the scheduler's frame boundary (unless `presentation: 'immediate'` is set).
+`terminal.write()` parses bytes into `libghostty-vt` right away, while painting coalesces onto the scheduler's animation frame (unless `presentation: 'immediate'` is enabled).
 
 - Call `readLines()` when you want the exact emulator buffer right now.
-- Read `visibleLines()`, `submittedFrame`, or subscribe to `onFrame` / `onText` when you want the coherent frame last presented to the user.
+- Read `visibleLines()`, `submittedFrame`, or subscribe to `onFrame` and `onText` when you want the coherent frame last painted to the screen.
 
-Explore the generated classes: [GhosttyRuntime](https://ghostty.shaulavo.dev/docs/reference/api/classes/ghosttyruntime/), [GhosttyTerminal](https://ghostty.shaulavo.dev/docs/reference/api/classes/ghosttyterminal/), [TerminalSession](https://ghostty.shaulavo.dev/docs/reference/api/classes/terminalsession/), and [Terminal](https://ghostty.shaulavo.dev/docs/reference/api/classes/terminal/). Continue with [Damage tracking](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/).
+Explore the generated classes in the API reference: [GhosttyRuntime](https://ghostty.shaulavo.dev/docs/reference/api/classes/ghosttyruntime/), [GhosttyTerminal](https://ghostty.shaulavo.dev/docs/reference/api/classes/ghosttyterminal/), [TerminalSession](https://ghostty.shaulavo.dev/docs/reference/api/classes/terminalsession/), and [Terminal](https://ghostty.shaulavo.dev/docs/reference/api/classes/terminal/).
+
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      One unpatched <code>libghostty-vt</code> instance owns all terminal state across all four
+      renderers.
+    </li>
+    <li>
+      Use <code>ghostty-webgpu/core</code> for headless Node or browser logic,{' '}
+      <code>ghostty-webgpu</code> for main-thread UI, and <code>ghostty-webgpu/worker</code> for
+      off-main-thread rendering.
+    </li>
+    <li>
+      Use <code>readLines()</code> for live buffer state and <code>visibleLines()</code> or{' '}
+      <code>submittedFrame</code> for what is currently on screen.
+    </li>
+  </ul>
+</div>

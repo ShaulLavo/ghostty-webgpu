@@ -11,42 +11,39 @@ interface DocLink {
 export const docsIndex: readonly { readonly title: string; readonly links: readonly DocLink[] }[] =
   [
     {
-      title: 'Start here',
+      title: 'Learn',
       links: [
+        { label: 'Overview', href: docsHref() },
         { label: 'Quick start', href: docsHref('start/quick-start') },
-        { label: 'A real shell in the browser', href: docsHref('start/real-shell') },
-        { label: 'Coming from xterm.js', href: docsHref('start/xterm') },
-        { label: 'Coming from ghostty-web', href: docsHref('start/ghostty-web') },
+        { label: 'Connect a real shell', href: docsHref('start/real-shell') },
+        { label: 'Interactive echo demo', href: docsHref('examples/echo') },
       ],
     },
     {
       title: 'Guides',
       links: [
-        { label: 'Connect to a PTY', href: docsHref('guides/pty') },
-        { label: 'Renderers and fallbacks', href: docsHref('guides/renderers') },
+        { label: 'Wire a PTY', href: docsHref('guides/pty') },
+        { label: 'Renderers & fallbacks', href: docsHref('guides/renderers') },
         { label: 'Run in a worker', href: docsHref('guides/workers') },
-        { label: 'Fonts', href: docsHref('guides/fonts') },
+        { label: 'Fonts & grid sizing', href: docsHref('guides/fonts') },
+      ],
+    },
+    {
+      title: 'Migration & Architecture',
+      links: [
+        { label: 'From xterm.js', href: docsHref('start/xterm') },
+        { label: 'From ghostty-web', href: docsHref('start/ghostty-web') },
+        { label: 'How the WASM core works', href: docsHref('concepts/how-it-works') },
+        { label: 'Damage tracking', href: docsHref('concepts/damage-tracking') },
       ],
     },
     {
       title: 'Reference',
       links: [
+        { label: 'Options', href: docsHref('reference/options') },
         { label: 'ghostty-webgpu', href: docsHref('reference/api'), code: true },
         { label: '/worker', href: docsHref('reference/worker-api'), code: true },
-        { label: 'Options', href: docsHref('reference/options') },
-        { label: 'Config resolver', href: docsHref('reference/config-api') },
-      ],
-    },
-    {
-      title: 'Concepts',
-      links: [
-        { label: 'How it works', href: docsHref('concepts/how-it-works') },
-        { label: 'Damage tracking', href: docsHref('concepts/damage-tracking') },
         { label: 'Benchmarks', href: docsHref('concepts/benchmarks') },
-        {
-          label: 'Correctness',
-          href: 'https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/correctness.md',
-        },
       ],
     },
   ]

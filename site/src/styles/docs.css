@@ -65,8 +65,8 @@
   height: 20rem;
   background: var(--surface);
   color: var(--text);
-  border: 1px dashed var(--line);
-  border-radius: 0;
+  border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+  border-radius: 6px;
   overflow: hidden;
 }
 
