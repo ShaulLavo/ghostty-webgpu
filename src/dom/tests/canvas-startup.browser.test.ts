@@ -1,5 +1,6 @@
 import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import { Terminal } from '../../../dist/index.js'
+import { CanvasTerminalRenderer } from '../../../dist/render/canvas/renderer.js'
 import { WebGlTerminalRenderer } from '../../../dist/render/webgl/renderer.js'
 import { WebGpuTerminalRenderer } from '../../../dist/render/webgpu/renderer.js'
 
@@ -74,6 +75,19 @@ function visiblePixelDifference(
     }
   }
   return maxDelta
+}
+
+function holdCanvas() {
+  const gate = Promise.withResolvers<void>()
+  onTestFinished(() => gate.resolve())
+  const create = CanvasTerminalRenderer.create.bind(CanvasTerminalRenderer)
+  return {
+    release: gate.resolve,
+    create: vi.spyOn(CanvasTerminalRenderer, 'create').mockImplementation(async (options) => {
+      await gate.promise
+      return create(options)
+    }),
+  }
 }
 
 function holdWebGl() {
@@ -450,4 +464,83 @@ it('wakes GPU handoff when the host intercepts a modified link click', async () 
   )
   await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
   expect(activated).toEqual([])
+})
+
+function nextAnimationFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
+}
+
+it('opens already fitted so the first frame and GPU handoff never flash an 80x24 canvas', async () => {
+  const host = document.createElement('div')
+  host.style.cssText = 'width:960px;height:320px'
+  document.body.append(host)
+  cleanups.push(() => host.remove())
+
+  const startup = holdCanvas()
+  const gpu = holdWebGl()
+
+  const terminal = await Terminal.create({
+    rendererMode: 'webgl2',
+    appearance: {
+      cursor: { blink: false },
+      font: { family: 'monospace', size: 6, lineHeight: 0.75 },
+    },
+    fitEnvironment: { getPixelRatio: () => 1 },
+    renderWhenOffscreen: true,
+    scrollbar: false,
+  })
+  cleanups.push(() => terminal.dispose())
+
+  const frameSizes: Array<{ width: number; height: number }> = []
+  terminal.onFrame(() => {
+    const live = terminal.canvas
+    if (!live) return
+    const rect = live.getBoundingClientRect()
+    frameSizes.push({ width: Math.round(rect.width), height: Math.round(rect.height) })
+  })
+
+  const startupRects: Array<{ width: number; height: number }> = []
+  const sampleLiveRect = (): void => {
+    const live = host.querySelector<HTMLCanvasElement>('.ghostty-webgpu-canvas')
+    if (!live) return
+    const rect = live.getBoundingClientRect()
+    startupRects.push({ width: Math.round(rect.width), height: Math.round(rect.height) })
+  }
+
+  const opening = terminal.open(host)
+  await expect.poll(() => startup.create.mock.calls.length).toBe(1)
+  await nextAnimationFrame()
+  sampleLiveRect()
+  await nextAnimationFrame()
+  sampleLiveRect()
+
+  startup.release()
+  await opening
+
+  const expected = terminal.appearance.grid
+  expect(expected.columns).toBeGreaterThan(100)
+  expect(expected.rows).toBeGreaterThan(30)
+
+  const expectedWidth = Math.round(expected.columns * expected.cellWidth)
+  const expectedHeight = Math.round(expected.rows * expected.cellHeight)
+  expect(expectedWidth).toBeGreaterThan(900)
+  expect(expectedHeight).toBeGreaterThan(300)
+
+  terminal.write(`${hideCursor}${'#'.repeat(expected.columns)}`)
+  await expect.poll(() => frameSizes.length).toBeGreaterThan(0)
+  expect(terminal.diagnostics.rendererBackend).toBe('canvas2d')
+  sampleLiveRect()
+
+  gpu.release()
+  await expect.poll(() => terminal.diagnostics.rendererBackend).toBe('webgl2')
+  sampleLiveRect()
+
+  expect(startupRects.length).toBeGreaterThanOrEqual(4)
+  for (const rect of startupRects) {
+    expect(rect).toEqual({ width: expectedWidth, height: expectedHeight })
+  }
+  expect(frameSizes.length).toBeGreaterThan(0)
+  for (const rect of frameSizes) {
+    expect(rect).toEqual({ width: expectedWidth, height: expectedHeight })
+  }
 })

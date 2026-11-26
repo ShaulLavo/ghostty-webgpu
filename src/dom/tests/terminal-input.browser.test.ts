@@ -1507,34 +1507,37 @@ describe('Terminal DOM host', () => {
     await terminal.open(host)
     const renderer = recording.renderer!
     renderer.onResize = () => order.push('renderer')
-    await animationFrames(3)
     expect(sizes).toHaveLength(1)
-    expect(renderer.resizes).toHaveLength(1)
-    expect(renderer.resizes[0]).toMatchObject({
+    expect(renderer.resizes).toHaveLength(0)
+    expect(recording.options).toMatchObject({
       columns: sizes[0]!.cols,
       rows: sizes[0]!.rows,
     })
-    expect(renderer.notifications.indexOf('resize')).toBeLessThan(
-      renderer.notifications.indexOf('schedule'),
-    )
     const scrollbar = host.querySelector<HTMLElement>('[role="scrollbar"]')
     expect(scrollbar?.style.width).toBe('1px')
     const root = host.querySelector<HTMLElement>('.ghostty-webgpu')
-    const initialGrid = renderer.resizes[0]!
     const fitted = renderer.fonts.at(-1) ?? recording.options!.font
     const reservedColumns = Math.max(
       2,
       Math.floor((root!.clientWidth - 4 - 5 - 1) / fitted.cssCellWidth),
     )
-    expect(initialGrid.columns).toBe(reservedColumns)
+    expect(recording.options!.columns).toBe(reservedColumns)
+    await animationFrames(3)
+    expect(sizes).toHaveLength(1)
+    expect(renderer.resizes).toHaveLength(0)
 
     const previousResizeCount = sizes.length
+    const previousRendererResizes = renderer.resizes.length
+    order.length = 0
     host.style.width = '330px'
     host.style.width = '340px'
     host.style.width = '350px'
     await animationFrames(3)
     expect(sizes).toHaveLength(previousResizeCount + 1)
-    expect(renderer.resizes).toHaveLength(previousResizeCount + 1)
+    expect(renderer.resizes).toHaveLength(previousRendererResizes + 1)
+    expect(renderer.notifications.indexOf('resize')).toBeLessThan(
+      renderer.notifications.indexOf('schedule'),
+    )
 
     const unchangedCount = sizes.length
     window.dispatchEvent(new Event('resize'))
@@ -1547,7 +1550,7 @@ describe('Terminal DOM host', () => {
     expect(terminal.appearance.grid.pixelRatio).toBe(2)
     expect(scrollbar?.style.width).toBe('0.5px')
     expect(sizes).toHaveLength(unchangedCount + 1)
-    expect(order).toEqual(Array.from({ length: sizes.length }, () => ['renderer', 'event']).flat())
+    expect(order).toEqual(['renderer', 'event', 'renderer', 'event'])
 
     const disposedResizeCount = sizes.length
     terminal.dispose()
@@ -1622,5 +1625,138 @@ describe('Terminal DOM host', () => {
     expect(() => terminal.write('\u001b]0;dispose now\u0007')).not.toThrow()
     expect(terminal.lifecycle).toBe('disposed')
     expect(host.querySelector('.ghostty-webgpu')).toBeNull()
+  })
+
+  it('suppresses queued startup resize and appearance when an open listener resizes the session', async () => {
+    const session = await TerminalSession.create<Event>({ runtime: { kind: 'borrowed', runtime } })
+    const terminal = createGhosttyWebGpuTerminalFromSession(session, {
+      fitEnvironment: { getPixelRatio: () => 1 },
+      rendererFactory: recordingRendererFactory({}),
+      scrollbar: false,
+    })
+    terminals.push(terminal)
+    const host = trackedHost(420, 180)
+    const sizes: { cols: number; rows: number }[] = []
+    const appearanceGrids: { cols: number; rows: number }[] = []
+    terminal.onResize((size) => sizes.push(size))
+    terminal.on('appearance', (appearance) =>
+      appearanceGrids.push({ cols: appearance.grid.columns, rows: appearance.grid.rows }),
+    )
+    terminal.on('open', () => {
+      const current = terminal.appearance.grid
+      session.resize({ ...current, columns: 19, rows: 7 })
+    })
+
+    await terminal.open(host)
+    expect(sizes).toEqual([{ cols: 19, rows: 7 }])
+    expect(appearanceGrids).toEqual([{ cols: 19, rows: 7 }])
+  })
+
+  it('restores the fitted grid when inputReady resizes a caller-supplied session', async () => {
+    const session = await TerminalSession.create<Event>({ runtime: { kind: 'borrowed', runtime } })
+    let fittedColumns = 0
+    let fittedRows = 0
+    const terminal = createGhosttyWebGpuTerminalFromSession(session, {
+      fitEnvironment: { getPixelRatio: () => 1 },
+      inputHooks: {
+        inputReady: () => {
+          fittedColumns = session.grid.columns
+          fittedRows = session.grid.rows
+          session.resize({ ...session.grid, columns: 17, rows: 5 })
+        },
+      },
+      rendererFactory: recordingRendererFactory({}),
+      scrollbar: false,
+    })
+    terminals.push(terminal)
+    const host = trackedHost(420, 180)
+    const sizes: { cols: number; rows: number }[] = []
+    terminal.onResize((size) => sizes.push(size))
+
+    await terminal.open(host)
+    expect(fittedColumns).toBeGreaterThan(17)
+    expect(fittedRows).toBeGreaterThan(5)
+    expect(terminal.appearance.grid.columns).toBe(fittedColumns)
+    expect(terminal.appearance.grid.rows).toBe(fittedRows)
+    expect(sizes).toEqual([{ cols: fittedColumns, rows: fittedRows }])
+  })
+
+  it('preserves unrounded CSS padding from precreated elements across DPR changes', async () => {
+    const host = trackedHost(360, 180)
+    const elements = createTerminalElements(host)
+    elements.canvas.style.padding = '4.4px'
+    const session = await TerminalSession.create<Event>({ runtime: { kind: 'borrowed', runtime } })
+    let pixelRatio = 1
+    let notifyPixelRatio = () => {}
+    const terminal = createGhosttyWebGpuTerminalFromSession(session, {
+      elements,
+      fitEnvironment: {
+        getPixelRatio: () => pixelRatio,
+        subscribePixelRatio: (callback) => {
+          notifyPixelRatio = callback
+          return () => {
+            notifyPixelRatio = () => {}
+          }
+        },
+      },
+      rendererFactory: recordingRendererFactory({}),
+      scrollbar: false,
+    })
+    terminals.push(terminal)
+
+    await terminal.open(host)
+    expect(elements.padding).toEqual({ bottom: 4, left: 4, right: 4, top: 4 })
+
+    pixelRatio = 2
+    notifyPixelRatio()
+    await animationFrames(2)
+    expect(elements.padding).toEqual({ bottom: 4.5, left: 4.5, right: 4.5, top: 4.5 })
+  })
+
+  it('cancels a frame enqueued synchronously by subscribePixelRatio during startup', async () => {
+    const scheduledHandles: number[] = []
+    const cancelledHandles: number[] = []
+    let openObservation:
+      | {
+          readonly cancelled: readonly number[]
+          readonly hasPendingFrame: boolean
+          readonly scheduled: readonly number[]
+        }
+      | undefined
+    const terminal = await trackedTerminal({
+      fitEnvironment: {
+        cancelFrame: (handle) => {
+          cancelledHandles.push(handle)
+          cancelAnimationFrame(handle)
+        },
+        getPixelRatio: () => 1,
+        requestFrame: (callback) => {
+          const handle = requestAnimationFrame(callback)
+          scheduledHandles.push(handle)
+          return handle
+        },
+        subscribePixelRatio: (callback) => {
+          callback()
+          return () => {}
+        },
+      },
+      rendererFactory: recordingRendererFactory({}),
+      scrollbar: false,
+    })
+    // Sample synchronously during `open` before `document.fonts.ready` microtasks can schedule a follow-up fit.
+    terminal.on('open', () => {
+      openObservation = {
+        cancelled: cancelledHandles.slice(),
+        hasPendingFrame: terminal.hasPendingFrame,
+        scheduled: scheduledHandles.slice(),
+      }
+    })
+    const host = trackedHost(320, 140)
+
+    await terminal.open(host)
+    expect(openObservation).toBeDefined()
+    expect(openObservation!.scheduled).toHaveLength(1)
+    expect(openObservation!.cancelled).toEqual(openObservation!.scheduled)
+    expect(openObservation!.hasPendingFrame).toBe(false)
   })
 })

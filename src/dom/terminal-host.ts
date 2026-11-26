@@ -71,15 +71,19 @@ import {
 import { createDomClipboardPolicyAdapter, writeUserSelectionToClipboard } from './clipboard.js'
 import {
   createTerminalElements,
+  type TerminalElementPadding,
   type TerminalElements,
   type TerminalElementsOptions,
 } from './elements.js'
 import {
   createTerminalFitController,
   fitTerminalFont,
+  gridEquals,
+  measureTerminalFit,
   terminalPixelRatio,
   type TerminalFitController,
   type TerminalFitEnvironment,
+  type TerminalFitMeasurementResult,
   type TerminalFitResult,
 } from './fit.js'
 import { observeFontResources } from './font-resources.js'
@@ -330,6 +334,10 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   private layoutCommitted = false
   private readonly padding
   private readonly pendingEvents: (() => void)[] = []
+  private pendingAppearance?: GhosttyWebGpuTerminalEventMap['appearance']
+  private pendingAppearanceToken = 0
+  private pendingResize?: GhosttyWebGpuTerminalEventMap['resize']
+  private pendingResizeToken = 0
   private pointer?: TerminalPointerController
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
@@ -582,10 +590,11 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     try {
       const elements = this.installElements(parent)
       applyRootBackground(elements.root, this.execution.appearance)
-      if (this.execution.kind === 'async') this.subscribeToSession()
+      this.subscribeToSession()
       if (this.bidi) this.bidiMapper = await loadBidiMapper()
+      const initialFit = this.prepareInitialFit(elements)
       const initialAppearance = this.execution.appearance
-      renderer = await this.createRenderer(elements, initialAppearance)
+      renderer = await this.createRenderer(elements, initialAppearance, initialFit?.result)
       if (!this.isOpening(generation)) {
         const staleRenderer = renderer
         renderer = undefined
@@ -600,12 +609,17 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       this.reconcileRendererAppearance(elements, initialAppearance)
       this.setDocumentVisible(elements.root.ownerDocument.visibilityState !== 'hidden')
       this.installVisibility(elements)
-      if (this.execution.kind === 'sync') this.subscribeToSession()
       this.installAccessibility(elements)
-      this.installScrollbar(elements)
+      this.installScrollbar(elements, initialFit?.result.scrollbarWidth)
       this.installInput(elements)
       this.inputHooks?.inputReady?.()
-      this.installFit(elements)
+      const initialFitResult =
+        initialFit &&
+        this.execution.appearance === initialAppearance &&
+        gridEquals(this.execution.grid, initialFit.result.grid)
+          ? initialFit.result
+          : undefined
+      this.installFit(elements, initialFitResult, initialFit?.desiredPadding)
       this.cleanup.add(() => this.disposeCanvasControllers())
       this.installPointer(elements)
       this.installLinks(elements)
@@ -1020,6 +1034,10 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.writeQueue.dispose()
     this.nextGeneration()
     this.pendingEvents.length = 0
+    this.pendingAppearance = undefined
+    this.pendingAppearanceToken += 1
+    this.pendingResize = undefined
+    this.pendingResizeToken += 1
     this.pendingText.length = 0
     this.outputTimingTracker?.dispose()
     this.outputTimingTracker = undefined
@@ -1074,9 +1092,32 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     return elements
   }
 
+  private prepareInitialFit(elements: TerminalElements): TerminalFitMeasurementResult | undefined {
+    if (this.execution.kind !== 'sync' || !this.autoFit) return undefined
+    const measured = measureTerminalFit({
+      container: elements.root,
+      environment: this.fitEnvironment,
+      font: this.execution.appearance.font,
+      getScrollbarWidth: () => this.scrollbarWidthValue,
+      padding: this.padding,
+      paddingElement: elements.canvas,
+    })
+    if (!measured) return undefined
+    const { result } = measured
+    elements.setPadding(result.padding)
+    elements.canvas.style.width = `${result.grid.columns * result.font.cssCellWidth}px`
+    elements.canvas.style.height = `${result.grid.rows * result.font.cssCellHeight}px`
+    this.execution.commitLayout(result.font, result.padding)
+    this.fittedFont = result.font
+    this.layoutCommitted = true
+    this.execution.resize(result.grid)
+    return measured
+  }
+
   private async createRenderer(
     elements: TerminalElements,
     appearance: TerminalAppearance,
+    initialFit?: TerminalFitResult,
   ): Promise<GhosttyWebGpuRenderer | undefined> {
     if (this.execution.kind === 'async') {
       if (this.rendererMode && this.rendererMode !== 'auto')
@@ -1108,11 +1149,13 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     const rendererFactory = this.rendererFactory
     if (!rendererFactory) throw new Error('Local terminal requires a renderer factory')
     const grid = appearance.grid
-    const font = fitTerminalFont(
-      elements.canvas.ownerDocument,
-      appearance.font,
-      terminalPixelRatio(elements.canvas, this.fitEnvironment),
-    )
+    const font =
+      initialFit?.font ??
+      fitTerminalFont(
+        elements.canvas.ownerDocument,
+        appearance.font,
+        terminalPixelRatio(elements.canvas, this.fitEnvironment),
+      )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
     this.updatePreeditAppearance(font, appearance.rendererTheme)
@@ -1386,7 +1429,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     return true
   }
 
-  private installScrollbar(elements: TerminalElements): void {
+  private installScrollbar(elements: TerminalElements, initialWidth?: number): void {
     const options = this.scrollbarOptions
     // These capture listeners also focus input on canvas presses, so they stay without a scrollbar.
     if (options === false) return this.installScrollbarFirstRefusal(elements)
@@ -1399,7 +1442,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       root: elements.root,
       signal: elements.signal,
       snapshot: this.execution.scrollbar,
-      width: this.scrollbarWidthValue,
+      width: initialWidth ?? this.scrollbarWidthValue,
     })
     this.scrollbar = scrollbar
     this.cleanup.add(() => scrollbar.dispose())
@@ -1492,7 +1535,11 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.cleanup.add(() => lifecycle.dispose())
   }
 
-  private installFit(elements: TerminalElements): void {
+  private installFit(
+    elements: TerminalElements,
+    initialFit?: TerminalFitResult,
+    initialDesiredPadding?: TerminalElementPadding,
+  ): void {
     if (this.execution.kind === 'async') {
       const execution = this.execution
       let identity = 1
@@ -1534,8 +1581,9 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       environment: this.fitEnvironment,
       font: this.execution.appearance.font,
       getScrollbarWidth: () => this.scrollbarWidthValue,
+      initialResult: initialFit,
       onFit: (result) => this.applyFit(result),
-      padding: this.padding,
+      padding: this.padding ?? initialDesiredPadding,
       paddingElement: elements.canvas,
       signal: elements.signal,
     })
@@ -2168,12 +2216,50 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   ): void {
     const emitter = this.emitters[type] as EventEmitter<GhosttyWebGpuTerminalEventMap[TType]>
     if (this.stateValue === 'open') {
+      if (type === 'appearance') {
+        this.pendingAppearance = undefined
+        this.pendingAppearanceToken += 1
+      }
+      if (type === 'resize') {
+        this.pendingResize = undefined
+        this.pendingResizeToken += 1
+      }
       emitter.emit(event)
       if (this.stateValue === 'open') this.extensionDispatch.events[type]?.(event)
       return
     }
     if (this.stateValue !== 'opening') return
+    if (type === 'appearance') {
+      this.pendingAppearance = event as GhosttyWebGpuTerminalEventMap['appearance']
+      const token = ++this.pendingAppearanceToken
+      this.pendingEvents.push(() => this.flushPendingAppearance(token))
+      return
+    }
+    if (type === 'resize') {
+      this.pendingResize = event as GhosttyWebGpuTerminalEventMap['resize']
+      const token = ++this.pendingResizeToken
+      this.pendingEvents.push(() => this.flushPendingResize(token))
+      return
+    }
     this.pendingEvents.push(() => this.emitHostEvent(type, event))
+  }
+
+  private flushPendingAppearance(token: number): void {
+    if (token !== this.pendingAppearanceToken) return
+    const appearance = this.pendingAppearance
+    this.pendingAppearance = undefined
+    if (!appearance || this.execution.appearance !== appearance) return
+    this.emitHostEvent('appearance', appearance)
+  }
+
+  private flushPendingResize(token: number): void {
+    if (token !== this.pendingResizeToken) return
+    const resize = this.pendingResize
+    this.pendingResize = undefined
+    if (!resize) return
+    const grid = this.execution.grid
+    if (grid.columns !== resize.cols || grid.rows !== resize.rows) return
+    this.emitHostEvent('resize', resize)
   }
 
   private flushPendingEvents(): void {

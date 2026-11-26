@@ -16,7 +16,7 @@ export const nativeSourceHashes = {
   'atlas-registry': 'a83e3be81d52bb63d1174963720a6aec96e4adcd937f3d80c7889372d7685e67',
   'gpu-textures': '36d97f545cd9c4df0da5173519905fa0202940e3b39bd220f71fa0c60bb2db40',
   'displayed-frame-boundaries': 'df5f3a6ac14222cb76cc7322af05f0a74f2fecba306597d2ce75b5cd844976dc',
-  'canvas-image': 'ead9ed76c4b5579202883e57c9f4d0eddf4596703d87fe3ca1411afb8e8c0ab5',
+  'canvas-image': '0f996263395c91f353bddb753170cf2f22744337444c1bfd74dff58953e904a4',
   'selection-worker-ownership': '04967ecf3e1216ab7fbd01ac22ffc501f4d3cb19a7877c8f67c2d5e0733529ff',
   'glyph-fidelity': '3ce593ef9b04763ab23567d82fd8f45affdacc7aee086d3ee87a7a7e25cf4226',
   'worker-write-queue': '88ffb67c4b60da4185d9cca4e67a97779ec7cdcd135f3ad9475b7b7f55c53fc9',
