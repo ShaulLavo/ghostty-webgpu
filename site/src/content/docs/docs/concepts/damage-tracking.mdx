@@ -25,18 +25,21 @@ Redrawing every cell on every animation frame burns CPU and GPU bandwidth when o
 
 ```text
 write() / resize / setAppearance()
-               |
-               v
-   libghostty-vt dirty flags (false / partial / full)
-               |
-               v
-   bridge.wasm rebuilds only dirty rows into persistent buffers
-               |
-               v
-   upload changed byte ranges (WebGPU / WebGL2) or repaint rows (Canvas / DOM)
-               |
-               v
-      emit submittedFrame / onFrame / onText
+  |
+  v
+libghostty-vt dirty flags
+  (false / partial / full)
+  |
+  v
+bridge.wasm rebuilds dirty rows
+  into persistent cell & glyph buffers
+  |
+  v
+Upload changed byte ranges (WebGPU/WebGL2)
+  or repaint dirty rows (Canvas 2D / DOM)
+  |
+  v
+Emit submittedFrame / onFrame / onText
 ```
 
 A container resize, font metric change, theme or palette change, or GPU device restoration triggers a full rebuild so every cell reflects the new geometry or colors. Everything else goes through the incremental path.

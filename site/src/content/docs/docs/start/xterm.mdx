@@ -72,13 +72,13 @@ Generated from a type-checked registry: every method in the middle column is ver
   <tbody>
     {migration.map(([before, after, behavior]) => (
       <tr>
-        <td>
+        <td data-label='xterm.js'>
           <code>{before}</code>
         </td>
-        <td>
+        <td data-label='ghostty-webgpu'>
           <code>{after}</code>
         </td>
-        <td>{behavior}</td>
+        <td data-label='Behavior'>{behavior}</td>
       </tr>
     ))}
   </tbody>

@@ -34,7 +34,7 @@
   --sl-color-gray-7: var(--surface);
   --sl-color-black: var(--ground);
   --sl-color-bg: var(--ground);
-  --sl-color-bg-nav: color-mix(in oklab, var(--ground) 92%, transparent);
+  --sl-color-bg-nav: var(--ground);
   --sl-color-bg-sidebar: var(--ground);
   --sl-color-bg-inline-code: var(--surface);
   --sl-color-hairline: var(--line);
@@ -55,7 +55,35 @@ body {
 }
 
 header.header {
+  background: var(--ground);
   border-bottom: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+}
+
+starlight-menu-button button,
+nav.sidebar > button,
+button[popovertarget='starlight__sidebar'] {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+mobile-starlight-toc nav {
+  background: var(--ground);
+  border-bottom: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
+}
+
+mobile-starlight-toc .toggle {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+mobile-starlight-toc .dropdown {
+  background: var(--ground);
+  border-top: 1px solid color-mix(in oklab, var(--line) 80%, transparent);
 }
 
 .site-title,
@@ -273,9 +301,9 @@ site-search button[data-open-modal] {
   cursor: pointer;
   padding: 0.95rem 1.25rem;
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.45rem 0.7rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.7rem;
   font-weight: 600;
   color: var(--text);
   user-select: none;
@@ -288,6 +316,7 @@ site-search button[data-open-modal] {
 
 .sl-markdown-content details.deep-dive > summary::before {
   content: 'DEEP DIVE';
+  flex-shrink: 0;
   display: inline-block;
   width: auto;
   height: auto;
@@ -311,6 +340,7 @@ site-search button[data-open-modal] {
 
 .sl-markdown-content details.deep-dive > summary::after {
   content: '▸';
+  flex-shrink: 0;
   margin-left: auto;
   color: var(--muted);
   font-family: var(--sl-font-mono);
@@ -427,6 +457,7 @@ site-search button[data-open-modal] {
 
 /* Tables */
 .sl-markdown-content table {
+  display: table;
   border-collapse: collapse;
   font-size: 0.9rem;
   width: 100%;
@@ -445,21 +476,78 @@ site-search button[data-open-modal] {
 }
 
 @media (max-width: 640px) {
-  .sl-markdown-content table {
-    display: table;
+  .sl-markdown-content table:has(td[data-label]) {
+    display: block;
     width: 100%;
-    table-layout: fixed;
-    font-size: 0.83rem;
+    font-size: 0.92rem;
   }
 
-  .sl-markdown-content :is(th, td) {
-    padding: 0.5rem 0.45rem;
+  .sl-markdown-content table:has(td[data-label]) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .sl-markdown-content table:has(td[data-label]) tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .sl-markdown-content table:has(td[data-label]) tr {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    border: 1px solid color-mix(in oklab, var(--line) 85%, transparent);
+    border-radius: 6px;
+  }
+
+  .sl-markdown-content table:has(td[data-label]) td {
+    display: block;
+    padding: 0;
+    border: 0;
+    min-width: 0;
     overflow-wrap: break-word;
   }
 
-  .sl-markdown-content td code {
+  .sl-markdown-content table:has(td[data-label]) td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.2rem;
+    font-family: var(--sl-font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .sl-markdown-content table:has(td[data-label]) td code,
+  .sl-markdown-content table:has(td[data-label]) td:first-child code {
     white-space: normal;
     overflow-wrap: anywhere;
+  }
+
+  .sl-markdown-content table:not(:has(td[data-label])) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  .sl-markdown-content .learn-card,
+  .sl-markdown-content .recap-card {
+    padding: 1rem 1.05rem;
+  }
+
+  .sl-markdown-content details.deep-dive > summary {
+    padding: 0.85rem 1rem;
+  }
+
+  .sl-markdown-content details.deep-dive > .deep-dive__body {
+    padding: 0 1rem 1rem;
   }
 }
 

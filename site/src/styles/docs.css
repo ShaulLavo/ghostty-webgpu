@@ -21,42 +21,9 @@
   color: var(--shiki-dark) !important;
 }
 
-@media (max-width: 600px) {
-  .sl-markdown-content .migration-comparison {
-    width: 100%;
-  }
-
-  .sl-markdown-content .migration-comparison thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  .sl-markdown-content .migration-comparison tbody,
-  .sl-markdown-content .migration-comparison tr,
+@media (max-width: 640px) {
   .sl-markdown-content .migration-comparison td {
-    display: block;
-  }
-
-  .sl-markdown-content .migration-comparison td {
-    padding: 0.65rem 0;
-    border: 0;
     overflow-x: auto;
-  }
-
-  .sl-markdown-content .migration-comparison tr {
-    border-bottom: 1px dashed var(--line);
-    padding: 0.35rem 0;
-  }
-
-  .sl-markdown-content .migration-comparison td::before {
-    content: attr(data-label);
-    display: block;
-    margin-bottom: 0.25rem;
-    color: var(--muted);
-    font-size: 0.75rem;
   }
 }
 

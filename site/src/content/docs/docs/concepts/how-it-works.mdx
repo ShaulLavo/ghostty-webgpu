@@ -21,17 +21,17 @@ description: How bytes move from a PTY through unpatched libghostty-vt, the Zig 
 ## Data flow from bytes to pixels
 
 ```text
-PTY bytes -> libghostty-vt (ghostty-vt.wasm) -> native screen, modes, scrollback
-                                                       |
-                                           render-state damage flags
-                                                       |
-                           +---------------------------+---------------------------+
-                           v                                                       v
-               Zig frame builder (bridge.wasm)                       Direct row reader
-               persistent cell & glyph records                    (Canvas 2D / DOM surface)
-                           |
-                           v
-                  WebGPU / WebGL2
+PTY bytes
+  |
+  v
+libghostty-vt (ghostty-vt.wasm)
+  screen, modes, scrollback, damage flags
+  |
+  +---> bridge.wasm (Zig frame builder)
+  |       -> WebGPU / WebGL2
+  |
+  +---> Direct row reader
+          -> Canvas 2D / DOM
 ```
 
 Every escape sequence, line-wrapping rule, resize reflow, selection coordinate, and Unicode width comes straight from `libghostty-vt`. Because every renderer and every read API inspects that same native state, handing off from Canvas 2D to WebGPU at startup or recovering from a lost GPU device never loses screen text or scrollback.
