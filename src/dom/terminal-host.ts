@@ -1094,14 +1094,27 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   private prepareInitialFit(elements: TerminalElements): TerminalFitMeasurementResult | undefined {
     if (this.execution.kind !== 'sync' || !this.autoFit) return undefined
-    const measured = measureTerminalFit({
-      container: elements.root,
-      environment: this.fitEnvironment,
-      font: this.execution.appearance.font,
-      getScrollbarWidth: () => this.scrollbarWidthValue,
-      padding: this.padding,
-      paddingElement: elements.canvas,
-    })
+    // Keep an uninitialized <canvas> (default 300x150) from inflating a height:auto host during open.
+    const previousPosition = elements.canvas.style.getPropertyValue('position')
+    const previousPositionPriority = elements.canvas.style.getPropertyPriority('position')
+    elements.canvas.style.setProperty('position', 'absolute', 'important')
+    let measured: TerminalFitMeasurementResult | undefined
+    try {
+      measured = measureTerminalFit({
+        container: elements.root,
+        environment: this.fitEnvironment,
+        font: this.execution.appearance.font,
+        getScrollbarWidth: () => this.scrollbarWidthValue,
+        padding: this.padding,
+        paddingElement: elements.canvas,
+      })
+    } finally {
+      if (previousPosition) {
+        elements.canvas.style.setProperty('position', previousPosition, previousPositionPriority)
+      } else {
+        elements.canvas.style.removeProperty('position')
+      }
+    }
     if (!measured) return undefined
     const { result } = measured
     elements.setPadding(result.padding)

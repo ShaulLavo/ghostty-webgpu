@@ -1759,4 +1759,26 @@ describe('Terminal DOM host', () => {
     expect(openObservation!.cancelled).toEqual(openObservation!.scheduled)
     expect(openObservation!.hasPendingFrame).toBe(false)
   })
+
+  it('does not fit a height:auto host against the browser default 300x150 canvas size', async () => {
+    const recording: RendererRecording = {}
+    const terminal = await trackedTerminal({
+      appearance: {
+        grid: { columns: 32, rows: 6 },
+        font: { family: 'monospace', size: 12 },
+      },
+      fitEnvironment: { getPixelRatio: () => 1 },
+      rendererFactory: recordingRendererFactory(recording),
+      scrollbar: false,
+    })
+    const host = document.createElement('div')
+    host.style.width = '400px'
+    document.body.append(host)
+    hosts.push(host)
+
+    await terminal.open(host)
+    // With 12px font (~14px row height), measuring the default 150px canvas height would yield ~10 rows.
+    expect(recording.options?.rows).toBe(6)
+    expect(recording.options?.columns).toBe(32)
+  })
 })

@@ -3,6 +3,7 @@ import { requireWorkerWebGl } from '../../../../src/render/tests/worker-webgl-ca
 import { afterEach, beforeAll, afterAll, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import {
+  fitTerminalFont,
   GhosttyRuntime,
   Terminal,
   WebGpuTerminalRenderer,
@@ -55,8 +56,21 @@ async function fixture(
   overrides: Pick<GhosttyWebGpuTerminalOptions, 'rendererFactory'> = {},
 ) {
   if (backend === 'webgpu' || output === 'webgpu') requireWebGpu()
+  const padding = { top: 9, left: 13, bottom: 4, right: 6 }
+  const fitted = fitTerminalFont(
+    document,
+    {
+      boldWeight: 700,
+      family: 'monospace',
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      size: 16,
+      weight: 400,
+    },
+    2,
+  )
   const host = document.createElement('div')
-  host.style.cssText = 'width:340px;height:180px'
+  host.style.cssText = `width:${Math.ceil(fitted.cssCellWidth * 10) + padding.left + padding.right + 12}px;height:${Math.ceil(fitted.cssCellHeight * 3) + padding.top + padding.bottom}px`
   document.body.append(host)
   cleanups.push(() => host.remove())
   const terminal = await Terminal.create({
@@ -65,7 +79,7 @@ async function fixture(
       cursor: { blink: false },
       font: { family: 'monospace', size: 16 },
     },
-    padding: { top: 9, left: 13, bottom: 4, right: 6 },
+    padding,
     fitEnvironment: {
       requestFrame: () => 0,
       cancelFrame: () => {},
