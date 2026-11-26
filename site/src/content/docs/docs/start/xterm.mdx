@@ -1,20 +1,29 @@
 ---
-title: Coming from xterm.js
-description: Map xterm.js APIs and capabilities to the native Ghostty API.
+title: Migrating from xterm.js
+description: Mental-model differences, checked API equivalents, and addon replacements for moving from xterm.js to ghostty-webgpu.
 ---
 
-Creation is asynchronous, input events carry bytes, and the main entry writes synchronously. Begin with [the quick start](https://ghostty.shaulavo.dev/docs/start/quick-start/), then replace your transport and appearance wiring.
-
+import { Aside } from '@astrojs/starlight/components'
 import { Code } from 'astro:components'
 import { docsCodeThemes } from '../../../../docs-theme.js'
 import {
   migrationComparison,
   migrationRendererOption,
 } from '../../../../examples/migration-comparison.js'
+import { migration } from '../../../../examples/migration.js'
 
-## Quick comparison
+`ghostty-webgpu` exposes its own native API rather than an xterm.js compatibility layer. Most of the migration is mechanical once you adjust to four core design differences.
 
-These are the same checked examples shown on the landing page. `opts` holds `GhosttyWebGpuTerminalOptions`, `host` is a sized element, and `send` forwards input to your PTY. `grid` contains `columns` and `rows`. Opening fits the host automatically; `setAppearance({ grid })` applies explicit geometry.
+## Four mental-model shifts
+
+1. **Creation and opening are async.** `await Terminal.create(opts)` loads WebAssembly and builds the native session; `await terminal.open(host)` measures the container, fits the initial grid, and starts the renderer.
+2. **I/O stays in raw bytes.** `onData` delivers `{ bytes: Uint8Array, origin }` instead of UTF-16 strings. Pass incoming PTY `Uint8Array` chunks straight to `terminal.write(bytes)`.
+3. **Fitting and GPU rendering are built in.** You no longer install separate fit, WebGL, Unicode, or web-links addons. `open()` fits synchronously and `ResizeObserver` tracks future container or DPR changes automatically.
+4. **Colors are RGB objects, not CSS strings.** `TerminalTheme` takes `{ r, g, b }` integers and a 256-entry `palette` array, with `minimumContrast` built right into the theme.
+
+## Side-by-side quick start
+
+Every snippet on the right is type-checked against the built package declarations in CI (`opts` is `GhosttyWebGpuTerminalOptions`, `host` is a sized container, `send` forwards `Uint8Array` bytes to your PTY, and `grid` holds `{ columns, rows }`).
 
 <table class='migration-comparison' aria-label='xterm.js to ghostty-webgpu'>
   <thead>
@@ -42,16 +51,15 @@ These are the same checked examples shown on the landing page. `opts` holds `Gho
   </tbody>
 </table>
 
-<p>
-  GPU rendering is on by default (WebGPU or WebGL2, with canvas and DOM fallback); choose canvas
-  with <code>{migrationRendererOption}</code>.
-</p>
+<Aside type='note' title='Renderer selection'>
+  Default `'auto'` mode paints frame one on Canvas 2D and swaps in WebGPU or WebGL2 once ready,
+  falling back to Canvas 2D or DOM. To lock the pixel-composited Canvas backend explicitly, pass{' '}
+  <code>{migrationRendererOption}</code>.
+</Aside>
 
-## API mapping
+## Instance API mapping
 
-This table imports a checked registry. Every instance member below must exist on the built `Terminal` declaration.
-
-import { migration } from '../../../../examples/migration.js'
+Generated from a type-checked registry: every method in the middle column is verified against `Terminal`.
 
 <table>
   <thead>
@@ -64,49 +72,46 @@ import { migration } from '../../../../examples/migration.js'
   <tbody>
     {migration.map(([before, after, behavior]) => (
       <tr>
-        <td>
+        <td data-label='xterm.js'>
           <code>{before}</code>
         </td>
-        <td>
+        <td data-label='ghostty-webgpu'>
           <code>{after}</code>
         </td>
-        <td>{behavior}</td>
+        <td data-label='Behavior'>{behavior}</td>
       </tr>
     ))}
   </tbody>
 </table>
 
-Use `sendInput` for generated input, `paste` for bracketed paste and `key` for a synthesized key. Named events include `title`, `bell`, `selection` and `scroll`. The generated reference has their payload types.
+For programmatic input, use `sendInput()` for raw bytes or text, `paste()` for bracketed paste, and `key()` for synthesized keystrokes. Subscribe to `title`, `bell`, `selection`, `scroll`, `appearance`, `error`, and `outputTiming` via `terminal.on(type, listener)`.
 
-## xterm.js addon capabilities
+## Addon replacements
 
-| xterm.js addon                 | Current integration                                                                                                         | Status                                          |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Fit                            | `await term.open(host)` fits automatically; `term.setAppearance({ grid })` applies geometry                                 | Built in                                        |
-| WebGL                          | `{ rendererMode: 'auto' }` chooses WebGL2/WebGPU; `rendererFactory` selects WebGPU or DOM; `canvas2d-pixels` selects canvas | Built in                                        |
-| Unicode 11 / Unicode graphemes | Native widths and mode 2027                                                                                                 | Built in                                        |
-| Web links                      | URL detection, OSC 8 and link providers                                                                                     | Built in on main entry                          |
-| Clipboard                      | Host `clipboardWrite` policy for OSC 52 writes; defaults to deny                                                            | Write-only policy                               |
-| Attach                         | [WebSocket recipe](https://ghostty.shaulavo.dev/docs/guides/pty/)                                                           | Guide                                           |
-| Web fonts                      | [Load browser or worker faces](https://ghostty.shaulavo.dev/docs/guides/fonts/)                                             | Guide                                           |
-| Serialize                      | History reads, selection formats and visual viewport capture                                                                | Partial; full emulator serialization is planned |
-| Search                         | Retained-cell search                                                                                                        | Planned                                         |
-| Image                          | Image protocols                                                                                                             | Planned                                         |
-| Ligatures                      | `ligatures` option: joined runs from the font's `GSUB` table                                                                | Opt-in                                          |
-| Progress                       | Native progress events exposed to the host                                                                                  | Planned                                         |
+| xterm.js addon                      | ghostty-webgpu equivalent                                                                        | Status       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------ | ------------ |
+| `@xterm/addon-fit`                  | Built-in `ResizeObserver` fitter; `await term.open(host)` fits synchronously                     | Built in     |
+| `@xterm/addon-webgl`                | `rendererMode: 'auto'` selects WebGPU or WebGL2 with Canvas-first startup and automatic fallback | Built in     |
+| `@xterm/addon-unicode11` / grapheme | Native `libghostty-vt` widths and DEC mode 2027 grapheme clustering                              | Built in     |
+| `@xterm/addon-web-links`            | Built-in URL detection, OSC 8 hyperlinks, and `registerLinkProvider` (main and worker)           | Built in     |
+| `@xterm/addon-clipboard`            | Host `clipboardWrite` policy for OSC 52 writes (denied by default); OSC 52 reads get no reply    | Write policy |
+| `@xterm/addon-attach`               | Binary WebSocket recipe in [Wire a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/)           | Guide        |
+| `@xterm/addon-ligatures`            | `ligatures` option reading the font's `GSUB` table                                               | Opt in       |
+| `@xterm/addon-serialize`            | `readLines()`, `getSelection()` (`plain`, `vt`, `html`), and `captureViewport()`                 | Partial      |
+| `@xterm/addon-search`               | Retained-buffer search                                                                           | Planned      |
+| `@xterm/addon-image`                | Sixel and Kitty graphics protocols                                                               | Planned      |
 
-The [extension plan](https://github.com/ShaulLavo/fregat/blob/main/plans/286-ghostty-extensions.md) tracks the extension model. The [terminal roadmap](https://github.com/ShaulLavo/fregat/blob/main/PLAN.md) tracks delivery. Worker link providers and keyboard link discovery currently report capability errors.
+`registerMarker`, `registerDecoration`, and custom xterm parser hooks do not have public equivalents; custom OSC observation is available on `TerminalSession`. See [status and limits](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/status.md) for current scope.
 
-`registerMarker`, `registerDecoration` and the general xterm parser-handler API have no public equivalent today. Custom OSC observation is a session-level capability. Clipboard reads through OSC 52 receive no reply.
+<Aside type="caution" title="Pitfall: scrollback and font timing">
 
-## Appearance and history
+Two subtle differences catch xterm.js users during migration:
 
-Use `appearance.scrollbackLimit` and `appearance.scrollbackByteLimit`. Retention is page-granular. Read `lineCount()` for the actual retained count. Colors use RGB values, and `minimumContrast` belongs to the theme. Load the font before opening so the grid uses its measured geometry.
+- **Scrollback is page-granular.** Ghostty prunes whole memory pages rather than individual lines. Configure `appearance.scrollbackLimit` and `appearance.scrollbackByteLimit`, and always check `lineCount()` for the exact retained row count.
+- **Preload web fonts before `open()`.** Await `document.fonts.load(...)` first so the synchronous initial fit measures your real font instead of a fallback monospace face.
 
-## Compare performance on your workload
+</Aside>
 
-The [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) records the environments, methods, renderer-specific results and losses. Compare WebGL with WebGL and DOM with DOM. Input latency, Unicode output and scrolling are separate workloads.
+## Performance and bundle tradeoffs
 
-## Next steps
-
-[Connect your PTY](https://ghostty.shaulavo.dev/docs/guides/pty/), [apply a theme](https://ghostty.shaulavo.dev/docs/guides/themes/) and [check the worker boundaries](https://ghostty.shaulavo.dev/docs/guides/workers/) before moving your host off the main thread.
+Compare matching renderer classes in [Benchmarks](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/). `ghostty-webgpu` uses significantly less CPU under heavy streaming and multi-terminal workloads (median `0.71x` on Linux PC, `0.77x` on M1 Mac across the November 2026 five-way suite), while xterm.js ships a smaller initial download (`84.1 KiB` brotli vs. `269.2 KiB` brotli).

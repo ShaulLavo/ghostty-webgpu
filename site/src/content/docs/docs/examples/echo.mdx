@@ -1,16 +1,25 @@
 ---
-title: Echo terminal
-description: Try the same source module used in the quick start.
+title: Interactive echo demo
+description: Try ghostty-webgpu live in the browser with local line editing, Ghostty hotkeys, and accessibility enabled.
 ---
 
-The terminal below prints a greeting and echoes each line you submit at its prompt. Click it, type a line and press Enter. Its source is the checked `mountEcho` module from [the quick start](https://ghostty.shaulavo.dev/docs/start/quick-start/).
-
-import EchoTerminal from '../../../../components/EchoTerminal.astro'
 import { Code } from '@astrojs/starlight/components'
+import EchoTerminal from '../../../../components/EchoTerminal.astro'
 import sample from '../../../../examples/quick-start.ts?raw'
+
+Click the terminal below and type a few lines. This widget runs the exact TypeScript module shown underneath, compiled against `ghostty-webgpu`'s built declarations and verified in headless Chromium on every build.
 
 <EchoTerminal />
 
+## Things to try
+
+- **Edit in place:** use Left/Right arrows, Backspace, and Home/End before pressing Enter.
+- **Browse history:** press Up and Down arrows to recall previous lines, or `Ctrl+C` to cancel the current line.
+- **Select and copy:** drag across text to select, then press `Cmd+C` (macOS) or `Ctrl+Shift+C` (Linux/Windows).
+- **Zoom font size:** press `Cmd+=` / `Cmd+-` / `Cmd+0` (or `Ctrl` equivalents on Linux/Windows) and watch the cell grid refit cleanly.
+
+## Source code
+
 <Code code={sample} lang='ts' title='quick-start.ts' />
 
-[Connect a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/) to replace the local line editor with a shell.
+To replace `@ghostty-webgpu/line-editor` with a live Bash session over WebSocket, follow [Connect a real shell](https://ghostty.shaulavo.dev/docs/start/real-shell/).

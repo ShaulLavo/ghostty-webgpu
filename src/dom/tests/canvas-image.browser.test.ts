@@ -1,6 +1,11 @@
 import { requireWebGpu } from '../../render/tests/webgpu-capability.js'
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
-import { GhosttyRuntime, Terminal, WebGpuTerminalRenderer } from '../../../dist/index.js'
+import {
+  fitTerminalFont,
+  GhosttyRuntime,
+  Terminal,
+  WebGpuTerminalRenderer,
+} from '../../../dist/index.js'
 import { WebGlTerminalRenderer } from '../../../dist/render/webgl/renderer.js'
 import { CanvasTerminalRenderer } from '../../../dist/render/canvas/renderer.js'
 import { DomTerminalRenderer } from '../../../dist/render/dom/renderer.js'
@@ -25,7 +30,19 @@ type Backend = 'webgl2' | 'webgpu-direct' | 'webgpu-coordinated' | 'canvas2d' | 
 async function fixture(backend: Backend, controlled = false) {
   if (backend.startsWith('webgpu')) requireWebGpu()
   const host = document.createElement('div')
-  host.style.cssText = 'width:340px;height:160px'
+  const fitted = fitTerminalFont(
+    document,
+    {
+      boldWeight: 700,
+      family: 'monospace',
+      letterSpacing: 0,
+      lineHeight: 1.2,
+      size: 16,
+      weight: 400,
+    },
+    1,
+  )
+  host.style.cssText = `width:${Math.ceil(fitted.cssCellWidth * 10) + 12}px;height:${Math.ceil(fitted.cssCellHeight * 3)}px`
   document.body.append(host)
   cleanups.push(() => host.remove())
   const clock = backend === 'webgpu-coordinated' && !controlled ? undefined : new TestClock()
@@ -41,6 +58,7 @@ async function fixture(backend: Backend, controlled = false) {
       font: { family: 'monospace', size: 16 },
       cursor: { blink: false },
     },
+    fitEnvironment: { getPixelRatio: () => 1 },
     runtime: { kind: 'borrowed', runtime },
     rendererFactory: async (options) => {
       const prepared = { ...options, schedulerClock: clock, adapterPolicy: 'any' as const }

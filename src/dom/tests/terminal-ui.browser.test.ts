@@ -2917,7 +2917,12 @@ describe('integrated terminal UI host', () => {
     expect(data).toEqual([])
 
     // History makes the scrollbar show on focus and start its fade timer.
-    terminal.write('\r\n1\r\n2\r\n3\r\n4')
+    terminal.write(
+      Array.from(
+        { length: terminal.appearance.grid.rows + 2 },
+        (_, index) => `\r\n${index + 1}`,
+      ).join(''),
+    )
     renderer!.emit(frame(['copy me', '', ''], { x: 7, y: 0 }))
     await expect.poll(() => host.querySelectorAll('[role="listitem"]')).toHaveLength(3)
     const scrollbarElement = host.querySelector<HTMLElement>('[role="scrollbar"]')

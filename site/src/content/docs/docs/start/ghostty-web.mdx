@@ -1,32 +1,38 @@
 ---
-title: Coming from ghostty-web
-description: Move initialization, input, fonts and fitting to the native API.
+title: Migrating from ghostty-web
+description: Move from ghostty-web's xterm-style Canvas wrapper to ghostty-webgpu's native API, GPU renderers, and worker mode.
 ---
 
-ghostty-webgpu has its own native API. Start with [a working terminal](https://ghostty.shaulavo.dev/docs/start/quick-start/) and move the transport before changing appearance.
+import { Aside } from '@astrojs/starlight/components'
 
-## Map the integration
+Both `ghostty-web` and `ghostty-webgpu` compile Ghostty's `libghostty-vt` to WebAssembly. The difference is everything around the core: `ghostty-webgpu` replaces the xterm.js compatibility wrapper with a byte-native API, adds a Zig frame builder (`bridge.wasm`) driving WebGPU and WebGL2 alongside Canvas 2D and DOM, and supports running the entire terminal inside a Web Worker.
 
-| ghostty-web                                       | ghostty-webgpu                                        |
-| ------------------------------------------------- | ----------------------------------------------------- |
-| Separate initialization and terminal construction | Await `Terminal.create`, then await `open`            |
-| String input callbacks                            | `onData` emits `{ bytes, origin }`                    |
-| Canvas renderer                                   | Automatic WebGPU, WebGL2, Canvas 2D and DOM selection |
-| Fit addon                                         | Fit to the sized host automatically                   |
-| Font size and family options                      | `appearance.font`, then `setFont`                     |
-| Theme colors                                      | `TerminalTheme` RGB objects and a 256-entry palette   |
-| Main-thread terminal                              | Main entry or dedicated `/worker` entry               |
+## What changes
 
-These mappings describe ghostty-web 0.4.0 and the current ghostty-webgpu checkout. Check the [xterm.js mapping](https://ghostty.shaulavo.dev/docs/start/xterm/) for more API names; the native API takes a different shape from the xterm-style facade.
+| Area              | ghostty-web 0.4.0                     | ghostty-webgpu                                                                                  |
+| ----------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Lifecycle         | `await init()`, then `new Terminal()` | `await Terminal.create(options)`, then `await terminal.open(host)`                              |
+| Input callbacks   | `onData(str => ...)` string callbacks | `onData(({ bytes, origin }) => ...)` raw `Uint8Array` bytes                                     |
+| Rendering         | Single Canvas 2D renderer             | Canvas-first startup handing off to WebGPU or WebGL2, with Canvas 2D and DOM fallbacks          |
+| Container fitting | External fit addon                    | Automatic synchronous fit during `open()` plus `ResizeObserver`                                 |
+| Styling           | Flat font and theme strings           | Structured `appearance.font` and `appearance.theme` (RGB objects + 256-entry palette)           |
+| Threading         | Main thread only                      | Main entry (`ghostty-webgpu`) and worker entry (`ghostty-webgpu/worker`) + `TerminalWorkerPool` |
 
-## Keep input as bytes
+For a full method-by-method table, see [Migrating from xterm.js](https://ghostty.shaulavo.dev/docs/start/xterm/).
 
-Send each `onData` event's `bytes` directly to your PTY. Set the socket to `arraybuffer` and pass binary output into `write`. The [PTY client](https://ghostty.shaulavo.dev/docs/guides/pty/) includes resize and disposal.
+## Keep PTY traffic in bytes
 
-## Load fonts before fitting
+Remove `TextDecoder` / `TextEncoder` wrappers from your WebSocket hot path. Set `socket.binaryType = 'arraybuffer'`, pass `new Uint8Array(event.data)` straight into `terminal.write()`, and forward `event.bytes` from `terminal.onData` directly back to the socket. `libghostty-vt` decodes split UTF-8 sequences incrementally across chunks. See [Wire a PTY](https://ghostty.shaulavo.dev/docs/guides/pty/) for the full client.
 
-Use [browser font loading](https://ghostty.shaulavo.dev/docs/guides/fonts/) for the main entry. Supply font URLs or bytes to [the worker entry](https://ghostty.shaulavo.dev/docs/guides/workers/) so its own font set can measure and render them.
+## Preload fonts cleanly
 
-## Check your feature needs
+- On the main entry, await `document.fonts.load(...)` before calling `open()` so the synchronous initial fit measures your actual font (see [Fonts & grid sizing](https://ghostty.shaulavo.dev/docs/guides/fonts/)).
+- On `ghostty-webgpu/worker`, pass font URLs or raw `Uint8Array` bytes in the `fonts` creation option because workers do not share the page's `document.fonts` registry.
 
-URL detection, OSC 8 links and native widths are available. Search and images remain planned; ligatures are an opt-in `ligatures` option. Worker link providers and finite synchronous hotkeys have capability limits. Compare current versions and renderer classes through the [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/).
+<Aside type="note" title="Honest tradeoffs">
+
+- **Download size:** `ghostty-web` 0.4.0 downloads `146.1 KiB` brotli (41 ms PC / 61 ms Mac unthrottled cold paint). `ghostty-webgpu` downloads `269.2 KiB` brotli (80 ms PC / 101 ms Mac) because it ships the unpatched upstream `libghostty-vt` build, `bridge.wasm`, and the Canvas pixel compositor alongside the GPU renderers.
+- **Heavy output and stability:** In the November 2026 five-way suite, `ghostty-webgpu` uses a fraction of `ghostty-web`'s CPU on dense output and 16-terminal workloads, and stays stable under the unpaced 1 MiB write-queue overload and Unicode bursts where `ghostty-web` 0.4.0 crashes. See [Benchmarks](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) and [correctness](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/correctness.md).
+- **Feature scope:** DEC mode 2026 synchronized output, mode 2027 grapheme clustering, opt-in GSUB ligatures, lazy BiDi, OSC 8 links, and host-side link providers are shipped. Retained-buffer search and Sixel/Kitty images are not built yet.
+
+</Aside>

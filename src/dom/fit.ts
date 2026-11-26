@@ -41,14 +41,23 @@ export interface TerminalFitEnvironment {
   subscribePixelRatio(callback: () => void): () => void
 }
 
-export interface TerminalFitControllerOptions {
+export interface TerminalFitMeasurementOptions {
   readonly container: HTMLElement
   readonly environment?: Partial<TerminalFitEnvironment>
   readonly font: TerminalFitFont
   readonly getScrollbarWidth?: () => number
-  readonly onFit: (result: TerminalFitResult) => void
   readonly padding?: TerminalElementPaddingInput
   readonly paddingElement: HTMLElement
+}
+
+export interface TerminalFitMeasurementResult {
+  readonly desiredPadding: TerminalElementPadding
+  readonly result: TerminalFitResult
+}
+
+export interface TerminalFitControllerOptions extends TerminalFitMeasurementOptions {
+  readonly initialResult?: TerminalFitResult
+  readonly onFit: (result: TerminalFitResult) => void
   readonly signal?: AbortSignal
 }
 
@@ -188,6 +197,64 @@ function canonicalScrollbarWidth(value: number, pixelRatio: number): number {
   return 1 / pixelRatio
 }
 
+function calculateFitResult(
+  view: Window,
+  container: HTMLElement,
+  desiredPadding: TerminalElementPadding,
+  fontSettings: TerminalFitFont,
+  pixelRatio: number,
+  requestedScrollbarWidth: number,
+  measureContext: CanvasRenderingContext2D | null,
+): TerminalFitResult | undefined {
+  const size = contentBoxSize(view, container)
+  if (!size) return undefined
+  const padding = canonicalPadding(desiredPadding, pixelRatio)
+  const scrollbarWidth = canonicalScrollbarWidth(requestedScrollbarWidth, pixelRatio)
+  const availableWidth = size.width - padding.left - padding.right - scrollbarWidth
+  const availableHeight = size.height - padding.bottom - padding.top
+  if (availableWidth <= 0 || availableHeight <= 0) return undefined
+  const font = measureContext
+    ? fittedFontWithContext(measureContext, fontSettings, pixelRatio)
+    : calculateTerminalFittedFont(
+        fontSettings,
+        measureDomFont(container.ownerDocument, fontSettings),
+        pixelRatio,
+      )
+  const grid: TerminalFitGrid = Object.freeze({
+    cellHeight: font.cssCellHeight,
+    cellWidth: font.cssCellWidth,
+    columns: Math.max(2, Math.floor(availableWidth / font.cssCellWidth)),
+    pixelRatio,
+    rows: Math.max(1, Math.floor(availableHeight / font.cssCellHeight)),
+  })
+  return Object.freeze({ font, grid, padding, scrollbarWidth })
+}
+
+export function measureTerminalFit(
+  options: TerminalFitMeasurementOptions,
+): TerminalFitMeasurementResult | undefined {
+  const document = options.container.ownerDocument
+  const view = document.defaultView
+  if (!view) throw new TypeError('container must belong to a document with a window')
+  const desiredPadding =
+    options.padding === undefined
+      ? computedPadding(view, options.paddingElement)
+      : normalizeTerminalElementPadding(options.padding)
+  const pixelRatio = terminalPixelRatio(options.container, options.environment)
+  const measureContext = document.createElement('canvas').getContext('2d')
+  const result = calculateFitResult(
+    view,
+    options.container,
+    desiredPadding,
+    normalizeFont(options.font),
+    pixelRatio,
+    options.getScrollbarWidth?.() ?? 0,
+    measureContext,
+  )
+  if (!result) return undefined
+  return Object.freeze({ desiredPadding, result })
+}
+
 function fitResultEquals(left: TerminalFitResult, right: TerminalFitResult): boolean {
   if (!fittedFontEquals(left.font, right.font)) return false
   if (!gridEquals(left.grid, right.grid)) return false
@@ -245,6 +312,7 @@ export class TerminalFitController {
     const context = this.document.createElement('canvas').getContext('2d')
     this.measureContext = context
     this.watchedPixelRatio = this.readPixelRatio()
+    this.lastResult = options.initialResult
     this.externalSignal = options.signal
   }
 
@@ -310,28 +378,15 @@ export class TerminalFitController {
   }
 
   private calculateFit(): TerminalFitResult | undefined {
-    const size = contentBoxSize(this.view, this.options.container)
-    if (!size) return undefined
-    const pixelRatio = this.readPixelRatio()
-    const padding = canonicalPadding(this.desiredPadding, pixelRatio)
-    const scrollbarWidth = canonicalScrollbarWidth(
+    return calculateFitResult(
+      this.view,
+      this.options.container,
+      this.desiredPadding,
+      this.font,
+      this.readPixelRatio(),
       this.options.getScrollbarWidth?.() ?? 0,
-      pixelRatio,
+      this.measureContext,
     )
-    const availableWidth = size.width - padding.left - padding.right - scrollbarWidth
-    const availableHeight = size.height - padding.bottom - padding.top
-    if (availableWidth <= 0 || availableHeight <= 0) return undefined
-    const font = this.measureContext
-      ? fittedFontWithContext(this.measureContext, this.font, pixelRatio)
-      : calculateTerminalFittedFont(this.font, measureDomFont(this.document, this.font), pixelRatio)
-    const grid: TerminalFitGrid = Object.freeze({
-      cellHeight: font.cssCellHeight,
-      cellWidth: font.cssCellWidth,
-      columns: Math.max(2, Math.floor(availableWidth / font.cssCellWidth)),
-      pixelRatio,
-      rows: Math.max(1, Math.floor(availableHeight / font.cssCellHeight)),
-    })
-    return Object.freeze({ font, grid, padding, scrollbarWidth })
   }
 
   private readonly handleExternalAbort = (): void => {
@@ -383,7 +438,7 @@ export class TerminalFitController {
     this.document.fonts.addEventListener('loadingerror', this.handleFontEvent, { signal })
     this.trackFontLoad()
     void this.document.fonts.ready.then(this.handleFontEvent, this.handleFontEvent)
-    this.requestFit()
+    this.handleResize()
   }
 
   private trackFontLoad(): void {

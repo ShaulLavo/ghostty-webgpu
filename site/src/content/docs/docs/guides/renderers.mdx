@@ -1,39 +1,110 @@
 ---
-title: Renderers and fallbacks
-description: Understand automatic renderer selection and force Canvas 2D when needed.
-sidebar:
-  order: 2
+title: Renderers & fallbacks
+description: How ghostty-webgpu paints frame one on Canvas 2D, hands off to WebGPU or WebGL2, and recovers from device loss.
 ---
 
-import { Code } from '@astrojs/starlight/components'
+import { Aside, Code } from '@astrojs/starlight/components'
 import sample from '../../../../examples/renderers.ts?raw'
 
-You will know which renderer opened and how to choose a fallback. Start with the main entry and a sized host.
+`ghostty-webgpu` ships four renderers against one `libghostty-vt` state: WebGPU, WebGL2, Canvas 2D, and DOM. You rarely need to pick one manually. By default, the library starts fast on Canvas 2D and hands off to the fastest available GPU backend for the user's platform.
 
-## 1. Let the terminal choose
+<div class='learn-card'>
+  <p class='learn-card__title'>You will learn</p>
+  <ul>
+    <li>How Canvas-first startup eliminates blank startup frames while GPU pipelines compile</li>
+    <li>Why automatic GPU backend order differs between macOS/Windows and desktop Linux</li>
+    <li>
+      When to override <code>rendererMode</code>, <code>presentation</code>, or{' '}
+      <code>rendererFactory</code>
+    </li>
+    <li>How WebGPU device loss and WebGL2 context loss recover without losing terminal contents</li>
+  </ul>
+</div>
+
+## Automatic selection and Canvas-first startup
 
 <Code code={sample} lang='ts' title='renderers.ts' />
 
-The main entry in frame presentation starts on Canvas 2D and switches to the GPU once it draws a frame. On desktop Linux, it tries WebGL2 before hardware WebGPU. On other platforms, it tries hardware WebGPU first. `diagnostics.rendererBackend` reports the renderer currently in use.
+In the default `presentation: 'frame'` mode on the main entry, startup happens in three steps:
 
-## 2. Choose Canvas 2D explicitly
+1. `open()` fits the container synchronously and mounts `CanvasTerminalRenderer` (`canvas2d-pixels`) so frame one paints immediately without waiting for GPU adapter negotiation or shader compilation.
+2. Once that first Canvas frame reaches the compositor, `StartupTerminalRenderer` initializes the target GPU backend on a separate offscreen `<canvas>`.
+3. When the GPU renderer draws its first matching frame (and no pointer drag, link click, or DEC mode 2026 synchronized-output hold is active), the host swaps the painted GPU canvas into the DOM via `adoptCanvas` and disposes the temporary Canvas renderer.
 
-Set `rendererMode` to `canvas2d-fill-text` when creating the main-thread terminal. The explicit `canvas2d-pixels` mode enables the pixel compositor.
+Read `terminal.diagnostics.rendererBackend` (`'canvas2d'`, `'webgl2'`, `'webgpu'`, or `'dom'`) to inspect which backend is active. Right after `open()` resolves in `'frame'` mode, it reports `'canvas2d'` until the background GPU handoff completes.
 
-Set `rendererMode` to `webgpu` or `webgl2` to try a specific GPU backend. The terminal keeps painting on Canvas if that backend is unavailable. `rendererFactory` lets the host supply its own renderer. The worker entry has a separate `backend` option with `auto`, `webgpu`, and `webgl`. [Worker guide](https://ghostty.shaulavo.dev/docs/guides/workers/)
+## Platform GPU order
 
-## 3. Check the result
+Automatic selection follows measured whole-browser CPU and compositor behavior (defined in `src/render/shared/backend-order.ts`):
 
-All four backends read Ghostty's terminal state. Font availability and browser capabilities can change appearance. Measure the workload on the backend your users will run. The [benchmark report](https://ghostty.shaulavo.dev/docs/concepts/benchmarks/) keeps renderer comparisons and limitations together.
+- **macOS, Windows, and mobile:** tries hardware WebGPU first, then WebGL2.
+- **Desktop Linux, or `presentation: 'immediate'`:** tries WebGL2 first, then hardware WebGPU. Desktop Linux prefers WebGL2 because Chromium on Linux presented separate WebGPU canvases with higher CPU cost in benchmarks. `presentation: 'immediate'` prefers WebGL2 because only WebGL2 and Canvas 2D support `desynchronized` contexts.
+- **Fallback chain:** If neither GPU backend succeeds, the terminal stays on Canvas 2D. If Canvas 2D is unavailable, it falls back to `DomTerminalRenderer`.
 
-## If it doesn't work
+<Aside type='caution' title='Pitfall: WebGPU skipped in auto mode'>
+  WebGPU requires a secure context (`https://` or `localhost`) and a hardware GPU adapter in
+  `'auto'` mode. Software adapters such as SwiftShader are deliberately skipped so they do not
+  regress performance compared to WebGL2 or Canvas 2D. Pass `rendererMode: 'webgpu'` only if you
+  explicitly want to allow software WebGPU adapters.
+</Aside>
 
-### WebGPU is unavailable
+## Choosing a renderer mode explicitly
 
-Use a secure context and a current browser with a usable GPU adapter. The main entry falls back automatically. A worker operation may return a capability error. Keep its `code`, `why`, and `fix` when displaying it to the user.
+Pass `rendererMode` to `Terminal.create()` on the main entry when you need deterministic backend behavior:
 
-### Many terminals lose WebGL contexts
+| `rendererMode`         | Behavior                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `'auto'` (default)     | Canvas-first startup, then platform-ordered hardware GPU, then Canvas 2D, then DOM.                          |
+| `'webgpu'`             | Canvas-first startup, then WebGPU (accepts any adapter, including software). Stays on Canvas if unavailable. |
+| `'webgl2'`             | Canvas-first startup, then WebGL2. Stays on Canvas if unavailable.                                           |
+| `'canvas2d-pixels'`    | Stays permanently on the WASM-composited pixel Canvas renderer (`canvas-compose.wasm`).                      |
+| `'canvas2d-fill-text'` | Stays permanently on the `fillText` Canvas 2D renderer.                                                      |
 
-Browsers impose context limits. Dispose terminals you remove and bound the number of simultaneously live terminals. Test your intended count on your target browser. The main entry follows the remaining backend order after context loss, including hardware WebGPU when Linux selected WebGL2 first.
+For low-latency single-terminal hosts on the main entry, pass `presentation: 'immediate'` to skip Canvas-first startup and paint writes directly on a `desynchronized` context. To construct a specific renderer class yourself (for example `DomTerminalRenderer`), supply `rendererFactory`.
 
-Next, [load your fonts](https://ghostty.shaulavo.dev/docs/guides/fonts/) before comparing cell geometry.
+The worker entry (`ghostty-webgpu/worker`) uses its own `backend` option: `'auto'`, `'webgpu'`, or `'webgl'` (see [Run in a worker](https://ghostty.shaulavo.dev/docs/guides/workers/)).
+
+<Aside type='caution' title='Pitfall: WebGL context limits on multi-pane pages'>
+  Browsers cap live WebGL contexts per page (typically 8 to 16). Dispose closed terminals promptly,
+  or share GPU devices across terminals using `TerminalWorkerPool` on the worker entry.
+</Aside>
+
+<details class='deep-dive'>
+  <summary>How device loss and context loss recover</summary>
+  <div class='deep-dive__body'>
+    <p>
+      Because all terminal state lives inside <code>libghostty-vt</code> rather than inside GPU
+      textures, losing a GPU context never drops screen contents or scrollback:
+    </p>
+    <ul>
+      <li>
+        <strong>WebGPU device loss:</strong> <code>WebGpuTerminalRenderer</code> listens to{' '}
+        <code>device.lost</code>, acquires a fresh device lease, rebuilds atlas textures and
+        pipelines, and repaints from the intact native state.
+      </li>
+      <li>
+        <strong>WebGL2 context loss:</strong> <code>FallbackTerminalRenderer</code> replaces the
+        dead <code>&lt;canvas&gt;</code> element and advances through the remaining backend order
+        (including hardware WebGPU on Linux when WebGL2 was picked first, then Canvas 2D).
+      </li>
+    </ul>
+  </div>
+</details>
+
+<div class='recap-card'>
+  <p class='recap-card__title'>Recap</p>
+  <ul>
+    <li>
+      Leave <code>rendererMode: 'auto'</code> for Canvas-first startup and automatic
+      platform-ordered GPU handoff.
+    </li>
+    <li>
+      Inspect <code>terminal.diagnostics.rendererBackend</code> to see whether the terminal is on
+      Canvas 2D, WebGL2, WebGPU, or DOM.
+    </li>
+    <li>
+      Use <code>TerminalWorkerPool</code> if your app mounts many simultaneous panes and risks
+      hitting browser WebGL context limits.
+    </li>
+  </ul>
+</div>

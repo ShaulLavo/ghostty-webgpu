@@ -1,10 +1,47 @@
 ---
 title: Benchmarks
-description: Find the reproducible benchmark report and its limitations.
+description: November 2026 five-way comparison, paired Mac M1 energy ratios, and honest cases where competitors still win.
 ---
 
-The [benchmark report](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md) owns the numbers, machine details, package versions, dates, method and reproduction commands. Use it when choosing a terminal for your workload.
+import { Aside } from '@astrojs/starlight/components'
 
-This page links the report so updates to the benchmark work arrive in one place. It includes results and qualification limits. Compare the same renderer class and history policy, and keep parsing, streaming output, Unicode, scrolling and input latency separate.
+Full tables, hardware metadata, raw JSON datasets, and offline verification scripts live in [docs/benchmarks.md](https://github.com/ShaulLavo/ghostty-webgpu/blob/main/docs/benchmarks.md). This page summarizes the methodology, headline results, and the exact workloads where other terminals still beat `ghostty-webgpu`.
 
-For integration choices, read [renderers and fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/). For the model behind frame work, read [damage tracking](https://ghostty.shaulavo.dev/docs/concepts/damage-tracking/).
+## November 2026 five-way comparison
+
+Measured 2026-11-24 with `ghostty-webgpu` 0.3.34 against xterm.js 6.0.0 (WebGL addon 0.19.0), ghostty-web 0.4.0, Wraith (`wraithterm`) 0.6.1, and Restty 0.3.0 in headed Chromium 153 on two machines: a Linux desktop (Wayland, RTX 3060 Ti, DPR 1) and an Apple M1 MacBook (AC power, ANGLE Metal, DPR 2).
+
+Every terminal received identical bytes, a `100x30` grid, and JetBrains Mono 14 px, with final screen text verified across 17 workloads at both 1 and 16 simultaneous terminals (34 cells per machine).
+
+| Metric                                           | Linux PC                                     | Apple M1 Mac                               |
+| ------------------------------------------------ | -------------------------------------------- | ------------------------------------------ |
+| Whole-browser CPU vs. best competitor            | 26 wins, 5 even, 3 losses (median **0.71x**) | 24 wins, 9 even, 1 loss (median **0.77x**) |
+| Mac kernel CPU energy (`RUSAGE_INFO_V6`)         | n/a                                          | 20 wins, 4 even, 10 losses                 |
+| Write acknowledgement p95 (>10% & >0.5 ms loss)  | 4 losses (all heavy 16-terminal parsing)     | 0 losses                                   |
+| Cold download (main entry, auto backend)         | **269.2 KiB** brotli                         | **269.2 KiB** brotli                       |
+| Cold load to first paint (unthrottled / Fast 4G) | 80 ms / 823 ms                               | 101 ms / 861 ms                            |
+
+The largest CPU leads show up on dense 16-terminal streams (`rolling-unicode-logs` `0.47x` PC / `0.50x` Mac), `sparse-edits` at 16 terminals (`0.45x` PC / `0.60x` Mac), `repeated-ascii` (`0.20x` PC / `0.35x` Mac), and `write-queue-overload` (`0.40x` PC / `0.51x` Mac, where `ghostty-web` 0.4.0 crashes).
+
+## Where competitors still win
+
+<Aside type="note" title="Read the losses alongside the wins">
+
+Every benchmark hides tradeoffs if you only look at medians. Keep these four losses in mind when choosing a library:
+
+- **Download size and Fast 4G cold load:** xterm.js (`84.1 KiB` brotli) and ghostty-web (`146.1 KiB` brotli) ship less code and paint sooner on Fast 4G than `ghostty-webgpu` (`269.2 KiB` brotli). Wraith (`879.0 KiB`) and Restty (`559.3 KiB`) are larger.
+- **Glyph churn (1 terminal PC):** Restty WebGL2 uses less CPU (`0.151 s` vs. `0.222 s`) because `ghostty-webgpu` currently rasterizes each unseen glyph twice to detect intrinsic color glyphs.
+- **Full-screen redraw Mac energy:** Wraith WebGPU uses less Mac CPU energy on several full-screen redraw workloads (`opentui-plasma`, `ntcharts-heatmap`, `synchronized-frames`).
+- **16-terminal write acknowledgement p95 on PC:** Wraith WebGPU acknowledges writes sooner on 16-terminal `ntcharts-heatmap` and `opentui-plasma` because it spawns one worker per terminal, whereas `TerminalWorkerPool` caps workers at 4 to save 35% to 60% whole-browser CPU.
+
+</Aside>
+
+## October 2026 paired Mac M1 ratios
+
+The interactive bar charts on the [landing page](https://ghostty.shaulavo.dev/) come from the earlier paired Mac M1 run (`ghostty-webgpu` 0.3.21 vs. xterm.js 6.0.0, matching renderer classes, ABBA pairing). Recompute and verify those numbers locally without launching a browser:
+
+```sh
+node docs/benchmarks/mac-m1-2026-10-10/verify.mjs
+```
+
+See [Renderers & fallbacks](https://ghostty.shaulavo.dev/docs/guides/renderers/) for how these findings directly shape automatic platform backend selection.

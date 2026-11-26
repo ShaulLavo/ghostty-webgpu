@@ -70,22 +70,45 @@ export default defineConfig({
       ],
       sidebar: [
         {
-          label: 'Start here',
+          label: 'Learn',
           items: [
-            { label: 'Introduction', slug: 'docs' },
-            { label: 'First terminal', slug: 'docs/start/quick-start' },
-            { label: 'A real shell', slug: 'docs/start/real-shell' },
-            { label: 'Coming from xterm.js', slug: 'docs/start/xterm' },
-            { label: 'Coming from ghostty-web', slug: 'docs/start/ghostty-web' },
+            { label: 'Overview', slug: 'docs' },
+            { label: 'Quick start', slug: 'docs/start/quick-start' },
+            { label: 'Connect a real shell', slug: 'docs/start/real-shell' },
+            { label: 'Interactive echo demo', slug: 'docs/examples/echo' },
           ],
         },
-        { label: 'Guides', items: [{ autogenerate: { directory: 'docs/guides' } }] },
-        { label: 'Examples', items: [{ autogenerate: { directory: 'docs/examples' } }] },
+        {
+          label: 'Guides',
+          items: [
+            { label: 'Wire a PTY', slug: 'docs/guides/pty' },
+            { label: 'Renderers & fallbacks', slug: 'docs/guides/renderers' },
+            { label: 'Run in a worker', slug: 'docs/guides/workers' },
+            { label: 'Fonts & grid sizing', slug: 'docs/guides/fonts' },
+            { label: 'Themes & Ghostty config', slug: 'docs/guides/themes' },
+            { label: 'Keyboard & hotkeys', slug: 'docs/guides/hotkeys' },
+            { label: 'Scrollback & history', slug: 'docs/guides/scrollback' },
+          ],
+        },
+        {
+          label: 'Migration',
+          items: [
+            { label: 'From xterm.js', slug: 'docs/start/xterm' },
+            { label: 'From ghostty-web', slug: 'docs/start/ghostty-web' },
+          ],
+        },
+        {
+          label: 'Architecture',
+          items: [
+            { label: 'How the WASM core works', slug: 'docs/concepts/how-it-works' },
+            { label: 'Per-cell damage tracking', slug: 'docs/concepts/damage-tracking' },
+            { label: 'Benchmarks', slug: 'docs/concepts/benchmarks' },
+          ],
+        },
         {
           label: 'Reference',
           items: referenceItems.concat(references.map(({ sidebar }) => sidebar)),
         },
-        { label: 'Concepts', items: [{ autogenerate: { directory: 'docs/concepts' } }] },
       ],
       plugins: references
         .map(({ plugin }) => plugin)
