@@ -22,46 +22,48 @@ const paths = [
   'reference/api/',
   'examples/echo/',
 ]
+async function verifyDocsTerminal() {
+  await page.locator('[data-docs-terminal]').scrollIntoViewIfNeeded()
+  await page.getByRole('textbox', { name: 'Terminal input' }).waitFor()
+  assert(
+    await page
+      .locator('[data-docs-terminal]')
+      .evaluate((host) => getComputedStyle(host).backgroundColor !== 'rgba(0, 0, 0, 0)'),
+    'Echo terminal needs an opaque background for readable text',
+  )
+  const screen = page.locator('[data-docs-terminal]').getByRole('list', { name: 'Terminal screen' })
+  await screen
+    .getByRole('listitem')
+    .filter({ hasText: 'Hello from Ghostty.' })
+    .waitFor({ state: 'attached' })
+  await page.getByRole('textbox', { name: 'Terminal input' }).pressSequentially('docs-echo-check')
+  await screen
+    .getByRole('listitem')
+    .filter({ hasText: 'docs-echo-check' })
+    .waitFor({ state: 'attached' })
+}
+
+async function verifyRoute(path: string, width: number) {
+  const response = await page.goto(new URL(path, root).href)
+  assert.equal(response?.status(), 200)
+  await page.locator('h1').waitFor()
+  if (path === 'start/quick-start/' || path === 'examples/echo/') {
+    await verifyDocsTerminal()
+  }
+  assert(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    `${path} overflows at ${width}`,
+  )
+  await page.screenshot({
+    path: `${directory}/${width}-${path.replaceAll('/', '-') || 'home'}.png`,
+    fullPage: true,
+  })
+}
+
 try {
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 960 })
-    for (const path of paths) {
-      const response = await page.goto(new URL(path, root).href)
-      assert.equal(response?.status(), 200)
-      await page.locator('h1').waitFor()
-      if (path === 'start/quick-start/' || path === 'examples/echo/') {
-        await page.locator('[data-docs-terminal]').scrollIntoViewIfNeeded()
-        await page.getByRole('textbox', { name: 'Terminal input' }).waitFor()
-        assert(
-          await page
-            .locator('[data-docs-terminal]')
-            .evaluate((host) => getComputedStyle(host).backgroundColor !== 'rgba(0, 0, 0, 0)'),
-          'Echo terminal needs an opaque background for readable text',
-        )
-        const screen = page
-          .locator('[data-docs-terminal]')
-          .getByRole('list', { name: 'Terminal screen' })
-        await screen
-          .getByRole('listitem')
-          .filter({ hasText: 'Hello from Ghostty.' })
-          .waitFor({ state: 'attached' })
-        await page
-          .getByRole('textbox', { name: 'Terminal input' })
-          .pressSequentially('docs-echo-check')
-        await screen
-          .getByRole('listitem')
-          .filter({ hasText: 'docs-echo-check' })
-          .waitFor({ state: 'attached' })
-      }
-      assert(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-        `${path} overflows at ${width}`,
-      )
-      await page.screenshot({
-        path: `${directory}/${width}-${path.replaceAll('/', '-') || 'home'}.png`,
-        fullPage: true,
-      })
-    }
+    for (const path of paths) await verifyRoute(path, width)
   }
   await page.setViewportSize({ width: 1440, height: 960 })
   await page.goto(new URL('../', root).href)

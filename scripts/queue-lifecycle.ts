@@ -271,34 +271,36 @@ try {
         adapter: adapterInfo,
       }),
     )
+    const runLifecycleCase = async (name: (typeof lifecycleCases)[number], repetition: number) => {
+      console.log(JSON.stringify({ stage: 'start', name, repetition }))
+      const result =
+        name === 'realm-removal'
+          ? await bounded(removeRealm(page))
+          : await bounded(page.evaluate((selected) => window.queueLifecycle.run(selected), name))
+      verify(name, result)
+      records.push({ name, repetition, result })
+      console.log(JSON.stringify({ stage: 'pass', name, repetition, events: result.events }))
+      if (name !== 'realm-removal') return
+      const health = await bounded(page.evaluate(() => window.queueLifecycle.run('submitted-work')))
+      verify('submitted-work', health)
+      records.push({ name: 'realm-health', repetition, result: health })
+      const afterRemoval = await page.evaluate(() => {
+        const events = window.queueLifecycleRealmEvents ?? []
+        delete window.queueLifecycleEvent
+        delete window.queueLifecycleRemove
+        delete window.queueLifecycleRealmEvents
+        return { events, frames: document.querySelectorAll('iframe').length }
+      })
+      result.events = afterRemoval.events
+      event(result, 'realm', 'realm-removed')
+      event(result, 'A', 'realm-removal-returned')
+      assert.equal(afterRemoval.frames, 0, 'Owned iframe was removed')
+    }
+    const runRepetition = async (repetition: number) => {
+      for (const name of lifecycleCases) await runLifecycleCase(name, repetition)
+    }
     for (let repetition = 1; repetition <= repetitions; repetition += 1) {
-      for (const name of lifecycleCases) {
-        console.log(JSON.stringify({ stage: 'start', name, repetition }))
-        const result =
-          name === 'realm-removal'
-            ? await bounded(removeRealm(page))
-            : await bounded(page.evaluate((selected) => window.queueLifecycle.run(selected), name))
-        verify(name, result)
-        records.push({ name, repetition, result })
-        console.log(JSON.stringify({ stage: 'pass', name, repetition, events: result.events }))
-        if (name !== 'realm-removal') continue
-        const health = await bounded(
-          page.evaluate(() => window.queueLifecycle.run('submitted-work')),
-        )
-        verify('submitted-work', health)
-        records.push({ name: 'realm-health', repetition, result: health })
-        const afterRemoval = await page.evaluate(() => {
-          const events = window.queueLifecycleRealmEvents ?? []
-          delete window.queueLifecycleEvent
-          delete window.queueLifecycleRemove
-          delete window.queueLifecycleRealmEvents
-          return { events, frames: document.querySelectorAll('iframe').length }
-        })
-        result.events = afterRemoval.events
-        event(result, 'realm', 'realm-removed')
-        event(result, 'A', 'realm-removal-returned')
-        assert.equal(afterRemoval.frames, 0, 'Owned iframe was removed')
-      }
+      await runRepetition(repetition)
     }
     assert.equal(
       problems.filter((problem) => problem.kind === 'pageerror').length,

@@ -99,34 +99,37 @@ async function upstream(page: Page, checkout: string, variant: Variant) {
     child.on('error', reject)
     child.on('close', resolve)
   })
+  const handleMessage = async (message: Request | (Omit<Result, 'variant'> & { op: 'result' })) => {
+    if (message.op === 'reset') {
+      if (message.suite !== suite) {
+        await setupStep(variant, 'navigation', () => page.reload())
+        await adapterReady(page, variant)
+        suite = message.suite
+      }
+      await setupStep(variant, 'terminal reset', () => request(page, message))
+      inputHex = ''
+      child.stdin.write('{"value":null}\n')
+      return
+    }
+    try {
+      if (message.op === 'write') inputHex += Buffer.from(message.bytes).toString('hex')
+      if (message.op === 'result') {
+        const { op: _, ...result } = message
+        const observed = result.status === 'fail' ? await observe(page) : undefined
+        results.push({ ...result, variant, inputHex, observed })
+        child.stdin.write('{"value":null}\n')
+        return
+      }
+      const value = await request(page, message)
+      child.stdin.write(JSON.stringify({ value }) + '\n')
+    } catch (error) {
+      child.stdin.write(JSON.stringify({ error: String(error) }) + '\n')
+    }
+  }
   try {
     for await (const line of createInterface({ input: child.stdout })) {
       const message = JSON.parse(line) as Request | (Omit<Result, 'variant'> & { op: 'result' })
-      if (message.op === 'reset') {
-        if (message.suite !== suite) {
-          await setupStep(variant, 'navigation', () => page.reload())
-          await adapterReady(page, variant)
-          suite = message.suite
-        }
-        await setupStep(variant, 'terminal reset', () => request(page, message))
-        inputHex = ''
-        child.stdin.write('{"value":null}\n')
-        continue
-      }
-      try {
-        if (message.op === 'write') inputHex += Buffer.from(message.bytes).toString('hex')
-        if (message.op === 'result') {
-          const { op: _, ...result } = message
-          const observed = result.status === 'fail' ? await observe(page) : undefined
-          results.push({ ...result, variant, inputHex, observed })
-          child.stdin.write('{"value":null}\n')
-          continue
-        }
-        const value = await request(page, message)
-        child.stdin.write(JSON.stringify({ value }) + '\n')
-      } catch (error) {
-        child.stdin.write(JSON.stringify({ error: String(error) }) + '\n')
-      }
+      await handleMessage(message)
     }
     assert.equal(await exit, 0, stderr)
   } finally {

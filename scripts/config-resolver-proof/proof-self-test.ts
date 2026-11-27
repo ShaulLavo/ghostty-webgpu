@@ -1252,36 +1252,44 @@ function projectionMutationCases(): readonly ProjectionMutationCase[] {
   ]
 }
 
+function runProjectionMutationCase(
+  target: (typeof PROOF_TARGETS)[number],
+  expectedJson: string,
+  entry: ReturnType<typeof projectionMutationCases>[number],
+): 'equal' | 'reject' {
+  const candidate = observedLinkArgv(target)
+  entry.apply(candidate, target)
+  let projected: readonly string[] | null = null
+  let rejected = false
+  try {
+    projected = projectObservedLinkArgv(candidate, target)
+  } catch (error) {
+    if (!(error instanceof ProofContractError)) throw error
+    rejected = true
+  }
+  if (entry.requiresContractRejection && !rejected) {
+    fail(`${target} ${entry.label} did not reject at the contract boundary`)
+  }
+  const equal = !rejected && stableJson(projected) === expectedJson
+  if (entry.outcome === 'equal') {
+    if (!equal) fail(`${target} ${entry.label} changed or rejected the plan`)
+    return 'equal'
+  }
+  if (equal) fail(`${target} ${entry.label} did not reject the observed plan`)
+  return 'reject'
+}
+
 function testProjectionMutations(): ProjectionTestResult {
   const transcript: string[] = []
   let equalCount = 0
   let rejectedCount = 0
   for (const target of PROOF_TARGETS) {
-    const expected = projectObservedLinkArgv(observedLinkArgv(target), target)
+    const expectedJson = stableJson(projectObservedLinkArgv(observedLinkArgv(target), target))
     for (const entry of projectionMutationCases()) {
-      const candidate = observedLinkArgv(target)
-      entry.apply(candidate, target)
-      let projected: readonly string[] | null = null
-      let rejected = false
-      try {
-        projected = projectObservedLinkArgv(candidate, target)
-      } catch (error) {
-        if (!(error instanceof ProofContractError)) throw error
-        rejected = true
-      }
-      if (entry.requiresContractRejection && !rejected) {
-        fail(`${target} ${entry.label} did not reject at the contract boundary`)
-      }
-      const equal = !rejected && stableJson(projected) === stableJson(expected)
-      if (entry.outcome === 'equal') {
-        if (!equal) fail(`${target} ${entry.label} changed or rejected the plan`)
-        transcript.push(`${target}:${entry.label}:equal`)
-        equalCount += 1
-        continue
-      }
-      if (equal) fail(`${target} ${entry.label} did not reject the observed plan`)
-      transcript.push(`${target}:${entry.label}:reject`)
-      rejectedCount += 1
+      const outcome = runProjectionMutationCase(target, expectedJson, entry)
+      transcript.push(`${target}:${entry.label}:${outcome}`)
+      if (outcome === 'equal') equalCount += 1
+      else rejectedCount += 1
     }
   }
   return { equal: equalCount, rejected: rejectedCount, transcript }

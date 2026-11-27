@@ -43,6 +43,13 @@ async function rowPixels(
   }
 }
 
+function pixelDiffers(a: Uint8Array, b: Uint8Array, index: number): boolean {
+  for (let channel = 0; channel < 3; channel += 1) {
+    if (Math.abs(a[index + channel]! - b[index + channel]!) > 2) return true
+  }
+  return false
+}
+
 function cellsDiffer(
   a: Uint8Array,
   b: Uint8Array,
@@ -54,9 +61,7 @@ function cellsDiffer(
   const height = a.length / 4 / width
   for (let y = 0; y < height; y += 1) {
     for (let x = Math.round(first * cell); x < Math.round(last * cell); x += 1) {
-      const index = (y * width + x) * 4
-      for (let channel = 0; channel < 3; channel += 1)
-        if (Math.abs(a[index + channel]! - b[index + channel]!) > 2) return true
+      if (pixelDiffers(a, b, (y * width + x) * 4)) return true
     }
   }
   return false
