@@ -208,7 +208,8 @@ function terminalModifiers(event: MouseEvent): TerminalModifiers | undefined {
 }
 
 function isMacPlatform(view: Window): boolean {
-  return /Mac|iPhone|iPad/u.test(view.navigator.platform)
+  const platform = (view.navigator.platform || view.navigator.userAgent).toLowerCase()
+  return /mac|iphone|ipad|ipod/u.test(platform)
 }
 
 function isRectangleSelection(event: MouseEvent, view: Window): boolean {

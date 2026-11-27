@@ -73,7 +73,10 @@ function fontDescriptor(font: TerminalFitFont): string {
 function measureFont(
   context: CanvasRenderingContext2D,
   font: TerminalFitFont,
+  fontResourcesChanged = false,
 ): TerminalFontMeasurement {
+  // WebKit keeps a resolved face when the same font string is assigned after a font load.
+  if (fontResourcesChanged) context.font = '10px sans-serif'
   context.font = fontDescriptor(font)
   const advanceWidth = context.measureText('M').width
   const metrics = context.measureText('Mg')
@@ -88,8 +91,13 @@ function fittedFontWithContext(
   context: CanvasRenderingContext2D,
   font: TerminalFitFont,
   pixelRatio: number,
+  fontResourcesChanged = false,
 ): TerminalFittedFont {
-  return calculateTerminalFittedFont(font, measureFont(context, font), pixelRatio)
+  return calculateTerminalFittedFont(
+    font,
+    measureFont(context, font, fontResourcesChanged),
+    pixelRatio,
+  )
 }
 
 function measureDomFont(document: Document, font: TerminalFitFont): TerminalFontMeasurement {
@@ -205,6 +213,7 @@ function calculateFitResult(
   pixelRatio: number,
   requestedScrollbarWidth: number,
   measureContext: CanvasRenderingContext2D | null,
+  fontResourcesChanged = false,
 ): TerminalFitResult | undefined {
   const size = contentBoxSize(view, container)
   if (!size) return undefined
@@ -214,7 +223,7 @@ function calculateFitResult(
   const availableHeight = size.height - padding.bottom - padding.top
   if (availableWidth <= 0 || availableHeight <= 0) return undefined
   const font = measureContext
-    ? fittedFontWithContext(measureContext, fontSettings, pixelRatio)
+    ? fittedFontWithContext(measureContext, fontSettings, pixelRatio, fontResourcesChanged)
     : calculateTerminalFittedFont(
         fontSettings,
         measureDomFont(container.ownerDocument, fontSettings),
@@ -271,6 +280,7 @@ export class TerminalFitController {
   private readonly document: Document
   private readonly externalSignal?: AbortSignal
   private font: TerminalFitFont
+  private fontResourcesChanged = false
   private frameHandle?: number
   private readonly getPixelRatio: () => number
   private lastResult?: TerminalFitResult
@@ -350,6 +360,12 @@ export class TerminalFitController {
     this.frameHandle = this.requestFrame(this.runFit)
   }
 
+  refreshFontResources(): void {
+    if (this.disposed) return
+    this.fontResourcesChanged = true
+    this.requestFit()
+  }
+
   setFont(font: TerminalFitFont): void {
     if (this.disposed) return
     const next = normalizeFont(font)
@@ -378,6 +394,8 @@ export class TerminalFitController {
   }
 
   private calculateFit(): TerminalFitResult | undefined {
+    const fontResourcesChanged = this.fontResourcesChanged
+    this.fontResourcesChanged = false
     return calculateFitResult(
       this.view,
       this.options.container,
@@ -386,6 +404,7 @@ export class TerminalFitController {
       this.readPixelRatio(),
       this.options.getScrollbarWidth?.() ?? 0,
       this.measureContext,
+      fontResourcesChanged,
     )
   }
 
@@ -394,7 +413,7 @@ export class TerminalFitController {
   }
 
   private readonly handleFontEvent = (): void => {
-    this.requestFit()
+    this.refreshFontResources()
   }
 
   private readonly handlePixelRatioChange = (): void => {

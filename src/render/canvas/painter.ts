@@ -46,6 +46,48 @@ interface GlyphMetrics {
 }
 
 const nonPrintableAscii = /[^\x20-\x7e]/
+const maxSharedGlyphMetrics = 32
+const sharedGlyphMetrics = new Map<string, GlyphMetrics>()
+const fontFaceIds = new WeakMap<FontFace, number>()
+let nextFontFaceId = 1
+
+function canShareGlyphMetrics(context: PaintTarget): boolean {
+  if (Object.prototype.hasOwnProperty.call(context, 'measureText')) return false
+  if (context.nativeMeasureText) return true
+  if (
+    typeof CanvasRenderingContext2D !== 'undefined' &&
+    context instanceof CanvasRenderingContext2D
+  ) {
+    return context.canvas.isConnected
+  }
+  return (
+    typeof OffscreenCanvasRenderingContext2D !== 'undefined' &&
+    context instanceof OffscreenCanvasRenderingContext2D
+  )
+}
+
+function fontSetSignature(): string {
+  if (typeof document === 'undefined' || !document.fonts) return ''
+  let signature = `${document.fonts.size}:`
+  for (const face of document.fonts) {
+    if (face.status !== 'loaded') continue
+    let id = fontFaceIds.get(face)
+    if (id === undefined) {
+      id = nextFontFaceId++
+      fontFaceIds.set(face, id)
+    }
+    signature += `${id},`
+  }
+  return signature
+}
+
+function cacheSharedGlyphMetrics(key: string, metrics: GlyphMetrics): void {
+  if (sharedGlyphMetrics.size >= maxSharedGlyphMetrics) {
+    const oldest = sharedGlyphMetrics.keys().next().value
+    if (oldest !== undefined) sharedGlyphMetrics.delete(oldest)
+  }
+  sharedGlyphMetrics.set(key, metrics)
+}
 
 function plainCellText(cells: readonly RenderCell[]): string | undefined {
   let text = ''
@@ -127,10 +169,22 @@ export class CanvasRowPainter {
     this.context.textAlign = 'center'
     this.context.textBaseline = 'alphabetic'
     this.invalidate()
-    if (fontResourcesChanged) this.glyphMetrics = undefined
+    if (fontResourcesChanged) {
+      this.glyphMetrics = undefined
+      sharedGlyphMetrics.clear()
+    }
     if (!this.context.measureText) return
     const key = `${this.fonts[0]}\0${this.fonts[1]}\0${font.deviceCellWidth}\0${font.charLeft}\0${font.deviceCharWidth}`
     if (key === this.glyphMetrics?.key) return
+    const shareable = canShareGlyphMetrics(this.context)
+    const sharedKey = shareable ? `${key}\0${fontSetSignature()}` : undefined
+    if (sharedKey !== undefined) {
+      const cached = sharedGlyphMetrics.get(sharedKey)
+      if (cached) {
+        this.glyphMetrics = cached
+        return
+      }
+    }
     const center = font.charLeft + font.deviceCharWidth / 2
     let overhangLeft = 0
     let overhangRight = 0
@@ -145,6 +199,7 @@ export class CanvasRowPainter {
       )
     }
     this.glyphMetrics = { key, overhangLeft, overhangRight, blankSpaces, measuredSpaces: 1 }
+    if (sharedKey !== undefined) cacheSharedGlyphMetrics(sharedKey, this.glyphMetrics)
   }
 
   plainRowText(row: RenderRow): string | undefined {
@@ -202,7 +257,7 @@ export class CanvasRowPainter {
       // Spreading the source row would invoke its complete-cell getter.
       row = { y: row.y, dirty: row.dirty, cells }
     }
-    if (!plain && row.packed && !this.context.glyph) {
+    if (!plain && row.packed) {
       const cells = row.packed.readInto(this.cells)
       row = { y: row.y, dirty: row.dirty, cells, logicalColumns: row.logicalColumns }
     }
@@ -430,13 +485,7 @@ export class CanvasRowPainter {
     const span = joinedSpan ?? cellSpan(row.cells, index)
     if (!this.textVisible && cell.style?.blink) return span
     const style = Number(cell.style?.bold ?? false) + Number(cell.style?.italic ?? false) * 2
-    if (
-      joined === undefined &&
-      span === 1 &&
-      cell.text === ' ' &&
-      !this.context.glyph &&
-      this.spaceIsBlank(style)
-    )
+    if (joined === undefined && span === 1 && cell.text === ' ' && this.spaceIsBlank(style))
       return span
     const text = joined ?? cell.text
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth

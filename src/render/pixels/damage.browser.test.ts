@@ -53,8 +53,8 @@ it.each([1, 1.25, 1.5, 2])(
     cleanups.push(() => renderer.dispose())
     clock.flushFrame()
     const painter = paint.mock.contexts[0]
-    expect(reads.mock.lastCall![0]?.packed).toBe(false)
-    expect(paint.mock.calls[0]![0].packed).toBeUndefined()
+    expect(reads.mock.lastCall![0]?.packed).toBe(true)
+    expect(paint.mock.calls[0]![0].packed).toBeDefined()
     expect(paint.mock.calls[0]![0]).toBe(reads.mock.results[0]?.value[0])
     for (const content of ['\x1b[1;8HX', '\x1b[1;9HY']) {
       terminal.write(content)
@@ -114,13 +114,13 @@ it.each([1, 1.25, 1.5, 2])(
       )
       expectPixels(upload.mock.lastCall![0].data, referenceUpload.mock.lastCall![0].data)
     }
-    expect(packing.every((packed) => packed === false)).toBe(true)
+    expect(packing.every((packed) => packed === true)).toBe(true)
     const styled = paint.mock.calls.filter(
       ([row], index) =>
         paint.mock.contexts[index] === painter && row.cells.some((cell) => cell.foreground),
     )
     expect(styled.length).toBeGreaterThan(0)
-    expect(styled.every(([row]) => row.packed === undefined)).toBe(true)
+    expect(styled.every(([row]) => row.packed !== undefined)).toBe(true)
     expect(copy).toHaveBeenCalled()
     expect(upload.mock.calls.slice(-2).every((call) => call[6]! < canvas.height)).toBe(true)
     const acknowledge = vi.spyOn(state, 'acknowledge')

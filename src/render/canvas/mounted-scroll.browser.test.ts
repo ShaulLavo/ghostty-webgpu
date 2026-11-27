@@ -98,7 +98,7 @@ it.each(['canvas2d-fill-text', 'canvas2d-pixels'] as const)(
         clock.flushFrame()
         expect(read).toHaveBeenCalledOnce()
         expect(read.mock.calls[0]?.[0]).toEqual({
-          packed: rendererMode === 'canvas2d-fill-text',
+          packed: true,
         })
         expectScrollReuse(renderer, before)
         await expectFullRepaint(renderer, options)

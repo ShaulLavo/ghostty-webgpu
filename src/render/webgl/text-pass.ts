@@ -33,6 +33,7 @@ interface Pipeline {
   readonly splitVertexArray: WebGLVertexArrayObject
   readonly rowLayout: WebGLUniformLocation
   readonly firstInstance: WebGLUniformLocation
+  readonly viewport: WebGLUniformLocation
   readonly textHidden: WebGLUniformLocation | undefined
   readonly stride: number
   drawable: Uint8Array
@@ -277,7 +278,8 @@ export class WebGlTextPass {
     const baseVertexArray = this.createVertexArray(buffer, stride)
     const splitVertexArray = this.createVertexArray(buffer, stride)
     gl.useProgram(program)
-    gl.uniform2f(this.uniform(program, 'viewport'), this.width, this.height)
+    const viewport = this.uniform(program, 'viewport')
+    gl.uniform2f(viewport, this.width, this.height)
     return {
       buffer,
       program,
@@ -285,6 +287,7 @@ export class WebGlTextPass {
       splitVertexArray,
       rowLayout: this.uniform(program, 'rowLayout'),
       firstInstance: this.uniform(program, 'firstInstance'),
+      viewport,
       textHidden: this.textBlinkEnabled ? this.uniform(program, 'textHidden') : undefined,
       stride,
       drawable: new Uint8Array(this.instanceCount),
@@ -341,7 +344,7 @@ export class WebGlTextPass {
     gl.bindBuffer(gl.ARRAY_BUFFER, pipeline.buffer)
     gl.bufferData(gl.ARRAY_BUFFER, this.instanceCount * stride, gl.DYNAMIC_DRAW)
     gl.useProgram(pipeline.program)
-    gl.uniform2f(this.uniform(pipeline.program, 'viewport'), this.width, this.height)
+    gl.uniform2f(pipeline.viewport, this.width, this.height)
   }
 
   private createAtlasTexture(kind: AtlasKind, layers = 1): WebGLTexture {

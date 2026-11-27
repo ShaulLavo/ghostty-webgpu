@@ -46,6 +46,19 @@ function packed(brush: Brush): number {
 export class StampTarget implements PixelTarget, PaintTarget {
   readonly context = this
   readonly cellDamage = true
+  get nativeMeasureText(): boolean {
+    if (Object.prototype.hasOwnProperty.call(this.output, 'measureText')) return false
+    if (
+      typeof CanvasRenderingContext2D !== 'undefined' &&
+      this.output instanceof CanvasRenderingContext2D
+    ) {
+      return this.output.canvas.isConnected
+    }
+    return (
+      typeof OffscreenCanvasRenderingContext2D !== 'undefined' &&
+      this.output instanceof OffscreenCanvasRenderingContext2D
+    )
+  }
   readonly cache: StampCache
   readonly frame: PixelFrame
   metrics: PixelMetrics = {
@@ -76,6 +89,9 @@ export class StampTarget implements PixelTarget, PaintTarget {
   private rowHeight = 0
   private generation = 0
   private fitted?: TerminalFittedFont
+  private rasterizer?: CanvasGlyphRasterizer
+  private primitiveCanvas?: HTMLCanvasElement | OffscreenCanvas
+  private primitiveContext?: Canvas2dContext
   private parsedBrush?: { readonly brush: Brush; readonly color: number }
   private presenting = false
   private disposed = false
@@ -126,11 +142,13 @@ export class StampTarget implements PixelTarget, PaintTarget {
   setFont(font: TerminalFittedFont): void {
     this.requireWritable()
     this.fitted = font
+    this.rasterizer = undefined
     this.cache.clear()
   }
 
   invalidate(): void {
     this.requireWritable()
+    this.rasterizer = undefined
     this.cache.clear()
     this.frame.invalidate()
   }
@@ -219,6 +237,9 @@ export class StampTarget implements PixelTarget, PaintTarget {
   dispose(): void {
     if (this.disposed) return
     this.requireWritable()
+    this.rasterizer = undefined
+    this.primitiveCanvas = undefined
+    this.primitiveContext = undefined
     this.frame.dispose()
     this.cache.dispose()
     if (this.offset) this.kernel.release(this.offset)
@@ -255,27 +276,43 @@ export class StampTarget implements PixelTarget, PaintTarget {
 
   clearRect(x: number, y: number, width: number, height: number): void {
     this.requireWritable()
-    const bounds = intersect(this.state.clip, [x, y, width, height])
-    this.rowLeft = Math.min(this.rowLeft, bounds[0])
-    this.rowRight = Math.max(this.rowRight, bounds[0] + bounds[2])
+    const clip = this.state.clip
+    const left = Math.max(clip[0], x)
+    const top = Math.max(clip[1], y)
+    const cw = Math.max(0, Math.min(clip[0] + clip[2], x + width) - left)
+    const ch = Math.max(0, Math.min(clip[1] + clip[3], y + height) - top)
+    this.rowLeft = Math.min(this.rowLeft, left)
+    this.rowRight = Math.max(this.rowRight, left + cw)
     this.kernel.check(
-      this.kernel.exports.compose_clear(this.offset, this.width, this.height, ...bounds),
+      this.kernel.exports.compose_clear(this.offset, this.width, this.height, left, top, cw, ch),
     )
   }
 
   fillRect(x: number, y: number, width: number, height: number): void {
     this.requireWritable()
-    if (![x, y, width, height].every(Number.isInteger)) {
+    if (
+      !Number.isInteger(x) ||
+      !Number.isInteger(y) ||
+      !Number.isInteger(width) ||
+      !Number.isInteger(height)
+    ) {
       this.primitive([x, y, width, height], 'fill')
       return
     }
-    const bounds = intersect(this.state.clip, [x, y, width, height])
+    const clip = this.state.clip
+    const left = Math.max(clip[0], x)
+    const top = Math.max(clip[1], y)
+    const cw = Math.max(0, Math.min(clip[0] + clip[2], x + width) - left)
+    const ch = Math.max(0, Math.min(clip[1] + clip[3], y + height) - top)
     this.kernel.check(
       this.kernel.exports.compose_fill(
         this.offset,
         this.width,
         this.height,
-        ...bounds,
+        left,
+        top,
+        cw,
+        ch,
         this.color(this.fillStyle),
         this.opacity(),
       ),
@@ -290,12 +327,12 @@ export class StampTarget implements PixelTarget, PaintTarget {
     this.requireWritable()
     const font = this.fitted
     if (!font) throw createGhosttyError('canvas.glyph', 'Canvas glyph font is unavailable')
-    const key = `glyph:${glyphKey(input, 'color')}`
-    // The shared rasterizer's own JS cache dies with the miss, leaving viewport-bounded resident stamps.
-    const stamp = this.cache.get(
-      key,
-      () => new CanvasGlyphRasterizer({ font }).rasterize(input),
-      this.stampClip(x, y),
+    const grayscaleKey = `glyph:${glyphKey(input, 'grayscale')}`
+    const stamp = this.cache.getResolved(
+      grayscaleKey,
+      () => `glyph:${glyphKey(input, 'color')}`,
+      () => this.getRasterizer(font).rasterize(input),
+      () => this.stampClip(x, y),
     )
     if (stamp) this.compose(stamp, x, y, this.color(this.fillStyle))
   }
@@ -353,6 +390,35 @@ export class StampTarget implements PixelTarget, PaintTarget {
       )
   }
 
+  private getRasterizer(font: TerminalFittedFont): CanvasGlyphRasterizer {
+    // Disable the rasterizer's JS bitmap cache so stamps stay strictly viewport-bounded in Wasm.
+    this.rasterizer ??= new CanvasGlyphRasterizer({ font, canCache: () => false })
+    return this.rasterizer
+  }
+
+  private getPrimitiveContext(width: number, height: number): Canvas2dContext {
+    if (!this.primitiveCanvas || !this.primitiveContext) {
+      const canvas =
+        typeof OffscreenCanvas !== 'undefined'
+          ? new OffscreenCanvas(width, height)
+          : document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d', {
+        willReadFrequently: true,
+      }) as Canvas2dContext | null
+      if (!context)
+        throw createGhosttyError('canvas.stamp', 'Canvas path rasterization is unavailable')
+      this.primitiveCanvas = canvas
+      this.primitiveContext = context
+      return context
+    }
+    if (this.primitiveCanvas.width < width) this.primitiveCanvas.width = width
+    if (this.primitiveCanvas.height < height) this.primitiveCanvas.height = height
+    this.primitiveContext.clearRect(0, 0, width, height)
+    return this.primitiveContext
+  }
+
   private rasterPrimitive(
     kind: 'fill' | 'path' | 'outline',
     shape: Rect,
@@ -360,22 +426,20 @@ export class StampTarget implements PixelTarget, PaintTarget {
     width: number,
     height: number,
   ): GlyphBitmap {
-    const canvas = new OffscreenCanvas(width, height)
-    const context = canvas.getContext('2d', { willReadFrequently: true })
-    if (!context)
-      throw createGhosttyError('canvas.stamp', 'Canvas path rasterization is unavailable')
+    const context = this.getPrimitiveContext(width, height)
     context.fillStyle = '#ffffff'
     context.strokeStyle = '#ffffff'
     context.lineWidth = this.lineWidth
     context.setLineDash([...this.state.dash])
-    if (kind === 'fill') context.fillRect(...shape)
-    if (kind === 'outline') context.strokeRect(...shape)
+    if (kind === 'fill') context.fillRect(shape[0], shape[1], shape[2], shape[3])
+    if (kind === 'outline') context.strokeRect(shape[0], shape[1], shape[2], shape[3])
     if (kind === 'path') {
       context.beginPath()
-      points.forEach(([x, y], index) => {
-        if (index === 0) context.moveTo(x!, y!)
-        if (index > 0) context.lineTo(x!, y!)
-      })
+      for (let index = 0; index < points.length; index += 1) {
+        const point = points[index]!
+        if (index === 0) context.moveTo(point[0]!, point[1]!)
+        else context.lineTo(point[0]!, point[1]!)
+      }
       context.stroke()
     }
     const image = context.getImageData(0, 0, width, height)
@@ -392,6 +456,7 @@ export class StampTarget implements PixelTarget, PaintTarget {
 
   private compose(stamp: ResidentStamp, x: number, y: number, tint: number): void {
     const kind = stamp.encoding === 'a8' ? 1 : 4
+    const clip = this.state.clip
     this.kernel.check(
       this.kernel.exports.compose_stamp(
         this.offset,
@@ -404,7 +469,10 @@ export class StampTarget implements PixelTarget, PaintTarget {
         kind,
         x + stamp.left,
         y + stamp.top,
-        ...this.state.clip,
+        clip[0],
+        clip[1],
+        clip[2],
+        clip[3],
         tint,
         this.opacity(),
       ),

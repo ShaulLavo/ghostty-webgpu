@@ -1781,4 +1781,66 @@ describe('Terminal DOM host', () => {
     expect(recording.options?.rows).toBe(6)
     expect(recording.options?.columns).toBe(32)
   })
+
+  it('encodes mobile virtual keyboard delete/enter inputs and tolerates nullish event fields', async () => {
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const output: Uint8Array[] = []
+    terminal.onData(({ bytes }) => output.push(bytes))
+
+    // Android GBoard / mobile soft keyboards emit Unidentified keydown (code === '') before input.
+    dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'deleteContentBackward' }),
+    )
+    dispatchInput(textarea, '', { data: null, inputType: 'deleteContentBackward' })
+
+    dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'deleteContentForward' }),
+    )
+    dispatchInput(textarea, '', { data: null, inputType: 'deleteContentForward' })
+
+    dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'insertLineBreak' }),
+    )
+    dispatchInput(textarea, '\n', { data: null, inputType: 'insertLineBreak' })
+
+    dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'insertParagraph' }),
+    )
+    dispatchInput(textarea, '', { data: null, inputType: 'insertParagraph' })
+
+    expect(decodedOutput(output)).toEqual(['\x7f', '\x1b[3~', '\r', '\r'])
+
+    // Synthetic plain Event('input') without inputType or null CompositionEvent.data must not throw.
+    output.length = 0
+    textarea.value = 'ok'
+    expect(() => textarea.dispatchEvent(new Event('input', { bubbles: true }))).not.toThrow()
+    expect(decodedOutput(output)).toEqual(['ok'])
+
+    dispatchComposition(textarea, 'compositionstart')
+    const emptyEnd = new CompositionEvent('compositionend', { bubbles: true })
+    Object.defineProperty(emptyEnd, 'data', { value: null })
+    expect(() => textarea.dispatchEvent(emptyEnd)).not.toThrow()
+  })
+
+  it('detects Apple platforms from userAgent when navigator.platform is empty', async () => {
+    stubRendererNavigator({
+      platform: '',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)',
+    })
+    const terminal = await trackedTerminal({ rendererFactory: recordingRendererFactory({}) })
+    await terminal.open(trackedHost())
+    const textarea = terminal.textarea!
+    const pasteKey = dispatchKey(textarea, 'keydown', {
+      code: 'KeyV',
+      key: 'v',
+      metaKey: true,
+    })
+    expect(pasteKey.defaultPrevented).toBe(false)
+  })
 })

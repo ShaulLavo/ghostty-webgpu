@@ -133,7 +133,7 @@ test('canvas scroll selects all 15 unchanged rows with the original source ident
   await verifyNativeSource(stage)
   assert.equal(
     nativeSourceHashes[stage],
-    'c0f27b373480665c78c16b0cde21af6f5e7b442f5099b8e910df99b51c0b02f9',
+    '7446f0f82bd9162c5603fd39c3e5d9fcade17ee39a301e70ef1f962472d879d5',
   )
   const sites = [
     '214:0',

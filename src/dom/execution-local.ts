@@ -52,7 +52,7 @@ import {
   type SubmittedLayout,
   type TerminalSubmittedSnapshot,
 } from './submitted-frame.js'
-import { encodeTerminalViewport } from './viewport.js'
+import { encodeTerminalViewport } from './viewport-encode.js'
 
 type SubmittedTextFrame = DisplayedTextFrame & {
   readonly [capturedSubmission]: CapturedSubmission

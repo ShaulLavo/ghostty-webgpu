@@ -55,6 +55,63 @@ interface PipelineResources {
   glyphPipeline: GPURenderPipeline
 }
 
+interface SharedDeviceResources {
+  readonly cellPipeline: GPURenderPipeline
+  readonly glyphPipeline: GPURenderPipeline
+  readonly sampler: GPUSampler
+}
+
+const devicePipelineCache = new WeakMap<GPUDevice, Map<string, SharedDeviceResources>>()
+
+function getOrCreateSharedResources(
+  device: GPUDevice,
+  format: GPUTextureFormat,
+  textBlinkEnabled: boolean,
+): SharedDeviceResources {
+  let byKey = devicePipelineCache.get(device)
+  const key = `${format}:${textBlinkEnabled ? 1 : 0}`
+  const cached = byKey?.get(key)
+  if (cached) return cached
+  const cellModule = device.createShaderModule({ code: cellShader })
+  const glyphModule = device.createShaderModule({ code: glyphShader })
+  const cellPipeline = device.createRenderPipeline({
+    fragment: {
+      constants: { ENABLE_TEXT_BLINK: textBlinkEnabled ? 1 : 0 },
+      entryPoint: 'fragmentMain',
+      module: cellModule,
+      targets: [{ blend: blendState(), format }],
+    },
+    layout: 'auto',
+    primitive: { topology: 'triangle-list' },
+    vertex: {
+      entryPoint: 'vertexMain',
+      module: cellModule,
+    },
+  })
+  const glyphPipeline = device.createRenderPipeline({
+    fragment: {
+      entryPoint: 'fragmentMain',
+      module: glyphModule,
+      targets: [{ blend: blendState(), format }],
+    },
+    layout: 'auto',
+    primitive: { topology: 'triangle-list' },
+    vertex: {
+      constants: { ENABLE_TEXT_BLINK: textBlinkEnabled ? 1 : 0 },
+      entryPoint: 'vertexMain',
+      module: glyphModule,
+    },
+  })
+  const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' })
+  const shared: SharedDeviceResources = { cellPipeline, glyphPipeline, sampler }
+  if (!byKey) {
+    byKey = new Map()
+    devicePipelineCache.set(device, byKey)
+  }
+  byKey.set(key, shared)
+  return shared
+}
+
 interface GlyphBatch {
   readonly buffer: GPUBuffer
   readonly byteOffset: number
@@ -153,13 +210,14 @@ export class WebGpuTextPass {
         usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
       })
       this.ownedBuffers.push(this.viewportBuffer)
-      this.sampler = options.device.createSampler({ magFilter: 'linear', minFilter: 'linear' })
+      const shared = getOrCreateSharedResources(this.device, options.format, this.textBlinkEnabled)
+      this.sampler = shared.sampler
       options.device.queue.writeBuffer(
         this.viewportBuffer,
         0,
         new Float32Array([options.width, options.height, 0, 0]),
       )
-      this.resources = this.createPipelines(options.format)
+      this.resources = this.createPipelines(shared)
     } catch (cause) {
       this.destroy()
       throw cause
@@ -329,43 +387,15 @@ export class WebGpuTextPass {
     this.metrics.uploadOperations += 1
   }
 
-  private createPipelines(format: GPUTextureFormat): PipelineResources {
-    const cellPipeline = this.device.createRenderPipeline({
-      fragment: {
-        constants: { ENABLE_TEXT_BLINK: this.textBlinkEnabled ? 1 : 0 },
-        entryPoint: 'fragmentMain',
-        module: this.device.createShaderModule({ code: cellShader }),
-        targets: [{ blend: blendState(), format }],
-      },
-      layout: 'auto',
-      primitive: { topology: 'triangle-list' },
-      vertex: {
-        entryPoint: 'vertexMain',
-        module: this.device.createShaderModule({ code: cellShader }),
-      },
-    })
-    const glyphPipeline = this.device.createRenderPipeline({
-      fragment: {
-        entryPoint: 'fragmentMain',
-        module: this.device.createShaderModule({ code: glyphShader }),
-        targets: [{ blend: blendState(), format }],
-      },
-      layout: 'auto',
-      primitive: { topology: 'triangle-list' },
-      vertex: {
-        constants: { ENABLE_TEXT_BLINK: this.textBlinkEnabled ? 1 : 0 },
-        entryPoint: 'vertexMain',
-        module: this.device.createShaderModule({ code: glyphShader }),
-      },
-    })
+  private createPipelines(shared: SharedDeviceResources): PipelineResources {
     const cellBindGroup = this.device.createBindGroup({
       entries: [
         { binding: 0, resource: { buffer: this.cellBuffer } },
         { binding: 1, resource: { buffer: this.viewportBuffer } },
       ],
-      layout: cellPipeline.getBindGroupLayout(0),
+      layout: shared.cellPipeline.getBindGroupLayout(0),
     })
-    return { cellBindGroup, cellPipeline, glyphPipeline }
+    return { cellBindGroup, cellPipeline: shared.cellPipeline, glyphPipeline: shared.glyphPipeline }
   }
 
   private createStorageBuffer(size: number): GPUBuffer {
