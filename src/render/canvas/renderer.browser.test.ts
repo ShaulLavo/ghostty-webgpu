@@ -1631,57 +1631,77 @@ describe('Canvas pixel storage and failed presentation', () => {
       '../../dom/tests/fixtures/font-resource/changed-metrics.woff2',
       import.meta.url,
     ).href
-    const parentFace = new FontFace(family, `url(${baseUrl})`)
-    await parentFace.load()
-    document.fonts.add(parentFace)
-    const iframe = document.createElement('iframe')
-    document.body.append(iframe)
+    const iframeA = document.createElement('iframe')
+    const iframeB = document.createElement('iframe')
+    document.body.append(iframeA, iframeB)
     const measureSpy = spyPrototypeMeasureText()
     try {
-      const iframeDoc = iframe.contentDocument!
-      const IframeFontFace = (iframe.contentWindow as unknown as typeof globalThis).FontFace
-      const iframeFace = new IframeFontFace(family, `url(${wideUrl})`)
-      await iframeFace.load()
-      iframeDoc.fonts.add(iframeFace)
-      const font: TerminalFittedFont = {
-        ...fittedFont(),
-        settings: { ...fittedFont().settings, family, size: 20 },
-      }
+      const docA = iframeA.contentDocument!
+      const docB = iframeB.contentDocument!
       const theme = canonicalRendererTheme(mergeRendererTheme({}))
-      const parentCanvas = createCanvas()
-      const parentContext = parentCanvas.getContext('2d')!
-      const parentPainter = new CanvasRowPainter(parentContext, font, theme)
-      parentPainter.resetContext(font)
-      expect(measureSpy.contexts).toContain(parentContext)
+      const baseFont = fittedFont()
+      const targetA = adoptCanvasInto(docA)
+      const targetB1 = adoptCanvasInto(docB)
+      const targetB2 = adoptCanvasInto(docB)
 
-      // Adopt a parent-created canvas into the iframe so its context matches parent CanvasRenderingContext2D.
-      const iframeCanvas = document.createElement('canvas')
-      iframeCanvas.width = 160
-      iframeCanvas.height = 40
-      iframeDoc.body.append(iframeCanvas)
-      const iframeContext = iframeCanvas.getContext('2d')!
-      const iframePainter = new CanvasRowPainter(iframeContext, font, theme)
-      measureSpy.contexts.length = 0
-      iframePainter.resetContext(font)
-      expect(measureSpy.contexts).toContain(iframeContext)
+      // Both iframes start with identical empty font sets, isolating ownerDocument cache scoping.
+      const painterA = new CanvasRowPainter(targetA.context, baseFont, theme)
+      painterA.resetContext(baseFont)
+      expect(measureSpy.contexts).toContain(targetA.context)
 
-      // A second painter in the same iframe document reuses the iframe-scoped cache entry.
       measureSpy.contexts.length = 0
-      const secondIframePainter = new CanvasRowPainter(iframeContext, font, theme)
-      secondIframePainter.resetContext(font)
+      const painterB1 = new CanvasRowPainter(targetB1.context, baseFont, theme)
+      painterB1.resetContext(baseFont)
+      expect(measureSpy.contexts).toContain(targetB1.context)
+
+      // A second distinct canvas/context in the same iframe reuses that document's cache entry.
+      measureSpy.contexts.length = 0
+      const painterB2 = new CanvasRowPainter(targetB2.context, baseFont, theme)
+      painterB2.resetContext(baseFont)
       expect(measureSpy.contexts).toEqual([])
 
-      iframePainter.paint(row(0, [cell(0, { text: 'A' }), cell(1, { text: ' ' })]), undefined, 160)
-      iframePainter.paint(row(0, [cell(0, { text: ' ' }), cell(1, { text: ' ' })]), undefined, 160)
-      const erased = iframeContext.getImageData(0, 0, iframeCanvas.width, iframeCanvas.height).data
+      const FontFaceA = (iframeA.contentWindow as unknown as typeof globalThis).FontFace
+      const FontFaceB = (iframeB.contentWindow as unknown as typeof globalThis).FontFace
+      const faceA = new FontFaceA(family, `url(${baseUrl})`)
+      const faceB = new FontFaceB(family, `url(${wideUrl})`)
+      await Promise.all([faceA.load(), faceB.load()])
+      docA.fonts.add(faceA)
+      docB.fonts.add(faceB)
+      const customFont: TerminalFittedFont = {
+        ...baseFont,
+        settings: { ...baseFont.settings, family, size: 20 },
+      }
+      painterA.resetContext(customFont)
+      painterB1.resetContext(customFont)
+      painterB1.paint(row(0, [cell(0, { text: 'A' }), cell(1, { text: ' ' })]), undefined, 160)
+      painterB1.paint(row(0, [cell(0, { text: ' ' }), cell(1, { text: ' ' })]), undefined, 160)
+      const erased = targetB1.context.getImageData(
+        0,
+        0,
+        targetB1.canvas.width,
+        targetB1.canvas.height,
+      ).data
       expect(countOpaquePixels(erased)).toBe(0)
     } finally {
       measureSpy.restore()
-      iframe.remove()
-      document.fonts.delete(parentFace)
+      iframeA.remove()
+      iframeB.remove()
     }
   })
 })
+
+function adoptCanvasInto(doc: Document): {
+  readonly canvas: HTMLCanvasElement
+  readonly context: CanvasRenderingContext2D
+} {
+  const canvas = document.createElement('canvas')
+  canvas.width = 160
+  canvas.height = 40
+  // Acquire context before adoption so Firefox keeps it on the parent CanvasRenderingContext2D prototype.
+  const context = canvas.getContext('2d')!
+  doc.body.append(canvas)
+  return { canvas, context }
+}
 
 function spyPrototypeMeasureText(): {
   readonly contexts: CanvasRenderingContext2D[]
