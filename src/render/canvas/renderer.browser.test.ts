@@ -1651,7 +1651,8 @@ describe('Canvas pixel storage and failed presentation', () => {
       const parentPainter = new CanvasRowPainter(parentCanvas.getContext('2d')!, font, theme)
       parentPainter.resetContext(font)
 
-      const iframeCanvas = iframeDoc.createElement('canvas')
+      // Adopt a parent-created canvas into the iframe so its context matches parent CanvasRenderingContext2D.
+      const iframeCanvas = document.createElement('canvas')
       iframeCanvas.width = 160
       iframeCanvas.height = 40
       iframeDoc.body.append(iframeCanvas)

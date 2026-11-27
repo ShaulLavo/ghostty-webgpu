@@ -353,6 +353,14 @@ class BrowserInputController implements DomInputController {
       this.inputSequence = 'idle'
       return
     }
+    if (this.composition.phase === 'ended' || this.composition.phase === 'cancelled') {
+      this.composition = { phase: 'idle' }
+    }
+    if (input.defaultPrevented) {
+      this.claimedSoftInput = false
+      this.inputSequence = 'idle'
+      return
+    }
     // Empty-textarea delete emits beforeinput without a follow-up input event in Chromium.
     if (
       this.composition.phase === 'idle' &&
@@ -468,7 +476,8 @@ class BrowserInputController implements DomInputController {
     this.updateModifierTracking(event)
     if (event.type === 'keyup') this.claimedSoftInput = false
     if (this.options.claimKey?.(event)) {
-      if (event.type === 'keydown') this.claimedSoftInput = true
+      // Only unsupported keydowns (e.g. mobile Unidentified) need suppression of follow-up soft edits.
+      if (event.type === 'keydown') this.claimedSoftInput = !isSupportedTerminalKeyCode(event.code)
       if (event.type === 'keydown' && !event.repeat) {
         this.suppressedShortcuts.set(event.code, pasteRepeatPolicy)
       }

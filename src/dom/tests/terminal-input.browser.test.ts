@@ -1830,6 +1830,49 @@ describe('Terminal DOM host', () => {
     expect(output).toEqual([])
     claimer.dispose()
 
+    // Cancelled composition must not block subsequent soft Backspace on an empty textarea.
+    output.length = 0
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchComposition(textarea, 'compositionend', '')
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'deleteContentBackward',
+      }),
+    )
+    expect(decodedOutput(output)).toEqual(['\x7f'])
+
+    // A cancelled beforeinput event must not send soft Backspace.
+    output.length = 0
+    const cancelBeforeInput = (event: Event) => event.preventDefault()
+    textarea.addEventListener('beforeinput', cancelBeforeInput, { capture: true })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'deleteContentBackward',
+      }),
+    )
+    textarea.removeEventListener('beforeinput', cancelBeforeInput, { capture: true })
+    expect(output).toEqual([])
+
+    // Claiming a supported shortcut (F2) whose keyup never arrives must not swallow a later soft delete.
+    output.length = 0
+    const claimF2 = terminal.connectInput((input) =>
+      input.type === 'key' && 'event' in input && input.event.code === 'F2' ? 'claim' : 'pass',
+    )
+    dispatchKey(textarea, 'keydown', { code: 'F2', key: 'F2' })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'deleteContentBackward',
+      }),
+    )
+    expect(decodedOutput(output)).toEqual(['\x7f'])
+    claimF2.dispose()
+
     // Synthetic plain Event('input') without inputType or null CompositionEvent.data must not throw.
     output.length = 0
     textarea.value = 'ok'
@@ -1954,8 +1997,28 @@ describe('Terminal DOM host', () => {
       await document.fonts.ready
       await animationFrames(2)
 
-      host.style.display = ''
-      await expect.poll(() => terminal.appearance.grid.cellWidth).not.toBe(beforeCellWidth)
+      const descriptor = Object.getOwnPropertyDescriptor(
+        CanvasRenderingContext2D.prototype,
+        'font',
+      )!
+      const assignedFonts: string[] = []
+      Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', {
+        configurable: true,
+        get() {
+          return descriptor.get!.call(this)
+        },
+        set(value: string) {
+          assignedFonts.push(value)
+          descriptor.set!.call(this, value)
+        },
+      })
+      try {
+        host.style.display = ''
+        await expect.poll(() => terminal.appearance.grid.cellWidth).not.toBe(beforeCellWidth)
+        expect(assignedFonts).toContain('10px sans-serif')
+      } finally {
+        Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', descriptor)
+      }
     } finally {
       document.fonts.delete(beforeFace)
       if (changedFace) document.fonts.delete(changedFace)
