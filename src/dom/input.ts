@@ -348,6 +348,11 @@ class BrowserInputController implements DomInputController {
 
   private readonly handleBeforeInput = (input: InputEvent): void => {
     if (this.disposed) return
+    if (input.defaultPrevented) {
+      this.claimedSoftInput = false
+      this.inputSequence = 'idle'
+      return
+    }
     const inputType = input.inputType ?? ''
     if (this.composing || input.isComposing || inputType.includes('Composition')) {
       this.inputSequence = 'idle'
@@ -355,11 +360,6 @@ class BrowserInputController implements DomInputController {
     }
     if (this.composition.phase === 'ended' || this.composition.phase === 'cancelled') {
       this.composition = { phase: 'idle' }
-    }
-    if (input.defaultPrevented) {
-      this.claimedSoftInput = false
-      this.inputSequence = 'idle'
-      return
     }
     // Empty-textarea delete emits beforeinput without a follow-up input event in Chromium.
     if (
@@ -383,6 +383,7 @@ class BrowserInputController implements DomInputController {
 
   private readonly handleCompositionEnd = (event: CompositionEvent): void => {
     if (this.disposed) return
+    this.claimedSoftInput = false
     if (this.composition.phase === 'cancelled') return
     if (this.composition.phase !== 'active') return
     const { committed, value } = this.composition

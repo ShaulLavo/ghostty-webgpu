@@ -1857,6 +1857,37 @@ describe('Terminal DOM host', () => {
     textarea.removeEventListener('beforeinput', cancelBeforeInput, { capture: true })
     expect(output).toEqual([])
 
+    // A claimed Unidentified keydown followed by a cancelled composing beforeinput must not drop later soft Backspace.
+    output.length = 0
+    const claimUnidentified = terminal.connectInput((input) =>
+      input.type === 'key' && 'event' in input && input.event.key === 'Unidentified'
+        ? 'claim'
+        : 'pass',
+    )
+    dispatchComposition(textarea, 'compositionstart')
+    dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
+    textarea.addEventListener('beforeinput', cancelBeforeInput, { capture: true })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        data: 'a',
+        inputType: 'insertCompositionText',
+        isComposing: true,
+      }),
+    )
+    textarea.removeEventListener('beforeinput', cancelBeforeInput, { capture: true })
+    dispatchComposition(textarea, 'compositionend', '')
+    claimUnidentified.dispose()
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'deleteContentBackward',
+      }),
+    )
+    expect(decodedOutput(output)).toEqual(['\x7f'])
+
     // Claiming a supported shortcut (F2) whose keyup never arrives must not swallow a later soft delete.
     output.length = 0
     const claimF2 = terminal.connectInput((input) =>
@@ -1978,6 +2009,7 @@ describe('Terminal DOM host', () => {
     await beforeFace.load()
     document.fonts.add(beforeFace)
     let changedFace: FontFace | undefined
+    let restoreFontSpy: (() => void) | undefined
     try {
       const host = trackedHost(360, 160)
       const terminal = await trackedTerminal({
@@ -1997,31 +2029,42 @@ describe('Terminal DOM host', () => {
       await document.fonts.ready
       await animationFrames(2)
 
-      const descriptor = Object.getOwnPropertyDescriptor(
-        CanvasRenderingContext2D.prototype,
-        'font',
-      )!
-      const assignedFonts: string[] = []
-      Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', {
-        configurable: true,
-        get() {
-          return descriptor.get!.call(this)
-        },
-        set(value: string) {
-          assignedFonts.push(value)
-          descriptor.set!.call(this, value)
-        },
-      })
-      try {
-        host.style.display = ''
-        await expect.poll(() => terminal.appearance.grid.cellWidth).not.toBe(beforeCellWidth)
-        expect(assignedFonts).toContain('10px sans-serif')
-      } finally {
-        Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', descriptor)
-      }
+      const fontSpy = spyCanvasFontAssignments()
+      restoreFontSpy = fontSpy.restore
+      host.style.display = ''
+      await expect.poll(() => terminal.appearance.grid.cellWidth).not.toBe(beforeCellWidth)
+      const resetIndex = fontSpy.assigned.indexOf('10px sans-serif')
+      const fixtureIndex = fontSpy.assigned.findIndex((value) => value.includes(family))
+      expect(resetIndex).toBeGreaterThanOrEqual(0)
+      expect(fixtureIndex).toBeGreaterThan(resetIndex)
     } finally {
+      restoreFontSpy?.()
       document.fonts.delete(beforeFace)
       if (changedFace) document.fonts.delete(changedFace)
     }
   })
 })
+
+function spyCanvasFontAssignments(): {
+  readonly assigned: string[]
+  readonly restore: () => void
+} {
+  const descriptor = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'font')!
+  const assigned: string[] = []
+  Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', {
+    configurable: true,
+    get() {
+      return descriptor.get!.call(this)
+    },
+    set(value: string) {
+      assigned.push(value)
+      descriptor.set!.call(this, value)
+    },
+  })
+  return {
+    assigned,
+    restore: () => {
+      Object.defineProperty(CanvasRenderingContext2D.prototype, 'font', descriptor)
+    },
+  }
+}

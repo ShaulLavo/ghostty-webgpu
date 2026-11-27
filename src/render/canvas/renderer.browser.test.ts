@@ -1636,6 +1636,7 @@ describe('Canvas pixel storage and failed presentation', () => {
     document.fonts.add(parentFace)
     const iframe = document.createElement('iframe')
     document.body.append(iframe)
+    const measureSpy = spyPrototypeMeasureText()
     try {
       const iframeDoc = iframe.contentDocument!
       const IframeFontFace = (iframe.contentWindow as unknown as typeof globalThis).FontFace
@@ -1648,8 +1649,10 @@ describe('Canvas pixel storage and failed presentation', () => {
       }
       const theme = canonicalRendererTheme(mergeRendererTheme({}))
       const parentCanvas = createCanvas()
-      const parentPainter = new CanvasRowPainter(parentCanvas.getContext('2d')!, font, theme)
+      const parentContext = parentCanvas.getContext('2d')!
+      const parentPainter = new CanvasRowPainter(parentContext, font, theme)
       parentPainter.resetContext(font)
+      expect(measureSpy.contexts).toContain(parentContext)
 
       // Adopt a parent-created canvas into the iframe so its context matches parent CanvasRenderingContext2D.
       const iframeCanvas = document.createElement('canvas')
@@ -1658,18 +1661,50 @@ describe('Canvas pixel storage and failed presentation', () => {
       iframeDoc.body.append(iframeCanvas)
       const iframeContext = iframeCanvas.getContext('2d')!
       const iframePainter = new CanvasRowPainter(iframeContext, font, theme)
+      measureSpy.contexts.length = 0
       iframePainter.resetContext(font)
+      expect(measureSpy.contexts).toContain(iframeContext)
+
+      // A second painter in the same iframe document reuses the iframe-scoped cache entry.
+      measureSpy.contexts.length = 0
+      const secondIframePainter = new CanvasRowPainter(iframeContext, font, theme)
+      secondIframePainter.resetContext(font)
+      expect(measureSpy.contexts).toEqual([])
+
       iframePainter.paint(row(0, [cell(0, { text: 'A' }), cell(1, { text: ' ' })]), undefined, 160)
       iframePainter.paint(row(0, [cell(0, { text: ' ' }), cell(1, { text: ' ' })]), undefined, 160)
       const erased = iframeContext.getImageData(0, 0, iframeCanvas.width, iframeCanvas.height).data
-      let remaining = 0
-      for (let i = 3; i < erased.length; i += 4) {
-        if (erased[i]! > 0) remaining += 1
-      }
-      expect(remaining).toBe(0)
+      expect(countOpaquePixels(erased)).toBe(0)
     } finally {
+      measureSpy.restore()
       iframe.remove()
       document.fonts.delete(parentFace)
     }
   })
 })
+
+function spyPrototypeMeasureText(): {
+  readonly contexts: CanvasRenderingContext2D[]
+  readonly restore: () => void
+} {
+  const original = CanvasRenderingContext2D.prototype.measureText
+  const contexts: CanvasRenderingContext2D[] = []
+  CanvasRenderingContext2D.prototype.measureText = function (text: string) {
+    contexts.push(this)
+    return original.call(this, text)
+  }
+  return {
+    contexts,
+    restore: () => {
+      CanvasRenderingContext2D.prototype.measureText = original
+    },
+  }
+}
+
+function countOpaquePixels(data: Uint8ClampedArray): number {
+  let remaining = 0
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i]! > 0) remaining += 1
+  }
+  return remaining
+}
