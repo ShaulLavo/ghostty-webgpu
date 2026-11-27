@@ -487,8 +487,8 @@ it('keeps packed glyph variants distinct and clears font-scoped stamps across me
     { ...common, italic: true },
     { ...common, weight: 'bold' as const },
     { ...common, text: 'M' },
-    { ...common, foreground: { r: 19, g: 70, b: 200 } },
     { ...common, text: '👩‍💻' },
+    { ...common, text: '👩‍💻', foreground: { r: 19, g: 70, b: 200 } },
     { ...common, text: 'é' },
     { ...common, text: '["W",1]' },
   ]
@@ -496,6 +496,13 @@ it('keeps packed glyph variants distinct and clears font-scoped stamps across me
   const cold = { ...target.cache.metrics }
   expect(cold.rasterCalls).toBe(variants.length)
   expect(cold.residentEntries).toBe(variants.length)
+  // Grayscale stamps reuse the resident alpha mask across distinct foreground colors.
+  target.fillStyle = 'rgb(19, 70, 200)'
+  target.glyph({ ...common, foreground: { r: 19, g: 70, b: 200 } }, 20, 0)
+  expect(target.cache.metrics.rasterCalls).toBe(cold.rasterCalls)
+  expect(target.cache.metrics.residentEntries).toBe(cold.residentEntries)
+  expect(target.cache.metrics.hits).toBe(cold.hits + 1)
+  const afterTinted = { ...target.cache.metrics }
   const first = target.frame.getImage()
   const owned = first.data.slice()
   const memory = first.data.buffer
@@ -505,7 +512,7 @@ it('keeps packed glyph variants distinct and clears font-scoped stamps across me
   for (const input of variants) target.glyph(input, 0, 0)
   expect(target.cache.metrics.rasterCalls).toBe(cold.rasterCalls)
   expect(target.cache.metrics.stampCopies).toBe(cold.stampCopies)
-  expect(target.cache.metrics.hits - cold.hits).toBe(variants.length)
+  expect(target.cache.metrics.hits - afterTinted.hits).toBe(variants.length)
   expect(target.frame.getImage().data.buffer).toBe(kernel.memory.buffer)
   const nextFont = { ...fittedFont(), settings: { ...fittedFont().settings, size: 18 } }
   target.setFont(nextFont)

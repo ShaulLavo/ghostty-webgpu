@@ -39,7 +39,17 @@ function target(name: string, log: string[]) {
   }
 }
 
-const settled = () => new Promise((resolve) => setTimeout(resolve, 0))
+// Two MessageChannel hops ensure this resolves after SettledPaint's own posted port message.
+const settled = (): Promise<void> =>
+  new Promise((resolve) => {
+    const first = new MessageChannel()
+    first.port1.onmessage = () => {
+      first.port1.close()
+      first.port2.close()
+      setTimeout(resolve, 0)
+    }
+    first.port2.postMessage(undefined)
+  })
 const created: SettledPaint[] = []
 function create(clock: RenderSchedulerClock, batches: number[] = []) {
   const paint = new SettledPaint(clock, (run) => {

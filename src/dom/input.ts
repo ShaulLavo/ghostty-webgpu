@@ -113,7 +113,7 @@ type InputPlatform = 'mac' | 'linux' | 'windows'
 function inputPlatform(): InputPlatform {
   if (typeof navigator === 'undefined') return 'linux'
   const platform = (navigator.platform || navigator.userAgent).toLowerCase()
-  if (platform.includes('mac') || /^(iphone|ipad|ipod)/u.test(platform)) return 'mac'
+  if (/mac|iphone|ipad|ipod/u.test(platform)) return 'mac'
   if (platform.includes('win')) return 'windows'
   return 'linux'
 }
@@ -254,6 +254,21 @@ function isPasteInput(inputType: string): boolean {
   return inputType === 'insertFromPaste' || inputType === 'insertFromDrop'
 }
 
+type SoftControlKeyCode = 'Backspace' | 'Delete' | 'Enter'
+
+// Mobile virtual keyboards often emit Unidentified keydown and deliver delete/enter via inputType.
+function softKeyboardControlCode(inputType: string, value: string): SoftControlKeyCode | undefined {
+  if (inputType === 'deleteContentBackward' && value.length === 0) return 'Backspace'
+  if (inputType === 'deleteContentForward' && value.length === 0) return 'Delete'
+  if (
+    (inputType === 'insertLineBreak' || inputType === 'insertParagraph') &&
+    (value.length === 0 || value === '\n')
+  ) {
+    return 'Enter'
+  }
+  return undefined
+}
+
 function inputWindow(textarea: HTMLTextAreaElement): Window {
   const view = textarea.ownerDocument.defaultView
   if (view) return view
@@ -279,6 +294,7 @@ type CompositionState =
 
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
+  private claimedSoftInput = false
   private composition: CompositionState = { phase: 'idle' }
   private inputSequence: InputSequence = 'idle'
 
@@ -332,8 +348,27 @@ class BrowserInputController implements DomInputController {
 
   private readonly handleBeforeInput = (input: InputEvent): void => {
     if (this.disposed) return
-    if (this.composing || input.isComposing || input.inputType.includes('Composition')) {
+    if (input.defaultPrevented) {
+      this.claimedSoftInput = false
       this.inputSequence = 'idle'
+      return
+    }
+    const inputType = input.inputType ?? ''
+    if (this.composing || input.isComposing || inputType.includes('Composition')) {
+      this.inputSequence = 'idle'
+      return
+    }
+    if (this.composition.phase === 'ended' || this.composition.phase === 'cancelled') {
+      this.composition = { phase: 'idle' }
+    }
+    // Empty-textarea delete emits beforeinput without a follow-up input event in Chromium.
+    if (
+      this.composition.phase === 'idle' &&
+      this.options.textarea.value.length === 0 &&
+      (inputType === 'deleteContentBackward' || inputType === 'deleteContentForward')
+    ) {
+      this.inputSequence = 'consumed'
+      this.encodeSoftControlKey(inputType === 'deleteContentBackward' ? 'Backspace' : 'Delete')
       return
     }
     this.inputSequence = 'pending'
@@ -348,19 +383,21 @@ class BrowserInputController implements DomInputController {
 
   private readonly handleCompositionEnd = (event: CompositionEvent): void => {
     if (this.disposed) return
+    this.claimedSoftInput = false
     if (this.composition.phase === 'cancelled') return
     if (this.composition.phase !== 'active') return
     const { committed, value } = this.composition
+    const data = event.data ?? ''
     this.composition = { phase: 'idle' }
     this.setCompositionValue('')
     if (committed) return
-    if (event.data.length === 0) {
+    if (data.length === 0) {
       this.composition = { phase: 'cancelled' }
       this.options.textarea.value = ''
       return
     }
-    if (value.length === 0 || value !== event.data) {
-      this.composition = { phase: 'awaiting', value: event.data }
+    if (value.length === 0 || value !== data) {
+      this.composition = { phase: 'awaiting', value: data }
       return
     }
     // Browsers may deliver the same final input after compositionend.
@@ -372,7 +409,8 @@ class BrowserInputController implements DomInputController {
   private readonly handleInput = (event: Event): void => {
     if (this.disposed) return
     const input = event as InputEvent
-    const compositionInput = input.isComposing || input.inputType.includes('Composition')
+    const inputType = input.inputType ?? ''
+    const compositionInput = input.isComposing || inputType.includes('Composition')
     if (
       !compositionInput &&
       (this.composition.phase === 'ended' || this.composition.phase === 'cancelled')
@@ -388,9 +426,18 @@ class BrowserInputController implements DomInputController {
       return
     }
     // One edit may report several input fragments after its full textarea value was consumed.
-    const fallback = this.inputSequence === 'consumed' ? null : input.data
+    const firstFragment = this.inputSequence !== 'consumed'
+    const fallback = firstFragment ? input.data : null
     if (this.inputSequence === 'pending') this.inputSequence = 'consumed'
     const value = this.takeInputValue(fallback)
+    if (this.composition.phase === 'idle' && firstFragment) {
+      const controlKey = softKeyboardControlCode(inputType, value)
+      if (controlKey) {
+        this.encodeSoftControlKey(controlKey)
+        return
+      }
+    }
+    this.claimedSoftInput = false
     if (value.length === 0) return
     if (this.composition.phase === 'ended') {
       const duplicate = value === this.composition.value
@@ -411,7 +458,7 @@ class BrowserInputController implements DomInputController {
       this.invokeSession('composition', value)
       return
     }
-    const operation = isPasteInput(input.inputType) ? 'paste' : 'text'
+    const operation = isPasteInput(inputType) ? 'paste' : 'text'
     this.invokeSession(operation, value)
   }
 
@@ -428,7 +475,10 @@ class BrowserInputController implements DomInputController {
   private readonly handleKey = (event: KeyboardEvent): void => {
     if (this.disposed) return
     this.updateModifierTracking(event)
+    if (event.type === 'keyup') this.claimedSoftInput = false
     if (this.options.claimKey?.(event)) {
+      // Only unsupported keydowns (e.g. mobile Unidentified) need suppression of follow-up soft edits.
+      if (event.type === 'keydown') this.claimedSoftInput = !isSupportedTerminalKeyCode(event.code)
       if (event.type === 'keydown' && !event.repeat) {
         this.suppressedShortcuts.set(event.code, pasteRepeatPolicy)
       }
@@ -437,6 +487,7 @@ class BrowserInputController implements DomInputController {
       event.preventDefault()
       return
     }
+    if (event.type === 'keydown') this.claimedSoftInput = false
     if (this.consumeSuppressedShortcut(event)) {
       this.deferredMacCommandPresses.clear()
       return
@@ -636,6 +687,33 @@ class BrowserInputController implements DomInputController {
     return true
   }
 
+  private isControlKeyForwarded(code: SoftControlKeyCode): boolean {
+    if (this.forwardedKeyPresses.has(code)) return true
+    if (code === 'Enter') return this.forwardedKeyPresses.has('NumpadEnter')
+    return false
+  }
+
+  private encodeSoftControlKey(code: SoftControlKeyCode): void {
+    const claimed = this.claimedSoftInput
+    this.claimedSoftInput = false
+    if (claimed || this.isControlKeyForwarded(code) || this.isInputDisabled()) return
+    const view = this.options.textarea.ownerDocument.defaultView
+    const KeyboardEventCtor = view?.KeyboardEvent ?? KeyboardEvent
+    if (this.options.claimKey?.(new KeyboardEventCtor('keydown', { code, key: code }))) return
+    this.beforeUserInput()
+    const input: TerminalKeyInput = { action: 'press', code, composing: false, text: '' }
+    try {
+      const encoding = this.options.encoding
+      if (encoding) {
+        void encoding.key(input).catch((cause: unknown) => this.options.onError(cause, 'key'))
+        return
+      }
+      this.options.session!.key(input)
+    } catch (cause) {
+      this.options.onError(cause, 'key')
+    }
+  }
+
   private encodeKey(event: KeyboardEvent): void {
     this.beforeUserInput()
     try {
@@ -655,10 +733,8 @@ class BrowserInputController implements DomInputController {
       }
       const encoding = this.options.encoding
       if (encoding) {
-        if (!this.screenReaderUsesBrowserDefault(event)) event.preventDefault()
+        if (!input.composing && !this.screenReaderUsesBrowserDefault(event)) event.preventDefault()
         // Ownership follows forwarding; an older acknowledgement cannot clear a newer press.
-        if (event.type === 'keydown' && !event.repeat)
-          this.forwardedKeyPresses.set(event.code, event)
         if (event.type === 'keyup') this.forwardedKeyPresses.delete(event.code)
         const generation = this.encodingGeneration
         void encoding
@@ -711,6 +787,7 @@ class BrowserInputController implements DomInputController {
 
   resetTransientState(): void {
     this.encodingGeneration += 1
+    this.claimedSoftInput = false
     this.inputSequence = 'idle'
     if (this.composition.phase !== 'idle') {
       this.composition = { phase: 'cancelled' }

@@ -24,6 +24,7 @@ export type PaintTarget = Pick<
   | 'textAlign'
   | 'textBaseline'
 > & {
+  readonly measureDocument?: Document
   measureText?(text: string): TextMetrics
   glyph?(input: GlyphRasterizationInput, cellX: number, cellY: number): void
 }

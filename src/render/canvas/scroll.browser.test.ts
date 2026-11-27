@@ -550,7 +550,7 @@ describe('Canvas pixel presentation on current native snapshots', () => {
     const acknowledge = vi.spyOn(f.state, 'acknowledge')
     const before = { ...f.renderer.metrics }
     f.write('\r\nnext 界 👩‍💻')
-    expect(reads).toHaveBeenCalledExactlyOnceWith({ dirtyOnly: true, packed: false })
+    expect(reads).toHaveBeenCalledExactlyOnceWith({ dirtyOnly: true, packed: true })
     expect(acknowledge).toHaveBeenCalledOnce()
     expect(f.renderer.pixelMetrics.bufferMoves - before.bufferMoves).toBe(1)
     expect(f.renderer.pixelMetrics.movedRows - before.movedRows).toBe(5)

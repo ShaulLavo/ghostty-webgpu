@@ -11,6 +11,7 @@ import { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { RenderRow } from '../../core/types.js'
 import { GlyphAtlas } from '../shared/atlas/atlas.js'
 import { CanvasGlyphRasterizer } from '../shared/atlas/canvas-rasterizer.js'
+import { glyphKey } from '../shared/atlas/key.js'
 import type { AtlasInsertResult } from '../shared/atlas/types.js'
 import { buildZigFrame, zigGlyphRow } from '../shared/atlas/zig-glyphs.js'
 import { canonicalRendererTheme } from '../shared/config.js'
@@ -692,7 +693,21 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
   const insertions = vi.spyOn(GlyphAtlas.prototype, 'tryGetOrInsert')
   const native = await rendererFixture(nativeSource, { font })
   flushPendingFrames(native.clock)
-  const nativeM = atlasInsertion(insertions, 0, JSON.stringify([1, 1, 'normal', false, 'M']))?.glyph
+  const nativeM = atlasInsertion(
+    insertions,
+    0,
+    glyphKey(
+      {
+        cellSpan: 1,
+        constraintWidth: 1,
+        foreground: { r: 0, g: 0, b: 0 },
+        italic: false,
+        text: 'M',
+        weight: 'normal',
+      },
+      'grayscale',
+    ),
+  )?.glyph
   if (!nativeM) expect.fail('The native renderer must register M')
   expect(nativeM.width).toBeGreaterThan(256)
   expect(nativeM.height).toBeGreaterThan(256)
@@ -741,13 +756,17 @@ it('preserves active native pixels while recycling only the evicted layer', asyn
   let nativeFirstEviction: AtlasInsertResult | undefined
   for (; next < seed.length && !nativeFirstEviction; next++) {
     const cold = seed[next]!
-    const coldKey = JSON.stringify([
-      1,
-      1,
-      cold.startsWith('\x1b[1m') ? 'bold' : 'normal',
-      false,
-      cold.slice(-1),
-    ])
+    const coldKey = glyphKey(
+      {
+        cellSpan: 1,
+        constraintWidth: 1,
+        foreground: { r: 0, g: 0, b: 0 },
+        italic: false,
+        text: cold.slice(-1),
+        weight: cold.startsWith('\x1b[1m') ? 'bold' : 'normal',
+      },
+      'grayscale',
+    )
     writeFrame(nativeSource, `\x1b[2;1H${cold}`)
     native.renderer.notifyWrite()
     const nativeCall = insertions.mock.calls.length

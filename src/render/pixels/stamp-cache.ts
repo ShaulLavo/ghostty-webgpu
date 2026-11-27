@@ -32,6 +32,7 @@ export class StampCache {
   }
   private readonly entries = new Map<string, ResidentStamp | undefined>()
   private budget = 0
+  private clippedCount = 0
   private entryBudget = 0
   private generation = 0
 
@@ -48,13 +49,65 @@ export class StampCache {
     rasterize: () => GlyphBitmap | undefined,
     clip?: readonly [number, number, number, number],
   ): ResidentStamp | undefined {
-    let entryKey = `full:${key}`
-    if (this.entries.has(entryKey)) return this.hit(entryKey)
-    const clippedKey = clip ? `clip:${JSON.stringify([key, clip])}` : undefined
-    if (clippedKey && this.entries.has(clippedKey)) return this.hit(clippedKey)
+    const existing = this.lookup(key, clip)
+    if (existing) return existing.stamp
     this.metrics.misses += 1
     this.metrics.rasterCalls += 1
-    let bitmap = rasterize()
+    return this.commit(key, rasterize(), clip)
+  }
+
+  getResolved(
+    primaryKey: string,
+    secondaryKey: () => string,
+    rasterize: () => GlyphBitmap | undefined,
+    clip?: () => readonly [number, number, number, number],
+  ): ResidentStamp | undefined {
+    const primaryHit = this.lookupLazy(primaryKey, clip)
+    if (primaryHit) return primaryHit.stamp
+    const fallbackKey = secondaryKey()
+    const secondaryHit = this.lookupLazy(fallbackKey, clip)
+    if (secondaryHit) return secondaryHit.stamp
+    this.metrics.misses += 1
+    this.metrics.rasterCalls += 1
+    const bitmap = rasterize()
+    const key = bitmap?.kind === 'color' ? fallbackKey : primaryKey
+    return this.commit(
+      key,
+      bitmap,
+      bitmap && bitmap.pixels.byteLength > this.budget ? clip?.() : undefined,
+    )
+  }
+
+  private lookup(
+    key: string,
+    clip?: readonly [number, number, number, number],
+  ): { readonly stamp: ResidentStamp | undefined } | undefined {
+    const fullKey = `full:${key}`
+    if (this.entries.has(fullKey)) return { stamp: this.hit(fullKey) }
+    if (!clip || this.clippedCount === 0) return undefined
+    const clippedKey = `clip:${JSON.stringify([key, clip])}`
+    if (this.entries.has(clippedKey)) return { stamp: this.hit(clippedKey) }
+    return undefined
+  }
+
+  private lookupLazy(
+    key: string,
+    clip?: () => readonly [number, number, number, number],
+  ): { readonly stamp: ResidentStamp | undefined } | undefined {
+    const fullKey = `full:${key}`
+    if (this.entries.has(fullKey)) return { stamp: this.hit(fullKey) }
+    if (!clip || this.clippedCount === 0) return undefined
+    const clippedKey = `clip:${JSON.stringify([key, clip()])}`
+    if (this.entries.has(clippedKey)) return { stamp: this.hit(clippedKey) }
+    return undefined
+  }
+
+  private commit(
+    key: string,
+    bitmap: GlyphBitmap | undefined,
+    clip?: readonly [number, number, number, number],
+  ): ResidentStamp | undefined {
+    let entryKey = `full:${key}`
     const rawBytes = bitmap?.pixels.byteLength ?? 0
     this.metrics.rasterPayloadBytes += rawBytes
     if (bitmap) this.validate(bitmap)
@@ -62,7 +115,8 @@ export class StampCache {
       if (!clip)
         throw createGhosttyError('canvas.stamp', 'Canvas raster stamp exceeds the viewport extent')
       bitmap = this.crop(bitmap!, clip)
-      entryKey = clippedKey!
+      entryKey = `clip:${JSON.stringify([key, clip])}`
+      this.clippedCount += 1
     }
     const bytes = bitmap?.pixels.byteLength ?? 0
     this.reserve(bytes)
@@ -86,6 +140,7 @@ export class StampCache {
       if (entry) this.storage.release(entry.offset, entry.bytes)
     }
     this.entries.clear()
+    this.clippedCount = 0
     this.generation += 1
     this.metrics.residentBytes = 0
     this.metrics.residentEntries = 0
@@ -178,6 +233,7 @@ export class StampCache {
       const [key, entry] = this.entries.entries().next().value!
       if (entry) this.storage.release(entry.offset, entry.bytes)
       this.entries.delete(key)
+      if (key.startsWith('clip:')) this.clippedCount -= 1
       this.metrics.residentBytes -= entry?.bytes ?? 0
       this.metrics.evictions += 1
     }

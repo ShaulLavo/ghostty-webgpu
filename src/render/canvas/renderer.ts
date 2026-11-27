@@ -144,8 +144,7 @@ class CanvasSurface implements RowRendererSurface {
         return source.update()
       },
       readRows: (options) => {
-        // Pixel identities and full-row painting share the same decoded cells.
-        const rows = source.readRows({ ...options, packed: !this.pixelTarget })
+        const rows = source.readRows({ ...options, packed: true })
         if (!this.capturing) return rows
         for (const row of rows) this.captureRow(row, options?.rows)
         return rows
@@ -161,7 +160,7 @@ class CanvasSurface implements RowRendererSurface {
       this.pending.set(row.y, `plain:${text}`)
       return
     }
-    if (!this.pixelTarget && row.packed) {
+    if (row.packed) {
       this.pending.set(row.y, `packed:${row.packed.identity()}`)
       return
     }

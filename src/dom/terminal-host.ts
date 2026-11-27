@@ -332,6 +332,11 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   private readonly linkActivationModifier
   private links?: DomLinkController
   private layoutCommitted = false
+  private cachedPointerLayout?: {
+    readonly canvas: HTMLCanvasElement
+    readonly summary: TerminalSubmittedFrame
+    readonly layout: CommittedPointerLayout
+  }
   private readonly padding
   private readonly pendingEvents: (() => void)[] = []
   private pendingAppearance?: GhosttyWebGpuTerminalEventMap['appearance']
@@ -1053,6 +1058,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.inputLifecycle = undefined
     this.lastFrame = undefined
     this.layoutCommitted = false
+    this.cachedPointerLayout = undefined
     this.links = undefined
     this.pointer = undefined
     this.renderer = undefined
@@ -1572,7 +1578,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     }
     const refreshFontResources = () => {
       this.runUiOperation('appearance.font-resources', () => {
-        if (this.autoFit) this.fit?.requestFit()
+        if (this.autoFit) this.fit?.refreshFontResources()
         if (!this.autoFit) this.measureFixedFont(this.execution.appearance.font)
         this.renderer?.clearTextureAtlas?.()
       })
@@ -2062,32 +2068,35 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     if (!elements || !this.layoutCommitted) return undefined
     const summary = this.execution.submittedFrame
     if (!summary) return undefined
+    const cached = this.cachedPointerLayout
+    if (cached && cached.canvas === elements.canvas && cached.summary === summary) {
+      return cached.layout
+    }
     const grid = summary.grid
     const font = summary.font
     const ratio = font.pixelRatio
     const padding = summary.padding
-    const physical = Object.freeze({
+    const paddingBottom = physicalPadding(padding.bottom, ratio)
+    const paddingLeft = physicalPadding(padding.left, ratio)
+    const paddingRight = physicalPadding(padding.right, ratio)
+    const paddingTop = physicalPadding(padding.top, ratio)
+    const dimensions = Object.freeze({
       deviceCellHeight: font.deviceCellHeight,
       deviceCellWidth: font.deviceCellWidth,
-      paddingBottom: physicalPadding(padding.bottom, ratio),
-      paddingLeft: physicalPadding(padding.left, ratio),
-      paddingRight: physicalPadding(padding.right, ratio),
-      paddingTop: physicalPadding(padding.top, ratio),
-      screenHeight: 0,
-      screenWidth: 0,
+      paddingBottom,
+      paddingLeft,
+      paddingRight,
+      paddingTop,
+      screenHeight: paddingTop + font.deviceCellHeight * grid.rows + paddingBottom,
+      screenWidth: paddingLeft + font.deviceCellWidth * grid.columns + paddingRight,
     })
-    const dimensions = Object.freeze({
-      ...physical,
-      screenHeight:
-        physical.paddingTop + font.deviceCellHeight * grid.rows + physical.paddingBottom,
-      screenWidth:
-        physical.paddingLeft + font.deviceCellWidth * grid.columns + physical.paddingRight,
-    })
-    return Object.freeze({
+    const layout = Object.freeze({
       canvas: elements.canvas,
       grid: Object.freeze({ ...grid }),
       physical: dimensions,
     })
+    this.cachedPointerLayout = { canvas: elements.canvas, layout, summary }
+    return layout
   }
 
   private updateScrollbar(snapshot?: Readonly<TerminalScrollbar>): void {

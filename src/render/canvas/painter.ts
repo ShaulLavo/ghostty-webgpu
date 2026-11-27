@@ -46,6 +46,55 @@ interface GlyphMetrics {
 }
 
 const nonPrintableAscii = /[^\x20-\x7e]/
+const maxSharedGlyphMetrics = 32
+const sharedGlyphMetricsByDocument = new WeakMap<Document, Map<string, GlyphMetrics>>()
+const fontFaceIds = new WeakMap<FontFace, number>()
+let nextFontFaceId = 1
+
+function shareableMeasureDocument(context: PaintTarget): Document | undefined {
+  if (Object.prototype.hasOwnProperty.call(context, 'measureText')) return undefined
+  if (context.measureDocument) return context.measureDocument
+  if (
+    typeof CanvasRenderingContext2D === 'undefined' ||
+    !(context instanceof CanvasRenderingContext2D)
+  ) {
+    return undefined
+  }
+  return context.canvas.isConnected ? context.canvas.ownerDocument : undefined
+}
+
+function fontSetSignature(ownerDocument: Document): string {
+  const fonts = ownerDocument.fonts
+  if (!fonts) return ''
+  let signature = `${fonts.size}:`
+  for (const face of fonts) {
+    if (face.status !== 'loaded') continue
+    let id = fontFaceIds.get(face)
+    if (id === undefined) {
+      id = nextFontFaceId++
+      fontFaceIds.set(face, id)
+    }
+    signature += `${id},`
+  }
+  return signature
+}
+
+function cacheSharedGlyphMetrics(
+  ownerDocument: Document,
+  key: string,
+  metrics: GlyphMetrics,
+): void {
+  let cache = sharedGlyphMetricsByDocument.get(ownerDocument)
+  if (!cache) {
+    cache = new Map()
+    sharedGlyphMetricsByDocument.set(ownerDocument, cache)
+  }
+  if (cache.size >= maxSharedGlyphMetrics) {
+    const oldest = cache.keys().next().value
+    if (oldest !== undefined) cache.delete(oldest)
+  }
+  cache.set(key, metrics)
+}
 
 function plainCellText(cells: readonly RenderCell[]): string | undefined {
   let text = ''
@@ -127,10 +176,22 @@ export class CanvasRowPainter {
     this.context.textAlign = 'center'
     this.context.textBaseline = 'alphabetic'
     this.invalidate()
-    if (fontResourcesChanged) this.glyphMetrics = undefined
+    const measureDocument = shareableMeasureDocument(this.context)
+    if (fontResourcesChanged) {
+      this.glyphMetrics = undefined
+      if (measureDocument) sharedGlyphMetricsByDocument.delete(measureDocument)
+    }
     if (!this.context.measureText) return
     const key = `${this.fonts[0]}\0${this.fonts[1]}\0${font.deviceCellWidth}\0${font.charLeft}\0${font.deviceCharWidth}`
     if (key === this.glyphMetrics?.key) return
+    const sharedKey = measureDocument ? `${key}\0${fontSetSignature(measureDocument)}` : undefined
+    if (measureDocument && sharedKey !== undefined) {
+      const cached = sharedGlyphMetricsByDocument.get(measureDocument)?.get(sharedKey)
+      if (cached) {
+        this.glyphMetrics = cached
+        return
+      }
+    }
     const center = font.charLeft + font.deviceCharWidth / 2
     let overhangLeft = 0
     let overhangRight = 0
@@ -145,6 +206,9 @@ export class CanvasRowPainter {
       )
     }
     this.glyphMetrics = { key, overhangLeft, overhangRight, blankSpaces, measuredSpaces: 1 }
+    if (measureDocument && sharedKey !== undefined) {
+      cacheSharedGlyphMetrics(measureDocument, sharedKey, this.glyphMetrics)
+    }
   }
 
   plainRowText(row: RenderRow): string | undefined {
@@ -202,7 +266,7 @@ export class CanvasRowPainter {
       // Spreading the source row would invoke its complete-cell getter.
       row = { y: row.y, dirty: row.dirty, cells }
     }
-    if (!plain && row.packed && !this.context.glyph) {
+    if (!plain && row.packed) {
       const cells = row.packed.readInto(this.cells)
       row = { y: row.y, dirty: row.dirty, cells, logicalColumns: row.logicalColumns }
     }
@@ -430,13 +494,7 @@ export class CanvasRowPainter {
     const span = joinedSpan ?? cellSpan(row.cells, index)
     if (!this.textVisible && cell.style?.blink) return span
     const style = Number(cell.style?.bold ?? false) + Number(cell.style?.italic ?? false) * 2
-    if (
-      joined === undefined &&
-      span === 1 &&
-      cell.text === ' ' &&
-      !this.context.glyph &&
-      this.spaceIsBlank(style)
-    )
+    if (joined === undefined && span === 1 && cell.text === ' ' && this.spaceIsBlank(style))
       return span
     const text = joined ?? cell.text
     const deviceSpacing = this.font.deviceCellWidth - this.font.deviceCharWidth

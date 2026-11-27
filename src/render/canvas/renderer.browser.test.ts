@@ -1069,8 +1069,8 @@ describe('CanvasTerminalRenderer', () => {
       expect(copy).not.toHaveBeenCalled()
       expect(updates).toHaveBeenCalledOnce()
       expect(reads.mock.calls).toEqual([
-        [{ dirtyOnly: true, packed: mode === 'fill-text' }],
-        [{ rows: new Set([9]), packed: mode === 'fill-text' }],
+        [{ dirtyOnly: true, packed: true }],
+        [{ rows: new Set([9]), packed: true }],
       ])
       expect(reads.mock.results[1]?.value).toEqual(source.rows)
       expect(renderer.metrics.repaintedRows - before.repaintedRows).toBe(8)
@@ -1117,7 +1117,7 @@ describe('CanvasTerminalRenderer', () => {
         expect(updates).toHaveBeenCalledOnce()
         expect(reads).toHaveBeenCalledExactlyOnceWith({
           rows: new Set([8, 9]),
-          packed: mode === 'fill-text',
+          packed: true,
         })
         expect(reads.mock.results[0]?.value).toEqual(source.rows)
       }
@@ -1622,4 +1622,109 @@ describe('Canvas pixel storage and failed presentation', () => {
       [0, 40, 10, 20],
     ])
   })
+
+  it('scopes shared glyph metrics to the canvas ownerDocument across iframes', async () => {
+    const family = 'IframeMetricScope'
+    const baseUrl = new URL('../../dom/tests/fixtures/font-resource/before.woff2', import.meta.url)
+      .href
+    const wideUrl = new URL(
+      '../../dom/tests/fixtures/font-resource/changed-metrics.woff2',
+      import.meta.url,
+    ).href
+    const iframeA = document.createElement('iframe')
+    const iframeB = document.createElement('iframe')
+    document.body.append(iframeA, iframeB)
+    const measureSpy = spyPrototypeMeasureText()
+    try {
+      const docA = iframeA.contentDocument!
+      const docB = iframeB.contentDocument!
+      const theme = canonicalRendererTheme(mergeRendererTheme({}))
+      const baseFont = fittedFont()
+      const targetA = adoptCanvasInto(docA)
+      const targetB1 = adoptCanvasInto(docB)
+      const targetB2 = adoptCanvasInto(docB)
+
+      // Both iframes start with identical empty font sets, isolating ownerDocument cache scoping.
+      const painterA = new CanvasRowPainter(targetA.context, baseFont, theme)
+      painterA.resetContext(baseFont)
+      expect(measureSpy.contexts).toContain(targetA.context)
+
+      measureSpy.contexts.length = 0
+      const painterB1 = new CanvasRowPainter(targetB1.context, baseFont, theme)
+      painterB1.resetContext(baseFont)
+      expect(measureSpy.contexts).toContain(targetB1.context)
+
+      // A second distinct canvas/context in the same iframe reuses that document's cache entry.
+      measureSpy.contexts.length = 0
+      const painterB2 = new CanvasRowPainter(targetB2.context, baseFont, theme)
+      painterB2.resetContext(baseFont)
+      expect(measureSpy.contexts).toEqual([])
+
+      const FontFaceA = (iframeA.contentWindow as unknown as typeof globalThis).FontFace
+      const FontFaceB = (iframeB.contentWindow as unknown as typeof globalThis).FontFace
+      const faceA = new FontFaceA(family, `url(${baseUrl})`)
+      const faceB = new FontFaceB(family, `url(${wideUrl})`)
+      await Promise.all([faceA.load(), faceB.load()])
+      docA.fonts.add(faceA)
+      docB.fonts.add(faceB)
+      const customFont: TerminalFittedFont = {
+        ...baseFont,
+        settings: { ...baseFont.settings, family, size: 20 },
+      }
+      painterA.resetContext(customFont)
+      painterB1.resetContext(customFont)
+      painterB1.paint(row(0, [cell(0, { text: 'A' }), cell(1, { text: ' ' })]), undefined, 160)
+      painterB1.paint(row(0, [cell(0, { text: ' ' }), cell(1, { text: ' ' })]), undefined, 160)
+      const erased = targetB1.context.getImageData(
+        0,
+        0,
+        targetB1.canvas.width,
+        targetB1.canvas.height,
+      ).data
+      expect(countOpaquePixels(erased)).toBe(0)
+    } finally {
+      measureSpy.restore()
+      iframeA.remove()
+      iframeB.remove()
+    }
+  })
 })
+
+function adoptCanvasInto(doc: Document): {
+  readonly canvas: HTMLCanvasElement
+  readonly context: CanvasRenderingContext2D
+} {
+  const canvas = document.createElement('canvas')
+  canvas.width = 160
+  canvas.height = 40
+  // Acquire context before adoption so Firefox keeps it on the parent CanvasRenderingContext2D prototype.
+  const context = canvas.getContext('2d')!
+  doc.body.append(canvas)
+  return { canvas, context }
+}
+
+function spyPrototypeMeasureText(): {
+  readonly contexts: CanvasRenderingContext2D[]
+  readonly restore: () => void
+} {
+  const original = CanvasRenderingContext2D.prototype.measureText
+  const contexts: CanvasRenderingContext2D[] = []
+  CanvasRenderingContext2D.prototype.measureText = function (text: string) {
+    contexts.push(this)
+    return original.call(this, text)
+  }
+  return {
+    contexts,
+    restore: () => {
+      CanvasRenderingContext2D.prototype.measureText = original
+    },
+  }
+}
+
+function countOpaquePixels(data: Uint8ClampedArray): number {
+  let remaining = 0
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i]! > 0) remaining += 1
+  }
+  return remaining
+}

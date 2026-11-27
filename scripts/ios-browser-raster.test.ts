@@ -35,7 +35,7 @@ const stages = [
     'pixels',
     'pixels/pixels',
     17,
-    '19e262a6c888acaa94b27f63e2c0d254a31265e062d788383520a9d591099f1e',
+    '31b67ce8f370247afb7cc32634d94d68ae49b90d9af156f58b38c3705c8c95e0',
   ],
   [
     'glyph-constraints',
