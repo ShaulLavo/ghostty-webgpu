@@ -50,13 +50,14 @@ it.each([
     expect(projection(actual)).toEqual(expected)
     expect(projection(packed.map(copiedFrameRow))).toEqual(expected)
     expect(actual.map((row) => row.renderCells)).toEqual(styledExpected)
-    for (const row of actual) {
-      expect(Object.isFrozen(row.renderCells)).toBe(true)
-      for (const cell of row.renderCells) {
+    const assertRenderCellsFrozen = (cells: (typeof actual)[number]['renderCells']) => {
+      expect(Object.isFrozen(cells)).toBe(true)
+      for (const cell of cells) {
         expect(Object.isFrozen(cell)).toBe(true)
         if (cell.style) expect(Object.isFrozen(cell.style)).toBe(true)
       }
     }
+    for (const row of actual) assertRenderCellsFrozen(row.renderCells)
   } finally {
     runtime.dispose()
   }

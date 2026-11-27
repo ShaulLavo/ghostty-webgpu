@@ -281,6 +281,27 @@ interface OracleGlyph {
   readonly y: number
 }
 
+function cellSpan(row: RenderRow, index: number, range: LigatureRange | undefined): number {
+  if (range) return range[1] - range[0]
+  return row.cells[index + 1]?.continuation ? 2 : 1
+}
+
+function countDarkPixels(
+  pixels: Uint8Array | Uint8ClampedArray,
+  canvasWidth: number,
+  xStart: number,
+  xEnd: number,
+  height: number,
+): number {
+  let ink = 0
+  for (let y = 0; y < height; y += 1) {
+    for (let x = xStart; x < xEnd; x += 1) {
+      if (pixels[(y * canvasWidth + x) * 4]! < 200) ink += 1
+    }
+  }
+  return ink
+}
+
 function oracleGlyphs(
   row: RenderRow,
   ranges: readonly LigatureRange[],
@@ -291,7 +312,7 @@ function oracleGlyphs(
     const cell = row.cells[index]!
     if (cell.continuation || !cell.text) continue
     const range = ranges.find(([start]) => start === index)
-    const span = range ? range[1] - range[0] : row.cells[index + 1]?.continuation ? 2 : 1
+    const span = cellSpan(row, index, range)
     const text = range
       ? row.cells
           .slice(range[0], range[1])
@@ -781,11 +802,13 @@ for (const backend of backends) {
         flush(mounted)
         requirePixelLayer(mounted, context)
         const pixels = await capturePixels(mounted)
-        let ink = 0
-        for (let y = 0; y < font.deviceCellHeight; y += 1) {
-          for (let x = font.deviceCellWidth; x < font.deviceCellWidth * 2; x += 1)
-            if (pixels[(y * mounted.canvas.width + x) * 4]! < 200) ink += 1
-        }
+        const ink = countDarkPixels(
+          pixels,
+          mounted.canvas.width,
+          font.deviceCellWidth,
+          font.deviceCellWidth * 2,
+          font.deviceCellHeight,
+        )
         const arm = ligatures ? 'on' : 'off'
         expect(ink, `contrasting ink in the white cell, ligatures ${arm}`).toBeGreaterThan(0)
         expectRuns(mounted, jetBrains, [[]], 7)

@@ -1,5 +1,8 @@
 {
   "rules": {
+    "max-depth": ["error", 3],
+    "no-else-return": "error",
+    "no-nested-ternary": "error",
     "no-unused-vars": [
       "warn",
       {
@@ -10,5 +13,24 @@
         "varsIgnorePattern": "^_"
       }
     ]
-  }
+  },
+  "overrides": [
+    // Frozen historical benchmark snapshots — never edited; shrink only if retired.
+    {
+      "files": [
+        ".internal/benchmarks/baseline-2026-10/m5.mjs",
+        ".internal/benchmarks/mac-m1/packed-snapshot-2026-10-01/frame-optimized/paired-run.mjs",
+        ".internal/benchmarks/mac-m1/packed-snapshot-2026-10-01/paired-run.mjs",
+        "docs/benchmarks/mac-m1-2026-10-08/reproduce/dom-default/driver.mjs",
+        "docs/benchmarks/mac-m1-2026-10-08/reproduce/dom-full/driver.mjs",
+        "docs/benchmarks/mac-m1-2026-10-08/reproduce/dom-grid/driver.mjs",
+        "docs/benchmarks/mac-m1-2026-10-08/reproduce/webgl-capped/driver.mjs",
+        "docs/benchmarks/mac-m1-2026-10-08/reproduce/webgl-default/driver.mjs",
+        "docs/benchmarks/mac-m1-2026-10-08/verify.mjs"
+      ],
+      "rules": {
+        "max-depth": "off"
+      }
+    }
+  ]
 }

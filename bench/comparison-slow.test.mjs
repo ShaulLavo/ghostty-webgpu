@@ -165,49 +165,49 @@ test('comparison entry dispatches the same rolling-slow frames at its existing c
 test('real native 40x12 viewports advance one row and select overlap on both write paths', async () => {
   const fixture = rollingFixture(logs, 1, settings.chunkBytes, 'rolling-slow')
   const runtime = await GhosttyRuntime.create()
-  const sequences = []
-  try {
-    for (const path of ['bytes', 'string']) {
-      const terminal = runtime.createTerminal({ columns: settings.columns, rows: settings.rows })
-      const state = runtime.createRenderState(terminal)
-      try {
-        terminal.write('\x1b[?25l')
+  const runWritePath = (path) => {
+    const terminal = runtime.createTerminal({ columns: settings.columns, rows: settings.rows })
+    const state = runtime.createRenderState(terminal)
+    try {
+      terminal.write('\x1b[?25l')
+      state.update()
+      let previous = new Map(state.readRows().map((row) => [row.y, JSON.stringify(row.cells)]))
+      state.acknowledge()
+      const sequence = []
+      const chunks = rollingInputs(fixture, path)
+      for (let frame = 0; frame < 32; frame++) {
+        terminal.write(chunks[frame])
         state.update()
-        let previous = new Map(state.readRows().map((row) => [row.y, JSON.stringify(row.cells)]))
-        state.acknowledge()
-        const sequence = []
-        const chunks = rollingInputs(fixture, path)
-        for (let frame = 0; frame < 32; frame++) {
-          terminal.write(chunks[frame])
-          state.update()
-          const rows = state.readRows()
-          const next = new Map(rows.map((row) => [row.y, JSON.stringify(row.cells)]))
-          const lines = rows.map((row) =>
-            row.cells
-              .map((cell) => cell.text)
-              .join('')
-              .trimEnd(),
-          )
-          assert.equal(
-            lines[Math.min(frame, settings.rows - 2)],
-            `${String(frame).padStart(4, '0')} INFO rolling-slow event`,
-          )
-          assert.equal(lines.at(-1), '')
-          if (frame >= settings.rows) {
-            const plan = canvasScrollPlan(previous, next, settings.rows)
-            assert.equal(plan.offset, -1)
-            assert.equal(plan.reused.size, settings.rows - 2)
-          }
-          sequence.push(lines)
-          previous = next
-          state.acknowledge()
+        const rows = state.readRows()
+        const next = new Map(rows.map((row) => [row.y, JSON.stringify(row.cells)]))
+        const lines = rows.map((row) =>
+          row.cells
+            .map((cell) => cell.text)
+            .join('')
+            .trimEnd(),
+        )
+        assert.equal(
+          lines[Math.min(frame, settings.rows - 2)],
+          `${String(frame).padStart(4, '0')} INFO rolling-slow event`,
+        )
+        assert.equal(lines.at(-1), '')
+        if (frame >= settings.rows) {
+          const plan = canvasScrollPlan(previous, next, settings.rows)
+          assert.equal(plan.offset, -1)
+          assert.equal(plan.reused.size, settings.rows - 2)
         }
-        sequences.push(sequence)
-      } finally {
-        state.dispose()
-        terminal.dispose()
+        sequence.push(lines)
+        previous = next
+        state.acknowledge()
       }
+      return sequence
+    } finally {
+      state.dispose()
+      terminal.dispose()
     }
+  }
+  try {
+    const sequences = ['bytes', 'string'].map(runWritePath)
     assert.deepEqual(sequences[0], sequences[1])
   } finally {
     runtime.dispose()

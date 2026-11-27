@@ -455,8 +455,8 @@ async function parserOnly(testCase, run, contexts) {
         : await qualifiedWindow(run, `parser/${name}`, () => parserFixture(page, name, bytes))
       run.parse[name] = sample
       if (sample.error) run.parserErrors.push({ name, error: sample.error })
-      for (const check of sample.checks ?? []) {
-        if (check.error) run.parserErrors.push({ name, ...check })
+      for (const check of (sample.checks ?? []).filter((entry) => entry.error)) {
+        run.parserErrors.push({ name, ...check })
       }
     }
     assert.deepEqual(errors, [])
@@ -746,8 +746,8 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
             }),
         })),
       )
-      for (const { name, operation } of configurations) {
-        if (!tracePhases.includes(name)) continue
+      const runTraceConfiguration = async ({ name, operation }) => {
+        if (!tracePhases.includes(name)) return
         run.phase = `trace/${name}`
         if (name !== 'latency') await page.evaluate((name) => window.__compare.burst(name, 8), name)
         for (const traced of repetition % 2 ? [true, false] : [false, true]) {
@@ -774,6 +774,7 @@ async function measureBody(testCase, repetition, browserSession, run, contexts) 
           )
         }
       }
+      for (const configuration of configurations) await runTraceConfiguration(configuration)
       assert.deepEqual(errors, [])
       return run
     }
@@ -910,7 +911,7 @@ try {
   artifact.environment.gpuIdleSettings = Object.fromEntries(
     Object.entries(gpuSettings).filter(([key]) => key.startsWith('gpu')),
   )
-  for (let repetition = 0; repetition < artifact.repetitions; repetition++) {
+  const runRepetition = async (repetition) => {
     if (!smoke) {
       try {
         await refreshGpuOwnership()
@@ -954,6 +955,9 @@ try {
         )
     }
   }
+  for (let repetition = 0; repetition < artifact.repetitions; repetition++) {
+    await runRepetition(repetition)
+  }
   artifact.finishedAt = new Date().toISOString()
   if (!smoke && !tracing) {
     artifact.summary = summaries(artifact)
@@ -990,14 +994,17 @@ try {
       ) + '\n',
     )
   } finally {
-    try {
-      await browser?.close()
-    } finally {
-      if (previousTmpdir === undefined) delete process.env.TMPDIR
-      else process.env.TMPDIR = previousTmpdir
-      echo.close()
-      await Promise.all([browserTemp?.remove(), new Promise((resolve) => server.close(resolve))])
+    const closeRunnerResources = async () => {
+      try {
+        await browser?.close()
+      } finally {
+        if (previousTmpdir === undefined) delete process.env.TMPDIR
+        else process.env.TMPDIR = previousTmpdir
+        echo.close()
+        await Promise.all([browserTemp?.remove(), new Promise((resolve) => server.close(resolve))])
+      }
     }
+    await closeRunnerResources()
   }
 }
 console.log(`Artifact: ${artifactPath}`)

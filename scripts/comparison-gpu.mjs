@@ -186,14 +186,17 @@ export async function sampleNvidiaGpu({
     const failures = results
       .filter((result) => result.status === 'rejected')
       .map((result) => result.reason)
-    for (const [index, result] of results.entries()) {
-      if (result.status !== 'fulfilled' || failures.length === 0) continue
+    const validateFulfilled = (index, stdout) => {
       try {
-        if (index === 0) parseGpus(result.value.stdout)
-        if (index === 1) parseProcesses(result.value.stdout, allowedComputePids)
+        if (index === 0) parseGpus(stdout)
+        if (index === 1) parseProcesses(stdout, allowedComputePids)
       } catch (error) {
         failures.push(error)
       }
+    }
+    for (const [index, result] of results.entries()) {
+      if (result.status !== 'fulfilled' || failures.length === 0) continue
+      validateFulfilled(index, result.value.stdout)
     }
     const failed = failures.find((error) => !isTimeout(error)) ?? failures[0]
     if (failed) {

@@ -203,6 +203,12 @@ function parseArchive(bytes: Buffer, sourceDateEpoch: number): readonly ParsedEn
   return entries
 }
 
+function canonicalEntryMode(modeNumber: number): '0755' | '0644' | null {
+  if (modeNumber === 0o755) return '0755'
+  if (modeNumber === 0o644) return '0644'
+  return null
+}
+
 function parseHeader(
   bytes: Buffer,
   offset: number,
@@ -228,7 +234,7 @@ function parseHeader(
   const rawPath = joinedHeaderPath(header)
   const path = normalizeArchivePath(directory ? removeDirectorySlash(rawPath) : rawPath)
   const modeNumber = readOctal(header, 100, 8)
-  const mode = modeNumber === 0o755 ? '0755' : modeNumber === 0o644 ? '0644' : null
+  const mode = canonicalEntryMode(modeNumber)
   if (!mode) throw new NativeContractError('ustar entry mode is not canonical')
   const entryBytes = readOctal(header, 124, 12)
   if (directory && (entryBytes !== 0 || mode !== '0755')) {

@@ -331,63 +331,70 @@ describe.skipIf(!compilerAvailable)(
     })
 
     it('covers effective opacity, A8 tint alpha and intrinsic RGBA without double application', () => {
+      const checkAlphaOpacity = (
+        kernel: (typeof arms)[number],
+        ptr: number,
+        source: number,
+        alpha: number,
+        opacity: number,
+      ) => {
+        for (const coverage of [0, 1, 63, 128, 254, 255]) {
+          const destination = [73, 29, 111, alpha]
+          const tint = [181, 97, 3, alpha]
+          view(kernel, ptr, 4).set(destination)
+          view(kernel, source, 16)[1] = coverage
+          kernel.check(
+            kernel.exports.compose_stamp(
+              ptr,
+              1,
+              1,
+              source + 1,
+              1,
+              1,
+              1,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              packed(...(tint as [number, number, number, number])),
+              opacity,
+            ),
+          )
+          expect([...view(kernel, ptr, 4)]).toEqual(reference(destination, tint, opacity, coverage))
+          view(kernel, ptr, 4).set(destination)
+          view(kernel, source, 16).set(tint, 1)
+          kernel.check(
+            kernel.exports.compose_stamp(
+              ptr,
+              1,
+              1,
+              source + 1,
+              1,
+              1,
+              4,
+              4,
+              0,
+              0,
+              0,
+              0,
+              1,
+              1,
+              0xffffffff,
+              opacity,
+            ),
+          )
+          expect([...view(kernel, ptr, 4)]).toEqual(reference(destination, tint, opacity))
+        }
+      }
       for (const kernel of arms) {
         const ptr = kernel.allocate(4)
         const source = kernel.allocate(16)
         for (const alpha of [0, 1, 64, 127, 128, 254, 255]) {
           for (const opacity of [0, 1, 257, 16384, 32768, 65534, 65535]) {
-            for (const coverage of [0, 1, 63, 128, 254, 255]) {
-              const destination = [73, 29, 111, alpha]
-              const tint = [181, 97, 3, alpha]
-              view(kernel, ptr, 4).set(destination)
-              view(kernel, source, 16)[1] = coverage
-              kernel.check(
-                kernel.exports.compose_stamp(
-                  ptr,
-                  1,
-                  1,
-                  source + 1,
-                  1,
-                  1,
-                  1,
-                  1,
-                  0,
-                  0,
-                  0,
-                  0,
-                  1,
-                  1,
-                  packed(...(tint as [number, number, number, number])),
-                  opacity,
-                ),
-              )
-              expect([...view(kernel, ptr, 4)]).toEqual(
-                reference(destination, tint, opacity, coverage),
-              )
-              view(kernel, ptr, 4).set(destination)
-              view(kernel, source, 16).set(tint, 1)
-              kernel.check(
-                kernel.exports.compose_stamp(
-                  ptr,
-                  1,
-                  1,
-                  source + 1,
-                  1,
-                  1,
-                  4,
-                  4,
-                  0,
-                  0,
-                  0,
-                  0,
-                  1,
-                  1,
-                  0xffffffff,
-                  opacity,
-                ),
-              )
-              expect([...view(kernel, ptr, 4)]).toEqual(reference(destination, tint, opacity))
-            }
+            checkAlphaOpacity(kernel, ptr, source, alpha, opacity)
           }
         }
         kernel.release(source)
