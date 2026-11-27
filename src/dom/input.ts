@@ -294,6 +294,7 @@ type CompositionState =
 
 class BrowserInputController implements DomInputController {
   private readonly abortController = new AbortController()
+  private claimedSoftInput = false
   private composition: CompositionState = { phase: 'idle' }
   private inputSequence: InputSequence = 'idle'
 
@@ -350,6 +351,16 @@ class BrowserInputController implements DomInputController {
     const inputType = input.inputType ?? ''
     if (this.composing || input.isComposing || inputType.includes('Composition')) {
       this.inputSequence = 'idle'
+      return
+    }
+    // Empty-textarea delete emits beforeinput without a follow-up input event in Chromium.
+    if (
+      this.composition.phase === 'idle' &&
+      this.options.textarea.value.length === 0 &&
+      (inputType === 'deleteContentBackward' || inputType === 'deleteContentForward')
+    ) {
+      this.inputSequence = 'consumed'
+      this.encodeSoftControlKey(inputType === 'deleteContentBackward' ? 'Backspace' : 'Delete')
       return
     }
     this.inputSequence = 'pending'
@@ -417,6 +428,7 @@ class BrowserInputController implements DomInputController {
         return
       }
     }
+    this.claimedSoftInput = false
     if (value.length === 0) return
     if (this.composition.phase === 'ended') {
       const duplicate = value === this.composition.value
@@ -454,7 +466,9 @@ class BrowserInputController implements DomInputController {
   private readonly handleKey = (event: KeyboardEvent): void => {
     if (this.disposed) return
     this.updateModifierTracking(event)
+    if (event.type === 'keyup') this.claimedSoftInput = false
     if (this.options.claimKey?.(event)) {
+      if (event.type === 'keydown') this.claimedSoftInput = true
       if (event.type === 'keydown' && !event.repeat) {
         this.suppressedShortcuts.set(event.code, pasteRepeatPolicy)
       }
@@ -463,6 +477,7 @@ class BrowserInputController implements DomInputController {
       event.preventDefault()
       return
     }
+    if (event.type === 'keydown') this.claimedSoftInput = false
     if (this.consumeSuppressedShortcut(event)) {
       this.deferredMacCommandPresses.clear()
       return
@@ -662,8 +677,19 @@ class BrowserInputController implements DomInputController {
     return true
   }
 
+  private isControlKeyForwarded(code: SoftControlKeyCode): boolean {
+    if (this.forwardedKeyPresses.has(code)) return true
+    if (code === 'Enter') return this.forwardedKeyPresses.has('NumpadEnter')
+    return false
+  }
+
   private encodeSoftControlKey(code: SoftControlKeyCode): void {
-    if (this.forwardedKeyPresses.has(code) || this.isInputDisabled()) return
+    const claimed = this.claimedSoftInput
+    this.claimedSoftInput = false
+    if (claimed || this.isControlKeyForwarded(code) || this.isInputDisabled()) return
+    const view = this.options.textarea.ownerDocument.defaultView
+    const KeyboardEventCtor = view?.KeyboardEvent ?? KeyboardEvent
+    if (this.options.claimKey?.(new KeyboardEventCtor('keydown', { code, key: code }))) return
     this.beforeUserInput()
     const input: TerminalKeyInput = { action: 'press', code, composing: false, text: '' }
     try {
@@ -697,10 +723,8 @@ class BrowserInputController implements DomInputController {
       }
       const encoding = this.options.encoding
       if (encoding) {
-        if (!this.screenReaderUsesBrowserDefault(event)) event.preventDefault()
+        if (!input.composing && !this.screenReaderUsesBrowserDefault(event)) event.preventDefault()
         // Ownership follows forwarding; an older acknowledgement cannot clear a newer press.
-        if (event.type === 'keydown' && !event.repeat)
-          this.forwardedKeyPresses.set(event.code, event)
         if (event.type === 'keyup') this.forwardedKeyPresses.delete(event.code)
         const generation = this.encodingGeneration
         void encoding
@@ -753,6 +777,7 @@ class BrowserInputController implements DomInputController {
 
   resetTransientState(): void {
     this.encodingGeneration += 1
+    this.claimedSoftInput = false
     this.inputSequence = 'idle'
     if (this.composition.phase !== 'idle') {
       this.composition = { phase: 'cancelled' }

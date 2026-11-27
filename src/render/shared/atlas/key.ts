@@ -5,12 +5,11 @@ export function glyphConstraintWidth(input: GlyphRasterizationInput): 1 | 2 {
 }
 
 export function glyphKey(input: GlyphRasterizationInput, kind: AtlasKind): string {
-  const header =
-    (input.cellSpan << 3) |
+  const flags =
     ((glyphConstraintWidth(input) - 1) << 2) |
     (input.weight === 'bold' ? 2 : 0) |
     (input.italic ? 1 : 0)
-  if (kind === 'grayscale') return `${header}\0${input.text}`
+  if (kind === 'grayscale') return `${input.cellSpan}:${flags}\0${input.text}`
   const { r, g, b } = input.foreground
-  return `${header}:${r},${g},${b}\0${input.text}`
+  return `${input.cellSpan}:${flags}:${r},${g},${b}\0${input.text}`
 }

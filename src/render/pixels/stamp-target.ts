@@ -46,18 +46,15 @@ function packed(brush: Brush): number {
 export class StampTarget implements PixelTarget, PaintTarget {
   readonly context = this
   readonly cellDamage = true
-  get nativeMeasureText(): boolean {
-    if (Object.prototype.hasOwnProperty.call(this.output, 'measureText')) return false
+  get measureDocument(): Document | undefined {
+    if (Object.prototype.hasOwnProperty.call(this.output, 'measureText')) return undefined
     if (
-      typeof CanvasRenderingContext2D !== 'undefined' &&
-      this.output instanceof CanvasRenderingContext2D
+      typeof CanvasRenderingContext2D === 'undefined' ||
+      !(this.output instanceof CanvasRenderingContext2D)
     ) {
-      return this.output.canvas.isConnected
+      return undefined
     }
-    return (
-      typeof OffscreenCanvasRenderingContext2D !== 'undefined' &&
-      this.output instanceof OffscreenCanvasRenderingContext2D
-    )
+    return this.output.canvas.isConnected ? this.output.canvas.ownerDocument : undefined
   }
   readonly cache: StampCache
   readonly frame: PixelFrame

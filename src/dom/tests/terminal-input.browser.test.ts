@@ -1789,13 +1789,13 @@ describe('Terminal DOM host', () => {
     const output: Uint8Array[] = []
     terminal.onData(({ bytes }) => output.push(bytes))
 
-    // Android GBoard / mobile soft keyboards emit Unidentified keydown (code === '') before input.
+    // Chromium emits beforeinput without a follow-up input for delete on an empty textarea.
     dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
     textarea.dispatchEvent(
       new InputEvent('beforeinput', { bubbles: true, inputType: 'deleteContentBackward' }),
     )
-    dispatchInput(textarea, '', { data: null, inputType: 'deleteContentBackward' })
 
+    // When a browser also dispatches input after beforeinput, it must encode only once.
     dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
     textarea.dispatchEvent(
       new InputEvent('beforeinput', { bubbles: true, inputType: 'deleteContentForward' }),
@@ -1816,6 +1816,20 @@ describe('Terminal DOM host', () => {
 
     expect(decodedOutput(output)).toEqual(['\x7f', '\x1b[3~', '\r', '\r'])
 
+    // Claiming an Unidentified keydown suppresses the follow-up soft control edit.
+    output.length = 0
+    const claimer = terminal.connectInput((input) => (input.type === 'key' ? 'claim' : 'pass'))
+    dispatchKey(textarea, 'keydown', { code: '', key: 'Unidentified', keyCode: 229 })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'insertLineBreak' }),
+    )
+    dispatchInput(textarea, '\n', { data: null, inputType: 'insertLineBreak' })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'deleteContentBackward' }),
+    )
+    expect(output).toEqual([])
+    claimer.dispose()
+
     // Synthetic plain Event('input') without inputType or null CompositionEvent.data must not throw.
     output.length = 0
     textarea.value = 'ok'
@@ -1826,6 +1840,74 @@ describe('Terminal DOM host', () => {
     const emptyEnd = new CompositionEvent('compositionend', { bubbles: true })
     Object.defineProperty(emptyEnd, 'data', { value: null })
     expect(() => textarea.dispatchEvent(emptyEnd)).not.toThrow()
+  })
+
+  it('deduplicates screen-reader NumpadEnter and keeps worker composing backspace fallback active', () => {
+    const textarea = document.createElement('textarea')
+    document.body.append(textarea)
+    hosts.push(textarea)
+    const syncKeys: TerminalKeyInput[] = []
+    const syncController = createDomInputController({
+      hooks: { screenReaderMode: () => true },
+      onError: (cause) => {
+        throw cause
+      },
+      platform: 'linux',
+      session: {
+        getSelection: () => undefined,
+        key: (input) => {
+          syncKeys.push(input)
+          return new TextEncoder().encode('\r')
+        },
+        paste: () => new Uint8Array(),
+        selectionCoordinates: () => undefined,
+        sendInput: () => new Uint8Array(),
+      },
+      signal: new AbortController().signal,
+      textarea,
+    })
+
+    dispatchKey(textarea, 'keydown', { code: 'NumpadEnter', key: 'Enter' })
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'insertLineBreak' }),
+    )
+    dispatchInput(textarea, '\n', { data: null, inputType: 'insertLineBreak' })
+    dispatchKey(textarea, 'keyup', { code: 'NumpadEnter', key: 'Enter' })
+    expect(syncKeys.map((entry) => entry.code)).toEqual(['NumpadEnter', 'NumpadEnter'])
+    syncController.dispose()
+
+    const workerKeys: TerminalKeyInput[] = []
+    const workerController = createDomInputController({
+      encoding: {
+        key: async (input) => {
+          workerKeys.push(input)
+          return input.composing ? new Uint8Array() : new Uint8Array([0x7f])
+        },
+        paste: async () => new Uint8Array(),
+        sendInput: async () => new Uint8Array(),
+      },
+      onError: (cause) => {
+        throw cause
+      },
+      platform: 'linux',
+      signal: new AbortController().signal,
+      textarea,
+    })
+
+    const composingDelete = dispatchKey(textarea, 'keydown', {
+      code: 'Backspace',
+      key: 'Process',
+      keyCode: 229,
+    })
+    expect(composingDelete.defaultPrevented).toBe(false)
+    textarea.dispatchEvent(
+      new InputEvent('beforeinput', { bubbles: true, inputType: 'deleteContentBackward' }),
+    )
+    expect(workerKeys.map((entry) => [entry.code, entry.composing])).toEqual([
+      ['Backspace', true],
+      ['Backspace', false],
+    ])
+    workerController.dispose()
   })
 
   it('detects Apple platforms from userAgent when navigator.platform is empty', async () => {
@@ -1842,5 +1924,41 @@ describe('Terminal DOM host', () => {
       metaKey: true,
     })
     expect(pasteKey.defaultPrevented).toBe(false)
+  })
+
+  it('preserves a pending font refresh across hidden layout until the host becomes measurable', async () => {
+    const family = `HiddenRefresh-${crypto.randomUUID()}`
+    const beforeUrl = new URL('./fixtures/font-resource/before.woff2', import.meta.url).href
+    const changedUrl = new URL('./fixtures/font-resource/changed-metrics.woff2', import.meta.url)
+      .href
+    const beforeFace = new FontFace(family, `url(${beforeUrl})`)
+    await beforeFace.load()
+    document.fonts.add(beforeFace)
+    let changedFace: FontFace | undefined
+    try {
+      const host = trackedHost(360, 160)
+      const terminal = await trackedTerminal({
+        appearance: { font: { family, size: 20 } },
+        rendererFactory: recordingRendererFactory({}),
+        scrollbar: false,
+      })
+      await terminal.open(host)
+      const beforeCellWidth = terminal.appearance.grid.cellWidth
+
+      host.style.display = 'none'
+      await animationFrames(2)
+      document.fonts.delete(beforeFace)
+      changedFace = new FontFace(family, `url(${changedUrl})`)
+      await changedFace.load()
+      document.fonts.add(changedFace)
+      await document.fonts.ready
+      await animationFrames(2)
+
+      host.style.display = ''
+      await expect.poll(() => terminal.appearance.grid.cellWidth).not.toBe(beforeCellWidth)
+    } finally {
+      document.fonts.delete(beforeFace)
+      if (changedFace) document.fonts.delete(changedFace)
+    }
   })
 })

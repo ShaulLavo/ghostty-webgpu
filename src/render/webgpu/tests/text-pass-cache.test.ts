@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { glyphKey } from '../../shared/atlas/key.js'
+import type { AtlasGpuTextures } from '../gpu-textures.js'
 import { WebGpuTextPass } from '../text-pass.js'
 
 const gpuBufferUsage = {
@@ -11,6 +12,17 @@ const gpuBufferUsage = {
 }
 
 function fakeDevice() {
+  const pass = {
+    draw: vi.fn(),
+    end: vi.fn(),
+    setBindGroup: vi.fn(),
+    setPipeline: vi.fn(),
+  }
+  const encoder = {
+    beginRenderPass: vi.fn(() => pass),
+    copyBufferToBuffer: vi.fn(),
+    finish: vi.fn(() => ({}) as GPUCommandBuffer),
+  }
   const device = {
     createBindGroup: vi.fn(() => ({}) as GPUBindGroup),
     createBuffer: vi.fn(
@@ -22,6 +34,7 @@ function fakeDevice() {
           unmap: vi.fn(),
         }) as unknown as GPUBuffer,
     ),
+    createCommandEncoder: vi.fn(() => encoder),
     createRenderPipeline: vi.fn(
       () =>
         ({
@@ -36,18 +49,18 @@ function fakeDevice() {
     },
     queue: { writeBuffer: vi.fn() },
   }
-  return device as unknown as GPUDevice & typeof device
+  return { device: device as unknown as GPUDevice & typeof device, pass }
 }
 
 describe('WebGpuTextPass pipeline caching', () => {
-  it('compiles shaders once per device, format, and textBlink mode across resizes', () => {
+  it('caches pipelines per device, format, and textBlink mode and survives sibling destroy', () => {
     const previous = globalThis.GPUBufferUsage
     Object.defineProperty(globalThis, 'GPUBufferUsage', {
       configurable: true,
       value: gpuBufferUsage,
     })
     try {
-      const device = fakeDevice()
+      const { device, pass } = fakeDevice()
       const first = new WebGpuTextPass({
         device,
         format: 'bgra8unorm',
@@ -78,9 +91,40 @@ describe('WebGpuTextPass pipeline caching', () => {
       expect(device.createRenderPipeline).toHaveBeenCalledTimes(4)
       expect(device.createSampler).toHaveBeenCalledTimes(2)
 
+      const rgba = new WebGpuTextPass({
+        device,
+        format: 'rgba8unorm',
+        height: 500,
+        instanceCount: 1200,
+        width: 1000,
+      })
+      expect(device.createShaderModule).toHaveBeenCalledTimes(6)
+      expect(device.createRenderPipeline).toHaveBeenCalledTimes(6)
+      expect(device.createSampler).toHaveBeenCalledTimes(3)
+
+      const { device: otherDevice } = fakeDevice()
+      const other = new WebGpuTextPass({
+        device: otherDevice,
+        format: 'bgra8unorm',
+        height: 400,
+        instanceCount: 800,
+        width: 800,
+      })
+      expect(otherDevice.createShaderModule).toHaveBeenCalledTimes(2)
+      expect(otherDevice.createRenderPipeline).toHaveBeenCalledTimes(2)
+      expect(otherDevice.createSampler).toHaveBeenCalledTimes(1)
+
+      // Destroying a sibling pass sharing cached pipelines must not break surviving passes.
+      const fakeAtlas = { view: vi.fn(() => ({}) as GPUTextureView) } as unknown as AtlasGpuTextures
+      second.syncAtlas(fakeAtlas)
       first.destroy()
+      expect(() => second.encode({} as GPUTextureView)).not.toThrow()
+      expect(pass.draw).toHaveBeenCalledTimes(2)
+
       second.destroy()
       blinking.destroy()
+      rgba.destroy()
+      other.destroy()
     } finally {
       Object.defineProperty(globalThis, 'GPUBufferUsage', {
         configurable: true,
@@ -91,9 +135,10 @@ describe('WebGpuTextPass pipeline caching', () => {
 })
 
 describe('glyphKey injectivity', () => {
-  it('keeps distinct inputs unambiguous even with delimiters or null bytes in text', () => {
+  it('keeps distinct inputs unambiguous including large spans and delimiter bytes', () => {
     const base = {
       cellSpan: 1,
+      constraintWidth: 1 as const,
       foreground: { r: 10, g: 20, b: 30 },
       italic: false,
       text: 'A',
@@ -102,6 +147,7 @@ describe('glyphKey injectivity', () => {
     const keys = new Set([
       glyphKey(base, 'grayscale'),
       glyphKey({ ...base, cellSpan: 2 }, 'grayscale'),
+      glyphKey({ ...base, cellSpan: 2 ** 29 + 1 }, 'grayscale'),
       glyphKey({ ...base, constraintWidth: 2 }, 'grayscale'),
       glyphKey({ ...base, italic: true }, 'grayscale'),
       glyphKey({ ...base, weight: 'bold' }, 'grayscale'),
@@ -111,7 +157,7 @@ describe('glyphKey injectivity', () => {
       glyphKey({ ...base, foreground: { r: 10, g: 20, b: 31 } }, 'color'),
       glyphKey({ ...base, text: '["A",1]' }, 'color'),
     ])
-    expect(keys.size).toBe(10)
+    expect(keys.size).toBe(11)
     expect(glyphKey(base, 'grayscale')).toBe(
       glyphKey({ ...base, foreground: { r: 255, g: 0, b: 0 } }, 'grayscale'),
     )

@@ -47,29 +47,27 @@ interface GlyphMetrics {
 
 const nonPrintableAscii = /[^\x20-\x7e]/
 const maxSharedGlyphMetrics = 32
-const sharedGlyphMetrics = new Map<string, GlyphMetrics>()
+const sharedGlyphMetricsByDocument = new WeakMap<Document, Map<string, GlyphMetrics>>()
 const fontFaceIds = new WeakMap<FontFace, number>()
 let nextFontFaceId = 1
 
-function canShareGlyphMetrics(context: PaintTarget): boolean {
-  if (Object.prototype.hasOwnProperty.call(context, 'measureText')) return false
-  if (context.nativeMeasureText) return true
+function shareableMeasureDocument(context: PaintTarget): Document | undefined {
+  if (Object.prototype.hasOwnProperty.call(context, 'measureText')) return undefined
+  if (context.measureDocument) return context.measureDocument
   if (
-    typeof CanvasRenderingContext2D !== 'undefined' &&
-    context instanceof CanvasRenderingContext2D
+    typeof CanvasRenderingContext2D === 'undefined' ||
+    !(context instanceof CanvasRenderingContext2D)
   ) {
-    return context.canvas.isConnected
+    return undefined
   }
-  return (
-    typeof OffscreenCanvasRenderingContext2D !== 'undefined' &&
-    context instanceof OffscreenCanvasRenderingContext2D
-  )
+  return context.canvas.isConnected ? context.canvas.ownerDocument : undefined
 }
 
-function fontSetSignature(): string {
-  if (typeof document === 'undefined' || !document.fonts) return ''
-  let signature = `${document.fonts.size}:`
-  for (const face of document.fonts) {
+function fontSetSignature(ownerDocument: Document): string {
+  const fonts = ownerDocument.fonts
+  if (!fonts) return ''
+  let signature = `${fonts.size}:`
+  for (const face of fonts) {
     if (face.status !== 'loaded') continue
     let id = fontFaceIds.get(face)
     if (id === undefined) {
@@ -81,12 +79,21 @@ function fontSetSignature(): string {
   return signature
 }
 
-function cacheSharedGlyphMetrics(key: string, metrics: GlyphMetrics): void {
-  if (sharedGlyphMetrics.size >= maxSharedGlyphMetrics) {
-    const oldest = sharedGlyphMetrics.keys().next().value
-    if (oldest !== undefined) sharedGlyphMetrics.delete(oldest)
+function cacheSharedGlyphMetrics(
+  ownerDocument: Document,
+  key: string,
+  metrics: GlyphMetrics,
+): void {
+  let cache = sharedGlyphMetricsByDocument.get(ownerDocument)
+  if (!cache) {
+    cache = new Map()
+    sharedGlyphMetricsByDocument.set(ownerDocument, cache)
   }
-  sharedGlyphMetrics.set(key, metrics)
+  if (cache.size >= maxSharedGlyphMetrics) {
+    const oldest = cache.keys().next().value
+    if (oldest !== undefined) cache.delete(oldest)
+  }
+  cache.set(key, metrics)
 }
 
 function plainCellText(cells: readonly RenderCell[]): string | undefined {
@@ -169,17 +176,17 @@ export class CanvasRowPainter {
     this.context.textAlign = 'center'
     this.context.textBaseline = 'alphabetic'
     this.invalidate()
+    const measureDocument = shareableMeasureDocument(this.context)
     if (fontResourcesChanged) {
       this.glyphMetrics = undefined
-      sharedGlyphMetrics.clear()
+      if (measureDocument) sharedGlyphMetricsByDocument.delete(measureDocument)
     }
     if (!this.context.measureText) return
     const key = `${this.fonts[0]}\0${this.fonts[1]}\0${font.deviceCellWidth}\0${font.charLeft}\0${font.deviceCharWidth}`
     if (key === this.glyphMetrics?.key) return
-    const shareable = canShareGlyphMetrics(this.context)
-    const sharedKey = shareable ? `${key}\0${fontSetSignature()}` : undefined
-    if (sharedKey !== undefined) {
-      const cached = sharedGlyphMetrics.get(sharedKey)
+    const sharedKey = measureDocument ? `${key}\0${fontSetSignature(measureDocument)}` : undefined
+    if (measureDocument && sharedKey !== undefined) {
+      const cached = sharedGlyphMetricsByDocument.get(measureDocument)?.get(sharedKey)
       if (cached) {
         this.glyphMetrics = cached
         return
@@ -199,7 +206,9 @@ export class CanvasRowPainter {
       )
     }
     this.glyphMetrics = { key, overhangLeft, overhangRight, blankSpaces, measuredSpaces: 1 }
-    if (sharedKey !== undefined) cacheSharedGlyphMetrics(sharedKey, this.glyphMetrics)
+    if (measureDocument && sharedKey !== undefined) {
+      cacheSharedGlyphMetrics(measureDocument, sharedKey, this.glyphMetrics)
+    }
   }
 
   plainRowText(row: RenderRow): string | undefined {

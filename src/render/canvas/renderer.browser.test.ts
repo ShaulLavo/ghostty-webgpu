@@ -1622,4 +1622,53 @@ describe('Canvas pixel storage and failed presentation', () => {
       [0, 40, 10, 20],
     ])
   })
+
+  it('scopes shared glyph metrics to the canvas ownerDocument across iframes', async () => {
+    const family = 'IframeMetricScope'
+    const baseUrl = new URL('../../dom/tests/fixtures/font-resource/before.woff2', import.meta.url)
+      .href
+    const wideUrl = new URL(
+      '../../dom/tests/fixtures/font-resource/changed-metrics.woff2',
+      import.meta.url,
+    ).href
+    const parentFace = new FontFace(family, `url(${baseUrl})`)
+    await parentFace.load()
+    document.fonts.add(parentFace)
+    const iframe = document.createElement('iframe')
+    document.body.append(iframe)
+    try {
+      const iframeDoc = iframe.contentDocument!
+      const IframeFontFace = (iframe.contentWindow as unknown as typeof globalThis).FontFace
+      const iframeFace = new IframeFontFace(family, `url(${wideUrl})`)
+      await iframeFace.load()
+      iframeDoc.fonts.add(iframeFace)
+      const font: TerminalFittedFont = {
+        ...fittedFont(),
+        settings: { ...fittedFont().settings, family, size: 20 },
+      }
+      const theme = canonicalRendererTheme(mergeRendererTheme({}))
+      const parentCanvas = createCanvas()
+      const parentPainter = new CanvasRowPainter(parentCanvas.getContext('2d')!, font, theme)
+      parentPainter.resetContext(font)
+
+      const iframeCanvas = iframeDoc.createElement('canvas')
+      iframeCanvas.width = 160
+      iframeCanvas.height = 40
+      iframeDoc.body.append(iframeCanvas)
+      const iframeContext = iframeCanvas.getContext('2d')!
+      const iframePainter = new CanvasRowPainter(iframeContext, font, theme)
+      iframePainter.resetContext(font)
+      iframePainter.paint(row(0, [cell(0, { text: 'A' }), cell(1, { text: ' ' })]), undefined, 160)
+      iframePainter.paint(row(0, [cell(0, { text: ' ' }), cell(1, { text: ' ' })]), undefined, 160)
+      const erased = iframeContext.getImageData(0, 0, iframeCanvas.width, iframeCanvas.height).data
+      let remaining = 0
+      for (let i = 3; i < erased.length; i += 4) {
+        if (erased[i]! > 0) remaining += 1
+      }
+      expect(remaining).toBe(0)
+    } finally {
+      iframe.remove()
+      document.fonts.delete(parentFace)
+    }
+  })
 })

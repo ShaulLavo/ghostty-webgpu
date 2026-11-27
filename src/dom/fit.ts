@@ -394,9 +394,7 @@ export class TerminalFitController {
   }
 
   private calculateFit(): TerminalFitResult | undefined {
-    const fontResourcesChanged = this.fontResourcesChanged
-    this.fontResourcesChanged = false
-    return calculateFitResult(
+    const result = calculateFitResult(
       this.view,
       this.options.container,
       this.desiredPadding,
@@ -404,8 +402,10 @@ export class TerminalFitController {
       this.readPixelRatio(),
       this.options.getScrollbarWidth?.() ?? 0,
       this.measureContext,
-      fontResourcesChanged,
+      this.fontResourcesChanged,
     )
+    if (result) this.fontResourcesChanged = false
+    return result
   }
 
   private readonly handleExternalAbort = (): void => {
