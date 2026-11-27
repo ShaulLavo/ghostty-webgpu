@@ -398,9 +398,10 @@ export async function analyze(directory) {
         row.frameCadence = frameCadence(phase.records, clock)
         row.sampledLeaves = sampledProfile(trace.traceEvents, clock, phase.records)
         row.trace = phase.trace
-        row.byOperation = {}
-        for (const span of phase.records.spans)
-          row.byOperation[span.operation] = (row.byOperation[span.operation] ?? 0) + span.self
+        row.byOperation = phase.records.spans.reduce((totals, span) => {
+          totals[span.operation] = (totals[span.operation] ?? 0) + span.self
+          return totals
+        }, {})
       }
       if (phase.sample?.write?.length)
         row.latency = Object.fromEntries(

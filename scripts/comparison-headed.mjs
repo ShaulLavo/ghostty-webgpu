@@ -815,6 +815,13 @@ export async function launchOwnedHeadedBrowser({
       })
       if (browser)
         await attempt('closeError', () => boundedSmokeOperation(() => browser.close(), 3000))
+      const waitForOwnedExit = async () => {
+        for (let index = 0; index < 20; index++) {
+          const states = await attempt('processObservationError', () => ownedProcessStates(owned))
+          if (!states || states.every((entry) => !entry.alive)) return
+          await pause(50)
+        }
+      }
       for (const signal of ['SIGTERM', 'SIGKILL']) {
         for (const entry of owned)
           await attempt('terminationError', async () => {
@@ -825,11 +832,7 @@ export async function launchOwnedHeadedBrowser({
               if (error.code !== 'ESRCH') throw error
             }
           })
-        for (let index = 0; index < 20; index++) {
-          const states = await attempt('processObservationError', () => ownedProcessStates(owned))
-          if (!states || states.every((entry) => !entry.alive)) break
-          await pause(50)
-        }
+        await waitForOwnedExit()
       }
       evidence.cleanup.processes = await attempt('processObservationError', () =>
         ownedProcessStates(owned),

@@ -31,22 +31,6 @@
       "rules": {
         "max-depth": "off"
       }
-    },
-    // Legacy comparison benchmark harnesses and tests — flatten when touched.
-    {
-      "files": [
-        "bench/comparison-rolling.test.mjs",
-        "bench/comparison-slow.test.mjs",
-        "scripts/comparison-attribution.mjs",
-        "scripts/comparison-gpu.mjs",
-        "scripts/comparison-headed.mjs",
-        "scripts/comparison-options.test.mjs",
-        "scripts/comparison-runner.mjs",
-        "scripts/fixtures/headed-launch-boundaries.mjs"
-      ],
-      "rules": {
-        "max-depth": "off"
-      }
     }
   ]
 }

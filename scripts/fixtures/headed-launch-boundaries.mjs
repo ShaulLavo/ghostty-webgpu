@@ -318,20 +318,21 @@ const page = {
   },
 }
 session.send = async (method, parameters) => {
+  const applyMaximizedBounds = () => {
+    windowState = 'maximized'
+    if (scenario !== 'launch-calibration-target') {
+      nativeSize = { width: 1500, height: 1200 }
+      if (scenario !== 'healthy-delayed-calibration') {
+        pageContext.innerWidth = 1468
+        pageContext.innerHeight = 1071
+      }
+    }
+    events.push('calibration-maximized')
+    return {}
+  }
   if (method === 'Browser.setWindowBounds') {
     assert.equal(parameters.windowId, 7)
-    if (parameters.bounds.windowState === 'maximized') {
-      windowState = 'maximized'
-      if (scenario !== 'launch-calibration-target') {
-        nativeSize = { width: 1500, height: 1200 }
-        if (scenario !== 'healthy-delayed-calibration') {
-          pageContext.innerWidth = 1468
-          pageContext.innerHeight = 1071
-        }
-      }
-      events.push('calibration-maximized')
-      return {}
-    }
+    if (parameters.bounds.windowState === 'maximized') return applyMaximizedBounds()
     if (parameters.bounds.windowState === 'normal') {
       windowState = 'normal'
       return {}

@@ -146,8 +146,7 @@ test('real Ghostty core sees changing rolling viewports for all 2700 frames on b
       knownRepeated,
       'Known stock logs case must expose the repeated viewport',
     )
-    const viewports = []
-    for (const path of ['bytes', 'string']) {
+    const collectViewportSequence = (path) => {
       terminal.write('\x1bc')
       const chunks = rollingInputs(fixture, path)
       const digest = createHash('sha256')
@@ -161,8 +160,9 @@ test('real Ghostty core sees changing rolling viewports for all 2700 frames on b
         if (frame === 1199 || frame === 2699) checkpoints[frame + 1] = current
         previous = current
       }
-      viewports.push({ sha256: digest.digest('hex'), checkpoints })
+      return { sha256: digest.digest('hex'), checkpoints }
     }
+    const viewports = ['bytes', 'string'].map(collectViewportSequence)
     assert.deepEqual(
       viewports[0],
       viewports[1],

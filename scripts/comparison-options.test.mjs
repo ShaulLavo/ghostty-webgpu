@@ -119,27 +119,30 @@ test('even repetitions remain at least four and selected native/counterpart orde
       ...new Set(Object.values(counterparts).flat()),
     ])
     const before = Object.fromEntries(Object.keys(counterparts).map((native) => [native, 0]))
+    const recordBalancedSlice = (cases, count, path) => {
+      const selected = cases.filter((entry) => entry.count === count && entry.path === path)
+      assert.equal(selected.length, variants.length)
+      assert.deepEqual(
+        selected
+          .filter((entry) => entry.frameBuilder)
+          .map((entry) => entry.variant)
+          .sort(),
+        ['ghostty-webgl', 'ghostty-webgpu'],
+      )
+      for (const [native, [counterpart]] of Object.entries(counterparts)) {
+        if (
+          selected.findIndex((entry) => entry.variant === native) <
+          selected.findIndex((entry) => entry.variant === counterpart)
+        )
+          before[native]++
+      }
+    }
     for (let repetition = 0; repetition < repetitions; repetition++) {
       const cases = measurementCases(variants, ['bytes', 'string'], [1, 17], repetition)
-      for (const count of [1, 17])
-        for (const path of ['bytes', 'string']) {
-          const selected = cases.filter((entry) => entry.count === count && entry.path === path)
-          assert.equal(selected.length, variants.length)
-          assert.deepEqual(
-            selected
-              .filter((entry) => entry.frameBuilder)
-              .map((entry) => entry.variant)
-              .sort(),
-            ['ghostty-webgl', 'ghostty-webgpu'],
-          )
-          for (const [native, [counterpart]] of Object.entries(counterparts)) {
-            if (
-              selected.findIndex((entry) => entry.variant === native) <
-              selected.findIndex((entry) => entry.variant === counterpart)
-            )
-              before[native]++
-          }
-        }
+      for (const count of [1, 17]) {
+        recordBalancedSlice(cases, count, 'bytes')
+        recordBalancedSlice(cases, count, 'string')
+      }
     }
     for (const count of Object.values(before)) assert.equal(count, repetitions * 2)
   }
