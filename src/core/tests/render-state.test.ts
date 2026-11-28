@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GhosttyRuntime } from '../runtime.js'
 
 let runtime: GhosttyRuntime | undefined
@@ -6,6 +6,22 @@ let runtime: GhosttyRuntime | undefined
 afterEach(() => {
   runtime?.dispose()
   runtime = undefined
+})
+
+it('releases a render state only once when runtime cleanup reenters and throws', async () => {
+  runtime = await GhosttyRuntime.create()
+  const state = runtime.createRenderState(runtime.createTerminal())
+  const release = runtime.releaseRenderState.bind(runtime)
+  const error = new Error('release failed')
+  const mockedRelease = vi.spyOn(runtime, 'releaseRenderState').mockImplementationOnce((owned) => {
+    release(owned)
+    owned.dispose()
+    throw error
+  })
+
+  expect(() => state.dispose()).toThrow(error)
+  expect(() => state.dispose()).not.toThrow()
+  expect(mockedRelease).toHaveBeenCalledExactlyOnceWith(state)
 })
 
 describe('render row reads', () => {

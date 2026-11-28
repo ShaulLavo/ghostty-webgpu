@@ -549,8 +549,13 @@ class SharedRenderState {
   }
 }
 
+interface RenderStateOwner {
+  releaseRenderState(state: GhosttyRenderState): void
+}
+
 /** A damage subscription to the terminal's shared native snapshot. */
 export class GhosttyRenderState {
+  private readonly owner: RenderStateOwner
   private readonly snapshotState: SharedRenderState
   private readonly renderRequestListeners = new Set<() => void>()
   private readonly unsubscribeRenderRequest: () => void
@@ -559,11 +564,8 @@ export class GhosttyRenderState {
   private acknowledgingVersion?: number
   private disposed = false
 
-  constructor(
-    runtime: GhosttyRuntime,
-    terminal: GhosttyTerminal,
-    private readonly releaseFromRuntime?: (state: GhosttyRenderState) => void,
-  ) {
+  constructor(runtime: GhosttyRuntime, terminal: GhosttyTerminal) {
+    this.owner = runtime
     const snapshot = sharedSnapshots.get(terminal) ?? new SharedRenderState(runtime, terminal)
     this.snapshotState = snapshot
     snapshot.attach(this)
@@ -662,8 +664,8 @@ export class GhosttyRenderState {
     this.renderRequestListeners.clear()
     this.displayedFrames?.dispose()
     this.snapshotState.release(this)
-    this.releaseFromRuntime?.(this)
     this.disposed = true
+    this.owner.releaseRenderState(this)
   }
 
   private acknowledgeVersion(version: number): number {

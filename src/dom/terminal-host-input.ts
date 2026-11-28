@@ -127,14 +127,7 @@ export class TerminalHostInput {
         textarea: elements.textarea,
       })
       this.input = input
-      addCleanup(() => {
-        try {
-          input?.dispose()
-        } finally {
-          this.input = undefined
-          this.preeditActive = false
-        }
-      })
+      addCleanup(() => this.disposeKeyboard())
     }
     const motion = elements.root.ownerDocument.defaultView?.matchMedia(
       '(prefers-reduced-motion: reduce)',
@@ -162,6 +155,15 @@ export class TerminalHostInput {
     })
     addCleanup(() => lifecycle.dispose())
     this.options.inputHooks?.inputReady?.()
+  }
+
+  private disposeKeyboard(): void {
+    try {
+      this.input?.dispose()
+    } finally {
+      this.input = undefined
+      this.preeditActive = false
+    }
   }
 
   private async copyUserSelection(view: Window, signal: AbortSignal): Promise<void> {
