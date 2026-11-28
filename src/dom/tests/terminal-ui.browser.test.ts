@@ -2266,7 +2266,8 @@ describe('terminal frame consumer demand in Chromium', () => {
         () => inspect?.(),
       )
       const scheduler = Reflect.get(harness.renderer, 'scheduler') as RenderScheduler
-      const links = Reflect.get(harness.terminal, 'links') as DomLinkController
+      const pointer = Reflect.get(harness.terminal, 'pointer') as object
+      const links = Reflect.get(pointer, 'links') as DomLinkController
       const linkOptions = Reflect.get(links, 'options') as {
         getFrame(): RendererTextFrameSnapshot | undefined
       }
