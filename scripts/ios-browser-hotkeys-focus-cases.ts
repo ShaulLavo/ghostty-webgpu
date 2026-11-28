@@ -89,7 +89,7 @@ export const hotkeysFocusCases = [
   {
     file: hotkeysFocusFile,
     fullName:
-      'main public hotkeys connection > reads confirmed alternate-screen and mouse context before matching each event',
+      'main public hotkeys connection > encodes a physical remap for press, repeat and release without native text',
     sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:313:0',
     timeoutMs: 15000,
     retries: 0,
@@ -97,8 +97,16 @@ export const hotkeysFocusCases = [
   {
     file: hotkeysFocusFile,
     fullName:
+      'main public hotkeys connection > reads confirmed alternate-screen and mouse context before matching each event',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:348:0',
+    timeoutMs: 15000,
+    retries: 0,
+  },
+  {
+    file: hotkeysFocusFile,
+    fullName:
       'main public hotkeys connection > commits composing text once and lets native protocol replies bypass claims',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:341:0',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:376:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -106,7 +114,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > keeps a mapped press owner across focus movement and forwards its release once',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:386:0',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:421:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -114,7 +122,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > blur clears native ownership before a later release',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:407:0',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:442:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -122,7 +130,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > hidden clears native ownership before a later release',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:407:1',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:442:1',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -130,7 +138,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > releaseAll clears native ownership before a later release',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:407:2',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:442:2',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -138,7 +146,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > dispose clears native ownership before a later release',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:407:3',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:442:3',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -146,7 +154,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > linux standalone defaults and a user override work through the public factory',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:436:0',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:471:0',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -154,7 +162,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > windows standalone defaults and a user override work through the public factory',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:436:1',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:471:1',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -162,7 +170,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > mac standalone defaults and a user override work through the public factory',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:436:2',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:471:2',
     timeoutMs: 15000,
     retries: 0,
   },
@@ -170,7 +178,7 @@ export const hotkeysFocusCases = [
     file: hotkeysFocusFile,
     fullName:
       'main public hotkeys connection > attaches after open, removes its node/commands, cancels clipboard completion and leaves native authority live',
-    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:525:0',
+    sourceKey: 'src/extensions/hotkeys/tests/focus.browser.test.ts:560:0',
     timeoutMs: 15000,
     retries: 0,
   },

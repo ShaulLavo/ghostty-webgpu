@@ -1,9 +1,14 @@
 import { expect, it } from 'vitest'
-import { createKeyInput, createDispatcher } from '@shaulavo/hotkeys'
+import { createKeyInput, createDispatcher, type Platform } from '@shaulavo/hotkeys'
 import { terminalKeyContext } from '../context.js'
-import { readSendKeystrokeArgs, terminalKeystroke } from '../keystroke.js'
+import { parseTerminalKeystroke, readSendKeystrokeArgs, terminalKeystroke } from '../keystroke.js'
 import { ghosttyKeymap, terminalShellKeysPack } from '../packs.js'
 import { TerminalSession } from '../../../term/session.js'
+
+function encodeKeystroke(keys: string, platform: Platform) {
+  const stroke = parseTerminalKeystroke(keys)
+  return stroke && terminalKeystroke(stroke, platform)
+}
 
 it('native encoding covers Ctrl letters and readline keys from the exported pack', async () => {
   const session = await TerminalSession.create()
@@ -11,7 +16,7 @@ it('native encoding covers Ctrl letters and readline keys from the exported pack
     const controls = terminalShellKeysPack.slice(0, 26).map((row) => {
       const args = readSendKeystrokeArgs(row.args)
       if (!args || !('keystroke' in args)) return null
-      const input = terminalKeystroke(args.keystroke, 'linux')
+      const input = encodeKeystroke(args.keystroke, 'linux')
       return input ? Array.from(session.key(input)) : null
     })
     const expected = Array.from({ length: 26 }, (_, index) => [index + 1])
@@ -21,7 +26,7 @@ it('native encoding covers Ctrl letters and readline keys from the exported pack
     for (const row of terminalShellKeysPack.slice(26)) {
       const args = readSendKeystrokeArgs(row.args)
       if (!args || !('keystroke' in args)) throw new TypeError('Missing pack keystroke')
-      const input = terminalKeystroke(args.keystroke, 'linux')
+      const input = encodeKeystroke(args.keystroke, 'linux')
       expect(input, args.keystroke).not.toBeNull()
       if (input) expect(session.key(input).length, args.keystroke).toBeGreaterThan(0)
     }
@@ -37,7 +42,7 @@ it('encodes generated shifted letters and space with native printable text', asy
       ['shift-a', 'A'],
       ['space', ' '],
     ] as const) {
-      const input = terminalKeystroke(keys, 'linux')
+      const input = encodeKeystroke(keys, 'linux')
       expect(input).not.toBeNull()
       if (input) expect(new TextDecoder().decode(session.key(input))).toBe(text)
     }
@@ -47,16 +52,21 @@ it('encodes generated shifted letters and space with native printable text', asy
 })
 
 it('accepts Zed strokes and rejects malformed or ambiguous payloads', () => {
-  expect(terminalKeystroke('ctrl-b', 'linux')).toMatchObject({
+  expect(encodeKeystroke('ctrl-b', 'linux')).toMatchObject({
     action: 'press',
     code: 'KeyB',
     text: 'b',
     modifiers: { control: 'unknown' },
   })
-  expect(terminalKeystroke('up', 'mac')?.code).toBe('ArrowUp')
-  expect(terminalKeystroke('pageup', 'windows')?.code).toBe('PageUp')
-  for (const keys of ['', 'Ctrl+B Ctrl+C', 'unknown+B', 'NoSuchKey'])
-    expect(terminalKeystroke(keys, 'linux')).toBeNull()
+  expect(encodeKeystroke('up', 'mac')?.code).toBe('ArrowUp')
+  expect(encodeKeystroke('pageup', 'windows')?.code).toBe('PageUp')
+  expect(encodeKeystroke('Ctrl+Shift++', 'linux')).toMatchObject({
+    code: 'Equal',
+    text: '+',
+    modifiers: { control: 'unknown', shift: 'unknown' },
+  })
+  for (const keys of ['', 'Ctrl+', 'Ctrl+B Ctrl+C', 'unknown+B', 'NoSuchKey'])
+    expect(encodeKeystroke(keys, 'linux')).toBeNull()
   for (const args of [
     undefined,
     null,

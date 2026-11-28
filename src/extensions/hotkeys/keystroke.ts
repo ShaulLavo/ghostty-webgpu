@@ -1,8 +1,9 @@
 import {
   keyInputFromKeyboardEvent,
   parseHotkey,
-  validateHotkey,
-  type KeymapPlatform,
+  parseShortcut,
+  type Platform,
+  type ValidatedStroke,
 } from '@shaulavo/hotkeys'
 import { isSupportedTerminalKeyCode } from '../../term/key-codes.js'
 import type { TerminalKeyInput } from '../../term/types.js'
@@ -43,11 +44,17 @@ const punctuationCodes: Readonly<Record<string, string>> = {
   ')': 'Digit0',
 }
 
-export function terminalKeystroke(keys: string, platform: KeymapPlatform): TerminalKeyInput | null {
-  if (/\s/.test(keys.trim())) return null
-  const normalized = normalizeTerminalKeystroke(keys)
-  if (!validateHotkey(normalized).valid) return null
-  const parsed = parseHotkey(normalized, platform)
+export function parseTerminalKeystroke(keys: string): ValidatedStroke | null {
+  const parsed = parseShortcut(normalizeTerminalKeystroke(keys))
+  if (!parsed.ok || parsed.value.length !== 1) return null
+  return parsed.value[0]
+}
+
+export function terminalKeystroke(
+  stroke: ValidatedStroke,
+  platform: Platform,
+): TerminalKeyInput | null {
+  const parsed = parseHotkey(stroke, platform)
   const key = parsed.key ?? ''
   let code = parsed.code ?? punctuationCodes[key] ?? key
   if (/^[A-Z]$/i.test(key)) code = `Key${key.toUpperCase()}`
@@ -85,17 +92,14 @@ export function readSendKeystrokeArgs(value: unknown): TerminalSendKeystrokeArgs
   return null
 }
 
-export function normalizeTerminalKeystroke(keys: string): string {
+function normalizeTerminalKeystroke(keys: string): string {
   if (keys.includes('+')) return keys
   return keys.replace(/^(?:(?:ctrl|control|alt|shift|cmd|super|meta|fn)-)+/i, (modifiers) =>
     modifiers.replace(/-/g, '+').replace(/cmd|super/gi, 'Meta'),
   )
 }
 
-export function terminalKeyFromEvent(
-  event: KeyboardEvent,
-  platform: KeymapPlatform,
-): TerminalKeyInput {
+export function terminalKeyFromEvent(event: KeyboardEvent, platform: Platform): TerminalKeyInput {
   const input = keyInputFromKeyboardEvent(event, platform)
   let action: TerminalKeyInput['action'] = 'press'
   if (input.repeat) action = 'repeat'

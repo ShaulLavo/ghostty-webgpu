@@ -273,6 +273,7 @@ async function writeConsumerFiles(root: string, browserOnly = false): Promise<vo
 import type { GhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'
 import { GhosttyRuntime, GhosttyTerminal, TerminalSession } from 'ghostty-webgpu/core'
 import { attachTerminalHotkeys, ghosttyKeymap, terminalShellKeysPack } from 'ghostty-webgpu/hotkeys'
+import { createBrowserDispatcher } from '@shaulavo/hotkeys'
 ${browserOnly ? '' : "import { resolveGhosttyConfigAppearance } from 'ghostty-webgpu/config-resolver'"}
 // @ts-expect-error The package has no facade entry point.
 import type * as RemovedFacade from 'ghostty-webgpu/xterm'
@@ -281,6 +282,14 @@ import type * as RemovedStylesheet from 'ghostty-webgpu/xterm.css'
 
 const rendererFactory: GhosttyWebGpuRendererFactory = WebGpuTerminalRenderer.create
 void Terminal.create({ rendererFactory })
+
+function attachHostedHotkeys(terminal: Awaited<ReturnType<typeof Terminal.create>>, root: Document) {
+  const platform = 'linux'
+  const dispatcher = createBrowserDispatcher<{ 'workspace.toggle': void }>({ root, platform })
+  const parent = dispatcher.createNode({ context: 'Workspace' })
+  return attachTerminalHotkeys(terminal, { mode: 'hosted', dispatcher: dispatcher.asHosted(), parent, platform })
+}
+void attachHostedHotkeys
 
 const color = { b: 3, g: 2, r: 1 }
 const rendererTheme: RendererTheme = {

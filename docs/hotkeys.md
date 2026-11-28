@@ -56,7 +56,7 @@ import { ghosttyKeymap, terminalShellKeysPack } from 'ghostty-webgpu/hotkeys'
 
 attachTerminalHotkeys(terminal, {
   mode: 'hosted',
-  dispatcher: windowKeymap.hotkeys,
+  dispatcher: windowKeymap.hotkeys.asHosted(),
   parent: windowKeymap.parentFor('terminal'),
   platform,
 })

@@ -1,4 +1,4 @@
-import type { Binding, KeymapPlatform } from '@shaulavo/hotkeys'
+import type { Binding, Platform } from '@shaulavo/hotkeys'
 
 function defaults(
   modifier: string,
@@ -33,7 +33,7 @@ const macTextBindings: readonly Binding[] = [
   { keys: 'Alt+ArrowRight', command: 'terminal.sendKeystroke', args: { text: '\x1bf' } },
 ].map((binding) => ({ ...binding, context: 'Terminal && screenReader == off', source: 'default' }))
 
-export const ghosttyKeymap: Record<KeymapPlatform, readonly Binding[]> = {
+export const ghosttyKeymap: Record<Platform, readonly Binding[]> = {
   mac: defaults('Meta', 'Meta', 'Meta').concat(macTextBindings),
   linux: defaults('Ctrl', 'Ctrl+Shift', 'Shift'),
   windows: defaults('Ctrl', 'Ctrl+Shift', 'Shift'),

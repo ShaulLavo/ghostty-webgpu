@@ -1,17 +1,18 @@
 import {
+  areHotkeysEqual,
   createBrowserDispatcher,
   detectPlatform,
-  normalizeHotkey,
-  normalizeHotkeyFromEvent,
-  type BrowserDispatcher,
+  parseHotkey,
   type FocusNode,
+  type HostedBrowserDispatcher,
+  type HostedFocusNode,
   type KeymapEntry,
-  type KeymapPlatform,
+  type Platform,
 } from '@shaulavo/hotkeys'
 import { createTerminalCommands, type TerminalCommandOptions } from './commands.js'
 import { terminalKeyContext, type TerminalKeyContextState } from './context.js'
 import {
-  normalizeTerminalKeystroke,
+  parseTerminalKeystroke,
   readSendKeystrokeArgs,
   terminalKeyFromEvent,
   terminalKeystroke,
@@ -24,13 +25,13 @@ export type TerminalHotkeyOwnership =
       readonly mode: 'standalone'
       readonly bindings?: readonly KeymapEntry[]
       readonly keymap?: readonly KeymapEntry[]
-      readonly platform?: KeymapPlatform
+      readonly platform?: Platform
     }
   | {
       readonly mode: 'hosted'
-      readonly dispatcher: BrowserDispatcher
-      readonly parent: FocusNode<KeyboardEvent>
-      readonly platform: KeymapPlatform
+      readonly dispatcher: HostedBrowserDispatcher
+      readonly parent: HostedFocusNode
+      readonly platform: Platform
     }
 
 export type TerminalHotkeyRegistrationOptions = TerminalHotkeyOwnership &
@@ -57,21 +58,26 @@ export function registerTerminalHotkeys(
     { readonly input: TerminalKeyInput; readonly sourceRelease: boolean }
   >()
   const nativeSent = new WeakSet<KeyboardEvent>()
-  const dispatcher =
-    options.mode === 'hosted'
-      ? options.dispatcher
-      : createBrowserDispatcher({
-          root: options.element,
-          platform,
-          keymap: (options.keymap ?? defaults).concat(options.bindings ?? []),
-          replay: (_input, event) =>
-            send(() =>
-              options.terminal.sendGeneratedInput({
-                type: 'key',
-                input: terminalKeyFromEvent(event, platform),
-              }),
-            ),
-        })
+  let dispatcher: HostedBrowserDispatcher
+  let disposeDispatcher: (() => void) | undefined
+  if (options.mode === 'hosted') {
+    dispatcher = options.dispatcher
+  } else {
+    const standalone = createBrowserDispatcher({
+      root: options.element,
+      platform,
+      keymap: (options.keymap ?? defaults).concat(options.bindings ?? []),
+      replay: (_input, event) =>
+        send(() =>
+          options.terminal.sendGeneratedInput({
+            type: 'key',
+            input: terminalKeyFromEvent(event, platform),
+          }),
+        ),
+    })
+    dispatcher = standalone
+    disposeDispatcher = standalone.dispose
+  }
   const commands = createTerminalCommands({
     ...options,
     signal: lifetime.signal,
@@ -83,26 +89,17 @@ export function registerTerminalHotkeys(
         send(() => options.terminal.sendGeneratedInput({ type: 'text', data: args.text }))
         return true
       }
-      const keys = normalizeTerminalKeystroke(args.keystroke)
+      const stroke = parseTerminalKeystroke(args.keystroke)
+      if (!stroke) return false
       const source = event.source
-      if (
-        source &&
-        normalizeHotkey(keys, platform) === normalizeHotkeyFromEvent(source, platform)
-      ) {
-        nativePresses.set(source.code, {
-          input: terminalKeyFromEvent(source, platform),
-          sourceRelease: true,
-        })
+      if (source && areHotkeysEqual(stroke, parseHotkey(source, platform), platform)) {
+        const input = terminalKeyFromEvent(source, platform)
+        nativePresses.set(source.code, { input, sourceRelease: true })
         nativeSent.add(source)
-        send(() =>
-          options.terminal.sendGeneratedInput({
-            type: 'key',
-            input: terminalKeyFromEvent(source, platform),
-          }),
-        )
+        send(() => options.terminal.sendGeneratedInput({ type: 'key', input }))
         return true
       }
-      const input = terminalKeystroke(keys, platform)
+      const input = terminalKeystroke(stroke, platform)
       if (!input) return false
       const encoded = source?.repeat ? { ...input, action: 'repeat' as const } : input
       if (source) nativePresses.set(source.code, { input: encoded, sourceRelease: false })
@@ -158,7 +155,7 @@ export function registerTerminalHotkeys(
     unobserve()
     detach()
     node.remove()
-    if (options.mode === 'standalone') dispatcher.dispose()
+    disposeDispatcher?.()
   }
   options.signal.addEventListener('abort', dispose, { once: true })
   if (options.signal.aborted) dispose()
