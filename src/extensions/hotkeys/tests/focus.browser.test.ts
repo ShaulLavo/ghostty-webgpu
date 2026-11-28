@@ -1,7 +1,7 @@
 import { restoreRendererNavigator, stubRendererNavigator } from '../../../render/tests/navigator.js'
 import { testFontUrl } from '../../../tests/fonts.js'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { createBrowserDispatcher, type KeymapEntry, type KeymapPlatform } from '@shaulavo/hotkeys'
+import { createBrowserDispatcher, type KeymapEntry, type Platform } from '@shaulavo/hotkeys'
 import { Terminal as MainTerminal } from '../../../../dist/index.js'
 import {
   attachTerminalHotkeys,
@@ -33,8 +33,8 @@ async function settle(terminal: TerminalApi): Promise<void> {
   await terminal.lineCount()
   await Promise.resolve()
 }
-async function fixture(entry: 'main', platform: KeymapPlatform = 'linux', observe = true) {
-  const platforms: Record<KeymapPlatform, typeof navigator.platform> = {
+async function fixture(entry: 'main', platform: Platform = 'linux', observe = true) {
+  const platforms: Record<Platform, typeof navigator.platform> = {
     mac: 'MacIntel',
     linux: 'Linux x86_64',
     windows: 'Win32',
@@ -96,7 +96,7 @@ async function fixture(entry: 'main', platform: KeymapPlatform = 'linux', observ
     const handle = attachTerminalHotkeys(terminal, {
       ...common,
       mode: 'hosted',
-      dispatcher,
+      dispatcher: dispatcher.asHosted(),
       parent,
       platform,
     })
@@ -306,7 +306,42 @@ describe.each(['main'] as const)('%s public hotkeys connection', (entry) => {
     expect(calls).toBe(0)
     expect(f.claims() - claims).toBe(0)
     expect(f.generatedClaims()).toBe(0)
-    expect([...observed.values()]).toEqual([1, 1, 1])
+    expect(Array.from(observed.values())).toEqual([1, 1, 1])
+    expect(f.errors).toEqual([])
+  })
+
+  it('encodes a physical remap for press, repeat and release without native text', async () => {
+    const f = await fixture(entry)
+    await f.hosted([
+      {
+        keys: 'Control+A',
+        command: 'terminal.sendKeystroke',
+        args: { keystroke: 'Control+[KeyQ]' },
+        context: 'Terminal',
+      },
+    ])
+    await f.terminal.write('\x1b[>11u')
+    const send = vi.spyOn(f.terminal, 'sendGeneratedInput')
+    const source = { key: 'a', code: 'KeyQ', ctrlKey: true }
+    f.key('keydown', source)
+    f.key('keydown', { ...source, repeat: true })
+    f.key('keyup', source)
+    await settle(f.terminal)
+    expect(send.mock.calls).toEqual(
+      ['press', 'repeat', 'release'].map((action) => [
+        {
+          type: 'key',
+          input: {
+            action,
+            code: 'KeyQ',
+            composing: false,
+            text: '',
+            modifiers: { control: 'unknown' },
+          },
+        },
+      ]),
+    )
+    expect(f.output).toEqual(['\x1b[113;5u', '\x1b[113;5:2u', '\x1b[113;5:3u'])
     expect(f.errors).toEqual([])
   })
 
