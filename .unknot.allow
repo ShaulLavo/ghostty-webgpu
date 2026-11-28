@@ -1,0 +1,16 @@
+# rules: field-leak forward-ref import-cycle long-file module-cycle prop-drilling shallow-module tangle wide-directory wide-injection
+
+# The release builder's pinned inventory, build boundaries, and evidence need a full four-target replay after a split.
+long-file scripts/config-resolver-native/build-helper.ts
+# The feasibility workflow retains its separate builder to reproduce the published native proof.
+long-file scripts/config-resolver-proof/build-helper.ts
+
+# The bridge owns callback registration and the linked Wasm instance. Callers use its typed ABI methods.
+shallow-module src/core/bridge.ts
+# The local execution actor exposes the same intents as the worker and owns renderer and selection state.
+shallow-module src/dom/execution-local.ts
+# The runtime disposes its terminals, and the public terminal exposes that same owning runtime.
+tangle src/core/runtime.ts#GhosttyRuntime ~ src/core/terminal.ts#GhosttyTerminal
+
+# Script paths appear in documented commands and native iOS test identities used to match run reports.
+wide-directory scripts

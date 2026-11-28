@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { GhosttyError } from '../core/error.js'
 import { freezeWorkerValue } from './owned.js'
-import { serializeWorkerFailure, workerError } from './structured-errors.js'
+import { serializeWorkerFailure, workerError } from '../transport/worker-errors.js'
 
 it('restores readonly nested values after structured cloning', () => {
   const original = Object.freeze({

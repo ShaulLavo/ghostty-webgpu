@@ -82,7 +82,7 @@ export class RenderScheduler {
 
   seedBlinkPhase(phase: BlinkPhase): void {
     this.cursorVisibleValue = phase.cursorVisible
-    if (this.textBlink) this.textBlink.visible = phase.textVisible
+    this.textBlink?.seedPhase(phase.textVisible)
   }
 
   schedule(): void {

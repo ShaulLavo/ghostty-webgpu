@@ -56,7 +56,7 @@
         "dist/config-resolver/index.d.ts"
       ],
       "core": [
-        "dist/core/index.d.ts"
+        "dist/core-entry.d.ts"
       ],
       "types/legacy/index.d.ts": [
         "dist/index.d.ts"
@@ -100,10 +100,10 @@
       "node": "./dist/config-resolver/index.js"
     },
     "./core": {
-      "types@>=7.0": "./dist/core/index.d.ts",
+      "types@>=7.0": "./dist/core-entry.d.ts",
       "types": "./types/legacy/core.d.ts",
-      "import": "./dist/core/index.js",
-      "default": "./dist/core/index.js"
+      "import": "./dist/core-entry.js",
+      "default": "./dist/core-entry.js"
     },
     "./ghostty-vt.wasm": "./ghostty-vt.wasm",
     "./bridge.wasm": "./bridge.wasm",
@@ -145,7 +145,8 @@
     "demo": "bun run --cwd demo start",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "lint": "oxlint --disable-nested-config .",
+    "lint": "oxlint --disable-nested-config . && bun run lint:structure",
+    "lint:structure": "unknot .",
     "prepack": "bun run build",
     "prepublishOnly": "bun run verify",
     "test": "bun run test:unit && bun run test:browser",
@@ -202,6 +203,7 @@
     "pngjs": "7.0.0",
     "typescript": "7.0.2",
     "undici": "6.29.1",
+    "unknot": "0.1.2",
     "vite": "8.3.1",
     "vitest": "5.0.2",
     "waffle": "https://github.com/ShaulLavo/waffle/releases/download/waffle-v0.0.118/waffle-0.0.118.tgz",

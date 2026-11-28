@@ -16,7 +16,7 @@ import { type WebGpuTerminalRendererOptions } from '../render/shared/types.js'
 import type { WebGpuTerminalRenderer } from '../render/webgpu/renderer.js'
 import { WebGpuUnavailableError } from '../render/webgpu/unavailable.js'
 import type { WebGlTerminalRenderer } from '../render/webgl/renderer.js'
-import { WebGlUnavailableError } from '../render/webgl/unavailable.js'
+import { WebGlUnavailableError } from '../render/shared/webgl-unavailable.js'
 import type {
   TerminalFittedFont,
   TerminalSessionEventType,
@@ -36,7 +36,11 @@ import type {
 } from './protocol.js'
 import { workerCommandNames, workerOperationTimeout } from './protocol.js'
 import { RowDeltaEncoder } from './frame-codec.js'
-import { serializeWorkerFailure, TerminalWorkerError, workerError } from './structured-errors.js'
+import {
+  serializeWorkerFailure,
+  TerminalWorkerError,
+  workerError,
+} from '../transport/worker-errors.js'
 
 interface WorkerScope {
   readonly fonts: FontFaceSet

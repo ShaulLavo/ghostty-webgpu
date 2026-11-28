@@ -9,7 +9,7 @@ import type {
   TerminalFittedFont,
   TerminalSessionEventMap,
 } from '../term/types.js'
-import type { WorkerFailure } from './structured-errors.js'
+import type { WorkerFailure } from '../transport/worker-errors.js'
 
 export const workerOperationTimeout = 15_000
 

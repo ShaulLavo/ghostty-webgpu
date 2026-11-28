@@ -1,6 +1,6 @@
-import type { TerminalElements } from '../dom/elements.js'
-import { terminalPixelRatio, type TerminalFitEnvironment } from '../dom/fit.js'
-import type { WorkerLayout } from './protocol.js'
+import type { TerminalElements } from './elements.js'
+import { terminalPixelRatio, type TerminalFitEnvironment } from './fit.js'
+import type { WorkerLayout } from '../worker/protocol.js'
 
 /** Only DOM dimensions cross this seam. The execution actor owns font measurement. */
 export function workerLayout(

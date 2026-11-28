@@ -46,6 +46,14 @@ export function ratios(result) {
   )
 }
 
+function verifyTargetWork(targetWork, protocol) {
+  for (const target of targetWork) {
+    assert.equal(target.counters.publicWrites, protocol.ticks + 1)
+    if (!protocol.expectedInputBytesPerTarget) continue
+    assert.equal(target.counters.inputBytes, protocol.expectedInputBytesPerTarget)
+  }
+}
+
 for (const score of scores.scores) {
   assert(score.status.startsWith('reviewed:'), 'Only reviewed rows go public')
   const result = JSON.parse(await readFile(new URL(score.source, root)))
@@ -77,11 +85,7 @@ for (const score of scores.scores) {
           all.cpuSeconds,
       ) < 1e-7,
     )
-    for (const target of run.targetWork) {
-      assert.equal(target.counters.publicWrites, result.protocol.ticks + 1)
-      if (result.protocol.expectedInputBytesPerTarget)
-        assert.equal(target.counters.inputBytes, result.protocol.expectedInputBytesPerTarget)
-    }
+    verifyTargetWork(run.targetWork, result.protocol)
   }
   const actual = ratios(result)
   for (const [publicKey, rawKey] of [

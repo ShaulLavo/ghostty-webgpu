@@ -1,4 +1,4 @@
-import { WebGlUnavailableError } from './unavailable.js'
+import { WebGlUnavailableError } from '../shared/webgl-unavailable.js'
 import type { ZigFrameBuilder } from '../../core/zig-frame.js'
 import type { AtlasKind, AtlasPageUpload, AtlasTextureLayout } from '../shared/atlas/types.js'
 import { CELL_INSTANCE_BYTES, GLYPH_INSTANCE_BYTES } from '../shared/instances/layout.js'

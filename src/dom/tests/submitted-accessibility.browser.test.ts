@@ -135,10 +135,15 @@ function publishedFrame(terminal: TerminalApi): TerminalSubmittedSnapshot | unde
   return publications.get(terminal)
 }
 
+function accessibilityHost(terminal: object): {
+  readonly accessibility?: TerminalAccessibilityController
+  readonly accessibilityTimer?: number
+} {
+  return Reflect.get(terminal, 'accessibility')
+}
+
 function controller(terminal: object): TerminalAccessibilityController {
-  const value = Reflect.get(terminal, 'accessibility') as
-    | TerminalAccessibilityController
-    | undefined
+  const value = accessibilityHost(terminal).accessibility
   expect(value).toBeDefined()
   return value!
 }
@@ -362,7 +367,7 @@ describe('accessibility from real submitted native frames', () => {
     expect(update).toHaveBeenCalledTimes(1)
     expect(extraction).toHaveBeenCalled()
     expect(accessibility.liveRegion.textContent).toBe('first 界😀 latest')
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     expect(harness.errors).toEqual([])
   })
 
@@ -474,7 +479,7 @@ describe('accessibility from real submitted native frames', () => {
       const accessibility = controller(terminal)
       terminal.setAppearance({ grid: { columns, rows } })
       clock.flush()
-      await expect.poll(() => Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+      await expect.poll(() => accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
       terminal.write(text)
       clock.flush()
       await expect.poll(() => accessibility.liveRegion.textContent).not.toBe('')
@@ -617,15 +622,15 @@ describe('accessibility from real submitted native frames', () => {
     })
     terminal.write('queued')
     clock.flush()
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeDefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeDefined()
     visibility.mockReturnValue('hidden')
     document.dispatchEvent(new Event('visibilitychange'))
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     await new Promise<void>((resolve) => window.setTimeout(resolve, 150))
     expect(update).not.toHaveBeenCalled()
     terminal.write(' hidden')
     clock.flush()
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     visibility.mockReturnValue('visible')
     document.dispatchEvent(new Event('visibilitychange'))
     clock.flush()
@@ -643,7 +648,7 @@ describe('accessibility from real submitted native frames', () => {
     terminal.setAppearance({ cursor: { blink: true } })
     elements.textarea.focus()
     clock.flush()
-    await expect.poll(() => Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    await expect.poll(() => accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     const settled = terminal.submittedFrame!
     const update = vi.spyOn(accessibility, 'update')
     const timers = vi.spyOn(window, 'setTimeout')
@@ -660,7 +665,7 @@ describe('accessibility from real submitted native frames', () => {
     expect(terminal.submittedFrame!.cursor).toEqual(settled.cursor)
     expect(update).not.toHaveBeenCalled()
     expect(timers.mock.calls.filter(([, delay]) => delay === 100)).toHaveLength(0)
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     expect(errors).toEqual([])
   })
 
@@ -676,12 +681,12 @@ describe('accessibility from real submitted native frames', () => {
     elements.textarea.focus()
     assertDisplayed(harness, publishedFrame(terminal)!)
     expect(update).toHaveBeenCalledTimes(1)
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     terminal.write(' disabled')
     clock.flush()
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeDefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeDefined()
     terminal.setAccessibilityEnabled(false)
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     terminal.setAccessibilityEnabled(true)
     assertDisplayed(harness, publishedFrame(terminal)!)
     const replacement = controller(terminal)
@@ -689,9 +694,9 @@ describe('accessibility from real submitted native frames', () => {
     cleanups.push(() => nextUpdate.mockRestore())
     terminal.write(' disposed')
     clock.flush()
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeDefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeDefined()
     terminal.dispose()
-    expect(Reflect.get(terminal, 'accessibilityTimer')).toBeUndefined()
+    expect(accessibilityHost(terminal).accessibilityTimer).toBeUndefined()
     await new Promise<void>((resolve) => window.setTimeout(resolve, 150))
     expect(update).toHaveBeenCalledTimes(1)
     expect(nextUpdate).not.toHaveBeenCalled()

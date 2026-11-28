@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
 
-it.each(['src/index.ts', 'src/core/index.ts', 'src/worker/index.ts', 'src/worker/entry.ts'])(
+it.each(['src/index.ts', 'src/core-entry.ts', 'src/worker/index.ts', 'src/worker/entry.ts'])(
   'keeps BiDi implementation outside the initial %s bundle',
   (entry) => {
     const result = JSON.parse(

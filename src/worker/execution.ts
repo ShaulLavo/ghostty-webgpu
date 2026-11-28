@@ -28,7 +28,7 @@ import type {
   WorkerModules,
 } from './protocol.js'
 import { compileWorkerModules, type CompiledWorkerModules } from './page-modules.js'
-import { TerminalWorkerError, workerError } from './structured-errors.js'
+import { TerminalWorkerError, workerError } from '../transport/worker-errors.js'
 import { RowDeltaDecoder } from './frame-codec.js'
 import { freezeWorkerValue } from './owned.js'
 import { readOpeningFont } from './opening-font.js'

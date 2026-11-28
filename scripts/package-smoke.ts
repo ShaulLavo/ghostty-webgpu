@@ -350,8 +350,8 @@ async function verifyBrowserFiles(packageRoot: string): Promise<void> {
   for (const path of [
     'dist/index.js',
     'dist/index.d.ts',
-    'dist/core/index.js',
-    'dist/core/index.d.ts',
+    'dist/core-entry.js',
+    'dist/core-entry.d.ts',
     'dist/extensions/hotkeys/index.js',
     'dist/extensions/hotkeys/index.d.ts',
     'dist/config-resolver/index.js',
@@ -555,7 +555,7 @@ async function verifyTypes(root: string): Promise<void> {
 }
 
 async function verifyCoreModuleGraph(packageRoot: string): Promise<void> {
-  const pending = [join(packageRoot, 'dist/core/index.js')]
+  const pending = [join(packageRoot, 'dist/core-entry.js')]
   const visited = new Set<string>()
   while (pending.length > 0) {
     const current = pending.pop()!

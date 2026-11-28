@@ -17,7 +17,7 @@ export class TextBlink {
   private needed = false
   private active = false
   private reducedMotion = false
-  visible = true
+  private visibleValue = true
 
   constructor(
     private readonly clock: RenderSchedulerClock,
@@ -26,6 +26,14 @@ export class TextBlink {
 
   get hasPendingTimer(): boolean {
     return this.timer !== undefined
+  }
+
+  get visible(): boolean {
+    return this.visibleValue
+  }
+
+  seedPhase(visible: boolean): void {
+    this.visibleValue = visible
   }
 
   setNeeded(needed: boolean): void {
@@ -62,7 +70,7 @@ export class TextBlink {
     }
     this.cancelTimer()
     if (this.visible) return
-    this.visible = true
+    this.visibleValue = true
     this.repaint()
   }
 
@@ -72,7 +80,7 @@ export class TextBlink {
     this.timer = this.clock.setTimer(() => {
       if (token !== this.token) return
       this.timer = undefined
-      this.visible = !this.visible
+      this.visibleValue = !this.visibleValue
       this.repaint()
       this.arm()
     }, 600)

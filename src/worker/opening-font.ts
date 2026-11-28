@@ -1,5 +1,5 @@
 import type { TerminalFittedFont } from '../term/types.js'
-import { workerError } from './structured-errors.js'
+import { workerError } from '../transport/worker-errors.js'
 
 function isFittedFont(value: unknown): value is TerminalFittedFont {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false

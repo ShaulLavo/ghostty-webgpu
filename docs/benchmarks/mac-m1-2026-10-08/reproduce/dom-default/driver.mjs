@@ -147,15 +147,7 @@ async function trace(browserSession, filename, run) {
     const { stream, dataLossOccurred } = await completion
     const file = await open(filename, 'w')
     try {
-      for (;;) {
-        const chunk = await browserSession.send('IO.read', { handle: stream, size: 1 << 20 })
-        await file.write(
-          chunk.base64Encoded
-            ? Buffer.from(chunk.data, 'base64')
-            : Buffer.from(chunk.data, 'binary'),
-        )
-        if (chunk.eof) break
-      }
+      await writeTraceStream(browserSession, stream, file)
     } finally {
       await file.close()
       await browserSession.send('IO.close', { handle: stream })
@@ -163,6 +155,16 @@ async function trace(browserSession, filename, run) {
     assert(!dataLossOccurred, 'Trace lost events')
   }
   return value
+}
+
+async function writeTraceStream(browserSession, stream, file) {
+  for (;;) {
+    const chunk = await browserSession.send('IO.read', { handle: stream, size: 1 << 20 })
+    await file.write(
+      chunk.base64Encoded ? Buffer.from(chunk.data, 'base64') : Buffer.from(chunk.data, 'binary'),
+    )
+    if (chunk.eof) return
+  }
 }
 
 async function capture(browserSession, port, actor, index, workload) {

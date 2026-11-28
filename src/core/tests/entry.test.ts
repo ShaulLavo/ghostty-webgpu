@@ -31,9 +31,9 @@ it('exports a headless core entry without DOM or renderer runtime imports', asyn
   const manifest = JSON.parse(
     await readFile(new URL('../../../package.json', import.meta.url), 'utf8'),
   ) as { readonly exports: Record<string, { readonly import: string }> }
-  expect(manifest.exports['./core']?.import).toBe('./dist/core/index.js')
-  await verifyRuntimeGraph(new URL('../index.ts', import.meta.url))
-  const core = await import('../index.js')
+  expect(manifest.exports['./core']?.import).toBe('./dist/core-entry.js')
+  await verifyRuntimeGraph(new URL('../../core-entry.ts', import.meta.url))
+  const core = await import('../../core-entry.js')
   expect(core.GhosttyRuntime).toBe(GhosttyRuntime)
   expect(core.GhosttyTerminal).toBe(GhosttyTerminal)
   expect(core.TerminalSession).toBe(TerminalSession)

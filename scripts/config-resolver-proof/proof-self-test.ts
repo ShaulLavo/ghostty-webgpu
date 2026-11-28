@@ -1,35 +1,42 @@
-import { spawnSync } from 'node:child_process'
-import { createHash } from 'node:crypto'
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  utimesSync,
-  writeFileSync,
-} from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
   PROOF_SOURCE_DATE_EPOCH,
   PROOF_TARGETS,
-  PROOF_UPSTREAM_REPOSITORY,
-  PROOF_UPSTREAM_REVISION,
-  PROOF_UPSTREAM_TREE_SHA256,
-  PROOF_ZIG_VERSION,
   ProofContractError,
-  hashExternalTree,
   loadProofRecipe,
   projectObservedLinkArgv,
   proofCanonicalBytes,
-  type ExternalTreeIdentity,
   type ProofTarget,
 } from './proof-contract'
-import { computeGitTreeSha256, type UpstreamAudit } from './upstream-audit'
+import {
+  compareStrings,
+  DRIFTED_LINK_CACHE_KEYS,
+  fixtureHash,
+  LINK_CACHE_KEYS,
+  LINK_FILLER_PREFIX,
+  observedLinkArgv,
+  officialDownload,
+  proofGenerationArgv,
+  proofGenerationSources,
+  runnerComponent,
+  upstreamAcquisition,
+  zigAcquisition,
+  recipeFixture,
+  TARGET_FIXTURES,
+  type JsonObject,
+  type JsonValue,
+} from './proof-recipe-fixture'
+import {
+  assertProofRejection,
+  createFixtureDirectory,
+  fail,
+  sha256,
+  stableJson,
+} from './proof-self-test-support'
+import { testExternalTree, testGitTree } from './proof-tree-fixture'
 
-type JsonObject = { [key: string]: JsonValue }
-type JsonValue = boolean | JsonObject | JsonValue[] | null | number | string
 type JsonPath = readonly (number | string)[]
 type MutationOutcome = 'change' | 'reject'
 type MutationCase = {
@@ -50,16 +57,8 @@ type ProjectionTestResult = {
   readonly transcript: readonly string[]
 }
 type SelfTestResult = {
-  readonly externalTree: {
-    readonly baseline: ExternalTreeIdentity
-    readonly mutationSha256: string
-    readonly mutations: number
-  }
-  readonly gitTree: {
-    readonly baseline: UpstreamAudit
-    readonly mutationSha256: string
-    readonly mutations: number
-  }
+  readonly externalTree: ReturnType<typeof testExternalTree>
+  readonly gitTree: ReturnType<typeof testGitTree>
   readonly recipe: {
     readonly canonicalBytes: number
     readonly canonicalSha256: string
@@ -76,88 +75,8 @@ type CheckedRecipeIdentity = {
   readonly sha256: string
 }
 
-class SelfTestFailure extends Error {}
-
-const GITLINK_ONE = '1'.repeat(40)
-const GITLINK_TWO = '2'.repeat(40)
 const LINUX_TARGET: JsonPath = ['targets', 'linux-x64']
 const DARWIN_TARGET: JsonPath = ['targets', 'darwin-arm64']
-const OBSERVED_LINK_TARGET_COUNTS: Readonly<Record<ProofTarget, number>> = {
-  'darwin-arm64': 18,
-  'darwin-x64': 18,
-  'linux-arm64': 17,
-  'linux-x64': 17,
-}
-const OBSERVED_LINK_ARGV_LENGTHS: Readonly<Record<ProofTarget, number>> = {
-  'darwin-arm64': 391,
-  'darwin-x64': 391,
-  'linux-arm64': 370,
-  'linux-x64': 370,
-}
-const LINK_FILLER_PREFIX = '--proof-self-test-link-filler='
-const LINK_CACHE_KEYS = {
-  primary: '0123456789abcdef0123456789abcdef',
-  secondary: 'fedcba9876543210fedcba9876543210',
-  tertiary: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-} as const
-const DRIFTED_LINK_CACHE_KEYS = {
-  primary: '13579bdf02468ace13579bdf02468ace',
-  secondary: '2468ace013579bdf2468ace013579bdf',
-  tertiary: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-} as const
-
-const TARGET_FIXTURES: Readonly<
-  Record<
-    ProofTarget,
-    {
-      readonly root: string
-      readonly triple: string
-      readonly zigArchive: {
-        readonly archiveBytes: number
-        readonly archiveSha256: string
-        readonly url: string
-      }
-    }
-  >
-> = {
-  'darwin-arm64': {
-    root: '/private/tmp/ghostty-config-resolver-proof-build-v1',
-    triple: 'aarch64-macos.13.0',
-    zigArchive: {
-      archiveBytes: 52_238_004,
-      archiveSha256: 'b23d70deaa879b5c2d486ed3316f7eaa53e84acf6fc9cc747de152450d401489',
-      url: 'https://ziglang.org/download/0.16.0/zig-aarch64-macos-0.16.0.tar.xz',
-    },
-  },
-  'darwin-x64': {
-    root: '/private/tmp/ghostty-config-resolver-proof-build-v1',
-    triple: 'x86_64-macos.13.0',
-    zigArchive: {
-      archiveBytes: 57_396_836,
-      archiveSha256: '0387557ed1877bc6a2e1802c8391953baddba76081876301c522f52977b52ba7',
-      url: 'https://ziglang.org/download/0.16.0/zig-x86_64-macos-0.16.0.tar.xz',
-    },
-  },
-  'linux-arm64': {
-    root: '/tmp/ghostty-config-resolver-proof-build-v1',
-    triple: 'aarch64-linux-musl',
-    zigArchive: {
-      archiveBytes: 51_211_944,
-      archiveSha256: 'ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17',
-      url: 'https://ziglang.org/download/0.16.0/zig-aarch64-linux-0.16.0.tar.xz',
-    },
-  },
-  'linux-x64': {
-    root: '/tmp/ghostty-config-resolver-proof-build-v1',
-    triple: 'x86_64-linux-musl',
-    zigArchive: {
-      archiveBytes: 55_478_392,
-      archiveSha256: '70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00',
-      url: 'https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz',
-    },
-  },
-}
-
 const RECIPE_SCHEMA_FIELDS = [
   'recipe.schemaVersion',
   'recipe.sourceDateEpoch',
@@ -254,595 +173,6 @@ const GOLDEN_RESULT: SelfTestResult = {
     projectedRejected: 76,
     rejected: 163,
   },
-}
-
-function fail(message: string): never {
-  throw new SelfTestFailure(message)
-}
-
-function sha256(value: Buffer | string): string {
-  return createHash('sha256').update(value).digest('hex')
-}
-
-function runGit(directory: string, argv: readonly string[]): string {
-  const result = spawnSync('/usr/bin/git', argv, {
-    cwd: directory,
-    encoding: 'utf8',
-    env: {
-      GIT_AUTHOR_DATE: '2001-01-01T00:00:00Z',
-      GIT_AUTHOR_EMAIL: 'proof@example.invalid',
-      GIT_AUTHOR_NAME: 'proof-self-test',
-      GIT_COMMITTER_DATE: '2001-01-01T00:00:00Z',
-      GIT_COMMITTER_EMAIL: 'proof@example.invalid',
-      GIT_COMMITTER_NAME: 'proof-self-test',
-      GIT_CONFIG_GLOBAL: '/dev/null',
-      GIT_CONFIG_NOSYSTEM: '1',
-      LANG: 'C',
-      LC_ALL: 'C',
-      PATH: '/usr/bin:/bin:/usr/sbin:/sbin',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
-  if (result.status !== 0 || result.stderr.length !== 0) {
-    fail(`Git fixture command failed: ${argv[0] ?? 'unknown'}`)
-  }
-  return result.stdout.trim()
-}
-
-function writeFixtureFile(path: string, content: string, mode: number): void {
-  writeFileSync(path, content)
-  chmodSync(path, mode)
-}
-
-function createFixtureDirectory(path: string, mode = 0o755): void {
-  mkdirSync(path, { recursive: true, mode })
-  chmodSync(path, mode)
-}
-
-function createFixtureSymlink(target: string, path: string): void {
-  // Symlink mode is hashed, and macOS derives it from the creation umask.
-  const previousUmask = process.umask()
-  try {
-    process.umask(0)
-    symlinkSync(target, path)
-  } finally {
-    process.umask(previousUmask)
-  }
-}
-
-function createGitFixture(root: string, mutation: string): string {
-  createFixtureDirectory(root)
-  runGit(root, ['init', '--quiet'])
-  createFixtureDirectory(join(root, 'bin'))
-  createFixtureDirectory(join(root, 'links'))
-
-  const plainName = mutation === 'path' ? 'plain-renamed.txt' : 'plain.txt'
-  const plainContent = mutation === 'blob' ? 'bravo\n' : 'alpha\n'
-  const plainMode = mutation === 'mode' ? 0o755 : 0o644
-  const symlinkTarget = mutation === 'symlink' ? '../bin/run.sh' : '../plain.txt'
-  const gitlink = mutation === 'gitlink' ? GITLINK_TWO : GITLINK_ONE
-
-  writeFixtureFile(join(root, plainName), plainContent, plainMode)
-  writeFixtureFile(join(root, 'bin', 'run.sh'), '#!/bin/sh\nexit 0\n', 0o755)
-  createFixtureSymlink(symlinkTarget, join(root, 'links', 'current'))
-  runGit(root, ['add', '--all'])
-  runGit(root, ['update-index', '--add', '--cacheinfo', '160000', gitlink, 'vendor/submodule'])
-  runGit(root, ['commit', '--quiet', '--message', 'fixture'])
-  return runGit(root, ['rev-parse', 'HEAD'])
-}
-
-function addCheckoutNoise(root: string, marker: string, modifiedTime: number): void {
-  createFixtureDirectory(join(root, '.proof-cache'), 0o700)
-  writeFileSync(join(root, '.proof-cache', 'untracked-cache'), marker)
-  writeFileSync(join(root, '.git', 'self-test-metadata'), marker)
-  runGit(root, ['config', 'proof.marker', marker])
-  utimesSync(join(root, 'plain.txt'), modifiedTime, modifiedTime)
-  utimesSync(join(root, 'bin', 'run.sh'), modifiedTime, modifiedTime)
-}
-
-function assertAuditEqual(left: UpstreamAudit, right: UpstreamAudit, label: string): void {
-  if (stableJson(left) !== stableJson(right)) fail(`${label} changed tree identity`)
-}
-
-function assertAuditChanged(left: UpstreamAudit, right: UpstreamAudit, label: string): void {
-  if (left.sha256 === right.sha256) fail(`${label} did not change tree identity`)
-}
-
-function testGitTree(root: string): SelfTestResult['gitTree'] {
-  const checkoutOne = join(root, 'checkout-one')
-  const checkoutTwo = join(root, 'checkout-two')
-  const revisionOne = createGitFixture(checkoutOne, 'none')
-  const revisionTwo = createGitFixture(checkoutTwo, 'none')
-  addCheckoutNoise(checkoutOne, 'one', 946_684_800)
-  addCheckoutNoise(checkoutTwo, 'two', 1_262_304_000)
-
-  const baseline = computeGitTreeSha256(checkoutOne, revisionOne)
-  const metadataVariant = computeGitTreeSha256(checkoutTwo, revisionTwo)
-  assertAuditEqual(baseline, metadataVariant, 'Git metadata/mtime/untracked-cache variant')
-
-  const transcript: string[] = []
-  for (const mutation of ['path', 'mode', 'blob', 'symlink', 'gitlink']) {
-    const fixture = join(root, `mutation-${mutation}`)
-    const revision = createGitFixture(fixture, mutation)
-    const identity = computeGitTreeSha256(fixture, revision)
-    assertAuditChanged(baseline, identity, `Git ${mutation} mutation`)
-    transcript.push(`${mutation}:${stableJson(identity)}`)
-  }
-
-  return {
-    baseline,
-    mutationSha256: sha256(`${transcript.join('\n')}\n`),
-    mutations: transcript.length,
-  }
-}
-
-function createExternalTree(root: string, variant: string): void {
-  createFixtureDirectory(root)
-  const directoryOrder = variant === 'order' ? ['links', 'empty', 'bin'] : ['bin', 'empty', 'links']
-  for (const name of directoryOrder) createFixtureDirectory(join(root, name))
-
-  const fileOrder = variant === 'order' ? ['other.txt', 'data.txt'] : ['data.txt', 'other.txt']
-  for (const name of fileOrder) {
-    const content = name === 'data.txt' ? 'data\n' : 'other\n'
-    writeFixtureFile(join(root, name), content, 0o644)
-  }
-  writeFixtureFile(join(root, 'bin', 'tool'), 'tool\n', 0o755)
-  createFixtureSymlink('../data.txt', join(root, 'links', 'data'))
-
-  if (variant === 'file') writeFixtureFile(join(root, 'data.txt'), 'changed\n', 0o644)
-  if (variant === 'symlink') {
-    rmSync(join(root, 'links', 'data'))
-    createFixtureSymlink('../other.txt', join(root, 'links', 'data'))
-  }
-  if (variant === 'empty-dir') {
-    rmSync(join(root, 'empty'), { recursive: true })
-    createFixtureDirectory(join(root, 'vacant'))
-  }
-  if (variant === 'mode') chmodSync(join(root, 'data.txt'), 0o600)
-
-  const modifiedTime = variant === 'order' ? 1_262_304_000 : 946_684_800
-  for (const path of ['bin', 'empty', 'links', 'data.txt', 'other.txt', 'bin/tool']) {
-    const absolute = join(root, path)
-    if (variant === 'empty-dir' && path === 'empty') continue
-    utimesSync(absolute, modifiedTime, modifiedTime)
-  }
-  if (variant === 'empty-dir') utimesSync(join(root, 'vacant'), modifiedTime, modifiedTime)
-}
-
-function assertExternalEqual(
-  left: ExternalTreeIdentity,
-  right: ExternalTreeIdentity,
-  label: string,
-): void {
-  if (stableJson(left) !== stableJson(right)) fail(`${label} changed external-tree identity`)
-}
-
-function assertExternalChanged(
-  left: ExternalTreeIdentity,
-  right: ExternalTreeIdentity,
-  label: string,
-): void {
-  if (left.sha256 === right.sha256) fail(`${label} did not change external-tree identity`)
-}
-
-function assertExternalEscapeRejected(root: string): void {
-  const outside = join(root, 'outside.txt')
-  const fixture = join(root, 'escape')
-  writeFileSync(outside, 'outside\n')
-  createExternalTree(fixture, 'none')
-  createFixtureSymlink('../outside.txt', join(fixture, 'escape'))
-  assertProofRejection(() => hashExternalTree(fixture), 'escaping external-tree symlink')
-}
-
-function assertSymlinkErrorRestoresUmask(root: string): void {
-  const path = join(root, 'umask-restore-link')
-  createFixtureSymlink('target', path)
-  const expected = process.umask()
-  try {
-    createFixtureSymlink('target', path)
-  } catch {
-    if (process.umask() !== expected) fail('fixture symlink helper leaked umask after an error')
-    return
-  }
-  fail('fixture symlink error case did not fail')
-}
-
-function testExternalTree(root: string): SelfTestResult['externalTree'] {
-  const baselinePath = join(root, 'baseline')
-  const orderPath = join(root, 'order')
-  createExternalTree(baselinePath, 'none')
-  createExternalTree(orderPath, 'order')
-  const baseline = hashExternalTree(baselinePath)
-  const orderVariant = hashExternalTree(orderPath)
-  assertExternalEqual(baseline, orderVariant, 'creation-order/mtime variant')
-
-  const transcript: string[] = []
-  for (const mutation of ['file', 'symlink', 'empty-dir', 'mode']) {
-    const fixture = join(root, mutation)
-    createExternalTree(fixture, mutation)
-    const identity = hashExternalTree(fixture)
-    assertExternalChanged(baseline, identity, `external-tree ${mutation} mutation`)
-    transcript.push(`${mutation}:${stableJson(identity)}`)
-  }
-  assertExternalEscapeRejected(root)
-  assertSymlinkErrorRestoresUmask(root)
-
-  return {
-    baseline,
-    mutationSha256: sha256(`${transcript.join('\n')}\n`),
-    mutations: transcript.length,
-  }
-}
-
-function targetIdentity(target: ProofTarget): {
-  readonly arch: 'arm64' | 'x64'
-  readonly os: 'darwin' | 'linux'
-} {
-  const os = target.startsWith('darwin-') ? 'darwin' : 'linux'
-  const arch = target.endsWith('arm64') ? 'arm64' : 'x64'
-  return { arch, os }
-}
-
-function fixtureHash(label: string): string {
-  return sha256(`proof-self-test:${label}`)
-}
-
-function compareStrings(left: string, right: string): number {
-  if (left < right) return -1
-  if (left > right) return 1
-  return 0
-}
-
-function officialDownload(label: string): JsonObject {
-  return {
-    archiveBytes: 100 + label.length,
-    archiveSha256: fixtureHash(`archive:${label}`),
-    kind: 'official-download',
-    url: `https://example.invalid/downloads/${label}.tar.xz`,
-  }
-}
-
-function upstreamAcquisition(): JsonObject {
-  return {
-    kind: 'git',
-    repository: PROOF_UPSTREAM_REPOSITORY,
-    revision: PROOF_UPSTREAM_REVISION,
-    treeAlgorithm: 'ghostty-upstream-tree-v1',
-    treeSha256: PROOF_UPSTREAM_TREE_SHA256,
-  }
-}
-
-function zigAcquisition(target: ProofTarget): JsonObject {
-  const archive = TARGET_FIXTURES[target].zigArchive
-  return {
-    archiveBytes: archive.archiveBytes,
-    archiveSha256: archive.archiveSha256,
-    kind: 'official-download',
-    url: archive.url,
-  }
-}
-
-function runnerImage(target: ProofTarget): {
-  readonly image: string
-  readonly version: string
-} {
-  const identity = targetIdentity(target)
-  return { image: `${identity.os}-proof-image`, version: '20260828.1' }
-}
-
-function runnerComponent(
-  target: ProofTarget,
-  path: string,
-  contentKind: 'external-tree-v1' | 'file',
-): JsonObject {
-  const image = runnerImage(target)
-  return {
-    contentKind,
-    kind: 'runner-component',
-    path,
-    runnerImage: image.image,
-    runnerImageVersion: image.version,
-  }
-}
-
-function sdkComponent(target: ProofTarget): JsonObject {
-  const acquisition = runnerComponent(
-    target,
-    '/Applications/Xcode_16.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk',
-    'external-tree-v1',
-  )
-  acquisition.macosSdk = {
-    sdkBuild: '24A336',
-    sdkSettingsSha256: fixtureHash(`${target}:sdk-settings`),
-    sdkVersion: '15.0',
-    xcodeBuild: '16A242d',
-    xcodeVersion: '16.0',
-  }
-  return acquisition
-}
-
-function toolRecord(
-  target: ProofTarget,
-  role: 'linker' | 'sdk-or-sysroot' | 'strip' | 'zig',
-): JsonObject {
-  const zigBytes = 1_000 + target.length
-  const zigSha256 = fixtureHash(`tool:${target}:zig`)
-  if (role === 'linker') {
-    return {
-      acquisition: zigAcquisition(target),
-      bytes: zigBytes,
-      name: 'zig-integrated-linker',
-      role,
-      sha256: zigSha256,
-      version: PROOF_ZIG_VERSION,
-    }
-  }
-  if (role === 'zig') {
-    return {
-      acquisition: zigAcquisition(target),
-      bytes: zigBytes,
-      name: 'zig',
-      role,
-      sha256: zigSha256,
-      version: PROOF_ZIG_VERSION,
-    }
-  }
-  if (role === 'strip') {
-    return {
-      acquisition: runnerComponent(target, '/usr/bin/strip', 'file'),
-      bytes: 2_000 + target.length,
-      name: 'system-strip',
-      role,
-      sha256: fixtureHash(`tool:${target}:strip`),
-      version: 'proof-runner-strip',
-    }
-  }
-  if (target.startsWith('darwin-')) {
-    return {
-      acquisition: sdkComponent(target),
-      bytes: 3_000 + target.length,
-      name: 'macos-sdk-tree',
-      role,
-      sha256: fixtureHash(`tool:${target}:sdk`),
-      version: '15.0',
-    }
-  }
-  return {
-    acquisition: zigAcquisition(target),
-    bytes: 3_000 + target.length,
-    name: 'zig-bundled-lib-tree',
-    role,
-    sha256: fixtureHash(`tool:${target}:zig-lib`),
-    version: PROOF_ZIG_VERSION,
-  }
-}
-
-function proofGenerationArgv(target: ProofTarget): JsonValue[] {
-  const fixture = TARGET_FIXTURES[target]
-  return [
-    `${fixture.root}/toolchain/zig`,
-    'build',
-    'proof-materialize-generated',
-    '-j1',
-    '--seed',
-    '0',
-    '-fincremental',
-    '--prefix',
-    `${fixture.root}/prefix`,
-    '--cache-dir',
-    `${fixture.root}/cache`,
-    '--global-cache-dir',
-    `${fixture.root}/global-cache`,
-    '-Doptimize=ReleaseSafe',
-    `-Dtarget=${fixture.triple}`,
-    '-Dproof-preverified-generated=false',
-  ]
-}
-
-function proofGenerationSources(target: ProofTarget): JsonValue[] {
-  const sdk = target.startsWith('darwin-') ? 'macos-sdk-tree' : 'zig-bundled-lib-tree'
-  const sources = [
-    'input:dependency',
-    'input:upstream',
-    `tool:${sdk}`,
-    'tool:zig',
-    'tool:zig-integrated-linker',
-  ]
-  if (target.startsWith('darwin-')) sources.push('input:zig-bundled-lib-tree')
-  return sources.sort()
-}
-
-function ordinaryInput(target: ProofTarget, id: 'dependency' | 'runtime' | 'upstream'): JsonObject {
-  const label = `${target}:${id}`
-  if (id === 'dependency') {
-    return {
-      acquisition: officialDownload(label),
-      bytes: 2_000 + label.length,
-      id,
-      role: 'dependency-archive',
-      sha256: fixtureHash(`input:${label}`),
-    }
-  }
-  if (id === 'runtime') {
-    return {
-      acquisition: runnerComponent(target, '/usr/share/ghostty/proof-runtime', 'file'),
-      bytes: 2_000 + label.length,
-      id,
-      role: 'runtime-resource',
-      sha256: fixtureHash(`input:${label}`),
-    }
-  }
-  return {
-    acquisition: upstreamAcquisition(),
-    bytes: 2_000 + label.length,
-    id,
-    role: 'upstream-submodule',
-    sha256: fixtureHash(`input:${label}`),
-  }
-}
-
-function generatedInput(target: ProofTarget, id: string): JsonObject {
-  return {
-    acquisition: upstreamAcquisition(),
-    bytes: 4_000 + id.length,
-    generation: {
-      argv: proofGenerationArgv(target),
-      sources: proofGenerationSources(target),
-    },
-    id,
-    role: 'generated-resource-source',
-    sha256: fixtureHash(`input:${target}:${id}`),
-  }
-}
-
-function targetInputs(target: ProofTarget): JsonValue[] {
-  const generatedIds = target.startsWith('darwin-')
-    ? ['proof-generated-help-strings', 'proof-generated-wuffs-c']
-    : ['proof-generated-hb-c', 'proof-generated-help-strings', 'proof-generated-wuffs-c']
-  const inputs: JsonObject[] = [ordinaryInput(target, 'dependency')]
-  for (const id of generatedIds) inputs.push(generatedInput(target, id))
-  if (target.startsWith('darwin-')) {
-    inputs.push({
-      acquisition: zigAcquisition(target),
-      bytes: 5_000 + target.length,
-      id: 'zig-bundled-lib-tree',
-      role: 'generated-resource-source',
-      sha256: fixtureHash(`input:${target}:zig-lib`),
-    })
-  }
-  inputs.push(ordinaryInput(target, 'runtime'), ordinaryInput(target, 'upstream'))
-  return inputs.sort((left, right) => {
-    const leftKey = `${String(left.role)}\0${String(left.id)}`
-    const rightKey = `${String(right.role)}\0${String(right.id)}`
-    return compareStrings(leftKey, rightKey)
-  })
-}
-
-function buildArgv(target: ProofTarget): JsonValue[] {
-  const fixture = TARGET_FIXTURES[target]
-  return [
-    `${fixture.root}/toolchain/zig`,
-    'build',
-    '-j1',
-    '--seed',
-    '0',
-    '-fincremental',
-    '--prefix',
-    `${fixture.root}/prefix`,
-    '--cache-dir',
-    `${fixture.root}/final-cache`,
-    '--global-cache-dir',
-    `${fixture.root}/global-cache`,
-    '-Doptimize=ReleaseSafe',
-    `-Dtarget=${fixture.triple}`,
-    '-Dproof-preverified-generated=true',
-    '--verbose',
-  ]
-}
-
-function targetEnvironment(target: ProofTarget): JsonValue[] {
-  const root = TARGET_FIXTURES[target].root
-  return [
-    { name: 'HOME', value: `${root}/cache/home` },
-    { name: 'LANG', value: 'C.UTF-8' },
-    { name: 'LC_ALL', value: 'C.UTF-8' },
-    { name: 'PATH', value: '/usr/bin:/bin:/usr/sbin:/sbin' },
-    { name: 'SOURCE_DATE_EPOCH', value: String(PROOF_SOURCE_DATE_EPOCH) },
-    { name: 'TMPDIR', value: `${root}/cache/tmp` },
-    { name: 'UMASK', value: '0022' },
-    { name: 'XDG_CACHE_HOME', value: `${root}/global-cache` },
-    { name: 'ZIG_EXE', value: `${root}/toolchain/zig` },
-  ]
-}
-
-function observedLinkArgv(
-  target: ProofTarget,
-  keys: Readonly<Record<keyof typeof LINK_CACHE_KEYS, string>> = LINK_CACHE_KEYS,
-): string[] {
-  const fixture = TARGET_FIXTURES[target]
-  const argv: string[] = [
-    `${fixture.root}/toolchain/zig`,
-    'build-exe',
-    '--name',
-    'ghostty-config-resolver-proof',
-    '--zig-lib-dir',
-    `${fixture.root}/toolchain/lib/`,
-    '--cache-dir',
-    `${fixture.root}/final-cache`,
-    '--global-cache-dir',
-    `${fixture.root}/global-cache`,
-  ]
-  const targetCount = OBSERVED_LINK_TARGET_COUNTS[target]
-  for (let index = 0; index < targetCount; index += 1) {
-    argv.push('-target', fixture.triple)
-  }
-  argv.push(`-Mroot=${fixture.root}/overlay/main.zig`)
-  if (!target.startsWith('darwin-')) {
-    argv.push(`-Mhb_c=${fixture.root}/prefix/proof-generated/hb_c.zig`)
-  }
-  argv.push(
-    `-Mhelp_strings=${fixture.root}/prefix/proof-generated/help_strings.zig`,
-    `-Mwuffs_c=${fixture.root}/prefix/proof-generated/wuffs_c.zig`,
-    '-fincremental',
-    `-Mcache_primary=${fixture.root}/final-cache/o/${keys.primary}/primary.zig`,
-    `-Mcache_primary_alias=${fixture.root}/final-cache/o/${keys.primary}/alias.zig`,
-    `--proof-secondary=${fixture.root}/final-cache/o/${keys.secondary}/secondary.a`,
-    `${fixture.root}/final-cache/o/${keys.tertiary}/tertiary.o`,
-    `--proof-secondary-alias=${fixture.root}/final-cache/o/${keys.secondary}/alias.a`,
-  )
-  while (argv.length < OBSERVED_LINK_ARGV_LENGTHS[target] - 1) {
-    argv.push(`${LINK_FILLER_PREFIX}${argv.length}`)
-  }
-  argv.push('--listen=-')
-  return argv
-}
-
-function targetRecipe(target: ProofTarget): JsonObject {
-  const identity = targetIdentity(target)
-  const image = runnerImage(target)
-  const fixture = TARGET_FIXTURES[target]
-  const stripOption = target.startsWith('darwin-') ? '-x' : '--strip-all'
-  return {
-    buildArgv: buildArgv(target),
-    environment: targetEnvironment(target),
-    inputs: targetInputs(target),
-    linkPlan: projectObservedLinkArgv(observedLinkArgv(target), target),
-    optimizationMode: 'ReleaseSafe',
-    runner: {
-      arch: identity.arch,
-      image: image.image,
-      imageVersion: image.version,
-      os: identity.os,
-    },
-    stripArgv: [
-      '/usr/bin/strip',
-      stripOption,
-      `${fixture.root}/bundle/bin/ghostty-config-resolver-proof`,
-    ],
-    targetTriple: fixture.triple,
-    tools: [
-      toolRecord(target, 'linker'),
-      toolRecord(target, 'sdk-or-sysroot'),
-      toolRecord(target, 'strip'),
-      toolRecord(target, 'zig'),
-    ],
-  }
-}
-
-function recipeFixture(): JsonObject {
-  const targets: JsonObject = {}
-  for (const target of PROOF_TARGETS) targets[target] = targetRecipe(target)
-  return {
-    schemaVersion: 2,
-    sourceDateEpoch: PROOF_SOURCE_DATE_EPOCH,
-    targets,
-    upstream: {
-      repository: PROOF_UPSTREAM_REPOSITORY,
-      revision: PROOF_UPSTREAM_REVISION,
-      treeSha256: PROOF_UPSTREAM_TREE_SHA256,
-    },
-    zigVersion: PROOF_ZIG_VERSION,
-  }
 }
 
 function cloneJson<T extends JsonValue>(value: T): T {
@@ -2198,16 +1528,6 @@ function assertMutationCoverage(cases: readonly MutationCase[]): void {
     fail(`recipe mutation coverage is unexpected ${unexpected.join(',')}`)
 }
 
-function assertProofRejection(action: () => unknown, label: string): void {
-  try {
-    action()
-  } catch (error) {
-    if (error instanceof ProofContractError) return
-    throw error
-  }
-  fail(`${label} was accepted`)
-}
-
 function reverseObjectKeys(value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(reverseObjectKeys)
   if (!isJsonObject(value)) return value
@@ -2267,16 +1587,6 @@ function testRecipe(root: string): SelfTestResult['recipe'] {
     projectedRejected: projection.rejected,
     rejected,
   }
-}
-
-function stableJson(value: unknown): string {
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
-  const object = value as Record<string, unknown>
-  const entries = Object.keys(object)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableJson(object[key])}`)
-  return `{${entries.join(',')}}`
 }
 
 function assertGoldenResult(actual: SelfTestResult): void {

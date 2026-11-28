@@ -103,7 +103,7 @@ If you set a Content Security Policy, allow WebAssembly compilation with `'wasm-
 ## Package exports
 
 - `ghostty-webgpu` resolves to `dist/index.js`. The main-thread `Terminal`.
-- `ghostty-webgpu/core` resolves to `dist/core/index.js`. The headless runtime, terminal, and session classes.
+- `ghostty-webgpu/core` resolves to `dist/core-entry.js`. The headless runtime, terminal, and session classes.
 - `ghostty-webgpu/worker` resolves to `dist/worker/index.js`. The worker `Terminal`.
 - `ghostty-webgpu/config-resolver` resolves to `dist/config-resolver/index.js`. Reading a Ghostty config. Bun and Node only. See [config resolver](config-resolver.md).
 - `ghostty-webgpu/ghostty-vt.wasm` resolves to `ghostty-vt.wasm`. The terminal core.

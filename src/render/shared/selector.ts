@@ -6,7 +6,7 @@ import type { WebGpuTerminalRendererOptions } from './types.js'
 import type { WebGpuTerminalRenderer } from '../webgpu/renderer.js'
 import type { WebGlTerminalRenderer } from '../webgl/renderer.js'
 import { prefetchComposeKernel } from '../pixels/kernel-source.js'
-import { WebGlUnavailableError } from '../webgl/unavailable.js'
+import { WebGlUnavailableError } from './webgl-unavailable.js'
 import { startupCanvas, type DisplayedFrameOptions } from './displayed-frame.js'
 import { StartupTerminalRenderer } from './startup.js'
 

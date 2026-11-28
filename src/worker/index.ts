@@ -61,7 +61,7 @@ export const Terminal = Object.freeze({
     }
   },
 })
-export { TerminalWorkerError } from './structured-errors.js'
+export { TerminalWorkerError } from '../transport/worker-errors.js'
 export { TerminalWorkerPool, type TerminalWorkerPoolOptions } from './pool.js'
 export type { TerminalApi, TerminalResult } from '../dom/terminal-api.js'
 export type { TerminalBatchedWriteOptions, TerminalWriteQueueOptions } from '../dom/write-queue.js'

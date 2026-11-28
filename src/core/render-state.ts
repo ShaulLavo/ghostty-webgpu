@@ -538,15 +538,24 @@ class SharedRenderState {
     return this.runtime.memory.view.getUint8(this.dirtyPointer) !== 0
   }
 
-  private ensureActive(): void {
+  ensureActive(): void {
     this.runtime.ensureActive()
     if (!this.disposed) return
     throw createGhosttyError('render_state', 'The render state has been disposed')
   }
+
+  createDisplayedFrameStore(): DisplayedFrameStore {
+    return new DisplayedFrameStore(this.runtime)
+  }
+}
+
+interface RenderStateOwner {
+  releaseRenderState(state: GhosttyRenderState): void
 }
 
 /** A damage subscription to the terminal's shared native snapshot. */
 export class GhosttyRenderState {
+  private readonly owner: RenderStateOwner
   private readonly snapshotState: SharedRenderState
   private readonly renderRequestListeners = new Set<() => void>()
   private readonly unsubscribeRenderRequest: () => void
@@ -555,10 +564,8 @@ export class GhosttyRenderState {
   private acknowledgingVersion?: number
   private disposed = false
 
-  constructor(
-    private readonly runtime: GhosttyRuntime,
-    terminal: GhosttyTerminal,
-  ) {
+  constructor(runtime: GhosttyRuntime, terminal: GhosttyTerminal) {
+    this.owner = runtime
     const snapshot = sharedSnapshots.get(terminal) ?? new SharedRenderState(runtime, terminal)
     this.snapshotState = snapshot
     snapshot.attach(this)
@@ -628,7 +635,7 @@ export class GhosttyRenderState {
 
   [retainDisplayedFrame](options: { full?: boolean } = {}) {
     this.prepare()
-    this.displayedFrames ??= new DisplayedFrameStore(this.runtime)
+    this.displayedFrames ??= this.snapshotState.createDisplayedFrameStore()
     return this.snapshotState.retainFrame(this.displayedFrames, options.full)
   }
 
@@ -657,8 +664,8 @@ export class GhosttyRenderState {
     this.renderRequestListeners.clear()
     this.displayedFrames?.dispose()
     this.snapshotState.release(this)
-    this.runtime.releaseRenderState(this)
     this.disposed = true
+    this.owner.releaseRenderState(this)
   }
 
   private acknowledgeVersion(version: number): number {
@@ -680,7 +687,7 @@ export class GhosttyRenderState {
   }
 
   private ensureActive(): void {
-    this.runtime.ensureActive()
+    this.snapshotState.ensureActive()
     if (!this.disposed) return
     throw createGhosttyError('render_state', 'The render state has been disposed')
   }

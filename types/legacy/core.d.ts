@@ -1,3 +1,3 @@
 /// <reference types="@webgpu/types" />
 
-export * from '../../dist/core/index.js'
+export * from '../../dist/core-entry.js'

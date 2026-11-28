@@ -65,7 +65,7 @@ terminal.dispose()
 runtime.dispose()
 ```
 
-**Implementation.** The core entry exports the headless classes in [`src/core/index.ts`](../src/core/index.ts). Frame observer symbols, color contrast, and the default terminal theme live in core or term modules instead of renderer modules. The package subpath is declared in [`package.json`](../package.json) with current and legacy TypeScript declarations.
+**Implementation.** The core entry exports the headless classes in [`src/core-entry.ts`](../src/core-entry.ts). Frame observer symbols, color contrast, and the default terminal theme live in core or term modules instead of renderer modules. The package subpath is declared in [`package.json`](../package.json) with current and legacy TypeScript declarations.
 
 **Tests.** Core runtime behavior runs under Node in [`src/core/tests/runtime.test.ts:34`](../src/core/tests/runtime.test.ts#L34-L115). The source entry test in [`src/core/tests/entry.test.ts`](../src/core/tests/entry.test.ts) rejects runtime imports from DOM and renderer directories. The packed package check in [`scripts/package-smoke.ts`](../scripts/package-smoke.ts) repeats that graph check, imports `ghostty-webgpu/core`, and creates and disposes a native terminal.
 
