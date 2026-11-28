@@ -136,7 +136,9 @@ export class GhosttyRuntime {
     if (terminal.runtime !== this) {
       throw createGhosttyError('render_state.new', 'The terminal belongs to a different runtime')
     }
-    const renderState = new GhosttyRenderState(this, terminal)
+    const renderState = new GhosttyRenderState(this, terminal, (state) =>
+      this.releaseRenderState(state),
+    )
     this.renderStates.add(renderState)
     return renderState
   }

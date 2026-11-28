@@ -221,6 +221,12 @@ class OwnedTerminalElements implements TerminalElements {
   }
 }
 
+export function owningWindow(element: HTMLElement): Window {
+  const view = element.ownerDocument.defaultView
+  if (view) return view
+  throw new TypeError('Terminal elements must belong to a document with a window')
+}
+
 export function createTerminalElements(
   parent: HTMLElement,
   options: TerminalElementsOptions = {},

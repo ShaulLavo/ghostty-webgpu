@@ -538,10 +538,14 @@ class SharedRenderState {
     return this.runtime.memory.view.getUint8(this.dirtyPointer) !== 0
   }
 
-  private ensureActive(): void {
+  ensureActive(): void {
     this.runtime.ensureActive()
     if (!this.disposed) return
     throw createGhosttyError('render_state', 'The render state has been disposed')
+  }
+
+  createDisplayedFrameStore(): DisplayedFrameStore {
+    return new DisplayedFrameStore(this.runtime)
   }
 }
 
@@ -556,8 +560,9 @@ export class GhosttyRenderState {
   private disposed = false
 
   constructor(
-    private readonly runtime: GhosttyRuntime,
+    runtime: GhosttyRuntime,
     terminal: GhosttyTerminal,
+    private readonly releaseFromRuntime?: (state: GhosttyRenderState) => void,
   ) {
     const snapshot = sharedSnapshots.get(terminal) ?? new SharedRenderState(runtime, terminal)
     this.snapshotState = snapshot
@@ -628,7 +633,7 @@ export class GhosttyRenderState {
 
   [retainDisplayedFrame](options: { full?: boolean } = {}) {
     this.prepare()
-    this.displayedFrames ??= new DisplayedFrameStore(this.runtime)
+    this.displayedFrames ??= this.snapshotState.createDisplayedFrameStore()
     return this.snapshotState.retainFrame(this.displayedFrames, options.full)
   }
 
@@ -657,7 +662,7 @@ export class GhosttyRenderState {
     this.renderRequestListeners.clear()
     this.displayedFrames?.dispose()
     this.snapshotState.release(this)
-    this.runtime.releaseRenderState(this)
+    this.releaseFromRuntime?.(this)
     this.disposed = true
   }
 
@@ -680,7 +685,7 @@ export class GhosttyRenderState {
   }
 
   private ensureActive(): void {
-    this.runtime.ensureActive()
+    this.snapshotState.ensureActive()
     if (!this.disposed) return
     throw createGhosttyError('render_state', 'The render state has been disposed')
   }

@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { execFileSync, spawn } from 'node:child_process'
 import { resolve } from 'node:path'
 
+// The digest in raw-manifest.json identifies the acquisition script.
 const out = resolve('results')
 const built = await Bun.build({
   entrypoints: ['bench/renderer-benchmark-entry.ts'],
@@ -149,9 +150,8 @@ try {
     { stdio: 'ignore' },
   )
   for (let attempt = 0; attempt < 100; attempt++) {
-    try {
-      if ((await fetch('http://127.0.0.1:41879/json/version')).ok) break
-    } catch {}
+    const response = await fetch('http://127.0.0.1:41879/json/version').catch(() => undefined)
+    if (response?.ok) break
     await pause(100)
   }
   browser = await chromium.connectOverCDP('http://127.0.0.1:41879', {

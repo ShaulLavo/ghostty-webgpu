@@ -5,7 +5,7 @@ import { DeviceOwner } from '../render/webgpu/device-owner.js'
 import { readSfntFontMetrics } from '../term/font-metrics.js'
 import type { TerminalFontMetrics } from '../term/types.js'
 import type { WorkerFontFace } from './protocol.js'
-import { workerError } from './structured-errors.js'
+import { workerError } from '../transport/worker-errors.js'
 import { SettledPaint } from './settled-paint.js'
 
 const fontScope = () => globalThis as unknown as FontScope

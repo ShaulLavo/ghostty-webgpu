@@ -34,7 +34,7 @@ import type {
 } from '../shared/types.js'
 import { RenderScheduler, seedBlinkPhase, type BlinkPhase } from '../shared/scheduler.js'
 import { WebGlTextPass } from './text-pass.js'
-import { WebGlUnavailableError } from './unavailable.js'
+import { WebGlUnavailableError } from '../shared/webgl-unavailable.js'
 
 type ContextState =
   | { readonly kind: 'ready'; readonly pass: WebGlTextPass }

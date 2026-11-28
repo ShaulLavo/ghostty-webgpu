@@ -1,11 +1,11 @@
-export { GhosttyError } from './error.js'
-export { TERMINAL_READ_LINES_MAX_ROWS } from './grid-text.js'
-export { GhosttyRenderState } from './render-state.js'
-export { GhosttyRuntime } from './runtime.js'
-export { GhosttyTerminal } from './terminal.js'
-export { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from './version.js'
-export { readSfntFontMetrics } from '../term/font-metrics.js'
-export { TerminalSession } from '../term/session.js'
+export { GhosttyError } from './core/error.js'
+export { TERMINAL_READ_LINES_MAX_ROWS } from './core/grid-text.js'
+export { GhosttyRenderState } from './core/render-state.js'
+export { GhosttyRuntime } from './core/runtime.js'
+export { GhosttyTerminal } from './core/terminal.js'
+export { GHOSTTY_SOURCE_REPOSITORY, GHOSTTY_SOURCE_REVISION } from './core/version.js'
+export { readSfntFontMetrics } from './term/font-metrics.js'
+export { TerminalSession } from './term/session.js'
 export type {
   SelectionAutoscrollDirection,
   SelectionCoordinates,
@@ -16,7 +16,7 @@ export type {
   SelectionPoint,
   SelectionPressEvent,
   SelectionSurfacePosition,
-} from './selection.js'
+} from './core/selection.js'
 export type {
   CellStyle,
   ClipboardRepresentation,
@@ -50,7 +50,7 @@ export type {
   TerminalSelectionFormatOptions,
   TerminalSize,
   WasmSource,
-} from './types.js'
+} from './core/types.js'
 export type {
   LinkActivation,
   LinkCell,
@@ -63,7 +63,7 @@ export type {
   LinkResolverError,
   LinkResolverOptions,
   ProvidedLink,
-} from '../term/links.js'
+} from './term/links.js'
 export type {
   TerminalAppearance,
   TerminalAppearanceEvent,
@@ -114,4 +114,4 @@ export type {
   TerminalSessionSubscription,
   TerminalTheme,
   TerminalTitleEvent,
-} from '../term/types.js'
+} from './term/types.js'

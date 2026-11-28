@@ -1,4 +1,3 @@
-import type { RowBidiMapper } from '../bidi/row.js'
 import { loadBidiMapper } from '../bidi/loader.js'
 import { fontMetricsEqual } from '../term/font-metrics.js'
 import { createGhosttyError } from '../core/error.js'
@@ -28,7 +27,10 @@ import {
   startupCanvas,
   wakeStartupHandoff,
 } from '../render/shared/displayed-frame.js'
-import { EventEmitter } from '../term/events.js'
+import { TerminalHostInput } from './terminal-host-input.js'
+import { TerminalHostPointer } from './terminal-host-pointer.js'
+import { TerminalHostEvents } from './terminal-host-events.js'
+import { observeTerminalVisibility } from './terminal-visibility.js'
 import {
   browserOutputTimingClock,
   outputTimingLimits,
@@ -46,8 +48,8 @@ import type {
 } from './submitted-frame.js'
 import type { TerminalApi, TerminalResult } from './terminal-api.js'
 import type { WorkerTerminalExecution } from '../worker/execution.js'
-import { observeWorkerLayout, workerLayout } from '../worker/layout.js'
-import { TerminalWorkerError, workerError } from '../worker/structured-errors.js'
+import { observeWorkerLayout, workerLayout } from './worker-layout.js'
+import { TerminalWorkerError, workerError } from '../transport/worker-errors.js'
 import type {
   TerminalAppearance,
   TerminalAppearanceOptions,
@@ -60,15 +62,12 @@ import type {
   TerminalInputResult,
   TerminalKeyInput,
   TerminalMutationResult,
-  TerminalRendererTheme,
   TerminalSessionSubscription,
   TerminalTheme,
 } from '../term/types.js'
-import {
-  createTerminalAccessibility,
-  type TerminalAccessibilityController,
-} from './accessibility.js'
-import { createDomClipboardPolicyAdapter, writeUserSelectionToClipboard } from './clipboard.js'
+import { TerminalHostAccessibility } from './terminal-host-accessibility.js'
+import { createDomClipboardPolicyAdapter } from './clipboard.js'
+import { CleanupStack, invokeCleanup, type Cleanup } from './cleanup.js'
 import {
   createTerminalElements,
   type TerminalElementPadding,
@@ -87,36 +86,16 @@ import {
   type TerminalFitResult,
 } from './fit.js'
 import { observeFontResources } from './font-resources.js'
-import {
-  createDomInputController,
-  createDomInputLifecycleController,
-  type DomInputController,
-  type DomInputLifecycleController,
-} from './input.js'
-import { createDomLinkController, type DomLinkController } from './links.js'
 import type { LigatureFinder, TerminalLigatures } from '../render/shared/ligatures/finder.js'
-import {
-  createTerminalPointerController,
-  projectPointerPosition,
-  type CommittedPointerLayout,
-  type TerminalPointerController,
-} from './pointer.js'
 import { createTerminalScrollbar, type TerminalScrollbarController } from './scrollbar.js'
-import {
-  createTerminalSelectionController,
-  type TerminalSelectionController,
-  type TerminalSelectionProjection,
-} from './selection.js'
 import type {
   GhosttyWebGpuRenderer,
   GhosttyWebGpuRendererFactory,
-  GhosttyWebGpuTerminalAccessibilityOptions,
   GhosttyWebGpuTerminalEventMap,
   GhosttyWebGpuTerminalEventType,
   GhosttyWebGpuTerminalDiagnostics,
   GhosttyWebGpuTerminalLifecycle,
   GhosttyWebGpuTerminalFromSessionOptions,
-  GhosttyWebGpuTerminalInputHooks,
   GhosttyWebGpuTerminalListener,
   GhosttyWebGpuTerminalOptions,
   GhosttyWebGpuTerminalPointerHooks,
@@ -127,77 +106,7 @@ import type {
   TerminalGeneratedInput,
 } from './types.js'
 
-type HostEmitters = {
-  -readonly [TType in GhosttyWebGpuTerminalEventType]: EventEmitter<
-    GhosttyWebGpuTerminalEventMap[TType]
-  >
-}
-
-type Cleanup = () => void
-
-function createHostEmitters(): HostEmitters {
-  const error = new EventEmitter<GhosttyWebGpuTerminalEventMap['error']>()
-  const sink = (operation: string) => (cause: unknown) => error.emit({ cause, operation })
-  return {
-    open: new EventEmitter(sink('event.open')),
-    appearance: new EventEmitter(sink('event.appearance')),
-    bell: new EventEmitter(sink('event.bell')),
-    data: new EventEmitter(sink('event.data')),
-    error,
-    frame: new EventEmitter(sink('event.frame')),
-    outputTiming: new EventEmitter(sink('event.outputTiming')),
-    resize: new EventEmitter(sink('event.resize')),
-    scroll: new EventEmitter(sink('event.scroll')),
-    selection: new EventEmitter(sink('event.selection')),
-    title: new EventEmitter(sink('event.title')),
-  }
-}
-
-function disposeHostEmitters(emitters: HostEmitters): void {
-  emitters.open.dispose()
-  emitters.appearance.dispose()
-  emitters.bell.dispose()
-  emitters.data.dispose()
-  emitters.frame.dispose()
-  emitters.outputTiming.dispose()
-  emitters.resize.dispose()
-  emitters.scroll.dispose()
-  emitters.selection.dispose()
-  emitters.title.dispose()
-  emitters.error.dispose()
-}
-
-function invokeCleanup(cleanup: Cleanup, onError: (cause: unknown) => void): void {
-  try {
-    cleanup()
-  } catch (cause) {
-    onError(cause)
-  }
-}
-
-class CleanupStack {
-  private disposed = false
-  private readonly entries: Cleanup[] = []
-
-  add(cleanup: Cleanup): void {
-    if (this.disposed) throw new Error('Cleanup stack is disposed')
-    this.entries.push(cleanup)
-  }
-
-  dispose(onError: (cause: unknown) => void): void {
-    if (this.disposed) return
-    this.disposed = true
-    while (this.entries.length > 0) {
-      const cleanup = this.entries.pop()
-      if (!cleanup) continue
-      invokeCleanup(cleanup, onError)
-    }
-  }
-}
-
 const defaultScrollbarWidth = 12
-// Batch fast output while keeping foreground readable text responsive.
-const accessibilityRefreshDelayMs = 100
 
 function scrollbarWidth(value: number | undefined): number {
   if (value === undefined) return defaultScrollbarWidth
@@ -213,49 +122,10 @@ function openAbortError(parent: HTMLElement): Error {
   return error
 }
 
-function leadingCursorColumn(snapshot: RendererTextFrameSnapshot): number | undefined {
-  const viewport = snapshot.cursor.viewport
-  if (!viewport) return undefined
-  if (!viewport.wideTail) return viewport.x
-  return Math.max(0, viewport.x - 1)
-}
-
-function cssRgb(color: TerminalRendererTheme['foreground']): string {
-  return `rgb(${color.r} ${color.g} ${color.b})`
-}
-
 // Renderers leave default cells transparent; the root fills the grid, padding and fit remainder.
 function applyRootBackground(root: HTMLElement, appearance: TerminalAppearance): void {
   const { r, g, b } = appearance.rendererTheme.background
   root.style.backgroundColor = `rgb(${r} ${g} ${b} / ${appearance.backgroundOpacity})`
-}
-
-function applyPreeditAppearance(
-  element: HTMLElement,
-  font: TerminalFittedFont,
-  theme: TerminalRendererTheme,
-): void {
-  element.style.backgroundColor = cssRgb(theme.background)
-  element.style.color = cssRgb(theme.foreground)
-  element.style.fontFamily = font.settings.family
-  element.style.fontSize = `${font.settings.size}px`
-  element.style.fontWeight = `${font.settings.weight}`
-  element.style.letterSpacing = `${font.settings.letterSpacing}px`
-  element.style.lineHeight = `${font.cssCellHeight}px`
-  element.style.minHeight = `${font.cssCellHeight}px`
-  element.style.minWidth = `${font.cssCellWidth}px`
-}
-
-function owningWindow(element: HTMLElement): Window {
-  const view = element.ownerDocument.defaultView
-  if (view) return view
-  throw new TypeError('Terminal elements must belong to a document with a window')
-}
-
-function physicalPadding(value: number, pixelRatio: number): number {
-  const result = Math.round(value * pixelRatio)
-  if (Number.isSafeInteger(result) && result >= 0) return result
-  throw new RangeError('Terminal padding must map to a non-negative safe device-pixel value')
 }
 
 function subscriptionCleanup(subscription: TerminalSessionSubscription): Cleanup {
@@ -279,37 +149,19 @@ function fittedFontSettingsEqual(
   )
 }
 
-interface TextPublication {
-  readonly text: TerminalSubmittedText
-}
-
 export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements TerminalApi<Mode> {
-  private readonly textSubscribers = new EventEmitter<TextPublication>((cause) =>
-    this.reportError(cause, 'frame.text'),
-  )
-  private readonly pendingText: TextPublication[] = []
-  private deliveringText = false
-  private accessibilityTimer?: number
-  private accessibilityFrame?: TerminalSubmittedSnapshot
-  private accessibilityResizeRevision?: number
+  private readonly accessibility: TerminalHostAccessibility
   private documentVisible = true
   private elementVisible = true
   private readonly renderWhenOffscreen: boolean
   private publicFrameSource?: TerminalSubmittedSnapshot
   private publicFrame?: TerminalSubmittedFrame
-  private accessibility?: TerminalAccessibilityController
-  private readonly accessibilityOptions?: false | GhosttyWebGpuTerminalAccessibilityOptions
   private readonly autoFit: boolean
   private readonly cleanup = new CleanupStack()
   private readonly compositorAsset?: string | URL
-  private readonly copySelection
   private elementsValue?: TerminalElements
-  private readonly emitters = createHostEmitters()
   private fit?: TerminalFitController
   private fittedFont?: TerminalFittedFont
-  private preeditActive = false
-  private inputFocused = false
-  private compositionActive = false
   private workerCanvasSize?: {
     readonly canvas: HTMLCanvasElement
     readonly width: number
@@ -321,33 +173,25 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   private readonly fitEnvironment?: Partial<TerminalFitEnvironment>
   private extensions?: ExtensionManager
   private readonly extensionDispatch = createExtensionDispatch()
+  private readonly events = new TerminalHostEvents(
+    {
+      appearance: () => this.execution.appearance,
+      grid: () => this.execution.grid,
+      lifecycle: () => this.stateValue,
+    },
+    this.extensionDispatch,
+  )
   private generation = 0
+  private readonly input: TerminalHostInput
   private inputOwner?: TerminalInputConnection & { readonly handler: TerminalInputHandler }
-  private input?: DomInputController
-  private readonly inputHooks?: GhosttyWebGpuTerminalInputHooks
-  private inputLifecycle?: DomInputLifecycleController
   private inactiveCursorStyle?: InactiveCursorStyle
-  private readonly keyboard
   private lastFrame?: RendererTextFrameSnapshot
-  private readonly linkActivationModifier
-  private links?: DomLinkController
   private layoutCommitted = false
-  private cachedPointerLayout?: {
-    readonly canvas: HTMLCanvasElement
-    readonly summary: TerminalSubmittedFrame
-    readonly layout: CommittedPointerLayout
-  }
   private readonly padding
-  private readonly pendingEvents: (() => void)[] = []
-  private pendingAppearance?: GhosttyWebGpuTerminalEventMap['appearance']
-  private pendingAppearanceToken = 0
-  private pendingResize?: GhosttyWebGpuTerminalEventMap['resize']
-  private pendingResizeToken = 0
-  private pointer?: TerminalPointerController
+  private readonly pointer: TerminalHostPointer
   private readonly pointerHooks?: GhosttyWebGpuTerminalPointerHooks
   private renderer?: GhosttyWebGpuRenderer
   private readonly rendererFactory?: GhosttyWebGpuRendererFactory
-  private bidiMapper?: RowBidiMapper
   private readonly bidi: boolean
   private readonly textBlink: boolean
   private readonly ligatures: TerminalLigatures | undefined
@@ -360,7 +204,6 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   private scrollbar?: TerminalScrollbarController
   private readonly scrollbarOptions?: GhosttyWebGpuTerminalScrollbarOptions | false
   private readonly scrollbarWidthValue: number
-  private selection?: TerminalSelectionController
   private stateValue: GhosttyWebGpuTerminalLifecycle = 'created'
   private readonly writeQueue: TerminalWriteQueue<TerminalMutationResult>
 
@@ -371,17 +214,48 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   ) {
     bindCanvasImage(this, this.canvasImages)
     bindStartupBackend(this, () => this.resolveStartupBackend())
-    this.cleanup.add(() => this.textSubscribers.dispose())
-    this.accessibilityOptions = options.accessibility
+    this.cleanup.add(() => this.events.disposeText())
+    this.accessibility = new TerminalHostAccessibility(options.accessibility, {
+      frame: () => this.execution.submittedFrame,
+      visible: () => this.documentVisible,
+      onError: (cause, operation) => this.reportError(cause, operation),
+    })
     this.autoFit = options.autoFit !== false
     this.compositorAsset = options.compositorAsset
-    this.copySelection = options.copySelection
     this.fitEnvironment = options.fitEnvironment
-    this.inputHooks = options.inputHooks
-    this.keyboard = options.keyboard
-    this.linkActivationModifier = options.linkActivationModifier
+    this.input = new TerminalHostInput(
+      {
+        copySelection: options.copySelection,
+        inputHooks: options.inputHooks,
+        keyboard: options.keyboard,
+      },
+      {
+        execution,
+        claimKey: this.claimDomKey,
+        claimText: this.claimText,
+        elements: () => this.elementsValue,
+        font: () => this.fittedFont,
+        isPresent: () => this.stateValue === 'open' || this.stateValue === 'opening',
+        lastFrame: () => this.lastFrame,
+        noteInput: () => this.writeQueue.noteInput(),
+        onError: (cause, operation) => this.reportError(cause, operation),
+        setDocumentVisible: (visible) => this.setDocumentVisible(visible),
+        setFocused: (focused) => this.handleFocused(focused),
+        setReducedMotion: (reduced) => this.renderer?.setReducedMotion?.(reduced),
+      },
+    )
     this.padding = options.padding
     this.pointerHooks = options.pointerHooks
+    this.pointer = new TerminalHostPointer(
+      {
+        execution,
+        elements: () => this.elementsValue,
+        layoutCommitted: () => this.layoutCommitted,
+        onError: (cause, operation) => this.reportError(cause, operation),
+        wakeHandoff: () => this.wakeStartupHandoff(),
+      },
+      options.linkActivationModifier,
+    )
     this.rendererFactory = options.rendererFactory ?? defaultRendererFactory
     this.bidi = options.bidi ?? false
     this.textBlink = options.textBlink ?? false
@@ -463,7 +337,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       dispatch: this.extensionDispatch,
       terminal: this,
       registerLinkProvider: (provider) => this.registerLinkProvider(provider),
-      onError: (cause, operation) => this.emitters.error.emit({ cause, operation }),
+      onError: (cause, operation) => this.events.emitError(cause, operation),
     })
     return this.extensions
   }
@@ -547,8 +421,8 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       hasPendingLinkResolution: this.hasPendingLinkResolution,
       hasPendingTimer: this.hasPendingTimer,
       lifecycle: this.stateValue,
-      pointerOwner: this.pointer?.owner ?? 'none',
-      pressedButtonCount: this.pointer?.pressedButtonCount ?? 0,
+      pointerOwner: this.pointer.owner,
+      pressedButtonCount: this.pointer.pressedButtonCount,
       rendererBackend:
         this.execution.kind === 'async' ? this.execution.backend : this.renderer?.backend,
       desynchronized: this.renderer?.desynchronized === true,
@@ -566,13 +440,13 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   }
 
   get hasPendingLinkResolution(): boolean {
-    return this.links?.hasPendingResolution === true
+    return this.pointer.hasPendingResolution
   }
 
   get hasPendingTimer(): boolean {
     if (this.renderer?.hasPendingTimer === true) return true
     if (this.scrollbar?.hasPendingTimer === true) return true
-    return this.selection?.hasPendingAutoscroll === true
+    return this.pointer.hasPendingAutoscroll
   }
 
   get lifecycle(): GhosttyWebGpuTerminalLifecycle {
@@ -596,7 +470,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       const elements = this.installElements(parent)
       applyRootBackground(elements.root, this.execution.appearance)
       this.subscribeToSession()
-      if (this.bidi) this.bidiMapper = await loadBidiMapper()
+      const bidiMapper = this.bidi ? await loadBidiMapper() : undefined
       const initialFit = this.prepareInitialFit(elements)
       const initialAppearance = this.execution.appearance
       renderer = await this.createRenderer(elements, initialAppearance, initialFit?.result)
@@ -614,10 +488,10 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       this.reconcileRendererAppearance(elements, initialAppearance)
       this.setDocumentVisible(elements.root.ownerDocument.visibilityState !== 'hidden')
       this.installVisibility(elements)
-      this.installAccessibility(elements)
+      this.cleanup.add(() => this.accessibility.dispose())
+      this.accessibility.attach(elements)
       this.installScrollbar(elements, initialFit?.result.scrollbarWidth)
-      this.installInput(elements)
-      this.inputHooks?.inputReady?.()
+      this.input.attach(elements, (cleanup) => this.cleanup.add(cleanup))
       const initialFitResult =
         initialFit &&
         this.execution.appearance === initialAppearance &&
@@ -625,13 +499,12 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
           ? initialFit.result
           : undefined
       this.installFit(elements, initialFitResult, initialFit?.desiredPadding)
-      this.cleanup.add(() => this.disposeCanvasControllers())
-      this.installPointer(elements)
-      this.installLinks(elements)
+      this.cleanup.add(() => this.pointer.dispose())
+      this.pointer.attach(elements, bidiMapper)
       this.replayLastFrame()
       this.stateValue = 'open'
-      this.emitHostEvent('open', elements.root)
-      this.flushPendingEvents()
+      this.events.emit('open', elements.root)
+      this.events.flushPending()
     } catch (cause) {
       if (renderer)
         invokeCleanup(
@@ -650,10 +523,9 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     listener: GhosttyWebGpuTerminalListener<TType>,
   ): GhosttyWebGpuTerminalSubscription {
     this.ensureActive()
-    const emitter = this.emitters[type] as EventEmitter<GhosttyWebGpuTerminalEventMap[TType]>
-    if (type !== 'outputTiming') return emitter.subscribe(listener)
+    if (type !== 'outputTiming') return this.events.on(type, listener)
     this.outputTimingTracker ??= this.createOutputTimingTracker()
-    const subscription = emitter.subscribe(listener)
+    const subscription = this.events.on(type, listener)
     return {
       dispose: () => {
         subscription.dispose()
@@ -664,7 +536,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   // The last listener leaving drops recorded input and any open burst.
   private releaseOutputTiming(): void {
-    if (this.emitters.outputTiming.hasListeners) return
+    if (this.events.hasListeners('outputTiming')) return
     this.outputTimingTracker?.dispose()
     this.outputTimingTracker = undefined
     this.timedWorkerWrite = undefined
@@ -683,15 +555,8 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   }
 
   onText(listener: (text: TerminalSubmittedText) => void): GhosttyWebGpuTerminalSubscription {
-    return this.subscribeText((publication) => listener(publication.text))
-  }
-
-  private subscribeText(listener: (publication: TextPublication) => void) {
     this.ensureActive()
-    const after = this.execution.submittedFrame?.frame ?? 0
-    return this.textSubscribers.subscribe((publication) => {
-      if (publication.text.frame > after) return listener(publication)
-    })
+    return this.events.onText(this.execution.submittedFrame?.frame ?? 0, listener)
   }
 
   get submittedFrame(): TerminalSubmittedFrame | undefined {
@@ -735,7 +600,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   writeAndReadGeometry(data: TerminalInputData): TerminalResult<Mode, TerminalGeometry> {
     this.ensureOpen()
     this.writeQueue.flush()
-    this.invalidateLinks()
+    this.pointer.invalidateLinks()
     const timing = this.observedOutputTiming()
     const sequence = timing?.output()
     const geometry = this.execution.writeAndReadGeometry(data)
@@ -785,14 +650,14 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   registerLinkProvider(provider: LinkProvider<Event>): LinkProviderRegistration {
     this.ensureActive()
     const registration = this.execution.registerLinkProvider(provider)
-    this.refreshLinks()
+    this.pointer.refreshLinks()
     let disposed = false
     return Object.freeze({
       dispose: () => {
         if (disposed) return
         disposed = true
         registration.dispose()
-        this.refreshLinks()
+        this.pointer.refreshLinks()
       },
       token: registration.token,
     })
@@ -816,7 +681,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     data: TerminalInputData,
     owned: boolean,
   ): TerminalMutationResult | Promise<TerminalMutationResult> {
-    this.invalidateLinks()
+    this.pointer.invalidateLinks()
     const timing = this.observedOutputTiming()
     const sequence = timing?.output()
     const result =
@@ -833,7 +698,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   writeln(data: TerminalInputData): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
     this.writeQueue.flush()
-    this.invalidateLinks()
+    this.pointer.invalidateLinks()
     const timing = this.observedOutputTiming()
     const sequence = timing?.output()
     const result = this.execution.writeln(data)
@@ -892,8 +757,8 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   reset(): TerminalResult<Mode, TerminalMutationResult> {
     this.ensureOpen()
     this.writeQueue.flush()
-    this.input?.resetTransientState()
-    this.pointer?.cancel()
+    this.input.resetTransientState()
+    this.pointer.cancel()
     return this.result(this.execution.reset())
   }
 
@@ -947,13 +812,13 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   clearSelection(): TerminalResult<Mode, boolean> {
     this.ensureOpen()
-    this.pointer?.cancel()
+    this.pointer.cancel()
     return this.result(this.execution.clearSelection())
   }
 
   selectAll(): TerminalResult<Mode, boolean> {
     this.ensureOpen()
-    this.pointer?.cancel()
+    this.pointer.cancel()
     const result = this.execution.selectAll()
     return this.result(
       result instanceof Promise
@@ -964,7 +829,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   selectRange(start: SelectionPoint, end: SelectionPoint): TerminalResult<Mode, boolean> {
     this.ensureOpen()
-    this.pointer?.cancel()
+    this.pointer.cancel()
     const result = this.execution.selectRange(start, end)
     return this.result(
       result instanceof Promise
@@ -975,7 +840,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   selectLines(startRow: number, endRow: number): TerminalResult<Mode, boolean> {
     this.ensureOpen()
-    this.pointer?.cancel()
+    this.pointer.cancel()
     const result = this.execution.selectLines(startRow, endRow)
     return this.result(
       result instanceof Promise
@@ -986,7 +851,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   focusNextLink(): Promise<boolean> {
     this.ensureOpen()
-    return this.links?.focusNextLink() ?? Promise.resolve(false)
+    return this.pointer.focusNextLink()
   }
 
   setColorScheme(colorScheme: TerminalColorScheme): TerminalResult<Mode, TerminalMutationResult> {
@@ -999,12 +864,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   setAccessibilityEnabled(enabled: boolean): boolean {
     this.ensureActive()
-    if (!enabled) return this.disableAccessibility()
-    if (this.accessibility) return false
-    const elements = this.elementsValue
-    if (!elements) return false
-    this.enableAccessibility(elements)
-    return true
+    return this.accessibility.setEnabled(enabled, this.elementsValue)
   }
 
   setCursorInactiveStyle(style: InactiveCursorStyle | undefined): TerminalResult<Mode, boolean> {
@@ -1038,36 +898,23 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.canvasImages.dispose()
     this.writeQueue.dispose()
     this.nextGeneration()
-    this.pendingEvents.length = 0
-    this.pendingAppearance = undefined
-    this.pendingAppearanceToken += 1
-    this.pendingResize = undefined
-    this.pendingResizeToken += 1
-    this.pendingText.length = 0
+    this.events.discardPending()
     this.outputTimingTracker?.dispose()
     this.outputTimingTracker = undefined
     this.timedWorkerWrite = undefined
     this.inputOwner?.dispose()
     this.extensions?.dispose()
-    this.cleanup.dispose((cause) => this.emitters.error.emit({ cause, operation: 'dispose' }))
-    this.accessibility = undefined
+    this.cleanup.dispose((cause) => this.events.emitError(cause, 'dispose'))
     this.fit = undefined
     this.fittedFont = undefined
-    this.preeditActive = false
-    this.input = undefined
-    this.inputLifecycle = undefined
     this.lastFrame = undefined
     this.layoutCommitted = false
-    this.cachedPointerLayout = undefined
-    this.links = undefined
-    this.pointer = undefined
     this.renderer = undefined
     this.scrollbar = undefined
-    this.selection = undefined
     this.elementsValue = undefined
     this.workerCanvasSize = undefined
     this.stateValue = 'disposed'
-    disposeHostEmitters(this.emitters)
+    this.events.dispose()
     return this.result(this.execution.dispose())
   }
 
@@ -1177,7 +1024,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
-    this.updatePreeditAppearance(font, appearance.rendererTheme)
+    this.input.updatePreeditAppearance(font, appearance.rendererTheme)
     // One finder per terminal survives renderer restores and fallbacks.
     // The font reader loads only when ligatures are on.
     this.ligatureFinder ??= this.ligatures
@@ -1205,14 +1052,13 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
         [observeDisplayedFrame]: (snapshot) => this.handleFrame(snapshot),
         [startupCanvas]: elements.adoptCanvas && {
           adopt: (canvas) => this.replaceRendererCanvas(elements, canvas),
-          canAdopt: () =>
-            (this.pointer?.owner ?? 'none') === 'none' && !this.links?.hasActivePointerActivation,
+          canAdopt: () => this.pointer.canAdoptCanvas,
         },
         retainDisplayedText: true,
-        needsFrameRows: () => Boolean(this.links?.needsFrame || this.textSubscribers.hasListeners),
+        needsFrameRows: () => this.pointer.needsFrame || this.events.hasTextListeners,
         onRowsChanged: (rows) => {
-          if (!this.emitters.frame.hasListeners && !this.extensionDispatch.events.frame) return
-          this.emitHostEvent('frame', Object.freeze({ rows }))
+          if (!this.events.hasListeners('frame') && !this.extensionDispatch.events.frame) return
+          this.events.emit('frame', Object.freeze({ rows }))
         },
         replaceCanvas: elements.replaceCanvas
           ? () => this.replaceRendererCanvas(elements)
@@ -1240,7 +1086,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     )
     this.fittedFont = font
     this.execution.commitLayout(font, elements.padding)
-    this.updatePreeditAppearance(font, appearance.rendererTheme)
+    this.input.updatePreeditAppearance(font, appearance.rendererTheme)
     this.renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     this.renderer?.setFont(font)
     this.renderer?.setTheme(appearance.rendererTheme)
@@ -1252,7 +1098,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   private observedOutputTiming(): OutputTimingTracker | undefined {
     const tracker = this.outputTimingTracker
-    if (!tracker || !this.emitters.outputTiming.hasListeners) return undefined
+    if (!tracker || !this.events.hasListeners('outputTiming')) return undefined
     return tracker
   }
 
@@ -1294,7 +1140,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
           rendererBackend: diagnostics.rendererBackend,
         }
       },
-      emit: (timing) => this.emitHostEvent('outputTiming', timing),
+      emit: (timing) => this.events.emit('outputTiming', timing),
     })
   }
 
@@ -1308,19 +1154,19 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.trackSubscription(
       this.execution.on('appearance', ({ appearance }) => this.handleAppearance(appearance)),
     )
-    this.trackSubscription(this.execution.on('bell', () => this.emitHostEvent('bell', undefined)))
+    this.trackSubscription(this.execution.on('bell', () => this.events.emit('bell', undefined)))
     this.trackSubscription(
       this.execution.on('data', ({ bytes, origin }) => {
         if (origin === 'input') {
           this.writeQueue.noteInput()
           this.observedOutputTiming()?.input()
         }
-        this.emitHostEvent('data', Object.freeze({ bytes: Uint8Array.from(bytes), origin }))
+        this.events.emit('data', Object.freeze({ bytes: Uint8Array.from(bytes), origin }))
       }),
     )
     this.trackSubscription(
       this.execution.on('error', (error) => {
-        this.emitHostEvent('error', error)
+        this.events.emit('error', error)
         // The opening catch owns cleanup so its rejection retains the actor failure.
         if (
           this.stateValue === 'open' &&
@@ -1339,113 +1185,12 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       this.execution.on('selection', (selection) => this.handleSelection(selection)),
     )
     this.trackSubscription(
-      this.execution.on('title', ({ title }) => this.emitHostEvent('title', title)),
+      this.execution.on('title', ({ title }) => this.events.emit('title', title)),
     )
   }
 
   private trackSubscription(subscription: TerminalSessionSubscription): void {
     this.cleanup.add(subscriptionCleanup(subscription))
-  }
-
-  private installAccessibility(elements: TerminalElements): void {
-    this.cleanup.add(() => this.disableAccessibility())
-    elements.textarea.addEventListener(
-      'focus',
-      () => {
-        this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
-      },
-      { signal: elements.signal },
-    )
-    if (!this.accessibilityOptions) return
-    this.enableAccessibility(elements)
-  }
-
-  private enableAccessibility(elements: TerminalElements): void {
-    this.accessibility = this.createAccessibility(elements)
-    this.refreshAccessibility()
-  }
-
-  private scheduleAccessibility(): void {
-    if (!this.accessibility || !this.documentVisible) return
-    const summary = this.execution.submittedFrame
-    if (!summary) return
-    const previous = this.accessibilityFrame
-    if (
-      previous &&
-      previous.snapshotVersion === summary.snapshotVersion &&
-      previous.nativeRevision === summary.nativeRevision &&
-      previous.layout === summary.layout &&
-      previous.cursor.visible === summary.cursor.visible &&
-      previous.cursor.viewport?.x === summary.cursor.viewport?.x &&
-      previous.cursor.viewport?.y === summary.cursor.viewport?.y &&
-      previous.cursor.viewport?.wideTail === summary.cursor.viewport?.wideTail &&
-      previous.scrollbar.offset === summary.scrollbar.offset &&
-      previous.scrollbar.total === summary.scrollbar.total &&
-      previous.scrollbar.length === summary.scrollbar.length
-    )
-      return
-    const movedViewport =
-      previous &&
-      previous.scrollbar.offset !== summary.scrollbar.offset &&
-      (previous.scrollbar.offset !== previous.scrollbar.total - previous.scrollbar.length ||
-        summary.scrollbar.offset !== summary.scrollbar.total - summary.scrollbar.length)
-    if (this.accessibility.rowElements.length === 0 || movedViewport) {
-      this.runUiOperation('frame.accessibility', () => this.refreshAccessibility(!movedViewport))
-      return
-    }
-    if (this.accessibilityTimer !== undefined) return
-    const view = owningWindow(this.elementsValue!.root)
-    this.accessibilityTimer = view.setTimeout(() => {
-      this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
-    }, accessibilityRefreshDelayMs)
-  }
-
-  private refreshAccessibility(announce = true): void {
-    this.cancelAccessibilityTimer()
-    const accessibility = this.accessibility
-    if (!accessibility || !this.documentVisible) return
-    const summary = this.execution.submittedFrame
-    if (!summary) return
-    const resizeRevision = this.accessibilityResizeRevision
-    // Resize intervals establish readable text without inferring output across reflowed rows.
-    accessibility.update(summary, summary.scrollbar, announce && resizeRevision === undefined)
-    this.accessibilityFrame = summary
-    // Focus can refresh an older displayed frame while the resized frame is waiting to paint.
-    if (resizeRevision !== undefined && summary.nativeRevision >= resizeRevision)
-      this.accessibilityResizeRevision = undefined
-  }
-
-  private cancelAccessibilityTimer(): void {
-    if (this.accessibilityTimer === undefined) return
-    owningWindow(this.elementsValue!.root).clearTimeout(this.accessibilityTimer)
-    this.accessibilityTimer = undefined
-  }
-
-  private createAccessibility(elements: TerminalElements): TerminalAccessibilityController {
-    const options = this.accessibilityOptions || undefined
-    return createTerminalAccessibility({
-      ...(options?.label === undefined ? {} : { label: options.label }),
-      ...(options?.liveRegionMaxCharacters === undefined
-        ? {}
-        : { liveRegionMaxCharacters: options.liveRegionMaxCharacters }),
-      ...(options?.liveRegionMaxEntries === undefined
-        ? {}
-        : { liveRegionMaxEntries: options.liveRegionMaxEntries }),
-      root: elements.root,
-      signal: elements.signal,
-      textarea: elements.textarea,
-    })
-  }
-
-  private disableAccessibility(): boolean {
-    const accessibility = this.accessibility
-    if (!accessibility) return false
-    this.accessibility = undefined
-    this.cancelAccessibilityTimer()
-    this.accessibilityFrame = undefined
-    this.accessibilityResizeRevision = undefined
-    accessibility.dispose()
-    return true
   }
 
   private installScrollbar(elements: TerminalElements, initialWidth?: number): void {
@@ -1479,79 +1224,6 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       ...options,
       passive: false,
     })
-  }
-
-  private installInput(elements: TerminalElements): void {
-    let input: DomInputController | undefined
-    if (this.keyboard !== false) {
-      const view = elements.root.ownerDocument.defaultView
-      if (!view) throw createGhosttyError('input.install', 'Terminal input requires a window')
-      elements.textarea.addEventListener('focus', this.handleTextareaFocus, {
-        signal: elements.signal,
-      })
-      elements.textarea.addEventListener('blur', this.handleTextareaBlur, {
-        signal: elements.signal,
-      })
-      elements.textarea.addEventListener('compositionstart', this.handleCompositionStart, {
-        signal: elements.signal,
-      })
-      elements.textarea.addEventListener('compositionend', this.handleCompositionEnd, {
-        signal: elements.signal,
-      })
-      input = createDomInputController({
-        claimKey: this.claimDomKey,
-        claimText: this.claimText,
-        hooks: {
-          ...this.inputHooks,
-          beforeUserInput: () => {
-            this.writeQueue.noteInput()
-            this.inputHooks?.beforeUserInput?.()
-          },
-        },
-        onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
-        onPreedit: (value) => this.updatePreedit(value),
-        selectionReadback: {
-          hasSelection: () =>
-            this.execution.kind === 'sync'
-              ? this.execution.selectionCoordinates() !== undefined
-              : this.execution.submittedFrame?.selection !== undefined,
-          copy: () => this.copyUserSelection(view, elements.signal),
-        },
-        ...(this.execution.kind === 'sync'
-          ? { session: this.execution.input }
-          : { encoding: this.execution }),
-        signal: elements.signal,
-        textarea: elements.textarea,
-      })
-      this.input = input
-      this.cleanup.add(() => input?.dispose())
-    }
-    const motion = elements.root.ownerDocument.defaultView?.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    )
-    const updateMotion = () => {
-      const reduced = motion?.matches ?? false
-      if (this.execution.kind === 'async') {
-        void this.execution
-          .request('reducedMotion', [reduced])
-          .catch((cause: unknown) => this.reportError(cause, 'motion'))
-        return
-      }
-      this.renderer?.setReducedMotion?.(reduced)
-    }
-    motion?.addEventListener('change', updateMotion, { signal: elements.signal })
-    updateMotion()
-    const lifecycle = createDomInputLifecycleController({
-      onDocumentVisible: (visible) => this.setDocumentVisible(visible),
-      onError: (cause, operation) => this.reportError(cause, `input.${operation}`),
-      onFocused: (focused) => this.handleFocused(focused),
-      onResetTransientState: () => input?.resetTransientState(),
-      session: this.execution.focus,
-      signal: elements.signal,
-      textarea: elements.textarea,
-    })
-    this.inputLifecycle = lifecycle
-    this.cleanup.add(() => lifecycle.dispose())
   }
 
   private installFit(
@@ -1610,79 +1282,6 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.cleanup.add(() => fit.dispose())
   }
 
-  private async copyUserSelection(view: Window, signal: AbortSignal): Promise<void> {
-    const text =
-      this.execution.kind === 'sync'
-        ? this.execution.getSelection()
-        : this.execution.selectionSnapshot().then((snapshot) => snapshot.selection?.text)
-    if (text === undefined) return
-    const copy = this.copySelection
-    if (!copy) return writeUserSelectionToClipboard(view, text, { signal })
-    const value = typeof text === 'string' ? text : await text
-    signal.throwIfAborted()
-    if (value !== undefined) await copy(value)
-  }
-
-  private refreshSelectionProjection(
-    previous: TerminalSelectionProjection,
-  ): TerminalSelectionProjection | undefined {
-    const layout = this.committedPointerLayout()
-    if (!layout || !previous.client) return undefined
-    return projectPointerPosition(
-      { clientX: previous.client.x, clientY: previous.client.y },
-      layout,
-    ).selection
-  }
-
-  private installPointer(elements: TerminalElements): void {
-    const selection = createTerminalSelectionController({
-      getIdentity:
-        this.execution.kind === 'async' ? () => this.execution.selectionIdentity : undefined,
-      getProjection: (previous) => this.refreshSelectionProjection(previous),
-      onError: (cause, operation) => this.reportError(cause, operation),
-      session: this.execution.selectionGesture,
-      view: owningWindow(elements.canvas),
-    })
-    let pointer: TerminalPointerController
-    try {
-      pointer = createTerminalPointerController({
-        canvas: elements.canvas,
-        getLayout: () => this.committedPointerLayout(),
-        onError: (cause, operation) => this.reportError(cause, operation),
-        onOwnerChange: (owner) => {
-          if (owner === 'none') this.wakeStartupHandoff()
-        },
-        selection,
-        session: this.execution.pointer,
-        signal: elements.signal,
-      })
-    } catch (cause) {
-      selection.dispose()
-      throw cause
-    }
-    this.selection = selection
-    this.pointer = pointer
-  }
-
-  private installLinks(elements: TerminalElements): void {
-    const links = createDomLinkController({
-      bidiMapper: this.bidiMapper,
-      getFrame: () => (this.execution.linkProjection ? this.readFrame() : undefined),
-      getProjection: () => this.execution.linkProjection,
-      activationModifier: this.linkActivationModifier,
-      canvas: elements.canvas,
-      getLayout: () => this.committedPointerLayout(),
-      onActivationChange: (active) => {
-        if (!active) this.wakeStartupHandoff()
-      },
-      onError: (cause, operation) => this.reportError(cause, `link.${operation}`),
-      root: elements.root,
-      session: this.execution.links,
-      signal: elements.signal,
-    })
-    this.links = links
-  }
-
   private wakeStartupHandoff(): void {
     const renderer = this.renderer
     if (renderer && wakeStartupHandoff in renderer) {
@@ -1702,56 +1301,6 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     return Promise.resolve(this.diagnostics.rendererBackend)
   }
 
-  private disposePointerController(): void {
-    const pointer = this.pointer
-    this.pointer = undefined
-    this.selection = undefined
-    invokeCleanup(
-      () => pointer?.dispose(),
-      (cause) => this.reportError(cause, 'pointer.dispose'),
-    )
-  }
-
-  private disposeCanvasControllers(): void {
-    const links = this.links
-    this.links = undefined
-    invokeCleanup(
-      () => links?.dispose(),
-      (cause) => this.reportError(cause, 'link.dispose'),
-    )
-    this.disposePointerController()
-  }
-
-  private replaceRendererCanvas(
-    elements: TerminalElements,
-    replacement?: HTMLCanvasElement,
-  ): HTMLCanvasElement {
-    elements.signal.throwIfAborted()
-    if (!elements.replaceCanvas) throw new Error('Terminal elements cannot replace their canvas')
-    const active = elements.root.ownerDocument.activeElement
-    const preserveLinks = replacement !== undefined && this.links !== undefined
-    const restoreFocus =
-      active === elements.canvas ||
-      (!preserveLinks &&
-        active?.classList.contains('ghostty-webgpu-link') === true &&
-        elements.root.contains(active))
-    const rebindPointer = this.pointer !== undefined
-    const rebindLinks = this.links !== undefined
-    if (preserveLinks) this.disposePointerController()
-    else this.disposeCanvasControllers()
-    if (replacement) elements.adoptCanvas?.(replacement)
-    else elements.replaceCanvas()
-    const canvas = elements.canvas
-    if (this.execution.kind === 'sync') {
-      if (rebindPointer) this.installPointer(elements)
-      if (preserveLinks) this.links?.rebindCanvas(canvas)
-      else if (rebindLinks) this.installLinks(elements)
-    }
-    if (restoreFocus) elements.textarea.focus({ preventScroll: true })
-    this.replayLastFrame()
-    return canvas
-  }
-
   private applyFit(result: TerminalFitResult): void {
     if (this.execution.kind === 'async') return
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
@@ -1761,7 +1310,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.renderer?.setFont(result.font)
     this.fittedFont = result.font
     this.layoutCommitted = true
-    if (paddingChanged || scrollbarWidthChanged) this.invalidateLinks()
+    if (paddingChanged || scrollbarWidthChanged) this.pointer.invalidateLinks()
     this.writeQueue.flush()
     this.execution.resize(result.grid)
     // Padding can change without native cells changing; submit its new layout with owned rows.
@@ -1813,7 +1362,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     const root = this.elementsValue?.root
     if (root) applyRootBackground(root, appearance)
     if (this.execution.kind === 'async') {
-      this.emitHostEvent('appearance', appearance)
+      this.events.emit('appearance', appearance)
       return
     }
     const renderer = this.renderer
@@ -1823,35 +1372,28 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     }
     renderer?.setCursorBlinkEnabled(appearance.cursor.blink)
     renderer?.setTheme(appearance.rendererTheme)
-    this.emitHostEvent('appearance', appearance)
+    this.events.emit('appearance', appearance)
   }
 
   private handleResize(grid: TerminalGrid): void {
-    if (this.accessibility) this.accessibilityResizeRevision = this.execution.revision
-    this.invalidateLinks()
+    if (this.accessibility.enabled) this.accessibility.noteResize(this.execution.revision)
+    this.pointer.invalidateLinks()
     this.renderer?.resize({ columns: grid.columns, rows: grid.rows })
     this.updateScrollbar()
-    this.emitHostEvent('resize', { cols: grid.columns, rows: grid.rows })
+    this.events.emit('resize', { cols: grid.columns, rows: grid.rows })
   }
 
   private handleScroll(scroll: GhosttyWebGpuTerminalEventMap['scroll']): void {
-    const displayed = this.accessibility && this.execution.submittedFrame?.scrollbar
-    if (
-      displayed &&
-      displayed.offset !== scroll.scrollbar.offset &&
-      (displayed.offset !== displayed.total - displayed.length ||
-        scroll.scrollbar.offset !== scroll.scrollbar.total - scroll.scrollbar.length)
-    )
-      this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
-    this.invalidateLinks()
+    this.accessibility.noteScroll(scroll.scrollbar)
+    this.pointer.invalidateLinks()
     this.renderer?.notifyScroll()
     this.updateScrollbar(scroll.scrollbar)
-    this.emitHostEvent('scroll', scroll)
+    this.events.emit('scroll', scroll)
   }
 
   private handleSelection(selection: GhosttyWebGpuTerminalEventMap['selection']): void {
     this.renderer?.notifySelectionChange()
-    this.emitHostEvent('selection', selection)
+    this.events.emit('selection', selection)
   }
 
   private get renderVisible(): boolean {
@@ -1860,33 +1402,9 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   private installVisibility(elements: TerminalElements): void {
     if (this.renderWhenOffscreen) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries.at(-1)
-        if (!entry) return
-        const bounds = entry.boundingClientRect
-        const intersection = entry.intersectionRect
-        this.setElementVisible(
-          bounds.width > 0 &&
-            bounds.height > 0 &&
-            intersection.width > 0 &&
-            intersection.height > 0,
-        )
-      },
-      { threshold: [0, Number.EPSILON] },
+    this.cleanup.add(
+      observeTerminalVisibility(elements.root, (visible) => this.setElementVisible(visible)),
     )
-    const resize = new ResizeObserver(() => {
-      if (this.stateValue === 'disposed') return
-      // Zero-size targets can keep the same intersection ratio, so request a fresh entry.
-      observer.unobserve(elements.root)
-      observer.observe(elements.root)
-    })
-    this.cleanup.add(() => {
-      resize.disconnect()
-      observer.disconnect()
-    })
-    observer.observe(elements.root)
-    resize.observe(elements.root, { box: 'border-box' })
   }
 
   private setElementVisible(visible: boolean): void {
@@ -1897,8 +1415,7 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
 
   private setDocumentVisible(visible: boolean): void {
     this.documentVisible = visible
-    if (visible) this.runUiOperation('frame.accessibility', () => this.refreshAccessibility())
-    else this.cancelAccessibilityTimer()
+    this.accessibility.visibilityChanged(visible)
     this.synchronizeRenderVisibility()
   }
 
@@ -1917,35 +1434,14 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
   private handleFocused(focused: boolean): void {
     this.renderer?.setFocused(focused)
     if (focused) {
-      const snapshot = this.lastFrame
-      if (snapshot) this.runUiOperation('focus.caret', () => this.positionTextarea(snapshot))
+      this.input.positionAtLastFrame('focus.caret')
       return
     }
-    this.pointer?.cancel()
-  }
-
-  private readonly handleTextareaFocus = (): void => {
-    this.inputFocused = true
-    const snapshot = this.lastFrame
-    if (snapshot) this.runUiOperation('focus.caret', () => this.positionTextarea(snapshot))
-  }
-
-  private readonly handleTextareaBlur = (): void => {
-    this.inputFocused = false
-  }
-
-  private readonly handleCompositionStart = (): void => {
-    this.compositionActive = true
-    const snapshot = this.lastFrame
-    if (snapshot) this.runUiOperation('composition.caret', () => this.positionTextarea(snapshot))
-  }
-
-  private readonly handleCompositionEnd = (): void => {
-    this.compositionActive = false
+    this.pointer.cancel()
   }
 
   private handleRenderRequest(): void {
-    this.invalidateLinks()
+    this.pointer.invalidateLinks()
     this.renderer?.schedule()
   }
 
@@ -1959,65 +1455,36 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     this.updateFrameUi(snapshot)
   }
 
+  private replaceRendererCanvas(
+    elements: TerminalElements,
+    replacement?: HTMLCanvasElement,
+  ): HTMLCanvasElement {
+    const canvas = this.pointer.replaceCanvas(elements, replacement)
+    this.replayLastFrame()
+    return canvas
+  }
+
   private handleCleanUpdate(): void {
     if (this.execution.kind !== 'sync') return
     this.execution.confirmCleanUpdate()
-    if (!this.links?.needsFrame) return
+    if (!this.pointer.needsFrame) return
     const snapshot = this.readFrame()
-    if (snapshot) this.updateLinkFrame(snapshot)
+    if (snapshot) this.pointer.updateLinkFrame(snapshot)
   }
 
   private handleFrame(snapshot: RendererTextFrameSnapshot): void {
     if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
     if (!snapshot.renderHeld) this.noteDrawn()
     this.updateFrameUi(this.execution.kind === 'sync' ? this.execution.submit(snapshot) : snapshot)
-    this.publishText()
-    this.scheduleAccessibility()
+    this.events.publishText(this.execution.submittedFrame)
+    this.accessibility.schedule()
     if (
       this.execution.kind === 'async' &&
-      (this.emitters.frame.hasListeners || this.extensionDispatch.events.frame)
+      (this.events.hasListeners('frame') || this.extensionDispatch.events.frame)
     )
-      this.emitHostEvent('frame', {
+      this.events.emit('frame', {
         rows: this.execution.submittedFrame?.rowPatches.map((row) => row.y) ?? [],
       })
-  }
-
-  private textPublication(): TextPublication | undefined {
-    const summary = this.execution.submittedFrame
-    if (!summary) return undefined
-    return {
-      text: Object.freeze({
-        frame: summary.frame,
-        rows: summary.rows,
-        rowPatches: summary.rowPatches,
-      }),
-    }
-  }
-
-  private publishText(): void {
-    if (!this.textSubscribers.hasListeners) return
-    const text = this.textPublication()
-    if (!text) return
-    this.emitText(text)
-  }
-
-  private emitText(publication: TextPublication): void {
-    if (this.stateValue === 'opening') {
-      this.pendingEvents.push(() => this.emitText(publication))
-      return
-    }
-    if (this.stateValue !== 'open') return
-    this.pendingText.push(publication)
-    if (this.deliveringText) return
-    this.deliveringText = true
-    try {
-      while (this.pendingText.length > 0 && this.stateValue === 'open') {
-        this.textSubscribers.emit(this.pendingText.shift()!)
-      }
-    } finally {
-      this.deliveringText = false
-      this.pendingText.length = 0
-    }
   }
 
   private updateFrameUi(snapshot: RendererTextFrameSnapshot): void {
@@ -2035,68 +1502,10 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
       if (widthChanged || heightChanged) this.workerCanvasSize = { canvas, width, height }
     }
     const scrollbar = summary?.scrollbar ?? this.execution.scrollbar
-    if (summary) this.updatePreeditAppearance(summary.font, summary.theme)
-    this.runUiOperation('frame.caret', () => this.positionTextarea(snapshot))
-    this.runUiOperation('frame.links', () => {
-      if (this.links?.needsFrame && snapshot.rows.length > 0) this.updateLinkFrame(snapshot)
-      else this.invalidateLinks()
-    })
+    if (summary) this.input.updatePreeditAppearance(summary.font, summary.theme)
+    this.runUiOperation('frame.caret', () => this.input.positionTextarea(snapshot))
+    this.runUiOperation('frame.links', () => this.pointer.acceptFrame(snapshot))
     this.runUiOperation('frame.scrollbar', () => this.scrollbar?.update(scrollbar))
-  }
-
-  private invalidateLinks(): void {
-    this.links?.invalidate()
-  }
-
-  private refreshLinks(): void {
-    this.invalidateLinks()
-    if (!(this.links?.needsFrame ?? false)) return
-    const snapshot = this.readFrame()
-    if (!snapshot) return
-    this.updateLinkFrame(snapshot)
-  }
-
-  private updateLinkFrame(snapshot: RendererTextFrameSnapshot): void {
-    const links = this.links
-    const layout = this.committedPointerLayout()
-    if (!links || !layout) return
-    links.updateFrame(snapshot)
-  }
-
-  private committedPointerLayout(): CommittedPointerLayout | undefined {
-    const elements = this.elementsValue
-    if (!elements || !this.layoutCommitted) return undefined
-    const summary = this.execution.submittedFrame
-    if (!summary) return undefined
-    const cached = this.cachedPointerLayout
-    if (cached && cached.canvas === elements.canvas && cached.summary === summary) {
-      return cached.layout
-    }
-    const grid = summary.grid
-    const font = summary.font
-    const ratio = font.pixelRatio
-    const padding = summary.padding
-    const paddingBottom = physicalPadding(padding.bottom, ratio)
-    const paddingLeft = physicalPadding(padding.left, ratio)
-    const paddingRight = physicalPadding(padding.right, ratio)
-    const paddingTop = physicalPadding(padding.top, ratio)
-    const dimensions = Object.freeze({
-      deviceCellHeight: font.deviceCellHeight,
-      deviceCellWidth: font.deviceCellWidth,
-      paddingBottom,
-      paddingLeft,
-      paddingRight,
-      paddingTop,
-      screenHeight: paddingTop + font.deviceCellHeight * grid.rows + paddingBottom,
-      screenWidth: paddingLeft + font.deviceCellWidth * grid.columns + paddingRight,
-    })
-    const layout = Object.freeze({
-      canvas: elements.canvas,
-      grid: Object.freeze({ ...grid }),
-      physical: dimensions,
-    })
-    this.cachedPointerLayout = { canvas: elements.canvas, layout, summary }
-    return layout
   }
 
   private updateScrollbar(snapshot?: Readonly<TerminalScrollbar>): void {
@@ -2184,112 +1593,8 @@ export class TerminalHost<Mode extends 'sync' | 'async' = 'sync'> implements Ter
     }
   }
 
-  private positionTextarea(snapshot: RendererTextFrameSnapshot): void {
-    const elements = this.elementsValue
-    if (!elements) return
-    if (!this.inputFocused && !this.compositionActive) return
-    if (this.stateValue !== 'open' && this.stateValue !== 'opening') return
-    this.lastFrame = snapshot
-    const column = leadingCursorColumn(snapshot)
-    const viewport = snapshot.cursor.viewport
-    if (column === undefined || !viewport) return
-    const summary = this.execution.submittedFrame
-    if (!summary) return
-    const grid = summary.grid
-    elements.positionTextarea({
-      x: summary.padding.left + column * grid.cellWidth,
-      y: summary.padding.top + viewport.y * grid.cellHeight,
-    })
-  }
-
-  private updatePreedit(value: string): void {
-    this.preeditActive = value.length > 0
-    const compositionView = this.elementsValue?.compositionView
-    if (!compositionView) return
-    if (this.preeditActive) {
-      const summary = this.execution.submittedFrame
-      const appearance = this.execution.appearance
-      const font = summary?.font ?? this.fittedFont
-      this.updatePreeditAppearance(font, summary?.theme ?? appearance.rendererTheme)
-    }
-    compositionView.textContent = value
-    compositionView.classList.toggle('active', this.preeditActive)
-    compositionView.hidden = !this.preeditActive
-  }
-
-  private updatePreeditAppearance(
-    font: TerminalFittedFont | undefined,
-    theme: TerminalRendererTheme,
-  ): void {
-    if (!this.preeditActive || !font) return
-    const compositionView = this.elementsValue?.compositionView
-    if (!compositionView) return
-    applyPreeditAppearance(compositionView, font, theme)
-  }
-
   private reportError(cause: unknown, operation: string): void {
-    if (this.stateValue === 'disposed') return
-    this.emitHostEvent('error', { cause, operation })
-  }
-
-  private emitHostEvent<TType extends GhosttyWebGpuTerminalEventType>(
-    type: TType,
-    event: GhosttyWebGpuTerminalEventMap[TType],
-  ): void {
-    const emitter = this.emitters[type] as EventEmitter<GhosttyWebGpuTerminalEventMap[TType]>
-    if (this.stateValue === 'open') {
-      if (type === 'appearance') {
-        this.pendingAppearance = undefined
-        this.pendingAppearanceToken += 1
-      }
-      if (type === 'resize') {
-        this.pendingResize = undefined
-        this.pendingResizeToken += 1
-      }
-      emitter.emit(event)
-      if (this.stateValue === 'open') this.extensionDispatch.events[type]?.(event)
-      return
-    }
-    if (this.stateValue !== 'opening') return
-    if (type === 'appearance') {
-      this.pendingAppearance = event as GhosttyWebGpuTerminalEventMap['appearance']
-      const token = ++this.pendingAppearanceToken
-      this.pendingEvents.push(() => this.flushPendingAppearance(token))
-      return
-    }
-    if (type === 'resize') {
-      this.pendingResize = event as GhosttyWebGpuTerminalEventMap['resize']
-      const token = ++this.pendingResizeToken
-      this.pendingEvents.push(() => this.flushPendingResize(token))
-      return
-    }
-    this.pendingEvents.push(() => this.emitHostEvent(type, event))
-  }
-
-  private flushPendingAppearance(token: number): void {
-    if (token !== this.pendingAppearanceToken) return
-    const appearance = this.pendingAppearance
-    this.pendingAppearance = undefined
-    if (!appearance || this.execution.appearance !== appearance) return
-    this.emitHostEvent('appearance', appearance)
-  }
-
-  private flushPendingResize(token: number): void {
-    if (token !== this.pendingResizeToken) return
-    const resize = this.pendingResize
-    this.pendingResize = undefined
-    if (!resize) return
-    const grid = this.execution.grid
-    if (grid.columns !== resize.cols || grid.rows !== resize.rows) return
-    this.emitHostEvent('resize', resize)
-  }
-
-  private flushPendingEvents(): void {
-    const events = this.pendingEvents.splice(0)
-    for (const emit of events) {
-      if (this.stateValue !== 'open') return
-      emit()
-    }
+    this.events.reportError(cause, operation)
   }
 
   private nextGeneration(): number {
